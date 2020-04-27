@@ -11,7 +11,6 @@ from pathlib import Path
 from time import sleep
 
 import pytest
-
 from nxdrive.constants import ROOT, WINDOWS
 from nxdrive.exceptions import DuplicationDisabledError, NotFound
 
@@ -119,10 +118,9 @@ class StubLocalClient:
         assert file_2.name == escaped_filename
         assert file_2.path == folder_1_info.path / escaped_filename
 
-    @pytest.mark.xfail(True, raises=NotFound, reason="Must fail.")
     def test_missing_file(self):
-        local = self.local_1
-        local.get_info("/Something Missing")
+        with pytest.raises(NotFound):
+            self.local_1.get_info("/Something Missing")
 
     @pytest.mark.timeout(30)
     def test_case_sensitivity(self):
