@@ -11,7 +11,7 @@ import yaml
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QApplication
 
-from ..constants import APP_NAME, CONNECTION_ERROR, NO_SPACE_ERRORS
+from ..constants import APP_NAME, CONNECTION_ERROR, NO_SPACE_ERRORS, USER_AGENT
 from ..engine.workers import PollWorker
 from ..feature import Feature
 from ..options import Options
@@ -177,6 +177,7 @@ class BaseUpdater(PollWorker):
         name = self.release_file.format(version=version)
         url = "/".join([self.update_site, self.versions[version]["type"], name])
         path = os.path.join(gettempdir(), uuid.uuid4().hex + "_" + name)
+        headers = {"User-Agent": USER_AGENT}
 
         log.info(
             f"Fetching version {version!r} from update site {self.update_site!r} "
@@ -185,7 +186,7 @@ class BaseUpdater(PollWorker):
         try:
             # Note: I do not think we should pass the `verify` kwarg here
             # because updates are critical and must be stored on a secured server.
-            req = requests.get(url, stream=True)
+            req = requests.get(url, headers=headers, stream=True)
             size = int(req.headers["content-length"])
 
             with open(path, "wb") as tmp:
@@ -213,10 +214,11 @@ class BaseUpdater(PollWorker):
         """ Fetch available versions. It sets `self.versions` on success. """
 
         url = f"{self.update_site}/versions.yml"
+        headers = {"User-Agent": USER_AGENT}
         try:
             # Note: I do not think we should pass the `verify` kwarg here
             # because updates are critical and must be stored on a secured server.
-            with requests.get(url) as resp:
+            with requests.get(url, headers=headers) as resp:
                 resp.raise_for_status()
                 content = resp.text
         except Exception as exc:

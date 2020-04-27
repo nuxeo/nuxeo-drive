@@ -91,9 +91,10 @@ def download_last_ga_release(output_dir, version):
     file += "-x86_64.AppImage" if EXT == "appimage" else f".{EXT}"
     url = f"https://community.nuxeo.com/static/drive-updates/release/{file}"
     output = os.path.join(output_dir, "alpha", file)
+    headers = {"User-Agent": f"check-updater/{__version__}"}
     print(">>> Downloading", url, "->", output, flush=True)
 
-    with requests.get(url) as req, open(output, "wb") as dst:
+    with requests.get(url, headers=headers) as req, open(output, "wb") as dst:
         dst.write(req.content)
 
     # Adjust execution rights
@@ -127,8 +128,9 @@ def get_last_version_number():
     from nxdrive.updater.utils import get_latest_version
 
     url = "https://community.nuxeo.com/static/drive-updates/versions.yml"
+    headers = {"User-Agent": f"check-updater/{__version__}"}
     print(">>> Downloading", url, flush=True)
-    with requests.get(url) as req:
+    with requests.get(url, headers=headers) as req:
         data = req.content
 
     versions = yaml.safe_load(data)

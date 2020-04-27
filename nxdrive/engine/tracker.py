@@ -104,7 +104,7 @@ class Tracker(PollWorker):
         """ Format a custom user agent. """
 
         return (
-            f"{APP_NAME.replace(' ', '')}/{self._manager.version} ({ga_user_agent()})"
+            f"{APP_NAME.replace(' ', '-')}/{self._manager.version} ({ga_user_agent()})"
         )
 
     def send_event(self, category: str, action: str, label: str, value: int) -> None:
