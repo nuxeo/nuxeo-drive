@@ -38,6 +38,7 @@ from .constants import (
     FILE_BUFFER_SIZE,
     MAC,
     UNACCESSIBLE_HASH,
+    USER_AGENT,
     WINDOWS,
 )
 from .exceptions import InvalidSSLCertificate, UnknownDigest
@@ -911,6 +912,7 @@ def guess_server_url(
     kwargs: Dict[str, Any] = {
         "timeout": timeout,
         "verify": Options.ca_bundle or not Options.ssl_no_verify,
+        "headers": {"User-Agent": USER_AGENT},
     }
     for new_url in compute_urls(url):
         try:

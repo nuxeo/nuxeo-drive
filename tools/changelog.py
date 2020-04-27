@@ -181,10 +181,11 @@ def get_issue_infos(issue, raw=False):
     debug(">>> Fetching information of {}".format(issue))
     base_url = "https://jira.nuxeo.com"
     url = base_url + "/rest/api/2/issue/{}".format(issue)
+    headers = {"User-Agent": "changelog/{}".format(__version__)}
 
     for _ in range(5):
         try:
-            with requests.get(url) as content:
+            with requests.get(url, headers=headers) as content:
                 data = content.json()
                 break
         except (requests.HTTPError, ValueError):

@@ -6,6 +6,7 @@ import requests
 from pypac import get_pac
 from pypac.resolver import ProxyResolver
 
+from ..constants import USER_AGENT
 from ..options import Options
 from ..utils import decrypt, encrypt, force_decode
 
@@ -179,8 +180,11 @@ def save_proxy(proxy: Proxy, dao: "EngineDAO", token: str = None) -> None:
 
 def validate_proxy(proxy: Proxy, url: str) -> bool:
     verify = Options.ca_bundle or not Options.ssl_no_verify
+    headers = {"User-Agent": USER_AGENT}
     try:
-        with requests.get(url, proxies=proxy.settings(url=url), verify=verify):
+        with requests.get(
+            url, headers=headers, proxies=proxy.settings(url=url), verify=verify
+        ):
             return True
     except OSError as exc:
         # OSError: Could not find a suitable TLS CA certificate bundle, invalid path: ...
