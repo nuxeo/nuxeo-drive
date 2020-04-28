@@ -1,4 +1,5 @@
 # coding: utf-8
+import errno
 import time
 from logging import getLogger
 from pathlib import Path
@@ -485,6 +486,106 @@ class MixinTests(DirectEditSetup):
             )
             assert isinstance(file, Path)
             assert file.is_file()
+
+    def test_concurrent_editions_on_same_document(self):
+        """Simulate Direct Edit'ing a file more than one-time.
+        It happens often when a user double-clic on the edit button on the browser,
+        then 2 events are sent at almost the same time.
+        See NXDRIVE-2128 for details.
+        """
+        filename = "multiplication des clics.txt"
+        uid = self.remote.make_file("/", filename, content=b"Plein de clics.")
+        download_url = f"nxfile/default/{uid}/file:content/{filename}"
+        args = (self.nuxeo_url, uid)
+        kwargs = {"user": self.user_1, "download_url": download_url}
+        call_count = 0
+
+        def open_local_file(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+
+        with patch.object(self.manager_1, "open_local_file", new=open_local_file):
+            self.direct_edit.edit(*args, **kwargs)
+            self.direct_edit.edit(*args, **kwargs)
+            self.direct_edit.edit(*args, **kwargs)
+            self.direct_edit.edit(*args, **kwargs)
+        assert len(self.direct_edit._opened_files) == 1
+        assert uid in self.direct_edit._opened_files
+        assert call_count == 1
+
+    def test_concurrent_editions_on_same_document_with_download_failures(self):
+        """Simulate Direct Edit'ing a file more than one-time.
+        It happens often when a user double-clic on the edit button on the browser,
+        then 2 events are sent at almost the same time.
+        In this scenario, the download will fail and the file is not opened.
+        See NXDRIVE-2128 for details.
+        """
+        filename = "multiplication des clics fails.txt"
+        uid = self.remote.make_file("/", filename, content=b"Plein de clics.")
+        download_url = f"nxfile/default/{uid}/file:content/{filename}"
+        args = (self.nuxeo_url, uid)
+        kwargs = {"user": self.user_1, "download_url": download_url}
+        call_count = 0
+
+        def open_local_file(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+
+        def prepare_edit_none(*args, **kwargs):
+            return None
+
+        def prepare_edit_raise_os_error_no_filename(*args, **kwargs):
+            raise OSError(errno.EACCES, "Mock'ed OS Error")
+
+        def prepare_edit_raise_os_error_with_filename(*args, **kwargs):
+            raise OSError(errno.EACCES, "Mock'ed OS Error", "/dqqdqdqadqdadzdzdq/")
+
+        def prepare_edit_raise_random_os_error_with_filename(*args, **kwargs):
+            raise OSError(errno.EEXIST, "Mock'ed OS Error")
+
+        with patch.object(
+            self.manager_1, "open_local_file", new=open_local_file
+        ), patch.object(self.direct_edit, "_prepare_edit", new=prepare_edit_none):
+            self.direct_edit.edit(*args, **kwargs)
+            assert len(self.direct_edit._opened_files) == 0
+            assert call_count == 0
+
+        with patch.object(
+            self.manager_1, "open_local_file", new=open_local_file
+        ), patch.object(
+            self.direct_edit,
+            "_prepare_edit",
+            new=prepare_edit_raise_os_error_no_filename,
+        ):
+            self.direct_edit.edit(*args, **kwargs)
+            assert len(self.direct_edit._opened_files) == 0
+            assert call_count == 0
+
+        with patch.object(
+            self.manager_1, "open_local_file", new=open_local_file
+        ), patch.object(
+            self.direct_edit,
+            "_prepare_edit",
+            new=prepare_edit_raise_random_os_error_with_filename,
+        ):
+            with pytest.raises(OSError):
+                self.direct_edit.edit(*args, **kwargs)
+            assert len(self.direct_edit._opened_files) == 0
+            assert call_count == 0
+
+        with patch.object(
+            self.manager_1, "open_local_file", new=open_local_file
+        ), patch.object(
+            self.direct_edit,
+            "_prepare_edit",
+            new=prepare_edit_raise_os_error_with_filename,
+        ):
+            self.direct_edit.edit(*args, **kwargs)
+            self.direct_edit.edit(*args, **kwargs)
+            self.direct_edit.edit(*args, **kwargs)
+            self.direct_edit.edit(*args, **kwargs)
+            assert len(self.direct_edit._opened_files) == 1
+            assert call_count == 1
 
     def test_self_locked_file(self):
         filename = "Mode operatoire.txt"

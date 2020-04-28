@@ -85,6 +85,7 @@ class DirectEdit(Worker):
         self.use_autolock = self._manager.get_direct_edit_auto_lock()
         self._event_handler: Optional[DriveFSEventHandler] = None
         self._metrics = {"edit_files": 0}
+        self._opened_files = set()
         self._observer: Observer = None
         self.local = LocalClient(self._folder)
         self._upload_queue: Queue = Queue()
@@ -531,7 +532,10 @@ class DirectEdit(Worker):
             self.directEditError.emit("DIRECT_EDIT_NOT_ENABLED", [])
             return
 
+        if doc_id in self._opened_files:
+            return
         log.info(f"Direct Editing doc {doc_id!r} on {server_url!r}")
+        self._opened_files.add(doc_id)
         try:
             # Download the file
             file_path = self._prepare_edit(
@@ -542,12 +546,17 @@ class DirectEdit(Worker):
             # Launch it
             if file_path:
                 self._manager.open_local_file(file_path)
+            else:
+                self._opened_files.discard(doc_id)
         except OSError as e:
             if e.errno == errno.EACCES:
                 # Open file anyway
                 if e.filename is not None:
                     self._manager.open_local_file(e.filename)
+                else:
+                    self._opened_files.discard(doc_id)
             else:
+                self._opened_files.discard(doc_id)
                 raise e
 
     def _extract_edit_info(self, ref: Path) -> DirectEditDetails:
@@ -657,6 +666,7 @@ class DirectEdit(Worker):
                     continue
 
                 self.local.remove_remote_id(ref.parent, name="nxdirecteditlock")
+                self._opened_files.discard(ref)
                 # Emit the signal only when the unlock is done
                 self._send_lock_status(ref)
                 self.autolock.documentUnlocked.emit(ref.name)
