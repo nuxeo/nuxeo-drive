@@ -486,6 +486,32 @@ class MixinTests(DirectEditSetup):
             assert isinstance(file, Path)
             assert file.is_file()
 
+    def test_concurrent_editions_on_same_document(self):
+        """Simulate Direct Edit'ing a file more than one-time.
+        It happens often when a user double-clic on the edit button on the browser,
+        then 2 events are sent at almost the same time.
+        See NXDRIVE-2128 for details.
+        """
+        filename = "multiplication des clics.txt"
+        uid = self.remote.make_file("/", filename, content=b"Plein de clics.")
+        download_url = f"nxfile/default/{uid}/file:content/{filename}"
+        args = (self.nuxeo_url, uid)
+        kwargs = {"user": self.user_1, "download_url": download_url}
+        call_count = 0
+
+        def open_local_file(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+
+        with patch.object(self.manager_1, "open_local_file", new=open_local_file):
+            self.direct_edit.edit(*args, **kwargs)
+            self.direct_edit.edit(*args, **kwargs)
+            self.direct_edit.edit(*args, **kwargs)
+            self.direct_edit.edit(*args, **kwargs)
+        assert len(self.direct_edit._opened_files) == 1
+        assert uid in self.direct_edit._opened_files
+        assert call_count == 1
+
     def test_self_locked_file(self):
         filename = "Mode operatoire.txt"
         doc_id = self.remote.make_file("/", filename, content=b"Some content.")
