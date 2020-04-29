@@ -133,16 +133,16 @@ class MixinTests(DirectEditSetup):
     def test_no_xpath(self):
         filename = "test_file.txt"
         doc_id = self.remote.make_file("/", filename, content=b"Initial content.")
-        content = b"Initial content."
-        xpath = "file:content"
-
         with patch.object(self.manager_1, "open_local_file", new=open_local_file):
             self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
+            xpath = "file:content"
+
             local_path = Path(f"{doc_id}_{safe_filename(xpath)}/{filename}")
             assert self.local.exists(local_path)
             self.wait_sync(fail_if_timeout=False)
             self.local.set_remote_id(local_path.parent, b"", name="nxdirecteditxpath")
 
+            content = b"Initial content."
             # Update file content
             self.local.update_content(local_path, content)
             self.wait_sync()
