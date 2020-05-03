@@ -85,8 +85,9 @@ pytest-forked==1.1.3 \
     # via pytest-xdist
 pytest-timeout==1.3.4 \
     --hash=sha256:95ca727d4a1dace6ec5f0534d2940b8417ff8b782f7eef0ea09240bdd94d95c2
-pytest-xdist==1.31.0 \
-    --hash=sha256:0f46020d3d9619e6d17a65b5b989c1ebbb58fc7b1da8fb126d70f4bac4dfeed1
+pytest-xdist==1.32.0 \
+    --hash=sha256:ba5ec9fde3410bd9a116ff7e4f26c92e02fa3d27975ef3ad03f330b3d4b54e91 \
+    --hash=sha256:1d4166dcac69adb38eeaedb88c8fada8588348258a3492ab49ba9161f2971129
 text-unidecode==1.3 \
     --hash=sha256:1311f10e8b895935241623731c2ba64f4c455287888b18189350b67134a822e8
     # via faker
