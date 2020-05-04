@@ -1099,7 +1099,7 @@ class Engine(QObject):
         try:
             self.local.set_folder_icon(ROOT, icon)
         except Exception:
-            log.exception("Icon folder cannot be set")
+            log.warning("Icon folder cannot be set", exc_info=True)
         finally:
             self.local.lock_ref(ROOT, locker)
 
