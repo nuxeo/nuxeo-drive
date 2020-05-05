@@ -392,6 +392,9 @@ class DirectEdit(Worker):
                 "DIRECT_EDIT_VERSION", [info.version, info.name, info.uid]
             )
             return None
+        if info.is_proxy:
+            self.directEditError.emit("DIRECT_EDIT_PROXY", [info.name])
+            return None
 
         if info.lock_owner and info.lock_owner != engine.remote_user:
             # Retrieve the user full name, will be cached
@@ -740,6 +743,12 @@ class DirectEdit(Worker):
                         log.warning(
                             f"Unable to process Direct Edit on {remote_info.name} "
                             f"({details.uid}) because it is a version."
+                        )
+                        continue
+                    if remote_info.is_proxy:
+                        log.warning(
+                            f"Unable to process Direct Edit on {remote_info.name} "
+                            f"({details.uid}) because it is a proxy."
                         )
                         continue
                     remote_blob = remote_info.get_blob(xpath) if remote_info else None

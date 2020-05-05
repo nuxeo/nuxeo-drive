@@ -132,16 +132,16 @@ class MixinTests(DirectEditSetup):
     def test_no_xpath(self):
         filename = "test_file.txt"
         doc_id = self.remote.make_file("/", filename, content=b"Initial content.")
-        content = b"Initial content."
-        xpath = "file:content"
-
         with patch.object(self.manager_1, "open_local_file", new=open_local_file):
             self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
+            xpath = "file:content"
+
             local_path = Path(f"{doc_id}_{safe_filename(xpath)}/{filename}")
             assert self.local.exists(local_path)
             self.wait_sync(fail_if_timeout=False)
             self.local.set_remote_id(local_path.parent, b"", name="nxdirecteditxpath")
 
+            content = b"Initial content."
             # Update file content
             self.local.update_content(local_path, content)
             self.wait_sync()
@@ -273,6 +273,23 @@ class MixinTests(DirectEditSetup):
                     self.remote.get_blob(self.remote.get_info(doc_id))
                     == b"Initial content."
                 )
+
+    def test_direct_edit_proxy(self):
+        """
+        Trying to Direct Edit a proxy is not allowed.
+        In that case, the file edition must be aborted an a notification must be shown.
+        """
+        filename = "proxy-test.txt"
+        doc_id = self.remote.make_file("/", filename, content=b"Plein de clics.")
+        folder_uid = self.remote.make_folder("/", "proxy_folder")
+        folder_info = self.remote.get_info(folder_uid)
+        proxy_file = self.remote.create_proxy(doc_id, folder_info.path)
+
+        assert proxy_file["isProxy"] is True
+
+        assert not self.direct_edit._prepare_edit(self.nuxeo_url, proxy_file["uid"])
+        local_path = Path(f"/{doc_id}_file-content/{filename}")
+        assert not self.local.exists(local_path)
 
     def test_direct_edit_version(self):
         from nuxeo.models import BufferBlob
