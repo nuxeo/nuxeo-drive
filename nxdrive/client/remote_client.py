@@ -868,6 +868,12 @@ class Remote(Nuxeo):
             return self.dao.is_filter(path)
         return False
 
+    def is_proxy(self, ref: str) -> bool:
+        src_doc = self.execute(
+            command="Proxy.GetSourceDocument", input_obj=f"{self.check_ref(ref)}"
+        )
+        return src_doc["uid"] != ref
+
     def make_folder(
         self, parent_id: str, name: str, overwrite: bool = False
     ) -> RemoteFileInfo:

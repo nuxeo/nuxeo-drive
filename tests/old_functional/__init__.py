@@ -543,6 +543,20 @@ class DocRemote(RemoteTest):
             name=name,
         )
 
+    def create_proxy(self, ref: str, output_ref: str):
+        kwargs = {"Destination Path": output_ref}
+        return self.execute(
+            command="Document.CreateLiveProxy",
+            input_obj=f"{self.check_ref(ref)}",
+            **kwargs,
+        )
+
+    def is_proxy(self, ref: str):
+        src_doc = self.execute(
+            command="Proxy.GetSourceDocument", input_obj=f"{self.check_ref(ref)}"
+        )
+        return src_doc["uid"] != ref
+
     def update(self, ref: str, properties=None):
         return self.execute(
             command="Document.Update", input_obj=f"doc:{ref}", properties=properties
