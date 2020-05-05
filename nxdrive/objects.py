@@ -184,6 +184,7 @@ class NuxeoDocumentInfo:
     version: Optional[str]  # Nuxeo version
     state: Optional[str]  # Nuxeo lifecycle state
     is_trashed: bool  # Nuxeo trashed status
+    is_proxy: bool  # Is a proxy of a document
     is_version: bool  # is it a version of a document
     lock_owner: Optional[str]  # lock owner
     lock_created: Optional[datetime]  # lock creation time
@@ -221,6 +222,9 @@ class NuxeoDocumentInfo:
         # Is version of document
         is_version = doc.get("isVersion", False)
 
+        # Is a proxy
+        is_proxy = doc.get("isProxy", False)
+
         # XXX: we need another roundtrip just to fetch the parent uid...
 
         # Normalize using NFC to make the tests more intuitive
@@ -243,6 +247,7 @@ class NuxeoDocumentInfo:
             version,
             doc.get("state"),
             is_trashed,
+            is_proxy,
             is_version,
             lock_owner,
             lock_created,
