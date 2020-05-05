@@ -274,6 +274,24 @@ class MixinTests(DirectEditSetup):
                     == b"Initial content."
                 )
 
+    def test_proxy_edit(self):
+        """
+        Trying to Direct Edit a proxy is not allowed.
+        In that case, the file edition must be aborted an a notification must be shown.
+        """
+        filename = "proxy-test.txt"
+        doc_id = self.remote.make_file("/", filename, content=b"Plein de clics.")
+        folder_uid = self.remote.make_folder("/", "proxy_folder")
+        folder_info = self.remote.get_info(folder_uid)
+        proxy_file = self.remote.create_proxy(doc_id, folder_info.path)
+
+        assert proxy_file["isProxy"] is True
+
+        with patch.object(self.manager_1, "open_local_file", new=open_local_file):
+            assert not self.direct_edit._prepare_edit(self.nuxeo_url, proxy_file["uid"])
+            local_path = Path(f"/{doc_id}_file-content/{filename}")
+            assert not self.local.exists(local_path)
+
     def test_direct_edit_version(self):
         from nuxeo.models import BufferBlob
 
