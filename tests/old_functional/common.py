@@ -3,7 +3,6 @@
 import os
 import sys
 import tempfile
-from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
 from threading import Thread
@@ -260,12 +259,10 @@ class TwoUsersTest(TestCase):
 
         log.info("TEST run start")
 
-        def launch_test():
+        def launch_test(app=self.app):
             # Note: we cannot use super().run(result) here
             super(TwoUsersTest, self).run(result)
-
-            with suppress(Exception):
-                self.app.quit()
+            app.quit()
 
         # Ensure to kill the app if it is taking too long.
         # We need to do that because sometimes a thread get blocked and so the test suite.
@@ -276,9 +273,9 @@ class TwoUsersTest(TestCase):
         if self.id().startswith("tests.old_functional.test_volume."):
             timeout = 60 * 60 * 4  # 04:00:00
 
-        def kill_test():
+        def kill_test(app=self.app):
             log.error(f"Killing {self.id()} after {timeout} seconds")
-            sys.exit(1)
+            app.exit(1)
 
         QTimer.singleShot(timeout * 1000, kill_test)
 
@@ -289,7 +286,7 @@ class TwoUsersTest(TestCase):
             scope.set_tag("test", self.current_test)
             scope.set_tag("branch", os.getenv("BRANCH_NAME"))
             sync_thread.start()
-            self.app.exec_()
+            assert self.app.exec_() == 0
             sync_thread.join(30)
 
         log.info("TEST run end")
