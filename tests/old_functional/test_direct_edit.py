@@ -8,7 +8,7 @@ from urllib.error import URLError
 from uuid import uuid4
 
 import pytest
-from nuxeo.exceptions import Forbidden
+from nuxeo.exceptions import Forbidden, HTTPError
 from nxdrive.constants import WINDOWS
 from nxdrive.exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt
 from nxdrive.objects import NuxeoDocumentInfo
@@ -290,6 +290,31 @@ class MixinTests(DirectEditSetup):
         assert not self.direct_edit._prepare_edit(self.nuxeo_url, proxy_file["uid"])
         local_path = Path(f"/{doc_id}_file-content/{filename}")
         assert not self.local.exists(local_path)
+
+    def test_direct_edit_413_error(self):
+        """
+        When uploading changes to a proxy, an HTTPError 413 is raised.
+        The upload must be skipped and the error caught.
+        """
+
+        def upload(*_, **__):
+            """Mocked remote.upload method that raises a HTTPError 413"""
+            raise HTTPError(
+                status=413, message="Mock'ed Client Error: Request Entity Too Large"
+            )
+
+        filename = "error-413-test.txt"
+        doc_id = self.remote.make_file("/", filename, content=b"Initial")
+
+        with patch.object(
+            self.engine_1.remote, "upload", new=upload
+        ), ensure_no_exception():
+            with pytest.raises(AssertionError) as exc:
+                self._direct_edit_update(doc_id, filename, b"New")
+            # The update must have failed
+            assert "assert b'Initial' == b'New'" in str(exc.value)
+        # And the error queue should still be be empty, the bad upload has beend discarded
+        assert self.direct_edit._error_queue.empty()
 
     def test_direct_edit_version(self):
         from nuxeo.models import BufferBlob

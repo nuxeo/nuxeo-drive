@@ -49,6 +49,11 @@ class BlacklistQueue:
     def __str__(self) -> str:
         return repr(self)
 
+    def empty(self) -> bool:
+        """Return True if the queue is empty, False otherwise."""
+        with self._lock:
+            return not bool(self._queue)
+
     def push(self, path: Path) -> None:
         with self._lock:
             item = BlacklistItem(path, next_try=self._delay)
