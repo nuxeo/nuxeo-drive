@@ -805,17 +805,22 @@ class DirectEdit(Worker):
                 # Try again in 30s
                 log.warning(f"Connection error while uploading {ref!r}", exc_info=True)
                 self._error_queue.push(ref)
-            except Exception as e:
-                if (
-                    isinstance(e, HTTPError)
-                    and e.status == 500
-                    and "Cannot set property on a version" in e.message
-                ):
+            except HTTPError as e:
+                if e.status == 500 and "Cannot set property on a version" in e.message:
                     log.warning(
                         f"Unable to process Direct Edit on {ref} "
                         f"({details}) because it is a version."
                     )
-                    continue
+                elif e.status == 413:  # Request Entity Too Large
+                    log.warning(
+                        f"Unable to process Direct Edit on {ref} "
+                        f"({details}) because it is a proxy."
+                    )
+                else:
+                    # Try again in 30s
+                    log.exception(f"Direct Edit unhandled HTTP error for ref {ref!r}")
+                    self._error_queue.push(ref)
+            except Exception:
                 # Try again in 30s
                 log.exception(f"Direct Edit unhandled error for ref {ref!r}")
                 self._error_queue.push(ref)
