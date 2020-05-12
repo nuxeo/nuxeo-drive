@@ -724,9 +724,11 @@ def test_guess_server_url_bad_ssl():
         nxdrive.utils.guess_server_url(BAD_HOSTNAMES[0])
 
 
-@patch("rfc3987.parse")
+@patch("urllib3.util.url.parse_url")
 def test_guess_server_url_exception(mocked_parse):
-    mocked_parse.side_effect = Exception("...")
+    from urllib3.exceptions import LocationParseError
+
+    mocked_parse.side_effect = LocationParseError("Mock'ed error")
     url = "http://localhost:8080/nuxeo"
     nxdrive.utils.guess_server_url(url)
 
