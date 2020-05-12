@@ -144,15 +144,14 @@ Rectangle {
                 Rectangle {
                     height: 20
                     width: 350
-                    border.color: lighterGray
-                    border.width: 4
+                    border.color: nuxeoBlue
+                    border.width: 1
                     radius: 2
                     Row {
-                        height: parent.height - parent.border.width
                         anchors.fill: parent
                         anchors.margins: 2
 
-                        property var disk_info: api.get_disk_space_info_to_width(accountSelect.getRole("uid"), folder, parent.width - parent.border.width)
+                        property var disk_info: api.get_disk_space_info_to_width(accountSelect.getRole("uid"), folder, width)
 
                         RectangleTooltip {
                             color: nuxeoBlue;
