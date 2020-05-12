@@ -77,6 +77,7 @@
     "DIRECT_EDIT_LOCK_ERROR_DESCRIPTION": "Il documento „%1“ non è stato bloccato",
     "DIRECT_EDIT_NOT_FOUND": "Documento „%1“ non trovato in %2",
     "DIRECT_EDIT_NOT_ENABLED": "La funzione di Direct Edit non è attivata.",
+    "DIRECT_EDIT_PROXY": "You are trying to perform a Direct Edit on „%1“. This is a proxy so it cannot be edited.",
     "DIRECT_EDIT_READONLY_FILE": "Impossibile modificare „%1“ perché è di sola lettura",
     "DIRECT_EDIT_STARTING_TITLE": "Apertura da %1",
     "DIRECT_EDIT_STARTING_MSG": "„%1“ è stato aperto localmente ...",
