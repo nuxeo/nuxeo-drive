@@ -28,7 +28,12 @@ class LocalClient(LocalClientMixin):
     def change_created_time(self, filepath: Path, d_ctime: datetime) -> None:
         """Change the created time of a given file."""
         cmd = ["touch", "-mt", d_ctime.strftime("%Y%m%d%H%M.%S"), str(filepath)]
-        subprocess.check_call(cmd)
+        try:
+            subprocess.check_call(cmd)
+        except subprocess.CalledProcessError:
+            # Note: This is mostly due to the new Apple security layer asking for permissions.
+            # Note: Passing "exc_info=True" is useless as there will be no useful details.
+            log.warning(f"Cannot change the created time of {filepath!r}")
 
     def has_folder_icon(self, ref: Path) -> bool:
         """Check if the folder icon is set."""
