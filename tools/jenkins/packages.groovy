@@ -101,7 +101,7 @@ for (x in agents) {
                                 // Build the binary
                                 docker.withRegistry('https://dockerpriv.nuxeo.com/')
                                 {
-                                    def image = 'dockerpriv.nuxeo.com/nuxeo-drive-build:py-3.7.4'  // XXX_PYTHON
+                                    def image = 'dockerpriv.nuxeo.com/nuxeo-drive-build:py-3.7.7'  // XXX_PYTHON
                                     def container = docker.image(image)
                                     container.inside() { sh "/entrypoint.sh" }
                                 }

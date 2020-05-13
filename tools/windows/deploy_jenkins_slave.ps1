@@ -180,7 +180,7 @@ function check_upgrade {
 function check_vars {
 	# Check required variables
 	if (-Not ($Env:PYTHON_DRIVE_VERSION)) {
-		$Env:PYTHON_DRIVE_VERSION = '3.7.4'  # XXX_PYTHON
+		$Env:PYTHON_DRIVE_VERSION = '3.7.7'  # XXX_PYTHON
 	} elseif (-Not ($Env:WORKSPACE)) {
 		Write-Output ">>> WORKSPACE not defined. Aborting."
 		ExitWithCode 1
@@ -198,8 +198,8 @@ function check_vars {
 		$Env:ISCC_PATH = "C:\Program Files (x86)\Inno Setup 6"  # XXX_INNO_SETUP
 	}
 	if (-Not ($Env:PYTHON_DIR)) {
-		$ver_major, $ver_minor = $Env:PYTHON_DRIVE_VERSION.split('.')[0,1]
-		$Env:PYTHON_DIR = "C:\Python$ver_major$ver_minor-32"
+		$version = $Env:PYTHON_DRIVE_VERSION -replace '\.', ""
+		$Env:PYTHON_DIR = "C:\Python$version-32"
 	}
 
 	$Env:STORAGE_DIR = (New-Item -ItemType Directory -Force -Path "$($Env:WORKSPACE)\deploy-dir\$Env:PYTHON_DRIVE_VERSION").FullName

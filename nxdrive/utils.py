@@ -905,7 +905,8 @@ def guess_server_url(
     :return: The complete URL.
     """
     import requests
-    import rfc3987
+    from urllib3.exceptions import LocationParseError
+    from urllib3.util.url import parse_url
 
     from requests.exceptions import SSLError
 
@@ -916,7 +917,7 @@ def guess_server_url(
     }
     for new_url in compute_urls(url):
         try:
-            rfc3987.parse(new_url, rule="URI")
+            parse_url(new_url)
             log.debug(f"Testing URL {new_url!r}")
             full_url = f"{new_url}/{login_page}"
             if proxy:
@@ -934,7 +935,7 @@ def guess_server_url(
                 # When there is only Web-UI installed, the code is 401.
                 log.debug(f"Found URL: {new_url}")
                 return new_url
-        except (ValueError, requests.RequestException):
+        except (LocationParseError, ValueError, requests.RequestException):
             log.debug(f"Bad URL: {new_url}")
         except Exception:
             log.exception("Unhandled error")

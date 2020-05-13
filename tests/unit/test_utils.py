@@ -208,8 +208,8 @@ def test_find_suitable_tmp_dir_different_drive_using_the_root(tmp):
     drive = chr(ord(home_folder.drive[:-1]) + 1)
     sync_folder = Path(f"{drive}:")
 
-    func = nxdrive.utils.find_suitable_tmp_dir
     with pytest.raises(ValueError):
+        func = nxdrive.utils.find_suitable_tmp_dir
         func(sync_folder, home_folder)
 
 
@@ -237,12 +237,12 @@ def test_find_suitable_tmp_dir_different_partition(mocked_stat, tmp):
 
 @not_windows(reason="Windows has no st_dev")
 def test_find_suitable_tmp_dir_different_partition_using_the_root(tmp):
-    func = nxdrive.utils.find_suitable_tmp_dir
     home_folder = tmp() / ".nuxeo-drive"
     home_folder.mkdir(parents=True)
     sync_folder = Path("/")
 
     with pytest.raises(ValueError):
+        func = nxdrive.utils.find_suitable_tmp_dir
         func(sync_folder, home_folder)
 
 
@@ -720,14 +720,15 @@ def test_compute_urls(url):
 def test_guess_server_url_bad_ssl():
     from nxdrive.exceptions import InvalidSSLCertificate
 
-    url = BAD_HOSTNAMES[0]
     with pytest.raises(InvalidSSLCertificate):
-        nxdrive.utils.guess_server_url(url)
+        nxdrive.utils.guess_server_url(BAD_HOSTNAMES[0])
 
 
-@patch("rfc3987.parse")
+@patch("urllib3.util.url.parse_url")
 def test_guess_server_url_exception(mocked_parse):
-    mocked_parse.side_effect = Exception("...")
+    from urllib3.exceptions import LocationParseError
+
+    mocked_parse.side_effect = LocationParseError("Mock'ed error")
     url = "http://localhost:8080/nuxeo"
     nxdrive.utils.guess_server_url(url)
 
@@ -768,8 +769,8 @@ def test_parse_protocol_url_cmd(cmd):
 
 def test_parse_protocol_url_cmd_unknown():
     """Parse an unknown command, it must fail."""
-    url = "nxdrive://unknown/00000000-0000-0000-0000/On%20call%20Schedule.docx"
     with pytest.raises(ValueError):
+        url = "nxdrive://unknown/00000000-0000-0000-0000/On%20call%20Schedule.docx"
         nxdrive.utils.parse_protocol_url(url)
 
 
@@ -799,29 +800,29 @@ def test_parse_protocol_url_edit():
 
 def test_parse_protocol_url_edit_missing_download_url():
     """The download part must be in the URL."""
-    url = (
-        "nxdrive://edit"
-        "/http/server.cloud.nuxeo.com:8080/nuxeo"
-        "/user/Administrator"
-        "/repo/default"
-        "/nxdocid/00000000-0000-0000-0000"
-        "/filename/On%20call%20Schedule.docx"
-    )
     with pytest.raises(ValueError):
+        url = (
+            "nxdrive://edit"
+            "/http/server.cloud.nuxeo.com:8080/nuxeo"
+            "/user/Administrator"
+            "/repo/default"
+            "/nxdocid/00000000-0000-0000-0000"
+            "/filename/On%20call%20Schedule.docx"
+        )
         nxdrive.utils.parse_protocol_url(url)
 
 
 def test_parse_protocol_url_edit_missing_username():
     """The username must be in the URL."""
-    url = (
-        "nxdrive://edit/https/server.cloud.nuxeo.com/nuxeo"
-        "/repo/default"
-        "/nxdocid/00000000-0000-0000-0000"
-        "/filename/lebron-james-beats-by-dre-powerb.psd"
-        "/downloadUrl/nxfile/default/00000000-0000-0000-0000"
-        "/file:content/lebron-james-beats-by-dre-powerb.psd"
-    )
     with pytest.raises(ValueError):
+        url = (
+            "nxdrive://edit/https/server.cloud.nuxeo.com/nuxeo"
+            "/repo/default"
+            "/nxdocid/00000000-0000-0000-0000"
+            "/filename/lebron-james-beats-by-dre-powerb.psd"
+            "/downloadUrl/nxfile/default/00000000-0000-0000-0000"
+            "/file:content/lebron-james-beats-by-dre-powerb.psd"
+        )
         nxdrive.utils.parse_protocol_url(url)
 
 
@@ -839,17 +840,17 @@ def test_parse_protocol_url_token():
 
 def test_parse_protocol_url_bad_http_scheme():
     """Bad HTTP scheme."""
-    url = (
-        "nxdrive://edit"
-        "/htto/server.cloud.nuxeo.com:8080/nuxeo"
-        "/user/Administrator"
-        "/repo/default"
-        "/nxdocid/00000000-0000-0000-0000"
-        "/filename/On%20call%20Schedule.docx"
-        "/downloadUrl/nxfile/default/00000000-0000-0000-0000"
-        "/file:content/On%20call%20Schedule.docx"
-    )
     with pytest.raises(ValueError):
+        url = (
+            "nxdrive://edit"
+            "/htto/server.cloud.nuxeo.com:8080/nuxeo"
+            "/user/Administrator"
+            "/repo/default"
+            "/nxdocid/00000000-0000-0000-0000"
+            "/filename/On%20call%20Schedule.docx"
+            "/downloadUrl/nxfile/default/00000000-0000-0000-0000"
+            "/file:content/On%20call%20Schedule.docx"
+        )
         nxdrive.utils.parse_protocol_url(url)
 
 
@@ -959,8 +960,6 @@ def test_sizeof_fmt_arg():
 )
 def test_short_name(data, too_long):
     short_name = nxdrive.utils.short_name
-    force_decode = nxdrive.utils.force_decode
-
     filename = os.path.sep.join(data)
 
     name = short_name(filename)
@@ -968,6 +967,7 @@ def test_short_name(data, too_long):
         assert "…" in name
         assert len(name) < 72
     else:
+        force_decode = nxdrive.utils.force_decode
         assert name == force_decode(filename)
 
 
