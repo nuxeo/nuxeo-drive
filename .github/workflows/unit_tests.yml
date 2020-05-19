@@ -14,10 +14,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
-        python-version: 3.7  # XXX_PYTHON
-        architecture: 'x86'
+        python-version: 3.7.7  # XXX_PYTHON
     - uses: actions/cache@v1
       with:
         path: ~/.cache/pip
@@ -38,10 +37,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
-        python-version: 3.7  # XXX_PYTHON
-        architecture: 'x86'
+        python-version: 3.7.7  # XXX_PYTHON
     - uses: actions/cache@v1
       with:
         path: ~/Library/Caches/pip
@@ -62,9 +60,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
-        python-version: 3.7  # XXX_PYTHON
+        python-version: 3.7.7  # XXX_PYTHON
         architecture: 'x86'
     - uses: actions/cache@v1
       with:
