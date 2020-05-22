@@ -87,7 +87,7 @@ class TestEncoding(OneUserTest):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
-        filename = "espace\xa0 et TM\u2122.doc"
+        filename = "space\xa0 et TM\u2122.doc"
         local.make_file("/", filename)
         self.wait_sync(wait_for_async=True)
 

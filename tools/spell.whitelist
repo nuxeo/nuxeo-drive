@@ -3,3 +3,9 @@ alse
 
 # PyInstaller specific, we have no power on that part
 datas
+
+# We made that mistake long ago and the value is used in the database ("DEDUP")
+dedup
+
+# cleanup_application_tree.py (boto3/data/iam)
+iam

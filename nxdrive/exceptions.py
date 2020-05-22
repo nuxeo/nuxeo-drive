@@ -144,7 +144,7 @@ class RootAlreadyBindWithDifferentAccount(DriveError):
 
 
 class ScrollDescendantsError(DriveError):
-    """ Rasied when NuxeoDrive.ScrollDescendants returns something we cannot work with. """
+    """ Raised when NuxeoDrive.ScrollDescendants returns something we cannot work with. """
 
     def __init__(self, response: Any) -> None:
         self.response = response
