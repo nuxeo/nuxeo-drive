@@ -151,7 +151,7 @@ def get_issues(args):
     cmd = ["git", "log", "--pretty=format:%B"] + args.GIT_OPTIONS
     all_commits = backtick(cmd)
 
-    # Match any categorie (issue type) with inconsistent use of spaces
+    # Match any categories (issue type) with inconsistent use of spaces
     regexp = re.compile(
         r"^((?:{categories})\s*-\s*\d+\s*):.*".format(categories="|".join(args.types)),
         re.IGNORECASE,

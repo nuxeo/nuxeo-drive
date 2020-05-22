@@ -302,7 +302,7 @@ class ConfigurationDAO(QObject):
 
     def _create_main_conn(self) -> None:
         log.info(
-            f"Create main connexion on {self.db!r} "
+            f"Create main connection on {self.db!r} "
             f"(dir_exists={self.db.parent.exists()}, "
             f"file_exists={self.db.exists()})"
         )
