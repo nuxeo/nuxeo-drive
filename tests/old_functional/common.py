@@ -262,7 +262,12 @@ class TwoUsersTest(TestCase):
         def launch_test(app=self.app):
             # Note: we cannot use super().run(result) here
             super(TwoUsersTest, self).run(result)
-            app.quit()
+
+            try:
+                app.quit()
+            except AttributeError:
+                # Too many missing attributes while closing the application if the test is not completed
+                pass
 
         # Ensure to kill the app if it is taking too long.
         # We need to do that because sometimes a thread get blocked and so the test suite.
@@ -441,6 +446,7 @@ class TwoUsersTest(TestCase):
             folder, self.nuxeo_url, user, password, start_engine=start_engine
         )
 
+        self.app.aboutToQuit.connect(manager.stop)
         engine.syncCompleted.connect(self.app.sync_completed)
         engine._remote_watcher.remoteScanFinished.connect(
             self.app.remote_scan_completed
