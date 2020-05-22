@@ -7,10 +7,10 @@ from PyQt5.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QFileDialog,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QMenu,
     QPushButton,
     QVBoxLayout,
 )
@@ -61,8 +61,6 @@ class DialogMixin(QDialog):
 
         # The content view
         self.vertical_layout = QVBoxLayout(self)
-        self.vertical_layout.addWidget(self.tree_view)
-        self.vertical_layout.addWidget(self.button_box)
 
     def get_buttons(self) -> QDialogButtonBox.StandardButtons:
         """Create the buttons to display at the bottom of the window."""
@@ -77,6 +75,9 @@ class DocumentsDialog(DialogMixin):
 
     def __init__(self, application: "Application", engine: Engine) -> None:
         super().__init__(application, engine)
+
+        self.vertical_layout.addWidget(self.tree_view)
+        self.vertical_layout.addWidget(self.button_box)
 
         # Display something different when the user has no sync root
         self.no_root_label = self.get_no_roots_label()
@@ -218,41 +219,60 @@ class FoldersDialog(DialogMixin):
         self.overall_size = self._get_overall_size()
         self.overall_count = self._get_overall_count()
 
-        # Add a new widget at 1st position:
-        #   - a text input with the 1st local path (+ count of eventual other paths)
-        #   - a label holding contents size
-        #   - a button to add more local paths
-        local_file_layout = QHBoxLayout()
-        self.local_paths_size_lbl = QLabel(sizeof_fmt(self.overall_size))
-        self.local_path = QLineEdit()
-        self.local_path.setTextMargins(5, 0, 5, 0)
-        self.local_path.setText(self._files_display())
-        self.local_path.setReadOnly(True)
-        add_local_path_btn = QPushButton(Translator.get("ADD"), self)
-        add_local_path_btn.setMenu(self._add_sub_menu())
-        local_file_layout.addWidget(self.local_path)
-        local_file_layout.addWidget(self.local_paths_size_lbl)
-        local_file_layout.addWidget(add_local_path_btn)
-        self.vertical_layout.insertLayout(0, local_file_layout)
-
-        # Add a new widget before the buttons: a text input with the selected remote folder to upload into
-        remote_folder_layout = QHBoxLayout()
-        remote_folder_lbl = QLabel(Translator.get("REMOTE_FOLDER"))
-        self.remote_folder = QLineEdit()
-        self.remote_folder.setTextMargins(5, 0, 5, 0)
-        self.remote_folder.setReadOnly(True)
-        remote_folder_layout.addWidget(remote_folder_lbl)
-        remote_folder_layout.addWidget(self.remote_folder)
-        self.vertical_layout.insertLayout(2, remote_folder_layout)
-
-        # Populate the remote folder with the previously selected, if any
-        self.remote_folder.setText(engine.dao.get_config("dt_last_remote_location", ""))
+        self.vertical_layout.addWidget(self._add_group_local())
+        self.vertical_layout.addWidget(self._add_group_remote())
+        self.vertical_layout.addWidget(self.button_box)
 
         self.button_ok_state()
 
         # Open the files selection dialog if there is no pre-selected paths
         if not self.paths:
             self._select_more_files()
+
+    def _add_group_local(self) -> QGroupBox:
+        """Group box for source files."""
+        groupbox = QGroupBox(Translator.get("SOURCE_FILES"))
+        layout = QHBoxLayout()
+        groupbox.setLayout(layout)
+
+        self.local_paths_size_lbl = QLabel(sizeof_fmt(self.overall_size))
+        self.local_path = QLineEdit()
+        self.local_path.setTextMargins(5, 0, 5, 0)
+        self.local_path.setText(self._files_display())
+        self.local_path.setReadOnly(True)
+        button = QPushButton(Translator.get("ADD_FILES"), self)
+        button.clicked.connect(self._select_more_files)
+        layout.addWidget(self.local_path)
+        layout.addWidget(self.local_paths_size_lbl)
+        layout.addWidget(button)
+
+        return groupbox
+
+    def _add_group_remote(self) -> QGroupBox:
+        """Group box for the remote folder."""
+        groupbox = QGroupBox(Translator.get("SELECT_REMOTE_FOLDER"))
+        layout = QVBoxLayout()
+        groupbox.setLayout(layout)
+
+        # The remote browser
+        layout.addWidget(self.tree_view)
+
+        sublayout = QHBoxLayout()
+        layout.addLayout(sublayout)
+        label = QLabel(Translator.get("SELECTED_REMOTE_FOLDER"))
+        self.remote_folder = QLineEdit()
+        self.remote_folder.setStyleSheet("* { background-color: rgba(0, 0, 0, 0); }")
+        self.remote_folder.setReadOnly(True)
+        self.remote_folder.setFrame(False)
+        sublayout.addWidget(label)
+        sublayout.addWidget(self.remote_folder)
+
+        # Populate the remote folder with the previously selected, if any
+        self.remote_folder.setText(
+            self.engine.dao.get_config("dt_last_remote_location", "")
+        )
+
+        return groupbox
 
     def accept(self) -> None:
         """Action to do when the OK button is clicked."""
@@ -271,17 +291,9 @@ class FoldersDialog(DialogMixin):
 
     def get_tree_view(self) -> FolderTreeView:
         """Render the folders tree."""
-        self.resize(640, 320)
+        self.resize(800, 400)
         client = FoldersOnly(self.engine.remote)
         return FolderTreeView(self, client)
-
-    def _add_sub_menu(self) -> QMenu:
-        """This is the sub-menu displayed when clicking on the Add button."""
-        menu = QMenu()
-        menu.addAction(Translator.get("ADD_FILES"), self._select_more_files)
-        # NXDRIVE-2019
-        # menu.addAction(Translator.get("ADD_FOLDER"), self._select_more_folder)
-        return menu
 
     def _files_display(self) -> str:
         """Return the original file or folder to upload and the count of others to proceed."""
@@ -343,8 +355,3 @@ class FoldersDialog(DialogMixin):
         """Choose additional local files to upload."""
         paths, _ = QFileDialog.getOpenFileNames(self, Translator.get("ADD_FILES"))
         self._process_additionnal_local_paths(paths)
-
-    # def _select_more_folder(self) -> None:
-    #     """Choose an additional local folder to upload."""
-    #     path = QFileDialog.getExistingDirectory(self, Translator.get("ADD_FOLDER"))
-    #     self._process_additionnal_local_paths([path])
