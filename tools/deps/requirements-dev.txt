@@ -1,3 +1,7 @@
+#
+# Modules needed by the application.
+# This file is used to build fresh binaries.
+#
 altgraph==0.17 \
     --hash=sha256:c623e5f3408ca61d4016f23a681b9adb100802ca3e3da5e718915a9e4052cebe \
     --hash=sha256:1f05a47122542f97028caf78775a095fbe6a2699b5089de8477eb583167d69aa

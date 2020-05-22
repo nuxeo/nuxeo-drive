@@ -1,3 +1,7 @@
+#
+# Modules needed by the application.
+# This file is used to build fresh binaries.
+#
 boto3==1.13.0 \
     --hash=sha256:71323c0d241d264eb48fbd9b9aa3d3783e6da68ca1dbd3db51288bcfe4fd8be1 \
     --hash=sha256:80596cfb805694e5c78295bf9e86c6ea0d47c46e788a5e44a8a0421f3bddff72
