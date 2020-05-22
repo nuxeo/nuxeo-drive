@@ -17,13 +17,13 @@ jobs:
     - uses: actions/cache@v1
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-types.txt', 'tools/deps/requirements-tox.txt') }}
-        restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-types.txt', 'tools/deps/requirements-tox.txt') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+        restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
     - uses: actions/cache@v1
       with:
         path: .tox
-        key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-types.txt', 'tools/deps/requirements-tox.txt') }}
-        restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-types.txt', 'tools/deps/requirements-tox.txt') }}
+        key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+        restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
     - name: Install dependencies
       run: python -m pip install -r tools/deps/requirements-tox.txt
     - name: Type annotations check
