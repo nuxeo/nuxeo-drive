@@ -92,7 +92,7 @@ class DarwinIntegration(AbstractOSIntegration):
                 ["pluginkit", "-e", "ignore", "-i", self.FINDERSYNC_ID], check=True
             )
         except subprocess.CalledProcessError:
-            log.exception("Error while stopping FinderSync")
+            log.warning("Error while stopping FinderSync", exc_info=True)
 
     def _get_agent_file(self) -> Path:
         return Path(f"~/Library/LaunchAgents/{BUNDLE_IDENTIFIER}.plist").expanduser()
