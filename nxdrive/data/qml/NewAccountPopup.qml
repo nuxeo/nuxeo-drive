@@ -52,6 +52,7 @@ NuxeoPopup {
                     id: folderInput
                     Layout.fillWidth: true
                     lineColor: nuxeoBlue
+                    onTextChanged: freeSpace.text = api.get_free_disk_space(folderInput.text)
                 }
 
                 IconLabel {
@@ -65,8 +66,8 @@ NuxeoPopup {
                 color: mediumGray
             }
             ScaledText {
+                id: freeSpace
                 visible: folderInput.text
-                text: api.get_free_disk_space(folderInput.text);
             }
         }
 

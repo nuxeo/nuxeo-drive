@@ -1,6 +1,5 @@
 # coding: utf-8
 import json
-import shutil
 from dataclasses import asdict
 from logging import getLogger
 from os import getenv
@@ -34,6 +33,7 @@ from ..options import Options
 from ..translator import Translator
 from ..updater.constants import Login
 from ..utils import (
+    disk_space,
     force_decode,
     get_date_from_sqlite,
     get_default_local_folder,
@@ -473,17 +473,13 @@ class QMLDriveApi(QObject):
         """
         engine = self._manager.engines.get(uid)
 
-        folder = Path(path)
-        folder = folder if folder.is_dir() else folder.parent
-        space = shutil.disk_usage(folder)
-
         synced = engine.dao.get_global_size() if engine else 0
-        used_without_sync = space.used - synced
-        total = space.used + space.free
-
+        used, free = disk_space(path)
+        used_without_sync = used - synced
+        total = used + free
         result = self._balance_percents(
             {
-                "free": space.free * width / total,
+                "free": free * width / total,
                 "used_without_sync": used_without_sync * width / total,
                 "synced": synced * width / total,
             }
@@ -538,25 +534,16 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, result=str)
     def get_free_disk_space(self, path: str) -> str:
         """Fetch the size of free space and return a formatted version."""
-        folder = Path(path)
-        folder = folder if folder.is_dir() else folder.parent
-        return sizeof_fmt(
-            shutil.disk_usage(folder).free, suffix=Translator.get("BYTE_ABBREV")
-        )
+        _, free = disk_space(path)
+        return sizeof_fmt(free, suffix=Translator.get("BYTE_ABBREV"))
 
     @pyqtSlot(str, str, result=str)
     def get_used_space_without_synced(self, uid: str, path: str) -> str:
         """Fetch the size of space used by other applications and return a formatted version."""
         engine = self._manager.engines.get(uid)
         synced = engine.dao.get_global_size() if engine else 0
-
-        folder = Path(path)
-        folder = folder if folder.is_dir() else folder.parent
-
-        return sizeof_fmt(
-            shutil.disk_usage(folder).used - synced,
-            suffix=Translator.get("BYTE_ABBREV"),
-        )
+        used, _ = disk_space(path)
+        return sizeof_fmt(used - synced, suffix=Translator.get("BYTE_ABBREV"))
 
     @pyqtSlot(str, bool)
     def unbind_server(self, uid: str, purge: bool) -> None:
