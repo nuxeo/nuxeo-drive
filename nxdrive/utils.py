@@ -106,6 +106,28 @@ def current_thread_id() -> int:
     return get_ident()
 
 
+def disk_space(a_folder: str) -> Tuple[int, int]:
+    """Retrieve the disk space used and free based on the given *a_folder*.
+    Return a tuple(used, free) in bytes.
+    """
+    import shutil
+
+    folder = Path(a_folder)
+    for path in (folder, *folder.parents):
+        try:
+            data = shutil.disk_usage(path)
+        except FileNotFoundError:
+            continue
+        else:
+            used = data.used
+            free = data.free
+            break
+    else:
+        used, free = 0, 0
+
+    return used, free
+
+
 def find_suitable_tmp_dir(sync_folder: Path, home_folder: Path) -> Path:
     """Find a suitable folder for the downloaded temporary files.
 
