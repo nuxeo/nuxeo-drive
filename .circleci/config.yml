@@ -1,0 +1,91 @@
+version: 2.1
+
+orbs:
+  windows: circleci/windows@2.4.0
+
+jobs:
+  ft-linux:
+    machine:
+      # https://circleci.com/docs/2.0/configuration-reference/#resource_class
+      # 4 vCPUs, 15 GB RAM
+      # For now, we only have 2 vCPUs, 7.5 GB RAM (medium class)
+      # resource_class: large
+      # https://circleci.com/docs/2.0/configuration-reference/#available-machine-images
+      image: circleci/classic:201808-01
+
+    environment:
+      NXDRIVE_TEST_NUXEO_URL: https://nightly.nuxeo.com/nuxeo/
+
+    steps:
+      - checkout
+      - run: pyenv versions
+      - run: cd /opt/circleci/.pyenv/plugins/python-build/../.. && git pull && cd -
+      - run: pyenv install 3.7.7  # XXX_PYTHON
+      - run: pyenv global 3.7.7  # XXX_PYTHON
+      - run: python --version
+      - run: python -m pip install -r tools/deps/requirements-pip.txt
+      - run: python -m pip install -r tools/deps/requirements-tox.txt
+      - run: python -m tox -e ft
+      - run:
+          name: Running tests
+          command: python -m tox -e oft
+          no_output_timeout: 4h
+
+  #ft-macos:
+  #  macos:
+  #    # https://circleci.com/docs/2.0/testing-ios/#supported-xcode-versions
+  #    # 4 vCPUs, 15 GB RAM
+  #    xcode: 11.4.0  # XXX_PYTHON
+
+  #  environment:
+  #    HOMEBREW_NO_AUTO_UPDATE: 1
+  #    NXDRIVE_TEST_NUXEO_URL: https://nightly.nuxeo.com/nuxeo/
+
+  #  steps:
+  #    - checkout
+  #    - run: python --version
+  #    - run: python -m pip install -r tools/deps/requirements-pip.txt
+  #    - run: python -m pip install -r tools/deps/requirements-tox.txt
+  #    - run: python -m tox -e ft
+  #    - run:
+  #        name: Running tests
+  #        command: python -m tox -e oft
+  #        no_output_timeout: 4h
+
+  ft-windows:
+    # https://circleci.com/docs/2.0/hello-world-windows/#software-pre-installed-in-the-windows-image
+    # 4 vCPUs, 15 GB RAM
+    executor: windows/default
+
+    environment:
+      NXDRIVE_TEST_NUXEO_URL: https://nightly.nuxeo.com/nuxeo/
+
+    steps:
+      - checkout
+      - run: python --version  # XXX_PYTHON 3.7.3
+      - run: python -m pip install -r tools/deps/requirements-pip.txt
+      - run: python -m pip install -r tools/deps/requirements-tox.txt
+      - run: python -m tox -e ft
+      - run:
+          name: Running tests
+          command: python -m tox -e oft
+          no_output_timeout: 4h
+
+workflows:
+  functional-tests:
+    jobs:
+      - ft-linux:
+          filters:
+            branches:
+              only:
+                - /.*-NXDRIVE-.*/
+      # - ft-macos:
+      #   filters:
+      #     branches:
+      #       only:
+      #         - /.*-NXDRIVE-.*/
+      - ft-windows:
+          filters:
+            branches:
+              only:
+                - /.*-NXDRIVE-.*/
