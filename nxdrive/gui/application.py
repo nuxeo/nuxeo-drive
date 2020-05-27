@@ -43,7 +43,7 @@ from ..constants import (
 )
 from ..engine.activity import Action
 from ..engine.engine import Engine
-from ..feature import Feature
+from ..feature import Beta, Feature
 from ..gui.folders_dialog import DialogMixin, DocumentsDialog, FoldersDialog
 from ..notification import Notification
 from ..options import Options
@@ -343,6 +343,7 @@ class Application(QApplication):
         context.setContextProperty("feat_auto_update", Feature.auto_update)
         context.setContextProperty("feat_direct_edit", Feature.direct_edit)
         context.setContextProperty("feat_direct_transfer", Feature.direct_transfer)
+        context.setContextProperty("beta_features", Beta)
         context.setContextProperty("tl", Translator.singleton)
         context.setContextProperty(
             "nuxeoVersionText", f"{APP_NAME} {self.manager.version}"

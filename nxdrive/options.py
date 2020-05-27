@@ -116,6 +116,37 @@ def _is_system_wide() -> bool:
     )
 
 
+class CallableFeatureHandler:
+    """
+    All features callbacks in Options will be an instance of this object.
+
+    This object is callable like a function as it implement the __call__() method.
+
+    Each CallableFeatureHandler has a the following private members:
+
+    - feature: the Feature attribute that is to be updated
+
+    Usage example:
+        >>> callable = CallableFeatureHandler("feature_name")
+        >>> callable(False)  # Features.feature_name will be updated to False
+
+    Notes:
+        - callable(arg1) is a shorthand for callable.__call__(arg1)
+
+    """
+
+    def __init__(self, feature: str) -> None:
+        self._feature = feature
+
+    def __call__(self, new_value: bool) -> None:
+        """
+        Method called by default when calling the object as a function.
+        Update the Feature attribute with the new value.
+        """
+        if getattr(Feature, self._feature) is not new_value:
+            setattr(Feature, self._feature, new_value)
+
+
 class MetaOptions(type):
     """
     All configurable options are used by this lone object.
@@ -201,10 +232,6 @@ class MetaOptions(type):
         "debug_pydev": (False, "default"),
         "delay": (30, "default"),
         "deletion_behavior": ("unsync", "default"),
-        "feature_auto_update": (True, "default"),
-        "feature_direct_edit": (True, "default"),
-        "feature_direct_transfer": (False, "default"),
-        "feature_s3": (False, "default"),
         "findersync_batch_size": (50, "default"),
         "force_locale": (None, "default"),
         "freezer": (_get_freezer(), "default"),
@@ -240,6 +267,14 @@ class MetaOptions(type):
         "use_sentry": (True, "default"),
         "use_analytics": (False, "default"),
     }
+
+    # Add dynamic options from Features
+    options.update(
+        {
+            f"feature_{feature}": (state, "default")
+            for feature, state in vars(Feature).items()
+        }
+    )
 
     default_options = deepcopy(options)
 
@@ -488,26 +523,6 @@ class Options(metaclass=MetaOptions):
 #
 
 
-def handle_feat_auto_update(value: bool) -> None:
-    if Feature.auto_update is not value:
-        Feature.auto_update = value
-
-
-def handle_feat_direct_edit(value: bool) -> None:
-    if Feature.direct_edit is not value:
-        Feature.direct_edit = value
-
-
-def handle_feat_direct_transfer(value: bool) -> None:
-    if Feature.direct_transfer is not value:
-        Feature.direct_transfer = value
-
-
-def handle_feat_s3(value: bool) -> None:
-    if Feature.s3 is not value:
-        Feature.s3 = value
-
-
 def validate_chunk_limit(value: int) -> int:
     if value > 0:
         return value
@@ -539,10 +554,10 @@ def validate_tmp_file_limit(value: Union[int, float]) -> float:
     raise ValueError("Temporary file limit must be above 0")
 
 
-Options.callbacks["feature_auto_update"] = handle_feat_auto_update
-Options.callbacks["feature_direct_edit"] = handle_feat_direct_edit
-Options.callbacks["feature_direct_transfer"] = handle_feat_direct_transfer
-Options.callbacks["feature_s3"] = handle_feat_s3
+# Handler callback for each feature
+for feature in vars(Feature).keys():
+    Options.callbacks[f"feature_{feature}"] = CallableFeatureHandler(feature)
+
 Options.checkers["chunk_limit"] = validate_chunk_limit
 Options.checkers["chunk_size"] = validate_chunk_size
 Options.checkers["client_version"] = validate_client_version

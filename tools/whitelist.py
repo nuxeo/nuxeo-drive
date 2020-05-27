@@ -24,6 +24,8 @@ FolderTreeview.resizeEvent  # Internal use of PyQt
 install_addons  # Used in QML
 getTag  # Used in QML
 getName  # Internal use of QML
+Manager.get_feature_state  # Used in QML
+Manager.set_feature_state  # Used in QML
 Manager.set_light_icons  # Used in QML
 MetaOptions.mock  # Used in tests
 nameRoles  # Internal use of QML
@@ -46,6 +48,7 @@ QMLDriveApi.default_local_folder  # Used in QML
 QMLDriveApi.default_server_url_value  # Used in QML
 QMLDriveApi.get_disk_space_info_to_width  # Used in QML
 QMLDriveApi.get_drive_disk_space  # Used in QML
+QMLDriveApi.get_features_list  # Used in QML
 QMLDriveApi.get_free_disk_space  # Used in QML
 QMLDriveApi.get_used_space_without_synced  # Used in QML
 QMLDriveApi.get_proxy_settings  # Used in QML

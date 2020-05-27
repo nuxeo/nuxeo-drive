@@ -10,6 +10,8 @@ import os
 import os.path
 import re
 import stat
+import sys
+from configparser import ConfigParser
 from copy import deepcopy
 from datetime import datetime
 from distutils.version import StrictVersion
@@ -1286,3 +1288,48 @@ def compute_digest(path: Path, digest_func: str, callback: Callable = None) -> s
         return UNACCESSIBLE_HASH
 
     return str(h.hexdigest())
+
+
+def config_paths() -> Tuple[Tuple[Path, ...], Path]:
+    """Return the list of possible local configuration paths and the default one."""
+    conf_name = "config.ini"
+    paths = (
+        Path(sys.executable).parent / conf_name,
+        Path(Options.nxdrive_home) / conf_name,
+        Path(conf_name),
+    )
+    return paths, paths[1]
+
+
+def save_config(config_dump: Dict[str, Any]) -> Path:
+    """Update the configuration file with passed config dump."""
+    #  Check if config file already exist, if not then use nxdrive home folder
+    paths, default_path = config_paths()
+    res = [conf_file for conf_file in paths if conf_file.is_file()]
+    conf_path = res[0] if res else default_path
+
+    config = ConfigParser()
+
+    if not conf_path.is_file():
+        # Craft a new config file
+        config["DEFAULT"] = {"env": "features"}  # Set saved section as DEFAULT env
+        config["features"] = config_dump
+    else:
+        # Update the config file
+        config.read(conf_path)
+        if "DEFAULT" not in config or "env" not in config["DEFAULT"]:
+            # Missing DEFAULT section or env
+            config["DEFAULT"] = {"env": "features"}
+        section = config["DEFAULT"]["env"]
+        if section not in config:
+            # Saved section doesn't already exist
+            config[section] = config_dump
+        else:
+            # Update existing section with config dump datas
+            for key, value in config_dump.items():
+                config[section][key] = str(value)
+
+    # Save back the modified config file and return its path
+    with open(conf_path, "w") as output:
+        config.write(output)
+    return conf_path

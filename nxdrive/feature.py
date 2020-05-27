@@ -24,3 +24,5 @@ from types import SimpleNamespace
 Feature = SimpleNamespace(
     auto_update=True, direct_edit=True, direct_transfer=False, s3=False,
 )
+
+Beta = ["direct_transfer"]

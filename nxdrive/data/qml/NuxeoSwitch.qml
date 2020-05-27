@@ -1,5 +1,6 @@
 import QtQuick 2.13
 import QtQuick.Controls 2.13
+import QtQuick.Layouts 1.13
 
 Switch {
     id: control
@@ -41,6 +42,7 @@ Switch {
     contentItem: ScaledText {
         color: control.textColor
         text: control.text
+        textFormat: Text.RichText
         opacity: enabled ? 1.0 : 0.3
         verticalAlignment: Text.AlignVCenter
     }
