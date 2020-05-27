@@ -8,7 +8,6 @@ from argparse import ArgumentParser, Namespace
 from configparser import DEFAULTSECT, ConfigParser
 from datetime import datetime
 from logging import getLogger
-from pathlib import Path
 from typing import TYPE_CHECKING, List, Union
 
 from . import __version__
@@ -17,6 +16,7 @@ from .logging_config import configure
 from .options import Options
 from .osi import AbstractOSIntegration
 from .utils import (
+    config_paths,
     force_encode,
     get_default_local_folder,
     get_value,
@@ -418,9 +418,7 @@ class CliHandler:
 
         return options
 
-    def load_config(
-        self, parser: ArgumentParser, conf_name: str = "config.ini"
-    ) -> None:
+    def load_config(self, parser: ArgumentParser) -> None:
         """
         Load local configuration from different sources:
             - the registry on Windows
@@ -434,11 +432,8 @@ class CliHandler:
             # This is the case on Windows only, values from the registry
             Options.update(args, setter="local", file="the Registry")
 
-        for conf_file in (
-            Path(sys.executable).parent / conf_name,
-            Path(Options.nxdrive_home) / conf_name,
-            Path(conf_name),
-        ):
+        paths, _ = config_paths()
+        for conf_file in paths:
             if not conf_file.is_file():
                 continue
 

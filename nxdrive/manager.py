@@ -56,6 +56,7 @@ from .utils import (
     get_device,
     if_frozen,
     normalized_path,
+    save_config,
 )
 
 if TYPE_CHECKING:
@@ -159,6 +160,7 @@ class Manager(QObject):
             )
 
         self.old_version = None
+
         if Options.is_frozen:
             # Persist the channel update
             # Retro-compatibility for versions < 4.0.2
@@ -507,6 +509,17 @@ class Manager(QObject):
     def set_direct_edit_auto_lock(self, value: bool) -> None:
         log.debug(f"Changed parameter 'direct_edit_auto_lock' to {value}")
         self.dao.store_bool("direct_edit_auto_lock", value)
+
+    @pyqtSlot(str, result=bool)
+    def get_feature_state(self, name: str) -> bool:
+        """Get the value of the Feature attribute."""
+        return bool(getattr(Feature, name))
+
+    @pyqtSlot(str, bool)
+    def set_feature_state(self, name: str, value: bool) -> None:
+        """Set the value of the feature in Options and save changes in config file."""
+        Options.set(f"feature_{name}", value, setter="manual")
+        save_config({f"feature_{name}": value})
 
     @pyqtSlot(result=bool)
     def get_auto_update(self) -> bool:

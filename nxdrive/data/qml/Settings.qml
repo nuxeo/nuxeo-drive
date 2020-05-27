@@ -31,13 +31,18 @@ Item {
             anchors.top: parent.top
         }
         SettingsTab {
-            text: qsTr("SECTION_ACCOUNTS") + tl.tr
+            text: qsTr("SECTION_FEATURES") + tl.tr
             barIndex: bar.currentIndex; index: 1
             anchors.top: parent.top
         }
         SettingsTab {
-            text: qsTr("SECTION_ABOUT") + tl.tr
+            text: qsTr("SECTION_ACCOUNTS") + tl.tr
             barIndex: bar.currentIndex; index: 2
+            anchors.top: parent.top
+        }
+        SettingsTab {
+            text: qsTr("SECTION_ABOUT") + tl.tr
+            barIndex: bar.currentIndex; index: 3
             anchors.top: parent.top
         }
     }
@@ -49,6 +54,11 @@ Item {
 
         GeneralTab {
             id: generalTab
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+        }
+        FeaturesTab {
+            id: featuresTab
             Layout.fillWidth: true
             Layout.fillHeight: true
         }

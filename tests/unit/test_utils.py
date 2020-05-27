@@ -1,4 +1,5 @@
 # coding: utf-8
+import configparser
 import os
 import re
 import sys
@@ -1107,3 +1108,105 @@ def test_version_compare(x, y, result):
 )
 def test_version_compare_client(x, y, result):
     assert nxdrive.utils.version_compare_client(x, y) == result
+
+
+@Options.mock()
+@pytest.mark.parametrize(
+    "default_config, config_dump",
+    [
+        (
+            {},
+            {
+                "feature_direct_edit": True,
+                "feature_auto_update": False,
+                "feature_s3": False,
+                "feature_direct_transfer": False,
+            },
+        ),
+        (
+            {"DEFAULT": {"env": "DEBUG"}},
+            {
+                "feature_direct_edit": True,
+                "feature_auto_update": False,
+                "feature_s3": False,
+                "feature_direct_transfer": False,
+            },
+        ),
+        (
+            {
+                "DEFAULT": {"env": "DEBUG"},
+                "DEBUG": {
+                    "feature_direct_edit": False,
+                    "feature_auto_update": False,
+                    "feature_s3": False,
+                    "feature_direct_transfer": False,
+                    "feature_plop": True,
+                },
+            },
+            {
+                "feature_direct_edit": True,
+                "feature_auto_update": True,
+                "feature_s3": True,
+                "feature_direct_transfer": True,
+            },
+        ),
+        (
+            {
+                "features": {
+                    "feature_direct_edit": False,
+                    "feature_auto_update": True,
+                    "feature_s3": True,
+                    "feature_direct_transfer": True,
+                    "feature_plop": True,
+                }
+            },
+            {
+                "feature_direct_edit": True,
+                "feature_auto_update": False,
+                "feature_s3": False,
+                "feature_direct_transfer": False,
+            },
+        ),
+    ],
+)
+def test_save_config(default_config, config_dump, tmp_path):
+    conf_name = "config.ini"
+    Options.nxdrive_home = tmp_path
+    if default_config:
+        # Write default_config content in a new config file
+        config_writer = configparser.ConfigParser()
+        for key, value in default_config.items():
+            config_writer[key] = value
+        with open(Options.nxdrive_home / conf_name, "w") as test_file:
+            config_writer.write(test_file)
+
+    conf_path = nxdrive.utils.save_config(config_dump)
+    # Verify that a config file exist
+    assert conf_path == Options.nxdrive_home / conf_name
+    assert conf_path.is_file()
+
+    # Read the content of the config file after call to save_config()
+    config = configparser.ConfigParser()
+    config.read(conf_path)
+    if default_config:
+        if "DEFAULT" in default_config and "env" in default_config["DEFAULT"]:
+            # If a DEFAULT section existed in default_config then check that it has not been altered
+            assert config["DEFAULT"]["env"] == default_config["DEFAULT"]["env"]
+            env = config["DEFAULT"]["env"]
+        else:
+            env = "features"
+        if env in default_config:
+            # The section is already defined in the default_config
+            for key, value in default_config[env].items():
+                if key in default_config[env] and key not in config_dump:
+                    # If a key exist in the default_config but not in the dump then check that has not been altered
+                    assert config[env].getboolean(key) == default_config[env][key]
+
+    if "DEFAULT" not in default_config:
+        # A DEFAULT section was not present in the default config, check that it has been created by save_config()
+        env = "features"
+        assert config["DEFAULT"]["env"] == env
+    for key, value in config[env].items():
+        if key in config_dump:
+            # Check that everything declared in config_dump has been written to config file by save_config()
+            assert config[env].getboolean(key) == config_dump[key]
