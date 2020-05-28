@@ -2,7 +2,6 @@
 from pathlib import Path
 
 import pytest
-
 from nxdrive.translator import Translator
 
 
@@ -38,8 +37,8 @@ def test_load_file():
     assert Translator.get("BOUZOUF") == "BOUZOUF"
 
     # Change to an existing composed language
-    Translator.set("de-DE")
-    assert Translator.locale() == "de-DE"
+    Translator.set("de")
+    assert Translator.locale() == "de"
     assert Translator.get("CONNECTION_REFUSED") == "Connection refused"
 
 
