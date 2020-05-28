@@ -1,0 +1,48 @@
+name: Crowdin
+
+on:
+  # Check for updates every day
+  schedule:
+    - cron:  '0 0 * * *'
+
+  # Sync when a commit is done on master
+  push:
+    branches:
+      - master
+    paths:
+      - 'nxdrive/data/i18n/i18n.json'
+
+jobs:
+  synchronize-with-crowdin:
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Crowdin Action
+      uses: crowdin/github-action@1.0.6
+      with:
+        # Tokens
+        project_id: ${{ secrets.CROWDIN_PROJECT_ID }}
+        token: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
+
+        source: nxdrive/data/i18n/i18n.json
+        # https://support.crowdin.com/configuration-file/#placeholders
+        translation: 'nxdrive/data/i18n/i18n-%two_letters_code%.json'
+
+        # Auto-approve reference sentences we are pushing (english)
+        auto_approve_imported: true
+
+        # Name of the branch to create for the PR
+        localization_branch_name: wip-translations-update
+
+        # Create a branch and a PR on any changes
+        download_translations: true
+        create_pull_request: true
+
+        # For testing purposes
+        # dryrun_action: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
