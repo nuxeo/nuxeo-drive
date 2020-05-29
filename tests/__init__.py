@@ -38,14 +38,8 @@ def configure_logs():
 
     from nxdrive.logging_config import configure
 
-    formatter = logging.Formatter(
-        "%(thread)-4d %(module)-14s %(levelname).1s %(message)s"
-    )
     configure(
-        console_level="DEBUG",
-        command_name="test",
-        force_configure=True,
-        formatter=formatter,
+        console_level="DEBUG", command_name="test", force_configure=True,
     )
 
 
