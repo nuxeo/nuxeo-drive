@@ -3,11 +3,12 @@
 import os
 import sys
 import tempfile
+from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
 from threading import Thread
 from time import sleep
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 from unittest import TestCase
 from uuid import uuid4
 
@@ -168,8 +169,7 @@ class TwoUsersTest(TestCase):
         log.info("TEST master setup start")
 
         # This will be the name of the workspace and a tag on Sentry
-        node = os.getenv("NODE_NAME", sys.platform).lower()  # Only set from Jenkins
-        self.current_test = f"{test_method.__name__}-{node}"
+        self.current_test = f"{test_method.__name__}-{sys.platform.lower()}"
 
         # To be replaced with fixtures when migrating to 100% pytest
         self.nuxeo_url = nuxeo_url()  # fixture name: nuxeo_url
@@ -226,8 +226,6 @@ class TwoUsersTest(TestCase):
 
         log.info("TEST master teardown start")
 
-        self.generate_report()
-
         if self.server_profile:
             self.root_remote.deactivate_profile(self.server_profile)
 
@@ -262,6 +260,10 @@ class TwoUsersTest(TestCase):
         def launch_test():
             # Note: we cannot use super().run(result) here
             super(TwoUsersTest, self).run(result)
+
+            # Generate a report if there are exceptions (failures or unexpected errors)
+            if result._excinfo:
+                self.generate_report(result._excinfo)
 
             with suppress(Exception):
                 self.app.quit()
@@ -662,24 +664,27 @@ class TwoUsersTest(TestCase):
             file_count += len(filenames)
         return file_count, dir_count
 
-    def generate_report(self):
+    def generate_report(self, exceptions: List[Exception]) -> None:
         """ Generate a report on failure. """
-
         if not self.report_path:
             return
 
         # Track any exception that could happen, specially those we would not
         # see if the test succeed.
-        for _, error in getattr(self._outcome, "errors", []):
-            exception = str(error[1]).lower()
-            message = str(error[2]).lower()
-            if "mock" not in exception and "mock" not in message:
+        for n, exc in enumerate(exceptions, 1):
+            error = exc.getrepr(
+                showlocals=True, style="long", funcargs=True, truncate_locals=False
+            )
+            log.warning(f"Error n°{n}\n{error}")
+            if exc.errisinstance(AssertionError):
+                break
+            if "mock" not in str(exc.exconly()).lower():
                 break
         else:
             # No break => no unexpected exceptions
             return
 
-        path = self.report_path / f"{self.id()}-{sys.platform}"
+        path = Path(self.report_path) / self.current_test
         self.manager_1.generate_report(path)
 
     def _set_read_permission(self, user, doc_path, grant):
