@@ -259,15 +259,12 @@ class TwoUsersTest(TestCase):
 
         log.info("TEST run start")
 
-        def launch_test(app=self.app):
+        def launch_test():
             # Note: we cannot use super().run(result) here
             super(TwoUsersTest, self).run(result)
 
-            try:
-                app.quit()
-            except AttributeError:
-                # Too many missing attributes while closing the application if the test is not completed
-                pass
+            with suppress(Exception):
+                self.app.quit()
 
         # Ensure to kill the app if it is taking too long.
         # We need to do that because sometimes a thread get blocked and so the test suite.
@@ -278,9 +275,9 @@ class TwoUsersTest(TestCase):
         if self.id().startswith("tests.old_functional.test_volume."):
             timeout = 60 * 60 * 4  # 04:00:00
 
-        def kill_test(app=self.app):
+        def kill_test():
             log.error(f"Killing {self.id()} after {timeout} seconds")
-            app.exit(1)
+            self.app.exit(1)
 
         QTimer.singleShot(timeout * 1000, kill_test)
 
