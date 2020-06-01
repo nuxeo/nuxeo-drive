@@ -528,6 +528,10 @@ class Manager(QObject):
     def generate_report(self, path: Path = None) -> Path:
         from .report import Report
 
+        log.info(f"Manager metrics: {self.get_metrics()!r}")
+        for engine in self.engines.values():
+            log.info(f"Engine metrics: {engine.get_metrics()!r}")
+
         report = Report(self, path)
         report.generate()
         return report.get_path()

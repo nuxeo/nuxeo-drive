@@ -118,13 +118,11 @@ class Report:
         """ Create the ZIP report with all interesting files. """
 
         log.info(f"Create report {self._zipfile!r}")
-        log.info(f"Manager metrics: {self._manager.get_metrics()!r}")
-        dao = self._manager.dao
+
         with ZipFile(self._zipfile, mode="w", allowZip64=True) as zip_:
             # Databases
-            self.copy_db(zip_, dao)
+            self.copy_db(zip_, self._manager.dao)
             for engine in self._manager.engines.values():
-                log.info(f"Engine metrics: {engine.get_metrics()!r}")
                 self.copy_db(zip_, engine.dao)
 
             # Logs
