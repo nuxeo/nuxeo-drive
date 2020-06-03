@@ -66,6 +66,7 @@ class ProcessAutoLockerWorker(PollWorker):
             if self._first:
                 # Cannot guess the locker of orphans so emit a signal
                 locks = self.dao.get_locked_paths()
+                print("emit orphan locks _poll")
                 self.orphanLocks.emit(locks)
                 self._first = False
             self._process()
@@ -78,6 +79,7 @@ class ProcessAutoLockerWorker(PollWorker):
 
     def orphan_unlocked(self, path: Path) -> None:
         """Unlock old documents, or documents from an old Direct Edit session."""
+        print("dao unlock path")
         self.dao.unlock_path(path)
 
     def _process(self) -> None:
@@ -99,7 +101,8 @@ class ProcessAutoLockerWorker(PollWorker):
             else:
                 # All documents are not interesting!
                 continue
-
+            print("open file path")
+            print(path)
             item: Item = (pid, path)
 
             if path in current_locks:
@@ -125,6 +128,7 @@ class ProcessAutoLockerWorker(PollWorker):
         # If there are remaining documents, it means they are no more being edited
         # and therefore we need to unlock them.
         if current_locks:
+            print("going to unlock files")
             self._unlock_files(current_locks)
 
     def _lock_files(self, items: Items) -> None:

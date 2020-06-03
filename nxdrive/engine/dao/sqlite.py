@@ -500,6 +500,9 @@ class ManagerDAO(ConfigurationDAO):
                 paths.append(path)
         return paths
 
+    # def get_locked_paths(self) -> List[Path]:
+    #     return [Path(lock["path"]) for lock in self.get_locks()]
+
     def lock_path(self, path: Path, process: int, doc_id: str) -> None:
         with self.lock:
             con = self._get_write_connection()

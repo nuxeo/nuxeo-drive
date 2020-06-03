@@ -120,15 +120,18 @@ class DirectEdit(Worker):
     @pyqtSlot(object)
     def _autolock_orphans(self, locks: List[Path]) -> None:
         log.debug(f"Orphans lock: {locks!r}")
+        print("Orphan locks list")
+        print(locks)
         for lock in locks:
             if self._folder in lock.parents:
                 log.info(f"Should unlock {lock!r}")
+                print("Should unlock")
                 if not lock.exists():
                     self.autolock.orphan_unlocked(lock)
                     continue
-
                 ref = self.local.get_path(lock)
                 self._lock_queue.put((ref, "unlock_orphan"))
+                print("put file as unlock_orphan in lock queue")
 
     def autolock_lock(self, src_path: Path) -> None:
         ref = self.local.get_path(src_path)
@@ -137,6 +140,7 @@ class DirectEdit(Worker):
     def autolock_unlock(self, src_path: Path) -> None:
         ref = self.local.get_path(src_path)
         self._lock_queue.put((ref, "unlock"))
+        print("lock_que put unlock")
 
     def start(self) -> None:
         self._stop = False
@@ -184,22 +188,28 @@ class DirectEdit(Worker):
 
         log.info("Cleanup Direct Edit folder")
 
+        print(self.local.get_children_info(ROOT))
+
         for child in self.local.get_children_info(ROOT):
             # We need a folder
+            print(child)
+            print("1")
             if not child.folderish:
                 log.debug(f"Skipping clean-up of {child.path!r} (not a folder)")
                 continue
 
             # We also need a valid folder name
+            print("2")
             if not self._is_valid_folder_name(child.name):
                 log.debug(f"Skipping clean-up of {child.path!r} (invalid folder name)")
                 continue
 
+            print("3")
             children = self.local.get_children_info(child.path)
             if not children:
                 purge(child.path)
                 continue
-
+            print("4")
             ref = children[0].path
             try:
                 details = self._extract_edit_info(ref)
@@ -207,7 +217,7 @@ class DirectEdit(Worker):
                 # Engine is not known anymore
                 purge(child.path)
                 continue
-
+            print("5")
             try:
                 # Don't update if digest are the same
                 info = self.local.get_info(ref)
@@ -223,8 +233,20 @@ class DirectEdit(Worker):
                 log.exception("Unhandled clean-up error")
                 continue
 
-            # Place for handle reopened of interrupted Direct Edit
+            print("6")
+            # Handle locked files
+            locks = self._manager.dao.get_locked_paths()
+            print(f"lock list: {locks}")
+            result = [
+                child.filepath for lock in locks if child.filepath in lock.parents
+            ]
+            print(f"result list: {result}")
+            if len(result) > 0:
+                continue
+
+            # Finally
             purge(child.path)
+            print("7")
 
     def __get_engine(self, url: str, user: str = None) -> Optional["Engine"]:
         if not url:
@@ -557,15 +579,18 @@ class DirectEdit(Worker):
         dir_path = ref.parent
         server_url = self.local.get_remote_id(dir_path, name="nxdirectedit")
         if not server_url:
+            print("no server url")
             raise NotFound()
 
         user = self.local.get_remote_id(dir_path, name="nxdirectedituser")
         engine = self._get_engine(server_url, user=user)
         if not engine:
+            print("no engine")
             raise NotFound()
 
         uid = self.local.get_remote_id(dir_path)
         if not uid:
+            print("no uid")
             raise NotFound()
 
         digest_algorithm = self.local.get_remote_id(
@@ -573,6 +598,7 @@ class DirectEdit(Worker):
         )
         digest = self.local.get_remote_id(dir_path, name="nxdirecteditdigest")
         if not (digest and digest_algorithm):
+            print("no digest")
             raise NotFound()
 
         xpath = self.local.get_remote_id(dir_path, name="nxdirecteditxpath")
@@ -624,17 +650,20 @@ class DirectEdit(Worker):
         errors = []
 
         while "items":
+            print("handling lock queue")
             try:
                 item = self._lock_queue.get_nowait()
+                print(item)
             except Empty:
                 break
 
             ref, action = item
             log.debug(f"Handling Direct Edit lock queue: action={action}, ref={ref!r}")
             uid = ""
-
+            print(action)
             try:
                 details = self._extract_edit_info(ref)
+                print(details)
                 uid = details.uid
                 remote = details.engine.remote
                 if action == "lock":
@@ -646,6 +675,7 @@ class DirectEdit(Worker):
                     continue
 
                 try:
+                    print("remote unlock")
                     remote.unlock(uid)
                 except NotFound:
                     purge = True
@@ -655,6 +685,8 @@ class DirectEdit(Worker):
                 if purge or action == "unlock_orphan":
                     path = self.local.abspath(ref)
                     log.debug(f"Remove orphan: {path!r}")
+                    print("got unlock_orphan")
+                    print(path)
                     self.autolock.orphan_unlocked(path)
                     shutil.rmtree(path, ignore_errors=True)
                     continue
