@@ -493,15 +493,6 @@ class Remote(Nuxeo):
                     batch = Batch(service=self.uploads, **upload.batch)
                     chunk_size = upload.chunk_size
 
-                    if batch.is_s3():
-                        token_ttl = self._aws_token_ttl(
-                            batch.extraInfo["expiration"] / 1000
-                        )
-                        if token_ttl.total_seconds() < 1:
-                            batch = None
-                            upload = None
-                            log.warning("AWS token has expired, restarting from zero")
-
             if not batch:
                 # .uploads.handlers() result is cached, so it is convenient to call it each time here
                 # in case the server did not answer correctly the previous time and thus S3 would
