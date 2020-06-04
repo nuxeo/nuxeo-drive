@@ -167,8 +167,7 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
             emblem = shared_icons / f"emblem-nuxeo_{status}.svg"
 
             try:
-                # See https://github.com/python/typeshed/issues/3858
-                identical = filecmp.cmp(icon, emblem, shallow=False)  # type: ignore
+                identical = filecmp.cmp(icon, emblem, shallow=False)
             except OSError:
                 # Most likely the *icon* doest not exist yet
                 pass
