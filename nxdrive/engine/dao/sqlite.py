@@ -2197,6 +2197,16 @@ class EngineDAO(ConfigurationDAO):
 
             self.transferUpdated.emit()
 
+    def update_upload(self, upload: Upload) -> None:
+        """Update a upload."""
+        with self.lock:
+            # Remove non-serializable data, never used elsewhere
+            batch = {k: v for k, v in upload.batch.items() if k != "blobs"}
+
+            c = self._get_write_connection().cursor()
+            sql = "UPDATE Uploads SET batch = ? WHERE uid = ?"
+            c.execute(sql, (json.dumps(batch), upload.uid))
+
     def pause_transfer(self, nature: str, uid: int, progress: float) -> None:
         with self.lock:
             c = self._get_write_connection().cursor()

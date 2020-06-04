@@ -556,6 +556,12 @@ class Remote(Nuxeo):
                     chunk_size=chunk_size,
                 )
                 self.dao.save_upload(upload)
+            elif upload.batch["batchId"] != batch.uid:
+                # The upload was not a fresh one but its batch ID was perimed.
+                # Before NXDRIVE-2183, the batch ID was not updated and so the second step
+                # of the upload (attaching the blob to a document) was failing.
+                upload.batch["batchId"] = batch.uid
+                self.dao.update_upload(upload)
 
             # Update the progress on chunked upload only as the first call to
             # action.progress will set the action.uploaded attr to True for

@@ -3,6 +3,7 @@ Test pause/resume transfers in different scenarii.
 """
 from unittest.mock import patch
 
+import pytest
 from nuxeo.exceptions import HTTPError
 from nxdrive.constants import FILE_BUFFER_SIZE, TransferStatus
 from nxdrive.options import Options
@@ -563,3 +564,107 @@ class TestUpload(OneUserTest):
         self.wait_sync()
         assert not list(dao.get_uploads())
         assert self.remote_1.exists("/test.bin")
+
+    @pytest.mark.randombug("NXDRIVE-2183")
+    def test_chunk_upload_error_then_server_error_at_linking(self):
+        """
+        [NXDRIVE-2183] More complex scenario:
+
+        Step 1/3:
+            - start the upload
+            - it must fail at chunk N
+            - the upload is then blacklisted and will be retried later
+
+        Step 2/3:
+            - for whatever reason, its batch ID is no more valid
+            - resume the upload
+            - a new batch ID is given
+            - upload all chunks successfully
+            - server error at linking the blob to the document
+            - the upload is then blacklisted and will be retried later
+
+        Step 3/3:
+            - resume the upload
+            - the batch ID used to resume the upload is the first batch ID, not the second that was used at step 2
+
+        With NXDRIVE-2183, the step 3 becomes:
+            - no chunks should be uploaded
+            - the linking should work
+
+        Note: marking the test as random because we patch several times the Engine
+              and sometimes it messes with objects at the step 3 and the mocked
+              RemoteClient is not the good one but the one from step 2 ...
+        """
+
+        engine = self.engine_1
+        dao = self.engine_1.dao
+
+        # Locally create a file that will be uploaded remotely
+        self.local_1.make_file("/", "test.bin", content=b"0" * FILE_BUFFER_SIZE * 4)
+        # There is no upload, right now
+        assert not list(dao.get_uploads())
+
+        # Step 1: upload one chunk and fail
+
+        def send_data(*args, **kwargs):
+            """Simulate an error."""
+            raise ConnectionError("Mocked error")
+
+        def callback(upload):
+            """Patch send_data() after chunk 1 is sent."""
+            if len(upload.blob.uploadedChunkIds) == 1:
+                upload.service.send_data = send_data
+
+        bad_remote1 = self.get_bad_remote()
+        bad_remote1.upload_callback = callback
+        batch_id = None
+
+        with patch.object(engine, "remote", new=bad_remote1), ensure_no_exception():
+            self.wait_sync()
+
+            # There should be 1 upload with ONGOING transfer status
+            uploads = list(dao.get_uploads())
+            assert len(uploads) == 1
+            upload = uploads[0]
+            batch_id = upload.batch["batchId"]
+            assert upload.status == TransferStatus.ONGOING
+
+            # The file on the server should not exist yet
+            assert not self.remote_1.exists("/test.bin")
+
+        # Step 2: alter the batch ID, resume the upload, upload all chunks and fail at linking
+
+        def link_blob_to_doc(*args, **kwargs):
+            """Throw an network error."""
+            raise HTTPError(status=504, message="Mocked Gateway timeout")
+
+        def callback(upload):
+            """Just check the batch ID _did_ change."""
+            assert upload.blob.batchId != batch_id
+
+        bad_remote2 = self.get_bad_remote()
+        bad_remote2.link_blob_to_doc = link_blob_to_doc
+
+        # Change the batch ID
+        upload = list(dao.get_uploads())[0]
+        upload.batch["batchId"] = "deadbeef"
+        engine.dao.update_upload(upload)
+
+        with patch.object(engine, "remote", new=bad_remote2), ensure_no_exception():
+            self.wait_sync()
+            assert list(dao.get_uploads())
+            assert not self.remote_1.exists("/test.bin")
+
+        # Step 3: resume the upload, the linking should work
+
+        def callback(upload):
+            """Just check the batch ID _did_ change."""
+            assert upload.blob.batchId not in (batch_id, "deadbeaf")
+
+        inspector = self.get_bad_remote()
+        inspector.upload_callback
+
+        with patch.object(engine, "remote", new=inspector), ensure_no_exception():
+            self.wait_sync()
+            assert not list(dao.get_uploads())
+            assert self.remote_1.exists("/test.bin")
