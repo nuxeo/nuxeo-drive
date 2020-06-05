@@ -182,7 +182,7 @@ def test_cleanup_orphan_files(manager_factory, obj_factory):
 
             nonlocal doc
             nonlocal engine
-            details = DirectEditDetails(
+            return DirectEditDetails(
                 uid=doc.uid,
                 engine=engine,
                 digest_func="md5",
@@ -190,7 +190,6 @@ def test_cleanup_orphan_files(manager_factory, obj_factory):
                 xpath="mock",
                 editing="1",
             )
-            return details
 
         with patch.object(
             direct_edit._manager.dao, "get_locked_paths", new=get_locked_paths
