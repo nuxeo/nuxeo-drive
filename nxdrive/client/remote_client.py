@@ -484,10 +484,10 @@ class Remote(Nuxeo):
                 # Check if the associated batch still exists server-side
                 try:
                     self.uploads.get(upload.batch["batchId"], file_idx=file_idx)
-                except Exception:
-                    log.debug(
-                        "No associated batch found, restarting from zero", exc_info=True
-                    )
+                except HTTPError as exc:
+                    if exc.status != 404:
+                        raise
+                    log.debug("No associated batch found, restarting from zero")
                 else:
                     log.debug("Associated batch found, resuming the upload")
                     batch = Batch(service=self.uploads, **upload.batch)
