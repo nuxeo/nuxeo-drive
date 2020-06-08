@@ -16,7 +16,7 @@ from nuxeo.compat import get_text
 from nuxeo.exceptions import CorruptedFile, HTTPError
 from nuxeo.handlers.default import Uploader
 from nuxeo.models import Batch, Document, FileBlob
-from nuxeo.utils import get_digest_algorithm
+from nuxeo.utils import get_digest_algorithm, version_lt
 from PyQt5.QtWidgets import QApplication
 
 from ..constants import (
@@ -46,14 +46,7 @@ from ..exceptions import (
 from ..feature import Feature
 from ..objects import Download, NuxeoDocumentInfo, RemoteFileInfo, Upload
 from ..options import Options
-from ..utils import (
-    compute_digest,
-    get_device,
-    lock_path,
-    sizeof_fmt,
-    unlock_path,
-    version_le,
-)
+from ..utils import compute_digest, get_device, lock_path, sizeof_fmt, unlock_path
 from .local import LocalClient
 from .proxy import Proxy
 
@@ -131,8 +124,6 @@ class Remote(Nuxeo):
             upload_callback,
             self.transfer_end_callback,
         )
-
-        self._has_new_trash_service = not version_le(self.client.server_version, "10.1")
 
         if base_folder is not None:
             base_folder_doc = self.fetch(base_folder)
@@ -926,14 +917,7 @@ class Remote(Nuxeo):
         )
 
     def undelete(self, uid: str) -> None:
-        input_obj = "doc:" + uid
-        if self._has_new_trash_service:
-            self.documents.untrash(uid)
-            return
-
-        self.execute(
-            command="Document.SetLifeCycle", input_obj=input_obj, value="undelete"
-        )
+        self.documents.untrash(uid)
 
     def rename(self, fs_item_id: str, new_name: str) -> RemoteFileInfo:
         return RemoteFileInfo.from_dict(
@@ -1085,6 +1069,6 @@ class Remote(Nuxeo):
             return {}
 
     def _get_trash_condition(self) -> str:
-        if self._has_new_trash_service:
-            return "AND ecm:isTrashed = 0"
-        return "AND ecm:currentLifeCycleState != 'deleted'"
+        if version_lt(self.client.server_version, "10.2"):
+            return "AND ecm:currentLifeCycleState != 'deleted'"
+        return "AND ecm:isTrashed = 0"

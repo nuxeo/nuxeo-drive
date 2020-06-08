@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 import requests
 import yaml
+from nuxeo.utils import version_lt
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QApplication
 
@@ -15,7 +16,6 @@ from ..constants import APP_NAME, CONNECTION_ERROR, NO_SPACE_ERRORS, USER_AGENT
 from ..engine.workers import PollWorker
 from ..feature import Feature
 from ..options import Options
-from ..utils import version_lt
 from . import UpdateError
 from .constants import (
     UPDATE_STATUS_INCOMPATIBLE_SERVER,

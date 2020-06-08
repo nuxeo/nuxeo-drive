@@ -27,10 +27,10 @@ from logging import getLogger
 from time import sleep
 from unittest.mock import patch
 
-from requests import ConnectionError
-
+from nuxeo.utils import version_lt
 from nxdrive.client.remote_client import Remote
 from nxdrive.objects import RemoteFileInfo
+from requests import ConnectionError
 
 from .common import TEST_DEFAULT_DELAY, TwoUsersTest
 
@@ -138,7 +138,7 @@ to local PC.
 
             # Restore folder 'shared' from trash
             remote.undelete(shared)
-            if not remote._has_new_trash_service:
+            if version_lt(remote.client.server_version, "10.2"):
                 remote.undelete(readme1)
             self.wait_sync(wait_for_async=True)
 
