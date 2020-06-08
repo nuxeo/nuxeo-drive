@@ -147,6 +147,69 @@ def test_cleanup_bad_folder_name(direct_edit):
     assert folder.is_dir()
 
 
+def test_cleanup_orphan_files(manager_factory, obj_factory):
+    """
+    Files marked as locked must be ignored by _cleanup().
+    This test goal is to ensure that these files are not removed at startup
+    as they are handled by the AutoLocker and the Direct Edit process later in the execution.
+    These files contains metadatas that are necessary for unlocking them on the server.
+    """
+    manager, engine = manager_factory()
+
+    with manager:
+        direct_edit = manager.direct_edit
+        direct_edit._folder.mkdir()
+        doc = obj_factory(title="this is a orphan file.odt", nature="File")
+
+        # Creating local orphan file
+        folder = direct_edit._folder / f"{doc.uid}_file-content"
+        folder.mkdir()
+        file = folder / "this is a orphan file.odt"
+        file.write_text("bla" * 3, encoding="utf-8")
+        assert file.is_file()
+
+        def get_locked_paths():
+            """
+            Mocked dao.get_local_paths() method.
+            Return the locked file path.
+            """
+            nonlocal file
+
+            return [file]
+
+        def extract_edit_info(_):
+            """
+            Mocked __extract_edit_info() method
+            Mandatory as there is no blob to work with in the test
+            """
+            DirectEditDetails = namedtuple(
+                "details",
+                ["uid", "engine", "digest_func", "digest", "xpath", "editing"],
+            )
+
+            nonlocal doc
+            nonlocal engine
+
+            return DirectEditDetails(
+                uid=doc.uid,
+                engine=engine,
+                digest_func="md5",
+                digest="1a36591bceec49c832079e270d7e8b73",
+                xpath="mock",
+                editing="1",
+            )
+
+        with patch.object(
+            direct_edit._manager.dao, "get_locked_paths", new=get_locked_paths
+        ), patch.object(
+            direct_edit, "_extract_edit_info", new=extract_edit_info
+        ), ensure_no_exception():
+            direct_edit._cleanup()
+
+        # The file should still be present as it is ignored by the clean-up
+        assert file.is_file()
+
+
 def test_document_not_found(manager_factory):
     """Trying to Direct Edit'ing a inexistent document should display a notification."""
 
