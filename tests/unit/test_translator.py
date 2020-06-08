@@ -94,3 +94,24 @@ def test_translate_twice():
 
 def get_folder(folder) -> Path:
     return Path(__file__).parent.parent / "resources" / folder
+
+
+def test_languages():
+    """Check that all languages are well retrieved."""
+    folder = Path(__file__).parent.parent.parent / "nxdrive" / "data" / "i18n"
+    Translator(folder)
+    expected = [
+        ("de", "Deutsch"),
+        ("en", "English"),
+        ("es", "Español"),
+        ("eu", "Euskara"),
+        ("fr", "Français"),
+        ("id", "Bahasa Indonesia"),
+        ("it", "Italiano"),
+        ("ja", "日本語"),
+        ("nl", "Nederlands"),
+        ("sv", "Svenska"),
+    ]
+    languages = Translator.languages()
+    assert languages == expected
+    assert len(languages) == len(list(folder.glob("*.json")))
