@@ -6,7 +6,7 @@ from shutil import copyfile
 from unittest.mock import patch
 
 import pytest
-
+from nuxeo.utils import version_lt
 from nxdrive.engine.engine import Engine
 from nxdrive.options import Options
 
@@ -55,7 +55,7 @@ class TestRemoteDeletion(OneUserTest):
 
         # Restore folder from trash then synchronize
         remote.undelete(folder_id)
-        if not remote._has_new_trash_service:
+        if version_lt(remote.client.server_version, "10.2"):
             remote.undelete(file_id)
         self.wait_sync(wait_for_async=True)
         assert local.exists("/Test folder")
@@ -68,7 +68,7 @@ class TestRemoteDeletion(OneUserTest):
 
         # Restore sync root from trash then synchronize
         remote_admin.undelete(self.workspace)
-        if not remote._has_new_trash_service:
+        if version_lt(remote.client.server_version, "10.2"):
             remote_admin.undelete(folder_id)
             remote_admin.undelete(file_id)
         self.wait_sync(wait_for_async=True)

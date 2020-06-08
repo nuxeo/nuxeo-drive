@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Tuple, Union
 import nuxeo.client
 import nuxeo.constants
 import nuxeo.operations
-from nuxeo.exceptions import HTTPError
 from nxdrive.client.local import LocalClient
 from nxdrive.client.remote_client import Remote
 from nxdrive.objects import NuxeoDocumentInfo, RemoteFileInfo
@@ -536,11 +535,8 @@ class DocRemote(RemoteTest):
         self.attach_blob(self.check_ref(ref), content, filename)
 
     def move(self, ref: str, target: str, name: str = None):
-        return self.execute(
-            command="Document.Move",
-            input_obj=f"doc:{self.check_ref(ref)}",
-            target=self.check_ref(target),
-            name=name,
+        return self.documents.move(
+            self.check_ref(ref), self.check_ref(target), name=name
         )
 
     def create_proxy(self, ref: str, output_ref: str):
@@ -563,21 +559,8 @@ class DocRemote(RemoteTest):
         )
 
     def delete(self, ref: str, use_trash: bool = True):
-        input_obj = f"doc:{self.check_ref(ref)}"
-        if use_trash:
-            try:
-                if not self._has_new_trash_service:
-                    return self.execute(
-                        command="Document.SetLifeCycle",
-                        input_obj=input_obj,
-                        value="delete",
-                    )
-                else:
-                    return self.execute(command="Document.Trash", input_obj=input_obj)
-            except HTTPError as e:
-                if e.status != 500:
-                    raise
-        return self.execute(command="Document.Delete", input_obj=input_obj)
+        meth = "trash" if use_trash else "delete"
+        return getattr(self.documents, meth)(self.check_ref(ref))
 
     def delete_content(self, ref: str, xpath: str = None):
         return self.delete_blob(self.check_ref(ref), xpath=xpath)
