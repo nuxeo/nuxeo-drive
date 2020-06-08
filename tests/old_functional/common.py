@@ -209,8 +209,6 @@ class TwoUsersTest(TestCase):
         self._remote_changes_count = {}
         self._no_remote_changes = {}
 
-        self.report_path = os.getenv("REPORT_PATH")
-
         self.tmpdir = (
             normalized_path(tempfile.gettempdir()) / str(uuid4()).split("-")[0]
         )
@@ -666,9 +664,6 @@ class TwoUsersTest(TestCase):
 
     def generate_report(self, exceptions: List[Exception]) -> None:
         """ Generate a report on failure. """
-        if not self.report_path:
-            return
-
         # Track any exception that could happen, specially those we would not
         # see if the test succeed.
         for n, exc in enumerate(exceptions, 1):
@@ -684,7 +679,7 @@ class TwoUsersTest(TestCase):
             # No break => no unexpected exceptions
             return
 
-        path = Path(self.report_path) / self.current_test
+        path = Path(os.getenv("REPORT_PATH", ".")) / self.current_test
         self.manager_1.generate_report(path)
 
     def _set_read_permission(self, user, doc_path, grant):
