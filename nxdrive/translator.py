@@ -25,9 +25,6 @@ class Translator(QTranslator):
         # Load from JSON
         for translation in path.iterdir():
             label = self.guess_label(translation.name)
-            # Hebrew is not translated, skip it
-            if label == "he":
-                continue
             self._labels[label] = json.loads(translation.read_text(encoding="utf-8"))
 
         # List language
