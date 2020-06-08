@@ -135,11 +135,6 @@ def prepare_args(data: Tuple[Union[Path, str], ...]) -> Tuple[str, ...]:
     return tuple(data)  # type: ignore
 
 
-def str_to_path(data: str) -> Optional[Path]:
-    """ Convert str to Path after querying the database. """
-    return None if data == "" else Path(data.lstrip("/"))
-
-
 class AutoRetryCursor(Cursor):
     def execute(self, *args: str, **kwargs: Any) -> Cursor:
         if len(args) > 1:
@@ -493,12 +488,7 @@ class ManagerDAO(ConfigurationDAO):
         return c.execute("SELECT * FROM AutoLock").fetchall()
 
     def get_locked_paths(self) -> List[Path]:
-        paths = []
-        for lock in self.get_locks():
-            path = str_to_path(lock["path"])
-            if path:
-                paths.append(path)
-        return paths
+        return [Path(lock["path"]) for lock in self.get_locks()]
 
     def lock_path(self, path: Path, process: int, doc_id: str) -> None:
         with self.lock:

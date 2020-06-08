@@ -153,3 +153,21 @@ def server(nuxeo_url):
         nuxeo.client.NuxeoClient._server_info = SERVER_INFO
 
     return server
+
+
+@pytest.fixture
+def app():
+    """
+    Fixture required to be able to process Qt events and quit smoothly the application.
+    To use in "functional" and "unit" tests only.
+    """
+    from PyQt5.QtCore import QCoreApplication, QTimer
+
+    app = QCoreApplication([])
+
+    # Little trick here! See Application.__init__() for details.
+    timer = QTimer()
+    timer.timeout.connect(lambda: None)
+    timer.start(100)
+
+    yield app
