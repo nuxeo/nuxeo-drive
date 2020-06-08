@@ -224,6 +224,12 @@ class DirectEdit(Worker):
                 continue
 
             # Place for handle reopened of interrupted Direct Edit
+            # Orphans locked files are ignored here as they are deleted later after being unlocked
+            locks = self._manager.dao.get_locked_paths()
+            if any(child.filepath for lock in locks if child.filepath in lock.parents):
+                continue
+
+            # Finally
             purge(child.path)
 
     def __get_engine(self, url: str, user: str = None) -> Optional["Engine"]:
