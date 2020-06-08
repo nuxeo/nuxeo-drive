@@ -57,6 +57,7 @@ History:
 
 Nuxeo Drive is translated in several languages. For now, officially supported ones are:
 
+- Basque
 - Dutch
 - English
 - French

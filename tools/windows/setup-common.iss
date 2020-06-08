@@ -76,6 +76,7 @@ Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 
 ; Waiting for official support: http://www.jrsoftware.org/files/istrans/
+Name: "basque"; MessagesFile: "unofficial_i18n\Basque.isl"
 Name: "indonesian"; MessagesFile: "unofficial_i18n\Indonesian.isl"
 Name: "swedish"; MessagesFile: "unofficial_i18n\Swedish.isl"
 
