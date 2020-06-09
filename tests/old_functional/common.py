@@ -168,9 +168,6 @@ class TwoUsersTest(TestCase):
 
         log.info("TEST master setup start")
 
-        # This will be the name of the workspace and a tag on Sentry
-        self.current_test = f"{test_method.__name__}-{sys.platform.lower()}"
-
         # To be replaced with fixtures when migrating to 100% pytest
         self.nuxeo_url = nuxeo_url()  # fixture name: nuxeo_url
         self.version = __version__  # fixture name: version
@@ -185,7 +182,7 @@ class TwoUsersTest(TestCase):
         self.users = [self._create_user(1)]
         if user_2:
             self.users.append(self._create_user(2))
-        self._create_workspace(self.current_test)
+        self._create_workspace(f"{self._testMethodName}-{sys.platform.lower()}")
 
         # Add proper rights for all users on the root workspace
         users = [user.uid for user in self.users]
@@ -285,7 +282,7 @@ class TwoUsersTest(TestCase):
         sync_thread = Thread(target=launch_test)
 
         with configure_scope() as scope:
-            scope.set_tag("test", self.current_test)
+            scope.set_tag("test", self._testMethodName)
             scope.set_tag("branch", os.getenv("BRANCH_NAME"))
             sync_thread.start()
             assert self.app.exec_() == 0
@@ -679,8 +676,9 @@ class TwoUsersTest(TestCase):
             # No break => no unexpected exceptions
             return
 
-        path = Path(os.getenv("REPORT_PATH", ".")) / self.current_test
-        self.manager_1.generate_report(path)
+        path = Path(os.getenv("REPORT_PATH", "."))
+        file = f"{self._testMethodName}-{sys.platform.lower()}"
+        self.manager_1.generate_report(path / file)
 
     def _set_read_permission(self, user, doc_path, grant):
         input_obj = "doc:" + doc_path
