@@ -17,7 +17,7 @@ class TestSpecialFiles(OneUserTest):
         self.wait_sync(wait_for_async=True)
 
         # The testing file
-        src = self.location / "resources" / "keynote.key"
+        src = self.location / "resources" / "files" / "keynote.key"
 
         # Create a local file
         file = local.abspath("/") / "keynote1.key"

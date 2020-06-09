@@ -2,7 +2,7 @@
 
 
 def test_simple_filter(engine_dao):
-    with engine_dao("test_manager_migration.db") as dao:
+    with engine_dao("manager_migration.db") as dao:
 
         # Save of one filter
         dao.add_filter("/Test/Plop")

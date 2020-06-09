@@ -5,6 +5,10 @@ import pytest
 from nxdrive.translator import Translator
 
 
+def get_folder(folder) -> Path:
+    return Path(__file__).parent.parent / "resources" / folder
+
+
 def test_non_existing_file():
     with pytest.raises(OSError):
         Translator(get_folder("imagine"))
@@ -90,10 +94,6 @@ def test_translate_twice():
 
     assert first == second
     assert values == ["value"]
-
-
-def get_folder(folder) -> Path:
-    return Path(__file__).parent.parent / "resources" / folder
 
 
 def test_languages():

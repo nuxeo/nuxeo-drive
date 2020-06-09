@@ -93,9 +93,9 @@ class TestRemoteDeletion(OneUserTest):
 
             # Create a document by streaming a binary file
             file_path = local.abspath("/Test folder") / "testFile.pdf"
-            copyfile(self.location / "resources" / "testFile.pdf", file_path)
+            copyfile(self.location / "resources" / "files" / "testFile.pdf", file_path)
             file_path = local.abspath("/Test folder") / "testFile2.pdf"
-            copyfile(self.location / "resources" / "testFile.pdf", file_path)
+            copyfile(self.location / "resources" / "files" / "testFile.pdf", file_path)
 
             # Delete remote folder then synchronize
             remote.delete("/Test folder")
@@ -124,7 +124,7 @@ class TestRemoteDeletion(OneUserTest):
         self.engine_1.start()
         self.engine_1.has_delete = False
 
-        filepath = self.location / "resources" / "testFile.pdf"
+        filepath = self.location / "resources" / "files" / "testFile.pdf"
 
         Options.set("tmp_file_limit", 0.1, "manual")
         with patch.object(self.engine_1.remote, "download_callback", new=callback):
