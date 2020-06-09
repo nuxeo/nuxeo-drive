@@ -569,8 +569,7 @@ class DocRemote(RemoteTest):
         return self.execute(command="Blob.Remove", input_obj=f"doc:{ref}", xpath=xpath)
 
     def is_locked(self, ref: str) -> bool:
-        data = self.fetch(ref, headers={"fetch-document": "lock"})
-        return "lockCreated" in data
+        return bool(self.documents.fetch_lock_status(ref))
 
     def get_versions(self, ref: str):
         headers = {"fetch-document": "versionLabel"}
