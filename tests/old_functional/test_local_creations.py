@@ -345,10 +345,7 @@ class TestLocalCreations(OneUserTest):
 
         # Note: GNU/Linux does not have a creation time
         if MAC or WINDOWS:
-            if MAC:
-                local_ctime = stats.st_birthtime
-            else:
-                local_ctime = stats.st_ctime
+            local_ctime = stats.st_birthtime if MAC else stats.st_ctime
             assert local_ctime < after_ctime
             assert local_ctime + sleep_time <= local_mtime
 
@@ -383,10 +380,7 @@ class TestLocalCreations(OneUserTest):
 
         # Note: GNU/Linux does not have a creation time
         if MAC or WINDOWS:
-            if MAC:
-                local_ctime = stats.st_birthtime
-            else:
-                local_ctime = stats.st_ctime
+            local_ctime = stats.st_birthtime if MAC else stats.st_ctime
             assert local_ctime < after_ctime
             assert local_ctime + sleep_time <= local_mtime
 
@@ -421,10 +415,7 @@ class TestLocalCreations(OneUserTest):
 
         # Note: GNU/Linux does not have a creation time
         if MAC or WINDOWS:
-            if MAC:
-                local_ctime = stats.st_birthtime
-            else:
-                local_ctime = stats.st_ctime
+            local_ctime = stats.st_birthtime if MAC else stats.st_ctime
             assert local_ctime < after_ctime
             assert local_ctime + sleep_time <= local_mtime
 
