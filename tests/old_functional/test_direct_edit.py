@@ -316,6 +316,78 @@ class MixinTests(DirectEditSetup):
         # And the error queue should still be be empty, the bad upload has beend discarded
         assert self.direct_edit._error_queue.empty()
 
+    def test_orphan_should_unlock(self):
+        """
+        NXDRIVE-2129: Unlocking of previously edited file when the app crashed in-between.
+        Step 1/3 (mimic the previous edition):
+            - create the remote file
+            - the file is locally downloaded
+            - the file is remotely locked by the previous Direct Edit
+            - the file is still present locally
+        Step 2/3:
+            - Drive restart and try to cleanup previous session files
+            - the list of all locked files is retrieved
+            - call to _autolock_orphans() to process the list of locked files
+            - _autolock_orphans() should fill the lock queue with 'unlock_orphan'
+            - call to _handle_lock_queue() to process the lock_queue
+        Step 3/3: The file is still present locally and has not been unlocked
+        Expected behaviour: The file has been cleaned locally and unlocked locally/remotely
+        """
+
+        def orphan_unlocked(path: Path) -> None:
+            """Mocked autolock.orphan_unlocked method."""
+            self.direct_edit._manager.dao.unlock_path(path)
+
+        # STEP 1
+        filename = "orphan-test.txt"
+        doc_id = self.remote.make_file("/", filename, content=b"Some content.")
+        local_path = Path(f"{doc_id}_file-content/{filename}")
+        edit_local_path = self.direct_edit._folder / local_path
+
+        # File is locked remotely
+        self.remote.lock(doc_id)
+
+        # Download file
+        self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
+        assert self.local.exists(local_path)
+        self.wait_sync(timeout=2, fail_if_timeout=False)
+
+        # File is locked locally
+        self.direct_edit._manager.dao.lock_path(edit_local_path, 42, doc_id)
+
+        assert self.remote.is_locked(doc_id)
+
+        # STEP 2
+        # Drive restart and try to cleanup files
+        self.direct_edit._cleanup()
+        # Orphans download should not be cleaned by _cleanup
+        assert self.local.exists(local_path)
+
+        with ensure_no_exception():
+            # Mimic autolocker._poll()
+            self.direct_edit._autolock_orphans([edit_local_path])
+
+        # Ensure that lock queue has been filled with an unlock_orphan item
+        assert not self.direct_edit._lock_queue.empty()
+        item = self.direct_edit._lock_queue.get_nowait()
+        assert item == (local_path, "unlock_orphan")
+
+        # Re-put elem in lock_queue after check
+        self.direct_edit._lock_queue.put(item)
+
+        with patch.object(
+            self.direct_edit.autolock, "orphan_unlocked", new=orphan_unlocked
+        ), ensure_no_exception():
+            self.direct_edit._handle_lock_queue()
+            # lock queue should be empty after call to _handle_lock_queue()
+            assert self.direct_edit._lock_queue.empty()
+
+        # STEP 3
+
+        # The file has been unlocked locally and remotely
+        assert not self.remote.is_locked(doc_id)
+        assert not self.direct_edit._manager.dao.get_locked_paths()
+
     def test_direct_edit_version(self):
         from nuxeo.models import BufferBlob
 

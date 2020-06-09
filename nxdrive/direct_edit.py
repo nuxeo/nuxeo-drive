@@ -123,10 +123,6 @@ class DirectEdit(Worker):
         for lock in locks:
             if self._folder in lock.parents:
                 log.info(f"Should unlock {lock!r}")
-                if not lock.exists():
-                    self.autolock.orphan_unlocked(lock)
-                    continue
-
                 ref = self.local.get_path(lock)
                 self._lock_queue.put((ref, "unlock_orphan"))
 
