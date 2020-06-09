@@ -14,11 +14,12 @@ class MockEngineDAO(EngineDAO):
     """ Convenient class with auto-cleanup at exit. """
 
     def __init__(self, fname):
-        db = normalized_path(__file__).parent.parent / "resources" / fname
-        tmp = db.with_name(f"{uuid4()}.db")
-        shutil.copy(db, tmp)
+        root = normalized_path(__file__).parent.parent
+        src = root / "resources" / "databases" / fname
+        dst = src.with_name(f"{uuid4()}.db")
+        shutil.copy(src, dst)
         time.sleep(1)
-        super().__init__(tmp)
+        super().__init__(dst)
 
     def __enter__(self):
         return self

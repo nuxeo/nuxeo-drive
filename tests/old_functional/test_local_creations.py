@@ -87,7 +87,7 @@ class TestLocalCreations(OneUserTest):
         local.make_folder(f"/{self.workspace_title}", "A")
         folder_path_1 = f"{self.workspace_title}/A"
 
-        test_doc_path = self.location / "resources" / "cat.jpg"
+        test_doc_path = self.location / "resources" / "files" / "cat.jpg"
         abs_folder_path_1 = local.abspath(f"/{folder_path_1}")
         dst_path = abs_folder_path_1 / "cat.jpg"
         shutil.copyfile(test_doc_path, dst_path)
@@ -120,7 +120,7 @@ class TestLocalCreations(OneUserTest):
             local.make_file("/A", filename, content=FILE_CONTENT)
 
         # Add pictures into A
-        test_doc_path = self.location / "resources" / "cat.jpg"
+        test_doc_path = self.location / "resources" / "files" / "cat.jpg"
         abs_folder_path_1 = local.abspath("/A")
         for file_num in range(len_text_files, total_files):
             filename = f"file_{file_num + 1:02d}.jpg"
@@ -284,7 +284,7 @@ class TestLocalCreations(OneUserTest):
 
         workspace_id = f"{SYNC_ROOT_FAC_ID}{self.workspace}"
         name = "東京スカイツリー.jpg"
-        filepath = self.location / "resources" / name
+        filepath = self.location / "resources" / "files" / name
         remote.stream_file(workspace_id, filepath)
         remote_mtime = time.time()
 
@@ -305,7 +305,7 @@ class TestLocalCreations(OneUserTest):
 
         workspace_id = f"{SYNC_ROOT_FAC_ID}{self.workspace}"
         name = "こんにちは.jpg"
-        filepath = self.location / "resources" / name
+        filepath = self.location / "resources" / "files" / name
         remote.stream_file(workspace_id, filepath)
         remote_mtime = time.time()
 
@@ -360,7 +360,7 @@ class TestLocalCreations(OneUserTest):
 
         workspace_id = f"{SYNC_ROOT_FAC_ID}{self.workspace}"
         name = "東京スカイツリー.jpg"
-        filename = self.location / "resources" / name
+        filename = self.location / "resources" / "files" / name
         file_id = remote.stream_file(workspace_id, filename).uid
         after_ctime = time.time()
 
@@ -395,7 +395,7 @@ class TestLocalCreations(OneUserTest):
 
         workspace_id = f"{SYNC_ROOT_FAC_ID}{self.workspace}"
         name = "こんにちは.jpg"
-        filename = self.location / "resources" / name
+        filename = self.location / "resources" / "files" / name
         file_id = remote.stream_file(workspace_id, filename).uid
         after_ctime = time.time()
 

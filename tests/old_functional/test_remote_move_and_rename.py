@@ -588,7 +588,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         remote = self.remote_1
 
         file_path = local.abspath("/Test folder") / "testFile.pdf"
-        copyfile(self.location / "resources" / "testFile.pdf", file_path)
+        copyfile(self.location / "resources" / "files" / "testFile.pdf", file_path)
         self.wait_sync()
         file_id = local.get_remote_id("/Test folder/testFile.pdf")
         assert file_id
@@ -632,7 +632,8 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         Options.set("tmp_file_limit", 0.1, "manual")
         try:
             self.engine_1.remote.download_callback = callback
-            content = (self.location / "resources" / "testFile.pdf").read_bytes()
+            file = self.location / "resources" / "files" / "testFile.pdf"
+            content = file.read_bytes()
             self.engine_1.file_id = remote.make_file(
                 self.folder_id, "testFile.pdf", content=content
             ).uid
@@ -650,7 +651,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         remote = self.remote_1
 
         file_path = local.abspath("/Test folder") / "testFile.pdf"
-        copyfile(self.location / "resources" / "testFile.pdf", file_path)
+        copyfile(self.location / "resources" / "files" / "testFile.pdf", file_path)
         self.wait_sync()
         file_id = local.get_remote_id("/Test folder/testFile.pdf")
         assert file_id
@@ -688,7 +689,8 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         with patch.object(
             self.engine_1.remote, "download_callback", new_callable=callback
         ):
-            content = (self.location / "resources" / "testFile.pdf").read_bytes()
+            file = self.location / "resources" / "files" / "testFile.pdf"
+            content = file.read_bytes()
             remote.make_file("/Test folder", "testFile.pdf", content=content)
 
             # Rename remote folder then synchronize
@@ -719,9 +721,9 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         with patch.object(self.engine_1.remote, "download_callback", new=callback):
             # Create a document by streaming a binary file
             file_path = local.abspath("/Test folder") / "testFile.pdf"
-            copyfile(self.location / "resources" / "testFile.pdf", file_path)
+            copyfile(self.location / "resources" / "files" / "testFile.pdf", file_path)
             file_path = local.abspath("/Test folder") / "testFile2.pdf"
-            copyfile(self.location / "resources" / "testFile.pdf", file_path)
+            copyfile(self.location / "resources" / "files" / "testFile.pdf", file_path)
 
             # Rename remote folder then synchronize
             self.remote_1.rename(self.folder_id, "Test folder renamed")

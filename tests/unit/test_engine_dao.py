@@ -1,4 +1,5 @@
 # coding: utf-8
+import sys
 from pathlib import Path
 
 import pytest
@@ -8,8 +9,24 @@ from nxdrive.utils import WINDOWS
 from ..markers import windows_only
 
 
+@pytest.mark.parametrize(
+    "args, expected_args, skip",
+    [
+        (("a", "b", "c"), ("a", "b", "c"), False),
+        ((Path("a"),), ("/a",), False),
+        ((Path("/a"),), ("/a",), WINDOWS),
+        ((Path("C:\\a"),), ("C:/a",), not WINDOWS),
+        ((Path(),), ("/",), False),
+    ],
+)
+def test_prepare_args(args, expected_args, skip):
+    if skip:
+        pytest.skip(f"Not relevant on {sys.platform}")
+    assert prepare_args(args) == expected_args
+
+
 def test_acquire_processors(engine_dao):
-    with engine_dao("test_engine_migration.db") as dao:
+    with engine_dao("engine_migration.db") as dao:
         assert dao.acquire_processor(666, 2)
 
         # Cannot acquire processor if different processor
@@ -28,7 +45,7 @@ def test_acquire_processors(engine_dao):
 
 def test_batch_folder_files(engine_dao):
     """ Verify that the batch is ok. """
-    with engine_dao("test_engine_migration.db") as dao:
+    with engine_dao("engine_migration.db") as dao:
         ids = range(25, 47)
         index = 0
         state = dao.get_state_from_id(25)  # ids[index])
@@ -52,7 +69,7 @@ def test_batch_folder_files(engine_dao):
 
 def test_batch_upload_files(engine_dao):
     """ Verify that the batch is ok. """
-    with engine_dao("test_engine_migration.db") as dao:
+    with engine_dao("engine_migration.db") as dao:
         ids = [58, 62, 61, 60, 63]
         index = 0
         state = dao.get_state_from_id(ids[index])
@@ -75,7 +92,7 @@ def test_batch_upload_files(engine_dao):
 
 
 def test_configuration_get(engine_dao):
-    with engine_dao("test_engine_migration.db") as dao:
+    with engine_dao("engine_migration.db") as dao:
         result = dao.get_config("empty", "DefaultValue")
         assert result == "DefaultValue"
 
@@ -99,7 +116,7 @@ def test_configuration_get(engine_dao):
 
 def test_configuration_get_bool(engine_dao):
     name = "something"
-    with engine_dao("test_engine_migration.db") as dao:
+    with engine_dao("engine_migration.db") as dao:
         # Boolean parameter set to True
         dao.store_bool(name, True)
         assert dao.get_bool(name) is True
@@ -154,7 +171,7 @@ def test_configuration_get_bool(engine_dao):
 
 def test_configuration_get_int(engine_dao):
     name = "something"
-    with engine_dao("test_engine_migration.db") as dao:
+    with engine_dao("engine_migration.db") as dao:
         # Boolean parameter set to True
         dao.store_int(name, 42)
         assert dao.get_int(name) == 42
@@ -189,21 +206,21 @@ def test_configuration_get_int(engine_dao):
 
 
 def test_conflicts(engine_dao):
-    with engine_dao("test_engine_migration.db") as dao:
+    with engine_dao("engine_migration.db") as dao:
         assert dao.get_conflict_count() == 3
         assert len(dao.get_conflicts()) == 3
 
 
 def test_corrupted_database(engine_dao):
     """ DatabaseError: database disk image is malformed. """
-    with engine_dao("test_corrupted_database.db") as dao:
+    with engine_dao("corrupted_database.db") as dao:
         c = dao._get_read_connection().cursor()
         cols = c.execute("SELECT * FROM States").fetchall()
         assert len(cols) == 3
 
 
 def test_errors(engine_dao):
-    with engine_dao("test_engine_migration.db") as dao:
+    with engine_dao("engine_migration.db") as dao:
         assert dao.get_error_count() == 1
         assert not dao.get_error_count(5)
         assert len(dao.get_errors()) == 1
@@ -238,7 +255,7 @@ def test_errors(engine_dao):
 
 def test_filters(engine_dao):
     """ Contains by default /fakeFilter/Test_Parent and /fakeFilter/Retest. """
-    with engine_dao("test_engine_migration.db") as dao:
+    with engine_dao("engine_migration.db") as dao:
         assert len(dao.get_filters()) == 2
 
         dao.remove_filter("/fakeFilter/Retest")
@@ -252,8 +269,14 @@ def test_filters(engine_dao):
         assert len(dao.get_filters()) == 2
 
 
+def test_reinit_processors(engine_dao):
+    with engine_dao("engine_migration.db") as dao:
+        state = dao.get_state_from_id(1)
+        assert not state.processor
+
+
 def test_init_db(engine_dao):
-    with engine_dao("test_manager_migration.db") as dao:
+    with engine_dao("manager_migration.db") as dao:
         assert not dao.get_filters()
         assert not dao.get_conflicts()
         assert dao.get_config("remote_user") is None
@@ -262,7 +285,7 @@ def test_init_db(engine_dao):
 
 def test_last_sync(engine_dao):
     """ Based only on file so not showing 2. """
-    with engine_dao("test_engine_migration.db") as dao:
+    with engine_dao("engine_migration.db") as dao:
         ids = [58, 8, 62, 61, 60]
         files = dao.get_last_files(5)
         assert len(files) == 5
@@ -283,7 +306,7 @@ def test_last_sync(engine_dao):
 
 
 def test_migration_db_v1(engine_dao):
-    with engine_dao("test_engine_migration.db") as dao:
+    with engine_dao("engine_migration.db") as dao:
         c = dao._get_read_connection().cursor()
 
         cols = c.execute("PRAGMA table_info('States')").fetchall()
@@ -293,40 +316,9 @@ def test_migration_db_v1(engine_dao):
         assert len(cols) == 63
 
 
-@windows_only
-def test_migration_db_v8(engine_dao):
-    """Verify Downloads.tmpname after migration from v7 to v8."""
-    with engine_dao("test_engine_migration_8.db") as dao:
-
-        for download in dao.get_downloads():
-            assert str(download.tmpname).startswith("\\\\?\\")
-
-
-def test_migration_db_v9(engine_dao):
-    """Verify Downloads.path and Uploads.path types after migration."""
-    with engine_dao("test_engine_migration_8.db") as dao:
-        downloads = list(dao.get_downloads())
-        assert len(downloads) == 1
-
-
-def test_migration_db_v10(engine_dao):
-    """Verify Downloads after migration from v9 to v10."""
-    with engine_dao("test_engine_migration_10.db") as dao:
-        downloads = list(dao.get_downloads())
-        assert len(downloads) == 0
-
-        states = list(dao.get_states_from_partial_local(Path()))
-        assert len(states) == 4
-
-        bad_digest_file = dao.get_state_from_local(
-            Path("/Tests Drive/Live Connect/Test document Live Connect")
-        )
-        assert not bad_digest_file
-
-
 def test_migration_db_v1_with_duplicates(engine_dao):
     """ Test a non empty DB. """
-    with engine_dao("test_engine_migration_duplicate.db") as dao:
+    with engine_dao("engine_migration_duplicate.db") as dao:
         c = dao._get_read_connection().cursor()
         rows = c.execute("SELECT * FROM States").fetchall()
         assert not rows
@@ -337,25 +329,32 @@ def test_migration_db_v1_with_duplicates(engine_dao):
         assert dao.get_config("remote_last_full_scan") is None
 
 
-@pytest.mark.parametrize(
-    "args, expected_args, skip",
-    [
-        (("a", "b", "c"), ("a", "b", "c"), False),
-        ((Path("a"),), ("/a",), False),
-        ((Path("/a"),), ("/a",), WINDOWS),
-        ((Path("C:\\a"),), ("C:/a",), not WINDOWS),
-        ((Path(),), ("/",), False),
-    ],
-)
-def test_prepare_args(args, expected_args, skip):
-    if skip:
-        import sys
+@windows_only
+def test_migration_db_v8(engine_dao):
+    """Verify Downloads.tmpname after migration from v7 to v8."""
+    with engine_dao("engine_migration_8.db") as dao:
 
-        pytest.skip(f"Not relevant on {sys.platform}")
-    assert prepare_args(args) == expected_args
+        for download in dao.get_downloads():
+            assert str(download.tmpname).startswith("\\\\?\\")
 
 
-def test_reinit_processors(engine_dao):
-    with engine_dao("test_engine_migration.db") as dao:
-        state = dao.get_state_from_id(1)
-        assert not state.processor
+def test_migration_db_v9(engine_dao):
+    """Verify Downloads.path and Uploads.path types after migration."""
+    with engine_dao("engine_migration_8.db") as dao:
+        downloads = list(dao.get_downloads())
+        assert len(downloads) == 1
+
+
+def test_migration_db_v10(engine_dao):
+    """Verify Downloads after migration from v9 to v10."""
+    with engine_dao("engine_migration_10.db") as dao:
+        downloads = list(dao.get_downloads())
+        assert len(downloads) == 0
+
+        states = list(dao.get_states_from_partial_local(Path()))
+        assert len(states) == 4
+
+        bad_digest_file = dao.get_state_from_local(
+            Path("/Tests Drive/Live Connect/Test document Live Connect")
+        )
+        assert not bad_digest_file

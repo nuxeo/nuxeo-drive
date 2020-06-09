@@ -33,7 +33,9 @@ class DirectTransfer:
         Options.chunk_size = 1
 
         # The file used for the Direct Transfer (must be > 1 MiB)
-        source = self.location / "resources" / "test_engine_migration_duplicate.db"
+        source = (
+            self.location / "resources" / "databases" / "engine_migration_duplicate.db"
+        )
         assert source.stat().st_size > 1024 * 1024
 
         # Work with a copy of the file to allow parallel testing
