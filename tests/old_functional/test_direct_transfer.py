@@ -507,10 +507,12 @@ class DirectTransferFolder:
         copytree(folder, self.folder, copy_function=copyfile)
 
         # Get folders and files tests will handle
-        tree = {path: rpath for rpath, path in get_tree_list(self.folder, self.ws.path)}
-        self.files = [path for path in tree.keys() if path.is_file()]
-        self.folders = [path for path in tree.keys() if path.is_dir()]
-        self.tree = tree
+        self.tree = {
+            path: rpath for rpath, path in get_tree_list(self.folder, self.ws.path)
+        }
+        paths = self.tree.keys()
+        self.files = [path for path in paths if path.is_file()]
+        self.folders = [path for path in paths if path not in self.files]
 
         # Lower chunk_* options to have chunked uploads without having to create big files
         self.default_chunk_limit = Options.chunk_limit

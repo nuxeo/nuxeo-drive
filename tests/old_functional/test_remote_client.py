@@ -6,7 +6,6 @@ from shutil import copyfile
 from tempfile import mkdtemp
 
 import pytest
-
 from nxdrive.exceptions import NotFound
 
 from . import LocalTest, make_tmp_file

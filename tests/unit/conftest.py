@@ -5,7 +5,6 @@ from typing import Optional
 from uuid import uuid4
 
 import pytest
-
 from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.objects import DocPair
 from nxdrive.utils import normalized_path
