@@ -313,7 +313,7 @@ def get_default_local_folder() -> Path:
 
 def get_tree_list(
     path: Path, remote_ref: str
-) -> Generator[Tuple[str, Path], None, None]:
+) -> Generator[Tuple[Path, str], None, None]:
     """Compute remote paths based on *remote_ref* from a given *path*.
     This is used in the Direct Transfer feature to upload a folder
     and all its contents.
@@ -330,7 +330,7 @@ def get_tree_list(
         return
 
     # First, yield the folder itself
-    yield remote_ref, path
+    yield path, remote_ref
     remote_ref += f"/{path.name}"
 
     # Then, yield its children
@@ -344,7 +344,7 @@ def get_tree_list(
             if is_dir:
                 yield from get_tree_list(Path(entry.path), remote_ref)
             elif entry.is_file():
-                yield remote_ref, Path(entry.path)
+                yield Path(entry.path), remote_ref
 
 
 def get_tree_size(path: Path) -> int:

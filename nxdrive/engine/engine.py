@@ -426,7 +426,7 @@ class Engine(QObject):
                 plan(local_path, remote_ref)
             else:
                 tree = sorted(get_tree_list(local_path, remote_ref))
-                for remote_path, path in tree:
+                for path, remote_path in tree:
                     plan(path, remote_path)
 
     def direct_transfer_cancel(self, file: Path) -> None:

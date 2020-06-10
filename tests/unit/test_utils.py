@@ -495,7 +495,7 @@ def test_get_tree_list():
 
     # Check we got all paths
     expected_paths = [path] + sorted(path.glob("**/*"))
-    guessed_paths = sorted(p for _, p in tree)
+    guessed_paths = sorted(p for p, _ in tree)
     assert guessed_paths == expected_paths
 
     # Check we got correct remote paths
@@ -508,7 +508,7 @@ def test_get_tree_list():
         else:
             expected_rpaths.append(rpath)
     expected_rpaths = sorted(expected_rpaths)
-    guessed_rpaths = sorted(p for p, _ in tree)
+    guessed_rpaths = sorted(p for _, p in tree)
     assert guessed_rpaths == expected_rpaths
 
 
