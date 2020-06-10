@@ -510,7 +510,7 @@ class DirectTransferFolder:
 
         # Get folders and files tests will handle
         self.tree = {
-            path: rpath for rpath, path in get_tree_list(self.folder, self.ws.path)
+            path: rpath for path, rpath in get_tree_list(self.folder, self.ws.path)
         }
         paths = self.tree.keys()
         self.files = [path for path in paths if path.is_file()]
