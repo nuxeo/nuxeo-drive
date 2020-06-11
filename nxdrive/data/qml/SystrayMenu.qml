@@ -52,7 +52,7 @@ ShadowRectangle {
             text: qsTr("QUIT") + tl.tr
             onClicked: {
                 application.hide_systray()
-                application.quit()
+                application.exit_app()
             }
         }
 

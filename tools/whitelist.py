@@ -1,5 +1,6 @@
 # Whitelist file for Vulture.
 
+Application.about_to_quit  # Used in QML
 Application._nxdrive_url_env  # Used in QML
 Application.action_progressing  # Used by FileAction.processing signal
 BlacklistQueue.repush  # Used in tests
