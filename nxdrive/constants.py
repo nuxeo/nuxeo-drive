@@ -1,6 +1,6 @@
 # coding: utf-8
 import errno
-from enum import Enum, auto
+from enum import Enum
 from pathlib import Path
 from sys import platform
 
@@ -95,7 +95,10 @@ class DelAction(Enum):
 class TransferStatus(Enum):
     """ Used to represent an upload/download status. """
 
-    ONGOING = auto()
-    PAUSED = auto()
-    SUSPENDED = auto()
-    DONE = auto()
+    ONGOING = 1
+    PAUSED = 2
+    SUSPENDED = 3
+    DONE = 4
+    # Note: there used to be a CANCELLED status, set to 4. At the time, DONE was set to 5.
+    # But a "small" mess was done with NXDRIVE-1784 and fixed later with NXDRIVE-1901.
+    # So we cannot use 5 as a value. Never again.
