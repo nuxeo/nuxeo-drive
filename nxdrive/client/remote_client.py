@@ -2,11 +2,10 @@
 import os
 import socket
 from contextlib import suppress
-from datetime import datetime, timedelta
 from logging import getLogger
 from pathlib import Path
 from time import monotonic_ns
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type, Union
 from urllib.parse import unquote
 
 import requests
@@ -14,8 +13,7 @@ from nuxeo.auth import TokenAuth
 from nuxeo.client import Nuxeo
 from nuxeo.compat import get_text
 from nuxeo.exceptions import CorruptedFile, HTTPError
-from nuxeo.handlers.default import Uploader
-from nuxeo.models import Batch, Document, FileBlob
+from nuxeo.models import Document
 from nuxeo.utils import get_digest_algorithm, version_lt
 from PyQt5.QtWidgets import QApplication
 
@@ -28,27 +26,20 @@ from ..constants import (
     TX_TIMEOUT,
     TransferStatus,
 )
-from ..engine.activity import (
-    Action,
-    DownloadAction,
-    LinkingAction,
-    UploadAction,
-    VerificationAction,
-)
+from ..engine.activity import Action, DownloadAction, UploadAction, VerificationAction
 from ..exceptions import (
-    DirectTransferDuplicateFoundError,
     DownloadPaused,
     NotFound,
     ScrollDescendantsError,
     UnknownDigest,
     UploadPaused,
 )
-from ..feature import Feature
-from ..objects import Download, NuxeoDocumentInfo, RemoteFileInfo, Upload
+from ..objects import Download, NuxeoDocumentInfo, RemoteFileInfo
 from ..options import Options
 from ..utils import compute_digest, get_device, lock_path, sizeof_fmt, unlock_path
-from .local import LocalClient
 from .proxy import Proxy
+from .uploader import BaseUploader
+from .uploader.sync import SyncUploader
 
 if TYPE_CHECKING:
     from ..engine.dao.sqlite import EngineDAO  # noqa
@@ -386,375 +377,11 @@ class Remote(Nuxeo):
         if digest != computed_digest:
             raise CorruptedFile(file, digest, computed_digest)
 
-    def _aws_token_ttl(self, timestamp: int) -> timedelta:
-        """Return the AWS token TTL for S3 uploads."""
-        expiration = datetime.utcfromtimestamp(timestamp)
-        ttl = expiration - datetime.utcnow()
-        log.debug(f"AWS token will expire in {ttl} [at {expiration} UTC exactly]")
-        return ttl
-
     def upload(
-        self,
-        file_path: Path,
-        command: str,
-        filename: str = None,
-        mime_type: str = None,
-        **params: Any,
+        self, *args: Any, uploader: Type[BaseUploader] = SyncUploader, **kwargs: Any
     ) -> Dict[str, Any]:
-        """
-        Upload a file with a batch.
-        If command is not None, the operation is executed with the batch as an input.
-
-        If an exception happens at step 1 or 2, the upload will be continued the next
-        time the Processor handle the document (it will be postponed due to the error).
-
-        If the error was raised at step 1, the upload will not start from zero: it will
-        resume from the next chunk based on what previously chunks were sent.
-        This is dependent of the chunk TTL configured on the server (it must be large enough
-        to handle big files).
-
-        If the error was raised at step 2, the step 1 will be checked to ensure the blob
-        was successfully uploaded. But it most cases, nothing will be uploaded twice.
-        Also, it the error is one of HTTP 502 or 503, the Processor will check for
-        the file existence to bypass errors happening *after* the operation was successful.
-        If it exists, the error is skipped and the upload is seen as a success.
-        """
-        # Step 1: upload the blob
-        blob = self.upload_chunks(
-            file_path, filename=filename, mime_type=mime_type, **params
-        )
-
-        # Step 2: link the uploaded blob to the document
-        params["file_path"] = file_path
-        item = self.link_blob_to_doc(command, blob, **params)
-
-        # Transfer is completed, delete the upload from the database
-        self.dao.remove_transfer("upload", file_path)
-
-        return item
-
-    def upload_chunks(
-        self,
-        file_path: Path,
-        filename: str = None,
-        mime_type: str = None,
-        **params: Any,
-    ) -> FileBlob:
-        """Upload a blob by chunks or in one go."""
-
-        action = UploadAction(file_path, reporter=QApplication.instance())
-        blob = FileBlob(str(file_path))
-        if filename:
-            blob.name = filename
-        if mime_type:
-            blob.mimetype = mime_type
-
-        batch: Optional[Batch] = None
-        chunk_size = None
-        upload: Optional[Upload] = None
-
-        try:
-            # See if there is already a transfer for this file
-            upload = self.dao.get_upload(path=file_path)
-
-            if upload:
-                log.debug(f"Retrieved transfer for {file_path!r}: {upload}")
-                if upload.status not in (TransferStatus.ONGOING, TransferStatus.DONE):
-                    raise UploadPaused(upload.uid or -1)
-
-                # When fetching for an eventual batch, specifying the file index
-                # is not possible for S3 as there is no blob at the current index
-                # until the S3 upload is done itself and the call to
-                # batch.complete() done.
-                file_idx = (
-                    None
-                    if upload.batch.get("provider", "") == "s3"
-                    else upload.batch["upload_idx"]
-                )
-
-                # Check if the associated batch still exists server-side
-                try:
-                    self.uploads.get(upload.batch["batchId"], file_idx=file_idx)
-                except HTTPError as exc:
-                    if exc.status != 404:
-                        raise
-                    log.debug("No associated batch found, restarting from zero")
-                else:
-                    log.debug("Associated batch found, resuming the upload")
-                    batch = Batch(service=self.uploads, **upload.batch)
-                    chunk_size = upload.chunk_size
-
-            if not batch:
-                # .uploads.handlers() result is cached, so it is convenient to call it each time here
-                # in case the server did not answer correctly the previous time and thus S3 would
-                # be completely disabled because of a one-time server error.
-                handler = "s3" if Feature.s3 and self.uploads.has_s3() else ""
-
-                # Create a new batch and save it in the DB
-                batch = self.uploads.batch(handler=handler)
-
-                if batch.is_s3():
-                    self._aws_token_ttl(batch.extraInfo["expiration"] / 1000)
-
-            # By default, Options.chunk_size is 20, so chunks will be 20MiB.
-            # It can be set to a value between 1 and 20 through the config.ini
-            chunk_size = chunk_size or (Options.chunk_size * 1024 * 1024)
-
-            # For the upload to be chunked, the Options.chunk_upload must be True
-            # and the blob must be bigger than Options.chunk_limit, which by default
-            # is equal to Options.chunk_size.
-            chunked = (
-                Options.chunk_upload and blob.size > Options.chunk_limit * 1024 * 1024
-            )
-
-            engine_uid = params.pop("engine_uid", None)
-            is_direct_edit = params.pop("is_direct_edit", False)
-
-            # Set those attributes as FileBlob does not have them
-            # and they are required for the step 2 of .upload()
-            blob.batch_id = batch.uid
-            blob.fileIdx = batch.upload_idx
-
-            uploader: Uploader = batch.get_uploader(
-                blob,
-                chunked=chunked,
-                chunk_size=chunk_size,
-                callback=self.upload_callback,
-            )
-            log.debug(f"Using {type(uploader).__name__!r} uploader")
-
-            if not upload:
-                # Remove eventual obsolete upload (it happens when an upload using S3 has invalid metadatas)
-                self.dao.remove_transfer("upload", file_path)
-
-                # Add an upload entry in the database
-                upload = Upload(
-                    None,
-                    file_path,
-                    TransferStatus.ONGOING,
-                    engine=engine_uid,
-                    is_direct_edit=is_direct_edit,
-                    batch=batch.as_dict(),
-                    chunk_size=chunk_size,
-                )
-                self.dao.save_upload(upload)
-            elif upload.batch["batchId"] != batch.uid:
-                # The upload was not a fresh one but its batch ID was perimed.
-                # Before NXDRIVE-2183, the batch ID was not updated and so the second step
-                # of the upload (attaching the blob to a document) was failing.
-                upload.batch["batchId"] = batch.uid
-                self.dao.update_upload(upload)
-
-            # Update the progress on chunked upload only as the first call to
-            # action.progress will set the action.uploaded attr to True for
-            # empty files. This is not what we want: empty files are legits.
-            if uploader.chunked:
-                action.progress = chunk_size * len(uploader.blob.uploadedChunkIds)
-
-            if action.get_percent() < 100.0 or not action.uploaded:
-                if uploader.chunked:
-                    # Store the chunk size and start time for later transfer speed computation
-                    action.chunk_size = chunk_size
-                    action.chunk_transfer_start_time_ns = monotonic_ns()
-
-                    # If there is an UploadError, we catch it from the processor
-                    for _ in uploader.iter_upload():
-                        # Here 0 may happen when doing a single upload
-                        action.progress += uploader.chunk_size or 0
-
-                        # Save the progression
-                        upload.progress = action.get_percent()
-                        self.dao.set_transfer_progress("upload", upload)
-
-                        # Handle status changes every time a chunk is sent
-                        transfer = self.dao.get_upload(path=file_path)
-                        if transfer and transfer.status not in (
-                            TransferStatus.ONGOING,
-                            TransferStatus.DONE,
-                        ):
-                            raise UploadPaused(transfer.uid or -1)
-                else:
-                    uploader.upload()
-
-                    # For empty files, this will set action.uploaded to True,
-                    # telling us that the file was correctly sent to the server.
-                    action.progress += blob.size
-
-                    upload.progress = action.get_percent()
-
-            if batch.is_s3():
-                if not batch.blobs:
-                    # This may happen when resuming an upload with all parts sent.
-                    # Trigger upload() that will complete the MPU and fill required
-                    # attributes like the Batch ETag, blob index, etc..
-                    uploader.upload()
-
-                # Complete the S3 upload
-                # (setting a big timeout to handle big files)
-                batch.complete(timeout=(TX_TIMEOUT, TX_TIMEOUT))
-
-            # Transfer is completed, update the status in the database
-            upload.status = TransferStatus.DONE
-            self.dao.set_transfer_status("upload", upload)
-
-            return blob
-        finally:
-            # In case of error, log the progression to help debugging
-            percent = action.get_percent()
-            if percent < 100.0 and not action.uploaded:
-                log.debug(f"Upload progression stopped at {percent:.2f}%")
-
-                # Save the progression
-                if upload:
-                    upload.progress = percent
-                    self.dao.set_transfer_progress("upload", upload)
-
-            UploadAction.finish_action()
-
-            if blob.fd:
-                blob.fd.close()
-
-    def link_blob_to_doc(
-        self, command: str, blob: FileBlob, **params: Any
-    ) -> Dict[str, Any]:
-        """Link the given uploaded *blob* to the given document (refs are passed into *params*)."""
-
-        # Remove additional parameters to prevent a BadQuery
-        params.pop("engine_uid", None)
-        params.pop("is_direct_edit", None)
-        file_path = params.pop("file_path")
-
-        headers = {"Nuxeo-Transaction-Timeout": str(TX_TIMEOUT)}
-        log.debug(
-            f"Setting connection timeout to {TX_TIMEOUT:,} seconds to handle the file creation on the server"
-        )
-
-        # Terminate the upload action to be able to start the finalization one as we are allowing
-        # only 1 action per thread.
-        # Note that this is not really needed as the finalization action would replace the upload
-        # one, but let's do things right.
-        UploadAction.finish_action()
-
-        LinkingAction(file_path, reporter=QApplication.instance())
-        try:
-            return self.execute(
-                command=command,
-                input_obj=blob,
-                headers=headers,
-                timeout=TX_TIMEOUT,
-                **params,
-            )
-        finally:
-            LinkingAction.finish_action()
-
-    def get_document_or_none(self, uid: str = "", path: str = "") -> Optional[Document]:
-        """Fetch a document base don given criteria or return None if not found on the server."""
-        doc: Optional[Document] = None
-        try:
-            doc = self.documents.get(uid=uid, path=path)
-        except HTTPError as exc:
-            if exc.status != requests.codes.not_found:
-                raise
-        return doc
-
-    def direct_transfer(
-        self, file: Path, parent_path: str, engine_uid: str, replace_blob: bool = False
-    ) -> None:
-        """Upload a given file to the given folderish document on the server.
-
-        Note about possible duplicate creation via a race condition client <-> server.
-        Given the local *file* with the path "$HOME/some-folder/subfolder/file.odt",
-        the file name is "file.odt".
-
-        Scenario:
-            - Step 1: local, check for a doc with the path name "file.odt" => nothing returned, continuing;
-            - Step 2: server, a document with a path name set to "file.odt" is created;
-            - Step 3: local, create the document with the path name "file.odt".
-
-        Even if the elapsed time between steps 1 and 3 is really short, it may happen.
-
-        What can be done to prevent such scenario is not on the Nuxeo Drive side but on the server one.
-        For now, 2 options are possible but not qualified to be done in a near future:
-            - https://jira.nuxeo.com/browse/NXP-22959;
-            - create a new operation `Document.GetOrCreate` that ensures atomicity.
-        """
-        log.info(f"Direct Transfer of {file!r} into {parent_path!r}")
-
-        # The remote file, when created, is stored in the file xattrs.
-        # So retrieve it and if it is defined, the document creation should
-        # be skipped to prevent duplicate creations.
-        remote_ref = LocalClient.get_path_remote_id(file, name="remote")
-
-        doc: Optional[Document] = None
-
-        if remote_ref:
-            # The remote ref is set, so it means either the file has already been uploaded,
-            # either a previous upload failed: the document was created, or not, and it has
-            # a blob attached, or not. In any cases, we need to ensure the user can upload
-            # without headhache.
-            doc = self.get_document_or_none(uid=remote_ref)
-
-        if not doc:
-            # We need to handle possbile duplicates based on the file name and
-            # the destination folder on the server.
-            # Note: using this way may still result in duplicates:
-            #  - the user created 2 documents with the same name on Web-UI or another way
-            #  - the user then deleted the 1st document
-            #  - the other document has a path like "name.TIMESTAMP"
-            # So then Drive will not see that document as a duplicate because it will check
-            # a path with "name" only.
-
-            # If we really want to avoid that situation, we should use that commented code:
-            """
-            # Note that it would be too much effort for the server, we do not want that!
-            for child in self.documents.get_children(path=parent_path):
-                # It is OK to have a folder and a file with the same name,
-                # but not 2 files or 2 folders with the same name
-                if child.title == file.name:
-                    local_is_dir = file.isdir()
-                    remote_is_dir = "Folderish" in child["facets"]
-                    if local_is_dir is remote_is_dir:
-                        # Duplicate found!
-                        doc = child
-                        remote_ref = doc.uid
-                        break
-            """
-
-            doc = self.get_document_or_none(path=f"{parent_path}/{file.name}")
-            if doc:
-                remote_ref = doc.uid
-
-        if not replace_blob and doc and doc.properties.get("file:content"):
-            # The document already exists and has a blob attached. Ask the user what to do.
-            raise DirectTransferDuplicateFoundError(file, doc)
-
-        if not doc:
-            # Create the document on the server
-            nature = "File" if file.is_file() else "Folder"
-            doc = self.documents.create(
-                Document(
-                    name=file.name, type=nature, properties={"dc:title": file.name}
-                ),
-                parent_path=parent_path,
-            )
-            remote_ref = doc.uid
-
-        # If the path is a folder, there is no more work to do
-        if file.is_dir():
-            return
-
-        # Save the remote document's UID into the file xattrs, in case next steps fails
-        LocalClient.set_path_remote_id(file, remote_ref, name="remote")
-
-        # Upload the blob and attach it to the document
-        self.upload(
-            file,
-            engine_uid=engine_uid,
-            document=remote_ref,
-            command="Blob.AttachOnDocument",
-            xpath="file:content",
-            void_op=True,
-        )
+        """Upload a file with a batch."""
+        return uploader(self).upload(*args, **kwargs)
 
     def get_fs_info(
         self, fs_item_id: str, parent_fs_item_id: str = None
