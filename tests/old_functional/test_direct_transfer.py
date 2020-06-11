@@ -10,6 +10,7 @@ from uuid import uuid4
 import pytest
 from nuxeo.exceptions import HTTPError
 from nuxeo.models import Document
+from nxdrive.client.uploader.direct_transfer import DirectTransferUploader
 from nxdrive.constants import TransferStatus
 from nxdrive.options import Options
 from nxdrive.utils import get_tree_list
@@ -137,18 +138,30 @@ class DirectTransfer:
         # Mimic the user clicking on "Cancel"
         self.engine_1.directTranferDuplicateError.connect(self.app.user_choice_cancel)
 
-        def upload(*_, **__):
-            """Patch Remote.upload() to be able to check that nothing will be uploaded."""
-            assert 0, "No twice upload should be done!"
+        class NoChunkUpload(DirectTransferUploader):
+            def upload_chunks(self, *_, **__):
+                """Patch Remote.upload() to be able to check that nothing will be uploaded."""
+                assert 0, "No twice upload should be done!"
+
+        def upload(*args, **kwargs):
+            """Set our specific uploader to check for twice upload."""
+            kwargs.pop("uploader")
+            return upload_orig(*args, uploader=NoChunkUpload, **kwargs)
+
+        engine = self.engine_1
+        upload_orig = engine.remote.upload
+
+        # There is no upload, right now
+        self.no_uploads()
 
         with ensure_no_exception():
             # 1st upload: OK
-            self.engine_1.direct_transfer([self.file], self.ws.path)
+            engine.direct_transfer([self.file], self.ws.path)
             self.sync_and_check()
 
             # 2nd upload: it should be cancelled by the user
-            with patch.object(self.engine_1.remote, "upload", new=upload):
-                self.engine_1.direct_transfer([self.file], self.ws.path)
+            with patch.object(engine.remote, "upload", new=upload):
+                engine.direct_transfer([self.file], self.ws.path)
                 self.sync_and_check()
 
         # Ensure the signal was emitted
@@ -339,17 +352,26 @@ class DirectTransfer:
     def test_not_server_error_upload(self):
         """Test an error happening after chunks were uploaded, at the NuxeoDrive.CreateFile operation call."""
 
-        def link_blob_to_doc(*args, **kwargs):
-            """Simulate an exception that is not handled by the Processor."""
-            raise ValueError("Mocked exception")
+        class BadUploader(DirectTransferUploader):
+            """Used to simulate bad server responses."""
+
+            def link_blob_to_doc(self, *args, **kwargs):
+                """Simulate a server error."""
+                raise ValueError("Mocked exception")
+
+        def upload(*args, **kwargs):
+            """Set our specific uploader to simulate server error."""
+            kwargs.pop("uploader")
+            return upload_orig(*args, uploader=BadUploader, **kwargs)
 
         engine = self.engine_1
-        dao = self.engine_1.dao
+        dao = engine.dao
+        upload_orig = engine.remote.upload
 
         # There is no upload, right now
         self.no_uploads()
 
-        with patch.object(engine.remote, "link_blob_to_doc", new=link_blob_to_doc):
+        with patch.object(engine.remote, "upload", new=upload):
             with ensure_no_exception():
                 engine.direct_transfer([self.file], self.ws.path)
                 self.wait_sync()
@@ -379,33 +401,43 @@ class DirectTransfer:
         """
         pytest.skip("Not yet implemented.")
 
-        def link_blob_to_doc(*args, **kwargs):
-            # Call the original method to effectively end the upload process
-            link_blob_to_doc_orig(*args, **kwargs)
+        class BadUploader(DirectTransferUploader):
+            """Used to simulate bad server responses."""
 
-            # The file should be present on the server
-            assert self.remote_1.exists(f"/{self.file.name}")
+            def link_blob_to_doc(self, *args, **kwargs):
+                """Simulate a server error."""
+                # Call the original method to effectively end the upload process
+                super().link_blob_to_doc(*args, **kwargs)
 
-            # There should be 1 upload with ONGOING transfer status
-            uploads = list(dao.get_uploads())
-            assert len(uploads) == 1
-            upload = uploads[0]
-            assert upload.status == TransferStatus.ONGOING
+                # The file should be present on the server
+                assert self.remote.exists(file_path)
 
-            # And throw an error
-            stack = (
-                "The proxy server received an invalid response from an upstream server."
-            )
-            raise HTTPError(status=502, message="Mocked Proxy Error", stacktrace=stack)
+                # There should be 1 upload with DONE transfer status
+                uploads = list(dao.get_uploads())
+                assert len(uploads) == 1
+                upload = uploads[0]
+                assert upload.status == TransferStatus.DONE
 
+                # And throw an error
+                stack = "The proxy server received an invalid response from an upstream server."
+                raise HTTPError(
+                    status=502, message="Mocked Proxy Error", stacktrace=stack
+                )
+
+        def upload(*args, **kwargs):
+            """Set our specific uploader to simulate server error."""
+            kwargs.pop("uploader")
+            return upload_orig(*args, uploader=BadUploader, **kwargs)
+
+        file_path = f"{self.ws.path}/{self.file.name}"
         engine = self.engine_1
-        dao = self.engine_1.dao
-        link_blob_to_doc_orig = engine.remote.link_blob_to_doc
+        dao = engine.dao
+        upload_orig = engine.remote.upload
 
         # There is no upload, right now
         self.no_uploads()
 
-        with patch.object(engine.remote, "link_blob_to_doc", new=link_blob_to_doc):
+        with patch.object(engine.remote, "upload", new=upload):
             with ensure_no_exception():
                 engine.direct_transfer([self.file], self.ws.path)
                 self.wait_sync()
@@ -419,17 +451,26 @@ class DirectTransfer:
     def test_server_error_upload(self):
         """Test a server error happening after chunks were uploaded, at the Blob.AttachOnDocument operation call."""
 
-        def link_blob_to_doc(*args, **kwargs):
-            """Simulate a server error."""
-            raise ConnectionError("Mocked exception")
+        class BadUploader(DirectTransferUploader):
+            """Used to simulate bad server responses."""
+
+            def link_blob_to_doc(self, *args, **kwargs):
+                """Simulate a server error."""
+                raise ConnectionError("Mocked exception")
+
+        def upload(*args, **kwargs):
+            """Set our specific uploader to simulate server error."""
+            kwargs.pop("uploader")
+            return upload_orig(*args, uploader=BadUploader, **kwargs)
 
         engine = self.engine_1
-        dao = self.engine_1.dao
+        dao = engine.dao
+        upload_orig = engine.remote.upload
 
         # There is no upload, right now
         self.no_uploads()
 
-        with patch.object(engine.remote, "link_blob_to_doc", new=link_blob_to_doc):
+        with patch.object(engine.remote, "upload", new=upload):
             with ensure_no_exception():
                 engine.direct_transfer([self.file], self.ws.path)
                 self.wait_sync()

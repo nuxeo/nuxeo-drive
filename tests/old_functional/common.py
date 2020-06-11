@@ -663,12 +663,14 @@ class TwoUsersTest(TestCase):
         """ Generate a report on failure. """
         # Track any exception that could happen, specially those we would not
         # see if the test succeed.
+        from _pytest.outcomes import Skipped, XFailed
+
         for n, exc in enumerate(exceptions, 1):
             error = exc.getrepr(
                 showlocals=True, style="long", funcargs=True, truncate_locals=False
             )
             log.warning(f"Error n°{n}\n{error}")
-            if exc.errisinstance(AssertionError):
+            if exc.errisinstance((AssertionError, Skipped, XFailed)):
                 break
             if "mock" not in str(exc.exconly()).lower():
                 break

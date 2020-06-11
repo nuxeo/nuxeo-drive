@@ -22,6 +22,7 @@ from urllib3.exceptions import MaxRetryError
 
 from ..behavior import Behavior
 from ..client.local import FileInfo
+from ..client.uploader.direct_transfer import DirectTransferUploader
 from ..constants import (
     CONNECTION_ERROR,
     LONG_FILE_ERRORS,
@@ -514,8 +515,12 @@ class Processor(EngineWorker):
             return
 
         # Do the upload
-        self.remote.direct_transfer(
-            file, parent_path, self.engine.uid, replace_blob=replace_blob
+        self.remote.upload(
+            file,
+            parent_path=parent_path,
+            engine_uid=self.engine.uid,
+            uploader=DirectTransferUploader,
+            replace_blob=replace_blob,
         )
 
         # Clean-up
