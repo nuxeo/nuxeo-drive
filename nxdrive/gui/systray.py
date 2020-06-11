@@ -79,7 +79,7 @@ class DriveSystrayIcon(QSystemTrayIcon):
         menu.addAction(
             style.standardIcon(QStyle.SP_DialogCloseButton),
             Translator.get("QUIT"),
-            self.application.quit,
+            self.application.exit_app,
         )
 
         return menu
