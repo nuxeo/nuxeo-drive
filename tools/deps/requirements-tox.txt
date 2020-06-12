@@ -44,9 +44,9 @@ toml==0.10.1 \
 tox==3.15.2 \
     --hash=sha256:50a188b8e17580c1fb931f494a754e6507d4185f54fb18aca5ba3e12d2ffd55e \
     --hash=sha256:c696d36cd7c6a28ada2da780400e44851b20ee19ef08cfe73344a1dcebbbe9f3
-virtualenv==20.0.21 \
-    --hash=sha256:a730548b27366c5e6cbdf6f97406d861cccece2e22275e8e1a757aeff5e00c70 \
-    --hash=sha256:a116629d4e7f4d03433b8afa27f43deba09d48bc48f5ecefa4f015a178efb6cf
+virtualenv==20.0.22 \
+    --hash=sha256:c518b120bfdbbb111e52700fbb80f56c923a3f228d9140baa02d043da2949809 \
+    --hash=sha256:27ee4f826a432a2a0933a762829c4dda15b728dd89b43d4ee354461e245acc93
     # via tox
 zipp==3.1.0 \
     --hash=sha256:aa36550ff0c0b7ef7fa639055d797116ee891440eac1a56f378e2d3179e0320b \
