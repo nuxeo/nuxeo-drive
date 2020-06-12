@@ -156,7 +156,7 @@
     "IGNORE_REASON_CORRUPT": "Fitxategia ezikusi da bere osotasuna ezin delako egiaztatu.",
     "IGNORE_REASON_DEDUP": "Dokumentua ezikusi da dagoeneko existitzen den baten bikoizketa delako",
     "IGNORE_REASON_LOCKED": "Fitxategia blokeatuta dago, gatazka bat sortuko du urrunetik editatzen bada",
-    "IGNORE_REASON_MANUAL": "Fitxategiak errorea du, eta eskuz ezikusi da",
+    "IGNORE_REASON_MANUAL": "Fitxategiak erroreak ditu, eta eskuz ezikusi da",
     "IGNORE_REASON_NOT_FOUND": "Dokumentua edo bere gurasoa ez da existitzen dagoeneko zerbitzarian",
     "IGNORE_REASON_PARENT_UNSYNC": "Fitxategia ezikusi da bere gurasoa ere ezikusi delako",
     "IGNORE_REASON_READONLY": "Fitxategia edo bere gurasoa irakurtzeko soilik da",
@@ -224,7 +224,7 @@
     "NO_ACCOUNT_DESCR": "Erabili %1 botoia Nuxeo kontu batera konektatu eta edukia ordenagailura sinkronizatzen hasteko.",
     "NO_CONFLICTS_BODY": "Gatazka eta errore guztiak konpondu dituzu",
     "NO_CONFLICTS_TITLE": "Ez dago gatazka gehiagorik",
-    "NO_ROOTS": "Ez dago zure kontura loturiko karpeta sinkronizaturik.<br/><br/> Arakatu <a href=\"%1\">zure instantzia</a> eta hautatu karpeta bat edukia sinkronizatzen hasteko.<br/><br/> Ikasi gehiago sinkronizatzeari buruz <a href=\"%2\">dokumentazio-webgunean</a>.",
+    "NO_ROOTS": "Ez dago zure kontura loturiko karpeta sinkronizaturik.<br/><br/> Arakatu <a href=\"%1\">zure instantzia</a> eta hautatu karpeta bat edukia sinkronizatzen hasteko.<br/><br/> Ikasi gehiago sinkronizatzeari buruz <a href=\"%2\">dokumentazio webgunean</a>.",
     "NO_SPACE_LEFT_ON_DEVICE": "Ez dago lekurik diskoan, hustu leku pixka bat.",
     "OPEN_LOCAL": "Ireki lokala",
     "OPEN_REMOTE": "Ireki urrunekoa",
@@ -272,11 +272,11 @@
     "SELECT_REMOTE_FOLDER": "Hautatu urruneko karpeta:  ",
     "SELECTED_REMOTE_FOLDER": "Hautatutako bidea:",
     "SELECTIVE_SYNC": "Sinkronizatze selektiboa",
-    "SELECTIVE_SYNC_DESCR": "Hautatu zein karpeta ikusi nahi dituzun ordenagailuan. Deshautatzen duzun edozein karpeta ez da ordenagailuan erakutsiko, baina online atzitu ahalko dituzu.",
+    "SELECTIVE_SYNC_DESCR": "Hautatu zein karpeta ikusi nahi dituzun ordenagailuan. Desautatzen duzun edozein karpeta ez da ordenagailuan erakutsiko, baina online atzitu ahalko dituzu.",
     "SELECT_SYNC_FOLDERS": "Aukeratu sinkronizatu beharreko karpetak",
     "SELECT_SYNC_FOLDERS_DESCRIPTION": "Lokalki zein karpeta sinkronizatu aukeratzen uzten dizu. Motorra online egon behar da horretarako.",
     "SERVER_DEFAULT": "Zerbitzariaren lehenetsia",
-    "SERVER_INCOMPATIBLE": "Zerbitzariaren bertsioa ez da Drive %1(r)ekin bateragarria. Leheneratu Drive bezeoa %2 bertsiora edo jarri harremanetan administratzailearekin, Nuxeo instantzia bertsio-berritu dezan.",
+    "SERVER_INCOMPATIBLE": "Zerbitzariaren bertsioa ez da Drive %1(r)ekin bateragarria. Leheneratu Drive bezeroa %2 bertsiora edo jarri harremanetan administratzailearekin, Nuxeo instantzia bertsio-berritu dezan.",
     "SERVER_UI": "Zerbitzariaren interfazea",
     "SETTINGS": "Ezarpenak",
     "SETTINGS_WINDOW_TITLE": "%1 - Ezarpenak",
@@ -325,5 +325,5 @@
     "WINDOWS_ERROR_TITLE": "Dokumentuaren errorea",
     "WINDOWS_ERROR_OPENED_FILE": "„%1“ dokumentua beste software batek dauka irekita. Itxi ezazu %2(e)k biltegi lokaletik ezabatu ahal izan dezan.",
     "WINDOWS_ERROR_OPENED_FOLDER": "„%1“ karpeta edo bere umeak beste software batekin daude blokeatuta. Itxi ezazu %2(e)k biltegi lokaletik ezabatu ahal izan dezan.",
-    "WRONG_CHANNEL": "Unean %1 bertsioa darabilzu, „%2“ kanaletik, baina zure uneko kanala „%3“ da. Uneko kanaleko azken bertsiora aldatu nahi duzu, edo kanalez aldatzea?"
+    "WRONG_CHANNEL": "Unean %1 bertsioa darabilzu, „%2“ kanaletik, baina zure uneko kanala „%3“ da. Uneko kanaleko azken bertsiora aldatzea nahi duzu, edo kanalez aldatzea?"
 }
