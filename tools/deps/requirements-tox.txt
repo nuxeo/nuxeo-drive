@@ -26,8 +26,9 @@ packaging==20.4 \
 pluggy==0.13.1 \
     --hash=sha256:966c145cd83c96502c3c3868f50408687b38434af77734af1e9ca461a4081d2d
     # via tox
-py==1.8.1 \
-    --hash=sha256:c20fdd83a5dbc0af9efd622bee9a5564e278f6380fffcacc43ba6f43db2813b0
+py==1.8.2 \
+    --hash=sha256:a673fa23d7000440cc885c17dbd34fafcb7d7a6e230b29f6766400de36a33c44 \
+    --hash=sha256:f3b3a4c36512a4c4f024041ab51866f11761cc169670204b235f6b20523d4e6b
     # via tox
 pyparsing==2.4.7 \
     --hash=sha256:ef9d7589ef3c200abe66653d3f1ab1033c3c419ae9b9bdb1240a85b024efc88b \
