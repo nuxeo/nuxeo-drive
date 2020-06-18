@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Tuple, Union
 import nuxeo.client
 import nuxeo.constants
 import nuxeo.operations
+from nuxeo.models import Blob, FileBlob
 from nxdrive.client.local import LocalClient
 from nxdrive.client.remote_client import Remote
 from nxdrive.objects import NuxeoDocumentInfo, RemoteFileInfo
@@ -432,6 +433,10 @@ class DocRemote(RemoteTest):
         name: str = None,
         properties: Dict[str, str] = None,
     ):
+        """
+        Create a document of type *doc_type*.
+        The operation will not use the FileManager.
+        """
         name = safe_filename(name)
         return self.execute(
             command="Document.Create",
@@ -441,36 +446,72 @@ class DocRemote(RemoteTest):
             properties=properties,
         )
 
-    def make_folder(self, parent: str, name: str, doc_type: str = "Folder") -> str:
-        # TODO: make it possible to configure context dependent:
-        # - SocialFolder under SocialFolder or SocialWorkspace
-        # - Folder under Folder or Workspace
-        # This configuration should be provided by a special operation on the
-        # server.
+    def make_folder(
+        self, parent: str, name: str, doc_type: str = env.DOCTYPE_FOLDERISH
+    ) -> str:
+        """
+        Create a folderish document of the given *doc_type* with the given *name*.
+        The operation will not use the FileManager.
+        """
+        parent = self.check_ref(parent)
+        doc = self.create(parent, doc_type, name=name, properties={"dc:title": name})
+        return doc["uid"]
+
+    def make_file_with_blob(
+        self, parent: str, name: str, content: bytes, doc_type: str = env.DOCTYPE_FILE
+    ) -> str:
+        """
+        Create a non-folderish document of the given *doc_type* with the given *name*
+        and attach a blob with *contents*.
+        The operation will not use the FileManager.
+        """
+        doc_id = self.make_file_with_no_blob(parent, name, doc_type=doc_type)
+        self.attach_blob(doc_id, content, name)
+        return doc_id
+
+    def make_file_with_no_blob(
+        self, parent: str, name: str, doc_type: str = env.DOCTYPE_FILE
+    ) -> str:
+        """
+        Create a document of the given *doc_type* with the given *name*.
+        The operation will not use the FileManager.
+        """
         parent = self.check_ref(parent)
         doc = self.create(parent, doc_type, name=name, properties={"dc:title": name})
         return doc["uid"]
 
     def make_file(
-        self,
-        parent: str,
-        name: str,
-        content: bytes = None,
-        doc_type: str = env.DOCTYPE_FILE,
+        self, parent: str, name: str, content: bytes = None, file_path: Path = None,
     ) -> str:
-        """Create a document of the given type with the given name and content
-
-        Creates a temporary file from the content then streams it.
         """
-        parent = self.check_ref(parent)
-        properties = {"dc:title": name}
-        if doc_type == "Note" and content is not None:
-            properties["note:note"] = content
-        doc = self.create(parent, doc_type, name=name, properties=properties)
-        ref = doc["uid"]
-        if doc_type != "Note" and content is not None:
-            self.attach_blob(ref, content, name)
-        return ref
+        Create a document with the given *name* and *content* using the FileManager.
+        If *file_path* points to a local file, it will be used instead of *content*.
+
+        Note: if *content* is "seen" as plain text by the FileManager, the created document
+              will be a Note. It this is not what you want, use make_file_with_blob().
+        """
+        tmp_created = file_path is None
+        if not file_path:
+            file_path = make_tmp_file(self.upload_tmp_dir, content)
+
+        try:
+            file_blob = FileBlob(str(file_path))
+            file_blob.name = safe_filename(name)
+            blob = self.uploads.batch().upload(file_blob)
+            return self.file_manager_import(self.check_ref(parent), blob)
+        finally:
+            if tmp_created:
+                file_path.unlink()
+
+    def file_manager_import(self, parent: str, blob: Blob) -> str:
+        """
+        Use the FileManager to import and create a document in *parent*
+        based on the given already uploaded *blob*.
+        """
+        op = self.operations.new("FileManager.Import")
+        op.context = {"currentDocument": parent}
+        op.input_obj = blob
+        return op.execute()["uid"]
 
     def make_file_in_user_workspace(
         self, content: bytes, filename: str
@@ -484,28 +525,13 @@ class DocRemote(RemoteTest):
         finally:
             file_path.unlink()
 
-    def stream_file(
-        self,
-        parent: str,
-        name: str,
-        file_path: str,
-        filename: str = None,
-        mime_type: str = None,
-        doc_type: str = env.DOCTYPE_FILE,
-    ) -> str:
+    def stream_file(self, parent: str, file_path: Path, **kwargs) -> NuxeoDocumentInfo:
         """Create a document by streaming the file with the given path"""
-        ref = self.make_file(parent, name, doc_type=doc_type)
-        self.upload(
-            file_path,
-            "Blob.Attach",
-            filename=filename,
-            mime_type=mime_type,
-            document=ref,
-        )
-        return ref
+        ref = self.make_file(parent, file_path.name, file_path=file_path)
+        return self.get_info(ref)
 
-    def attach_blob(self, ref: str, blob: bytes, filename: str):
-        file_path = make_tmp_file(self.upload_tmp_dir, blob)
+    def attach_blob(self, ref: str, content: bytes, filename: str):
+        file_path = make_tmp_file(self.upload_tmp_dir, content)
         try:
             return self.upload(
                 file_path, "Blob.Attach", filename=filename, document=ref
@@ -518,18 +544,12 @@ class DocRemote(RemoteTest):
         Download and return the binary content of a document
         Beware that the content is loaded in memory.
         """
-
         if not isinstance(ref, NuxeoDocumentInfo):
             ref = self.check_ref(ref)
         return self.get_blob(ref)
 
-    def update_content(
-        self, ref: str, content: bytes, filename: str = None, **kwargs
-    ) -> None:
-        """Update a document with the given content
-
-        Creates a temporary file from the content then streams it.
-        """
+    def update_content(self, ref: str, content: bytes, filename: str = None) -> None:
+        """Update a document with the given content."""
         if filename is None:
             filename = self.get_info(ref).name
         self.attach_blob(self.check_ref(ref), content, filename)

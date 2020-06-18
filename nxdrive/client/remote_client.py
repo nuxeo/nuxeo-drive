@@ -633,20 +633,24 @@ class Remote(Nuxeo):
         doc.update({"root": self.base_folder_ref, "repository": self.client.repository})
         return NuxeoDocumentInfo.from_dict(doc, parent_uid=parent_uid)
 
+    def get_note(self, ref: str, file_out: Path = None) -> bytes:
+        """Download the text associated to a Note document."""
+        doc = self.fetch(ref)
+        note = doc["properties"].get("note:note")
+        if note:
+            content = unquote(note).encode("utf-8")
+            if file_out:
+                file_out.write_bytes(content)
+            return content
+        return b""
+
     def get_blob(
         self, ref: Union[NuxeoDocumentInfo, str], file_out: Path = None, **kwargs: Any
     ) -> bytes:
         if isinstance(ref, NuxeoDocumentInfo):
             doc_id = ref.uid
             if ref.doc_type == "Note":
-                doc = self.fetch(doc_id)
-                note = doc["properties"].get("note:note")
-                if note:
-                    content = unquote(note).encode("utf-8")
-                    if file_out:
-                        file_out.write_bytes(content)
-                    return content
-                return b""
+                return self.get_note(doc_id, file_out=file_out)
         else:
             doc_id = ref
 

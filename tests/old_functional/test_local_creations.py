@@ -194,7 +194,7 @@ class TestLocalCreations(OneUserTest):
 
         # Create an innocent file, lower case
         filename = "abc.txt"
-        remote.make_file("/", filename, content=b"cAsE")
+        remote.make_file_with_blob("/", filename, b"cAsE")
         engine.start()
         self.wait_sync(wait_for_async=True)
 
