@@ -774,18 +774,21 @@ class TestRemoteFiles(OneUserTest):
         local = self.local_1
         engine = self.engine_1
 
-        # Create an innocent file, lower case
-        filename = "abc.txt"
-        doc = remote.make_file("/", filename, content=b"case")
         engine.start()
         self.wait_sync(wait_for_async=True)
 
+        # Create an innocent file, lower case
+        file_path = self.location / "resources" / "files" / "testFile.pdf"
+        filename_lower = file_path.name.lower()
+        doc = remote.make_file("/", filename_lower, file_path=file_path)
+        self.wait_sync(wait_for_async=True)
+
         # Check
-        assert remote.exists("/" + filename)
-        assert local.exists("/" + filename)
+        assert remote.exists(f"/{filename_lower}")
+        assert local.exists(f"/{filename_lower}")
 
         # Remotely rename to upper case
-        filename_upper = filename.upper()
+        filename_upper = filename_lower.upper()
         remote.update_content(doc, b"CASE", filename=filename_upper)
         self.wait_sync(wait_for_async=True)
 

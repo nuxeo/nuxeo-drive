@@ -570,11 +570,8 @@ class TestSynchronization(OneUserTest):
         assert folder_names == [foldername]
 
         # Create a remote file with a weird name
-        file_ = remote.make_file(
-            folder,
-            'File with chars: / \\ * < > ? "',
-            content=b"some content",
-            doc_type="Note",
+        file = remote.make_note(
+            folder, 'File with chars: / \\ * < > ? "', b"some content"
         )
         filename = f"File with chars{characters}.txt"
 
@@ -586,7 +583,7 @@ class TestSynchronization(OneUserTest):
         assert file_names == [filename]
 
         # Update a remote file with a weird name (NXDRIVE-286)
-        remote.update(file_, properties={"note:note": "new content"})
+        remote.update(file, properties={"note:note": "new content"})
         self.wait_sync(wait_for_async=True, enforce_errors=False)
         assert local.get_content(f"/{foldername}/{filename}") == b"new content"
         file_state = self.get_dao_state_from_engine_1(f"/{foldername}/{filename}")
@@ -595,7 +592,7 @@ class TestSynchronization(OneUserTest):
 
         # Update note title with a weird name
         remote.update(
-            file_, properties={"dc:title": 'File with chars: / \\ * < > ? " - 2'}
+            file, properties={"dc:title": 'File with chars: / \\ * < > ? " - 2'}
         )
         filename = f"File with chars{characters} - 2.txt"
         self.wait_sync(wait_for_async=True, enforce_errors=False)
@@ -607,7 +604,7 @@ class TestSynchronization(OneUserTest):
 
         # Update note title changing the case (NXRIVE-532)
         remote.update(
-            file_, properties={"dc:title": 'file with chars: / \\ * < > ? " - 2'}
+            file, properties={"dc:title": 'file with chars: / \\ * < > ? " - 2'}
         )
         filename = f"file with chars{characters} - 2.txt"
         self.wait_sync(wait_for_async=True, enforce_errors=False)

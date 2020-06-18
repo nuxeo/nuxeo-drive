@@ -546,7 +546,7 @@ def test_get_tree_list_subdir_raise_os_error(mock_scandir):
 def test_get_tree_size():
     location = nxdrive.utils.normalized_path(__file__).parent.parent
     path = location / "resources"
-    assert nxdrive.utils.get_tree_size(path) > 3000000
+    assert nxdrive.utils.get_tree_size(path) > 1000000
 
 
 @patch("os.scandir")
