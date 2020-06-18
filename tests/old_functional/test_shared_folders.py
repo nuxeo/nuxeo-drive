@@ -161,16 +161,11 @@ class TestSharedFolders(TwoUsersTest):
 
         # Check client side
         assert local_1.exists("/Folder01")
-        if unbind:
-            # File has been renamed and deleted image has been recreated
-            assert not local_1.exists("/Folder01/File01.txt")
-            assert local_1.exists("/Folder01/File01_renamed.txt")
-            assert local_1.exists("/Folder01/SubFolder01/Image01.png")
-        else:
-            # File has been renamed and image deleted
-            assert not local_1.exists("/Folder01/File01.txt")
-            assert local_1.exists("/Folder01/File01_renamed.txt")
-            assert not local_1.exists("/Folder01/SubFolder01/Image01.png")
+        # File has been renamed and image deleted
+        assert not local_1.exists("/Folder01/File01.txt")
+        assert local_1.exists("/Folder01/File01_renamed.txt")
+        # The deleted image has been recreated if the unbinding happened
+        assert local_1.exists("/Folder01/SubFolder01/Image01.png") is unbind
 
         # Check server side
         children = remote_2.get_children_info(folder)
@@ -200,7 +195,7 @@ class TestSharedFolders(TwoUsersTest):
 
         # Create initial folder and file
         folder = remote.make_folder("/", "Final")
-        remote.make_file("/Final", "Aerial04.png", random_png())
+        remote.make_file("/Final", "Aerial04.png", content=random_png())
 
         # First checks, everything should be online for every one
         self.wait_sync(wait_for_async=True)

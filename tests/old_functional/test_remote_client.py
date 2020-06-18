@@ -82,7 +82,7 @@ class TestRemoteFileSystemClient(OneUserTest):
         assert remote.get_content(fs_item_id) == b"Content of doc 1."
 
         # Check file without content
-        doc_uid = remote_doc.make_file(self.workspace, "Document 2.txt")
+        doc_uid = remote_doc.make_file_with_no_blob(self.workspace, "Document 2.txt")
         fs_item_id = FS_ITEM_ID_PREFIX + doc_uid
         with pytest.raises(NotFound):
             remote.get_content(fs_item_id)
@@ -91,7 +91,7 @@ class TestRemoteFileSystemClient(OneUserTest):
         remote = self.remote_1
 
         fs_item_id = remote.make_file(
-            self.workspace_id, "Document 1.txt", "Content of doc 1."
+            self.workspace_id, "Document 1.txt", content=b"Content of doc 1."
         ).uid
         file_path = self.local_test_folder_1 / "Document 1.txt"
         file_out = Path(mkdtemp()) / file_path.name
@@ -316,7 +316,7 @@ class TestRemoteFileSystemClient(OneUserTest):
         assert not remote.fs_exists(fs_item_id)
 
         # Check non existing file system item (document without content)
-        doc_uid = remote_doc.make_file(self.workspace, "Document 2.txt")
+        doc_uid = remote_doc.make_file_with_no_blob(self.workspace, "Document 2.txt")
         fs_item_id = FS_ITEM_ID_PREFIX + doc_uid
         assert not remote.fs_exists(fs_item_id)
 

@@ -309,11 +309,11 @@ The final tree must be:
         self.wait_sync(wait_for_async=True)
 
         # Remotely create 3 levels of folders, path will be > 270 chars
-        for depth in range(3):
+        for _ in range(3):
             folders.append(remote.make_folder(folders[-1], folder))
 
         # Create a file in it
-        remote.make_file(folders[-1], "stone.png", random_png())
+        remote.make_file(folders[-1], "stone.png", content=random_png())
         picture = "/" + "/".join([folder] * 3) + "/stone.png"
         assert remote.exists(picture)
 

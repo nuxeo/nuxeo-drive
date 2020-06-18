@@ -100,7 +100,9 @@ class MixinTests(DirectEditSetup):
         main_filename = "mainfile.txt"
         attachment_filename = "attachment.txt"
 
-        doc_id = self.remote.make_file("/", main_filename, content=b"Initial content.")
+        doc_id = self.remote.make_file_with_blob(
+            "/", main_filename, b"Initial content."
+        )
         file_path = make_tmp_file(self.upload_tmp_dir, "Attachment content")
         self.remote.upload(
             file_path,
@@ -131,7 +133,8 @@ class MixinTests(DirectEditSetup):
 
     def test_no_xpath(self):
         filename = "test_file.txt"
-        doc_id = self.remote.make_file("/", filename, content=b"Initial content.")
+        doc_id = self.remote.make_file_with_no_blob("/", filename)
+        self.remote.attach_blob(doc_id, b"Initial content.", filename)
         with patch.object(self.manager_1, "open_local_file", new=open_local_file):
             self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
             xpath = "file:content"
@@ -157,7 +160,7 @@ class MixinTests(DirectEditSetup):
 
     def test_cleanup(self):
         filename = "Mode op\xe9ratoire.txt"
-        doc_id = self.remote.make_file("/", filename, content=b"Some content.")
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Some content.")
         local_path = f"/{doc_id}_file-content/{filename}"
 
         # Download file
@@ -195,7 +198,7 @@ class MixinTests(DirectEditSetup):
             raise NotFound()
 
         filename = "Mode op\xe9ratoire.txt"
-        doc_id = self.remote.make_file("/", filename, content=b"Some content.")
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Some content.")
         local_path = f"/{doc_id}_file-content/{filename}"
 
         with patch.object(self.manager_1, "open_local_file", new=open_local_file):
@@ -219,7 +222,7 @@ class MixinTests(DirectEditSetup):
 
     def test_filename_encoding(self):
         filename = "Mode op\xe9ratoire.txt"
-        doc_id = self.remote.make_file("/", filename, content=b"Some content.")
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Some content.")
         self._direct_edit_update(doc_id, filename, b"Test")
 
     def test_forbidden_edit(self):
@@ -228,7 +231,7 @@ class MixinTests(DirectEditSetup):
         In that case, a notification is shown and the Direct Edit is stopped early.
         """
         filename = "secret-file.txt"
-        doc_id = self.remote.make_file("/", filename, content=b"Initial content.")
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Initial content.")
 
         def forbidden_signal(self, *args, **kwargs):
             nonlocal received
@@ -252,7 +255,7 @@ class MixinTests(DirectEditSetup):
         In that case, a notification is shown and the document is remove dfrom the upload queue.
         """
         filename = "secret-file2.txt"
-        doc_id = self.remote.make_file("/", filename, content=b"Initial content.")
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Initial content.")
         local_path = f"/{doc_id}_file-content/{filename}"
 
         with patch.object(self.manager_1, "open_local_file", new=open_local_file):
@@ -280,7 +283,7 @@ class MixinTests(DirectEditSetup):
         In that case, the file edition must be aborted an a notification must be shown.
         """
         filename = "proxy-test.txt"
-        doc_id = self.remote.make_file("/", filename, content=b"Plein de clics.")
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Plein de clics.")
         folder_uid = self.remote.make_folder("/", "proxy_folder")
         folder_info = self.remote.get_info(folder_uid)
         proxy_file = self.remote.create_proxy(doc_id, folder_info.path)
@@ -304,7 +307,7 @@ class MixinTests(DirectEditSetup):
             )
 
         filename = "error-413-test.txt"
-        doc_id = self.remote.make_file("/", filename, content=b"Initial")
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Initial")
 
         with patch.object(
             self.engine_1.remote, "upload", new=upload
@@ -340,7 +343,7 @@ class MixinTests(DirectEditSetup):
 
         # STEP 1
         filename = "orphan-test.txt"
-        doc_id = self.remote.make_file("/", filename, content=b"Some content.")
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Some content.")
         local_path = Path(f"{doc_id}_file-content/{filename}")
         edit_local_path = self.direct_edit._folder / local_path
 
@@ -392,7 +395,7 @@ class MixinTests(DirectEditSetup):
         from nuxeo.models import BufferBlob
 
         filename = "versionedfile.txt"
-        doc_id = self.remote.make_file("/", filename, content=b"Initial content.")
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Initial content.")
 
         self.remote.execute(
             command="Document.CreateVersion",
@@ -432,7 +435,7 @@ class MixinTests(DirectEditSetup):
     def test_network_loss(self):
         """ Updates should be sent when the network is up again. """
         filename = "networkless file.txt"
-        doc_id = self.remote.make_file("/", filename, content=b"Initial content.")
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Initial content.")
 
         # Download file
         local_path = f"/{doc_id}_file-content/{filename}"
@@ -468,16 +471,12 @@ class MixinTests(DirectEditSetup):
             )
 
     def test_note_edit(self):
-        remote = self.remote_1
-        info = remote.get_filesystem_root_info()
-        workspace_id = remote.get_fs_children(info.uid)[0].uid
+        filename = "Mode op\xe9ratoire.txt"
         content = "Content of file 1 Avec des accents h\xe9h\xe9.".encode("utf-8")
-        file_id = remote.make_file(
-            workspace_id, "Mode op\xe9ratoire.txt", content=content
-        ).uid
-        doc_id = file_id.split("#")[-1]
+        # make_file() will make use of the FileManager and thus creating a Note
+        doc_id = self.remote.make_file("/", filename, content=content)
         self._direct_edit_update(
-            doc_id, "Mode op\xe9ratoire.txt", b"Atol de PomPom Gali", xpath="note:note"
+            doc_id, filename, b"Atol de PomPom Gali", xpath="note:note"
         )
 
     def test_edit_document_with_folderish_facet(self):
@@ -485,14 +484,18 @@ class MixinTests(DirectEditSetup):
 
         filename = "picture-as-folder.png"
         content = random_png(size=42)
-        doc_id = self.remote.make_file(
-            "/", filename, content=content, doc_type="Picture"
-        )
+        # make_file() will make use of the FileManager and thus creating a Picture document
+        doc_id = self.remote.make_file("/", filename, content=content)
 
         # Add the Folderish facet
         self.remote.execute(
             command="Document.AddFacet", input_obj=doc_id, facet="Folderish"
         )
+
+        # Ensure the doc type is Picture and has the Folderish facet
+        info = self.remote.get_info(doc_id)
+        assert info.doc_type == "Picture"
+        assert info.folderish
 
         content_updated = random_png(size=24)
         self._direct_edit_update(doc_id, filename, content_updated)
@@ -514,7 +517,8 @@ class MixinTests(DirectEditSetup):
 
         received = False
         self.direct_edit.directEditReadonly.connect(readonly_signal)
-        doc_id = self.remote.make_file("/", "RO file.txt", content=b"content")
+        filename = "RO file.txt"
+        doc_id = self.remote.make_file_with_blob("/", filename, b"content")
 
         with patch.object(NuxeoDocumentInfo, "from_dict", new=from_dict):
             self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
@@ -548,8 +552,8 @@ class MixinTests(DirectEditSetup):
 
         # Create the test file, it should be large enough to trigger chunk downloads (here 26 MiB)
         filename = "download corrupted.txt"
-        doc_id = self.remote.make_file(
-            "/", filename, content=b"Some content." * 1024 * 1024 * 2
+        doc_id = self.remote.make_file_with_blob(
+            "/", filename, b"Some content." * 1024 * 1024 * 2
         )
 
         # Start Direct Edit'ing the document
@@ -583,8 +587,8 @@ class MixinTests(DirectEditSetup):
 
         # Create the test file, it should be large enough to trigger chunk downloads (here 26 MiB)
         filename = "download resumed.txt"
-        doc_id = self.remote.make_file(
-            "/", filename, content=b"Some content." * 1024 * 1024 * 2
+        doc_id = self.remote.make_file_with_blob(
+            "/", filename, b"Some content." * 1024 * 1024 * 2
         )
 
         # Simulate a partially downloaded file
@@ -602,14 +606,14 @@ class MixinTests(DirectEditSetup):
 
     def test_self_locked_file(self):
         filename = "Mode operatoire.txt"
-        doc_id = self.remote.make_file("/", filename, content=b"Some content.")
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Some content.")
         self.remote.lock(doc_id)
         self._direct_edit_update(doc_id, filename, b"Test")
 
     def test_url_with_spaces(self):
         scheme, host = self.nuxeo_url.split("://")
         filename = "My file with spaces.txt"
-        doc_id = self.remote.make_file("/", filename, content=b"Some content.")
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Some content.")
 
         url = (
             f"nxdrive://edit/{scheme}/{host}"
@@ -626,7 +630,7 @@ class MixinTests(DirectEditSetup):
     def test_url_with_accents(self):
         scheme, host = self.nuxeo_url.split("://")
         filename = "éèáä.txt"
-        doc_id = self.remote.make_file("/", filename, content=b"Some content.")
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Some content.")
 
         url = (
             f"nxdrive://edit/{scheme}/{host}"
@@ -647,15 +651,15 @@ class MixinTests(DirectEditSetup):
         """
 
         filename = "multiplication des pains.txt"
-        uid = self.remote.make_file("/", filename, content=b"Plein de pains.")
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Plein de pains.")
         scheme, host = self.nuxeo_url.split("://")
         url = (
             f"nxdrive://edit/{scheme}/{host}"
             f"/user/{self.user_1}"
             "/repo/default"
-            f"/nxdocid/{uid}"
+            f"/nxdocid/{doc_id}"
             f"/filename/{filename}"
-            f"/downloadUrl/nxfile/default/{uid}"
+            f"/downloadUrl/nxfile/default/{doc_id}"
             f"/file:content/{filename}"
         )
 
@@ -666,20 +670,20 @@ class MixinTests(DirectEditSetup):
         assert not self.local.get_children_info("/")
 
         # Edit several times the document, it must work
-        self._direct_edit_update(uid, filename, b"Pain 1", url=url)
-        self._direct_edit_update(uid, filename, b"Pain 2", url=url)
-        self._direct_edit_update(uid, filename, b"Pain 3")
-        self._direct_edit_update(uid, filename, b"Pain 4")
+        self._direct_edit_update(doc_id, filename, b"Pain 1", url=url)
+        self._direct_edit_update(doc_id, filename, b"Pain 2", url=url)
+        self._direct_edit_update(doc_id, filename, b"Pain 3")
+        self._direct_edit_update(doc_id, filename, b"Pain 4")
 
     def test_double_lock_same_user(self):
         filename = "Mode opératoire¹.txt"
-        uid = self.remote.make_file("/", filename, content=b"Some content.")
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Some content.")
 
         # First time: OK
-        assert self.direct_edit._lock(self.remote, uid)
+        assert self.direct_edit._lock(self.remote, doc_id)
 
         # Second time: OK
-        assert self.direct_edit._lock(self.remote, uid)
+        assert self.direct_edit._lock(self.remote, doc_id)
 
 
 class TestDirectEdit(OneUserTest, MixinTests):
@@ -688,7 +692,7 @@ class TestDirectEdit(OneUserTest, MixinTests):
     def test_synced_file(self):
         """Test the fact that instead of downloading the file, we get it from the local sync folder."""
         filename = "M'ode opératoire ツ .txt"
-        doc_id = self.remote.make_file("/", filename, content=b"Some content.")
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Some content.")
 
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
@@ -725,7 +729,7 @@ class TestDirectEdit(OneUserTest, MixinTests):
             assert self.manager_1.home.drive != self.engine_1.download_dir.drive
 
             filename = "M'ode opératoire ツ .txt"
-            doc_id = self.remote.make_file("/", filename, content=b"Some content.")
+            doc_id = self.remote.make_file_with_blob("/", filename, b"Some content.")
 
             # Here we should not end on such error:
             # OSError: [WinError 17] The system cannot move the file to a different disk drive
@@ -749,7 +753,7 @@ class TestDirectEditLock(TwoUsersTest, DirectEditSetup):
 
         received = False
         filename = "Mode operatoire.txt"
-        doc_id = self.remote.make_file("/", filename, content=b"Some content.")
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Some content.")
         self.remote_document_client_2.lock(doc_id)
         self.direct_edit.directEditLocked.connect(locked_file_signal)
         self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
@@ -757,12 +761,13 @@ class TestDirectEditLock(TwoUsersTest, DirectEditSetup):
 
     def test_double_lock_different_user(self):
         filename = "Mode opératoire².txt"
-        uid = self.remote.make_file("/", filename, content=b"Some content.")
+        doc_id = self.remote.make_file_with_no_blob("/", filename)
+        self.remote.attach_blob(doc_id, b"Some content.", filename)
 
         # Lock the document with user 1
-        assert self.direct_edit._lock(self.remote, uid)
+        assert self.direct_edit._lock(self.remote, doc_id)
 
         # Try to lock with user 2, it must fail
         with pytest.raises(DocumentAlreadyLocked) as exc:
-            self.direct_edit._lock(self.remote_2, uid)
+            self.direct_edit._lock(self.remote_2, doc_id)
         assert str(exc.value) == f"Document already locked by {self.user_1!r}"

@@ -6,7 +6,6 @@ from copy import copy
 from pathlib import Path
 
 import pytest
-
 from nxdrive.constants import ROOT
 
 from ..utils import random_png
@@ -18,15 +17,11 @@ def configure_logs():
 
     from nxdrive.logging_config import configure
 
-    formatter = logging.Formatter(
-        "%(thread)-4d %(module)-14s %(levelname).1s %(message)s"
-    )
     configure(
         console_level="WARNING",
         file_level="WARNING",
         command_name="volume",
         force_configure=True,
-        formatter=formatter,
     )
 
 
@@ -301,7 +296,7 @@ class TestVolumeRemoteScan(OneUserTest):
 
         # Synchronize
         self.engine_1.start()
-        self.wait_sync(wait_for_async=True, timeout=nb_nodes * nb_nodes)
+        self.wait_sync(wait_for_async=True, timeout=nb_nodes ** 2)
 
         query = (
             f"SELECT ecm:uuid FROM Document WHERE ecm:ancestorId = {self.workspace!r}"

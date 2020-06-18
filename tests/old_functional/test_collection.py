@@ -25,9 +25,10 @@ class TestCollection(OneUserTest):
 
         # Create a document "Fiiile" in a folder "Test"
         folder = self.remote_document_client_1.make_folder("/", "Test")
-        doc = self.remote_document_client_1.make_file(folder, "Fiiile")
         # Attach a file "abcde.txt" to the document
-        self.remote_document_client_1.attach_blob(doc, b"abcde", "abcde.txt")
+        doc = self.remote_document_client_1.make_file_with_blob(
+            folder, "abcde.txt", b"abcde"
+        )
 
         # Create a collection and add the document to it
         self.collection = remote.execute(

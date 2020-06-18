@@ -129,7 +129,7 @@ class TestRemoteDeletion(OneUserTest):
         Options.set("tmp_file_limit", 0.1, "manual")
         with patch.object(self.engine_1.remote, "download_callback", new=callback):
             remote.make_folder("/", "Test folder")
-            remote.make_file("/Test folder", "testFile.pdf", filepath.read_bytes())
+            remote.make_file("/Test folder", "testFile.pdf", file_path=filepath)
 
             self.wait_sync(wait_for_async=True)
             # Sometimes the server does not return the document trash action in summary changes.

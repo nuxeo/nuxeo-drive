@@ -12,7 +12,7 @@ class TestReinitDatabase(OneUserTest):
 
         # Make a folder and a file
         self.remote.make_folder("/", "Test folder")
-        self.remote.make_file(
+        self.file = self.remote.make_file(
             "/Test folder", "Test.txt", content=b"This is some content"
         )
 
@@ -45,7 +45,7 @@ class TestReinitDatabase(OneUserTest):
 
     def test_synchronize_remote_change(self):
         # Modify the remote file
-        self.remote.update_content("/Test folder/Test.txt", b"Content has changed")
+        self.remote.update(self.file, properties={"note:note": "Content has changed"})
 
         # Start engine and wait for synchronization
         self.engine_1.start()
@@ -81,13 +81,13 @@ class TestReinitDatabase(OneUserTest):
         assert file_state.pair_state == "conflicted"
 
         # Assert content of the remote file has not changed
-        content = self.remote.get_content("/Test folder/Test.txt")
+        content = self.remote.get_note(self.file)
         assert content == b"This is some content"
 
     def test_synchronize_remote_and_local_change(self):
         # Modify the remote file
-        self.remote.update_content(
-            "/Test folder/Test.txt", b"Content has remotely changed"
+        self.remote.update(
+            self.file, properties={"note:note": "Content has remotely changed"}
         )
 
         # Modify the local file
@@ -111,5 +111,5 @@ class TestReinitDatabase(OneUserTest):
         # Assert content of the local and remote files has not changed
         content = self.local.get_content("/Test folder/Test.txt")
         assert content == b"Content has locally changed"
-        content = self.remote.get_content("/Test folder/Test.txt")
+        content = self.remote.get_note(self.file)
         assert content == b"Content has remotely changed"

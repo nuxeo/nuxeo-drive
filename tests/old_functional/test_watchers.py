@@ -103,19 +103,17 @@ class TestWatchers(OneUserTest):
             assert item.pair_state == "synchronized"
 
     def test_remote_scan(self):
-        files, folders = self.make_server_tree()
+        total = len(self.make_server_tree())
+        # Add the workspace folder + the root
+        total += 2
         # Wait for ES indexing
         self.wait()
-        # Add the workspace folder
-        folders += 1
         self.queue_manager_1.suspend()
         self.queue_manager_1._disable = True
         self.engine_1.start()
         self.wait_sync()
         res = self.engine_1.dao.get_states_from_partial_local(ROOT)
-        # With root
-        count = folders + files + 1
-        assert len(res) == count
+        assert len(res) == total
 
     def test_local_watchdog_creation(self):
         # Test the creation after first local scan

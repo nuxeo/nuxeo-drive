@@ -8,7 +8,7 @@ from logging import getLogger
 from pathlib import Path
 from threading import Thread
 from time import sleep
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from unittest import TestCase
 from uuid import uuid4
 
@@ -618,35 +618,35 @@ class TwoUsersTest(TestCase):
             err += f" for engine 2 (syncing_count={count2})"
         log.warning(err)
 
-    def make_server_tree(self, deep: bool = True) -> Tuple[int, int]:
+    def make_server_tree(self, deep: bool = True) -> Dict[str, str]:
         """
         Create some folders on the server.
-        Returns a tuple (files_count, folders_count).
+        Returns a dict of document UIDs.
         """
 
-        remote = self.remote_document_client_1
-        folder_1 = remote.make_folder(self.workspace, "Folder 1")
-        folder_2 = remote.make_folder(self.workspace, "Folder 2")
+        make_folder = self.remote_document_client_1.make_folder
+        make_file = self.remote_document_client_1.make_file
+
+        docs = {}
+        docs["Folder 1"] = folder_1 = make_folder(self.workspace, "Folder 1")
+        docs["Folder 2"] = folder_2 = make_folder(self.workspace, "Folder 2")
+        docs["File 5.txt"] = make_file(self.workspace, "File 5.txt", content=b"eee")
 
         if deep:
-            folder_1_1 = remote.make_folder(folder_1, "Folder 1.1")
-            folder_1_2 = remote.make_folder(folder_1, "Folder 1.2")
-
-            # Those 2 attrs are used in test_synchronization.py
-            self._duplicate_file_1 = remote.make_file(
+            docs["Folder 1.1"] = folder_1_1 = make_folder(folder_1, "Folder 1.1")
+            docs["Folder 1.2"] = folder_1_2 = make_folder(folder_1, "Folder 1.2")
+            docs["Dupe 1.txt"] = make_file(
                 folder_2, "Duplicated File.txt", content=b"Some content."
             )
-            self._duplicate_file_2 = remote.make_file(
+            docs["Dupe 2.txt"] = make_file(
                 folder_2, "Duplicated File.txt", content=b"Other content."
             )
+            docs["File 1.txt"] = make_file(folder_1, "File 1.txt", content=b"aaa")
+            docs["File 2.txt"] = make_file(folder_1_1, "File 2.txt", content=b"bbb")
+            docs["File 3.txt"] = make_file(folder_1_2, "File 3.txt", content=b"ccc")
+            docs["File 4.txt"] = make_file(folder_2, "File 4.txt", content=b"ddd")
 
-            remote.make_file(folder_1, "File 1.txt", content=b"aaa")
-            remote.make_file(folder_1_1, "File 2.txt", content=b"bbb")
-            remote.make_file(folder_1_2, "File 3.txt", content=b"ccc")
-            remote.make_file(folder_2, "File 4.txt", content=b"ddd")
-
-        remote.make_file(self.workspace, "File 5.txt", content=b"eee")
-        return (7, 4) if deep else (1, 2)
+        return docs
 
     def get_local_child_count(self, path: Path) -> Tuple[int, int]:
         """
