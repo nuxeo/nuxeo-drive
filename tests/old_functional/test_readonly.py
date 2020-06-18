@@ -64,7 +64,7 @@ class TestReadOnly(OneUserTest):
 
         # Create documents and sync
         folder = remote.make_folder("/", "folder")
-        remote.make_file(folder, "foo.txt", content=b"42")
+        file = remote.make_file(folder, "foo.txt", content=b"42")
         self.set_readonly(self.user_1, f"{self.ws.path}/folder")
         self.wait_sync(wait_for_async=True)
         assert remote.exists("/folder")
@@ -79,7 +79,7 @@ class TestReadOnly(OneUserTest):
 
         # Try to change the file content remotely
         with pytest.raises(Forbidden):
-            remote.update_content("/folder/foo.txt", b"Remotely changed")
+            remote.update(file, properties={"note:note": "Remotely changed"})
 
     def test_file_delete(self):
         """ Local deletions are filtered. """

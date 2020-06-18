@@ -248,7 +248,7 @@ class TestPermissionHierarchy2(TwoUsersTest):
         remote2.register_as_root(root)
 
         # Make one read-only document
-        remote.make_file(readonly, "file_ro.txt", content=b"Read-only doc.")
+        remote.make_file_with_blob(readonly, "file_ro.txt", b"Read-only doc.")
 
         # Read only folder for user 2
         self.set_readonly(self.user_2, readonly)

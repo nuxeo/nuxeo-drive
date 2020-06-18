@@ -21,7 +21,7 @@ class TestVersioning(OneUserTest):
 
         # Create version 1.0, update content, then restore version 1.0
         remote.create_version(doc, "Major")
-        remote.update_content(doc, b"Updated content.")
+        remote.update(doc, properties={"note:note": "Updated content."})
         self.wait_sync(wait_for_async=True)
         assert local.get_content("/Document to restore.txt") == b"Updated content."
         version_uid = remote.get_versions(doc)[0][0]
@@ -37,7 +37,7 @@ class TestVersioning2(TwoUsersTest):
         remote = self.remote_document_client_2
 
         # Create a file as user 2
-        remote.make_file("/", "Test versioning.txt", content=b"This is version 0")
+        remote.make_file_with_blob("/", "Test versioning.txt", b"This is version 0")
         self.wait_sync()
         assert remote.exists("/Test versioning.txt")
         doc = self.root_remote.fetch(f"{self.ws.path}/Test versioning.txt")

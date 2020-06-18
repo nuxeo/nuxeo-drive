@@ -200,7 +200,7 @@ class TestSharedFolders(TwoUsersTest):
 
         # Create initial folder and file
         folder = remote.make_folder("/", "Final")
-        remote.make_file("/Final", "Aerial04.png", random_png())
+        remote.make_file("/Final", "Aerial04.png", content=random_png())
 
         # First checks, everything should be online for every one
         self.wait_sync(wait_for_async=True)

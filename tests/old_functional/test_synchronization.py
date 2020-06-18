@@ -49,7 +49,7 @@ class TestSynchronization(OneUserTest):
 
         # Create some documents in a Nuxeo workspace and bind this server to a
         # Nuxeo Drive local folder
-        self.make_server_tree()
+        docs = self.make_server_tree()
 
         # The root binding operation does not create the local folder yet.
         assert not local.exists("/")
@@ -66,8 +66,8 @@ class TestSynchronization(OneUserTest):
         assert local.get_content("/Folder 1/Folder 1.2/File 3.txt") == b"ccc"
         assert local.exists("/Folder 2")
         # Cannot predict the resolution in advance
-        assert remote.get_content(self._duplicate_file_1) == b"Some content."
-        assert remote.get_content(self._duplicate_file_2) == b"Other content."
+        assert remote.get_note(docs["Dupe 1.txt"]) == b"Some content."
+        assert remote.get_note(docs["Dupe 2.txt"]) == b"Other content."
         assert local.get_content("/Folder 2/File 4.txt") == b"ddd"
         assert local.get_content("/File 5.txt") == b"eee"
 
@@ -86,7 +86,7 @@ class TestSynchronization(OneUserTest):
 
         # Let's create some documents on the server and
         # launch the first synchronization
-        self.make_server_tree()
+        docs = self.make_server_tree()
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
@@ -108,7 +108,7 @@ class TestSynchronization(OneUserTest):
 
         # The remote client used in this test is handling paths relative to
         # the 'Nuxeo Drive Test Workspace'
-        remote.update_content("/Folder 1/Folder 1.1/File 2.txt", b"bbbb")
+        remote.update(docs["File 2.txt"], properties={"note:note": "bbbb"})
         remote.delete("/Folder 2")
         f3 = remote.make_folder(self.workspace, "Folder 3")
         remote.make_file(f3, "File 6.txt", content=b"ffff")
@@ -118,28 +118,15 @@ class TestSynchronization(OneUserTest):
 
         # We should now be fully synchronized again
         assert not remote.exists("/File 5.txt")
-        assert remote.get_content("/Folder 1/File 1.txt") == b"aaaa"
+        assert remote.get_note(docs["File 1.txt"]) == b"aaaa"
         assert remote.exists("/Folder 4")
 
         assert local.get_content("/Folder 1/Folder 1.1/File 2.txt") == b"bbbb"
         # Let's just check remote document hasn't changed
-        assert remote.get_content("/Folder 1/Folder 1.1/File 2.txt") == b"bbbb"
+        assert remote.get_note(docs["File 2.txt"]) == b"bbbb"
         assert not local.exists("/Folder 2")
         assert local.exists("/Folder 3")
         assert local.get_content("/Folder 3/File 6.txt") == b"ffff"
-
-        # Send some binary data that is not valid in utf-8 or ascii
-        # (to test the HTTP transform layer).
-        time.sleep(OS_STAT_MTIME_RESOLUTION)
-        local.update_content("/Folder 1/File 1.txt", b"\x80")
-        remote.update_content("/Folder 1/Folder 1.1/File 2.txt", b"\x80")
-
-        self.wait_sync(wait_for_async=True)
-
-        assert remote.get_content("/Folder 1/File 1.txt") == b"\x80"
-        assert local.get_content("/Folder 1/Folder 1.1/File 2.txt") == b"\x80"
-        # Let's just check remote document hasn't changed
-        assert remote.get_content("/Folder 1/Folder 1.1/File 2.txt") == b"\x80"
 
     def test_single_quote_escaping(self):
         remote = self.remote_document_client_1
@@ -147,8 +134,6 @@ class TestSynchronization(OneUserTest):
         dao = self.engine_1.dao
 
         file = "APPEL D'OFFRES"
-        filename = f"/{file}"
-
         assert dao._escape(file) == "APPEL D''OFFRES"
 
         remote.unregister_as_root(self.workspace)
@@ -156,6 +141,8 @@ class TestSynchronization(OneUserTest):
 
         with ensure_no_exception():
             remote.make_folder("/", file)
+            filename = f"/{file}"
+
             remote.register_as_root(filename)
             self.wait_sync(wait_for_async=True)
             assert local.exists(filename)
@@ -570,11 +557,8 @@ class TestSynchronization(OneUserTest):
         assert folder_names == [foldername]
 
         # Create a remote file with a weird name
-        file_ = remote.make_file(
-            folder,
-            'File with chars: / \\ * < > ? "',
-            content=b"some content",
-            doc_type="Note",
+        file = remote.make_file(
+            folder, 'File with chars: / \\ * < > ? ".txt', content=b"some content"
         )
         filename = f"File with chars{characters}.txt"
 
@@ -586,7 +570,7 @@ class TestSynchronization(OneUserTest):
         assert file_names == [filename]
 
         # Update a remote file with a weird name (NXDRIVE-286)
-        remote.update(file_, properties={"note:note": "new content"})
+        remote.update(file, properties={"note:note": "new content"})
         self.wait_sync(wait_for_async=True, enforce_errors=False)
         assert local.get_content(f"/{foldername}/{filename}") == b"new content"
         file_state = self.get_dao_state_from_engine_1(f"/{foldername}/{filename}")
@@ -595,7 +579,7 @@ class TestSynchronization(OneUserTest):
 
         # Update note title with a weird name
         remote.update(
-            file_, properties={"dc:title": 'File with chars: / \\ * < > ? " - 2'}
+            file, properties={"dc:title": 'File with chars: / \\ * < > ? " - 2'}
         )
         filename = f"File with chars{characters} - 2.txt"
         self.wait_sync(wait_for_async=True, enforce_errors=False)
@@ -607,7 +591,7 @@ class TestSynchronization(OneUserTest):
 
         # Update note title changing the case (NXRIVE-532)
         remote.update(
-            file_, properties={"dc:title": 'file with chars: / \\ * < > ? " - 2'}
+            file, properties={"dc:title": 'file with chars: / \\ * < > ? " - 2'}
         )
         filename = f"file with chars{characters} - 2.txt"
         self.wait_sync(wait_for_async=True, enforce_errors=False)
@@ -658,16 +642,17 @@ class TestSynchronization(OneUserTest):
 
         # Create a doc with a blob in the remote root workspace
         # then synchronize
-        remote.make_file("/", "test.odt", content=b"Some content.")
+        file_path = self.location / "resources" / "files" / "testFile.odt"
+        remote.make_file("/", file_path.name, file_path=file_path)
 
         self.wait_sync(wait_for_async=True)
-        assert local.exists("/test.odt")
+        assert local.exists(f"/{file_path.name}")
 
         # Delete the blob from the remote doc then synchronize
-        remote.delete_content("/test.odt")
+        remote.delete_content(f"/{file_path.name}")
 
         self.wait_sync(wait_for_async=True)
-        assert not local.exists("/test.odt")
+        assert not local.exists(f"/{file_path.name}")
 
     def test_synchronize_deletion(self):
         local = self.local_1
