@@ -147,8 +147,6 @@ class TestSynchronization(OneUserTest):
         dao = self.engine_1.dao
 
         file = "APPEL D'OFFRES"
-        filename = f"/{file}"
-
         assert dao._escape(file) == "APPEL D''OFFRES"
 
         remote.unregister_as_root(self.workspace)
@@ -156,6 +154,8 @@ class TestSynchronization(OneUserTest):
 
         with ensure_no_exception():
             remote.make_folder("/", file)
+            filename = f"/{file}"
+
             remote.register_as_root(filename)
             self.wait_sync(wait_for_async=True)
             assert local.exists(filename)

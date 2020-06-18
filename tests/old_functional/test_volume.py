@@ -296,7 +296,7 @@ class TestVolumeRemoteScan(OneUserTest):
 
         # Synchronize
         self.engine_1.start()
-        self.wait_sync(wait_for_async=True, timeout=nb_nodes * nb_nodes)
+        self.wait_sync(wait_for_async=True, timeout=nb_nodes**2)
 
         query = (
             f"SELECT ecm:uuid FROM Document WHERE ecm:ancestorId = {self.workspace!r}"
