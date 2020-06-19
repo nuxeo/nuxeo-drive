@@ -161,15 +161,12 @@ class TestSharedFolders(TwoUsersTest):
 
         # Check client side
         assert local_1.exists("/Folder01")
+        # File has been renamed and deleted image has been recreated
+        assert not local_1.exists("/Folder01/File01.txt")
+        assert local_1.exists("/Folder01/File01_renamed.txt")
         if unbind:
-            # File has been renamed and deleted image has been recreated
-            assert not local_1.exists("/Folder01/File01.txt")
-            assert local_1.exists("/Folder01/File01_renamed.txt")
             assert local_1.exists("/Folder01/SubFolder01/Image01.png")
         else:
-            # File has been renamed and image deleted
-            assert not local_1.exists("/Folder01/File01.txt")
-            assert local_1.exists("/Folder01/File01_renamed.txt")
             assert not local_1.exists("/Folder01/SubFolder01/Image01.png")
 
         # Check server side
