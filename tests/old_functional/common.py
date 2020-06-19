@@ -269,6 +269,7 @@ class TwoUsersTest(TestCase):
         default_timeout = 60 * 2
         timeouts = {
             "test_nxdrive_903": 60 * 4,  # 4 minutes
+            "test_nxdrive_947": 60 * 15,  # 15 minutes
             "test_nxdrive_1033": 60 * 6,  # 6 minutes
             "test_volume": 60 * 60,  # 1 hour
         }
