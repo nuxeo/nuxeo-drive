@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import pytest
 from nuxeo.exceptions import HTTPError
+from nxdrive.client.uploader.sync import SyncUploader
 from nxdrive.constants import FILE_BUFFER_SIZE, TransferStatus
 from nxdrive.options import Options
 from requests.exceptions import ConnectionError
@@ -402,12 +403,21 @@ class TestUpload(OneUserTest):
     def test_not_server_error_upload(self):
         """Test an error happening after chunks were uploaded, at the NuxeoDrive.CreateFile operation call."""
 
-        def link_blob_to_doc(*args, **kwargs):
-            """Simulate an exception that is not handled by the Processor."""
-            raise ValueError("Mocked exception")
+        class BadUploader(SyncUploader):
+            """Used to simulate bad server responses."""
+
+            def link_blob_to_doc(self, *args, **kwargs):
+                """Simulate a server error."""
+                raise ValueError("Mocked exception")
+
+        def upload(*args, **kwargs):
+            """Set our specific uploader to simulate server error."""
+            kwargs.pop("uploader", None)
+            return upload_orig(*args, uploader=BadUploader, **kwargs)
 
         engine = self.engine_1
-        dao = self.engine_1.dao
+        dao = engine.dao
+        upload_orig = engine.remote.upload
 
         # Locally create a file that will be uploaded remotely
         self.local_1.make_file("/", "test.bin", content=b"0" * FILE_BUFFER_SIZE * 2)
@@ -415,7 +425,7 @@ class TestUpload(OneUserTest):
         # There is no upload, right now
         assert not list(dao.get_uploads())
 
-        with patch.object(engine.remote, "link_blob_to_doc", new=link_blob_to_doc):
+        with patch.object(engine.remote, "upload", new=upload):
             with ensure_no_exception():
                 self.wait_sync()
 
@@ -446,28 +456,36 @@ class TestUpload(OneUserTest):
         This could happen if a proxy do not understand well the final requests as seen in NXDRIVE-1753.
         """
 
-        def link_blob_to_doc(*args, **kwargs):
-            # Call the original method to effectively end the upload process
-            link_blob_to_doc_orig(*args, **kwargs)
+        class BadUploader(SyncUploader):
+            """Used to simulate bad server responses."""
 
-            # The file should be present on the server
-            assert self.remote_1.exists(f"/{file}")
+            def link_blob_to_doc(self, *args, **kwargs):
+                # Call the original method to effectively end the upload process
+                super().link_blob_to_doc(*args, **kwargs)
 
-            # There should be 1 upload with DONE transfer status
-            uploads = list(dao.get_uploads())
-            assert len(uploads) == 1
-            upload = uploads[0]
-            assert upload.status == TransferStatus.DONE
+                # The file should be present on the server
+                # assert self.remote.exists(f"/{file}")
 
-            # And throw an error
-            stack = (
-                "The proxy server received an invalid response from an upstream server."
-            )
-            raise HTTPError(status=502, message="Mocked Proxy Error", stacktrace=stack)
+                # There should be 1 upload with DONE transfer status
+                uploads = list(dao.get_uploads())
+                assert len(uploads) == 1
+                upload = uploads[0]
+                assert upload.status == TransferStatus.DONE
+
+                # And throw an error
+                stack = "The proxy server received an invalid response from an upstream server."
+                raise HTTPError(
+                    status=502, message="Mocked Proxy Error", stacktrace=stack
+                )
+
+        def upload(*args, **kwargs):
+            """Set our specific uploader to simulate server error."""
+            kwargs.pop("uploader", None)
+            return upload_orig(*args, uploader=BadUploader, **kwargs)
 
         engine = self.engine_1
-        dao = self.engine_1.dao
-        link_blob_to_doc_orig = engine.remote.link_blob_to_doc
+        dao = engine.dao
+        upload_orig = engine.remote.upload
         file = "t'ée sんt.bin"
 
         # Locally create a file that will be uploaded remotely
@@ -476,7 +494,7 @@ class TestUpload(OneUserTest):
         # There is no upload, right now
         assert not list(dao.get_uploads())
 
-        with patch.object(engine.remote, "link_blob_to_doc", new=link_blob_to_doc):
+        with patch.object(engine.remote, "upload", new=upload):
             with ensure_no_exception():
                 self.wait_sync()
 
@@ -493,12 +511,21 @@ class TestUpload(OneUserTest):
     def test_server_error_upload(self):
         """Test a server error happening after chunks were uploaded, at the NuxeoDrive.CreateFile operation call."""
 
-        def link_blob_to_doc(*args, **kwargs):
-            """Simulate a server error."""
-            raise ConnectionError("Mocked exception")
+        class BadUploader(SyncUploader):
+            """Used to simulate bad server responses."""
+
+            def link_blob_to_doc(self, *args, **kwargs):
+                """Simulate a server error."""
+                raise ConnectionError("Mocked exception")
+
+        def upload(*args, **kwargs):
+            """Set our specific uploader to simulate server error."""
+            kwargs.pop("uploader", None)
+            return upload_orig(*args, uploader=BadUploader, **kwargs)
 
         engine = self.engine_1
-        dao = self.engine_1.dao
+        dao = engine.dao
+        upload_orig = engine.remote.upload
 
         # Locally create a file that will be uploaded remotely
         self.local_1.make_file("/", "test.bin", content=b"0" * FILE_BUFFER_SIZE * 2)
@@ -506,7 +533,7 @@ class TestUpload(OneUserTest):
         # There is no upload, right now
         assert not list(dao.get_uploads())
 
-        with patch.object(engine.remote, "link_blob_to_doc", new=link_blob_to_doc):
+        with patch.object(engine.remote, "upload", new=upload):
             with ensure_no_exception():
                 self.wait_sync()
 
@@ -634,16 +661,21 @@ class TestUpload(OneUserTest):
 
         # Step 2: alter the batch ID, resume the upload, upload all chunks and fail at linking
 
-        def link_blob_to_doc(*args, **kwargs):
-            """Throw an network error."""
-            raise HTTPError(status=504, message="Mocked Gateway timeout")
+        class BadUploader(SyncUploader):
+            """Used to simulate bad server responses."""
 
-        def callback(upload):
-            """Just check the batch ID _did_ change."""
-            assert upload.blob.batchId != batch_id
+            def link_blob_to_doc(self, *args, **kwargs):
+                """Throw an network error."""
+                raise HTTPError(status=504, message="Mocked Gateway timeout")
+
+        def upload(*args, **kwargs):
+            """Set our specific uploader to simulate server error."""
+            kwargs.pop("uploader", None)
+            return upload_orig(*args, uploader=BadUploader, **kwargs)
 
         bad_remote2 = self.get_bad_remote()
-        bad_remote2.link_blob_to_doc = link_blob_to_doc
+        upload_orig = bad_remote2.upload
+        bad_remote2.upload = upload
 
         # Change the batch ID
         upload = list(dao.get_uploads())[0]
