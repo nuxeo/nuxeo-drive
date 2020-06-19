@@ -5,7 +5,6 @@ from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from nuxeo.exceptions import HTTPError
 from nuxeo.models import Document
 
 from ...engine.activity import LinkingAction, UploadAction
@@ -23,14 +22,64 @@ class DirectTransferUploader(BaseUploader):
     linking_action = LinkingAction
     upload_action = UploadAction
 
-    def get_document_or_none(self, uid: str = "", path: str = "") -> Optional[Document]:
-        """Fetch a document based on given criteria or return None if not found on the server."""
+    def get_document_by_uid(self, uid: str) -> Optional[Document]:
+        """
+        Fetch a document based on its UID.
+        Return None if not found on the server.
+        """
+        ref = self.remote._escape(uid)
+        query = f"SELECT * FROM Document WHERE ecm:uuid = '{ref}' AND ecm:isVersion = 0 LIMIT 1"
+        results = self.remote.query(query)["entries"]
+        return Document.parse(results[0]) if results else None
+
+    def get_document_by_title(self, parent_path: str, name: str) -> Optional[Document]:
+        """
+        Fetch a document based on its parent's path and document's name.
+        Return None if not found on the server.
+
+        May be better to update the query when NXP-19605 will be available.
+        A benchmark should be done then before choosing one or another.
+        """
+        parent_path = self.remote._escape(self.remote.check_ref(parent_path))
+        name = self.remote._escape(name)
+        query = (
+            f"SELECT * FROM Document WHERE ecm:path STARTSWITH '{parent_path}/'"
+            f" AND dc:title = '{name}' AND ecm:isVersion = 0 LIMIT 1"
+        )
+        results = self.remote.query(query)["entries"]
+        return Document.parse(results[0]) if results else None
+
+    def get_document_or_none(
+        self, uid: str = "", parent_path: str = "", name: str = ""
+    ) -> Optional[Document]:
+        """
+        Fetch a document based on given criteria.
+        Return None if not found on the server.
+
+        :param uid: Document reference (UID).
+        :param path: Document reference (path).
+        :rtype: Document or None
+        """
         doc: Optional[Document] = None
-        try:
-            doc = self.remote.documents.get(uid=uid, path=path)
-        except HTTPError as exc:
-            if exc.status != 404:
-                raise
+
+        if uid:
+            # The remote ref is known, so it means either the file has already been uploaded,
+            # either a previous upload failed: the document was created, or not, and it has
+            # a blob attached, or not. In any cases, we need to ensure the user can upload
+            # without headhache.
+            doc = self.get_document_by_uid(uid)
+
+        if not doc:
+            # We need to handle possbile duplicates based on the file name and
+            # the destination folder on the server.
+            # Note: using this way may still result in duplicates:
+            #  - the user created 2 documents with the same name on Web-UI or another way
+            #  - the user then deleted the 1st document
+            #  - the other document has a path like "name.TIMESTAMP"
+            # So then Drive will not see that document as a duplicate because it will check
+            # a path with "name" only.
+            doc = self.get_document_by_title(parent_path, name)
+
         return doc
 
     def get_upload(self, file_path: Path) -> Optional[Upload]:
@@ -74,77 +123,32 @@ class DirectTransferUploader(BaseUploader):
         # be skipped to prevent duplicate creations.
         remote_ref = LocalClient.get_path_remote_id(file_path, name="remote")
 
-        doc: Optional[Document] = None
-
-        if remote_ref:
-            # The remote ref is set, so it means either the file has already been uploaded,
-            # either a previous upload failed: the document was created, or not, and it has
-            # a blob attached, or not. In any cases, we need to ensure the user can upload
-            # without headhache.
-            doc = self.get_document_or_none(uid=remote_ref)
-
-        if not doc:
-            # We need to handle possbile duplicates based on the file name and
-            # the destination folder on the server.
-            # Note: using this way may still result in duplicates:
-            #  - the user created 2 documents with the same name on Web-UI or another way
-            #  - the user then deleted the 1st document
-            #  - the other document has a path like "name.TIMESTAMP"
-            # So then Drive will not see that document as a duplicate because it will check
-            # a path with "name" only.
-
-            # If we really want to avoid that situation, we should use that commented code:
-            """
-            # Note that it would be too much effort for the server, we do not want that!
-            for child in self.documents.get_children(path=parent_path):
-                # It is OK to have a folder and a file with the same name,
-                # but not 2 files or 2 folders with the same name
-                if child.title == file.name:
-                    local_is_dir = file.isdir()
-                    remote_is_dir = "Folderish" in child["facets"]
-                    if local_is_dir is remote_is_dir:
-                        # Duplicate found!
-                        doc = child
-                        remote_ref = doc.uid
-                        break
-            """
-
-            doc = self.get_document_or_none(path=f"{parent_path}/{file_path.name}")
-            if doc:
-                remote_ref = doc.uid
+        doc: Optional[Document] = self.get_document_or_none(
+            uid=remote_ref, parent_path=parent_path, name=file_path.name
+        )
+        if doc:
+            remote_ref = doc.uid
 
         if not replace_blob and doc and doc.properties.get("file:content"):
             # The document already exists and has a blob attached. Ask the user what to do.
             raise DirectTransferDuplicateFoundError(file_path, doc)
 
-        if not doc:
-            # Create the document on the server
-            nature = "File" if file_path.is_file() else "Folder"
-            doc = self.remote.documents.create(
-                Document(
-                    name=file_path.name,
-                    type=nature,
-                    properties={"dc:title": file_path.name},
-                ),
-                parent_path=parent_path,
-            )
-            remote_ref = doc.uid
-
         # If the path is a folder, there is no more work to do
-        if file_path.is_dir():
-            details: Dict[str, Any] = doc.as_dict()
-            return details
+        # if file_path.is_dir():
+        #     details: Dict[str, Any] = doc.as_dict() if doc else {}
+        #     return details
 
         # Save the remote document's UID into the file xattrs, in case next steps fails
-        LocalClient.set_path_remote_id(file_path, remote_ref, name="remote")
+        if remote_ref:
+            LocalClient.set_path_remote_id(file_path, remote_ref, name="remote")
 
-        # Upload the blob and attach it to the document
+        # Upload the blob and use the FileManager importer to create the document
         item = super().upload_impl(
             file_path,
-            "Blob.AttachOnDocument",
-            xpath="file:content",
-            void_op=True,
-            document=remote_ref,
+            "FileManager.Import",
+            context={"currentDocument": parent_path},
+            params={"overwite": True},  # NXP-29286
+            headers={"nx-es-sync": "true", "X-Batch-No-Drop": "true"},
             engine_uid=engine_uid,
         )
 

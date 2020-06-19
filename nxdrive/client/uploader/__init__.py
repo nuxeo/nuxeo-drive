@@ -276,12 +276,15 @@ class BaseUploader:
         kwargs.pop("is_direct_edit", None)
         file_path = kwargs.pop("file_path")
 
+        headers = kwargs.pop("headers", {})
+        headers["Nuxeo-Transaction-Timeout"] = str(TX_TIMEOUT)
+
         action = self.linking_action(file_path, reporter=QApplication.instance())
         try:
             res: Dict[str, Any] = self.remote.execute(
                 command=command,
                 input_obj=blob,
-                headers={"Nuxeo-Transaction-Timeout": str(TX_TIMEOUT)},
+                headers=headers,
                 timeout=TX_TIMEOUT,
                 **kwargs,
             )

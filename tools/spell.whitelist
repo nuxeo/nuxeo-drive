@@ -9,3 +9,6 @@ dedup
 
 # cleanup_application_tree.py (boto3/data/iam)
 iam
+
+# client/uploader/direct_transfer.py:143 (waiting for NXP-29286)
+overwite
