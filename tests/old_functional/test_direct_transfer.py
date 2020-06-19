@@ -9,7 +9,6 @@ from uuid import uuid4
 
 import pytest
 from nuxeo.exceptions import HTTPError
-from nuxeo.models import Document
 from nxdrive.client.uploader.direct_transfer import DirectTransferUploader
 from nxdrive.constants import TransferStatus
 from nxdrive.options import Options
@@ -59,17 +58,17 @@ class DirectTransfer:
             )
 
     def has_blob(self) -> bool:
-        """Check that *self.file* exists on the server and has a blob attached.
-        As when doing a Direct Transfer, the document is first created on the server,
-        this is the only way to check if the blob upload has been finished successfully.
-        """
+        """Check that *self.file* exists on the server and has a blob attached."""
         try:
-            doc = self.root_remote.documents.get(
-                path=f"{self.ws.path}/{self.file.name}"
+            children = self.remote_document_client_1.documents.get_children(
+                path=self.ws.path
             )
+            assert len(children) == 1
+            doc = children[0]
+            assert doc.properties["dc:title"] == self.file.name
         except Exception:
             return False
-        return bool(doc.properties.get("file:content"))
+        return bool(doc.properties["file:content"])
 
     def no_uploads(self) -> bool:
         """Check there is no ongoing uploads."""
@@ -96,6 +95,17 @@ class DirectTransfer:
         else:
             assert not self.has_blob()
 
+    def test_upload(self):
+        """A regular Direct Transfer."""
+        engine = self.engine_1
+
+        # There is no upload, right now
+        self.no_uploads()
+
+        with ensure_no_exception():
+            engine.direct_transfer([self.file], self.ws.path)
+            self.sync_and_check()
+
     def test_with_engine_not_started(self):
         """A Direct Transfer should work even if engines are stopped."""
         pytest.xfail("Waiting for NXDRIVE-1910")
@@ -113,25 +123,20 @@ class DirectTransfer:
     def test_duplicate_file_but_no_blob_attached(self):
         """The file already exists on the server but has no blob attached yet."""
 
+        pytest.skip("Not yet implemented.")
+
         # Create the document on the server, with no blob attached
-        new_doc = Document(
-            name=self.file.name, type="File", properties={"dc:title": self.file.name}
-        )
-        doc = self.root_remote.documents.create(new_doc, parent_path=self.ws.path)
-        assert doc.properties.get("file:content") is None
+        self.remote_document_client_1.make_file_with_no_blob("/", self.file.name)
+        assert not self.has_blob()
 
         with ensure_no_exception():
             # The upload should work: the doc will be retrieved and the blob uploaded and attached
             self.engine_1.direct_transfer([self.file], self.ws.path)
             self.sync_and_check()
 
-        # Ensure there is only 1 document on the server
-        children = self.remote_document_client_1.get_children_info(self.workspace)
-        assert len(children) == 1
-        assert children[0].name == self.file.name
-
     def test_duplicate_file_cancellation(self):
-        """The file already exists on the server and has a blob attached.
+        """
+        The file already exists on the server and has a blob attached.
         Then, the user wants to cancel the transfer.
         """
 
@@ -168,9 +173,7 @@ class DirectTransfer:
         assert self.app.emitted
 
         # Ensure there is only 1 document on the server
-        children = self.remote_document_client_1.get_children_info(self.workspace)
-        assert len(children) == 1
-        assert children[0].name == self.file.name
+        self.sync_and_check()
 
     def test_duplicate_file_replace_blob(self):
         """The file already exists on the server and has a blob attached.
@@ -202,8 +205,7 @@ class DirectTransfer:
 
         # Ensure the blob content was updated
         doc = self.app.doc
-        assert isinstance(doc, Document)
-        assert doc.fetch_blob(xpath="file:content") == b"blob changed!"
+        assert self.remote_1.get_blob(doc.uid, xpath="file:content") == b"blob changed!"
 
     def test_pause_upload_manually(self):
         """
@@ -382,7 +384,7 @@ class DirectTransfer:
                 upload = uploads[0]
                 assert upload.status == TransferStatus.DONE
 
-                # The file exists on the server but has no blob yet
+                # The file does not exist on the server
                 assert not self.has_blob()
 
                 # The doc should be in error
@@ -396,7 +398,7 @@ class DirectTransfer:
 
     def test_server_error_but_upload_ok(self):
         """
-        Test an error happening after chunks were uploaded and the Blob.AttachOnDocument operation call.
+        Test an error happening after chunks were uploaded and the FileManager.Import operation call.
         This could happen if a proxy does not understand well the final requests as seen in NXDRIVE-1753.
         """
         pytest.skip("Not yet implemented.")
@@ -410,7 +412,7 @@ class DirectTransfer:
                 super().link_blob_to_doc(*args, **kwargs)
 
                 # The file should be present on the server
-                assert self.remote.exists(file_path)
+                # assert self.remote.exists(file_path)
 
                 # There should be 1 upload with DONE transfer status
                 uploads = list(dao.get_uploads())
@@ -429,7 +431,7 @@ class DirectTransfer:
             kwargs.pop("uploader")
             return upload_orig(*args, uploader=BadUploader, **kwargs)
 
-        file_path = f"{self.ws.path}/{self.file.name}"
+        # file_path = f"{self.ws.path}/{self.file.name}"
         engine = self.engine_1
         dao = engine.dao
         upload_orig = engine.remote.upload
@@ -481,7 +483,7 @@ class DirectTransfer:
                 upload = uploads[0]
                 assert upload.status == TransferStatus.DONE
 
-                # The file exists on the server but has no blob yet
+                # The file does not exist on the server
                 assert not self.has_blob()
 
         self.sync_and_check()
@@ -517,7 +519,7 @@ class DirectTransfer:
                 upload = uploads[0]
                 assert upload.status == TransferStatus.ONGOING
 
-                # The file exists on the server but has no blob yet
+                # The file does not exist on the server
                 assert not self.has_blob()
 
         self.sync_and_check()
@@ -600,7 +602,7 @@ class DirectTransferFolder:
         for folder in self.folders:
             assert self.root_remote.documents.get(path=self.tree[folder])
 
-    def test_folder(self):
+    def __test_folder(self):
         """Test the Direct Transfer on a folder containing files and a sufolder."""
 
         # There is no upload, right now
