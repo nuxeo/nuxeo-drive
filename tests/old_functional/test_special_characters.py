@@ -14,21 +14,25 @@ class TestSpecialCharacters(OneUserTest):
 
         folder = local.make_folder("/", "/ * ? < > |")
         local.make_file(folder, "| > < ? * /.txt", content=b"This is a test file")
-
         self.wait_sync()
+
         folder_name = "- - - - - -"
         file_name = "- - - - - -.txt"
-        # Those checks do not pass, why?!
-        # The rest of the test seems OK, so ...
-        # assert remote.exists(f"/{folder_name}")
-        # assert remote.exists(f"/{folder_name}/{file_name}")
+        # Check the remote folder
+        children = remote.get_children(self.ws.path)["entries"]
+        assert len(children) == 1
+        assert children[0]["title"] == folder_name
+        # Check the remote file
+        children = remote.get_children(children[0]["path"])["entries"]
+        assert len(children) == 1
+        assert children[0]["title"] == file_name
 
         new_folder_name = "abcd"
         new_file_name = "efgh.txt"
         local.rename(f"/{folder_name}", new_folder_name)
         local.rename(f"/{new_folder_name}/{file_name}", new_file_name)
-
         self.wait_sync()
+
         # Paths is updated server-side
         info = remote.get_info(f"/{new_folder_name}")
         assert info.name == new_folder_name
@@ -39,7 +43,6 @@ class TestSpecialCharacters(OneUserTest):
     def test_rename_local(self):
         local = self.local_1
         remote = self.remote_1
-        return
 
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
@@ -54,18 +57,18 @@ class TestSpecialCharacters(OneUserTest):
         assert remote.exists(f"/{folder_name}/{file_name}")
 
         new_folder_name = "/ * ? < > |"
+        new_folder_name_expected = "- - - - - -"
         new_file_name = "| > < ? * /.txt"
+        new_file_name_expected = "- - - - - -.txt"
         local.rename(f"/{folder_name}", new_folder_name)
-        local.rename(f"/{new_file_name}/{file_name}", new_file_name)
-
+        local.rename(f"/{new_folder_name_expected}/{file_name}", new_file_name)
         self.wait_sync()
-        new_folder_name = "- * ? < > |"
-        new_file_name = "| > < ? * -.txt"
+
         # Paths is updated server-side
-        info = remote.get_info(f"/{new_folder_name}")
-        assert info.name == new_folder_name
-        info = remote.get_info(f"/{new_folder_name}/{new_file_name}")
-        assert info.name == new_file_name
+        info = remote.get_info(f"/{new_folder_name_expected}")
+        assert info.name == new_folder_name_expected
+        info = remote.get_info(f"/{new_folder_name_expected}/{new_file_name_expected}")
+        assert info.name == new_file_name_expected
 
     def test_create_remote(self):
         local = self.local_1
