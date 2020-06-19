@@ -265,12 +265,15 @@ class TwoUsersTest(TestCase):
 
         # Ensure to kill the app if it is taking too long.
         # We need to do that because sometimes a thread get blocked and so the test suite.
-        # Here, we set the timeout to 00:02:00, let's see if a higher value is needed.
-        timeout = 2 * 60
-
-        # Set a higher timeout for those special tests
-        if self.id().startswith("tests.old_functional.test_volume."):
-            timeout = 60 * 60 * 4  # 04:00:00
+        # Here, we set the default timeout to 2 minutes but use higher values for long-running tests.
+        default_timeout = 60 * 2
+        timeouts = {
+            "test_nxdrive_903": 60 * 4,  # 4 minutes
+            "test_nxdrive_1033": 60 * 6,  # 6 minutes
+            "test_volume": 60 * 60,  # 1 hour
+        }
+        test_file = self.id().replace("tests.old_functional.", "").split(".")[0]
+        timeout = timeouts.get(test_file, default_timeout)
 
         def kill_test():
             log.error(f"Killing {self.id()} after {timeout} seconds")
