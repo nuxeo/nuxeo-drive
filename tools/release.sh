@@ -30,6 +30,8 @@ changelog() {
     local drive_version
     local changelog
 
+    python3 -m pip install --user requests==2.24.0
+
     drive_version="$1"
     changelog="$(cat <<EOF
 $(python3 tools/changelog.py --format=md)

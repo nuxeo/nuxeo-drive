@@ -12,8 +12,6 @@ import re
 import subprocess
 import sys
 
-import requests
-
 __version__ = "1.2.11"
 
 
@@ -182,6 +180,8 @@ def get_issue_infos(issue, raw=False):
     base_url = "https://jira.nuxeo.com"
     url = base_url + "/rest/api/2/issue/{}".format(issue)
     headers = {"User-Agent": "changelog/{}".format(__version__)}
+
+    import requests  # noqa
 
     for _ in range(5):
         try:
