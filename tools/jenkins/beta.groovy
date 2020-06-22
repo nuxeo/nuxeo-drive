@@ -20,6 +20,10 @@ properties([
     ]]
 ])
 
+def notifyFailure() {
+    slackSend(channel: 'drive-notifs', color: '#FF0000', message: "Release <" + currentBuild.absoluteUrl + "|failed>. Please investigate NOW.")
+}
+
 node('IT') {
     def credential_id = '4691426b-aa51-428b-901d-4e851ee37b01'
     def differ_commits = '0'
@@ -77,6 +81,7 @@ node('IT') {
             sh "tools/release.sh --cancel ${release_type}"
         }
         currentBuild.result = 'FAILURE'
+        notifyFailure()
         throw e
     }
 }
