@@ -175,9 +175,9 @@ pyobjc-framework-FSEvents==6.2 ; sys_platform == "darwin" \
 pyobjc-framework-ScriptingBridge==6.2.1 ; sys_platform == "darwin" \
     --hash=sha256:060d61f3c8d225a66eb86f0500ebadf41c1385bfc1b9123c6a987f4050f079bf \
     --hash=sha256:88bfa841001f5f612d5a54505c8a8a3d43251589cb304682dd80a82bf960fa6a
-pyobjc-framework-SystemConfiguration==6.2 ; sys_platform == "darwin" \
-    --hash=sha256:3d6b293a159d6a73d6393b01a5d6c7e646e120c1c3b821c051527048058c66c3 \
-    --hash=sha256:99a4b127925ed99958b28ad6fae95f764fe821be62e033b48d7b2d71c28fe58b
+pyobjc-framework-SystemConfiguration==6.2.1 ; sys_platform == "darwin" \
+    --hash=sha256:fee0fea3637ea33ea9c1d70c8b0f4ff63ac97c7fc441ab540976c94c76c68e9a \
+    --hash=sha256:8558f9a5dc963b696fc71a410c925a8a3ff43f36b6c1fcd661cd395b7186ec8e
     # via pypac
 pypac==0.13.0 \
     --hash=sha256:a1eac0e3224939fcc691c8ad815f9cd24d737c8e0cf9c9905a01821bbe8f1414
