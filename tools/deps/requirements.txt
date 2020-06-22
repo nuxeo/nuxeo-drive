@@ -159,12 +159,12 @@ pyobjc-core==6.2.1 ; sys_platform == "darwin" \
     --hash=sha256:e68cec4f6d069fba1b3364b983abc9dff49763b58270f01904fc80ab8e7c4051 \
     --hash=sha256:ea9ab7839a022668964ca8ab4f37dc75c04743354260370d463ebdce5c05aa38
     # via pyobjc-framework-Cocoa
-pyobjc-framework-Cocoa==6.2 ; sys_platform == "darwin" \
-    --hash=sha256:04b994a26bc30c912f2f5165d57a987f35889a36dd9c104674bc449c53649629 \
-    --hash=sha256:09612dd81fafb6e1a8eb597b5e523c9de103a50af79e95afbf13b8a5937e3cfa \
-    --hash=sha256:cbe4f1917aa5def4a77fd4199a9697f3b4224acf59acf4e01fe9a7c73d49b08c \
-    --hash=sha256:ef3c21a8b37519e3a3880fc0c5539fe27afd3e0235c8ebc9c87b3d0354cbb4ea \
-    --hash=sha256:e15bbf82bfe3a14dfd29c7465cc5d8edab16d546410239b7e1a4db62ded4a5b2
+pyobjc-framework-Cocoa==6.2.1 ; sys_platform == "darwin" \
+    --hash=sha256:d46b8587aeea09baa998a526d741162141a12660ef57f8114fc9dd67297c6045 \
+    --hash=sha256:4c4ecb69f17d3291562fa5adfe55a20f4a9f03e25baac7d9fbe2e54aa1f17081 \
+    --hash=sha256:94260a8366569625d5f9380b1b8c3b58a54a883a6412dcc47353f8bcce9da5b7 \
+    --hash=sha256:17737dfd80b7e89f654413b52eb934b9c180442f60c728545b5404655a05f229 \
+    --hash=sha256:c41dc4b590a6bd10f60d2b979508a1b02c38664b3bcb2225f914439485a1551f
 pyobjc-framework-CoreServices==6.2.1 ; sys_platform == "darwin" \
     --hash=sha256:084bf82152f0a9d97bc54d916cdfc146bd9b8dd8a55ce574e0de6b7fc53ca596 \
     --hash=sha256:147d7ae55756739c4c17c163ed4a9545f206461e37b97b1eb6a220265dff4da1
