@@ -14,7 +14,7 @@ cancel() {
     local drive_version
 
     release_type="$1"
-    drive_version="$(python tools/changelog.py --drive-version)"
+    drive_version="$(python3 tools/changelog.py --drive-version)"
 
     echo ">>> [${release_type} ${drive_version}] Removing the tag"
     git tag --delete "${release_type}-${drive_version}" || true
@@ -32,7 +32,7 @@ changelog() {
 
     drive_version="$1"
     changelog="$(cat <<EOF
-$(python tools/changelog.py --format=md)
+$(python3 tools/changelog.py --format=md)
 
 ---
 
@@ -73,7 +73,7 @@ create() {
         #    - checkout the last commit
         #    - update the version number and release date
         echo ">>> [${release_type}] Update information into a new branch"
-        drive_version="$(python tools/changelog.py --drive-version)"
+        drive_version="$(python3 tools/changelog.py --drive-version)"
         alpha_version="$(git describe --always --match="release-*" | cut -d"-" -f3)"
 
         # Delete remote wip-alpha branch if it already exists and create a local one
@@ -91,7 +91,7 @@ create() {
         git push --set-upstream origin "wip-alpha-${drive_version}.${alpha_version}"
     fi
 
-    drive_version="$(python tools/changelog.py --drive-version)"
+    drive_version="$(python3 tools/changelog.py --drive-version)"
 
     if [ "${release_type}" = "release" ]; then
         echo ">>> [${release_type} ${drive_version}] Generating the changelog"
@@ -111,7 +111,7 @@ publish() {
     local path
 
     release_type="$1"
-    drive_version="$(python tools/changelog.py --drive-version)"
+    drive_version="$(python3 tools/changelog.py --drive-version)"
     artifacts="https://qa.nuxeo.org/jenkins/view/Drive/job/Drive/job/Drive-packages/lastSuccessfulBuild/artifact/dist/*zip*/dist.zip"
     path="/var/www/community.nuxeo.com/static/drive-updates/"
 
@@ -127,14 +127,14 @@ publish() {
     unzip -o dist.zip
 
     echo ">>> [${release_type} ${drive_version}] Generating ${drive_version}.yml"
-    python -m pip install --user pyyaml==5.1.2
-    python tools/versions.py --add "${drive_version}" --type "${release_type}"
+    python3 -m pip install --user pyyaml==5.3.1
+    python3 tools/versions.py --add "${drive_version}" --type "${release_type}"
     echo "\nContent of ${drive_version}.yml:"
     cat "${drive_version}.yml"
 
     echo ">>> [${release_type} ${drive_version}] Merging into versions.yml"
     rsync -vz nuxeo@lethe.nuxeo.com:"${path}versions.yml" .
-    python tools/versions.py --merge
+    python3 tools/versions.py --merge
     echo "\nContent of versions.yml:"
     cat versions.yml
 

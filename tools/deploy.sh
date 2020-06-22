@@ -41,9 +41,9 @@ ln -sfv ${final_exe} ${path}/nuxeo-drive.exe
 EOF
 
     echo ">>> [release ${drive_version}] Generating the versions file"
-    python -m pip install --user pyyaml==5.1.2
+    python3 -m pip install --user pyyaml==5.3.1
     rsync -vz nuxeo@lethe.nuxeo.com:/var/www/community.nuxeo.com/static/drive-updates/versions.yml .
-    python tools/versions.py --promote "${drive_version}" --type "release"
+    python3 tools/versions.py --promote "${drive_version}" --type "release"
     rsync -vz versions.yml nuxeo@lethe.nuxeo.com:/var/www/community.nuxeo.com/static/drive-updates/
 
     echo ">>> [${latest_release}] Saving release on GitHub"
