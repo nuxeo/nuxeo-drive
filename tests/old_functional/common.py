@@ -271,7 +271,7 @@ class TwoUsersTest(TestCase):
             "test_nxdrive_903": 60 * 4,  # 4 minutes
             "test_nxdrive_947": 60 * 15,  # 15 minutes
             "test_nxdrive_1033": 60 * 6,  # 6 minutes
-            "test_volume": 60 * 60,  # 1 hour
+            "test_volume": 60 * 60 * 4,  # 4 hours
         }
         test_file = self.id().replace("tests.old_functional.", "").split(".")[0]
         timeout = timeouts.get(test_file, default_timeout)
