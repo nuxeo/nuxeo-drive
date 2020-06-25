@@ -328,7 +328,9 @@ class TwoUsersTest(TestCase):
 
     def _create_workspace(self, title: str) -> Document:
         title = salt(title, prefix="")
-        new_ws = Document(name=title, type="Workspace", properties={"dc:title": title})
+        new_ws = Document(
+            name=title, type=env.DOCTYPE_FOLDERISH, properties={"dc:title": title}
+        )
         self.ws = self.root_remote.documents.create(new_ws, parent_path=env.WS_DIR)
         self.workspace = self.ws.uid
         self.workspace_title = self.ws.title
