@@ -19,8 +19,7 @@ Rectangle {
 
         // Progression: transferred data and remote folder
         ScaledText {
-            property string pretty_progress: "[" + Math.floor(progress || 0) + "%] "
-            text: pretty_progress + qsTr("DIRECT_TRANSFER_DETAILS").arg(progress_metrics[0]).arg(progress_metrics[1]) + tl.tr
+            text: qsTr("DIRECT_TRANSFER_DETAILS").arg(Math.floor(progress || 0.0)).arg(progress_metrics[0]).arg(progress_metrics[1]) + tl.tr
             Layout.leftMargin: 10
             opacity: 0.7
         }
