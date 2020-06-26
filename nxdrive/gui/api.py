@@ -201,24 +201,6 @@ class QMLDriveApi(QObject):
 
         return result
 
-    @pyqtSlot(result=list)
-    def get_direct_transfer_items(self) -> List[Dict[str, Any]]:
-        """Return a list of items that are Direct Transfer'ed."""
-        result: List[Dict[str, Any]] = []
-
-        for engine in self._manager.engines.values():
-            dao = engine.dao
-            remote_folder = dao.get_config("dt_last_remote_location")
-            for upload in dao.get_uploads():
-                if upload.is_direct_transfer:
-                    upload_dict = asdict(upload)
-                    upload_dict["remote_parent_path"] = remote_folder
-                    upload_dict[
-                        "remote_parent_url"
-                    ] = f"{engine.server_url}ui/#!/browse{remote_folder}"
-                    result.append(upload_dict)
-        return result
-
     @pyqtSlot(str, str, int, float)
     def pause_transfer(
         self, nature: str, engine_uid: str, transfer_uid: int, progress: float
@@ -331,15 +313,16 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str)
     def open_direct_transfer(self, uid: str) -> None:
         self.application.hide_systray()
+
         engine = self._manager.engines.get(uid)
-        if engine:
-            direct_transfers = [
-                dt for dt in list(engine.dao.get_uploads()) if dt.is_direct_transfer
-            ]
-            if direct_transfers:
-                self.application.show_direct_transfer_window(engine.uid)
-            else:
-                self.application.show_server_folders(engine, None)
+        if not engine:
+            return
+
+        uploads = engine.dao.get_uploads()
+        if any(t.is_direct_transfer for t in uploads):
+            self.application.show_direct_transfer_window(engine.uid)
+        else:
+            self.application.show_server_folders(engine, None)
 
     @pyqtSlot()
     def close_direct_transfer(self) -> None:

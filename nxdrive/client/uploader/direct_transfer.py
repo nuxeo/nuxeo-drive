@@ -141,6 +141,7 @@ class DirectTransferUploader(BaseUploader):
         # Save the remote document's UID into the file xattrs, in case next steps fails
         if remote_ref:
             LocalClient.set_path_remote_id(file_path, remote_ref, name="remote")
+
         # Upload the blob and use the FileManager importer to create the document
         item = super().upload_impl(
             file_path,

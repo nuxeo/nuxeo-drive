@@ -300,23 +300,19 @@ class DirectTransferModel(QAbstractListModel):
     @pyqtProperty(str, notify=fileChanged)
     def destination_link(self) -> str:
         """Return the link to the remote path that will be used in DirectTransfer.qml."""
-        if not self.items:
-            return ""
-
-        transfer = self.items[0]
-        url = transfer["remote_parent_url"]
-        title = transfer["remote_parent_path"]
-        return f'<a href="{url}">{title}</a>'
+        if self.items:
+            return self.items[0]["remote_link"]
+        return ""
 
     def set_items(
-        self, transfers: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
+        self, items: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
     ) -> None:
         self.beginRemoveRows(parent, 0, self.rowCount() - 1)
         self.items.clear()
         self.endRemoveRows()
 
-        self.beginInsertRows(parent, 0, len(transfers) - 1)
-        self.items.extend(transfers)
+        self.beginInsertRows(parent, 0, len(items) - 1)
+        self.items.extend(items)
         self.endInsertRows()
 
         self.fileChanged.emit()
