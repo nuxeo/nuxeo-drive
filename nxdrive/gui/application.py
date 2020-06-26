@@ -381,6 +381,7 @@ class Application(QApplication):
         colors = {
             "darkBlue": "#1F28BF",
             "nuxeoBlue": "#0066FF",
+            "nuxeoBlue50": "#7D0066FF",  # nuxeoBlue at 50% opacity (format AARRGGBB)
             "lightBlue": "#00ADED",
             "lightGreen": "#A9D843",
             "teal": "#73D2CF",

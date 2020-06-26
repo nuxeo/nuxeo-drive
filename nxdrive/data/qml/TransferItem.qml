@@ -22,6 +22,7 @@ Rectangle {
             property string pretty_progress: "[" + Math.floor(progress || 0) + "%] "
             text: pretty_progress + qsTr("DIRECT_TRANSFER_DETAILS").arg(progress_metrics[0]).arg(progress_metrics[1]) + tl.tr
             Layout.leftMargin: 10
+            opacity: 0.7
         }
 
         GridLayout {
@@ -32,6 +33,7 @@ Rectangle {
             Layout.fillHeight: true
             Layout.rightMargin: 10
             Layout.leftMargin: 10
+
             // Progression: bar
             Rectangle {
                 Layout.fillWidth: true
@@ -39,22 +41,22 @@ Rectangle {
                 border.color: nuxeoBlue
                 border.width: 1
                 radius: 3
+                opacity: 0.7
 
-                Control {
-                    width: parent.width
-                    height: parent.height
-                    contentItem: NuxeoProgressBar {
-                        id: progressBar
-                        color: nuxeoBlue
-                        opacity: 0.7
-                        width: parent.width
-                        height: parent.height
-                        value: progress || 0.0
-                        text: name
-                        indeterminate: finalizing
-                    }
+                NuxeoProgressBar {
+                    width: parent.width - 2
+                    height: parent.height - 2
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    color: nuxeoBlue50
+                    value: progress || 0.0
+                    text: name
+                    // Indeterminate progress bar when linking the blob to the document (last upload step)
+                    indeterminate: finalizing
                 }
             }
+
+            // Pause/Resume icon
             IconLabel {
                 visible: !finalizing
                 icon: paused ? MdiFont.Icon.play : MdiFont.Icon.pause
