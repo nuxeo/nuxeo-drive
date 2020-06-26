@@ -12,7 +12,6 @@ from nuxeo.exceptions import HTTPError, Unauthorized
 from PyQt5.QtCore import QObject, QUrl, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
 
-from ..client.local import LocalClient
 from ..client.proxy import get_proxy
 from ..constants import (
     APP_NAME,
@@ -202,13 +201,6 @@ class QMLDriveApi(QObject):
 
         return result
 
-    def upload_is_direct_transfer(self, path, engine):
-        if engine.local_folder not in path.parents:
-            return True
-        elif not engine.dao.get_state_from_local(path.relative_to(engine.local_folder)):
-            return True
-        return False
-
     @pyqtSlot(result=list)
     def get_direct_transfer_items(self) -> List[Dict[str, Any]]:
         """Return a list of items that are Direct Transfer'ed."""
@@ -216,18 +208,14 @@ class QMLDriveApi(QObject):
 
         for engine in self._manager.engines.values():
             dao = engine.dao
+            remote_folder = dao.get_config("dt_last_remote_location")
             for upload in dao.get_uploads():
-                if upload.is_direct_edit is True:
-                    continue
-                if self.upload_is_direct_transfer(upload.path, engine):
-                    path = LocalClient.get_path_remote_id(
-                        upload.path, name="nxdirecttransferparent"
-                    )
+                if upload.is_direct_transfer:
                     upload_dict = asdict(upload)
-                    upload_dict["remote_parent_path"] = str(path)
+                    upload_dict["remote_parent_path"] = remote_folder
                     upload_dict[
                         "remote_parent_url"
-                    ] = f"{engine.server_url}ui/#!/browse{path}"
+                    ] = f"{engine.server_url}ui/#!/browse{remote_folder}"
                     result.append(upload_dict)
         return result
 
@@ -346,9 +334,7 @@ class QMLDriveApi(QObject):
         engine = self._manager.engines.get(uid)
         if engine:
             direct_transfers = [
-                dt
-                for dt in list(engine.dao.get_uploads())
-                if self.upload_is_direct_transfer(dt.path, engine)
+                dt for dt in list(engine.dao.get_uploads()) if dt.is_direct_transfer
             ]
             if direct_transfers:
                 self.application.show_direct_transfer_window(engine.uid)

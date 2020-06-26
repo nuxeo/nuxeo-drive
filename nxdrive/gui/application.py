@@ -1576,11 +1576,10 @@ class Application(QApplication):
         direct_transfers = self.api.get_direct_transfer_items()
         if direct_transfers != self.direct_transfer_model.items:
             self.direct_transfer_model.set_items(direct_transfers)
-        direct_transfers_paths = [dt["path"] for dt in direct_transfers]
         transfers = [
             transfer
             for transfer in self.api.get_transfers()
-            if transfer["path"] not in direct_transfers_paths
+            if not transfer["is_direct_transfer"]
         ]
         if transfers != self.transfer_model.transfers:
             self.transfer_model.set_transfers(transfers)
