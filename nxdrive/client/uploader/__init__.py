@@ -165,6 +165,7 @@ class BaseUploader:
             is_direct_edit = kwargs.pop("is_direct_edit", False)
             is_direct_transfer = kwargs.pop("is_direct_transfer", False)
             remote_ref = kwargs.pop("remote_ref", "")
+
             # Set those attributes as FileBlob does not have them
             # and they are required for the step 2 of .upload_impl()
             blob.batch_id = batch.uid
