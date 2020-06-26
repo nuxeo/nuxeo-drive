@@ -323,8 +323,11 @@ class Application(QApplication):
         if not isinstance(action, Action):
             log.warning(f"An action is needed, got {action!r}")
             return
-        self.transfer_model.set_progress(action.export())
-        self.direct_transfer_model.set_progress(action.export())
+        export = action.export()
+        if action.is_direct_transfer:
+            self.direct_transfer_model.set_progress(export)
+        else:
+            self.transfer_model.set_progress(export)
 
     def add_engines(self, engines: Union[Engine, List[Engine]]) -> None:
         if not engines:
@@ -1580,7 +1583,8 @@ class Application(QApplication):
         if direct_transfers != self.direct_transfer_model.items:
             # Append the destination folder to the 1st item
             url = self.get_direct_transfer_remote_path_url()
-            direct_transfers[0]["remote_link"] = url
+            if direct_transfers:
+                direct_transfers[0]["remote_link"] = url
 
             # Update transfer items
             self.direct_transfer_model.set_items(direct_transfers)
