@@ -714,8 +714,7 @@ class Application(QApplication):
         self.direct_transfer_window.setY(
             (height / 2) - (self.direct_transfer_window.minimumHeight() / 2)
         )
-        self.direct_transfer_window.show()
-        self.direct_transfer_window.requestActivate()
+        self._show_window(self.direct_transfer_window)
 
     def close_direct_transfer_window(self) -> None:
         """Close the Direct Transfer window."""
@@ -726,8 +725,7 @@ class Application(QApplication):
     def show_settings(self, section: str = "General") -> None:
         sections = {"General": 0, "Accounts": 1, "About": 2}
         self._window_root(self.settings_window).setSection.emit(sections[section])
-        self.settings_window.show()
-        self.settings_window.requestActivate()
+        self._show_window(self.settings_window)
 
     @pyqtSlot()
     def show_systray(self) -> None:
