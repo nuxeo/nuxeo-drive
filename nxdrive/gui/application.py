@@ -1671,5 +1671,6 @@ class Application(QApplication):
         """Craft the Direct Transfer remote path URL using the value from the database."""
         for engine in self.manager.engines.values():
             title = engine.dao.get_config("dt_last_remote_location", "")
+            # TODO: JSF is not handled
             url = f"{engine.server_url}ui/#!/browse{title}"
             return f'<a href="{url}">{title}</a>'
