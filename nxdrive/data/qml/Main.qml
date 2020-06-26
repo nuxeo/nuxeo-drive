@@ -67,7 +67,7 @@ QtObject {
         id: directTransferWindow
         objectName: "directTransferWindow"
         minimumWidth: 600
-        minimumHeight: 250
+        minimumHeight: 300
         visible: false
         title: qsTr("DIRECT_TRANSFER_WINDOW_TITLE").arg(APP_NAME) + tl.tr
         signal setEngine(string uid)

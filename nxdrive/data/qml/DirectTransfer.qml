@@ -8,12 +8,12 @@ import "icon-font/Icon.js" as MdiFont
 Rectangle {
     id: directTransfer
     anchors.fill: parent
+    anchors.topMargin: 40
+    anchors.bottomMargin: 40
     anchors.leftMargin: 20
-    anchors.rightMargin: 20
+
     property string engineUid: ""
-
     signal setEngine(string uid)
-
     onSetEngine: engineUid = uid
 
     Connections {
@@ -24,26 +24,40 @@ Rectangle {
     Flickable {
         id: fileList
         anchors.fill: parent
-        width: parent.width; height: parent.height
-        clip: true
-        ScrollBar.vertical: ScrollBar {}
+
+        // Grab the focus to allow scrolling using the keyboard
+        focus: true
+
+        // UP and DOWN keys to scroll
+        Keys.onUpPressed: scrollBar.decrease()
+        Keys.onDownPressed: scrollBar.increase()
+
+        // The scrollbar
+        ScrollBar.vertical: ScrollBar {
+            id: scrollBar
+        }
+
         contentHeight: transfers.height
         ListView {
             id: transfers
-            width: parent.width; height: contentHeight
-            spacing: 15
             visible: DirectTransferModel.count > 0
-            interactive: false
-            highlight: Rectangle { color: lighterGray }
+
+            width: parent.width
+            height: contentHeight
+            spacing: 15
+
+            // TODO: Not yet effective
+            highlight: Rectangle {
+                color: lighterGray
+            }
+
+            // The test before items being transferred
             header: RowLayout {
                 width: parent.width
                 Rectangle {
-                    width: parent.width
                     Layout.fillWidth: true
-                    Layout.leftMargin: 10
-                    Layout.topMargin: 20
-                    Layout.rightMargin: 40
                     height: 40
+
                     ScaledText {
                         elide: Text.ElideMiddle
                         width: parent.width
@@ -66,6 +80,8 @@ Rectangle {
                     }
                 }
             }
+
+            // Items being transferred
             model: DirectTransferModel
             delegate: TransferItem {}
         }

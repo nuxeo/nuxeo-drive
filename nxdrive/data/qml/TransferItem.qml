@@ -11,10 +11,12 @@ Rectangle {
     property bool paused: status == "PAUSED" || status == "SUSPENDED"
     width: parent.width
     height: 55
+
     ColumnLayout {
         id: transfer
         anchors.fill: parent
         anchors.centerIn: parent
+        anchors.rightMargin: 20
         spacing: 3
 
         // Progression: transferred data
