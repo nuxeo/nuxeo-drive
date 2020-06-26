@@ -317,8 +317,16 @@ function install_deps {
 		}
 		# & $Env:STORAGE_DIR\Scripts\pre-commit.exe install
 	}
-	Remove-Item -Path "$Env:STORAGE_DIR\Lib\site-packages\PyQt5\QtBluetooth.pyd" -Verbose
-	Remove-Item -Path "$Env:STORAGE_DIR\Lib\site-packages\PyQt5\Qt\bin\Qt5Bluetooth.dll" -Verbose
+
+	# See NXDRIVE-1554 for details
+	$bluetooth_pyd = "$Env:STORAGE_DIR\Lib\site-packages\PyQt5\QtBluetooth.pyd"
+	$bluetooth_dll = "$Env:STORAGE_DIR\Lib\site-packages\PyQt5\Qt\bin\Qt5Bluetooth.dll"
+	if (Test-Path $bluetooth_pyd) {
+		Remove-Item -Path $bluetooth_pyd -Verbose
+	}
+	if (Test-Path $bluetooth_dll) {
+		Remove-Item -Path $bluetooth_dll -Verbose
+	}
 }
 
 function install_python {
