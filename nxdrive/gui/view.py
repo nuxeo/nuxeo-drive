@@ -299,7 +299,7 @@ class DirectTransferModel(QAbstractListModel):
 
     @pyqtProperty(str, notify=fileChanged)
     def destination_link(self) -> str:
-        """Return the link to the remote path that will be used in DirectTransfer.qml"""
+        """Return the link to the remote path that will be used in DirectTransfer.qml."""
         if not self.items:
             return ""
 
