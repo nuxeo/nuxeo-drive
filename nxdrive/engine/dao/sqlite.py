@@ -630,7 +630,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 10
+        return 11
 
     def _migrate_state(self, cursor: Cursor) -> None:
         try:
@@ -769,6 +769,19 @@ class EngineDAO(ConfigurationDAO):
                     )
 
             self.store_int(SCHEMA_VERSION, 10)
+
+        if version < 11:
+            # Add the is_direct_transfer field to the Uploads table,
+            # used to display direct tansfers in the Direct Transfer Window.
+            cursor.execute(
+                "ALTER TABLE Uploads ADD COLUMN is_direct_transfer INTEGER DEFAULT 0;"
+            )
+            # Add the remote_ref field to the Uploads table,
+            # used to display the link to the direct transfer folder.
+            cursor.execute(
+                "ALTER TABLE Uploads ADD COLUMN remote_ref VARCHAR DEFAULT NULL;"
+            )
+            self.store_int(SCHEMA_VERSION, 11)
 
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
         if name == "States":
@@ -2098,6 +2111,8 @@ class EngineDAO(ConfigurationDAO):
                 doc_pair=res.doc_pair,
                 batch=json.loads(res.batch),
                 chunk_size=res.chunk_size,
+                is_direct_transfer=res.is_direct_transfer,
+                remote_ref=res.remote_ref,
             )
 
     def get_downloads_with_status(self, status: TransferStatus) -> List[Download]:
@@ -2173,12 +2188,14 @@ class EngineDAO(ConfigurationDAO):
                 upload.is_direct_edit,
                 json.dumps(batch),
                 upload.chunk_size,
+                upload.is_direct_transfer,
+                upload.remote_ref,
             )
             c = self._get_write_connection().cursor()
             sql = (
                 "INSERT INTO Uploads "
-                "(path, status, engine, is_direct_edit, batch, chunk_size)"
-                " VALUES (?, ?, ?, ?, ?, ?)"
+                "(path, status, engine, is_direct_edit, batch, chunk_size, is_direct_transfer, remote_ref)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
             )
             c.execute(sql, values)
 
