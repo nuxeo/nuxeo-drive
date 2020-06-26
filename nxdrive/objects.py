@@ -473,3 +473,5 @@ class Upload(Transfer):
     transfer_type: str = field(init=False, default="upload")
     batch: dict = field(default_factory=dict)
     chunk_size: Optional[int] = None
+    is_direct_transfer: Optional[bool] = False
+    remote_ref: Optional[str] = None
