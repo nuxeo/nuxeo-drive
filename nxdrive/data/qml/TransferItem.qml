@@ -17,7 +17,7 @@ Rectangle {
         anchors.centerIn: parent
         spacing: 3
 
-        // Progression: transferred data and remote folder
+        // Progression: transferred data
         ScaledText {
             text: qsTr("DIRECT_TRANSFER_DETAILS").arg(Math.floor(progress || 0.0)).arg(progress_metrics[0]).arg(progress_metrics[1]) + tl.tr
             Layout.leftMargin: 10
