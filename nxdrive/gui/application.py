@@ -802,9 +802,8 @@ class Application(QApplication):
         Called when the server folders selection dialog is destroyed.
         Show the Direct Transfer window if a folder is selected.
         """
-        engine = self.filters_dlg.engine
-        if engine and self.filters_dlg.paths:
-            self.show_direct_transfer_window(engine.uid)
+        if self.filters_dlg and self.filters_dlg.engine and self.filters_dlg.paths:
+            self.show_direct_transfer_window(self.filters_dlg.engine.uid)
         self.destroyed_filters_dialog()
 
     @pyqtSlot(str, object)
