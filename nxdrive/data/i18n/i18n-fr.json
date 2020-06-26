@@ -227,7 +227,7 @@
     "NO_ROOTS": "Il n’y a aucun dossier synchronisé associé à votre compte.<br/><br/> Veuillez accédez à <a href=\"%1\">votre instance</a> et sélectionner un dossier pour démarrer la synchronisation.<br/><br/> En savoir plus sur la synchronisation sur <a href=\"%2\">le site web de documentation</a>.",
     "NO_SPACE_LEFT_ON_DEVICE": "Espace disque insuffisant, veuillez libérer de l'espace disque.",
     "OPEN_LOCAL": "Ouvrir le fichier local",
-    "OPEN_REMOTE": "Ouvrir le fichier distant",
+    "OPEN_REMOTE": "Ouvrir le document distant",
     "OPEN_ROOT_FOLDER": "Ouvrir le dossier %1",
     "OPEN_SERVER": "Accéder au serveur Nuxeo",
     "OPEN_SETTINGS": "Ouvrir les paramètres",
