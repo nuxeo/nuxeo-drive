@@ -24,16 +24,6 @@ ProgressBar {
             width: control.visualPosition * parent.width
             height: parent.height
             color: control.color
-
-            // Display some text inside the progress bar
-            ScaledText {
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.left: parent.left
-                padding: 5
-                text: control.text
-                style: Text.Outline
-                styleColor: lighterGray
-            }
         }
 
         // Animation for unlimited progress bar by animating alternating stripes
@@ -60,6 +50,17 @@ ProgressBar {
                 easing.type: Easing.OutInBack
                 running: control.indeterminate
             }
+        }
+
+        // Eventual text inside the progress bar
+        ScaledText {
+            visible: control.text
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.left: parent.left
+            padding: 5
+            text: control.text
+            style: Text.Outline
+            styleColor: lighterGray
         }
     }
 }
