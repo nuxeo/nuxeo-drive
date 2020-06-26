@@ -771,13 +771,14 @@ class EngineDAO(ConfigurationDAO):
             self.store_int(SCHEMA_VERSION, 10)
 
         if version < 11:
-            # Add the is_direct_transfer field to the Uploads table,
-            # used to display direct tansfers in the Direct Transfer Window.
+            # Add the *is_direct_transfer* field to the Uploads table,
+            # used to display items in the Direct Transfer window.
             cursor.execute(
                 "ALTER TABLE Uploads ADD COLUMN is_direct_transfer INTEGER DEFAULT 0;"
             )
-            # Add the remote_ref field to the Uploads table,
-            # used to display the link to the direct transfer folder.
+            # Add the *remote_ref* field to the Uploads table,
+            # used to display the link to the remote path where items are being sent
+            # in the Direct Transfer window.
             cursor.execute(
                 "ALTER TABLE Uploads ADD COLUMN remote_ref VARCHAR DEFAULT NULL;"
             )
@@ -808,15 +809,17 @@ class EngineDAO(ConfigurationDAO):
         )
         cursor.execute(
             "CREATE TABLE if not exists Uploads ("
-            "    uid            INTEGER     NOT NULL,"
-            "    path           VARCHAR     UNIQUE,"
-            "    status         INTEGER,"
-            "    engine         VARCHAR     DEFAULT NULL,"
-            "    is_direct_edit INTEGER     DEFAULT 0,"
-            "    progress       REAL,"
-            "    doc_pair       INTEGER     UNIQUE,"
-            "    batch          VARCHAR,"
-            "    chunk_size     INTEGER,"
+            "    uid                INTEGER     NOT NULL,"
+            "    path               VARCHAR     UNIQUE,"
+            "    status             INTEGER,"
+            "    engine             VARCHAR     DEFAULT NULL,"
+            "    is_direct_edit     INTEGER     DEFAULT 0,"
+            "    progress           REAL,"
+            "    doc_pair           INTEGER     UNIQUE,"
+            "    batch              VARCHAR,"
+            "    chunk_size         INTEGER,"
+            "    is_direct_transfer INTEGER     DEFAULT 0,"
+            "    remote_ref         VARCHAR     DEFAULT NULL,"
             "    PRIMARY KEY (uid)"
             ")"
         )

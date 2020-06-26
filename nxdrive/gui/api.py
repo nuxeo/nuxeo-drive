@@ -211,7 +211,7 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(result=list)
     def get_direct_transfer_items(self) -> List[Dict[str, Any]]:
-        """Return a list of uploads that are direct transfers."""
+        """Return a list of items that are Direct Transfer'ed."""
         result: List[Dict[str, Any]] = []
 
         for engine in self._manager.engines.values():
