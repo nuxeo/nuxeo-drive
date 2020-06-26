@@ -396,7 +396,9 @@ function launch_tests {
 	$junit_folder = "tools\jenkins\junit\xml"
 
 	if (Test-Path ".pytest_cache") {
-		Remove-Item -Path ".pytest_cache" -Verbose
+		# We can't use any PowerShell/batch command to delete recursively the folder in a reliable way.
+		# See https://serverfault.com/q/199921/530506 for details and NXDRIVE-2212 for the error.
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -c "import shutil; shutil.rmtree('.pytest_cache')"
 	}
 
 	# If a specific test is asked, just run it and bypass all over checks
