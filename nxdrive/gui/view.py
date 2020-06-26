@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from .application import Application  # noqa
     from ..engine.engine import Engine  # noqa
 
-__all__ = ("EngineModel", "FileModel", "LanguageModel")
+__all__ = ("DirectTransferModel", "EngineModel", "FileModel", "LanguageModel")
 
 
 class EngineModel(QAbstractListModel):
@@ -287,19 +287,6 @@ class DirectTransferModel(QAbstractListModel):
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         return len(self.items)
 
-    def get_dest(self, parent: QModelIndex = QModelIndex()) -> str:
-        if self.items:
-            for transfer in self.items:
-                if "remote_parent_path" in transfer:
-                    remote_parent_path = transfer["remote_parent_path"]
-                    remote_parent_url = transfer["remote_parent_url"]
-                    break
-            else:
-                return ["?", ""]
-        else:
-            return ["?", ""]
-        return [remote_parent_path, remote_parent_url]
-
     def roleNames(self) -> Dict[int, bytes]:
         return self.names
 
@@ -310,9 +297,16 @@ class DirectTransferModel(QAbstractListModel):
             self.noItems.emit()
         return count
 
-    @pyqtProperty(list, notify=fileChanged)
-    def destination(self) -> List[str]:
-        return self.get_dest()
+    @pyqtProperty(str, notify=fileChanged)
+    def destination_link(self) -> str:
+        """Return the link to the remote path that will be used in DirectTransfer.qml"""
+        if not self.items:
+            return ""
+
+        transfer = self.items[0]
+        url = transfer["remote_parent_url"]
+        title = transfer["remote_parent_path"]
+        return f'<a href="{url}">{title}</a>'
 
     def set_items(
         self, transfers: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()

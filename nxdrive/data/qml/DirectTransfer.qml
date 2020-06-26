@@ -47,8 +47,8 @@ Rectangle {
                     ScaledText {
                         elide: Text.ElideMiddle
                         width: parent.width
-                        property var destination: DirectTransferModel.destination
-                        text: qsTr("DIRECT_TRANSFER_SEND").arg(destination[1]).arg(destination[0]) + tl.tr
+                        property var destination_link: DirectTransferModel.destination_link
+                        text: qsTr("DIRECT_TRANSFER_SEND").arg(destination_link) + tl.tr
                         font.pointSize: point_size * 1.2
                         linkColor: nuxeoBlue
                         onLinkActivated: Qt.openUrlExternally(link)
