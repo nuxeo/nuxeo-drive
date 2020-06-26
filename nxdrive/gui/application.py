@@ -800,7 +800,7 @@ class Application(QApplication):
     def destroyed_server_folders(self) -> None:
         """
         Called when the server folders selection dialog is destroyed.
-        Show the Direct Transfer Window if a folder is selected.
+        Show the Direct Transfer window if a folder is selected.
         """
         engine = self.filters_dlg.engine
         if engine and self.filters_dlg.paths:

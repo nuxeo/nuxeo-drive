@@ -327,10 +327,8 @@ class DirectTransferModel(QAbstractListModel):
 
         self.fileChanged.emit()
 
-    def get_progress(self, row: Dict[str, Any]) -> str:
-        """Return formatted infos list on direct transfer progression.
-        E.g: ["10.0Mib", "42.0Mib", "remote_path"]
-        """
+    def get_progress(self, row: Dict[str, Any]) -> List[str]:
+        """Return a tuple (transferred_size, transfer_size) nicely formatted."""
         try:
             size = row["path"].stat().st_size
         except FileNotFoundError:
