@@ -363,9 +363,6 @@ class DirectTransferModel(QAbstractListModel):
             if action["action_type"] in ("Linking", "Verification"):
                 self.setData(idx, True, self.FINALIZING)
 
-    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
-        return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
-
 
 class FileModel(QAbstractListModel):
     fileChanged = pyqtSignal()
