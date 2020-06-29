@@ -1,6 +1,7 @@
 # Whitelist file for Vulture.
 
 Application.about_to_quit  # Used in QML
+Application.close_direct_transfer_window  # Used in QML
 Application._nxdrive_url_env  # Used in QML
 Application.action_progressing  # Used by FileAction.processing signal
 BlacklistQueue.repush  # Used in tests
@@ -15,6 +16,7 @@ CliHandler.download_edit  # Used by the arguments parser
 CliHandler.unbind_root  # Used by the arguments parser
 CliHandler.unbind_server  # Used by the arguments parser
 _.close_settings_too  # Used by Appiclation.show_filters()
+DirectTransferModel.destination_link  # Used in QML
 DocPair.last_sync_error_date  # Check NXDRIVE-1804
 Download.transfer_type  # Used in QML
 Engine.folder  # Used in QML

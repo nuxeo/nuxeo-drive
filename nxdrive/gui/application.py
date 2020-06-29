@@ -323,8 +323,8 @@ class Application(QApplication):
         screen = window.screen()
         height = screen.size().height()
         width = screen.size().width()
-        window.setX((width / 2) - (window.minimumWidth() / 2))
-        window.setY((height / 2) - (window.minimumHeight() / 2))
+        window.setX(width / 2 - window.minimumWidth() / 2)
+        window.setY(height / 2 - window.minimumHeight() / 2)
 
     @pyqtSlot(object)
     def action_progressing(self, action: Action) -> None:
