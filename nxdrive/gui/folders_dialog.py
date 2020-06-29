@@ -219,6 +219,10 @@ class FoldersDialog(DialogMixin):
         self.overall_size = self._get_overall_size()
         self.overall_count = self._get_overall_count()
 
+        self.remote_folder_ref = self.engine.dao.get_config(
+            "dt_last_remote_location_ref", ""
+        )
+
         self.vertical_layout.addWidget(self._add_group_local())
         self.vertical_layout.addWidget(self._add_group_remote())
         self.vertical_layout.addWidget(self.button_box)
@@ -277,7 +281,9 @@ class FoldersDialog(DialogMixin):
     def accept(self) -> None:
         """Action to do when the OK button is clicked."""
         super().accept()
-        self.engine.direct_transfer(self.paths, self.remote_folder.text())
+        self.engine.direct_transfer(
+            self.paths, self.remote_folder.text(), self.remote_folder_ref
+        )
 
     def button_ok_state(self) -> None:
         """Handle the state of the OK button. It should be enabled when particular criteria are met."""

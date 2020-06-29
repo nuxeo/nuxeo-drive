@@ -181,12 +181,16 @@ class FolderTreeView(TreeViewMixin):
         except IndexError:
             # The selection has been cleared
             path = ""
+            path_ref = ""
         else:
             # Get the selected folder's path
-            path = self.model().itemFromIndex(index).data(Qt.UserRole).get_path()
+            item = self.model().itemFromIndex(index).data(Qt.UserRole)
+            path = item.get_path()
+            path_ref = item.get_id()
 
         # Set the remote folder according to the selected folder
         self.parent.remote_folder.setText(path)
+        self.parent.remote_folder_ref = path_ref
 
         # Set the OK button state depending of the current selection
         self.parent.button_ok_state()

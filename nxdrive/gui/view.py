@@ -12,6 +12,7 @@ from PyQt5.QtCore import (
     pyqtSlot,
 )
 
+from ..state import State
 from ..utils import force_decode, sizeof_fmt
 
 if TYPE_CHECKING:
@@ -300,9 +301,7 @@ class DirectTransferModel(QAbstractListModel):
     @pyqtProperty(str, notify=fileChanged)
     def destination_link(self) -> str:
         """Return the link to the remote path that will be used in DirectTransfer.qml."""
-        if self.items:
-            return self.items[0]["remote_link"]
-        return ""
+        return State.dt_remote_link
 
     def set_items(
         self, items: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()

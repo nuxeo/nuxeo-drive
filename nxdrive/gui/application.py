@@ -1581,16 +1581,9 @@ class Application(QApplication):
         transfers = [t for t in all_transfers if not t["is_direct_transfer"]]
 
         if direct_transfers != self.direct_transfer_model.items:
-            # Append the destination folder to the 1st item
-            url = self.get_direct_transfer_remote_path_url()
-            if direct_transfers:
-                direct_transfers[0]["remote_link"] = url
-
-            # Update transfer items
             self.direct_transfer_model.set_items(direct_transfers)
 
         if transfers != self.transfer_model.transfers:
-            # Update transfer items
             self.transfer_model.set_transfers(transfers)
 
     @pyqtSlot()
@@ -1670,11 +1663,3 @@ class Application(QApplication):
         (Options.nxdrive_home / "metrics.state").write_text(
             "\n".join(states), encoding="utf-8"
         )
-
-    def get_direct_transfer_remote_path_url(self) -> str:
-        """Craft the Direct Transfer remote path URL using the value from the database."""
-        for engine in self.manager.engines.values():
-            title = engine.dao.get_config("dt_last_remote_location", "")
-            # TODO: JSF is not handled
-            url = f"{engine.server_url}ui/#!/browse{title}"
-            return f'<a href="{url}">{title}</a>'

@@ -37,6 +37,7 @@ from ..exceptions import (
 )
 from ..objects import Binder, DocPairs, EngineDef, Metrics
 from ..options import Options
+from ..state import State
 from ..utils import (
     current_thread_id,
     find_icon,
@@ -186,6 +187,8 @@ class Engine(QObject):
 
         # Pause in case of no more space on the device
         self.noSpaceLeftOnDevice.connect(self.suspend)
+
+        self._load_remote_link()
 
     def __repr__(self) -> str:
         return (
@@ -399,7 +402,26 @@ class Engine(QObject):
                     f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}"
                 )
 
-    def direct_transfer(self, local_paths: Set[Path], remote_ref: str) -> None:
+    def _craft_remote_link(self, remote_path: str, remote_ref: str) -> str:
+        """Craft the Direct Transfer remote path URL using the value from the database."""
+        url = self.get_metadata_url(remote_ref)
+        return f'<a href="{url}">{remote_path}</a>'
+
+    def _save_remote_link(self, remote_path: str, remote_ref: str) -> None:
+        """Store remote infos into the database and the State object."""
+        self.dao.update_config("dt_last_remote_location", remote_path)
+        self.dao.update_config("dt_last_remote_location_ref", remote_ref)
+        State.dt_remote_link = self._craft_remote_link(remote_path, remote_ref)
+
+    def _load_remote_link(self) -> None:
+        """Load remote infos from the database."""
+        remote_path = self.dao.get_config("dt_last_remote_location", "")
+        remote_ref = self.dao.get_config("dt_last_remote_location_ref", "")
+        State.dt_remote_link = self._craft_remote_link(remote_path, remote_ref)
+
+    def direct_transfer(
+        self, local_paths: Set[Path], remote_path: str, remote_ref: str
+    ) -> None:
         """Plan the Direct Transfer."""
         # self.directTranferStatus.emit(local_path[0], True)
 
@@ -419,13 +441,13 @@ class Engine(QObject):
             self.dao.insert_local_state(info, parent_path=None, local_state="direct")
 
         # Save the remote location for next times
-        self.dao.update_config("dt_last_remote_location", remote_ref)
+        self._save_remote_link(remote_path, remote_ref)
 
         for local_path in sorted(local_paths):
             if local_path.is_file():
-                plan(local_path, remote_ref)
+                plan(local_path, remote_path)
             else:
-                tree = sorted(get_tree_list(local_path, remote_ref))
+                tree = sorted(get_tree_list(local_path, remote_path))
                 for path, remote_path in tree:
                     plan(path, remote_path)
 
@@ -486,7 +508,8 @@ class Engine(QObject):
         :param edit: Show the metadata edit page instead of the document.
         :return: The complete URL.
         """
-        _, repo, uid = remote_ref.split("#", 2)
+        uid = remote_ref.split("#")[-1]
+        repo = self.remote.client.repository
         page = ("view_documents", "view_drive_metadata")[edit]
 
         urls = {

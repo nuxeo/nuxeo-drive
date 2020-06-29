@@ -12,6 +12,7 @@ from nuxeo.exceptions import HTTPError
 from nxdrive.client.uploader.direct_transfer import DirectTransferUploader
 from nxdrive.constants import TransferStatus
 from nxdrive.options import Options
+from nxdrive.state import State
 from nxdrive.utils import get_tree_list
 from requests.exceptions import ConnectionError
 
@@ -103,8 +104,15 @@ class DirectTransfer:
         self.no_uploads()
 
         with ensure_no_exception():
-            engine.direct_transfer([self.file], self.ws.path)
+            engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
             self.sync_and_check()
+
+            # Check the crafted remote link (JSF)
+            server_url = engine.server_url
+            remote_path = engine.dao.get_config("dt_last_remote_location")
+            remote_ref = engine.dao.get_config("dt_last_remote_location_ref")
+            link = f'<a href="{server_url}nxdoc/default/{remote_ref}/view_documents">{remote_path}</a>'
+            assert State.dt_remote_link == link
 
     def test_with_engine_not_started(self):
         """A Direct Transfer should work even if engines are stopped."""
@@ -117,7 +125,7 @@ class DirectTransfer:
         self.no_uploads()
 
         with ensure_no_exception():
-            engine.direct_transfer([self.file], self.ws.path)
+            engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
             self.sync_and_check()
 
     def test_duplicate_file_but_no_blob_attached(self):
@@ -161,12 +169,12 @@ class DirectTransfer:
 
         with ensure_no_exception():
             # 1st upload: OK
-            engine.direct_transfer([self.file], self.ws.path)
+            engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
             self.sync_and_check()
 
             # 2nd upload: it should be cancelled by the user
             with patch.object(engine.remote, "upload", new=upload):
-                engine.direct_transfer([self.file], self.ws.path)
+                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
                 self.sync_and_check()
 
         # Ensure the signal was emitted
@@ -185,14 +193,14 @@ class DirectTransfer:
 
         with ensure_no_exception():
             # 1st upload: OK
-            self.engine_1.direct_transfer([self.file], self.ws.path)
+            self.engine_1.direct_transfer([self.file], self.ws.path, self.ws.uid)
             self.sync_and_check()
 
             # To ease testing, we change local file content
             self.file.write_bytes(b"blob changed!")
 
             # 2nd upload: the blob should be replaced on the server
-            self.engine_1.direct_transfer([self.file], self.ws.path)
+            self.engine_1.direct_transfer([self.file], self.ws.path, self.ws.uid)
             self.sync_and_check()
 
         # Ensure the signal was emitted
@@ -237,7 +245,7 @@ class DirectTransfer:
 
         with patch.object(engine.remote, "upload_callback", new=callback):
             with ensure_no_exception():
-                engine.direct_transfer([self.file], self.ws.path)
+                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
                 self.wait_sync()
             assert dao.get_uploads_with_status(TransferStatus.PAUSED)
 
@@ -270,7 +278,7 @@ class DirectTransfer:
 
         with patch.object(engine.remote, "upload_callback", new=callback):
             with ensure_no_exception():
-                engine.direct_transfer([self.file], self.ws.path)
+                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
                 self.wait_sync()
             assert dao.get_uploads_with_status(TransferStatus.SUSPENDED)
 
@@ -303,7 +311,7 @@ class DirectTransfer:
 
         with patch.object(engine.remote, "upload_callback", new=callback):
             with ensure_no_exception():
-                engine.direct_transfer([self.file], self.ws.path)
+                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
                 self.wait_sync()
 
         # Resume the upload
@@ -344,7 +352,7 @@ class DirectTransfer:
 
         with patch.object(engine.remote, "upload_callback", new=callback):
             with ensure_no_exception():
-                engine.direct_transfer([self.file], self.ws.path)
+                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
                 self.wait_sync()
 
         # Resume the upload
@@ -375,7 +383,7 @@ class DirectTransfer:
 
         with patch.object(engine.remote, "upload", new=upload):
             with ensure_no_exception():
-                engine.direct_transfer([self.file], self.ws.path)
+                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
                 self.wait_sync()
 
                 # There should be 1 upload with ONGOING transfer status
@@ -441,7 +449,7 @@ class DirectTransfer:
 
         with patch.object(engine.remote, "upload", new=upload):
             with ensure_no_exception():
-                engine.direct_transfer([self.file], self.ws.path)
+                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
                 self.wait_sync()
 
                 # There should be no upload as the Processor has checked the file existence
@@ -474,7 +482,7 @@ class DirectTransfer:
 
         with patch.object(engine.remote, "upload", new=upload):
             with ensure_no_exception():
-                engine.direct_transfer([self.file], self.ws.path)
+                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
                 self.wait_sync()
 
                 # There should be 1 upload with ONGOING transfer status
@@ -510,7 +518,7 @@ class DirectTransfer:
 
         with patch.object(engine, "remote", new=bad_remote):
             with ensure_no_exception():
-                engine.direct_transfer([self.file], self.ws.path)
+                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
                 self.wait_sync()
 
                 # There should be 1 upload with ONGOING transfer status
