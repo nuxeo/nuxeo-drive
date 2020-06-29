@@ -18,7 +18,7 @@ Rectangle {
 
     Connections {
         target: DirectTransferModel
-        onNoItems: api.close_direct_transfer()
+        onNoItems: api.close_direct_transfer_window()
     }
 
     Flickable {

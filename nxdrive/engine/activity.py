@@ -124,7 +124,7 @@ class FileAction(Action):
         # Number of chunks transferred since the last speed computation
         self.transferred_chunks = 0
 
-        # Used to kwnow if the file is a Direct Transfer
+        # Used to know if the file is a Direct Transfer item
         self.is_direct_transfer = False
 
         self._connect_reporter(reporter)
