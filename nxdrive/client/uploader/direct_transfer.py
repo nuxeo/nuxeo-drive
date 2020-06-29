@@ -151,7 +151,6 @@ class DirectTransferUploader(BaseUploader):
             headers={"nx-es-sync": "true", "X-Batch-No-Drop": "true"},
             engine_uid=engine_uid,
             is_direct_transfer=True,
-            remote_ref=remote_ref,
         )
 
         # Transfer is completed, delete the upload from the database
