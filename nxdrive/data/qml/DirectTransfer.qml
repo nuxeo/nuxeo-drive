@@ -60,7 +60,7 @@ Rectangle {
 
                     ScaledText {
                         elide: Text.ElideMiddle
-                        width: parent.width
+                        width: parent.width - 20
                         property var destination_link: DirectTransferModel.destination_link
                         text: qsTr("DIRECT_TRANSFER_SEND").arg(destination_link) + tl.tr
                         font.pointSize: point_size * 1.2
