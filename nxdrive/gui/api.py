@@ -313,8 +313,15 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str)
     def open_direct_transfer(self, uid: str) -> None:
         self.application.hide_systray()
+
         engine = self._manager.engines.get(uid)
-        if engine:
+        if not engine:
+            return
+
+        uploads = engine.dao.get_uploads()
+        if any(t.is_direct_transfer for t in uploads):
+            self.application.show_direct_transfer_window(engine.uid)
+        else:
             self.application.show_server_folders(engine, None)
 
     @pyqtSlot(str)

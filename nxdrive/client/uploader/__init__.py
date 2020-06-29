@@ -163,11 +163,14 @@ class BaseUploader:
 
             engine_uid = kwargs.pop("engine_uid", None)
             is_direct_edit = kwargs.pop("is_direct_edit", False)
+            is_direct_transfer = kwargs.pop("is_direct_transfer", False)
 
             # Set those attributes as FileBlob does not have them
             # and they are required for the step 2 of .upload_impl()
             blob.batch_id = batch.uid
             blob.fileIdx = batch.upload_idx
+
+            action.is_direct_transfer = is_direct_transfer
 
             uploader = batch.get_uploader(
                 blob,
@@ -190,6 +193,7 @@ class BaseUploader:
                     is_direct_edit=is_direct_edit,
                     batch=batch.as_dict(),
                     chunk_size=chunk_size,
+                    is_direct_transfer=is_direct_transfer,
                 )
                 self.dao.save_upload(transfer)
             elif transfer.batch["batchId"] != batch.uid:
@@ -274,12 +278,13 @@ class BaseUploader:
         # Remove additional parameters to prevent a BadQuery
         kwargs.pop("engine_uid", None)
         kwargs.pop("is_direct_edit", None)
-        file_path = kwargs.pop("file_path")
+        file_path = kwargs.pop("file_path", None)
 
         headers = kwargs.pop("headers", {})
         headers["Nuxeo-Transaction-Timeout"] = str(TX_TIMEOUT)
 
         action = self.linking_action(file_path, reporter=QApplication.instance())
+        action.is_direct_transfer = kwargs.pop("is_direct_transfer", False)
         try:
             res: Dict[str, Any] = self.remote.execute(
                 command=command,

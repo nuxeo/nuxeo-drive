@@ -68,7 +68,13 @@ from ..utils import (
 )
 from .api import QMLDriveApi
 from .systray import DriveSystrayIcon, SystrayWindow
-from .view import EngineModel, FileModel, LanguageModel, TransferModel
+from .view import (
+    DirectTransferModel,
+    EngineModel,
+    FileModel,
+    LanguageModel,
+    TransferModel,
+)
 
 if MAC:
     from ..osi.darwin.pyNotificationCenter import setup_delegator, NotificationDelegator
@@ -228,6 +234,7 @@ class Application(QApplication):
     def init_gui(self) -> None:
 
         self.api = QMLDriveApi(self)
+        self.direct_transfer_model = DirectTransferModel(self.translate)
         self.conflicts_model = FileModel(self.translate)
         self.errors_model = FileModel(self.translate)
         self.engine_model = EngineModel(self)
@@ -253,12 +260,19 @@ class Application(QApplication):
             self.add_qml_import_path(self.settings_window)
             self.systray_window = SystrayWindow()
             self.add_qml_import_path(self.systray_window)
+            self.direct_transfer_window = QQuickView()
+            self.direct_transfer_window.setMinimumWidth(600)
+            self.direct_transfer_window.setMinimumHeight(300)
 
             self._fill_qml_context(self.conflicts_window.rootContext())
             self._fill_qml_context(self.settings_window.rootContext())
             self._fill_qml_context(self.systray_window.rootContext())
             self.systray_window.rootContext().setContextProperty(
                 "systrayWindow", self.systray_window
+            )
+            self._fill_qml_context(self.direct_transfer_window.rootContext())
+            self.direct_transfer_window.rootContext().setContextProperty(
+                "directTransferWindow", self.direct_transfer_window
             )
 
             self.conflicts_window.setSource(
@@ -269,6 +283,9 @@ class Application(QApplication):
             )
             self.systray_window.setSource(
                 QUrl.fromLocalFile(str(find_resource("qml", "Systray.qml")))
+            )
+            self.direct_transfer_window.setSource(
+                QUrl.fromLocalFile(str(find_resource("qml", "DirectTransfer.qml")))
             )
             flags |= Qt.Popup
         else:
@@ -281,6 +298,10 @@ class Application(QApplication):
             self.conflicts_window = root.findChild(QQuickWindow, "conflictsWindow")
             self.settings_window = root.findChild(QQuickWindow, "settingsWindow")
             self.systray_window = root.findChild(SystrayWindow, "systrayWindow")
+            self.direct_transfer_window = root.findChild(
+                QQuickWindow, "directTransferWindow"
+            )
+
             if LINUX:
                 flags |= Qt.Drawer
 
@@ -307,12 +328,24 @@ class Application(QApplication):
             self._window_root(self.systray_window).updateProgress
         )
 
+    def _center_on_screen(self, window: QQuickView) -> None:
+        """Center the window on the screen."""
+        screen = window.screen()
+        height = screen.size().height()
+        width = screen.size().width()
+        window.setX(width / 2 - window.minimumWidth() / 2)
+        window.setY(height / 2 - window.minimumHeight() / 2)
+
     @pyqtSlot(object)
     def action_progressing(self, action: Action) -> None:
         if not isinstance(action, Action):
             log.warning(f"An action is needed, got {action!r}")
             return
-        self.transfer_model.set_progress(action.export())
+        export = action.export()
+        if action.is_direct_transfer:
+            self.direct_transfer_model.set_progress(export)
+        else:
+            self.transfer_model.set_progress(export)
 
     def add_engines(self, engines: Union[Engine, List[Engine]]) -> None:
         if not engines:
@@ -328,6 +361,7 @@ class Application(QApplication):
     def _fill_qml_context(self, context: QQmlContext) -> None:
         """ Fill the context of a QML element with the necessary resources. """
         context.setContextProperty("ConflictsModel", self.conflicts_model)
+        context.setContextProperty("DirectTransferModel", self.direct_transfer_model)
         context.setContextProperty("ErrorsModel", self.errors_model)
         context.setContextProperty("EngineModel", self.engine_model)
         context.setContextProperty("TransferModel", self.transfer_model)
@@ -368,6 +402,7 @@ class Application(QApplication):
         colors = {
             "darkBlue": "#1F28BF",
             "nuxeoBlue": "#0066FF",
+            "nuxeoBlue50": "#7D0066FF",  # nuxeoBlue at 50% opacity (format AARRGGBB)
             "lightBlue": "#00ADED",
             "lightGreen": "#A9D843",
             "teal": "#73D2CF",
@@ -690,8 +725,7 @@ class Application(QApplication):
     def show_settings(self, section: str = "General") -> None:
         sections = {"General": 0, "Accounts": 1, "About": 2}
         self._window_root(self.settings_window).setSection.emit(sections[section])
-        self.settings_window.show()
-        self.settings_window.requestActivate()
+        self._show_window(self.settings_window)
 
     @pyqtSlot()
     def show_systray(self) -> None:
@@ -757,8 +791,31 @@ class Application(QApplication):
             self.filters_dlg = None
 
         self.filters_dlg = FoldersDialog(self, engine, path)
+        self.filters_dlg.accepted.connect(self._show_direct_transfer_window)
         self.filters_dlg.destroyed.connect(self.destroyed_filters_dialog)
         self.filters_dlg.show()
+
+    @pyqtSlot()
+    def _show_direct_transfer_window(self) -> None:
+        """
+        Called when the server folders selection dialog is destroyed.
+        Show the Direct Transfer window if needed.
+        """
+        if not self.filters_dlg:
+            return
+        self.show_direct_transfer_window(self.filters_dlg.engine.uid)
+
+    @pyqtSlot(str)
+    def show_direct_transfer_window(self, engine_uid: str) -> None:
+        """Display the Direct Transfer window."""
+        self._window_root(self.direct_transfer_window).setEngine.emit(engine_uid)
+        self._center_on_screen(self.direct_transfer_window)
+        self._show_window(self.direct_transfer_window)
+
+    @pyqtSlot()
+    def close_direct_transfer_window(self) -> None:
+        """Close the Direct Transfer window."""
+        self.direct_transfer_window.close()
 
     @pyqtSlot(str, object)
     def open_authentication_dialog(
@@ -1529,7 +1586,13 @@ class Application(QApplication):
 
     @pyqtSlot()
     def refresh_transfers(self) -> None:
-        transfers = self.api.get_transfers()
+        all_transfers = self.api.get_transfers()
+        direct_transfers = [t for t in all_transfers if t["is_direct_transfer"]]
+        transfers = [t for t in all_transfers if not t["is_direct_transfer"]]
+
+        if direct_transfers != self.direct_transfer_model.items:
+            self.direct_transfer_model.set_items(direct_transfers)
+
         if transfers != self.transfer_model.transfers:
             self.transfer_model.set_transfers(transfers)
 

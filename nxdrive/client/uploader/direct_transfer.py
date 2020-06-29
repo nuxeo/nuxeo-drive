@@ -150,6 +150,7 @@ class DirectTransferUploader(BaseUploader):
             params={"overwite": True},  # NXP-29286
             headers={"nx-es-sync": "true", "X-Batch-No-Drop": "true"},
             engine_uid=engine_uid,
+            is_direct_transfer=True,
         )
 
         # Transfer is completed, delete the upload from the database
