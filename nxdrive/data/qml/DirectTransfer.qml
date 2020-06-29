@@ -79,7 +79,7 @@ Rectangle {
                         }
                         NuxeoToolTip {
                             text: qsTr("OPEN_REMOTE") + tl.tr
-                            visible: mouseArea.containsMouse && mouseArea.cursorShape == Qt.PointingHandCursor
+                            visible: parent.hoveredLink
                         }
                     }
                 }
