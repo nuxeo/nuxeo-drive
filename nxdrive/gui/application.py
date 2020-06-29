@@ -318,7 +318,7 @@ class Application(QApplication):
             self._window_root(self.systray_window).updateProgress
         )
 
-    def _center_on_screen(self, window) -> None:
+    def _center_on_screen(self, window: QQuickView) -> None:
         """Center the window on the screen."""
         screen = window.screen()
         height = screen.size().height()
@@ -791,6 +791,8 @@ class Application(QApplication):
         Called when the server folders selection dialog is destroyed.
         Show the Direct Transfer window if needed.
         """
+        if not self.filters_dlg:
+            return
         self.show_direct_transfer_window(self.filters_dlg.engine.uid)
 
     @pyqtSlot(str)
