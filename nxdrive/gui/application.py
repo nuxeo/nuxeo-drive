@@ -260,12 +260,19 @@ class Application(QApplication):
             self.add_qml_import_path(self.settings_window)
             self.systray_window = SystrayWindow()
             self.add_qml_import_path(self.systray_window)
+            self.direct_transfer_window = QQuickView()
+            self.direct_transfer_window.setMinimumWidth(600)
+            self.direct_transfer_window.setMinimumHeight(300)
 
             self._fill_qml_context(self.conflicts_window.rootContext())
             self._fill_qml_context(self.settings_window.rootContext())
             self._fill_qml_context(self.systray_window.rootContext())
             self.systray_window.rootContext().setContextProperty(
                 "systrayWindow", self.systray_window
+            )
+            self._fill_qml_context(self.direct_transfer_window.rootContext())
+            self.direct_transfer_window.rootContext().setContextProperty(
+                "directTransferWindow", self.direct_transfer_window
             )
 
             self.conflicts_window.setSource(
@@ -276,6 +283,9 @@ class Application(QApplication):
             )
             self.systray_window.setSource(
                 QUrl.fromLocalFile(str(find_resource("qml", "Systray.qml")))
+            )
+            self.direct_transfer_window.setSource(
+                QUrl.fromLocalFile(str(find_resource("qml", "DirectTransfer.qml")))
             )
             flags |= Qt.Popup
         else:
