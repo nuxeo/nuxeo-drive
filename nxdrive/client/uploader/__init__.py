@@ -278,13 +278,13 @@ class BaseUploader:
         # Remove additional parameters to prevent a BadQuery
         kwargs.pop("engine_uid", None)
         kwargs.pop("is_direct_edit", None)
-        kwargs.pop("is_direct_transfer", None)
-        file_path = kwargs.pop("file_path")
+        file_path = kwargs.pop("file_path", None)
 
         headers = kwargs.pop("headers", {})
         headers["Nuxeo-Transaction-Timeout"] = str(TX_TIMEOUT)
 
         action = self.linking_action(file_path, reporter=QApplication.instance())
+        action.is_direct_transfer = kwargs.pop("is_direct_transfer", False)
         try:
             res: Dict[str, Any] = self.remote.execute(
                 command=command,

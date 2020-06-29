@@ -355,6 +355,7 @@ class DirectTransferModel(QAbstractListModel):
 
             self.setData(idx, action["progress"], self.PROGRESS)
             self.setData(idx, action["progress"], self.PROGRESS_METRICS)
+
             if action["action_type"] in ("Linking", "Verification"):
                 self.setData(idx, True, self.FINALIZING)
 

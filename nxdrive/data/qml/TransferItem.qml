@@ -28,7 +28,6 @@ Rectangle {
 
         GridLayout {
             id: item_control
-            property bool running: true
             columns: 2
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -54,7 +53,7 @@ Rectangle {
                     value: progress || 0.0
                     text: name
                     // Indeterminate progress bar when linking the blob to the document (last upload step)
-                    indeterminate: !finalizing
+                    indeterminate: finalizing
                     duration: 150000
                     easingType: Easing.Bezier
                 }
