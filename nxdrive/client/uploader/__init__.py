@@ -170,7 +170,9 @@ class BaseUploader:
             # and they are required for the step 2 of .upload_impl()
             blob.batch_id = batch.uid
             blob.fileIdx = batch.upload_idx
+
             action.is_direct_transfer = is_direct_transfer
+
             uploader = batch.get_uploader(
                 blob,
                 chunked=chunked,

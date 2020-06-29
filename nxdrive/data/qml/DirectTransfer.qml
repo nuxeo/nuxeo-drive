@@ -72,6 +72,10 @@ Rectangle {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            // In order to only set a mouse cursor shape for a region without reacting to mouse
+                            // events set the acceptedButtons to none. This is important to being able to click
+                            // on the remote path and let Qt opening the browser at the good URL.
+                            acceptedButtons: Qt.NoButton
                         }
                         NuxeoToolTip {
                             text: qsTr("OPEN_REMOTE") + tl.tr
