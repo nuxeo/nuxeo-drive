@@ -324,11 +324,6 @@ class QMLDriveApi(QObject):
         else:
             self.application.show_server_folders(engine, None)
 
-    @pyqtSlot()
-    def close_direct_transfer_window(self) -> None:
-        """Close the Direct Transfer window."""
-        self.application.close_direct_transfer_window()
-
     @pyqtSlot(str)
     def open_remote_server(self, uid: str) -> None:
         self.application.hide_systray()

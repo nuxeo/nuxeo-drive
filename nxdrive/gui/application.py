@@ -318,6 +318,14 @@ class Application(QApplication):
             self._window_root(self.systray_window).updateProgress
         )
 
+    def _center_on_screen(self, window) -> None:
+        """Center the window on the screen."""
+        screen = window.screen()
+        height = screen.size().height()
+        width = screen.size().width()
+        window.setX((width / 2) - (window.minimumWidth() / 2))
+        window.setY((height / 2) - (window.minimumHeight() / 2))
+
     @pyqtSlot(object)
     def action_progressing(self, action: Action) -> None:
         if not isinstance(action, Action):
@@ -702,27 +710,6 @@ class Application(QApplication):
         self._window_root(self.conflicts_window).setEngine.emit(engine.uid)
         self._show_window(self.conflicts_window)
 
-    @pyqtSlot(str)
-    def show_direct_transfer_window(self, engine_uid: str) -> None:
-        """Display the Direct Transfer window."""
-        self._window_root(self.direct_transfer_window).setEngine.emit(engine_uid)
-
-        # Center the window on the screen
-        screen = self.direct_transfer_window.screen()
-        height = screen.size().height()
-        width = screen.size().width()
-        self.direct_transfer_window.setX(
-            (width / 2) - (self.direct_transfer_window.minimumWidth() / 2)
-        )
-        self.direct_transfer_window.setY(
-            (height / 2) - (self.direct_transfer_window.minimumHeight() / 2)
-        )
-        self._show_window(self.direct_transfer_window)
-
-    def close_direct_transfer_window(self) -> None:
-        """Close the Direct Transfer window."""
-        self.direct_transfer_window.close()
-
     @pyqtSlot()  # From systray.py
     @pyqtSlot(str)  # All other calls
     def show_settings(self, section: str = "General") -> None:
@@ -794,18 +781,29 @@ class Application(QApplication):
             self.filters_dlg = None
 
         self.filters_dlg = FoldersDialog(self, engine, path)
-        self.filters_dlg.destroyed.connect(self.destroyed_server_folders)
+        self.filters_dlg.accepted.connect(self._show_direct_transfer_window)
+        self.filters_dlg.destroyed.connect(self.destroyed_filters_dialog)
         self.filters_dlg.show()
 
     @pyqtSlot()
-    def destroyed_server_folders(self) -> None:
+    def _show_direct_transfer_window(self) -> None:
         """
         Called when the server folders selection dialog is destroyed.
-        Show the Direct Transfer window if a folder is selected.
+        Show the Direct Transfer window if needed.
         """
-        if self.filters_dlg and self.filters_dlg.engine and self.filters_dlg.paths:
-            self.show_direct_transfer_window(self.filters_dlg.engine.uid)
-        self.destroyed_filters_dialog()
+        self.show_direct_transfer_window(self.filters_dlg.engine.uid)
+
+    @pyqtSlot(str)
+    def show_direct_transfer_window(self, engine_uid: str) -> None:
+        """Display the Direct Transfer window."""
+        self._window_root(self.direct_transfer_window).setEngine.emit(engine_uid)
+        self._center_on_screen(self.direct_transfer_window)
+        self._show_window(self.direct_transfer_window)
+
+    @pyqtSlot()
+    def close_direct_transfer_window(self) -> None:
+        """Close the Direct Transfer window."""
+        self.direct_transfer_window.close()
 
     @pyqtSlot(str, object)
     def open_authentication_dialog(
