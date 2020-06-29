@@ -101,8 +101,8 @@ create() {
     fi
 
     echo ">>> [${release_type} ${drive_version}] Creating the tag"
-    git tag -a "${release_type}-${drive_version}" -m "Release ${drive_version}"
-    git push origin "${release_type}-${drive_version}"
+    git tag -f -a "${release_type}-${drive_version}" -m "Release ${drive_version}"
+    git push -f origin "${release_type}-${drive_version}"
 }
 
 publish() {
