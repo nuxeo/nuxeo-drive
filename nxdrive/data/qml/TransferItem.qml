@@ -61,7 +61,7 @@ Rectangle {
 
             // Pause/Resume icon
             IconLabel {
-                visible: !finalizing
+                enabled: !finalizing
                 icon: paused ? MdiFont.Icon.play : MdiFont.Icon.pause
                 tooltip: qsTr(paused ? "RESUME" : "SUSPEND") + tl.tr
                 onClicked: {
