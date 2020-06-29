@@ -3,15 +3,22 @@ import QtQuick.Controls 2.13
 
 ProgressBar {
     id: control
-    property string color: lightBlue
-    property string text: ""
     from: 0
     to: 100
+
+    property string color: lightBlue
+    property string bgColor: lighterGray
+    property string bgColor2: "lightgoldenrodyellow"
+    property string text: ""
+    property int cursorSize: 20
+    property int duration: 15000
+    // https://doc.qt.io/qt-5/qml-qtquick-animator.html
+    property int easingType: Easing.OutInBack
 
     background: Rectangle {
         width: control.width
         height: control.height
-        color: control.indeterminate ? "lightgoldenrodyellow" : lighterGray
+        color: control.indeterminate ? control.bgColor2 : control.bgColor
     }
 
     contentItem: Item {
@@ -21,33 +28,31 @@ ProgressBar {
         // Normal progress bar
         Rectangle {
             visible: !control.indeterminate
-            width: control.visualPosition * parent.width
-            height: parent.height
+            width: control.visualPosition * control.width
+            height: control.height
             color: control.color
         }
 
         // Animation for unlimited progress bar by animating alternating stripes
         Row {
             visible: control.indeterminate
-            width: control.visualPosition * parent.width
-            height: parent.height
-            clip: true
+            width: control.visualPosition * control.width
+            height: control.height
 
             Rectangle {
                 id: cursor
                 color: control.color
-                width: 20
-                height: parent.height
+                width: control.cursorSize
+                height: control.height
             }
 
             XAnimator on x {
                 target: cursor
                 from: 0
-                to: parent.width
+                to: control.width - control.cursorSize
                 loops: Animation.Infinite
-                duration: 15000
-                // https://doc.qt.io/qt-5/qml-qtquick-animator.html
-                easing.type: Easing.OutInBack
+                duration: control.duration
+                easing.type: control.easingType
                 running: control.indeterminate
             }
         }
