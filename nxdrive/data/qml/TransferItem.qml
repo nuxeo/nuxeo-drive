@@ -54,7 +54,6 @@ Rectangle {
                     text: name
                     // Indeterminate progress bar when linking the blob to the document (last upload step)
                     indeterminate: finalizing
-                    duration: 150000
                     easingType: Easing.Bezier
                 }
             }

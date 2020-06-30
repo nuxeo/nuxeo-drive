@@ -28,28 +28,29 @@ ProgressBar {
         // Normal progress bar
         Rectangle {
             visible: !control.indeterminate
-            width: control.visualPosition * control.width
-            height: control.height
+            width: control.visualPosition * parent.width
+            height: parent.height
             color: control.color
         }
 
         // Animation for unlimited progress bar by animating alternating stripes
         Row {
             visible: control.indeterminate
-            width: control.visualPosition * control.width
-            height: control.height
+            width: control.visualPosition * parent.width
+            height: parent.height
+            clip: true
 
             Rectangle {
                 id: cursor
                 color: control.color
                 width: control.cursorSize
-                height: control.height
+                height: parent.height
             }
 
             XAnimator on x {
                 target: cursor
                 from: 0
-                to: control.width - control.cursorSize
+                to: parent.width - cursor.width
                 loops: Animation.Infinite
                 duration: control.duration
                 easing.type: control.easingType
