@@ -63,6 +63,7 @@ Rectangle {
             IconLabel {
                 enabled: !finalizing
                 icon: paused ? MdiFont.Icon.play : MdiFont.Icon.pause
+                iconColor: nuxeoBlue
                 tooltip: qsTr(paused ? "RESUME" : "SUSPEND") + tl.tr
                 onClicked: {
                     if (paused) {
