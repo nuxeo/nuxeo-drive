@@ -218,19 +218,6 @@ class Application(QApplication):
         State.about_to_quit = True
         self.quit()
 
-    @if_frozen
-    def add_qml_import_path(self, view: QQuickView) -> None:
-        """
-        Manually set the path to the QML folder to fix errors with unicode paths.
-        This is needed only on Windows when packaged with Nuitka.
-        """
-        if Options.freezer != "nuitka":
-            return
-
-        qml_dir = Options.res_dir.parent / "PyQt5" / "Qt" / "qml"
-        log.debug(f"Setting QML import path for {view} to {qml_dir!r}")
-        view.engine().addImportPath(str(qml_dir))
-
     def init_gui(self) -> None:
 
         self.api = QMLDriveApi(self)
@@ -250,43 +237,43 @@ class Application(QApplication):
         flags = Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
 
         if WINDOWS:
+            # Conflicts
             self.conflicts_window = QQuickView()
-            self.add_qml_import_path(self.conflicts_window)
             self.conflicts_window.setMinimumWidth(550)
             self.conflicts_window.setMinimumHeight(600)
+            self._fill_qml_context(self.conflicts_window.rootContext())
+            self.conflicts_window.setSource(
+                QUrl.fromLocalFile(str(find_resource("qml", "Conflicts.qml")))
+            )
+
+            # Settings
             self.settings_window = QQuickView()
             self.settings_window.setMinimumWidth(640)
             self.settings_window.setMinimumHeight(580)
-            self.add_qml_import_path(self.settings_window)
-            self.systray_window = SystrayWindow()
-            self.add_qml_import_path(self.systray_window)
-            self.direct_transfer_window = QQuickView()
-            self.direct_transfer_window.setMinimumWidth(600)
-            self.direct_transfer_window.setMinimumHeight(300)
-
-            self._fill_qml_context(self.conflicts_window.rootContext())
             self._fill_qml_context(self.settings_window.rootContext())
+            self.settings_window.setSource(
+                QUrl.fromLocalFile(str(find_resource("qml", "Settings.qml")))
+            )
+
+            # Systray
+            self.systray_window = SystrayWindow()
             self._fill_qml_context(self.systray_window.rootContext())
             self.systray_window.rootContext().setContextProperty(
                 "systrayWindow", self.systray_window
             )
-            self._fill_qml_context(self.direct_transfer_window.rootContext())
-            self.direct_transfer_window.rootContext().setContextProperty(
-                "directTransferWindow", self.direct_transfer_window
-            )
-
-            self.conflicts_window.setSource(
-                QUrl.fromLocalFile(str(find_resource("qml", "Conflicts.qml")))
-            )
-            self.settings_window.setSource(
-                QUrl.fromLocalFile(str(find_resource("qml", "Settings.qml")))
-            )
             self.systray_window.setSource(
                 QUrl.fromLocalFile(str(find_resource("qml", "Systray.qml")))
             )
+
+            # Direct Transfer
+            self.direct_transfer_window = QQuickView()
+            self.direct_transfer_window.setMinimumWidth(600)
+            self.direct_transfer_window.setMinimumHeight(300)
+            self._fill_qml_context(self.direct_transfer_window.rootContext())
             self.direct_transfer_window.setSource(
                 QUrl.fromLocalFile(str(find_resource("qml", "DirectTransfer.qml")))
             )
+
             flags |= Qt.Popup
         else:
             self.app_engine = QQmlApplicationEngine()
