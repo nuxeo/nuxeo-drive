@@ -13,7 +13,7 @@ from nuxeo.auth import TokenAuth
 from nuxeo.client import Nuxeo
 from nuxeo.compat import get_text
 from nuxeo.exceptions import CorruptedFile, HTTPError
-from nuxeo.models import Document
+from nuxeo.models import Batch, Document
 from nuxeo.utils import get_digest_algorithm, version_lt
 from PyQt5.QtWidgets import QApplication
 
@@ -382,6 +382,12 @@ class Remote(Nuxeo):
     ) -> Dict[str, Any]:
         """Upload a file with a batch."""
         return uploader(self).upload(*args, **kwargs)
+
+    def cancel_batch(self, batch_details: Dict[str, Any]) -> None:
+        """Cancel an uploaded Batch."""
+        batch = Batch(service=self.uploads, **batch_details)
+        with suppress(Exception):
+            batch.cancel()
 
     def get_fs_info(
         self, fs_item_id: str, parent_fs_item_id: str = None

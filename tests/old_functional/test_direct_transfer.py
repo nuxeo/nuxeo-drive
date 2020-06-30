@@ -114,6 +114,36 @@ class DirectTransfer:
             link = f'<a href="{server_url}nxdoc/default/{remote_ref}/view_documents">{remote_path}</a>'
             assert State.dt_remote_link == link
 
+    def test_cancel_upload(self):
+        """
+        Pause the transfer by simulating a click on the pause/resume icon
+        on the current upload in the DT window; and cancel the upload.
+        """
+
+        def callback(*_):
+            """This will mimic what is done in TransferItem.qml."""
+            # Ensure we have 1 ongoing upload
+            uploads = list(dao.get_uploads())
+            assert uploads
+            upload = uploads[0]
+            assert upload.status == TransferStatus.ONGOING
+            # Pause the upload
+            dao.pause_transfer("upload", upload.uid, 50.0)
+
+        engine = self.engine_1
+        dao = self.engine_1.dao
+        # There is no upload, right now
+        self.no_uploads()
+        with patch.object(engine.remote, "upload_callback", new=callback):
+            with ensure_no_exception():
+                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
+                self.wait_sync()
+            assert dao.get_uploads_with_status(TransferStatus.PAUSED)
+            # Cancel the upload
+            upload = list(dao.get_uploads())[0]
+            engine.cancel_upload(upload.uid)
+        self.sync_and_check(should_have_blob=False)
+
     def test_with_engine_not_started(self):
         """A Direct Transfer should work even if engines are stopped."""
         pytest.xfail("Waiting for NXDRIVE-1910")

@@ -617,6 +617,20 @@ class Engine(QObject):
                 self.dao.remove_transfer(nature, transfer.path)
                 log.info(f"Removed staled {transfer}")
 
+    def cancel_upload(self, transfer_uid: int) -> None:
+        """Cancel an ongoing upload and clean the database."""
+        log.debug(f"Canceling transfer {transfer_uid}")
+        upload = self.dao.get_upload(uid=transfer_uid)
+        if not upload:
+            return
+        self.remote.cancel_batch(upload.batch)
+        self.dao.remove_transfer("upload", upload.path)
+
+        doc_pair = self.dao.get_state_from_local(upload.path)
+        if not doc_pair:
+            return
+        self.dao.remove_state(doc_pair)
+
     def suspend(self) -> None:
         if self._pause:
             return
