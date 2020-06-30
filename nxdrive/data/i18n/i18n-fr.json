@@ -86,6 +86,7 @@
     "DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION": "Le document „%1“ n'a pu être déverrouillé",
     "DIRECT_EDIT_UPDATED_FILE": "Le fichier „%1“ a été mis à jour",
     "DIRECT_EDIT_VERSION": "Vous essayez d'effectuer un Direct Edit sur la version %1 de „%2“. Ce n'est pas la version actuelle du document, elle est donc en lecture seule et ne peut pas être modifiée.",
+    "DIRECT_TRANSFER_CANCEL": "Confirm the cancellation the transfer of „%1“?",
     "DIRECT_TRANSFER_DETAILS": "[%1%] %2 of %3",
     "DIRECT_TRANSFER_END": "Transfert terminé : „%1“",
     "DIRECT_TRANSFER_ERROR": "Erreur de transfert : „%1“",

@@ -86,6 +86,7 @@
     "DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION": "Il documento „%1“ non è stato sbloccato",
     "DIRECT_EDIT_UPDATED_FILE": "Il file „%1“ è stato aggiornato",
     "DIRECT_EDIT_VERSION": "State cercando di eseguire un Direct Edit sulla versione %1 di \"%2\". Non è la versione corrente del documento, quindi è di sola lettura e non può essere modificata.",
+    "DIRECT_TRANSFER_CANCEL": "Confirm the cancellation the transfer of „%1“?",
     "DIRECT_TRANSFER_DETAILS": "[%1%] %2 of %3",
     "DIRECT_TRANSFER_END": "Trasferimento completato: „%1“",
     "DIRECT_TRANSFER_ERROR": "Errore di trasferimento: „%1“",

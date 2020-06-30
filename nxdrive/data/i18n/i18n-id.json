@@ -86,6 +86,7 @@
     "DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION": "Dokumen ,,%1\" tidak terkunci",
     "DIRECT_EDIT_UPDATED_FILE": "Berkas ,,%1\" telah diperbarui",
     "DIRECT_EDIT_VERSION": "You are trying to perform a Direct Edit on version %1 of „%2“. It is not the current version of the document, so it is readonly and cannot be edited.",
+    "DIRECT_TRANSFER_CANCEL": "Confirm the cancellation the transfer of „%1“?",
     "DIRECT_TRANSFER_DETAILS": "[%1%] %2 of %3",
     "DIRECT_TRANSFER_END": "Transfer done: „%1“",
     "DIRECT_TRANSFER_ERROR": "Transfer error: „%1“",

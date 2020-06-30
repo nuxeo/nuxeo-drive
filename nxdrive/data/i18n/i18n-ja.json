@@ -86,6 +86,7 @@
     "DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION": "文書「„%1“」はロック解除されませんでした",
     "DIRECT_EDIT_UPDATED_FILE": "ファイル「„%1“」が更新されました",
     "DIRECT_EDIT_VERSION": "%1のバージョン„%2“で直接編集を実行しようとしています。 これはドキュメントの現在のバージョンではないため、読み取り専用であり、編集できません。",
+    "DIRECT_TRANSFER_CANCEL": "Confirm the cancellation the transfer of „%1“?",
     "DIRECT_TRANSFER_DETAILS": "[%1%] %2 of %3",
     "DIRECT_TRANSFER_END": "転送完了：„%1“",
     "DIRECT_TRANSFER_ERROR": "転送エラー：„%1“",

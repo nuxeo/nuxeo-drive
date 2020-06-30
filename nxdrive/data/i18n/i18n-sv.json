@@ -86,6 +86,7 @@
     "DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION": "Dokumentet „%1“ låstes inte upp",
     "DIRECT_EDIT_UPDATED_FILE": "Filen „%1“ har uppdaterats",
     "DIRECT_EDIT_VERSION": "Du försöker utföra en Direct Edit på version %1 av „%2“. Det är inte den nuvarande versionen av dokumentet, så det är skrivskyddat och kan inte redigeras.",
+    "DIRECT_TRANSFER_CANCEL": "Confirm the cancellation the transfer of „%1“?",
     "DIRECT_TRANSFER_DETAILS": "[%1%] %2 of %3",
     "DIRECT_TRANSFER_END": "Överföring klart: „%1“",
     "DIRECT_TRANSFER_ERROR": "Överföringsfel: „%1“",
