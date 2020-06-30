@@ -13,7 +13,9 @@ Rectangle {
     anchors.leftMargin: 20
 
     property string engineUid: ""
+
     signal setEngine(string uid)
+
     onSetEngine: engineUid = uid
 
     Connections {

@@ -65,17 +65,17 @@ QtObject {
 
     property var directTransferWindow: Window {
         id: directTransferWindow
-        objectName: "directTransferWindow"
         minimumWidth: 600
         minimumHeight: 300
-        visible: false
+        objectName: "directTransferWindow"
         title: qsTr("DIRECT_TRANSFER_WINDOW_TITLE").arg(APP_NAME) + tl.tr
+        width: directTransfer.width; height: directTransfer.height
+        visible: false
+
         signal setEngine(string uid)
 
-        onSetEngine: conflicts.setEngine(uid)
+        onSetEngine: directTransfer.setEngine(uid)
 
-        DirectTransfer {
-            id: directTransfer
-        }
+        DirectTransfer { id: directTransfer }
     }
 }
