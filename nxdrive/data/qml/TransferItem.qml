@@ -28,7 +28,7 @@ Rectangle {
 
         GridLayout {
             id: item_control
-            columns: 2
+            columns: 3
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.rightMargin: 10
@@ -70,6 +70,17 @@ Rectangle {
                     } else {
                         api.pause_transfer("upload", engine, uid, progress)
                     }
+                }
+            }
+
+            // Stop icon
+            IconLabel {
+                enabled: paused
+                icon: MdiFont.Icon.close
+                tooltip: qsTr("CANCEL") + tl.tr
+                iconColor: "red"
+                onClicked: {
+                    application.confirm_cancel_transfer(engine, uid, name)
                 }
             }
         }

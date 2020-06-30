@@ -804,6 +804,35 @@ class Application(QApplication):
         """Close the Direct Transfer window."""
         self.direct_transfer_window.close()
 
+    @pyqtSlot(str, int, str)
+    def confirm_cancel_transfer(
+        self, engine_uid: str, transfer_uid: int, name: str
+    ) -> None:
+        """
+        Show a dialog to confirm the given transfer cancel.
+        Cancel transfer on validation.
+        """
+        msgbox = QMessageBox(
+            QMessageBox.Question,
+            APP_NAME,
+            Translator.get("DIRECT_TRANSFER_CANCEL", [name]),
+            QMessageBox.NoButton,
+        )
+        continued = msgbox.addButton("OK", QMessageBox.AcceptRole)
+        cancel = msgbox.addButton(Translator.get("CANCEL"), QMessageBox.RejectRole)
+        msgbox.setDefaultButton(cancel)
+        msgbox.setIcon(QMessageBox.Question)
+        msgbox.exec_()
+        if msgbox.clickedButton() == continued:
+            engine = self.manager.engines.get(engine_uid)
+            if not engine:
+                return
+            engine.cancel_upload(transfer_uid)
+        elif msgbox.clickedButton() == cancel:
+            log.debug(
+                f"Aborted the cancellation of the transfer {transfer_uid}: {name!r}"
+            )
+
     @pyqtSlot(str, object)
     def open_authentication_dialog(
         self, url: str, callback_params: Dict[str, str]
