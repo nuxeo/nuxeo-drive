@@ -86,6 +86,7 @@
     "DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION": "Het document '%1' is niet ontgrendeld",
     "DIRECT_EDIT_UPDATED_FILE": "Het bestand '%1' is bijgewerkt",
     "DIRECT_EDIT_VERSION": "U probeert een Direct Edit uit te voeren op versie %1 van „%2“. Het is niet de huidige versie van het document, dus het is alleen gelezen en kan niet bewerkt worden.",
+    "DIRECT_TRANSFER_CANCEL": "Confirm the cancellation the transfer of „%1“?",
     "DIRECT_TRANSFER_DETAILS": "[%1%] %2 of %3",
     "DIRECT_TRANSFER_END": "Overdracht gedaan: „%1“",
     "DIRECT_TRANSFER_ERROR": "Fout bij overdracht: „%1\"",

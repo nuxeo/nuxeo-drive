@@ -86,6 +86,7 @@
     "DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION": "Ezin izan da „%1“ dokumentua desblokeatu",
     "DIRECT_EDIT_UPDATED_FILE": "„%1“ fitxategia eguneratu da",
     "DIRECT_EDIT_VERSION": "„%2“ dokumentuaren %1 bertsioa zuzenean editatu nahian zabiltza. Ez da dokumentuaren uneko bertsioa, beraz, irakurtzeko soilik da eta ezin da editatu.",
+    "DIRECT_TRANSFER_CANCEL": "Confirm the cancellation the transfer of „%1“?",
     "DIRECT_TRANSFER_DETAILS": "[%1%] %2 of %3",
     "DIRECT_TRANSFER_END": "Transferentzia burutu da: „%1“",
     "DIRECT_TRANSFER_ERROR": "Errorea transferitzean: „%1“",
