@@ -677,14 +677,9 @@ class EngineDAO(ConfigurationDAO):
         if version < 6:
             # Add the *filesize* field to the Downloads table,
             # used to display download metrics in the systray menu.
-            try:
-                cursor.execute(
-                    "ALTER TABLE Downloads ADD COLUMN filesize INTEGER DEFAULT 0;"
-                )
-            except OperationalError:
-                # The field was already created at version 5 in ._create_transfer_tables()
-                # so we can bypass the error
-                pass
+            self._append_to_table(
+                cursor, "Downloads", ("filesize", "INTEGER", "DEFAULT", "0")
+            )
             self.store_int(SCHEMA_VERSION, 6)
         if version < 7:
             # Remove the no-more-used *idx* field of Uploads.
@@ -733,15 +728,12 @@ class EngineDAO(ConfigurationDAO):
 
             # Create again the tables, with up-to-date columns
             self._create_transfer_tables(cursor)
+            self._append_to_table(
+                cursor,
+                "Uploads_backup",
+                ("is_direct_transfer", "INTEGER", "DEFAULT", "0"),
+            )
 
-            try:
-                cursor.execute(
-                    "ALTER TABLE Uploads_backup ADD COLUMN is_direct_transfer INTEGER DEFAULT 0;"
-                )
-            except OperationalError:
-                # The field is_direct_transfer may be missing from the backup
-                # so we can bypass the error
-                pass
             # Insert back old datas with up-to-date fields types
             cursor.execute("INSERT INTO Uploads SELECT * FROM Uploads_backup;")
             cursor.execute("INSERT INTO Downloads SELECT * FROM Downloads_backup;")
@@ -781,14 +773,9 @@ class EngineDAO(ConfigurationDAO):
         if version < 11:
             # Add the *is_direct_transfer* field to the Uploads table,
             # used to display items in the Direct Transfer window.
-            try:
-                cursor.execute(
-                    "ALTER TABLE Uploads ADD COLUMN is_direct_transfer INTEGER DEFAULT 0;"
-                )
-            except OperationalError:
-                # The field was already created at version 5 in ._create_transfer_tables()
-                # so we can bypass the error
-                pass
+            self._append_to_table(
+                cursor, "Uploads", ("is_direct_transfer", "INTEGER", "DEFAULT", "0")
+            )
             self.store_int(SCHEMA_VERSION, 11)
 
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
@@ -873,6 +860,17 @@ class EngineDAO(ConfigurationDAO):
             "    UNIQUE(remote_ref, remote_parent_ref),"
             "    UNIQUE(remote_ref, local_path))"
         )
+
+    def _append_to_table(
+        self, cursor: Cursor, table: str, field_data: Tuple[str, ...]
+    ) -> None:
+        """Create the new field/column if it does not already exist."""
+        field = field_data[0]
+        if field in self._get_columns(cursor, table):
+            return
+
+        # Add the missing field
+        cursor.execute(f"ALTER TABLE {table} ADD COLUMN {' '.join(field_data)};")
 
     def _init_db(self, cursor: Cursor) -> None:
         super()._init_db(cursor)
@@ -2116,11 +2114,11 @@ class EngineDAO(ConfigurationDAO):
                 status,
                 engine=res.engine,
                 is_direct_edit=res.is_direct_edit,
+                is_direct_transfer=res.is_direct_transfer,
                 progress=res.progress,
                 doc_pair=res.doc_pair,
                 batch=json.loads(res.batch),
                 chunk_size=res.chunk_size,
-                is_direct_transfer=res.is_direct_transfer,
             )
 
     def get_downloads_with_status(self, status: TransferStatus) -> List[Download]:

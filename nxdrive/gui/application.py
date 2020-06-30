@@ -1588,7 +1588,7 @@ class Application(QApplication):
     def refresh_transfers(self) -> None:
         all_transfers = self.api.get_transfers()
         direct_transfers = [t for t in all_transfers if t["is_direct_transfer"]]
-        transfers = [t for t in all_transfers if not t["is_direct_transfer"]]
+        transfers = [t for t in all_transfers if t not in direct_transfers]
 
         if direct_transfers != self.direct_transfer_model.items:
             self.direct_transfer_model.set_items(direct_transfers)

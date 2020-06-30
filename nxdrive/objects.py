@@ -453,6 +453,7 @@ class Transfer:
     status: TransferStatus
     engine: str
     is_direct_edit: bool = False
+    is_direct_transfer: bool = False
     progress: float = 0.0
     doc_pair: Optional[int] = None
 
@@ -473,4 +474,3 @@ class Upload(Transfer):
     transfer_type: str = field(init=False, default="upload")
     batch: dict = field(default_factory=dict)
     chunk_size: Optional[int] = None
-    is_direct_transfer: Optional[bool] = False
