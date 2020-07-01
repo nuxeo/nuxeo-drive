@@ -1,6 +1,7 @@
 {
     "ABOUT": "Über",
     "ACCOUNT_NAME": "Account Name",
+    "ACTIVE": "Active",
     "ADD": "Hinzufügen",
     "ADD_FILES": "Dateien hinzufügen",
     "ADD_FOLDER": "Neuer Ordner",
@@ -24,6 +25,7 @@
     "CHANNEL": "Kanal",
     "CHANNEL_CHANGE_SETTINGS": "Ändern der Kanal-Update-Einstellungen",
     "CHANNEL_CONFIRM_DANGEROUS": "Entwicklungskanal bestätigen?",
+    "COMPLETED": "Completed",
     "CONFIRM_DISCONNECT": "Löschvorgang bestätigen?",
     "CONFIRM_UPDATE_MESSAGE": "Update auf %1 Version %2 startet gleich",
     "CONFLICT": "Konflikt",

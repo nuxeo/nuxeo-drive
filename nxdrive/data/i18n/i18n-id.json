@@ -1,6 +1,7 @@
 {
     "ABOUT": "Tentang",
     "ACCOUNT_NAME": "Account name",
+    "ACTIVE": "Active",
     "ADD": "Add",
     "ADD_FILES": "Add files",
     "ADD_FOLDER": "Add a folder",
@@ -24,6 +25,7 @@
     "CHANNEL": "Channel",
     "CHANNEL_CHANGE_SETTINGS": "Change channel update settings",
     "CHANNEL_CONFIRM_DANGEROUS": "Confirm development channel?",
+    "COMPLETED": "Completed",
     "CONFIRM_DISCONNECT": "Konfirmasi penghapusan?",
     "CONFIRM_UPDATE_MESSAGE": "Tentang untuk memperbarui ke %1 versi %2",
     "CONFLICT": "Konflik",

@@ -1,6 +1,7 @@
 {
     "ABOUT": "概要",
     "ACCOUNT_NAME": "アカウント名",
+    "ACTIVE": "Active",
     "ADD": "追加",
     "ADD_FILES": "ファイルを追加",
     "ADD_FOLDER": "新規フォルダ",
@@ -24,6 +25,7 @@
     "CHANNEL": "チャンネル",
     "CHANNEL_CHANGE_SETTINGS": "チャンネルの更新設定を変更する",
     "CHANNEL_CONFIRM_DANGEROUS": "開発チャンネルを確認しますか？",
+    "COMPLETED": "Completed",
     "CONFIRM_DISCONNECT": "削除を確認？",
     "CONFIRM_UPDATE_MESSAGE": "%1バージョン%2へアップグレードします",
     "CONFLICT": "競合",
