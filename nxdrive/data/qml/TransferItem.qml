@@ -31,7 +31,6 @@ Rectangle {
             columns: 3
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.rightMargin: 10
             Layout.leftMargin: 10
 
             // Progression: bar
