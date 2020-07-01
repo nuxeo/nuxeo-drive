@@ -1,6 +1,7 @@
 {
     "ABOUT": "Om",
     "ACCOUNT_NAME": "Kontonamn",
+    "ACTIVE": "Active",
     "ADD": "Lägg till",
     "ADD_FILES": "Lägg till filer",
     "ADD_FOLDER": "Lägg till mapp",
@@ -24,6 +25,7 @@
     "CHANNEL": "Kanal",
     "CHANNEL_CHANGE_SETTINGS": "Ändra inställningar för kanaluppdatering",
     "CHANNEL_CONFIRM_DANGEROUS": "Bekräfta utvecklingskanal?",
+    "COMPLETED": "Completed",
     "CONFIRM_DISCONNECT": "Bekräfta radering?",
     "CONFIRM_UPDATE_MESSAGE": "Håller på att uppdatera till %1 version %2",
     "CONFLICT": "Konflikt",

@@ -1,6 +1,7 @@
 {
     "ABOUT": "Honi buruz",
     "ACCOUNT_NAME": "Kontu-izena",
+    "ACTIVE": "Active",
     "ADD": "Gehitu",
     "ADD_FILES": "Gehitu fitxategiak",
     "ADD_FOLDER": "Gehitu karpeta",
@@ -24,6 +25,7 @@
     "CHANNEL": "Kanala",
     "CHANNEL_CHANGE_SETTINGS": "Aldatu eguneratze-kanalaren ezarpenak",
     "CHANNEL_CONFIRM_DANGEROUS": "Ziur garapen-kanala erabili nahi duzula?",
+    "COMPLETED": "Completed",
     "CONFIRM_DISCONNECT": "Ziur ezabatu nahi duzula?",
     "CONFIRM_UPDATE_MESSAGE": "%1(r)en %2 bertsiora eguneratzear",
     "CONFLICT": "Gatazka",
