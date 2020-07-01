@@ -30,12 +30,13 @@ NuxeoPopup {
             NuxeoInput {
                 id: urlInput
                 Layout.fillWidth: true
-                lineColor: nuxeoBlue
+                lineColor: acceptableInput ? nuxeoBlue : "red"
                 inputMethodHints: Qt.ImhUrlCharactersOnly
                 KeyNavigation.tab: folderInput
-                placeholderText: "your.nuxeo.platform.com"
+                placeholderText: "https://server.com/nuxeo"
                 text: api.default_server_url_value()
                 font.family: "Courier"
+                validator: RegExpValidator { regExp: /^https?:\/\/[^\s<"\/]+\/[^\s<"]+$/ }
             }
 
             ScaledText {
@@ -83,7 +84,7 @@ NuxeoPopup {
 
             NuxeoButton {
                 id: connectButton
-                enabled: urlInput.text && folderInput.text
+                enabled: urlInput.acceptableInput && folderInput.text
                 inverted: true
                 text: qsTr("CONNECT") + tl.tr
 

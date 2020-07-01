@@ -8,9 +8,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
+import requests
 from nuxeo.exceptions import HTTPError, Unauthorized
 from PyQt5.QtCore import QObject, QUrl, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
+from urllib3.exceptions import LocationParseError
 
 from ..client.proxy import get_proxy
 from ..constants import (
@@ -40,9 +42,9 @@ from ..utils import (
     get_date_from_sqlite,
     get_default_local_folder,
     get_device,
-    guess_server_url,
     normalized_path,
     sizeof_fmt,
+    test_url,
 )
 
 if TYPE_CHECKING:
@@ -456,10 +458,10 @@ class QMLDriveApi(QObject):
             )
             self.setMessage.emit("CONNECTION_UNKNOWN", "error")
 
-    def _guess_server_url(self, server_url: str) -> str:
-        """Handle invalid SSL certificates when guessing the server URL."""
+    def _has_valid_ssl_certificate(self, server_url: str) -> bool:
+        """Handle invalid SSL certificates for the server URL."""
         try:
-            return guess_server_url(server_url, proxy=self._manager.proxy)
+            return test_url(server_url, proxy=self._manager.proxy)
         except InvalidSSLCertificate as exc:
             log.warning(exc)
             parts = urlsplit(server_url)
@@ -467,8 +469,8 @@ class QMLDriveApi(QObject):
             if self.application.accept_unofficial_ssl_cert(hostname):
                 Options.ca_bundle = None
                 Options.ssl_no_verify = True
-                return self._guess_server_url(server_url)
-        return ""
+                return self._has_valid_ssl_certificate(server_url)
+        return False
 
     def _get_authentication_url(self, server_url: str) -> str:
         if not server_url:
@@ -710,8 +712,14 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, str)
     def web_authentication(self, server_url: str, local_folder: str) -> None:
         # Handle the server URL
-        server_url = self._guess_server_url(server_url)
-        if not server_url:
+        valid_url = False
+        try:
+            valid_url = self._has_valid_ssl_certificate(server_url)
+        except (LocationParseError, ValueError, requests.RequestException):
+            log.debug(f"Bad URL: {server_url}")
+        except Exception:
+            log.exception("Unhandled error")
+        if not valid_url:
             self.setMessage.emit("CONNECTION_ERROR", "error")
             return
 
