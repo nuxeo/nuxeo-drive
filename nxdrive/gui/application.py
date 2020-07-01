@@ -268,7 +268,7 @@ class Application(QApplication):
             # Direct Transfer
             self.direct_transfer_window = QQuickView()
             self.direct_transfer_window.setMinimumWidth(600)
-            self.direct_transfer_window.setMinimumHeight(300)
+            self.direct_transfer_window.setMinimumHeight(400)
             self._fill_qml_context(self.direct_transfer_window.rootContext())
             self.direct_transfer_window.setSource(
                 QUrl.fromLocalFile(str(find_resource("qml", "DirectTransfer.qml")))
