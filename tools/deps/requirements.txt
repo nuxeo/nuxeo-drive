@@ -100,8 +100,8 @@ markdown==3.2.2 \
 #nuxeo[s3]==2.4.5 \
 #    --hash=sha256: \
 #    --hash=sha256:
-tools/deps/nuxeo-python-client-dc0eb55.zip[s3] \
-    --hash=sha256:fcd567a302b34b71767663b08f95cce9266089f49e0eefd8ab63b85f282cca9a
+tools/deps/nuxeo-python-client-f608dec.zip[s3] \
+    --hash=sha256:9cfcd0be3479236adb4c8a1a788ef8685b5c626932aaf75e319a0c9295fd6ee5
 pathtools==0.1.2 \
     --hash=sha256:7c35c5421a39bb82e58018febd90e3b6e5db34c5443aaaf742b3f33d4655f1c0
     # via watchdog
