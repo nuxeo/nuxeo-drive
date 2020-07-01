@@ -25,7 +25,6 @@ from typing import (
     Callable,
     Dict,
     Generator,
-    Iterator,
     List,
     Optional,
     Tuple,
@@ -739,121 +738,6 @@ def _lazysecret(secret: bytes, blocksize: int = 32, padding: bytes = b"}") -> by
 
 
 @lru_cache(maxsize=4)
-def compute_urls(url: str) -> Iterator[str]:
-    """
-    Compute several predefined URLs for a given URL.
-    Each URL is sanitized and yield'ed.
-    """
-    import re
-
-    # Remove any whitespace character
-    # (space, tab, carriage return, new line, vertical tab, form feed)
-    url = re.sub(r"\s+", "", url)
-
-    parts = urlsplit(url)
-
-    # IP address or domain name only
-    if parts.scheme:
-        """
-        Handle that kind of `url`:
-
-        >>> urlsplit('192.168.0.42:8080/nuxeo')
-        SplitResult(scheme='', netloc='', path='192.168.0.42:8080/nuxeo', ...)
-        """
-        domain = parts.netloc
-        path = parts.path
-    else:
-        if "/" in parts.path:
-            domain, path = parts.path.split("/", 1)
-        else:
-            domain = parts.path
-            path = ""
-
-    urls = []
-    for scheme, port in (("https", 443), ("http", 8080)):
-        urls.extend(
-            [
-                # scheme://URL/nuxeo
-                (scheme, domain, path, parts.query, parts.fragment),
-                # scheme://URL:port/nuxeo
-                (scheme, f"{domain}:{port}", path, parts.query, parts.fragment),
-                # scheme://domain.com/nuxeo
-                (scheme, domain, "nuxeo", "", ""),
-                (scheme, f"{domain}:{port}", "nuxeo", "", ""),
-                (scheme, domain, path, "", ""),
-                (scheme, f"{domain}:{port}", path, "", ""),
-                # scheme://domain.com
-                (scheme, domain, "", "", ""),
-            ]
-        )
-
-    for new_url_parts in urls:
-        # Join and remove trailing slash(es)
-        new_url = urlunsplit(new_url_parts)
-        # Remove any double slashes but ones from the protocol
-        scheme, url = new_url.split("://")
-        yield f'{scheme}://{re.sub(r"(/{2,})", "/", url.strip("/"))}'
-
-
-def guess_server_url(
-    url: str,
-    login_page: str = Options.startup_page,
-    proxy: "Proxy" = None,
-    timeout: int = 5,
-) -> str:
-    """
-    Guess the complete server URL given an URL (either an IP address,
-    a simple domain name or an already complete URL).
-
-    Note: this function cannot be decorated with lru_cache().
-
-    :param url: The server URL (IP, domain name, full URL).
-    :param login_page: The Drive login page.
-    :param int timeout: Timeout for each and every request.
-    :return: The complete URL.
-    """
-    import requests
-    from urllib3.exceptions import LocationParseError
-    from urllib3.util.url import parse_url
-
-    from requests.exceptions import SSLError
-
-    kwargs: Dict[str, Any] = {
-        "timeout": timeout,
-        "verify": Options.ca_bundle or not Options.ssl_no_verify,
-        "headers": {"User-Agent": USER_AGENT},
-    }
-    for new_url in compute_urls(url):
-        try:
-            parse_url(new_url)
-            log.debug(f"Testing URL {new_url!r}")
-            full_url = f"{new_url}/{login_page}"
-            if proxy:
-                kwargs["proxies"] = proxy.settings(url=full_url)
-            with requests.get(full_url, **kwargs) as resp:
-                resp.raise_for_status()
-                if resp.status_code == 200:  # Happens when JSF is installed
-                    log.debug(f"Found URL: {new_url}")
-                    return new_url
-        except SSLError as exc:
-            if "CERTIFICATE_VERIFY_FAILED" in str(exc):
-                raise InvalidSSLCertificate()
-        except requests.HTTPError as exc:
-            if exc.response.status_code in (401, 403):
-                # When there is only Web-UI installed, the code is 401.
-                log.debug(f"Found URL: {new_url}")
-                return new_url
-        except (LocationParseError, ValueError, requests.RequestException):
-            log.debug(f"Bad URL: {new_url}")
-        except Exception:
-            log.exception("Unhandled error")
-
-    if not url.lower().startswith("http"):
-        return ""
-    return url
-
-
-@lru_cache(maxsize=4)
 def simplify_url(url: str) -> str:
     """ Simplify port if possible and trim trailing slashes. """
 
@@ -1217,3 +1101,42 @@ def save_config(config_dump: Dict[str, Any]) -> Path:
     with open(conf_path, "w") as output:
         config.write(output)
     return conf_path
+
+
+def test_url(
+    url: str,
+    login_page: str = Options.startup_page,
+    proxy: "Proxy" = None,
+    timeout: int = 5,
+) -> bool:
+    """Try to request the login page to see if the URL is valid."""
+    import requests
+    from urllib3.util.url import parse_url
+
+    from requests.exceptions import SSLError
+
+    kwargs: Dict[str, Any] = {
+        "timeout": timeout,
+        "verify": Options.ca_bundle or not Options.ssl_no_verify,
+        "headers": {"User-Agent": USER_AGENT},
+    }
+    try:
+        parse_url(url)
+        log.debug(f"Testing URL {url!r}")
+        full_url = f"{url}/{login_page}"
+        if proxy:
+            kwargs["proxies"] = proxy.settings(url=full_url)
+        with requests.get(full_url, **kwargs) as resp:
+            resp.raise_for_status()
+            if resp.status_code == 200:  # Happens when JSF is installed
+                log.debug(f"Valid URL: {url}")
+                return True
+    except SSLError as exc:
+        if "CERTIFICATE_VERIFY_FAILED" in str(exc):
+            raise InvalidSSLCertificate()
+    except requests.HTTPError as exc:
+        if exc.response.status_code in (401, 403):
+            # When there is only Web-UI installed, the code is 401.
+            log.debug(f"Valid URL: {url}")
+            return True
+    return False

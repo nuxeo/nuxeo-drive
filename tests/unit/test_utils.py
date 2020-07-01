@@ -1,7 +1,7 @@
 # coding: utf-8
+
 import configparser
 import os
-import re
 import sys
 from collections import namedtuple
 from datetime import datetime
@@ -683,56 +683,6 @@ def test_get_value(raw_value, expected_value):
     assert nxdrive.utils.get_value(raw_value) == expected_value
 
 
-@pytest.mark.parametrize(
-    "url",
-    [
-        "http://example.org/",
-        "http://example.org//",
-        "http://example.org",
-        "http://example.org:8080",
-        "http://example.org:8080//nuxeo",
-        "http://example.org:8080/nuxeo/",
-        "https://example.org",
-        "https://example.org:8080",
-        "https://example.org:8080/nuxeo",
-        "https://example.org:8080/nuxeo/",
-        "https://example.org:8080/nuxeo?param=value",
-        "https://example.org:8080/////nuxeo////submarine//",
-        "http://example.org/\n:8080/nuxeo",
-        "http://example.org/\t:8080/nuxeo",
-        """http://example.org/
-        :8080/nuxeo""",
-        "example.org",
-        "192.168.0.42/nuxeo",
-    ],
-)
-def test_compute_urls(url):
-    no_whitespace = re.compile(r"\s+")
-
-    for generated_url in nxdrive.utils.compute_urls(url):
-        # There should be only one "//" in each URL
-        assert generated_url.count("//") == 1
-
-        # There should be no whitespace
-        assert not no_whitespace.findall(generated_url)
-
-
-def test_guess_server_url_bad_ssl():
-    from nxdrive.exceptions import InvalidSSLCertificate
-
-    with pytest.raises(InvalidSSLCertificate):
-        nxdrive.utils.guess_server_url(BAD_HOSTNAMES[0])
-
-
-@patch("urllib3.util.url.parse_url")
-def test_guess_server_url_exception(mocked_parse):
-    from urllib3.exceptions import LocationParseError
-
-    mocked_parse.side_effect = LocationParseError("Mock'ed error")
-    url = "http://localhost:8080/nuxeo"
-    nxdrive.utils.guess_server_url(url)
-
-
 def test_increment_local_folder(tmp):
     func = nxdrive.utils.increment_local_folder
     basefolder = tmp()
@@ -1071,3 +1021,10 @@ def test_save_config(default_config, config_dump, tmp_path):
         if key in config_dump:
             # Check that everything declared in config_dump has been written to config file by save_config()
             assert config[env].getboolean(key) == config_dump[key]
+
+
+def test_url_bad_ssl():
+    from nxdrive.exceptions import InvalidSSLCertificate
+
+    with pytest.raises(InvalidSSLCertificate):
+        nxdrive.utils.test_url(f"https://{BAD_HOSTNAMES[2]}/nuxeo")
