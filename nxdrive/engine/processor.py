@@ -44,7 +44,6 @@ from ..exceptions import (
     UploadPaused,
 )
 from ..objects import DocPair, RemoteFileInfo
-from ..options import Options
 from ..utils import is_generated_tmp_file, lock_path, safe_filename, unlock_path
 from .workers import EngineWorker
 
@@ -495,43 +494,32 @@ class Processor(EngineWorker):
             file = Path(f"/{doc_pair.local_path}")
 
         if not file.exists():
-            self.engine.directTranferError.emit(file)
             log.warning(
                 f"Cancelling Direct Transfer of {file!r} because it does not exist anymore"
             )
             self.dao.remove_state(doc_pair)
             self.dao.remove_transfer("upload", file)
-            return
-
-        # The remote path is stored as the remote ref in xattrs of the file
-        parent_path = self.local.get_remote_id(file)
-        if not parent_path:
             self.engine.directTranferError.emit(file)
-            log.warning(
-                f"Cancelling Direct Transfer of {file!r} because it has no remote path set"
-            )
-            self.dao.remove_state(doc_pair)
-            self.dao.remove_transfer("upload", file)
             return
 
         # Do the upload
         self.remote.upload(
             file,
-            parent_path=parent_path,
             engine_uid=self.engine.uid,
             uploader=DirectTransferUploader,
             replace_blob=replace_blob,
+            remote_parent_path=doc_pair.remote_parent_path,
+            remote_parent_ref=doc_pair.remote_parent_ref,
         )
 
         # Clean-up
         self.dao.remove_state(doc_pair)
-        self.local.remove_remote_id(file)
-        self.local.remove_remote_id(file, name="remote")
 
-        # Display a notification only for big files (to prevent notifications flood)
-        if not doc_pair.folderish and doc_pair.size >= Options.big_file * 1024 * 1024:
+        # Display a notification only for files >= 25 MiB (to prevent notifications flood)
+        if not doc_pair.folderish and doc_pair.size >= 25 * 1024 * 1024:
             self.engine.directTranferStatus.emit(file, False)
 
+        # For analytics
         self.engine.manager.directTransferStats.emit(doc_pair.folderish, doc_pair.size)
 
     def _synchronize_direct_transfer_replace_blob(self, doc_pair: DocPair) -> None:

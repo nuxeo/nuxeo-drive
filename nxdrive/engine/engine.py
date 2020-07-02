@@ -37,7 +37,6 @@ from ..exceptions import (
 )
 from ..objects import Binder, DocPairs, EngineDef, Metrics
 from ..options import Options
-from ..state import State
 from ..utils import (
     current_thread_id,
     find_icon,
@@ -187,8 +186,6 @@ class Engine(QObject):
 
         # Pause in case of no more space on the device
         self.noSpaceLeftOnDevice.connect(self.suspend)
-
-        self._load_remote_link()
 
     def __repr__(self) -> str:
         return (
@@ -402,54 +399,38 @@ class Engine(QObject):
                     f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}"
                 )
 
-    def _craft_remote_link(self, remote_path: str, remote_ref: str) -> str:
-        """Craft the Direct Transfer remote path URL using the value from the database."""
-        url = self.get_metadata_url(remote_ref)
-        return f'<a href="{url}">{remote_path}</a>'
-
-    def _save_remote_link(self, remote_path: str, remote_ref: str) -> None:
-        """Store remote infos into the database and the State object."""
+    def _save_remote_parent_infos(self, remote_path: str, remote_ref: str) -> None:
+        """Store remote infos into the database for later runs."""
         self.dao.update_config("dt_last_remote_location", remote_path)
         self.dao.update_config("dt_last_remote_location_ref", remote_ref)
-        State.dt_remote_link = self._craft_remote_link(remote_path, remote_ref)
-
-    def _load_remote_link(self) -> None:
-        """Load remote infos from the database."""
-        remote_path = self.dao.get_config("dt_last_remote_location", "")
-        remote_ref = self.dao.get_config("dt_last_remote_location_ref", "")
-        State.dt_remote_link = self._craft_remote_link(remote_path, remote_ref)
 
     def direct_transfer(
-        self, local_paths: Set[Path], remote_path: str, remote_ref: str
+        self, local_paths: Set[Path], remote_parent_path: str, remote_parent_ref: str
     ) -> None:
         """Plan the Direct Transfer."""
         # self.directTranferStatus.emit(local_path[0], True)
 
-        def plan(path: Path, remote_uid: str) -> None:
-            """Actions to do (refactored in a function to prevent duplicate code between files and folders)."""
-            # Save the remote folder's reference into the file/folder xattrs
-            try:
-                self.local.set_remote_id(path, remote_uid)
-            except PermissionError:
-                log.warning(
-                    f"Cannot set the remote ID on {path!r}, skipping the upload"
-                )
-                return
+        count = 0
 
-            # Add the path into the database to plan the upload
-            info = self.local.get_info(path, check=False)
-            self.dao.insert_local_state(info, parent_path=None, local_state="direct")
+        def plan(path: Path, rparent_path: str) -> None:
+            """Add the path into the database to plan the upload."""
+            self.dao.insert_direct_transfer_state(path, rparent_path, remote_parent_ref)
+
+            nonlocal count
+            count += 1
 
         # Save the remote location for next times
-        self._save_remote_link(remote_path, remote_ref)
+        self._save_remote_parent_infos(remote_parent_path, remote_parent_ref)
 
         for local_path in sorted(local_paths):
             if local_path.is_file():
-                plan(local_path, remote_path)
+                plan(local_path, remote_parent_path)
             else:
-                tree = sorted(get_tree_list(local_path, remote_path))
+                tree = sorted(get_tree_list(local_path, remote_parent_path))
                 for path, remote_path in tree:
                     plan(path, remote_path)
+
+        log.info(f"Planned {count:,} item(s) to Direct Transfer, let's gooo!")
 
     def direct_transfer_cancel(self, file: Path) -> None:
         """Cancel the Direct Transfer of the given local *file*."""
@@ -463,8 +444,6 @@ class Engine(QObject):
 
         # Cancel the upload, clean-up the database and local file
         self.dao.remove_state(doc_pair)
-        self.local.remove_remote_id(file)
-        self.local.remove_remote_id(file, name="remote")
 
     def direct_transfer_replace_blob(self, file: Path, doc: Document) -> None:
         """Replace the document's blob on the server."""

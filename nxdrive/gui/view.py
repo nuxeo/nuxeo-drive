@@ -12,7 +12,6 @@ from PyQt5.QtCore import (
     pyqtSlot,
 )
 
-from ..state import State
 from ..utils import force_decode, sizeof_fmt
 
 if TYPE_CHECKING:
@@ -268,6 +267,8 @@ class DirectTransferModel(QAbstractListModel):
     ENGINE = Qt.UserRole + 5
     FINALIZING = Qt.UserRole + 6
     PROGRESS_METRICS = Qt.UserRole + 7
+    REMOTE_PARENT_PATH = Qt.UserRole + 8
+    REMOTE_PARENT_REF = Qt.UserRole + 9
 
     def __init__(self, translate: Callable, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -283,6 +284,8 @@ class DirectTransferModel(QAbstractListModel):
             # The is the Verification step for downloads
             # and Linking step for uploads.
             self.FINALIZING: b"finalizing",
+            self.REMOTE_PARENT_PATH: b"remote_parent_path",
+            self.REMOTE_PARENT_REF: b"remote_parent_ref",
         }
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
@@ -297,11 +300,6 @@ class DirectTransferModel(QAbstractListModel):
         if count == 0:
             self.noItems.emit()
         return count
-
-    @pyqtProperty(str, notify=fileChanged)
-    def destination_link(self) -> str:
-        """Return the link to the remote path that will be used in DirectTransfer.qml."""
-        return State.dt_remote_link
 
     def set_items(
         self, items: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()

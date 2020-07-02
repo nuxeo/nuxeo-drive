@@ -164,6 +164,8 @@ class BaseUploader:
             engine_uid = kwargs.pop("engine_uid", None)
             is_direct_edit = kwargs.pop("is_direct_edit", False)
             is_direct_transfer = kwargs.pop("is_direct_transfer", False)
+            remote_parent_path = kwargs.pop("remote_parent_path", "")
+            remote_parent_ref = kwargs.pop("remote_parent_ref", "")
 
             # Set those attributes as FileBlob does not have them
             # and they are required for the step 2 of .upload_impl()
@@ -194,6 +196,8 @@ class BaseUploader:
                     batch=batch.as_dict(),
                     chunk_size=chunk_size,
                     is_direct_transfer=is_direct_transfer,
+                    remote_parent_path=remote_parent_path,
+                    remote_parent_ref=remote_parent_ref,
                 )
                 self.dao.save_upload(transfer)
             elif transfer.batch["batchId"] != batch.uid:

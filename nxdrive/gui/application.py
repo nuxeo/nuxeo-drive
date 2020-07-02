@@ -268,7 +268,7 @@ class Application(QApplication):
             # Direct Transfer
             self.direct_transfer_window = QQuickView()
             self.direct_transfer_window.setMinimumWidth(600)
-            self.direct_transfer_window.setMinimumHeight(400)
+            self.direct_transfer_window.setMinimumHeight(450)
             self._fill_qml_context(self.direct_transfer_window.rootContext())
             self.direct_transfer_window.setSource(
                 QUrl.fromLocalFile(str(find_resource("qml", "DirectTransfer.qml")))
@@ -818,8 +818,8 @@ class Application(QApplication):
             Translator.get("DIRECT_TRANSFER_CANCEL", [name]),
             QMessageBox.NoButton,
         )
-        continued = msgbox.addButton("OK", QMessageBox.AcceptRole)
-        cancel = msgbox.addButton(Translator.get("CANCEL"), QMessageBox.RejectRole)
+        continued = msgbox.addButton(Translator.get("YES"), QMessageBox.AcceptRole)
+        cancel = msgbox.addButton(Translator.get("NO"), QMessageBox.RejectRole)
         msgbox.setDefaultButton(cancel)
         msgbox.setIcon(QMessageBox.Question)
         msgbox.exec_()

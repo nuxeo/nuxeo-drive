@@ -910,10 +910,21 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, str, str)
     def open_remote(self, uid: str, remote_ref: str, remote_name: str) -> None:
-        log.info(f"Should open this : {remote_name} ({remote_ref})")
+        log.info(f"Should open {remote_name!r} ({remote_ref!r})")
         try:
             engine = self._manager.engines.get(uid)
             if engine:
                 engine.open_edit(remote_ref, remote_name)
         except OSError:
             log.exception("Remote open error")
+
+    @pyqtSlot(str, str, str)
+    def open_remote_document(self, uid: str, remote_ref: str, remote_path: str) -> None:
+        log.info(f"Should open remote document {remote_path!r} ({remote_ref!r})")
+        try:
+            engine = self._manager.engines.get(uid)
+            if engine:
+                url = engine.get_metadata_url(remote_ref)
+                engine.open_remote(url=url)
+        except OSError:
+            log.exception("Remote document cannot be opened")
