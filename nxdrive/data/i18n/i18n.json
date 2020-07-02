@@ -96,7 +96,6 @@
     "DIRECT_TRANSFER_NOT_ALLOWED": "Direct Transfer of „%1“ is not allowed for synced files.",
     "DIRECT_TRANSFER_NOT_ENABLED": "The Direct Transfer feature is not enabled.",
     "DIRECT_TRANSFER_NOT_POSSIBLE": "The Direct Transfer feature is not usable right now.<br>Please try again later.",
-    "DIRECT_TRANSFER_SEND": "Sending files to %1",
     "DIRECT_TRANSFER_START": "Transfer start: „%1“",
     "DIRECT_TRANSFER_WINDOW_TITLE": "Direct Transfer - %1",
     "DISCONNECT": "Remove account",
@@ -221,6 +220,7 @@
     "NETWORK_ERROR_UnknownNetworkError": "Unknown error",
     "NETWORK_ERROR_UnknownProxyError": "Unknown error",
     "NEW_ENGINE": "Add account",
+    "NO": "No",
     "NONE": "None",
     "NOTIF_UPDATE_TITLE": "Update available",
     "NOTIF_UPDATE_DOWNGRADE": "Downgrade to %1 is needed",
@@ -330,5 +330,6 @@
     "WINDOWS_ERROR_TITLE": "Document error",
     "WINDOWS_ERROR_OPENED_FILE": "The file „%1“ is open by another software. Please close it before %2 can process the deletion from your local storage.",
     "WINDOWS_ERROR_OPENED_FOLDER": "The folder „%1“ or its children is locked by another software. Please close it before %2 can process the deletion from your local storage.",
-    "WRONG_CHANNEL": "You are running version %1 which is from the „%2“ channel, but your current channel is „%3“. Do you want to downgrade to the latest version of your current channel, or switch channels?"
+    "WRONG_CHANNEL": "You are running version %1 which is from the „%2“ channel, but your current channel is „%3“. Do you want to downgrade to the latest version of your current channel, or switch channels?",
+    "YES": "Yes"
 }

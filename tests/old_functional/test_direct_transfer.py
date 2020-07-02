@@ -12,7 +12,6 @@ from nuxeo.exceptions import HTTPError
 from nxdrive.client.uploader.direct_transfer import DirectTransferUploader
 from nxdrive.constants import TransferStatus
 from nxdrive.options import Options
-from nxdrive.state import State
 from nxdrive.utils import get_tree_list
 from requests.exceptions import ConnectionError
 
@@ -107,13 +106,6 @@ class DirectTransfer:
             engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
             self.sync_and_check()
 
-            # Check the crafted remote link (JSF)
-            server_url = engine.server_url
-            remote_path = engine.dao.get_config("dt_last_remote_location")
-            remote_ref = engine.dao.get_config("dt_last_remote_location_ref")
-            link = f'<a href="{server_url}nxdoc/default/{remote_ref}/view_documents">{remote_path}</a>'
-            assert State.dt_remote_link == link
-
     def test_cancel_upload(self):
         """
         Pause the transfer by simulating a click on the pause/resume icon
@@ -156,20 +148,6 @@ class DirectTransfer:
 
         with ensure_no_exception():
             engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
-            self.sync_and_check()
-
-    def test_duplicate_file_but_no_blob_attached(self):
-        """The file already exists on the server but has no blob attached yet."""
-
-        pytest.skip("Not yet implemented.")
-
-        # Create the document on the server, with no blob attached
-        self.remote_document_client_1.make_file_with_no_blob("/", self.file.name)
-        assert not self.has_blob()
-
-        with ensure_no_exception():
-            # The upload should work: the doc will be retrieved and the blob uploaded and attached
-            self.engine_1.direct_transfer([self.file], self.ws.path)
             self.sync_and_check()
 
     def test_duplicate_file_cancellation(self):
@@ -388,51 +366,6 @@ class DirectTransfer:
         # Resume the upload
         engine.resume_transfer("upload", list(dao.get_uploads())[0].uid)
         self.sync_and_check(should_have_blob=False)
-
-    def test_not_server_error_upload(self):
-        """Test an error happening after chunks were uploaded, at the NuxeoDrive.CreateFile operation call."""
-
-        class BadUploader(DirectTransferUploader):
-            """Used to simulate bad server responses."""
-
-            def link_blob_to_doc(self, *args, **kwargs):
-                """Simulate a server error."""
-                raise ValueError("Mocked exception")
-
-        def upload(*args, **kwargs):
-            """Set our specific uploader to simulate server error."""
-            kwargs.pop("uploader")
-            return upload_orig(*args, uploader=BadUploader, **kwargs)
-
-        engine = self.engine_1
-        dao = engine.dao
-        upload_orig = engine.remote.upload
-
-        # There is no upload, right now
-        self.no_uploads()
-
-        with patch.object(engine.remote, "upload", new=upload):
-            with ensure_no_exception():
-                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
-                self.wait_sync()
-
-                # There should be 1 upload with ONGOING transfer status
-                uploads = list(dao.get_uploads())
-                assert len(uploads) == 1
-                upload = uploads[0]
-                assert upload.status == TransferStatus.DONE
-
-                # The file does not exist on the server
-                assert not self.has_blob()
-
-                # The doc should be in error
-                assert len(dao.get_errors(limit=0)) == 1
-
-        # Reset the error
-        for state in dao.get_errors():
-            dao.reset_error(state)
-
-        self.sync_and_check()
 
     def test_server_error_but_upload_ok(self):
         """

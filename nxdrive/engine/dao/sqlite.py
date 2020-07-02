@@ -630,7 +630,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 11
+        return 12
 
     def _migrate_state(self, cursor: Cursor) -> None:
         try:
@@ -728,10 +728,22 @@ class EngineDAO(ConfigurationDAO):
 
             # Create again the tables, with up-to-date columns
             self._create_transfer_tables(cursor)
+
+            # Append eventual missing fields added in later migrations.
             self._append_to_table(
                 cursor,
                 "Uploads_backup",
                 ("is_direct_transfer", "INTEGER", "DEFAULT", "0"),
+            )
+            self._append_to_table(
+                cursor,
+                "Uploads_backup",
+                ("remote_parent_path", "VARCHAR", "DEFAULT", "NULL"),
+            )
+            self._append_to_table(
+                cursor,
+                "Uploads_backup",
+                ("remote_parent_ref", "VARCHAR", "DEFAULT", "NULL"),
             )
 
             # Insert back old datas with up-to-date fields types
@@ -778,6 +790,17 @@ class EngineDAO(ConfigurationDAO):
             )
             self.store_int(SCHEMA_VERSION, 11)
 
+        if version < 12:
+            # Add *remote_parent_path* and *remote_parent_ref* fields to the Uploads table,
+            # used to display items in the Direct Transfer window.
+            self._append_to_table(
+                cursor, "Uploads", ("remote_parent_path", "VARCHAR", "DEFAULT", "NULL")
+            )
+            self._append_to_table(
+                cursor, "Uploads", ("remote_parent_ref", "VARCHAR", "DEFAULT", "NULL")
+            )
+            self.store_int(SCHEMA_VERSION, 12)
+
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
         if name == "States":
             self._create_state_table(cursor, force)
@@ -813,6 +836,8 @@ class EngineDAO(ConfigurationDAO):
             "    doc_pair           INTEGER     UNIQUE,"
             "    batch              VARCHAR,"
             "    chunk_size         INTEGER,"
+            "    remote_parent_path VARCHAR     DEFAULT NULL,"
+            "    remote_parent_ref  VARCHAR     DEFAULT NULL,"
             "    PRIMARY KEY (uid)"
             ")"
         )
@@ -1052,6 +1077,44 @@ class EngineDAO(ConfigurationDAO):
             ):
                 self._queue_pair_state(row_id, info.folderish, pair_state)
 
+            self._items_count += 1
+
+            return row_id
+
+    def insert_direct_transfer_state(
+        self, local_path: Path, remote_parent_path: str, remote_parent_ref: str,
+    ) -> int:
+        """
+        Insert a local state with some remote information.
+        Specific to the Direct Transfer feature.
+        """
+
+        with self.lock:
+            con = self._get_write_connection()
+            c = con.cursor()
+            pair_state = PAIR_STATES[("direct", "unknown")]
+            folderish = local_path.is_dir()
+            size = 0 if folderish else local_path.stat().st_size
+
+            c.execute(
+                "INSERT INTO States "
+                "(local_path, local_name, folderish, size, "
+                "remote_parent_path, remote_parent_ref,"
+                "local_state, remote_state, pair_state) "
+                "VALUES (?, ?, ?, ?, ?, ?, 'direct', 'unknown', ?)",
+                (
+                    local_path,
+                    local_path.name,
+                    folderish,
+                    size,
+                    remote_parent_path,
+                    remote_parent_ref,
+                    pair_state,
+                ),
+            )
+            row_id = c.lastrowid
+
+            self._queue_pair_state(row_id, folderish, pair_state)
             self._items_count += 1
 
             return row_id
@@ -2119,6 +2182,8 @@ class EngineDAO(ConfigurationDAO):
                 doc_pair=res.doc_pair,
                 batch=json.loads(res.batch),
                 chunk_size=res.chunk_size,
+                remote_parent_path=res.remote_parent_path,
+                remote_parent_ref=res.remote_parent_ref,
             )
 
     def get_downloads_with_status(self, status: TransferStatus) -> List[Download]:
@@ -2195,12 +2260,15 @@ class EngineDAO(ConfigurationDAO):
                 upload.is_direct_transfer,
                 json.dumps(batch),
                 upload.chunk_size,
+                upload.remote_parent_path,
+                upload.remote_parent_ref,
             )
             c = self._get_write_connection().cursor()
             sql = (
                 "INSERT INTO Uploads "
-                "(path, status, engine, is_direct_edit, is_direct_transfer, batch, chunk_size)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?)"
+                "(path, status, engine, is_direct_edit, is_direct_transfer, batch, chunk_size,"
+                " remote_parent_path, remote_parent_ref)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
             )
             c.execute(sql, values)
 
