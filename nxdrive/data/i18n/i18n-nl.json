@@ -96,7 +96,6 @@
     "DIRECT_TRANSFER_NOT_ALLOWED": "Rechtstreeks overdragen „%1“ is niet toegestaan voor gesynchroniseerde bestanden.",
     "DIRECT_TRANSFER_NOT_ENABLED": "De functie Directe Overdracht is niet ingeschakeld.",
     "DIRECT_TRANSFER_NOT_POSSIBLE": "De Direct Transfer functie is momenteel niet bruikbaar.<br>Probeer het later opnieuw.",
-    "DIRECT_TRANSFER_SEND": "Sending files to %1",
     "DIRECT_TRANSFER_START": "Overschrijving start: „%1\"",
     "DIRECT_TRANSFER_WINDOW_TITLE": "Directe overdracht - %1",
     "DISCONNECT": "Account verwijderen",
@@ -221,6 +220,7 @@
     "NETWORK_ERROR_UnknownNetworkError": "Onbekende fout",
     "NETWORK_ERROR_UnknownProxyError": "Onbekende fout",
     "NEW_ENGINE": "Nieuw",
+    "NO": "No",
     "NONE": "Geen",
     "NOTIF_UPDATE_TITLE": "Update beschikbaar",
     "NOTIF_UPDATE_DOWNGRADE": "Downgraden naar %1 is vereist",
@@ -330,5 +330,6 @@
     "WINDOWS_ERROR_TITLE": "Documentfout",
     "WINDOWS_ERROR_OPENED_FILE": "Het bestand '%1' is in gebruik door een ander programma. Sluit dit af voordat %2 het uit uw lokale opslag kan verwijderen.",
     "WINDOWS_ERROR_OPENED_FOLDER": "De map '%1' of onderliggende mappen ervan zijn vergrendeld door een ander programma. Sluit dit af voordat %2 het uit uw lokale opslag kan verwijderen.",
-    "WRONG_CHANNEL": "Je draait versie %1 die van het Kanaal „%2“ staat, maar je huidige kanaal is „%3“. Wil je downgraden naar de laatste versie van je huidige kanaal, of van kanaal wisselen?"
+    "WRONG_CHANNEL": "Je draait versie %1 die van het Kanaal „%2“ staat, maar je huidige kanaal is „%3“. Wil je downgraden naar de laatste versie van je huidige kanaal, of van kanaal wisselen?",
+    "YES": "Yes"
 }

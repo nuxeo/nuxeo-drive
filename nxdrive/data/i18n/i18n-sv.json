@@ -96,7 +96,6 @@
     "DIRECT_TRANSFER_NOT_ALLOWED": "Direct Transfer av „%1” är inte tillåtet för synkroniserade filer",
     "DIRECT_TRANSFER_NOT_ENABLED": "Funktionen Direct Transfer är inte aktiverad.",
     "DIRECT_TRANSFER_NOT_POSSIBLE": "Funktionen Direct Transfer kan inte användas just nu.<br>Försök igen senare.",
-    "DIRECT_TRANSFER_SEND": "Sending files to %1",
     "DIRECT_TRANSFER_START": "Överföringsstart: „%1”",
     "DIRECT_TRANSFER_WINDOW_TITLE": "Direkt överföring - %1",
     "DISCONNECT": "Ta bort konto",
@@ -221,6 +220,7 @@
     "NETWORK_ERROR_UnknownNetworkError": "Okänt fel",
     "NETWORK_ERROR_UnknownProxyError": "Okänt fel",
     "NEW_ENGINE": "Lägg till konto",
+    "NO": "No",
     "NONE": "Inga",
     "NOTIF_UPDATE_TITLE": "Uppdatering tillgänglig",
     "NOTIF_UPDATE_DOWNGRADE": "Det krävs nedgradering till %1",
@@ -330,5 +330,6 @@
     "WINDOWS_ERROR_TITLE": "Dokumentfel",
     "WINDOWS_ERROR_OPENED_FILE": "Filen „%1“ har öppnats av ett annat program. Stäng den innan %2 kan bearbeta den här borttagningen från den lokala lagringsplatsen.",
     "WINDOWS_ERROR_OPENED_FOLDER": "Mappen „%1“ eller dess underordnade mappar har låsts av ett annat program. Stäng den innan %2 kan bearbeta den här borttagningen från den lokala lagringsplatsen.",
-    "WRONG_CHANNEL": "Du kör version %1 som är från „%2\" kanalen, men din nuvarande kanal är „%3\". Vill du nedgradera till den senaste versionen av din nuvarande kanal eller byta kanal?"
+    "WRONG_CHANNEL": "Du kör version %1 som är från „%2\" kanalen, men din nuvarande kanal är „%3\". Vill du nedgradera till den senaste versionen av din nuvarande kanal eller byta kanal?",
+    "YES": "Yes"
 }

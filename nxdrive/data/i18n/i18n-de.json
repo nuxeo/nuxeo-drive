@@ -96,7 +96,6 @@
     "DIRECT_TRANSFER_NOT_ALLOWED": "Die direkte Übertragung von „%1“ ist für synchronisierte Dateien nicht erlaubt.",
     "DIRECT_TRANSFER_NOT_ENABLED": "Die Funktion Direktbearbeitung ist nicht aktiviert.",
     "DIRECT_TRANSFER_NOT_POSSIBLE": "Die Direkte Übertragung Funktion ist momentan nicht verfügbar.<br>Bitte versuchen Sie es später erneut.",
-    "DIRECT_TRANSFER_SEND": "Sending files to %1",
     "DIRECT_TRANSFER_START": "Übertragung start: „%1“",
     "DIRECT_TRANSFER_WINDOW_TITLE": "Direkte Übertragung - %1",
     "DISCONNECT": "Konto löschen",
@@ -221,6 +220,7 @@
     "NETWORK_ERROR_UnknownNetworkError": "Unbekannter Fehler",
     "NETWORK_ERROR_UnknownProxyError": "Unbekannter Fehler",
     "NEW_ENGINE": "Account hinzufügen",
+    "NO": "No",
     "NONE": "Keine",
     "NOTIF_UPDATE_TITLE": "Update verfügbar",
     "NOTIF_UPDATE_DOWNGRADE": "Downgrade auf %1 ist erforderlich",
@@ -330,5 +330,6 @@
     "WINDOWS_ERROR_TITLE": "Dokumentenfehler",
     "WINDOWS_ERROR_OPENED_FILE": "Die Datei „%1“ ist in einer anderen Software geöffnet. Schließen Sie diese, damit %2 sie aus dem lokalen Speicher löschen kann.",
     "WINDOWS_ERROR_OPENED_FOLDER": "Der Ordner „%1“ oder ihm untergeordnete Elemente wurden von einer anderen Software gesperrt. Schließen Sie diese, damit %2 sie aus dem lokalen Speicher löschen kann.",
-    "WRONG_CHANNEL": "Du verwendest Version %1 , die vom Kanal „%2“ stammt, aber dein aktueller Kanal ist „%3“. Möchtest du auf die neueste Version deines aktuellen Channels herunterstufen?"
+    "WRONG_CHANNEL": "Du verwendest Version %1 , die vom Kanal „%2“ stammt, aber dein aktueller Kanal ist „%3“. Möchtest du auf die neueste Version deines aktuellen Channels herunterstufen?",
+    "YES": "Yes"
 }

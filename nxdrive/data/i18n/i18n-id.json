@@ -96,7 +96,6 @@
     "DIRECT_TRANSFER_NOT_ALLOWED": "Direct Transfer of „%1“ is not allowed for synced files.",
     "DIRECT_TRANSFER_NOT_ENABLED": "The Direct Transfer feature is not enabled.",
     "DIRECT_TRANSFER_NOT_POSSIBLE": "The Direct Transfer feature is not usable right now.<br>Please try again later.",
-    "DIRECT_TRANSFER_SEND": "Sending files to %1",
     "DIRECT_TRANSFER_START": "Transfer start: „%1“",
     "DIRECT_TRANSFER_WINDOW_TITLE": "Direct Transfer - %1",
     "DISCONNECT": "Hapus Akun",
@@ -221,6 +220,7 @@
     "NETWORK_ERROR_UnknownNetworkError": "Kesalahan yang tidak diketahui",
     "NETWORK_ERROR_UnknownProxyError": "Kesalahan yang tidak diketahui",
     "NEW_ENGINE": "Tambahkan akun",
+    "NO": "No",
     "NONE": "Tidak ada",
     "NOTIF_UPDATE_TITLE": "Update available",
     "NOTIF_UPDATE_DOWNGRADE": "Downgrade to %1 is needed",
@@ -330,5 +330,6 @@
     "WINDOWS_ERROR_TITLE": "Kesalahan Dokumen",
     "WINDOWS_ERROR_OPENED_FILE": "Berkas ,,%1\" terbuka dengan perangkat lunak lain Harap tutup sebelum %2 dapat memproses penghapusan dari penyimpanan lokal znda.",
     "WINDOWS_ERROR_OPENED_FOLDER": "Foldernya ,,%1\" atau anak-anak yang dikunci oleh perangkat lunak lain. Harap tutup sebelum %2 dapat memproses penghapusan dari penyimpanan lokal anda.",
-    "WRONG_CHANNEL": "You are running version %1 which is from the „%2“ channel, but your current channel is „%3“. Do you want to downgrade to the latest version of your current channel, or switch channels?"
+    "WRONG_CHANNEL": "You are running version %1 which is from the „%2“ channel, but your current channel is „%3“. Do you want to downgrade to the latest version of your current channel, or switch channels?",
+    "YES": "Yes"
 }

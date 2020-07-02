@@ -96,7 +96,6 @@
     "DIRECT_TRANSFER_NOT_ALLOWED": "Le Direct Transfer de „%1“ n'est pas autorisé pour les documents synchronisés.",
     "DIRECT_TRANSFER_NOT_ENABLED": "La fonctionnalité Direct Transfer n'est pas activée.",
     "DIRECT_TRANSFER_NOT_POSSIBLE": "La fonctionnalité Direct Transfer est momentanément indisponible.<br>Veuillez réessayer plus tard.",
-    "DIRECT_TRANSFER_SEND": "Envoi des fichiers vers %1",
     "DIRECT_TRANSFER_START": "Début du transfert : „%1“",
     "DIRECT_TRANSFER_WINDOW_TITLE": "Direct Transfer - %1",
     "DISCONNECT": "Supprimer le compte",
@@ -221,6 +220,7 @@
     "NETWORK_ERROR_UnknownNetworkError": "Erreur inconnue",
     "NETWORK_ERROR_UnknownProxyError": "Erreur inconnue",
     "NEW_ENGINE": "Ajouter un compte",
+    "NO": "Non",
     "NONE": "Aucun",
     "NOTIF_UPDATE_TITLE": "Mise à jour disponible ",
     "NOTIF_UPDATE_DOWNGRADE": "Mise à jour %1 requise",
@@ -330,5 +330,6 @@
     "WINDOWS_ERROR_TITLE": "Erreur de document",
     "WINDOWS_ERROR_OPENED_FILE": "Le fichier „%1“ est ouvert par un autre logiciel. Veuillez le fermer pour que %2 puisse traiter la suppression depuis votre espace de stockage local.",
     "WINDOWS_ERROR_OPENED_FOLDER": "Le dossier „%1“ ou un de ses enfants est verrouillé par un autre logiciel. Veuillez le fermer pour que %2 puisse traiter la suppression depuis votre espace de stockage local.",
-    "WRONG_CHANNEL": "Vous utilisez la version %1 qui vient du canal „%2“, mais votre canal actuel est „%3“. Voulez-vous mettre à jour vers la dernière version de votre canal actuel, ou changer de canal ?"
+    "WRONG_CHANNEL": "Vous utilisez la version %1 qui vient du canal „%2“, mais votre canal actuel est „%3“. Voulez-vous mettre à jour vers la dernière version de votre canal actuel, ou changer de canal ?",
+    "YES": "Oui"
 }
