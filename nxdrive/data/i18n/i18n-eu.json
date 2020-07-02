@@ -96,7 +96,6 @@
     "DIRECT_TRANSFER_NOT_ALLOWED": "„%1“ zuzenean transferitzea ez dago baimenduta fitxategi sinkronizatuentzat.",
     "DIRECT_TRANSFER_NOT_ENABLED": "Transferentzia zuzena ez dago gaituta.",
     "DIRECT_TRANSFER_NOT_POSSIBLE": "Ezin da transferentzia zuzena erabili une honetan.<br>Saiatu berriro geroago.",
-    "DIRECT_TRANSFER_SEND": "Sending files to %1",
     "DIRECT_TRANSFER_START": "Transferentzia hasi da: „%1“",
     "DIRECT_TRANSFER_WINDOW_TITLE": "Transferentzia zuzena - %1",
     "DISCONNECT": "Kendu kontua",
@@ -221,6 +220,7 @@
     "NETWORK_ERROR_UnknownNetworkError": "Errore ezezaguna",
     "NETWORK_ERROR_UnknownProxyError": "Errore ezezaguna",
     "NEW_ENGINE": "Gehitu kontua",
+    "NO": "No",
     "NONE": "Bat ere ez",
     "NOTIF_UPDATE_TITLE": "Eguneratzea eskuragarri",
     "NOTIF_UPDATE_DOWNGRADE": "Bertsioa %1(e)ra leheneratu beharra dago",
@@ -330,5 +330,6 @@
     "WINDOWS_ERROR_TITLE": "Dokumentuaren errorea",
     "WINDOWS_ERROR_OPENED_FILE": "„%1“ dokumentua beste software batek dauka irekita. Itxi ezazu %2(e)k biltegi lokaletik ezabatu ahal izan dezan.",
     "WINDOWS_ERROR_OPENED_FOLDER": "„%1“ karpeta edo bere umeak beste software batekin daude blokeatuta. Itxi ezazu %2(e)k biltegi lokaletik ezabatu ahal izan dezan.",
-    "WRONG_CHANNEL": "Unean %1 bertsioa darabilzu, „%2“ kanaletik, baina zure uneko kanala „%3“ da. Uneko kanaleko azken bertsiora aldatzea nahi duzu, edo kanalez aldatzea?"
+    "WRONG_CHANNEL": "Unean %1 bertsioa darabilzu, „%2“ kanaletik, baina zure uneko kanala „%3“ da. Uneko kanaleko azken bertsiora aldatzea nahi duzu, edo kanalez aldatzea?",
+    "YES": "Yes"
 }

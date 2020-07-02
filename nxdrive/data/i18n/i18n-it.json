@@ -96,7 +96,6 @@
     "DIRECT_TRANSFER_NOT_ALLOWED": "Il Direct Transfer di „%1“ non è consentito per i file sincronizzati.",
     "DIRECT_TRANSFER_NOT_ENABLED": "La funzione di Direct Transfer non è attivata.",
     "DIRECT_TRANSFER_NOT_POSSIBLE": "Al momento la funzione di Direct Transfer non è utilizzabile.<br>Riprova più tardi.",
-    "DIRECT_TRANSFER_SEND": "Sending files to %1",
     "DIRECT_TRANSFER_START": "Inizio trasferimento: „%1“",
     "DIRECT_TRANSFER_WINDOW_TITLE": "Trasferimento diretto - %1",
     "DISCONNECT": "Elimina account",
@@ -221,6 +220,7 @@
     "NETWORK_ERROR_UnknownNetworkError": "Errore sconosciuto",
     "NETWORK_ERROR_UnknownProxyError": "Errore sconosciuto",
     "NEW_ENGINE": "Aggiungi conto",
+    "NO": "No",
     "NONE": "Nessuno",
     "NOTIF_UPDATE_TITLE": "È disponibile un aggiornamento",
     "NOTIF_UPDATE_DOWNGRADE": "È necessario eseguire il downgrade alla versione %1",
@@ -330,5 +330,6 @@
     "WINDOWS_ERROR_TITLE": "Errore del documento",
     "WINDOWS_ERROR_OPENED_FILE": "Il file „%1“ è utilizzato da un altro programma software. Chiudere il programma per consentire a %2 di elaborare l’eliminazione dall’archivio locale.",
     "WINDOWS_ERROR_OPENED_FOLDER": "La cartella „%1“ o i suoi figli sono bloccati da un altro programma software. Chiudere il programma per consentire a%2 di elaborare l’eliminazione dall’archivio locale.",
-    "WRONG_CHANNEL": "Stai eseguendo la versione %1 che è dal canale ,,%2“ ma il tuo canale attuale è ,,%3“. Vuoi declassare all'ultima versione del tuo canale corrente, o cambiare canali?"
+    "WRONG_CHANNEL": "Stai eseguendo la versione %1 che è dal canale ,,%2“ ma il tuo canale attuale è ,,%3“. Vuoi declassare all'ultima versione del tuo canale corrente, o cambiare canali?",
+    "YES": "Yes"
 }

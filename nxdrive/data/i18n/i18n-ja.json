@@ -96,7 +96,6 @@
     "DIRECT_TRANSFER_NOT_ALLOWED": "„%1\" の直接転送は、同期されたファイルには許可されていません。",
     "DIRECT_TRANSFER_NOT_ENABLED": "直接転送機能は有効になっていません。",
     "DIRECT_TRANSFER_NOT_POSSIBLE": "ダイレクト転送機能は今は使えません。<br>あとでもう一度試してみてください。",
-    "DIRECT_TRANSFER_SEND": "Sending files to %1",
     "DIRECT_TRANSFER_START": "転送開始：„%1“",
     "DIRECT_TRANSFER_WINDOW_TITLE": "直接転送 - %1",
     "DISCONNECT": "アカウントを削除",
@@ -221,6 +220,7 @@
     "NETWORK_ERROR_UnknownNetworkError": "不明なエラー",
     "NETWORK_ERROR_UnknownProxyError": "不明なエラー",
     "NEW_ENGINE": "新規",
+    "NO": "No",
     "NONE": "なし",
     "NOTIF_UPDATE_TITLE": "更新が利用できます",
     "NOTIF_UPDATE_DOWNGRADE": "%1へのダウングレードが必要です",
@@ -330,5 +330,6 @@
     "WINDOWS_ERROR_TITLE": "文書エラー",
     "WINDOWS_ERROR_OPENED_FILE": "ファイル„%1“は別のソフトウェアによって開かれています。%2がローカルストレージからの削除を処理できるよう、まずファイルを閉じてください。",
     "WINDOWS_ERROR_OPENED_FOLDER": "フォルダ„%1“ またはその子が別のソフトウェアによってロックされています。%2がローカルストレージからの削除を処理できるよう、まずファイルを閉じてください。",
-    "WRONG_CHANNEL": "バージョン%1は\"%2\"チャンネルからのものですが、現在のチャンネルは\"%3\"です。 現在のチャンネルの最新バージョンにダウングレードするか、チャンネルを切り替えるか。"
+    "WRONG_CHANNEL": "バージョン%1は\"%2\"チャンネルからのものですが、現在のチャンネルは\"%3\"です。 現在のチャンネルの最新バージョンにダウングレードするか、チャンネルを切り替えるか。",
+    "YES": "Yes"
 }
