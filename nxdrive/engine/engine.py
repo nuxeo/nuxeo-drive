@@ -4,6 +4,7 @@ import os
 import shutil
 from contextlib import suppress
 from dataclasses import dataclass
+from functools import partial
 from logging import getLogger
 from pathlib import Path
 from threading import Thread
@@ -42,6 +43,7 @@ from ..utils import (
     find_icon,
     find_suitable_tmp_dir,
     get_tree_list,
+    grouper,
     if_frozen,
     safe_filename,
     safe_long_path,
@@ -71,7 +73,7 @@ class FsMarkerException(Exception):
 class Engine(QObject):
     """ Used for threads interaction. """
 
-    _start = pyqtSignal()
+    started = pyqtSignal()
     _stop = pyqtSignal()
     _scanPair = pyqtSignal(str)
     errorOpenedFile = pyqtSignal(object)
@@ -105,6 +107,7 @@ class Engine(QObject):
     directTranferDuplicateError = pyqtSignal(Path, Document)
     directTranferError = pyqtSignal(Path)
     directTranferStatus = pyqtSignal(Path, bool)
+    directTranferItemsCount = pyqtSignal(bool)
 
     type = "NXDRIVE"
     # Folder locker - LocalFolder processor can prevent
@@ -416,24 +419,47 @@ class Engine(QObject):
         # Save the remote location for next times
         self._save_remote_parent_infos(remote_parent_path, remote_parent_ref)
 
-        count = 0
-
-        def plan(path: Path, rparent_path: str) -> None:
-            """Add the path into the database to plan the upload."""
-            self.dao.insert_direct_transfer_state(path, rparent_path, remote_parent_ref)
-
-            nonlocal count
-            count += 1
+        items = []
 
         for local_path in sorted(local_paths):
             if local_path.is_file():
-                plan(local_path, remote_parent_path)
+                items.append(
+                    (
+                        str(local_path),
+                        local_path.name,
+                        False,
+                        local_path.stat().st_size,
+                        remote_parent_path,
+                        remote_parent_ref,
+                    )
+                )
             else:
                 tree = sorted(get_tree_list(local_path, remote_parent_path))
-                for path, remote_path in tree:
-                    plan(path, remote_path)
+                for path, remote_subparent_path, size in tree:
+                    folderish = path.is_dir()
+                    items.append(
+                        (
+                            str(path),
+                            path.name,
+                            folderish,
+                            size,
+                            remote_subparent_path,
+                            remote_parent_ref,
+                        )
+                    )
 
-        log.info(f"Planned {count:,} item(s) to Direct Transfer, let's gooo!")
+        # Add all paths into the database to plan the upload, by batch of 100 items
+        current_max_row_id = -1
+        for batch_items in grouper(items, 500):
+            row_id = self.dao.plan_many_direct_transfer_items(batch_items)
+            if current_max_row_id == -1:
+                current_max_row_id = row_id
+            self.directTranferItemsCount.emit(True)
+
+        log.info(f"Planned {len(items):,} item(s) to Direct Transfer, let's gooo!")
+
+        # And add new pairs to the queue
+        self.dao.queue_many_direct_transfer_items(current_max_row_id)
 
     def direct_transfer(
         self, local_paths: Set[Path], remote_parent_path: str, remote_parent_ref: str
@@ -578,32 +604,55 @@ class Engine(QObject):
         self.resume_suspended_transfers()
         self.syncResumed.emit()
 
-    def resume_transfer(self, nature: str, uid: int) -> None:
-        """ Resume a single transfer with its nature and uid. """
-        self.dao.resume_transfer(nature, uid)
-        transfer = getattr(self.dao, f"get_{nature}")(uid=uid)
-        if not (transfer and transfer.doc_pair):
-            return
+    def _resume_transfers(
+        self, nature: str, func: Callable, is_direct_transfer: bool = False
+    ) -> None:
+        """Resume all transfers returned by the *func* function."""
+        resume = self.dao.resume_transfer
+        get_state = self.dao.get_state_from_id
 
-        doc_pair = self.dao.get_state_from_id(transfer.doc_pair)
-        if doc_pair:
-            self.queue_manager.push(doc_pair)
+        transfers = func()
+        if not isinstance(transfers, list):
+            transfers = [transfers]
+
+        for transfer in transfers:
+            if transfer.uid is None:
+                continue
+
+            resume(nature, transfer.uid, is_direct_transfer=is_direct_transfer)
+
+            doc_pair = get_state(transfer.doc_pair)
+            if doc_pair:
+                self.queue_manager.push(doc_pair)
+
+    def resume_transfer(
+        self, nature: str, uid: int, is_direct_transfer: bool = False
+    ) -> None:
+        """Resume a single transfer with its nature and UID."""
+        meth = (
+            self.dao.get_download
+            if nature == "download"
+            else self.dao.get_dt_upload
+            if is_direct_transfer
+            else self.dao.get_upload
+        )
+        func = partial(meth, uid=uid)  # type: ignore
+        self._resume_transfers(nature, func, is_direct_transfer=is_direct_transfer)
 
     def resume_suspended_transfers(self) -> None:
-        """ Resume all suspended transfers. """
-        for nature in ("download", "upload"):
-            meth = getattr(self.dao, f"get_{nature}s_with_status")
-            for transfer in meth(TransferStatus.SUSPENDED):
-                if transfer.uid is None:
-                    continue
+        """Resume all suspended transfers."""
+        dao = self.dao
+        status = TransferStatus.SUSPENDED
 
-                self.dao.resume_transfer(nature, transfer.uid)
-                if transfer.doc_pair is None:
-                    continue
-
-                doc_pair = self.dao.get_state_from_id(transfer.doc_pair)
-                if doc_pair:
-                    self.queue_manager.push(doc_pair)
+        self._resume_transfers(
+            "download", partial(dao.get_downloads_with_status, status)
+        )
+        self._resume_transfers("upload", partial(dao.get_uploads_with_status, status))
+        self._resume_transfers(
+            "upload",
+            partial(dao.get_dt_uploads_with_status, status),
+            is_direct_transfer=True,
+        )
 
         # Update the systray icon and syncing count in the systray, if there are any resumed transfers
         self._check_sync_start()
@@ -617,13 +666,13 @@ class Engine(QObject):
                 log.info(f"Removed staled {transfer}")
 
     def cancel_upload(self, transfer_uid: int) -> None:
-        """Cancel an ongoing upload and clean the database."""
+        """Cancel an ongoing Direct Transfer upload and clean the database."""
         log.debug(f"Canceling transfer {transfer_uid}")
-        upload = self.dao.get_upload(uid=transfer_uid)
+        upload = self.dao.get_dt_upload(uid=transfer_uid)
         if not upload:
             return
         self.remote.cancel_batch(upload.batch)
-        self.dao.remove_transfer("upload", upload.path)
+        self.dao.remove_transfer("upload", upload.path, is_direct_transfer=True)
 
         doc_pair = self.dao.get_state_from_local(upload.path)
         if not doc_pair:
@@ -870,7 +919,7 @@ class Engine(QObject):
             self.conflict_resolver(conflict.id, emit=False)
 
         self.syncStarted.emit(0)
-        self._start.emit()
+        self.started.emit()
 
     def get_metrics(self) -> Metrics:
         return {

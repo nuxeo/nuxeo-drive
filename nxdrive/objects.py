@@ -456,6 +456,7 @@ class Transfer:
     is_direct_transfer: bool = False
     progress: float = 0.0
     doc_pair: Optional[int] = None
+    filesize: int = 0
 
     def __post_init__(self) -> None:
         self.name = self.path.name
@@ -464,7 +465,6 @@ class Transfer:
 @dataclass
 class Download(Transfer):
     transfer_type: str = field(init=False, default="download")
-    filesize: int = 0
     tmpname: Optional[Path] = None
     url: Optional[str] = None
 

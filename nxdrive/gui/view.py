@@ -192,17 +192,13 @@ class TransferModel(QAbstractListModel):
         """Return a nicely formatted line to know the transfer progression.
         E.g: 10.0 MiB / 42.0 MiB [24%]
         """
+        size = row["filesize"]
         if row["transfer_type"] == "download":
             try:
                 progress = row["tmpname"].stat().st_size
             except FileNotFoundError:
                 progress = 0
-            size = row["filesize"]
         else:
-            try:
-                size = row["path"].stat().st_size
-            except FileNotFoundError:
-                size = 0
             progress = size * (row["progress"] or 0.0) / 100
 
         # Pretty print
@@ -258,7 +254,6 @@ class TransferModel(QAbstractListModel):
 
 class DirectTransferModel(QAbstractListModel):
     fileChanged = pyqtSignal()
-    noItems = pyqtSignal()
 
     ID = Qt.UserRole + 1
     NAME = Qt.UserRole + 2
@@ -281,7 +276,7 @@ class DirectTransferModel(QAbstractListModel):
             self.STATUS: b"status",
             self.PROGRESS: b"progress",
             self.ENGINE: b"engine",
-            self.SIZE: b"size",
+            self.SIZE: b"filesize",
             self.FINALIZING: b"finalizing",  # Linking action
             self.TRANSFERRED: b"transferred",
             self.REMOTE_PARENT_PATH: b"remote_parent_path",
@@ -295,13 +290,6 @@ class DirectTransferModel(QAbstractListModel):
 
     def roleNames(self) -> Dict[int, bytes]:
         return self.names
-
-    @pyqtProperty("int", notify=fileChanged)
-    def count(self) -> int:
-        count = self.rowCount()
-        if count == 0:
-            self.noItems.emit()
-        return count
 
     def set_items(
         self, items: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
@@ -325,9 +313,9 @@ class DirectTransferModel(QAbstractListModel):
         if role == self.FINALIZING:
             return row.get("finalizing", False)
         if role == self.SIZE:
-            return self.psize(row["size"])
+            return self.psize(row["filesize"])
         if role == self.TRANSFERRED:
-            return self.psize(row["size"] * row["progress"] / 100)
+            return self.psize(row["filesize"] * row["progress"] / 100)
         return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:

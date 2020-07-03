@@ -10,14 +10,31 @@ Rectangle {
     anchors.fill: parent
 
     property string engineUid: ""
+    property int itemsCount: 0
+    property double startTime: 0.0
 
     signal setEngine(string uid)
+    signal setItemsCount(bool force)
 
     onSetEngine: engineUid = uid
+    onSetItemsCount: updateCounts(force)
+
+    function updateCounts(force) {
+        // Update counts every second to go easy on the database
+        var now = new Date().getTime()
+
+        if (force || now - startTime > 1000) {
+            itemsCount = api.get_dt_items_count(engineUid)
+            if (itemsCount == 0) {
+                application.close_direct_transfer_window()
+            }
+            startTime = new Date().getTime()
+        }
+    }
 
     Connections {
         target: DirectTransferModel
-        onNoItems: application.close_direct_transfer_window()
+        onFileChanged: updateCounts()
     }
 
     TabBar {
@@ -66,10 +83,35 @@ Rectangle {
                     width: parent.width
                     height: contentHeight
                     spacing: 20
-                    // visible: DirectTransferModel.count > 0
 
                     model: DirectTransferModel
                     delegate: TransferItem {}
+                }
+            }
+
+            // The number of total items to sync, including ones being synced
+            RowLayout {
+                anchors.bottom: parent.bottom
+                anchors.right: parent.right
+                anchors.margins: 10
+
+                // The count
+                ScaledText {
+                    color: lightGray
+                    text: itemsCount
+                }
+
+                // The animated icon
+                ScaledText {
+                    color: darkGray
+                    text: MdiFont.Icon.cached
+
+                    SequentialAnimation on rotation {
+                        running: true
+                        loops: Animation.Infinite; alwaysRunToEnd: true
+                        NumberAnimation { from: 360; to: 0; duration: 2000; easing.type: Easing.Linear }
+                        PauseAnimation { duration: 250 }
+                    }
                 }
             }
         }

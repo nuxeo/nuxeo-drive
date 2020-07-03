@@ -72,9 +72,7 @@ class DirectTransfer:
 
     def no_uploads(self) -> bool:
         """Check there is no ongoing uploads."""
-        assert not any(
-            u for u in self.engine_1.dao.get_uploads() if u.path == self.file
-        )
+        assert not self.engine_1.dao.get_dt_upload(path=self.file)
 
     def sync_and_check(self, should_have_blob: bool = True) -> None:
         # Let time for uploads to be planned
@@ -87,7 +85,7 @@ class DirectTransfer:
         assert not self.engine_1.dao.get_errors(limit=0)
 
         # Check the uploads count
-        assert not list(self.engine_1.dao.get_uploads())
+        assert not list(self.engine_1.dao.get_dt_uploads())
 
         # Check the file exists on the server and has a blob attached
         if should_have_blob:
@@ -115,7 +113,7 @@ class DirectTransfer:
         def callback(*_):
             """This will mimic what is done in TransferItem.qml."""
             # Ensure we have 1 ongoing upload
-            uploads = list(dao.get_uploads())
+            uploads = list(dao.get_dt_uploads())
             assert uploads
             upload = uploads[0]
             assert upload.status == TransferStatus.ONGOING
@@ -130,9 +128,9 @@ class DirectTransfer:
             with ensure_no_exception():
                 engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
                 self.wait_sync()
-            assert dao.get_uploads_with_status(TransferStatus.PAUSED)
+            assert dao.get_dt_uploads_with_status(TransferStatus.PAUSED)
             # Cancel the upload
-            upload = list(dao.get_uploads())[0]
+            upload = list(dao.get_dt_uploads())[0]
             engine.cancel_upload(upload.uid)
         self.sync_and_check(should_have_blob=False)
 
@@ -237,7 +235,7 @@ class DirectTransfer:
             Then the upload will be paused in Remote.upload().
             """
             # Ensure we have 1 ongoing upload
-            uploads = list(dao.get_uploads())
+            uploads = list(dao.get_dt_uploads())
             assert uploads
             upload = uploads[0]
             assert upload.status == TransferStatus.ONGOING
@@ -255,10 +253,12 @@ class DirectTransfer:
             with ensure_no_exception():
                 engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
                 self.wait_sync()
-            assert dao.get_uploads_with_status(TransferStatus.PAUSED)
+            assert dao.get_dt_uploads_with_status(TransferStatus.PAUSED)
 
         # Resume the upload
-        engine.resume_transfer("upload", list(dao.get_uploads())[0].uid)
+        engine.resume_transfer(
+            "upload", list(dao.get_dt_uploads())[0].uid, is_direct_transfer=True
+        )
         self.sync_and_check()
 
     def test_pause_upload_automatically(self):
@@ -270,7 +270,7 @@ class DirectTransfer:
         def callback(*_):
             """This will mimic what is done in SystrayMenu.qml: suspend the app."""
             # Ensure we have 1 ongoing upload
-            uploads = list(dao.get_uploads())
+            uploads = list(dao.get_dt_uploads())
             assert uploads
             upload = uploads[0]
             assert upload.status == TransferStatus.ONGOING
@@ -288,7 +288,7 @@ class DirectTransfer:
             with ensure_no_exception():
                 engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
                 self.wait_sync()
-            assert dao.get_uploads_with_status(TransferStatus.SUSPENDED)
+            assert dao.get_dt_uploads_with_status(TransferStatus.SUSPENDED)
 
         # Resume the upload
         self.manager_1.resume()
@@ -300,7 +300,7 @@ class DirectTransfer:
         def callback(*_):
             """Pause the upload and apply changes to the document."""
             # Ensure we have 1 ongoing upload
-            uploads = list(dao.get_uploads())
+            uploads = list(dao.get_dt_uploads())
             assert uploads
             upload = uploads[0]
             assert upload.status == TransferStatus.ONGOING
@@ -323,7 +323,9 @@ class DirectTransfer:
                 self.wait_sync()
 
         # Resume the upload
-        engine.resume_transfer("upload", list(dao.get_uploads())[0].uid)
+        engine.resume_transfer(
+            "upload", list(dao.get_dt_uploads())[0].uid, is_direct_transfer=True
+        )
         self.sync_and_check()
         # Check the local content is correct
         assert self.file.read_bytes() == b"locally changed"
@@ -337,7 +339,7 @@ class DirectTransfer:
         def callback(*_):
             """Pause the upload and delete the document."""
             # Ensure we have 1 ongoing upload
-            uploads = list(dao.get_uploads())
+            uploads = list(dao.get_dt_uploads())
             assert uploads
             upload = uploads[0]
             assert upload.status == TransferStatus.ONGOING
@@ -364,7 +366,9 @@ class DirectTransfer:
                 self.wait_sync()
 
         # Resume the upload
-        engine.resume_transfer("upload", list(dao.get_uploads())[0].uid)
+        engine.resume_transfer(
+            "upload", list(dao.get_dt_uploads())[0].uid, is_direct_transfer=True
+        )
         self.sync_and_check(should_have_blob=False)
 
     def test_server_error_but_upload_ok(self):
@@ -386,7 +390,7 @@ class DirectTransfer:
                 # assert self.remote.exists(file_path)
 
                 # There should be 1 upload with DONE transfer status
-                uploads = list(dao.get_uploads())
+                uploads = list(dao.get_dt_uploads())
                 assert len(uploads) == 1
                 upload = uploads[0]
                 assert upload.status == TransferStatus.DONE
@@ -449,7 +453,7 @@ class DirectTransfer:
                 self.wait_sync()
 
                 # There should be 1 upload with ONGOING transfer status
-                uploads = list(dao.get_uploads())
+                uploads = list(dao.get_dt_uploads())
                 assert len(uploads) == 1
                 upload = uploads[0]
                 assert upload.status == TransferStatus.DONE
@@ -485,7 +489,7 @@ class DirectTransfer:
                 self.wait_sync()
 
                 # There should be 1 upload with ONGOING transfer status
-                uploads = list(dao.get_uploads())
+                uploads = list(dao.get_dt_uploads())
                 assert len(uploads) == 1
                 upload = uploads[0]
                 assert upload.status == TransferStatus.ONGOING
@@ -524,7 +528,7 @@ class DirectTransferFolder:
 
         # Get folders and files tests will handle
         self.tree = {
-            path: rpath for path, rpath in get_tree_list(self.folder, self.ws.path)
+            path: rpath for path, rpath, _ in get_tree_list(self.folder, self.ws.path)
         }
         paths = self.tree.keys()
         self.files = [path for path in paths if path.is_file()]
@@ -563,7 +567,7 @@ class DirectTransferFolder:
         assert not self.engine_1.dao.get_errors(limit=0)
 
         # Check the uploads count
-        assert not list(self.engine_1.dao.get_uploads())
+        assert not list(self.engine_1.dao.get_dt_uploads())
 
         # Check files exist on the server with their attached blob
         for file in self.files:
@@ -577,7 +581,7 @@ class DirectTransferFolder:
         """Test the Direct Transfer on a folder containing files and a sufolder."""
 
         # There is no upload, right now
-        assert not list(self.engine_1.dao.get_uploads())
+        assert not list(self.engine_1.dao.get_dt_uploads())
 
         with ensure_no_exception():
             self.engine_1.direct_transfer([self.folder], self.ws.path)
@@ -589,7 +593,7 @@ class DirectTransferFolder:
         assert children[0]["title"] == self.folder.name
 
         # All has been uploaded
-        assert not list(self.engine_1.dao.get_uploads())
+        assert not list(self.engine_1.dao.get_dt_uploads())
 
 
 # NXDRIVE-2019

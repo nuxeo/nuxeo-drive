@@ -23,6 +23,7 @@ from threading import RLock, local
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Dict,
     Generator,
     List,
@@ -619,6 +620,7 @@ class EngineDAO(ConfigurationDAO):
 
     newConflict = pyqtSignal(object)
     transferUpdated = pyqtSignal()
+    directTransferUpdated = pyqtSignal()
 
     def __init__(self, db: Path) -> None:
         super().__init__(db)
@@ -630,7 +632,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 12
+        return 13
 
     def _migrate_state(self, cursor: Cursor) -> None:
         try:
@@ -745,6 +747,9 @@ class EngineDAO(ConfigurationDAO):
                 "Uploads_backup",
                 ("remote_parent_ref", "VARCHAR", "DEFAULT", "NULL"),
             )
+            self._append_to_table(
+                cursor, "Uploads_backup", ("filesize", "INTEGER", "DEFAULT", "0")
+            )
 
             # Insert back old datas with up-to-date fields types
             cursor.execute("INSERT INTO Uploads SELECT * FROM Uploads_backup;")
@@ -801,6 +806,14 @@ class EngineDAO(ConfigurationDAO):
             )
             self.store_int(SCHEMA_VERSION, 12)
 
+        if version < 13:
+            # Add the *filesize* field to the Uploads table,
+            # used to display items in the Direct Transfer window.
+            self._append_to_table(
+                cursor, "Uploads", ("filesize", "INTEGER", "DEFAULT", "0")
+            )
+            self.store_int(SCHEMA_VERSION, 13)
+
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
         if name == "States":
             self._create_state_table(cursor, force)
@@ -833,6 +846,7 @@ class EngineDAO(ConfigurationDAO):
             "    is_direct_edit     INTEGER     DEFAULT 0,"
             "    is_direct_transfer INTEGER     DEFAULT 0,"
             "    progress           REAL,"
+            "    filesize           INTEGER     DEFAULT 0,"
             "    doc_pair           INTEGER     UNIQUE,"
             "    batch              VARCHAR,"
             "    chunk_size         INTEGER,"
@@ -1081,43 +1095,44 @@ class EngineDAO(ConfigurationDAO):
 
             return row_id
 
-    def insert_direct_transfer_state(
-        self, local_path: Path, remote_parent_path: str, remote_parent_ref: str,
-    ) -> int:
+    def plan_many_direct_transfer_items(self, items: Tuple[Any, ...]) -> int:
         """
-        Insert a local state with some remote information.
-        Specific to the Direct Transfer feature.
+        Add new Direct Transfer *items*.
+        This is an optimized method that will insert all *items* in one go.
+        It is recommended to now exceed 500 *items* for each call of this method.
         """
-
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
-            pair_state = PAIR_STATES[("direct", "unknown")]
-            folderish = local_path.is_dir()
-            size = 0 if folderish else local_path.stat().st_size
+            cur = self._get_write_connection().cursor()
 
-            c.execute(
+            # This will be needed later
+            current_max_row_id = cur.execute(
+                "SELECT max(ROWID) FROM States"
+            ).fetchone()[0]
+
+            # Insert data in one shot
+            query = (
                 "INSERT INTO States "
                 "(local_path, local_name, folderish, size, "
-                "remote_parent_path, remote_parent_ref,"
+                "remote_parent_path, remote_parent_ref, "
                 "local_state, remote_state, pair_state) "
-                "VALUES (?, ?, ?, ?, ?, ?, 'direct', 'unknown', ?)",
-                (
-                    local_path,
-                    local_path.name,
-                    folderish,
-                    size,
-                    remote_parent_path,
-                    remote_parent_ref,
-                    pair_state,
-                ),
+                "VALUES (?, ?, ?, ?, ?, ?, 'direct', 'unknown', 'direct_transfer')"
             )
-            row_id = c.lastrowid
+            cur.executemany(query, items)
+            return current_max_row_id
 
-            self._queue_pair_state(row_id, folderish, pair_state)
-            self._items_count += 1
+    def queue_many_direct_transfer_items(self, current_max_row_id: int) -> None:
+        """Add new Direct Transfer pairs to the queue."""
+        if not self.queue_manager:
+            return
 
-            return row_id
+        with self.lock:
+            cur = self._get_write_connection().cursor()
+
+            # Send new pairs into the queue manager
+            query = "SELECT * FROM States WHERE ROWID > ? AND local_state = 'direct' ORDER BY ROWID ASC"
+            for new_pair in cur.execute(query, (current_max_row_id,)):
+                self.queue_manager.push(new_pair)
+                self._items_count += 1
 
     def get_last_files(
         self, number: int, direction: str = "", duration: int = None
@@ -1392,6 +1407,9 @@ class EngineDAO(ConfigurationDAO):
         conditions = {"file": "AND folderish = 0", "folder": "AND folderish = 1"}
         condition = conditions.get(filetype or "", "")
         return self.get_count(f"pair_state = 'synchronized' {condition}")
+
+    def get_dt_items_count(self) -> int:
+        return self.get_count("local_state = 'direct'")
 
     def get_count(self, condition: str = None) -> int:
         query = "SELECT COUNT(*) as count FROM States"
@@ -2152,7 +2170,7 @@ class EngineDAO(ConfigurationDAO):
                 res.uid,
                 Path(res.path),
                 status,
-                engine=res.engine,
+                res.engine,
                 is_direct_edit=res.is_direct_edit,
                 progress=res.progress,
                 filesize=res.filesize,
@@ -2164,7 +2182,7 @@ class EngineDAO(ConfigurationDAO):
     def get_uploads(self) -> Generator[Upload, None, None]:
         con = self._get_read_connection()
         c = con.cursor()
-        for res in c.execute("SELECT * FROM Uploads"):
+        for res in c.execute("SELECT * FROM Uploads WHERE is_direct_transfer = 0"):
             try:
                 status = TransferStatus(res.status)
             except ValueError:
@@ -2175,22 +2193,62 @@ class EngineDAO(ConfigurationDAO):
                 res.uid,
                 Path(res.path),
                 status,
-                engine=res.engine,
+                res.engine,
                 is_direct_edit=res.is_direct_edit,
-                is_direct_transfer=res.is_direct_transfer,
                 progress=res.progress,
+                filesize=res.filesize,
                 doc_pair=res.doc_pair,
                 batch=json.loads(res.batch),
                 chunk_size=res.chunk_size,
-                remote_parent_path=res.remote_parent_path,
-                remote_parent_ref=res.remote_parent_ref,
             )
+
+    def get_dt_uploads(self) -> Generator[Upload, None, None]:
+        """Retrieve all Direct Transfer items (only needed details)."""
+        con = self._get_read_connection()
+        c = con.cursor()
+        for res in c.execute("SELECT * FROM Uploads WHERE is_direct_transfer = 1"):
+            yield Upload(
+                res.uid,
+                Path(res.path),
+                TransferStatus(res.status),
+                res.engine,
+                doc_pair=res.doc_pair,
+                batch=json.loads(res.batch),
+            )
+
+    def get_dt_uploads_raw(self) -> Generator[Dict[str, Any], None, None]:
+        """
+        Retrieve all Direct Transfer items.
+        Return a simple dict to improve GUI performances (instead of Upload objects).
+        """
+        con = self._get_read_connection()
+        c = con.cursor()
+        for res in c.execute("SELECT * FROM Uploads WHERE is_direct_transfer = 1"):
+            path = Path(res.path)
+            yield {
+                "uid": res.uid,
+                "name": path.name,
+                "filesize": res.filesize,
+                "status": TransferStatus(res.status),
+                "engine": res.engine,
+                "progress": res.progress or 0.0,
+                "remote_parent_path": res.remote_parent_path,
+                "remote_parent_ref": res.remote_parent_ref,
+            }
 
     def get_downloads_with_status(self, status: TransferStatus) -> List[Download]:
         return [d for d in self.get_downloads() if d.status == status]
 
     def get_uploads_with_status(self, status: TransferStatus) -> List[Upload]:
-        return [u for u in self.get_uploads() if u.status == status]
+        return self._get_uploads_with_status_and_func(self.get_uploads, status)
+
+    def get_dt_uploads_with_status(self, status: TransferStatus) -> List[Upload]:
+        return self._get_uploads_with_status_and_func(self.get_dt_uploads, status)
+
+    def _get_uploads_with_status_and_func(
+        self, func: Callable, status: TransferStatus
+    ) -> List[Upload]:
+        return [u for u in func() if u.status == status]
 
     def get_download(
         self, uid: int = None, path: Path = None, doc_pair: int = None
@@ -2208,8 +2266,14 @@ class EngineDAO(ConfigurationDAO):
         res = [d for d in self.get_downloads() if getattr(d, key) == value]
         return res[0] if res else None
 
-    def get_upload(
-        self, uid: int = None, path: Path = None, doc_pair: int = None
+    def get_upload(self, **kwargs: Any) -> Optional[Upload]:
+        return self._get_upload_with_func(self.get_uploads, **kwargs)
+
+    def get_dt_upload(self, **kwargs: Any) -> Optional[Upload]:
+        return self._get_upload_with_func(self.get_dt_uploads, **kwargs)
+
+    def _get_upload_with_func(
+        self, func: Callable, uid: int = None, path: Path = None, doc_pair: int = None
     ) -> Optional[Upload]:
         value: Any
         if uid:
@@ -2221,7 +2285,7 @@ class EngineDAO(ConfigurationDAO):
         else:
             return None
 
-        res = [u for u in self.get_uploads() if getattr(u, key) == value]
+        res = [u for u in func() if getattr(u, key) == value]
         return res[0] if res else None
 
     def save_download(self, download: Download) -> None:
@@ -2258,6 +2322,7 @@ class EngineDAO(ConfigurationDAO):
                 upload.engine,
                 upload.is_direct_edit,
                 upload.is_direct_transfer,
+                upload.filesize,
                 json.dumps(batch),
                 upload.chunk_size,
                 upload.remote_parent_path,
@@ -2266,16 +2331,19 @@ class EngineDAO(ConfigurationDAO):
             c = self._get_write_connection().cursor()
             sql = (
                 "INSERT INTO Uploads "
-                "(path, status, engine, is_direct_edit, is_direct_transfer, batch, chunk_size,"
+                "(path, status, engine, is_direct_edit, is_direct_transfer, filesize, batch, chunk_size,"
                 " remote_parent_path, remote_parent_ref)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             )
             c.execute(sql, values)
 
             # Important: update the upload UID attr
             upload.uid = int(c.execute("SELECT last_insert_rowid()").fetchone()[0])
 
-            self.transferUpdated.emit()
+            if upload.is_direct_transfer:
+                self.directTransferUpdated.emit()
+            else:
+                self.transferUpdated.emit()
 
     def update_upload(self, upload: Upload) -> None:
         """Update a upload."""
@@ -2287,7 +2355,9 @@ class EngineDAO(ConfigurationDAO):
             sql = "UPDATE Uploads SET batch = ? WHERE uid = ?"
             c.execute(sql, (json.dumps(batch), upload.uid))
 
-    def pause_transfer(self, nature: str, uid: int, progress: float) -> None:
+    def pause_transfer(
+        self, nature: str, uid: int, progress: float, is_direct_transfer: bool = False
+    ) -> None:
         with self.lock:
             c = self._get_write_connection().cursor()
             table = f"{nature.title()}s"  # Downloads/Uploads
@@ -2295,7 +2365,10 @@ class EngineDAO(ConfigurationDAO):
                 f"UPDATE {table} SET status = ?, progress = ? WHERE uid = ?",
                 (TransferStatus.PAUSED.value, progress, uid),
             )
-            self.transferUpdated.emit()
+            if is_direct_transfer:
+                self.directTransferUpdated.emit()
+            else:
+                self.transferUpdated.emit()
 
     def suspend_transfers(self) -> None:
         with self.lock:
@@ -2304,13 +2377,21 @@ class EngineDAO(ConfigurationDAO):
                 "UPDATE Downloads SET status = ? WHERE status = ?",
                 (TransferStatus.SUSPENDED.value, TransferStatus.ONGOING.value),
             )
+            rows = c.rowcount
             c.execute(
                 "UPDATE Uploads SET status = ? WHERE status = ?",
                 (TransferStatus.SUSPENDED.value, TransferStatus.ONGOING.value),
             )
-            self.transferUpdated.emit()
 
-    def resume_transfer(self, nature: str, uid: int) -> None:
+            if rows + c.rowcount == 0:
+                return
+
+            self.transferUpdated.emit()
+            self.directTransferUpdated.emit()
+
+    def resume_transfer(
+        self, nature: str, uid: int, is_direct_transfer: bool = False
+    ) -> None:
         with self.lock:
             c = self._get_write_connection().cursor()
             table = f"{nature.title()}s"  # Downloads/Uploads
@@ -2318,7 +2399,10 @@ class EngineDAO(ConfigurationDAO):
                 f"UPDATE {table} SET status = ? WHERE uid = ?",
                 (TransferStatus.ONGOING.value, uid),
             )
-            self.transferUpdated.emit()
+            if is_direct_transfer:
+                self.directTransferUpdated.emit()
+            else:
+                self.transferUpdated.emit()
 
     def set_transfer_doc(
         self, nature: str, transfer_uid: int, engine_uid: str, doc_pair_uid: int
@@ -2355,12 +2439,21 @@ class EngineDAO(ConfigurationDAO):
                 (transfer.status.value, transfer.uid),
             )
 
-    def remove_transfer(self, nature: str, path: Path) -> None:
+    def remove_transfer(
+        self, nature: str, path: Path, is_direct_transfer: bool = False
+    ) -> None:
         with self.lock:
             c = self._get_write_connection().cursor()
             table = f"{nature.title()}s"  # Downloads/Uploads
             c.execute(f"DELETE FROM {table} WHERE path = ?", (path,))
-            self.transferUpdated.emit()
+
+            if c.rowcount == 0:
+                return
+
+            if is_direct_transfer:
+                self.directTransferUpdated.emit()
+            else:
+                self.transferUpdated.emit()
 
     @staticmethod
     def _escape(text: str) -> str:

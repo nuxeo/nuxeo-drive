@@ -51,7 +51,7 @@ def test_action_with_values():
 
 def test_download_action():
     filepath = Path("fake/test.odt")
-    action = DownloadAction(filepath)
+    action = DownloadAction(filepath, 0)
     assert action.type == "Download"
 
     Action.finish_action()
@@ -64,7 +64,7 @@ def test_file_action(tmp):
     filepath = parent / "test.txt"
     size = filepath.write_bytes(b"This is Sparta!")
 
-    action = FileAction("Mocking", filepath)
+    action = FileAction("Mocking", filepath, size)
     assert action.type == "Mocking"
     assert not action.empty
 
@@ -94,7 +94,7 @@ def test_file_action_empty_file(tmp):
     filepath = parent / "test.txt"
     filepath.touch()
 
-    action = FileAction("Mocking", filepath)
+    action = FileAction("Mocking", filepath, filepath.stat().st_size)
 
     assert action.empty
     assert not action.uploaded
@@ -119,15 +119,15 @@ def test_file_action_inexistant_file(tmp):
     parent.mkdir()
     filepath = parent / "test.txt"
 
-    action = FileAction("Mocking", filepath)
-    assert not action.empty
+    action = FileAction("Mocking", filepath, 0)
+    assert action.empty
     assert not action.uploaded
 
     details = action.export()
     assert details["action_type"] == "Mocking"
     assert details["progress"] == 0.0
     assert isinstance(details["uid"], str)
-    assert details["size"] == -1.0
+    assert details["size"] == 0
     assert details["name"] == filepath.name
     assert details["filepath"] == str(filepath)
 
@@ -214,7 +214,7 @@ def test_upload_action(tmp):
     filepath = folder / "test-upload.txt"
     filepath.write_bytes(b"This is Sparta!")
 
-    action = UploadAction(filepath)
+    action = UploadAction(filepath, filepath.stat().st_size)
     assert action.type == "Upload"
 
     Action.finish_action()
@@ -227,7 +227,7 @@ def test_verification_action(tmp):
     filepath = folder / "test.txt"
     filepath.write_bytes(b"This is Sparta!")
 
-    action = VerificationAction(filepath)
+    action = VerificationAction(filepath, filepath.stat().st_size)
     assert action.type == "Verification"
 
     Action.finish_action()
@@ -240,7 +240,7 @@ def test_finalization_action(tmp):
     filepath = folder / "test.txt"
     filepath.write_bytes(b"This is Sparta!")
 
-    action = LinkingAction(filepath)
+    action = LinkingAction(filepath, filepath.stat().st_size)
     assert action.type == "Linking"
 
     Action.finish_action()

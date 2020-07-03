@@ -60,9 +60,9 @@ Rectangle {
                     var engine_uid = engine || accountSelect.getRole("uid")
                     var nature = download ? "download" : "upload"
                     if (paused) {
-                        api.resume_transfer(nature, engine_uid, uid)
+                        api.resume_transfer(nature, engine_uid, uid, false)
                     } else {
-                        api.pause_transfer(nature, engine_uid, uid, progress)
+                        api.pause_transfer(nature, engine_uid, uid, progress, false)
                     }
                 }
             }
