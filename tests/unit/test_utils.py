@@ -495,7 +495,7 @@ def test_get_tree_list():
 
     # Check we got all paths
     expected_paths = [path] + sorted(path.glob("**/*"))
-    guessed_paths = sorted(p for p, _ in tree)
+    guessed_paths = sorted(p for p, *_ in tree)
     assert guessed_paths == expected_paths
 
     # Check we got correct remote paths
@@ -508,7 +508,7 @@ def test_get_tree_list():
         else:
             expected_rpaths.append(rpath)
     expected_rpaths = sorted(expected_rpaths)
-    guessed_rpaths = sorted(p for _, p in tree)
+    guessed_rpaths = sorted(p for _, p, _ in tree)
     assert guessed_rpaths == expected_rpaths
 
 
@@ -528,7 +528,6 @@ def test_get_tree_list_subdir_raise_os_error(mock_scandir):
     remote_ref = f"{env.WS_DIR}/foo"
     mock_scandir.return_value.__enter__.return_value = iter(
         [
-            FakeDirEntry(),
             FakeDirEntry(is_dir=True),
             FakeDirEntry(
                 is_dir=True,
@@ -540,7 +539,7 @@ def test_get_tree_list_subdir_raise_os_error(mock_scandir):
     tree = list(nxdrive.utils.get_tree_list(Path("/fake"), remote_ref))
 
     # We did not go into the third FakeDir because of OSError
-    assert len(tree) == 3
+    assert len(tree) == 2
 
 
 def test_get_tree_size():

@@ -37,7 +37,7 @@ class DirectTransferUploader(BaseUploader):
 
     def get_upload(self, file_path: Path) -> Optional[Upload]:
         """Retrieve the eventual transfer associated to the given *file_path*."""
-        ret: Optional[Upload] = self.dao.get_upload(path=file_path)
+        ret: Optional[Upload] = self.dao.get_dt_upload(path=file_path)
         return ret
 
     def upload(
@@ -78,7 +78,7 @@ class DirectTransferUploader(BaseUploader):
             remote_parent_ref, file_path.name
         )
 
-        if not replace_blob and doc and doc.properties.get("file:content"):
+        if not replace_blob and doc:
             # The document already exists and has a blob attached. Ask the user what to do.
             raise DirectTransferDuplicateFoundError(file_path, doc)
 
@@ -101,6 +101,6 @@ class DirectTransferUploader(BaseUploader):
         )
 
         # Transfer is completed, delete the upload from the database
-        self.dao.remove_transfer("upload", file_path)
+        self.dao.remove_transfer("upload", file_path, is_direct_transfer=True)
 
         return item

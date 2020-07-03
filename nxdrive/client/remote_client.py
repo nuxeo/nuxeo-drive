@@ -295,9 +295,8 @@ class Remote(Nuxeo):
 
         if chunked:
             action = DownloadAction(
-                file_path, tmppath=file_out, reporter=QApplication.instance()
+                file_path, size, tmppath=file_out, reporter=QApplication.instance()
             )
-            action.size = size
             action.progress = downloaded
             log.debug(
                 f"Download progression is {action.get_percent():.2f}% "
@@ -348,6 +347,7 @@ class Remote(Nuxeo):
         Update the progress of the verification during the computation of the digest.
         """
         digester = get_digest_algorithm(digest)
+        size = download_action.size
         filepath = download_action.tmppath or download_action.filepath
 
         # Terminate the download action to be able to start the verification one as we are allowing
@@ -356,7 +356,9 @@ class Remote(Nuxeo):
         # one, but let's do things right.
         DownloadAction.finish_action()
 
-        verif_action = VerificationAction(filepath, reporter=QApplication.instance())
+        verif_action = VerificationAction(
+            filepath, size, reporter=QApplication.instance()
+        )
 
         def callback(_: Path) -> None:
             verif_action.progress += FILE_BUFFER_SIZE

@@ -95,8 +95,10 @@ class BaseUploader:
     ) -> FileBlob:
         """Upload a blob by chunks or in one go."""
 
-        action = self.upload_action(file_path, reporter=QApplication.instance())
         blob = FileBlob(str(file_path))
+        action = self.upload_action(
+            file_path, blob.size, reporter=QApplication.instance()
+        )
         if filename:
             blob.name = filename
         if mime_type:
@@ -121,7 +123,7 @@ class BaseUploader:
                 file_idx = (
                     None
                     if transfer.batch.get("provider", "") == "s3"
-                    else transfer.batch["upload_idx"]
+                    else transfer.batch.get("upload_idx", 0)
                 )
 
                 # Check if the associated batch still exists server-side
@@ -163,7 +165,7 @@ class BaseUploader:
 
             engine_uid = kwargs.pop("engine_uid", None)
             is_direct_edit = kwargs.pop("is_direct_edit", False)
-            is_direct_transfer = kwargs.pop("is_direct_transfer", False)
+            is_direct_transfer = kwargs.get("is_direct_transfer", False)
             remote_parent_path = kwargs.pop("remote_parent_path", "")
             remote_parent_ref = kwargs.pop("remote_parent_ref", "")
 
@@ -193,6 +195,7 @@ class BaseUploader:
                     TransferStatus.ONGOING,
                     engine=engine_uid,
                     is_direct_edit=is_direct_edit,
+                    filesize=blob.size,
                     batch=batch.as_dict(),
                     chunk_size=chunk_size,
                     is_direct_transfer=is_direct_transfer,
@@ -227,7 +230,7 @@ class BaseUploader:
                     # self.dao.set_transfer_progress("upload", transfer)
 
                     # Handle status changes every time a chunk is sent
-                    transfer = self.dao.get_upload(path=file_path)
+                    transfer = self.get_upload(file_path)
                     if transfer and transfer.status not in (
                         TransferStatus.ONGOING,
                         TransferStatus.DONE,
@@ -287,7 +290,9 @@ class BaseUploader:
         headers = kwargs.pop("headers", {})
         headers["Nuxeo-Transaction-Timeout"] = str(TX_TIMEOUT)
 
-        action = self.linking_action(file_path, reporter=QApplication.instance())
+        action = self.linking_action(
+            file_path, blob.size, reporter=QApplication.instance()
+        )
         action.is_direct_transfer = kwargs.pop("is_direct_transfer", False)
         try:
             res: Dict[str, Any] = self.remote.execute(

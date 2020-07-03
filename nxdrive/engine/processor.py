@@ -272,7 +272,8 @@ class Processor(EngineWorker):
                 }
                 log.debug(f"Calling {handler_name}() on doc pair {doc_pair!r}")
 
-                self.pairSyncStarted.emit(self._current_metrics)
+                if "direct" not in handler_name:
+                    self.pairSyncStarted.emit(self._current_metrics)
                 soft_lock = self._lock_soft_path(doc_pair.local_path)
                 sync_handler(doc_pair)
 
@@ -282,7 +283,8 @@ class Processor(EngineWorker):
                         pair, self.local.abspath(pair.local_path)
                     )
 
-                self.pairSyncEnded.emit(self._current_metrics)
+                if "direct" not in handler_name:
+                    self.pairSyncEnded.emit(self._current_metrics)
             except ThreadInterrupt:
                 self.engine.queue_manager.push(doc_pair)
                 raise
@@ -498,7 +500,7 @@ class Processor(EngineWorker):
                 f"Cancelling Direct Transfer of {file!r} because it does not exist anymore"
             )
             self.dao.remove_state(doc_pair)
-            self.dao.remove_transfer("upload", file)
+            self.dao.remove_transfer("upload", file, is_direct_transfer=True)
             self.engine.directTranferError.emit(file)
             return
 

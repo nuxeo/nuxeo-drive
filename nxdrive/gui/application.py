@@ -2,6 +2,7 @@
 """ Main Qt application handling OS events and system tray UI. """
 import os
 import sys
+from functools import partial
 from logging import getLogger
 from math import sqrt
 from pathlib import Path
@@ -42,6 +43,7 @@ from ..constants import (
     DelAction,
 )
 from ..engine.activity import Action
+from ..engine.dao.sqlite import EngineDAO
 from ..engine.engine import Engine
 from ..feature import Beta, DisabledFeatures, Feature
 from ..gui.folders_dialog import DialogMixin, DocumentsDialog, FoldersDialog
@@ -268,7 +270,7 @@ class Application(QApplication):
             # Direct Transfer
             self.direct_transfer_window = QQuickView()
             self.direct_transfer_window.setMinimumWidth(600)
-            self.direct_transfer_window.setMinimumHeight(450)
+            self.direct_transfer_window.setMinimumHeight(480)
             self._fill_qml_context(self.direct_transfer_window.rootContext())
             self.direct_transfer_window.setSource(
                 QUrl.fromLocalFile(str(find_resource("qml", "DirectTransfer.qml")))
@@ -304,9 +306,10 @@ class Application(QApplication):
 
         if self.manager.engines:
             current_uid = self.engine_model.engines_uid[0]
+            engine = self.manager.engines[current_uid]
             self.get_last_files(current_uid)
-            self.refresh_transfers()
-            self.update_status(self.manager.engines[current_uid])
+            self.refresh_transfers(engine.dao)
+            self.update_status(engine)
 
         self.manager.updater.updateAvailable.connect(
             self._window_root(self.systray_window).updateAvailable
@@ -328,8 +331,9 @@ class Application(QApplication):
         if not isinstance(action, Action):
             log.warning(f"An action is needed, got {action!r}")
             return
+
         export = action.export()
-        if action.is_direct_transfer:
+        if export["is_direct_transfer"]:
             self.direct_transfer_model.set_progress(export)
         else:
             self.transfer_model.set_progress(export)
@@ -796,7 +800,10 @@ class Application(QApplication):
     @pyqtSlot(str)
     def show_direct_transfer_window(self, engine_uid: str) -> None:
         """Display the Direct Transfer window."""
-        self._window_root(self.direct_transfer_window).setEngine.emit(engine_uid)
+        window = self._window_root(self.direct_transfer_window)
+        window.setEngine.emit(engine_uid)
+        window.setItemsCount.emit(True)
+
         self._center_on_screen(self.direct_transfer_window)
         self._show_window(self.direct_transfer_window)
 
@@ -937,7 +944,25 @@ class Application(QApplication):
         engine.noSpaceLeftOnDevice.connect(self._no_space_left)
         engine.newSyncStarted.connect(self.refresh_files)
         engine.newSyncEnded.connect(self.refresh_files)
-        engine.dao.transferUpdated.connect(self.refresh_transfers)
+
+        # Refresh the systray files list on each database update
+        engine.dao.transferUpdated.connect(partial(self.refresh_transfers, engine.dao))
+
+        # Refresh ongoing Direct Transfer items at startup
+        engine.started.connect(partial(self.refresh_direct_transfer_items, engine.dao))
+
+        # Refresh Direct Transfer items on each database update
+        engine.dao.directTransferUpdated.connect(
+            partial(self.refresh_direct_transfer_items, engine.dao)
+        )
+
+        # Refresh the Direct Transfer items count automatically
+        engine.directTranferItemsCount.connect(self.update_direct_transfer_items_count)
+
+        # Force the refresh of the Direct Transfer items count when the sync is over
+        engine.syncCompleted.connect(
+            partial(self.update_direct_transfer_items_count, True)
+        )
 
         if self.manager.tracker:
             engine.newSyncEnded.connect(self.manager.tracker.send_sync_event)
@@ -1601,17 +1626,17 @@ class Application(QApplication):
             sync_state, error_state, update_state
         )
 
-    @pyqtSlot()
-    def refresh_transfers(self) -> None:
-        all_transfers = self.api.get_transfers()
-        direct_transfers = [t for t in all_transfers if t["is_direct_transfer"]]
-        transfers = [t for t in all_transfers if t not in direct_transfers]
-
-        if direct_transfers != self.direct_transfer_model.items:
-            self.direct_transfer_model.set_items(direct_transfers)
-
+    @pyqtSlot(object)
+    def refresh_transfers(self, dao: EngineDAO) -> None:
+        transfers = self.api.get_transfers(dao)
         if transfers != self.transfer_model.transfers:
             self.transfer_model.set_transfers(transfers)
+
+    @pyqtSlot(object)
+    def refresh_direct_transfer_items(self, dao: EngineDAO) -> None:
+        transfers = self.api.get_direct_transfer_items(dao)
+        if transfers != self.direct_transfer_model.items:
+            self.direct_transfer_model.set_items(transfers)
 
     @pyqtSlot()
     def force_refresh_files(self) -> None:
@@ -1632,6 +1657,11 @@ class Application(QApplication):
         files = self.api.get_last_files(uid, 10)
         if files != self.file_model.files:
             self.file_model.add_files(files)
+
+    @pyqtSlot(bool)
+    def update_direct_transfer_items_count(self, force: bool) -> None:
+        """Trigger an update of the Direct Transfer items count."""
+        self._window_root(self.direct_transfer_window).setItemsCount.emit(force)
 
     def current_language(self) -> Optional[str]:
         lang = Translator.locale()

@@ -21,7 +21,7 @@ Rectangle {
 
         // Progression: transferred data
         ScaledText {
-            text: qsTr("DIRECT_TRANSFER_DETAILS").arg(progress).arg(transferred).arg(size) + tl.tr
+            text: qsTr("DIRECT_TRANSFER_DETAILS").arg(progress).arg(transferred).arg(filesize) + tl.tr
             color: darkGray
             Layout.leftMargin: icon.width + 5
             font.pointSize: point_size * 0.8
@@ -75,9 +75,9 @@ Rectangle {
                     tooltip: qsTr(paused ? "RESUME" : "SUSPEND") + tl.tr
                     onClicked: {
                         if (paused) {
-                            api.resume_transfer("upload", engine, uid)
+                            api.resume_transfer("upload", engine, uid, true)
                         } else {
-                            api.pause_transfer("upload", engine, uid, progress)
+                            api.pause_transfer("upload", engine, uid, progress, true)
                         }
                     }
                 }
@@ -90,6 +90,7 @@ Rectangle {
                     iconColor: "red"
                     onClicked: {
                         application.confirm_cancel_transfer(engine, uid, name)
+                        directTransfer.updateCounts(true)
                     }
                 }
             }

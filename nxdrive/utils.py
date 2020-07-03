@@ -15,6 +15,7 @@ from configparser import ConfigParser
 from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
+from itertools import islice
 from logging import getLogger
 from pathlib import Path
 from threading import get_ident
@@ -25,6 +26,7 @@ from typing import (
     Dict,
     Generator,
     Iterator,
+    List,
     Optional,
     Tuple,
     Union,
@@ -313,13 +315,11 @@ def get_default_local_folder() -> Path:
 
 def get_tree_list(
     path: Path, remote_ref: str
-) -> Generator[Tuple[Path, str], None, None]:
+) -> Generator[Tuple[Path, str, int], None, None]:
     """Compute remote paths based on *remote_ref* from a given *path*.
     This is used in the Direct Transfer feature to upload a folder
     and all its contents.
-    Each entry will yield a tuple (remote_path, local_path).
-    This order is important as it will be used in get_tree_list_sorted()
-    to retrieve the sorted list to trait.
+    Each entry will yield a tuple (remote_path, local_path, size).
 
     Note: this function cannot be decorated with lru_cache().
     """
@@ -330,7 +330,7 @@ def get_tree_list(
         return
 
     # First, yield the folder itself
-    yield path, remote_ref
+    yield path, remote_ref, 0
     remote_ref += f"/{path.name}"
 
     # Then, yield its children
@@ -344,7 +344,8 @@ def get_tree_list(
             if is_dir:
                 yield from get_tree_list(Path(entry.path), remote_ref)
             elif entry.is_file():
-                yield Path(entry.path), remote_ref
+                file = Path(entry.path)
+                yield file, remote_ref, file.stat().st_size
 
 
 def get_tree_size(path: Path) -> int:
@@ -388,6 +389,16 @@ def get_value(value: str) -> Union[bool, float, str, Tuple[str, ...]]:
         return float(value)
 
     return value
+
+
+def grouper(iterable: List[Any], count: int) -> Generator[Tuple[Any, ...], None, None]:
+    """grouper("ABCDEFG", 3) --> ('ABC') ('DEF') ('G',)."""
+    it = iter(iterable)
+    while "there are items":
+        chunk = tuple(islice(it, count))
+        if not chunk:
+            return
+        yield chunk
 
 
 def increment_local_folder(basefolder: Path, name: str) -> Path:

@@ -1,6 +1,5 @@
 # coding: utf-8
 import uuid
-from contextlib import suppress
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -29,7 +28,7 @@ class Action(QObject):
         self.type = action_type
         self._progress = progress
 
-        self.size = 0.0
+        self.size = 0
         self.uid = str(uuid.uuid4())
         self.finished = False
         self.suspend = False
@@ -92,27 +91,21 @@ class FileAction(Action):
         self,
         action_type: str,
         filepath: Path,
+        size: int,
         tmppath: Path = None,
-        size: float = -1.0,
         reporter: Any = None,
     ) -> None:
         super().__init__(action_type=action_type)
 
         self.filepath = filepath
+        self.size = size
         self.tmppath = tmppath
 
         # Is it an empty file?
-        self.empty = False
+        self.empty = size == 0
 
         # Is it already on the server?
         self.uploaded = False
-
-        if size < 0:
-            with suppress(OSError):
-                size = filepath.stat().st_size
-        if size == 0:
-            self.empty = True
-        self.size = size
 
         # Used to compute the transfer speed, updated by the Remote client
         self.chunk_size = 0
@@ -175,6 +168,7 @@ class FileAction(Action):
             "empty": self.empty,
             "uploaded": self.uploaded,
             "speed": self.last_chunk_transfer_speed,
+            "is_direct_transfer": self.is_direct_transfer,
         }
 
     def __repr__(self) -> str:
@@ -190,33 +184,30 @@ class DownloadAction(FileAction):
     """Download: step 1/2 - Download the file."""
 
     def __init__(
-        self, filepath: Path, tmppath: Path = None, reporter: Any = None
+        self, filepath: Path, size: int, tmppath: Path = None, reporter: Any = None
     ) -> None:
-        super().__init__("Download", filepath, tmppath=tmppath, reporter=reporter)
+        super().__init__("Download", filepath, size, tmppath=tmppath, reporter=reporter)
 
 
 class VerificationAction(FileAction):
     """Download: step 2/2 - Checking the file integrity."""
 
-    def __init__(self, filepath: Path, reporter: Any = None) -> None:
-        super().__init__(
-            "Verification", filepath, size=filepath.stat().st_size, reporter=reporter
-        )
+    def __init__(self, filepath: Path, size: int, reporter: Any = None) -> None:
+        super().__init__("Verification", filepath, size, reporter=reporter)
 
 
 class UploadAction(FileAction):
     """Upload: step 1/2 - Upload the file."""
 
-    def __init__(self, filepath: Path, reporter: Any = None) -> None:
-        super().__init__("Upload", filepath, reporter=reporter)
+    def __init__(self, filepath: Path, size: int, reporter: Any = None) -> None:
+        super().__init__("Upload", filepath, size, reporter=reporter)
 
 
 class LinkingAction(FileAction):
     """Upload: step 2/2 - Create the document on the server and link the uploaded blob to it."""
 
-    def __init__(self, filepath: Path, reporter: Any = None) -> None:
-        size = filepath.stat().st_size
-        super().__init__("Linking", filepath, size=size, reporter=reporter)
+    def __init__(self, filepath: Path, size: int, reporter: Any = None) -> None:
+        super().__init__("Linking", filepath, size, reporter=reporter)
         self.progress = size
 
 

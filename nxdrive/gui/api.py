@@ -19,6 +19,7 @@ from ..constants import (
     DEFAULT_SERVER_TYPE,
     TOKEN_PERMISSION,
 )
+from ..engine.dao.sqlite import EngineDAO
 from ..exceptions import (
     FolderAlreadyUsed,
     InvalidDriveException,
@@ -126,6 +127,14 @@ class QMLDriveApi(QObject):
             count = engine.dao.get_last_files_count(duration=60)
         return count
 
+    @pyqtSlot(str, result=int)
+    def get_dt_items_count(self, uid: str) -> int:
+        """Return the count all Direct Transfer items."""
+        engine = self._manager.engines.get(uid)
+        if engine:
+            return engine.dao.get_dt_items_count()
+        return 0
+
     @pyqtSlot(result=str)
     def get_tracker_id(self) -> str:
         return self._manager.get_tracker_id()
@@ -183,43 +192,61 @@ class QMLDriveApi(QObject):
         """ Start the update to the specified version. """
         self._manager.updater.update(version)
 
-    @pyqtSlot(result=list)
-    def get_transfers(self) -> List[Dict[str, Any]]:
-        result: List[Dict[str, Any]] = []
+    def get_transfers(self, dao: EngineDAO) -> List[Dict[str, Any]]:
         limit = 5  # 10 files are displayed in the systray, so take 5 of each kind
+        result: List[Dict[str, Any]] = []
 
-        for engine in self._manager.engines.values():
-            dao = engine.dao
-            for count, download in enumerate(dao.get_downloads()):
-                if count >= limit:
-                    break
-                result.append(asdict(download))
-            for count, upload in enumerate(dao.get_uploads()):
-                if count >= limit:
-                    break
-                result.append(asdict(upload))
+        for count, download in enumerate(dao.get_downloads()):
+            if count >= limit:
+                break
+            result.append(asdict(download))
+
+        for count, upload in enumerate(dao.get_uploads()):
+            if count >= limit:
+                break
+            result.append(asdict(upload))
 
         return result
 
-    @pyqtSlot(str, str, int, float)
+    def get_direct_transfer_items(self, dao: EngineDAO) -> List[Dict[str, Any]]:
+        limit = 5  # 5 files are displayed in the DT window
+        result: List[Dict[str, Any]] = []
+
+        for count, transfer in enumerate(dao.get_dt_uploads_raw()):
+            if count >= limit:
+                break
+            result.append(transfer)
+
+        return result
+
+    @pyqtSlot(str, str, int, float, bool)
     def pause_transfer(
-        self, nature: str, engine_uid: str, transfer_uid: int, progress: float
+        self,
+        nature: str,
+        engine_uid: str,
+        transfer_uid: int,
+        progress: float,
+        is_direct_transfer: bool = False,
     ) -> None:
         """Pause a given transfer. *nature* is either downloads or upload."""
         log.info(f"Pausing {nature} {transfer_uid} for engine {engine_uid!r}")
         engine = self._manager.engines.get(engine_uid)
         if not engine:
             return
-        engine.dao.pause_transfer(nature, transfer_uid, progress)
+        engine.dao.pause_transfer(
+            nature, transfer_uid, progress, is_direct_transfer=is_direct_transfer
+        )
 
-    @pyqtSlot(str, str, int)
-    def resume_transfer(self, nature: str, engine_uid: str, uid: int) -> None:
+    @pyqtSlot(str, str, int, bool)
+    def resume_transfer(
+        self, nature: str, engine_uid: str, uid: int, is_direct_transfer: bool = False
+    ) -> None:
         """Resume a given transfer. *nature* is either downloads or upload."""
         log.info(f"Resume {nature} {uid} for engine {engine_uid!r}")
         engine = self._manager.engines.get(engine_uid)
         if not engine:
             return
-        engine.resume_transfer(nature, uid)
+        engine.resume_transfer(nature, uid, is_direct_transfer=is_direct_transfer)
 
     @pyqtSlot(str, str)
     def show_metadata(self, uid: str, ref: str) -> None:
@@ -318,8 +345,7 @@ class QMLDriveApi(QObject):
         if not engine:
             return
 
-        uploads = engine.dao.get_uploads()
-        if any(t.is_direct_transfer for t in uploads):
+        if engine.dao.get_dt_items_count():
             self.application.show_direct_transfer_window(engine.uid)
         else:
             self.application.show_server_folders(engine, None)
