@@ -76,7 +76,7 @@ class ServerOptionsUpdater(PollWorker):
 
             conf = engine.remote.get_server_configuration()
             if not conf:
-                engine.set_ui("jsf", overwrite=False)
+                engine.set_ui("web", overwrite=False)
                 continue
 
             engine.set_ui(conf.pop("ui", "web"), overwrite=False)

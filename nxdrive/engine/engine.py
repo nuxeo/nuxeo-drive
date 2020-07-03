@@ -701,7 +701,7 @@ class Engine(QObject):
         self._web_authentication = self.dao.get_bool("web_authentication")
         self.server_url = self.dao.get_config("server_url")
         self.hostname = urlsplit(self.server_url).hostname
-        self.wui = self.dao.get_config("ui", default="jsf")
+        self.wui = self.dao.get_config("ui", default="web")
         self.force_ui = self.dao.get_config("force_ui")
         self.remote_user = self.dao.get_config("remote_user")
         self._remote_token = self.dao.get_config("remote_token")
