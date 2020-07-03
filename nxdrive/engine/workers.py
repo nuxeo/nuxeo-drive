@@ -2,9 +2,9 @@
 from contextlib import suppress
 from logging import getLogger
 from time import sleep, time
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
 
-from PyQt5.QtCore import QCoreApplication, QObject, QThread, pyqtSlot
+from PyQt5.QtCore import QCoreApplication, QObject, QRunnable, QThread, pyqtSlot
 
 from ..exceptions import ThreadInterrupt
 from ..objects import DocPair, Metrics
@@ -18,6 +18,24 @@ if TYPE_CHECKING:
 __all__ = ("EngineWorker", "PollWorker", "Worker")
 
 log = getLogger(__name__)
+
+
+class Runner(QRunnable):
+    """A simple Qt runner."""
+
+    def __init__(self, fn: Callable, *args: Any, **kwargs: Any) -> None:
+        super().__init__()
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+        self.error: Optional[Exception] = None
+
+    def run(self) -> None:
+        """Start the work!"""
+        try:
+            self.fn(*self.args, **self.kwargs)
+        except Exception as exc:
+            self.error = exc
 
 
 class Worker(QObject):

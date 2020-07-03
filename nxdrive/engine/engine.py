@@ -14,7 +14,7 @@ from urllib.parse import urlsplit
 import requests
 from nuxeo.exceptions import HTTPError
 from nuxeo.models import Document
-from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QObject, QThread, QThreadPool, pyqtSignal, pyqtSlot
 
 from ..client.local import LocalClient
 from ..client.local.base import LocalClientMixin
@@ -186,6 +186,9 @@ class Engine(QObject):
 
         # Pause in case of no more space on the device
         self.noSpaceLeftOnDevice.connect(self.suspend)
+
+        # Will manage Runners
+        self._threadpool = QThreadPool().globalInstance()
 
     def __repr__(self) -> str:
         return (
@@ -404,11 +407,14 @@ class Engine(QObject):
         self.dao.update_config("dt_last_remote_location", remote_path)
         self.dao.update_config("dt_last_remote_location_ref", remote_ref)
 
-    def direct_transfer(
+    def _direct_transfer(
         self, local_paths: Set[Path], remote_parent_path: str, remote_parent_ref: str
     ) -> None:
         """Plan the Direct Transfer."""
         # self.directTranferStatus.emit(local_path[0], True)
+
+        # Save the remote location for next times
+        self._save_remote_parent_infos(remote_parent_path, remote_parent_ref)
 
         count = 0
 
@@ -418,9 +424,6 @@ class Engine(QObject):
 
             nonlocal count
             count += 1
-
-        # Save the remote location for next times
-        self._save_remote_parent_infos(remote_parent_path, remote_parent_ref)
 
         for local_path in sorted(local_paths):
             if local_path.is_file():
@@ -432,6 +435,23 @@ class Engine(QObject):
 
         log.info(f"Planned {count:,} item(s) to Direct Transfer, let's gooo!")
 
+    def direct_transfer(
+        self, local_paths: Set[Path], remote_parent_path: str, remote_parent_ref: str
+    ) -> None:
+        """Plan the Direct Transfer."""
+        self._direct_transfer(local_paths, remote_parent_path, remote_parent_ref)
+
+    def direct_transfer_async(
+        self, local_paths: Set[Path], remote_parent_path: str, remote_parent_ref: str
+    ) -> None:
+        """Plan the Direct Transfer. Async to not freeze the GUI."""
+        from .workers import Runner
+
+        runner = Runner(
+            self._direct_transfer, local_paths, remote_parent_path, remote_parent_ref
+        )
+        self._threadpool.start(runner)
+
     def direct_transfer_cancel(self, file: Path) -> None:
         """Cancel the Direct Transfer of the given local *file*."""
         log.info(f"Direct Transfer of {file!r}, user choice: cancel the upload")
@@ -442,7 +462,7 @@ class Engine(QObject):
             log.warning("The doc pair disappeared?! Direct Transfer cancelled.")
             return
 
-        # Cancel the upload, clean-up the database and local file
+        # Clean-up the database
         self.dao.remove_state(doc_pair)
 
     def direct_transfer_replace_blob(self, file: Path, doc: Document) -> None:

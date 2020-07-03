@@ -281,7 +281,7 @@ class FoldersDialog(DialogMixin):
     def accept(self) -> None:
         """Action to do when the OK button is clicked."""
         super().accept()
-        self.engine.direct_transfer(
+        self.engine.direct_transfer_async(
             self.paths, self.remote_folder.text(), self.remote_folder_ref
         )
 
