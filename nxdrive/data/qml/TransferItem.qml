@@ -21,7 +21,7 @@ Rectangle {
 
         // Progression: transferred data
         ScaledText {
-            text: qsTr("DIRECT_TRANSFER_DETAILS").arg(Math.floor(progress || 0.0)).arg(progress_metrics[0]).arg(progress_metrics[1]) + tl.tr
+            text: qsTr("DIRECT_TRANSFER_DETAILS").arg(progress).arg(transferred).arg(size) + tl.tr
             color: darkGray
             Layout.leftMargin: icon.width + 5
             font.pointSize: point_size * 0.8

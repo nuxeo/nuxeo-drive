@@ -266,9 +266,10 @@ class DirectTransferModel(QAbstractListModel):
     PROGRESS = Qt.UserRole + 4
     ENGINE = Qt.UserRole + 5
     FINALIZING = Qt.UserRole + 6
-    PROGRESS_METRICS = Qt.UserRole + 7
-    REMOTE_PARENT_PATH = Qt.UserRole + 8
-    REMOTE_PARENT_REF = Qt.UserRole + 9
+    SIZE = Qt.UserRole + 7
+    TRANSFERRED = Qt.UserRole + 8
+    REMOTE_PARENT_PATH = Qt.UserRole + 9
+    REMOTE_PARENT_REF = Qt.UserRole + 10
 
     def __init__(self, translate: Callable, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -280,13 +281,14 @@ class DirectTransferModel(QAbstractListModel):
             self.STATUS: b"status",
             self.PROGRESS: b"progress",
             self.ENGINE: b"engine",
-            self.PROGRESS_METRICS: b"progress_metrics",
-            # The is the Verification step for downloads
-            # and Linking step for uploads.
-            self.FINALIZING: b"finalizing",
+            self.SIZE: b"size",
+            self.FINALIZING: b"finalizing",  # Linking action
+            self.TRANSFERRED: b"transferred",
             self.REMOTE_PARENT_PATH: b"remote_parent_path",
             self.REMOTE_PARENT_REF: b"remote_parent_ref",
         }
+        # Pretty print
+        self.psize = partial(sizeof_fmt, suffix=self.tr("BYTE_ABBREV"))
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         return len(self.items)
@@ -314,27 +316,18 @@ class DirectTransferModel(QAbstractListModel):
 
         self.fileChanged.emit()
 
-    def get_progress(self, row: Dict[str, Any]) -> List[str]:
-        """Return a tuple (transferred_size, transfer_size) nicely formatted."""
-        try:
-            size = row["path"].stat().st_size
-        except FileNotFoundError:
-            size = 0
-        progress = size * (row["progress"] or 0.0) / 100
-
-        # Pretty print
-        suffix = self.tr("BYTE_ABBREV")
-        psize = partial(sizeof_fmt, suffix=suffix)
-        return [psize(progress), psize(size)]
-
     def data(self, index: QModelIndex, role: int = NAME) -> Any:
         row = self.items[index.row()]
         if role == self.STATUS:
             return row["status"].name
+        if role == self.PROGRESS:
+            return f"{row['progress']:,.1f}"
         if role == self.FINALIZING:
             return row.get("finalizing", False)
-        if role == self.PROGRESS_METRICS:
-            return self.get_progress(row)
+        if role == self.SIZE:
+            return self.psize(row["size"])
+        if role == self.TRANSFERRED:
+            return self.psize(row["size"] * row["progress"] / 100)
         return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
@@ -349,12 +342,11 @@ class DirectTransferModel(QAbstractListModel):
         for i, item in enumerate(self.items):
             if item["name"] != action["name"]:
                 continue
+
             idx = self.createIndex(i, 0)
-
             self.setData(idx, action["progress"], self.PROGRESS)
-            self.setData(idx, action["progress"], self.PROGRESS_METRICS)
-
-            if action["action_type"] in ("Linking", "Verification"):
+            self.setData(idx, action["progress"], self.TRANSFERRED)
+            if action["action_type"] == "Linking":
                 self.setData(idx, True, self.FINALIZING)
 
 
