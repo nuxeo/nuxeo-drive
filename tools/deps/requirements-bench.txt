@@ -2,7 +2,7 @@
 # Modules needed by benchmarks.
 # This file is independent to not pollute other test environments.
 #
-py-cpuinfo==6.0.0 \
-    --hash=sha256:7ffb31dea845b9f359b99bd5f7eea72dc70f852e0e34547d261a630f2b8c9c61
+py-cpuinfo==7.0.0 \
+    --hash=sha256:9aa2e49675114959697d25cf57fec41c29b55887bff3bc4809b44ac6f5730097
 pytest-benchmark==3.2.3 \
     --hash=sha256:01f79d38d506f5a3a0a9ada22ded714537bbdfc8147a881a35c1655db07289d9
