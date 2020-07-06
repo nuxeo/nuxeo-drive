@@ -41,6 +41,7 @@ Rectangle {
 
                         text: item[0] + (beta_features.includes(item[1]) ? sup_tag: "")
                         checked: manager.get_feature_state(item[1])
+                        enabled: !disabled_features.includes(item[1])
                         onClicked: manager.set_feature_state(item[1], checked)
                         Layout.leftMargin: -5
                     }

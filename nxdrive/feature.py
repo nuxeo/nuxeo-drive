@@ -25,4 +25,6 @@ Feature = SimpleNamespace(
     auto_update=True, direct_edit=True, direct_transfer=False, s3=False,
 )
 
-Beta = ["direct_transfer"]
+Beta = ["direct_transfer", "s3"]
+
+DisabledFeatures = ["s3"]

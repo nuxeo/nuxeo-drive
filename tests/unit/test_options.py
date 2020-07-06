@@ -1,6 +1,7 @@
 # coding: utf-8
 import argparse
 from contextlib import suppress
+from unittest.mock import patch
 
 import pytest
 import requests
@@ -280,3 +281,25 @@ def test_validator(option, a_bad_value, a_good_value):
 
     Options.set(option, a_good_value)
     assert getattr(Options, option) == a_good_value
+
+
+@Options.mock()
+def test_disabled_features(caplog):
+    """Simple test for disabled features."""
+    assert Options.feature_auto_update is True
+    assert Options.feature_s3 is False
+
+    with patch("nxdrive.options.DisabledFeatures", new=["auto_update"]):
+        options = {"feature_auto_update": False, "feature_s3": True}
+        Options.update(options, setter="manual")
+
+    # feature_auto_update has been ignored as it is in DisabledFeatures
+    assert Options.feature_auto_update is True
+
+    # feature_s3 has been modified as expected
+    assert Options.feature_s3 is True
+
+    # Check that a warning has been fired
+    record = caplog.records[0]
+    assert record.levelname == "WARNING"
+    assert record.message == "'feature_auto_update' cannot be changed."
