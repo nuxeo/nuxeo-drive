@@ -50,7 +50,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Set, Tuple, Union
 
-from .feature import Feature
+from .feature import DisabledFeatures, Feature
 
 __all__ = ("Options",)
 
@@ -370,6 +370,10 @@ class MetaOptions(type):
 
         # Normalize the option
         item = item.replace("-", "_").replace(".", "_").lower()
+
+        if item.replace("feature_", "") in DisabledFeatures:
+            log.warning(f"{item!r} cannot be changed.")
+            return
 
         try:
             old_value, old_setter = MetaOptions.options[item]
