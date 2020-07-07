@@ -15,23 +15,23 @@ main() {
     path="/var/www/community.nuxeo.com/static/drive-updates"
 
     echo ">>> Installing requirements"
-    python -m pip install --user pyyaml==5.3.1
+    python3 -m pip install --user pyyaml==5.3.1
 
     echo ">>> Retrieving versions.yml"
     rsync -vz nuxeo@lethe.nuxeo.com:${path}/versions.yml .
 
     echo ">>> Checking versions.yml integrity"
-    python tools/versions.py --check || exit 1
+    python3 tools/versions.py --check || exit 1
 
     echo ">>> Removing alpha versions older than ${older_than} days"
     while IFS= read release; do
         version="$(echo ${release} | sed s'/alpha-//')"
         echo " - ${version}"
-        python tools/versions.py --delete "${version}"
+        python3 tools/versions.py --delete "${version}"
     done < <(git tag -l "alpha-*" --sort=-taggerdate | tail -n +${older_than})
 
     echo ">>> Checking versions.yml integrity"
-    python tools/versions.py --check || exit 1
+    python3 tools/versions.py --check || exit 1
 
     echo ">>> Uploading versions.yml"
     rsync -vz versions.yml nuxeo@lethe.nuxeo.com:${path}/
