@@ -704,6 +704,7 @@ class Engine(QObject):
         except Exception:
             log.exception("Unbind error")
 
+        self.manager.osi.unwatch_folder(self.local_folder)
         self.manager.osi.unregister_folder_link(self.local_folder)
 
         self.dispose_db()

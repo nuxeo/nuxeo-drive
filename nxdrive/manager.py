@@ -817,9 +817,6 @@ class Manager(QObject):
         if not engine:
             return
 
-        # Unwatch folder
-        self.osi.unwatch_folder(engine.local_folder)
-        engine.suspend()
         engine.unbind()
         self.dao.delete_engine(uid)
 
