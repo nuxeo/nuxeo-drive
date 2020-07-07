@@ -102,9 +102,10 @@ Rectangle {
                 }
 
                 // The animated icon
-                ScaledText {
+                IconLabel {
                     color: darkGray
                     text: MdiFont.Icon.cached
+                    font.pointSize: point_size * 0.8
 
                     SequentialAnimation on rotation {
                         running: true
