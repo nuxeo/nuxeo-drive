@@ -226,8 +226,8 @@ class BaseUploader:
                     action.progress += uploader.chunk_size or 0
 
                     # Save the progression
-                    # transfer.progress = action.get_percent()  # type: ignore
-                    # self.dao.set_transfer_progress("upload", transfer)
+                    transfer.progress = action.get_percent()  # type: ignore
+                    self.dao.set_transfer_progress("upload", transfer)
 
                     # Handle status changes every time a chunk is sent
                     transfer = self.get_upload(file_path)
