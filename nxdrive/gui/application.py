@@ -715,7 +715,7 @@ class Application(QApplication):
     @pyqtSlot()  # From systray.py
     @pyqtSlot(str)  # All other calls
     def show_settings(self, section: str = "General") -> None:
-        sections = {"General": 0, "Accounts": 1, "About": 2}
+        sections = {"General": 0, "Features": 1, "Accounts": 2, "About": 3}
         self._window_root(self.settings_window).setSection.emit(sections[section])
         self._show_window(self.settings_window)
 
