@@ -18,6 +18,7 @@ from CoreServices import (
     LSSharedFileListCreate,
     LSSharedFileListInsertItemURL,
     LSSharedFileListItemCopyDisplayName,
+    LSSharedFileListItemRef,
     LSSharedFileListItemRemove,
     NSBundle,
     NSDistributedNotificationCenter,
@@ -328,14 +329,20 @@ class DarwinIntegration(AbstractOSIntegration):
     def unregister_folder_link(self, path: Path) -> None:
         favorites = self._get_favorite_list()
         if not favorites:
-            log.warning("Could not fetch the Finder favorite list.")
+            log.warning("Could not fetch Finder favorites")
             return
 
         item = self._find_item_in_list(favorites, path.name)
         if not item:
+            log.info(f"Favorite {path!r} not found in Finder favorites")
             return
 
-        LSSharedFileListItemRemove(favorites, item)
+        try:
+            LSSharedFileListItemRemove(favorites, item)
+        except Exception:
+            log.exception(f"Cannot remove {path!r} from Finder favorites")
+        else:
+            log.info(f"Favorite {path!r} removed from Finder favorites")
 
     @staticmethod
     def _get_favorite_list() -> List[str]:
@@ -345,11 +352,13 @@ class DarwinIntegration(AbstractOSIntegration):
         return favorites
 
     @staticmethod
-    def _find_item_in_list(lst: List[str], name: str) -> Optional[str]:
+    def _find_item_in_list(
+        lst: List[str], name: str
+    ) -> Optional[LSSharedFileListItemRef]:
         for item in LSSharedFileListCopySnapshot(lst, None)[0]:
             item_name = LSSharedFileListItemCopyDisplayName(item)
             if name == item_name:
-                return str(item)
+                return item
         return None
 
     def get_extension_listener(self) -> DarwinExtensionListener:
