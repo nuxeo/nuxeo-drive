@@ -46,6 +46,7 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 | `chunk_limit` | 20 | int | 4.1.2 | Size in MiB above which files will be uploaded in chunks (if `chunk_upload` is `True`). Has to be above 0.
 | `chunk_size` | 20 | int | 4.1.2 | Size of the chunks in MiB. Has to be above 0 and lower or equal to 20.
 | `chunk_upload` | True | bool | 4.1.2 | Activate the upload in chunks for files bigger than `chunk_limit`.
+| `database_batch_size` | 256 | int | 4.4.4 | [Direct Transfer] When adding files into the database, the operation is done by batch instead of one at a time. This option controls the batch size.
 | `delay` | 30 | int | 2 | Define the delay before each remote check.
 | `feature` | [...](#features) | map | 4.4.2 | Application features that can be turned on/off on-demand.
 | `force-locale` | None | str | 2 | Force the reset to the language.

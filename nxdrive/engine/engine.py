@@ -448,13 +448,17 @@ class Engine(QObject):
                         )
                     )
 
-        # Add all paths into the database to plan the upload, by batch of 100 items
+        # Add all paths into the database to plan the upload, by batch
+        bsize = Options.database_batch_size
+        log.info(
+            f"Planning items to Direct Transfer, database_batch_size is {bsize} ..."
+        )
         current_max_row_id = -1
-        for batch_items in grouper(items, 500):
+        for batch_items in grouper(items, bsize):
             row_id = self.dao.plan_many_direct_transfer_items(batch_items)
             if current_max_row_id == -1:
                 current_max_row_id = row_id
-            self.directTranferItemsCount.emit(True)
+            self.directTranferItemsCount.emit(False)
 
         log.info(f"Planned {len(items):,} item(s) to Direct Transfer, let's gooo!")
 
