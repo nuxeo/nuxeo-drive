@@ -285,6 +285,8 @@ class BaseUploader:
         # Remove additional parameters to prevent a BadQuery
         kwargs.pop("engine_uid", None)
         kwargs.pop("is_direct_edit", None)
+        kwargs.pop("remote_parent_path", None)
+        kwargs.pop("remote_parent_ref", None)
         file_path = kwargs.pop("file_path", None)
 
         headers = kwargs.pop("headers", {})

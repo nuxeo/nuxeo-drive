@@ -28,9 +28,12 @@ class DirectTransferUploader(BaseUploader):
         """
         name = self.remote._escape(name)
         query = (
-            "SELECT * FROM Document WHERE "
-            f"ecm:parentId = '{parent_ref}' AND dc:title = '{name}'"
-            " AND ecm:isVersion = 0 AND ecm:isTrashed = 0 LIMIT 1"
+            "SELECT * FROM Document"
+            f" WHERE ecm:parentId = '{parent_ref}' AND dc:title = '{name}'"
+            " AND ecm:mixinType != HiddenInNavigation"
+            " AND ecm:isProxy = 0"
+            " AND ecm:isVersion = 0"
+            " AND ecm:isTrashed = 0"
         )
         results = self.remote.query(query)["entries"]
         return Document.parse(results[0]) if results else None

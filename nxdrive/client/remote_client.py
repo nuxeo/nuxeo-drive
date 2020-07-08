@@ -219,9 +219,8 @@ class Remote(Nuxeo):
         id_prop = "ecm:path" if ref.startswith("/") else "ecm:uuid"
         trash = self._get_trash_condition() if use_trash else ""
 
-        query = f"SELECT * FROM Document WHERE {id_prop} = '{ref}' {trash} AND ecm:isVersion = 0 LIMIT 1"
-        results = self.query(query)
-        return len(results["entries"]) == 1
+        query = f"SELECT * FROM Document WHERE {id_prop} = '{ref}' {trash} AND ecm:isVersion = 0"
+        return bool(self.query(query)["entries"])
 
     def request_token(self, revoke: bool = False) -> Optional[str]:
         """Request and return a new token for the user"""
@@ -614,13 +613,16 @@ class Remote(Nuxeo):
                 ref = self._base_folder_path + ref
         return ref
 
-    def query(self, query: str) -> Dict[str, Any]:
-        """
-        Note: We cannot use this code because it does not handle unicode characters in the query.
-
-            >>> return self.client.query(query)
-        """
-        return self.execute(command="Document.Query", query=query)
+    def query(
+        self, query: str, page_size: int = 1, current_page_index: int = 0
+    ) -> Dict[str, Any]:
+        url = f"{self.client.api_path}/query"
+        params = {
+            "pageSize": page_size,
+            "currentPageIndex": current_page_index,
+            "query": query,
+        }
+        return self.client.request("GET", url, params=params).json()
 
     def get_info(
         self, ref: str, raise_if_missing: bool = True, fetch_parent_uid: bool = True
