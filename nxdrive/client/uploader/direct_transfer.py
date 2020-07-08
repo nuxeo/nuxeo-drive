@@ -95,8 +95,6 @@ class DirectTransferUploader(BaseUploader):
             file_path,
             "FileManager.Import",
             context={"currentDocument": remote_parent_path},
-            params={"overwite": True},  # NXP-29286
-            headers={"nx-es-sync": "true", "X-Batch-No-Drop": "true"},
             engine_uid=engine_uid,
             is_direct_transfer=True,
             remote_parent_path=remote_parent_path,
