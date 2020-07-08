@@ -215,23 +215,19 @@ class RemoteBase(Remote):
 
     def get_children_info(self, ref: str, limit: int = 1000) -> List[NuxeoDocumentInfo]:
         ref = self._escape(self.check_ref(ref))
-        types = {
-            "Note",
-            "Workspace",
-            "Picture",
-            env.DOCTYPE_FILE,
-            env.DOCTYPE_FOLDERISH,
-        }
+        types = "', '".join(
+            ("Note", "Workspace", "Picture", env.DOCTYPE_FILE, env.DOCTYPE_FOLDERISH)
+        )
 
         query = (
             "SELECT * FROM Document"
-            "       WHERE ecm:parentId = '%s'"
-            "       AND ecm:primaryType IN ('%s')"
-            "       %s"
-            "       AND ecm:isVersion = 0"
-            "       ORDER BY dc:title, dc:created LIMIT %d"
-        ) % (ref, "', '".join(types), self._get_trash_condition(), limit)
-        entries = self.query(query)["entries"]
+            f"       WHERE ecm:parentId = '{ref}'"
+            f"         AND ecm:primaryType IN ('{types}')"
+            f"             {self._get_trash_condition()}"
+            "          AND ecm:isVersion = 0"
+            "     ORDER BY dc:title, dc:created"
+        )
+        entries = self.query(query, page_size=limit)["entries"]
         return self._filtered_results(entries)
 
     def get_content(self, fs_item_id: str, **kwargs: Any) -> Path:
