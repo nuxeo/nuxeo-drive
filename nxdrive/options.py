@@ -228,6 +228,7 @@ class MetaOptions(type):
         "chunk_size": (20, "default"),
         "chunk_upload": (True, "default"),
         "client_version": (None, "default"),
+        "database_batch_size": (256, "default"),
         "debug": (False, "default"),
         "debug_pydev": (False, "default"),
         "delay": (30, "default"),
