@@ -458,7 +458,7 @@ class Engine(QObject):
             row_id = self.dao.plan_many_direct_transfer_items(batch_items)
             if current_max_row_id == -1:
                 current_max_row_id = row_id
-            self.directTranferItemsCount.emit(False)
+            self.directTranferItemsCount.emit(True)
 
         log.info(f"Planned {len(items):,} item(s) to Direct Transfer, let's gooo!")
 
