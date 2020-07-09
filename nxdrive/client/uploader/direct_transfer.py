@@ -8,7 +8,6 @@ from typing import Any, Dict, Optional
 from nuxeo.models import Document
 
 from ...engine.activity import LinkingAction, UploadAction
-from ...exceptions import DirectTransferDuplicateFoundError
 from ...objects import Upload
 from . import BaseUploader
 
@@ -71,19 +70,20 @@ class DirectTransferUploader(BaseUploader):
         remote_parent_path = kwargs.pop("remote_parent_path")
         remote_parent_ref = kwargs.pop("remote_parent_ref")
         engine_uid = kwargs.pop("engine_uid")
-        replace_blob = kwargs.get("replace_blob", False)
+        # replace_blob = kwargs.get("replace_blob", False)
         log.info(
             f"Direct Transfer of {file_path!r} into {remote_parent_path!r} ({remote_parent_ref!r})"
         )
 
-        if not replace_blob:
-            doc: Optional[Document] = self.get_document_or_none(
-                remote_parent_ref, file_path.name
-            )
+        # NXDRIVE-2234
+        # if not replace_blob:
+        #     doc: Optional[Document] = self.get_document_or_none(
+        #         remote_parent_ref, file_path.name
+        #     )
 
-            if doc:
-                # The document already exists and has a blob attached. Ask the user what to do.
-                raise DirectTransferDuplicateFoundError(file_path, doc)
+        #     if doc:
+        #         # The document already exists and has a blob attached. Ask the user what to do.
+        #         raise DirectTransferDuplicateFoundError(file_path, doc)
 
         # If the path is a folder, there is no more work to do
         # if file_path.is_dir():
@@ -95,7 +95,7 @@ class DirectTransferUploader(BaseUploader):
             file_path,
             "FileManager.Import",
             context={"currentDocument": remote_parent_path},
-            params={"overwite": True},  # NXP-29286
+            # params={"overwite": True},  # NXP-29286
             engine_uid=engine_uid,
             is_direct_transfer=True,
             remote_parent_path=remote_parent_path,
