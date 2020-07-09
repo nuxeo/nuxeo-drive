@@ -11,6 +11,7 @@ import pytest
 from nuxeo.exceptions import HTTPError
 from nxdrive.client.uploader.direct_transfer import DirectTransferUploader
 from nxdrive.constants import TransferStatus
+from nxdrive.exceptions import NotFound
 from nxdrive.options import Options
 from nxdrive.utils import get_tree_list
 from requests.exceptions import ConnectionError
@@ -424,6 +425,61 @@ class DirectTransfer:
                 self.no_uploads()
 
         self.sync_and_check()
+
+    def test_upload_ok_but_network_lost_in_the_meantime(self):
+        """
+        NXDRIVE-2233 scenario:
+
+            - Start a Direct Transfer.
+            - When all chunks are uploaded, and just after having called the FileManager
+              operation: the network connection is lost.
+            - The request being started, it has a 6 hours timeout.
+            - But the document was created on the server because the call has been made.
+            - Finally, after 6 hours, the network was restored in the meantime, but the
+              FileManager will throw a 404 error because the batchId was already consumed.
+            - The transfer will be displayed in the Direct Transfer window, but nothing more
+              will be done.
+
+        Such transfer must be removed from the database.
+        """
+
+        class BadUploader(DirectTransferUploader):
+            """Used to simulate bad server responses."""
+
+            def link_blob_to_doc(self, *args, **kwargs):
+                """End the upload and simulate a network loss."""
+                # Call the original method to effectively end the upload process
+                super().link_blob_to_doc(*args, **kwargs)
+
+                # And throw an error
+                raise NotFound("Mock'ed error")
+
+        def upload(*args, **kwargs):
+            """Set our specific uploader."""
+            kwargs.pop("uploader")
+            return upload_orig(*args, uploader=BadUploader, **kwargs)
+
+        # file_path = f"{self.ws.path}/{self.file.name}"
+        engine = self.engine_1
+        dao = engine.dao
+        upload_orig = engine.remote.upload
+
+        # There is no upload, right now
+        self.no_uploads()
+
+        with patch.object(engine.remote, "upload", new=upload):
+            with ensure_no_exception():
+                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
+                self.wait_sync()
+
+        # The document has been created
+        self.sync_and_check()
+
+        # There should be no upload as the Processor has made the clean-up
+        self.no_uploads()
+
+        # There is no state to handle in the database
+        assert not dao.get_local_children("/")
 
     def test_server_error_upload(self):
         """Test a server error happening after chunks were uploaded, at the Blob.AttachOnDocument operation call."""

@@ -244,7 +244,9 @@ class EngineWorker(Worker):
             # Folderish documents don't use transfers
             return
 
-        fullpath = self.engine.local.abspath(doc_pair.local_path)
+        fullpath = doc_pair.local_path
+        if doc_pair.local_state != "direct":
+            fullpath = self.engine.local.abspath(fullpath)
         for nature in ("download", "upload"):
             self.dao.remove_transfer(nature, fullpath)
 
