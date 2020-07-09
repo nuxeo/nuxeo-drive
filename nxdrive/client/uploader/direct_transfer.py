@@ -30,7 +30,6 @@ class DirectTransferUploader(BaseUploader):
         query = (
             "SELECT * FROM Document"
             f" WHERE ecm:parentId = '{parent_ref}' AND dc:title = '{name}'"
-            " AND ecm:mixinType != HiddenInNavigation"
             " AND ecm:isProxy = 0"
             " AND ecm:isVersion = 0"
             " AND ecm:isTrashed = 0"
@@ -77,13 +76,14 @@ class DirectTransferUploader(BaseUploader):
             f"Direct Transfer of {file_path!r} into {remote_parent_path!r} ({remote_parent_ref!r})"
         )
 
-        doc: Optional[Document] = self.get_document_or_none(
-            remote_parent_ref, file_path.name
-        )
+        if not replace_blob:
+            doc: Optional[Document] = self.get_document_or_none(
+                remote_parent_ref, file_path.name
+            )
 
-        if not replace_blob and doc:
-            # The document already exists and has a blob attached. Ask the user what to do.
-            raise DirectTransferDuplicateFoundError(file_path, doc)
+            if doc:
+                # The document already exists and has a blob attached. Ask the user what to do.
+                raise DirectTransferDuplicateFoundError(file_path, doc)
 
         # If the path is a folder, there is no more work to do
         # if file_path.is_dir():
@@ -95,6 +95,7 @@ class DirectTransferUploader(BaseUploader):
             file_path,
             "FileManager.Import",
             context={"currentDocument": remote_parent_path},
+            params={"overwite": True},  # NXP-29286
             engine_uid=engine_uid,
             is_direct_transfer=True,
             remote_parent_path=remote_parent_path,
