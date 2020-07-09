@@ -613,16 +613,8 @@ class Remote(Nuxeo):
                 ref = self._base_folder_path + ref
         return ref
 
-    def query(
-        self, query: str, page_size: int = 1, current_page_index: int = 0
-    ) -> Dict[str, Any]:
-        url = f"{self.client.api_path}/query"
-        params = {
-            "pageSize": page_size,
-            "currentPageIndex": current_page_index,
-            "query": query,
-        }
-        return self.client.request("GET", url, params=params).json()
+    def query(self, query: str) -> Dict[str, Any]:
+        return self.execute(command="Document.Query", query=query)
 
     def get_info(
         self, ref: str, raise_if_missing: bool = True, fetch_parent_uid: bool = True

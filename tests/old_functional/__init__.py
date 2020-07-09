@@ -213,7 +213,7 @@ class RemoteBase(Remote):
     def get_children(self, ref: str) -> Dict[str, Any]:
         return self.execute(command="Document.GetChildren", input_obj=f"doc:{ref}")
 
-    def get_children_info(self, ref: str, limit: int = 1000) -> List[NuxeoDocumentInfo]:
+    def get_children_info(self, ref: str) -> List[NuxeoDocumentInfo]:
         ref = self._escape(self.check_ref(ref))
         types = "', '".join(
             ("Note", "Workspace", "Picture", env.DOCTYPE_FILE, env.DOCTYPE_FOLDERISH)
@@ -227,7 +227,7 @@ class RemoteBase(Remote):
             "          AND ecm:isVersion = 0"
             "     ORDER BY dc:title, dc:created"
         )
-        entries = self.query(query, page_size=limit)["entries"]
+        entries = self.query(query)["entries"]
         return self._filtered_results(entries)
 
     def get_content(self, fs_item_id: str, **kwargs: Any) -> Path:
