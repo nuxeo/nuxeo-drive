@@ -118,7 +118,6 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
     ("unsynchronized", "deleted"): "remotely_deleted",
     # Direct Transfer
     ("direct", "unknown"): "direct_transfer",
-    ("direct", "deleted"): "direct_transfer_replace_blob",
 }
 
 
@@ -632,7 +631,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 13
+        return 14
 
     def _migrate_state(self, cursor: Cursor) -> None:
         try:
@@ -814,6 +813,16 @@ class EngineDAO(ConfigurationDAO):
             )
             self.store_int(SCHEMA_VERSION, 13)
 
+        if version < 14:
+            # Add the *duplicate_behavior* field to the States table,
+            # used by the Direct Transfer feature.
+            self._append_to_table(
+                cursor,
+                "States",
+                ("duplicate_behavior", "VARCHAR", "DEFAULT", "'create'"),
+            )
+            self.store_int(SCHEMA_VERSION, 14)
+
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
         if name == "States":
             self._create_state_table(cursor, force)
@@ -895,6 +904,7 @@ class EngineDAO(ConfigurationDAO):
             "    processor               INTEGER    DEFAULT (0),"
             "    last_transfer           VARCHAR,"
             "    creation_date           TIMESTAMP,"
+            "    duplicate_behavior      VARCHAR    DEFAULT ('create'),"
             "    PRIMARY KEY (id),"
             "    UNIQUE(remote_ref, remote_parent_ref),"
             "    UNIQUE(remote_ref, local_path))"
@@ -1113,9 +1123,9 @@ class EngineDAO(ConfigurationDAO):
             query = (
                 "INSERT INTO States "
                 "(local_path, local_name, folderish, size, "
-                "remote_parent_path, remote_parent_ref, "
-                "local_state, remote_state, pair_state) "
-                "VALUES (?, ?, ?, ?, ?, ?, 'direct', 'unknown', 'direct_transfer')"
+                "remote_parent_path, remote_parent_ref, duplicate_behavior, "
+                "local_state, remote_state, pair_state)"
+                "VALUES (?, ?, ?, ?, ?, ?, ?, 'direct', 'unknown', 'direct_transfer')"
             )
             cur.executemany(query, items)
             return current_max_row_id
@@ -1322,21 +1332,6 @@ class EngineDAO(ConfigurationDAO):
             c.execute(
                 "UPDATE States SET last_local_updated = ? WHERE id = ?",
                 (info.last_modification_time, row.id),
-            )
-
-    def update_pair_state(self, row: DocPair) -> None:
-        """Update local, remote and pair states of a given *doc_pair*.
-        States should already be defined in the *doc_pair* attributes,
-        the goal is only to save them in the database.
-        """
-        row.pair_state = self._get_pair_state(row)
-
-        with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
-            c.execute(
-                "UPDATE States SET local_state = ?, remote_state = ?, pair_state = ? WHERE id = ?",
-                (row.local_state, row.remote_state, row.pair_state, row.id),
             )
 
     def get_valid_duplicate_file(self, digest: str) -> Optional[DocPair]:

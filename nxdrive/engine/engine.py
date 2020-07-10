@@ -14,7 +14,6 @@ from urllib.parse import urlsplit
 
 import requests
 from nuxeo.exceptions import HTTPError
-from nuxeo.models import Document
 from PyQt5.QtCore import QObject, QThread, QThreadPool, pyqtSignal, pyqtSlot
 
 from ..client.local import LocalClient
@@ -104,7 +103,6 @@ class Engine(QObject):
     online = pyqtSignal()
 
     # Direct Transfer
-    directTranferDuplicateError = pyqtSignal(Path, Document)
     directTranferError = pyqtSignal(Path)
     directTranferStatus = pyqtSignal(Path, bool)
     directTranferItemsCount = pyqtSignal(bool)
@@ -411,7 +409,11 @@ class Engine(QObject):
         self.dao.update_config("dt_last_remote_location_ref", remote_ref)
 
     def _direct_transfer(
-        self, local_paths: Set[Path], remote_parent_path: str, remote_parent_ref: str
+        self,
+        local_paths: Set[Path],
+        remote_parent_path: str,
+        remote_parent_ref: str,
+        duplicate_behavior: str,
     ) -> None:
         """Plan the Direct Transfer."""
         # self.directTranferStatus.emit(local_path[0], True)
@@ -431,6 +433,7 @@ class Engine(QObject):
                         local_path.stat().st_size,
                         remote_parent_path,
                         remote_parent_ref,
+                        duplicate_behavior,
                     )
                 )
             else:
@@ -445,13 +448,15 @@ class Engine(QObject):
                             size,
                             remote_subparent_path,
                             remote_parent_ref,
+                            duplicate_behavior,
                         )
                     )
 
         # Add all paths into the database to plan the upload, by batch
         bsize = Options.database_batch_size
         log.info(
-            f"Planning items to Direct Transfer, database_batch_size is {bsize} ..."
+            f"Planning items to Direct Transfer, database_batch_size is {bsize},"
+            f" duplicate_behavior is {duplicate_behavior!r} ..."
         )
         current_max_row_id = -1
         for batch_items in grouper(items, bsize):
@@ -467,54 +472,38 @@ class Engine(QObject):
         self.dao.queue_many_direct_transfer_items(current_max_row_id)
 
     def direct_transfer(
-        self, local_paths: Set[Path], remote_parent_path: str, remote_parent_ref: str
+        self,
+        local_paths: Set[Path],
+        remote_parent_path: str,
+        remote_parent_ref: str,
+        duplicate_behavior: str = "create",
     ) -> None:
         """Plan the Direct Transfer."""
-        self._direct_transfer(local_paths, remote_parent_path, remote_parent_ref)
+        self._direct_transfer(
+            local_paths,
+            remote_parent_path,
+            remote_parent_ref,
+            duplicate_behavior=duplicate_behavior,
+        )
 
     def direct_transfer_async(
-        self, local_paths: Set[Path], remote_parent_path: str, remote_parent_ref: str
+        self,
+        local_paths: Set[Path],
+        remote_parent_path: str,
+        remote_parent_ref: str,
+        duplicate_behavior: str = "create",
     ) -> None:
         """Plan the Direct Transfer. Async to not freeze the GUI."""
         from .workers import Runner
 
         runner = Runner(
-            self._direct_transfer, local_paths, remote_parent_path, remote_parent_ref
+            self._direct_transfer,
+            local_paths,
+            remote_parent_path,
+            remote_parent_ref,
+            duplicate_behavior=duplicate_behavior,
         )
         self._threadpool.start(runner)
-
-    def direct_transfer_cancel(self, file: Path) -> None:
-        """Cancel the Direct Transfer of the given local *file*."""
-        log.info(f"Direct Transfer of {file!r}, user choice: cancel the upload")
-
-        doc_pair = self.dao.get_state_from_local(file)
-        if not doc_pair:
-            # Magic teleportation?
-            log.warning("The doc pair disappeared?! Direct Transfer cancelled.")
-            return
-
-        # Clean-up the database
-        self.dao.remove_state(doc_pair)
-
-    def direct_transfer_replace_blob(self, file: Path, doc: Document) -> None:
-        """Replace the document's blob on the server."""
-        log.info(
-            f"Direct Transfer of {file!r}, user choice: "
-            f"replace the document's attached file (UID is {doc.uid!r})"
-        )
-
-        doc_pair = self.dao.get_state_from_local(file)
-        if not doc_pair:
-            # Magic teleportation?
-            log.warning("The doc pair disappeared?! Direct Transfer cancelled.")
-            return
-
-        # Plan the replacement of the document's blob on the server
-        doc_pair.remote_state = "deleted"
-        self.dao.update_pair_state(doc_pair)
-
-        # Repush the pair to be traited later
-        self.queue_manager.push(doc_pair)
 
     def rollback_delete(self, path: Path) -> None:
         """ Re-synchronize a document when a deletion is cancelled. """

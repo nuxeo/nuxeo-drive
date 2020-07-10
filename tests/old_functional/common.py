@@ -8,7 +8,7 @@ from logging import getLogger
 from pathlib import Path
 from threading import Thread
 from time import sleep
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 from unittest import TestCase
 from uuid import uuid4
 
@@ -89,10 +89,6 @@ class StubQApplication(QCoreApplication):
         self.bindEngine.connect(self.bind_engine)
         self.unbindEngine.connect(self.unbind_engine)
 
-        # Used by test_direct_transfer.py
-        self.doc: Optional[Document] = None
-        self.emitted = False
-
         # Used by test_local_move_folders.py
         self.local_scan_count = 0
 
@@ -137,27 +133,6 @@ class StubQApplication(QCoreApplication):
     @pyqtSlot(int)
     def unbind_engine(self, number):
         self._test.unbind_engine(number, purge=False)
-
-    @pyqtSlot(Path, Document)
-    def user_choice_cancel(self, file: Path, doc: Document) -> None:
-        """
-        Mock the Application._direct_transfer_duplicate_error() dialog box.
-        Simulate the user clicking on "Cancel".
-        Used by test_direct_transfer.py.
-        """
-        self.emitted = True
-        self.sender().direct_transfer_cancel(file)
-
-    @pyqtSlot(Path, Document)
-    def user_choice_replace(self, file: Path, doc: Document) -> None:
-        """
-        Mock the Application._direct_transfer_duplicate_error() dialog box.
-        Simulate the user clicking on "Replace".
-        Used by test_direct_transfer.py.
-        """
-        self.emitted = True
-        self.doc = doc
-        self.sender().direct_transfer_replace_blob(file, doc)
 
 
 class TwoUsersTest(TestCase):
