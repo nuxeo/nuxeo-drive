@@ -1,7 +1,6 @@
 """
 Test the Direct Transfer feature in different scenarii.
 """
-from contextlib import suppress
 from shutil import copyfile, copytree
 from time import sleep
 from unittest.mock import patch
@@ -48,16 +47,6 @@ class DirectTransfer:
         Options.chunk_limit = self.default_chunk_limit
         Options.chunk_size = self.default_chunk_size
 
-        # Disconnect eventual signals to prevent failures when tests are run in parallel
-        with suppress(TypeError):
-            self.engine_1.directTranferDuplicateError.disconnect(
-                self.app.user_choice_cancel
-            )
-        with suppress(TypeError):
-            self.engine_1.directTranferDuplicateError.disconnect(
-                self.app.user_choice_replace
-            )
-
     def has_blob(self) -> bool:
         """Check that *self.file* exists on the server and has a blob attached."""
         try:
@@ -75,7 +64,9 @@ class DirectTransfer:
         """Check there is no ongoing uploads."""
         assert not self.engine_1.dao.get_dt_upload(path=self.file)
 
-    def sync_and_check(self, should_have_blob: bool = True) -> None:
+    def sync_and_check(
+        self, should_have_blob: bool = True, check_for_blob: bool = True
+    ) -> None:
         # Let time for uploads to be planned
         sleep(3)
 
@@ -89,20 +80,32 @@ class DirectTransfer:
         assert not list(self.engine_1.dao.get_dt_uploads())
 
         # Check the file exists on the server and has a blob attached
+
+        if not check_for_blob:
+            # Useful when checking for duplicates creation
+            return
+
         if should_have_blob:
             assert self.has_blob()
         else:
             assert not self.has_blob()
 
+    def direct_transfer(self, duplicate_behavior: str = "create") -> None:
+        self.engine_1.direct_transfer(
+            [self.file],
+            self.ws.path,
+            self.ws.uid,
+            duplicate_behavior=duplicate_behavior,
+        )
+
     def test_upload(self):
         """A regular Direct Transfer."""
-        engine = self.engine_1
 
         # There is no upload, right now
         self.no_uploads()
 
         with ensure_no_exception():
-            engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
+            self.direct_transfer()
             self.sync_and_check()
 
     def test_cancel_upload(self):
@@ -118,45 +121,69 @@ class DirectTransfer:
             assert uploads
             upload = uploads[0]
             assert upload.status == TransferStatus.ONGOING
+
             # Pause the upload
             dao.pause_transfer("upload", upload.uid, 50.0)
 
         engine = self.engine_1
         dao = self.engine_1.dao
+
         # There is no upload, right now
         self.no_uploads()
+
         with patch.object(engine.remote, "upload_callback", new=callback):
             with ensure_no_exception():
-                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
+                self.direct_transfer()
                 self.wait_sync()
+
             assert dao.get_dt_uploads_with_status(TransferStatus.PAUSED)
+
             # Cancel the upload
             upload = list(dao.get_dt_uploads())[0]
             engine.cancel_upload(upload.uid)
+
         self.sync_and_check(should_have_blob=False)
 
     def test_with_engine_not_started(self):
         """A Direct Transfer should work even if engines are stopped."""
         pytest.xfail("Waiting for NXDRIVE-1910")
 
-        engine = self.engine_1
-        engine.stop()
+        self.engine_1.stop()
 
         # There is no upload, right now
         self.no_uploads()
 
         with ensure_no_exception():
-            engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
+            self.direct_transfer()
             self.sync_and_check()
 
-    def test_duplicate_file_cancellation(self):
+    @Options.mock()
+    def test_duplicate_file_create(self):
         """
-        The file already exists on the server and has a blob attached.
-        Then, the user wants to cancel the transfer.
+        The file already exists on the server.
+        The user wants to continue the transfer and create a duplicate.
         """
 
-        # Mimic the user clicking on "Cancel"
-        self.engine_1.directTranferDuplicateError.connect(self.app.user_choice_cancel)
+        with ensure_no_exception():
+            # 1st upload: OK
+            self.direct_transfer()
+            self.sync_and_check()
+
+            # 2nd upload: a new document will be created
+            self.direct_transfer(duplicate_behavior="create")
+            self.sync_and_check(check_for_blob=False)
+
+        # Ensure there are 2 documents on the server
+        children = self.remote_document_client_1.get_children_info(self.workspace)
+        assert len(children) == 2
+        assert children[0].name == self.file.name
+        assert children[1].name == self.file.name
+
+    def test_duplicate_file_ignore(self):
+        """
+        The file already exists on the server.
+        The user wants to cancel the transfer to prevent duplicates.
+        """
 
         class NoChunkUpload(DirectTransferUploader):
             def upload_chunks(self, *_, **__):
@@ -176,42 +203,35 @@ class DirectTransfer:
 
         with ensure_no_exception():
             # 1st upload: OK
-            engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
+            self.direct_transfer()
             self.sync_and_check()
 
-            # 2nd upload: it should be cancelled by the user
+            # 2nd upload: it should be cancelled
             with patch.object(engine.remote, "upload", new=upload):
-                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
+                self.direct_transfer(duplicate_behavior="ignore")
                 self.sync_and_check()
-
-        # Ensure the signal was emitted
-        assert self.app.emitted
 
         # Ensure there is only 1 document on the server
         self.sync_and_check()
 
-    def test_duplicate_file_replace_blob(self):
-        """The file already exists on the server and has a blob attached.
-        Then, the user wants to replace the blob.
+    @Options.mock()
+    def test_duplicate_file_override(self):
         """
-
-        # Mimic the user clicking on "Replace"
-        self.engine_1.directTranferDuplicateError.connect(self.app.user_choice_replace)
+        The file already exists on the server.
+        The user wants to continue the transfer and replace the document.
+        """
 
         with ensure_no_exception():
             # 1st upload: OK
-            self.engine_1.direct_transfer([self.file], self.ws.path, self.ws.uid)
+            self.direct_transfer()
             self.sync_and_check()
 
             # To ease testing, we change local file content
             self.file.write_bytes(b"blob changed!")
 
             # 2nd upload: the blob should be replaced on the server
-            self.engine_1.direct_transfer([self.file], self.ws.path, self.ws.uid)
+            self.direct_transfer(duplicate_behavior="override")
             self.sync_and_check()
-
-        # Ensure the signal was emitted
-        assert self.app.emitted
 
         # Ensure there is only 1 document on the server
         children = self.remote_document_client_1.get_children_info(self.workspace)
@@ -219,8 +239,10 @@ class DirectTransfer:
         assert children[0].name == self.file.name
 
         # Ensure the blob content was updated
-        doc = self.app.doc
-        assert self.remote_1.get_blob(doc.uid, xpath="file:content") == b"blob changed!"
+        assert (
+            self.remote_1.get_blob(children[0].uid, xpath="file:content")
+            == b"blob changed!"
+        )
 
     def test_pause_upload_manually(self):
         """
@@ -252,7 +274,7 @@ class DirectTransfer:
 
         with patch.object(engine.remote, "upload_callback", new=callback):
             with ensure_no_exception():
-                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
+                self.direct_transfer()
                 self.wait_sync()
             assert dao.get_dt_uploads_with_status(TransferStatus.PAUSED)
 
@@ -280,14 +302,14 @@ class DirectTransfer:
             self.manager_1.suspend()
 
         engine = self.engine_1
-        dao = self.engine_1.dao
+        dao = engine.dao
 
         # There is no upload, right now
         self.no_uploads()
 
         with patch.object(engine.remote, "upload_callback", new=callback):
             with ensure_no_exception():
-                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
+                self.direct_transfer()
                 self.wait_sync()
             assert dao.get_dt_uploads_with_status(TransferStatus.SUSPENDED)
 
@@ -313,14 +335,14 @@ class DirectTransfer:
             self.file.write_bytes(b"locally changed")
 
         engine = self.engine_1
-        dao = self.engine_1.dao
+        dao = engine.dao
 
         # There is no upload, right now
         self.no_uploads()
 
         with patch.object(engine.remote, "upload_callback", new=callback):
             with ensure_no_exception():
-                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
+                self.direct_transfer()
                 self.wait_sync()
 
         # Resume the upload
@@ -356,14 +378,14 @@ class DirectTransfer:
             assert not self.file.exists()
 
         engine = self.engine_1
-        dao = self.engine_1.dao
+        dao = engine.dao
 
         # There is no upload, right now
         self.no_uploads()
 
         with patch.object(engine.remote, "upload_callback", new=callback):
             with ensure_no_exception():
-                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
+                self.direct_transfer()
                 self.wait_sync()
 
         # Resume the upload
@@ -417,7 +439,7 @@ class DirectTransfer:
 
         with patch.object(engine.remote, "upload", new=upload):
             with ensure_no_exception():
-                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
+                self.direct_transfer()
                 self.wait_sync()
 
                 # There should be no upload as the Processor has checked the file existence
@@ -469,7 +491,7 @@ class DirectTransfer:
 
         with patch.object(engine.remote, "upload", new=upload):
             with ensure_no_exception():
-                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
+                self.direct_transfer()
                 self.wait_sync()
 
         # The document has been created
@@ -505,7 +527,7 @@ class DirectTransfer:
 
         with patch.object(engine.remote, "upload", new=upload):
             with ensure_no_exception():
-                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
+                self.direct_transfer()
                 self.wait_sync()
 
                 # There should be 1 upload with ONGOING transfer status
@@ -532,7 +554,7 @@ class DirectTransfer:
                 upload.service.send_data = send_data
 
         engine = self.engine_1
-        dao = self.engine_1.dao
+        dao = engine.dao
         bad_remote = self.get_bad_remote()
         bad_remote.upload_callback = callback
 
@@ -541,7 +563,7 @@ class DirectTransfer:
 
         with patch.object(engine, "remote", new=bad_remote):
             with ensure_no_exception():
-                engine.direct_transfer([self.file], self.ws.path, self.ws.uid)
+                self.direct_transfer()
                 self.wait_sync()
 
                 # There should be 1 upload with ONGOING transfer status

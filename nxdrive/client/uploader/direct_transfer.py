@@ -5,8 +5,6 @@ from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from nuxeo.models import Document
-
 from ...engine.activity import LinkingAction, UploadAction
 from ...objects import Upload
 from . import BaseUploader
@@ -20,10 +18,10 @@ class DirectTransferUploader(BaseUploader):
     linking_action = LinkingAction
     upload_action = UploadAction
 
-    def get_document_or_none(self, parent_ref: str, name: str) -> Optional[Document]:
+    def exists(self, parent_ref: str, name: str) -> bool:
         """
         Fetch a document based on its parent's UID and document's name.
-        Return None if not found on the server.
+        Return True if such document exists.
         """
         name = self.remote._escape(name)
         query = (
@@ -33,8 +31,7 @@ class DirectTransferUploader(BaseUploader):
             " AND ecm:isVersion = 0"
             " AND ecm:isTrashed = 0"
         )
-        results = self.remote.query(query)["entries"]
-        return Document.parse(results[0]) if results else None
+        return bool(self.remote.query(query)["entries"])
 
     def get_upload(self, file_path: Path) -> Optional[Upload]:
         """Retrieve the eventual transfer associated to the given *file_path*."""
@@ -69,34 +66,29 @@ class DirectTransferUploader(BaseUploader):
         """
         remote_parent_path = kwargs.pop("remote_parent_path")
         remote_parent_ref = kwargs.pop("remote_parent_ref")
-        engine_uid = kwargs.pop("engine_uid")
-        # replace_blob = kwargs.get("replace_blob", False)
+        duplicate_behavior = kwargs.pop("duplicate_behavior")
+
         log.info(
             f"Direct Transfer of {file_path!r} into {remote_parent_path!r} ({remote_parent_ref!r})"
         )
 
-        # NXDRIVE-2234
-        # if not replace_blob:
-        #     doc: Optional[Document] = self.get_document_or_none(
-        #         remote_parent_ref, file_path.name
-        #     )
+        if duplicate_behavior == "ignore" and self.exists(
+            remote_parent_ref, file_path.name
+        ):
+            msg = f"Ignoring the transfer as a document already has the name {file_path.name!r} on the server"
+            log.debug(msg)
+            return {}
 
-        #     if doc:
-        #         # The document already exists and has a blob attached. Ask the user what to do.
-        #         raise DirectTransferDuplicateFoundError(file_path, doc)
-
-        # If the path is a folder, there is no more work to do
-        # if file_path.is_dir():
-        #     details: Dict[str, Any] = doc.as_dict() if doc else {}
-        #     return details
+        # Only replace the document if the user wants to
+        overwrite = duplicate_behavior == "override"
 
         # Upload the blob and use the FileManager importer to create the document
         item = super().upload_impl(
             file_path,
             "FileManager.Import",
             context={"currentDocument": remote_parent_path},
-            # params={"overwite": True},  # NXP-29286
-            engine_uid=engine_uid,
+            params={"overwite": overwrite},  # NXP-29286
+            engine_uid=kwargs.pop("engine_uid"),
             is_direct_transfer=True,
             remote_parent_path=remote_parent_path,
             remote_parent_ref=remote_parent_ref,

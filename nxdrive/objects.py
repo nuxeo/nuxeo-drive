@@ -350,6 +350,7 @@ class DocPair(Row):
     processor: int
     last_transfer: str
     creation_date: str
+    duplicate_behavior: str
 
     def __repr__(self) -> str:
         return (

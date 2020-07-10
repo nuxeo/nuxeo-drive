@@ -33,7 +33,6 @@ from ..constants import (
     TransferStatus,
 )
 from ..exceptions import (
-    DirectTransferDuplicateFoundError,
     DownloadPaused,
     DuplicationDisabledError,
     NotFound,
@@ -402,10 +401,6 @@ class Processor(EngineWorker):
                     self._postpone_pair(doc_pair, "Trashing not possible")
                 else:
                     self._handle_pair_handler_exception(doc_pair, handler_name, exc)
-            except DirectTransferDuplicateFoundError as exc:
-                # Ask the user what to do when a possible duplicate can be created by a Direct Transfer call
-                log.info(str(exc))
-                self.engine.directTranferDuplicateError.emit(exc.file, exc.doc)
             except Exception as exc:
                 # Workaround to forward unhandled exceptions to sys.excepthook between all Qthreads
                 sys.excepthook(*sys.exc_info())
@@ -485,9 +480,7 @@ class Processor(EngineWorker):
             log.exception("Unknown error")
             self.increase_error(doc_pair, f"SYNC_HANDLER_{handler_name}", exception=e)
 
-    def _synchronize_direct_transfer(
-        self, doc_pair: DocPair, replace_blob: bool = False
-    ) -> None:
+    def _synchronize_direct_transfer(self, doc_pair: DocPair) -> None:
         """Direct Transfer of a local file."""
         if WINDOWS:
             file = doc_pair.local_path
@@ -509,9 +502,9 @@ class Processor(EngineWorker):
             file,
             engine_uid=self.engine.uid,
             uploader=DirectTransferUploader,
-            replace_blob=replace_blob,
             remote_parent_path=doc_pair.remote_parent_path,
             remote_parent_ref=doc_pair.remote_parent_ref,
+            duplicate_behavior=doc_pair.duplicate_behavior,
         )
 
         # Clean-up
@@ -523,10 +516,6 @@ class Processor(EngineWorker):
 
         # For analytics
         self.engine.manager.directTransferStats.emit(doc_pair.folderish, doc_pair.size)
-
-    def _synchronize_direct_transfer_replace_blob(self, doc_pair: DocPair) -> None:
-        """Force the blob replacement of the remote document (choice done by the user)."""
-        self._synchronize_direct_transfer(doc_pair, replace_blob=True)
 
     def _synchronize_conflicted(self, doc_pair: DocPair) -> None:
         if doc_pair.local_state == "moved" and doc_pair.remote_state in (

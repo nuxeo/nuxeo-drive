@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, List, Optional, Set, Union
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
+    QComboBox,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
@@ -26,6 +27,8 @@ if TYPE_CHECKING:
     from .application import Application  # noqa
 
 __all__ = ("DocumentsDialog", "FoldersDialog")
+
+DOC_URL = "https://doc.nuxeo.com/client-apps/nuxeo-drive/"
 
 
 class DialogMixin(QDialog):
@@ -225,6 +228,7 @@ class FoldersDialog(DialogMixin):
 
         self.vertical_layout.addWidget(self._add_group_local())
         self.vertical_layout.addWidget(self._add_group_remote())
+        self.vertical_layout.addWidget(self._add_group_options())
         self.vertical_layout.addWidget(self.button_box)
 
         self.button_ok_state()
@@ -249,6 +253,19 @@ class FoldersDialog(DialogMixin):
         layout.addWidget(self.local_path)
         layout.addWidget(self.local_paths_size_lbl)
         layout.addWidget(button)
+
+        return groupbox
+
+    def _add_group_options(self) -> QGroupBox:
+        """Group box for options."""
+        groupbox = QGroupBox(Translator.get("OPTIONS"))
+        layout = QVBoxLayout()
+        groupbox.setLayout(layout)
+
+        sublayout = QHBoxLayout()
+        layout.addLayout(sublayout)
+
+        self._add_subgroup_duplicate_behavior(sublayout)
 
         return groupbox
 
@@ -278,11 +295,33 @@ class FoldersDialog(DialogMixin):
 
         return groupbox
 
+    def _add_subgroup_duplicate_behavior(self, layout: QHBoxLayout) -> None:
+        """Add a sub-group for the duplicates behavior option."""
+        label = QLabel(Translator.get("DUPLICATE_BEHAVIOR", [DOC_URL]))
+        label.setToolTip(Translator.get("DUPLICATE_BEHAVIOR_TOOLTIP"))
+        label.setTextFormat(Qt.RichText)
+        label.setOpenExternalLinks(True)
+        layout.addWidget(label)
+
+        self.cb = QComboBox()
+        self.cb.addItem(Translator.get("DUPLICATE_BEHAVIOR_CHOOSE"), "")
+        self.cb.addItem(Translator.get("DUPLICATE_BEHAVIOR_CREATE"), "create")
+        self.cb.addItem(Translator.get("DUPLICATE_BEHAVIOR_IGNORE"), "ignore")
+        self.cb.addItem(Translator.get("DUPLICATE_BEHAVIOR_OVERRIDE"), "override")
+        self.cb.currentIndexChanged.connect(self.button_ok_state)
+        layout.addWidget(self.cb)
+
+        # Prevent previous objects to take the whole width, that does not render well for human eyes
+        layout.addStretch(0)
+
     def accept(self) -> None:
         """Action to do when the OK button is clicked."""
         super().accept()
         self.engine.direct_transfer_async(
-            self.paths, self.remote_folder.text(), self.remote_folder_ref
+            self.paths,
+            self.remote_folder.text(),
+            self.remote_folder_ref,
+            duplicate_behavior=self.cb.currentData(),
         )
 
     def button_ok_state(self) -> None:
@@ -291,8 +330,11 @@ class FoldersDialog(DialogMixin):
         # Required criteria:
         #   - at least 1 local path
         #   - a selected remote path
+        #   - a selected duplicate behavior
         self.button_box.button(QDialogButtonBox.Ok).setEnabled(
-            bool(self.remote_folder.text()) and bool(self.paths)
+            bool(self.paths)
+            and bool(self.remote_folder.text())
+            and bool(self.cb.currentData())
         )
 
     def get_tree_view(self) -> FolderTreeView:
