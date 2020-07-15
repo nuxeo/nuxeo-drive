@@ -8,13 +8,14 @@ from argparse import ArgumentParser, Namespace
 from configparser import DEFAULTSECT, ConfigParser
 from datetime import datetime
 from logging import getLogger
-from typing import TYPE_CHECKING, List, Union
+from typing import TYPE_CHECKING, Any, List, Union
 
 from . import __version__
 from .constants import APP_NAME, BUNDLE_IDENTIFIER, DEFAULT_CHANNEL, LINUX
 from .logging_config import configure
 from .options import Options
 from .osi import AbstractOSIntegration
+from .state import State
 from .utils import (
     config_paths,
     force_encode,
@@ -568,8 +569,13 @@ class CliHandler:
                 log.warning(f"{APP_NAME} is already running: exiting.")
             return 0
 
-        app = self._get_application(console=console)
-        exit_code: int = app.exec_()
+        with HealthCheck():
+            # Monitor the "minimum syndical".
+            # If a crash happens outside that context manager, this is not considered a crash
+            # as we only do care about synchronization parts that could be altered.
+            app = self._get_application(console=console)
+            exit_code: int = app.exec_()
+
         lock.unlock()
         log.info(f"{APP_NAME} exited with code {exit_code}")
         return exit_code
@@ -705,3 +711,42 @@ class CliHandler:
         with segfault_filename.open(mode="a", encoding="utf-8") as fh:
             fh.write(f"\n\n\n>>> {datetime.now()}\n")
             faulthandler.enable(file=fh)
+
+
+class HealthCheck:
+    """
+    Simple class to be used as a context manager to manage a "crash" file
+    helping to know if the application previously crashed.
+
+    File handling and clean-up are automatically handled.
+    """
+
+    def __init__(self) -> None:
+        self.crash_file = Options.nxdrive_home / "crash.state"
+
+    def __enter__(self) -> "HealthCheck":
+        """Get or create the crash file to know the current application's state."""
+        # Be careful for any error, so using a broad try/catch block.
+        try:
+            if self.crash_file.is_file():
+                log.warning("It seems the application crashed at the previous run 😮")
+                State.has_crashed = True
+            else:
+                # Create the file to check the next run
+                self.crash_file.touch()
+        except Exception:
+            log.warning("Cannot get or create the crash file", exc_info=True)
+
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        """
+        Clean the crash file as everything went well.
+        This code would unlikely being called on a hard crash and so the clean-up
+        would not be done.
+        """
+        # Be careful for any error, so using a broad try/catch block.
+        try:
+            self.crash_file.unlink()
+        except Exception:
+            log.warning("Cannot clean-up the crash file", exc_info=True)
