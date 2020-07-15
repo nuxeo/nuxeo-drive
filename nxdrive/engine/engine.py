@@ -37,6 +37,7 @@ from ..exceptions import (
 )
 from ..objects import Binder, DocPairs, EngineDef, Metrics
 from ..options import Options
+from ..state import State
 from ..utils import (
     current_thread_id,
     find_icon,
@@ -651,13 +652,33 @@ class Engine(QObject):
         # Update the systray icon and syncing count in the systray, if there are any resumed transfers
         self._check_sync_start()
 
-    def remove_staled_transfers(self) -> None:
-        """Remove staled transfers: at startup, no transfer can have the transfer status ONGOING."""
+    def _manage_staled_transfers(self) -> None:
+        """
+        That method manages staled transfers. A staled transfer has the ONGOING status.
+
+        Normally, this status cannot be if the application was correctly shut down.
+        In that case, such transfers will be purged. This likely mean there was an error somewhere and
+        the transfer will unlikely being able to resume.
+
+        On the other end, if the application effectively crashed at the previous run,
+        such transfers should be adapted to being able to resume.
+        """
+
+        app_has_crashed = State.has_crashed
+        dao = self.dao
+
         for nature in ("download", "upload"):
-            meth = getattr(self.dao, f"get_{nature}s_with_status")
+            meth = getattr(dao, f"get_{nature}s_with_status")
             for transfer in meth(TransferStatus.ONGOING):
-                self.dao.remove_transfer(nature, transfer.path)
-                log.info(f"Removed staled {transfer}")
+                if app_has_crashed:
+                    # Update the status to let .resume_suspended_transfers() processing it
+                    transfer.status = TransferStatus.SUSPENDED
+                    dao.set_transfer_status(nature, transfer)
+                    log.info(f"Updated status of staled {transfer}")
+                else:
+                    # Remove staled transfers
+                    dao.remove_transfer(nature, transfer.path)
+                    log.info(f"Removed staled {transfer}")
 
     def cancel_upload(self, transfer_uid: int) -> None:
         """Cancel an ongoing Direct Transfer upload and clean the database."""
@@ -901,7 +922,7 @@ class Engine(QObject):
         # Launch the server config file updater
         self.manager.server_config_updater.force_poll()
 
-        self.remove_staled_transfers()
+        self._manage_staled_transfers()
         self.resume_suspended_transfers()
 
         self._stopped = False
