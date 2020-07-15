@@ -8,6 +8,7 @@ from nuxeo.exceptions import HTTPError
 from nxdrive.client.uploader.sync import SyncUploader
 from nxdrive.constants import FILE_BUFFER_SIZE, TransferStatus
 from nxdrive.options import Options
+from nxdrive.state import State
 from requests.exceptions import ConnectionError
 
 from .. import ensure_no_exception
@@ -700,3 +701,61 @@ class TestUpload(OneUserTest):
             self.wait_sync()
             assert not list(dao.get_uploads())
             assert self.remote_1.exists("/test.bin")
+
+    def test_app_crash_simulation(self):
+        """
+        When the app crahsed, ongoing transfers will be removed at the next run.
+        See NXDRIVE-2186 for more information.
+
+        To reproduce the issue, we suspend the transfer in the upload's callback,
+        then stop the engine and mimic an app crash by manually changing the transfer
+        status and State.has_crashed value.
+        """
+
+        def callback(*_):
+            """Suspend the upload and engine."""
+            self.manager_1.suspend()
+
+        local = self.local_1
+        engine = self.engine_1
+        dao = engine.dao
+
+        # Locally create a file that will be uploaded remotely
+        local.make_file("/", "test.bin", content=b"0" * FILE_BUFFER_SIZE * 2)
+
+        # There is no upload, right now
+        assert not list(dao.get_uploads())
+
+        with patch.object(engine.remote, "upload_callback", new=callback):
+            with ensure_no_exception():
+                self.wait_sync()
+
+        # For now, the transfer is only suspended
+        assert dao.get_uploads_with_status(TransferStatus.SUSPENDED)
+
+        # Stop the engine
+        engine.stop()
+
+        # Change the transfer status to ongoing and change the global State to reflect a crash
+        upload = list(dao.get_uploads())[0]
+        upload.status = TransferStatus.ONGOING
+        dao.set_transfer_status("upload", upload)
+        assert dao.get_uploads_with_status(TransferStatus.ONGOING)
+
+        # Simple check: nothing has been uploaded yet
+        assert not self.remote_1.exists("/test.bin")
+
+        State.has_crashed = True
+        try:
+            # Start again the engine, it will manage staled transfers.
+            # As the app crashed, no transfers should be removed but continued.
+            with ensure_no_exception():
+                engine.start()
+                self.manager_1.resume()
+                self.wait_sync()
+        finally:
+            State.has_crashed = False
+
+        # Check the file has been uploaded
+        assert not list(dao.get_uploads())
+        assert self.remote_1.exists("/test.bin")
