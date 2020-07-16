@@ -20,11 +20,12 @@ Available parameters and introduced version:
 
 """
 from types import SimpleNamespace
+from typing import List
 
 Feature = SimpleNamespace(
     auto_update=True, direct_edit=True, direct_transfer=False, s3=False,
 )
 
-Beta = ["direct_transfer", "s3"]
+Beta: List[str] = ["direct_transfer", "s3"]
 
-DisabledFeatures = ["s3"]
+DisabledFeatures: List[str] = []
