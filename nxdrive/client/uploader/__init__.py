@@ -2,7 +2,6 @@
 Uploader used by the Remote client for all upload stuff.
 """
 from abc import abstractmethod
-from datetime import datetime, timedelta
 from logging import getLogger
 from pathlib import Path
 from time import monotonic_ns
@@ -148,9 +147,6 @@ class BaseUploader:
 
                 # Create a new batch and save it in the DB
                 batch = self.remote.uploads.batch(handler=handler)
-
-                if batch.is_s3():
-                    self._aws_token_ttl(batch.extraInfo["expiration"] / 1000)
 
             # By default, Options.chunk_size is 20, so chunks will be 20MiB.
             # It can be set to a value between 1 and 20 through the config.ini
@@ -307,10 +303,3 @@ class BaseUploader:
             return res
         finally:
             action.finish_action()
-
-    def _aws_token_ttl(self, timestamp: int) -> timedelta:
-        """Return the AWS token TTL for S3 uploads."""
-        expiration = datetime.utcfromtimestamp(timestamp)
-        ttl = expiration - datetime.utcnow()
-        log.debug(f"AWS token will expire in {ttl} [at {expiration} UTC exactly]")
-        return ttl
