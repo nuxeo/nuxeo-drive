@@ -10,8 +10,6 @@ from time import monotonic, sleep
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 from urllib.parse import unquote
 
-import requests
-from markdown import markdown
 from PyQt5.QtCore import QEvent, QRect, Qt, QTimer, QUrl, pyqtSlot
 from PyQt5.QtGui import QCursor, QFont, QFontMetricsF, QIcon, QWindow
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
@@ -432,17 +430,27 @@ class Application(QApplication):
         self.osi.register_contextual_menu()
         self.installTranslator(Translator.singleton)
 
+    def _display_message(self, icon: QIcon, title: str, message: str) -> None:
+        """Display a generic message box warning."""
+        msg = QMessageBox()
+        msg.setWindowTitle(title)
+        msg.setWindowIcon(self.icon)
+        msg.setIcon(icon)
+        msg.setTextFormat(Qt.RichText)
+        msg.setText(message)
+        msg.exec_()
+
+    def display_info(self, title: str, message: str, values: List[str]) -> None:
+        """Display a generic message box information."""
+        msg_text = self.translate(message, values)
+        log.info(f"{msg_text} (values={values})")
+        self._display_message(QMessageBox.Information, title, msg_text)
+
     def display_warning(self, title: str, message: str, values: List[str]) -> None:
         """Display a generic message box warning."""
         msg_text = self.translate(message, values)
         log.warning(f"{msg_text} (values={values})")
-        msg = QMessageBox()
-        msg.setWindowTitle(title)
-        msg.setWindowIcon(self.icon)
-        msg.setIcon(QMessageBox.Warning)
-        msg.setTextFormat(Qt.RichText)
-        msg.setText(msg_text)
-        msg.exec_()
+        self._display_message(QMessageBox.Warning, title, msg_text)
 
     @pyqtSlot(str, Path, str)
     def _direct_edit_conflict(self, filename: str, ref: Path, digest: str) -> None:
@@ -1124,47 +1132,14 @@ class Application(QApplication):
         channel = self.manager.get_update_channel()
         log.info(f"Showing release notes, version={version!r} channel={channel}")
 
-        # For now, we do care about beta only
-        if channel != "beta":
+        if channel == "alpha":
             return
 
-        url = (
-            "https://api.github.com/repos/nuxeo/nuxeo-drive"
-            f"/releases/tags/release-{version}"
+        self.display_info(
+            Translator.get("RELEASE_NOTES_TITLE", [APP_NAME]),
+            "RELEASE_NOTES_MSG",
+            [APP_NAME, version],
         )
-
-        if channel != "release":
-            version += f" {channel}"
-
-        try:
-            # No need for the `verify` kwarg here as GitHub will never use a bad certificate.
-            with requests.get(url) as resp:
-                data = resp.json()
-                html = markdown(data["body"])
-        except Exception:
-            log.warning(f"[{version}] Release notes retrieval error")
-            return
-
-        dialog = QDialog()
-        dialog.setWindowTitle(Translator.get("RELEASE_NOTES_TITLE", [APP_NAME]))
-        dialog.setWindowIcon(self.icon)
-
-        dialog.resize(600, 400)
-
-        notes = QTextEdit()
-        notes.setStyleSheet("background-color: #eee; border: none;")
-        notes.setReadOnly(True)
-        notes.setHtml(html)
-
-        buttons = QDialogButtonBox()
-        buttons.setStandardButtons(QDialogButtonBox.Ok)
-        buttons.clicked.connect(dialog.accept)
-
-        layout = QVBoxLayout()
-        layout.addWidget(notes)
-        layout.addWidget(buttons)
-        dialog.setLayout(layout)
-        dialog.exec_()
 
     def accept_unofficial_ssl_cert(self, hostname: str) -> bool:
         """Ask the user to bypass the SSL certificate verification."""
