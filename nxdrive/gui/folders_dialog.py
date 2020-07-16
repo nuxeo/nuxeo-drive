@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 __all__ = ("DocumentsDialog", "FoldersDialog")
 
-DOC_URL = "https://doc.nuxeo.com/client-apps/nuxeo-drive/"
+DOC_URL = "https://doc.nuxeo.com/client-apps/nuxeo-drive-functional-overview/#duplicates-behavior"
 
 
 class DialogMixin(QDialog):
