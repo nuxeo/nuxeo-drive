@@ -161,7 +161,7 @@ class LocalWatcher(EngineWorker):
     @tooltip("Dequeue delete")
     def _win_dequeue_delete(self) -> None:
         try:
-            for evt in list(self._delete_events.values()):
+            for evt in self._delete_events.copy().values():
                 evt_time, evt_pair = evt
                 if current_milli_time() - evt_time < WIN_MOVE_RESOLUTION_PERIOD:
                     log.info(
@@ -206,7 +206,7 @@ class LocalWatcher(EngineWorker):
     @tooltip("Dequeue folder scan")
     def _win_dequeue_folder_scan(self) -> None:
         try:
-            events = list(self._folder_scan_events.items())
+            events = self._folder_scan_events.copy().items()
             for local_path, (evt_time, evt_pair) in events:
                 delay = current_milli_time() - evt_time
 

@@ -413,7 +413,7 @@ class Manager(QObject):
 
     def start_engines(self) -> None:
         """Start all engines."""
-        for uid, engine in list(self.engines.items()):
+        for uid, engine in self.engines.copy().items():
             if self.is_paused:
                 continue
 
