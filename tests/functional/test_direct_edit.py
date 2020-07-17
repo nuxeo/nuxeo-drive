@@ -8,6 +8,7 @@ import pytest
 from nuxeo.exceptions import CorruptedFile
 from nxdrive.constants import ROOT
 from nxdrive.engine.engine import Engine, ServerBindingSettings
+from nxdrive.objects import DirectEditDetails
 from nxdrive.translator import Translator
 from nxdrive.utils import find_resource
 
@@ -179,13 +180,9 @@ def test_cleanup_orphan_files(manager_factory, obj_factory):
 
         def extract_edit_info(_):
             """
-            Mocked __extract_edit_info() method
-            Mandatory as there is no blob to work with in the test
+            Mocked _extract_edit_info() method.
+            Mandatory as there is no blob to work with in the test.
             """
-            DirectEditDetails = namedtuple(
-                "details",
-                ["uid", "engine", "digest_func", "digest", "xpath", "editing"],
-            )
 
             nonlocal doc
             nonlocal engine
@@ -208,6 +205,79 @@ def test_cleanup_orphan_files(manager_factory, obj_factory):
 
         # The file should still be present as it is ignored by the clean-up
         assert file.is_file()
+
+
+def test_document_hijacking(manager_factory, obj_factory):
+    """
+    There are 2 situations we need to prevent:
+
+    1. Softwares LibreOffice or MS Office may leave temporary files behind them.
+    2. Someone could intentionally put a bad file in the good folder.
+
+    Both will corrupt the remote document (data loss) at the next startup.
+
+    The test goal is to ensure that these files are not just ignored.
+    """
+    manager, engine = manager_factory()
+
+    with manager:
+        direct_edit = manager.direct_edit
+        direct_edit._folder.mkdir()
+        doc = obj_factory(title="test_xlsx.xlsx", nature="File")
+
+        # Creating local excel file
+        folder = direct_edit._folder / f"{doc.uid}_file-content"
+        folder.mkdir()
+        xlsx_file = folder / "test_xlsx.xlsx"
+        xlsx_file.write_text("bla" * 3, encoding="utf-8")
+        assert xlsx_file.is_file()
+
+        # Setting nxdirecteditname attribute on folder
+        direct_edit.local.set_remote_id(
+            folder, "test_xlsx.xlsx", name="nxdirecteditname"
+        )
+
+        # Creating Excel classic temp file
+        tmp_file = folder / "~$test_xlsx.xlsx"
+        tmp_file.write_text("bla" * 3, encoding="utf-8")
+        assert tmp_file.is_file()
+
+        # Creating Excel extensionless temp file
+        random_file = folder / "532AEF06"
+        random_file.write_text("bla" * 3, encoding="utf-8")
+        assert random_file.is_file()
+
+        def extract_edit_info(ref):
+            """
+            Mocked _extract_edit_info() method.
+            Mandatory as there is no blob to work with in the test.
+            """
+
+            nonlocal doc
+            nonlocal engine
+
+            assert ref == Path(f"{doc.uid}_file-content/{xlsx_file.name}")
+
+            return DirectEditDetails(
+                uid=doc.uid,
+                engine=engine,
+                digest_func="md5",
+                digest="1a36591bceec49c832079e270d7e8b73",
+                xpath="mock",
+                editing="1",
+            )
+
+        with patch.object(
+            direct_edit, "_extract_edit_info", new=extract_edit_info
+        ), ensure_no_exception():
+            direct_edit._cleanup()
+
+        # The files should still be present as they are not deleted by the clean-up
+        assert xlsx_file.is_file()
+        assert tmp_file.is_file()
+        assert random_file.is_file()
+
+        assert direct_edit._upload_queue.empty()
 
 
 def test_document_not_found(manager_factory):
