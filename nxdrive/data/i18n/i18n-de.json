@@ -260,6 +260,7 @@
     "READONLY_FILE": "Kann \"%1\" nicht aktualisieren, da es schreibgeschützt ist",
     "READONLY_FOLDER": "\"%1\" konnte nicht in den schreibgeschützten Ordner \"%2 \" hochgeladen werden",
     "RELEASE_NOTES_TITLE": "%1 - Versionshinweise",
+    "RELEASE_NOTES_MSG": "Your %1 has been correctly updated to the version <b>%2</b>, please read the <a href=\"https://doc.nuxeo.com/n/Bm2\">release notes</a> for more information.",
     "RECENTLY_UPDATED": "Kürzlich aktualisiert",
     "REMOTE_FOLDER": "Ordner auf Server",
     "REPLACE": "Ersetzen",

@@ -260,6 +260,7 @@
     "READONLY_FILE": "\"%1\"は読み取り専用なので、更新できません",
     "READONLY_FOLDER": "\"%1\" は、読み取り専用フォルダ\"%2\"にアップロードできませんでした",
     "RELEASE_NOTES_TITLE": "%1- リリースノート",
+    "RELEASE_NOTES_MSG": "Your %1 has been correctly updated to the version <b>%2</b>, please read the <a href=\"https://doc.nuxeo.com/n/Bm2\">release notes</a> for more information.",
     "RECENTLY_UPDATED": "最近の更新",
     "REMOTE_FOLDER": "リモートフォルダー",
     "REPLACE": "置換",

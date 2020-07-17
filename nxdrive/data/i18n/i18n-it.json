@@ -260,6 +260,7 @@
     "READONLY_FILE": "Impossibile aggiornare \"%1\" perché è di sola lettura",
     "READONLY_FOLDER": "Impossibile caricare \"%1\" nella cartella di sola lettura \"%2\"",
     "RELEASE_NOTES_TITLE": "%1 - Note di versione",
+    "RELEASE_NOTES_MSG": "Your %1 has been correctly updated to the version <b>%2</b>, please read the <a href=\"https://doc.nuxeo.com/n/Bm2\">release notes</a> for more information.",
     "RECENTLY_UPDATED": "Aggiornato di recente",
     "REMOTE_FOLDER": "Cartella remota",
     "REPLACE": "Sostituisci",

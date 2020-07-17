@@ -260,6 +260,7 @@
     "READONLY_FILE": "\"%1\" ne peut pas être édité car il est en lecture seule",
     "READONLY_FOLDER": "\"%1\" n'as pas pu être téléchargé dans le dossier en lecture seule \"%2\"",
     "RELEASE_NOTES_TITLE": "%1 - Notes de publication",
+    "RELEASE_NOTES_MSG": "Your %1 has been correctly updated to the version <b>%2</b>, please read the <a href=\"https://doc.nuxeo.com/n/Bm2\">release notes</a> for more information.",
     "RECENTLY_UPDATED": "Derniers fichiers mis à jour",
     "REMOTE_FOLDER": "Dossier distant",
     "REPLACE": "Remplacer",
