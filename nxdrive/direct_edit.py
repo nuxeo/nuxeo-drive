@@ -196,7 +196,21 @@ class DirectEdit(Worker):
                 purge(child.path)
                 continue
 
-            ref = children[0].path
+            # Get filename stored in folder nxdirecteditname attribute
+            expected_name = self.local.get_remote_id(
+                child.path, name="nxdirecteditname"
+            )
+            if not expected_name:
+                continue
+
+            filtered = [file for file in children if file.name == expected_name]
+            # Folder doesn't contain the expected file so we do nothing.
+            if not filtered:
+                continue
+
+            # The expected file is found so we use it
+            ref = filtered[0].path
+
             try:
                 details = self._extract_edit_info(ref)
             except NotFound:
@@ -217,6 +231,10 @@ class DirectEdit(Worker):
                     continue
             except Exception:
                 log.exception("Unhandled clean-up error")
+                continue
+
+            # Other files are present next to the edited file, we should not delete them nor the edit file
+            if len(children) > 1:
                 continue
 
             # Place for handle reopened of interrupted Direct Edit
