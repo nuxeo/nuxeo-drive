@@ -260,6 +260,7 @@
     "READONLY_FILE": "Ezin izan da \"%1\" eguneratu, irakurtzeko soilik da",
     "READONLY_FOLDER": "\"%1\" ezin izan da igo irakurtzeko soilik den \"%2\" karpetara",
     "RELEASE_NOTES_TITLE": "%1 - Bertsio-oharrak",
+    "RELEASE_NOTES_MSG": "Your %1 has been correctly updated to the version <b>%2</b>, please read the <a href=\"https://doc.nuxeo.com/n/Bm2\">release notes</a> for more information.",
     "RECENTLY_UPDATED": "Orain gutxi eguneratua",
     "REMOTE_FOLDER": "Urruneko karpeta",
     "REPLACE": "Ordeztu",

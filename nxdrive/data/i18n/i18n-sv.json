@@ -260,6 +260,7 @@
     "READONLY_FILE": "Kan inte uppdatera \"%1\" eftersom det är skrivskyddat",
     "READONLY_FOLDER": "\"%1\" kunde inte laddas upp till den skrivskyddade mappen \"%2\"",
     "RELEASE_NOTES_TITLE": "%1 - Släppanteckningar",
+    "RELEASE_NOTES_MSG": "Your %1 has been correctly updated to the version <b>%2</b>, please read the <a href=\"https://doc.nuxeo.com/n/Bm2\">release notes</a> for more information.",
     "RECENTLY_UPDATED": "Nyligen uppdaterad",
     "REMOTE_FOLDER": "Fjärrmapp",
     "REPLACE": "Ersätt",
