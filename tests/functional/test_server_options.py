@@ -56,8 +56,7 @@ def test_behavior_not_good(caplog, manager_factory):
         caplog.clear()
         updater._poll()
 
-        # Skip the first log: "wui preferences set to web"
-        record = caplog.records[1]
+        record = caplog.records[0]
         assert record.levelname == "WARNING"
         assert record.message == "Invalid behavior: 'alien'"
 
