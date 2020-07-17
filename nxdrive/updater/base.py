@@ -257,7 +257,7 @@ class BaseUpdater(PollWorker):
                 return
 
             login_type = Login.NONE
-            for engine in list(self.manager.engines.values()):
+            for engine in self.manager.engines.copy().values():
                 url = engine.server_url
                 login_type |= self.manager.get_server_login_type(url, _raise=False)
 

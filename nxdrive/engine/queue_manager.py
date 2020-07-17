@@ -223,7 +223,7 @@ class QueueManager(QObject):
     def _on_error_timer(self) -> None:
         with self._error_lock:
             cur_time = int(time.time())
-            for doc_pair in list(self._on_error_queue.values()):
+            for doc_pair in self._on_error_queue.copy().values():
                 if doc_pair.error_next_try < cur_time:
                     queue_item = QueueItem(
                         doc_pair.id, doc_pair.folderish, doc_pair.pair_state
