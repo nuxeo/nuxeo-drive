@@ -543,23 +543,6 @@ class Engine(QObject):
         }
         return urls[self.force_ui or self.wui]
 
-    def get_remote_url(self) -> str:
-        """
-        Build the server's URL based on the server's UI.
-        Default is Web-UI.  In case of unknown UI, use the default value.
-
-        :return: The complete URL.
-        """
-
-        urls = {
-            "jsf": (
-                f"{self.server_url}nxhome/{Options.remote_repo}/@view_home?"
-                "tabIds=USER_CENTER%3AuserCenterNuxeoDrive"
-            ),
-            "web": f"{self.server_url}ui/#!/drive",
-        }
-        return urls[self.force_ui or self.wui]
-
     def is_syncing(self) -> bool:
         return self._sync_started
 
@@ -583,7 +566,7 @@ class Engine(QObject):
 
     def open_remote(self, url: str = None) -> None:
         if url is None:
-            url = self.get_remote_url()
+            url = self.server_url
         self.manager.open_local_file(url)
 
     def resume(self) -> None:
