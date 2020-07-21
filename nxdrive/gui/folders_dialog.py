@@ -225,6 +225,9 @@ class FoldersDialog(DialogMixin):
         self.remote_folder_ref = self.engine.dao.get_config(
             "dt_last_remote_location_ref", ""
         )
+        self.duplicates_behavior = self.engine.dao.get_config(
+            "dt_last_duplicates_behavior", "create"
+        )
 
         self.vertical_layout.addWidget(self._add_group_local())
         self.vertical_layout.addWidget(self._add_group_remote())
@@ -304,12 +307,16 @@ class FoldersDialog(DialogMixin):
         layout.addWidget(label)
 
         self.cb = QComboBox()
-        self.cb.addItem(Translator.get("DUPLICATE_BEHAVIOR_CHOOSE"), "")
         self.cb.addItem(Translator.get("DUPLICATE_BEHAVIOR_CREATE"), "create")
         self.cb.addItem(Translator.get("DUPLICATE_BEHAVIOR_IGNORE"), "ignore")
         self.cb.addItem(Translator.get("DUPLICATE_BEHAVIOR_OVERRIDE"), "override")
         self.cb.currentIndexChanged.connect(self.button_ok_state)
         layout.addWidget(self.cb)
+
+        # Select the last run's choice
+        index = self.cb.findData(self.duplicates_behavior)
+        if index != -1:
+            self.cb.setCurrentIndex(index)
 
         # Prevent previous objects to take the whole width, that does not render well for human eyes
         layout.addStretch(0)
@@ -330,11 +337,8 @@ class FoldersDialog(DialogMixin):
         # Required criteria:
         #   - at least 1 local path
         #   - a selected remote path
-        #   - a selected duplicate behavior
         self.button_box.button(QDialogButtonBox.Ok).setEnabled(
-            bool(self.paths)
-            and bool(self.remote_folder.text())
-            and bool(self.cb.currentData())
+            bool(self.paths) and bool(self.remote_folder.text())
         )
 
     def get_tree_view(self) -> FolderTreeView:
