@@ -138,34 +138,15 @@ Rectangle {
                             doUpdateCounts()
                         }
                     }
-
-                    // The current account server URL
-                    ScaledText {
-                        id: accountUrl
-                        Layout.maximumWidth: parent.width
-                        text: accountSelect.getRole("server_url")
-                        font.pointSize: point_size * 0.8
-                        color: mediumGray
-
-                        MouseArea {
-                            id: urlHover
-                            z: parent.z + 10
-                            anchors.fill: parent
-                            anchors.margins: -3
-                            hoverEnabled: true
-                        }
-                        NuxeoToolTip {
-                            text: accountUrl.text
-                            visible: urlHover.containsMouse
-                        }
-                    }
                 }
 
                 // Icon 2: open remote server's URL
                 IconLabel {
+                    property string server_url: api.get_hostname_from_url(accountSelect.getRole("server_url"))
+
                     icon: MdiFont.Icon.nuxeo
                     onClicked: api.open_remote_server(accountSelect.getRole("uid"))
-                    tooltip: qsTr("OPEN_SERVER") + tl.tr
+                    tooltip: qsTr("OPEN_SERVER").arg(server_url) + tl.tr
                 }
 
                 // Icon 3: open local sync root folder

@@ -6,7 +6,7 @@ from os import getenv
 from os.path import abspath
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
-from urllib.parse import urlencode, urlsplit, urlunsplit
+from urllib.parse import urlencode, urlparse, urlsplit, urlunsplit
 
 import requests
 from nuxeo.exceptions import HTTPError, Unauthorized
@@ -351,6 +351,11 @@ class QMLDriveApi(QObject):
             self.application.show_direct_transfer_window(engine.uid)
         else:
             self.application.show_server_folders(engine, None)
+
+    @pyqtSlot(str, result=str)
+    def get_hostname_from_url(self, url: str) -> str:
+        urlp = urlparse(url)
+        return urlp.hostname or url
 
     @pyqtSlot(str)
     def open_remote_server(self, uid: str) -> None:

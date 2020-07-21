@@ -54,6 +54,7 @@ QMLDriveApi.get_disk_space_info_to_width  # Used in QML
 QMLDriveApi.get_drive_disk_space  # Used in QML
 QMLDriveApi.get_features_list  # Used in QML
 QMLDriveApi.get_free_disk_space  # Used in QML
+QMLDriveApi.get_hostname_from_url  # Used in QML
 QMLDriveApi.get_used_space_without_synced  # Used in QML
 QMLDriveApi.get_proxy_settings  # Used in QML
 QMLDriveApi.get_update_url  # Used in QML

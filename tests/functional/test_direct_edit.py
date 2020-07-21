@@ -211,7 +211,7 @@ def test_document_hijacking(manager_factory, obj_factory):
     """
     There are 2 situations we need to prevent:
 
-    1. Softwares LibreOffice or MS Office may leave temporary files behind them.
+    1. Software LibreOffice or MS Office may leave temporary files behind them.
     2. Someone could intentionally put a bad file in the good folder.
 
     Both will corrupt the remote document (data loss) at the next startup.
