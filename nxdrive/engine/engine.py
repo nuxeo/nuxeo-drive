@@ -404,10 +404,13 @@ class Engine(QObject):
                     f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}"
                 )
 
-    def _save_remote_parent_infos(self, remote_path: str, remote_ref: str) -> None:
+    def _save_remote_parent_infos(
+        self, remote_path: str, remote_ref: str, duplicate_behavior: str
+    ) -> None:
         """Store remote infos into the database for later runs."""
         self.dao.update_config("dt_last_remote_location", remote_path)
         self.dao.update_config("dt_last_remote_location_ref", remote_ref)
+        self.dao.update_config("dt_last_duplicates_behavior", duplicate_behavior)
 
     def _direct_transfer(
         self,
@@ -420,7 +423,9 @@ class Engine(QObject):
         # self.directTranferStatus.emit(local_path[0], True)
 
         # Save the remote location for next times
-        self._save_remote_parent_infos(remote_parent_path, remote_parent_ref)
+        self._save_remote_parent_infos(
+            remote_parent_path, remote_parent_ref, duplicate_behavior
+        )
 
         items = []
 

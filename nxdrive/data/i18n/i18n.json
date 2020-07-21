@@ -108,7 +108,6 @@
     "DONT_ASK_AGAIN": "Don't ask me again",
     "DOWNGRADE_TO": "Downgrade to %1",
     "DUPLICATE_BEHAVIOR": "<a href=\"%1\">Duplicates</a>:",
-    "DUPLICATE_BEHAVIOR_CHOOSE": "choose",
     "DUPLICATE_BEHAVIOR_CREATE": "Create",
     "DUPLICATE_BEHAVIOR_IGNORE": "Ignore",
     "DUPLICATE_BEHAVIOR_OVERRIDE": "Override",
