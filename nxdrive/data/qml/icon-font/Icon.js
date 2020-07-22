@@ -526,6 +526,7 @@ var Icon = {
     "diceD6": "\uf5EC",
     "diceD8": "\uf5ED",
     "dictionary": "\uf61D",
+    "directTransfert": "\uf9B8",
     "directions": "\uf1D0",
     "directionsFork": "\uf641",
     "discord": "\uf66F",
