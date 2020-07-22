@@ -142,11 +142,9 @@ Rectangle {
 
                 // Icon 2: open remote server's URL
                 IconLabel {
-                    property string server_url: api.get_hostname_from_url(accountSelect.getRole("server_url"))
-
                     icon: MdiFont.Icon.nuxeo
                     onClicked: api.open_remote_server(accountSelect.getRole("uid"))
-                    tooltip: qsTr("OPEN_SERVER").arg(server_url) + tl.tr
+                    tooltip: api.get_hostname_from_url(accountSelect.getRole("server_url"))
                 }
 
                 // Icon 3: open local sync root folder
