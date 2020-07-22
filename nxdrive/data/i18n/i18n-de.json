@@ -238,7 +238,7 @@
     "OPEN_LOCAL": "Lokale Kopie öffnen",
     "OPEN_REMOTE": "Remote-Kopie öffnen",
     "OPEN_ROOT_FOLDER": "%1-Ordner öffnen",
-    "OPEN_SERVER": "Nuxeo Server durchsuchen",
+    "OPEN_SERVER": "Open %1",
     "OPEN_SETTINGS": "Einstellungen öffnen",
     "OPEN_WINDOW": "Öffnen Fenster",
     "OPTIONS": "Options:",

@@ -238,7 +238,7 @@
     "OPEN_LOCAL": "Abrir en local",
     "OPEN_REMOTE": "Abrir en remoto",
     "OPEN_ROOT_FOLDER": "Abrir la carpeta %1",
-    "OPEN_SERVER": "Explorar el servidor de Nuxeo",
+    "OPEN_SERVER": "Open %1",
     "OPEN_SETTINGS": "Abrir configuración",
     "OPEN_WINDOW": "Abrir ventana",
     "OPTIONS": "Options:",

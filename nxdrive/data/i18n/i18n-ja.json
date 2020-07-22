@@ -238,7 +238,7 @@
     "OPEN_LOCAL": "ローカルで開く",
     "OPEN_REMOTE": "リモートで開く",
     "OPEN_ROOT_FOLDER": "%1フォルダを開く",
-    "OPEN_SERVER": "Nuxeoサーバをブラウズ",
+    "OPEN_SERVER": "Open %1",
     "OPEN_SETTINGS": "設定を開く設定を開く",
     "OPEN_WINDOW": "ウィンドウを開く",
     "OPTIONS": "Options:",
