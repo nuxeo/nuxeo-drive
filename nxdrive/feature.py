@@ -6,7 +6,7 @@ Introduced in Nuxeo Drive 4.4.2.
 
 Available parameters and introduced version:
 
-- auto_updates (4.4.2)
+- auto_update (4.4.2)
     Allow or disallow auto-updates.
 
 - direct_edit (4.4.2)
