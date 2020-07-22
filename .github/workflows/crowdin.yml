@@ -22,7 +22,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Crowdin Action
-      uses: crowdin/github-action@1.0.7
+      uses: crowdin/github-action@1.0.9
       with:
         # Tokens
         project_id: ${{ secrets.CROWDIN_PROJECT_ID }}
@@ -41,6 +41,9 @@ jobs:
         # Create a branch and a PR on any changes
         download_translations: true
         create_pull_request: true
+
+        # Set PR labels
+        pull_request_labels: 'translations'
 
         # For testing purposes
         # dryrun_action: true
