@@ -51,7 +51,7 @@ class FileInfo:
         # computation if the synchronization thread needs to be suspended
         self.digest_callback = kwargs.pop("digest_callback", None)
 
-        filepath = root / path
+        filepath = safe_long_path(root / path)
         self.path = Path(unicodedata.normalize("NFC", str(path)))
         self.filepath = Path(unicodedata.normalize("NFC", str(filepath)))
 
