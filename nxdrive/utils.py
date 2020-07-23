@@ -585,7 +585,7 @@ def safe_long_path(path: Path) -> Path:
     """
     if WINDOWS:
         path = Path(f"\\\\?\\{normalized_path(path)}")
-    return path
+    return Path(path)
 
 
 def safe_rename(src: Path, dst: Path) -> None:

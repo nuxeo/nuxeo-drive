@@ -5,6 +5,7 @@ from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from ...constants import TX_TIMEOUT
 from ...engine.activity import LinkingAction, UploadAction
 from ...objects import Upload
 from . import BaseUploader
@@ -82,19 +83,34 @@ class DirectTransferUploader(BaseUploader):
         # Only replace the document if the user wants to
         overwrite = duplicate_behavior == "override"
 
-        # Upload the blob and use the FileManager importer to create the document
-        item = super().upload_impl(
-            file_path,
-            "FileManager.Import",
-            context={"currentDocument": remote_parent_path},
-            params={"overwite": overwrite},  # NXP-29286
-            engine_uid=kwargs.pop("engine_uid"),
-            is_direct_transfer=True,
-            remote_parent_path=remote_parent_path,
-            remote_parent_ref=remote_parent_ref,
-        )
+        if file_path.is_dir():
+            params = {"title": filename}
+            item = self.upload_folder(
+                "FileManager.CreateFolder", input_obj=remote_parent_path, params=params
+            )
+
+        else:
+            # Upload the blob and use the FileManager importer to create the document
+            item = super().upload_impl(
+                file_path,
+                "FileManager.Import",
+                context={"currentDocument": remote_parent_path},
+                params={"overwite": overwrite},  # NXP-29286
+                engine_uid=kwargs.pop("engine_uid"),
+                is_direct_transfer=True,
+                remote_parent_path=remote_parent_path,
+                remote_parent_ref=remote_parent_ref,
+            )
 
         # Transfer is completed, delete the upload from the database
         self.dao.remove_transfer("upload", file_path, is_direct_transfer=True)
 
         return item
+
+    def upload_folder(self, command: str, **kwargs: Any):
+        headers = kwargs.pop("headers", {})
+        headers["Nuxeo-Transaction-Timeout"] = str(TX_TIMEOUT)
+        res: Dict[str, Any] = self.remote.execute(
+            command=command, headers=headers, timeout=TX_TIMEOUT, **kwargs,
+        )
+        return res

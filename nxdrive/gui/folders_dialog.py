@@ -214,10 +214,8 @@ class FoldersDialog(DialogMixin):
         self.paths: Set[Path] = set()
 
         if path:
-            # NXDRIVE-2019
-            if not path.is_dir():
-                self.path = path
-                self.paths.add(self.path)
+            self.path = path
+            self.paths.add(self.path)
 
         self.overall_size = self._get_overall_size()
         self.overall_count = self._get_overall_count()
@@ -251,11 +249,15 @@ class FoldersDialog(DialogMixin):
         self.local_path.setTextMargins(5, 0, 5, 0)
         self.local_path.setText(self._files_display())
         self.local_path.setReadOnly(True)
-        button = QPushButton(Translator.get("ADD_FILES"), self)
-        button.clicked.connect(self._select_more_files)
+        files_button = QPushButton(Translator.get("ADD_FILES"), self)
+        files_button.clicked.connect(self._select_more_files)
         layout.addWidget(self.local_path)
         layout.addWidget(self.local_paths_size_lbl)
-        layout.addWidget(button)
+        layout.addWidget(files_button)
+        if self.engine.have_folder_upload:
+            folders_button = QPushButton(Translator.get("ADD_FOLDER"), self)
+            folders_button.clicked.connect(self._select_more_folder)
+            layout.addWidget(folders_button)
 
         return groupbox
 
@@ -406,3 +408,8 @@ class FoldersDialog(DialogMixin):
         """Choose additional local files to upload."""
         paths, _ = QFileDialog.getOpenFileNames(self, Translator.get("ADD_FILES"))
         self._process_additionnal_local_paths(paths)
+
+    def _select_more_folder(self) -> None:
+        """Choose an additional local folder to upload."""
+        path = QFileDialog.getExistingDirectory(self, Translator.get("ADD_FOLDER"))
+        self._process_additionnal_local_paths([path])

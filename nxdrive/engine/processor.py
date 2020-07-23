@@ -502,6 +502,7 @@ class Processor(EngineWorker):
             file,
             engine_uid=self.engine.uid,
             uploader=DirectTransferUploader,
+            filename=doc_pair.local_name,
             remote_parent_path=doc_pair.remote_parent_path,
             remote_parent_ref=doc_pair.remote_parent_ref,
             duplicate_behavior=doc_pair.duplicate_behavior,

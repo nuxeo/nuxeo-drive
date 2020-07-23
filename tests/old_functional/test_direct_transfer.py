@@ -1,6 +1,7 @@
 """
 Test the Direct Transfer feature in different scenarii.
 """
+import os
 from shutil import copyfile, copytree
 from time import sleep
 from unittest.mock import patch
@@ -655,6 +656,28 @@ class DirectTransferFolder:
         for folder in self.folders:
             assert self.root_remote.documents.get(path=self.tree[folder])
 
+    def test_simple_folder(self):
+        """Test the Direct Transfer on an simple empty folder."""
+
+        # There is no upload, right now
+        assert not list(self.engine_1.dao.get_dt_uploads())
+
+        empty_folder = self.tmpdir / str(uuid4())
+        os.mkdir(empty_folder)
+        with ensure_no_exception():
+            self.engine_1.direct_transfer(
+                [empty_folder], self.ws.path, self.ws.uid, duplicate_behavior="create",
+            )
+            self.wait_sync()
+
+        # Ensure there is only 1 folder created at the workspace root
+        children = self.remote_1.get_children(self.ws.path)["entries"]
+        assert len(children) == 1
+        assert children[0]["title"] == empty_folder.name
+
+        # All has been uploaded
+        assert not list(self.engine_1.dao.get_dt_uploads())
+
     def __test_folder(self):
         """Test the Direct Transfer on a folder containing files and a sufolder."""
 
@@ -663,7 +686,7 @@ class DirectTransferFolder:
 
         with ensure_no_exception():
             self.engine_1.direct_transfer([self.folder], self.ws.path)
-            self.sync_and_check()
+            self.wait_sync()
 
         # Ensure there is only 1 folder created at the workspace root
         children = self.remote_1.get_children(self.ws.path)["entries"]
@@ -677,14 +700,14 @@ class DirectTransferFolder:
 # NXDRIVE-2019
 
 
-class _TestDirectTransferFolder(OneUserTest, DirectTransferFolder):
+class TestDirectTransferFolder(OneUserTest, DirectTransferFolder):
     """Direct Transfer in "normal" mode, i.e.: when synchronization features are enabled."""
 
     def setUp(self):
         DirectTransferFolder.setUp(self)
 
 
-class _TestDirectTransferFolderNoSync(OneUserNoSync, DirectTransferFolder):
+class TestDirectTransferFolderNoSync(OneUserNoSync, DirectTransferFolder):
     """Direct Transfer should work when synchronization features are not enabled."""
 
     def setUp(self):
