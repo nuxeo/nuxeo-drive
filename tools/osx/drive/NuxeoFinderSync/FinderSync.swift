@@ -7,7 +7,7 @@
 //  Contributors:
 //      Mickaël Schoentgen
 //
-//  Copyright © 2018-2019 Nuxeo. All rights reserved.
+//  Copyright © 2018-2020 Nuxeo. All rights reserved.
 //
 
 import Cocoa
@@ -24,7 +24,7 @@ class FinderSync: FIFinderSync {
     var title1 = "Access online"
     var title2 = "Copy share-link"
     var title3 = "Edit metadata"
-    var title4 = "Direct Transfer"
+    var title4 = "Upload content"
 
     let fileStatus = FileStatus()
     let addr = "127.0.0.1"
@@ -210,8 +210,8 @@ class FinderSync: FIFinderSync {
 
         // Direct Transfer
         let item1 = NSMenuItem(title: self.title4,
-                               action: #selector(directTransfer(_:)),
-                               keyEquivalent: "D")
+                               action: #selector(uploadContent(_:)),
+                               keyEquivalent: "U")
         item1.image = self.icon
         menu.addItem(item1)
 
@@ -292,11 +292,11 @@ class FinderSync: FIFinderSync {
         }
     }
 
-    @IBAction func directTransfer(_ sender: AnyObject?) {
-        // Event fired by "Direct Transfer" menu entry
+    @IBAction func uploadContent(_ sender: AnyObject?) {
+        // Event fired by "Upload content" menu entry (Direct Transfer)
         let items = FIFinderSyncController.default().selectedItemURLs()
         for item in items! {
-            //NSLog("directTransfer: target: \(item.path)")
+            //NSLog("uploadContent: target: \(item.path)")
             openNXUrl(command: "direct-transfer", target: item)
         }
     }
