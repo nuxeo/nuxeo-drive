@@ -8,6 +8,7 @@ from time import monotonic_ns
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from nuxeo.exceptions import HTTPError
+from nuxeo.handlers.default import Uploader
 from nuxeo.models import Batch, FileBlob
 from PyQt5.QtWidgets import QApplication
 
@@ -216,18 +217,20 @@ class BaseUploader:
                 action.chunk_size = chunk_size
                 action.chunk_transfer_start_time_ns = monotonic_ns()
 
+                if batch.is_s3():
+                    self._patch_refresh_token(uploader, transfer)
+
                 # If there is an UploadError, we catch it from the processor
                 for _ in uploader.iter_upload():
-                    # Here 0 may happen when doing a single upload
-                    action.progress += uploader.chunk_size or 0
+                    action.progress = chunk_size * len(uploader.blob.uploadedChunkIds)
 
                     # Save the progression
-                    transfer.progress = action.get_percent()  # type: ignore
+                    transfer.progress = action.get_percent()
                     self.dao.set_transfer_progress("upload", transfer)
 
                     # Handle status changes every time a chunk is sent
-                    transfer = self.get_upload(file_path)
-                    if transfer and transfer.status not in (
+                    _transfer = self.get_upload(file_path)
+                    if _transfer and _transfer.status not in (
                         TransferStatus.ONGOING,
                         TransferStatus.DONE,
                     ):
@@ -253,7 +256,7 @@ class BaseUploader:
                 batch.complete(timeout=TX_TIMEOUT)
 
             # Transfer is completed, update the status in the database
-            transfer.status = TransferStatus.DONE  # type: ignore
+            transfer.status = TransferStatus.DONE
             self.dao.set_transfer_status("upload", transfer)
 
             return blob
@@ -303,3 +306,19 @@ class BaseUploader:
             return res
         finally:
             action.finish_action()
+
+    def _patch_refresh_token(self, uploader: Uploader, transfer: Upload) -> None:
+        """Patch Uploader.refresh_token() to save potential credentials changes for next runs."""
+        meth_orig = uploader.service.refresh_token
+
+        def refresh(batch: Batch, **kwargs: Any) -> Any:
+            # Call the original method
+            try:
+                return meth_orig(batch, **kwargs)
+            finally:
+                # Save changes in the database
+                log.debug("Batch.extraInfo has been updated")
+                transfer.batch = batch.as_dict()
+                self.dao.update_upload(transfer)
+
+        uploader.service.refresh_token = refresh
