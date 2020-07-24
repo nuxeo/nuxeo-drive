@@ -14,7 +14,7 @@ import os.path
 
 import yaml
 
-__version__ = "0.0.8"
+__version__ = "0.0.9"
 __all__ = ("create", "delete", "merge", "promote")
 
 
@@ -60,19 +60,19 @@ def create(version, category):
 
     # Compute installers checksum
     checksum_appimage = checksum_dmg = checksum_exe = checksum_exe_admin = None
+    folder = os.getenv("ARTIFACTS_FOLDER", "dist/")
     paths = (
-        "dist/nuxeo-drive-{}-x86_64.AppImage",
-        "dist/nuxeo-drive-{}.dmg",
-        "dist/nuxeo-drive-{}.exe",
-        "dist/nuxeo-drive-{}-admin.exe",
+        "{}nuxeo-drive-{}-x86_64.AppImage",
+        "{}nuxeo-drive-{}.dmg",
+        "{}nuxeo-drive-{}.exe",
+        "{}nuxeo-drive-{}-admin.exe",
     )
     for path in paths:
-        if os.getenv("TESTING") and not os.path.isfile(path.format(version)):
+        path = path.format(folder, version)
+        if os.getenv("TESTING") and not os.path.isfile(path):
             continue
 
-        with open(
-            path.format(version), "rb"  # Set TESTING=1 envar to skip the error
-        ) as installer:
+        with open(path, "rb") as installer:  # Set TESTING=1 envar to skip the error
             checksum = hashlib.sha256(installer.read()).hexdigest()
             if path.endswith("AppImage"):
                 checksum_appimage = checksum

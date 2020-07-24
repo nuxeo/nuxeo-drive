@@ -51,14 +51,14 @@ main() {
     else
         echo ">>> Removing alpha versions older than 21 days"
         current_date=$(date -d "00:00" +%s)
-        while IFS= read release; do
-            release_date=$(date -d $(echo ${release} | cut -d' ' -f2)  +%s)
-            days=$(( (${current_date} - ${release_date}) / (24*3600) ))
+        while IFS= read -r release; do
+            release_date=$(date -d $(echo "${release}" | cut -d' ' -f2)  +%s)
+            days=$(( (current_date - release_date) / (24*3600) ))
             if [ ${days} -gt 21 ]; then
-                version="$(echo ${release} | cut -d' ' -f1 | sed s'/alpha-//')"
+                version="$(echo "${release}" | cut -d' ' -f1 | sed s'/alpha-//')"
                 purge "${version}"
             fi
-        done < <(git for-each-ref --sort=-taggerdate --format '%(refname:short) %(taggerdate:short)' refs/tags | egrep "(^alpha*)")
+        done < <(git for-each-ref --sort=-taggerdate --format '%(refname:short) %(taggerdate:short)' refs/tags | grep -e "(^alpha*)")
     fi
 
     echo ">>> Checking versions.yml integrity"

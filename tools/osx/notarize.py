@@ -98,6 +98,9 @@ def wait_for_notarization(uuid: str) -> Tuple[bool, str]:
     print(f">>> [notarization] Waiting status for {uuid!r}", flush=True)
     print("    (it may take a while)", flush=True)
 
+    # Small sleep to prevent "Error: Apple Services operation failed. Could not find the RequestUUID."
+    time.sleep(10)
+
     cmd = [
         "xcrun",
         "altool",

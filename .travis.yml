@@ -1,0 +1,78 @@
+# Beta opt-in
+# https://docs.travis-ci.com/user/build-config-validation#beta-opt-in
+version: ~> 1.0
+
+language: shell
+dist: xenial
+os: linux
+
+env:
+  global:
+    - MAKEFLAGS="-j 2"
+    - NXDRIVE_TEST_NUXEO_URL="https://nightly.nuxeo.com/nuxeo"
+    - RELEASE_TYPE="alpha"
+
+_before_script: &_before_script
+  before_script:
+    - |
+      echo "${SSH_PRIV_KEY}" | base64 --decode > private.key
+      chmod 0600 private.key
+      eval "$(ssh-agent -s)"
+      ssh-add private.key
+      rm private.key
+    - git config user.email "maintainers-python+travis@nuxeo.com"
+    - git config user.name "Travis-CI bot"
+    - bash tools/bump-alpha-version.sh || exit 1
+
+_build: &_build
+  stage: Build
+  <<: *_before_script
+  script:
+    - bash tools/$TRAVIS_OS_NAME/travis.sh
+
+jobs:
+  fast_finish: true
+  include:
+
+  - <<: *_build
+    name: GNU/Linux [.AppImage]
+    services:
+      - docker
+    # addons:
+    #   apt:
+    #     packages:
+    #     - appstream
+
+  - <<: *_build
+    name: macOS [.dmg]
+    os: osx
+    osx_image: xcode10.1  # macOS 10.13
+    env:
+      - KEYCHAIN_PATH="~/Library/Keychains/drive.keychain-db"
+      - SIGNING_ID="NUXEO CORP"
+
+  - <<: *_build
+    name: Windows [.exe]
+    os: windows
+    env:
+      - INNO_SETUP_VERSION="6.0.2"  # XXX_INNO_SETUP
+      - MSBUILD_PATH="C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin"
+      - SIGNING_ID="Nuxeo"
+      - SIGNTOOL_PATH="C:\Program Files (x86)\Windows Kits\10\bin\x86"
+
+  - stage: Deploy
+    <<: *_before_script
+    script:
+      - |
+        echo "${TRAVIS_DEPLOY_KEY}" | base64 --decode > private.key
+        chmod 0600 private.key
+        ssh-add private.key
+        rm private.key
+        git remote set-url origin git@github.com:nuxeo/nuxeo-drive.git
+      - |
+        if [ "$TRAVIS_PULL_REQUEST" = "false" ] && [ "$TRAVIS_BRANCH" = "master" ]; then
+          bash tools/release.sh --publish "$RELEASE_TYPE" || exit 1
+          if [ "$RELEASE_TYPE" = "beta" ]; then
+            bash tools/release.sh --create "$RELEASE_TYPE" || exit 1
+          fi
+        fi

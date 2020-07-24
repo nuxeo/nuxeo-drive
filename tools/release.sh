@@ -1,104 +1,36 @@
-#!/bin/bash -eu
+#!/bin/bash
 #
 # Create a new release, it means:
 #     - creating a new alpha or beta;
-#     - managing GitHub actions;
-#     - deploying artifacts to the staging site;
+#     - deploying artifacts to the server;
 #
-# Warning: do not execute this script manually but from Jenkins.
+# Warning: do not execute this script manually but from Travis-CI.
 #
+
+set -e
+
+. "tools/env.sh"
 
 cancel() {
-    # First argument is the release type (alpha or release)
-    local release_type
+    # First argument is the release type (alpha or beta)
     local drive_version
+    local release_type
 
+    drive_version="$(grep __version__ nxdrive/__init__.py | cut -d'"' -f2)"
     release_type="$1"
-    drive_version="$(python3 tools/changelog.py --drive-version)"
 
     echo ">>> [${release_type} ${drive_version}] Removing the tag"
     git tag --delete "${release_type}-${drive_version}" || true
     git push --delete origin "${release_type}-${drive_version}" || true
-
-    echo ">>> [${release_type} ${drive_version}] Removing the branch"
-    git branch -D "wip-alpha-${release_type}.${drive_version}" || true
-    git push --delete origin "wip-alpha-${release_type}.${drive_version}" || true
-}
-
-changelog() {
-    # Create the draft.json file with the pre-release content
-    local drive_version
-    local changelog
-
-    python3 -m pip install --user requests==2.24.0
-
-    drive_version="$1"
-    changelog="$(cat <<EOF
-$(python3 tools/changelog.py --format=md)
-
----
-
-Download links:
-
-- [GNU/Linux binary](https://community.nuxeo.com/static/drive-updates/beta/nuxeo-drive-${drive_version}-x86_64.AppImage)
-- [macOS installer](https://community.nuxeo.com/static/drive-updates/beta/nuxeo-drive-${drive_version}.dmg)
-- [Windows installer](https://community.nuxeo.com/static/drive-updates/beta/nuxeo-drive-${drive_version}.exe)
-EOF
-)"
-
-    # Escape lines feed and double quotes for JSON
-    changelog="$(echo "${changelog}" | sed 's|$|\\n|g ; s|\"|\\\"|g')"
-
-    # Create the pre-release draft
-    [ -f draft.json ] && rm -f draft.json
-    cat > draft.json <<EOF
-{
-    "tag_name": "release-${drive_version}",
-    "name": "${drive_version}",
-    "body": "${changelog}",
-    "draft": true,
-    "prerelease": true
-}
-EOF
 }
 
 create() {
-    # First argument is the release type (alpha or release)
-    local release_type
+    # First argument is the release type (alpha or beta)
     local drive_version
-    local alpha_version
+    local release_type
 
+    drive_version="$(grep __version__ nxdrive/__init__.py | cut -d'"' -f2)"
     release_type="$1"
-
-    if [ "${release_type}" = "alpha" ]; then
-        # New alpha version:
-        #    - checkout the last commit
-        #    - update the version number and release date
-        echo ">>> [${release_type}] Update information into a new branch"
-        drive_version="$(python3 tools/changelog.py --drive-version)"
-        alpha_version="$(git describe --always --match="release-*" | cut -d"-" -f3)"
-
-        # Delete remote wip-alpha branch if it already exists and create a local one
-        git push origin --delete "wip-alpha-${drive_version}.${alpha_version}" || true
-        git checkout -b "wip-alpha-${drive_version}.${alpha_version}"
-
-        # Set version number
-        sed -i s"/^__version__ = \".*\"/__version__ = \"${drive_version}.${alpha_version}\"/" nxdrive/__init__.py
-        sed -i s"/^Release date: \`.*\`/Release date: \`$(date '+%Y-%m-%d')\`/" "docs/changes/${drive_version}.md" || true
-        git add nxdrive/__init__.py
-        git add "docs/changes/${drive_version}.md" || true
-
-        # Commit and push alpha branch
-        git commit -m "Bump version to ${drive_version}.${alpha_version}"
-        git push --set-upstream origin "wip-alpha-${drive_version}.${alpha_version}"
-    fi
-
-    drive_version="$(python3 tools/changelog.py --drive-version)"
-
-    if [ "${release_type}" = "release" ]; then
-        echo ">>> [${release_type} ${drive_version}] Generating the changelog"
-        changelog "${drive_version}"
-    fi
 
     echo ">>> [${release_type} ${drive_version}] Creating the tag"
     git tag -f -a "${release_type}-${drive_version}" -m "Release ${drive_version}"
@@ -106,53 +38,50 @@ create() {
 }
 
 publish() {
-    # First argument is the release type (alpha or release)
-    local release_type
-    local drive_version
+    # First argument is the release type (alpha or beta)
     local artifacts
-    local path
+    local drive_version
+    local release_type
 
+    artifacts="/var/www/community.nuxeo.com/static/drive-staging/${TRAVIS_BUILD_NUMBER}"
+    drive_version="$(grep __version__ nxdrive/__init__.py | cut -d'"' -f2)"
     release_type="$1"
-    drive_version="$(python3 tools/changelog.py --drive-version)"
-    artifacts="https://qa.nuxeo.org/jenkins/view/Drive/job/Drive/job/Drive-packages/lastSuccessfulBuild/artifact/dist/*zip*/dist.zip"
-    path="/var/www/community.nuxeo.com/static/drive-updates/"
 
-    # The release_type is misinforming because it is "release" for beta and GA releases,
-    # or "alpha" for alpha. To be review with NXDRIVE-1453.
-    if [ "${release_type}" = "release" ]; then
-        release_type="beta"
-    fi
+    echo ">>> [${release_type} ${drive_version}] Deploying to the server"
+    scp -o "StrictHostKeyChecking=no" tools/versions.py nuxeo@lethe.nuxeo.com:"${artifacts}"
+    ssh -o "StrictHostKeyChecking=no" -T nuxeo@lethe.nuxeo.com <<EOF
+cd ${artifacts} || exit 1
 
-    echo ">>> [${release_type} ${drive_version}] Retrieving artifacts"
-    [ -f dist.zip ] && rm -f dist.zip
-    curl -L "$artifacts" -o dist.zip
-    unzip -o dist.zip
+echo " >> [Deploy] Generating ${drive_version}.yml"
+export ARTIFACTS_FOLDER="./"
+python3 versions.py --add "${drive_version}" --type "${release_type}" || exit 1
+echo ""
+echo "Content of ${drive_version}.yml:"
+cat "${drive_version}.yml"
 
-    echo ">>> [${release_type} ${drive_version}] Generating ${drive_version}.yml"
-    python3 -m pip install --user pyyaml==5.3.1
-    python3 tools/versions.py --add "${drive_version}" --type "${release_type}"
-    echo "\nContent of ${drive_version}.yml:"
-    cat "${drive_version}.yml"
+echo " >> [Deploy] Merging into versions.yml"
+cp -v "${REMOTE_PATH_PROD}/versions.yml" . || exit 1
+python3 versions.py --merge || exit 1
+echo ""
+echo "Content of versions.yml:"
+cat versions.yml
 
-    echo ">>> [${release_type} ${drive_version}] Merging into versions.yml"
-    rsync -vz nuxeo@lethe.nuxeo.com:"${path}versions.yml" .
-    python3 tools/versions.py --merge
-    echo "\nContent of versions.yml:"
-    cat versions.yml
+echo ""
+echo " >> [Deploy] Moving files"
+mv -vf nuxeo-drive-${drive_version}* "${REMOTE_PATH_PROD}/${release_type}/" || exit 1
+cp -vf versions.yml "${REMOTE_PATH_PROD}/" || exit 1
 
-    echo "\n>>> [${release_type} ${drive_version}] Deploying to the staging website"
-    rsync -vz dist/*${drive_version}* nuxeo@lethe.nuxeo.com:"${path}${release_type}/"
-    rsync -vz versions.yml nuxeo@lethe.nuxeo.com:"${path}"
+echo ""
+echo " >> [Deploy] Clean-up"
+cd ~
+rm -rfv "${artifacts}"
+EOF
 
-    if [ "${release_type}" = "beta" ]; then
-        echo ">>> [${release_type} ${drive_version}] Creating the GitHub pre-release"
-        curl -X POST -i -n -d @draft.json https://api.github.com/repos/nuxeo/nuxeo-drive/releases
-    fi
 }
 
 main() {
     # $1 is the action to do
-    # $2 is the release type (either alpha or release)
+    # $2 is the release type (either alpha or beta)
     case "$1" in
         "--cancel") cancel "$2" ;;
         "--create") create "$2" ;;

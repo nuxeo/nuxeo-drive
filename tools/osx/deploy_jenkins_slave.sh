@@ -16,13 +16,13 @@ CODESIGN="codesign                              \
     --sign"
 
 prepare_signing() {
-    # Code sign the app
+    # Get the identity for code signing the app
     # https://github.com/pyinstaller/pyinstaller/wiki/Recipe-OSX-Code-Signing
 
-    if [ "${SIGNING_ID:=unset}" = "unset" ]; then
+    if [ "${SIGNING_ID:-unset}" = "unset" ]; then
         echo ">>> [sign] WARNING: Signing ID is unavailable, application won't be signed."
         return
-    elif [ "${KEYCHAIN_PASSWORD:=unset}" = "unset" ]; then
+    elif [ "${KEYCHAIN_PASSWORD:-unset}" = "unset" ]; then
         echo ">>> [sign] WARNING: Keychain is unavailable, application won't be signed."
         return
     fi
@@ -39,6 +39,34 @@ prepare_signing() {
         security find-identity -p codesigning "${KEYCHAIN_PATH}"
         exit 1
     )
+}
+
+prepare_signing_from_scratch() {
+    # Create and get the identity for code signing the app
+    # http://www.tiger-222.fr/?d=2019/11/06/09/40/43-installer-un-certificat-pour-la-signature-de-code-automatique-macos
+    # https://docs.travis-ci.com/user/common-build-problems/#mac-macos-sierra-1012-code-signing-errors
+
+    if security list-keychains | grep -q "$(basename "${KEYCHAIN_PATH}")"; then
+        # Already created at a previous run
+        prepare_signing
+        return
+    fi
+
+    echo ">>> [sign] Create the keychain"
+    security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+
+    echo ">>> [sign] Make the custom keychain default, so xcodebuild will use it for signing"
+    security default-keychain -s "${KEYCHAIN_PATH}"
+
+    echo ">>> [sign] Unlock the keychain"
+    security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+
+    echo ">>> [sign] Add certificates to keychain and allow codesign to access them"
+    security import ./AppleIncRootCertificate.cer -t cert -A -k "${KEYCHAIN_PATH}"
+    security import ./developerID_application.cer -t cert -A -T /usr/bin/codesign -k "${KEYCHAIN_PATH}"
+    security import ./nuxeo-drive.priv -t priv -A -T /usr/bin/codesign -k "${KEYCHAIN_PATH}"
+
+    prepare_signing
 }
 
 build_extension() {
@@ -63,15 +91,20 @@ create_package() {
     local extension_path="${WORKSPACE_DRIVE}/tools/osx/drive"
     local entitlements="${extension_path}/NuxeoFinderSync/NuxeoFinderSync.entitlements"
     local generated_ds_store="${WORKSPACE_DRIVE}/tools/osx/generated_DS_Store"
-    local app_version="$(python "${WORKSPACE_DRIVE}/tools/changelog.py" --drive-version)"
+    local app_version
 
     build_extension
     echo ">>> [package] Adding the extension to the package"
     mkdir "${pkg_path}/Contents/PlugIns"
     mv -fv "${WORKSPACE_DRIVE}/NuxeoFinderSync.appex" "${pkg_path}/Contents/PlugIns/"
 
-    prepare_signing
-    if [ "${SIGNING_ID:=unset}" != "unset" ]; then
+    if [ "${TRAVIS_BUILD_DIR:-unset}" != "unset" ]; then
+        prepare_signing_from_scratch
+    else
+        prepare_signing
+    fi
+
+    if [ "${SIGNING_ID:-unset}" != "unset" ]; then
         echo ">>> [sign] Signing the app and its extension"
         # We recursively sign all the files
         # A message indicating "code object is not signed at all" can appear:
@@ -106,6 +139,7 @@ create_package() {
     rm -rf "${src_folder_tmp}" "${dmg_tmp}"
     mkdir "${src_folder_tmp}"
 
+    app_version="$(grep __version__ nxdrive/__init__.py | cut -d'"' -f2)"
     echo ">>> [DMG] ${bundle_name} version ${app_version}"
     # Compute DMG name and size
     local dmg_path="${output_dir}/nuxeo-drive-${app_version}.dmg"
@@ -139,7 +173,7 @@ create_package() {
     # Clean tmp directories
     rm -rf "${src_folder_tmp}" "${dmg_tmp}" "${pkg_path}"
 
-    if [ "${SIGNING_ID:=unset}" != "unset" ]; then
+    if [ "${SIGNING_ID:-unset}" != "unset" ]; then
         ${CODESIGN} "${SIGNING_ID}" --verbose "dist/nuxeo-drive-${app_version}.dmg"
         ${PYTHON} tools/osx/notarize.py "dist/nuxeo-drive-${app_version}.dmg"
     fi

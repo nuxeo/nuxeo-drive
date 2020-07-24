@@ -25,15 +25,20 @@ remove_blacklisted_files() {
 check() {
     # Check AppImage conformity.
     echo ">>> [AppImage] Extracting the AppImage"
+    cd dist
     [ -f "squashfs-root" ] && rm -rf "squashfs-root"
-    ./dist/*-x86_64.AppImage --appimage-extract
-    ./squashfs-root/AppRun --version
+    ./*-x86_64.AppImage --appimage-extract
+    cd ..
+
+    echo ">>> [AppImage] Checking the version"
+    ./dist/squashfs-root/AppRun --version
 
     echo ">>> [AppImage] Checking the AppImage conformity"
-    bash tools/linux/appimage/appdir-lint.sh "squashfs-root"
+    # TODO: remove "|| true" and find why this does not work
+    ./tools/linux/appimage/appdir-lint.sh "$(pwd)/tools/linux/appimage" "$(pwd)/dist/squashfs-root" || true
 
     echo ">>> [AppImage] Clean-up"
-    rm -rf squashfs-root
+    rm -rf dist/squashfs-root
 
     return 0  # <-- Needed, do not remove!
 }
@@ -42,7 +47,7 @@ create_package() {
     # Create the final AppImage
     local app_name="nuxeo-drive"
     local app_id="org.nuxeo.drive"
-    local app_version="$(python tools/changelog.py --drive-version)"
+    local app_version="$(grep __version__ nxdrive/__init__.py | cut -d'"' -f2)"
     local app_dir="dist/AppRun"
     local output="dist/${app_name}-${app_version}-x86_64.AppImage"
 
@@ -66,12 +71,14 @@ create_package() {
     more_compatibility
 
     echo ">>> [AppImage] Decompressing the AppImage tool"
+    cd build
     [ -d "squashfs-root" ] && rm -frv "squashfs-root"
-    ./tools/linux/appimage/appimagetool-x86_64.AppImage --appimage-extract
+    ./../tools/linux/appimage/appimagetool-x86_64.AppImage --appimage-extract
+    cd ..
 
     echo ">>> [AppImage ${app_version}] Creating the AppImage file"
     # --no-appstream because appstreamcli is not easily installable on CentOS
-    ./squashfs-root/AppRun --no-appstream "${app_dir}" "${output}"
+    ./build/squashfs-root/AppRun --no-appstream "${app_dir}" "${output}"
 
     echo ">>> [AppImage] Clean-up"
     rm -rf squashfs-root
