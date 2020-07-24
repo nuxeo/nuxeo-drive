@@ -310,7 +310,6 @@ class FoldersDialog(DialogMixin):
         self.cb.addItem(Translator.get("DUPLICATE_BEHAVIOR_CREATE"), "create")
         self.cb.addItem(Translator.get("DUPLICATE_BEHAVIOR_IGNORE"), "ignore")
         self.cb.addItem(Translator.get("DUPLICATE_BEHAVIOR_OVERRIDE"), "override")
-        self.cb.currentIndexChanged.connect(self.button_ok_state)
         layout.addWidget(self.cb)
 
         # Select the last run's choice
