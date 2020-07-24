@@ -43,4 +43,5 @@ def test_tracker_send_methods(manager_factory, monkeypatch):
         tracker.send_direct_transfer(True, 0)
         tracker.send_direct_transfer(False, 42)
         tracker.send_sync_event(metrics)
+        tracker.send_hello()
         tracker._poll()
