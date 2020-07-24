@@ -68,6 +68,8 @@ class Tracker(PollWorker):
 
         log.debug(f"Created the Google Analytics tracker with data {self._data}")
 
+        self._hello_sent = False
+
     @property
     def current_locale(self) -> str:
         """ Detect the OS default language. """
@@ -107,7 +109,14 @@ class Tracker(PollWorker):
             f"{APP_NAME.replace(' ', '-')}/{self._manager.version} ({ga_user_agent()})"
         )
 
-    def send_event(self, category: str, action: str, label: str, value: int) -> None:
+    def send_event(
+        self,
+        category: str = "",
+        action: str = "",
+        label: str = "",
+        value: int = -1,
+        anon: bool = False,
+    ) -> None:
         """
         Send a event to Google Analytics. Attach some attributes (dimensions) to ease filtering.
 
@@ -125,29 +134,39 @@ class Tracker(PollWorker):
             dimension9: NXDRIVE-1238
         """
 
-        engines = list(self._manager.engines.values())
         dimensions = {}
-        if engines:
-            engine = engines[0]
-            dimensions["cd6"] = engine.hostname
-            dimensions["cd7"] = engine.server_url
-            dimensions["cd8"] = engine.remote.client.server_version
+
+        if anon:
+            _data = self._data.copy()
+            _data["aip"] = "1"  # anonymize IP
+        else:
+            _data = self._data
+            engines = list(self._manager.engines.values())
+            if engines:
+                engine = engines[0]
+                dimensions["cd6"] = engine.hostname
+                dimensions["cd7"] = engine.server_url
+                dimensions["cd8"] = engine.remote.client.server_version
 
         data = {
             # Main data
-            **self._data,
+            **_data,
             # Event data
             "t": "event",
             "ec": category,  # event category
             "ea": action,  # event action
-            "el": label,  # event label/name
-            "ev": str(value),  # event value
             # Additional event data: dimensions
             **self._dimensions,
             **dimensions,
         }
 
-        log.debug(f"Send {category}({action}) {label}: {value!r}")
+        if label != "" and value != -1:
+            data["el"] = label  # event label/name
+            data["ev"] = str(value)  # event value
+            log.debug(f"Sending {category}({action}) {label}: {value!r}")
+        else:
+            log.debug(f"Sending {category}({action})")
+
         try:
             self._session.post(self._tracking_url, data=data, timeout=5.0)
         except Exception:
@@ -158,6 +177,9 @@ class Tracker(PollWorker):
         """Sent each time the Processor handles an event.
         This is mostly to have real time stats on GA.
         """
+        if not self._allowed_to_send_anything():
+            return
+
         elapsed = monotonic_ns() - metrics["start_ns"]
         if elapsed > 0.0:
             self.send_event(
@@ -169,6 +191,9 @@ class Tracker(PollWorker):
 
     @pyqtSlot(str, int)
     def send_directedit_open(self, name: str, timing: int) -> None:
+        if not self._allowed_to_send_anything():
+            return
+
         _, extension = os.path.splitext(name)
         if not extension:
             extension = "unknown"
@@ -179,6 +204,9 @@ class Tracker(PollWorker):
 
     @pyqtSlot(str, int)
     def send_directedit_edit(self, name: str, timing: int) -> None:
+        if not self._allowed_to_send_anything():
+            return
+
         _, extension = os.path.splitext(name)
         if not extension:
             extension = "unknown"
@@ -189,6 +217,9 @@ class Tracker(PollWorker):
 
     @pyqtSlot(bool, int)
     def send_direct_transfer(self, folderish: bool, size: int) -> None:
+        if not self._allowed_to_send_anything():
+            return
+
         nature = "folder" if folderish else "file"
         self.send_event(
             category="DirectTransfer", action="Sent", label=nature, value=size
@@ -196,6 +227,9 @@ class Tracker(PollWorker):
 
     @pyqtSlot()
     def send_stats(self) -> None:
+        if not self._allowed_to_send_anything():
+            return
+
         for engine in self._manager.engines.values():
             for key, value in engine.get_metrics().items():
                 if not isinstance(value, int):
@@ -206,7 +240,28 @@ class Tracker(PollWorker):
                     category="Statistics", action="Engine", label=key, value=value
                 )
 
+    def send_hello(self) -> None:
+        """Send metrics required for the good health of the project, see NXDRIVE-2254 for details."""
+        # Nothing should be sent when testing the app
+        if not Options.is_frozen:
+            return
+
+        # Already sent the hello, no more work is required
+        if self._hello_sent:
+            return
+
+        # Send a simple event that will be completely anonymous.
+        # Primordial metrics are included in dimensions and the user-agent.
+        self.send_event(category="Hello", action="world", anon=True)
+
+        self._hello_sent = True
+
+    def _allowed_to_send_anything(self) -> bool:
+        """Avoid sending statistics when testing or if the user disallowed them."""
+        return not (Options.is_frozen and Options.use_analytics)
+
     @pyqtSlot(result=bool)
     def _poll(self) -> bool:
+        self.send_hello()
         self.send_stats()
         return True

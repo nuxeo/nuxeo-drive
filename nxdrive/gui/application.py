@@ -158,9 +158,6 @@ class Application(QApplication):
 
         if not self.manager.preferences_metrics_chosen:
             self.show_metrics_acceptance()
-            # Start the tracker now, if needed
-            if not self.manager.tracker:
-                self.manager.tracker = self.manager.create_tracker()
 
         self._conflicts_modals: Dict[str, bool] = {}
         self.current_notification: Optional[Notification] = None
@@ -935,8 +932,7 @@ class Application(QApplication):
             partial(self.update_direct_transfer_items_count, True)
         )
 
-        if self.manager.tracker:
-            engine.newSyncEnded.connect(self.manager.tracker.send_sync_event)
+        engine.newSyncEnded.connect(self.manager.tracker.send_sync_event)
 
         self.change_systray_icon()
 

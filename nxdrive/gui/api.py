@@ -137,10 +137,6 @@ class QMLDriveApi(QObject):
             return engine.dao.get_dt_items_count()
         return 0
 
-    @pyqtSlot(result=str)
-    def get_tracker_id(self) -> str:
-        return self._manager.get_tracker_id()
-
     @pyqtSlot(QUrl, result=str)
     def to_local_file(self, url: QUrl) -> str:
         """

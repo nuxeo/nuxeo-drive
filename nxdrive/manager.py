@@ -254,7 +254,7 @@ class Manager(QObject):
             "auto_update": Feature.auto_update and self.get_auto_update(),
             "channel": self.get_update_channel(),
             "device_id": self.device_id,
-            "tracker_id": self.get_tracker_id(),
+            "tracker_id": self.tracker.uid,
             "tracking": Options.use_analytics,
             "sentry": Options.use_sentry,
             "sip_version": SIP_VERSION_STR,
@@ -297,12 +297,8 @@ class Manager(QObject):
     def _create_dao(self) -> None:
         self.dao = ManagerDAO(self._get_db())
 
-    def create_tracker(self) -> Optional["Tracker"]:
+    def create_tracker(self) -> Tracker:
         """Create the Google Analytics tracker."""
-
-        # Avoid sending statistics when testing or if the user does not allow it.
-        if not (Options.is_frozen and Options.use_analytics):
-            return None
 
         tracker = Tracker(self)
 
@@ -341,9 +337,8 @@ class Manager(QObject):
         self.server_config_updater.firstRunCompleted.connect(worker.thread.start)
 
         # Connect to the Tracker metrics
-        if self.tracker:
-            worker.openDocument.connect(self.tracker.send_directedit_open)
-            worker.editDocument.connect(self.tracker.send_directedit_edit)
+        worker.openDocument.connect(self.tracker.send_directedit_open)
+        worker.editDocument.connect(self.tracker.send_directedit_edit)
 
         return worker
 
@@ -593,9 +588,6 @@ class Manager(QObject):
         if value == "DEBUG":
             log.warning("Setting log level to DEBUG, sensitive data may be logged.")
         self.set_config("log_level_file", value)
-
-    def get_tracker_id(self) -> str:
-        return self.tracker.uid if self.tracker else ""
 
     def set_proxy(self, proxy: "Proxy") -> str:
         log.debug(f"Changed proxy to {proxy}")
