@@ -5,7 +5,6 @@
 #
 # Possible ARG:
 #     --build: build the package
-#     --build-ext: build the FinderSync extension (macOS only)
 #     --check-upgrade: check the auto-update works
 #     --install: install all dependencies
 #     --install-python: install only Python
@@ -61,14 +60,16 @@ build_installer() {
     sanity_check dist/ndrive
 
     # Stop now if we only want the application to be frozen (for integration tests)
-    if [ "${FREEZE_ONLY:=0}" = "1" ]; then
+    if [ "${FREEZE_ONLY:-0}" = "1" ]; then
         exit 0
     fi
 
-    version="$(${PYTHON} tools/changelog.py --drive-version)"
-    cd dist
-    zip -9 -q -r "nuxeo-drive-${OSI}-${version}.zip" "ndrive"
-    cd -
+    if [ "${ZIP_NEEDED:-0}" = "1" ]; then
+        version="$(grep __version__ nxdrive/__init__.py | cut -d'"' -f2)"
+        cd dist
+        zip -9 -q -r "nuxeo-drive-${OSI}-${version}.zip" "ndrive"
+        cd -
+    fi
 
     create_package
 }
@@ -96,19 +97,25 @@ check_upgrade() {
 
 check_vars() {
     # Check required variables
-    if [ "${PYTHON_DRIVE_VERSION:=unset}" = "unset" ]; then
+    if [ "${PYTHON_DRIVE_VERSION:-unset}" = "unset" ]; then
         export PYTHON_DRIVE_VERSION="3.7.7"  # XXX_PYTHON
     fi
-    if [ "${WORKSPACE:=unset}" = "unset" ]; then
-        echo "WORKSPACE not defined. Aborting."
-        exit 1
+    if [ "${WORKSPACE:-unset}" = "unset" ]; then
+        if [ "${TRAVIS_BUILD_DIR:-unset}" != "unset" ]; then
+            # Running from Travis-CI
+            WORKSPACE="$(dirname "${TRAVIS_BUILD_DIR}")"
+            export WORKSPACE
+        else
+            echo "WORKSPACE not defined. Aborting."
+            exit 1
+        fi
     fi
-    if [ "${OSI:=unset}" = "unset" ]; then
+    if [ "${OSI:-unset}" = "unset" ]; then
         echo "OSI not defined. Aborting."
         echo "Please do not call this script directly. Use the good one from 'tools/OS/deploy_jenkins_slave.sh'."
         exit 1
     fi
-    if [ "${WORKSPACE_DRIVE:=unset}" = "unset" ]; then
+    if [ "${WORKSPACE_DRIVE:-unset}" = "unset" ]; then
         if [ -d "${WORKSPACE}/sources" ]; then
             export WORKSPACE_DRIVE="${WORKSPACE}/sources"
         elif [ -d "${WORKSPACE}/nuxeo-drive" ]; then
@@ -126,14 +133,14 @@ check_vars() {
 
     cd "${WORKSPACE_DRIVE}"
 
-    if [ "${SPECIFIC_TEST:=unset}" = "unset" ] || [ "${SPECIFIC_TEST}" = "" ]; then
+    if [ "${SPECIFIC_TEST:-unset}" = "unset" ] || [ "${SPECIFIC_TEST}" = "" ]; then
         export SPECIFIC_TEST="tests"
     else
         echo "    SPECIFIC_TEST        = ${SPECIFIC_TEST}"
         export SPECIFIC_TEST="tests/${SPECIFIC_TEST}"
     fi
 
-    if [ "${SKIP:=unset}" = "unset" ]; then
+    if [ "${SKIP:-unset}" = "unset" ]; then
         export SKIP=""
     else
         echo "    SKIP                 = ${SKIP}"
@@ -145,7 +152,7 @@ install_deps() {
     ${PIP} -r tools/deps/requirements-pip.txt
     ${PIP} -r tools/deps/requirements.txt
     ${PIP} -r tools/deps/requirements-dev.txt
-    if [ "${INSTALL_RELEASE_ARG:=0}" != "1" ]; then
+    if [ "${INSTALL_RELEASE_ARG:-0}" != "1" ]; then
         ${PIP} -r tools/deps/requirements-tests.txt
         pyenv rehash
     fi
@@ -161,7 +168,7 @@ install_pyenv() {
 
     venv_plugin="${PYENV_ROOT}/plugins/pyenv-virtualenv"
 
-    if [ "${INSTALL_ARG:=0}" = "1" ]; then
+    if [ "${INSTALL_ARG:-0}" = "1" ]; then
         if [ ! -d "${PYENV_ROOT}" ]; then
             echo ">>> [pyenv] Downloading and installing"
             curl -L "${url}" | bash
@@ -228,7 +235,6 @@ launch_test() {
 
 launch_tests() {
     local ret=0
-    local junit_folder="tools/jenkins/junit/xml"
 
     rm -rf .pytest_cache
 
@@ -337,10 +343,11 @@ start_nxdrive() {
 
 verify_python() {
     local version="$1"
-    local cur_version=$(${PYTHON} --version 2>&1 | head -n 1 | awk '{print $2}')
+    local cur_version
 
     echo ">>> Verifying Python version in use"
 
+    cur_version=$(${PYTHON} --version 2>&1 | head -n 1 | awk '{print $2}')
     if [ "${cur_version}" != "${version}" ]; then
         echo ">>> Python version ${cur_version}"
         echo ">>> Drive requires ${version}"
@@ -365,10 +372,6 @@ main() {
     # The FinderSync extension build does not require extra setup
     if [ $# -eq 1 ]; then
         case "$1" in
-            "--build-ext")
-                build_extension
-                exit 0
-            ;;
             "--check")
                 check
                 exit 0

@@ -11,7 +11,7 @@ check_spell() {
         # Small santitization:
         #   - skip empty lines and comments
         #   - strip inline comments
-        excludes="$(cat "${file}" | sed '/^\s*$/d ; /^#.*$/d ; s/\s*#.*$//')"
+        excludes="$(sed '/^\s*$/d ; /^#.*$/d ; s/\s*#.*$//' "${file}")"
         for line in ${excludes}; do
             # Codespell needs relative paths for folders
             [ -e "${line}" ] && line="./${line}"

@@ -49,8 +49,26 @@ function build($app_version, $script) {
 	# Build an executable
 	Write-Output ">>> [$app_version] Building $script"
 	if (-Not (Test-Path "$Env:ISCC_PATH")) {
-		Write-Output ">>> ISCC does not exist: $Env:ISCC_PATH. Aborting."
-		ExitWithCode 1
+		# Inno Setup needs to be downloaded and installed on Travis-CI
+		if ($Env:TRAVIS_BUILD_DIR) {
+			$filename = "innosetup-$Env:INNO_SETUP_VERSION.exe"
+			$output = "$Env:WORKSPACE\$filename"
+			$url = "https://mlaan2.home.xs4all.nl/ispack/$filename"
+			download $url $output
+
+			Write-Output ">>> Installing Inno Setup $Env:INNO_SETUP_VERSION"
+			# https://jrsoftware.org/ishelp/index.php?topic=setupcmdline
+			Start-Process $output -argumentlist "`
+				/SP- `
+				/VERYSILENT `
+				/SUPPRESSMSGBOXES
+				/TYPE=compact `
+				" `
+				-wait
+		} else {
+			Write-Output ">>> ISCC does not exist: $Env:ISCC_PATH. Aborting."
+			ExitWithCode 1
+		}
 	}
 	& $Env:ISCC_PATH\iscc /DMyAppVersion="$app_version" "$script"
 	if ($lastExitCode -ne 0) {
@@ -67,10 +85,14 @@ function build_installer {
 	# Build the installer
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""
 
+	# Build DDLs only on Travis-CI, no need to loose time on the local dev machine
+	if ($Env:TRAVIS_BUILD_DIR) {
+		build_overlays
+	}
+
 	sign_dlls
 
 	Write-Output ">>> [$app_version] Freezing the application"
-	# freeze_nuitka
 	freeze_pyinstaller
 
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\cleanup_application_tree.py "dist\ndrive"
@@ -82,7 +104,9 @@ function build_installer {
 		return 0
 	}
 
-	zip_files "dist\nuxeo-drive-windows-$app_version.zip" "dist\ndrive"
+	if ($Env:ZIP_NEEDED) {
+		zip_files "dist\nuxeo-drive-windows-$app_version.zip" "dist\ndrive"
+	}
 
 	build "$app_version" "tools\windows\setup-addons.iss"
 	sign "dist\nuxeo-drive-addons.exe"
@@ -98,6 +122,12 @@ function build_overlays {
 	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\NuxeoDriveShellExtensions"
 	$util_dll = "NuxeoDriveUtil"
 	$overlay_dll = "NuxeoDriveOverlays"
+
+	# Remove old DLLS on Travis-CI to prevent sucj errors:
+	#	Rename-Item : Cannot create a file when that file already exists.
+	if ($Env:TRAVIS_BUILD_DIR) {
+		Get-ChildItem -Path $folder -Recurse -File -Include *.dll | Foreach ($_) {Remove-Item $_.Fullname}
+	}
 
 	# List of DLLs to build
 	$overlays = @(
@@ -126,7 +156,7 @@ function build_overlays {
 	$ResourcesOriginal = "$Resources.original"
 
 	# Start build chain
-	">>> Building $util_dll DLL"
+	Write-Output ">>> Building $util_dll DLL"
 	build_dll $util_dll "x64"
 	build_dll $util_dll "Win32"
 
@@ -176,14 +206,19 @@ function check_upgrade {
 	}
 }
 
-
 function check_vars {
 	# Check required variables
 	if (-Not ($Env:PYTHON_DRIVE_VERSION)) {
 		$Env:PYTHON_DRIVE_VERSION = '3.7.7'  # XXX_PYTHON
-	} elseif (-Not ($Env:WORKSPACE)) {
-		Write-Output ">>> WORKSPACE not defined. Aborting."
-		ExitWithCode 1
+	}
+	if (-Not ($Env:WORKSPACE)) {
+		if ($Env:TRAVIS_BUILD_DIR) {
+			# Running from Travis-CI
+			$Env:WORKSPACE = (Get-Item $Env:TRAVIS_BUILD_DIR).parent.FullName
+		} else {
+			Write-Output ">>> WORKSPACE not defined. Aborting."
+			ExitWithCode 1
+		}
 	}
 	if (-Not ($Env:WORKSPACE_DRIVE)) {
 		if (Test-Path "$($Env:WORKSPACE)\sources") {
@@ -233,7 +268,7 @@ function download($url, $output) {
 	$try = 1
 	while ($try -lt 6) {
 		if (Test-Path "$output") {
-			# Remove the confirmation due to "This came from another computer and migh
+			# Remove the confirmation due to "This came from another computer and might
 			# be blocked to help protect this computer"
 			Unblock-File "$output"
 			return
@@ -241,7 +276,12 @@ function download($url, $output) {
 		Write-Output ">>> [$try/5] Downloading $url"
 		Write-Output "                   to $output"
 		Try {
-			Start-BitsTransfer -Source $url -Destination $output
+			if ($Env:TRAVIS_BUILD_DIR) {
+				$client = New-Object System.Net.WebClient
+				$client.DownloadFile($url, $output)
+			} else {
+				Start-BitsTransfer -Source $url -Destination $output
+			}
 		} Catch {}
 		$try += 1
 		Start-Sleep -s 5
@@ -338,9 +378,34 @@ function install_python {
 		return
 	}
 
-	# Fix a bloody issue with our slaves ... !
-	New-Item -Path $Env:STORAGE_DIR -Name Scripts -ItemType directory
-	Copy-Item $Env:PYTHON_DIR\vcruntime140.dll $Env:STORAGE_DIR\Scripts
+	# Python needs to be downloaded and installed on Travis-CI
+	if ($Env:TRAVIS_BUILD_DIR) {
+		$filename = "python-$Env:PYTHON_DRIVE_VERSION.exe"
+		$url = "https://www.python.org/ftp/python/$Env:PYTHON_DRIVE_VERSION/$filename"
+		$output = "$Env:WORKSPACE\$filename"
+		download $url $output
+
+		Write-Output ">>> Installing Python $Env:PYTHON_DRIVE_VERSION into $Env:PYTHON_DIR"
+		# https://docs.python.org/3.7/using/windows.html#installing-without-ui
+		Start-Process $output -argumentlist "`
+			/quiet `
+			TargetDir=$Env:PYTHON_DIR `
+			AssociateFiles=0 `
+			CompileAll=1 `
+			Shortcuts=0 `
+			Include_doc=0 `
+			Include_launcher=0 `
+			InstallLauncherAllUsers=0 `
+			Include_tcltk=0 `
+			Include_test=0 `
+			Include_tools=0 `
+			" `
+			-wait
+	}
+
+	# Fix a bloody issue ... !
+	New-Item -Path $Env:STORAGE_DIR -Name Scripts -ItemType directory -Verbose
+	Copy-Item $Env:PYTHON_DIR\vcruntime140.dll $Env:STORAGE_DIR\Scripts -Verbose
 
 	Write-Output ">>> Setting-up the Python virtual environment"
 
@@ -461,16 +526,29 @@ function sign($file) {
 	}
 	if (-Not ($Env:SIGNING_ID)) {
 		$Env:SIGNING_ID = "Nuxeo"
-		Write-Output ">>> SIGNING_ID is not set, using 'Nuxeo'"
+		Write-Output ">>> SIGNING_ID is not set, using '$Env:SIGNING_ID'"
 	}
 	if (-Not ($Env:APP_NAME)) {
 		$Env:APP_NAME = "Nuxeo Drive"
+		Write-Output ">>> APP_NAME is not set, using '$Env:APP_NAME'"
+	}
+
+	if ($Env:TRAVIS_BUILD_DIR) {
+		$cert = "certificate.pfx"
+		if (Test-Path $cert) {
+			Write-Output ">>> Importing the code signing certificate"
+			$password = ConvertTo-SecureString -String $Env:KEYCHAIN_PASSWORD -AsPlainText -Force
+			Import-PfxCertificate -FilePath $cert -CertStoreLocation "Cert:\LocalMachine\My" -Password $password
+
+			# Remove the file to not import it again the next run
+			Remove-Item -Path $cert -Verbose
+		}
 	}
 
 	Write-Output ">>> Signing $file"
 	& $Env:SIGNTOOL_PATH\signtool.exe sign `
 		/a `
-		/s MY `
+		/sm `
 		/n "$Env:SIGNING_ID" `
 		/d "$Env:APP_NAME" `
 		/fd sha256 `
