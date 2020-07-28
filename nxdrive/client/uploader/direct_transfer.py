@@ -5,7 +5,6 @@ from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from ...constants import TX_TIMEOUT
 from ...engine.activity import LinkingAction, UploadAction
 from ...objects import Upload
 from . import BaseUploader
@@ -84,9 +83,8 @@ class DirectTransferUploader(BaseUploader):
         overwrite = duplicate_behavior == "override"
 
         if file_path.is_dir():
-            params = {"title": filename}
             item = self.upload_folder(
-                "FileManager.CreateFolder", input_obj=remote_parent_path, params=params
+                input_obj=remote_parent_path, params={"title": filename}
             )
 
         else:
@@ -107,10 +105,9 @@ class DirectTransferUploader(BaseUploader):
 
         return item
 
-    def upload_folder(self, command: str, **kwargs: Any):
-        headers = kwargs.pop("headers", {})
-        headers["Nuxeo-Transaction-Timeout"] = str(TX_TIMEOUT)
+    def upload_folder(self, **kwargs: Any) -> Dict[str, Any]:
+        """Create a folder using the FileManager."""
         res: Dict[str, Any] = self.remote.execute(
-            command=command, headers=headers, timeout=TX_TIMEOUT, **kwargs,
+            command="FileManager.CreateFolder", headers={}, **kwargs,
         )
         return res

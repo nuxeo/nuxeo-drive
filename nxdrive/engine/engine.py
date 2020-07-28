@@ -799,20 +799,13 @@ class Engine(QObject):
 
     @property
     def have_folder_upload(self) -> bool:
-        """Check if the server can handle FileManager.CreateFolder and store the result in the databse."""
+        """Check if the server can handle folder upload via the FileManager."""
         value = self.dao.get_bool("have_folder_upload", False)
         if not value:
             value = self.remote.can_use("FileManager.CreateFolder")
             if value:
                 self.dao.store_bool("have_folder_upload", True)
         return value
-
-    def _can_upload_folders(self):
-        result = self.dao.get_bool("have_folder_upload", False)
-        if self.remote.can_use("FileManager.CreateFolder"):
-            result = True
-            self.dao.store_bool("have_folder_upload", True)
-        return result
 
     @staticmethod
     def local_rollback(force: bool = False) -> bool:
@@ -1126,6 +1119,7 @@ class Engine(QObject):
         self.dao.update_config("remote_token", self._remote_token)
         self.dao.store_bool("ssl_verify", self._ssl_verify)
         self.dao.update_config("ca_bundle", self._ca_bundle)
+
         # Check for the root
         # If the top level state for the server binding doesn't exist,
         # create the local folder and the top level state.

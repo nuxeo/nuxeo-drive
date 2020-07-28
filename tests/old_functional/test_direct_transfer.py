@@ -1,7 +1,6 @@
 """
 Test the Direct Transfer feature in different scenarii.
 """
-import os
 from shutil import copyfile, copytree
 from time import sleep
 from unittest.mock import patch
@@ -663,11 +662,10 @@ class DirectTransferFolder:
         assert not list(self.engine_1.dao.get_dt_uploads())
 
         empty_folder = self.tmpdir / str(uuid4())
-        os.mkdir(empty_folder)
+        empty_folder.mkdir()
+
         with ensure_no_exception():
-            self.engine_1.direct_transfer(
-                [empty_folder], self.ws.path, self.ws.uid, duplicate_behavior="create",
-            )
+            self.engine_1.direct_transfer([empty_folder], self.ws.path, self.ws.uid)
             self.wait_sync()
 
         # Ensure there is only 1 folder created at the workspace root
@@ -686,7 +684,7 @@ class DirectTransferFolder:
 
         with ensure_no_exception():
             self.engine_1.direct_transfer([self.folder], self.ws.path)
-            self.wait_sync()
+            self.sync_and_check()
 
         # Ensure there is only 1 folder created at the workspace root
         children = self.remote_1.get_children(self.ws.path)["entries"]
