@@ -56,12 +56,12 @@ RUN git clone $GIT_URL sources && \
     cd .. && \
     rm -rf sources
 
-# Create the jenkins user (the same one as on our CI/QA setup)
-RUN useradd -m -d /home/jenkins -u 1001 -s /bin/bash jenkins
+# Create the travis user (the same one as on Travis-CI)
+RUN useradd -m -d /home/travis -u 1001 -s /bin/bash travis
 
 # Adapt rights
-RUN chown jenkins:jenkins -R /opt && \
-    chown jenkins:jenkins /entrypoint.sh && \
+RUN chown travis:travis -R /opt && \
+    chown travis:travis /entrypoint.sh && \
     chmod a+x /entrypoint.sh
 
 # The entry point will build Nuxeo Drive if called without argument.
@@ -71,4 +71,4 @@ ENTRYPOINT ["/entrypoint.sh"]
 # That folder has to be set by the caller, it will hold generated binaries
 VOLUME ["/opt/dist"]
 
-USER jenkins
+USER travis

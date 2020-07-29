@@ -1,0 +1,31 @@
+# Build and deploy a new docker image for Nuxeo Drive GNU/Linux binary builds
+name: Docker build
+
+on:
+  workflow_dispatch:
+    inputs:
+      pythonVersion:
+        description: 'The Python version in-use for the current Nuxeo Drive version.'
+        required: true
+        default: 'x.y.z'
+      buildVersion:
+        description: 'Image build number.'
+        required: true
+        default: '0'
+
+steps:
+  - name: Checkout code
+    uses: actions/checkout@v2
+
+  - name: Build and push the Docker image
+    uses: docker/build-push-action@v1
+    with:
+      username: ${{ secrets.DOCKER_USERNAME }}
+      password: ${{ secrets.DOCKER_PASSWORD }}
+      repository: docker-private.packages.nuxeo.com/drive
+      registry: docker-private.packages.nuxeo
+      build_args: VERSION=${{ github.event.inputs.buildVersion }},SCM_REF=${{ env.GITHUB_SHA }}
+      dockerfile: tools/linux/Dockerfile
+      tags: nuxeo-drive-build:py-${{ github.event.inputs.pythonVersion }}
+      tag_with_sha: true
+      push: true

@@ -4,7 +4,7 @@ set -e
 if [ $# -gt 0 ]; then
     exec "$@"
 else
-    # On Jenkins, the current path will be the same as $WORKSPACE. If it is the case,
+    # On Travis-CI, the current path will be the same as $WORKSPACE. If it is the case,
     # we already are into a cloned repository, so skipping the "git clone" step.
     if [ -z "${WORKSPACE}" ]; then
         export WORKSPACE="/opt"
@@ -15,7 +15,7 @@ else
     ./tools/linux/deploy_jenkins_slave.sh --install-release
     ./tools/linux/deploy_jenkins_slave.sh --build
 
-    # Running outside Jenkins, likely a local test
+    # Running outside Travis-CI, likely a local test
     if [ "$(pwd)" = "/opt/sources" ]; then
         echo "[build n°${BUILD_VERSION}] Copying interesting files into the volume"
         cp -v dist/*.AppImage /opt/dist
