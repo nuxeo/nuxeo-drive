@@ -430,6 +430,7 @@ class Engine(QObject):
         items = []
 
         for local_path in sorted(local_paths):
+            print(local_path)
             if local_path.is_file():
                 items.append(
                     (
@@ -438,6 +439,7 @@ class Engine(QObject):
                         False,
                         local_path.stat().st_size,
                         remote_parent_path,
+                        "",
                         remote_parent_ref,
                         duplicate_behavior,
                     )
@@ -445,6 +447,7 @@ class Engine(QObject):
             else:
                 tree = sorted(get_tree_list(local_path, remote_parent_path))
                 for path, remote_subparent_path, size in tree:
+                    local_parent_path = "" if path == local_path else "NOT_AVAILABLE"
                     folderish = path.is_dir()
                     items.append(
                         (
@@ -453,6 +456,7 @@ class Engine(QObject):
                             folderish,
                             size,
                             remote_subparent_path,
+                            local_parent_path,
                             remote_parent_ref,
                             duplicate_behavior,
                         )

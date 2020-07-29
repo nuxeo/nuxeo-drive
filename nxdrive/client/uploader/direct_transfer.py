@@ -100,6 +100,8 @@ class DirectTransferUploader(BaseUploader):
                 remote_parent_ref=remote_parent_ref,
             )
 
+        if file_path.is_dir():
+            self.dao.update_children_local_parent_path(filename, item["path"])
         # Transfer is completed, delete the upload from the database
         self.dao.remove_transfer("upload", file_path, is_direct_transfer=True)
 

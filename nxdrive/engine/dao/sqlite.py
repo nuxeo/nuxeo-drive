@@ -1123,9 +1123,9 @@ class EngineDAO(ConfigurationDAO):
             query = (
                 "INSERT INTO States "
                 "(local_path, local_name, folderish, size, "
-                "remote_parent_path, remote_parent_ref, duplicate_behavior, "
+                "remote_parent_path, local_parent_path, remote_parent_ref, duplicate_behavior, "
                 "local_state, remote_state, pair_state)"
-                "VALUES (?, ?, ?, ?, ?, ?, ?, 'direct', 'unknown', 'direct_transfer')"
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'direct', 'unknown', 'direct_transfer')"
             )
             cur.executemany(query, items)
             return current_max_row_id
@@ -1357,6 +1357,13 @@ class EngineDAO(ConfigurationDAO):
         return c.execute(
             "SELECT * FROM States WHERE remote_parent_path LIKE ?", (f"%{ref}%",)
         ).fetchall()
+
+    def update_children_local_parent_path(self, name, remote_parent_path):
+        c = self._get_read_connection().cursor()
+        c.execute(
+            "UPDATE States SET local_parent_path = ?, remote_parent_path = ? WHERE remote_parent_path LIKE ?",
+            ("", remote_parent_path, f"%{name}"),
+        )
 
     def get_remote_children(self, ref: str) -> DocPairs:
         c = self._get_read_connection().cursor()

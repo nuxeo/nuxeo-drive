@@ -227,7 +227,12 @@ class Processor(EngineWorker):
                     continue
 
                 parent_path = doc_pair.local_parent_path
-
+                if (
+                    doc_pair.local_state == "direct"
+                    and str(parent_path) == "NOT_AVAILABLE"
+                ):
+                    self.engine.queue_manager.push(doc_pair)
+                    continue
                 if not self.local.exists(parent_path):
                     if (
                         not parent_pair
