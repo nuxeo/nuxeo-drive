@@ -27,8 +27,8 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
         registry: docker-private.packages.nuxeo.com
-        repository: drive
+        repository: nuxeo-drive-build
         build_args: VERSION=${{ github.event.inputs.buildVersion }},SCM_REF=${{ env.GITHUB_SHA }}
         dockerfile: tools/linux/Dockerfile
-        tags: nuxeo-drive-build:py-${{ github.event.inputs.pythonVersion }}
+        tags: py-${{ github.event.inputs.pythonVersion }}
         push: true
