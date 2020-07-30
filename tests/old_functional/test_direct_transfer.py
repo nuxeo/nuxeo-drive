@@ -676,7 +676,7 @@ class DirectTransferFolder:
         # All has been uploaded
         assert not list(self.engine_1.dao.get_dt_uploads())
 
-    def test_sub_folders(self):
+    def __test_sub_folders(self):
         """Test the Direct Transfer on an simple empty folder."""
 
         # There is no upload, right now
@@ -696,6 +696,47 @@ class DirectTransferFolder:
                 sub_file = sub_folder / f"file_{str(uuid4())}"
                 sub_file.write_text("test", encoding="utf8")
                 created.append(sub_file.name)
+
+        with ensure_no_exception():
+            self.engine_1.direct_transfer([root_folder], self.ws.path, self.ws.uid)
+            self.wait_sync()
+
+        # Ensure there is only 1 folder created at the workspace root
+
+        def get_childrens(path, children_list):
+            children = self.remote_1.get_children(path)["entries"]
+            for child in children:
+                if child["type"] == "Folder":
+                    children_list = get_childrens(child["path"], children_list)
+                children_list.append(child["title"])
+            return children_list
+
+        root = self.remote_1.get_children(self.ws.path)["entries"][0]
+        children_list = [root["title"]]
+        children_list = sorted(get_childrens(root["path"], children_list))
+        created = sorted(created)
+
+        assert 0
+        # assert sorted(created) == sorted(remote_items)
+        # All has been uploaded
+        assert not list(self.engine_1.dao.get_dt_uploads())
+
+    def test_sub_files(self):
+        """Test the Direct Transfer on a folder with many files."""
+
+        # There is no upload, right now
+        assert not list(self.engine_1.dao.get_dt_uploads())
+
+        created = []
+
+        root_folder = self.tmpdir / str(uuid4())
+        root_folder.mkdir()
+
+        created.append(root_folder.name)
+        for _ in range(5):
+            sub_file = root_folder / f"file_{str(uuid4())}"
+            sub_file.write_text("test", encoding="utf8")
+            created.append(sub_file.name)
 
         with ensure_no_exception():
             self.engine_1.direct_transfer([root_folder], self.ws.path, self.ws.uid)

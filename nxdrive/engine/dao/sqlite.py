@@ -1632,6 +1632,8 @@ class EngineDAO(ConfigurationDAO):
                 print(doc_pair)
                 self.queue_manager.push(doc_pair)
 
+            print(f"New queue len: {self.queue_manager.get_metrics()}")
+
     def mark_descendants_remotely_created(self, doc_pair: DocPair) -> None:
         with self.lock:
             con = self._get_write_connection()
@@ -1650,6 +1652,7 @@ class EngineDAO(ConfigurationDAO):
             self._queue_pair_state(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
 
     def remove_state(self, doc_pair: DocPair, remote_recursion: bool = False) -> None:
+        print(f"Removed Doc Pair {doc_pair}")
         with self.lock:
             con = self._get_write_connection()
             c = con.cursor()

@@ -246,6 +246,7 @@ class Processor(EngineWorker):
                         or doc_pair.local_parent_path == parent_pair.local_path
                     ):
                         self.dao.remove_state(doc_pair)
+                        print("Removed state from processor")
                         continue
 
                     # The parent folder has been renamed sooner
