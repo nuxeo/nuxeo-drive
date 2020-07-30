@@ -1605,13 +1605,12 @@ class EngineDAO(ConfigurationDAO):
 
     def update_local_parent_path_dt(self, name: str, remote_parent_path: str) -> None:
         """
-        Used in Direct Transfer to update (local_parent_path, remote_parent_path) of a folder's childrens.
-        Only target Direct Transfer items.
+        Used in Direct Transfer to update (local_parent_path, remote_parent_path) of a folder's children.
         """
         c = self._get_read_connection().cursor()
         c.execute(
             "UPDATE States SET local_parent_path = ?, remote_parent_path = ? "
-            "WHERE remote_parent_path LIKE ? AND local_state = 'direct'",
+            "WHERE local_state = 'direct' AND remote_parent_path LIKE ?",
             ("", remote_parent_path, f"%{name}"),
         )
 
