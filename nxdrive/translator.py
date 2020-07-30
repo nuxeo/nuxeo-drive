@@ -120,10 +120,6 @@ class Translator(QTranslator):
         Translator.singleton.set_language(lang)
 
     @staticmethod
-    def format_date(date: datetime) -> str:
-        return date.strftime(Translator.get("DATE_FORMAT"))
-
-    @staticmethod
     def format_datetime(date: datetime) -> str:
         return date.strftime(Translator.get("DATETIME_FORMAT"))
 

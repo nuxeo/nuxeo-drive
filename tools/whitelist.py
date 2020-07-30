@@ -1,5 +1,6 @@
 # Whitelist file for Vulture.
 
+AbstractOSIntegration.cb_get  # OSI
 Application.about_to_quit  # Used in QML
 Application.close_direct_transfer_window  # Used in QML
 Application.confirm_cancel_transfer  # Used in QML
@@ -9,9 +10,9 @@ BlacklistQueue.repush  # Used in tests
 blob.batch_id  # Remote.upload_chunks()
 blob.fileIdx  # Remote.upload_chunks()
 blob.mimetype  # Remote.upload_chunks()
-cb_get  # OSI
 CliHandler.bind_root  # Used by the arguments parser
 CliHandler.clean_folder  # Used by the arguments parser
+CliHandler.console  # Used by the arguments parser
 CliHandler.ctx_direct_transfer  # Used by the arguments parser
 CliHandler.download_edit  # Used by the arguments parser
 CliHandler.unbind_root  # Used by the arguments parser
@@ -24,20 +25,23 @@ Engine.folder  # Used in QML
 EngineDAO.get_downloads_with_status()  # Used dynamically in Engine
 EngineDAO.get_uploads_with_status()  # Used dynamically in Engine
 exc.trash_issue  # LocalClient.delete()
+FileInfo.is_hidden  # Used in QML
 FolderTreeview.resizeEvent  # Internal use of PyQt
-install_addons  # Used in QML
-getTag  # Used in QML
-getName  # Internal use of QML
 Manager.get_feature_state  # Used in QML
 Manager.set_feature_state  # Used in QML
 Manager.set_light_icons  # Used in QML
 MetaOptions.mock  # Used in tests
-nameRoles  # Internal use of QML
+NotificationDelegator.userNotificationCenter_didActivateNotification_
+NotificationDelegator.userNotificationCenter_shouldPresentNotification_
 nuxeo.constants.CHECK_PARAMS  # CliHandler.parse_cli()
 ob.read_directory_changes.WATCHDOG_TRAVERSE_MOVED_DIR_DELAY  # Used by Watchdog
 ob.winapi.BUFFER_SIZE  # Used by Watchdog
-on_any_event  # Used by Watchdog
+Options.__getattr__  # Used by MetaOptions
+Options.__repr__  # Used for logging
+Options.__setattr__  # Used by MetaOptions
+Options.__str__  # Used for logging
 _.row_factory  # Internal use of SQLite
+PatternMatchingEventHandler.on_any_event  # Used by Watchdog
 Processor._synchronize_conflicted  # Used by Processor._execute()
 Processor._synchronize_direct_transfer  # Used by Processor._execute()
 Processor._synchronize_direct_transfer_replace_blob  # Used by Processor._execute()
@@ -48,6 +52,9 @@ Processor._synchronize_locally_moved_created  # Used by Processor._execute()
 Processor._synchronize_locally_moved_remotely_modified  # Used by Processor._execute()
 Processor._synchronize_remotely_created  # Used by Processor._execute()
 Processor._synchronize_unknown_deleted  # Used by Processor._execute()
+QAbstractListModel.getTag  # Used in QML
+QAbstractListModel.getName  # Internal use of QML
+QAbstractListModel.nameRoles  # Internal use of QML
 QMLDriveApi.default_local_folder  # Used in QML
 QMLDriveApi.default_server_url_value  # Used in QML
 QMLDriveApi.get_disk_space_info_to_width  # Used in QML
@@ -57,6 +64,7 @@ QMLDriveApi.get_free_disk_space  # Used in QML
 QMLDriveApi.get_hostname_from_url  # Used in QML
 QMLDriveApi.get_used_space_without_synced  # Used in QML
 QMLDriveApi.get_proxy_settings  # Used in QML
+QMLDriveApi.get_update_status  # Used in QML
 QMLDriveApi.get_update_url  # Used in QML
 QMLDriveApi.get_update_version  # Used in QML
 QMLDriveApi.open_direct_transfer  # Used in QML
@@ -74,5 +82,4 @@ shortcut.Targetpath  # WindowsIntegration._create_shortcut()
 shortcut.WorkingDirectory  # WindowsIntegration._create_shortcut()
 shortcut.IconLocation  # WindowsIntegration._create_shortcut()
 Upload.transfer_type  # Used in QML
-userNotificationCenter_didActivateNotification_  # From NotificationDelegator
-userNotificationCenter_shouldPresentNotification_  # From NotificationDelegator
+WindowsIntegration.install_addons  # Used in QML
