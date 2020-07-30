@@ -1611,6 +1611,7 @@ class EngineDAO(ConfigurationDAO):
         """
         Used in Direct Transfer to update remote_parent_path and remote_state of a folder's children.
         """
+        print(f"local_parent_path: {local_parent_path}")
         with self.lock:
             c = self._get_write_connection().cursor()
             doc_pairs = c.execute(
@@ -1627,6 +1628,8 @@ class EngineDAO(ConfigurationDAO):
             for doc_pair in doc_pairs:
                 doc_pair.remote_parent_path = remote_parent_path
                 doc_pair.remote_state = "unknown"
+                print("new_child_detected")
+                print(doc_pair)
                 self.queue_manager.push(doc_pair)
 
     def mark_descendants_remotely_created(self, doc_pair: DocPair) -> None:

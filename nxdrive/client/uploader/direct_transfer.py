@@ -68,7 +68,7 @@ class DirectTransferUploader(BaseUploader):
         remote_parent_ref = kwargs.pop("remote_parent_ref")
         duplicate_behavior = kwargs.pop("duplicate_behavior")
         local_name = kwargs.pop("local_name")
-        local_parent_path = kwargs.pop("local_parent_path")
+        local_path = kwargs.pop("local_path")
 
         log.info(
             f"Direct Transfer of {file_path!r} into {remote_parent_path!r} ({remote_parent_ref!r})"
@@ -88,7 +88,7 @@ class DirectTransferUploader(BaseUploader):
             item = self.upload_folder(
                 input_obj=remote_parent_path, params={"title": local_name}
             )
-            self.dao.update_remote_parent_path_dt(local_parent_path, item["path"])
+            self.dao.update_remote_parent_path_dt(local_path, item["path"])
         else:
             # Upload the blob and use the FileManager importer to create the document
             item = super().upload_impl(

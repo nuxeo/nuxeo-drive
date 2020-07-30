@@ -149,6 +149,7 @@ class Processor(EngineWorker):
 
             try:
                 doc_pair = self.dao.acquire_state(self.thread_id, item.id)
+                print(f"Processor got: {doc_pair}")
             except sqlite3.OperationalError:
                 state = self.dao.get_state_from_id(item.id)
                 if state:
@@ -173,7 +174,9 @@ class Processor(EngineWorker):
 
             if doc_pair.remote_state == "todo":
                 self._postpone_pair(doc_pair, "Parent not yet synced", interval=10)
-                print(f"Parent folder no yet uploaded for {doc_pair.local_path}")
+                print(
+                    f"Parent folder {doc_pair.local_parent_path} no yet uploaded for {doc_pair.local_path}"
+                )
                 log.debug(f"Parent folder no yet uploaded for {doc_pair.local_path}")
                 continue
 
@@ -511,7 +514,7 @@ class Processor(EngineWorker):
             file,
             engine_uid=self.engine.uid,
             uploader=DirectTransferUploader,
-            local_parent_path=doc_pair.local_parent_path,
+            local_path=doc_pair.local_path,
             local_name=doc_pair.local_name,
             remote_parent_path=doc_pair.remote_parent_path,
             remote_parent_ref=doc_pair.remote_parent_ref,
