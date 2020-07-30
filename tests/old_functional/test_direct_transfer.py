@@ -676,6 +676,40 @@ class DirectTransferFolder:
         # All has been uploaded
         assert not list(self.engine_1.dao.get_dt_uploads())
 
+    def test_sub_folders(self):
+        """Test the Direct Transfer on an simple empty folder."""
+
+        # There is no upload, right now
+        assert not list(self.engine_1.dao.get_dt_uploads())
+
+        created = []
+
+        root_folder = self.tmpdir / str(uuid4())
+        root_folder.mkdir()
+        created.append(root_folder)
+
+        for _ in range(3):
+            sub_folder = root_folder / f"folder_{str(uuid4())}"
+            sub_folder.mkdir()
+            created.append(sub_folder)
+            for _ in range(2):
+                sub_file = sub_folder / f"file_{str(uuid4())}"
+                sub_file.write_text("test", encoding="utf8")
+                created.append(sub_file)
+
+        with ensure_no_exception():
+            self.engine_1.direct_transfer(created, self.ws.path, self.ws.uid)
+            self.wait_sync()
+
+        # Ensure there is only 1 folder created at the workspace root
+        children = self.remote_1.get_children(self.ws.path)["entries"]
+        remote_names = sorted(child["title"] for child in children)
+        created_names = sorted(elem.name for elem in created)
+        assert remote_names == created_names
+
+        # All has been uploaded
+        assert not list(self.engine_1.dao.get_dt_uploads())
+
     def __test_folder(self):
         """Test the Direct Transfer on a folder containing files and a sufolder."""
 
