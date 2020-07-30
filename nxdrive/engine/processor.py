@@ -228,10 +228,7 @@ class Processor(EngineWorker):
 
                 parent_path = doc_pair.local_parent_path
 
-                if (
-                    doc_pair.local_state == "direct"
-                    and str(parent_path) == "NOT_AVAILABLE"
-                ):
+                if doc_pair.remote_state == "todo":
                     self.engine.queue_manager.push(doc_pair)
                     log.debug(
                         f"Parent folder no yet uploaded for {doc_pair.local_path}"

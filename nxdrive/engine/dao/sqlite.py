@@ -118,6 +118,7 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
     ("unsynchronized", "deleted"): "remotely_deleted",
     # Direct Transfer
     ("direct", "unknown"): "direct_transfer",
+    ("direct", "todo"): "",
 }
 
 
@@ -1123,9 +1124,9 @@ class EngineDAO(ConfigurationDAO):
             query = (
                 "INSERT INTO States "
                 "(local_path, local_name, folderish, size, "
-                "remote_parent_path, local_parent_path, remote_parent_ref, duplicate_behavior, "
+                "remote_parent_path, remote_parent_ref, duplicate_behavior, "
                 "local_state, remote_state, pair_state)"
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'direct', 'unknown', 'direct_transfer')"
+                "VALUES (?, ?, ?, ?, ?, ?, ?, 'direct', ?, 'direct_transfer')"
             )
             cur.executemany(query, items)
             return current_max_row_id
@@ -1605,13 +1606,13 @@ class EngineDAO(ConfigurationDAO):
 
     def update_local_parent_path_dt(self, name: str, remote_parent_path: str) -> None:
         """
-        Used in Direct Transfer to update (local_parent_path, remote_parent_path) of a folder's children.
+        Used in Direct Transfer to update remote_parent_path and remote_state of a folder's children.
         """
         c = self._get_read_connection().cursor()
         c.execute(
-            "UPDATE States SET local_parent_path = ?, remote_parent_path = ? "
+            "UPDATE States SET remote_state = ?, remote_parent_path = ? "
             "WHERE local_state = 'direct' AND remote_parent_path LIKE ?",
-            ("", remote_parent_path, f"%{name}"),
+            ("unknown", remote_parent_path, f"%{name}"),
         )
 
     def mark_descendants_remotely_created(self, doc_pair: DocPair) -> None:
