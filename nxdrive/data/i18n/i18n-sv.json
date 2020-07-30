@@ -50,7 +50,6 @@
     "CONTINUE_USING": "Fortsätt att använda Drive %1",
     "CREATE_REPORT": "Klicka för att generera buggrapport",
     "DATETIME_FORMAT": "%x %X",
-    "DATE_FORMAT": "%x",
     "DEBUG": "Felsök",
     "DEBUG_INVALID_CREDENTIALS": "Växla ogiltiga inloggningsuppgifter",
     "DEBUG_SYSTRAY_MESSAGE": "Visa ett systray-meddelande",

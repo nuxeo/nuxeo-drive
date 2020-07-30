@@ -50,7 +50,6 @@
     "CONTINUE_USING": "Doorgaan met Drive %1",
     "CREATE_REPORT": "Klik om een programmafoutrapport te genereren",
     "DATETIME_FORMAT": "%x %X",
-    "DATE_FORMAT": "%x",
     "DEBUG": "Programmafout repareren",
     "DEBUG_INVALID_CREDENTIALS": "Wisselen tussen ongeldige aanmeldgegevens",
     "DEBUG_SYSTRAY_MESSAGE": "Een systray-melding weergeven",

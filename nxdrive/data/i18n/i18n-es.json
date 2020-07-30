@@ -50,7 +50,6 @@
     "CONTINUE_USING": "Seguir utilizando Drive %1",
     "CREATE_REPORT": "Haga clic para generar un informe de errores",
     "DATETIME_FORMAT": "%x %X",
-    "DATE_FORMAT": "%x",
     "DEBUG": "Depurar",
     "DEBUG_INVALID_CREDENTIALS": "Alternar las credenciales no válidas",
     "DEBUG_SYSTRAY_MESSAGE": "Mostrar un mensaje de Systray",

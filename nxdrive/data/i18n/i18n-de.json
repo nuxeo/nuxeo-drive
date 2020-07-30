@@ -50,7 +50,6 @@
     "CONTINUE_USING": "Drive %1 weiter verwenden",
     "CREATE_REPORT": "Klicken Sie, um einen Bug-Bericht zu generieren",
     "DATETIME_FORMAT": "%x %X",
-    "DATE_FORMAT": "%x",
     "DEBUG": "Debug",
     "DEBUG_INVALID_CREDENTIALS": "Zwischen ungültigen Anmeldeinformationen hin- und herwechseln",
     "DEBUG_SYSTRAY_MESSAGE": "Eine Systray-Mitteilung anzeigen",
