@@ -171,6 +171,12 @@ class Processor(EngineWorker):
                 log.debug(f"Did not acquire state, dropping {item!r}")
                 continue
 
+            if doc_pair.remote_state == "todo":
+                self._postpone_pair(doc_pair, "Parent not yet synced", interval=10)
+                print(f"Parent folder no yet uploaded for {doc_pair.local_path}")
+                log.debug(f"Parent folder no yet uploaded for {doc_pair.local_path}")
+                continue
+
             soft_lock = None
             handler_name = ""
             try:
@@ -227,13 +233,6 @@ class Processor(EngineWorker):
                     continue
 
                 parent_path = doc_pair.local_parent_path
-
-                if doc_pair.remote_state == "todo":
-                    self.engine.queue_manager.push(doc_pair)
-                    log.debug(
-                        f"Parent folder no yet uploaded for {doc_pair.local_path}"
-                    )
-                    continue
 
                 if not self.local.exists(parent_path):
                     if (
