@@ -468,6 +468,17 @@ class Engine(QObject):
             f" duplicate_behavior is {duplicate_behavior!r} ..."
         )
         current_max_row_id = -1
+        # for item in items:
+        #     print({
+        #         "path": item[0],
+        #         "local_name": item[1],
+        #         "folderish": item[2],
+        #         "size": item[3],
+        #         "remote_subparent_path": item[4],
+        #         "local_parent_path": item[5],
+        #         "remote_parent_ref": item[6],
+        #         "duplicate_behavior": item[7],
+        #     })
         for batch_items in grouper(items, bsize):
             row_id = self.dao.plan_many_direct_transfer_items(batch_items)
             if current_max_row_id == -1:

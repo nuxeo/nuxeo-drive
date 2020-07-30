@@ -686,27 +686,38 @@ class DirectTransferFolder:
 
         root_folder = self.tmpdir / str(uuid4())
         root_folder.mkdir()
-        created.append(root_folder)
 
+        created.append(root_folder.name)
         for _ in range(3):
             sub_folder = root_folder / f"folder_{str(uuid4())}"
             sub_folder.mkdir()
-            created.append(sub_folder)
+            created.append(sub_folder.name)
             for _ in range(2):
                 sub_file = sub_folder / f"file_{str(uuid4())}"
                 sub_file.write_text("test", encoding="utf8")
-                created.append(sub_file)
+                created.append(sub_file.name)
 
         with ensure_no_exception():
-            self.engine_1.direct_transfer(created, self.ws.path, self.ws.uid)
+            self.engine_1.direct_transfer([root_folder], self.ws.path, self.ws.uid)
             self.wait_sync()
 
         # Ensure there is only 1 folder created at the workspace root
-        children = self.remote_1.get_children(self.ws.path)["entries"]
-        remote_names = sorted(child["title"] for child in children)
-        created_names = sorted(elem.name for elem in created)
-        assert remote_names == created_names
 
+        def get_childrens(path, children_list):
+            children = self.remote_1.get_children(path)["entries"]
+            for child in children:
+                if child["type"] == "Folder":
+                    children_list = get_childrens(child["path"], children_list)
+                children_list.append(child["title"])
+            return children_list
+
+        root = self.remote_1.get_children(self.ws.path)["entries"][0]
+        children_list = [root["title"]]
+        children_list = sorted(get_childrens(root["path"], children_list))
+        created = sorted(created)
+
+        assert 0
+        # assert sorted(created) == sorted(remote_items)
         # All has been uploaded
         assert not list(self.engine_1.dao.get_dt_uploads())
 
@@ -739,8 +750,8 @@ class TestDirectTransferFolder(OneUserTest, DirectTransferFolder):
         DirectTransferFolder.setUp(self)
 
 
-class TestDirectTransferFolderNoSync(OneUserNoSync, DirectTransferFolder):
-    """Direct Transfer should work when synchronization features are not enabled."""
+# class TestDirectTransferFolderNoSync(OneUserNoSync, DirectTransferFolder):
+#     """Direct Transfer should work when synchronization features are not enabled."""
 
-    def setUp(self):
-        DirectTransferFolder.setUp(self)
+#     def setUp(self):
+#         DirectTransferFolder.setUp(self)
