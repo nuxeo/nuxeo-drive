@@ -1358,13 +1358,6 @@ class EngineDAO(ConfigurationDAO):
             "SELECT * FROM States WHERE remote_parent_path LIKE ?", (f"%{ref}%",)
         ).fetchall()
 
-    def update_children_local_parent_path(self, name, remote_parent_path):
-        c = self._get_read_connection().cursor()
-        c.execute(
-            "UPDATE States SET local_parent_path = ?, remote_parent_path = ? WHERE remote_parent_path LIKE ?",
-            ("", remote_parent_path, f"%{name}"),
-        )
-
     def get_remote_children(self, ref: str) -> DocPairs:
         c = self._get_read_connection().cursor()
         return c.execute(
@@ -1609,6 +1602,18 @@ class EngineDAO(ConfigurationDAO):
                 "UPDATE States SET local_parent_path = ? WHERE id = ?",
                 (new_path, doc_pair.id),
             )
+
+    def update_local_parent_path_dt(self, name: str, remote_parent_path: str) -> None:
+        """
+        Used in Direct Transfer to update (local_parent_path, remote_parent_path) of a folder's childrens.
+        Only target Direct Transfer items.
+        """
+        c = self._get_read_connection().cursor()
+        c.execute(
+            "UPDATE States SET local_parent_path = ?, remote_parent_path = ? "
+            "WHERE remote_parent_path LIKE ? AND local_state = 'direct'",
+            ("", remote_parent_path, f"%{name}"),
+        )
 
     def mark_descendants_remotely_created(self, doc_pair: DocPair) -> None:
         with self.lock:

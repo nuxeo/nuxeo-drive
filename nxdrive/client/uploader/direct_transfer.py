@@ -87,6 +87,7 @@ class DirectTransferUploader(BaseUploader):
             item = self.upload_folder(
                 input_obj=remote_parent_path, params={"title": local_name}
             )
+            self.dao.update_local_parent_path_dt(local_name, item["path"])
         else:
             # Upload the blob and use the FileManager importer to create the document
             item = super().upload_impl(
@@ -100,8 +101,6 @@ class DirectTransferUploader(BaseUploader):
                 remote_parent_ref=remote_parent_ref,
             )
 
-        if file_path.is_dir():
-            self.dao.update_children_local_parent_path(local_name, item["path"])
         # Transfer is completed, delete the upload from the database
         self.dao.remove_transfer("upload", file_path, is_direct_transfer=True)
 
