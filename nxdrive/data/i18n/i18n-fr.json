@@ -50,7 +50,6 @@
     "CONTINUE_USING": "Continuer d'utiliser Drive %1",
     "CREATE_REPORT": "Cliquez ici pour générer un rapport",
     "DATETIME_FORMAT": "%x %X",
-    "DATE_FORMAT": "%x",
     "DEBUG": "Débogage",
     "DEBUG_INVALID_CREDENTIALS": "Activer/désactiver les indentifiants invalides",
     "DEBUG_SYSTRAY_MESSAGE": "Affiche un message dans le menu de la zone de notification",

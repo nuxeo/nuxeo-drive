@@ -50,7 +50,6 @@
     "CONTINUE_USING": "Continue using Drive %1",
     "CREATE_REPORT": "Klik untuk menghasilkan sebuah laporan kesalahan",
     "DATETIME_FORMAT": "%x %X",
-    "DATE_FORMAT": "%x",
     "DEBUG": "Debug",
     "DEBUG_INVALID_CREDENTIALS": "Beralih Kredensial tidak sah",
     "DEBUG_SYSTRAY_MESSAGE": "Tampilkan pesan systray",

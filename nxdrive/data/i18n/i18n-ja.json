@@ -50,7 +50,6 @@
     "CONTINUE_USING": "引き続きドライブ %1を使用します",
     "CREATE_REPORT": "クリックしてバグレポートを作成します",
     "DATETIME_FORMAT": "%x %X",
-    "DATE_FORMAT": "%x",
     "DEBUG": "デバッグ",
     "DEBUG_INVALID_CREDENTIALS": "無効のクレデンシャル情報を切り替える",
     "DEBUG_SYSTRAY_MESSAGE": "systrayメッセージを表示",
