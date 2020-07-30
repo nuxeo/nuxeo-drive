@@ -50,7 +50,7 @@ log = getLogger(__name__)
 DEFAULT_WAIT_SYNC_TIMEOUT = 10
 FILE_CONTENT = b"Lorem ipsum dolor sit amet ..."
 FAKER = Faker("en_US")
-LOCATION = safe_long_path(__file__).parent.parent
+LOCATION = safe_long_path(Path(__file__)).parent.parent
 
 
 Translator(LOCATION / "resources" / "i18n")
@@ -181,7 +181,9 @@ class TwoUsersTest(TestCase):
         self._remote_changes_count = {}
         self._no_remote_changes = {}
 
-        self.tmpdir = safe_long_path(tempfile.gettempdir()) / str(uuid4()).split("-")[0]
+        self.tmpdir = (
+            safe_long_path(Path(tempfile.gettempdir())) / str(uuid4()).split("-")[0]
+        )
         self.upload_tmp_dir = self.tmpdir / "uploads"
         self.upload_tmp_dir.mkdir(parents=True)
 
