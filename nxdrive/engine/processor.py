@@ -234,7 +234,10 @@ class Processor(EngineWorker):
 
                 parent_path = doc_pair.local_parent_path
 
-                if not self.local.exists(parent_path):
+                if (
+                    not self.local.exists(parent_path)
+                    and doc_pair.local_state != "direct"
+                ):
                     if (
                         not parent_pair
                         or doc_pair.local_parent_path == parent_pair.local_path
@@ -508,6 +511,7 @@ class Processor(EngineWorker):
             file,
             engine_uid=self.engine.uid,
             uploader=DirectTransferUploader,
+            local_parent_path=doc_pair.local_parent_path,
             local_name=doc_pair.local_name,
             remote_parent_path=doc_pair.remote_parent_path,
             remote_parent_ref=doc_pair.remote_parent_ref,

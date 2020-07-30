@@ -434,6 +434,7 @@ class Engine(QObject):
                 items.append(
                     (
                         str(local_path),
+                        str(local_path.parent),
                         local_path.name,
                         False,
                         local_path.stat().st_size,
@@ -451,6 +452,7 @@ class Engine(QObject):
                     items.append(
                         (
                             str(path),
+                            str(path.parent),
                             path.name,
                             folderish,
                             size,

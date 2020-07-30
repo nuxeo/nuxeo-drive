@@ -1121,12 +1121,13 @@ class EngineDAO(ConfigurationDAO):
             ).fetchone()[0]
 
             # Insert data in one shot
+            # print(items)
             query = (
                 "INSERT INTO States "
-                "(local_path, local_name, folderish, size, "
+                "(local_path, local_parent_path, local_name, folderish, size, "
                 "remote_parent_path, remote_parent_ref, duplicate_behavior, "
                 "local_state, remote_state, pair_state)"
-                "VALUES (?, ?, ?, ?, ?, ?, ?, 'direct', ?, 'direct_transfer')"
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'direct', ?, 'direct_transfer')"
             )
             cur.executemany(query, items)
             return current_max_row_id
@@ -1604,23 +1605,29 @@ class EngineDAO(ConfigurationDAO):
                 (new_path, doc_pair.id),
             )
 
-    def update_local_parent_path_dt(self, name: str, remote_parent_path: str) -> None:
+    def update_remote_parent_path_dt(
+        self, local_parent_path: str, remote_parent_path: str
+    ) -> None:
         """
         Used in Direct Transfer to update remote_parent_path and remote_state of a folder's children.
         """
-        c = self._get_write_connection().cursor()
-        doc_pairs = c.execute(
-            "SELECT * FROM States WHERE local_state = 'direct' "
-            "AND remote_parent_path = ?",
-            (name),
-        ).fetchall()
-        c.execute(
-            "UPDATE States SET remote_state = 'unknown', remote_parent_path = ? "
-            "WHERE local_state = 'direct' AND remote_parent_path = ?",
-            (remote_parent_path, name),
-        )
-        for doc_pair in doc_pairs:
-            self.queue_manager.push(doc_pair)
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            doc_pairs = c.execute(
+                "SELECT * FROM States WHERE local_state = 'direct' "
+                "AND local_parent_path = ? AND remote_state = 'todo'",
+                (local_parent_path,),
+            ).fetchall()
+            c.execute(
+                "UPDATE States SET remote_state = 'unknown', remote_parent_path = ? "
+                "WHERE local_state = 'direct' AND local_parent_path = ? "
+                "AND remote_state = 'todo'",
+                (remote_parent_path, local_parent_path),
+            )
+            for doc_pair in doc_pairs:
+                doc_pair.remote_parent_path = remote_parent_path
+                doc_pair.remote_state = "unknown"
+                self.queue_manager.push(doc_pair)
 
     def mark_descendants_remotely_created(self, doc_pair: DocPair) -> None:
         with self.lock:
