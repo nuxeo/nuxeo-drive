@@ -430,7 +430,6 @@ class Engine(QObject):
         items = []
 
         for local_path in sorted(local_paths):
-            print(local_path)
             if local_path.is_file():
                 items.append(
                     (

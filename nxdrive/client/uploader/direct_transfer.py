@@ -67,6 +67,7 @@ class DirectTransferUploader(BaseUploader):
         remote_parent_path = kwargs.pop("remote_parent_path")
         remote_parent_ref = kwargs.pop("remote_parent_ref")
         duplicate_behavior = kwargs.pop("duplicate_behavior")
+        local_name = kwargs.pop("local_name")
 
         log.info(
             f"Direct Transfer of {file_path!r} into {remote_parent_path!r} ({remote_parent_ref!r})"
@@ -84,9 +85,8 @@ class DirectTransferUploader(BaseUploader):
 
         if file_path.is_dir():
             item = self.upload_folder(
-                input_obj=remote_parent_path, params={"title": filename}
+                input_obj=remote_parent_path, params={"title": local_name}
             )
-
         else:
             # Upload the blob and use the FileManager importer to create the document
             item = super().upload_impl(
@@ -101,7 +101,7 @@ class DirectTransferUploader(BaseUploader):
             )
 
         if file_path.is_dir():
-            self.dao.update_children_local_parent_path(filename, item["path"])
+            self.dao.update_children_local_parent_path(local_name, item["path"])
         # Transfer is completed, delete the upload from the database
         self.dao.remove_transfer("upload", file_path, is_direct_transfer=True)
 
@@ -110,6 +110,6 @@ class DirectTransferUploader(BaseUploader):
     def upload_folder(self, **kwargs: Any) -> Dict[str, Any]:
         """Create a folder using the FileManager."""
         res: Dict[str, Any] = self.remote.execute(
-            command="FileManager.CreateFolder", headers={}, **kwargs,
+            command="FileManager.CreateFolder", **kwargs,
         )
         return res
