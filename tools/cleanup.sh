@@ -27,6 +27,7 @@ main() {
     path="/var/www/community.nuxeo.com/static/drive-updates"
 
     echo ">>> Installing requirements"
+    python3 -m pip install --user -U setuptools wheel
     python3 -m pip install --user pyyaml==5.3.1
 
     echo ">>> Retrieving versions.yml"
