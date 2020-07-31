@@ -65,5 +65,6 @@ Nuxeo Drive is translated in several languages. For now, officially supported on
 - Indonesian
 - Italian
 - Japanese
+- Polish
 - Spanish
 - Swedish
