@@ -110,6 +110,7 @@ def test_languages():
         ("it", "Italiano"),
         ("ja", "日本語"),
         ("nl", "Nederlands"),
+        ("pl", "Polski"),
         ("sv", "Svenska"),
     ]
     languages = Translator.languages()
