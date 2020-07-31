@@ -1,5 +1,5 @@
 # Build and deploy a new docker image for Nuxeo Drive GNU/Linux binary builds
-name: Docker build
+name: Alpha clean-up
 
 on:
   # Check for updates every day
