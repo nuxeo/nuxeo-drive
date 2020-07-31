@@ -1,7 +1,7 @@
 """
 Test the Direct Transfer feature in different scenarii.
 """
-from shutil import copyfile, copytree
+from shutil import copyfile
 from time import sleep
 from unittest.mock import patch
 from uuid import uuid4
@@ -12,7 +12,6 @@ from nxdrive.client.uploader.direct_transfer import DirectTransferUploader
 from nxdrive.constants import TransferStatus
 from nxdrive.exceptions import NotFound
 from nxdrive.options import Options
-from nxdrive.utils import get_tree_list
 from requests.exceptions import ConnectionError
 
 from .. import ensure_no_exception
@@ -598,62 +597,13 @@ class DirectTransferFolder:
         self.remote_1.unregister_as_root(self.workspace)
         self.engine_1.start()
 
-        # The folder used for the Direct Transfer (must be > 1 MiB)
-        folder = self.location / "resources"
-        # Work with a copy of the folder to allow parallel testing
-        self.folder = self.tmpdir / str(uuid4())
-        copytree(folder, self.folder, copy_function=copyfile)
-
-        # Get folders and files tests will handle
-        self.tree = {
-            path: rpath for path, rpath, _ in get_tree_list(self.folder, self.ws.path)
-        }
-        paths = self.tree.keys()
-        self.files = [path for path in paths if path.is_file()]
-        self.folders = [path for path in paths if path not in self.files]
-
-        # Lower chunk_* options to have chunked uploads without having to create big files
-        self.default_chunk_limit = Options.chunk_limit
-        self.default_chunk_size = Options.chunk_size
-        Options.chunk_limit = 1
-        Options.chunk_size = 1
-
-    def tearDown(self):
-        # Restore options
-        Options.chunk_limit = self.default_chunk_limit
-        Options.chunk_size = self.default_chunk_size
-
-    def has_blob(self, file: str) -> bool:
-        """Check that *file* exists on the server and has a blob attached.
-        As when doing a Direct Transfer, the document is first created on the server,
-        this is the only way to check if the blob upload has been finished successfully.
-        """
-        try:
-            doc = self.root_remote.documents.get(path=f"{self.tree[file]}/{file.name}")
-        except Exception:
-            return False
-        return bool(doc.properties.get("file:content"))
-
-    def sync_and_check(self) -> None:
-        # Let time for uploads to be planned
-        sleep(3)
-
-        # Sync
-        self.wait_sync()
-
-        # Check the error count
-        assert not self.engine_1.dao.get_errors(limit=0)
-
-        # Check the uploads count
-        assert not list(self.engine_1.dao.get_dt_uploads())
-
-        # Check files exist on the server with their attached blob
-        for file in self.files:
-            assert self.has_blob(file)
-
-        # Check subfolders
-        for folder in self.folders:
-            assert self.root_remote.documents.get(path=self.tree[folder])
+    def get_children(self, path, children_list):
+        children = self.remote_1.get_children(path)["entries"]
+        for child in children:
+            if child["type"] == "Folder":
+                children_list = self.get_children(child["path"], children_list)
+            children_list.append(child["title"])
+        return children_list
 
     def test_simple_folder(self):
         """Test the Direct Transfer on an simple empty folder."""
@@ -676,7 +626,7 @@ class DirectTransferFolder:
         # All has been uploaded
         assert not list(self.engine_1.dao.get_dt_uploads())
 
-    def __test_sub_folders(self):
+    def test_sub_folders(self):
         """Test the Direct Transfer on an simple empty folder."""
 
         # There is no upload, right now
@@ -702,24 +652,19 @@ class DirectTransferFolder:
             self.wait_sync()
 
         # Ensure there is only 1 folder created at the workspace root
+        children = self.remote_1.get_children(self.ws.path)["entries"]
+        assert len(children) == 1
+        root = children[0]
 
-        def get_childrens(path, children_list):
-            children = self.remote_1.get_children(path)["entries"]
-            for child in children:
-                if child["type"] == "Folder":
-                    children_list = get_childrens(child["path"], children_list)
-                children_list.append(child["title"])
-            return children_list
-
-        root = self.remote_1.get_children(self.ws.path)["entries"][0]
-        children_list = [root["title"]]
-        children_list = sorted(get_childrens(root["path"], children_list))
-        created = sorted(created)
-
-        assert 0
-        # assert sorted(created) == sorted(remote_items)
         # All has been uploaded
+        children = self.get_children(root["path"], [root["title"]])
+        assert sorted(created) == sorted(children)
+
+        # There is nothing more to upload
         assert not list(self.engine_1.dao.get_dt_uploads())
+
+        # And there is no error
+        assert not self.engine_1.dao.get_errors(limit=0)
 
     def test_sub_files(self):
         """Test the Direct Transfer on a folder with many files."""
@@ -743,45 +688,19 @@ class DirectTransferFolder:
             self.wait_sync()
 
         # Ensure there is only 1 folder created at the workspace root
-
-        def get_childrens(path, children_list):
-            children = self.remote_1.get_children(path)["entries"]
-            for child in children:
-                if child["type"] == "Folder":
-                    children_list = get_childrens(child["path"], children_list)
-                children_list.append(child["title"])
-            return children_list
-
-        root = self.remote_1.get_children(self.ws.path)["entries"][0]
-        children_list = [root["title"]]
-        children_list = sorted(get_childrens(root["path"], children_list))
-        created = sorted(created)
-
-        assert 0
-        # assert sorted(created) == sorted(remote_items)
-        # All has been uploaded
-        assert not list(self.engine_1.dao.get_dt_uploads())
-
-    def __test_folder(self):
-        """Test the Direct Transfer on a folder containing files and a sufolder."""
-
-        # There is no upload, right now
-        assert not list(self.engine_1.dao.get_dt_uploads())
-
-        with ensure_no_exception():
-            self.engine_1.direct_transfer([self.folder], self.ws.path)
-            self.sync_and_check()
-
-        # Ensure there is only 1 folder created at the workspace root
         children = self.remote_1.get_children(self.ws.path)["entries"]
         assert len(children) == 1
-        assert children[0]["title"] == self.folder.name
+        root = children[0]
 
         # All has been uploaded
+        children = self.get_children(root["path"], [root["title"]])
+        assert sorted(created) == sorted(children)
+
+        # There is nothing more to upload
         assert not list(self.engine_1.dao.get_dt_uploads())
 
-
-# NXDRIVE-2019
+        # And there is no error
+        assert not self.engine_1.dao.get_errors(limit=0)
 
 
 class TestDirectTransferFolder(OneUserTest, DirectTransferFolder):

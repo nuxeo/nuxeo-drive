@@ -149,7 +149,6 @@ class Processor(EngineWorker):
 
             try:
                 doc_pair = self.dao.acquire_state(self.thread_id, item.id)
-                print(f"Processor got: {doc_pair}")
             except sqlite3.OperationalError:
                 state = self.dao.get_state_from_id(item.id)
                 if state:
@@ -173,11 +172,7 @@ class Processor(EngineWorker):
                 continue
 
             if doc_pair.remote_state == "todo":
-                self._postpone_pair(doc_pair, "Parent not yet synced", interval=10)
-                print(
-                    f"Parent folder {doc_pair.local_parent_path} no yet uploaded for {doc_pair.local_path}"
-                )
-                log.debug(f"Parent folder no yet uploaded for {doc_pair.local_path}")
+                log.debug(f"Parent folder no yet uploaded for {doc_pair.local_path!r}")
                 continue
 
             soft_lock = None
@@ -237,9 +232,8 @@ class Processor(EngineWorker):
 
                 parent_path = doc_pair.local_parent_path
 
-                if (
-                    not self.local.exists(parent_path)
-                    and doc_pair.local_state != "direct"
+                if doc_pair.local_state != "direct" and not self.local.exists(
+                    parent_path
                 ):
                     if (
                         not parent_pair
@@ -494,40 +488,36 @@ class Processor(EngineWorker):
             self.increase_error(doc_pair, f"SYNC_HANDLER_{handler_name}", exception=e)
 
     def _synchronize_direct_transfer(self, doc_pair: DocPair) -> None:
-        """Direct Transfer of a local file."""
+        """Direct Transfer of a local path."""
         if WINDOWS:
-            file = doc_pair.local_path
+            path = doc_pair.local_path
         else:
             # The path retrieved from the database will have its starting slash trimmed, restore it
-            file = Path(f"/{doc_pair.local_path}")
+            path = Path(f"/{doc_pair.local_path}")
 
-        if not file.exists():
+        if not path.exists():
             log.warning(
-                f"Cancelling Direct Transfer of {file!r} because it does not exist anymore"
+                f"Cancelling Direct Transfer of {path!r} because it does not exist anymore"
             )
             self.dao.remove_state(doc_pair)
-            self.dao.remove_transfer("upload", file, is_direct_transfer=True)
-            self.engine.directTranferError.emit(file)
+            self.dao.remove_transfer("upload", path, is_direct_transfer=True)
+            self.engine.directTranferError.emit(path)
             return
 
         # Do the upload
         self.remote.upload(
-            file,
+            path,
             engine_uid=self.engine.uid,
             uploader=DirectTransferUploader,
-            local_path=doc_pair.local_path,
-            local_name=doc_pair.local_name,
-            remote_parent_path=doc_pair.remote_parent_path,
-            remote_parent_ref=doc_pair.remote_parent_ref,
-            duplicate_behavior=doc_pair.duplicate_behavior,
+            doc_pair=doc_pair,
         )
 
         # Clean-up
-        self.dao.remove_state(doc_pair)
+        self.dao.remove_state(doc_pair, recursive=False)
 
         # Display a notification only for files >= 25 MiB (to prevent notifications flood)
         if not doc_pair.folderish and doc_pair.size >= 25 * 1024 * 1024:
-            self.engine.directTranferStatus.emit(file, False)
+            self.engine.directTranferStatus.emit(path, False)
 
         # For analytics
         self.engine.manager.directTransferStats.emit(doc_pair.folderish, doc_pair.size)

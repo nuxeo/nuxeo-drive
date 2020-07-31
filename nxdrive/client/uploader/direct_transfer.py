@@ -64,42 +64,41 @@ class DirectTransferUploader(BaseUploader):
             - https://jira.nuxeo.com/browse/NXP-22959;
             - create a new operation `Document.GetOrCreate` that ensures atomicity.
         """
-        remote_parent_path = kwargs.pop("remote_parent_path")
-        remote_parent_ref = kwargs.pop("remote_parent_ref")
-        duplicate_behavior = kwargs.pop("duplicate_behavior")
-        local_name = kwargs.pop("local_name")
-        local_path = kwargs.pop("local_path")
+        doc_pair = kwargs.pop("doc_pair")
 
         log.info(
-            f"Direct Transfer of {file_path!r} into {remote_parent_path!r} ({remote_parent_ref!r})"
+            f"Direct Transfer of {file_path!r} into {doc_pair.remote_parent_path!r} ({doc_pair.remote_parent_ref!r})"
         )
 
-        if duplicate_behavior == "ignore" and self.exists(
-            remote_parent_ref, file_path.name
+        if doc_pair.duplicate_behavior == "ignore" and self.exists(
+            doc_pair.remote_parent_ref, file_path.name
         ):
             msg = f"Ignoring the transfer as a document already has the name {file_path.name!r} on the server"
             log.debug(msg)
             return {}
 
         # Only replace the document if the user wants to
-        overwrite = duplicate_behavior == "override"
+        overwrite = doc_pair.duplicate_behavior == "override"
 
         if file_path.is_dir():
             item = self.upload_folder(
-                input_obj=remote_parent_path, params={"title": local_name}
+                input_obj=doc_pair.remote_parent_path,
+                params={"title": doc_pair.local_name},
             )
-            self.dao.update_remote_parent_path_dt(local_path, item["path"])
+            self.dao.update_remote_parent_path_dt(
+                doc_pair.local_path, item["path"], item["uid"]
+            )
         else:
             # Upload the blob and use the FileManager importer to create the document
             item = super().upload_impl(
                 file_path,
                 "FileManager.Import",
-                context={"currentDocument": remote_parent_path},
+                context={"currentDocument": doc_pair.remote_parent_path},
                 params={"overwite": overwrite},  # NXP-29286
                 engine_uid=kwargs.pop("engine_uid"),
                 is_direct_transfer=True,
-                remote_parent_path=remote_parent_path,
-                remote_parent_ref=remote_parent_ref,
+                remote_parent_path=doc_pair.remote_parent_path,
+                remote_parent_ref=doc_pair.remote_parent_ref,
             )
 
         # Transfer is completed, delete the upload from the database

@@ -209,11 +209,18 @@ class QueueManager(QObject):
                 )
             self.newItem.emit(row_id)
         elif state.pair_state.startswith("direct_transfer"):
-            self._local_file_queue.put(state)
-            log.debug(
-                "Pushed to _local_file_queue, now of size: "
-                f"{self._local_file_queue.qsize()}"
-            )
+            if state.folderish:
+                self._remote_folder_queue.put(state)
+                log.debug(
+                    f"Pushed to _remote_folder_queue, now of size: "
+                    f"{self._remote_folder_queue.qsize()}"
+                )
+            else:
+                self._local_file_queue.put(state)
+                log.debug(
+                    "Pushed to _local_file_queue, now of size: "
+                    f"{self._local_file_queue.qsize()}"
+                )
             self.newItem.emit(row_id)
         else:
             # deleted and conflicted

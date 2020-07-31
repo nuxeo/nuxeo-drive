@@ -1121,7 +1121,6 @@ class EngineDAO(ConfigurationDAO):
             ).fetchone()[0]
 
             # Insert data in one shot
-            # print(items)
             query = (
                 "INSERT INTO States "
                 "(local_path, local_parent_path, local_name, folderish, size, "
@@ -1606,7 +1605,7 @@ class EngineDAO(ConfigurationDAO):
             )
 
     def update_remote_parent_path_dt(
-        self, local_parent_path: str, remote_parent_path: str
+        self, local_parent_path: str, remote_parent_path: str, remote_parent_ref: str
     ) -> None:
         """
         Used in Direct Transfer to update remote_parent_path and remote_state of a folder's children.
@@ -1615,23 +1614,24 @@ class EngineDAO(ConfigurationDAO):
         with self.lock:
             c = self._get_write_connection().cursor()
             doc_pairs = c.execute(
-                "SELECT * FROM States WHERE local_state = 'direct' "
-                "AND local_parent_path = ? AND remote_state = 'todo'",
+                "SELECT * FROM States WHERE local_state = 'direct' AND remote_state = 'todo'"
+                " AND local_parent_path = ?",
                 (local_parent_path,),
             ).fetchall()
+
             c.execute(
-                "UPDATE States SET remote_state = 'unknown', remote_parent_path = ? "
-                "WHERE local_state = 'direct' AND local_parent_path = ? "
-                "AND remote_state = 'todo'",
-                (remote_parent_path, local_parent_path),
+                "UPDATE States SET remote_state = 'unknown', remote_parent_path = ?,"
+                " remote_parent_ref = ?, processor = 0"
+                " WHERE local_state = 'direct' AND remote_state = 'todo' AND local_parent_path = ?",
+                (remote_parent_path, remote_parent_ref, local_parent_path),
             )
+
             for doc_pair in doc_pairs:
                 doc_pair.remote_parent_path = remote_parent_path
                 doc_pair.remote_state = "unknown"
                 print("new_child_detected")
                 print(doc_pair)
                 self.queue_manager.push(doc_pair)
-
             print(f"New queue len: {self.queue_manager.get_metrics()}")
 
     def mark_descendants_remotely_created(self, doc_pair: DocPair) -> None:
@@ -1651,13 +1651,15 @@ class EngineDAO(ConfigurationDAO):
                 c.execute(f"{update} {self._get_recursive_condition(doc_pair)}")
             self._queue_pair_state(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
 
-    def remove_state(self, doc_pair: DocPair, remote_recursion: bool = False) -> None:
+    def remove_state(
+        self, doc_pair: DocPair, remote_recursion: bool = False, recursive: bool = True
+    ) -> None:
         print(f"Removed Doc Pair {doc_pair}")
         with self.lock:
             con = self._get_write_connection()
             c = con.cursor()
             c.execute("DELETE FROM States WHERE id = ?", (doc_pair.id,))
-            if doc_pair.folderish:
+            if recursive and doc_pair.folderish:
                 if remote_recursion:
                     condition = self._get_recursive_remote_condition(doc_pair)
                 else:

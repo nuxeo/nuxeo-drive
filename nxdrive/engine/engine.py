@@ -433,8 +433,8 @@ class Engine(QObject):
             if local_path.is_file():
                 items.append(
                     (
-                        str(local_path),
-                        str(local_path.parent),
+                        local_path.as_posix(),
+                        local_path.parent.as_posix(),
                         local_path.name,
                         False,
                         local_path.stat().st_size,
@@ -451,8 +451,8 @@ class Engine(QObject):
                     folderish = path.is_dir()
                     items.append(
                         (
-                            str(path),
-                            str(path.parent),
+                            path.as_posix(),
+                            path.parent.as_posix(),
                             path.name,
                             folderish,
                             size,
@@ -470,17 +470,6 @@ class Engine(QObject):
             f" duplicate_behavior is {duplicate_behavior!r} ..."
         )
         current_max_row_id = -1
-        # for item in items:
-        #     print({
-        #         "path": item[0],
-        #         "local_name": item[1],
-        #         "folderish": item[2],
-        #         "size": item[3],
-        #         "remote_subparent_path": item[4],
-        #         "local_parent_path": item[5],
-        #         "remote_parent_ref": item[6],
-        #         "duplicate_behavior": item[7],
-        #     })
         for batch_items in grouper(items, bsize):
             row_id = self.dao.plan_many_direct_transfer_items(batch_items)
             if current_max_row_id == -1:
