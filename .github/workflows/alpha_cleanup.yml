@@ -21,11 +21,10 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Import SSH private key
+    - name: Clean-up old versions
       run: |
         echo ${{ secrets.SSH_PRIV_KEY }} | base64 --decode > private.key
         chmod 0600 private.key
         eval "$(ssh-agent -s)"
         ssh-add private.key
-    - name: Clean-up old versions
-      run: bash tools/cleanup.sh ${{ github.event.inputs.appVersion }}
+        bash tools/cleanup.sh ${{ github.event.inputs.appVersion }}
