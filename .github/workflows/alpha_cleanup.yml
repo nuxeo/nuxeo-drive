@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Checkout
+      uses: actions/checkout@v2
     - name: Import SSH private key
       run: |
         echo ${{ secrets.SSH_PRIV_KEY }} | base64 --decode > private.key
