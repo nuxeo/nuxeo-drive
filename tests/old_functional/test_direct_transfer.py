@@ -710,8 +710,8 @@ class TestDirectTransferFolder(OneUserTest, DirectTransferFolder):
         DirectTransferFolder.setUp(self)
 
 
-# class TestDirectTransferFolderNoSync(OneUserNoSync, DirectTransferFolder):
-#     """Direct Transfer should work when synchronization features are not enabled."""
+class TestDirectTransferFolderNoSync(OneUserNoSync, DirectTransferFolder):
+    """Direct Transfer should work when synchronization features are not enabled."""
 
-#     def setUp(self):
-#         DirectTransferFolder.setUp(self)
+    def setUp(self):
+        DirectTransferFolder.setUp(self)
