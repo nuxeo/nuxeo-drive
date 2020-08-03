@@ -616,7 +616,7 @@ class DirectTransferFolder:
 
         with ensure_no_exception():
             self.engine_1.direct_transfer([empty_folder], self.ws.path, self.ws.uid)
-            self.wait_sync()
+            self.wait_sync(wait_for_async=True)
 
         # Ensure there is only 1 folder created at the workspace root
         children = self.remote_1.get_children(self.ws.path)["entries"]
@@ -649,7 +649,7 @@ class DirectTransferFolder:
 
         with ensure_no_exception():
             self.engine_1.direct_transfer([root_folder], self.ws.path, self.ws.uid)
-            self.wait_sync()
+            self.wait_sync(wait_for_async=True)
 
         # Ensure there is only 1 folder created at the workspace root
         children = self.remote_1.get_children(self.ws.path)["entries"]
@@ -685,7 +685,7 @@ class DirectTransferFolder:
 
         with ensure_no_exception():
             self.engine_1.direct_transfer([root_folder], self.ws.path, self.ws.uid)
-            self.wait_sync()
+            self.wait_sync(wait_for_async=True)
 
         # Ensure there is only 1 folder created at the workspace root
         children = self.remote_1.get_children(self.ws.path)["entries"]

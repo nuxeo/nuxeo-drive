@@ -433,8 +433,8 @@ class Engine(QObject):
             if local_path.is_file():
                 items.append(
                     (
-                        local_path.as_posix(),
-                        local_path.parent.as_posix(),
+                        str(local_path),
+                        str(local_path.parent),
                         local_path.name,
                         False,
                         local_path.stat().st_size,

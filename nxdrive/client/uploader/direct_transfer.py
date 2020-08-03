@@ -85,9 +85,7 @@ class DirectTransferUploader(BaseUploader):
                 input_obj=doc_pair.remote_parent_path,
                 params={"title": doc_pair.local_name},
             )
-            self.dao.update_remote_parent_path_dt(
-                doc_pair.local_path, item["path"], item["uid"]
-            )
+            self.dao.update_remote_parent_path_dt(file_path, item["path"], item["uid"])
         else:
             # Upload the blob and use the FileManager importer to create the document
             item = super().upload_impl(

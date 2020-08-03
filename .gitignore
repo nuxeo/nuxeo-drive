@@ -6,7 +6,7 @@ build
 .classpath
 cover
 coverage
-.coverage
+.coverage*
 debian
 dist
 dist-beta
@@ -36,6 +36,7 @@ pypi*
 .settings
 *.swp
 target*
+test_*.zip
 tools/windows/properties.rc
 .tox
 venv
