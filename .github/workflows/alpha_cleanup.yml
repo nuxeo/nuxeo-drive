@@ -21,6 +21,8 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+      with:
+        fetch-depth: '0'
     - name: Clean-up old versions
       run: |
         echo ${{ secrets.SSH_PRIV_KEY }} | base64 --decode > private.key
