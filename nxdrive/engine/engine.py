@@ -451,8 +451,8 @@ class Engine(QObject):
                     folderish = path.is_dir()
                     items.append(
                         (
-                            path.as_posix(),
-                            path.parent.as_posix(),
+                            str(path),
+                            str(path.parent),
                             path.name,
                             folderish,
                             size,
