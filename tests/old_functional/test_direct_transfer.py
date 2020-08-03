@@ -666,6 +666,54 @@ class DirectTransferFolder:
         # And there is no error
         assert not self.engine_1.dao.get_errors(limit=0)
 
+    def test_same_name_folders(self):
+        """Test the Direct Transfer on folders with same names."""
+
+        # There is no upload, right now
+        assert not list(self.engine_1.dao.get_dt_uploads())
+
+        created = []
+
+        root_folder = self.tmpdir / str(uuid4())
+        root_folder.mkdir()
+
+        created.append(root_folder.name)
+
+        folder_a = root_folder / "folder_a"
+        created.append(folder_a.name)
+        sub_file_1 = folder_a / "file_1.txt"
+        created.append(sub_file_1.name)
+
+        folder_b = root_folder / "folder_b"
+        created.append(folder_b.name)
+        sub_file_2 = folder_b / "file_1.txt"
+        created.append(sub_file_2.name)
+
+        # Sub-folder
+        folder_a_2 = folder_b / "folder_a"
+        created.append(folder_a_2.name)
+        sub_file_3 = folder_a_2 / "file_1.txt"
+        created.append(sub_file_3.name)
+
+        with ensure_no_exception():
+            self.engine_1.direct_transfer([root_folder], self.ws.path, self.ws.uid)
+            self.wait_sync(wait_for_async=True)
+
+        # Ensure there is only 1 folder created at the workspace root
+        children = self.remote_1.get_children(self.ws.path)["entries"]
+        assert len(children) == 1
+        root = children[0]
+
+        # All has been uploaded
+        children = self.get_children(root["path"], [root["title"]])
+        assert len(created) == len(children)
+
+        # There is nothing more to upload
+        assert not list(self.engine_1.dao.get_dt_uploads())
+
+        # And there is no error
+        assert not self.engine_1.dao.get_errors(limit=0)
+
     def test_sub_files(self):
         """Test the Direct Transfer on a folder with many files."""
 
