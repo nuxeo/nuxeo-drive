@@ -172,7 +172,7 @@ class Processor(EngineWorker):
                 continue
 
             if doc_pair.remote_state == "todo":
-                log.debug(f"Parent folder no yet uploaded for {doc_pair.local_path!r}")
+                log.debug(f"Parent folder not yet uploaded for {doc_pair.local_path!r}")
                 continue
 
             soft_lock = None
@@ -240,7 +240,6 @@ class Processor(EngineWorker):
                         or doc_pair.local_parent_path == parent_pair.local_path
                     ):
                         self.dao.remove_state(doc_pair)
-                        print("Removed state from processor")
                         continue
 
                     # The parent folder has been renamed sooner

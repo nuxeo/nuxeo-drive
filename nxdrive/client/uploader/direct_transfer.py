@@ -80,7 +80,7 @@ class DirectTransferUploader(BaseUploader):
         # Only replace the document if the user wants to
         overwrite = doc_pair.duplicate_behavior == "override"
 
-        if file_path.is_dir():
+        if doc_pair.folderish:
             item = self.upload_folder(
                 input_obj=doc_pair.remote_parent_path,
                 params={"title": doc_pair.local_name},

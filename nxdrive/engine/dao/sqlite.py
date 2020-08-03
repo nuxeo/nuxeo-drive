@@ -1611,7 +1611,6 @@ class EngineDAO(ConfigurationDAO):
         Used in Direct Transfer to update remote_parent_path and remote_state of a folder's children.
         """
         local_parent_path = str(local_parent_path)
-        print(f"local_parent_path: {local_parent_path}")
         with self.lock:
             c = self._get_write_connection().cursor()
             doc_pairs = c.execute(
@@ -1630,10 +1629,7 @@ class EngineDAO(ConfigurationDAO):
             for doc_pair in doc_pairs:
                 doc_pair.remote_parent_path = remote_parent_path
                 doc_pair.remote_state = "unknown"
-                print("new_child_detected")
-                print(doc_pair)
                 self.queue_manager.push(doc_pair)
-            print(f"New queue len: {self.queue_manager.get_metrics()}")
 
     def mark_descendants_remotely_created(self, doc_pair: DocPair) -> None:
         with self.lock:
@@ -1655,7 +1651,6 @@ class EngineDAO(ConfigurationDAO):
     def remove_state(
         self, doc_pair: DocPair, remote_recursion: bool = False, recursive: bool = True
     ) -> None:
-        print(f"Removed Doc Pair {doc_pair}")
         with self.lock:
             con = self._get_write_connection()
             c = con.cursor()
