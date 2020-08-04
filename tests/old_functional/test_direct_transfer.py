@@ -678,32 +678,32 @@ class DirectTransferFolder:
 
         created = []
 
-        root_folder = self.tmpdir / "test_root"
+        root_folder = self.tmpdir / str(uuid4())[:6]
         root_folder.mkdir()
 
-        created.append(str(root_folder))
+        created.append(root_folder.as_posix())
 
         folder_a = root_folder / "folder_a"
         folder_a.mkdir()
-        created.append(str(folder_a))
+        created.append(folder_a.as_posix())
         sub_file = folder_a / "file_1.txt"
         sub_file.write_text("test", encoding="utf8")
-        created.append(str(sub_file))
+        created.append(sub_file.as_posix())
 
         folder_b = root_folder / "folder_b"
         folder_b.mkdir()
-        created.append(str(folder_b))
+        created.append(folder_b.as_posix())
         sub_file = folder_b / "file_1.txt"
         sub_file.write_text("test", encoding="utf8")
-        created.append(str(sub_file))
+        created.append(sub_file.as_posix())
 
         # Sub-folder
         folder_a = folder_b / "folder_a"
         folder_a.mkdir()
-        created.append(str(folder_a))
+        created.append(folder_a.as_posix())
         sub_file = folder_a / "file_1.txt"
         sub_file.write_text("test", encoding="utf8")
-        created.append(str(sub_file))
+        created.append(sub_file.as_posix())
 
         with ensure_no_exception():
             self.engine_1.direct_transfer([root_folder], self.ws.path, self.ws.uid)
@@ -719,7 +719,7 @@ class DirectTransferFolder:
 
         # Paths cleanup for assert to use only the relative part
         children = sorted(child.replace(self.ws.path, "") for child in children)
-        created = sorted(elem.replace(str(self.tmpdir), "") for elem in created)
+        created = sorted(elem.replace(self.tmpdir.as_posix(), "") for elem in created)
         assert created == children
 
         # There is nothing more to upload
