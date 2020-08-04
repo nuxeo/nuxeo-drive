@@ -597,13 +597,30 @@ class DirectTransferFolder:
         self.remote_1.unregister_as_root(self.workspace)
         self.engine_1.start()
 
-    def get_children(self, path, children_list):
+    def get_children(self, path, children_list, key):
         children = self.remote_1.get_children(path)["entries"]
         for child in children:
             if child["type"] == "Folder":
-                children_list = self.get_children(child["path"], children_list)
-            children_list.append(child["title"])
+                children_list = self.get_children(child["path"], children_list, key)
+            children_list.append(child[key])
         return children_list
+
+    def checks(self, created):
+        """Check that the content on the remote equals the created items."""
+        # Ensure there is only 1 folder created at the workspace root
+        children = self.remote_1.get_children(self.ws.path)["entries"]
+        assert len(children) == 1
+        root = children[0]
+
+        # All has been uploaded
+        children = self.get_children(root["path"], [root["title"]], "title")
+        assert sorted(created) == sorted(children)
+
+        # There is nothing more to upload
+        assert not list(self.engine_1.dao.get_dt_uploads())
+
+        # And there is no error
+        assert not self.engine_1.dao.get_errors(limit=0)
 
     def test_simple_folder(self):
         """Test the Direct Transfer on an simple empty folder."""
@@ -651,20 +668,7 @@ class DirectTransferFolder:
             self.engine_1.direct_transfer([root_folder], self.ws.path, self.ws.uid)
             self.wait_sync(wait_for_async=True)
 
-        # Ensure there is only 1 folder created at the workspace root
-        children = self.remote_1.get_children(self.ws.path)["entries"]
-        assert len(children) == 1
-        root = children[0]
-
-        # All has been uploaded
-        children = self.get_children(root["path"], [root["title"]])
-        assert sorted(created) == sorted(children)
-
-        # There is nothing more to upload
-        assert not list(self.engine_1.dao.get_dt_uploads())
-
-        # And there is no error
-        assert not self.engine_1.dao.get_errors(limit=0)
+        self.checks(created)
 
     def test_same_name_folders(self):
         """Test the Direct Transfer on folders with same names."""
@@ -674,39 +678,49 @@ class DirectTransferFolder:
 
         created = []
 
-        root_folder = self.tmpdir / str(uuid4())
+        root_folder = self.tmpdir / "test_root"
         root_folder.mkdir()
 
-        created.append(root_folder.name)
+        created.append(str(root_folder))
 
         folder_a = root_folder / "folder_a"
-        created.append(folder_a.name)
-        sub_file_1 = folder_a / "file_1.txt"
-        created.append(sub_file_1.name)
+        folder_a.mkdir()
+        created.append(str(folder_a))
+        sub_file = folder_a / "file_1.txt"
+        sub_file.write_text("test", encoding="utf8")
+        created.append(str(sub_file))
 
         folder_b = root_folder / "folder_b"
-        created.append(folder_b.name)
-        sub_file_2 = folder_b / "file_1.txt"
-        created.append(sub_file_2.name)
+        folder_b.mkdir()
+        created.append(str(folder_b))
+        sub_file = folder_b / "file_1.txt"
+        sub_file.write_text("test", encoding="utf8")
+        created.append(str(sub_file))
 
         # Sub-folder
-        folder_a_2 = folder_b / "folder_a"
-        created.append(folder_a_2.name)
-        sub_file_3 = folder_a_2 / "file_1.txt"
-        created.append(sub_file_3.name)
+        folder_a = folder_b / "folder_a"
+        folder_a.mkdir()
+        created.append(str(folder_a))
+        sub_file = folder_a / "file_1.txt"
+        sub_file.write_text("test", encoding="utf8")
+        created.append(str(sub_file))
 
         with ensure_no_exception():
             self.engine_1.direct_transfer([root_folder], self.ws.path, self.ws.uid)
             self.wait_sync(wait_for_async=True)
 
         # Ensure there is only 1 folder created at the workspace root
-        children = self.remote_1.get_children(self.ws.path)["entries"]
-        assert len(children) == 1
-        root = children[0]
+        ws_children = self.remote_1.get_children(self.ws.path)["entries"]
+        assert len(ws_children) == 1
+        root = ws_children[0]
 
         # All has been uploaded
-        children = self.get_children(root["path"], [root["title"]])
-        assert len(created) == len(children)
+        children = self.get_children(root["path"], [root["path"]], "path")
+
+        # Paths cleanup for assert to use only the relative part
+        children = sorted(child.replace(self.ws.path, "") for child in children)
+        created = sorted(elem.replace(str(self.tmpdir), "") for elem in created)
+        assert created == children
 
         # There is nothing more to upload
         assert not list(self.engine_1.dao.get_dt_uploads())
@@ -735,20 +749,7 @@ class DirectTransferFolder:
             self.engine_1.direct_transfer([root_folder], self.ws.path, self.ws.uid)
             self.wait_sync(wait_for_async=True)
 
-        # Ensure there is only 1 folder created at the workspace root
-        children = self.remote_1.get_children(self.ws.path)["entries"]
-        assert len(children) == 1
-        root = children[0]
-
-        # All has been uploaded
-        children = self.get_children(root["path"], [root["title"]])
-        assert sorted(created) == sorted(children)
-
-        # There is nothing more to upload
-        assert not list(self.engine_1.dao.get_dt_uploads())
-
-        # And there is no error
-        assert not self.engine_1.dao.get_errors(limit=0)
+        self.checks(created)
 
 
 class TestDirectTransferFolder(OneUserTest, DirectTransferFolder):

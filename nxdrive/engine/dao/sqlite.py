@@ -1610,7 +1610,11 @@ class EngineDAO(ConfigurationDAO):
         """
         Used in Direct Transfer to update remote_parent_path and remote_state of a folder's children.
         """
+        if not self.queue_manager:
+            return
+
         local_parent_path = str(local_parent_path)
+
         with self.lock:
             c = self._get_write_connection().cursor()
             doc_pairs = c.execute(
