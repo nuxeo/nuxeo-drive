@@ -1037,13 +1037,18 @@ class Engine(QObject):
     def use_trash() -> bool:
         return True
 
-    def update_token(self, token: str) -> None:
+    def update_token(self, token: str, username: str) -> None:
         self._load_configuration()
         self._remote_token = token
         self.remote.update_token(token)
         self.dao.update_config("remote_token", self._remote_token)
         self.set_invalid_credentials(value=False)
-        self.start()
+        if username != self.remote_user:
+            self.remote_user = username
+            self.dao.update_config("remote_user", username)
+            self.manager.restartNeeded.emit()
+        else:
+            self.start()
 
     def init_remote(self) -> Remote:
         # Used for FS synchronization operations
