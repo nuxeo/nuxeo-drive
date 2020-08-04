@@ -168,7 +168,8 @@ install_pyenv() {
         else
             echo ">>> [pyenv] Updating"
             cd "${PYENV_ROOT}"
-            git pull
+            # git is not available from the docker image, this is on purpose
+            git pull || true
             cd -
         fi
         if [ ! -d "${venv_plugin}" ]; then
