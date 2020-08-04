@@ -14,6 +14,8 @@ LABEL maintainer="mschoentgen@nuxeo.com"
 # Useful envars
 ENV BUILD_VERSION ${VERSION}
 ENV GIT_URL ${SCM_REPOSITORY}
+ENV PIP_DISABLE_PIP_VERSION_CHECK "1"
+ENV PIP_NO_CACHE_DIR "off"
 
 WORKDIR /opt
 
@@ -42,8 +44,9 @@ RUN rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 && \
             mesa-libGL \
         # Qt requirements
             dbus \
+        && \
     # Clean-up
-        yum clean all
+    yum clean all
 
 # Install the Python version needed by Nuxeo Drive
 RUN git clone $GIT_URL sources && \
@@ -62,9 +65,7 @@ RUN useradd -m -d /home/travis -u 1001 -s /bin/bash travis
 # Adapt rights
 RUN chown travis:travis -R /opt && \
     chown travis:travis /entrypoint.sh && \
-    chmod a+x /entrypoint.sh && \
-    chmod 777 -R /opt/dist && \
-    chmod 777 -R /opt/sources
+    chmod a+x /entrypoint.sh
 
 # The entry point will build Nuxeo Drive if called without argument.
 # Else it will simply use the desired command line.
