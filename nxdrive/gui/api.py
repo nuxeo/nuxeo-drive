@@ -824,7 +824,7 @@ class QMLDriveApi(QObject):
         if not token:
             error = "CONNECTION_REFUSED"
         elif "engine" in self.callback_params:
-            error = self.update_token(token)
+            error = self.update_token(token, username)
         else:
             error = self.create_account(token, username)
         if error:
@@ -861,7 +861,7 @@ class QMLDriveApi(QObject):
         finally:
             return error
 
-    def update_token(self, token: str) -> str:
+    def update_token(self, token: str, username: str) -> str:
         error = ""
         engine = self._manager.engines.get(self.callback_params["engine"])
         if not engine:
@@ -869,10 +869,11 @@ class QMLDriveApi(QObject):
         try:
             log.info(
                 "Updating token for account "
-                f"[{engine.local_folder}, {engine.server_url}, {engine.remote_user}]"
+                f"[{engine.local_folder}, {engine.server_url},"
+                f" {engine.remote_user!r} -> {username!r}]"
             )
 
-            engine.update_token(token)
+            engine.update_token(token, username)
             self.application.set_icon_state("idle")
             self.application.show_settings(section="Accounts")
             self.setMessage.emit("CONNECTION_SUCCESS", "success")
