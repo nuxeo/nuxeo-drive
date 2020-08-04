@@ -174,9 +174,10 @@ class QueueManager(QObject):
         if state.pair_state is None:
             log.debug(f"Don't push an empty pair_state: {state!r}")
             return
+
         log.debug(f"Pushing {state!r}")
         row_id = state.id
-        if state.pair_state.startswith("locally"):
+        if state.pair_state.startswith(("locally", "direct_transfer")):
             if state.folderish:
                 self._local_folder_queue.put(state)
                 log.debug(
@@ -206,20 +207,6 @@ class QueueManager(QObject):
                 log.debug(
                     "Pushed to _remote_file_queue, now of size: "
                     f"{self._remote_file_queue.qsize()}"
-                )
-            self.newItem.emit(row_id)
-        elif state.pair_state.startswith("direct_transfer"):
-            if state.folderish:
-                self._remote_folder_queue.put(state)
-                log.debug(
-                    f"Pushed to _remote_folder_queue, now of size: "
-                    f"{self._remote_folder_queue.qsize()}"
-                )
-            else:
-                self._local_file_queue.put(state)
-                log.debug(
-                    "Pushed to _local_file_queue, now of size: "
-                    f"{self._local_file_queue.qsize()}"
                 )
             self.newItem.emit(row_id)
         else:
