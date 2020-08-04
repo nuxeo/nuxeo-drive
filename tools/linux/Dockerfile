@@ -62,13 +62,17 @@ RUN useradd -m -d /home/travis -u 1001 -s /bin/bash travis
 # Adapt rights
 RUN chown travis:travis -R /opt && \
     chown travis:travis /entrypoint.sh && \
-    chmod a+x /entrypoint.sh
+    chmod a+x /entrypoint.sh && \
+    chmod 777 -R /opt/dist && \
+    chmod 777 -R /opt/sources
 
 # The entry point will build Nuxeo Drive if called without argument.
 # Else it will simply use the desired command line.
 ENTRYPOINT ["/entrypoint.sh"]
 
-# That folder has to be set by the caller, it will hold generated binaries
-VOLUME ["/opt/dist"]
+# Folder has to be set by the caller:
+#   /opt/dist will hold generated binaries
+#   /opt/sources is Nuxeo Drive sources (git)
+VOLUME ["/opt/dist", "/opt/sources"]
 
 USER travis
