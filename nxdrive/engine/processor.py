@@ -171,6 +171,10 @@ class Processor(EngineWorker):
                 log.debug(f"Did not acquire state, dropping {item!r}")
                 continue
 
+            if doc_pair.remote_state == "todo":
+                log.debug(f"Parent folder not yet uploaded for {doc_pair.local_path!r}")
+                continue
+
             soft_lock = None
             handler_name = ""
             try:
@@ -228,7 +232,9 @@ class Processor(EngineWorker):
 
                 parent_path = doc_pair.local_parent_path
 
-                if not self.local.exists(parent_path):
+                if doc_pair.local_state != "direct" and not self.local.exists(
+                    parent_path
+                ):
                     if (
                         not parent_pair
                         or doc_pair.local_parent_path == parent_pair.local_path
@@ -481,38 +487,36 @@ class Processor(EngineWorker):
             self.increase_error(doc_pair, f"SYNC_HANDLER_{handler_name}", exception=e)
 
     def _synchronize_direct_transfer(self, doc_pair: DocPair) -> None:
-        """Direct Transfer of a local file."""
+        """Direct Transfer of a local path."""
         if WINDOWS:
-            file = doc_pair.local_path
+            path = doc_pair.local_path
         else:
             # The path retrieved from the database will have its starting slash trimmed, restore it
-            file = Path(f"/{doc_pair.local_path}")
+            path = Path(f"/{doc_pair.local_path}")
 
-        if not file.exists():
+        if not path.exists():
             log.warning(
-                f"Cancelling Direct Transfer of {file!r} because it does not exist anymore"
+                f"Cancelling Direct Transfer of {path!r} because it does not exist anymore"
             )
             self.dao.remove_state(doc_pair)
-            self.dao.remove_transfer("upload", file, is_direct_transfer=True)
-            self.engine.directTranferError.emit(file)
+            self.dao.remove_transfer("upload", path, is_direct_transfer=True)
+            self.engine.directTranferError.emit(path)
             return
 
         # Do the upload
         self.remote.upload(
-            file,
+            path,
             engine_uid=self.engine.uid,
             uploader=DirectTransferUploader,
-            remote_parent_path=doc_pair.remote_parent_path,
-            remote_parent_ref=doc_pair.remote_parent_ref,
-            duplicate_behavior=doc_pair.duplicate_behavior,
+            doc_pair=doc_pair,
         )
 
         # Clean-up
-        self.dao.remove_state(doc_pair)
+        self.dao.remove_state(doc_pair, recursive=False)
 
         # Display a notification only for files >= 25 MiB (to prevent notifications flood)
         if not doc_pair.folderish and doc_pair.size >= 25 * 1024 * 1024:
-            self.engine.directTranferStatus.emit(file, False)
+            self.engine.directTranferStatus.emit(path, False)
 
         # For analytics
         self.engine.manager.directTransferStats.emit(doc_pair.folderish, doc_pair.size)

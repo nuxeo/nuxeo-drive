@@ -434,27 +434,32 @@ class Engine(QObject):
                 items.append(
                     (
                         str(local_path),
+                        str(local_path.parent),
                         local_path.name,
                         False,
                         local_path.stat().st_size,
                         remote_parent_path,
                         remote_parent_ref,
                         duplicate_behavior,
+                        "unknown",
                     )
                 )
             else:
                 tree = sorted(get_tree_list(local_path, remote_parent_path))
                 for path, remote_subparent_path, size in tree:
+                    remote_state = "unknown" if path == local_path else "todo"
                     folderish = path.is_dir()
                     items.append(
                         (
                             str(path),
+                            str(path.parent),
                             path.name,
                             folderish,
                             size,
                             remote_subparent_path,
                             remote_parent_ref,
                             duplicate_behavior,
+                            remote_state,
                         )
                     )
 
@@ -796,6 +801,16 @@ class Engine(QObject):
 
     def has_invalid_credentials(self) -> bool:
         return self._invalid_credentials
+
+    @property
+    def have_folder_upload(self) -> bool:
+        """Check if the server can handle folder upload via the FileManager."""
+        value = self.dao.get_bool("have_folder_upload", False)
+        if not value:
+            value = self.remote.can_use("FileManager.CreateFolder")
+            if value:
+                self.dao.store_bool("have_folder_upload", True)
+        return value
 
     @staticmethod
     def local_rollback(force: bool = False) -> bool:
