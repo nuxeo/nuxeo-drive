@@ -234,10 +234,6 @@ class FoldersDialog(DialogMixin):
 
         self.button_ok_state()
 
-        # Open the files selection dialog if there is no pre-selected paths
-        if not self.paths:
-            self._select_more_files()
-
     def _add_group_local(self) -> QGroupBox:
         """Group box for source files."""
         groupbox = QGroupBox(Translator.get("SOURCE_FILES"))
