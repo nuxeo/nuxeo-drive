@@ -55,20 +55,20 @@ RUN git clone $GIT_URL sources && \
     # Install Python
     WORKSPACE=/opt ./tools/linux/deploy_jenkins_slave.sh --install-python && \
     # Copy the entry point script
-    cp tools/linux/entrypoint.sh /
-
-# Clean-up
-RUN rm -rf /opt/sources && \
-    # CPython-specific test files
-    rm -rf /opt/deploy-dir/.pyenv/versions/*/lib/python*/test && \
-    # Unused locales
-    build-locale-archive && \
-    localedef --list-archive | grep -v 'en_US.utf8' | xargs localedef --delete-from-archive && \
-    /bin/cp -f /usr/lib/locale/locale-archive /usr/lib/locale/locale-archive.tmpl && \
-    build-locale-archive && \
-    # Not more needed requirements
-    yum erase -y git-core && \
-    yum clean all
+    cp tools/linux/entrypoint.sh / && \
+    cd .. && \
+    # Clean-up
+        rm -rf /opt/sources && \
+        # CPython-specific test files
+        rm -rf /opt/deploy-dir/.pyenv/versions/*/lib/python*/test && \
+        # Unused locales
+        build-locale-archive && \
+        localedef --list-archive | grep -v 'en_US.utf8' | xargs localedef --delete-from-archive && \
+        /bin/cp -f /usr/lib/locale/locale-archive /usr/lib/locale/locale-archive.tmpl && \
+        build-locale-archive && \
+        # Not more needed requirements
+        yum erase -y git-core && \
+        yum clean all
 
 # Create the travis user (the same one as on Travis-CI)
 RUN useradd -m -d /home/travis -u 1001 -s /bin/bash travis
