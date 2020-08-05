@@ -28,6 +28,7 @@ icon = {
 }[sys.platform]
 
 hiddenimports = [
+    "pkg_resources.py2_warn",
     "sentry_sdk.integrations.argv",
     "sentry_sdk.integrations.atexit",
     "sentry_sdk.integrations.dedupe",
