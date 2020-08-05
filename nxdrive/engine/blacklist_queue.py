@@ -57,7 +57,7 @@ class BlacklistQueue:
     def push(self, path: Path) -> None:
         with self._lock:
             item = BlacklistItem(path, next_try=self._delay)
-            log.debug(f"Blacklisting {item!r}")
+            log.debug(f"Blacklisting {item!r} for {self._delay} seconds")
             self._queue[path] = item
 
     def repush(self, item: BlacklistItem, increase_wait: bool = True) -> None:

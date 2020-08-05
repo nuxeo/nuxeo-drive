@@ -2,6 +2,7 @@
 import errno
 import re
 import shutil
+from collections import defaultdict
 from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
@@ -88,8 +89,9 @@ class DirectEdit(Worker):
         self._observer: Observer = None
         self.local = LocalClient(self._folder)
         self._upload_queue: Queue = Queue()
+        self._upload_errors: Dict[Path, int] = defaultdict(int)
         self._lock_queue: Queue = Queue()
-        self._error_queue = BlacklistQueue()
+        self._error_queue = BlacklistQueue(delay=Options.delay)
         self._stop = False
         self.watchdog_queue: Queue = Queue()
 
@@ -717,7 +719,7 @@ class DirectEdit(Worker):
     def _handle_upload_queue(self) -> None:
         while "items":
             try:
-                ref = self._upload_queue.get_nowait()
+                ref: Path = self._upload_queue.get_nowait()
             except Empty:
                 break
 
@@ -824,7 +826,7 @@ class DirectEdit(Worker):
             except CONNECTION_ERROR:
                 # Try again in 30s
                 log.warning(f"Connection error while uploading {ref!r}", exc_info=True)
-                self._error_queue.push(ref)
+                self._handle_upload_error(ref, os_path)
             except HTTPError as e:
                 if e.status == 500 and "Cannot set property on a version" in e.message:
                     log.warning(
@@ -839,11 +841,27 @@ class DirectEdit(Worker):
                 else:
                     # Try again in 30s
                     log.exception(f"Direct Edit unhandled HTTP error for ref {ref!r}")
-                    self._error_queue.push(ref)
+                    self._handle_upload_error(ref, os_path)
             except Exception:
                 # Try again in 30s
                 log.exception(f"Direct Edit unhandled error for ref {ref!r}")
-                self._error_queue.push(ref)
+                self._handle_upload_error(ref, os_path)
+
+    def _handle_upload_error(
+        self, ref: Path, os_path: Path, max_count: int = 3
+    ) -> None:
+        """Retry the upload if the number of attempts is below *max_count* else discard it."""
+        self._upload_errors[ref] += 1
+        if self._upload_errors[ref] < max_count:
+            self._error_queue.push(ref)
+            return
+
+        log.error(f"Upload queue: too many failures for {ref!r}, skipping it!")
+        self.directEditError.emit(
+            "DIRECT_EDIT_UPLOAD_FAILED",
+            [f'<a href="file:///{os_path.parent}">{ref.name}</a>'],
+        )
+        self._upload_errors.pop(ref, None)
 
     def _handle_queues(self) -> None:
         # Lock any document
