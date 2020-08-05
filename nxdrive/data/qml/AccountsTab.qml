@@ -10,7 +10,8 @@ Rectangle {
 
     Connections {
         target: EngineModel
-        onEngineChanged: {
+
+        function onEngineChanged() {
             accountSelect.currentIndex = EngineModel.count - 1
             accountSelect.adaptWidth()
         }
@@ -90,13 +91,17 @@ Rectangle {
 
                     Connections {
                         target: EngineModel
-                        onUiChanged: {
+
+                        function onUiChanged() {
                             webUiButton.defaultUi = (wui == "web")
                             jsfUiButton.defaultUi = (wui == "jsf")
                             webUiButton.checked = (forceUi == "web")
                             jsfUiButton.checked = (forceUi == "jsf")
                         }
-                        onAuthChanged: authenticated = !api.has_invalid_credentials(uid)
+
+                        function onAuthChanged() {
+                            authenticated = !api.has_invalid_credentials(uid)
+                        }
                     }
                     id: uiSelect
 

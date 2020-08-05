@@ -73,17 +73,14 @@ Rectangle {
             width: parent.width
             wrapMode: Text.WordWrap
             font.family: "Courier"
-
-            Component.onCompleted: {
-                var request = new XMLHttpRequest();
-                request.open('GET', 'GPL.txt');
-                request.onreadystatechange = function(event) {
-                    if (request.readyState == XMLHttpRequest.DONE) {
-                        licenseText.text = request.responseText;
-                    }
-                }
-                request.send();
-            }
+            // GPL.txt content
+            text: "The source code of Nuxeo Drive is available under the LGPL 2.1." +
+                  "https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html\n\n" +
+                  "Nuxeo Drive depends on those components:" +
+                  "- Qt: GNU Lesser General Public License, version 3" +
+                  "- PyQt: GNU General Public License, version 2 or 3\n\n" +
+                  "Thus any code written on the top of Nuxeo Drive must be distributed" +
+                  "under the terms of a GPL compliant license."
         }
     }
 }

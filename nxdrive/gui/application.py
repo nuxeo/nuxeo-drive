@@ -214,6 +214,23 @@ class Application(QApplication):
         State.about_to_quit = True
         self.quit()
 
+    def _shutdown(self) -> None:
+        """
+        This will be called via the aboutToQuit() signal to delete
+        the QML engine before QML contexes to prevent such errors:
+
+            TypeError: Cannot read property ... of null
+
+        See https://bugreports.qt.io/browse/QTBUG-81247.
+        """
+        if WINDOWS:
+            del self.conflicts_window
+            del self.settings_window
+            del self.systray_window
+            del self.direct_transfer_window
+        else:
+            del self.app_engine
+
     def init_gui(self) -> None:
 
         self.api = QMLDriveApi(self)
@@ -288,6 +305,7 @@ class Application(QApplication):
             if LINUX:
                 flags |= Qt.Drawer
 
+        self.aboutToQuit.connect(self._shutdown)
         self.systray_window.setFlags(flags)
 
         self.manager.newEngine.connect(self.add_engines)
