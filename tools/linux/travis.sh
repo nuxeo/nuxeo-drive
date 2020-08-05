@@ -16,7 +16,7 @@ mkdir dist && chmod -R 777 dist
 docker run \
     -it \
     -v "$(pwd)":/opt/sources \
-    docker-private.packages.nuxeo.com/nuxeo-drive-build:py-3.7.7  # XXX_PYTHON
+    docker-private.packages.nuxeo.com/nuxeo-drive-build:py-3.7.8  # XXX_PYTHON
 
 # Ensure the AppImage is correct
 bash tools/linux/deploy_jenkins_slave.sh --check
