@@ -430,12 +430,20 @@ class Engine(QObject):
         items = []
 
         for local_path in sorted(local_paths):
+            name = local_path.name
+            if name.startswith(Options.ignored_prefixes) or name.endswith(
+                Options.ignored_suffixes
+            ):
+                log.debug(
+                    f"Cannot add {local_path!r} to Direct Transfer queue as it is ignored."
+                )
+                continue
             if local_path.is_file():
                 items.append(
                     (
                         str(local_path),
                         str(local_path.parent),
-                        local_path.name,
+                        name,
                         False,
                         local_path.stat().st_size,
                         remote_parent_path,
@@ -447,13 +455,21 @@ class Engine(QObject):
             else:
                 tree = sorted(get_tree_list(local_path, remote_parent_path))
                 for path, remote_subparent_path, size in tree:
+                    name = path.name
+                    if name.startswith(Options.ignored_prefixes) or name.endswith(
+                        Options.ignored_suffixes
+                    ):
+                        log.debug(
+                            f"Cannot add {path!r} to Direct Transfer queue as it is ignored."
+                        )
+                        continue
                     remote_state = "unknown" if path == local_path else "todo"
                     folderish = path.is_dir()
                     items.append(
                         (
                             str(path),
                             str(path.parent),
-                            path.name,
+                            name,
                             folderish,
                             size,
                             remote_subparent_path,
