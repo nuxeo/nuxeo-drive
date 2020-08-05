@@ -48,28 +48,25 @@ function add_missing_ddls {
 function build($app_version, $script) {
 	# Build an executable
 	Write-Output ">>> [$app_version] Building $script"
-	if (-Not (Test-Path "$Env:ISCC_PATH")) {
-		# Inno Setup needs to be downloaded and installed on Travis-CI
-		if ($Env:TRAVIS_BUILD_DIR) {
-			$filename = "innosetup-$Env:INNO_SETUP_VERSION.exe"
-			$output = "$Env:WORKSPACE\$filename"
-			$url = "https://mlaan2.home.xs4all.nl/ispack/$filename"
-			download $url $output
 
-			Write-Output ">>> Installing Inno Setup $Env:INNO_SETUP_VERSION"
-			# https://jrsoftware.org/ishelp/index.php?topic=setupcmdline
-			Start-Process $output -argumentlist "`
-				/SP- `
-				/VERYSILENT `
-				/SUPPRESSMSGBOXES
-				/TYPE=compact `
-				" `
-				-wait
-		} else {
-			Write-Output ">>> ISCC does not exist: $Env:ISCC_PATH. Aborting."
-			ExitWithCode 1
+	if (-Not (Test-Path "$Env:ISCC_PATH")) {
+		$filename = "innosetup-$Env:INNO_SETUP_VERSION.exe"
+		$output = "$Env:WORKSPACE\$filename"
+		$url = "https://mlaan2.home.xs4all.nl/ispack/$filename"
+		download $url $output
+
+		Write-Output ">>> Installing Inno Setup $Env:INNO_SETUP_VERSION"
+		# https://jrsoftware.org/ishelp/index.php?topic=setupcmdline
+		Start-Process $output -argumentlist "`
+			/SP- `
+			/VERYSILENT `
+			/SUPPRESSMSGBOXES
+			/TYPE=compact `
+			" `
+			-wait
 		}
 	}
+
 	& $Env:ISCC_PATH\iscc /DMyAppVersion="$app_version" "$script"
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
@@ -379,29 +376,27 @@ function install_python {
 	}
 
 	# Python needs to be downloaded and installed on Travis-CI
-	if ($Env:TRAVIS_BUILD_DIR) {
-		$filename = "python-$Env:PYTHON_DRIVE_VERSION.exe"
-		$url = "https://www.python.org/ftp/python/$Env:PYTHON_DRIVE_VERSION/$filename"
-		$output = "$Env:WORKSPACE\$filename"
-		download $url $output
+	$filename = "python-$Env:PYTHON_DRIVE_VERSION.exe"
+	$url = "https://www.python.org/ftp/python/$Env:PYTHON_DRIVE_VERSION/$filename"
+	$output = "$Env:WORKSPACE\$filename"
+	download $url $output
 
-		Write-Output ">>> Installing Python $Env:PYTHON_DRIVE_VERSION into $Env:PYTHON_DIR"
-		# https://docs.python.org/3.7/using/windows.html#installing-without-ui
-		Start-Process $output -argumentlist "`
-			/quiet `
-			TargetDir=$Env:PYTHON_DIR `
-			AssociateFiles=0 `
-			CompileAll=1 `
-			Shortcuts=0 `
-			Include_doc=0 `
-			Include_launcher=0 `
-			InstallLauncherAllUsers=0 `
-			Include_tcltk=0 `
-			Include_test=0 `
-			Include_tools=0 `
-			" `
-			-wait
-	}
+	Write-Output ">>> Installing Python $Env:PYTHON_DRIVE_VERSION into $Env:PYTHON_DIR"
+	# https://docs.python.org/3.7/using/windows.html#installing-without-ui
+	Start-Process $output -argumentlist "`
+		/quiet `
+		TargetDir=$Env:PYTHON_DIR `
+		AssociateFiles=0 `
+		CompileAll=1 `
+		Shortcuts=0 `
+		Include_doc=0 `
+		Include_launcher=0 `
+		InstallLauncherAllUsers=0 `
+		Include_tcltk=0 `
+		Include_test=0 `
+		Include_tools=0 `
+		" `
+		-wait
 
 	# Fix a bloody issue ... !
 	New-Item -Path $Env:STORAGE_DIR -Name Scripts -ItemType directory -Verbose
