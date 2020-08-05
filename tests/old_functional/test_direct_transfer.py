@@ -608,13 +608,19 @@ class DirectTransferFolder:
     def checks(self, created):
         """Check that the content on the remote equals the created items."""
         # Ensure there is only 1 folder created at the workspace root
-        children = self.remote_1.get_children(self.ws.path)["entries"]
-        assert len(children) == 1
-        root = children[0]
+        ws_children = self.remote_1.get_children(self.ws.path)["entries"]
+        assert len(ws_children) == 1
+        root = ws_children[0]
 
         # All has been uploaded
-        children = self.get_children(root["path"], [root["title"]], "title")
-        assert sorted(created) == sorted(children)
+        children = self.get_children(root["path"], [root["path"]], "path")
+
+        assert len(children) == len(created)
+
+        # Paths cleanup for assert to use only the relative part
+        children = sorted(child.replace(self.ws.path, "") for child in children)
+        created = sorted(elem.replace(self.tmpdir.as_posix(), "") for elem in created)
+        assert created == children
 
         # There is nothing more to upload
         assert not list(self.engine_1.dao.get_dt_uploads())
@@ -651,18 +657,18 @@ class DirectTransferFolder:
 
         created = []
 
-        root_folder = self.tmpdir / str(uuid4())
+        root_folder = self.tmpdir / str(uuid4())[:6]
         root_folder.mkdir()
 
-        created.append(root_folder.name)
+        created.append(root_folder.as_posix())
         for _ in range(3):
-            sub_folder = root_folder / f"folder_{str(uuid4())}"
+            sub_folder = root_folder / f"folder_{str(uuid4())[:4]}"
             sub_folder.mkdir()
-            created.append(sub_folder.name)
+            created.append(sub_folder.as_posix())
             for _ in range(2):
-                sub_file = sub_folder / f"file_{str(uuid4())}"
+                sub_file = sub_folder / f"file_{str(uuid4())[:4]}"
                 sub_file.write_text("test", encoding="utf8")
-                created.append(sub_file.name)
+                created.append(sub_file.as_posix())
 
         with ensure_no_exception():
             self.engine_1.direct_transfer([root_folder], self.ws.path, self.ws.uid)
@@ -709,24 +715,41 @@ class DirectTransferFolder:
             self.engine_1.direct_transfer([root_folder], self.ws.path, self.ws.uid)
             self.wait_sync(wait_for_async=True)
 
-        # Ensure there is only 1 folder created at the workspace root
-        ws_children = self.remote_1.get_children(self.ws.path)["entries"]
-        assert len(ws_children) == 1
-        root = ws_children[0]
+        self.checks(created)
 
-        # All has been uploaded
-        children = self.get_children(root["path"], [root["path"]], "path")
+    def test_ignored_content(self):
+        """Test the Direct Transfer on ignored content."""
 
-        # Paths cleanup for assert to use only the relative part
-        children = sorted(child.replace(self.ws.path, "") for child in children)
-        created = sorted(elem.replace(self.tmpdir.as_posix(), "") for elem in created)
-        assert created == children
-
-        # There is nothing more to upload
+        # There is no upload, right now
         assert not list(self.engine_1.dao.get_dt_uploads())
 
-        # And there is no error
-        assert not self.engine_1.dao.get_errors(limit=0)
+        created = []
+
+        root_folder = self.tmpdir / str(uuid4())[:6]
+        root_folder.mkdir()
+
+        created.append(root_folder.as_posix())
+
+        hidden_folder = root_folder / ".hidden_folder"
+        hidden_folder.mkdir()
+        sub_file = hidden_folder / "file_1.txt"
+        sub_file.write_text("test", encoding="utf8")
+
+        normal_folder = root_folder / "normal_folder"
+        normal_folder.mkdir()
+        created.append(normal_folder.as_posix())
+        for _ in range(5):
+            sub_file = normal_folder / f"file_{str(uuid4())[:4]}"
+            sub_file.write_text("test", encoding="utf8")
+            created.append(sub_file.as_posix())
+        ignored_file = normal_folder / "ignored_file.tmp"
+        ignored_file.write_text("test", encoding="utf8")
+
+        with ensure_no_exception():
+            self.engine_1.direct_transfer([root_folder], self.ws.path, self.ws.uid)
+            self.wait_sync(wait_for_async=True)
+
+        self.checks(created)
 
     def test_sub_files(self):
         """Test the Direct Transfer on a folder with many files."""
@@ -736,14 +759,14 @@ class DirectTransferFolder:
 
         created = []
 
-        root_folder = self.tmpdir / str(uuid4())
+        root_folder = self.tmpdir / str(uuid4())[:6]
         root_folder.mkdir()
 
-        created.append(root_folder.name)
+        created.append(root_folder.as_posix())
         for _ in range(5):
-            sub_file = root_folder / f"file_{str(uuid4())}"
+            sub_file = root_folder / f"file_{str(uuid4())[:4]}"
             sub_file.write_text("test", encoding="utf8")
-            created.append(sub_file.name)
+            created.append(sub_file.as_posix())
 
         with ensure_no_exception():
             self.engine_1.direct_transfer([root_folder], self.ws.path, self.ws.uid)
