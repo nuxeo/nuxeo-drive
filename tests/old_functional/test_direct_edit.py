@@ -319,6 +319,41 @@ class MixinTests(DirectEditSetup):
         # And the error queue should still be be empty, the bad upload has beend discarded
         assert self.direct_edit._error_queue.empty()
 
+    def test_direct_edit_max_error(self):
+        """
+        When uploading changes to the server, recurrent errors can happen.
+        The upload must be retried maximum 3 times before being dropped.
+        """
+
+        filename = "error.txt"
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Initial content.")
+        local_path = f"/{doc_id}_file-content/{filename}"
+
+        with patch.object(self.manager_1, "open_local_file", new=open_local_file):
+            self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
+            self.wait_sync(timeout=2, fail_if_timeout=False)
+
+        # Simulate server error
+        bad_remote = self.get_bad_remote()
+        bad_remote.make_upload_raise(
+            HTTPError(status=404, message="Mock'ed Client Error: Not Found")
+        )
+
+        with patch.object(self.engine_1, "remote", new=bad_remote):
+            # Update file content
+            self.local.update_content(local_path, b"Updated")
+            self.wait_sync(timeout=12)
+
+        # The file should _not_ be updated on the server
+        content = self.remote.get_blob(self.remote.get_info(doc_id))
+        assert content == b"Initial content."
+
+        # There must be no error has the upload has been dropped.
+        assert self.direct_edit._error_queue.empty()
+
+        # Upload errors dict must be empty
+        assert not self.direct_edit._upload_errors
+
     def test_orphan_should_unlock(self):
         """
         NXDRIVE-2129: Unlocking of previously edited file when the app crashed in-between.
@@ -464,8 +499,7 @@ class MixinTests(DirectEditSetup):
                 )
 
             # Check the file is reuploaded when the network come again
-            # timeout=30 to ensure the file is removed from the blacklist (which have a 30 sec delay)
-            self.wait_sync(timeout=30, fail_if_timeout=False)
+            self.wait_sync(timeout=12, fail_if_timeout=False)
             assert (
                 self.remote.get_blob(self.remote.get_info(doc_id)) == b"Updated twice"
             )
