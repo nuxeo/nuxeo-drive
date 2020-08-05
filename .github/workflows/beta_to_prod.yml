@@ -1,0 +1,24 @@
+name: Beta to production
+
+on:
+  workflow_dispatch:
+    inputs:
+      betaVersion:
+        description: 'The beta version to promote as official release.'
+        required: true
+        default: 'x.y.z'
+
+jobs:
+  job:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Ready for promotion
+      run: |
+        echo ${{ secrets.SSH_PRIV_KEY }} | base64 --decode > private.key
+        chmod 0600 private.key
+        eval "$(ssh-agent -s)"
+        ssh-add private.key
+        bash tools/deploy.sh ${{ github.event.inputs.betaVersion }}
