@@ -32,7 +32,6 @@ RUN rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 && \
             zip \
         # AppImage validity requirements
             desktop-file-utils \
-            which \
         # pyenv requirements
         # https://github.com/pyenv/pyenv/wiki/Common-build-problems#prerequisites
             bzip2-devel \
