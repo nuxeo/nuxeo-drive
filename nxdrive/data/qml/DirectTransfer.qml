@@ -34,7 +34,10 @@ Rectangle {
 
     Connections {
         target: DirectTransferModel
-        onFileChanged: updateCounts()
+
+        function onFileChanged()  {
+            updateCounts()
+        }
     }
 
     TabBar {

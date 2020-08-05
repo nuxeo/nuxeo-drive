@@ -38,22 +38,32 @@ Rectangle {
 
     Connections {
         target: EngineModel
-        onEngineChanged: accountSelect.currentIndex = EngineModel.count - 1
+
+        function onEngineChanged() {
+            accountSelect.currentIndex = EngineModel.count - 1
+        }
     }
 
     Connections {
         target: TransferModel
-        onFileChanged: doUpdateCounts()
+
+        function onFileChanged() {
+            doUpdateCounts()
+        }
     }
 
     Connections {
         target: FileModel
-        onFileChanged: doUpdateCounts()
+
+        function onFileChanged() {
+            doUpdateCounts()
+        }
     }
 
     Connections {
         target: systrayWindow
-        onVisibleChanged: {
+
+        function onVisibleChanged() {
             contextMenu.visible = false
             fileList.contentY = 0
         }
