@@ -1146,7 +1146,7 @@ class Application(QApplication):
         channel = self.manager.get_update_channel()
         log.info(f"Showing release notes, version={version!r} channel={channel}")
 
-        if channel == "alpha":
+        if version.count(".") != 2:  # Alpha version
             return
 
         self.display_info(
