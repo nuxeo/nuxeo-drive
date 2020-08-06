@@ -64,7 +64,6 @@ function build($app_version, $script) {
 			/TYPE=compact `
 			" `
 			-wait
-		}
 	}
 
 	& $Env:ISCC_PATH\iscc /DMyAppVersion="$app_version" "$script"
