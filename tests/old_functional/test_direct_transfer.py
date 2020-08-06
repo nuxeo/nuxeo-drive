@@ -12,6 +12,7 @@ from nxdrive.client.uploader.direct_transfer import DirectTransferUploader
 from nxdrive.constants import TransferStatus
 from nxdrive.exceptions import NotFound
 from nxdrive.options import Options
+from nxdrive.utils import get_tree_list
 from requests.exceptions import ConnectionError
 
 from .. import ensure_no_exception
@@ -40,6 +41,7 @@ class DirectTransfer:
         # Work with a copy of the file to allow parallel testing
         self.file = self.tmpdir / f"{uuid4()}.bin"
         copyfile(source, self.file)
+        self.file_size = self.file.stat().st_size
 
     def tearDown(self):
         # Restore options
@@ -91,7 +93,7 @@ class DirectTransfer:
 
     def direct_transfer(self, duplicate_behavior: str = "create") -> None:
         self.engine_1.direct_transfer(
-            [self.file],
+            {self.file: self.file_size},
             self.ws.path,
             self.ws.uid,
             duplicate_behavior=duplicate_behavior,
@@ -628,23 +630,29 @@ class DirectTransferFolder:
         # And there is no error
         assert not self.engine_1.dao.get_errors(limit=0)
 
+    def direct_transfer(self, folder, duplicate_behavior: str = "create") -> None:
+        paths = {path: size for path, size in get_tree_list(folder)}
+        self.engine_1.direct_transfer(
+            paths, self.ws.path, self.ws.uid, duplicate_behavior=duplicate_behavior,
+        )
+
     def test_simple_folder(self):
         """Test the Direct Transfer on an simple empty folder."""
 
         # There is no upload, right now
         assert not list(self.engine_1.dao.get_dt_uploads())
 
-        empty_folder = self.tmpdir / str(uuid4())
-        empty_folder.mkdir()
+        root_folder = self.tmpdir / str(uuid4())
+        root_folder.mkdir()
 
         with ensure_no_exception():
-            self.engine_1.direct_transfer([empty_folder], self.ws.path, self.ws.uid)
+            self.direct_transfer(root_folder)
             self.wait_sync(wait_for_async=True)
 
         # Ensure there is only 1 folder created at the workspace root
         children = self.remote_1.get_children(self.ws.path)["entries"]
         assert len(children) == 1
-        assert children[0]["title"] == empty_folder.name
+        assert children[0]["title"] == root_folder.name
 
         # All has been uploaded
         assert not list(self.engine_1.dao.get_dt_uploads())
@@ -671,7 +679,7 @@ class DirectTransferFolder:
                 created.append(sub_file.as_posix())
 
         with ensure_no_exception():
-            self.engine_1.direct_transfer([root_folder], self.ws.path, self.ws.uid)
+            self.direct_transfer(root_folder)
             self.wait_sync(wait_for_async=True)
 
         self.checks(created)
@@ -712,41 +720,7 @@ class DirectTransferFolder:
         created.append(sub_file.as_posix())
 
         with ensure_no_exception():
-            self.engine_1.direct_transfer([root_folder], self.ws.path, self.ws.uid)
-            self.wait_sync(wait_for_async=True)
-
-        self.checks(created)
-
-    def test_ignored_content(self):
-        """Test the Direct Transfer on ignored content."""
-
-        # There is no upload, right now
-        assert not list(self.engine_1.dao.get_dt_uploads())
-
-        created = []
-
-        root_folder = self.tmpdir / str(uuid4())[:6]
-        root_folder.mkdir()
-
-        created.append(root_folder.as_posix())
-
-        hidden_folder = root_folder / ".hidden_folder"
-        hidden_folder.mkdir()
-        sub_file = hidden_folder / "file_1.txt"
-        sub_file.write_text("test", encoding="utf8")
-
-        normal_folder = root_folder / "normal_folder"
-        normal_folder.mkdir()
-        created.append(normal_folder.as_posix())
-        for _ in range(5):
-            sub_file = normal_folder / f"file_{str(uuid4())[:4]}"
-            sub_file.write_text("test", encoding="utf8")
-            created.append(sub_file.as_posix())
-        ignored_file = normal_folder / "ignored_file.tmp"
-        ignored_file.write_text("test", encoding="utf8")
-
-        with ensure_no_exception():
-            self.engine_1.direct_transfer([root_folder], self.ws.path, self.ws.uid)
+            self.direct_transfer(root_folder)
             self.wait_sync(wait_for_async=True)
 
         self.checks(created)
@@ -769,7 +743,7 @@ class DirectTransferFolder:
             created.append(sub_file.as_posix())
 
         with ensure_no_exception():
-            self.engine_1.direct_transfer([root_folder], self.ws.path, self.ws.uid)
+            self.direct_transfer(root_folder)
             self.wait_sync(wait_for_async=True)
 
         self.checks(created)
