@@ -331,12 +331,19 @@ class Application(QApplication):
         )
 
     def _center_on_screen(self, window: QQuickView) -> None:
-        """Center the window on the screen."""
+        """Display and center the window on the screen."""
+        # Display the window
+        self._show_window(window)
+
+        # Try to center it on the desktop
         screen = window.screen()
-        height = screen.size().height()
-        width = screen.size().width()
-        window.setX(width / 2 - window.minimumWidth() / 2)
-        window.setY(height / 2 - window.minimumHeight() / 2)
+        if not screen:
+            # The window is not yet painted or seen on the current desktop
+            return
+
+        size = screen.size()
+        window.setX(size.width() / 2 - window.minimumWidth() / 2)
+        window.setY(size.height() / 2 - window.minimumHeight() / 2)
 
     @pyqtSlot(object)
     def action_progressing(self, action: Action) -> None:
@@ -699,14 +706,14 @@ class Application(QApplication):
         """ Display the conflicts/errors window. """
         self.refresh_conflicts(engine.uid)
         self._window_root(self.conflicts_window).setEngine.emit(engine.uid)
-        self._show_window(self.conflicts_window)
+        self._center_on_screen(self.conflicts_window)
 
     @pyqtSlot()  # From systray.py
     @pyqtSlot(str)  # All other calls
     def show_settings(self, section: str = "General") -> None:
         sections = {"General": 0, "Features": 1, "Accounts": 2, "About": 3}
         self._window_root(self.settings_window).setSection.emit(sections[section])
-        self._show_window(self.settings_window)
+        self._center_on_screen(self.settings_window)
 
     @pyqtSlot()
     def show_systray(self) -> None:
@@ -760,7 +767,7 @@ class Application(QApplication):
             delattr(self, "close_settings_too")
 
         self.filters_dlg.show()
-        self._show_window(self.settings_window)
+        self._center_on_screen(self.settings_window)
 
     @pyqtSlot(object)
     def show_server_folders(self, engine: Engine, path: Optional[Path]) -> None:
@@ -792,9 +799,7 @@ class Application(QApplication):
         window = self._window_root(self.direct_transfer_window)
         window.setEngine.emit(engine_uid)
         window.setItemsCount.emit(True)
-
         self._center_on_screen(self.direct_transfer_window)
-        self._show_window(self.direct_transfer_window)
 
     @pyqtSlot()
     def close_direct_transfer_window(self) -> None:
