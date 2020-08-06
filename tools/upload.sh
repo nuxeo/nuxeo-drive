@@ -13,7 +13,8 @@ publish_staging() {
     path="/var/www/community.nuxeo.com/static/drive-staging/${TRAVIS_BUILD_NUMBER}/"
 
     echo ">>> [Upload] Deploying to the staging server"
-    rsync -e "ssh -o StrictHostKeyChecking=no" --chmod=755 -pvz "${artifact}" nuxeo@lethe.nuxeo.com:"${path}"
+    rsync -e "ssh -o StrictHostKeyChecking=no" --chmod=755 -pvz "${artifact}" nuxeo@lethe.nuxeo.com:"${path}" || \
+        rsync -e "ssh -o StrictHostKeyChecking=no" -vz "${artifact}" nuxeo@lethe.nuxeo.com:"${path}" || exit 1  # macOS does not have --chmod
     echo "Artifacts deployed to:"
     echo " >>> https://community.nuxeo.com/static/drive-staging/${TRAVIS_BUILD_NUMBER} <<<"
 }
