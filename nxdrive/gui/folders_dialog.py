@@ -210,15 +210,10 @@ class FoldersDialog(DialogMixin):
 
         super().__init__(application, engine)
 
-        self.path: Optional[Path] = None
+        self.path: Optional[Path] = path
         self.paths: Set[Path] = set()
-
-        if path:
-            self.path = path
-            self.paths.add(self.path)
-
-        self.overall_size = self._get_overall_size()
-        self.overall_count = self._get_overall_count()
+        self.overall_size = 0
+        self.overall_count = 0
 
         self.remote_folder_ref = self.engine.dao.get_config(
             "dt_last_remote_location_ref", ""
@@ -232,7 +227,8 @@ class FoldersDialog(DialogMixin):
         self.vertical_layout.addWidget(self._add_group_options())
         self.vertical_layout.addWidget(self.button_box)
 
-        self.button_ok_state()
+        # Compute overall size and count, and check the button state
+        self._process_additionnal_local_paths([str(self.path)] if self.path else [])
 
     def _add_group_local(self) -> QGroupBox:
         """Group box for source files."""
@@ -373,10 +369,11 @@ class FoldersDialog(DialogMixin):
 
     def _process_additionnal_local_paths(self, paths: List[str]) -> None:
         """Append more local paths to the upload queue."""
-        if not paths:
-            return
-
         for local_path in paths:
+            if not local_path:
+                # When closing the folder selection, *local_path* would be an empty string.
+                continue
+
             path = Path(local_path)
 
             # If .path is None, then pick the first local path to display something useful
