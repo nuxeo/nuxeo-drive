@@ -186,13 +186,16 @@ def validate_proxy(proxy: Proxy, url: str) -> bool:
             url, headers=headers, proxies=proxy.settings(url=url), verify=verify
         ):
             return True
-    except OSError as exc:
+    except OSError:
         # OSError: Could not find a suitable TLS CA certificate bundle, invalid path: ...
-        log.critical(f"{exc}. Ensure the 'ca_bundle' option is correct.")
-        return False
+        log.error("Ensure the 'ca_bundle' option is correct.", exc_info=True)
+    except AttributeError:
+        log.error(
+            "Invalid PAC URL or invalid data retrieved from the PAC URL.", exc_info=True
+        )
     except Exception:
-        log.exception("Invalid proxy.")
-        return False
+        log.error("Invalid proxy.", exc_info=True)
+    return False
 
 
 def _get_cls(category: str) -> Type[Proxy]:
