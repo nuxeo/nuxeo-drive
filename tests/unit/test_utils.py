@@ -15,7 +15,6 @@ import pytest
 from nxdrive.constants import APP_NAME, WINDOWS
 from nxdrive.options import Options
 
-from .. import env
 from ..markers import not_windows, windows_only
 
 BAD_HOSTNAMES = [
@@ -39,20 +38,20 @@ Stat = namedtuple("Stat", "st_size")
 class FakeDirEntry:
     """Mock the os DirEntry class"""
 
-    path = "fake"
-
     def __init__(
         self,
         is_dir: bool = False,
         should_raise: bool = False,
         raised_exception: Exception = Exception,
         stats_value: Stat = Stat(st_size=0),
+        name: str = "",
     ) -> None:
 
         self._is_dir = is_dir
         self._should_raise = should_raise
         self._raised_exception = raised_exception
         self._stats_value = stats_value
+        self.path = self.name = name or "fake"
 
     def is_dir(self) -> bool:
         if self._should_raise:
@@ -490,42 +489,34 @@ def test_get_timestamp_from_date():
 def test_get_tree_list():
     location = nxdrive.utils.normalized_path(__file__).parent.parent
     path = location / "resources"
-    remote_ref = f"{env.WS_DIR}/foo"
-    tree = list(nxdrive.utils.get_tree_list(path, remote_ref))
+    tree = list(nxdrive.utils.get_tree_list(path))
 
     # Check we got all paths
     expected_paths = [path] + sorted(path.glob("**/*"))
     guessed_paths = sorted(p for p, *_ in tree)
     assert guessed_paths == expected_paths
 
-    # Check we got correct remote paths
-    expected_rpaths = [remote_ref]
-    rpath = f"{remote_ref}/{path.name}"
-    for p in expected_paths[1:]:
-        parent = p.relative_to(path).parent.as_posix()
-        if parent != ".":
-            expected_rpaths.append(f"{rpath}/{parent}")
-        else:
-            expected_rpaths.append(rpath)
-    expected_rpaths = sorted(expected_rpaths)
-    guessed_rpaths = sorted(p for _, p, _ in tree)
-    assert guessed_rpaths == expected_rpaths
+
+@patch("os.scandir")
+def test_get_tree_list_ignored_patterns(mock_scandir):
+    mock_scandir.return_value.__enter__.return_value = iter(
+        [FakeDirEntry(is_dir=True, name=".azerty"), FakeDirEntry(name=".azerty.txt")]
+    )
+    tree = list(nxdrive.utils.get_tree_list(Path("/fake")))
+    expected = [(Path("/fake"), 0)]
+    assert tree == expected
 
 
 @patch("pathlib.Path.is_dir")
 def test_get_tree_list_dir_raise_os_error(mock_path):
-    remote_ref = f"{env.WS_DIR}/foo"
     mock_path.side_effect = OSError("Mock'ed OSError")
-
-    tree = list(nxdrive.utils.get_tree_list(Path("/fake"), remote_ref))
-
+    tree = list(nxdrive.utils.get_tree_list(Path("/fake")))
     # We exit before the first yield because of OSError
     assert len(tree) == 0
 
 
 @patch("os.scandir")
 def test_get_tree_list_subdir_raise_os_error(mock_scandir):
-    remote_ref = f"{env.WS_DIR}/foo"
     mock_scandir.return_value.__enter__.return_value = iter(
         [
             FakeDirEntry(is_dir=True),
@@ -536,40 +527,10 @@ def test_get_tree_list_subdir_raise_os_error(mock_scandir):
             ),
         ]
     )
-    tree = list(nxdrive.utils.get_tree_list(Path("/fake"), remote_ref))
+    tree = list(nxdrive.utils.get_tree_list(Path("/fake")))
 
     # We did not go into the third FakeDir because of OSError
     assert len(tree) == 2
-
-
-def test_get_tree_size():
-    location = nxdrive.utils.normalized_path(__file__).parent.parent
-    path = location / "resources"
-    assert nxdrive.utils.get_tree_size(path) > 1000000
-
-
-@patch("os.scandir")
-def test_get_tree_size_subdir_raise_permission_error(mock_scandir):
-    # First is a file with size 10, the a folder, then an folder with OSError raise
-    mock_scandir.return_value.__enter__.return_value = iter(
-        [
-            FakeDirEntry(stats_value=Stat(10)),
-            FakeDirEntry(is_dir=True),
-            FakeDirEntry(
-                is_dir=True,
-                should_raise=True,
-                raised_exception=PermissionError("Mock'ed Permission denied"),
-            ),
-        ]
-    )
-
-    assert nxdrive.utils.get_tree_size(Path("/fake/path")) == 10
-
-
-@patch("pathlib.Path.is_dir")
-def test_get_tree_size_dir_raise_permission_error(mock_path):
-    mock_path.side_effect = PermissionError("Mock'ed PermissionError")
-    assert nxdrive.utils.get_tree_size(Path("/fake/path")) == 0
 
 
 @Options.mock()

@@ -312,13 +312,10 @@ def get_default_local_folder() -> Path:
     return increment_local_folder(folder, APP_NAME)
 
 
-def get_tree_list(
-    path: Path, remote_ref: str
-) -> Generator[Tuple[Path, str, int], None, None]:
-    """Compute remote paths based on *remote_ref* from a given *path*.
-    This is used in the Direct Transfer feature to upload a folder
-    and all its contents.
-    Each entry will yield a tuple (remote_path, local_path, size).
+def get_tree_list(path: Path) -> Generator[Tuple[Path, int], None, None]:
+    """
+    Determine local paths and their size from a given *path*.
+    Each entry will yield a tuple (local_path, size).
 
     Note: this function cannot be decorated with lru_cache().
     """
@@ -328,49 +325,36 @@ def get_tree_list(
         log.warning(f"Error calling is_dir() on: {path!r}", exc_info=True)
         return
 
+    # Check that the path can be processed
+    if path.name.startswith(Options.ignored_prefixes) or path.name.endswith(
+        Options.ignored_suffixes
+    ):
+        log.debug(f"Ignored path for Direct Transfer: {str(path)!r}")
+        return
+
     # First, yield the folder itself
-    yield path, remote_ref, 0
-    remote_ref += f"/{path.name}"
+    yield path, 0
 
     # Then, yield its children
     with os.scandir(path) as it:
         for entry in it:
+            # Check the path can be processed
+            if entry.name.startswith(Options.ignored_prefixes) or entry.name.endswith(
+                Options.ignored_suffixes
+            ):
+                log.debug(f"Ignored path for Direct Transfer: {entry.path!r}")
+                continue
+
             try:
                 is_dir = entry.is_dir()
             except OSError:
                 log.warning(f"Error calling is_dir() on: {entry.path!r}", exc_info=True)
                 continue
             if is_dir:
-                yield from get_tree_list(Path(entry.path), remote_ref)
+                yield from get_tree_list(Path(entry.path))
             elif entry.is_file():
                 file = Path(entry.path)
-                yield file, remote_ref, file.stat().st_size
-
-
-def get_tree_size(path: Path) -> int:
-    """Compute the total files size from a given folder *path*.
-
-    Note: this function cannot be decorated with lru_cache().
-    """
-    size = 0
-    try:
-        path.is_dir()
-    except OSError:
-        log.warning(f"Error calling is_dir() on: {path!r}", exc_info=True)
-        return size
-
-    with os.scandir(path) as it:
-        for entry in it:
-            try:
-                is_dir = entry.is_dir()
-            except OSError:
-                log.warning(f"Error calling is_dir() on: {entry.path!r}", exc_info=True)
-                continue
-            if is_dir:
-                size += get_tree_size(Path(entry.path))
-            elif entry.is_file():
-                size += entry.stat().st_size
-    return size
+                yield file, file.stat().st_size
 
 
 @lru_cache(maxsize=32)

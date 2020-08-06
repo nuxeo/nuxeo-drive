@@ -9,7 +9,7 @@ from logging import getLogger
 from pathlib import Path
 from threading import Thread
 from time import sleep
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Type
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type
 from urllib.parse import urlsplit
 
 import requests
@@ -42,7 +42,6 @@ from ..utils import (
     current_thread_id,
     find_icon,
     find_suitable_tmp_dir,
-    get_tree_list,
     grouper,
     if_frozen,
     safe_filename,
@@ -414,7 +413,7 @@ class Engine(QObject):
 
     def _direct_transfer(
         self,
-        local_paths: Set[Path],
+        local_paths: Dict[Path, int],
         remote_parent_path: str,
         remote_parent_ref: str,
         duplicate_behavior: str,
@@ -427,63 +426,27 @@ class Engine(QObject):
             remote_parent_path, remote_parent_ref, duplicate_behavior
         )
 
-        items = []
-
-        for local_path in sorted(local_paths):
-            name = local_path.name
-            if name.startswith(Options.ignored_prefixes) or name.endswith(
-                Options.ignored_suffixes
-            ):
-                log.debug(
-                    f"Cannot add {local_path!r} to Direct Transfer queue as it is ignored."
-                )
-                continue
-            if local_path.is_file():
-                items.append(
-                    (
-                        str(local_path),
-                        str(local_path.parent),
-                        name,
-                        False,
-                        local_path.stat().st_size,
-                        remote_parent_path,
-                        remote_parent_ref,
-                        duplicate_behavior,
-                        "unknown",
-                    )
-                )
-            else:
-                tree = sorted(get_tree_list(local_path, remote_parent_path))
-                for path, remote_subparent_path, size in tree:
-                    name = path.name
-                    if name.startswith(Options.ignored_prefixes) or name.endswith(
-                        Options.ignored_suffixes
-                    ):
-                        log.debug(
-                            f"Cannot add {path!r} to Direct Transfer queue as it is ignored."
-                        )
-                        continue
-                    remote_state = "unknown" if path == local_path else "todo"
-                    folderish = path.is_dir()
-                    items.append(
-                        (
-                            str(path),
-                            str(path.parent),
-                            name,
-                            folderish,
-                            size,
-                            remote_subparent_path,
-                            remote_parent_ref,
-                            duplicate_behavior,
-                            remote_state,
-                        )
-                    )
+        all_paths = local_paths.keys()
+        items = [
+            (
+                str(path),
+                str(path.parent),
+                path.name,
+                path.is_dir(),
+                size,
+                remote_parent_path,
+                remote_parent_ref,
+                duplicate_behavior,
+                "todo" if path.parent in all_paths else "unknown",
+            )
+            for path, size in sorted(local_paths.items())
+        ]
 
         # Add all paths into the database to plan the upload, by batch
         bsize = Options.database_batch_size
-        log.info(
-            f"Planning items to Direct Transfer, database_batch_size is {bsize},"
-            f" duplicate_behavior is {duplicate_behavior!r} ..."
+        log.info("Planning items to Direct Transfer ...")
+        log.debug(
+            f" ... database_batch_size is {bsize}, duplicate_behavior is {duplicate_behavior!r}"
         )
         current_max_row_id = -1
         for batch_items in grouper(items, bsize):
@@ -493,14 +456,14 @@ class Engine(QObject):
             self.directTranferItemsCount.emit(False)
 
         self.directTranferItemsCount.emit(True)
-        log.info(f"Planned {len(items):,} item(s) to Direct Transfer, let's gooo!")
+        log.info(f" ... Planned {len(items):,} item(s) to Direct Transfer, let's gooo!")
 
         # And add new pairs to the queue
         self.dao.queue_many_direct_transfer_items(current_max_row_id)
 
     def direct_transfer(
         self,
-        local_paths: Set[Path],
+        local_paths: Dict[Path, int],
         remote_parent_path: str,
         remote_parent_ref: str,
         duplicate_behavior: str = "create",
@@ -515,7 +478,7 @@ class Engine(QObject):
 
     def direct_transfer_async(
         self,
-        local_paths: Set[Path],
+        local_paths: Dict[Path, int],
         remote_parent_path: str,
         remote_parent_ref: str,
         duplicate_behavior: str = "create",

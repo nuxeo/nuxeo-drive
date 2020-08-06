@@ -1,6 +1,7 @@
 # coding: utf-8
+from logging import getLogger
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Set, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
@@ -18,8 +19,9 @@ from PyQt5.QtWidgets import (
 
 from ..constants import APP_NAME
 from ..engine.engine import Engine
+from ..options import Options
 from ..translator import Translator
-from ..utils import get_tree_list, get_tree_size, sizeof_fmt
+from ..utils import get_tree_list, sizeof_fmt
 from .folders_model import FilteredDocuments, FoldersOnly
 from .folders_treeview import DocumentTreeView, FolderTreeView
 
@@ -27,6 +29,8 @@ if TYPE_CHECKING:
     from .application import Application  # noqa
 
 __all__ = ("DocumentsDialog", "FoldersDialog")
+
+log = getLogger(__name__)
 
 DOC_URL = "https://doc.nuxeo.com/client-apps/nuxeo-drive-functional-overview/#duplicates-behavior"
 
@@ -210,10 +214,8 @@ class FoldersDialog(DialogMixin):
 
         super().__init__(application, engine)
 
-        self.path: Optional[Path] = path
-        self.paths: Set[Path] = set()
-        self.overall_size = 0
-        self.overall_count = 0
+        self.path: Optional[Path] = None
+        self.paths: Dict[Path, int] = {}
 
         self.remote_folder_ref = self.engine.dao.get_config(
             "dt_last_remote_location_ref", ""
@@ -228,7 +230,17 @@ class FoldersDialog(DialogMixin):
         self.vertical_layout.addWidget(self.button_box)
 
         # Compute overall size and count, and check the button state
-        self._process_additionnal_local_paths([str(self.path)] if self.path else [])
+        self._process_additionnal_local_paths([str(path)] if path else [])
+
+    @property
+    def overall_count(self) -> int:
+        """Compute total number of files and folders."""
+        return len(self.paths.keys())
+
+    @property
+    def overall_size(self) -> int:
+        """Compute all local paths contents size."""
+        return sum(self.paths.values())
 
     def _add_group_local(self) -> QGroupBox:
         """Group box for source files."""
@@ -347,26 +359,6 @@ class FoldersDialog(DialogMixin):
             txt += f" (+{self.overall_count - 1:,})"
         return txt
 
-    def _get_overall_count(self) -> int:
-        """Compute total number of files and folders."""
-        return sum(self._get_count(p) for p in self.paths)
-
-    def _get_overall_size(self) -> int:
-        """Compute all local paths contents size."""
-        return sum(self._get_size(p) for p in self.paths)
-
-    def _get_count(self, path: Path) -> int:
-        """Get the children count of a folder or return 1 if a file."""
-        if path.is_dir():
-            return len(list(get_tree_list(path, "")))
-        return 1
-
-    def _get_size(self, path: Path) -> int:
-        """Get the local file size or its contents size when a folder."""
-        if path.is_dir():
-            return get_tree_size(path)
-        return path.stat().st_size
-
     def _process_additionnal_local_paths(self, paths: List[str]) -> None:
         """Append more local paths to the upload queue."""
         for local_path in paths:
@@ -376,20 +368,27 @@ class FoldersDialog(DialogMixin):
 
             path = Path(local_path)
 
+            # Check that the path can be processed
+            if path.name.startswith(Options.ignored_prefixes) or path.name.endswith(
+                Options.ignored_suffixes
+            ):
+                log.debug(f"Ignored path for Direct Transfer: {str(path)!r}")
+                continue
+
             # If .path is None, then pick the first local path to display something useful
             if not self.path:
                 self.path = path
 
             # Prevent to upload twice the same file
-            if path in self.paths:
+            if path in self.paths.keys():
                 continue
 
             # Save the path
-            self.paths.add(path)
-
-            # Recompute total size and count
-            self.overall_size += self._get_size(path)
-            self.overall_count += self._get_count(path)
+            if path.is_dir():
+                for file_path, size in get_tree_list(path):
+                    self.paths[file_path] = size
+            else:
+                self.paths[path] = path.stat().st_size
 
         # Update labels with new information
         self.local_path.setText(self._files_display())
