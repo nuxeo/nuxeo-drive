@@ -375,10 +375,6 @@ class FoldersDialog(DialogMixin):
                 log.debug(f"Ignored path for Direct Transfer: {str(path)!r}")
                 continue
 
-            # If .path is None, then pick the first local path to display something useful
-            if not self.path:
-                self.path = path
-
             # Prevent to upload twice the same file
             if path in self.paths.keys():
                 continue
@@ -388,7 +384,15 @@ class FoldersDialog(DialogMixin):
                 for file_path, size in get_tree_list(path):
                     self.paths[file_path] = size
             else:
-                self.paths[path] = path.stat().st_size
+                try:
+                    self.paths[path] = path.stat().st_size
+                except OSError:
+                    log.warning(f"Error calling stat() on {path!r}", exc_info=True)
+                    continue
+
+            # If .path is None, then pick the first local path to display something useful
+            if not self.path:
+                self.path = path
 
         # Update labels with new information
         self.local_path.setText(self._files_display())

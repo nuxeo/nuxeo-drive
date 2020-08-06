@@ -8,7 +8,7 @@ from math import sqrt
 from pathlib import Path
 from time import monotonic, sleep
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
-from urllib.parse import unquote
+from urllib.parse import unquote_plus, urlparse
 
 from PyQt5.QtCore import QEvent, QRect, Qt, QTimer, QUrl, pyqtSlot
 from PyQt5.QtGui import QCursor, QFont, QFontMetricsF, QIcon, QWindow
@@ -1341,7 +1341,7 @@ class Application(QApplication):
             # This is not an event for us!
             return super().event(event)
 
-        final_url = unquote(event.url().toString())
+        final_url = unquote_plus(event.url().toString())
         try:
             return self._handle_nxdrive_url(final_url)
         except Exception:
@@ -1366,13 +1366,17 @@ class Application(QApplication):
         if not info:
             return False
 
-        cmd = info["command"]
-        path = normalized_path(info.get("filepath", ""))
-        manager = self.manager
+        # Handle "file://" and regular path
+        file = info.get("filepath", "")
+        if file:
+            file = unquote_plus(urlparse(file).path)
 
-        log.info(f"Event URL={url}, info={info!r}")
+        path = normalized_path(file)
+        log.info(f"Event URL={url}, info={info!r}, path={path!r}")
 
         # Event fired by a context menu item
+        cmd = info["command"]
+        manager = self.manager
         func = {
             "access-online": manager.ctx_access_online,
             "copy-share-link": manager.ctx_copy_share_link,
@@ -1392,7 +1396,7 @@ class Application(QApplication):
         elif cmd == "token":
             self.api.handle_token(info["token"], info["username"])
         else:
-            log.warning(f"Unknown event URL={url}, info={info!r}")
+            log.warning(f"Unknown event URL={url}, info={info!r}, path={path!r}")
             return False
         return True
 
