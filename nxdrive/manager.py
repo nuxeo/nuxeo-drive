@@ -590,7 +590,7 @@ class Manager(QObject):
         self.set_config("log_level_file", value)
 
     def set_proxy(self, proxy: "Proxy") -> str:
-        log.debug(f"Changed proxy to {proxy}")
+        log.debug(f"Trying to change proxy to {proxy}")
         for engine in self.engines.values():
             if not validate_proxy(proxy, engine.server_url):
                 return "PROXY_INVALID"
