@@ -322,7 +322,7 @@ def get_tree_list(path: Path) -> Generator[Tuple[Path, int], None, None]:
     try:
         path.is_dir()
     except OSError:
-        log.warning(f"Error calling is_dir() on: {path!r}", exc_info=True)
+        log.warning(f"Error calling is_dir() on {path!r}", exc_info=True)
         return
 
     # Check that the path can be processed
@@ -348,7 +348,7 @@ def get_tree_list(path: Path) -> Generator[Tuple[Path, int], None, None]:
             try:
                 is_dir = entry.is_dir()
             except OSError:
-                log.warning(f"Error calling is_dir() on: {entry.path!r}", exc_info=True)
+                log.warning(f"Error calling is_dir() on {entry.path!r}", exc_info=True)
                 continue
             if is_dir:
                 yield from get_tree_list(Path(entry.path))
