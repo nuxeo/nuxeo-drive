@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Create a new release, it means:
-#     - creating a new alpha or beta;
+#     - creating a new alpha or beta (see as "release");
 #     - deploying artifacts to the server;
 #
 # Warning: do not execute this script manually but from Travis-CI.
@@ -21,7 +21,7 @@ cancel() {
 }
 
 create() {
-    # First argument is the release type (alpha or beta)
+    # First argument is the release type (alpha or release)
     local drive_version
     local release_type
 
@@ -34,7 +34,7 @@ create() {
 }
 
 publish() {
-    # First argument is the release type (alpha or beta)
+    # First argument is the release type (alpha or release)
     local artifacts
     local drive_version
     local release_type
@@ -77,7 +77,7 @@ EOF
 
 main() {
     # $1 is the action to do
-    # $2 is the release type (either alpha or beta)
+    # $2 is the release type (either alpha or release)
     case "$1" in
         "--cancel") cancel "$2" ;;
         "--create") create "$2" ;;

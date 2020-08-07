@@ -10,6 +10,7 @@ env:
   global:
     - MAKEFLAGS="-j 2"
     - NXDRIVE_TEST_NUXEO_URL="https://nightly.nuxeo.com/nuxeo"
+    # Set to "release" for a beta release
     - RELEASE_TYPE="alpha"
 
 _before_script: &_before_script
@@ -79,9 +80,7 @@ jobs:
 
           # Do the release
           bash tools/release.sh --publish "$RELEASE_TYPE" || exit 1
-          if [ "$RELEASE_TYPE" = "beta" ]; then
-            bash tools/release.sh --create "$RELEASE_TYPE" || exit 1
-          fi
+          bash tools/release.sh --create "$RELEASE_TYPE" || exit 1
         fi
     after_failure:
       - bash tools/release.sh --cancel
