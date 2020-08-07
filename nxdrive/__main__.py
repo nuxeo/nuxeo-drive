@@ -3,6 +3,7 @@
 In this file we cannot use a relative import here, else Drive will not start when packaged.
 See https://github.com/pyinstaller/pyinstaller/issues/2560
 """
+import locale
 import os
 import platform
 import signal
@@ -93,6 +94,9 @@ def main() -> int:
         # XXX_PYTHON
         if sys.version_info < (3, 7):
             raise RuntimeError(f"{APP_NAME} requires Python 3.7")
+
+        # NXDRIVE-2230: Ensure the OS locale will be respected through the application
+        locale.setlocale(locale.LC_TIME, "")
 
         if not (check_executable_path() and check_os_version()):
             return 1
