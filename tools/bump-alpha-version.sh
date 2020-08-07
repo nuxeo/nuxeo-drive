@@ -9,9 +9,6 @@ bump() {
     local alpha_version
     local drive_version
 
-    # Needed on Travis-CI to fetch all tags
-    git fetch --unshallow --tags 2>/dev/null || true
-
     alpha_version="$(git describe --always --match="release-*" | cut -d"-" -f3)"
     drive_version="$(grep __version__ nxdrive/__init__.py | cut -d'"' -f2)"
 

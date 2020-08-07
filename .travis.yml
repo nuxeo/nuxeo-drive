@@ -14,6 +14,16 @@ env:
 
 _before_script: &_before_script
   before_script:
+    # Needed to fetch all tags
+    - git fetch --unshallow --tags
+    - |
+      echo "Checking if a run is needed ..."
+      latest_alpha="$(git tag -l 'alpha-*' --sort=-taggerdate | head -n1")"
+      differ_commits="$(git describe --always --match='alpha-*' | cut -d'-' -f3")
+      if [ "${release} = "" ] || [ "${differ_commits}" = "0" ]; then
+        echo "Nothing new since the previous alpha."
+        exit
+      fi
     - |
       echo "${SSH_PRIV_KEY}" | base64 --decode > private.key
       chmod 0600 private.key
