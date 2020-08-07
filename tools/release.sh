@@ -12,16 +12,12 @@ set -e
 . "tools/env.sh"
 
 cancel() {
-    # First argument is the release type (alpha or beta)
-    local drive_version
-    local release_type
+    local artifacts
 
-    drive_version="$(grep __version__ nxdrive/__init__.py | cut -d'"' -f2)"
-    release_type="$1"
+    artifacts="/var/www/community.nuxeo.com/static/drive-staging/${TRAVIS_BUILD_NUMBER}"
 
-    echo ">>> [${release_type} ${drive_version}] Removing the tag"
-    git tag --delete "${release_type}-${drive_version}" || true
-    git push --delete origin "${release_type}-${drive_version}" || true
+    echo ">>> [Deploy] Removing uploaded artifacts"
+    ssh -o "StrictHostKeyChecking=no" nuxeo@lethe.nuxeo.com rm -rfv "${artifacts}"
 }
 
 create() {
