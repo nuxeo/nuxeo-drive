@@ -86,6 +86,7 @@
     "DIRECT_EDIT_UNLOCK_ERROR": "Problem z odblokowaniem",
     "DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION": "Dokument \"%1\" nie został odblokowany",
     "DIRECT_EDIT_UPDATED_FILE": "Plik \"%1\" został zaktualizowany",
+    "DIRECT_EDIT_UPLOAD_FAILED": "Failed to upload changes for \"%1\"",
     "DIRECT_EDIT_VERSION": "Próbujesz przeprowadzić bezpośrednią edycję wersji %1 z \"%2\". Nie jest to aktualna wersja dokumentu, więc jest tylko do odczytu i nie może być edytowana.",
     "DIRECT_TRANSFER_CANCEL": "Potwierdź anulowanie transferu \"%1\"?",
     "DIRECT_TRANSFER_DETAILS": "[%1%] %2 z %3",

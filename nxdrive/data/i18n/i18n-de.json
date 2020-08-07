@@ -86,6 +86,7 @@
     "DIRECT_EDIT_UNLOCK_ERROR": "Problem mit dem Entsperren",
     "DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION": "Das Dokument \"%1\" wurde nicht entsperrt",
     "DIRECT_EDIT_UPDATED_FILE": "Die Datei \"%1\" wurde aktualisiert",
+    "DIRECT_EDIT_UPLOAD_FAILED": "Failed to upload changes for \"%1\"",
     "DIRECT_EDIT_VERSION": "Sie versuchen eine direkte Bearbeitung auf Version %1 von \"%2\" durchzuführen. Es ist nicht die aktuelle Version des Dokuments, daher ist es lesbar und kann nicht bearbeitet werden.",
     "DIRECT_TRANSFER_CANCEL": "Bestätigen Sie die Stornierung der Überweisung von \"%1\"?",
     "DIRECT_TRANSFER_DETAILS": "[%1%] %2 von %3",
