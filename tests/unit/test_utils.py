@@ -581,7 +581,7 @@ def test_normalize_and_expand_path():
 def test_normalize_event_filename(tmp):
     func = nxdrive.utils.normalize_event_filename
 
-    folder = tmp()
+    folder = nxdrive.utils.safe_long_path(tmp())
     folder.mkdir()
 
     file = folder / "file.txt"
@@ -596,7 +596,16 @@ def test_normalize_event_filename(tmp):
     file_ending_with_space.touch()
     file_ending_with_space_stripped = folder / "file2.txt"
 
-    assert func(file, action=False) == file
+    def mocked_safe_rename(src: Path, dst: Path):
+        """Mocked nxdrive.utils.safe_rename method."""
+        nonlocal file
+
+        if src == nxdrive.utils.normalized_path(file).with_name(file.name):
+            raise Exception("Mocked exception safe_rename should not be called")
+        return nxdrive.utils.safe_rename(src, dst)
+
+    with patch.object(nxdrive.utils, "safe_rename", new=mocked_safe_rename):
+        assert func(file) == file
 
     # The file ending with a space is renamed
     assert func(file_ending_with_space) == file_ending_with_space_stripped
