@@ -351,6 +351,7 @@ class DocPair(Row):
     last_transfer: str
     creation_date: str
     duplicate_behavior: str
+    session: int
 
     def __repr__(self) -> str:
         return (

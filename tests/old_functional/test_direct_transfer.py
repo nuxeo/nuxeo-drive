@@ -725,6 +725,31 @@ class DirectTransferFolder:
 
         self.checks(created)
 
+    def test_sessions(self):
+        """Test the Direct Transfer session incrementation system."""
+
+        # There is no upload, right now
+        assert not list(self.engine_1.dao.get_dt_uploads())
+
+        for x in range(4):
+            created = []
+            root_folder = self.tmpdir / str(uuid4())[:6]
+            root_folder.mkdir()
+            created.append(root_folder)
+
+            sub_file = root_folder / f"file_{str(uuid4())[:4]}"
+            sub_file.write_text("test", encoding="utf8")
+            created.append(sub_file)
+
+            with ensure_no_exception():
+                self.direct_transfer(root_folder)
+                planned = [
+                    self.engine_1.dao.get_state_from_local(elem) for elem in created
+                ]
+                assert len(planned) == len(created)
+                assert all(dt["session"] == x + 1 for dt in planned)
+                self.wait_sync(wait_for_async=True)
+
     def test_sub_files(self):
         """Test the Direct Transfer on a folder with many files."""
 

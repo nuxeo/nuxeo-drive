@@ -105,6 +105,7 @@ class Engine(QObject):
     # Direct Transfer
     directTranferError = pyqtSignal(Path)
     directTranferStatus = pyqtSignal(Path, bool)
+    directTranferSessionFinished = pyqtSignal()
     directTranferItemsCount = pyqtSignal(bool)
 
     type = "NXDRIVE"
@@ -426,6 +427,10 @@ class Engine(QObject):
             remote_parent_path, remote_parent_ref, duplicate_behavior
         )
 
+        # Get the last session value and add 1 to have the current session number
+        session = int(self.dao.get_config("dt_last_session", 0)) + 1
+        self.dao.update_config("dt_last_session", str(session))
+
         all_paths = local_paths.keys()
         items = [
             (
@@ -450,7 +455,7 @@ class Engine(QObject):
         )
         current_max_row_id = -1
         for batch_items in grouper(items, bsize):
-            row_id = self.dao.plan_many_direct_transfer_items(batch_items)
+            row_id = self.dao.plan_many_direct_transfer_items(batch_items, session)
             if current_max_row_id == -1:
                 current_max_row_id = row_id
             self.directTranferItemsCount.emit(False)

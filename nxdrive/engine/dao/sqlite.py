@@ -632,7 +632,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 14
+        return 15
 
     def _migrate_state(self, cursor: Cursor) -> None:
         try:
@@ -824,6 +824,14 @@ class EngineDAO(ConfigurationDAO):
             )
             self.store_int(SCHEMA_VERSION, 14)
 
+        if version < 15:
+            # Add the *session* field to the States table,
+            # used by the Direct Transfer feature.
+            self._append_to_table(
+                cursor, "States", ("session", "INTEGER", "DEFAULT", "0"),
+            )
+            self.store_int(SCHEMA_VERSION, 15)
+
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
         if name == "States":
             self._create_state_table(cursor, force)
@@ -906,6 +914,7 @@ class EngineDAO(ConfigurationDAO):
             "    last_transfer           VARCHAR,"
             "    creation_date           TIMESTAMP,"
             "    duplicate_behavior      VARCHAR    DEFAULT ('create'),"
+            "    session                 INTEGER    DEFAULT (0),"
             "    PRIMARY KEY (id),"
             "    UNIQUE(remote_ref, remote_parent_ref),"
             "    UNIQUE(remote_ref, local_path))"
@@ -1106,7 +1115,9 @@ class EngineDAO(ConfigurationDAO):
 
             return row_id
 
-    def plan_many_direct_transfer_items(self, items: Tuple[Any, ...]) -> int:
+    def plan_many_direct_transfer_items(
+        self, items: Tuple[Any, ...], session: int
+    ) -> int:
         """
         Add new Direct Transfer *items*.
         This is an optimized method that will insert all *items* in one go.
@@ -1125,8 +1136,8 @@ class EngineDAO(ConfigurationDAO):
                 "INSERT INTO States "
                 "(local_path, local_parent_path, local_name, folderish, size, "
                 "remote_parent_path, remote_parent_ref, duplicate_behavior, "
-                "local_state, remote_state, pair_state)"
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'direct', ?, 'direct_transfer')"
+                "local_state, remote_state, pair_state, session)"
+                f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'direct', ?, 'direct_transfer', {session})"
             )
             cur.executemany(query, items)
             return current_max_row_id
@@ -1406,6 +1417,9 @@ class EngineDAO(ConfigurationDAO):
 
     def get_dt_items_count(self) -> int:
         return self.get_count("local_state = 'direct'")
+
+    def get_dt_session_items_count(self, session: int) -> int:
+        return self.get_count(f"local_state = 'direct' AND session = {session}")
 
     def get_count(self, condition: str = None) -> int:
         query = "SELECT COUNT(*) as count FROM States"
