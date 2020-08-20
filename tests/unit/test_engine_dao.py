@@ -310,7 +310,7 @@ def test_migration_db_v1(engine_dao):
         c = dao._get_read_connection().cursor()
 
         cols = c.execute("PRAGMA table_info('States')").fetchall()
-        assert len(cols) == 32
+        assert len(cols) == 33
 
         cols = c.execute("SELECT * FROM States").fetchall()
         assert len(cols) == 63
@@ -324,7 +324,7 @@ def test_migration_db_v1_with_duplicates(engine_dao):
         assert not rows
 
         cols = c.execute("PRAGMA table_info('States')").fetchall()
-        assert len(cols) == 32
+        assert len(cols) == 33
         assert dao.get_config("remote_last_event_log_id") is None
         assert dao.get_config("remote_last_full_scan") is None
 
@@ -358,3 +358,18 @@ def test_migration_db_v10(engine_dao):
             Path("/Tests Drive/Live Connect/Test document Live Connect")
         )
         assert not bad_digest_file
+
+
+def test_migration_db_v16(engine_dao):
+    """Verify Downloads after migration from v15 to v16."""
+    with engine_dao("engine_migration_16.db") as dao:
+        sessions = list(dao.get_sessions())
+        assert len(sessions) == 2
+
+        session = dao.get_session(9)
+        assert session
+        assert session.total == 2
+
+        session = dao.get_session(10)
+        assert session
+        assert session.total == 1

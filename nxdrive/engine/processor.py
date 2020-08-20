@@ -518,6 +518,10 @@ class Processor(EngineWorker):
         if not doc_pair.folderish and doc_pair.size >= 25 * 1024 * 1024:
             self.engine.directTranferStatus.emit(path, False)
 
+        session = self.dao.update_session(doc_pair.session)
+        if session and session.status == "done":
+            self.engine.directTranferSessionFinished.emit(session.remote_path)
+
         # For analytics
         self.engine.manager.directTransferStats.emit(doc_pair.folderish, doc_pair.size)
 

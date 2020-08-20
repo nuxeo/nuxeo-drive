@@ -351,6 +351,7 @@ class DocPair(Row):
     last_transfer: str
     creation_date: str
     duplicate_behavior: str
+    session: int
 
     def __repr__(self) -> str:
         return (
@@ -477,3 +478,13 @@ class Upload(Transfer):
     chunk_size: Optional[int] = None
     remote_parent_path: Optional[str] = ""
     remote_parent_ref: Optional[str] = ""
+
+
+@dataclass
+class Session:
+    session_id: int = 0
+    remote_path: Optional[str] = ""
+    remote_ref: Optional[str] = ""
+    status: str = "ongoing"
+    uploaded: int = 0
+    total: int = 0
