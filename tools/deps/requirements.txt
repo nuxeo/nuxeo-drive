@@ -91,8 +91,8 @@ jmespath==0.10.0 \
 #nuxeo[s3]==2.4.5 \
 #    --hash=sha256: \
 #    --hash=sha256:
-tools/deps/nuxeo-python-client-afdf3ad.zip[s3] \
-    --hash=sha256:d46db756368a305de451ecb9eb1745a908bad7c988222da0c98cba86cedf348c
+tools/deps/nuxeo-python-client-c2e973d.zip[s3] \
+    --hash=sha256:5744e5ead6b1b1cd79b79e7a1ffc4f8f41745fff8ccaf69dc618f70f57ba537b
 pathtools==0.1.2 \
     --hash=sha256:7c35c5421a39bb82e58018febd90e3b6e5db34c5443aaaf742b3f33d4655f1c0
     # via watchdog
