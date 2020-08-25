@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Create a new release, it means:
-#     - creating a new alpha or beta (see as "release");
+#     - creating a new alpha or beta (seen as "release");
 #     - deploying artifacts to the server;
 #
 # Warning: do not execute this script manually but from Travis-CI.
@@ -42,6 +42,12 @@ publish() {
     artifacts="/var/www/community.nuxeo.com/static/drive-staging/${TRAVIS_BUILD_NUMBER}"
     drive_version="$(grep __version__ nxdrive/__init__.py | cut -d'"' -f2)"
     release_type="$1"
+
+    # The $release_type is misinforming here because it is "release" for beta and GA releases,
+    # or "alpha" for alpha.
+    if [ "${release_type}" = "release" ]; then
+        release_type="beta"
+    fi
 
     echo ">>> [${release_type} ${drive_version}] Deploying to the server"
     scp -o "StrictHostKeyChecking=no" tools/versions.py nuxeo@lethe.nuxeo.com:"${artifacts}"
