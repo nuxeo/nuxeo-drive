@@ -205,7 +205,7 @@ function check_upgrade {
 function check_vars {
 	# Check required variables
 	if (-Not ($Env:PYTHON_DRIVE_VERSION)) {
-		$Env:PYTHON_DRIVE_VERSION = '3.7.8'  # XXX_PYTHON
+		$Env:PYTHON_DRIVE_VERSION = '3.7.9'  # XXX_PYTHON
 	}
 	if (-Not ($Env:WORKSPACE)) {
 		if ($Env:TRAVIS_BUILD_DIR) {
