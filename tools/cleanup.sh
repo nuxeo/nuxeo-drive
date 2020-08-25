@@ -39,6 +39,7 @@ main() {
 
     echo ">>> Checking versions.yml integrity"
     python3 tools/versions.py --check || exit 1
+    md5sum versions.yml > hash.md5
 
     if [ -n "$1" ]; then
         if [ $(echo "$1" | tr -d -c '.' | wc -c) -gt 2 ]; then
@@ -59,6 +60,11 @@ main() {
                 purge "${version}"
             fi
         done < <(git for-each-ref --sort=-taggerdate --format '%(refname:short) %(taggerdate:short)' refs/tags | grep -e "(^alpha*)")
+    fi
+
+    if md5sum -c --status hash.md5; then
+        echo ">>> No changes in versions.yml, good."
+        return 0
     fi
 
     echo ">>> Checking versions.yml integrity"
