@@ -32,7 +32,7 @@ $ErrorActionPreference = "Stop"
 
 # Global variables
 $global:PYTHON_OPT = "-Xutf8", "-E", "-s"
-$global:PIP_OPT = "-m", "pip", "install", "--upgrade", "--upgrade-strategy=only-if-needed"
+$global:PIP_OPT = "-m", "pip", "install", "--no-cache-dir", "--upgrade", "--upgrade-strategy=only-if-needed"
 
 # Imports
 Import-Module BitsTransfer
