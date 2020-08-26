@@ -307,6 +307,7 @@ class ConfigurationDAO(QObject):
             check_same_thread=False,
             factory=AutoRetryConnection,
             isolation_level=None,
+            timeout=10,
         )
         self.conn.row_factory = self._state_factory
         self._connections.append(self.conn)
@@ -346,6 +347,7 @@ class ConfigurationDAO(QObject):
                 check_same_thread=False,
                 factory=AutoRetryConnection,
                 isolation_level=None,
+                timeout=10,
             )
             self._conns.conn.row_factory = self._state_factory
             self._connections.append(self._conns.conn)
