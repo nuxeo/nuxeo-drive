@@ -3,7 +3,7 @@ import os
 import sys
 from logging import getLogger
 from time import monotonic_ns
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Callable, Dict
 
 import requests
 from PyQt5.QtCore import pyqtSlot
@@ -23,6 +23,16 @@ if TYPE_CHECKING:
 __all__ = ("Tracker",)
 
 log = getLogger(__name__)
+
+
+def analytics_enabled(meth: Callable) -> Callable:
+    """Did the user allow to share metrics?"""
+
+    def inner(*args: Any, **kwargs: Any) -> Any:
+        if Options.is_frozen and Options.use_analytics:
+            return meth(*args, **kwargs)
+
+    return inner
 
 
 class Tracker(PollWorker):
@@ -172,14 +182,12 @@ class Tracker(PollWorker):
         except Exception:
             log.warning("Error sending Google Analytics")
 
+    @analytics_enabled
     @pyqtSlot(object)
     def send_sync_event(self, metrics: Dict[str, Any]) -> None:
         """Sent each time the Processor handles an event.
         This is mostly to have real time stats on GA.
         """
-        if not self._allowed_to_send_anything():
-            return
-
         elapsed = monotonic_ns() - metrics["start_ns"]
         if elapsed > 0.0:
             self.send_event(
@@ -189,11 +197,9 @@ class Tracker(PollWorker):
                 value=elapsed,
             )
 
+    @analytics_enabled
     @pyqtSlot(str, int)
     def send_directedit_open(self, name: str, timing: int) -> None:
-        if not self._allowed_to_send_anything():
-            return
-
         _, extension = os.path.splitext(name)
         if not extension:
             extension = "unknown"
@@ -202,11 +208,9 @@ class Tracker(PollWorker):
             category="DirectEdit", action="Open", label=extension.lower(), value=timing
         )
 
+    @analytics_enabled
     @pyqtSlot(str, int)
     def send_directedit_edit(self, name: str, timing: int) -> None:
-        if not self._allowed_to_send_anything():
-            return
-
         _, extension = os.path.splitext(name)
         if not extension:
             extension = "unknown"
@@ -215,21 +219,17 @@ class Tracker(PollWorker):
             category="DirectEdit", action="Edit", label=extension.lower(), value=timing
         )
 
+    @analytics_enabled
     @pyqtSlot(bool, int)
     def send_direct_transfer(self, folderish: bool, size: int) -> None:
-        if not self._allowed_to_send_anything():
-            return
-
         nature = "folder" if folderish else "file"
         self.send_event(
             category="DirectTransfer", action="Sent", label=nature, value=size
         )
 
+    @analytics_enabled
     @pyqtSlot()
     def send_stats(self) -> None:
-        if not self._allowed_to_send_anything():
-            return
-
         for engine in self._manager.engines.values():
             for key, value in engine.get_metrics().items():
                 if not isinstance(value, int):
@@ -255,10 +255,6 @@ class Tracker(PollWorker):
         self.send_event(category="Hello", action="world", anon=True)
 
         self._hello_sent = True
-
-    def _allowed_to_send_anything(self) -> bool:
-        """Avoid sending statistics when testing or if the user disallowed them."""
-        return not (Options.is_frozen and Options.use_analytics)
 
     @pyqtSlot(result=bool)
     def _poll(self) -> bool:
