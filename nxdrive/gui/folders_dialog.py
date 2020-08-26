@@ -32,7 +32,7 @@ __all__ = ("DocumentsDialog", "FoldersDialog")
 
 log = getLogger(__name__)
 
-DOC_URL = "https://doc.nuxeo.com/client-apps/nuxeo-drive-functional-overview/#duplicates-behavior"
+DOC_URL = "https://doc.nuxeo.com/n/CBX/#duplicates-behavior"
 
 
 class DialogMixin(QDialog):
