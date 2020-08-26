@@ -1,5 +1,5 @@
 """
-Fatal error screen management using either Qt or native dialogs.
+Fatal error screen management using either Qt or OS-specific dialogs.
 """
 import sys
 from contextlib import suppress
@@ -163,7 +163,7 @@ def fatal_error_qt(exc_formatted: str) -> None:
 
 def fatal_error_win(text: str) -> None:
     """
-    Display a fatal error using Windows native dialog.
+    Display a fatal error using Windows-specific dialog.
     Taken from https://stackoverflow.com/a/27257176/1117028.
     """
 
@@ -177,7 +177,7 @@ def fatal_error_win(text: str) -> None:
 
 
 def fatal_error_mac(text: str) -> None:
-    """Display a fatal error using macOS native dialog."""
+    """Display a fatal error using macOS-specific dialog."""
 
     import subprocess
 
@@ -264,7 +264,7 @@ def show_critical_error() -> None:
     try:
         fatal_error_qt(full_error)
     except Exception as exc:
-        # Fallback to native dialog but only to prompt the user for installation error.
+        # Fallback to OS-specific dialog but only to prompt the user for installation error.
         text = (
             f"{APP_NAME} cannot start, the entire installation is broken."
             f"\n\nOriginal error:\n{full_error}"

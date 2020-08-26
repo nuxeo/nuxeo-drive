@@ -12,5 +12,5 @@ tests/resources/i18n/i18n-*
 # No need to check foreign languages of the Windows installer
 tools/windows/unofficial_i18n
 
-# Hm, this seems weird but we also need to skip our own whitelist ...
-tools/spell.whitelist
+# Hm, this seems weird but we also need to skip our own allow list ...
+tools/spell.allowlist

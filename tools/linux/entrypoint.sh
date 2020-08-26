@@ -8,6 +8,6 @@ else
     export WORKSPACE_DRIVE="/opt/sources"
 
     cd "${WORKSPACE_DRIVE}"
-    ./tools/linux/deploy_jenkins_slave.sh --install-release
-    ./tools/linux/deploy_jenkins_slave.sh --build
+    ./tools/linux/deploy_ci_agent.sh --install-release
+    ./tools/linux/deploy_ci_agent.sh --build
 fi

@@ -1,7 +1,7 @@
 #! /bin/bash
 # Script to generate the .DS_Store file of the .dmg
 # The execution of this script does not work without an active graphical user session
-# hence cannot be run remotely by ssh as done on the Jenkins slave machine.
+# hence cannot be run remotely by ssh as done on the Jenkins agent.
 # Therefore the result of this script is checked in under version control.
 set -ex
 VOLUME_NAME="Nuxeo Drive"

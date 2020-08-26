@@ -52,7 +52,7 @@ The projects are in `tools/windows/NuxeoDriveShellExtensions`.
 The `NuxeoDriveUtil` can be built by itself. The `NuxeoDriveOverlays` needs to be built once per icon.
 
 There is a function in the deployment script that takes care of all this, just run:
-    powershell .\tools\windows\deploy_jenkins_slave.ps1 --build_dlls
+    powershell .\tools\windows\deploy_ci_agent.ps1 --build_dlls
 
 Once DLLs are compiled, we move them to the `nuxeo-drive/tools/windows/dll/(x86|x64)` directories.
 During installation, Inno Setup will take care of running `regsvr32` on them so that they are registered with the system and executed by the Explorer.

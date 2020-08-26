@@ -22,7 +22,7 @@ check_spell() {
     # Display the command to allow interactive mode later
     set -x
     codespell \
-        --ignore-words=tools/spell.whitelist \
+        --ignore-words=tools/spell.allowlist \
         --quiet-level=4 \
         --skip="${to_skip}" \
         2> /dev/null

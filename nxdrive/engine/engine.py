@@ -79,7 +79,7 @@ class Engine(QObject):
     longPathError = pyqtSignal(object)
     syncStarted = pyqtSignal(object)
     syncCompleted = pyqtSignal()
-    # Sent when files are in blacklist but the rest is ok
+    # Sent when files are in error but the rest is OK
     syncPartialCompleted = pyqtSignal()
     syncSuspended = pyqtSignal()
     syncResumed = pyqtSignal()
@@ -849,7 +849,7 @@ class Engine(QObject):
 
         watcher = self._local_watcher
         empty_events = watcher.empty_events()
-        blacklist_size = self.queue_manager.get_errors_count()
+        errors = self.queue_manager.get_errors_count()
         qm_size = self.queue_manager.get_overall_size()
         qm_active = self.queue_manager.active()
         active_status = "active" if qm_active else "inactive"
@@ -865,14 +865,14 @@ class Engine(QObject):
         log.info(
             f"Checking sync for engine {self.uid}: queue manager is {active_status} (size={qm_size}), "
             f"empty remote polls count is {empty_polls}, local watcher empty events is {empty_events}, "
-            f"blacklist size is {blacklist_size} and syncing count is {self.dao.get_syncing_count()}"
+            f"errors queue size is {errors} and syncing count is {self.dao.get_syncing_count()}"
             f"{win_info}"
         )
 
         if qm_size > 0 or not empty_events or qm_active:
             return
 
-        if blacklist_size:
+        if errors:
             log.debug(f"Emitting syncPartialCompleted for engine {self.uid}")
             self.syncPartialCompleted.emit()
         else:

@@ -601,7 +601,7 @@ class TestUpload(OneUserTest):
         Step 1/3:
             - start the upload
             - it must fail at chunk N
-            - the upload is then blacklisted and will be retried later
+            - the upload is then temporary ignored and will be retried later
 
         Step 2/3:
             - for whatever reason, its batch ID is no more valid
@@ -609,7 +609,7 @@ class TestUpload(OneUserTest):
             - a new batch ID is given
             - upload all chunks successfully
             - server error at linking the blob to the document
-            - the upload is then blacklisted and will be retried later
+            - the upload is then temporary ignored and will be retried later
 
         Step 3/3:
             - resume the upload

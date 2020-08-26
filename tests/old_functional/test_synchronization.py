@@ -289,7 +289,7 @@ class TestSynchronization(OneUserTest):
         self.queue_manager_1._disable = False
         self.queue_manager_1.resume()
         # By default engine will not consider being syncCompleted
-        # because of the blacklist
+        # because of the temporary ignore dfile
         self.wait_sync(enforce_errors=False, fail_if_timeout=False)
 
         # All errors have been skipped, while the remaining docs have
@@ -860,7 +860,7 @@ class TestSynchronization(OneUserTest):
 
         # Create 7 files with the same name
         name = "Congés 2016 / 2017.txt"
-        sanitized_name = safe_filename(name)
+        name_expected = safe_filename(name)
         for _ in range(7):
             remote.make_file("/", name, content=b"42")
 
@@ -869,7 +869,7 @@ class TestSynchronization(OneUserTest):
         self.wait_sync(wait_for_async=True)
 
         # Check that one file exists, and engine has 6 errors
-        assert local.exists(f"/{sanitized_name}")
+        assert local.exists(f"/{name_expected}")
         assert len(local.get_children_info("/")) == 1
         assert len(engine.dao.get_errors(limit=0)) == 6
 

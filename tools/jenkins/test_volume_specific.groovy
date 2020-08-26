@@ -92,16 +92,16 @@ for (x in agents) {
                 try {
                     if (agent_snake_case.startsWith('MAC')) {
                         // macOS
-                        sh 'tools/osx/deploy_jenkins_slave.sh --install'
-                        sh 'tools/osx/deploy_jenkins_slave.sh --tests'
+                        sh 'tools/osx/deploy_ci_agent.sh --install'
+                        sh 'tools/osx/deploy_ci_agent.sh --tests'
                     } else if (agent_snake_case.startsWith('WIN')) {
                         // Windows
-                        bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -install'
-                        bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -tests'
+                        bat 'powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install'
+                        bat 'powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -tests'
                     } else {
                         // GNU/Linux
-                        sh 'tools/linux/deploy_jenkins_slave.sh --install'
-                        sh 'tools/linux/deploy_jenkins_slave.sh --tests'
+                        sh 'tools/linux/deploy_ci_agent.sh --install'
+                        sh 'tools/linux/deploy_ci_agent.sh --tests'
                     }
                 } catch(e) {
                     currentBuild.result = 'FAILURE'

@@ -39,13 +39,13 @@ From the folder containing the Nuxeo Drive source code (this repository):
 ```shell
 git checkout "release-4.2.0"  # Or whatever release you want, starting with 4.0.0 and newer
 
-WORKSPACE="$(pwd)" ./tools/linux/deploy_jenkins_slave.sh --install-release
+WORKSPACE="$(pwd)" ./tools/linux/deploy_ci_agent.sh --install-release
 ```
 
 Then, when you want to launch Nuxeo Drive, simply type:
 
 ```shell
-WORKSPACE="$(pwd)" ./tools/linux/deploy_jenkins_slave.sh --start
+WORKSPACE="$(pwd)" ./tools/linux/deploy_ci_agent.sh --start
 ```
 
 ## Jenkins

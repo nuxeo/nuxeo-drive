@@ -10,7 +10,7 @@ Finally, scripts names are referring to Jenkins, but you can always execute them
 
 ### Usage
 
-    sh tools/$OSI/deploy_jenkins_slave.sh [ARG]
+    sh tools/$OSI/deploy_ci_agent.sh [ARG]
 
 Where `$OSI` is one of: `linux`, `osx`.
 
@@ -37,7 +37,7 @@ See [pyenv](https://github.com/yyuu/pyenv/wiki/Common-build-problems#requirement
 
 ### Usage
 
-    powershell .\tools\windows\deploy_jenkins_slave.ps1 [ARG] [-direct]
+    powershell .\tools\windows\deploy_ci_agent.ps1 [ARG] [-direct]
 
 Possible `ARG`:
 

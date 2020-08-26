@@ -21,7 +21,7 @@ properties([
     ]]
 ])
 
-// Jenkins slaves we will build on
+// Jenkins agents we will build on
 agents = ['SLAVE', 'OSXSLAVE-DRIVE', 'WINSLAVE']
 labels = [
     'SLAVE': 'GNU/Linux',

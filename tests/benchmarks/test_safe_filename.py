@@ -16,22 +16,22 @@ FILENAMES = [
 ]
 
 
-@pytest.mark.parametrize("fname, fname_sanitized", FILENAMES)
-def test_re_sub(fname, fname_sanitized, benchmark):
+@pytest.mark.parametrize("fname, fname_expected", FILENAMES)
+def test_re_sub(fname, fname_expected, benchmark):
     from re import compile, sub
 
     pattern = compile(r'([/:"|*<>?\\])')
-    assert benchmark(lambda: sub(pattern, "-", fname)) == fname_sanitized
+    assert benchmark(lambda: sub(pattern, "-", fname)) == fname_expected
 
 
-@pytest.mark.parametrize("fname, fname_sanitized", FILENAMES)
-def test_str_translate(fname, fname_sanitized, benchmark):
+@pytest.mark.parametrize("fname, fname_expected", FILENAMES)
+def test_str_translate(fname, fname_expected, benchmark):
     repmap = {ord(c): "-" for c in '/:"|*<>?\\'}
-    assert benchmark(lambda: fname.translate(repmap)) == fname_sanitized
+    assert benchmark(lambda: fname.translate(repmap)) == fname_expected
 
 
-@pytest.mark.parametrize("fname, fname_sanitized", FILENAMES)
-def test_str_replace(fname, fname_sanitized, benchmark):
+@pytest.mark.parametrize("fname, fname_expected", FILENAMES)
+def test_str_replace(fname, fname_expected, benchmark):
     assert (
         benchmark(
             lambda: (
@@ -46,5 +46,5 @@ def test_str_replace(fname, fname_sanitized, benchmark):
                 .replace("\\", "-")
             )
         )
-        == fname_sanitized
+        == fname_expected
     )

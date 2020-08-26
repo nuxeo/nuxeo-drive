@@ -26,7 +26,7 @@ class TestConcurrentSynchronization(TwoUsersTest):
 
         This is to simulate downstream synchronization of a file opened (thus
         locked) by any program under Windows, typically MS Word.
-        The file should be blacklisted and not prevent synchronization of other
+        The file should be temporary ignored and not prevent synchronization of other
         pending items.
         Once the file is unlocked and the cooldown period is over it should be
         synchronized.
@@ -73,7 +73,7 @@ class TestConcurrentSynchronization(TwoUsersTest):
                 # - Opened local files should still exist and not have been
                 #   modified
                 # - Synchronization should not fail: doc pairs should be
-                #   blacklisted and other remote modifications should be
+                #   temporary ignored and other remote modifications should be
                 #   locally synchronized
                 assert local.exists("/test_update.docx")
                 assert (
@@ -88,7 +88,7 @@ class TestConcurrentSynchronization(TwoUsersTest):
 
                 # Synchronize again
                 self.wait_sync(enforce_errors=False, fail_if_timeout=False)
-                # Blacklisted files should be ignored as delay (60 seconds by
+                # Temporary ignored files should be still be ignored as delay (60 seconds by
                 # default) is not expired, nothing should have changed
                 assert local.exists("/test_update.docx")
                 assert (
@@ -104,7 +104,7 @@ class TestConcurrentSynchronization(TwoUsersTest):
             self.queue_manager_1.requeue_errors()
             self.wait_sync()
 
-            # Previously blacklisted files should be updated / deleted locally,
+            # Previously temporary ignored files should be updated / deleted locally,
             # temporary download file should not be there anymore and there
             # should be no pending items left
         else:

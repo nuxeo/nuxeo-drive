@@ -37,7 +37,7 @@ class DriveSystrayIcon(QSystemTrayIcon):
         """
         Handle any mouse click on the systray icon.
         It is not needed to handle the right click as it
-        is the native behavior and will open the context
+        is the default behavior and will open the context
         menu (right click menu).
 
         Note: only the left click is detected on macOS.

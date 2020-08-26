@@ -493,7 +493,7 @@ class TestLocalMoveAndRename(OneUserTest):
         with patch.object(
             self.engine_1.dao, "insert_local_state", new=insert_local_state
         ):
-            # Might be blacklisted once
+            # Might be temporary ignored once
             self.engine_1.queue_manager._error_interval = 3
             local.make_file("/", "File.txt", content=b"Some Content 2")
             sleep(10)
