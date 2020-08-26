@@ -8,7 +8,7 @@ import "icon-font/Icon.js" as MdiFont
 Rectangle {
     id: control
     property bool paused: status == "PAUSED" || status == "SUSPENDED"
-    width: parent.width || 500
+    width: parent ? parent.width : 0
     height: 55
 
     ColumnLayout {
