@@ -2183,7 +2183,7 @@ class EngineDAO(ConfigurationDAO):
     def get_downloads(self) -> Generator[Download, None, None]:
         con = self._get_read_connection()
         c = con.cursor()
-        for res in c.execute("SELECT * FROM Downloads"):
+        for res in c.execute("SELECT * FROM Downloads").fetchall():
             try:
                 status = TransferStatus(res.status)
             except ValueError:
@@ -2206,7 +2206,9 @@ class EngineDAO(ConfigurationDAO):
     def get_uploads(self) -> Generator[Upload, None, None]:
         con = self._get_read_connection()
         c = con.cursor()
-        for res in c.execute("SELECT * FROM Uploads WHERE is_direct_transfer = 0"):
+        for res in c.execute(
+            "SELECT * FROM Uploads WHERE is_direct_transfer = 0"
+        ).fetchall():
             try:
                 status = TransferStatus(res.status)
             except ValueError:
@@ -2230,7 +2232,9 @@ class EngineDAO(ConfigurationDAO):
         """Retrieve all Direct Transfer items (only needed details)."""
         con = self._get_read_connection()
         c = con.cursor()
-        for res in c.execute("SELECT * FROM Uploads WHERE is_direct_transfer = 1"):
+        for res in c.execute(
+            "SELECT * FROM Uploads WHERE is_direct_transfer = 1"
+        ).fetchall():
             yield Upload(
                 res.uid,
                 Path(res.path),
@@ -2247,7 +2251,9 @@ class EngineDAO(ConfigurationDAO):
         """
         con = self._get_read_connection()
         c = con.cursor()
-        for res in c.execute("SELECT * FROM Uploads WHERE is_direct_transfer = 1"):
+        for res in c.execute(
+            "SELECT * FROM Uploads WHERE is_direct_transfer = 1"
+        ).fetchall():
             path = Path(res.path)
             yield {
                 "uid": res.uid,
