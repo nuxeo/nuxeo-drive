@@ -55,7 +55,7 @@ RUN git clone $GIT_URL sources && \
     cd sources && \
     git reset --hard ${SCM_REF} && \
     # Install Python
-        WORKSPACE=/opt ./tools/linux/deploy_jenkins_slave.sh --install-python && \
+        WORKSPACE=/opt ./tools/linux/deploy_ci_agent.sh --install-python && \
     # Copy the entry point script
         cp tools/linux/entrypoint.sh / && \
     # Clean-up

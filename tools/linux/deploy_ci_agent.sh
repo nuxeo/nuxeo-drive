@@ -1,5 +1,5 @@
 #!/bin/bash
-# See tools/posix/deploy_jenkins_slave.sh for more information and arguments.
+# See tools/posix/deploy_ci_agent.sh for more information and arguments.
 
 set -e
 
@@ -7,11 +7,11 @@ export OSI="linux"
 
 . "$(python -c "import os.path; print(os.path.realpath('$0').replace('/linux/', '/posix/'))")"
 
-remove_blacklisted_files() {
-    # Remove blacklisted files known as having bad side effects
+remove_excluded_files() {
+    # Remove denylisted files known as having bad side effects
     local app_dir="$1"
 
-    echo ">>> [${app_dir}] Removing blacklisted files"
+    echo ">>> [${app_dir}] Removing excluded files"
     while IFS= read -r line; do
         file="$(echo "${line}" | cut -d' ' -f1)"
         if [ ! "${file}" = "" ] && [ ! "${file}" = "#" ]; then

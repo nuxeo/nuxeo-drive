@@ -109,13 +109,13 @@ def gen_exe():
     cmd = []
 
     if EXT == "appimage":
-        cmd = "sh tools/linux/deploy_jenkins_slave.sh --build"
+        cmd = "sh tools/linux/deploy_ci_agent.sh --build"
     elif EXT == "dmg":
-        cmd = "sh tools/osx/deploy_jenkins_slave.sh --build"
+        cmd = "sh tools/osx/deploy_ci_agent.sh --build"
     else:
         cmd = (
             "powershell -ExecutionPolicy Unrestricted"
-            ' . ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build'
+            ' . ".\\tools\\windows\\deploy_ci_agent.ps1" -build'
         )
 
     print(">>> Command:", cmd, flush=True)

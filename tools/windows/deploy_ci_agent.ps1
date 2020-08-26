@@ -1,4 +1,4 @@
-# Usage: powershell ".\tools\windows\deploy_jenkins_slave.ps1" [ARG]
+# Usage: powershell ".\tools\windows\deploy_ci_agent.ps1" [ARG]
 #
 # Possible ARG:
 #     -build: build the installer

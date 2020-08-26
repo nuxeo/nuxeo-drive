@@ -50,13 +50,13 @@ class TestLocalStorageIssue(OneUserTest):
             self.engine_1.start()
 
             # By default engine will not consider being syncCompleted
-            # because of the blacklist
+            # because of the temporary ignored files
             self.wait_sync(
                 wait_for_async=True, fail_if_timeout=False, enforce_errors=False
             )
 
             # - temporary download file should be created locally but not moved
-            # - synchronization should not fail: doc pair should be blacklisted
+            # - synchronization should not fail: doc pair should be temporary ignored
             # - and there should be 1 error
             assert (self.engine_1.download_dir / uid).is_dir()
             assert not local.exists("/test_NG.odt")
@@ -76,14 +76,14 @@ class TestLocalStorageIssue(OneUserTest):
         # Remote file should be created locally
         assert local.exists("/test_OK.odt")
 
-        # Blacklisted file should be ignored as delay (60 seconds by default)
+        # Temporary ignored file should still be ignored as delay (60 seconds by default)
         # is not expired and there should still be 1 error
         assert not local.exists("/test_NG.odt")
         errors = self.engine_1.dao.get_errors(limit=0)
         assert len(errors) == 1
         assert errors[0].remote_name == "test_NG.odt"
 
-        # Retry to synchronize blacklisted file still simulating
+        # Retry to synchronize the temporary ignored file, but still simulating
         # the same disk space related error
         with patch.object(self.engine_1, "remote", new=bad_remote):
             # Re-queue pairs in error
@@ -91,7 +91,7 @@ class TestLocalStorageIssue(OneUserTest):
             self.wait_sync(fail_if_timeout=False, enforce_errors=False)
 
             # - temporary download file should be created locally but not moved
-            # - doc pair should be blacklisted again
+            # - doc pair should be temporary ignored again
             # - and there should still be 1 error
             assert (self.engine_1.download_dir / uid).is_dir()
             assert not local.exists("/test_NG.odt")
@@ -107,7 +107,7 @@ class TestLocalStorageIssue(OneUserTest):
         self.queue_manager_1.requeue_errors()
         self.wait_sync(enforce_errors=False)
 
-        # Previously blacklisted file should be created locally
+        # Previously temporary ignored file should be created locally
         # and there should be no more errors left
         assert not (self.engine_1.download_dir / uid).is_dir()
         assert local.exists("/test_NG.odt")

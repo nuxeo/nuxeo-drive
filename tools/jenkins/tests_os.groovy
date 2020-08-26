@@ -35,8 +35,8 @@ properties([
     ]]
 ])
 
-// Jenkins slaves we will build on
-slaves = [
+// Jenkins agents we will build on
+agents = [
     'macos': 'OSXSLAVE-DRIVE',
     'linux': 'SLAVE',
     'windows': 'WINSLAVE'
@@ -98,10 +98,10 @@ if (currentBuild.result == "ABORTED") {
 
 // We have a specific operating system
 def label = (env.JOB_NAME =~ /Drive-tests-(\w+)-\w+/)[0][1]
-def slave = slaves.get(label)
+def agent = agents.get(label)
 def osi = names.get(label)
 
-node(slave) {
+node(agent) {
     timeout(240) {
         withEnv(["WORKSPACE=${pwd()}"]) {
             // TODO: Remove the Windows part when https://github.com/pypa/pip/issues/3055 is resolved
@@ -129,7 +129,7 @@ node(slave) {
                     def jdk = tool name: 'java-11-openjdk'
                     env.JAVA_HOME = "${jdk}"
                     def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
-                    def platform_opt = "-Dplatform=${slave.toLowerCase()}"
+                    def platform_opt = "-Dplatform=${agent.toLowerCase()}"
 
                     // This is a dirty hack to bypass PGSQL errors, see NXDRIVE-1370 for more information.
                     // We cannot unset hardcoded envars but we can generate a random string ourselves.

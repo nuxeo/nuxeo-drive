@@ -223,7 +223,7 @@ class QueueManager(QObject):
                         doc_pair.id, doc_pair.folderish, doc_pair.pair_state
                     )
                     del self._on_error_queue[doc_pair.id]
-                    log.info(f"End of blacklist period, pushing doc_pair: {doc_pair!r}")
+                    log.info(f"End of block period, pushing doc_pair: {doc_pair!r}")
                     self.push(queue_item)
             if not self._on_error_queue:
                 self._error_timer.stop()
@@ -264,7 +264,7 @@ class QueueManager(QObject):
         if interval is None:
             interval = self._error_interval * error_count
         doc_pair.error_next_try = interval + int(time.time())
-        log.info(f"Blacklisting pair for {interval}s: {doc_pair!r}")
+        log.info(f"Temporary ignore pair for {interval}s: {doc_pair!r}")
         with self._error_lock:
             emit_sig = False
             if doc_pair.id not in self._on_error_queue:

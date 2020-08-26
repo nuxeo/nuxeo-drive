@@ -37,8 +37,8 @@ properties([
     ]]
 ])
 
-// Jenkins slaves we will build on
-slaves = [
+// Jenkins agents we will build on
+agents = [
     'macos': 'OSXSLAVE-DRIVE',
     'linux': 'SLAVE',
     'windows': 'WINSLAVE'
@@ -154,7 +154,7 @@ def run_sonar() {
         echo "Testing Drive ${drive_version}"
 
         def suffix = (env.BRANCH_NAME == 'master') ? 'master' : 'dynamic'
-        for (def label in slaves.keySet()) {
+        for (def label in agents.keySet()) {
             try {
                 copyArtifacts(
                     projectName: "../Drive-OS-test-jobs/Drive-tests-${label}-${suffix}",
@@ -206,8 +206,8 @@ if (currentBuild.result == "ABORTED") {
 
 def successes = 0
 
-for (def x in slaves.keySet()) {
-    // Need to bind the label variable before the closure - can't do 'for (slave in slaves)'
+for (def x in agents.keySet()) {
+    // Need to bind the label variable before the closure - can't do 'for (agent in agents)'
     def label = x
     def name = names.get(label)
 

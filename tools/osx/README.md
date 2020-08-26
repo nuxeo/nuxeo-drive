@@ -10,7 +10,7 @@ icon locations of the `Nuxeo Drive.app` folder and the `Applications` symlink.
 Doing so makes OSX update a `.DS_Store` file (binary format). This file can
 then be extracted from the volume and saved to be reused to actually generate
 the final `dmg` file using `create-dmg.sh`. This second script does not require
-and active graphical session hence can be run by the Jenkins slave managing the
+and active graphical session hence can be run by the Jenkins agent managing the
 `nuxeo-drive-dmg` job in charge of the generation of the `Nuxeo
 Drive.dmg` package:
 

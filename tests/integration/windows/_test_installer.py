@@ -5,7 +5,6 @@ from glob import glob
 from logging import getLogger
 
 import pytest
-
 from nxdrive.constants import WINDOWS
 
 from ... import env
@@ -49,7 +48,7 @@ class Installer:
 @pytest.fixture()
 def installer_path():
     """ Generate a fresh installer. """
-    cmd = ["powershell", ".\\tools\\windows\\deploy_jenkins_slave.ps1", "-build"]
+    cmd = ["powershell", ".\\tools\\windows\\deploy_ci_agent.ps1", "-build"]
     log.info("Building the installer: %r", cmd)
     subprocess.Popen(cmd)
     path = glob("dist\\nuxeo-drive-*.exe")[0]

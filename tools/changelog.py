@@ -163,7 +163,7 @@ def get_issues(args):
             continue
 
         for issue in regexp.findall(commit):
-            # Sanitization
+            # Remove superfluous spaces and uppercase the word
             issue = re.sub(r"\s+", "", issue).upper()
             commits.append(issue)
 

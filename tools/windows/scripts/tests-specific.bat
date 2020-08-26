@@ -6,4 +6,4 @@ call envvars.bat
 
 set SKIP=rerun
 set SPECIFIC_TEST=old_functional/test_context_menu.py
-powershell -ExecutionPolicy Bypass .\tools\windows\deploy_jenkins_slave.ps1 -tests > %WORKSPACE%\tests-spec.log
+powershell -ExecutionPolicy Bypass .\tools\windows\deploy_ci_agent.ps1 -tests > %WORKSPACE%\tests-spec.log

@@ -1,6 +1,6 @@
 # coding: utf-8
 """
-Test LocalClient with native FS operations and specific OS ones.
+Test LocalClient with normal FS operations and OS-specific ones (simulated).
 See local_client_darwin.py and local_client_windows.py for more information.
 
 See NXDRIVE-742.
@@ -358,7 +358,7 @@ The final tree must be:
 
 class TestLocalClientNative(StubLocalClient, OneUserTest):
     """
-    Test LocalClient using native Python commands to make FS operations.
+    Test LocalClient using Python commands to make FS operations.
     This will simulate Drive actions.
     """
 
@@ -379,8 +379,8 @@ class TestLocalClientNative(StubLocalClient, OneUserTest):
     def test_remote_changing_case_accentued_folder(self):
         """
         NXDRIVE-1061: Remote rename of an accentued folder on Windows fails.
-        I put this test only here because we need to test native
-        LocalClient.rename().
+        I put this test only here because we need to test the real implementation
+        of LocalClient.rename().
         """
 
         local = self.local_1
@@ -403,7 +403,7 @@ class TestLocalClientNative(StubLocalClient, OneUserTest):
         assert children[0].name == "Pièces Graphiques"
 
 
-@not_linux(reason="GNU/Linux uses native LocalClient.")
+@not_linux(reason="GNU/Linux does not use OS-specific LocalClient.")
 class TestLocalClientSimulation(StubLocalClient, OneUserTest):
     """
     Test LocalClient using OS-specific commands to make FS operations.

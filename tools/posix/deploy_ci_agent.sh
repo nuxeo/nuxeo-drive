@@ -1,7 +1,7 @@
 #!/bin/bash
-# Shared functions for tools/$OSI/deploy_jenkins_slave.sh files.
+# Shared functions for tools/$OSI/deploy_ci_agent.sh files.
 #
-# Usage: sh tools/$OSI/deploy_jenkins_slave.sh [ARG]
+# Usage: sh tools/$OSI/deploy_ci_agent.sh [ARG]
 #
 # Possible ARG:
 #     --build: build the package
@@ -47,7 +47,7 @@ build_installer() {
         # Remove broken symlinks pointing to an inexistent target
         find dist/*.app/Contents/MacOS -type l -exec sh -c 'for x; do [ -e "$x" ] || rm -v "$x"; done' _ {} +
     elif [ "${OSI}" = "linux" ]; then
-        remove_blacklisted_files dist/ndrive
+        remove_excluded_files dist/ndrive
     fi
 
     # Remove empty folders
@@ -57,7 +57,7 @@ build_installer() {
     fi
 
     # Check for freezer regressions
-    sanity_check dist/ndrive
+    ensure_correctness dist/ndrive
 
     # Stop now if we only want the application to be frozen (for integration tests)
     if [ "${FREEZE_ONLY:-0}" = "1" ]; then
@@ -112,7 +112,7 @@ check_vars() {
     fi
     if [ "${OSI:-unset}" = "unset" ]; then
         echo "OSI not defined. Aborting."
-        echo "Please do not call this script directly. Use the good one from 'tools/OS/deploy_jenkins_slave.sh'."
+        echo "Please do not call this script directly. Use the good one from 'tools/OS/deploy_ci_agent.sh'."
         exit 1
     fi
     if [ "${WORKSPACE_DRIVE:-unset}" = "unset" ]; then
@@ -285,11 +285,11 @@ launch_tests() {
     fi
 }
 
-sanity_check() {
+ensure_correctness() {
     # Ensure some vital files are present in the frozen directory.
     local app_dir="$1"
 
-    echo ">>> [${app_dir}] Sanity checks"
+    echo ">>> [${app_dir}] Ensure the package is correct"
 
     # NXDRIVE-2056
     [ -d "${app_dir}/_struct" ] || (echo " !! Missing the '_struct' folder" ; exit 1)

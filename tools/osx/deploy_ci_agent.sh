@@ -1,5 +1,5 @@
 #!/bin/bash
-# See tools/posix/deploy_jenkins_slave.sh for more information and arguments.
+# See tools/posix/deploy_ci_agent.sh for more information and arguments.
 
 set -e
 

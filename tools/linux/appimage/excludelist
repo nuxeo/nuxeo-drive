@@ -108,12 +108,12 @@ libthai.so.0
 libfreetype.so.6
 libharfbuzz.so.0
 
-# Note, after discussion we do not exclude this, but we can use a dummy library that just does nothing
+# Note, after discussion we do not exclude this, but we can use a placeholder library that just does nothing
 # libselinux.so.1
 # Workaround for:
 # sed: error while loading shared libraries: libpcre.so.3: cannot open shared object file: No such file or directory
 # Some distributions, such as Arch Linux, do not come with libselinux.so.1 by default.
-# The solution is to bundle a dummy mock library:
+# The solution is to bundle a placeholder mock library:
 # echo "extern int is_selinux_enabled(void){return 0;}" >> selinux-mock.c
 # gcc -s -shared -o libselinux.so.1 -Wl,-soname,libselinux.so.1 selinux-mock.c
 # strip libselinux.so.1

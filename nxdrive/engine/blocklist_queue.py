@@ -5,11 +5,11 @@ from threading import Lock
 from time import monotonic
 from typing import Dict, Generator
 
-__all__ = ("BlacklistQueue",)
+__all__ = ("BlocklistQueue",)
 log = getLogger(__name__)
 
 
-class BlacklistItem:
+class BlocklistItem:
     def __init__(self, path: Path, next_try: int = 30) -> None:
         self.path = path
         self._interval = next_try
@@ -36,11 +36,11 @@ class BlacklistItem:
             self._next_try = self.count * self._interval + cur_time
 
 
-class BlacklistQueue:
+class BlocklistQueue:
     def __init__(self, delay: int = 30) -> None:
         self._delay = delay
 
-        self._queue: Dict[Path, BlacklistItem] = {}
+        self._queue: Dict[Path, BlocklistItem] = {}
         self._lock = Lock()
 
     def __repr__(self) -> str:
@@ -56,22 +56,22 @@ class BlacklistQueue:
 
     def push(self, path: Path) -> None:
         with self._lock:
-            item = BlacklistItem(path, next_try=self._delay)
-            log.debug(f"Blacklisting {item!r} for {self._delay} seconds")
+            item = BlocklistItem(path, next_try=self._delay)
+            log.debug(f"Temporary ignoring {item!r} for {self._delay} seconds")
             self._queue[path] = item
 
-    def repush(self, item: BlacklistItem, increase_wait: bool = True) -> None:
+    def repush(self, item: BlocklistItem, increase_wait: bool = True) -> None:
         # Only used in tests, but it is more practical to keep there.
         with self._lock:
             item.increase(next_try=None if increase_wait else self._delay)
             self._queue[item.path] = item
 
-    def get(self) -> Generator[BlacklistItem, None, None]:
+    def get(self) -> Generator[BlocklistItem, None, None]:
         with self._lock:
             cur_time = int(monotonic())
             for item in self._queue.copy().values():
                 if not item.check(cur_time):
                     continue
 
-                log.debug(f"Whitelisting {item!r}")
+                log.debug(f"Removing {item!r} from the queue")
                 yield self._queue.pop(item.path)

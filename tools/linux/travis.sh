@@ -19,7 +19,7 @@ docker run \
     docker-private.packages.nuxeo.com/nuxeo-drive-build:py-3.7.9  # XXX_PYTHON
 
 # Ensure the AppImage is correct
-bash tools/linux/deploy_jenkins_slave.sh --check
+bash tools/linux/deploy_ci_agent.sh --check
 
 # Upload artifacts
 for f in dist/*.AppImage; do

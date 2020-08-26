@@ -25,7 +25,7 @@ from .client.local import LocalClient
 from .client.remote_client import Remote
 from .constants import APP_NAME, CONNECTION_ERROR, DOC_UID_REG, ROOT
 from .engine.activity import tooltip
-from .engine.blacklist_queue import BlacklistQueue
+from .engine.blocklist_queue import BlocklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
 from .engine.workers import Worker
 from .exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt, UnknownDigest
@@ -91,7 +91,7 @@ class DirectEdit(Worker):
         self._upload_queue: Queue = Queue()
         self._upload_errors: Dict[Path, int] = defaultdict(int)
         self._lock_queue: Queue = Queue()
-        self._error_queue = BlacklistQueue(delay=Options.delay)
+        self._error_queue = BlocklistQueue(delay=Options.delay)
         self._stop = False
         self.watchdog_queue: Queue = Queue()
 

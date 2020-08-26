@@ -25,20 +25,20 @@ def run_tests_from_source():
     osi = sys.platform
 
     if osi.startswith("linux"):
-        install = ["sh", "../tools/linux/deploy_jenkins_slave.sh", "--install"]
-        tests = ["sh", "../tools/linux/deploy_jenkins_slave.sh", "--tests"]
+        install = ["sh", "../tools/linux/deploy_ci_agent.sh", "--install"]
+        tests = ["sh", "../tools/linux/deploy_ci_agent.sh", "--tests"]
     elif osi == "darwin":
-        install = ["sh", "../tools/osx/deploy_jenkins_slave.sh", "--install"]
-        tests = ["sh", "../tools/osx/deploy_jenkins_slave.sh", "--tests"]
+        install = ["sh", "../tools/osx/deploy_ci_agent.sh", "--install"]
+        tests = ["sh", "../tools/osx/deploy_ci_agent.sh", "--tests"]
     elif osi == "win32":
         install = [
             "powershell",
-            ".\\..\\tools\\windows\\deploy_jenkins_slave.ps1",
+            ".\\..\\tools\\windows\\deploy_ci_agent.ps1",
             "-install",
         ]
         tests = [
             "powershell",
-            ".\\..\\tools\\windows\\deploy_jenkins_slave.ps1",
+            ".\\..\\tools\\windows\\deploy_ci_agent.ps1",
             "-tests",
         ]
     else:
