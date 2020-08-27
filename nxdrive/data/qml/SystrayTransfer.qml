@@ -8,7 +8,7 @@ Rectangle {
     property variant fileData: model
     property bool paused: status == "PAUSED" || status == "SUSPENDED"
     property bool download: transfer_type == "download"
-    width: parent.width
+    width: parent ? parent.width : 0
     height: 55
 
     ColumnLayout {

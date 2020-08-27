@@ -11,8 +11,9 @@ ShadowRectangle {
     property variant fileData
     property string type: fileData.state == "conflicted" ? "conflict" : "error"
 
-    width: parent.width - 10; height: cardContent.height + 40
-    anchors.horizontalCenter: parent.horizontalCenter
+    width: parent ? parent.width - 10 : 0
+    height: cardContent.height + 40
+    anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
 
     RowLayout {
         id: cardContent
