@@ -35,7 +35,7 @@ def clean_dir(_dir: Path, retry: int = 1, max_retries: int = 5) -> None:
 
 
 def random_png(filename: Path = None, size: int = 0) -> Union[None, bytes]:
-    """ Generate a random PNG file.
+    """Generate a random PNG file.
 
     :param filename: The output file name. If None, returns
             the picture content.

@@ -5,6 +5,7 @@ from logging import getLogger
 
 import pytest
 from nuxeo.documents import Document
+
 from nxdrive.constants import WINDOWS
 
 from ... import env
@@ -108,11 +109,11 @@ def test_unbind_root_doc_not_found(nuxeo_url, exe, server, tmp):
 
 def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp):
     """Automate things:
-        - bind a server
-        - bind a root
-        - sync data
-        - unbind the root
-        - unbind the server
+    - bind a server
+    - bind a root
+    - sync data
+    - unbind the root
+    - unbind the server
     """
 
     folder = tmp()
@@ -181,9 +182,9 @@ def test_ctx_menu_edit_metadata_inexistant(nuxeo_url, exe, server, tmp):
 
 def test_ctx_menu_entries(nuxeo_url, exe, server, tmp):
     """Will test:
-        - access-online
-        - copy-share-link
-        - edit-metadata
+    - access-online
+    - copy-share-link
+    - edit-metadata
     """
 
     folder = tmp()

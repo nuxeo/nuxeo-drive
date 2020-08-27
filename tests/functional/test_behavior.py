@@ -1,6 +1,7 @@
 import os
 
 import pytest
+
 from nxdrive.exceptions import FolderAlreadyUsed
 
 from .. import ensure_no_exception
@@ -9,13 +10,13 @@ from ..markers import not_windows
 
 def test_crash_no_engine_database(manager_factory):
     """
-    Drive should not crash when the engine database is removed.  Traceback:
+        Drive should not crash when the engine database is removed.  Traceback:
 
-ERROR nxdrive.engine.engine Setting invalid credentials, reason is: found no password nor token in engine configuration
-Traceback (most recent call last):
-File "engine/engine.py", line 661, in stop
-if not self._local_watcher.thread.wait(5000):
-AttributeError: 'Engine' object has no attribute '_local_watcher'
+    ERROR nxdrive.engine.engine Setting invalid credentials, reason is: found no password nor token in engine configuration  # noqa
+    Traceback (most recent call last):
+      File "engine/engine.py", line 661, in stop
+        if not self._local_watcher.thread.wait(5000):
+      AttributeError: 'Engine' object has no attribute '_local_watcher'
     """
 
     manager, engine = manager_factory()
@@ -43,18 +44,18 @@ AttributeError: 'Engine' object has no attribute '_local_watcher'
 
 def test_crash_engine_no_local_folder(manager_factory):
     """
-    Drive should not crash when the engine local folder is removed.  Traceback:
+        Drive should not crash when the engine local folder is removed.  Traceback:
 
-Traceback (most recent call last):
-  File "nxdrive/__main__.py", line 113, in main
-  File "nxdrive/commandline.py", line 507, in handle
-  File "nxdrive/commandline.py", line 514, in get_manager
-  File "nxdrive/manager.py", line 175, in __init__
-  File "nxdrive/manager.py", line 377, in load
-  File "nxdrive/engine/engine.py", line 144, in __init__
-  File "nxdrive/utils.py", line 149, in find_suitable_tmp_dir
-  File "pathlib.py", line 1168, in stat
-FileNotFoundError: [Errno 2] No such file or directory: '/home/nuxeo/Drive/Company UAT'
+    Traceback (most recent call last):
+      File "nxdrive/__main__.py", line 113, in main
+      File "nxdrive/commandline.py", line 507, in handle
+      File "nxdrive/commandline.py", line 514, in get_manager
+      File "nxdrive/manager.py", line 175, in __init__
+      File "nxdrive/manager.py", line 377, in load
+      File "nxdrive/engine/engine.py", line 144, in __init__
+      File "nxdrive/utils.py", line 149, in find_suitable_tmp_dir
+      File "pathlib.py", line 1168, in stat
+    FileNotFoundError: [Errno 2] No such file or directory: '/home/nuxeo/Drive/Company UAT'
     """
     import shutil
 

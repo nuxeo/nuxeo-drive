@@ -23,7 +23,10 @@ from types import SimpleNamespace
 from typing import List
 
 Feature = SimpleNamespace(
-    auto_update=True, direct_edit=True, direct_transfer=False, s3=False,
+    auto_update=True,
+    direct_edit=True,
+    direct_transfer=False,
+    s3=False,
 )
 
 Beta: List[str] = ["direct_transfer", "s3"]

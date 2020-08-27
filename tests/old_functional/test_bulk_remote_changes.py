@@ -28,9 +28,10 @@ from time import sleep
 from unittest.mock import patch
 
 from nuxeo.utils import version_lt
+from requests import ConnectionError
+
 from nxdrive.client.remote_client import Remote
 from nxdrive.objects import RemoteFileInfo
-from requests import ConnectionError
 
 from .common import TEST_DEFAULT_DELAY, TwoUsersTest
 
@@ -47,29 +48,29 @@ class TestBulkRemoteChanges(TwoUsersTest):
 
     def test_many_changes(self):
         """
-Objective: The objective is to make a lot of remote changes (including a folder
-modified) and wait for nuxeo-drive to successfully sync even if network error
-happens.
+        Objective: The objective is to make a lot of remote changes (including a folder
+        modified) and wait for nuxeo-drive to successfully sync even if network error
+        happens.
 
-1. Configure drive and wait for sync
-2. Create 3 folders folder1, folder2 and shared
-3. Create files inside the 3 folders: folder1/file1.txt, folder2/file2.txt,
-    shared/readme1.txt, shared/readme2.txt
-4. Wait for 3 folders, 4 files to sync to local PC
-5. Check the 3 folders and 4 files are synced to local PC
-6. Trigger simulation of network error for GetChildren API using the mock
-   (2 successive failures)
-7. Do the following changes in DM side in same order:
-    I.   Create 'folder1/sample1.txt'
-    II.  Delete 'shared' folder, and immediately restore 'shared' folder
-    IV.  Restore 'shared/readme1.txt'
-    V.   Create 'shared/readme3.txt'
-    VI.  Create 'folder2/sample2.txt'
-8. Wait for remote changes to sync for unaffected folders folder1 and folder2
-9. Check that folder1/sample1.txt, folder2/sample2.txt are synced to local PC
-10. Sleep for two remote scan attempts (to compensate for two network failures)
-11. Check if two files 'shared/readme1.txt' and 'shared/readme3.txt' are synced
-to local PC.
+        1. Configure drive and wait for sync
+        2. Create 3 folders folder1, folder2 and shared
+        3. Create files inside the 3 folders: folder1/file1.txt, folder2/file2.txt,
+            shared/readme1.txt, shared/readme2.txt
+        4. Wait for 3 folders, 4 files to sync to local PC
+        5. Check the 3 folders and 4 files are synced to local PC
+        6. Trigger simulation of network error for GetChildren API using the mock
+           (2 successive failures)
+        7. Do the following changes in DM side in same order:
+            I.   Create 'folder1/sample1.txt'
+            II.  Delete 'shared' folder, and immediately restore 'shared' folder
+            IV.  Restore 'shared/readme1.txt'
+            V.   Create 'shared/readme3.txt'
+            VI.  Create 'folder2/sample2.txt'
+        8. Wait for remote changes to sync for unaffected folders folder1 and folder2
+        9. Check that folder1/sample1.txt, folder2/sample2.txt are synced to local PC
+        10. Sleep for two remote scan attempts (to compensate for two network failures)
+        11. Check if two files 'shared/readme1.txt' and 'shared/readme3.txt' are synced
+        to local PC.
         """
         local = self.local_1
         remote = self.remote_document_client_1

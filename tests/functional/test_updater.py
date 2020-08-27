@@ -97,9 +97,9 @@ def test_frozen_updates_disabled(manager_factory):
 @Options.mock()
 def test_frozen_updates_disabled_centralized(manager_factory):
     """Scenario:
-        - the application is frozen
-        - auto-update disabled
-        - channel set to centralized
+    - the application is frozen
+    - auto-update disabled
+    - channel set to centralized
     """
     Options.channel = "centralized"
     Options.is_frozen = True
@@ -113,10 +113,10 @@ def test_frozen_updates_disabled_centralized(manager_factory):
 @Options.mock()
 def test_frozen_updates_disabled_centralized_client_version_invalid(manager_factory):
     """Scenario:
-        - the application is frozen
-        - auto-update disabled
-        - channel set centralized
-        - client_version is set to an invalid value
+    - the application is frozen
+    - auto-update disabled
+    - channel set centralized
+    - client_version is set to an invalid value
     """
     Options.channel = "centralized"
     Options.client_version = "4.0.0"

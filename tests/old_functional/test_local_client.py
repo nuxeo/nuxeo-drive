@@ -11,6 +11,7 @@ from pathlib import Path
 from time import sleep
 
 import pytest
+
 from nxdrive.constants import ROOT, WINDOWS
 from nxdrive.exceptions import DuplicationDisabledError, NotFound
 
@@ -290,14 +291,14 @@ class StubLocalClient:
     def test_long_path(self):
         """NXDRIVE-1090: Long path names generates duplicata on folder creation.
 
-The final tree must be:
-.
-└── llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll
-    └── llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll
+        The final tree must be:
+        .
         └── llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll
-            ├── Par îçi
-            │   └── alive.png
-            └── stone.png
+            └── llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll
+                └── llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll
+                    ├── Par îçi
+                    │   └── alive.png
+                    └── stone.png
         """
 
         local = self.local_1

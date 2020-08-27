@@ -153,8 +153,8 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
 
     def _icons_to_emblems(self) -> None:
         """
-            Copy nuxeo overlay icons to linux local icons folder.
-            Previous local icons will be replaced.
+        Copy nuxeo overlay icons to linux local icons folder.
+        Previous local icons will be replaced.
         """
         shared_icons = Path.home() / ".local/share/icons"
         shared_icons.mkdir(parents=True, exist_ok=True)

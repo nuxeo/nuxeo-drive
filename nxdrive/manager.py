@@ -223,7 +223,9 @@ class Manager(QObject):
 
         # [this worker will control next workers, so keep it first]
         # Create the server's configuration getter verification thread
-        self.server_config_updater: ServerOptionsUpdater = self._create_server_config_updater()
+        self.server_config_updater: ServerOptionsUpdater = (
+            self._create_server_config_updater()
+        )
 
         # Create Direct Edit
         self.autolock_service = self._create_autolock_service()

@@ -39,7 +39,9 @@ def configure_logs():
     from nxdrive.logging_config import configure
 
     configure(
-        console_level="DEBUG", command_name="test", force_configure=True,
+        console_level="DEBUG",
+        command_name="test",
+        force_configure=True,
     )
 
 
@@ -85,6 +87,7 @@ def setup_sentry() -> None:
     sentry_env = ticket[0] if ticket else "testing"
 
     import sentry_sdk
+
     from nxdrive import __version__
 
     sentry_dsn = os.getenv(
