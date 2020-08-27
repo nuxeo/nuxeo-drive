@@ -514,9 +514,9 @@ class QMLDriveApi(QObject):
         self, uid: str, path: str, width: int
     ) -> List[float]:
         """Return a list:
-            - Size of free space converted to percentage of the width.
-            - Size of space used by other applications converted to percentage of the width.
-            - Global size of synchronized files converted to percentage of the width.
+        - Size of free space converted to percentage of the width.
+        - Size of space used by other applications converted to percentage of the width.
+        - Global size of synchronized files converted to percentage of the width.
         """
         engine = self._manager.engines.get(uid)
 

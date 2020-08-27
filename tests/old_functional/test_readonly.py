@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 from nuxeo.exceptions import Forbidden
+
 from nxdrive.constants import WINDOWS
 
 from ..markers import windows_only
@@ -441,22 +442,22 @@ class TestReadOnly(OneUserTest):
     @windows_only
     def test_nxdrive_836(self):
         """
-        NXDRIVE-836: Bad behaviors with read-only documents on Windows.
+                NXDRIVE-836: Bad behaviors with read-only documents on Windows.
 
-Scenario:
+        Scenario:
 
-1. User1: Server: Create folder "ReadFolder" and share with User2 with read
-   permission and upload doc/xml files into it
-2. User1: Server: Create folder "MEFolder" and share with User2 with Manage
-   Everything permission
-3. User2: Server: Enable Nuxeo Drive Synchronization for both folders
-4. User2: Client: Launch Drive client and Wait for sync completion
-5. User2: Client: Move the files(drag and drop) from "ReadFolder" to "MEFolder"
-6. User1: Server: Remove the read permission for "ReadFolder" for User2
-7. User2: Client: Remove the read only attribute for moved files in "MEFolder"
-   and Edit the files.
+        1. User1: Server: Create folder "ReadFolder" and share with User2 with read
+           permission and upload doc/xml files into it
+        2. User1: Server: Create folder "MEFolder" and share with User2 with Manage
+           Everything permission
+        3. User2: Server: Enable Nuxeo Drive Synchronization for both folders
+        4. User2: Client: Launch Drive client and Wait for sync completion
+        5. User2: Client: Move the files(drag and drop) from "ReadFolder" to "MEFolder"
+        6. User1: Server: Remove the read permission for "ReadFolder" for User2
+        7. User2: Client: Remove the read only attribute for moved files in "MEFolder"
+           and Edit the files.
 
-Expected Result: Files should sync with the server.
+        Expected Result: Files should sync with the server.
         """
 
         local = self.local_1

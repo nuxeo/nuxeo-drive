@@ -34,7 +34,9 @@ def print_results(errors: List[str], warnings: List[str]) -> int:
 
 
 def find_errors_in_tested_file(
-    reference_translation: dict, translation: dict, file: Path,
+    reference_translation: dict,
+    translation: dict,
+    file: Path,
 ) -> List[str]:
     """Iterate through the tested translation file keys and compare values with the reference file"""
     matcher = re.compile(r"%[1-9]")
@@ -72,7 +74,11 @@ def run_check(translations_folder: str) -> int:
             for key in set(translation).difference(set(reference_translation))
         ]
 
-        errors += find_errors_in_tested_file(reference_translation, translation, file,)
+        errors += find_errors_in_tested_file(
+            reference_translation,
+            translation,
+            file,
+        )
 
     return print_results(errors, warnings)
 

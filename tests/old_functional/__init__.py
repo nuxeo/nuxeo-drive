@@ -9,6 +9,7 @@ import nuxeo.client
 import nuxeo.constants
 import nuxeo.operations
 from nuxeo.models import Blob, FileBlob
+
 from nxdrive.client.local import LocalClient
 from nxdrive.client.remote_client import Remote
 from nxdrive.objects import NuxeoDocumentInfo, RemoteFileInfo
@@ -40,8 +41,8 @@ def patch_nxdrive_objects():
 
     Application.init_nxdrive_listener = lambda *args: None
 
-    from nxdrive.manager import Manager
     from nxdrive.engine.queue_manager import QueueManager
+    from nxdrive.manager import Manager
 
     def dispose_all(self) -> None:
         for engine in self.engines.values():
@@ -477,7 +478,11 @@ class DocRemote(RemoteTest):
         return doc["uid"]
 
     def make_file(
-        self, parent: str, name: str, content: bytes = None, file_path: Path = None,
+        self,
+        parent: str,
+        name: str,
+        content: bytes = None,
+        file_path: Path = None,
     ) -> str:
         """
         Create a document with the given *name* and *content* using the FileManager.
@@ -558,7 +563,9 @@ class DocRemote(RemoteTest):
     def create_proxy(self, ref: str, output_ref: str):
         kwargs = {"Destination Path": output_ref}
         return self.execute(
-            command="Document.CreateLiveProxy", input_obj=self.check_ref(ref), **kwargs,
+            command="Document.CreateLiveProxy",
+            input_obj=self.check_ref(ref),
+            **kwargs,
         )
 
     def update(self, ref: str, properties=None):

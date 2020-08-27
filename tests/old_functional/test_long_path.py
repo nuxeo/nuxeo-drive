@@ -51,8 +51,8 @@ class TestLongPath(OneUserTest):
         assert remote_children_of_d[0].name == "File2.txt"
 
     def test_setup_on_long_path(self):
-        """ NXDRIVE-689: Fix error when adding a new account when installation
-            path is greater than 245 characters.
+        """NXDRIVE-689: Fix error when adding a new account when installation
+        path is greater than 245 characters.
         """
 
         self.engine_1.stop()

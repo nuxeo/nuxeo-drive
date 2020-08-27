@@ -109,6 +109,7 @@ class DirectTransferUploader(BaseUploader):
     def upload_folder(self, **kwargs: Any) -> Dict[str, Any]:
         """Create a folder using the FileManager."""
         res: Dict[str, Any] = self.remote.execute(
-            command="FileManager.CreateFolder", **kwargs,
+            command="FileManager.CreateFolder",
+            **kwargs,
         )
         return res

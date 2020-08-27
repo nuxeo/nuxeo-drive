@@ -70,11 +70,11 @@ class LocalClient(LocalClientMixin):
 
     def set_folder_icon(self, ref: Path, icon: Path) -> None:
         """Create a special file to customize the folder icon.
-            1. Read the com.apple.ResourceFork extended attribute from the icon file
-            2. Set the com.apple.FinderInfo extended attribute with folder icon flag
-            3. Create a Icon file (name: Icon\r) inside the target folder
-            4. Set extended attributes com.apple.FinderInfo & com.apple.ResourceFork for icon file (name: Icon\r)
-            5. Hide the icon file (name: Icon\r)
+        1. Read the com.apple.ResourceFork extended attribute from the icon file
+        2. Set the com.apple.FinderInfo extended attribute with folder icon flag
+        3. Create a Icon file (name: Icon\r) inside the target folder
+        4. Set extended attributes com.apple.FinderInfo & com.apple.ResourceFork for icon file (name: Icon\r)
+        5. Hide the icon file (name: Icon\r)
         """
         log.debug(f"Setting the folder icon of {ref!r} using {icon!r}")
 

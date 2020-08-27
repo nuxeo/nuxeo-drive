@@ -8,12 +8,13 @@ from uuid import uuid4
 
 import pytest
 from nuxeo.exceptions import HTTPError
+from requests.exceptions import ConnectionError
+
 from nxdrive.client.uploader.direct_transfer import DirectTransferUploader
 from nxdrive.constants import TransferStatus
 from nxdrive.exceptions import NotFound
 from nxdrive.options import Options
 from nxdrive.utils import get_tree_list
-from requests.exceptions import ConnectionError
 
 from .. import ensure_no_exception
 from ..markers import not_windows
@@ -633,7 +634,10 @@ class DirectTransferFolder:
     def direct_transfer(self, folder, duplicate_behavior: str = "create") -> None:
         paths = {path: size for path, size in get_tree_list(folder)}
         self.engine_1.direct_transfer(
-            paths, self.ws.path, self.ws.uid, duplicate_behavior=duplicate_behavior,
+            paths,
+            self.ws.path,
+            self.ws.uid,
+            duplicate_behavior=duplicate_behavior,
         )
 
     def test_simple_folder(self):
