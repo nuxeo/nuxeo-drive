@@ -207,15 +207,8 @@ class QMLDriveApi(QObject):
         return result
 
     def get_direct_transfer_items(self, dao: EngineDAO) -> List[Dict[str, Any]]:
-        limit = 5  # 5 files are displayed in the DT window
-        result: List[Dict[str, Any]] = []
-
-        for count, transfer in enumerate(dao.get_dt_uploads_raw()):
-            if count >= limit:
-                break
-            result.append(transfer)
-
-        return result
+        # 5 files are displayed in the DT window
+        return dao.get_dt_uploads_raw(limit=5)
 
     @pyqtSlot(str, str, int, float, bool)
     def pause_transfer(

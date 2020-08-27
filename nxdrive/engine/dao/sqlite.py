@@ -9,6 +9,7 @@ import sys
 from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
+from os.path import basename
 from pathlib import Path
 from sqlite3 import (
     Connection,
@@ -2246,20 +2247,17 @@ class EngineDAO(ConfigurationDAO):
                 batch=json.loads(res.batch),
             )
 
-    def get_dt_uploads_raw(self) -> Generator[Dict[str, Any], None, None]:
+    def get_dt_uploads_raw(self, limit: int = 1) -> List[Dict[str, Any]]:
         """
         Retrieve all Direct Transfer items.
         Return a simple dict to improve GUI performances (instead of Upload objects).
         """
         con = self._get_read_connection()
         c = con.cursor()
-        for res in c.execute(
-            "SELECT * FROM Uploads WHERE is_direct_transfer = 1"
-        ).fetchall():
-            path = Path(res.path)
-            yield {
+        return [
+            {
                 "uid": res.uid,
-                "name": path.name,
+                "name": basename(res.path),  # More efficient than Path(res.path).name
                 "filesize": res.filesize,
                 "status": TransferStatus(res.status),
                 "engine": res.engine,
@@ -2267,6 +2265,10 @@ class EngineDAO(ConfigurationDAO):
                 "remote_parent_path": res.remote_parent_path,
                 "remote_parent_ref": res.remote_parent_ref,
             }
+            for res in c.execute(
+                f"SELECT * FROM Uploads WHERE is_direct_transfer = 1 LIMIT {limit}"
+            ).fetchall()
+        ]
 
     def get_downloads_with_status(self, status: TransferStatus) -> List[Download]:
         return [d for d in self.get_downloads() if d.status == status]
