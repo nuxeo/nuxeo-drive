@@ -512,7 +512,7 @@ def normalize_event_filename(filename: Union[str, Path], action: bool = True) ->
     normalized = normalized.with_name(safe_filename(normalized.name))
 
     if WINDOWS and path.exists():
-        path = safe_long_path(path).with_name(path.name)
+        path = normalized_path(path).with_name(path.name)
 
     if not MAC and action and path != normalized and path.exists():
         log.info(f"Forcing normalization: {path!r} -> {normalized!r}")
