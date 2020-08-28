@@ -15,7 +15,6 @@ from urllib.parse import quote
 
 from nuxeo.exceptions import CorruptedFile, Forbidden, HTTPError, Unauthorized
 from nuxeo.models import Blob
-from nuxeo.utils import get_digest_algorithm
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from requests import codes
 from watchdog.events import FileSystemEvent
@@ -28,7 +27,7 @@ from .engine.activity import tooltip
 from .engine.blocklist_queue import BlocklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
 from .engine.workers import Worker
-from .exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt, UnknownDigest
+from .exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt
 from .feature import Feature
 from .objects import DirectEditDetails, Metrics, NuxeoDocumentInfo
 from .options import Options
@@ -527,19 +526,12 @@ class DirectEdit(Worker):
         if xpath:
             self.local.set_remote_id(dir_path, xpath, name="nxdirecteditxpath")
 
-        if blob.digest:
-            self.local.set_remote_id(dir_path, blob.digest, name="nxdirecteditdigest")
-            # Set digest algorithm if not sent by the server
-            digest_algorithm = blob.digest_algorithm
-            if not digest_algorithm:
-                digest_algorithm = get_digest_algorithm(blob.digest)
-            if not digest_algorithm:
-                raise UnknownDigest(blob.digest)
-            self.local.set_remote_id(
-                dir_path,
-                digest_algorithm.encode("utf-8"),
-                name="nxdirecteditdigestalgorithm",
-            )
+        self.local.set_remote_id(dir_path, blob.digest, name="nxdirecteditdigest")
+        self.local.set_remote_id(
+            dir_path,
+            blob.digest_algorithm.encode("utf-8"),
+            name="nxdirecteditdigestalgorithm",
+        )
         self.local.set_remote_id(dir_path, filename, name="nxdirecteditname")
 
         safe_rename(tmp_file, file_path)
@@ -594,17 +586,14 @@ class DirectEdit(Worker):
             dir_path, name="nxdirecteditdigestalgorithm"
         )
         digest = self.local.get_remote_id(dir_path, name="nxdirecteditdigest")
-        if not (digest and digest_algorithm):
-            raise NotFound()
-
         xpath = self.local.get_remote_id(dir_path, name="nxdirecteditxpath")
         editing = self.local.get_remote_id(dir_path, name="nxdirecteditlock") == "1"
 
         details = DirectEditDetails(
             uid=uid,
             engine=engine,
-            digest_func=digest_algorithm,
-            digest=digest,
+            digest_func=digest_algorithm or "",
+            digest=digest or "",
             xpath=xpath,
             editing=editing,
         )
@@ -749,13 +738,13 @@ class DirectEdit(Worker):
                 # Don't update if digest are the same
                 info = self.local.get_info(ref)
                 current_digest = info.get_digest(digest_func=details.digest_func)
-                if not current_digest or current_digest == details.digest:
+                if current_digest == details.digest:
                     continue
 
                 start_time = current_milli_time()
                 log.debug(
-                    f"Local digest: {current_digest} is different from the recorded "
-                    f"one: {details.digest} - modification detected for {ref!r}"
+                    f"Local digest {current_digest!r} is different from the recorded "
+                    f"one {details.digest!r} - modification detected for {ref!r}"
                 )
 
                 if not details.editing:
@@ -767,17 +756,25 @@ class DirectEdit(Worker):
                             f"({details.uid}) because it is a version."
                         )
                         continue
+
                     if remote_info.is_proxy:
                         log.warning(
                             f"Unable to process Direct Edit on {remote_info.name} "
                             f"({details.uid}) because it is a proxy."
                         )
                         continue
+
                     remote_blob = remote_info.get_blob(xpath) if remote_info else None
-                    if remote_blob and remote_blob.digest != details.digest:
+                    log.debug(f"Got remote blob {remote_blob!r}")
+                    if (
+                        remote_blob
+                        and remote_blob.digest
+                        and remote_blob.digest_algorithm
+                        and remote_blob.digest != details.digest
+                    ):
                         log.debug(
-                            f"Remote digest: {remote_blob.digest} is different from the "
-                            f"recorded  one: {details.digest} - conflict detected for {ref!r}"
+                            f"Remote digest {remote_blob.digest!r} is different from the "
+                            f"recorded one {details.digest!r} - conflict detected for {ref!r}"
                         )
                         self.directEditConflict.emit(ref.name, ref, remote_blob.digest)
                         continue

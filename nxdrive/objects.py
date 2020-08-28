@@ -146,8 +146,8 @@ class RemoteFileInfo:
 @dataclass
 class Blob:
     name: str  # filename of the blob
-    digest: Optional[str]  # hash of the blob
-    digest_algorithm: Optional[str]  # algorithm used to compute the digest
+    digest: str  # hash of the blob
+    digest_algorithm: str  # algorithm used to compute the digest
     size: int  # size of the blob in bytes
     mimetype: str  # mime-type of the blob
     data: str  # download url of the blob or content if it's a note
@@ -156,8 +156,8 @@ class Blob:
     def from_dict(blob: Dict[str, Any]) -> "Blob":
         """ Convert Dict to Blob object. """
         name = blob["name"]
-        digest = blob.get("digest")
-        digest_algorithm = blob.get("digestAlgorithm")
+        digest = blob.get("digest") or ""
+        digest_algorithm = get_digest_algorithm(blob.get("digestAlgorithm", "")) or ""
         size = int(blob.get("length", 0))
         mimetype = blob.get("mime-type", "application/octet-stream")
         data = blob.get("data", "")
@@ -276,13 +276,13 @@ class NuxeoDocumentInfo:
             if not note:
                 return None
 
-            digest = hashlib.sha256()
+            digest = hashlib.md5()
             digest.update(note.encode("utf-8"))
             return Blob.from_dict(
                 {
                     "name": props["dc:title"],
                     "digest": digest.hexdigest(),
-                    "digestAlgorithm": "sha256",
+                    "digestAlgorithm": "md5",
                     "length": len(note),
                     "mime-type": props.get("note:mime_type"),
                     "data": note,
