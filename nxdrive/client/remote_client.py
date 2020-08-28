@@ -346,6 +346,12 @@ class Remote(Nuxeo):
         Update the progress of the verification during the computation of the digest.
         """
         digester = get_digest_algorithm(digest)
+        if not digester:
+            log.warning(
+                f"Empty or non-standard digest {digest!r}, skipping the file integrity check"
+            )
+            return
+
         size = download_action.size
         filepath = download_action.tmppath or download_action.filepath
 
@@ -374,6 +380,12 @@ class Remote(Nuxeo):
     def check_integrity_simple(self, digest: str, file: Path) -> None:
         """Check the integrity of a relatively small downloaded file."""
         digester = get_digest_algorithm(digest)
+        if not digester:
+            log.warning(
+                f"Empty or non-standard digest {digest!r}, skipping the file integrity check"
+            )
+            return
+
         computed_digest = compute_digest(file, digester)
         if digest != computed_digest:
             raise CorruptedFile(file, digest, computed_digest)

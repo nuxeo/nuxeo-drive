@@ -9,9 +9,10 @@ from uuid import uuid4
 
 import pytest
 from nuxeo.exceptions import Forbidden, HTTPError
+
 from nxdrive.constants import WINDOWS
 from nxdrive.exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt
-from nxdrive.objects import NuxeoDocumentInfo
+from nxdrive.objects import Blob, NuxeoDocumentInfo
 from nxdrive.utils import parse_protocol_url, safe_filename
 
 from .. import ensure_no_exception, env
@@ -533,6 +534,104 @@ class MixinTests(DirectEditSetup):
 
         content_updated = random_png(size=24)
         self._direct_edit_update(doc_id, filename, content_updated)
+
+    def test_blob_without_digest(self):
+        """It should be possible to edit a document having a blob without digest.
+        It is the case when using a third-party provider like Amazon S3 with accelerate endpoint.
+        """
+
+        from_dict_orig = Blob.from_dict
+
+        def from_dict(blob: Dict[str, Any]) -> Blob:
+            # Alter digest stuff
+            blob.pop("digest", None)
+            blob.pop("digestAlgorithm", None)
+            return from_dict_orig(blob)
+
+        filename = "picture-digestless.png"
+        content = random_png(size=42)
+        # make_file() will make use of the FileManager and thus creating a Picture document
+        doc_id = self.remote.make_file("/", filename, content=content)
+
+        scheme, host = self.nuxeo_url.split("://")
+        url = (
+            f"nxdrive://edit/{scheme}/{host}"
+            f"/user/{self.user_1}"
+            "/repo/default"
+            f"/nxdocid/{doc_id}"
+            f"/filename/{filename}"
+            f"/downloadUrl/nxfile/default/{doc_id}"
+            f"/file:content/{filename}"
+        )
+
+        content_updated = random_png(size=24)
+        with patch.object(Blob, "from_dict", new=from_dict), ensure_no_exception():
+            self._direct_edit_update(doc_id, filename, content_updated, url=url)
+
+    def test_blob_with_non_standard_digest(self):
+        """It should be possible to edit a document having a blob with a non-standard digest.
+        It is the case when using a third-party provider (S3, LiveProxy, ... ).
+        """
+
+        from_dict_orig = Blob.from_dict
+
+        def from_dict(blob: Dict[str, Any]) -> Blob:
+            # Alter digest stuff
+            blob["digest"] += "-2"
+            blob.pop("digestAlgorithm", None)
+            return from_dict_orig(blob)
+
+        filename = "picture-with-non-standard-digest.png"
+        content = random_png(size=42)
+        # make_file() will make use of the FileManager and thus creating a Picture document
+        doc_id = self.remote.make_file("/", filename, content=content)
+
+        scheme, host = self.nuxeo_url.split("://")
+        url = (
+            f"nxdrive://edit/{scheme}/{host}"
+            f"/user/{self.user_1}"
+            "/repo/default"
+            f"/nxdocid/{doc_id}"
+            f"/filename/{filename}"
+            f"/downloadUrl/nxfile/default/{doc_id}"
+            f"/file:content/{filename}"
+        )
+
+        content_updated = random_png(size=24)
+        with patch.object(Blob, "from_dict", new=from_dict), ensure_no_exception():
+            self._direct_edit_update(doc_id, filename, content_updated, url=url)
+
+    def test_blob_with_non_standard_digest_and_standard_algo(self):
+        """It should be possible to edit a document having a blob with a non-standard digest
+        but with a standard algorithm.
+        """
+
+        from_dict_orig = Blob.from_dict
+
+        def from_dict(blob: Dict[str, Any]) -> Blob:
+            # Alter digest stuff
+            blob["digest"] += "-2"
+            return from_dict_orig(blob)
+
+        filename = "picture-with-non-standard-digest.png"
+        content = random_png(size=42)
+        # make_file() will make use of the FileManager and thus creating a Picture document
+        doc_id = self.remote.make_file("/", filename, content=content)
+
+        scheme, host = self.nuxeo_url.split("://")
+        url = (
+            f"nxdrive://edit/{scheme}/{host}"
+            f"/user/{self.user_1}"
+            "/repo/default"
+            f"/nxdocid/{doc_id}"
+            f"/filename/{filename}"
+            f"/downloadUrl/nxfile/default/{doc_id}"
+            f"/file:content/{filename}"
+        )
+
+        content_updated = random_png(size=24)
+        with patch.object(Blob, "from_dict", new=from_dict), ensure_no_exception():
+            self._direct_edit_update(doc_id, filename, content_updated, url=url)
 
     def test_permission_readonly(self):
         """Opening a read-only document is prohibited."""
