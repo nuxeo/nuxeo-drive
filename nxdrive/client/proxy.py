@@ -188,13 +188,13 @@ def validate_proxy(proxy: Proxy, url: str) -> bool:
             return True
     except OSError:
         # OSError: Could not find a suitable TLS CA certificate bundle, invalid path: ...
-        log.error("Ensure the 'ca_bundle' option is correct.", exc_info=True)
+        log.warning("Ensure the 'ca_bundle' option is correct.", exc_info=True)
     except AttributeError:
-        log.error(
+        log.warning(
             "Invalid PAC URL or invalid data retrieved from the PAC URL.", exc_info=True
         )
     except Exception:
-        log.error("Invalid proxy.", exc_info=True)
+        log.exception("Invalid proxy.")
     return False
 
 
