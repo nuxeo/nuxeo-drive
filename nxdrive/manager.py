@@ -55,7 +55,7 @@ from .utils import (
     get_default_local_folder,
     get_device,
     if_frozen,
-    safe_long_path,
+    normalized_path,
     save_config,
 )
 
@@ -97,7 +97,7 @@ class Manager(QObject):
         self._platform = get_current_os_full()
 
         # Primary attributes to allow initializing the notification center early
-        self.home: Path = safe_long_path(home)
+        self.home: Path = normalized_path(home)
         self.home.mkdir(exist_ok=True)
 
         if self.home not in Manager._instances:

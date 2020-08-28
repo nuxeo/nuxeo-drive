@@ -21,7 +21,7 @@ from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.translator import Translator
-from nxdrive.utils import safe_long_path
+from nxdrive.utils import normalized_path
 from PyQt5.QtCore import QCoreApplication, QTimer, pyqtSignal, pyqtSlot
 from sentry_sdk import configure_scope
 
@@ -50,7 +50,7 @@ log = getLogger(__name__)
 DEFAULT_WAIT_SYNC_TIMEOUT = 10
 FILE_CONTENT = b"Lorem ipsum dolor sit amet ..."
 FAKER = Faker("en_US")
-LOCATION = safe_long_path(Path(__file__)).parent.parent
+LOCATION = normalized_path(__file__).parent.parent
 
 
 Translator(LOCATION / "resources" / "i18n")
@@ -182,7 +182,7 @@ class TwoUsersTest(TestCase):
         self._no_remote_changes = {}
 
         self.tmpdir = (
-            safe_long_path(Path(tempfile.gettempdir())) / str(uuid4()).split("-")[0]
+            normalized_path(tempfile.gettempdir()) / str(uuid4()).split("-")[0]
         )
         self.upload_tmp_dir = self.tmpdir / "uploads"
         self.upload_tmp_dir.mkdir(parents=True)
