@@ -343,7 +343,7 @@ class MixinTests(DirectEditSetup):
         with patch.object(self.engine_1, "remote", new=bad_remote):
             # Update file content
             self.local.update_content(local_path, b"Updated")
-            self.wait_sync(timeout=12)
+            self.wait_sync(timeout=30)
 
         # The file should _not_ be updated on the server
         content = self.remote.get_blob(self.remote.get_info(doc_id))
