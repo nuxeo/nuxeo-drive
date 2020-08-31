@@ -76,7 +76,7 @@ from .view import (
 )
 
 if MAC:
-    from ..osi.darwin.pyNotificationCenter import setup_delegator, NotificationDelegator
+    from ..osi.darwin.pyNotificationCenter import NotificationDelegator, setup_delegator
 
 if TYPE_CHECKING:
     from ..manager import Manager  # noqa
@@ -663,7 +663,7 @@ class Application(QApplication):
             return
 
         syncing = conflict = False
-        engines = self.manager.engines
+        engines = self.manager.engines.copy()
         invalid_credentials = paused = offline = True
 
         for engine in engines.values():
@@ -863,8 +863,8 @@ class Application(QApplication):
         protocol handler in this case.
         """
 
-        from PyQt5.QtWidgets import QLineEdit
         from nuxeo.client import Nuxeo
+        from PyQt5.QtWidgets import QLineEdit
 
         dialog = QDialog()
         dialog.setWindowTitle(self.translate("WEB_AUTHENTICATION_WINDOW_TITLE"))

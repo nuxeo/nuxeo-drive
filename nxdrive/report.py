@@ -122,7 +122,7 @@ class Report:
         with ZipFile(self._zipfile, mode="w", allowZip64=True) as zip_:
             # Databases
             self.copy_db(zip_, self._manager.dao)
-            for engine in self._manager.engines.values():
+            for engine in self._manager.engines.copy().values():
                 self.copy_db(zip_, engine.dao)
 
             # Logs

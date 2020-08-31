@@ -379,7 +379,7 @@ class Manager(QObject):
         if not self.is_paused:
             return
         self.is_paused = False
-        for uid, engine in self.engines.items():
+        for uid, engine in self.engines.copy().items():
             if euid is not None and euid != uid:
                 continue
             engine.resume()
@@ -389,7 +389,7 @@ class Manager(QObject):
         if self.is_paused:
             return
         self.is_paused = True
-        for uid, engine in self.engines.items():
+        for uid, engine in self.engines.copy().items():
             if euid is not None and euid != uid:
                 continue
             engine.suspend()
@@ -399,7 +399,7 @@ class Manager(QObject):
         # Make a backup in case something happens
         self.dao.save_backup()
 
-        for uid, engine in self.engines.items():
+        for uid, engine in self.engines.copy().items():
             if euid is not None and euid != uid:
                 continue
             if engine.is_started():
@@ -539,7 +539,7 @@ class Manager(QObject):
         from .report import Report
 
         log.info(f"Manager metrics: {self.get_metrics()!r}")
-        for engine in self.engines.values():
+        for engine in self.engines.copy().values():
             log.info(f"Engine metrics: {engine.get_metrics()!r}")
 
         report = Report(self, path)
@@ -593,7 +593,7 @@ class Manager(QObject):
 
     def set_proxy(self, proxy: "Proxy") -> str:
         log.debug(f"Trying to change proxy to {proxy}")
-        for engine in self.engines.values():
+        for engine in self.engines.copy().values():
             if not validate_proxy(proxy, engine.server_url):
                 return "PROXY_INVALID"
             engine.remote.set_proxy(proxy)
@@ -907,7 +907,7 @@ class Manager(QObject):
         return engine.get_metadata_url(remote_ref, edit=edit)
 
     def send_sync_status(self, path: Path) -> None:
-        for engine in self.engines.values():
+        for engine in self.engines.copy().values():
             # Only send status if we picked the right
             # engine and if we're not targeting the root
             if engine.local_folder not in path.parents:
