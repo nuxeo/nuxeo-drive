@@ -45,7 +45,7 @@ def patch_nxdrive_objects():
     from nxdrive.manager import Manager
 
     def dispose_all(self) -> None:
-        for engine in self.engines.values():
+        for engine in self.engines.copy().values():
             engine.dispose_db()
         self.dispose_db()
 

@@ -9,6 +9,7 @@ import pytest
 from faker import Faker
 from nuxeo.documents import Document
 from nuxeo.users import User
+
 from nxdrive.manager import Manager
 
 from .. import env
@@ -61,7 +62,7 @@ def manager_factory(
             manager.user_details = user
 
             engine = None
-            for engine_ in manager.engines.values():
+            for engine_ in manager.engines.copy().values():
                 engine = engine_
 
             return manager, engine
