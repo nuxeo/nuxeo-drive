@@ -320,9 +320,9 @@ def get_tree_list(path: Path) -> Generator[Tuple[Path, int], None, None]:
     Note: this function cannot be decorated with lru_cache().
     """
     try:
-        path.is_dir()
+        it = os.scandir(path)
     except OSError:
-        log.warning(f"Error calling is_dir() on {path!r}", exc_info=True)
+        log.warning(f"Cannot browse {path!r}")
         return
 
     # Check that the path can be processed
@@ -336,7 +336,7 @@ def get_tree_list(path: Path) -> Generator[Tuple[Path, int], None, None]:
     yield path, 0
 
     # Then, yield its children
-    with os.scandir(path) as it:
+    with it:
         for entry in it:
             # Check the path can be processed
             if entry.name.startswith(Options.ignored_prefixes) or entry.name.endswith(
