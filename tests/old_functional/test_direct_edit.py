@@ -13,7 +13,7 @@ from nuxeo.exceptions import Forbidden, HTTPError
 from nxdrive.constants import WINDOWS
 from nxdrive.exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt
 from nxdrive.objects import Blob, NuxeoDocumentInfo
-from nxdrive.utils import parse_protocol_url, safe_filename
+from nxdrive.utils import normalized_path, parse_protocol_url, safe_filename
 
 from .. import ensure_no_exception, env
 from ..utils import random_png
@@ -374,8 +374,11 @@ class MixinTests(DirectEditSetup):
         """
 
         def orphan_unlocked(path: Path) -> None:
-            """Mocked autolock.orphan_unlocked method."""
-            self.direct_edit._manager.dao.unlock_path(path)
+            """
+            Mocked autolock.orphan_unlocked method.
+            Path is normalized before because safe_long_path() is not used yet in the database.
+            """
+            self.direct_edit._manager.dao.unlock_path(normalized_path(path))
 
         # STEP 1
         filename = "orphan-test.txt"
