@@ -57,7 +57,7 @@ class BlocklistQueue:
     def push(self, path: Path) -> None:
         with self._lock:
             item = BlocklistItem(path, next_try=self._delay)
-            log.debug(f"Temporary ignoring {item!r} for {self._delay} seconds")
+            log.debug(f"Adding {item!r} for {self._delay} sec")
             self._queue[path] = item
 
     def repush(self, item: BlocklistItem, increase_wait: bool = True) -> None:
@@ -73,5 +73,5 @@ class BlocklistQueue:
                 if not item.check(cur_time):
                     continue
 
-                log.debug(f"Removing {item!r} from the queue")
+                log.debug(f"Releasing {item!r}")
                 yield self._queue.pop(item.path)
