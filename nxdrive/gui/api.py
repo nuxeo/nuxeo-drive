@@ -337,6 +337,7 @@ class QMLDriveApi(QObject):
             return
 
         if engine.dao.get_dt_items_count():
+            self.application.refresh_direct_transfer_items(engine.dao)
             self.application.show_direct_transfer_window(engine.uid)
         else:
             self.application.show_server_folders(engine, None)
