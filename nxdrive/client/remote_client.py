@@ -154,7 +154,7 @@ class Remote(Nuxeo):
         if duration > 1_000_000_000:  # 1 second in nanoseconds
             # x 1,073,741,824 to counter the duration that is exprimed in nanoseconds
             speed = action.last_chunk_transfer_speed = (
-                action.chunk_size
+                (action.chunk_size or action.size)
                 * action.transferred_chunks
                 * 1_073_741_824.0
                 / duration
