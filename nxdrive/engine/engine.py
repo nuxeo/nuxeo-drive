@@ -449,8 +449,11 @@ class Engine(QObject):
             f" ... database_batch_size is {bsize}, duplicate_behavior is {duplicate_behavior!r}"
         )
         current_max_row_id = -1
+        session_uid = self.dao.create_session(
+            remote_parent_path, remote_parent_ref, len(items)
+        )
         for batch_items in grouper(items, bsize):
-            row_id = self.dao.plan_many_direct_transfer_items(batch_items)
+            row_id = self.dao.plan_many_direct_transfer_items(batch_items, session_uid)
             if current_max_row_id == -1:
                 current_max_row_id = row_id
             self.directTranferItemsCount.emit(False)
