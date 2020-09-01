@@ -3,6 +3,8 @@ import sys
 from pathlib import Path
 
 import pytest
+
+from nxdrive.constants import TransferStatus
 from nxdrive.engine.dao.sqlite import prepare_args
 from nxdrive.utils import WINDOWS
 
@@ -310,7 +312,7 @@ def test_migration_db_v1(engine_dao):
         c = dao._get_read_connection().cursor()
 
         cols = c.execute("PRAGMA table_info('States')").fetchall()
-        assert len(cols) == 32
+        assert len(cols) == 33
 
         cols = c.execute("SELECT * FROM States").fetchall()
         assert len(cols) == 63
@@ -324,7 +326,7 @@ def test_migration_db_v1_with_duplicates(engine_dao):
         assert not rows
 
         cols = c.execute("PRAGMA table_info('States')").fetchall()
-        assert len(cols) == 32
+        assert len(cols) == 33
         assert dao.get_config("remote_last_event_log_id") is None
         assert dao.get_config("remote_last_full_scan") is None
 
@@ -358,3 +360,27 @@ def test_migration_db_v10(engine_dao):
             Path("/Tests Drive/Live Connect/Test document Live Connect")
         )
         assert not bad_digest_file
+
+
+def test_migration_db_v15(engine_dao):
+    """Verify States and Session after migration from v14 to v15."""
+    with engine_dao("engine_migration_15.db") as dao:
+        local_parent_path = "/home/test/Downloads"
+
+        # There should be only one session
+        assert not dao.get_session(0)
+        assert not dao.get_session(2)
+        last_session = dao.get_session(1)
+        assert last_session
+
+        # The 4 dt items should be linked to the session
+        doc_pairs = dao.get_local_children(local_parent_path)
+        assert len(doc_pairs) == 4
+        for pair in doc_pairs:
+            assert pair.session == last_session.uid
+
+        # Verify session content
+        assert last_session
+        assert last_session.status == TransferStatus.ONGOING
+        assert last_session.uploaded_items == 0
+        assert last_session.total_items == 4

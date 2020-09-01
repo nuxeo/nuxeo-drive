@@ -54,6 +54,7 @@ from ...objects import (
     EngineDef,
     Filters,
     RemoteFileInfo,
+    Session,
     Upload,
 )
 from ...options import Options
@@ -634,7 +635,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 14
+        return 15
 
     def _migrate_state(self, cursor: Cursor) -> None:
         try:
@@ -826,6 +827,29 @@ class EngineDAO(ConfigurationDAO):
             )
             self.store_int(SCHEMA_VERSION, 14)
 
+        if version < 15:
+            # Add the *session* field to the States table.
+            # Create the Session table and init with existing transfers.
+            # Used by the Direct Transfer feature.
+            self._create_sessions_table(cursor)
+            self._append_to_table(
+                cursor,
+                "States",
+                ("session", "INTEGER", "DEFAULT", "0"),
+            )
+            dt_count = self.get_dt_items_count()
+            if dt_count > 0:
+                cursor.execute(
+                    "INSERT INTO Sessions (total, status) " "VALUES (?, ?)",
+                    (dt_count, TransferStatus.ONGOING.value),
+                )
+                session_uid = str(cursor.lastrowid)
+                cursor.execute(
+                    "UPDATE States SET session = ? WHERE local_state = 'direct'",
+                    (session_uid),
+                )
+            self.store_int(SCHEMA_VERSION, 15)
+
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
         if name == "States":
             self._create_state_table(cursor, force)
@@ -864,6 +888,21 @@ class EngineDAO(ConfigurationDAO):
             "    chunk_size         INTEGER,"
             "    remote_parent_path VARCHAR     DEFAULT NULL,"
             "    remote_parent_ref  VARCHAR     DEFAULT NULL,"
+            "    PRIMARY KEY (uid)"
+            ")"
+        )
+
+    @staticmethod
+    def _create_sessions_table(cursor: Cursor) -> None:
+        """Create the Sessions table."""
+        cursor.execute(
+            "CREATE TABLE if not exists Sessions ("
+            "    uid            INTEGER     NOT NULL,"
+            "    status         INTEGER,"
+            "    remote_ref     VARCHAR,"
+            "    remote_path    VARCHAR,"
+            "    uploaded       INTEGER     DEFAULT (0),"
+            "    total          INTEGER,"
             "    PRIMARY KEY (uid)"
             ")"
         )
@@ -908,6 +947,7 @@ class EngineDAO(ConfigurationDAO):
             "    last_transfer           VARCHAR,"
             "    creation_date           TIMESTAMP,"
             "    duplicate_behavior      VARCHAR    DEFAULT ('create'),"
+            "    session                 INTEGER    DEFAULT (0),"
             "    PRIMARY KEY (id),"
             "    UNIQUE(remote_ref, remote_parent_ref),"
             "    UNIQUE(remote_ref, local_path))"
@@ -935,6 +975,7 @@ class EngineDAO(ConfigurationDAO):
             )
         self._create_state_table(cursor)
         self._create_transfer_tables(cursor)
+        self._create_sessions_table(cursor)
 
     def acquire_state(self, thread_id: Optional[int], row_id: int) -> Optional[DocPair]:
         if thread_id is not None and self.acquire_processor(thread_id, row_id):
@@ -1108,7 +1149,9 @@ class EngineDAO(ConfigurationDAO):
 
             return row_id
 
-    def plan_many_direct_transfer_items(self, items: Tuple[Any, ...]) -> int:
+    def plan_many_direct_transfer_items(
+        self, items: Tuple[Any, ...], session: int
+    ) -> int:
         """
         Add new Direct Transfer *items*.
         This is an optimized method that will insert all *items* in one go.
@@ -1127,8 +1170,8 @@ class EngineDAO(ConfigurationDAO):
                 "INSERT INTO States "
                 "(local_path, local_parent_path, local_name, folderish, size, "
                 "remote_parent_path, remote_parent_ref, duplicate_behavior, "
-                "local_state, remote_state, pair_state)"
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'direct', ?, 'direct_transfer')"
+                "local_state, remote_state, pair_state, session)"
+                f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'direct', ?, 'direct_transfer', {session})"
             )
             cur.executemany(query, items)
             return current_max_row_id
@@ -2268,6 +2311,59 @@ class EngineDAO(ConfigurationDAO):
                 f"SELECT * FROM Uploads WHERE is_direct_transfer = 1 LIMIT {limit}"
             ).fetchall()
         ]
+
+    def get_session(self, uid: int) -> Optional[Session]:
+        """
+        Get a session by its uid.
+        """
+        con = self._get_read_connection()
+        c = con.cursor()
+        res = c.execute("SELECT * FROM Sessions WHERE uid = ?", (uid,)).fetchone()
+        return (
+            Session(
+                res.uid,
+                res.remote_path,
+                res.remote_ref,
+                TransferStatus(res.status),
+                res.uploaded,
+                res.total,
+            )
+            if res
+            else None
+        )
+
+    def create_session(self, remote_path: str, remote_ref: str, total: int) -> int:
+        """Create a new session. Return the session ID."""
+        with self.lock:
+            con = self._get_write_connection()
+            cursor = con.cursor()
+            cursor.execute(
+                "INSERT INTO Sessions (remote_path, remote_ref, total, status) "
+                "VALUES (?, ?, ?, ?)",
+                (remote_path, remote_ref, total, TransferStatus.ONGOING.value),
+            )
+            return cursor.lastrowid
+
+    def update_session(self, uid: int) -> Optional[Session]:
+        """
+        Increment the Session *uploaded_items* count.
+        Update the status if all files are uploaded.
+        """
+        with self.lock:
+            con = self._get_write_connection()
+            cursor = con.cursor()
+            session = self.get_session(uid)
+            if not session:
+                return None
+
+            session.uploaded_items += 1
+            if session.uploaded_items == session.total_items:
+                session.status = TransferStatus.DONE
+            cursor.execute(
+                "UPDATE Sessions SET uploaded = ?, status = ? WHERE uid = ?",
+                (session.uploaded_items, session.status.value, session.uid),
+            )
+            return session
 
     def get_downloads_with_status(self, status: TransferStatus) -> List[Download]:
         return [d for d in self.get_downloads() if d.status == status]
