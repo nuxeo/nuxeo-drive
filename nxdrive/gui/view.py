@@ -328,7 +328,7 @@ class DirectTransferModel(QAbstractListModel):
     @pyqtSlot(dict)
     def set_progress(self, action: Dict[str, Any]) -> None:
         for i, item in enumerate(self.items):
-            if item["name"] != action["name"]:
+            if (item["engine"], item["name"]) != (action["engine"], action["name"]):
                 continue
 
             idx = self.createIndex(i, 0)

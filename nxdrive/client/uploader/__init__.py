@@ -95,9 +95,15 @@ class BaseUploader:
     ) -> FileBlob:
         """Upload a blob by chunks or in one go."""
 
+        engine_uid = kwargs.get("engine_uid", None)
+        is_direct_edit = kwargs.pop("is_direct_edit", False)
+        is_direct_transfer = kwargs.get("is_direct_transfer", False)
+        remote_parent_path = kwargs.pop("remote_parent_path", "")
+        remote_parent_ref = kwargs.pop("remote_parent_ref", "")
+
         blob = FileBlob(str(file_path))
         action = self.upload_action(
-            file_path, blob.size, reporter=QApplication.instance()
+            file_path, blob.size, reporter=QApplication.instance(), engine=engine_uid
         )
         if filename:
             blob.name = filename
@@ -159,12 +165,6 @@ class BaseUploader:
             chunked = (
                 Options.chunk_upload and blob.size > Options.chunk_limit * 1024 * 1024
             )
-
-            engine_uid = kwargs.pop("engine_uid", None)
-            is_direct_edit = kwargs.pop("is_direct_edit", False)
-            is_direct_transfer = kwargs.get("is_direct_transfer", False)
-            remote_parent_path = kwargs.pop("remote_parent_path", "")
-            remote_parent_ref = kwargs.pop("remote_parent_ref", "")
 
             # Set those attributes as FileBlob does not have them
             # and they are required for the step 2 of .upload_impl()
@@ -282,7 +282,7 @@ class BaseUploader:
         """Link the given uploaded *blob* to the given document (refs are passed into *kwargs*)."""
 
         # Remove additional parameters to prevent a BadQuery
-        kwargs.pop("engine_uid", None)
+        engine_uid = kwargs.pop("engine_uid", None)
         kwargs.pop("is_direct_edit", None)
         kwargs.pop("remote_parent_path", None)
         kwargs.pop("remote_parent_ref", None)
@@ -292,7 +292,7 @@ class BaseUploader:
         headers["Nuxeo-Transaction-Timeout"] = str(TX_TIMEOUT)
 
         action = self.linking_action(
-            file_path, blob.size, reporter=QApplication.instance()
+            file_path, blob.size, reporter=QApplication.instance(), engine=engine_uid
         )
         action.is_direct_transfer = kwargs.pop("is_direct_transfer", False)
         try:
