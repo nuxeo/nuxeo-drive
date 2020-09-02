@@ -320,9 +320,9 @@ def get_tree_list(path: Path) -> Generator[Tuple[Path, int], None, None]:
     Note: this function cannot be decorated with lru_cache().
     """
     try:
-        path.is_dir()
+        it = os.scandir(path)
     except OSError:
-        log.warning(f"Error calling is_dir() on {path!r}", exc_info=True)
+        log.warning(f"Cannot browse {path!r}")
         return
 
     # Check that the path can be processed
@@ -336,7 +336,7 @@ def get_tree_list(path: Path) -> Generator[Tuple[Path, int], None, None]:
     yield path, 0
 
     # Then, yield its children
-    with os.scandir(path) as it:
+    with it:
         for entry in it:
             # Check the path can be processed
             if entry.name.startswith(Options.ignored_prefixes) or entry.name.endswith(
@@ -350,6 +350,7 @@ def get_tree_list(path: Path) -> Generator[Tuple[Path, int], None, None]:
             except OSError:
                 log.warning(f"Error calling is_dir() on {entry.path!r}", exc_info=True)
                 continue
+
             if is_dir:
                 yield from get_tree_list(Path(entry.path))
             elif entry.is_file():
@@ -673,8 +674,9 @@ def encrypt(
     """ Symmetric encryption using AES. """
 
     import base64
-    from Cryptodome.Random import get_random_bytes
+
     from Cryptodome.Cipher import AES
+    from Cryptodome.Random import get_random_bytes
 
     plaintext = force_encode(plaintext)
     secret = force_encode(secret)
@@ -691,6 +693,7 @@ def decrypt(
     """ Symmetric decryption using AES. """
 
     import base64
+
     from Cryptodome.Cipher import AES
 
     ciphertext = force_encode(ciphertext)
@@ -959,6 +962,7 @@ class PidLockFile:
                 pid = None
             else:
                 from contextlib import suppress
+
                 import psutil
 
                 with suppress(ValueError, psutil.NoSuchProcess):
@@ -1095,9 +1099,8 @@ def test_url(
 ) -> bool:
     """Try to request the login page to see if the URL is valid."""
     import requests
-    from urllib3.util.url import parse_url
-
     from requests.exceptions import SSLError
+    from urllib3.util.url import parse_url
 
     kwargs: Dict[str, Any] = {
         "timeout": timeout,

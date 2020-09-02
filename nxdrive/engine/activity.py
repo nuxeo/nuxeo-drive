@@ -94,12 +94,14 @@ class FileAction(Action):
         size: int,
         tmppath: Path = None,
         reporter: Any = None,
+        engine: str = "",
     ) -> None:
         super().__init__(action_type=action_type)
 
         self.filepath = filepath
         self.size = size
         self.tmppath = tmppath
+        self.engine = engine
 
         # Is it an empty file?
         self.empty = size == 0
@@ -169,6 +171,7 @@ class FileAction(Action):
             "uploaded": self.uploaded,
             "speed": self.last_chunk_transfer_speed,
             "is_direct_transfer": self.is_direct_transfer,
+            "engine": self.engine,
         }
 
     def __repr__(self) -> str:
@@ -199,15 +202,19 @@ class VerificationAction(FileAction):
 class UploadAction(FileAction):
     """Upload: step 1/2 - Upload the file."""
 
-    def __init__(self, filepath: Path, size: int, reporter: Any = None) -> None:
-        super().__init__("Upload", filepath, size, reporter=reporter)
+    def __init__(
+        self, filepath: Path, size: int, reporter: Any = None, engine: str = ""
+    ) -> None:
+        super().__init__("Upload", filepath, size, reporter=reporter, engine=engine)
 
 
 class LinkingAction(FileAction):
     """Upload: step 2/2 - Create the document on the server and link the uploaded blob to it."""
 
-    def __init__(self, filepath: Path, size: int, reporter: Any = None) -> None:
-        super().__init__("Linking", filepath, size, reporter=reporter)
+    def __init__(
+        self, filepath: Path, size: int, reporter: Any = None, engine: str = ""
+    ) -> None:
+        super().__init__("Linking", filepath, size, reporter=reporter, engine=engine)
         self.progress = size
 
 

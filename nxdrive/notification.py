@@ -164,7 +164,7 @@ class NotificationService(QObject):
             if engine is None:
                 return self._notifications
             result = {}
-            for notif in self._notifications.values():
+            for notif in self._notifications.copy().values():
                 if notif.engine_uid == engine:
                     result[notif.uid] = notif
                 if notif.engine_uid is None and include_generic:

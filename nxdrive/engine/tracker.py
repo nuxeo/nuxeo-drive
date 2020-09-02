@@ -230,7 +230,7 @@ class Tracker(PollWorker):
     @analytics_enabled
     @pyqtSlot()
     def send_stats(self) -> None:
-        for engine in self._manager.engines.values():
+        for engine in self._manager.engines.copy().values():
             for key, value in engine.get_metrics().items():
                 if not isinstance(value, int):
                     log.debug(f"Skip non integer Statistics(Engine) {key}: {value!r}")

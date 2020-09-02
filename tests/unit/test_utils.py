@@ -10,8 +10,9 @@ from pathlib import Path, _posix_flavour, _windows_flavour
 from time import sleep
 from unittest.mock import patch
 
-import nxdrive.utils
 import pytest
+
+import nxdrive.utils
 from nxdrive.constants import APP_NAME, WINDOWS
 from nxdrive.options import Options
 
@@ -519,18 +520,21 @@ def test_get_tree_list_dir_raise_os_error(mock_path):
 def test_get_tree_list_subdir_raise_os_error(mock_scandir):
     mock_scandir.return_value.__enter__.return_value = iter(
         [
-            FakeDirEntry(is_dir=True),
             FakeDirEntry(
                 is_dir=True,
                 should_raise=True,
                 raised_exception=OSError("Mock'ed Too many levels of symbolic links"),
             ),
+            FakeDirEntry(is_dir=True),
+            FakeDirEntry(
+                is_dir=True,
+                should_raise=True,
+                raised_exception=PermissionError("Mock'ed PermissionError"),
+            ),
         ]
     )
     tree = list(nxdrive.utils.get_tree_list(Path("/fake")))
-
-    # We did not go into the third FakeDir because of OSError
-    assert len(tree) == 2
+    assert len(tree) == 1
 
 
 @Options.mock()
