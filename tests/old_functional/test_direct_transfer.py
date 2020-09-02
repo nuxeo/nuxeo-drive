@@ -596,6 +596,9 @@ class TestDirectTransferNoSync(OneUserNoSync, DirectTransfer):
 
 class DirectTransferFolder:
     def setUp(self):
+        if not self.engine_1.have_folder_upload:
+            pytest.skip("FileManager.CreateFolder API not available.")
+
         # No sync root, to ease testing
         self.remote_1.unregister_as_root(self.workspace)
         self.engine_1.start()
