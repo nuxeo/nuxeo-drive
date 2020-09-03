@@ -284,8 +284,7 @@ class ConfigurationDAO(QObject):
             self.store_int(SCHEMA_VERSION, 1)
 
     def _init_db(self, cursor: Cursor) -> None:
-        # http://www.stevemcarthur.co.uk/blog/post/some-kind-of-disk-io-error-occurred-sqlite
-        cursor.execute("PRAGMA journal_mode = MEMORY")
+        cursor.execute("PRAGMA journal_mode = WAL")
         self._create_configuration_table(cursor)
 
     def _create_configuration_table(self, cursor: Cursor) -> None:
