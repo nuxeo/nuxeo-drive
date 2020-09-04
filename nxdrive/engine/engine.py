@@ -106,6 +106,7 @@ class Engine(QObject):
     directTranferError = pyqtSignal(Path)
     directTranferStatus = pyqtSignal(Path, bool)
     directTranferItemsCount = pyqtSignal()
+    directTransferSessionFinished = pyqtSignal(str)
 
     type = "NXDRIVE"
     # Folder locker - LocalFolder processor can prevent
