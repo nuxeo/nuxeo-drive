@@ -96,6 +96,7 @@
     "DIRECT_TRANSFER_NOT_ALLOWED": "Bezpośredni transfer \"%1\" nie jest dozwolony dla zsynchronizowanych plików.",
     "DIRECT_TRANSFER_NOT_ENABLED": "Funkcja bezpośredniego transferu nie jest włączona.",
     "DIRECT_TRANSFER_NOT_POSSIBLE": "W tej chwili nie można korzystać z funkcji bezpośredniego transferu. <br> Spróbuj ponownie później.",
+    "DIRECT_TRANSFER_SESSION_END": "Transfer to \"%1\" has been completed.",
     "DIRECT_TRANSFER_START": "Początek transferu: \"%1\"",
     "DIRECT_TRANSFER_WINDOW_TITLE": "Transfer bezpośredni - %1",
     "DISCONNECT": "Usuń konto",

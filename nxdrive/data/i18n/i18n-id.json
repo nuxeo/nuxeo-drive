@@ -96,6 +96,7 @@
     "DIRECT_TRANSFER_NOT_ALLOWED": "Direct Transfer of \"%1\" is not allowed for synced files.",
     "DIRECT_TRANSFER_NOT_ENABLED": "The Direct Transfer feature is not enabled.",
     "DIRECT_TRANSFER_NOT_POSSIBLE": "The Direct Transfer feature is not usable right now.<br>Please try again later.",
+    "DIRECT_TRANSFER_SESSION_END": "Transfer to \"%1\" has been completed.",
     "DIRECT_TRANSFER_START": "Transfer start: \"%1\"",
     "DIRECT_TRANSFER_WINDOW_TITLE": "Direct Transfer - %1",
     "DISCONNECT": "Hapus Akun",

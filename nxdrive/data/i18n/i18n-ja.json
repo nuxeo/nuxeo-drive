@@ -96,6 +96,7 @@
     "DIRECT_TRANSFER_NOT_ALLOWED": "\"%1\" の直接転送は、同期されたファイルには許可されていません。",
     "DIRECT_TRANSFER_NOT_ENABLED": "直接転送機能は有効になっていません。",
     "DIRECT_TRANSFER_NOT_POSSIBLE": "ダイレクト転送機能は今は使えません。<br>あとでもう一度試してみてください。",
+    "DIRECT_TRANSFER_SESSION_END": "Transfer to \"%1\" has been completed.",
     "DIRECT_TRANSFER_START": "転送開始：\"%1\"",
     "DIRECT_TRANSFER_WINDOW_TITLE": "直接転送 - %1",
     "DISCONNECT": "アカウントを削除",
