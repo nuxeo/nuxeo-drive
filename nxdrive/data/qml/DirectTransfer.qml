@@ -14,21 +14,15 @@ Rectangle {
     property double startTime: 0.0
 
     signal setEngine(string uid)
-    signal setItemsCount(bool force)
+    signal setItemsCount()
 
     onSetEngine: engineUid = uid
-    onSetItemsCount: updateCounts(force)
+    onSetItemsCount: updateCounts()
 
-    function updateCounts(force) {
-        // Update counts every second to go easy on the database
-        var now = new Date().getTime()
-
-        if (force || now - startTime > 1000) {
-            itemsCount = api.get_dt_items_count(engineUid)
-            if (itemsCount == 0) {
-                application.close_direct_transfer_window()
-            }
-            startTime = new Date().getTime()
+    function updateCounts() {
+        itemsCount = api.get_dt_items_count(engineUid)
+        if (itemsCount == 0) {
+            application.close_direct_transfer_window()
         }
     }
 
