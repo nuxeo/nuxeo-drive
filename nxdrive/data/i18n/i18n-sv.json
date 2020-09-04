@@ -96,6 +96,7 @@
     "DIRECT_TRANSFER_NOT_ALLOWED": "Direct Transfer av \"%1\" är inte tillåtet för synkroniserade filer",
     "DIRECT_TRANSFER_NOT_ENABLED": "Funktionen Direct Transfer är inte aktiverad.",
     "DIRECT_TRANSFER_NOT_POSSIBLE": "Funktionen Direct Transfer kan inte användas just nu.<br>Försök igen senare.",
+    "DIRECT_TRANSFER_SESSION_END": "Transfer to \"%1\" has been completed.",
     "DIRECT_TRANSFER_START": "Överföringsstart: \"%1\"",
     "DIRECT_TRANSFER_WINDOW_TITLE": "Direkt överföring - %1",
     "DISCONNECT": "Ta bort konto",

@@ -96,6 +96,7 @@
     "DIRECT_TRANSFER_NOT_ALLOWED": "Rechtstreeks overdragen \"%1\" is niet toegestaan voor gesynchroniseerde bestanden.",
     "DIRECT_TRANSFER_NOT_ENABLED": "De functie Directe Overdracht is niet ingeschakeld.",
     "DIRECT_TRANSFER_NOT_POSSIBLE": "De Direct Transfer functie is momenteel niet bruikbaar.<br>Probeer het later opnieuw.",
+    "DIRECT_TRANSFER_SESSION_END": "Transfer to \"%1\" has been completed.",
     "DIRECT_TRANSFER_START": "Fout bij overdracht: \"%1\"",
     "DIRECT_TRANSFER_WINDOW_TITLE": "Directe overdracht - %1",
     "DISCONNECT": "Account verwijderen",

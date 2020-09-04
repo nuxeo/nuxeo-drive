@@ -96,6 +96,7 @@
     "DIRECT_TRANSFER_NOT_ALLOWED": "No está permitido transferir directamente \"%1\" para archivos sincronizados.",
     "DIRECT_TRANSFER_NOT_ENABLED": "La función de Direct Transfer no está habilitada.",
     "DIRECT_TRANSFER_NOT_POSSIBLE": "La función de Direct Transfer no se puede utilizar en este momento.<br>Inténtalo de nuevo más tarde.",
+    "DIRECT_TRANSFER_SESSION_END": "Transfer to \"%1\" has been completed.",
     "DIRECT_TRANSFER_START": "Inicio de la transferencia: \"%1\"",
     "DIRECT_TRANSFER_WINDOW_TITLE": "Transferencia directa - %1",
     "DISCONNECT": "Eliminar cuenta",

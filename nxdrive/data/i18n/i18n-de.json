@@ -96,6 +96,7 @@
     "DIRECT_TRANSFER_NOT_ALLOWED": "Direkte Übertragung von \"%1\" ist für synchronisierte Dateien nicht erlaubt.",
     "DIRECT_TRANSFER_NOT_ENABLED": "Die Funktion Direktbearbeitung ist nicht aktiviert.",
     "DIRECT_TRANSFER_NOT_POSSIBLE": "Die Direkte Übertragung Funktion ist momentan nicht verfügbar.<br>Bitte versuchen Sie es später erneut.",
+    "DIRECT_TRANSFER_SESSION_END": "Transfer to \"%1\" has been completed.",
     "DIRECT_TRANSFER_START": "Übertragung start: \"%1\"",
     "DIRECT_TRANSFER_WINDOW_TITLE": "Direkte Übertragung - %1",
     "DISCONNECT": "Konto löschen",
