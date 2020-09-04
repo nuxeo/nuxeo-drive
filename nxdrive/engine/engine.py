@@ -105,7 +105,7 @@ class Engine(QObject):
     # Direct Transfer
     directTranferError = pyqtSignal(Path)
     directTranferStatus = pyqtSignal(Path, bool)
-    directTranferItemsCount = pyqtSignal(bool)
+    directTranferItemsCount = pyqtSignal()
 
     type = "NXDRIVE"
     # Folder locker - LocalFolder processor can prevent
@@ -456,9 +456,9 @@ class Engine(QObject):
             row_id = self.dao.plan_many_direct_transfer_items(batch_items, session_uid)
             if current_max_row_id == -1:
                 current_max_row_id = row_id
-            self.directTranferItemsCount.emit(False)
+            self.directTranferItemsCount.emit()
 
-        self.directTranferItemsCount.emit(True)
+        self.directTranferItemsCount.emit()
         log.info(f" ... Planned {len(items):,} item(s) to Direct Transfer, let's gooo!")
 
         # And add new pairs to the queue
