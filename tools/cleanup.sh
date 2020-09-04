@@ -59,7 +59,7 @@ main() {
                 version="$(echo "${release}" | cut -d' ' -f1 | sed s'/alpha-//')"
                 purge "${version}"
             fi
-        done < <(git for-each-ref --sort=-taggerdate --format '%(refname:short) %(taggerdate:short)' refs/tags | grep -e "(^alpha*)")
+        done < <(git for-each-ref --sort=-taggerdate --format '%(refname:short) %(taggerdate:short)' refs/tags | grep -E "(^alpha*)")
     fi
 
     if md5sum -c --status hash.md5; then
