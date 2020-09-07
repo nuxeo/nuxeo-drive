@@ -35,7 +35,7 @@ from ..exceptions import (
     RootAlreadyBindWithDifferentAccount,
     ThreadInterrupt,
 )
-from ..objects import Binder, DocPairs, EngineDef, Metrics
+from ..objects import Binder, DocPairs, EngineDef, Metrics, Session
 from ..options import Options
 from ..state import State
 from ..utils import (
@@ -465,6 +465,11 @@ class Engine(QObject):
         # And add new pairs to the queue
         self.dao.queue_many_direct_transfer_items(current_max_row_id)
 
+    def handle_session_status(self, session: Optional[Session]) -> None:
+        """Check the session status and send a notification if finished."""
+        if session and session.status is TransferStatus.DONE:
+            self.directTransferSessionFinished.emit(session.remote_path)
+
     def direct_transfer(
         self,
         local_paths: Dict[Path, int],
@@ -669,6 +674,8 @@ class Engine(QObject):
         if not doc_pair:
             return
         self.dao.remove_state(doc_pair)
+        session = self.dao.decrease_session_total(doc_pair.session)
+        self.handle_session_status(session)
 
     def suspend(self) -> None:
         if self._pause:

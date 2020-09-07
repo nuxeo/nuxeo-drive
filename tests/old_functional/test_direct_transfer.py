@@ -114,6 +114,8 @@ class DirectTransfer:
         """
         Pause the transfer by simulating a click on the pause/resume icon
         on the current upload in the DT window; and cancel the upload.
+        Verify that the linked session has been updated after the
+        upload cancel.
         """
 
         def callback(*_):
@@ -123,6 +125,14 @@ class DirectTransfer:
             assert uploads
             upload = uploads[0]
             assert upload.status == TransferStatus.ONGOING
+
+            # Verify the session status
+            doc_pair = dao.get_state_from_id(1)
+            assert doc_pair
+            session = dao.get_session(1)
+            assert session
+            assert session.total_items == 1
+            assert session.status == TransferStatus.ONGOING
 
             # Pause the upload
             dao.pause_transfer("upload", upload.uid, 50.0)
@@ -145,6 +155,13 @@ class DirectTransfer:
             engine.cancel_upload(upload.uid)
 
         self.sync_and_check(should_have_blob=False)
+
+        # Verify the session status after cancellation
+        doc_pair = dao.get_state_from_id(1)
+        assert doc_pair
+        session = dao.get_session(1)
+        assert session.total_items == 0
+        assert session.status == TransferStatus.DONE
 
     def test_with_engine_not_started(self):
         """A Direct Transfer should work even if engines are stopped."""
