@@ -95,7 +95,7 @@ class DirectTransferUploader(BaseUploader):
                 "FileManager.Import",
                 context={"currentDocument": doc_pair.remote_parent_path},
                 params={"overwite": overwrite},  # NXP-29286
-                engine_uid=kwargs.pop("engine_uid"),
+                engine_uid=kwargs.get("engine_uid", ""),
                 is_direct_transfer=True,
                 remote_parent_path=doc_pair.remote_parent_path,
                 remote_parent_ref=doc_pair.remote_parent_ref,

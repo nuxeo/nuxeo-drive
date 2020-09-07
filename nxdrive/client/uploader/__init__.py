@@ -5,8 +5,9 @@ from abc import abstractmethod
 from logging import getLogger
 from pathlib import Path
 from time import monotonic_ns
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
+from botocore.exceptions import ClientError
 from nuxeo.exceptions import HTTPError
 from nuxeo.handlers.default import Uploader
 from nuxeo.models import Batch, FileBlob
@@ -78,13 +79,21 @@ class BaseUploader:
         If it exists, the error is skipped and the upload is seen as a success.
         """
         # Step 1: upload the blob
-        blob = self.upload_chunks(
+        blob, batch = self.upload_chunks(
             file_path, filename=filename, mime_type=mime_type, **kwargs
         )
 
         # Step 2: link the uploaded blob to the document
         kwargs["file_path"] = file_path
-        return self.link_blob_to_doc(command, blob, **kwargs)
+        doc: Dict[str, Any] = self.link_blob_to_doc(command, blob, **kwargs)
+
+        # We need to remove the batch as the "X-Batch-No-Drop" header was used in link_blob_to_doc()
+        try:
+            batch.delete(0)
+        except Exception:
+            log.warning("Cannot delete the batch", exc_info=True)
+
+        return doc
 
     def upload_chunks(
         self,
@@ -92,7 +101,7 @@ class BaseUploader:
         filename: str = None,
         mime_type: str = None,
         **kwargs: Any,
-    ) -> FileBlob:
+    ) -> Tuple[FileBlob, Batch]:
         """Upload a blob by chunks or in one go."""
 
         engine_uid = kwargs.get("engine_uid", None)
@@ -126,11 +135,7 @@ class BaseUploader:
                 # is not possible for S3 as there is no blob at the current index
                 # until the S3 upload is done itself and the call to
                 # batch.complete() done.
-                file_idx = (
-                    None
-                    if transfer.batch.get("provider", "") == "s3"
-                    else transfer.batch.get("upload_idx", 0)
-                )
+                file_idx = None if transfer.batch.get("provider", "") == "s3" else 0
 
                 # Check if the associated batch still exists server-side
                 try:
@@ -145,6 +150,10 @@ class BaseUploader:
                     log.debug("Associated batch found, resuming the upload")
                     batch = Batch(service=self.remote.uploads, **transfer.batch)
                     chunk_size = transfer.chunk_size
+
+                    # The transfer was already completed on the third-party provider
+                    if batch.etag:
+                        return self._complete_upload(batch, blob)
 
             if not batch:
                 # .uploads.handlers() result is cached, so it is convenient to call it each time here
@@ -166,19 +175,24 @@ class BaseUploader:
                 Options.chunk_upload and blob.size > Options.chunk_limit * 1024 * 1024
             )
 
-            # Set those attributes as FileBlob does not have them
-            # and they are required for the step 2 of .upload_impl()
-            blob.batch_id = batch.uid
-            blob.fileIdx = batch.upload_idx
-
             action.is_direct_transfer = is_direct_transfer
 
-            uploader = batch.get_uploader(
-                blob,
-                chunked=chunked,
-                chunk_size=chunk_size,
-                callback=self.remote.upload_callback,
-            )
+            try:
+                uploader = batch.get_uploader(
+                    blob,
+                    chunked=chunked,
+                    chunk_size=chunk_size,
+                    callback=self.remote.upload_callback,
+                )
+            except ClientError as exc:
+                if exc.response["Error"]["Code"] != "NoSuchUpload":
+                    raise
+
+                log.warning(
+                    "Either the upload ID does not exist, either the upload was already completed."
+                )
+                return self._complete_upload(batch, blob)
+
             log.debug(f"Using {type(uploader).__name__!r} uploader")
 
             if not transfer:
@@ -251,15 +265,18 @@ class BaseUploader:
                     # attributes like the Batch ETag, blob index, etc..
                     uploader.upload()
 
-                # Complete the S3 upload
-                # (setting a big timeout to handle big files)
-                batch.complete(timeout=TX_TIMEOUT)
+                # Save the final ETag in the database to prevent future issue if
+                # the FileManager throws an error
+                transfer.batch = batch.as_dict()
+                self.dao.update_upload(transfer)
+
+            self._complete_upload(batch, blob)
 
             # Transfer is completed, update the status in the database
             transfer.status = TransferStatus.DONE
             self.dao.set_transfer_status("upload", transfer)
 
-            return blob
+            return blob, batch
         finally:
             # In case of error, log the progression to help debugging
             percent = action.get_percent()
@@ -290,6 +307,11 @@ class BaseUploader:
 
         headers = kwargs.pop("headers", {})
         headers["Nuxeo-Transaction-Timeout"] = str(TX_TIMEOUT)
+
+        # By default, the batchId will be removed after its first use.
+        # We do not want that for better upload resiliency, especially with large files.
+        # The batchId must be removed manually then.
+        headers["X-Batch-No-Drop"] = "true"
 
         action = self.linking_action(
             file_path, blob.size, reporter=QApplication.instance(), engine=engine_uid
@@ -322,3 +344,22 @@ class BaseUploader:
                 self.dao.update_upload(transfer)
 
         uploader.service.refresh_token = refresh
+
+    @staticmethod
+    def _complete_upload(batch: Batch, blob: FileBlob) -> Tuple[FileBlob, Batch]:
+        """Helper to complete an upload."""
+
+        # Set those attributes as FileBlob does not have them
+        # and they are required for the step 2 of .upload_impl()
+        blob.batch_id = batch.uid
+        blob.fileIdx = 0
+        batch.upload_idx = 1
+
+        if not batch.blobs or not batch.blobs[0]:
+            batch.blobs[0] = blob
+
+        # Complete the upload on the S3 side
+        if batch.is_s3():
+            batch.complete(timeout=TX_TIMEOUT)
+
+        return blob, batch

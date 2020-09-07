@@ -6,10 +6,10 @@ Application.close_direct_transfer_window  # Used in QML
 Application.confirm_cancel_transfer  # Used in QML
 Application._nxdrive_url_env  # Used in QML
 Application.action_progressing  # Used by FileAction.processing signal
+batch.upload_idx  # Remote.upload_chunks()
 BlocklistQueue.repush  # Used in tests
 blob.batch_id  # Remote.upload_chunks()
 blob.fileIdx  # Remote.upload_chunks()
-blob.mimetype  # Remote.upload_chunks()
 CliHandler.bind_root  # Used by the arguments parser
 CliHandler.clean_folder  # Used by the arguments parser
 CliHandler.console  # Used by the arguments parser
