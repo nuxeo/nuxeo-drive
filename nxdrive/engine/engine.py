@@ -104,7 +104,6 @@ class Engine(QObject):
 
     # Direct Transfer
     directTranferError = pyqtSignal(Path)
-    directTranferStatus = pyqtSignal(Path, bool)
     directTranferItemsCount = pyqtSignal()
     directTransferSessionFinished = pyqtSignal(str)
 
@@ -420,7 +419,6 @@ class Engine(QObject):
         duplicate_behavior: str,
     ) -> None:
         """Plan the Direct Transfer."""
-        # self.directTranferStatus.emit(local_path[0], True)
 
         # Save the remote location for next times
         self._save_remote_parent_infos(
