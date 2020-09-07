@@ -514,11 +514,7 @@ class Processor(EngineWorker):
         # Clean-up
         self.dao.remove_state(doc_pair, recursive=False)
 
-        # Display a notification only for files >= 25 MiB (to prevent notifications flood)
-        if not doc_pair.folderish and doc_pair.size >= 25 * 1024 * 1024:
-            self.engine.directTranferStatus.emit(path, False)
-
-        # Update session and send notification if status is DONE
+        # Update session then handle the status
         session = self.dao.update_session(doc_pair.session)
         self.engine.handle_session_status(session)
 
