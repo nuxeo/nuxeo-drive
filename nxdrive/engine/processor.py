@@ -520,8 +520,7 @@ class Processor(EngineWorker):
 
         # Update session and send notification if status is DONE
         session = self.dao.update_session(doc_pair.session)
-        if session and session.status is TransferStatus.DONE:
-            self.engine.directTransferSessionFinished.emit(session.remote_path)
+        self.engine.handle_session_status(session)
 
         # For analytics
         self.engine.manager.directTransferStats.emit(doc_pair.folderish, doc_pair.size)

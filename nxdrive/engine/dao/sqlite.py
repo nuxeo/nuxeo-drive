@@ -2365,6 +2365,27 @@ class EngineDAO(ConfigurationDAO):
             )
             return session
 
+    def decrease_session_total(self, uid: int) -> Optional[Session]:
+        """
+        Decrease the Session *total_items* count.
+        Update the status if all files are uploaded.
+        """
+        with self.lock:
+            con = self._get_write_connection()
+            cursor = con.cursor()
+            session = self.get_session(uid)
+            if not session:
+                return None
+
+            session.total_items = max(0, session.total_items - 1)
+            if session.uploaded_items == session.total_items:
+                session.status = TransferStatus.DONE
+            cursor.execute(
+                "UPDATE Sessions SET total = ?, status = ? WHERE uid = ?",
+                (session.total_items, session.status.value, session.uid),
+            )
+            return session
+
     def get_downloads_with_status(self, status: TransferStatus) -> List[Download]:
         return [d for d in self.get_downloads() if d.status == status]
 
