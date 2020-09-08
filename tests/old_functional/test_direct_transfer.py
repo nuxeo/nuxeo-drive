@@ -164,6 +164,8 @@ class DirectTransfer:
         with self._caplog.at_level(logging.INFO):
             self.sync_and_check(should_have_blob=False)
 
+            assert not dao.get_state_from_local(upload.path)
+
             # Verify the session status after cancellation
             doc_pair = dao.get_state_from_id(1)
             assert doc_pair
