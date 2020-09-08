@@ -1,6 +1,8 @@
 """
 Test the Direct Transfer feature in different scenarii.
 """
+import logging
+import re
 from shutil import copyfile
 from time import sleep
 from unittest.mock import patch
@@ -117,6 +119,11 @@ class DirectTransfer:
         Verify that the linked session has been updated after the
         upload cancel.
         """
+        expression = re.compile(
+            r"<LogRecord: nxdrive\.notification, .*, .*, .*, "
+            r"\"Sending Notification\(level='info' title='Direct Transfer'"
+            r" uid='DIRECT_TRANSFER_SESSION_END.*' unique=False\)\">"
+        )
 
         def callback(*_):
             """This will mimic what is done in TransferItem.qml."""
@@ -154,14 +161,20 @@ class DirectTransfer:
             upload = list(dao.get_dt_uploads())[0]
             engine.cancel_upload(upload.uid)
 
-        self.sync_and_check(should_have_blob=False)
+        with self._caplog.at_level(logging.INFO):
+            self.sync_and_check(should_have_blob=False)
 
-        # Verify the session status after cancellation
-        doc_pair = dao.get_state_from_id(1)
-        assert doc_pair
-        session = dao.get_session(1)
-        assert session.total_items == 0
-        assert session.status == TransferStatus.DONE
+            # Verify the session status after cancellation
+            doc_pair = dao.get_state_from_id(1)
+            assert doc_pair
+            session = dao.get_session(1)
+            assert session.total_items == 0
+            assert session.status == TransferStatus.DONE
+
+            # A new Notification log should appear
+            records = [str(log) for log in self._caplog.records]
+            matches = list(filter(expression.match, records))
+            assert len(matches) == 1
 
     def test_with_engine_not_started(self):
         """A Direct Transfer should work even if engines are stopped."""
@@ -758,6 +771,11 @@ class DirectTransferFolder:
 
         # There is no upload, right now
         assert not list(self.engine_1.dao.get_dt_uploads())
+        expression = re.compile(
+            r"<LogRecord: nxdrive\.notification, .*, .*, .*, "
+            r"\"Sending Notification\(level='info' title='Direct Transfer'"
+            r" uid='DIRECT_TRANSFER_SESSION_END.*' unique=False\)\">"
+        )
 
         for x in range(4):
             created = []
@@ -786,12 +804,18 @@ class DirectTransferFolder:
                 assert session
                 assert session.status == TransferStatus.ONGOING
 
-                self.wait_sync(wait_for_async=True)
+                with self._caplog.at_level(logging.INFO):
+                    self.wait_sync(wait_for_async=True)
 
-                session = self.engine_1.dao.get_session(x + 1)
-                assert session
-                assert session.status == TransferStatus.DONE
-                assert session.uploaded_items == 3
+                    session = self.engine_1.dao.get_session(x + 1)
+                    assert session
+                    assert session.status == TransferStatus.DONE
+                    assert session
+
+                    # A new Notification logs should appear at each iteration
+                    records = [str(log) for log in self._caplog.records]
+                    matches = list(filter(expression.match, records))
+                    assert len(matches) == x + 1
 
     def test_sub_files(self):
         """Test the Direct Transfer on a folder with many files."""

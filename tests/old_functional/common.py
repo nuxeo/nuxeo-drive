@@ -12,9 +12,13 @@ from typing import Dict, List, Tuple
 from unittest import TestCase
 from uuid import uuid4
 
+import pytest
 from faker import Faker
 from nuxeo.exceptions import BadQuery
 from nuxeo.models import Document, User
+from PyQt5.QtCore import QCoreApplication, QTimer, pyqtSignal, pyqtSlot
+from sentry_sdk import configure_scope
+
 from nxdrive import __version__
 from nxdrive.constants import LINUX, MAC, WINDOWS
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
@@ -22,8 +26,6 @@ from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.translator import Translator
 from nxdrive.utils import normalized_path
-from PyQt5.QtCore import QCoreApplication, QTimer, pyqtSignal, pyqtSlot
-from sentry_sdk import configure_scope
 
 from .. import env
 from ..utils import clean_dir, salt
@@ -136,6 +138,10 @@ class StubQApplication(QCoreApplication):
 
 
 class TwoUsersTest(TestCase):
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        self._caplog = caplog
+
     def setup_method(
         self, test_method, register_roots=True, user_2=True, server_profile=None
     ):
