@@ -10,7 +10,7 @@ from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
 from os.path import basename
-from pathlib import Path
+from pathlib import Path, PosixPath, WindowsPath
 from sqlite3 import (
     Connection,
     Cursor,
@@ -19,6 +19,7 @@ from sqlite3 import (
     OperationalError,
     Row,
     connect,
+    register_adapter,
 )
 from threading import RLock, local
 from typing import (
@@ -124,27 +125,16 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
 }
 
 
-def prepare_args(data: Tuple[Union[Path, str], ...]) -> Tuple[str, ...]:
-    """ Convert Path objects to str before insertion into database. """
+def _adapt_path(path: Path) -> str:
+    """Adapt a Path object to str before insertion into database."""
+    return f"{path}"
 
-    data = list(data)  # type: ignore
-    for i in range(len(data)):
-        if isinstance(data[i], Path):
-            path = data[i].as_posix()  # type: ignore
-            path = "" if path == "." else path
-            if not data[i].is_absolute():  # type: ignore
-                path = "/" + path
-            data[i] = path  # type: ignore
-    return tuple(data)  # type: ignore
+
+register_adapter(WindowsPath if WINDOWS else PosixPath, _adapt_path)
 
 
 class AutoRetryCursor(Cursor):
     def execute(self, *args: str, **kwargs: Any) -> Cursor:
-        if len(args) > 1:
-            # Convert all Path objects to str
-            args = list(args)  # type: ignore
-            args[1] = prepare_args(args[1])  # type: ignore
-            args = tuple(args)
         count = 1
         while True:
             count += 1
