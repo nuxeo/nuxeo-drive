@@ -1,30 +1,9 @@
 # coding: utf-8
-import sys
 from pathlib import Path
 
-import pytest
-
 from nxdrive.constants import TransferStatus
-from nxdrive.engine.dao.sqlite import prepare_args
-from nxdrive.utils import WINDOWS
 
 from ..markers import windows_only
-
-
-@pytest.mark.parametrize(
-    "args, expected_args, skip",
-    [
-        (("a", "b", "c"), ("a", "b", "c"), False),
-        ((Path("a"),), ("/a",), False),
-        ((Path("/a"),), ("/a",), WINDOWS),
-        ((Path("C:\\a"),), ("C:/a",), not WINDOWS),
-        ((Path(),), ("/",), False),
-    ],
-)
-def test_prepare_args(args, expected_args, skip):
-    if skip:
-        pytest.skip(f"Not relevant on {sys.platform}")
-    assert prepare_args(args) == expected_args
 
 
 def test_acquire_processors(engine_dao):
