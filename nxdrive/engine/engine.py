@@ -428,8 +428,8 @@ class Engine(QObject):
         all_paths = local_paths.keys()
         items = [
             (
-                str(path),
-                str(path.parent),
+                path,
+                path.parent,
                 path.name,
                 path.is_dir(),
                 size,
