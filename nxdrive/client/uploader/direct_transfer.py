@@ -101,9 +101,6 @@ class DirectTransferUploader(BaseUploader):
                 remote_parent_ref=doc_pair.remote_parent_ref,
             )
 
-        # Transfer is completed, delete the upload from the database
-        self.dao.remove_transfer("upload", file_path, is_direct_transfer=True)
-
         return item
 
     def upload_folder(self, **kwargs: Any) -> Dict[str, Any]:
