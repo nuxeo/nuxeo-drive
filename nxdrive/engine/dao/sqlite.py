@@ -127,7 +127,12 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
 
 def _adapt_path(path: Path) -> str:
     """Adapt a Path object to str before insertion into database."""
-    return f"{path}"
+    path_str = f"{path}"
+    if path_str == ".":
+        path_str = "/"
+    elif not path.is_absolute():
+        path_str = f"/{path_str}"
+    return path_str
 
 
 register_adapter(WindowsPath if WINDOWS else PosixPath, _adapt_path)
