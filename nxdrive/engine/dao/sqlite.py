@@ -833,11 +833,9 @@ class EngineDAO(ConfigurationDAO):
                     "INSERT INTO Sessions (total, status) " "VALUES (?, ?)",
                     (dt_count, TransferStatus.ONGOING.value),
                 )
-                session_uid = str(cursor.lastrowid)
-                cursor.execute(
-                    "UPDATE States SET session = ? WHERE local_state = 'direct'",
-                    (session_uid),
-                )
+            cursor.execute(
+                f"UPDATE States SET session = {cursor.lastrowid} WHERE local_state = 'direct'"
+            )
             self.store_int(SCHEMA_VERSION, 15)
 
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
