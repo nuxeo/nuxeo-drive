@@ -177,6 +177,7 @@ class DirectTransfer:
 
     def test_with_engine_not_started(self):
         """A Direct Transfer should work even if engines are stopped."""
+        self.app.quit()
         pytest.xfail("Waiting for NXDRIVE-1910")
 
         self.engine_1.stop()
@@ -430,6 +431,7 @@ class DirectTransfer:
         Test an error happening after chunks were uploaded and the FileManager.Import operation call.
         This could happen if a proxy does not understand well the final requests as seen in NXDRIVE-1753.
         """
+        self.app.quit()
         pytest.skip("Not yet implemented.")
 
         class BadUploader(DirectTransferUploader):
@@ -634,6 +636,7 @@ class TestDirectTransferNoSync(OneUserNoSync, DirectTransfer):
 class DirectTransferFolder:
     def setUp(self):
         if not self.engine_1.have_folder_upload:
+            self.app.quit()
             pytest.skip("FileManager.CreateFolder API not available.")
 
         # No sync root, to ease testing

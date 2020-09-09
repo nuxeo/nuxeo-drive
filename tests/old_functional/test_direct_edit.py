@@ -855,6 +855,7 @@ class TestDirectEdit(OneUserTest, MixinTests):
         """Ensure we can rename a file between different partitions."""
         second_partoche = Path(env.SECOND_PARTITION)
         if not second_partoche.is_dir():
+            self.app.quit()
             pytest.skip(f"There is no such {second_partoche!r} partition.")
 
         local_folder = second_partoche / str(uuid4())

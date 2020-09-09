@@ -176,6 +176,7 @@ class TestVolume(OneUserTest):
         # While we are started
         # Move one parent to the second children
         if len(self.tree["children"]) < 3 or DEPTH < 2:
+            self.app.quit()
             pytest.skip("Can't execute this test on so few data")
 
         # Move root 2 in, first subchild of 1
