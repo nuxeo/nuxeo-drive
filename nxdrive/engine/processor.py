@@ -42,7 +42,7 @@ from ..exceptions import (
     UnknownDigest,
     UploadPaused,
 )
-from ..objects import DocPair, RemoteFileInfo
+from ..objects import DocPair, RemoteFileInfo, Session
 from ..utils import is_generated_tmp_file, lock_path, safe_filename, unlock_path
 from .workers import EngineWorker
 
@@ -298,6 +298,12 @@ class Processor(EngineWorker):
                     f"The document or its parent does not exist anymore: {doc_pair!r}"
                 )
                 self.remove_void_transfers(doc_pair)
+
+                # For Direct Transfer items, it means the FileManager did not find the
+                # batchId, meaning it is being (or was already) processed. No need to upload
+                # it again, the document should already be created on will be "shortly".
+                if doc_pair.local_state == "direct":
+                    self._direct_transfer_cancel(doc_pair)
             except Unauthorized:
                 self.giveup_error(doc_pair, "INVALID_CREDENTIALS")
             except Forbidden:
@@ -498,8 +504,7 @@ class Processor(EngineWorker):
             log.warning(
                 f"Cancelling Direct Transfer of {path!r} because it does not exist anymore"
             )
-            self.dao.remove_state(doc_pair)
-            self.dao.remove_transfer("upload", path, is_direct_transfer=True)
+            self._direct_transfer_cancel(doc_pair)
             self.engine.directTranferError.emit(path)
             return
 
@@ -511,11 +516,31 @@ class Processor(EngineWorker):
             doc_pair=doc_pair,
         )
 
+        self._direct_transfer_end(doc_pair)
+
+    def _direct_transfer_cancel(self, doc_pair: DocPair) -> None:
+        """Actions to do to cancel a Direct Transfer."""
+        session = self.dao.decrease_session_total(doc_pair.session)
+        self._direct_transfer_end(doc_pair, session=session, recursive=True)
+
+    def _direct_transfer_end(
+        self,
+        doc_pair: DocPair,
+        session: Optional[Session] = None,
+        recursive: bool = False,
+    ) -> None:
+        """Actions to do to at the end of a Direct Transfer."""
+
+        # Transfer is completed, delete the upload from the database
+        path = doc_pair.local_path if WINDOWS else Path(f"/{doc_pair.local_path}")
+        self.dao.remove_transfer("upload", path, is_direct_transfer=True)
+
         # Clean-up
-        self.dao.remove_state(doc_pair, recursive=False)
+        self.dao.remove_state(doc_pair, recursive=recursive)
 
         # Update session then handle the status
-        session = self.dao.update_session(doc_pair.session)
+        if not session:
+            session = self.dao.update_session(doc_pair.session)
         self.engine.handle_session_status(session)
 
         # For analytics

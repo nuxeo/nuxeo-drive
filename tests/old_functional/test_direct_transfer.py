@@ -71,9 +71,6 @@ class DirectTransfer:
     def sync_and_check(
         self, should_have_blob: bool = True, check_for_blob: bool = True
     ) -> None:
-        # Let time for uploads to be planned
-        sleep(3)
-
         # Sync
         self.wait_sync()
 
@@ -618,12 +615,20 @@ class TestDirectTransfer(OneUserTest, DirectTransfer):
     def setUp(self):
         DirectTransfer.setUp(self)
 
+    def wait_sync(self, *args, **kwargs):
+        sleep(3)
+        super().wait_sync(*args, **kwargs)
+
 
 class TestDirectTransferNoSync(OneUserNoSync, DirectTransfer):
     """Direct Transfer should work when synchronization features are not enabled."""
 
     def setUp(self):
         DirectTransfer.setUp(self)
+
+    def wait_sync(self, *args, **kwargs):
+        sleep(3)
+        super().wait_sync(*args, **kwargs)
 
 
 class DirectTransferFolder:
@@ -849,9 +854,17 @@ class TestDirectTransferFolder(OneUserTest, DirectTransferFolder):
     def setUp(self):
         DirectTransferFolder.setUp(self)
 
+    def wait_sync(self, *args, **kwargs):
+        sleep(3)
+        super().wait_sync(*args, **kwargs)
+
 
 class TestDirectTransferFolderNoSync(OneUserNoSync, DirectTransferFolder):
     """Direct Transfer should work when synchronization features are not enabled."""
 
     def setUp(self):
         DirectTransferFolder.setUp(self)
+
+    def wait_sync(self, *args, **kwargs):
+        sleep(3)
+        super().wait_sync(*args, **kwargs)
