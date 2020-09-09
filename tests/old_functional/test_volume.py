@@ -6,6 +6,7 @@ from copy import copy
 from pathlib import Path
 
 import pytest
+
 from nxdrive.constants import ROOT
 
 from ..utils import random_png
