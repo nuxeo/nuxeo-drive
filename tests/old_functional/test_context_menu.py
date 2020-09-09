@@ -17,6 +17,7 @@ class TestContextMenu(OneUserTest):
         """It will test the copy/paste clipboard stuff."""
 
         if MAC and "JENKINS_URL" in os.environ:
+            self.app.quit()
             pytest.skip(
                 "macOS 10.11+ limitation: it's not possible to call CFPasteboardCreate when"
                 " there is no pasteboard, i.e. when the computer is on the loginwindow."

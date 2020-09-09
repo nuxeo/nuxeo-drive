@@ -225,6 +225,7 @@ class TestPermissionHierarchy2(TwoUsersTest):
 
     def test_sync_move_permission_removal(self):
         if WINDOWS:
+            self.app.quit()
             pytest.xfail(
                 "Following the NXDRIVE-836 fix, this test always fails because "
                 "when moving a file from a RO folder to a RW folder will end up"

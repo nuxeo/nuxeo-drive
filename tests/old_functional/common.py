@@ -650,19 +650,31 @@ class TwoUsersTest(TestCase):
         """ Generate a report on failure. """
         # Track any exception that could happen, specially those we would not
         # see if the test succeed.
+
         from _pytest.outcomes import Skipped, XFailed
 
+        unexpected_error = False
+
         for n, exc in enumerate(exceptions, 1):
-            error = exc.getrepr(
-                showlocals=True, style="long", funcargs=True, truncate_locals=False
-            )
-            log.warning(f"Error n°{n}\n{error}")
-            if exc.errisinstance((AssertionError, Skipped, XFailed)):
-                break
-            if "mock" not in str(exc.exconly()).lower():
-                break
-        else:
-            # No break => no unexpected exceptions
+            if isinstance(exc.value, (Skipped, XFailed)):
+                # Uninteresting exceptions
+                continue
+
+            if (
+                isinstance(exc.value, AssertionError)
+                or "mock" not in str(exc.exconly()).lower()
+            ):
+                # - If the exception is an AssertionError, then the test failed.
+                # - If there is another exception, ensure it is not a crafted one.
+                unexpected_error = True
+
+                # Log the error to help understanding what happened
+                error = exc.getrepr(
+                    showlocals=True, style="long", funcargs=True, truncate_locals=False
+                )
+                log.warning(f"Error n°{n} ({type(exc.value)})\n{error}")
+
+        if not unexpected_error:
             return
 
         path = Path(os.getenv("REPORT_PATH", "."))
