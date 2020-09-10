@@ -233,6 +233,7 @@ class MetaOptions(type):
         "debug_pydev": (False, "default"),
         "delay": (30, "default"),
         "deletion_behavior": ("unsync", "default"),
+        "disabled_file_integrity_check": (False, "default"),
         "findersync_batch_size": (50, "default"),
         "force_locale": (None, "default"),
         "freezer": (_get_freezer(), "default"),
