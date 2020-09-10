@@ -6,6 +6,7 @@ import sqlite3
 import uuid
 from logging import getLogger
 from pathlib import Path
+from time import sleep
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 from urllib.parse import urlparse, urlsplit, urlunsplit
 from weakref import CallableProxyType, proxy
@@ -918,6 +919,27 @@ class Manager(QObject):
             states = dao.get_local_children(r_path)
             self.osi.send_content_sync_status(states, path)
             return
+
+    def wait_for_server_config(self, timeout: int = 10) -> bool:
+        """Wait for the server's config to be fetched (*timeout* seconds maximum).
+        Return True if the server's config has been fetched with success.
+
+        Note: calling that method will temporary block the UI for *timeout* second at worst.
+        """
+
+        if not self.server_config_updater.first_run:
+            return True
+
+        # Trigger a poll in case the app is already running and the next poll is not planned for long
+        self.server_config_updater.force_poll()
+
+        # Wait for *timeout* seconds for a positive response
+        for _ in range(timeout):
+            if not self.server_config_updater.first_run:
+                return True
+            sleep(1)
+
+        return False
 
     @if_frozen
     def _write_version_file(self) -> None:
