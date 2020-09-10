@@ -403,26 +403,38 @@ class Engine(QObject):
                     f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}"
                 )
 
-    def _save_remote_parent_infos(
-        self, remote_path: str, remote_ref: str, duplicate_behavior: str
+    def _save_last_dt_session_infos(
+        self,
+        remote_path: str,
+        remote_ref: str,
+        duplicate_behavior: str,
+        last_local_selected_location: Optional[Path],
     ) -> None:
-        """Store remote infos into the database for later runs."""
+        """Store last dt session infos into the database for later runs."""
         self.dao.update_config("dt_last_remote_location", remote_path)
         self.dao.update_config("dt_last_remote_location_ref", remote_ref)
         self.dao.update_config("dt_last_duplicates_behavior", duplicate_behavior)
+        if last_local_selected_location:
+            self.dao.update_config(
+                "dt_last_local_selected_location", last_local_selected_location
+            )
 
     def _direct_transfer(
         self,
         local_paths: Dict[Path, int],
         remote_parent_path: str,
         remote_parent_ref: str,
-        duplicate_behavior: str,
+        duplicate_behavior: str = "create",
+        last_local_selected_location: Optional[Path] = None,
     ) -> None:
         """Plan the Direct Transfer."""
 
-        # Save the remote location for next times
-        self._save_remote_parent_infos(
-            remote_parent_path, remote_parent_ref, duplicate_behavior
+        # Save last dt session infos for next times
+        self._save_last_dt_session_infos(
+            remote_parent_path,
+            remote_parent_ref,
+            duplicate_behavior,
+            last_local_selected_location,
         )
 
         all_paths = local_paths.keys()
@@ -474,6 +486,7 @@ class Engine(QObject):
         remote_parent_path: str,
         remote_parent_ref: str,
         duplicate_behavior: str = "create",
+        last_local_selected_location: Optional[Path] = None,
     ) -> None:
         """Plan the Direct Transfer."""
         self._direct_transfer(
@@ -481,6 +494,7 @@ class Engine(QObject):
             remote_parent_path,
             remote_parent_ref,
             duplicate_behavior=duplicate_behavior,
+            last_local_selected_location=last_local_selected_location,
         )
 
     def direct_transfer_async(
@@ -489,6 +503,7 @@ class Engine(QObject):
         remote_parent_path: str,
         remote_parent_ref: str,
         duplicate_behavior: str = "create",
+        last_local_selected_location: Optional[Path] = None,
     ) -> None:
         """Plan the Direct Transfer. Async to not freeze the GUI."""
         from .workers import Runner
@@ -499,6 +514,7 @@ class Engine(QObject):
             remote_parent_path,
             remote_parent_ref,
             duplicate_behavior=duplicate_behavior,
+            last_local_selected_location=last_local_selected_location,
         )
         self._threadpool.start(runner)
 

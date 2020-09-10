@@ -220,6 +220,9 @@ class FoldersDialog(DialogMixin):
         self.remote_folder_ref = self.engine.dao.get_config(
             "dt_last_remote_location_ref", ""
         )
+        self.last_local_selected_location = self.engine.dao.get_config(
+            "dt_last_local_selected_location", None
+        )
         self.duplicates_behavior = self.engine.dao.get_config(
             "dt_last_duplicates_behavior", "create"
         )
@@ -334,6 +337,7 @@ class FoldersDialog(DialogMixin):
             self.remote_folder.text(),
             self.remote_folder_ref,
             duplicate_behavior=self.cb.currentData(),
+            last_local_selected_location=self.last_local_selected_location,
         )
 
     def button_ok_state(self) -> None:
@@ -390,6 +394,8 @@ class FoldersDialog(DialogMixin):
                     log.warning(f"Error calling stat() on {path!r}", exc_info=True)
                     continue
 
+            self.last_local_selected_location = path.parent
+
             # If .path is None, then pick the first local path to display something useful
             if not self.path:
                 self.path = path
@@ -402,10 +408,18 @@ class FoldersDialog(DialogMixin):
 
     def _select_more_files(self) -> None:
         """Choose additional local files to upload."""
-        paths, _ = QFileDialog.getOpenFileNames(self, Translator.get("ADD_FILES"))
+        paths, _ = QFileDialog.getOpenFileNames(
+            self,
+            Translator.get("ADD_FILES"),
+            str(self.last_local_selected_location),
+        )
         self._process_additionnal_local_paths(paths)
 
     def _select_more_folder(self) -> None:
         """Choose an additional local folder to upload."""
-        path = QFileDialog.getExistingDirectory(self, Translator.get("ADD_FOLDER"))
+        path = QFileDialog.getExistingDirectory(
+            self,
+            Translator.get("ADD_FOLDER"),
+            str(self.last_local_selected_location),
+        )
         self._process_additionnal_local_paths([path])
