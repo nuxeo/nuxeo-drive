@@ -3,8 +3,10 @@ Test the Direct Transfer feature in different scenarii.
 """
 import logging
 import re
+from pathlib import Path
 from shutil import copyfile
 from time import sleep
+from typing import Optional
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -91,12 +93,17 @@ class DirectTransfer:
         else:
             assert not self.has_blob()
 
-    def direct_transfer(self, duplicate_behavior: str = "create") -> None:
+    def direct_transfer(
+        self,
+        duplicate_behavior: str = "create",
+        last_local_selected_location: Optional[Path] = None,
+    ) -> None:
         self.engine_1.direct_transfer(
             {self.file: self.file_size},
             self.ws.path,
             self.ws.uid,
             duplicate_behavior=duplicate_behavior,
+            last_local_selected_location=last_local_selected_location,
         )
 
     def test_upload(self):
@@ -149,10 +156,14 @@ class DirectTransfer:
 
         with patch.object(engine.remote, "upload_callback", new=callback):
             with ensure_no_exception():
-                self.direct_transfer()
+                self.direct_transfer(last_local_selected_location=self.file.parent)
                 self.wait_sync()
 
             assert dao.get_dt_uploads_with_status(TransferStatus.PAUSED)
+
+            last_location = dao.get_config("dt_last_local_selected_location", None)
+            assert last_location
+            assert Path(last_location) == self.file.parent
 
             # Cancel the upload
             upload = list(dao.get_dt_uploads())[0]
