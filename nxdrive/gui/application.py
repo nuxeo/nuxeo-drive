@@ -6,7 +6,7 @@ from functools import partial
 from logging import getLogger
 from math import sqrt
 from pathlib import Path
-from time import monotonic, sleep
+from time import monotonic
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 from urllib.parse import unquote_plus, urlparse
 
@@ -1385,7 +1385,13 @@ class Application(QApplication):
         if func:
             func(path)
         elif "edit" in cmd:
-            if self.manager.restart_needed:
+            if not self.manager.wait_for_server_config():
+                self.display_warning(
+                    f"Direct Edit - {APP_NAME}", "DIRECT_EDIT_NOT_POSSIBLE", []
+                )
+                return False
+
+            if manager.restart_needed:
                 self.show_msgbox_restart_needed()
                 return False
 
@@ -1506,13 +1512,7 @@ class Application(QApplication):
     def ctx_direct_transfer(self, path: Path) -> None:
         """Direct Transfer of local files and folders to anywhere on the server."""
 
-        # Wait for the server's cconfig to be fetched (10 sec max)
-        for _ in range(10):
-            if not self.manager.server_config_updater.first_run:
-                break
-            sleep(1)
-        else:
-            # Cannot fetch the server's conf
+        if not self.manager.wait_for_server_config():
             self.display_warning(
                 f"Direct Transfer - {APP_NAME}", "DIRECT_TRANSFER_NOT_POSSIBLE", []
             )
