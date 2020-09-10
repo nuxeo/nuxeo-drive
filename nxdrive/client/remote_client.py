@@ -345,6 +345,12 @@ class Remote(Nuxeo):
         Check the integrity of a downloaded chunked file.
         Update the progress of the verification during the computation of the digest.
         """
+        if Options.disabled_file_integrity_check:
+            log.debug(
+                "disabled_file_integrity_check is True, skipping file integrity check then"
+            )
+            return
+
         digester = get_digest_algorithm(digest)
         if not digester:
             log.warning(
@@ -379,6 +385,12 @@ class Remote(Nuxeo):
 
     def check_integrity_simple(self, digest: str, file: Path) -> None:
         """Check the integrity of a relatively small downloaded file."""
+        if Options.disabled_file_integrity_check:
+            log.debug(
+                "disabled_file_integrity_check is True, skipping file integrity check then"
+            )
+            return
+
         digester = get_digest_algorithm(digest)
         if not digester:
             log.warning(
