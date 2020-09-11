@@ -97,7 +97,10 @@ class Doc(FileInfo):
 
     def enable(self) -> bool:
         """Allow to select the folder only if the user can effectively create documents inside."""
-        return "ReadWrite" in self.doc.contextParameters["permissions"]
+        return (
+            "HiddenInCreation" not in self.doc.facets
+            and "ReadWrite" in self.doc.contextParameters["permissions"]
+        )
 
     def get_id(self) -> str:
         """The document's UID."""
