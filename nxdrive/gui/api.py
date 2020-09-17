@@ -628,7 +628,8 @@ class QMLDriveApi(QObject):
         self.application.close_settings_too = True
 
         # Display the filters window to let the user choose what to sync
-        self.filters_dialog(engine.uid)
+        if Options.synchronization_enabled:
+            self.filters_dialog(engine.uid)
         self.setMessage.emit("CONNECTION_SUCCESS", "success")
 
     @pyqtSlot(str, str, str, str, str)
