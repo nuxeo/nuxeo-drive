@@ -2,6 +2,7 @@
 """ Main Qt application handling OS events and system tray UI. """
 import os
 import sys
+import webbrowser
 from functools import partial
 from logging import getLogger
 from math import sqrt
@@ -849,7 +850,11 @@ class Application(QApplication):
             through the app, it opens in the browser and retrieves the login token
             by opening an nxdrive:// URL.
             """
-            self.manager.open_local_file(url)
+            QApplication.setOverrideCursor(Qt.WaitCursor)
+            try:
+                webbrowser.open_new_tab(url)
+            finally:
+                QApplication.restoreOverrideCursor()
         else:
             self._web_auth_not_frozen(url)
 
