@@ -112,6 +112,7 @@ NuxeoPopup {
                     || (isAuto && pacUrlInput.text)
                 inverted: true
                 onClicked: {
+                    // No check is done on setting change as we want to revalidate the existing proxy
                     if (api.set_proxy_settings(
                         proxyType.model.get(proxyType.currentIndex).value,
                         urlInput.text,

@@ -86,8 +86,12 @@ NuxeoPopup {
                 text: qsTr("APPLY") + tl.tr
                 inverted: true
                 onClicked: {
+                    var current_channel = api.get_update_channel()
                     var channel = channelType.model.get(channelType.currentIndex).value
-                    if (channel == 'alpha') {
+                    if (channel == current_channel) {
+                        control.close()
+                    }
+                    else if (channel == 'alpha') {
                         useAlpha.open()
                     } else {
                         api.set_update_channel(channel)

@@ -65,8 +65,10 @@ NuxeoPopup {
                 inverted: true
                 onClicked: {
                     var level = logLevel.currentText
-                    api.set_log_level(level)
-                    control.level = level
+                    if (level != control.level) {
+                        api.set_log_level(level)
+                        control.level = level
+                    }
                     control.close()
                 }
             }

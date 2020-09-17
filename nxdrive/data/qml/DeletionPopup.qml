@@ -75,8 +75,11 @@ NuxeoPopup {
                 text: qsTr("APPLY") + tl.tr
                 inverted: true
                 onClicked: {
+                    var current_value = api.get_deletion_behavior()
                     var value = deletionBehavior.model.get(deletionBehavior.currentIndex).value
-                    api.set_deletion_behavior(value)
+                    if (current_value != value) {
+                        api.set_deletion_behavior(value)
+                    }
                     control.close()
                 }
             }
