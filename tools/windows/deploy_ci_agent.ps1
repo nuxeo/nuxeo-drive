@@ -91,7 +91,12 @@ function build_installer {
 	Write-Output ">>> [$app_version] Freezing the application"
 	freeze_pyinstaller
 
+	# Do some clean-up
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\cleanup_application_tree.py "dist\ndrive"
+
+	# Remove compiled QML files
+	Get-ChildItem -Path "dist\ndrive" -Recurse -File -Include *.qmlc | Foreach ($_) {Remove-Item -Verbose $_.Fullname}
+
 	add_missing_ddls
 	sign "dist\ndrive\ndrive.exe"
 

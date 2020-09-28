@@ -37,6 +37,13 @@ build_installer() {
 
     # Do some clean-up
     ${PYTHON} tools/cleanup_application_tree.py dist/ndrive
+
+    # Remove compiled QML files
+    find dist -depth -type f -name "*.qmlc" -delete
+
+    # Remove empty folders
+    find dist -depth -type d -empty -delete
+
     if [ "${OSI}" = "osx" ]; then
         ${PYTHON} tools/cleanup_application_tree.py dist/*.app/Contents/Resources
         ${PYTHON} tools/cleanup_application_tree.py dist/*.app/Contents/MacOS
@@ -48,12 +55,6 @@ build_installer() {
         find dist/*.app/Contents/MacOS -type l -exec sh -c 'for x; do [ -e "$x" ] || rm -v "$x"; done' _ {} +
     elif [ "${OSI}" = "linux" ]; then
         remove_excluded_files dist/ndrive
-    fi
-
-    # Remove empty folders
-    find dist/ndrive -depth -type d -empty -delete
-    if [ "${OSI}" = "osx" ]; then
-        find dist/*.app -depth -type d -empty -delete
     fi
 
     # Check for freezer regressions
