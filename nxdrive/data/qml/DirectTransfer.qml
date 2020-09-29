@@ -11,19 +11,27 @@ Rectangle {
 
     property string engineUid: ""
     property int itemsCount: 0
+    property int activeSessionsCount: 0
+    property int completedSessionsCount: 0
     property double startTime: 0.0
 
     signal setEngine(string uid)
     signal setItemsCount()
 
-    onSetEngine: engineUid = uid
+    onSetEngine: {
+        engineUid = uid
+        updateSessionsCounts()
+    }
+
     onSetItemsCount: updateCounts()
 
     function updateCounts() {
         itemsCount = api.get_dt_items_count(engineUid)
-        if (itemsCount == 0) {
-            application.close_direct_transfer_window()
-        }
+    }
+
+    function updateSessionsCounts() {
+        activeSessionsCount = api.get_active_sessions_count(engineUid)
+        completedSessionsCount = api.get_completed_sessions_count(engineUid)
     }
 
     Connections {
@@ -34,36 +42,120 @@ Rectangle {
         }
     }
 
+    Connections {
+        target: ActiveSessionModel
+
+        function onSessionChanged() {
+            updateSessionsCounts()
+        }
+    }
+
+    Connections {
+        target: CompletedSessionModel
+
+        function onSessionChanged() {
+            updateSessionsCounts()
+        }
+    }
+
+    // "New transfer" button
+    Rectangle {
+        id: buttonzone
+        height: 60
+        width: parent.width
+        RowLayout {
+            width: parent.width
+            height: parent.height
+            NuxeoButton {
+                text: qsTr("NEW_TRANSFER") + tl.tr
+                Layout.alignment: Qt.AlignRight
+                Layout.rightMargin: 30
+                onClicked: api.open_server_folders(engineUid)
+            }
+        }
+    }
     TabBar {
         id: bar
         width: parent.width
         height: 50
         spacing: 0
 
-        anchors.top: parent.top
+        anchors.top: buttonzone.bottom
 
         SettingsTab {
-            text: qsTr("ACTIVE") + tl.tr
+            text: qsTr("ACTIVE_SESSIONS") + tl.tr
             barIndex: bar.currentIndex;
             index: 0
             anchors.top: parent.top
         }
+
         SettingsTab {
             text: qsTr("COMPLETED") + tl.tr
             barIndex: bar.currentIndex;
             index: 1
             anchors.top: parent.top
-            enabled: false
+            enabled: completedSessionsCount > 0
+        }
+
+        SettingsTab {
+            text: qsTr("MONITORING") + tl.tr
+            barIndex: bar.currentIndex;
+            index: 2
+            anchors.top: parent.top
+            enabled: activeSessionsCount > 0
         }
     }
 
     StackLayout {
         currentIndex: bar.currentIndex
         width: parent.width
-        height: parent.height - bar.height
+        height: parent.height - bar.height - buttonzone.height
         anchors.bottom: parent.bottom
 
-        // The "active" transfers rect
+        // The "Active Sessions" list
+        ListView {
+            id: activeSessionsList
+            flickableDirection: Flickable.VerticalFlick
+            boundsBehavior: Flickable.StopAtBounds
+            clip: true
+            spacing: 25
+
+            model: ActiveSessionModel
+            delegate: SessionItem {}
+            Label {
+                anchors.fill: parent
+                horizontalAlignment: Qt.AlignHCenter
+                verticalAlignment: Qt.AlignVCenter
+                visible: parent.count == 0
+                text: qsTr("NO_ACTIVE_SESSION") + tl.tr
+                font.pointSize: point_size * 1.2
+            }
+
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            topMargin: 20
+            bottomMargin: 20
+            ScrollBar.vertical: ScrollBar {}
+        }
+
+        // The "Completed" sessions list
+        ListView {
+            id: completedSessionsList
+            flickableDirection: Flickable.VerticalFlick
+            boundsBehavior: Flickable.StopAtBounds
+            clip: true
+            spacing: 25
+
+            model: CompletedSessionModel
+            delegate: SessionItem {}
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            topMargin: 20
+            bottomMargin: 20
+            ScrollBar.vertical: ScrollBar {}
+        }
+
+        // The "Monitoring" rect
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -79,7 +171,7 @@ Rectangle {
                     id: itemsList
                     width: parent.width
                     height: contentHeight
-                    spacing: 20
+                    spacing: 16
 
                     model: DirectTransferModel
                     delegate: TransferItem {}

@@ -2,6 +2,7 @@
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple
 
+from dateutil.tz import tzlocal
 from PyQt5.QtCore import (
     QAbstractListModel,
     QModelIndex,
@@ -12,7 +13,8 @@ from PyQt5.QtCore import (
     pyqtSlot,
 )
 
-from ..utils import force_decode, sizeof_fmt
+from ..translator import Translator
+from ..utils import force_decode, get_date_from_sqlite, sizeof_fmt
 
 if TYPE_CHECKING:
     from .application import Application  # noqa
@@ -336,6 +338,188 @@ class DirectTransferModel(QAbstractListModel):
             self.setData(idx, action["progress"], self.TRANSFERRED)
             if action["action_type"] == "Linking":
                 self.setData(idx, True, self.FINALIZING)
+
+
+class ActiveSessionModel(QAbstractListModel):
+    sessionChanged = pyqtSignal()
+
+    UID = Qt.UserRole + 1
+    STATUS = Qt.UserRole + 2
+    REMOTE_REF = Qt.UserRole + 3
+    REMOTE_PATH = Qt.UserRole + 4
+    UPLOADED = Qt.UserRole + 5
+    TOTAL = Qt.UserRole + 6
+    ENGINE = Qt.UserRole + 7
+    CREATED_AT = Qt.UserRole + 8
+    COMPLETED_AT = Qt.UserRole + 9
+    DESCRIPTION = Qt.UserRole + 10
+
+    def __init__(self, translate: Callable, parent: QObject = None) -> None:
+        super().__init__(parent)
+        self.tr = translate
+        self.sessions: List[Dict[str, Any]] = []
+        self.names = {
+            self.UID: b"uid",
+            self.STATUS: b"status",
+            self.REMOTE_REF: b"remote_ref",
+            self.REMOTE_PATH: b"remote_path",
+            self.UPLOADED: b"uploaded",
+            self.TOTAL: b"total",
+            self.ENGINE: b"engine",
+            self.CREATED_AT: b"created_at",
+            self.COMPLETED_AT: b"completed_at",
+            self.DESCRIPTION: b"description",
+        }
+
+    def roleNames(self) -> Dict[int, bytes]:
+        return self.names
+
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        return len(self.sessions)
+
+    def set_sessions(
+        self, sessions: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
+    ) -> None:
+        self.beginRemoveRows(parent, 0, self.rowCount() - 1)
+        self.sessions.clear()
+        self.endRemoveRows()
+
+        self.beginInsertRows(parent, 0, len(sessions) - 1)
+        self.sessions.extend(sessions)
+        self.endInsertRows()
+        self.sessionChanged.emit()
+
+    def data(self, index: QModelIndex, role: int = REMOTE_PATH) -> Any:
+        row = self.sessions[index.row()]
+        if role == self.REMOTE_PATH:
+            return str(row["remote_path"])
+        elif role == self.STATUS:
+            return str(row["status"].name)
+        elif role == self.DESCRIPTION:
+            description = str(row["description"])
+            if not description:
+                description = "Session " + str(row["uid"])
+            return description
+        elif role == self.CREATED_AT:
+            datetime = get_date_from_sqlite(str(row["created_at"]))
+            if not datetime:
+                return "?"
+            # As date_time is in UTC
+            offset = tzlocal().utcoffset(datetime)
+            if offset:
+                datetime += offset
+            return Translator.format_datetime(datetime)
+        elif role == self.COMPLETED_AT:
+            datetime = get_date_from_sqlite(str(row["completed_at"]))
+            if not datetime:
+                return "?"
+            offset = tzlocal().utcoffset(datetime)
+            if offset:
+                datetime += offset
+            return Translator.format_datetime(datetime)
+        return row[self.names[role].decode()]
+
+    def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
+        if role is None:
+            return
+        key = force_decode(self.roleNames()[role])
+        self.sessions[index.row()][key] = value
+        self.dataChanged.emit(index, index, [role])
+
+    @pyqtProperty("int", notify=sessionChanged)
+    def count(self) -> int:
+        return self.rowCount()
+
+
+class CompletedSessionModel(QAbstractListModel):
+    sessionChanged = pyqtSignal()
+
+    UID = Qt.UserRole + 1
+    STATUS = Qt.UserRole + 2
+    REMOTE_REF = Qt.UserRole + 3
+    REMOTE_PATH = Qt.UserRole + 4
+    UPLOADED = Qt.UserRole + 5
+    TOTAL = Qt.UserRole + 6
+    ENGINE = Qt.UserRole + 7
+    CREATED_AT = Qt.UserRole + 8
+    COMPLETED_AT = Qt.UserRole + 9
+    DESCRIPTION = Qt.UserRole + 10
+
+    def __init__(self, translate: Callable, parent: QObject = None) -> None:
+        super().__init__(parent)
+        self.tr = translate
+        self.sessions: List[Dict[str, Any]] = []
+        self.names = {
+            self.UID: b"uid",
+            self.STATUS: b"status",
+            self.REMOTE_REF: b"remote_ref",
+            self.REMOTE_PATH: b"remote_path",
+            self.UPLOADED: b"uploaded",
+            self.TOTAL: b"total",
+            self.ENGINE: b"engine",
+            self.CREATED_AT: b"created_at",
+            self.COMPLETED_AT: b"completed_at",
+            self.DESCRIPTION: b"description",
+        }
+
+    def roleNames(self) -> Dict[int, bytes]:
+        return self.names
+
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        return len(self.sessions)
+
+    def set_sessions(
+        self, sessions: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
+    ) -> None:
+        self.beginRemoveRows(parent, 0, self.rowCount() - 1)
+        self.sessions.clear()
+        self.endRemoveRows()
+
+        self.beginInsertRows(parent, 0, len(sessions) - 1)
+        self.sessions.extend(sessions)
+        self.endInsertRows()
+        self.sessionChanged.emit()
+
+    def data(self, index: QModelIndex, role: int = REMOTE_PATH) -> Any:
+        row = self.sessions[index.row()]
+        if role == self.REMOTE_PATH:
+            return str(row["remote_path"])
+        elif role == self.STATUS:
+            return str(row["status"].name)
+        elif role == self.DESCRIPTION:
+            description = str(row["description"])
+            if not description:
+                description = "Session " + str(row["uid"])
+            return description
+        elif role == self.CREATED_AT:
+            datetime = get_date_from_sqlite(str(row["created_at"]))
+            if not datetime:
+                return "?"
+            # As date_time is in UTC
+            offset = tzlocal().utcoffset(datetime)
+            if offset:
+                datetime += offset
+            return Translator.format_datetime(datetime)
+        elif role == self.COMPLETED_AT:
+            datetime = get_date_from_sqlite(str(row["completed_at"]))
+            if not datetime:
+                return "?"
+            offset = tzlocal().utcoffset(datetime)
+            if offset:
+                datetime += offset
+            return Translator.format_datetime(datetime)
+        return row[self.names[role].decode()]
+
+    def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
+        if role is None:
+            return
+        key = force_decode(self.roleNames()[role])
+        self.sessions[index.row()][key] = value
+        self.dataChanged.emit(index, index, [role])
+
+    @pyqtProperty("int", notify=sessionChanged)
+    def count(self) -> int:
+        return self.rowCount()
 
 
 class FileModel(QAbstractListModel):

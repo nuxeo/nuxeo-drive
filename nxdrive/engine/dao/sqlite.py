@@ -184,6 +184,7 @@ class ConfigurationDAO(QObject):
                     self.db.unlink()
 
         self.schema_version = self.get_schema_version()
+        self._engine_uid = self.db.stem.replace("ndrive_", "")
         self.in_tx = None
         self._tx_lock = RLock()
         self.conn: Optional[Connection] = None
@@ -619,6 +620,7 @@ class EngineDAO(ConfigurationDAO):
     newConflict = pyqtSignal(object)
     transferUpdated = pyqtSignal()
     directTransferUpdated = pyqtSignal()
+    sessionUpdated = pyqtSignal()
 
     def __init__(self, db: Path) -> None:
         super().__init__(db)
@@ -630,7 +632,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 15
+        return 16
 
     def _migrate_state(self, cursor: Cursor) -> None:
         try:
@@ -843,6 +845,34 @@ class EngineDAO(ConfigurationDAO):
             )
             self.store_int(SCHEMA_VERSION, 15)
 
+        if version < 16:
+            # Add the *engine* field to the Sessions table
+            # Add the *created_at* field to the Sessions table
+            # Add the *completed_at* field to the Sessions table
+            # Add the *description* field to the Sessions table
+            # used by the Direct Transfer feature.
+            self._append_to_table(
+                cursor,
+                "Sessions",
+                ("engine", "VARCHAR", "DEFAULT", self._engine_uid),
+            )
+            self._append_to_table(
+                cursor,
+                "Sessions",
+                ("created_at", "DATE", "DEFAULT", "CURRENT_TIMESTAMP"),
+            )
+            self._append_to_table(
+                cursor,
+                "Sessions",
+                ("completed_at", "DATE"),
+            )
+            self._append_to_table(
+                cursor,
+                "Sessions",
+                ("description", "VARCHAR", "DEFAULT", "''"),
+            )
+            self.store_int(SCHEMA_VERSION, 16)
+
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
         if name == "States":
             self._create_state_table(cursor, force)
@@ -896,6 +926,10 @@ class EngineDAO(ConfigurationDAO):
             "    remote_path    VARCHAR,"
             "    uploaded       INTEGER     DEFAULT (0),"
             "    total          INTEGER,"
+            "    engine         VARCHAR     DEFAULT '',"
+            "    created_at     DATETIME    NOT NULL    DEFAULT CURRENT_TIMESTAMP,"
+            "    completed_at   DATETIME,"
+            "    description    VARCHAR     DEFAULT '',"
             "    PRIMARY KEY (uid)"
             ")"
         )
@@ -2311,6 +2345,76 @@ class EngineDAO(ConfigurationDAO):
             ).fetchall()
         ]
 
+    def get_session_uploads(self, session_id: int) -> List[Dict[str, Any]]:
+        """
+        Return all active Direct Transfer sessions.
+        Return a simple dict to improve GUI performances.
+        """
+        con = self._get_read_connection()
+        c = con.cursor()
+        return [
+            {"uid": res.uid, "progress": res.progress}
+            for res in c.execute(
+                "SELECT uid, progress FROM Uploads u"
+                " INNER JOIN States s ON u.doc_pair = s.id AND s.session = ?",
+                (session_id,),
+            ).fetchall()
+        ]
+
+    def get_active_sessions_raw(self) -> List[Dict[str, Any]]:
+        """
+        Return all active Direct Transfer sessions.
+        Actives Direct Transfer sessions have the status ONGOING or PAUSED.
+        Return a simple dict to improve GUI performances.
+        """
+        con = self._get_read_connection()
+        c = con.cursor()
+        return [
+            {
+                "uid": res.uid,
+                "status": TransferStatus(res.status),
+                "remote_path": res.remote_path,
+                "remote_ref": res.remote_ref,
+                "uploaded": res.uploaded,
+                "total": res.total,
+                "engine": res.engine,
+                "created_at": res.created_at,
+                "completed_at": res.completed_at,
+                "description": res.description,
+            }
+            for res in c.execute(
+                "SELECT * FROM Sessions WHERE status = ? OR status = ?",
+                (TransferStatus.ONGOING.value, TransferStatus.PAUSED.value),
+            ).fetchall()
+        ]
+
+    def get_completed_sessions_raw(self, limit: int = 1) -> List[Dict[str, Any]]:
+        """
+        Return all completed Direct Transfer sessions.
+        Completed Direct Transfer sessions have the status DONE or CANCELLED.
+        Return a simple dict to improve GUI performances.
+        """
+        con = self._get_read_connection()
+        c = con.cursor()
+        return [
+            {
+                "uid": res.uid,
+                "status": TransferStatus(res.status),
+                "remote_path": res.remote_path,
+                "remote_ref": res.remote_ref,
+                "uploaded": res.uploaded,
+                "total": res.total,
+                "engine": res.engine,
+                "created_at": res.created_at,
+                "completed_at": res.completed_at,
+                "description": res.description,
+            }
+            for res in c.execute(
+                "SELECT * FROM Sessions WHERE status = ? OR status = ? ORDER BY created_at DESC LIMIT ?",
+                (TransferStatus.DONE.value, TransferStatus.CANCELLED.value, limit),
+            ).fetchall()
+        ]
+
     def get_session(self, uid: int) -> Optional[Session]:
         """
         Get a session by its uid.
@@ -2326,21 +2430,40 @@ class EngineDAO(ConfigurationDAO):
                 TransferStatus(res.status),
                 res.uploaded,
                 res.total,
+                res.engine,
+                res.created_at,
+                res.completed_at,
+                res.description,
             )
             if res
             else None
         )
 
-    def create_session(self, remote_path: str, remote_ref: str, total: int) -> int:
+    def create_session(
+        self,
+        remote_path: str,
+        remote_ref: str,
+        total: int,
+        engine_uid: str,
+        description: str,
+    ) -> int:
         """Create a new session. Return the session ID."""
         with self.lock:
             con = self._get_write_connection()
             cursor = con.cursor()
             cursor.execute(
-                "INSERT INTO Sessions (remote_path, remote_ref, total, status) "
-                "VALUES (?, ?, ?, ?)",
-                (remote_path, remote_ref, total, TransferStatus.ONGOING.value),
+                "INSERT INTO Sessions (remote_path, remote_ref, total, status, engine, description) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    remote_path,
+                    remote_ref,
+                    total,
+                    TransferStatus.ONGOING.value,
+                    engine_uid,
+                    description,
+                ),
             )
+            self.sessionUpdated.emit()
             return cursor.lastrowid
 
     def update_session(self, uid: int) -> Optional[Session]:
@@ -2356,13 +2479,33 @@ class EngineDAO(ConfigurationDAO):
                 return None
 
             session.uploaded_items += 1
+            completed_at = session.completed_at or "null"
             if session.uploaded_items == session.total_items:
                 session.status = TransferStatus.DONE
+                completed_at = "CURRENT_TIMESTAMP"
+            # We have to use f-strings here as CURRENT_TIMESTAMP is a function and must not be interpreted as a string.
             cursor.execute(
-                "UPDATE Sessions SET uploaded = ?, status = ? WHERE uid = ?",
+                f"UPDATE Sessions SET uploaded = ?, status = ? , completed_at = {completed_at} WHERE uid = ?",
                 (session.uploaded_items, session.status.value, session.uid),
             )
+            self.sessionUpdated.emit()
             return session
+
+    def change_session_status(self, uid: int, status: TransferStatus) -> None:
+        """Update the session status with *status*."""
+        with self.lock:
+            con = self._get_write_connection()
+            cursor = con.cursor()
+
+            session = self.get_session(uid)
+            if not session:
+                return None
+
+            cursor.execute(
+                "UPDATE Sessions SET status = ? WHERE uid = ?",
+                (status.value, session.uid),
+            )
+            self.sessionUpdated.emit()
 
     def decrease_session_total(self, uid: int) -> Optional[Session]:
         """
@@ -2377,12 +2520,16 @@ class EngineDAO(ConfigurationDAO):
                 return None
 
             session.total_items = max(0, session.total_items - 1)
+            completed_at = session.completed_at or "null"
             if session.uploaded_items == session.total_items:
                 session.status = TransferStatus.DONE
+                completed_at = "CURRENT_TIMESTAMP"
+            # We have to use f-strings here as CURRENT_TIMESTAMP is a function and must not be interpreted as a string.
             cursor.execute(
-                "UPDATE Sessions SET total = ?, status = ? WHERE uid = ?",
+                f"UPDATE Sessions SET total = ?, status = ?, completed_at = {completed_at} WHERE uid = ?",
                 (session.total_items, session.status.value, session.uid),
             )
+            self.sessionUpdated.emit()
             return session
 
     def get_downloads_with_status(self, status: TransferStatus) -> List[Download]:
@@ -2476,13 +2623,14 @@ class EngineDAO(ConfigurationDAO):
                 upload.chunk_size,
                 upload.remote_parent_path,
                 upload.remote_parent_ref,
+                upload.doc_pair,
             )
             c = self._get_write_connection().cursor()
             sql = (
                 "INSERT INTO Uploads "
                 "(path, status, engine, is_direct_edit, is_direct_transfer, filesize, batch, chunk_size,"
-                " remote_parent_path, remote_parent_ref)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                " remote_parent_path, remote_parent_ref, doc_pair)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             )
             c.execute(sql, values)
 
@@ -2552,6 +2700,20 @@ class EngineDAO(ConfigurationDAO):
                 self.directTransferUpdated.emit()
             else:
                 self.transferUpdated.emit()
+
+    def pause_session(self, uid: int) -> None:
+        """Pause all transfers for given session."""
+        session_uploads = self.get_session_uploads(uid)
+        if not session_uploads:
+            return
+        for upload in session_uploads:
+            self.pause_transfer(
+                "Upload",
+                upload["uid"],
+                upload["progress"],
+                is_direct_transfer=True,
+            )
+        self.change_session_status(uid, TransferStatus.PAUSED)
 
     def set_transfer_doc(
         self, nature: str, transfer_uid: int, engine_uid: str, doc_pair_uid: int
