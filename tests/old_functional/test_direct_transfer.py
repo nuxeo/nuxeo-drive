@@ -182,7 +182,7 @@ class DirectTransfer:
             assert session.status == TransferStatus.DONE
 
             # A new Notification log should appear
-            records = [str(log) for log in self._caplog.records]
+            records = map(str, self._caplog.records)
             matches = list(filter(expression.match, records))
             assert len(matches) == 1
 
@@ -834,9 +834,159 @@ class DirectTransferFolder:
                     assert session
 
                     # A new Notification logs should appear at each iteration
-                    records = [str(log) for log in self._caplog.records]
+                    records = map(str, self._caplog.records)
                     matches = list(filter(expression.match, records))
                     assert len(matches) == x + 1
+
+    def test_pause_resume_session(self):
+        """
+        Test the session pause and resume system.
+        The Session final status should be COMPLETED.
+        """
+        engine = self.engine_1
+
+        # There is no upload, right now
+        assert not list(engine.dao.get_dt_uploads())
+        expression = re.compile(
+            r"<LogRecord: nxdrive\.notification, .*, .*, .*, "
+            r"\"Sending Notification\(level='info' title='Direct Transfer'"
+            r" uid='DIRECT_TRANSFER_SESSION_END.*' unique=False\)\">"
+        )
+
+        def callback(*_):
+            """This will mimic what is done in SessionItem.qml."""
+            # Ensure we have 1 ongoing upload
+            dao = engine.dao
+            uploads = list(dao.get_dt_uploads())
+            assert uploads
+            upload = uploads[0]
+            assert upload.status == TransferStatus.ONGOING
+
+            # Verify the session status
+            sessions = dao.get_active_sessions_raw()
+            assert len(sessions) == 1
+            session = sessions[0]
+            assert session["total"] == 2
+            assert session["status"] == TransferStatus.ONGOING
+
+            # Pause the session
+            dao.pause_session(session["uid"])
+
+            session = dao.get_session(session["uid"])
+            uploads = list(dao.get_dt_uploads())
+            assert uploads
+            upload = uploads[0]
+            assert upload.status == TransferStatus.PAUSED
+
+        created = []
+        root_folder = self.tmpdir / str(uuid4())[:6]
+        root_folder.mkdir()
+        created.append(root_folder)
+
+        sub_file = root_folder / f"file_{str(uuid4())[:4]}"
+        sub_file.write_text("Some content." * 1024 * 1024 * 2, encoding="utf8")
+        created.append(sub_file)
+
+        with patch.object(engine.remote, "upload_callback", new=callback):
+            with ensure_no_exception():
+                self.direct_transfer(root_folder)
+                self.wait_sync()
+
+                session = engine.dao.get_session(1)
+                assert session
+                assert session.status == TransferStatus.PAUSED
+
+        engine.resume_session(1)
+        with self._caplog.at_level(logging.INFO):
+            self.wait_sync(wait_for_async=True)
+
+            sessions = engine.dao.get_completed_sessions_raw()
+            assert sessions
+            assert len(sessions) == 1
+            session = sessions[0]
+            assert session["status"] == TransferStatus.DONE
+
+            # A new Notification logs should appear at each iteration
+            records = map(str, self._caplog.records)
+            matches = list(filter(expression.match, records))
+            assert len(matches) == 1
+
+    def test_pause_cancel_session(self):
+        """
+        Test the session pause and cancel system.
+        All Uploads should be removed and the Session final status should be CANCELLED.
+        """
+        engine = self.engine_1
+
+        # There is no upload, right now
+        assert not list(engine.dao.get_dt_uploads())
+        expression = re.compile(
+            r"<LogRecord: nxdrive\.notification, .*, .*, .*, "
+            r"\"Sending Notification\(level='info' title='Direct Transfer'"
+            r" uid='DIRECT_TRANSFER_SESSION_END.*' unique=False\)\">"
+        )
+
+        def callback(*_):
+            """This will mimic what is done in SessionItem.qml."""
+            # Ensure we have 1 ongoing upload
+            dao = engine.dao
+            uploads = list(dao.get_dt_uploads())
+            assert uploads
+            upload = uploads[0]
+            assert upload.status == TransferStatus.ONGOING
+
+            # Verify the session status
+            sessions = dao.get_active_sessions_raw()
+            assert len(sessions) == 1
+            session = sessions[0]
+            assert session["total"] == 2
+            assert session["status"] == TransferStatus.ONGOING
+
+            # Pause the session
+            dao.pause_session(session["uid"])
+
+            session = dao.get_session(session["uid"])
+            print(session)
+            uploads = list(dao.get_dt_uploads())
+            assert uploads
+            upload = uploads[0]
+            assert upload.status == TransferStatus.PAUSED
+
+        created = []
+        root_folder = self.tmpdir / str(uuid4())[:6]
+        root_folder.mkdir()
+        created.append(root_folder)
+
+        sub_file = root_folder / f"file_{str(uuid4())[:4]}"
+        sub_file.write_text("Some content." * 1024 * 1024 * 2, encoding="utf8")
+        created.append(sub_file)
+
+        with patch.object(engine.remote, "upload_callback", new=callback):
+            with ensure_no_exception():
+                self.direct_transfer(root_folder)
+                self.wait_sync()
+
+                session = engine.dao.get_session(1)
+                assert session
+                assert session.status == TransferStatus.PAUSED
+
+        engine.cancel_session(1)
+        with self._caplog.at_level(logging.INFO):
+            self.wait_sync(wait_for_async=True)
+
+            sessions = engine.dao.get_completed_sessions_raw()
+            assert sessions
+            assert len(sessions) == 1
+            session = sessions[0]
+            assert session["status"] == TransferStatus.CANCELLED
+
+            uploads = list(engine.dao.get_dt_uploads())
+            assert not uploads
+
+            # A new Notification logs should appear at each iteration
+            records = map(str, self._caplog.records)
+            matches = list(filter(expression.match, records))
+            assert len(matches) == 1
 
     def test_sub_files(self):
         """Test the Direct Transfer on a folder with many files."""

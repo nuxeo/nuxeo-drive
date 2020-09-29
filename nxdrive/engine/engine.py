@@ -460,8 +460,11 @@ class Engine(QObject):
             f" ... database_batch_size is {bsize}, duplicate_behavior is {duplicate_behavior!r}"
         )
         current_max_row_id = -1
+        description = items[0][0].name
+        if len(items) > 1:
+            description = f"{description} (+{len(items) - 1:,})"
         session_uid = self.dao.create_session(
-            remote_parent_path, remote_parent_ref, len(items)
+            remote_parent_path, remote_parent_ref, len(items), self.uid, description
         )
         for batch_items in grouper(items, bsize):
             row_id = self.dao.plan_many_direct_transfer_items(batch_items, session_uid)
@@ -647,6 +650,13 @@ class Engine(QObject):
         # Update the systray icon and syncing count in the systray, if there are any resumed transfers
         self._check_sync_start()
 
+    def resume_session(self, uid: int) -> None:
+        """Resume all transfers for given session."""
+        self.dao.change_session_status(uid, TransferStatus.ONGOING)
+        session_uploads = self.dao.get_session_uploads(uid)
+        for upload in session_uploads:
+            self.resume_transfer("Upload", upload.uid, is_direct_transfer=True)
+
     def _manage_staled_transfers(self) -> None:
         """
         That method manages staled transfers. A staled transfer has the ONGOING status.
@@ -690,6 +700,15 @@ class Engine(QObject):
         self.dao.remove_state(doc_pair)
         session = self.dao.decrease_session_total(doc_pair.session)
         self.handle_session_status(session)
+
+    def cancel_session(self, uid: int) -> None:
+        """Cancel all transfers for given session."""
+        session_uploads = self.dao.get_session_uploads(uid)
+        if not session_uploads:
+            return
+        for upload in session_uploads:
+            self.cancel_upload(upload.uid)
+        self.dao.change_session_status(uid, TransferStatus.CANCELLED)
 
     def suspend(self) -> None:
         if self._pause:

@@ -69,6 +69,8 @@ from ..utils import (
 from .api import QMLDriveApi
 from .systray import DriveSystrayIcon, SystrayWindow
 from .view import (
+    ActiveSessionModel,
+    CompletedSessionModel,
     DirectTransferModel,
     EngineModel,
     FileModel,
@@ -235,6 +237,8 @@ class Application(QApplication):
     def init_gui(self) -> None:
 
         self.api = QMLDriveApi(self)
+        self.active_session_model = ActiveSessionModel(self.translate)
+        self.completed_session_model = CompletedSessionModel(self.translate)
         self.direct_transfer_model = DirectTransferModel(self.translate)
         self.conflicts_model = FileModel(self.translate)
         self.errors_model = FileModel(self.translate)
@@ -371,6 +375,10 @@ class Application(QApplication):
 
     def _fill_qml_context(self, context: QQmlContext) -> None:
         """ Fill the context of a QML element with the necessary resources. """
+        context.setContextProperty("ActiveSessionModel", self.active_session_model)
+        context.setContextProperty(
+            "CompletedSessionModel", self.completed_session_model
+        )
         context.setContextProperty("ConflictsModel", self.conflicts_model)
         context.setContextProperty("DirectTransferModel", self.direct_transfer_model)
         context.setContextProperty("ErrorsModel", self.errors_model)
@@ -836,6 +844,27 @@ class Application(QApplication):
                 f"Aborted the cancellation of the transfer {transfer_uid}: {name!r}"
             )
 
+    @pyqtSlot(str, int, str, int)
+    def confirm_cancel_session(
+        self, engine_uid: str, session_uid: int, destination: str, pending_files: int
+    ) -> None:
+        """
+        Show a dialog to confirm the given session cancel.
+        Cancel the session on validation.
+        """
+        msgbox = QMessageBox(
+            QMessageBox.Question,
+            APP_NAME,
+            Translator.get("SESSION_CANCEL", [destination, pending_files]),
+            QMessageBox.NoButton,
+        )
+        continued = msgbox.addButton(Translator.get("YES"), QMessageBox.AcceptRole)
+        cancel = msgbox.addButton(Translator.get("NO"), QMessageBox.RejectRole)
+        msgbox.setDefaultButton(cancel)
+        msgbox.exec_()
+        if msgbox.clickedButton() == continued:
+            self.api.cancel_session(engine_uid, session_uid)
+
     @pyqtSlot(str, object)
     def open_authentication_dialog(
         self, url: str, callback_params: Dict[str, str]
@@ -950,6 +979,24 @@ class Application(QApplication):
         # Refresh Direct Transfer items on each database update
         engine.dao.directTransferUpdated.connect(
             partial(self.refresh_direct_transfer_items, engine.dao)
+        )
+
+        # Refresh ongoing Sessions items at startup
+        engine.started.connect(partial(self.refresh_active_sessions_items, engine.dao))
+
+        # Refresh ongoing Sessions items on each database update
+        engine.dao.sessionUpdated.connect(
+            partial(self.refresh_active_sessions_items, engine.dao)
+        )
+
+        # Refresh completed Sessions items at startup
+        engine.started.connect(
+            partial(self.refresh_completed_sessions_items, engine.dao)
+        )
+
+        # Refresh completed Sessions items on each database update
+        engine.dao.sessionUpdated.connect(
+            partial(self.refresh_completed_sessions_items, engine.dao)
         )
 
         # Refresh the Direct Transfer items count automatically
@@ -1605,6 +1652,20 @@ class Application(QApplication):
         transfers = self.api.get_direct_transfer_items(dao)
         if transfers != self.direct_transfer_model.items:
             self.direct_transfer_model.set_items(transfers)
+
+    @pyqtSlot(object)
+    def refresh_active_sessions_items(self, dao: EngineDAO) -> None:
+        """Refresh the list of active sessions if a change is detected."""
+        sessions = self.api.get_active_sessions_items(dao)
+        if sessions != self.active_session_model.sessions:
+            self.active_session_model.set_sessions(sessions)
+
+    @pyqtSlot(object)
+    def refresh_completed_sessions_items(self, dao: EngineDAO) -> None:
+        """Refresh the list of completed sessions if a change is detected."""
+        sessions = self.api.get_completed_sessions_items(dao)
+        if sessions != self.completed_session_model.sessions:
+            self.completed_session_model.set_sessions(sessions)
 
     @pyqtSlot()
     def force_refresh_files(self) -> None:

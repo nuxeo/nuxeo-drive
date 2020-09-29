@@ -109,6 +109,7 @@ class BaseUploader:
         is_direct_transfer = kwargs.get("is_direct_transfer", False)
         remote_parent_path = kwargs.pop("remote_parent_path", "")
         remote_parent_ref = kwargs.pop("remote_parent_ref", "")
+        doc_pair = kwargs.pop("doc_pair", "")
 
         blob = FileBlob(str(file_path))
         action = self.upload_action(
@@ -212,6 +213,7 @@ class BaseUploader:
                     is_direct_transfer=is_direct_transfer,
                     remote_parent_path=remote_parent_path,
                     remote_parent_ref=remote_parent_ref,
+                    doc_pair=doc_pair,
                 )
                 self.dao.save_upload(transfer)
             elif transfer.batch["batchId"] != batch.uid:

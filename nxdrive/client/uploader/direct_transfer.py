@@ -99,6 +99,7 @@ class DirectTransferUploader(BaseUploader):
                 is_direct_transfer=True,
                 remote_parent_path=doc_pair.remote_parent_path,
                 remote_parent_ref=doc_pair.remote_parent_ref,
+                doc_pair=doc_pair.id,
             )
 
         return item

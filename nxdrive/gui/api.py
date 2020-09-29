@@ -210,6 +210,30 @@ class QMLDriveApi(QObject):
         # 5 files are displayed in the DT window
         return dao.get_dt_uploads_raw(limit=5)
 
+    def get_active_sessions_items(self, dao: EngineDAO) -> List[Dict[str, Any]]:
+        """Fetch the list of active sessions from the database."""
+        return dao.get_active_sessions_raw()
+
+    def get_completed_sessions_items(self, dao: EngineDAO) -> List[Dict[str, Any]]:
+        """Fetch the list of completed sessions from the database."""
+        return dao.get_completed_sessions_raw(formatted=True)
+
+    @pyqtSlot(str, result=int)
+    def get_active_sessions_count(self, uid: str) -> int:
+        """Return the count of active sessions items."""
+        engine = self._manager.engines.get(uid)
+        if engine:
+            return len(self.get_active_sessions_items(engine.dao))
+        return 0
+
+    @pyqtSlot(str, result=int)
+    def get_completed_sessions_count(self, uid: str) -> int:
+        """Return the count of completed sessions items."""
+        engine = self._manager.engines.get(uid)
+        if engine:
+            return len(self.get_completed_sessions_items(engine.dao))
+        return 0
+
     @pyqtSlot(str, str, int, float, bool)
     def pause_transfer(
         self,
@@ -238,6 +262,32 @@ class QMLDriveApi(QObject):
         if not engine:
             return
         engine.resume_transfer(nature, uid, is_direct_transfer=is_direct_transfer)
+
+    @pyqtSlot(str, int)
+    def resume_session(self, engine_uid: str, uid: int) -> None:
+        """Resume a given session and it's transfers."""
+        log.info(f"Resume session {uid} for engine {engine_uid!r}")
+        engine = self._manager.engines.get(engine_uid)
+        if not engine:
+            return
+        engine.resume_session(uid)
+
+    @pyqtSlot(str, int)
+    def pause_session(self, engine_uid: str, uid: int) -> None:
+        """Pause a given session and it's transfers."""
+        log.info(f"Pausing session {uid} for engine {engine_uid!r}")
+        engine = self._manager.engines.get(engine_uid)
+        if not engine:
+            return
+        engine.dao.pause_session(uid)
+
+    def cancel_session(self, engine_uid: str, uid: int) -> None:
+        """Cancel a given session and it's transfers."""
+        log.info(f"Cancelling session {uid} for engine {engine_uid!r}")
+        engine = self._manager.engines.get(engine_uid)
+        if not engine:
+            return
+        engine.cancel_session(uid)
 
     @pyqtSlot(str, str)
     def show_metadata(self, uid: str, ref: str) -> None:
@@ -336,11 +386,20 @@ class QMLDriveApi(QObject):
         if not engine:
             return
 
-        if engine.dao.get_dt_items_count():
-            self.application.refresh_direct_transfer_items(engine.dao)
-            self.application.show_direct_transfer_window(engine.uid)
-        else:
-            self.application.show_server_folders(engine, None)
+        self.application.refresh_direct_transfer_items(engine.dao)
+        self.application.refresh_active_sessions_items(engine.dao)
+        self.application.refresh_completed_sessions_items(engine.dao)
+        self.application.show_direct_transfer_window(engine.uid)
+
+    @pyqtSlot(str)
+    def open_server_folders(self, uid: str) -> None:
+        """Hide the systray and show the server folders dialog."""
+        self.application.hide_systray()
+        engine = self._manager.engines.get(uid)
+        if not engine:
+            return
+
+        self.application.show_server_folders(engine, None)
 
     @pyqtSlot(str, result=str)
     def get_hostname_from_url(self, url: str) -> str:
