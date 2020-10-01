@@ -1152,6 +1152,9 @@ class Application(QApplication):
     def show_release_notes(self, version: str) -> None:
         """ Display release notes of a given version. """
 
+        if "CI" in os.environ:
+            return
+
         channel = self.manager.get_update_channel()
         log.info(f"Showing release notes, version={version!r} channel={channel}")
 
