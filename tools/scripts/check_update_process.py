@@ -242,12 +242,13 @@ def set_options():
         metrics = f"{home}/metrics.state"
 
     options = [
-        "sync-and-quit = True",
+        "channel = alpha",
         "log-level-console = WARNING",
         "log-level-file = DEBUG",
-        "update-site-url = http://localhost:8000",
+        "synchronization-enabled = False",
+        "sync-and-quit = True",
         "update-check-delay = 8",
-        "channel = alpha",
+        "update-site-url = http://localhost:8000",
     ]
 
     if not os.path.isdir(home):
