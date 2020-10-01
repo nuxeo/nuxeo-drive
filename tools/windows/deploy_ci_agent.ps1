@@ -109,8 +109,10 @@ function build_installer {
 		zip_files "dist\nuxeo-drive-windows-$app_version.zip" "dist\ndrive"
 	}
 
-	build "$app_version" "tools\windows\setup-addons.iss"
-	sign "dist\nuxeo-drive-addons.exe"
+	if (-Not ($Env:SKIP_ADDONS)) {
+		build "$app_version" "tools\windows\setup-addons.iss"
+		sign "dist\nuxeo-drive-addons.exe"
+	}
 
 	build "$app_version" "tools\windows\setup.iss"
 	sign "dist\nuxeo-drive-$app_version.exe"

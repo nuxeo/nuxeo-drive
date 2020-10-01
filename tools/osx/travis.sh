@@ -11,11 +11,8 @@ echo "${PRIV_APP_MACOS}" | base64 --decode > nuxeo-drive.priv
 bash tools/osx/deploy_ci_agent.sh --install-release
 
 # Test the auto-updater
-bash tools/osx/deploy_ci_agent.sh --check-upgrade
-
-# Build the app
 rm -rf build dist
-bash tools/osx/deploy_ci_agent.sh --build
+bash tools/osx/deploy_ci_agent.sh --check-upgrade
 
 # Upload artifacts
 for f in dist/*.dmg; do

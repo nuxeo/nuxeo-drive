@@ -12,11 +12,8 @@ powershell Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
 powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
 
 # Test the auto-updater
-powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade
-
-# Build the app
 rm -rf build dist
-powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -build
+powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade
 
 # Upload artifacts
 for f in dist/*.exe; do
