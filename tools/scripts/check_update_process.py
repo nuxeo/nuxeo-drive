@@ -43,7 +43,7 @@ import yaml
 # Alter the lookup path to be able to find Nuxeo Drive sources
 sys.path.insert(0, os.getcwd())
 
-__version__ = "2.0.2"
+__version__ = "3.0.0"
 
 EXT = {"darwin": "dmg", "linux": "appimage", "win32": "exe"}[sys.platform]
 Server = http.server.SimpleHTTPRequestHandler
@@ -414,7 +414,10 @@ def check_against_me(root):
         version_update(previous, lineno)
         assert version_find() == (previous, lineno)
 
-        exe = gen_and_move(root, previous)
+        # No need to build Windows addons for the version N-1
+        os.environ["SKIP_ADDONS"] = "1"
+
+        exe = generate_installer(root, previous, move=True)
 
         # And gooo!
         job(root, version, exe, previous, "dev")
@@ -441,18 +444,21 @@ def check_against_last_release(root):
     job(root, version, last_ga, ga_version, "ga")
 
 
-def gen_and_move(root, version):
-    """ Generate the installer for a given version and move it to the web server root. """
+def generate_installer(root, version, move=False):
+    """ Generate the installer for a given version and copy/move it to the web server root. """
 
     # Generate the installer
     gen_exe()
 
-    # Move the file to the webserver
+    # Copy or move all files to the webserver
+    dst_folder = os.path.join(root, "alpha")
     ext = "-x86_64.AppImage" if EXT == "appimage" else f".{EXT}"
-    file = f"dist/nuxeo-drive-{version}{ext}"
-    dst_file = os.path.join(root, "alpha", os.path.basename(file))
-    print(">>> Moving", file, "->", dst_file, flush=True)
-    shutil.move(file, dst_file)
+    dst_file = os.path.join(dst_folder, os.path.basename(f"nuxeo-drive-{version}{ext}"))
+
+    func = shutil.move if move else shutil.copy
+    for file in Path("dist").glob(f"nuxeo-drive-{version}*"):
+        print(">>>", func.__name__.title(), file, "->", dst_folder, flush=True)
+        func(str(file), dst_folder)
 
     # Create, or append to, the versions.yml file
     create_versions(root, version)
@@ -549,7 +555,7 @@ def main():
 
     # Generate the current version executable
     version, _ = version_find()
-    gen_and_move(root, version)
+    generate_installer(root, version)
 
     try:
         check_against_me(root)

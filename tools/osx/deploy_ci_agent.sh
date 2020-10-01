@@ -134,15 +134,17 @@ create_package() {
     fi
 
     echo ">>> [package] Creating the DMG file"
+
+    app_version="$(grep __version__ nxdrive/__init__.py | cut -d'"' -f2)"
+    local dmg_path="${output_dir}/nuxeo-drive-${app_version}.dmg"
+
     # Clean-up
-    rm -fv ${output_dir}/*.dmg
+    rm -fv "${dmg_path}"
     rm -rf "${src_folder_tmp}" "${dmg_tmp}"
     mkdir "${src_folder_tmp}"
 
-    app_version="$(grep __version__ nxdrive/__init__.py | cut -d'"' -f2)"
     echo ">>> [DMG] ${bundle_name} version ${app_version}"
     # Compute DMG name and size
-    local dmg_path="${output_dir}/nuxeo-drive-${app_version}.dmg"
     local dmg_size=$(( $(du -sm "${pkg_path}" | cut -d$'\t' -f1,1) + 20 ))
     echo ">>> [DMG ${app_version}] ${dmg_path} (${dmg_size} Mo)"
 
