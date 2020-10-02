@@ -37,57 +37,448 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 
 ### Available Parameters
 
-| Parameter | Default Value | Type | Version Added | Description
-|---|---|---|---|---
-| `behavior` | [...](#behaviors) | map | 4.4.2 | Application behavior that can be turned on/off on-demand. That parameter cannot be set via the local configuration file: only the server has rights to define it.
-| `big-file` | 300 | int | 4.1.4 | File size in MiB. Files bigger than this limit are considered "big". This implies few tweaks in the synchronization engine like bypassing most of the expensive and time consuming digest computations. It is a tradeoff to handle large files as best effort.
-| `ca-bundle` | None | str | 4.0.2 | File or directory with certificates of trusted Certificate Authorities. If set, `ssl-no-verify` has no effect. See the `requests` [documentation](http://docs.python-requests.org/en/master/user/advanced/#ssl-cert-verification) for more details.
-| `channel` | centralized | str | 4.0.2 | Update channel. Can be centralized, release, beta or alpha.
-| `chunk_limit` | 20 | int | 4.1.2 | Size in MiB above which files will be uploaded in chunks (if `chunk_upload` is `True`). Has to be above 0.
-| `chunk_size` | 20 | int | 4.1.2 | Size of the chunks in MiB. Has to be above 0 and lower or equal to 20.
-| `chunk_upload` | True | bool | 4.1.2 | Activate the upload in chunks for files bigger than `chunk_limit`.
-| `database_batch_size` | 256 | int | 4.4.4 | [Direct Transfer] When adding files into the database, the operation is done by batch instead of one at a time. This option controls the batch size.
-| `delay` | 30 | int | 2 | Define the delay before each remote check.
-| `disabled_file_integrity_check` | False | bool | 4.4.5 | Set to `True` to disable downloaded files integrity check. It is a needed option when the [managed blob store key strategy](https://doc.nuxeo.com/nxdoc/hotfixes-installation-notes-for-nuxeo-platform-lts-2019/#s3-direct-upload-of-5-gb-files) is set up on the server, because there is no logic digest filled, the application would not be able to validate such files.
-| `disallowed_types_for_dt` | ... | list | 4.4.6 | List of document types where Direct Transfer is not allowed, typically `Domain` and `Section`.
-| `feature` | [...](#features) | map | 4.4.2 | Application features that can be turned on/off on-demand.
-| `force-locale` | None | str | 2 | Force the reset to the language.
-| `handshake-timeout` | 60 | int | 2 | Define the handshake timeout.
-| `ignored-files` | ... | list | 2.4.1 | File names to ignore while syncing.
-| `ignored-prefixes` | ... | list | 2.4.1 | File prefixes to ignore while syncing.
-| `ignored-suffixes` | ... | list | 2.4.1 | File suffixes to ignore while syncing.
-| `locale` | en | str | 2 | Set up the language if not already defined. This can also be set up by the user from the Settings window.
-| `log-filename` | None | str | 2 | The name of the log file.
-| `log-level-console` | WARNING | str | 2 | Define level for console log. Can be DEBUG, INFO, WARNING, ERROR. TRACE level has been deprecated since 4.1.0, and will be treated as DEBUG.
-| `log-level-file` | INFO | str | 2 | Define level for file log. Can be DEBUG, INFO, WARNING, ERROR. TRACE level has been deprecated since 4.1.0, and will be treated as DEBUG.
-| `max-errors` | 3 | int | 2 | Define the maximum number of retries before considering the file as in error.
-| `nofscheck` | False | bool | 2.0.911 | Disable the standard check for binding, to allow installation on network filesystem.
-| `proxy-server` | None | str | 2 | Define the address of the proxy server (e.g. `http://proxy.example.com:3128`). This can also be set up by the user from the Settings window.
-| `ssl-no-verify` | False | bool | 4.0.1 | Define if SSL errors should be ignored. Highly unadvised to enable this option.
-| `sync-and-quit` | False | bool | 4.2.0 | Launch the synchronization and then exit the application.
-| `synchronization_enabled` | True | bool | 4.4.0 | Synchronization features are enabled. If set to `False`, nothing will be downloaded/uploaded/synchronized but Direct Edit and Direct Transfer will work.
-| `tmp_file_limit` | 10.0 | float | 4.1.4 | File size in MiB. Files smaller than this limit will be written at once to the file rather than chunk by chunk.
-| `timeout` | 30 | int | 2 | Define the socket timeout.
-| `update-check-delay` | 3600 | int | 2 | Define the auto-update check delay. 0 means disabled.
-| `update-site-url` | [URL](https://community.nuxeo.com/static/drive-updates) | str | 2 | Configure a custom update website. See Nuxeo Drive Update Site for more details.
-| `use-analytics` | False | bool | 4.1.0 | Share anonymous usage analytics to help the developers build the best experience for you.
-| `use-sentry` | True | bool | 4.1.0 | Allow sharing error reports when something unusual happen.
+#### `behavior`
 
-### Obsolete Parameters
+Application behavior that can be turned on/off on-demand.
+That parameter cannot be set via the local configuration file: only the server has rights to define it.
 
-| Parameter | Default Value | Version Removed | New Option Name | New Default Value
-|---|---|---|---|---
-| `beta-update-site-url` | [URL](https://community.nuxeo.com/static/drive-updates) (str) | 4.0.2 | None | None
-| `beta-channel` | False (bool) | 4.0.2 | `channel` | release (str)
-| `consider-ssl-errors` | True (bool) | 4.0.1 | `ssl-no-verify` | False (bool)
-| `debug` | False (bool) | 4.0.0 | None | None
-| `max-sync-step` | 10 (int) | 4.1.3 | None | None
-| `proxy-exceptions` | None (str) | 4.0.0 | None | None
-| `proxy-type` | None (str) | 4.0.0 | None | None
+- Default value (map): [...](#behaviors)
+- Version added: 4.4.2
 
-Other changes:
+* * *
 
-- `channel` was set to "release" in 4.0.2. It then changed to "centralized" in 4.2.0.
+#### `beta-channel`
+
+Use the beta channel for auto-updates.
+
+- Default value (bool): `False`
+- Version added: 2.0
+- Version removed: 4.0.2, use [channel](#channel) set to `beta` instead
+
+* * *
+
+#### `beta-update-site-url`
+
+Configure custom beta update website.
+
+- Default value (str): [https://community.nuxeo.com/static/drive-updates](https://community.nuxeo.com/static/drive-updates)
+- Version added: 2.0
+- Version removed: 4.0.2, use [update-site-url](#update-site-url) instead
+
+* * *
+
+#### `big-file`
+
+File size in MiB. Files bigger than this limit are considered "big".
+This implies few tweaks in the synchronization engine like bypassing most of the expensive and time-consuming digest computations.
+It is a tradeoff to handle large files as best effort.
+
+- Default value (int): `300`
+- Version added: 4.1.4
+
+* * *
+
+#### `ca-bundle`
+
+File or directory with certificates of trusted Certificate Authorities.
+If set, [ssl-no-verify](#ssl-no-verify) has no effect.
+See the `requests` [documentation](http://docs.python-requests.org/en/master/user/advanced/#ssl-cert-verification) for more details.
+
+- Default value (str): None
+- Version added: 4.0.2
+
+* * *
+
+#### `channel`
+
+Update channel. Can be `centralized`, `release`, `beta` or `alpha`.
+
+- Default value (str): `centralized`
+- Version added: 4.0.2
+- Version changed: 4.2.0, changed from `release` to `centralized`
+
+
+* * *
+
+#### `chunk-limit`
+
+Size in MiB above which files will be uploaded in chunks (if [chunk-upload](#chunk-upload) is `True`).
+Has to be above 0.
+
+- Default value (int): `20`
+- Version added: 4.1.2
+
+* * *
+
+#### `chunk-size`
+
+Size of the chunks in MiB. Has to be above 0 and lower or equal to 20.
+
+- Default value (int): `20`
+- Version added: 4.1.2
+
+* * *
+
+#### `chunk-upload`
+
+Activate the upload in chunks for files bigger than [chunk-limit](#chunk-limit).
+
+`
+- Default value (bool): `True`
+- Version added: 4.1.2
+
+* * *
+
+#### `client-version`
+
+Force the client version to run when using the centralized update channel (must be >= `4.2.0`).
+
+- Default value (str): None
+- Version added: 4.2.0
+
+* * *
+
+#### `consider-ssl-errors`
+
+Define if SSL errors should be ignored.
+
+- Default value (bool): `True`
+- Version added: 2.0
+- Version removed: 4.0.1, use [ssl-no-verify](#ssl-no-verify) set to `True` instead
+
+* * *
+
+#### `database-batch-size`
+
+[Direct Transfer] When adding files into the database, the operation is done by batch instead of one at a time.
+This option controls the batch size.
+
+- Default value (int): `256`
+- Version added: 4.4.4
+
+* * *
+
+#### `debug`
+
+Activate the debug window, and debug mode.
+
+- Default value (bool): `False`
+- Version added: 2.0
+- Version removed: 4.0.0
+
+* * *
+
+#### `delay`
+
+Delay in seconds before each remote check (calling the [NuxeoDrive.GetChangeSummary](https://explorer.nuxeo.com/nuxeo/site/distribution/10.10/viewOperation/NuxeoDrive.GetChangeSummary) operation).
+
+- Default value (int): `30`
+- Version added: 2.0
+
+* * *
+
+#### `disabled-file-integrity-check`
+
+Set to `True` to disable downloaded files integrity check.
+It is a needed option when the [managed blob store key strategy](https://doc.nuxeo.com/nxdoc/hotfixes-installation-notes-for-nuxeo-platform-lts-2019/#s3-direct-upload-of-5-gb-files) is set up on the server, because there is no logic digest filled, the application would not be able to validate such files.
+
+- Default value (bool): `False`
+- Version added: 4.4.5
+
+* * *
+
+#### `disallowed-types-for-dt`
+
+List of document types where Direct Transfer is not allowed.
+
+- Default value (list):
+```python
+[
+    "Domain",
+    "Section",
+]
+```
+- Version added: 4.4.6
+
+* * *
+
+#### `feature`
+
+Application features that can be turned on/off on-demand.
+
+- Default value (map): [...](#features)
+- Version added: 4.4.2
+
+* * *
+
+#### `force-locale`
+
+Force the reset to the language.
+
+- Default value (str): None
+- Version added: 2.0
+
+* * *
+
+#### `handshake-timeout`
+
+Define the handshake timeout in seconds.
+
+- Default value (int): `60`
+- Version added: 2.0
+
+* * *
+
+#### `ignored-files`
+
+Lowercase file patterns to ignore while syncing.
+
+- Default value (list):
+```python
+[
+    r"^atmp\d+$",
+]
+```
+- Version added: 2.4.1
+
+* * *
+
+#### `ignored-prefixes`
+
+Lowercase file prefixes to ignore while syncing.
+
+- Default value (list):
+```python
+[
+    ".",
+    "desktop.ini",
+    "icon\r",
+    "thumbs.db",
+    "~$",
+]
+```
+- Version added: 2.4.1
+
+* * *
+
+#### `ignored-suffixes`
+
+Lowercase file suffixes to ignore while syncing.
+
+- Default value (list):
+```python
+[
+    ".bak",
+    ".crdownload",
+    ".dwl",
+    ".dwl2",
+    ".idlk",
+    ".lnk",
+    ".lock",
+    ".nxpart",
+    ".part",
+    ".partial",
+    ".swp",
+    ".tmp",
+    "~",
+]
+```
+- Version added: 2.4.1
+- Version changed: 4.1.0, added `.idlk` (Adobe InDesign lock files)
+
+* * *
+
+#### `locale`
+
+Set up the language if not already defined.
+This can also be set up by the user from the Settings window.
+
+- Default value (str): `en`
+- Version added: 2.0
+
+* * *
+
+#### `log-filename`
+
+The name of the log file.
+If not set, defaults to `nxdrive.log`.
+
+- Default value (str): None
+- Version added: 2.0
+
+* * *
+
+#### `log-level-console`
+
+Define level for console log.
+Can be `DEBUG`, `INFO`, `WARNING` or `ERROR`.
+
+- Default value (str): `WARNING`
+- Version added: 2.0
+- Version changed: 4.1.0, removed the `TRACE` level
+
+`TRACE` level has been deprecated since 4.1.0, and will be treated as `DEBUG`.
+
+* * *
+
+#### `log-level-file`
+
+Define level for file log.
+Can be `DEBUG`, `INFO`, `WARNING` or `ERROR`.
+
+- Default value (str): `INFO`
+- Version added: 2.0
+- Version changed: 4.1.0, removed the `TRACE` level
+
+`TRACE` level has been deprecated since 4.1.0, and will be treated as `DEBUG`.
+
+* * *
+
+#### `max-errors`
+
+Define the maximum number of retries before considering the document as in error.
+
+- Default value (int): `3`
+- Version added: 2.0
+
+* * *
+
+#### `max-sync-step`
+
+Number of consecutive sync operations to perform without refreshing the internal state DB.
+
+- Default value (int): `10`
+- Version added: 2.0
+- Version removed: 4.1.3
+
+* * *
+
+#### `nofscheck`
+
+Disable the standard check for binding, to allow installation on network filesystem.
+
+- Default value (bool): `False`
+- Version added: 2.0.911
+
+* * *
+
+
+#### `proxy-exceptions`
+
+Define URLs exception for the proxy.
+
+- Default value (str): None
+- Version added: 2.0
+- Version removed: 4.0
+
+* * *
+
+#### `proxy-server`
+
+Define the address of the proxy server (e.g. `http://proxy.example.com:3128`).
+This can also be set up by the user from the Settings window.
+
+- Default value (str): None
+- Version added: 2.0
+
+* * *
+
+#### `proxy-type`
+
+Define proxy type.
+This can also be set up by the user from the Settings window.
+
+- Default value (str): None
+- Version added: 2.0
+- Version removed: 4.0, pass the scheme directly in the [proxy-server](#proxy-server) URL
+
+* * *
+
+#### `ssl-no-verify`
+
+Define if SSL errors should be ignored.
+Highly unadvised to enable this option.
+
+- Default value (bool): `False`
+- Version added: 4.0.1
+
+* * *
+
+#### `sync-and-quit`
+
+Launch the synchronization and then exit the application.
+
+- Default value (bool): `False`
+- Version added: 4.2.0
+
+* * *
+
+#### `synchronization-enabled`
+
+Synchronization features are enabled.
+If set to `False`, nothing will be downloaded/uploaded/synchronized but Direct Edit and Direct Transfer features will work.
+
+- Default value (bool): `True`
+- Version added: 4.4.0
+
+* * *
+
+#### `timeout`
+
+Define the socket timeout in seconds.
+
+- Default value (int): `30`
+- Version added: 2.0
+
+* * *
+
+#### `tmp-file-limit`
+
+File size in MiB.
+Files smaller than this limit will be written at once to the file rather than chunk by chunk.
+
+- Default value (float): `10.0`
+- Version added: 4.1.4
+
+* * *
+
+#### `update-check-delay`
+
+Define the auto-update check delay in seconds.
+0 means disabled.
+
+- Default value (int): `3600`
+- Version added: 2.0
+
+* * *
+
+#### `update-site-url`
+
+Configure a custom update website.
+See Nuxeo Drive Update Site for more details.
+
+- Default value (str): [https://community.nuxeo.com/static/drive-updates](https://community.nuxeo.com/static/drive-updates)
+- Version added: 2.0
+
+* * *
+
+#### `use-analytics`
+
+Share anonymous usage analytics to help the developers build the best experience for you.
+
+- Default value (bool): `False`
+- Version added: 4.1.0
+- Version changed: 4.4.5, a minimal set of GDPR-information is sent even if set to `False` (see [NXDRIVE-2254](https://jira.nuxeo.com/browse/NXDRIVE-2254))
+
+* * *
+
+#### `use-sentry`
+
+Allow sharing error reports when something unusual happens.
+This parameter is critical for the product's health, please do not not turn it off.
+
+- Default value (bool): `True`
+- Version added: 4.1.0
 
 ## Behaviors
 
