@@ -188,6 +188,9 @@ class MetaOptions(type):
         "~",
     )
 
+    # Document's types where Direct Transfer is forbidden
+    __doctypes_no_dt: Tuple[str, ...] = ("Domain", "Section")
+
     # Setters weight, higher is more powerful
     _setters: Dict[str, int] = {
         "default": 0,
@@ -234,6 +237,7 @@ class MetaOptions(type):
         "delay": (30, "default"),
         "deletion_behavior": ("unsync", "default"),
         "disabled_file_integrity_check": (False, "default"),
+        "disallowed_types_for_dt": (__doctypes_no_dt, "default"),
         "findersync_batch_size": (50, "default"),
         "force_locale": (None, "default"),
         "freezer": (_get_freezer(), "default"),

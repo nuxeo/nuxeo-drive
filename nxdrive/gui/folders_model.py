@@ -8,6 +8,7 @@ from PyQt5.QtCore import QObject, Qt
 
 from ..client.remote_client import Remote
 from ..objects import Filters, RemoteFileInfo
+from ..options import Options
 from ..translator import Translator
 
 __all__ = ("Documents", "FileInfo", "FilteredDocuments", "FilteredDoc")
@@ -99,6 +100,7 @@ class Doc(FileInfo):
         """Allow to select the folder only if the user can effectively create documents inside."""
         return (
             "HiddenInCreation" not in self.doc.facets
+            and self.doc.type not in Options.disallowed_types_for_dt
             and "ReadWrite" in self.doc.contextParameters["permissions"]
         )
 

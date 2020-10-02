@@ -49,6 +49,7 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 | `database_batch_size` | 256 | int | 4.4.4 | [Direct Transfer] When adding files into the database, the operation is done by batch instead of one at a time. This option controls the batch size.
 | `delay` | 30 | int | 2 | Define the delay before each remote check.
 | `disabled_file_integrity_check` | False | bool | 4.4.5 | Set to `True` to disable downloaded files integrity check. It is a needed option when the [managed blob store key strategy](https://doc.nuxeo.com/nxdoc/hotfixes-installation-notes-for-nuxeo-platform-lts-2019/#s3-direct-upload-of-5-gb-files) is set up on the server, because there is no logic digest filled, the application would not be able to validate such files.
+| `disallowed_types_for_dt` | ... | list | 4.4.6 | List of document types where Direct Transfer is not allowed, typically `Domain` and `Section`.
 | `feature` | [...](#features) | map | 4.4.2 | Application features that can be turned on/off on-demand.
 | `force-locale` | None | str | 2 | Force the reset to the language.
 | `handshake-timeout` | 60 | int | 2 | Define the handshake timeout.
