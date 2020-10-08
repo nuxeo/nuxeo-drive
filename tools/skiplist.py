@@ -27,6 +27,7 @@ EngineDAO.get_uploads_with_status()  # Used dynamically in Engine
 exc.trash_issue  # LocalClient.delete()
 FileInfo.is_hidden  # Used in QML
 FolderTreeview.resizeEvent  # Internal use of PyQt
+logging_config.debuglevel  # Only used when LOG_EVERYTHING envar is set
 Manager.get_feature_state  # Used in QML
 Manager.set_feature_state  # Used in QML
 Manager.set_light_icons  # Used in QML
