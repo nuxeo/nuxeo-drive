@@ -8,6 +8,7 @@ from time import monotonic_ns
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type, Union
 from urllib.parse import unquote
 
+import nuxeo.constants
 import requests
 from nuxeo.auth import TokenAuth
 from nuxeo.client import Nuxeo
@@ -49,6 +50,10 @@ __all__ = ("Remote",)
 log = getLogger(__name__)
 
 socket.setdefaulttimeout(TX_TIMEOUT)
+
+# NXDRIVE-2323: patch HTTP errors that trigger retries
+if 500 in nuxeo.constants.RETRY_STATUS_CODES:
+    nuxeo.constants.RETRY_STATUS_CODES.remove(500)
 
 
 class Remote(Nuxeo):
