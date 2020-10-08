@@ -2278,8 +2278,14 @@ class EngineDAO(ConfigurationDAO):
                 Path(res.path),
                 TransferStatus(res.status),
                 res.engine,
-                doc_pair=res.doc_pair,
                 batch=json.loads(res.batch),
+                chunk_size=res.chunk_size,
+                doc_pair=res.doc_pair,
+                filesize=res.filesize,
+                is_direct_transfer=True,
+                progress=res.progress,
+                remote_parent_path=res.remote_parent_path,
+                remote_parent_ref=res.remote_parent_ref,
             )
 
     def get_dt_uploads_raw(self, limit: int = 1) -> List[Dict[str, Any]]:

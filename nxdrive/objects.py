@@ -475,7 +475,7 @@ class Download(Transfer):
 class Upload(Transfer):
     transfer_type: str = field(init=False, default="upload")
     batch: dict = field(default_factory=dict)
-    chunk_size: Optional[int] = None
+    chunk_size: Optional[int] = 0
     remote_parent_path: Optional[str] = ""
     remote_parent_ref: Optional[str] = ""
 

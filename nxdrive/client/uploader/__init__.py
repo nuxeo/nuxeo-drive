@@ -120,16 +120,21 @@ class BaseUploader:
             blob.mimetype = mime_type
 
         batch: Optional[Batch] = None
-        chunk_size = None
+        chunk_size = 0
 
         # See if there is already a transfer for this file
         transfer = self.get_upload(file_path)
 
+        # Used to skip progression update in the finally clause
+        transfer_already_paused = False
+
         try:
             if transfer:
-                log.debug(f"Retrieved transfer for {file_path!r}: {transfer}")
                 if transfer.status not in (TransferStatus.ONGOING, TransferStatus.DONE):
+                    transfer_already_paused = True
                     raise UploadPaused(transfer.uid or -1)
+
+                log.debug(f"Retrieved transfer for {file_path!r}: {transfer}")
 
                 # When fetching for an eventual batch, specifying the file index
                 # is not possible for S3 as there is no blob at the current index
@@ -149,7 +154,7 @@ class BaseUploader:
                 else:
                     log.debug("Associated batch found, resuming the upload")
                     batch = Batch(service=self.remote.uploads, **transfer.batch)
-                    chunk_size = transfer.chunk_size
+                    chunk_size = transfer.chunk_size or 0
 
                     # The transfer was already completed on the third-party provider
                     if batch.etag:
@@ -178,7 +183,7 @@ class BaseUploader:
             action.is_direct_transfer = is_direct_transfer
 
             try:
-                uploader = batch.get_uploader(
+                uploader: Uploader = batch.get_uploader(
                     blob,
                     chunked=chunked,
                     chunk_size=chunk_size,
@@ -194,6 +199,9 @@ class BaseUploader:
                 return self._complete_upload(batch, blob)
 
             log.debug(f"Using {type(uploader).__name__!r} uploader")
+
+            # Ensure to use the real value, else it would open computation weirdness for progress bars
+            chunk_size = uploader.chunk_size
 
             if not transfer:
                 # Remove eventual obsolete upload (it happens when an upload using S3 has invalid metadatas)
@@ -278,15 +286,22 @@ class BaseUploader:
 
             return blob, batch
         finally:
-            # In case of error, log the progression to help debugging
-            percent = action.get_percent()
-            if percent < 100.0 and not action.uploaded:
-                log.debug(f"Upload progression stopped at {percent:.2f}%")
+            # Onlty update the progression is the transfer was not paused at startup,
+            # else it would set the percent to 0%.
+            if transfer_already_paused:
+                log.debug(
+                    f"Retrieved paused transfer for {file_path!r}: {transfer}, kept paused then"
+                )
+            else:
+                # In case of error, log the progression to help debugging
+                percent = action.get_percent()
+                if percent < 100.0 and not action.uploaded:
+                    log.debug(f"Upload progression stopped at {percent:.2f}%")
 
-                # Save the progression
-                if transfer:
-                    transfer.progress = percent
-                    self.dao.set_transfer_progress("upload", transfer)
+                    # Save the progression
+                    if transfer:
+                        transfer.progress = percent
+                        self.dao.set_transfer_progress("upload", transfer)
 
             action.finish_action()
 
