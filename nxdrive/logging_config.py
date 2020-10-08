@@ -2,6 +2,7 @@
 """ Utilities to log nxdrive operations and failures. """
 
 import logging
+import os
 from logging import Formatter, LogRecord
 from logging.handlers import BufferingHandler, TimedRotatingFileHandler
 from pathlib import Path
@@ -187,11 +188,17 @@ def configure(
     elif file_handler:
         file_handler.setLevel(file_level)
 
-    # NXDRIVE-1774: filter out urllib3 logging about "Certificate did not match..."
-    logging.getLogger("urllib3").setLevel(logging.CRITICAL)
+    if "LOG_EVERYTHING" in os.environ:
+        # NXDRIVE-2323: log everything and enable even more network-related debugging details
+        import http
 
-    # NXDRIVE-1918: filter out botocore logging (too verbose)
-    logging.getLogger("botocore").setLevel(logging.ERROR)
+        http.client.HTTPConnection.debuglevel = 1  # type: ignore
+    else:
+        # NXDRIVE-1774: filter out urllib3 logging about "Certificate did not match..."
+        logging.getLogger("urllib3").setLevel(logging.CRITICAL)
+
+        # NXDRIVE-1918: filter out botocore logging (too verbose)
+        logging.getLogger("botocore").setLevel(logging.ERROR)
 
 
 def get_handler(name: str) -> Optional[logging.Handler]:
