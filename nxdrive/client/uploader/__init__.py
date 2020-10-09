@@ -296,10 +296,9 @@ class BaseUploader:
                 # In case of error, log the progression to help debugging
                 percent = action.get_percent()
                 if percent < 100.0 and not action.uploaded:
-                    log.debug(f"Upload progression stopped at {percent:.2f}%")
-
                     # Save the progression
-                    if transfer:
+                    if transfer and percent:
+                        log.debug(f"Upload progression stopped at {percent:.2f}%")
                         transfer.progress = percent
                         self.dao.set_transfer_progress("upload", transfer)
 
