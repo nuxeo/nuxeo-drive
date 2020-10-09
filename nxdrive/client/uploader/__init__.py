@@ -293,15 +293,12 @@ class BaseUploader:
                     f"Retrieved paused transfer for {file_path!r}: {transfer}, kept paused then"
                 )
             else:
-                # In case of error, log the progression to help debugging
+                # Save the progression
                 percent = action.get_percent()
-                if percent < 100.0 and not action.uploaded:
+                if percent < 100.0 and not action.uploaded and transfer and percent:
                     log.debug(f"Upload progression stopped at {percent:.2f}%")
-
-                    # Save the progression
-                    if transfer:
-                        transfer.progress = percent
-                        self.dao.set_transfer_progress("upload", transfer)
+                    transfer.progress = percent
+                    self.dao.set_transfer_progress("upload", transfer)
 
             action.finish_action()
 
