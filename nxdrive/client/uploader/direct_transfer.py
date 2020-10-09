@@ -77,9 +77,6 @@ class DirectTransferUploader(BaseUploader):
             log.debug(msg)
             return {}
 
-        # Only replace the document if the user wants to
-        overwrite = doc_pair.duplicate_behavior == "override"
-
         if doc_pair.folderish:
             item = self.upload_folder(
                 input_obj=doc_pair.remote_parent_path,
@@ -89,6 +86,9 @@ class DirectTransferUploader(BaseUploader):
                 str(file_path), item["path"], item["uid"]
             )
         else:
+            # Only replace the document if the user wants to
+            overwrite = doc_pair.duplicate_behavior == "override"
+
             # Upload the blob and use the FileManager importer to create the document
             item = super().upload_impl(
                 file_path,
