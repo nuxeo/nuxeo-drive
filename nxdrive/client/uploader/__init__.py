@@ -371,7 +371,7 @@ class BaseUploader:
             batch.blobs[0] = blob
 
         # Complete the upload on the S3 side
-        if batch.is_s3():
+        if batch.is_s3() and not batch.etag:
             batch.complete(timeout=TX_TIMEOUT)
 
         return blob, batch
