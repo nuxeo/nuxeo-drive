@@ -45,6 +45,7 @@ class TestContextMenu(OneUserTest):
     def test_get_metadata_infos(self):
         """This will test "Access online" and "Edit metadata" entries."""
         manager = self.manager_1
+        engine = self.engine_1
         local = self.local_1
 
         # Document does not inexist
@@ -66,5 +67,9 @@ class TestContextMenu(OneUserTest):
         # "Edit metadata" entry
         url_edit = manager.get_metadata_infos(path, edit=True)
         assert url.startswith("http")
-        assert url_edit != url
+        if engine.wui == "web":
+            assert url_edit == url
+        else:
+            # JSF has a different view
+            assert url_edit != url
         assert "token" not in url
