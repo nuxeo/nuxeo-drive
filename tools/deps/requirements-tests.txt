@@ -28,8 +28,8 @@ click==7.1.2 \
 codespell==1.17.1 \
     --hash=sha256:0ba864d8b25c4dc1b2a3fb067377ec11edb84c1a967a33d9e9cac73f386f3a0a \
     --hash=sha256:25a2ecd86b9cdc111dc40a30d0ed28c578e13a0ce158d1c383f9d47811bfcd23
-colorama==0.4.3; sys_platform == "win32" \
-    --hash=sha256:7d73d2a99753107a36ac6b455ee49046802e59d9d076ef8e47b61499fa29afff
+colorama==0.4.4; sys_platform == "win32" \
+    --hash=sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2
     # via pytest
 comtypes==1.1.7 ; sys_platform == "win32" \
     --hash=sha256:c9d59f57d559613940f22da54d70add066faa23b4fa9b5cd95facdc501a63b0b
