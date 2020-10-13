@@ -326,7 +326,8 @@ def get_tree_list(path: Path) -> Generator[Tuple[Path, int], None, None]:
         return
 
     # Check that the path can be processed
-    if path.name.startswith(Options.ignored_prefixes) or path.name.endswith(
+    path_lower = path.name.lower()
+    if path_lower.startswith(Options.ignored_prefixes) or path_lower.endswith(
         Options.ignored_suffixes
     ):
         log.debug(f"Ignored path for Direct Transfer: {str(path)!r}")
@@ -339,7 +340,8 @@ def get_tree_list(path: Path) -> Generator[Tuple[Path, int], None, None]:
     with it:
         for entry in it:
             # Check the path can be processed
-            if entry.name.startswith(Options.ignored_prefixes) or entry.name.endswith(
+            entry_lower = entry.name.lower()
+            if entry_lower.startswith(Options.ignored_prefixes) or entry_lower.endswith(
                 Options.ignored_suffixes
             ):
                 log.debug(f"Ignored path for Direct Transfer: {entry.path!r}")
