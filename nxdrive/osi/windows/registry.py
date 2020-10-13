@@ -117,7 +117,8 @@ def write(key: str, content: Union[str, Dict[Optional[str], str]]) -> bool:
     try:
         with winreg.CreateKeyEx(HKCU, key) as handle:
             for name, data in content.items():
-                winreg.SetValueEx(handle, name, 0, winreg.REG_SZ, data)
+                # TODO: remove the comment when https://github.com/python/typeshed/pull/4663 is done
+                winreg.SetValueEx(handle, name, 0, winreg.REG_SZ, data)  # type: ignore
             log.info(f"Wrote {key!r}: {content!r}")
     except OSError:
         log.exception(f"Couldn't write {key!r}")
