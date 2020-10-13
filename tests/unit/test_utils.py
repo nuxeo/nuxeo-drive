@@ -36,36 +36,6 @@ BAD_HOSTNAMES = [
 Stat = namedtuple("Stat", "st_size")
 
 
-class FakeDirEntry:
-    """Mock the os DirEntry class"""
-
-    def __init__(
-        self,
-        is_dir: bool = False,
-        should_raise: bool = False,
-        raised_exception: Exception = Exception,
-        stats_value: Stat = Stat(st_size=0),
-        name: str = "",
-    ) -> None:
-
-        self._is_dir = is_dir
-        self._should_raise = should_raise
-        self._raised_exception = raised_exception
-        self._stats_value = stats_value
-        self.path = self.name = name or "fake"
-
-    def is_dir(self) -> bool:
-        if self._should_raise:
-            raise self._raised_exception
-        return self._is_dir
-
-    def is_file(self) -> bool:
-        return not self._is_dir
-
-    def stat(self) -> Stat:
-        return self._stats_value
-
-
 class MockedPath(Path):
     """Simple way to test Path methods.
     Using mock did not make it.
@@ -498,11 +468,19 @@ def test_get_tree_list():
     assert guessed_paths == expected_paths
 
 
-@patch("os.scandir")
-def test_get_tree_list_ignored_patterns(mock_scandir):
-    mock_scandir.return_value.__enter__.return_value = iter(
-        [FakeDirEntry(is_dir=True, name=".azerty"), FakeDirEntry(name=".azerty.txt")]
-    )
+def test_get_tree_list_root_is_in_ignored_patterns(fs):
+    # "fs" is the reference to the fake file system
+    fs.create_file("/.fake/folder/sub-folder/fichier.txt")
+
+    assert not list(nxdrive.utils.get_tree_list(Path("/.fake")))
+
+
+def test_get_tree_list_ignored_patterns(fs):
+    # "fs" is the reference to the fake file system
+    fs.create_file("/fake/.azerty.txt")
+    fs.create_file("/fake/Icon\r")
+    fs.create_file("/fake/.hidden folder/sub-folder/fichier.txt")
+
     tree = list(nxdrive.utils.get_tree_list(Path("/fake")))
     expected = [(Path("/fake"), 0)]
     assert tree == expected
@@ -513,28 +491,32 @@ def test_get_tree_list_dir_raise_os_error(mock_path):
     mock_path.side_effect = OSError("Mock'ed OSError")
     tree = list(nxdrive.utils.get_tree_list(Path("/fake")))
     # We exit before the first yield because of OSError
-    assert len(tree) == 0
+    assert not tree
 
 
-@patch("os.scandir")
-def test_get_tree_list_subdir_raise_os_error(mock_scandir):
-    mock_scandir.return_value.__enter__.return_value = iter(
-        [
-            FakeDirEntry(
-                is_dir=True,
-                should_raise=True,
-                raised_exception=OSError("Mock'ed Too many levels of symbolic links"),
-            ),
-            FakeDirEntry(is_dir=True),
-            FakeDirEntry(
-                is_dir=True,
-                should_raise=True,
-                raised_exception=PermissionError("Mock'ed PermissionError"),
-            ),
-        ]
-    )
+@patch("pyfakefs.fake_scandir.DirEntry.is_dir")
+def test_get_tree_list_subdir_raise_os_error(mock_is_dir, fs):
+    # "fs" is the reference to the fake file system
+    fs.create_file("/fake/folder1/sub-folder/file.txt")
+    fs.create_file("/fake/folder2/sub-folder/file.txt")
+
+    n = 0
+
+    def is_dir():
+        nonlocal n
+        n += 1
+
+        if n == 1:  # /fake/folder1
+            raise OSError("Mock'ed OSError")
+        elif n == 2:  # /fake/folder2
+            raise PermissionError("Mock'ed PermissionError")
+        return True
+
+    mock_is_dir.side_effect = is_dir
+
     tree = list(nxdrive.utils.get_tree_list(Path("/fake")))
-    assert len(tree) == 1
+    expected = [(Path("/fake"), 0)]
+    assert tree == expected
 
 
 @Options.mock()
