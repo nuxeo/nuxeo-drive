@@ -54,12 +54,14 @@ def setup_sentry() -> None:
         return
 
     sentry_dsn: str = os.getenv(
-        "SENTRY_DSN", "https://c4daa72433b443b08bd25e0c523ecef5@sentry.io/1372714"
+        "SENTRY_DSN",
+        "https://c4daa72433b443b08bd25e0c523ecef5@o223531.ingest.sentry.io/1372714",
     )
     if not sentry_dsn:
         return
 
     import sentry_sdk
+
     from nxdrive import __version__
 
     sentry_sdk.init(
@@ -68,6 +70,9 @@ def setup_sentry() -> None:
         release=__version__,
         attach_stacktrace=True,
         before_send=before_send,
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for performance monitoring.
+        traces_sample_rate=1.0,
     )
 
 
@@ -105,9 +110,10 @@ def main() -> int:
         # later via the "use-sentry" parameter. It will be useless if Sentry is not installed first.
         setup_sentry()
 
+        from sentry_sdk import configure_scope
+
         from nxdrive.commandline import CliHandler
         from nxdrive.utils import get_current_os
-        from sentry_sdk import configure_scope
 
         with configure_scope() as scope:
             # Append OS and Python versions to all events
