@@ -1,5 +1,3 @@
-# coding: utf-8
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -33,8 +31,8 @@ def js():
 
 
 @pytest.fixture()
-def config_dao():
-    db = Path("tmp.db")
+def config_dao(tmp_path):
+    db = tmp_path / "tmp.db"
     dao = ConfigurationDAO(db)
     yield dao
     dao.dispose()
