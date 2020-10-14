@@ -5,7 +5,7 @@ from abc import abstractmethod
 from logging import getLogger
 from pathlib import Path
 from time import monotonic_ns
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from botocore.exceptions import ClientError
 from nuxeo.exceptions import HTTPError
@@ -52,6 +52,85 @@ class BaseUploader:
     ) -> Dict[str, Any]:
         """Upload a file with a batch."""
 
+    def _get_transfer(self, file_path: Path, blob: FileBlob, **kwargs: Any) -> Upload:
+        """Get and instantiate a new transfer."""
+
+        # See if there is already a transfer for this file
+        transfer = self.get_upload(file_path)
+
+        batch: Optional[Batch] = None
+
+        if transfer:
+            if transfer.status not in (TransferStatus.ONGOING, TransferStatus.DONE):
+                log.debug(f"Retrieved paused transfer {transfer}, kept paused then")
+                raise UploadPaused(transfer.uid or -1)
+
+            log.debug(f"Retrieved ongoing transfer {transfer}")
+
+            # When fetching for an eventual batch, specifying the file index
+            # is not possible for S3 as there is no blob at the current index
+            # until the S3 upload is done itself and the call to
+            # batch.complete() done.
+            file_idx = None if transfer.batch.get("provider", "") == "s3" else 0
+
+            # Check if the associated batch still exists server-side
+            try:
+                self.remote.uploads.get(transfer.batch["batchId"], file_idx=file_idx)
+            except HTTPError as exc:
+                if exc.status != 404:
+                    raise
+                log.debug("No associated batch found, restarting from zero")
+            else:
+                log.debug("Associated batch found, resuming the upload")
+                batch = Batch(service=self.remote.uploads, **transfer.batch)
+
+        if not batch:
+            # .uploads.handlers() result is cached, so it is convenient to call it each time here
+            # in case the server did not answer correctly the previous time and thus S3 would
+            # be completely disabled because of a one-time server error.
+            handler = "s3" if Feature.s3 and self.remote.uploads.has_s3() else ""
+
+            # Create a new batch and save it in the DB
+            batch = self.remote.uploads.batch(handler=handler)
+
+        if not transfer:
+            # Remove eventual obsolete upload (it happens when an upload using S3 has invalid metadatas)
+            self.dao.remove_transfer("upload", file_path)
+
+            # Add an upload entry in the database
+            transfer = Upload(
+                None,
+                file_path,
+                TransferStatus.ONGOING,
+                batch=batch.as_dict(),
+                chunk_size=Options.chunk_size * 1024 * 1024,
+                engine=kwargs.get("engine_uid", None),
+                filesize=blob.size,
+                is_direct_edit=kwargs.get("is_direct_edit", False),
+                is_direct_transfer=kwargs.get("is_direct_transfer", False),
+                remote_parent_path=kwargs.pop("remote_parent_path", ""),
+                remote_parent_ref=kwargs.pop("remote_parent_ref", ""),
+            )
+            log.debug(f"Instantiated transfer {transfer}")
+            self.dao.save_upload(transfer)
+        elif transfer.batch["batchId"] != batch.uid:
+            # The upload was not a fresh one but its batch ID was perimed.
+            # Before NXDRIVE-2183, the batch ID was not updated and so the second step
+            # of the upload (attaching the blob to a document) was failing.
+            log.debug(
+                f"Updating the batchId from {transfer.batch['batchId']} to {batch.uid}"
+            )
+            transfer.batch["batchId"] = batch.uid
+            self.dao.update_upload(transfer)
+
+        transfer.batch_obj = batch
+        return transfer
+
+    def _set_transfer_status(self, transfer: Upload, status: TransferStatus) -> None:
+        """Set and save the transfer status."""
+        transfer.status = status
+        self.dao.set_transfer_status("upload", transfer)
+
     def upload_impl(
         self,
         file_path: Path,
@@ -78,180 +157,108 @@ class BaseUploader:
         the file existence to bypass errors happening *after* the operation was successful.
         If it exists, the error is skipped and the upload is seen as a success.
         """
-        # Step 1: upload the blob
-        blob, batch = self.upload_chunks(
-            file_path, filename=filename, mime_type=mime_type, **kwargs
-        )
 
-        # Step 2: link the uploaded blob to the document
-        kwargs["file_path"] = file_path
-        doc: Dict[str, Any] = self.link_blob_to_doc(command, blob, **kwargs)
-
-        # We need to remove the batch as the "X-Batch-No-Drop" header was used in link_blob_to_doc()
-        try:
-            batch.delete(0)
-        except Exception:
-            log.warning("Cannot delete the batch", exc_info=True)
-
-        return doc
-
-    def upload_chunks(
-        self,
-        file_path: Path,
-        filename: str = None,
-        mime_type: str = None,
-        **kwargs: Any,
-    ) -> Tuple[FileBlob, Batch]:
-        """Upload a blob by chunks or in one go."""
-
-        engine_uid = kwargs.get("engine_uid", None)
-        is_direct_edit = kwargs.pop("is_direct_edit", False)
-        is_direct_transfer = kwargs.get("is_direct_transfer", False)
-        remote_parent_path = kwargs.pop("remote_parent_path", "")
-        remote_parent_ref = kwargs.pop("remote_parent_ref", "")
-
+        # Step 0: tweak the blob
         blob = FileBlob(str(file_path))
-        action = self.upload_action(
-            file_path, blob.size, reporter=QApplication.instance(), engine=engine_uid
-        )
         if filename:
             blob.name = filename
         if mime_type:
             blob.mimetype = mime_type
 
-        batch: Optional[Batch] = None
-        chunk_size = 0
+        # Step 0.5: retrieve or instantiate a new transfer
+        transfer = self._get_transfer(file_path, blob, **kwargs)
 
-        # See if there is already a transfer for this file
-        transfer = self.get_upload(file_path)
+        # Step 0.75: delete superfluous arguments that would raise a BadQuery error later
+        kwargs.pop("engine_uid", None)
+        kwargs.pop("is_direct_edit", None)
+        kwargs.pop("is_direct_transfer", None)
+        kwargs.pop("remote_parent_path", None)
+        kwargs.pop("remote_parent_ref", None)
 
-        # Used to skip progression update in the finally clause
-        transfer_already_paused = False
+        # Step 1: upload the blob
+        if transfer.status is not TransferStatus.DONE:
+            try:
+                self.upload_chunks(transfer, blob)
+            finally:
+                if blob.fd:
+                    blob.fd.close()
 
+            # Step 1.5: complete the upload on the third-party provider
+            self._complete_upload(transfer, blob)
+
+            # The data was transferred, save the status for eventual future retries
+            self._set_transfer_status(transfer, TransferStatus.DONE)
+        else:
+            # Ensure the blob has all required attributes
+            self._complete_upload(transfer, blob)
+
+        # Step 2: link the uploaded blob to the document
+        doc: Dict[str, Any] = self._link_blob_to_doc(command, transfer, blob, **kwargs)
+
+        # Lastly, we need to remove the batch as the "X-Batch-No-Drop" header was used in link_blob_to_doc()
         try:
-            if transfer:
-                if transfer.status not in (TransferStatus.ONGOING, TransferStatus.DONE):
-                    transfer_already_paused = True
-                    raise UploadPaused(transfer.uid or -1)
-
-                log.debug(f"Retrieved transfer for {file_path!r}: {transfer}")
-
-                # When fetching for an eventual batch, specifying the file index
-                # is not possible for S3 as there is no blob at the current index
-                # until the S3 upload is done itself and the call to
-                # batch.complete() done.
-                file_idx = None if transfer.batch.get("provider", "") == "s3" else 0
-
-                # Check if the associated batch still exists server-side
-                try:
-                    self.remote.uploads.get(
-                        transfer.batch["batchId"], file_idx=file_idx
-                    )
-                except HTTPError as exc:
-                    if exc.status != 404:
-                        raise
-                    log.debug("No associated batch found, restarting from zero")
-                else:
-                    log.debug("Associated batch found, resuming the upload")
-                    batch = Batch(service=self.remote.uploads, **transfer.batch)
-                    chunk_size = transfer.chunk_size or 0
-
-                    # The transfer was already completed on the third-party provider
-                    if batch.etag:
-                        return self._complete_upload(batch, blob)
-
-            if not batch:
-                # .uploads.handlers() result is cached, so it is convenient to call it each time here
-                # in case the server did not answer correctly the previous time and thus S3 would
-                # be completely disabled because of a one-time server error.
-                handler = "s3" if Feature.s3 and self.remote.uploads.has_s3() else ""
-
-                # Create a new batch and save it in the DB
-                batch = self.remote.uploads.batch(handler=handler)
-
-            # By default, Options.chunk_size is 20, so chunks will be 20MiB.
-            # It can be set to a value between 1 and 20 through the config.ini
-            chunk_size = chunk_size or (Options.chunk_size * 1024 * 1024)
-
-            # For the upload to be chunked, the Options.chunk_upload must be True
-            # and the blob must be bigger than Options.chunk_limit, which by default
-            # is equal to Options.chunk_size.
-            chunked = (
-                Options.chunk_upload and blob.size > Options.chunk_limit * 1024 * 1024
+            transfer.batch_obj.delete(0)
+        except Exception:
+            log.warning(
+                f"Cannot delete the batchId {transfer.batch_obj.uid!r}", exc_info=True
             )
 
-            action.is_direct_transfer = is_direct_transfer
+        return doc
 
-            try:
-                uploader: Uploader = batch.get_uploader(
-                    blob,
-                    chunked=chunked,
-                    chunk_size=chunk_size,
-                    callback=self.remote.upload_callback,
-                )
-            except ClientError as exc:
-                if exc.response["Error"]["Code"] != "NoSuchUpload":
-                    raise
+    def upload_chunks(self, transfer: Upload, blob: FileBlob) -> None:
+        """Upload a blob by chunks or in one go."""
 
-                log.warning(
-                    "Either the upload ID does not exist, either the upload was already completed."
-                )
-                return self._complete_upload(batch, blob)
+        action = self.upload_action(
+            transfer.path,
+            blob.size,
+            reporter=QApplication.instance(),
+            engine=transfer.engine,
+        )
+
+        action.is_direct_transfer = transfer.is_direct_transfer
+
+        # For the upload to be chunked, the Options.chunk_upload must be True
+        # and the blob must be bigger than Options.chunk_limit, which by default
+        # is equal to Options.chunk_size.
+        chunked = Options.chunk_upload and blob.size > Options.chunk_limit * 1024 * 1024
+
+        try:
+            uploader: Uploader = transfer.batch_obj.get_uploader(
+                blob,
+                chunked=chunked,
+                chunk_size=transfer.chunk_size,
+                callback=self.remote.upload_callback,
+            )
 
             log.debug(f"Using {type(uploader).__name__!r} uploader")
-
-            # Ensure to use the real value, else it would open computation weirdness for progress bars
-            chunk_size = uploader.chunk_size
-
-            if not transfer:
-                # Remove eventual obsolete upload (it happens when an upload using S3 has invalid metadatas)
-                self.dao.remove_transfer("upload", file_path)
-
-                # Add an upload entry in the database
-                transfer = Upload(
-                    None,
-                    file_path,
-                    TransferStatus.ONGOING,
-                    engine=engine_uid,
-                    is_direct_edit=is_direct_edit,
-                    filesize=blob.size,
-                    batch=batch.as_dict(),
-                    chunk_size=chunk_size,
-                    is_direct_transfer=is_direct_transfer,
-                    remote_parent_path=remote_parent_path,
-                    remote_parent_ref=remote_parent_ref,
-                )
-                self.dao.save_upload(transfer)
-            elif transfer.batch["batchId"] != batch.uid:
-                # The upload was not a fresh one but its batch ID was perimed.
-                # Before NXDRIVE-2183, the batch ID was not updated and so the second step
-                # of the upload (attaching the blob to a document) was failing.
-                transfer.batch["batchId"] = batch.uid
-                self.dao.update_upload(transfer)
 
             if uploader.chunked:
                 # Update the progress on chunked upload only as the first call to
                 # action.progress will set the action.uploaded attr to True for
                 # empty files. This is not what we want: empty files are legits.
-                action.progress = chunk_size * len(uploader.blob.uploadedChunkIds)
+                action.progress = uploader.chunk_size * len(
+                    uploader.blob.uploadedChunkIds
+                )
 
                 # Store the chunk size and start time for later transfer speed computation
-                action.chunk_size = chunk_size
+                action.chunk_size = uploader.chunk_size
                 action.chunk_transfer_start_time_ns = monotonic_ns()
 
-                if batch.is_s3():
+                if transfer.batch_obj.is_s3():
                     self._patch_refresh_token(uploader, transfer)
 
                 # If there is an UploadError, we catch it from the processor
                 for _ in uploader.iter_upload():
-                    action.progress = chunk_size * len(uploader.blob.uploadedChunkIds)
+                    action.progress = action.chunk_size * len(
+                        uploader.blob.uploadedChunkIds
+                    )
 
                     # Save the progression
                     transfer.progress = action.get_percent()
                     self.dao.set_transfer_progress("upload", transfer)
 
                     # Handle status changes every time a chunk is sent
-                    _transfer = self.get_upload(file_path)
+                    _transfer = self.get_upload(transfer.path)
                     if _transfer and _transfer.status not in (
                         TransferStatus.ONGOING,
                         TransferStatus.DONE,
@@ -266,8 +273,8 @@ class BaseUploader:
 
                 transfer.progress = action.get_percent()
 
-            if batch.is_s3():
-                if not batch.blobs:
+            if transfer.batch_obj.is_s3():
+                if not transfer.batch_obj.blobs:
                     # This may happen when resuming an upload with all parts sent.
                     # Trigger upload() that will complete the MPU and fill required
                     # attributes like the Batch ETag, blob index, etc..
@@ -275,60 +282,50 @@ class BaseUploader:
 
                 # Save the final ETag in the database to prevent future issue if
                 # the FileManager throws an error
-                transfer.batch = batch.as_dict()
+                transfer.batch = transfer.batch_obj.as_dict()
                 self.dao.update_upload(transfer)
-
-            self._complete_upload(batch, blob)
-
-            # Transfer is completed, update the status in the database
-            transfer.status = TransferStatus.DONE
-            self.dao.set_transfer_status("upload", transfer)
-
-            return blob, batch
+        except ClientError as exc:
+            if exc.response["Error"]["Code"] != "NoSuchUpload":
+                raise
+            log.warning(
+                "Either the upload ID does not exist or the it was already completed."
+            )
         finally:
-            # Onlty update the progression is the transfer was not paused at startup,
-            # else it would set the percent to 0%.
-            if transfer_already_paused:
-                log.debug(
-                    f"Retrieved paused transfer for {file_path!r}: {transfer}, kept paused then"
-                )
-            else:
-                # Save the progression
-                percent = action.get_percent()
-                if percent < 100.0 and not action.uploaded and transfer and percent:
-                    log.debug(f"Upload progression stopped at {percent:.2f}%")
-                    transfer.progress = percent
-                    self.dao.set_transfer_progress("upload", transfer)
-
             action.finish_action()
 
-            if blob.fd:
-                blob.fd.close()
+    def _link_blob_to_doc(
+        self, command: str, transfer: Upload, blob: FileBlob, **kwargs: Any
+    ) -> Dict[str, Any]:
+        try:
+            return self.link_blob_to_doc(command, transfer, blob, **kwargs)
+        except HTTPError as exc:
+            if "unable to find batch associated with id" in str(exc).lower():
+                # In this case, the upload completion may be obsolete or was not done,
+                # changing the transfer status to let the Processor handling it again and
+                # (re)do the completion.
+                self._set_transfer_status(transfer, TransferStatus.ONGOING)
+            raise exc
 
     def link_blob_to_doc(
-        self, command: str, blob: FileBlob, **kwargs: Any
+        self, command: str, transfer: Upload, blob: FileBlob, **kwargs: Any
     ) -> Dict[str, Any]:
-        """Link the given uploaded *blob* to the given document (refs are passed into *kwargs*)."""
-
-        # Remove additional parameters to prevent a BadQuery
-        engine_uid = kwargs.pop("engine_uid", None)
-        kwargs.pop("is_direct_edit", None)
-        kwargs.pop("remote_parent_path", None)
-        kwargs.pop("remote_parent_ref", None)
-        file_path = kwargs.pop("file_path", None)
-
-        headers = kwargs.pop("headers", {})
-        headers["Nuxeo-Transaction-Timeout"] = str(TX_TIMEOUT)
+        """Link the given uploaded *blob* to the given document."""
 
         # By default, the batchId will be removed after its first use.
         # We do not want that for better upload resiliency, especially with large files.
         # The batchId must be removed manually then.
-        headers["X-Batch-No-Drop"] = "true"
+        headers = {
+            "Nuxeo-Transaction-Timeout": str(TX_TIMEOUT),
+            "X-Batch-No-Drop": "true",
+        }
 
         action = self.linking_action(
-            file_path, blob.size, reporter=QApplication.instance(), engine=engine_uid
+            transfer.path,
+            blob.size,
+            reporter=QApplication.instance(),
+            engine=transfer.engine,
         )
-        action.is_direct_transfer = kwargs.pop("is_direct_transfer", False)
+        action.is_direct_transfer = transfer.is_direct_transfer
         try:
             res: Dict[str, Any] = self.remote.execute(
                 command=command,
@@ -358,20 +355,18 @@ class BaseUploader:
         uploader.service.refresh_token = refresh
 
     @staticmethod
-    def _complete_upload(batch: Batch, blob: FileBlob) -> Tuple[FileBlob, Batch]:
+    def _complete_upload(transfer: Upload, blob: FileBlob) -> None:
         """Helper to complete an upload."""
 
         # Set those attributes as FileBlob does not have them
         # and they are required for the step 2 of .upload_impl()
-        blob.batch_id = batch.uid
+        blob.batch_id = transfer.batch_obj.uid
         blob.fileIdx = 0
-        batch.upload_idx = 1
+        transfer.batch_obj.upload_idx = 1
 
-        if not batch.blobs or not batch.blobs[0]:
-            batch.blobs[0] = blob
+        if not transfer.batch_obj.blobs or not transfer.batch_obj.blobs[0]:
+            transfer.batch_obj.blobs[0] = blob
 
         # Complete the upload on the S3 side
-        if batch.is_s3() and not batch.etag:
-            batch.complete(timeout=TX_TIMEOUT)
-
-        return blob, batch
+        if transfer.batch_obj.is_s3() and transfer.status is not TransferStatus.DONE:
+            transfer.batch_obj.complete(timeout=TX_TIMEOUT)
