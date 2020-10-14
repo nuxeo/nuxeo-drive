@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from dateutil import parser
 from dateutil.tz import tzlocal
+from nuxeo.models import Batch
 from nuxeo.utils import get_digest_algorithm
 
 from .constants import TransferStatus
@@ -475,9 +476,10 @@ class Download(Transfer):
 class Upload(Transfer):
     transfer_type: str = field(init=False, default="upload")
     batch: dict = field(default_factory=dict)
-    chunk_size: Optional[int] = 0
-    remote_parent_path: Optional[str] = ""
-    remote_parent_ref: Optional[str] = ""
+    chunk_size: int = 0
+    remote_parent_path: str = ""
+    remote_parent_ref: str = ""
+    batch_obj: Batch = None
 
 
 @dataclass

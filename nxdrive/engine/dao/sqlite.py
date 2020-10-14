@@ -2263,7 +2263,7 @@ class EngineDAO(ConfigurationDAO):
                 filesize=res.filesize,
                 doc_pair=res.doc_pair,
                 batch=json.loads(res.batch),
-                chunk_size=res.chunk_size,
+                chunk_size=res.chunk_size or 0,
             )
 
     def get_dt_uploads(self) -> Generator[Upload, None, None]:
@@ -2279,7 +2279,7 @@ class EngineDAO(ConfigurationDAO):
                 TransferStatus(res.status),
                 res.engine,
                 batch=json.loads(res.batch),
-                chunk_size=res.chunk_size,
+                chunk_size=res.chunk_size or 0,
                 doc_pair=res.doc_pair,
                 filesize=res.filesize,
                 is_direct_transfer=True,
