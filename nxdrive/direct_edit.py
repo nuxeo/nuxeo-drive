@@ -681,6 +681,12 @@ class DirectEdit(Worker):
             except DocumentAlreadyLocked as exc:
                 log.warning(f"Document {ref!r} already locked by {exc.username}")
                 self.directEditLockError.emit(action, ref.name, uid)
+            except Forbidden:
+                log.warning(
+                    f"Document {ref!r} cannot be locked for {details.engine.remote_user!r}",
+                    exc_info=True,
+                )
+                self.directEditLockError.emit(action, ref.name, uid)
             except CONNECTION_ERROR:
                 # Try again in 30s
                 log.warning(

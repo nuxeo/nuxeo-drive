@@ -1,6 +1,6 @@
 # coding: utf-8
 import time
-from logging import getLogger
+from logging import ERROR, getLogger
 from pathlib import Path
 from typing import Any, Dict
 from unittest.mock import patch
@@ -430,6 +430,46 @@ class MixinTests(DirectEditSetup):
         # The file has been unlocked locally and remotely
         assert not self.remote.is_locked(doc_id)
         assert not self.direct_edit._manager.dao.get_locked_paths()
+
+    def test_forbidden_lock_in_lock_queue(self):
+        filename = "file.txt"
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Initial content.")
+        local_path = Path(f"{doc_id}_file-content/{filename}")
+
+        def lock(_):
+            msg = (
+                "(Mock'ed) Failed to invoke operation: Document.Lock, Failed "
+                "to invoke operation Document.Lock, Privilege 'WriteProperties' "
+                "is not granted to 'USER'"
+            )
+            raise Forbidden(message=msg)
+
+        def forbidden_signal(self, *args, **kwargs):
+            nonlocal received
+            received = True
+
+        received = False
+        self.direct_edit.directEditLockError.connect(forbidden_signal)
+
+        self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
+
+        # Ensure that lock queue is filled with an lock item
+        assert self.direct_edit._lock_queue.empty()
+        self.direct_edit._lock_queue.put((local_path, "lock"))
+        assert not self.direct_edit._lock_queue.empty()
+
+        with patch.object(
+            self.manager_1, "open_local_file", new=open_local_file
+        ), patch.object(self.engine_1.remote, "lock", new=lock), ensure_no_exception():
+            # self.direct_edit.use_autolock = True
+            self.direct_edit._handle_lock_queue()
+            assert received
+
+        # The lock queue should be empty after now
+        assert self.direct_edit._lock_queue.empty()
+
+        # Ensure there zere no handled exception
+        assert not any(log.levelno >= ERROR for log in self._caplog.records)
 
     def test_direct_edit_version(self):
         from nuxeo.models import BufferBlob
