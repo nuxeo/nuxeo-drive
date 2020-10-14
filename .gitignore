@@ -8,7 +8,7 @@ cover
 coverage
 .coverage*
 *.db-shm
-*.db-wall
+*.db-wal
 debian
 dist
 dist-beta
