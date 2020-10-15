@@ -264,7 +264,7 @@ urllib3==1.25.10 \
     # via requests, sentry-sdk
 watchdog==0.10.3 \
     --hash=sha256:4214e1379d128b0588021880ccaf40317ee156d4603ac388b9adcf29165e0c04
-xattr==0.9.7 ; sys_platform != "win32" \
+xattr==0.9.7 ; sys_platform == "darwin" \
     --hash=sha256:1b2cd125150aa9bbfb02929627101b3303920a68487e9c865ddd170188ddd796 \
     --hash=sha256:e2c72a3a501bac715489180ca2b646e48a1ca3a794c1103dd6f0f987d43f570c \
     --hash=sha256:1e11ba8ab86dfe74419704c53722ea9b5915833db07416e7c10db5dfb02218bb \
