@@ -8,7 +8,6 @@ See NXDRIVE-742.
 import hashlib
 import os
 from pathlib import Path
-from time import sleep
 
 import pytest
 
@@ -241,18 +240,6 @@ class StubLocalClient:
         assert name == "Document 1.txt"
         assert not local.exists(path)
         assert not os_path.exists()
-
-    def test_xattr(self):
-        local = self.local_1
-        ref = local.make_file("/", "File 2.txt", content=b"baz\n")
-        path = local.abspath(ref)
-        mtime = int(path.stat().st_mtime)
-        sleep(1)
-        local.set_remote_id(ref, "TEST")
-        assert mtime == int(path.stat().st_mtime)
-        sleep(1)
-        local.remove_remote_id(ref)
-        assert mtime == int(path.stat().st_mtime)
 
     def test_get_path(self):
         local = self.local_1
