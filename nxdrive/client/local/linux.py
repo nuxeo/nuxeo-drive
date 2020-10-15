@@ -11,7 +11,6 @@ from logging import getLogger
 from pathlib import Path
 from typing import Union
 
-import xattr
 from send2trash import send2trash
 
 from ...utils import lock_path, unlock_path
@@ -50,10 +49,7 @@ class LocalClient(LocalClientMixin):
         """Get a given extended attribute from a file/folder."""
         try:
             return (
-                xattr.getxattr(str(path), f"user.{name}").decode(
-                    "utf-8", errors="ignore"
-                )
-                or ""
+                os.getxattr(path, f"user.{name}").decode("utf-8", errors="ignore") or ""
             )
         except OSError:
             return ""
@@ -62,7 +58,7 @@ class LocalClient(LocalClientMixin):
     def remove_remote_id_impl(path: Path, name: str = "ndrive") -> None:
         """Remove a given extended attribute."""
         try:
-            xattr.removexattr(str(path), f"user.{name}")
+            os.removexattr(path, f"user.{name}")
         except OSError as exc:
             # EPROTONOSUPPORT: protocol not supported (xattr)
             # ENODATA: no data available
@@ -110,7 +106,7 @@ class LocalClient(LocalClientMixin):
         locker = unlock_path(path, False)
         try:
             stat_ = path.stat()
-            xattr.setxattr(str(path), f"user.{name}", remote_id)
+            os.setxattr(path, f"user.{name}", remote_id)
             os.utime(path, (stat_.st_atime, stat_.st_mtime))
         except FileNotFoundError:
             pass
