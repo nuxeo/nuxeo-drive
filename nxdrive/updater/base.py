@@ -191,14 +191,10 @@ class BaseUpdater(PollWorker):
 
             with open(path, "wb") as tmp:
                 incr = self.chunk_size * 100 / size
-                i = 0
-
-                for chunk in req.iter_content(self.chunk_size):
+                for i, chunk in enumerate(req.iter_content(self.chunk_size)):
                     tmp.write(chunk)
                     if i % 100 == 0:
                         self._set_progress(self.progress + incr * 50)
-                    i += 1
-
                 # Force write of file to disk
                 tmp.flush()
                 os.fsync(tmp.fileno())
