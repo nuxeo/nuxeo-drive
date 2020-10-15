@@ -859,7 +859,7 @@ class EngineDAO(ConfigurationDAO):
             self._append_to_table(
                 cursor,
                 "Sessions",
-                ("created_at", "DATE", "DEFAULT", "CURRENT_TIMESTAMP"),
+                ("created_at", "DATE"),
             )
             self._append_to_table(
                 cursor,
@@ -871,6 +871,7 @@ class EngineDAO(ConfigurationDAO):
                 "Sessions",
                 ("description", "VARCHAR", "DEFAULT", "''"),
             )
+            cursor.execute("UPDATE Sessions SET created_at = CURRENT_TIMESTAMP")
             self.store_int(SCHEMA_VERSION, 16)
 
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:

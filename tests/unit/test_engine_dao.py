@@ -363,3 +363,20 @@ def test_migration_db_v15(engine_dao):
         assert last_session.status == TransferStatus.ONGOING
         assert last_session.uploaded_items == 0
         assert last_session.total_items == 4
+
+
+def test_migration_db_v16(engine_dao):
+    """Verify States and Session after migration from v15 to v16."""
+    with engine_dao("engine_migration_16.db") as dao:
+        # There should be only two sessions
+        assert dao.get_session(1)
+        session = dao.get_session(2)
+        assert session
+
+        # Verify session content
+        assert session.status == TransferStatus.ONGOING
+        assert session.uploaded_items == 0
+        assert session.total_items == 1
+        assert session.engine
+        assert not session.completed_at
+        assert session.created_at
