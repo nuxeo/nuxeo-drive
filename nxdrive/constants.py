@@ -102,3 +102,4 @@ class TransferStatus(Enum):
     # Note: there used to be a CANCELLED status, set to 4. At the time, DONE was set to 5.
     # But a "small" mess was done with NXDRIVE-1784 and fixed later with NXDRIVE-1901.
     # So we cannot use 5 as a value. Never again.
+    CANCELLED = 6

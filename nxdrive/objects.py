@@ -490,3 +490,7 @@ class Session:
     status: TransferStatus
     uploaded_items: int
     total_items: int
+    engine: str
+    created_at: str
+    completed_at: str
+    description: str

@@ -56,13 +56,17 @@ Processor._synchronize_unknown_deleted  # Used by Processor._execute()
 QAbstractListModel.getTag  # Used in QML
 QAbstractListModel.getName  # Internal use of QML
 QAbstractListModel.nameRoles  # Internal use of QML
+QMLDriveApi.confirm_cancel_session  # Used in QML
 QMLDriveApi.default_local_folder  # Used in QML
 QMLDriveApi.default_server_url_value  # Used in QML
+QMLDriveApi.get_active_sessions_count  # Used in QML
+QMLDriveApi.get_completed_sessions_count  # Used in QML
 QMLDriveApi.get_disk_space_info_to_width  # Used in QML
 QMLDriveApi.get_drive_disk_space  # Used in QML
 QMLDriveApi.get_features_list  # Used in QML
 QMLDriveApi.get_free_disk_space  # Used in QML
 QMLDriveApi.get_hostname_from_url  # Used in QML
+QMLDriveApi.get_remote_document_url  # Used in QML
 QMLDriveApi.get_used_space_without_synced  # Used in QML
 QMLDriveApi.get_proxy_settings  # Used in QML
 QMLDriveApi.get_update_status  # Used in QML
@@ -74,6 +78,7 @@ QMLDriveApi.open_local  # Used in QML
 QMLDriveApi.open_remote_server  # Used in QML
 QMLDriveApi.open_remote_document  # Used in QML
 QMLDriveApi.open_report  # Used in QML
+QMLDriveApi.open_server_folders  # Used in QML
 QMLDriveApi.set_proxy_settings  # Used in QML
 QMLDriveApi.set_server_ui  # Used in QML
 QMLDriveApi.to_local_file  # Used in QML
