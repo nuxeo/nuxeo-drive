@@ -398,7 +398,8 @@ class ActiveSessionModel(QAbstractListModel):
         elif role == self.DESCRIPTION:
             description = str(row["description"])
             if not description:
-                description = "Session " + str(row["uid"])
+                uid = str(row["uid"])
+                description = f"Session {uid}"
             return description
         elif role == self.CREATED_AT:
             datetime = get_date_from_sqlite(str(row["created_at"]))
@@ -489,7 +490,8 @@ class CompletedSessionModel(QAbstractListModel):
         elif role == self.DESCRIPTION:
             description = str(row["description"])
             if not description:
-                description = "Session " + str(row["uid"])
+                uid = str(row["uid"])
+                description = f"Session {uid}"
             return description
         elif role == self.CREATED_AT:
             datetime = get_date_from_sqlite(str(row["created_at"]))

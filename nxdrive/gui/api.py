@@ -20,6 +20,7 @@ from ..constants import (
     CONNECTION_ERROR,
     DEFAULT_SERVER_TYPE,
     TOKEN_PERMISSION,
+    TransferStatus,
 )
 from ..engine.dao.sqlite import EngineDAO
 from ..exceptions import (
@@ -223,7 +224,10 @@ class QMLDriveApi(QObject):
         """Return the count of active sessions items."""
         engine = self._manager.engines.get(uid)
         if engine:
-            return len(self.get_active_sessions_items(engine.dao))
+            return engine.dao.get_count(
+                f"status IN ({TransferStatus.ONGOING.value}, {TransferStatus.PAUSED.value})",
+                "Sessions",
+            )
         return 0
 
     @pyqtSlot(str, result=int)
@@ -231,7 +235,10 @@ class QMLDriveApi(QObject):
         """Return the count of completed sessions items."""
         engine = self._manager.engines.get(uid)
         if engine:
-            return len(self.get_completed_sessions_items(engine.dao))
+            return engine.dao.get_count(
+                f"status IN ({TransferStatus.CANCELLED.value}, {TransferStatus.DONE.value})",
+                "Sessions",
+            )
         return 0
 
     @pyqtSlot(str, str, int, float, bool)
@@ -1021,6 +1028,6 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, str, result=str)
     def get_remote_document_url(self, uid: str, remote_ref: str) -> str:
-        """Return the url to a remote document based on its reference."""
+        """Return the URL to a remote document based on its reference."""
         engine = self._manager.engines.get(uid)
         return engine.get_metadata_url(remote_ref) if engine else ""

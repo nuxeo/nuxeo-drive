@@ -94,7 +94,7 @@ Rectangle {
             barIndex: bar.currentIndex;
             index: 1
             anchors.top: parent.top
-            enabled: completedSessionsCount > 0
+            enabled: completedSessionsCount
         }
 
         SettingsTab {
@@ -102,7 +102,7 @@ Rectangle {
             barIndex: bar.currentIndex;
             index: 2
             anchors.top: parent.top
-            enabled: activeSessionsCount > 0
+            enabled: activeSessionsCount
         }
     }
 
@@ -126,7 +126,7 @@ Rectangle {
                 anchors.fill: parent
                 horizontalAlignment: Qt.AlignHCenter
                 verticalAlignment: Qt.AlignVCenter
-                visible: parent.count == 0
+                visible: !parent.count
                 text: qsTr("NO_ACTIVE_SESSION") + tl.tr
                 font.pointSize: point_size * 1.2
             }

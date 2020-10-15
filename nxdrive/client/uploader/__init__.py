@@ -110,7 +110,7 @@ class BaseUploader:
                 is_direct_transfer=kwargs.get("is_direct_transfer", False),
                 remote_parent_path=kwargs.pop("remote_parent_path", ""),
                 remote_parent_ref=kwargs.pop("remote_parent_ref", ""),
-                doc_pair=kwargs.pop("doc_pair", ""),
+                doc_pair=kwargs.pop("doc_pair", None),
             )
             log.debug(f"Instantiated transfer {transfer}")
             self.dao.save_upload(transfer)

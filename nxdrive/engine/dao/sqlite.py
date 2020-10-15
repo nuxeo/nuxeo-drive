@@ -1479,8 +1479,8 @@ class EngineDAO(ConfigurationDAO):
     def get_dt_items_count(self) -> int:
         return self.get_count("local_state = 'direct'")
 
-    def get_count(self, condition: str = None) -> int:
-        query = "SELECT COUNT(*) as count FROM States"
+    def get_count(self, condition: str = None, table: str = "States") -> int:
+        query = f"SELECT COUNT(*) as count FROM {table}"
         if condition:
             query = f"{query} WHERE {condition}"
         c = self._get_read_connection().cursor()
