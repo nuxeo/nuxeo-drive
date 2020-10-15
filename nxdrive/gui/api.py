@@ -225,8 +225,8 @@ class QMLDriveApi(QObject):
         engine = self._manager.engines.get(uid)
         if engine:
             return engine.dao.get_count(
-                f"status IN ({TransferStatus.ONGOING.value}, {TransferStatus.PAUSED.value})",
-                "Sessions",
+                condition=f"status IN ({TransferStatus.ONGOING.value}, {TransferStatus.PAUSED.value})",
+                table="Sessions",
             )
         return 0
 
@@ -236,8 +236,8 @@ class QMLDriveApi(QObject):
         engine = self._manager.engines.get(uid)
         if engine:
             return engine.dao.get_count(
-                f"status IN ({TransferStatus.CANCELLED.value}, {TransferStatus.DONE.value})",
-                "Sessions",
+                condition=f"status IN ({TransferStatus.CANCELLED.value}, {TransferStatus.DONE.value})",
+                table="Sessions",
             )
         return 0
 
