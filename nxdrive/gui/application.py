@@ -343,8 +343,8 @@ class Application(QApplication):
             return
 
         size = screen.size()
-        window.setX(size.width() / 2 - window.minimumWidth() / 2)
-        window.setY(size.height() / 2 - window.minimumHeight() / 2)
+        window.setX(int(size.width() / 2 - window.minimumWidth() / 2))
+        window.setY(int(size.height() / 2 - window.minimumHeight() / 2))
 
     @pyqtSlot(object)
     def action_progressing(self, action: Action) -> None:
@@ -735,8 +735,8 @@ class Application(QApplication):
         if pos_y < 0:
             pos_y = (icon.y() + icon.height()) / dpi_ratio
 
-        self.systray_window.setX(pos_x)
-        self.systray_window.setY(pos_y)
+        self.systray_window.setX(int(pos_x))
+        self.systray_window.setY(int(pos_y))
 
         self.systray_window.show()
         self.systray_window.raise_()
