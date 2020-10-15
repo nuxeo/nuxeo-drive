@@ -175,6 +175,7 @@ class BaseUploader:
         kwargs.pop("is_direct_transfer", None)
         kwargs.pop("remote_parent_path", None)
         kwargs.pop("remote_parent_ref", None)
+        kwargs.pop("doc_pair", None),
 
         # Step 1: upload the blob
         if transfer.status is not TransferStatus.DONE:

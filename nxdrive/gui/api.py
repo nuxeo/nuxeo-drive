@@ -1020,10 +1020,10 @@ class QMLDriveApi(QObject):
             log.exception("Remote document cannot be opened")
 
     @pyqtSlot(str, str, result=str)
-    def get_remote_document_url(self, uid: str, remote_ref: str) -> None:
-        try:
-            engine = self._manager.engines.get(uid)
-            if engine:
-                return engine.get_metadata_url(remote_ref)
-        except OSError:
-            log.exception("Remote document url cannot be retrieved")
+    def get_remote_document_url(self, uid: str, remote_ref: str) -> str:
+        """Return the url to a remote document based on its reference."""
+        url = ""
+        engine = self._manager.engines.get(uid)
+        if engine:
+            url = engine.get_metadata_url(remote_ref)
+        return url

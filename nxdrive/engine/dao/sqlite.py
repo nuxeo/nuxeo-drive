@@ -2383,7 +2383,7 @@ class EngineDAO(ConfigurationDAO):
                 "description": res.description,
             }
             for res in c.execute(
-                "SELECT * FROM Sessions WHERE status = ? OR status = ?",
+                "SELECT * FROM Sessions WHERE status IN (?, ?)",
                 (TransferStatus.ONGOING.value, TransferStatus.PAUSED.value),
             ).fetchall()
         ]
@@ -2410,7 +2410,7 @@ class EngineDAO(ConfigurationDAO):
                 "description": res.description,
             }
             for res in c.execute(
-                "SELECT * FROM Sessions WHERE status = ? OR status = ? ORDER BY created_at DESC LIMIT ?",
+                "SELECT * FROM Sessions WHERE status IN (?, ?) ORDER BY created_at DESC LIMIT ?",
                 (TransferStatus.DONE.value, TransferStatus.CANCELLED.value, limit),
             ).fetchall()
         ]
