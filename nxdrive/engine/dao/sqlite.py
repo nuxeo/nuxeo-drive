@@ -854,7 +854,7 @@ class EngineDAO(ConfigurationDAO):
             self._append_to_table(
                 cursor,
                 "Sessions",
-                ("engine", "VARCHAR", "DEFAULT", self._engine_uid),
+                ("engine", "VARCHAR", "DEFAULT", f"'{self._engine_uid}'"),
             )
             self._append_to_table(
                 cursor,
