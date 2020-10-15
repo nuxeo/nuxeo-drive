@@ -170,12 +170,12 @@ class BaseUploader:
         transfer = self._get_transfer(file_path, blob, **kwargs)
 
         # Step 0.75: delete superfluous arguments that would raise a BadQuery error later
+        kwargs.pop("doc_pair", None),
         kwargs.pop("engine_uid", None)
         kwargs.pop("is_direct_edit", None)
         kwargs.pop("is_direct_transfer", None)
         kwargs.pop("remote_parent_path", None)
         kwargs.pop("remote_parent_ref", None)
-        kwargs.pop("doc_pair", None),
 
         # Step 1: upload the blob
         if transfer.status is not TransferStatus.DONE:

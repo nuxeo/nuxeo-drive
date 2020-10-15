@@ -1022,8 +1022,5 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, str, result=str)
     def get_remote_document_url(self, uid: str, remote_ref: str) -> str:
         """Return the url to a remote document based on its reference."""
-        url = ""
         engine = self._manager.engines.get(uid)
-        if engine:
-            url = engine.get_metadata_url(remote_ref)
-        return url
+        return engine.get_metadata_url(remote_ref) if engine else ""
