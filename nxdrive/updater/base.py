@@ -353,7 +353,7 @@ class BaseUpdater(PollWorker):
 
     def _set_progress(self, progress: Union[int, float]) -> None:
         self.progress = progress
-        self.updateProgress.emit(self.progress)
+        self.updateProgress.emit(int(self.progress))
         QApplication.processEvents()
 
     def _set_status(
