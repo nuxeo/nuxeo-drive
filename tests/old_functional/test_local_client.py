@@ -307,9 +307,7 @@ class StubLocalClient:
 
         # Check the whole tree is OK
         tree_needed = [1] * 4  # number of documents in each folder
-        tree_current = []
-        for fol in folders:
-            tree_current.append(len(remote.get_children_info(fol)))
+        tree_current = [len(remote.get_children_info(fol)) for fol in folders]
         assert tree_needed == tree_current
 
         self.engine_1.start()
@@ -328,9 +326,7 @@ class StubLocalClient:
 
         # Check the whole tree is OK
         tree_needed = [1, 1, 1, 2]  # number of documents in each folder
-        tree_current = []
-        for fol in folders:
-            tree_current.append(len(remote.get_children_info(fol)))
+        tree_current = [len(remote.get_children_info(fol)) for fol in folders]
         assert tree_needed == tree_current
 
         # Finally, check the last long folder contains only one folder and one file
