@@ -5,8 +5,9 @@ from unittest.mock import patch
 
 import pytest
 import requests
-from nxdrive.options import Options
 from sentry_sdk import configure_scope
+
+from nxdrive.options import Options
 
 # Remove eventual logging callbacks
 with suppress(KeyError):
@@ -248,7 +249,8 @@ def test_server_and_local_config_with_default_value_forced():
 
 
 def test_site_update_url():
-    with requests.get(Options.update_site_url) as resp:
+    url = f"{Options.update_site_url}/versions.yml"
+    with requests.get(url) as resp:
         resp.raise_for_status()
 
 
