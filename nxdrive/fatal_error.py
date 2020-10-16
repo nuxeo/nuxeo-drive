@@ -14,11 +14,11 @@ __all__ = ("check_executable_path", "check_os_version", "show_critical_error")
 def check_executable_path_error_qt(path: Path) -> None:
     """Display an error using Qt about the app not running from the right path."""
 
-    from nxdrive.translator import Translator
-    from nxdrive.utils import find_icon, find_resource
-
     from PyQt5.QtGui import QPixmap
     from PyQt5.QtWidgets import QApplication, QMessageBox
+
+    from nxdrive.translator import Translator
+    from nxdrive.utils import find_icon, find_resource
 
     app = QApplication([])
     app.setQuitOnLastWindowClosed(True)
