@@ -18,7 +18,7 @@ NuxeoPopup {
 
     contentItem: ColumnLayout {
         GridLayout {
-            Layout.topMargin: 20
+            Layout.topMargin: 30  // NXDRIVE-2349: should be 20 here
             columns: 2
             rowSpacing: 20
             columnSpacing: 10
