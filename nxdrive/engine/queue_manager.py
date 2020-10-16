@@ -66,7 +66,7 @@ class QueueManager(QObject):
         self._local_file_thread = None
         self._remote_folder_thread = None
         self._remote_file_thread = None
-        self._error_threshold = int(Options.max_errors)
+        self._error_threshold: int = Options.max_errors
         self._error_interval = 60
         self.set_max_processors(max_file_processors)
         self._processors_pool: List[QThread] = []
