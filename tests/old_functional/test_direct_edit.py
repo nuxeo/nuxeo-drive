@@ -324,9 +324,8 @@ class MixinTests(DirectEditSetup):
     def test_direct_edit_max_error(self):
         """
         When uploading changes to the server, recurrent errors can happen.
-        The upload must be retried maximum 3 times before being dropped.
+        The upload must be retried maximum *Options.max_errors* times before being dropped.
         """
-
         filename = "error.txt"
         doc_id = self.remote.make_file_with_blob("/", filename, b"Initial content.")
         local_path = f"/{doc_id}_file-content/{filename}"

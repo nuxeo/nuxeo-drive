@@ -93,6 +93,7 @@ class DirectEdit(Worker):
         self._error_queue = BlocklistQueue(delay=Options.delay)
         self._stop = False
         self.watchdog_queue: Queue = Queue()
+        self._error_threshold = Options.max_errors
 
         self.thread.started.connect(self.run)
         self.autolock.orphanLocks.connect(self._autolock_orphans)
@@ -336,9 +337,8 @@ class DirectEdit(Worker):
 
         if not pair:
             if url:
-                max_retry = 3
                 try:
-                    for try_count in range(max_retry):
+                    for try_count in range(self._error_threshold):
                         try:
                             engine.remote.download(
                                 quote(url, safe="/:"),
@@ -850,12 +850,10 @@ class DirectEdit(Worker):
                 log.exception(f"Direct Edit unhandled error for ref {ref!r}")
                 self._handle_upload_error(ref, os_path)
 
-    def _handle_upload_error(
-        self, ref: Path, os_path: Path, max_count: int = 3
-    ) -> None:
-        """Retry the upload if the number of attempts is below *max_count* else discard it."""
+    def _handle_upload_error(self, ref: Path, os_path: Path) -> None:
+        """Retry the upload if the number of attempts is below *._error_threshold* else discard it."""
         self._upload_errors[ref] += 1
-        if self._upload_errors[ref] < max_count:
+        if self._upload_errors[ref] < self._error_threshold:
             self._error_queue.push(ref)
             return
 
