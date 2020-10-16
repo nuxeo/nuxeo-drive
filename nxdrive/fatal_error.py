@@ -127,8 +127,16 @@ def fatal_error_qt(exc_formatted: str) -> None:
 
     def open_update_site() -> None:
         """Open the update web site."""
+        if WINDOWS:
+            exe = "nuxeo-drive.exe"
+        elif MAC:
+            exe = "nuxeo-drive.dmg"
+        else:
+            exe = "nuxeo-drive-x86_64.AppImage"
+
+        url = f"{Options.update_site_url}/{exe}"
         with suppress(Exception):
-            QDesktopServices.openUrl(QUrl(Options.update_site_url))
+            QDesktopServices.openUrl(QUrl(url))
 
     # Buttons
     buttons = QDialogButtonBox()
