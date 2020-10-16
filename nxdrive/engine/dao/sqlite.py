@@ -632,7 +632,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 16
+        return 17
 
     def _migrate_state(self, cursor: Cursor) -> None:
         try:
@@ -874,6 +874,27 @@ class EngineDAO(ConfigurationDAO):
             cursor.execute("UPDATE Sessions SET created_at = CURRENT_TIMESTAMP")
             self.store_int(SCHEMA_VERSION, 16)
 
+        if version < 17:
+            # Rename the *created_at* column from Sessions table,
+            # Rename the *completed_at* column from Sessions table,
+            columns = [i[1] for i in cursor.execute("PRAGMA table_info(Sessions)")]
+            if "created_on" not in columns:
+                cursor.execute("ALTER TABLE Sessions RENAME TO Sessions_backup;")
+
+                # Create again the tables, with up-to-date columns
+                self._create_sessions_table(cursor)
+
+                # Insert back old datas with up-to-date column names
+                cursor.execute(
+                    "INSERT INTO Sessions SELECT uid, status, remote_ref,"
+                    " remote_path, uploaded, total, engine, created_at, completed_at, description FROM Sessions_backup;"
+                )
+
+                # Delete the backup tables
+                cursor.execute("DROP TABLE Sessions_backup;")
+
+            self.store_int(SCHEMA_VERSION, 17)
+
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
         if name == "States":
             self._create_state_table(cursor, force)
@@ -928,8 +949,8 @@ class EngineDAO(ConfigurationDAO):
             "    uploaded       INTEGER     DEFAULT (0),"
             "    total          INTEGER,"
             "    engine         VARCHAR     DEFAULT '',"
-            "    created_at     DATETIME    NOT NULL    DEFAULT CURRENT_TIMESTAMP,"
-            "    completed_at   DATETIME,"
+            "    created_on     DATETIME    NOT NULL    DEFAULT CURRENT_TIMESTAMP,"
+            "    completed_on   DATETIME,"
             "    description    VARCHAR     DEFAULT '',"
             "    PRIMARY KEY (uid)"
             ")"
@@ -2379,8 +2400,8 @@ class EngineDAO(ConfigurationDAO):
                 "uploaded": res.uploaded,
                 "total": res.total,
                 "engine": res.engine,
-                "created_at": res.created_at,
-                "completed_at": res.completed_at,
+                "created_on": res.created_on,
+                "completed_on": res.completed_on,
                 "description": res.description,
             }
             for res in c.execute(
@@ -2406,12 +2427,12 @@ class EngineDAO(ConfigurationDAO):
                 "uploaded": res.uploaded,
                 "total": res.total,
                 "engine": res.engine,
-                "created_at": res.created_at,
-                "completed_at": res.completed_at,
+                "created_on": res.created_on,
+                "completed_on": res.completed_on,
                 "description": res.description,
             }
             for res in c.execute(
-                "SELECT * FROM Sessions WHERE status IN (?, ?) ORDER BY created_at DESC LIMIT ?",
+                "SELECT * FROM Sessions WHERE status IN (?, ?) ORDER BY created_on DESC LIMIT ?",
                 (TransferStatus.DONE.value, TransferStatus.CANCELLED.value, limit),
             ).fetchall()
         ]
@@ -2432,8 +2453,8 @@ class EngineDAO(ConfigurationDAO):
                 res.uploaded,
                 res.total,
                 res.engine,
-                res.created_at,
-                res.completed_at,
+                res.created_on,
+                res.completed_on,
                 res.description,
             )
             if res
@@ -2480,13 +2501,13 @@ class EngineDAO(ConfigurationDAO):
                 return None
 
             session.uploaded_items += 1
-            completed_at = session.completed_at or "null"
+            completed_on = session.completed_on or "null"
             if session.uploaded_items == session.total_items:
                 session.status = TransferStatus.DONE
-                completed_at = "CURRENT_TIMESTAMP"
+                completed_on = "CURRENT_TIMESTAMP"
             # We have to use f-strings here as CURRENT_TIMESTAMP is a function and must not be interpreted as a string.
             cursor.execute(
-                f"UPDATE Sessions SET uploaded = ?, status = ? , completed_at = {completed_at} WHERE uid = ?",
+                f"UPDATE Sessions SET uploaded = ?, status = ? , completed_on = {completed_on} WHERE uid = ?",
                 (session.uploaded_items, session.status.value, session.uid),
             )
             self.sessionUpdated.emit()
@@ -2521,13 +2542,13 @@ class EngineDAO(ConfigurationDAO):
                 return None
 
             session.total_items = max(0, session.total_items - 1)
-            completed_at = session.completed_at or "null"
+            completed_on = session.completed_on or "null"
             if session.uploaded_items == session.total_items:
                 session.status = TransferStatus.DONE
-                completed_at = "CURRENT_TIMESTAMP"
+                completed_on = "CURRENT_TIMESTAMP"
             # We have to use f-strings here as CURRENT_TIMESTAMP is a function and must not be interpreted as a string.
             cursor.execute(
-                f"UPDATE Sessions SET total = ?, status = ?, completed_at = {completed_at} WHERE uid = ?",
+                f"UPDATE Sessions SET total = ?, status = ?, completed_on = {completed_on} WHERE uid = ?",
                 (session.total_items, session.status.value, session.uid),
             )
             self.sessionUpdated.emit()
