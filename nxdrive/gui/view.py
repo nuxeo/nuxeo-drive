@@ -350,9 +350,10 @@ class ActiveSessionModel(QAbstractListModel):
     UPLOADED = Qt.UserRole + 5
     TOTAL = Qt.UserRole + 6
     ENGINE = Qt.UserRole + 7
-    CREATED_AT = Qt.UserRole + 8
-    COMPLETED_AT = Qt.UserRole + 9
+    CREATED_ON = Qt.UserRole + 8
+    COMPLETED_ON = Qt.UserRole + 9
     DESCRIPTION = Qt.UserRole + 10
+    PROGRESS = Qt.UserRole + 11
 
     def __init__(self, translate: Callable, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -366,9 +367,10 @@ class ActiveSessionModel(QAbstractListModel):
             self.UPLOADED: b"uploaded",
             self.TOTAL: b"total",
             self.ENGINE: b"engine",
-            self.CREATED_AT: b"created_at",
-            self.COMPLETED_AT: b"completed_at",
+            self.CREATED_ON: b"created_on",
+            self.COMPLETED_ON: b"completed_on",
             self.DESCRIPTION: b"description",
+            self.PROGRESS: b"progress",
         }
 
     def roleNames(self) -> Dict[int, bytes]:
@@ -394,29 +396,42 @@ class ActiveSessionModel(QAbstractListModel):
         if role == self.REMOTE_PATH:
             return str(row["remote_path"])
         elif role == self.STATUS:
-            return str(row["status"].name)
+            status = row["status"].name
+            if status == "DONE":
+                status = "COMPLETED"
+            return status
         elif role == self.DESCRIPTION:
-            description = str(row["description"])
+            description = row["description"]
             if not description:
                 description = f"Session {row['uid']}"
             return description
-        elif role == self.CREATED_AT:
-            datetime = get_date_from_sqlite(str(row["created_at"]))
-            if not datetime:
-                return "?"
-            # As date_time is in UTC
-            offset = tzlocal().utcoffset(datetime)
-            if offset:
-                datetime += offset
-            return Translator.format_datetime(datetime)
-        elif role == self.COMPLETED_AT:
-            datetime = get_date_from_sqlite(str(row["completed_at"]))
-            if not datetime:
-                return "?"
-            offset = tzlocal().utcoffset(datetime)
-            if offset:
-                datetime += offset
-            return Translator.format_datetime(datetime)
+        elif role == self.CREATED_ON:
+            label = "STARTED"
+            args = []
+            datetime = get_date_from_sqlite(row["created_on"])
+            if datetime:
+                label += "_ON"
+                # As date_time is in UTC
+                offset = tzlocal().utcoffset(datetime)
+                if offset:
+                    datetime += offset
+                args.append(Translator.format_datetime(datetime))
+            return self.tr(label, args)
+        elif role == self.COMPLETED_ON:
+            label = "COMPLETED" if row["status"].name == "DONE" else "CANCELLED"
+            args = []
+            datetime = get_date_from_sqlite(row["completed_on"])
+            if datetime:
+                label += "_ON"
+                offset = tzlocal().utcoffset(datetime)
+                if offset:
+                    datetime += offset
+                args.append(Translator.format_datetime(datetime))
+            return self.tr(label, args)
+        elif role == self.PROGRESS:
+            label = "SESSION_PROGRESS"
+            args = [f"{row['uploaded']:,} / {row['total']:,}"]
+            return self.tr(label, args)
         return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
@@ -441,9 +456,10 @@ class CompletedSessionModel(QAbstractListModel):
     UPLOADED = Qt.UserRole + 5
     TOTAL = Qt.UserRole + 6
     ENGINE = Qt.UserRole + 7
-    CREATED_AT = Qt.UserRole + 8
-    COMPLETED_AT = Qt.UserRole + 9
+    CREATED_ON = Qt.UserRole + 8
+    COMPLETED_ON = Qt.UserRole + 9
     DESCRIPTION = Qt.UserRole + 10
+    PROGRESS = Qt.UserRole + 11
 
     def __init__(self, translate: Callable, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -457,9 +473,10 @@ class CompletedSessionModel(QAbstractListModel):
             self.UPLOADED: b"uploaded",
             self.TOTAL: b"total",
             self.ENGINE: b"engine",
-            self.CREATED_AT: b"created_at",
-            self.COMPLETED_AT: b"completed_at",
+            self.CREATED_ON: b"created_on",
+            self.COMPLETED_ON: b"completed_on",
             self.DESCRIPTION: b"description",
+            self.PROGRESS: b"progress",
         }
 
     def roleNames(self) -> Dict[int, bytes]:
@@ -485,29 +502,42 @@ class CompletedSessionModel(QAbstractListModel):
         if role == self.REMOTE_PATH:
             return str(row["remote_path"])
         elif role == self.STATUS:
-            return str(row["status"].name)
+            status = row["status"].name
+            if status == "DONE":
+                status = "COMPLETED"
+            return status
         elif role == self.DESCRIPTION:
-            description = str(row["description"])
+            description = row["description"]
             if not description:
                 description = f"Session {row['uid']}"
             return description
-        elif role == self.CREATED_AT:
-            datetime = get_date_from_sqlite(str(row["created_at"]))
-            if not datetime:
-                return "?"
-            # As date_time is in UTC
-            offset = tzlocal().utcoffset(datetime)
-            if offset:
-                datetime += offset
-            return Translator.format_datetime(datetime)
-        elif role == self.COMPLETED_AT:
-            datetime = get_date_from_sqlite(str(row["completed_at"]))
-            if not datetime:
-                return "?"
-            offset = tzlocal().utcoffset(datetime)
-            if offset:
-                datetime += offset
-            return Translator.format_datetime(datetime)
+        elif role == self.CREATED_ON:
+            label = "STARTED"
+            args = []
+            datetime = get_date_from_sqlite(row["created_on"])
+            if datetime:
+                label += "_ON"
+                # As date_time is in UTC
+                offset = tzlocal().utcoffset(datetime)
+                if offset:
+                    datetime += offset
+                args.append(Translator.format_datetime(datetime))
+            return self.tr(label, args)
+        elif role == self.COMPLETED_ON:
+            label = "COMPLETED" if row["status"].name == "DONE" else "CANCELLED"
+            args = []
+            datetime = get_date_from_sqlite(row["completed_on"])
+            if datetime:
+                label += "_ON"
+                offset = tzlocal().utcoffset(datetime)
+                if offset:
+                    datetime += offset
+                args.append(Translator.format_datetime(datetime))
+            return self.tr(label, args)
+        elif role == self.PROGRESS:
+            label = "SESSION_PROGRESS"
+            args = [f"{row['uploaded']:,}"]
+            return self.tr(label, args)
         return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:

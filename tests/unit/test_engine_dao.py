@@ -378,5 +378,5 @@ def test_migration_db_v16(engine_dao):
         assert session.uploaded_items == 0
         assert session.total_items == 1
         assert session.engine
-        assert not session.completed_at
-        assert session.created_at
+        assert not session.completed_on
+        assert session.created_on

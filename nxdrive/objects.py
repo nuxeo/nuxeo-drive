@@ -491,6 +491,6 @@ class Session:
     uploaded_items: int
     total_items: int
     engine: str
-    created_at: str
-    completed_at: str
+    created_on: str
+    completed_on: str
     description: str

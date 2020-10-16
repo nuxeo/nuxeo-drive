@@ -72,16 +72,16 @@ Rectangle {
                         Layout.topMargin: active ? 4 : 0
 
                         IconLabel {
-                            visible: status == "DONE" || status == "CANCELLED"
-                            icon: status == "DONE" ? MdiFont.Icon.check : MdiFont.Icon.close
-                            iconColor: status == "DONE" ? "green" : "red"
+                            visible: status == "COMPLETED" || status == "CANCELLED"
+                            icon: status == "COMPLETED" ? MdiFont.Icon.check : MdiFont.Icon.close
+                            iconColor: status == "COMPLETED" ? "green" : "red"
                         }
                         ScaledText {
-                            text: active ? qsTr("SESSION_PROGRESS").arg(uploaded + '/' + total) : qsTr("SESSION_PROGRESS").arg(uploaded)
+                            text: progress
                             color: darkGray
                         }
                         ScaledText {
-                            text: active ? qsTr("STARTED_ON").arg(created_at) + tl.tr : qsTr(status + "_ON").arg(completed_at) + tl.tr
+                            text: active ? created_on : completed_on
                             color: darkGray
                         }
                     }
