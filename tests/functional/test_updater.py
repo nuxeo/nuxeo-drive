@@ -1,10 +1,17 @@
+from io import BytesIO
 from unittest.mock import patch
+
+import pytest
+import requests
 
 from nxdrive import __version__
 from nxdrive.feature import Feature
 from nxdrive.options import Options
 from nxdrive.poll_workers import ServerOptionsUpdater
 from nxdrive.updater.base import BaseUpdater
+
+# SHA256 of MockResponse.raw, see below
+_checksum = "be9b795e95c7b4940cc40e023cfda1b4f22ed97d8c44d8ebc45625db532a2b12"
 
 NEXT_VER = ".".join(f"{v + 1}" for v in map(int, __version__.split(".")))
 VERSIONS = {
@@ -14,7 +21,7 @@ VERSIONS = {
         "min": "10.10",
         "checksum": {
             "algo": "sha256",
-            "foo": "f09999db127d04cdbf9d401101d0ed81898c781e4408102180df2b83bc1fdda4",
+            "foo": _checksum,
         },
     },
     "4.4.0": {
@@ -22,7 +29,7 @@ VERSIONS = {
         "min": "10.10",
         "checksum": {
             "algo": "sha256",
-            "foo": "f09999db127d04cdbf9d401101d0ed81898c781e4408102180df2b83bc1fdda4",
+            "foo": _checksum,
         },
     },
 }
@@ -50,6 +57,35 @@ class Updater(BaseUpdater):
         self.versions = VERSIONS
 
 
+class MockResponse(requests.Response):
+    """Mocked requests.Response to prevent downloading stuff."""
+
+    def __init__(self):
+        super().__init__()
+
+        content_length = BaseUpdater.chunk_size * 4
+        self.status_code = 200
+        self.headers["Content-Length"] = str(content_length)
+        self.raw = BytesIO(b"0" * content_length)
+
+
+def mock_get(url, *_, **__):
+    """Used by the monkeypatch fixture to patch requests.Response."""
+    return MockResponse()
+
+
+@pytest.fixture(scope="function")
+def monkey_requests(monkeypatch):
+    """Helper fixture to mimic requests.get() without actually downloading anything
+    but still keeping all the logic present (like .raise_for_status() et al.).
+    """
+    monkeypatch.setattr(requests, "get", mock_get)
+    try:
+        yield
+    finally:
+        monkeypatch.undo()
+
+
 def check_attrs(updater: Updater, enable: bool, checkpoint: bool, version: str) -> None:
     """Check Updater state before and after a forced recheck."""
     assert updater.enable is enable
@@ -68,7 +104,7 @@ def test_not_frozen(manager_factory):
 
 
 @Options.mock()
-def test_frozen(manager_factory):
+def test_frozen(manager_factory, monkey_requests):
     """The application is frozen."""
     Options.is_frozen = True
 
@@ -129,7 +165,9 @@ def test_frozen_updates_disabled_centralized_client_version_invalid(manager_fact
 
 
 @Options.mock()
-def test_frozen_updates_disabled_centralized_client_version(manager_factory):
+def test_frozen_updates_disabled_centralized_client_version(
+    manager_factory, monkey_requests
+):
     """Scenario:
         - the application is frozen
         - auto-update disabled

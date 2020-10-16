@@ -179,14 +179,12 @@ class BaseUpdater(PollWorker):
         path = os.path.join(gettempdir(), uuid.uuid4().hex + "_" + name)
         headers = {"User-Agent": USER_AGENT}
 
-        log.info(
-            f"Fetching version {version!r} from update site {self.update_site!r} "
-            f"into {path!r}"
-        )
+        log.info(f"Fetching {APP_NAME} {version} from {url!r} into {path!r}")
         try:
             # Note: I do not think we should pass the `verify` kwarg here
             # because updates are critical and must be stored on a secured server.
             req = requests.get(url, headers=headers, stream=True)
+            req.raise_for_status()
             size = int(req.headers["content-length"])
 
             with open(path, "wb") as tmp:
