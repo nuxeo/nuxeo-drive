@@ -24,6 +24,7 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox,
     QLabel,
     QMessageBox,
+    QStyle,
     QSystemTrayIcon,
     QTextEdit,
     QVBoxLayout,
@@ -340,15 +341,21 @@ class Application(QApplication):
         # Display the window
         self._show_window(window)
 
-        # Try to center it on the desktop
-        screen = window.screen()
+        # Find the screen where the cursor is located: in case of multi-screens, this
+        # will grab the correct screen depending of the cursor position.
+        screen = QApplication.screenAt(QCursor.pos())
         if not screen:
             # The window is not yet painted or seen on the current desktop
             return
 
-        size = screen.size()
-        window.setX(int(size.width() / 2 - window.minimumWidth() / 2))
-        window.setY(int(size.height() / 2 - window.minimumHeight() / 2))
+        window.setGeometry(
+            QStyle.alignedRect(
+                Qt.LeftToRight,
+                Qt.AlignCenter,
+                window.size(),
+                screen.availableGeometry(),
+            )
+        )
 
     @pyqtSlot(object)
     def action_progressing(self, action: Action) -> None:
