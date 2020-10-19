@@ -296,18 +296,18 @@ class MetaOptions(type):
     # The return value is not checked.
     callbacks: Dict[str, Callable] = {}
 
-    def __getattr__(cls, item: str) -> Any:
+    def __getattr__(_, item: str) -> Any:
         """
         Override to allow retrieving an option as simply as `Options.delay`.
         If the option does not exist, returns `None`.
         """
         try:
-            value, _ = MetaOptions.options[item]
+            value, _ = MetaOptions.options[item]  # type: ignore
         except KeyError:
             value = None
         return value
 
-    def __setattr__(cls, item: str, value: Any) -> None:
+    def __setattr__(_, item: str, value: Any) -> None:
         """
         Override to allow setting an option as simply as `Options.delay = 42`.
         If the option does not exist, it does nothing.
@@ -316,7 +316,7 @@ class MetaOptions(type):
         with suppress(KeyError):
             MetaOptions.set(item, value, setter="manual")
 
-    def __repr__(cls) -> str:
+    def __repr__(_) -> str:
         """ Display all options. """
         options = [
             f"{name}[{setter}]={value!r}"
@@ -324,7 +324,7 @@ class MetaOptions(type):
         ]
         return f"Options({', '.join(options)})"
 
-    def __str__(cls) -> str:
+    def __str__(_) -> str:
         """ Display non default options. """
         options = [
             f"{name}[{setter}]={value!r}"
