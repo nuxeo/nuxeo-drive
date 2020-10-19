@@ -549,23 +549,12 @@ class LocalClientMixin:
 
     def get_path(self, target: Path) -> Path:
         """ Relative path to the local client from an absolute OS path. """
-        # Overwriting the name because .resolve() can change its casing
-        # depending on what exists, e.g.:
-        # - target.name == "ABCDE.txt"
-        # - "abcde.txt" exists on the filesystem
-        # -> target.resolve() will set target.name as "abcde.txt"
+        # NXDRIVE-2319: using os.path.abspath() instead of .resolve and .absolute().
         try:
-            target = target.resolve().with_name(target.name)
-        except PermissionError:
-            # On Windows, we can get a PermissionError when the file is being
-            # opened in another software, fallback on .absolute() then.
-            target = target.absolute().with_name(target.name)
-
-        try:
-            return target.relative_to(self.base_folder)
+            return Path(os.path.abspath(str(target))).relative_to(self.base_folder)
         except ValueError:
-            # From the doc: if the operation is not possible (because
-            # this is not a subpath of the other path), raise ValueError.
+            # From the Path.relative_to() doc: if the operation is not possible
+            # (because this is not a subpath of the other path), raise ValueError.
             return ROOT
 
     def abspath(self, ref: Path) -> Path:

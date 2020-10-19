@@ -538,21 +538,6 @@ def test_if_frozen_decorator():
     assert checkpoint
 
 
-def test_normalized_path_permission_error(tmp):
-    func = nxdrive.utils.normalized_path
-
-    folder = tmp()
-    folder.mkdir()
-    path = folder / "foo.txt"
-
-    # Path.resolve() raises a PermissionError, it should fallback on .absolute()
-    path_abs = func(str(path), cls=MockedPath)  # Test giving a str
-
-    # Restore the original behavior and check that .resolved() and .absolute()
-    # return the same value.
-    assert func(path) == path_abs  # Test giving a Path
-
-
 def test_normalize_and_expand_path():
     if WINDOWS:
         path = "%userprofile%/foo"
