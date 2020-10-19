@@ -81,8 +81,7 @@ def test_complex_filenames(local):
 def test_deep_folders(local):
     """Check the LocalClient can workaround the default Windows MAX_PATH limit."""
     folder = ROOT
-    for _ in range(30):
-        folder = local.make_folder(folder, "0123456789")
+    folder = local.make_folder(folder, "0123456789")
 
     # Last Level
     last_level_folder_info = local.get_info(folder)
