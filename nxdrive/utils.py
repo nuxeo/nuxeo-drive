@@ -452,21 +452,16 @@ def is_generated_tmp_file(name: str) -> Tuple[bool, Optional[bool]]:
     return do_not_ignore, no_delay_effect
 
 
-def normalized_path(path: Union[bytes, str, Path], cls: Callable = Path) -> Path:
+def normalized_path(path: Union[bytes, str, Path]) -> Path:
     """Return absolute, normalized file path.
-    The *cls* argument is used in tests, it must be a class or subclass of Path.
 
     Note: this function cannot be decorated with lru_cache().
     """
     if not isinstance(path, Path):
         path = force_decode(path)
-    expanded = cls(path).expanduser()
-    try:
-        return expanded.resolve()  # type: ignore
-    except PermissionError:
-        # On Windows, we can get a PermissionError when the file is being
-        # opened in another software, fallback on .absolute() then.
-        return expanded.absolute()  # type: ignore
+    expanded = Path(path).expanduser()
+    # NXDRIVE-2319: using os.path.abspath() instead of .resolve and .absolute().
+    return Path(os.path.abspath(str(expanded)))
 
 
 def normalize_and_expand_path(path: str) -> Path:
