@@ -258,7 +258,7 @@ class LocalClientMixin:
         # uid = str(stat_info.st_ino)
         return FileInfo(
             self.base_folder,
-            ref,
+            self.get_path(os_path),
             folderish,
             mtime,
             digest_func=self._digest_func,
@@ -267,9 +267,9 @@ class LocalClientMixin:
             size=size,
         )
 
-    def try_get_info(self, ref: Path) -> Optional[FileInfo]:
+    def try_get_info(self, ref: Path, check: bool = True) -> Optional[FileInfo]:
         try:
-            return self.get_info(ref)
+            return self.get_info(ref, check=check)
         except NotFound:
             return None
 
@@ -279,6 +279,7 @@ class LocalClientMixin:
         remote_digest: Optional[str],
         local_path: Path,
         remote_digest_algorithm: str = None,
+        check: bool = True,
     ) -> bool:
         """
         Compare 2 document's digests.
@@ -301,7 +302,7 @@ class LocalClientMixin:
             if not remote_digest_algorithm:
                 raise UnknownDigest(str(remote_digest))
 
-        file_info = self.try_get_info(local_path)
+        file_info = self.try_get_info(local_path, check=check)
         if not file_info:
             return False
         digest = file_info.get_digest(digest_func=remote_digest_algorithm)
