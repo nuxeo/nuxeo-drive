@@ -1,6 +1,5 @@
 import pathlib
 from time import sleep
-from unittest.mock import patch
 
 from nxdrive.client.local import LocalClient
 from nxdrive.constants import ROOT
@@ -17,23 +16,6 @@ def test_get_path(tmp_path):
     # The path exists, it returns
     assert local.get_path(path) == pathlib.Path("foo.txt")
     assert local.get_path(path_upper) == pathlib.Path("FOO.TXT")
-
-
-@patch("pathlib.Path.resolve")
-@patch("pathlib.Path.absolute")
-def test_get_path_permission_error(mocked_resolve, mocked_absolute, tmp_path):
-    local = LocalClient(tmp_path)
-    path = tmp_path / "foo.txt"
-
-    # Path.resolve() raises a PermissionError, it should fallback on .absolute()
-    mocked_resolve.side_effect = PermissionError()
-    path_abs = local.get_path(path)
-    assert mocked_absolute.called
-
-    # Restore the original ehavior and check that .resolved() and .absolute()
-    # return the same value.
-    mocked_resolve.reset_mock()
-    assert local.get_path(path) == path_abs
 
 
 def test_xattr_crud(tmp_path):
