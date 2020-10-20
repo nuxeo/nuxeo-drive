@@ -429,9 +429,7 @@ class ActiveSessionModel(QAbstractListModel):
                 args.append(Translator.format_datetime(datetime))
             return self.tr(label, args)
         elif role == self.PROGRESS:
-            label = "SESSION_PROGRESS"
-            args = [f"{row['uploaded']:,} / {row['total']:,}"]
-            return self.tr(label, args)
+            return f"[{row['uploaded']:,} / {row['total']:,}]"
         return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
@@ -535,9 +533,7 @@ class CompletedSessionModel(QAbstractListModel):
                 args.append(Translator.format_datetime(datetime))
             return self.tr(label, args)
         elif role == self.PROGRESS:
-            label = "SESSION_PROGRESS"
-            args = [f"{row['uploaded']:,}"]
-            return self.tr(label, args)
+            return f"[{row['uploaded']:,}]"
         return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
