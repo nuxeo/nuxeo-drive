@@ -2432,7 +2432,7 @@ class EngineDAO(ConfigurationDAO):
                 "description": res.description,
             }
             for res in c.execute(
-                "SELECT * FROM Sessions WHERE status IN (?, ?) ORDER BY created_on DESC LIMIT ?",
+                "SELECT * FROM Sessions WHERE status IN (?, ?) ORDER BY completed_on DESC LIMIT ?",
                 (TransferStatus.DONE.value, TransferStatus.CANCELLED.value, limit),
             ).fetchall()
         ]
