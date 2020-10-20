@@ -297,7 +297,6 @@
     "SERVER_INCOMPATIBLE": "Din serverversion är inte kompatibel med Drive %1. Vi rekommenderar att du nedgraderar din Drive-klient till version %2 eller att du kontaktar din administratör för att uppgradera din Nuxeo-instans.",
     "SERVER_UI": "Användargränssnitt för servern",
     "SESSION_CANCEL": "Confirm the cancellation of the transfer session to \"%1\"?\n%2 items will be aborted.",
-    "SESSION_PROGRESS": "[%1 items]",
     "SETTINGS": "Inställningar",
     "SETTINGS_WINDOW_TITLE": "%1 – inställningar",
     "SET_ACCOUNT": "Ange konto",

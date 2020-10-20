@@ -297,7 +297,6 @@
     "SERVER_INCOMPATIBLE": "La versione del server non è disponibile con Drive %1. Consigliamo di eseguire il downgrade del client Drive alla versione %2 o di contattare l'amministratore per aggiornare l'istanza di Nuxeo.",
     "SERVER_UI": "Interfaccia utente del server",
     "SESSION_CANCEL": "Confirm the cancellation of the transfer session to \"%1\"?\n%2 items will be aborted.",
-    "SESSION_PROGRESS": "[%1 items]",
     "SETTINGS": "Impostazioni",
     "SETTINGS_WINDOW_TITLE": "%1 - Impostazioni",
     "SET_ACCOUNT": "Imposta account",
