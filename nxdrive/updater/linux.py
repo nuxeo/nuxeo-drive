@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 import shutil
+import stat
 import subprocess
 from logging import getLogger
 from pathlib import Path
@@ -35,7 +36,7 @@ class Updater(BaseUpdater):
         shutil.move(filename, new_executable)
 
         log.debug(f"Adjusting execution rights on {new_executable!r}")
-        subprocess.check_call(["chmod", "a+x", new_executable])
+        os.chmod(new_executable, stat.S_IXUSR)
 
         self._restart(new_executable)
 
