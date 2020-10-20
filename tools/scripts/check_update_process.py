@@ -29,6 +29,7 @@ import os.path
 import re
 import shutil
 import socketserver
+import stat
 import subprocess
 import sys
 import tempfile
@@ -98,7 +99,7 @@ def download_last_ga_release(output_dir, version):
         dst.write(req.content)
 
     # Adjust execution rights
-    subprocess.check_call(["chmod", "a+x", output])
+    os.chmod(output, stat.S_IXUSR)
 
     return output
 
