@@ -297,7 +297,6 @@
     "SERVER_INCOMPATIBLE": "La version du serveur n’est pas compatible avec Nuxeo Drive %1. Nous vous conseillons de repasser sur la version %2 ou de de contacter votre administrateur système pour mettre à niveau l'instance de Nuxeo.",
     "SERVER_UI": "Interface serveur",
     "SESSION_CANCEL": "Confirm the cancellation of the transfer session to \"%1\"?\n%2 items will be aborted.",
-    "SESSION_PROGRESS": "[%1 items]",
     "SETTINGS": "Configuration",
     "SETTINGS_WINDOW_TITLE": "%1 - Configuration",
     "SET_ACCOUNT": "Se connecter",

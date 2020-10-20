@@ -297,7 +297,6 @@
     "SERVER_INCOMPATIBLE": "サーバーのバージョンはドライブ%1と互換性がありません。ドライブクライアントを%2バージョンにダウングレードするか、管理者に連絡してNuxeoインスタンスをアップグレードすることをお勧めします。",
     "SERVER_UI": "サーバのUI",
     "SESSION_CANCEL": "Confirm the cancellation of the transfer session to \"%1\"?\n%2 items will be aborted.",
-    "SESSION_PROGRESS": "[%1 items]",
     "SETTINGS": "設定",
     "SETTINGS_WINDOW_TITLE": "%1 - 設定",
     "SET_ACCOUNT": "アカウントを設定",

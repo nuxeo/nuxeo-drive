@@ -297,7 +297,6 @@
     "SERVER_INCOMPATIBLE": "Zerbitzariaren bertsioa ez da Drive %1(r)ekin bateragarria. Leheneratu Drive bezeroa %2 bertsiora edo jarri harremanetan administratzailearekin, Nuxeo instantzia bertsio-berritu dezan.",
     "SERVER_UI": "Zerbitzariaren interfazea",
     "SESSION_CANCEL": "Confirm the cancellation of the transfer session to \"%1\"?\n%2 items will be aborted.",
-    "SESSION_PROGRESS": "[%1 items]",
     "SETTINGS": "Ezarpenak",
     "SETTINGS_WINDOW_TITLE": "%1 - Ezarpenak",
     "SET_ACCOUNT": "Konfiguratu kontua",
