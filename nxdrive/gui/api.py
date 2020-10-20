@@ -725,17 +725,14 @@ class QMLDriveApi(QObject):
             log.warning(Translator.get("FOLDER_USED", values=[APP_NAME]))
 
             # Ask for the user
-            values = [e.username, e.url]
-            msgbox = QMessageBox(
-                QMessageBox.Question,
-                APP_NAME,
-                Translator.get("ROOT_USED_WITH_OTHER_BINDING", values),
-                QMessageBox.NoButton,
+            msg = self.application.question(
+                Translator.get("ROOT_USED_WITH_OTHER_BINDING_HEADER"),
+                Translator.get("ROOT_USED_WITH_OTHER_BINDING", [e.username, e.url]),
             )
-            msgbox.addButton(Translator.get("CONTINUE"), QMessageBox.AcceptRole)
-            cancel = msgbox.addButton(Translator.get("CANCEL"), QMessageBox.RejectRole)
-            msgbox.exec_()
-            if msgbox.clickedButton() == cancel:
+            msg.addButton(Translator.get("CONTINUE"), QMessageBox.AcceptRole)
+            cancel = msg.addButton(Translator.get("CANCEL"), QMessageBox.RejectRole)
+            msg.exec_()
+            if msg.clickedButton() == cancel:
                 self.setMessage.emit("FOLDER_USED", "error")
                 return
 

@@ -468,27 +468,46 @@ class Application(QApplication):
         self.osi.register_contextual_menu()
         self.installTranslator(Translator.singleton)
 
-    def _display_message(self, icon: QIcon, title: str, message: str) -> None:
-        """Display a generic message box warning."""
+    def _msgbox(
+        self,
+        icon: QIcon = QMessageBox.Information,
+        title: str = APP_NAME,
+        header: str = "",
+        message: str = "",
+        execute: bool = True,
+    ) -> QMessageBox:
+        """Display a message box."""
         msg = QMessageBox()
         msg.setWindowTitle(title)
         msg.setWindowIcon(self.icon)
         msg.setIcon(icon)
         msg.setTextFormat(Qt.RichText)
-        msg.setText(message)
-        msg.exec_()
+        if header:
+            msg.setText(header)
+        if message:
+            msg.setInformativeText(message)
+        if execute:
+            msg.exec_()
+        return msg
 
     def display_info(self, title: str, message: str, values: List[str]) -> None:
-        """Display a generic message box information."""
+        """Display an informative message box."""
         msg_text = self.translate(message, values)
         log.info(f"{msg_text} (values={values})")
-        self._display_message(QMessageBox.Information, title, msg_text)
+        self._msgbox(title=title, message=msg_text)
 
     def display_warning(self, title: str, message: str, values: List[str]) -> None:
-        """Display a generic message box warning."""
+        """Display a warning message box."""
         msg_text = self.translate(message, values)
         log.warning(f"{msg_text} (values={values})")
-        self._display_message(QMessageBox.Warning, title, msg_text)
+        self._msgbox(icon=QMessageBox.Warning, title=title, message=msg_text)
+
+    def question(
+        self, header: str, message: str, icon: QIcon = QMessageBox.Question
+    ) -> QMessageBox:
+        """Display a question message box."""
+        log.debug(f"Question: {message}")
+        return self._msgbox(icon=icon, header=header, message=message, execute=False)
 
     @pyqtSlot(str, Path, str)
     def _direct_edit_conflict(self, filename: str, ref: Path, digest: str) -> None:
@@ -500,15 +519,15 @@ class Application(QApplication):
             log.debug(f"Putting filename in _conflicts_modals: {filename!r}")
             self._conflicts_modals[filename] = True
 
-            msg = QMessageBox()
-            msg.setInformativeText(
-                Translator.get("DIRECT_EDIT_CONFLICT_MESSAGE", [short_name(filename)])
+            msg = self.question(
+                Translator.get("DIRECT_EDIT_CONFLICT_HEADER"),
+                Translator.get("DIRECT_EDIT_CONFLICT_MESSAGE", [short_name(filename)]),
+                icon=QMessageBox.Warning,
             )
             overwrite = msg.addButton(
                 Translator.get("DIRECT_EDIT_CONFLICT_OVERWRITE"), QMessageBox.AcceptRole
             )
             msg.addButton(Translator.get("CANCEL"), QMessageBox.RejectRole)
-            msg.setIcon(QMessageBox.Warning)
             msg.exec_()
             if msg.clickedButton() == overwrite:
                 self.manager.direct_edit.force_update(ref, digest)
@@ -528,11 +547,10 @@ class Application(QApplication):
         engine = self.sender()
         log.info(f"Root has been deleted for engine: {engine.uid}")
 
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setWindowIcon(self.icon)
-        msg.setText(
-            Translator.get("DRIVE_ROOT_DELETED", [engine.local_folder, APP_NAME])
+        msg = self.question(
+            Translator.get("DRIVE_ROOT_DELETED_HEADER"),
+            Translator.get("DRIVE_ROOT_DELETED", ["engine.local_folder", APP_NAME]),
+            icon=QMessageBox.Critical,
         )
         recreate = msg.addButton(
             Translator.get("DRIVE_ROOT_RECREATE"), QMessageBox.AcceptRole
@@ -559,13 +577,12 @@ class Application(QApplication):
         log.info(f"Root has been moved for engine: {engine.uid} to {new_path!r}")
         info = [engine.local_folder, APP_NAME, str(new_path)]
 
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setWindowIcon(self.icon)
-        msg.setText(Translator.get("DRIVE_ROOT_MOVED", info))
-        move = msg.addButton(
-            Translator.get("DRIVE_ROOT_UPDATE"), QMessageBox.AcceptRole
+        msg = self.question(
+            Translator.get("DRIVE_ROOT_MOVED_HEADER"),
+            Translator.get("DRIVE_ROOT_MOVED", info),
         )
+        msg.setIcon(QMessageBox.Critical)
+        move = msg.addButton(Translator.get("DRIVE_ROOT_MOVE"), QMessageBox.AcceptRole)
         recreate = msg.addButton(
             Translator.get("DRIVE_ROOT_RECREATE"), QMessageBox.AcceptRole
         )
@@ -585,50 +602,49 @@ class Application(QApplication):
             engine.start()
 
     def confirm_deletion(self, path: Path) -> DelAction:
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Question)
-        msg.setWindowIcon(self.icon)
-
-        cb = QCheckBox(Translator.get("DONT_ASK_AGAIN"))
-        msg.setCheckBox(cb)
-
         mode = self.manager.get_deletion_behavior()
         unsync = None
         if mode is DelAction.DEL_SERVER:
             descr = "DELETION_BEHAVIOR_CONFIRM_DELETE"
             confirm_text = "DELETE_FOR_EVERYONE"
-            unsync = msg.addButton(
-                Translator.get("JUST_UNSYNC"), QMessageBox.RejectRole
-            )
         elif mode is DelAction.UNSYNC:
             descr = "DELETION_BEHAVIOR_CONFIRM_UNSYNC"
             confirm_text = "UNSYNC"
 
-        msg.setText(
-            Translator.get(descr, [str(path), Translator.get("SELECT_SYNC_FOLDERS")])
+        msg = self.question(
+            Translator.get("DELETION_BEHAVIOR_HEADER"),
+            Translator.get(descr, [str(path), Translator.get("SELECT_SYNC_FOLDERS")]),
         )
+        if mode is DelAction.DEL_SERVER:
+            unsync = msg.addButton(
+                Translator.get("JUST_UNSYNC"), QMessageBox.RejectRole
+            )
         msg.addButton(Translator.get("CANCEL"), QMessageBox.RejectRole)
         confirm = msg.addButton(Translator.get(confirm_text), QMessageBox.AcceptRole)
-        msg.exec_()
 
+        cb = QCheckBox(Translator.get("DONT_ASK_AGAIN"))
+        msg.setCheckBox(cb)
+
+        msg.exec_()
         res = msg.clickedButton()
+
         if cb.isChecked():
             self.manager.dao.store_bool("show_deletion_prompt", False)
 
         if res == confirm:
             return mode
-        if res == unsync:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Question)
-            msg.setWindowIcon(self.icon)
-            msg.setText(Translator.get("DELETION_BEHAVIOR_SWITCH"))
+        elif res == unsync:
+            msg = self.question(
+                Translator.get("DELETION_BEHAVIOR_HEADER"),
+                Translator.get("DELETION_BEHAVIOR_SWITCH"),
+            )
             msg.addButton(Translator.get("NO"), QMessageBox.RejectRole)
             confirm = msg.addButton(Translator.get("YES"), QMessageBox.AcceptRole)
             msg.exec_()
-            res = msg.clickedButton()
-            if res == confirm:
+            if msg.clickedButton() == confirm:
                 self.manager.set_deletion_behavior(DelAction.UNSYNC)
             return DelAction.UNSYNC
+
         return DelAction.ROLLBACK
 
     @pyqtSlot(Path)
@@ -650,10 +666,11 @@ class Application(QApplication):
 
     @pyqtSlot(Path, Path)
     def _file_already_exists(self, oldpath: Path, newpath: Path) -> None:
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setWindowIcon(self.icon)
-        msg.setText(Translator.get("FILE_ALREADY_EXISTS", values=[str(oldpath)]))
+        msg = self.question(
+            Translator.get("FILE_ALREADY_EXISTS_HEADER"),
+            Translator.get("FILE_ALREADY_EXISTS", values=[str(oldpath)]),
+            icon=QMessageBox.Critical,
+        )
         replace = msg.addButton(Translator.get("REPLACE"), QMessageBox.AcceptRole)
         msg.addButton(Translator.get("CANCEL"), QMessageBox.RejectRole)
         msg.exec_()
@@ -830,26 +847,19 @@ class Application(QApplication):
         Show a dialog to confirm the given transfer cancel.
         Cancel transfer on validation.
         """
-        msgbox = QMessageBox(
-            QMessageBox.Question,
-            APP_NAME,
+        msg = self.question(
+            Translator.get("DIRECT_TRANSFER_CANCEL_HEADER"),
             Translator.get("DIRECT_TRANSFER_CANCEL", [name]),
-            QMessageBox.NoButton,
         )
-        continued = msgbox.addButton(Translator.get("YES"), QMessageBox.AcceptRole)
-        cancel = msgbox.addButton(Translator.get("NO"), QMessageBox.RejectRole)
-        msgbox.setDefaultButton(cancel)
-        msgbox.setIcon(QMessageBox.Question)
-        msgbox.exec_()
-        if msgbox.clickedButton() == continued:
+        continued = msg.addButton(Translator.get("YES"), QMessageBox.AcceptRole)
+        cancel = msg.addButton(Translator.get("NO"), QMessageBox.RejectRole)
+        msg.setDefaultButton(cancel)
+        msg.exec_()
+        if msg.clickedButton() == continued:
             engine = self.manager.engines.get(engine_uid)
             if not engine:
                 return
             engine.cancel_upload(transfer_uid)
-        elif msgbox.clickedButton() == cancel:
-            log.debug(
-                f"Aborted the cancellation of the transfer {transfer_uid}: {name!r}"
-            )
 
     @pyqtSlot(str, int, str, int)
     def confirm_cancel_session(
@@ -859,17 +869,15 @@ class Application(QApplication):
         Show a dialog to confirm the given session cancel.
         Cancel the session on validation.
         """
-        msgbox = QMessageBox(
-            QMessageBox.Question,
-            APP_NAME,
+        msg = self.question(
+            Translator.get("SESSION_CANCEL_HEADER"),
             Translator.get("SESSION_CANCEL", [destination, str(pending_files)]),
-            QMessageBox.NoButton,
         )
-        continued = msgbox.addButton(Translator.get("YES"), QMessageBox.AcceptRole)
-        cancel = msgbox.addButton(Translator.get("NO"), QMessageBox.RejectRole)
-        msgbox.setDefaultButton(cancel)
-        msgbox.exec_()
-        if msgbox.clickedButton() == continued:
+        continued = msg.addButton(Translator.get("YES"), QMessageBox.AcceptRole)
+        cancel = msg.addButton(Translator.get("NO"), QMessageBox.RejectRole)
+        msg.setDefaultButton(cancel)
+        msg.exec_()
+        if msg.clickedButton() == continued:
             self.api.cancel_session(engine_uid, session_uid)
 
     @pyqtSlot(str, object)
@@ -1069,10 +1077,12 @@ class Application(QApplication):
     def _server_incompatible(self) -> None:
         version = self.manager.version
         downgrade_version = self.manager.updater.version or ""
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Warning)
-        msg.setWindowIcon(self.icon)
-        msg.setText(Translator.get("SERVER_INCOMPATIBLE", [version, downgrade_version]))
+
+        msg = self.question(
+            Translator.get("SERVER_INCOMPATIBLE_HEADER", [APP_NAME, version]),
+            Translator.get("SERVER_INCOMPATIBLE", [APP_NAME, downgrade_version]),
+            icon=QMessageBox.Warning,
+        )
         if downgrade_version:
             msg.addButton(
                 Translator.get("CONTINUE_USING", [version]), QMessageBox.RejectRole
@@ -1083,10 +1093,9 @@ class Application(QApplication):
             )
         else:
             msg.addButton(Translator.get("CONTINUE"), QMessageBox.RejectRole)
-        msg.exec_()
 
-        res = msg.clickedButton()
-        if downgrade_version and res == downgrade:
+        msg.exec_()
+        if downgrade_version and msg.clickedButton() == downgrade:
             self.manager.updater.update(downgrade_version)
 
     @pyqtSlot()
@@ -1102,11 +1111,12 @@ class Application(QApplication):
         downgrade_version = self.manager.updater.version or ""
         version_channel = self.manager.updater.get_version_channel(version)
         current_channel = self.manager.get_update_channel()
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Warning)
-        msg.setWindowIcon(self.icon)
-        msg.setText(
-            Translator.get("WRONG_CHANNEL", [version, version_channel, current_channel])
+        msg = self.question(
+            Translator.get("WRONG_CHANNEL_HEADER"),
+            Translator.get(
+                "WRONG_CHANNEL", [version, version_channel, current_channel]
+            ),
+            icon=QMessageBox.Warning,
         )
         switch_channel = msg.addButton(
             Translator.get("USE_CHANNEL", [version_channel]), QMessageBox.AcceptRole
@@ -1114,8 +1124,8 @@ class Application(QApplication):
         downgrade = msg.addButton(
             Translator.get("DOWNGRADE_TO", [downgrade_version]), QMessageBox.AcceptRole
         )
-        msg.exec_()
 
+        msg.exec_()
         res = msg.clickedButton()
         if downgrade_version and res == downgrade:
             self.manager.updater.update(downgrade_version)
