@@ -1,0 +1,27 @@
+# Language aware diff headers
+# https://tekin.co.uk/2020/10/better-git-diff-output-for-ruby-python-elixir-and-more
+# https://gist.github.com/tekin/12500956bd56784728e490d8cef9cb81
+# https://github.com/git/git/blob/master/userdiff.c
+*.cpp   diff=cpp
+*.h     diff=cpp
+*.iss   diff=pascal
+*.md    diff=markdown
+*.py    diff=python
+*.spec  diff=python
+*.swift diff=objc
+
+# CRLF files
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.sln text eol=crlf
+*.vcxproj* text eol=crlf
+
+
+# Binary data types
+*.bmp binary
+*.dll binary
+*.exe binary
+*.icns binary
+*.ico binary
+*.png binary
+*.zip binary
