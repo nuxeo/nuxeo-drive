@@ -179,12 +179,12 @@ class DirectTransfer:
             assert doc_pair
             session = dao.get_session(1)
             assert session.total_items == 0
-            assert session.status == TransferStatus.DONE
+            assert session.status == TransferStatus.CANCELLED
 
             # A new Notification log should appear
             records = map(str, self._caplog.records)
             matches = list(filter(expression.match, records))
-            assert len(matches) == 1
+            assert not matches
 
     def test_with_engine_not_started(self):
         """A Direct Transfer should work even if engines are stopped."""

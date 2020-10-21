@@ -533,7 +533,7 @@ class CompletedSessionModel(QAbstractListModel):
                 args.append(Translator.format_datetime(datetime))
             return self.tr(label, args)
         elif role == self.PROGRESS:
-            return f"[{row['uploaded']:,}]"
+            return f"[{row['uploaded']:,} / {row['planned_items']:,}]"
         return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:

@@ -632,7 +632,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 17
+        return 16
 
     def _migrate_state(self, cursor: Cursor) -> None:
         try:
@@ -847,10 +847,12 @@ class EngineDAO(ConfigurationDAO):
 
         if version < 16:
             # Add the *engine* field to the Sessions table
-            # Add the *created_at* field to the Sessions table
-            # Add the *completed_at* field to the Sessions table
+            # Add the *created_on* field to the Sessions table
+            # Add the *completed_on* field to the Sessions table
             # Add the *description* field to the Sessions table
+            # Add the *planned_items* field to the Sessions table
             # used by the Direct Transfer feature.
+
             self._append_to_table(
                 cursor,
                 "Sessions",
@@ -859,41 +861,27 @@ class EngineDAO(ConfigurationDAO):
             self._append_to_table(
                 cursor,
                 "Sessions",
-                ("created_at", "DATE"),
+                ("created_on", "DATE"),
             )
             self._append_to_table(
                 cursor,
                 "Sessions",
-                ("completed_at", "DATE"),
+                ("completed_on", "DATE"),
             )
             self._append_to_table(
                 cursor,
                 "Sessions",
                 ("description", "VARCHAR", "DEFAULT", "''"),
             )
-            cursor.execute("UPDATE Sessions SET created_at = CURRENT_TIMESTAMP")
+            self._append_to_table(
+                cursor,
+                "Sessions",
+                ("planned_items", "INTEGER"),
+            )
+            cursor.execute(
+                "UPDATE Sessions SET created_on = CURRENT_TIMESTAMP, planned_items = total"
+            )
             self.store_int(SCHEMA_VERSION, 16)
-
-        if version < 17:
-            # Rename the *created_at* column from Sessions table,
-            # Rename the *completed_at* column from Sessions table,
-            columns = [i[1] for i in cursor.execute("PRAGMA table_info(Sessions)")]
-            if "created_on" not in columns:
-                cursor.execute("ALTER TABLE Sessions RENAME TO Sessions_backup;")
-
-                # Create again the tables, with up-to-date columns
-                self._create_sessions_table(cursor)
-
-                # Insert back old datas with up-to-date column names
-                cursor.execute(
-                    "INSERT INTO Sessions SELECT uid, status, remote_ref,"
-                    " remote_path, uploaded, total, engine, created_at, completed_at, description FROM Sessions_backup;"
-                )
-
-                # Delete the backup tables
-                cursor.execute("DROP TABLE Sessions_backup;")
-
-            self.store_int(SCHEMA_VERSION, 17)
 
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
         if name == "States":
@@ -952,6 +940,7 @@ class EngineDAO(ConfigurationDAO):
             "    created_on     DATETIME    NOT NULL    DEFAULT CURRENT_TIMESTAMP,"
             "    completed_on   DATETIME,"
             "    description    VARCHAR     DEFAULT '',"
+            "    planned_items  INTEGER,"
             "    PRIMARY KEY (uid)"
             ")"
         )
@@ -2403,6 +2392,7 @@ class EngineDAO(ConfigurationDAO):
                 "created_on": res.created_on,
                 "completed_on": res.completed_on,
                 "description": res.description,
+                "planned_items": res.planned_items,
             }
             for res in c.execute(
                 "SELECT * FROM Sessions WHERE status IN (?, ?)",
@@ -2430,6 +2420,7 @@ class EngineDAO(ConfigurationDAO):
                 "created_on": res.created_on,
                 "completed_on": res.completed_on,
                 "description": res.description,
+                "planned_items": res.planned_items,
             }
             for res in c.execute(
                 "SELECT * FROM Sessions WHERE status IN (?, ?) ORDER BY completed_on DESC LIMIT ?",
@@ -2456,6 +2447,7 @@ class EngineDAO(ConfigurationDAO):
                 res.created_on,
                 res.completed_on,
                 res.description,
+                res.planned_items,
             )
             if res
             else None
@@ -2474,8 +2466,8 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             cursor = con.cursor()
             cursor.execute(
-                "INSERT INTO Sessions (remote_path, remote_ref, total, status, engine, description) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT INTO Sessions (remote_path, remote_ref, total, status, engine, description, planned_items) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
                     remote_path,
                     remote_ref,
@@ -2483,6 +2475,7 @@ class EngineDAO(ConfigurationDAO):
                     TransferStatus.ONGOING.value,
                     engine_uid,
                     description,
+                    total,
                 ),
             )
             self.sessionUpdated.emit()
@@ -2544,7 +2537,11 @@ class EngineDAO(ConfigurationDAO):
             session.total_items = max(0, session.total_items - 1)
             completed_on = session.completed_on or "null"
             if session.uploaded_items == session.total_items:
-                session.status = TransferStatus.DONE
+                session.status = (
+                    TransferStatus.DONE
+                    if session.total_items
+                    else TransferStatus.CANCELLED
+                )
                 completed_on = "CURRENT_TIMESTAMP"
             # We have to use f-strings here as CURRENT_TIMESTAMP is a function and must not be interpreted as a string.
             cursor.execute(
@@ -2553,6 +2550,21 @@ class EngineDAO(ConfigurationDAO):
             )
             self.sessionUpdated.emit()
             return session
+
+    def decrease_session_planned_items(self, uid: int) -> None:
+        """Decrease the Session *planned_items* count."""
+        with self.lock:
+            con = self._get_write_connection()
+            cursor = con.cursor()
+            session = self.get_session(uid)
+            if not session:
+                return None
+
+            session.planned_items = max(0, session.planned_items - 1)
+            cursor.execute(
+                "UPDATE Sessions SET planned_items = ? WHERE uid = ?",
+                (session.planned_items, session.uid),
+            )
 
     def get_downloads_with_status(self, status: TransferStatus) -> List[Download]:
         return [d for d in self.get_downloads() if d.status == status]

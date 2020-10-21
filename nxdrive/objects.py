@@ -494,3 +494,4 @@ class Session:
     created_on: str
     completed_on: str
     description: str
+    planned_items: int
