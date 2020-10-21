@@ -380,3 +380,4 @@ def test_migration_db_v16(engine_dao):
         assert session.engine
         assert not session.completed_on
         assert session.created_on
+        assert session.planned_items == 1
