@@ -580,8 +580,8 @@ class Application(QApplication):
         msg = self.question(
             Translator.get("DRIVE_ROOT_MOVED_HEADER"),
             Translator.get("DRIVE_ROOT_MOVED", info),
+            icon=QMessageBox.Critical,
         )
-        msg.setIcon(QMessageBox.Critical)
         move = msg.addButton(Translator.get("DRIVE_ROOT_MOVE"), QMessageBox.AcceptRole)
         recreate = msg.addButton(
             Translator.get("DRIVE_ROOT_RECREATE"), QMessageBox.AcceptRole
