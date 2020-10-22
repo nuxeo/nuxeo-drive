@@ -2737,17 +2737,14 @@ class EngineDAO(ConfigurationDAO):
 
     def pause_session(self, uid: int) -> None:
         """Pause all transfers for given session."""
-        session_uploads = self.get_session_uploads(uid)
-        if not session_uploads:
-            return
-        for upload in session_uploads:
-            self.pause_transfer(
-                "Upload",
-                upload["uid"],
-                upload["progress"],
-                is_direct_transfer=True,
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "UPDATE Uploads SET status = ? WHERE doc_pair IN (SELECT id FROM States WHERE Session = ?)",
+                (TransferStatus.PAUSED.value, uid),
             )
-        self.change_session_status(uid, TransferStatus.PAUSED)
+            self.change_session_status(uid, TransferStatus.PAUSED)
+            self.directTransferUpdated.emit()
 
     def set_transfer_doc(
         self, nature: str, transfer_uid: int, engine_uid: str, doc_pair_uid: int
