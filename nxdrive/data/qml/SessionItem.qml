@@ -81,7 +81,7 @@ Rectangle {
                             color: darkGray
                         }
                         ScaledText {
-                            text: active ? created_on : completed_on
+                            text: (active ? created_on : completed_on) + tl.tr
                             color: darkGray
                         }
                     }
