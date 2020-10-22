@@ -758,13 +758,19 @@ class Engine(QObject):
         except OSError:
             log.exception("Download folder removal error")
 
-        try:
-            self._get_db_file().unlink()
-        except FileNotFoundError:
-            # File already removed
-            pass
-        except OSError:
-            log.exception("Database removal error")
+        main_db = self._get_db_file()
+        for file in (
+            main_db,
+            main_db.with_suffix(".db-shm"),
+            main_db.with_suffix(".db-wal"),
+        ):
+            try:
+                file.unlink()
+            except FileNotFoundError:
+                # File already removed
+                pass
+            except OSError:
+                log.exception("Database removal error")
 
     def check_fs_marker(self) -> bool:
         tag, tag_value = "drive-fs-test", b"NXDRIVE_VERIFICATION"
