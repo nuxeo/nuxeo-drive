@@ -1,7 +1,6 @@
 {
     "ABOUT": "Acerca de",
     "ACCOUNT_NAME": "Nombre de cuenta",
-    "ACTIVE_SESSIONS": "Sesiones activas",
     "ADD": "Añadir",
     "ADD_FILES": "Añadir archivos",
     "ADD_FOLDER": "Añadir una carpeta",
@@ -168,6 +167,7 @@
     "FOLDER_USED": "Otra cuenta de Nuxeo Drive ya ha utilizado la carpeta",
     "FREE_DISK_SPACE": "Espacio libre en disco",
     "HELP": "Ayuda",
+    "HISTORY": "History",
     "HOST": "Host",
     "HOURS_AGO": "Hace %1 horas",
     "IGNORES_SYSTRAY": "Archivos ignorados (%1)",
@@ -284,6 +284,7 @@
     "RESUME": "Reanudar",
     "ROOT_USED_WITH_OTHER_BINDING": "Esta carpeta la ha utilizado %1, su contenido se eliminará. ¿Desea continuar? Si no es así, haga clic en Cancelar y elija otra carpeta.",
     "ROOT_USED_WITH_OTHER_BINDING_HEADER": "Una carpeta ya en uso ha sido detectada.",
+    "RUNNING": "Running",
     "RUNNING_FROM_WRONG_PATH": "Estás ejecutando esta aplicación desde \"%1\". Sin embargo, para que todas las funciones se ejecuten normalmente, la aplicación debe llamarse \"%2\" y estar ubicada en el directorio \"/$HOME/Aplicaciones\".",
     "SCRIPT_ADDR": "Dirección del script",
     "SECTION_ABOUT": "Acerca de",

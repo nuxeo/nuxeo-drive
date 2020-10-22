@@ -1,7 +1,6 @@
 {
     "ABOUT": "概要",
     "ACCOUNT_NAME": "アカウント名",
-    "ACTIVE_SESSIONS": "アクティブなセッション",
     "ADD": "追加",
     "ADD_FILES": "ファイルを追加",
     "ADD_FOLDER": "新規フォルダ",
@@ -168,6 +167,7 @@
     "FOLDER_USED": "別のNuxeo Driveアカウントによって使用されているフォルダ",
     "FREE_DISK_SPACE": "空きディスク容量",
     "HELP": "ヘルプ",
+    "HISTORY": "History",
     "HOST": "ホスト",
     "HOURS_AGO": "%1時間前",
     "IGNORES_SYSTRAY": "無視されたファイル（%1）",
@@ -284,6 +284,7 @@
     "RESUME": "再開",
     "ROOT_USED_WITH_OTHER_BINDING": "このフォルダは%1が使用していました。フォルダの内容は削除されます。続けますか？「いいえ」の場合、「キャンセル」をクリックして、別のフォルダを選択してください。",
     "ROOT_USED_WITH_OTHER_BINDING_HEADER": "A folder already in use has been detected.",
+    "RUNNING": "Running",
     "RUNNING_FROM_WRONG_PATH": "このアプリは \"%1\" から実行しています。ただし、すべての機能を正常に実行するには、アプリケーションに \"%2\" という名前を付け、„/Applications“ ディレクトリに配置する必要があります。\n",
     "SCRIPT_ADDR": "スクリプトのアドレス",
     "SECTION_ABOUT": "概要",

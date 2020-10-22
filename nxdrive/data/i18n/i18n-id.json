@@ -1,7 +1,6 @@
 {
     "ABOUT": "Tentang",
     "ACCOUNT_NAME": "Account name",
-    "ACTIVE_SESSIONS": "Active sessions",
     "ADD": "Add",
     "ADD_FILES": "Add files",
     "ADD_FOLDER": "Add a folder",
@@ -168,6 +167,7 @@
     "FOLDER_USED": "Folder sudah digunakan oleh akun yang lain",
     "FREE_DISK_SPACE": "Free disk space",
     "HELP": "Bantuan",
+    "HISTORY": "History",
     "HOST": "Tuan rumah",
     "HOURS_AGO": "%1 beberapa jam yang lalu",
     "IGNORES_SYSTRAY": "Berkas yang Diabaikan (%1)",
@@ -284,6 +284,7 @@
     "RESUME": "Lanjut",
     "ROOT_USED_WITH_OTHER_BINDING": "Folder ini telah digunakan oleh %1, isinya akan dihapus. Apakah anda ingin melanjutkan? Jika tidak, klik Batal dan pilih folder lain.",
     "ROOT_USED_WITH_OTHER_BINDING_HEADER": "A folder already in use has been detected.",
+    "RUNNING": "Running",
     "RUNNING_FROM_WRONG_PATH": "You are running this app from \"%1\". However, for all features to run normally, the application must be named \"%2\" and located in the \"/$HOME/Applications\" directory.",
     "SCRIPT_ADDR": "Alamat skrip",
     "SECTION_ABOUT": "Tentang",

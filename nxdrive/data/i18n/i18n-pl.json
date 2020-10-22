@@ -1,7 +1,6 @@
 {
     "ABOUT": "O aplikacji",
     "ACCOUNT_NAME": "Nazwa konta",
-    "ACTIVE_SESSIONS": "Active sessions",
     "ADD": "Dodaj",
     "ADD_FILES": "Dodaj pliki",
     "ADD_FOLDER": "Dodaj folder",
@@ -168,6 +167,7 @@
     "FOLDER_USED": "Folder jest już używany przez inne konto",
     "FREE_DISK_SPACE": "Wolne miejsce na dysku",
     "HELP": "Pomoc",
+    "HISTORY": "History",
     "HOST": "Host",
     "HOURS_AGO": "%1 godzin temu",
     "IGNORES_SYSTRAY": "Ignorowane pliki (%1)",
@@ -284,6 +284,7 @@
     "RESUME": "Wznów",
     "ROOT_USED_WITH_OTHER_BINDING": "Ten folder był używany przez %1, jego zawartość zostanie usunięta. Czy chcesz kontynuować? Jeśli nie, kliknij przycisk Anuluj i wybierz inny folder.",
     "ROOT_USED_WITH_OTHER_BINDING_HEADER": "A folder already in use has been detected.",
+    "RUNNING": "Running",
     "RUNNING_FROM_WRONG_PATH": "Używasz tej aplikacji z \"%1\". Jednakże, aby wszystkie funkcje działały normalnie, aplikacja musi być nazwana \"%2\" i zlokalizowana w katalogu \"/$HOME/Applications\".",
     "SCRIPT_ADDR": "Adres skryptu",
     "SECTION_ABOUT": "O aplikacji",
