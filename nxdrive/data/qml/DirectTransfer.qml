@@ -83,14 +83,14 @@ Rectangle {
         anchors.top: buttonzone.bottom
 
         SettingsTab {
-            text: qsTr("ACTIVE_SESSIONS") + tl.tr
+            text: qsTr("RUNNING") + tl.tr
             barIndex: bar.currentIndex;
             index: 0
             anchors.top: parent.top
         }
 
         SettingsTab {
-            text: qsTr("COMPLETED") + tl.tr
+            text: qsTr("HISTORY") + tl.tr
             barIndex: bar.currentIndex;
             index: 1
             anchors.top: parent.top
