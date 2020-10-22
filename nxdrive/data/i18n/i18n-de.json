@@ -1,7 +1,6 @@
 {
     "ABOUT": "Über",
     "ACCOUNT_NAME": "Account Name",
-    "ACTIVE_SESSIONS": "Aktive Sitzungen",
     "ADD": "Hinzufügen",
     "ADD_FILES": "Dateien hinzufügen",
     "ADD_FOLDER": "Neuer Ordner",
@@ -168,6 +167,7 @@
     "FOLDER_USED": "Ordner wird schon von einem anderen Nuxeo Drive-Konto verwendet",
     "FREE_DISK_SPACE": "Freier Festplattenspeicher",
     "HELP": "Hilfe",
+    "HISTORY": "History",
     "HOST": "Host",
     "HOURS_AGO": "Vor %1 Stunden",
     "IGNORES_SYSTRAY": "Ignorierte Dateien (%1)",
@@ -284,6 +284,7 @@
     "RESUME": "Fortsetzen",
     "ROOT_USED_WITH_OTHER_BINDING": "Dieser Ordner wurde von %1 verwendet, die Inhalte werden gelöscht. Möchten Sie fortfahren? Falls nicht, klicken Sie auf „Abbrechen“ und wählen Sie einen anderen Ordner aus.",
     "ROOT_USED_WITH_OTHER_BINDING_HEADER": "A folder already in use has been detected.",
+    "RUNNING": "Running",
     "RUNNING_FROM_WRONG_PATH": "Sie verwenden diese App unter \"%1\". Damit jedoch alle Funktionen normal laufen können, muss die Anwendung \"%2\" heißen und sich im Verzeichnis \"/$HOME/Applications\" befinden.",
     "SCRIPT_ADDR": "Skriptadresse",
     "SECTION_ABOUT": "Über",

@@ -1,7 +1,6 @@
 {
     "ABOUT": "Honi buruz",
     "ACCOUNT_NAME": "Kontu-izena",
-    "ACTIVE_SESSIONS": "Active sessions",
     "ADD": "Gehitu",
     "ADD_FILES": "Gehitu fitxategiak",
     "ADD_FOLDER": "Gehitu karpeta",
@@ -168,6 +167,7 @@
     "FOLDER_USED": "Karpeta dagoeneko beste kontu batek darabil",
     "FREE_DISK_SPACE": "Diskoko leku librea",
     "HELP": "Laguntza",
+    "HISTORY": "History",
     "HOST": "Ostalaria",
     "HOURS_AGO": "orain %1 ordu",
     "IGNORES_SYSTRAY": "Fitxategi ezikusiak (%1)",
@@ -284,6 +284,7 @@
     "RESUME": "Berrekin",
     "ROOT_USED_WITH_OTHER_BINDING": "Karpeta hau %1(e)k erabili du, bertako edukia ezabatuko da. Jarraitu nahi duzu? Hala ez bada, egin klik Utzi botoian eta hautatu beste karpeta bat.",
     "ROOT_USED_WITH_OTHER_BINDING_HEADER": "A folder already in use has been detected.",
+    "RUNNING": "Running",
     "RUNNING_FROM_WRONG_PATH": "Aplikazioa \"%1\"(e)tik exekutatzen ari zara. Baina, eginbide guztiek behar bezala funtzionatzeko, aplikazioaren izena \"%2\" izan eta \"/$HOME/Applications\" direktorioan egon behar da.",
     "SCRIPT_ADDR": "Scriptaren helbidea",
     "SECTION_ABOUT": "Honi buruz",

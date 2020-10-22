@@ -1,7 +1,6 @@
 {
     "ABOUT": "Om",
     "ACCOUNT_NAME": "Kontonamn",
-    "ACTIVE_SESSIONS": "Aktiva sessioner",
     "ADD": "Lägg till",
     "ADD_FILES": "Lägg till filer",
     "ADD_FOLDER": "Lägg till mapp",
@@ -168,6 +167,7 @@
     "FOLDER_USED": "Mappen används redan av ett annat Nuxeo Drive-konto",
     "FREE_DISK_SPACE": "Ledigt diskutrymme",
     "HELP": "Hjälp",
+    "HISTORY": "History",
     "HOST": "Värd",
     "HOURS_AGO": "%1 timmar sedan",
     "IGNORES_SYSTRAY": "Ignorerade filer (%1)",
@@ -284,6 +284,7 @@
     "RESUME": "Återuppta",
     "ROOT_USED_WITH_OTHER_BINDING": "Den här mappen har använts av %1; innehållet kommer att raderas. Vill du fortsätta? Om du inte vill det klickar du på Avbryt och väljer en annan mapp.",
     "ROOT_USED_WITH_OTHER_BINDING_HEADER": "A folder already in use has been detected.",
+    "RUNNING": "Running",
     "RUNNING_FROM_WRONG_PATH": "Du kör denna app från \"%1\". Men för att alla funktioner ska kunna köras normalt måste programmet heta \"%2\" och ligga i katalogen \"/$HOME/Applications\".",
     "SCRIPT_ADDR": "Skriptadress",
     "SECTION_ABOUT": "Om",
