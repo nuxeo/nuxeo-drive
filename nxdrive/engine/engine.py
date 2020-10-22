@@ -743,7 +743,7 @@ class Engine(QObject):
         except CONNECTION_ERROR:
             log.warning("Unable to revoke the token", exc_info=True)
         except Exception:
-            log.exception("Unbind error")
+            log.warning("Unbind error", exc_info=True)
 
         self.manager.osi.unwatch_folder(self.local_folder)
         self.manager.osi.unregister_folder_link(self.local_folder)
@@ -756,7 +756,7 @@ class Engine(QObject):
             # Folder already removed
             pass
         except OSError:
-            log.exception("Download folder removal error")
+            log.warning("Download folder removal error", exc_info=True)
 
         main_db = self._get_db_file()
         for file in (
@@ -770,7 +770,7 @@ class Engine(QObject):
                 # File already removed
                 pass
             except OSError:
-                log.exception("Database removal error")
+                log.warning("Database removal error", exc_info=True)
 
     def check_fs_marker(self) -> bool:
         tag, tag_value = "drive-fs-test", b"NXDRIVE_VERIFICATION"
