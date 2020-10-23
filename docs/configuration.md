@@ -124,7 +124,6 @@ Size of the chunks in MiB. Has to be above 0 and lower or equal to 5120 (5 GiB).
 
 Activate the upload in chunks for files bigger than [chunk-limit](#chunk-limit).
 
-`
 - Default value (bool): `True`
 - Version added: 4.1.2
 
