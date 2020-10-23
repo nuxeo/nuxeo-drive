@@ -540,9 +540,11 @@ def validate_chunk_limit(value: int) -> int:
 
 
 def validate_chunk_size(value: int) -> int:
-    if 0 < value <= 20:
+    if 0 < value <= 1024 * 5:
         return value
-    raise ValueError(f"Chunk size must be between 1 and 20 MiB (got {value!r})")
+    raise ValueError(
+        f"Chunk size must be between 1 MiB and 5120 MiB [5 GiB] (got {value!r})"
+    )
 
 
 def validate_client_version(value: str) -> str:

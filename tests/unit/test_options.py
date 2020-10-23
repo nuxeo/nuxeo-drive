@@ -274,7 +274,11 @@ def test_str_utf8():
 @Options.mock()
 @pytest.mark.parametrize(
     "option, a_bad_value, a_good_value",
-    [("chunk_limit", -42, 42), ("chunk_size", 42, 16), ("tmp_file_limit", -42.0, 42.0)],
+    [
+        ("chunk_limit", -42, 42),
+        ("chunk_size", 1024 * 5 + 1, 16),
+        ("tmp_file_limit", -42.0, 42.0),
+    ],
 )
 def test_validator(option, a_bad_value, a_good_value):
     # Setting a bad value is a no-op

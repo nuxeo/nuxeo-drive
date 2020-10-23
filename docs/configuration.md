@@ -112,10 +112,11 @@ Has to be above 0.
 
 #### `chunk-size`
 
-Size of the chunks in MiB. Has to be above 0 and lower or equal to 20.
+Size of the chunks in MiB. Has to be above 0 and lower or equal to 5120 (5 GiB).
 
 - Default value (int): `20`
 - Version added: 4.1.2
+- Version changed: 4.4.6, bumped the upper limit from `20` to `5120`
 
 * * *
 
