@@ -50,7 +50,7 @@ virtualenv==20.0.35 \
     --hash=sha256:0ebc633426d7468664067309842c81edab11ae97fcaf27e8ad7f5748c89b431b \
     --hash=sha256:2a72c80fa2ad8f4e2985c06e6fc12c3d60d060e410572f553c90619b0f6efaf3
     # via tox
-zipp==3.3.1 \
-    --hash=sha256:16522f69653f0d67be90e8baa4a46d66389145b734345d68a257da53df670903 \
-    --hash=sha256:c1532a8030c32fd52ff6a288d855fe7adef5823ba1d26a29a68fd6314aa72baa
+zipp==3.3.2 \
+    --hash=sha256:50a4ef266c31c9409627b46012e206382eb8d23f46fbd358065a8335cfbf7d8f \
+    --hash=sha256:adf8f2ed8f614ced567d849cae9d183cef6cfd27c77a5cae7a28029be0c2b7a7
     # via importlib-metadata
