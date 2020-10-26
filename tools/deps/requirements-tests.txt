@@ -93,9 +93,9 @@ importlib-metadata==2.0.0 \
 iniconfig==1.1.1 \
     --hash=sha256:bc3af051d7d14b2ee5ef9969666def0cd1a000e121eaea580d4a313df4b37f32
     # via pytest
-junitparser==1.4.2 \
-    --hash=sha256:2d1534e9477db6bf347eb6190e2b4384d1f5bd0c5292bb45de1cd191f7cf2174 \
-    --hash=sha256:c28cfbff38f7a6adf5b1ac556762a2ae5e66db03b8191e062ea32e2fe996d2da
+junitparser==1.5.0 \
+    --hash=sha256:65d733703279fba4ba3ae818fa7057c4fb887be7da4bbeecc0e370b5038caeaf \
+    --hash=sha256:0bd10ac715de9c81ea4451dc4b088caecffe05b9fdb9f65b90a6b494f334e341
 mccabe==0.6.1 \
     --hash=sha256:ab8a6258860da4b6677da4bd2fe5dc2c659cff31b3ee4f7f5d64e79735b80d42
     # via flake8
