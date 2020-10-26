@@ -17,7 +17,7 @@ from ...constants import TX_TIMEOUT, TransferStatus
 from ...engine.activity import LinkingAction, UploadAction
 from ...exceptions import UploadPaused
 from ...feature import Feature
-from ...objects import Upload
+from ...objects import Session, Upload
 from ...options import Options
 
 if TYPE_CHECKING:
@@ -101,7 +101,7 @@ class BaseUploader:
             transfer = Upload(
                 None,
                 file_path,
-                TransferStatus.ONGOING,
+                self._get_upload_status(kwargs.get("session", None)),
                 batch=batch.as_dict(),
                 chunk_size=Options.chunk_size * 1024 * 1024,
                 engine=kwargs.get("engine_uid", None),
@@ -126,6 +126,13 @@ class BaseUploader:
 
         transfer.batch_obj = batch
         return transfer
+
+    def _get_upload_status(self, session: Optional[Session]) -> TransferStatus:
+        """Return the upload status based on the current session status."""
+        upload_status = TransferStatus.ONGOING
+        if session and session.status is TransferStatus.PAUSED:
+            upload_status = TransferStatus.PAUSED
+        return upload_status
 
     def _set_transfer_status(self, transfer: Upload, status: TransferStatus) -> None:
         """Set and save the transfer status."""
@@ -168,6 +175,7 @@ class BaseUploader:
 
         # Step 0.5: retrieve or instantiate a new transfer
         transfer = self._get_transfer(file_path, blob, **kwargs)
+        self._handle_session_status(kwargs.pop("session", None), transfer)
 
         # Step 0.75: delete superfluous arguments that would raise a BadQuery error later
         kwargs.pop("doc_pair", None),
@@ -206,6 +214,13 @@ class BaseUploader:
             )
 
         return doc
+
+    def _handle_session_status(
+        self, session: Optional[Session], transfer: Upload
+    ) -> None:
+        """Raise an exception if the session is PAUSED."""
+        if session and session.status is TransferStatus.PAUSED:
+            raise UploadPaused(transfer.uid or -1)
 
     def upload_chunks(self, transfer: Upload, blob: FileBlob) -> None:
         """Upload a blob by chunks or in one go."""

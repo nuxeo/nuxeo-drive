@@ -100,6 +100,7 @@ class DirectTransferUploader(BaseUploader):
                 remote_parent_path=doc_pair.remote_parent_path,
                 remote_parent_ref=doc_pair.remote_parent_ref,
                 doc_pair=doc_pair.id,
+                session=kwargs["session"],
             )
 
         return item

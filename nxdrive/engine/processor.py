@@ -508,12 +508,15 @@ class Processor(EngineWorker):
             self.engine.directTranferError.emit(path)
             return
 
+        session = self.dao.get_session(doc_pair.session)
+
         # Do the upload
         self.remote.upload(
             path,
             engine_uid=self.engine.uid,
             uploader=DirectTransferUploader,
             doc_pair=doc_pair,
+            session=session,
         )
 
         self._direct_transfer_end(doc_pair)
