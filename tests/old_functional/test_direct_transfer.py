@@ -920,11 +920,6 @@ class DirectTransferFolder:
 
         # There is no upload, right now
         assert not list(engine.dao.get_dt_uploads())
-        expression = re.compile(
-            r"<LogRecord: nxdrive\.notification, .*, .*, .*, "
-            r"\"Sending Notification\(level='info' title='Direct Transfer'"
-            r" uid='DIRECT_TRANSFER_SESSION_END.*' unique=False\)\">"
-        )
 
         def callback(*_):
             """This will mimic what is done in SessionItem.qml."""
@@ -971,22 +966,16 @@ class DirectTransferFolder:
                 assert session.status == TransferStatus.PAUSED
 
         engine.cancel_session(1)
-        with self._caplog.at_level(logging.INFO):
-            self.wait_sync(wait_for_async=True)
+        self.wait_sync(wait_for_async=True)
 
-            sessions = engine.dao.get_completed_sessions_raw()
-            assert sessions
-            assert len(sessions) == 1
-            session = sessions[0]
-            assert session["status"] == TransferStatus.CANCELLED
+        sessions = engine.dao.get_completed_sessions_raw()
+        assert sessions
+        assert len(sessions) == 1
+        session = sessions[0]
+        assert session["status"] == TransferStatus.CANCELLED
 
-            uploads = list(engine.dao.get_dt_uploads())
-            assert not uploads
-
-            # A new Notification logs should appear at each iteration
-            records = map(str, self._caplog.records)
-            matches = list(filter(expression.match, records))
-            assert len(matches) == 1
+        uploads = list(engine.dao.get_dt_uploads())
+        assert not uploads
 
     def test_pause_resume_session_non_chunked(self):
         """

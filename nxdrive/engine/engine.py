@@ -653,9 +653,7 @@ class Engine(QObject):
     def resume_session(self, uid: int) -> None:
         """Resume all transfers for given session."""
         self.dao.change_session_status(uid, TransferStatus.ONGOING)
-        session_uploads = self.dao.get_session_uploads(uid)
-        for upload in session_uploads:
-            self.resume_transfer("Upload", upload["uid"], is_direct_transfer=True)
+        self.dao.resume_session(uid)
 
     def _manage_staled_transfers(self) -> None:
         """
@@ -713,12 +711,14 @@ class Engine(QObject):
 
     def cancel_session(self, uid: int) -> None:
         """Cancel all transfers for given session."""
-        session_uploads = self.dao.get_session_uploads(uid)
-        if not session_uploads:
-            return
-        for upload in session_uploads:
-            self.cancel_upload(upload["uid"])
         self.dao.change_session_status(uid, TransferStatus.CANCELLED)
+        self.dao.cancel_session(uid)
+        # We could cancel all batches, but in reality it would freeze the GUI.
+        # Cancelling a session with a lot of items is worthless the use of a specific thread
+        # to do the clean-up ourselves. Let the server doing it for us. We will be able to
+        # tackle a possible issue in time.
+        # for batch in self.dao.cancel_session(uid):
+        #     self.remote.cancel_batch(batch)
 
     def suspend(self) -> None:
         if self._pause:
