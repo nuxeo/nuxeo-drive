@@ -2356,22 +2356,6 @@ class EngineDAO(ConfigurationDAO):
             ).fetchall()
         ]
 
-    def get_session_uploads(self, session_id: int) -> List[Dict[str, Any]]:
-        """
-        Return all active Direct Transfer sessions.
-        Return a simple dict to improve GUI performances.
-        """
-        con = self._get_read_connection()
-        c = con.cursor()
-        return [
-            {"uid": res.uid, "progress": res.progress}
-            for res in c.execute(
-                "SELECT uid, progress FROM Uploads u"
-                " INNER JOIN States s ON u.doc_pair = s.id AND s.session = ?",
-                (session_id,),
-            ).fetchall()
-        ]
-
     def get_active_sessions_raw(self) -> List[Dict[str, Any]]:
         """
         Return all active Direct Transfer sessions.
@@ -2735,16 +2719,66 @@ class EngineDAO(ConfigurationDAO):
             else:
                 self.transferUpdated.emit()
 
-    def pause_session(self, uid: int) -> None:
-        """Pause all transfers for given session."""
+    def resume_session(self, uid: int) -> None:
+        """Resume all transfers for given session."""
         with self.lock:
             c = self._get_write_connection().cursor()
             c.execute(
                 "UPDATE Uploads SET status = ? WHERE doc_pair IN (SELECT id FROM States WHERE Session = ?)",
+                (TransferStatus.ONGOING.value, uid),
+            )
+
+            if self.queue_manager:
+                rows = c.execute(
+                    "SELECT * FROM States WHERE id IN"
+                    " (SELECT doc_pair FROM Uploads WHERE doc_pair IN (SELECT id FROM States WHERE Session = ?))",
+                    (uid,),
+                ).fetchall()
+                for doc_pair in rows:
+                    self.queue_manager.push(doc_pair)
+            self.directTransferUpdated.emit()
+
+    def pause_session(self, uid: int) -> None:
+        """Pause all transfers for given session."""
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            self.change_session_status(uid, TransferStatus.PAUSED)
+            c.execute(
+                "UPDATE Uploads SET status = ? WHERE doc_pair IN (SELECT id FROM States WHERE Session = ?)",
                 (TransferStatus.PAUSED.value, uid),
             )
-            self.change_session_status(uid, TransferStatus.PAUSED)
             self.directTransferUpdated.emit()
+
+    def cancel_session(self, uid: int) -> List[Dict[str, Any]]:
+        """
+        Cancel all transfers for given session.
+        Return the list of impacted batches to be able to cancel them later.
+        """
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            batchs = [
+                json.loads(res.batch)
+                for res in c.execute(
+                    "SELECT * FROM Uploads WHERE doc_pair IN (SELECT id FROM States WHERE Session = ?)",
+                    (uid,),
+                ).fetchall()
+            ]
+            c.execute(
+                "DELETE FROM Uploads WHERE doc_pair IN (SELECT id FROM States WHERE Session = ?)",
+                (uid,),
+            )
+            c.execute("DELETE FROM States WHERE Session = ?", (uid,))
+            c.execute(
+                "UPDATE Sessions SET total = uploaded, status = ? ,"
+                " completed_on = CURRENT_TIMESTAMP WHERE uid = ?",
+                (
+                    TransferStatus.CANCELLED.value,
+                    uid,
+                ),
+            )
+            self.directTransferUpdated.emit()
+            self.sessionUpdated.emit()
+            return batchs
 
     def set_transfer_doc(
         self, nature: str, transfer_uid: int, engine_uid: str, doc_pair_uid: int
