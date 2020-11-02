@@ -15,9 +15,9 @@ from PyQt5.QtWidgets import QApplication
 
 from ...constants import TX_TIMEOUT, TransferStatus
 from ...engine.activity import LinkingAction, UploadAction
-from ...exceptions import UploadPaused
+from ...exceptions import UploadCancelled, UploadPaused
 from ...feature import Feature
-from ...objects import Session, Upload
+from ...objects import Upload
 from ...options import Options
 
 if TYPE_CHECKING:
@@ -101,7 +101,7 @@ class BaseUploader:
             transfer = Upload(
                 None,
                 file_path,
-                self._get_upload_status(kwargs.get("session", None)),
+                TransferStatus.ONGOING,
                 batch=batch.as_dict(),
                 chunk_size=Options.chunk_size * 1024 * 1024,
                 engine=kwargs.get("engine_uid", None),
@@ -113,7 +113,10 @@ class BaseUploader:
                 doc_pair=kwargs.pop("doc_pair", None),
             )
             log.debug(f"Instantiated transfer {transfer}")
-            self.dao.save_upload(transfer)
+            if transfer.is_direct_transfer:
+                self.dao.save_dt_upload(transfer)
+            else:
+                self.dao.save_upload(transfer)
         elif transfer.batch["batchId"] != batch.uid:
             # The upload was not a fresh one but its batch ID was perimed.
             # Before NXDRIVE-2183, the batch ID was not updated and so the second step
@@ -126,13 +129,6 @@ class BaseUploader:
 
         transfer.batch_obj = batch
         return transfer
-
-    def _get_upload_status(self, session: Optional[Session]) -> TransferStatus:
-        """Return the upload status based on the current session status."""
-        upload_status = TransferStatus.ONGOING
-        if session and session.status is TransferStatus.PAUSED:
-            upload_status = TransferStatus.PAUSED
-        return upload_status
 
     def _set_transfer_status(self, transfer: Upload, status: TransferStatus) -> None:
         """Set and save the transfer status."""
@@ -175,7 +171,7 @@ class BaseUploader:
 
         # Step 0.5: retrieve or instantiate a new transfer
         transfer = self._get_transfer(file_path, blob, **kwargs)
-        self._handle_session_status(kwargs.pop("session", None), transfer)
+        self._handle_transfer_status(transfer)
 
         # Step 0.75: delete superfluous arguments that would raise a BadQuery error later
         kwargs.pop("doc_pair", None),
@@ -215,12 +211,13 @@ class BaseUploader:
 
         return doc
 
-    def _handle_session_status(
-        self, session: Optional[Session], transfer: Upload
-    ) -> None:
-        """Raise an exception if the session is PAUSED."""
-        if session and session.status is TransferStatus.PAUSED:
+    def _handle_transfer_status(self, transfer: Upload) -> None:
+        """Raise an exception if the transfer is PAUSED or CANCELLED"""
+        if transfer.status is TransferStatus.PAUSED:
             raise UploadPaused(transfer.uid or -1)
+        elif transfer.status is TransferStatus.CANCELLED:
+            self.dao.remove_transfer("upload", transfer.path, is_direct_transfer=True)
+            raise UploadCancelled(transfer.uid or -1)
 
     def upload_chunks(self, transfer: Upload, blob: FileBlob) -> None:
         """Upload a blob by chunks or in one go."""

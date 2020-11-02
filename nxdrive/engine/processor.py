@@ -40,9 +40,10 @@ from ..exceptions import (
     ParentNotSynced,
     ThreadInterrupt,
     UnknownDigest,
+    UploadCancelled,
     UploadPaused,
 )
-from ..objects import DocPair, RemoteFileInfo, Session
+from ..objects import DocPair, RemoteFileInfo
 from ..utils import is_generated_tmp_file, lock_path, safe_filename, unlock_path
 from .workers import EngineWorker
 
@@ -367,6 +368,8 @@ class Processor(EngineWorker):
                 self.engine.dao.set_transfer_doc(
                     nature, exc.transfer_id, self.engine.uid, doc_pair.id
                 )
+            except UploadCancelled as exc:
+                log.debug(f"Cancelled upload {exc.transfer_id!r}")
             except DuplicationDisabledError:
                 self.giveup_error(doc_pair, "DEDUP")
             except CorruptedFile as exc:
@@ -508,28 +511,24 @@ class Processor(EngineWorker):
             self.engine.directTranferError.emit(path)
             return
 
-        session = self.dao.get_session(doc_pair.session)
-
         # Do the upload
         self.remote.upload(
             path,
             engine_uid=self.engine.uid,
             uploader=DirectTransferUploader,
             doc_pair=doc_pair,
-            session=session,
         )
 
-        self._direct_transfer_end(doc_pair)
+        self._direct_transfer_end(doc_pair, cancelled_transfer=False)
 
     def _direct_transfer_cancel(self, doc_pair: DocPair) -> None:
         """Actions to do to cancel a Direct Transfer."""
-        session = self.dao.decrease_session_total(doc_pair.session)
-        self._direct_transfer_end(doc_pair, session=session, recursive=True)
+        self._direct_transfer_end(doc_pair, cancelled_transfer=True, recursive=True)
 
     def _direct_transfer_end(
         self,
         doc_pair: DocPair,
-        session: Optional[Session] = None,
+        cancelled_transfer: bool,
         recursive: bool = False,
     ) -> None:
         """Actions to do to at the end of a Direct Transfer."""
@@ -542,9 +541,16 @@ class Processor(EngineWorker):
         self.dao.remove_state(doc_pair, recursive=recursive)
 
         # Update session then handle the status
-        if not session:
-            session = self.dao.update_session(doc_pair.session)
-        self.engine.handle_session_status(session)
+        session = self.dao.get_session(doc_pair.session)
+        if session:
+            if (
+                not cancelled_transfer
+                and session.status is not TransferStatus.CANCELLED
+            ):
+                session = self.dao.update_session(doc_pair.session)
+            elif cancelled_transfer:
+                session = self.dao.decrease_session_total(doc_pair.session)
+            self.engine.handle_session_status(session)
 
         # For analytics
         self.engine.manager.directTransferStats.emit(doc_pair.folderish, doc_pair.size)

@@ -2667,6 +2667,47 @@ class EngineDAO(ConfigurationDAO):
             else:
                 self.transferUpdated.emit()
 
+    def save_dt_upload(self, upload: Upload) -> None:
+        """
+        New Direct Transfer upload.
+        Will have the same status as it's session.
+        """
+        with self.lock:
+            # Remove non-serializable data, never used elsewhere
+            batch = {k: v for k, v in upload.batch.items() if k != "blobs"}
+
+            values = (
+                upload.path,
+                upload.doc_pair,
+                # Default value if IFNULL is validated, meaning that the linked state has been removed.
+                TransferStatus.CANCELLED.value,
+                upload.engine,
+                upload.is_direct_edit,
+                upload.is_direct_transfer,
+                upload.filesize,
+                json.dumps(batch),
+                upload.chunk_size,
+                upload.remote_parent_path,
+                upload.remote_parent_ref,
+                upload.doc_pair,
+            )
+            c = self._get_write_connection().cursor()
+            sql = (
+                "INSERT INTO Uploads "
+                "(path, status, engine, is_direct_edit, is_direct_transfer, filesize, batch, chunk_size,"
+                " remote_parent_path, remote_parent_ref, doc_pair)"
+                " VALUES (?, IFNULL((SELECT s.status FROM States st INNER JOIN Sessions s ON st.session = s.uid "
+                "AND st.id = ?), ?), ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            )
+            c.execute(sql, values)
+
+            # Important: update the upload UID and status attr
+            upload.uid = int(c.execute("SELECT last_insert_rowid()").fetchone()[0])
+            res = self.get_dt_upload(uid=upload.uid)
+            # Upload may be deleted right after creation by session cancel.
+            upload.status = res.status if res else TransferStatus.CANCELLED
+            self.directTransferUpdated.emit()
+
     def update_upload(self, upload: Upload) -> None:
         """Update a upload."""
         with self.lock:
