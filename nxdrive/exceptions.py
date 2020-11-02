@@ -139,6 +139,13 @@ class StartupPageConnectionError(DriveError):
     pass
 
 
+class TransferCancelled(DriveError):
+    """ A transfer has been cancelled, the file's processing should stop. """
+
+    def __init__(self, transfer_id: int) -> None:
+        self.transfer_id = transfer_id
+
+
 class TransferPaused(DriveError):
     """ A transfer has been paused, the file's processing should stop. """
 
@@ -154,6 +161,12 @@ class DownloadPaused(TransferPaused):
 
 class UploadPaused(TransferPaused):
     """ An upload has been paused, the file's processing should stop. """
+
+    pass
+
+
+class UploadCancelled(TransferCancelled):
+    """ An upload has been cancelled, the file's processing should stop. """
 
     pass
 

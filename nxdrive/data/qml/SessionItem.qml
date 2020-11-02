@@ -98,14 +98,25 @@ Rectangle {
 
                     // Pause/Resume icon
                     IconLabel {
+                        id: pause_resume_button
                         icon: paused ? MdiFont.Icon.play : MdiFont.Icon.pause
                         iconColor: nuxeoBlue
                         tooltip: qsTr(paused ? "RESUME" : "SUSPEND") + tl.tr
                         onClicked: {
                             if (paused) {
-                                api.resume_session(engine, uid)
+                                try {
+                                    pause_resume_button.enabled = false
+                                    api.resume_session(engine, uid)
+                                } finally {
+                                    pause_resume_button.enabled = true
+                                }
                             } else {
-                                api.pause_session(engine, uid)
+                                try {
+                                    pause_resume_button.enabled = false
+                                    api.pause_session(engine, uid)
+                                } finally {
+                                    pause_resume_button.enabled = true
+                                }
                             }
                         }
                     }
