@@ -9,7 +9,7 @@ os: linux
 env:
   global:
     - MAKEFLAGS="-j 2"
-    - NXDRIVE_TEST_NUXEO_URL="https://nightly.nuxeo.com/nuxeo"
+    - NXDRIVE_TEST_NUXEO_URL="https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
     # Set to "release" for a beta release
     - RELEASE_TYPE="alpha"
 
