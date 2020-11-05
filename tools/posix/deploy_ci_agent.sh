@@ -106,6 +106,10 @@ check_vars() {
             # Running from Travis-CI
             WORKSPACE="$(dirname "${TRAVIS_BUILD_DIR}")"
             export WORKSPACE
+        elif [ "${GITHUB_WORKSPACE:-unset}" != "unset" ]; then
+            # Running from GitHub Actions
+            WORKSPACE="$(dirname "${GITHUB_WORKSPACE}")"
+            export WORKSPACE
         else
             echo "WORKSPACE not defined. Aborting."
             exit 1
