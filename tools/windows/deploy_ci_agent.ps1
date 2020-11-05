@@ -218,6 +218,9 @@ function check_vars {
 		if ($Env:TRAVIS_BUILD_DIR) {
 			# Running from Travis-CI
 			$Env:WORKSPACE = (Get-Item $Env:TRAVIS_BUILD_DIR).parent.FullName
+		} elseif ($Env:GITHUB_WORKSPACE) {
+			# Running from GitHub Actions
+			$Env:WORKSPACE = (Get-Item $Env:GITHUB_WORKSPACE).parent.FullName
 		} else {
 			Write-Output ">>> WORKSPACE not defined. Aborting."
 			ExitWithCode 1
