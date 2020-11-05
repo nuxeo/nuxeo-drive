@@ -377,7 +377,7 @@ class BaseUploader:
 
         # Set those attributes as FileBlob does not have them
         # and they are required for the step 2 of .upload_impl()
-        blob.batch_id = transfer.batch_obj.uid
+        blob.batchId = transfer.batch_obj.uid
         blob.fileIdx = 0
         transfer.batch_obj.upload_idx = 1
 
