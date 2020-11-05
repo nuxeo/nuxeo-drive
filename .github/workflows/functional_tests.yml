@@ -1,0 +1,103 @@
+name: Functional tests
+
+on:
+  pull_request:
+    paths:
+    - '.github/workflows/functional_tests.yml'
+    - 'nxdrive/**/*.py'
+    - 'tests/functional/*.py'
+
+env:
+  NXDRIVE_TEST_NUXEO_URL: https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo
+
+jobs:
+  ft_linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v1
+      with:
+        python-version: 3.7.9  # XXX_PYTHON
+    - uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+        restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+    - uses: actions/cache@v1
+      with:
+        path: .tox
+        key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+        restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+    - name: Install tox
+      run: python -m pip install -r tools/deps/requirements-tox.txt
+    - name: Functional tests
+      run: tox -e ft
+
+  ft_macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v1
+      with:
+        python-version: 3.7.9  # XXX_PYTHON
+    - uses: actions/cache@v1
+      with:
+        path: ~/Library/Caches/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+        restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+    - uses: actions/cache@v1
+      with:
+        path: .tox
+        key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+        restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+    - name: Install tox
+      run: python -m pip install -r tools/deps/requirements-tox.txt
+    - name: Functional tests
+      run: tox -e ft
+
+  ft_windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v1
+      with:
+        python-version: 3.7.9  # XXX_PYTHON
+    - uses: actions/cache@v1
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+        restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+    # Cannot be used for now: OSError: [WinError 193] %1 is not a valid Win32 application
+    # - uses: actions/cache@v1
+    #  with:
+    #    path: .tox
+    #    key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+    #    restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+    - name: Install tox
+      run: python -m pip install -r tools/deps/requirements-tox.txt
+    - name: Functional tests
+      run: tox -e ft
+
+  cleanup:
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [ft_linux, ft_macos, ft_windows]
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v1
+      with:
+        python-version: 3.7.9  # XXX_PYTHON
+    - uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-clean.txt', 'tools/deps/requirements-tox.txt') }}
+        restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-clean.txt', 'tools/deps/requirements-tox.txt') }}
+    - uses: actions/cache@v1
+      with:
+        path: .tox
+        key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-clean.txt', 'tools/deps/requirements-tox.txt') }}
+        restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-clean.txt', 'tools/deps/requirements-tox.txt') }}
+    - name: Install tox
+      run: python -m pip install -r tools/deps/requirements-tox.txt
+    - name: Clean-up tests data
+      run: tox -e clean
