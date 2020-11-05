@@ -8,7 +8,7 @@ Application._nxdrive_url_env  # Used in QML
 Application.action_progressing  # Used by FileAction.processing signal
 batch.upload_idx  # BaseUploader.upload_chunks()
 BlocklistQueue.repush  # Used in tests
-blob.batch_id  # BaseUploader.upload_chunks()
+blob.batchId  # BaseUploader.upload_chunks()
 blob.fileIdx  # BaseUploader.upload_chunks()
 CliHandler.bind_root  # Used by the arguments parser
 CliHandler.clean_folder  # Used by the arguments parser
