@@ -478,9 +478,6 @@ function launch_tests {
 	}
 
 	if (-not ($Env:SKIP -match 'tests')) {
-		Write-Output ">>> Launching functional tests"
-		launch_test "tests\functional"
-
 		Write-Output ">>> Launching synchronization functional tests, file by file"
 		Write-Output "    (first, run for each test file, failures are ignored to have"
 		Write-Output "     a whole picture of errors)"

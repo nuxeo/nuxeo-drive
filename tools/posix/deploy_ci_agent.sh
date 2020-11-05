@@ -251,9 +251,6 @@ launch_tests() {
     fi
 
     if should_run "tests"; then
-        echo ">>> Launching functional tests"
-        launch_test "tests/functional"
-
         echo ">>> Launching synchronization functional tests, file by file"
         echo "    (first, run for each test file, failures are ignored to have"
         echo "     a whole picture of errors)"
