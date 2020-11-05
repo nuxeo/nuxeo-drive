@@ -2,6 +2,7 @@ from time import sleep
 from unittest.mock import patch
 
 import pytest
+
 from nxdrive.behavior import Behavior
 from nxdrive.feature import Feature
 from nxdrive.options import Options
@@ -180,4 +181,4 @@ def test_delay_remote_watcher(app, manager_factory):
                 # Check remote checks are using the new delay
                 count = 0
                 sleep(10)
-                assert count > 4
+                assert count >= 4

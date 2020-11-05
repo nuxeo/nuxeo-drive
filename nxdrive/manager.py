@@ -247,6 +247,10 @@ class Manager(QObject):
     def close(self) -> None:
         try:
             self.stop()
+        except RuntimeError:
+            # wrapped C/C++ object of type Manager has been deleted
+            # Happens on Windows when running functional tests
+            pass
         finally:
             Manager._instances.pop(self.home, None)
 
