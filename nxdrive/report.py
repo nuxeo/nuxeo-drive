@@ -81,6 +81,7 @@ class Report:
         # Lock to avoid inconsistence
         with dao.lock:
             try:
+                dao.force_commit()
                 myzip.write(dao.db, dao.db.name, compress_type=ZIP_DEFLATED)
             except Exception:
                 log.exception(f"Impossible to copy the database {dao.db.name!r}")

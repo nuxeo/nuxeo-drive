@@ -214,6 +214,19 @@ class ConfigurationDAO(QObject):
     def __str__(self) -> str:
         return repr(self)
 
+    def force_commit(self) -> None:
+        """
+        Since the journal is WAL, database changes are saved only every 1,000 page changes.
+        (cf https://www.sqlite.org/compile.html#default_wal_autocheckpoint
+        and https://www.sqlite.org/c3ref/wal_checkpoint_v2.html)
+        This method can be used to force committing changes to the main database. To use wisely.
+        """
+        log.debug(f"Forcing WAL checkpoint on {self.db!r}")
+        with self.lock:
+            conn = self._get_write_connection()
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA wal_checkpoint(PASSIVE)")
+
     def restore_backup(self) -> bool:
         try:
             with self.lock:
