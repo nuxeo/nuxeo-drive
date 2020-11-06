@@ -879,7 +879,7 @@ class EngineDAO(ConfigurationDAO):
             self._append_to_table(
                 cursor,
                 "Sessions",
-                ("completed_on", "DATE"),
+                ("completed_on", "DATETIME"),
             )
             self._append_to_table(
                 cursor,
@@ -2460,8 +2460,7 @@ class EngineDAO(ConfigurationDAO):
     ) -> int:
         """Create a new session. Return the session ID."""
         with self.lock:
-            con = self._get_write_connection()
-            cursor = con.cursor()
+            cursor = self._get_write_connection().cursor()
             cursor.execute(
                 "INSERT INTO Sessions (remote_path, remote_ref, total, status, engine, description, planned_items) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -2484,21 +2483,20 @@ class EngineDAO(ConfigurationDAO):
         Update the status if all files are uploaded.
         """
         with self.lock:
-            con = self._get_write_connection()
-            cursor = con.cursor()
             session = self.get_session(uid)
             if not session:
                 return None
 
             session.uploaded_items += 1
-            completed_on = session.completed_on or "null"
             if session.uploaded_items == session.total_items:
                 session.status = TransferStatus.DONE
-                completed_on = "CURRENT_TIMESTAMP"
-            # We have to use f-strings here as CURRENT_TIMESTAMP is a function and must not be interpreted as a string.
+                sql = "UPDATE Sessions SET uploaded = ?, status = ?, completed_on = CURRENT_TIMESTAMP WHERE uid = ?"
+            else:
+                sql = "UPDATE Sessions SET uploaded = ?, status = ? WHERE uid = ?"
+
+            cursor = self._get_write_connection().cursor()
             cursor.execute(
-                f"UPDATE Sessions SET uploaded = ?, status = ? , completed_on = {completed_on} WHERE uid = ?",
-                (session.uploaded_items, session.status.value, session.uid),
+                sql, (session.uploaded_items, session.status.value, session.uid)
             )
             self.sessionUpdated.emit()
             return session
@@ -2506,13 +2504,11 @@ class EngineDAO(ConfigurationDAO):
     def change_session_status(self, uid: int, status: TransferStatus) -> None:
         """Update the session status with *status*."""
         with self.lock:
-            con = self._get_write_connection()
-            cursor = con.cursor()
-
             session = self.get_session(uid)
             if not session:
                 return None
 
+            cursor = self._get_write_connection().cursor()
             cursor.execute(
                 "UPDATE Sessions SET status = ? WHERE uid = ?",
                 (status.value, session.uid),
@@ -2525,25 +2521,24 @@ class EngineDAO(ConfigurationDAO):
         Update the status if all files are uploaded.
         """
         with self.lock:
-            con = self._get_write_connection()
-            cursor = con.cursor()
             session = self.get_session(uid)
             if not session:
                 return None
 
             session.total_items = max(0, session.total_items - 1)
-            completed_on = session.completed_on or "null"
             if session.uploaded_items == session.total_items:
                 session.status = (
                     TransferStatus.DONE
                     if session.total_items
                     else TransferStatus.CANCELLED
                 )
-                completed_on = "CURRENT_TIMESTAMP"
-            # We have to use f-strings here as CURRENT_TIMESTAMP is a function and must not be interpreted as a string.
+                sql = "UPDATE Sessions SET total = ?, status = ?, completed_on = CURRENT_TIMESTAMP WHERE uid = ?"
+            else:
+                sql = "UPDATE Sessions SET total = ?, status = ? WHERE uid = ?"
+
+            cursor = self._get_write_connection().cursor()
             cursor.execute(
-                f"UPDATE Sessions SET total = ?, status = ?, completed_on = {completed_on} WHERE uid = ?",
-                (session.total_items, session.status.value, session.uid),
+                sql, (session.total_items, session.status.value, session.uid)
             )
             self.sessionUpdated.emit()
             return session
@@ -2551,13 +2546,12 @@ class EngineDAO(ConfigurationDAO):
     def decrease_session_planned_items(self, uid: int) -> None:
         """Decrease the Session *planned_items* count."""
         with self.lock:
-            con = self._get_write_connection()
-            cursor = con.cursor()
             session = self.get_session(uid)
             if not session:
                 return None
 
             session.planned_items = max(0, session.planned_items - 1)
+            cursor = self._get_write_connection().cursor()
             cursor.execute(
                 "UPDATE Sessions SET planned_items = ? WHERE uid = ?",
                 (session.planned_items, session.uid),
