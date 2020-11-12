@@ -617,13 +617,12 @@ class DirectEdit(Worker):
                 # else INTERNAL_SERVER_ERROR is raised on double lock.
                 username = re.findall(r"Document already locked by (.+):", exc.message)
                 if username:
-                    if username[0] == remote.user_id:
-                        # Already locked by the same user
-                        log.debug("You already locked that document!")
-                        return False
-                    else:
+                    if username[0] != remote.user_id:
                         # Already locked by someone else
                         raise DocumentAlreadyLocked(username[0])
+                    # Already locked by the same user
+                    log.debug("You already locked that document!")
+                    return False
             raise exc
         else:
             # Document locked!
