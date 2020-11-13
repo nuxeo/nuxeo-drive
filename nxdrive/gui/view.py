@@ -13,6 +13,7 @@ from PyQt5.QtCore import (
     pyqtSlot,
 )
 
+from ..constants import DT_ACTIVE_SESSIONS_MAX_ITEMS, DT_MONITORING_MAX_ITEMS
 from ..translator import Translator
 from ..utils import force_decode, get_date_from_sqlite, sizeof_fmt
 
@@ -267,6 +268,7 @@ class DirectTransferModel(QAbstractListModel):
     TRANSFERRED = Qt.UserRole + 8
     REMOTE_PARENT_PATH = Qt.UserRole + 9
     REMOTE_PARENT_REF = Qt.UserRole + 10
+    SHADOW = Qt.UserRole + 11  # Tell the interface if the row should be visible or not
 
     def __init__(self, translate: Callable, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -283,9 +285,11 @@ class DirectTransferModel(QAbstractListModel):
             self.TRANSFERRED: b"transferred",
             self.REMOTE_PARENT_PATH: b"remote_parent_path",
             self.REMOTE_PARENT_REF: b"remote_parent_ref",
+            self.SHADOW: b"shadow",
         }
         # Pretty print
         self.psize = partial(sizeof_fmt, suffix=self.tr("BYTE_ABBREV"))
+        self.shadow_item: Dict[str, Any] = {}
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         return len(self.items)
@@ -296,13 +300,32 @@ class DirectTransferModel(QAbstractListModel):
     def set_items(
         self, items: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
     ) -> None:
-        self.beginRemoveRows(parent, 0, self.rowCount() - 1)
-        self.items.clear()
-        self.endRemoveRows()
+        if items and not self.shadow_item:
+            # Copy the first element from items and use it as shadow_item
+            self.shadow_item = items[0].copy()
+            self.shadow_item["shadow"] = True
 
-        self.beginInsertRows(parent, 0, len(items) - 1)
-        self.items.extend(items)
-        self.endInsertRows()
+        # Create the items list with real datas from items.
+        for n_item in items:
+            self.add_item(parent, n_item)
+
+        # Add shadow_items to complete items list up to limit
+        while len(self.items) < DT_MONITORING_MAX_ITEMS:
+            self.add_item(parent, self.shadow_item)
+
+        self.fileChanged.emit()
+
+    def update_items(
+        self, updated_items: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
+    ) -> None:
+        """Update items with *updated_items*."""
+        # Edit the first rows of the list with real datas from updated_items.
+        for row, n_item in enumerate(updated_items):
+            self.edit_item(row, n_item)
+
+        # Use the shadow_item for the rest of the list if updated_items is too short.
+        for x in range(len(updated_items), len(self.items)):
+            self.edit_item(x, self.shadow_item)
 
         self.fileChanged.emit()
 
@@ -314,6 +337,8 @@ class DirectTransferModel(QAbstractListModel):
             return f"{row['progress']:,.1f}"
         if role == self.FINALIZING:
             return row.get("finalizing", False)
+        if role == self.SHADOW:
+            return row.get("shadow", False)
         if role == self.SIZE:
             return self.psize(row["filesize"])
         if role == self.TRANSFERRED:
@@ -339,6 +364,18 @@ class DirectTransferModel(QAbstractListModel):
             if action["action_type"] == "Linking":
                 self.setData(idx, True, self.FINALIZING)
 
+    def add_item(self, parent: QModelIndex, n_item: Dict[str, Any]) -> None:
+        """Add an item to existing list."""
+        self.beginInsertRows(parent, self.rowCount(), self.rowCount())
+        self.items.append(n_item)
+        self.endInsertRows()
+
+    def edit_item(self, row: int, n_item: Dict[str, Any]) -> None:
+        """Replace an existing item with *n_item*."""
+        idx = self.index(row, 0)
+        self.items[row] = n_item
+        self.dataChanged.emit(idx, idx, self.roleNames())
+
 
 class ActiveSessionModel(QAbstractListModel):
     sessionChanged = pyqtSignal()
@@ -354,6 +391,7 @@ class ActiveSessionModel(QAbstractListModel):
     COMPLETED_ON = Qt.UserRole + 9
     DESCRIPTION = Qt.UserRole + 10
     PROGRESS = Qt.UserRole + 11
+    SHADOW = Qt.UserRole + 12  # Tell the interface if the row should be visible or not
 
     def __init__(self, translate: Callable, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -371,7 +409,9 @@ class ActiveSessionModel(QAbstractListModel):
             self.COMPLETED_ON: b"completed_on",
             self.DESCRIPTION: b"description",
             self.PROGRESS: b"progress",
+            self.SHADOW: b"shadow",
         }
+        self.shadow_session: Dict[str, Any] = {}
 
     def roleNames(self) -> Dict[int, bytes]:
         return self.names
@@ -379,16 +419,41 @@ class ActiveSessionModel(QAbstractListModel):
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         return len(self.sessions)
 
+    def row_count_no_shadow(self, parent: QModelIndex = QModelIndex()) -> int:
+        return len([session for session in self.sessions if "shadow" not in session])
+
     def set_sessions(
         self, sessions: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
     ) -> None:
-        self.beginRemoveRows(parent, 0, self.rowCount() - 1)
-        self.sessions.clear()
-        self.endRemoveRows()
+        if sessions and not self.shadow_session:
+            # Copy the first element from sessions and use it as shadow_session
+            self.shadow_session = sessions[0].copy()
+            self.shadow_session["shadow"] = True
 
-        self.beginInsertRows(parent, 0, len(sessions) - 1)
-        self.sessions.extend(sessions)
-        self.endInsertRows()
+        # Create the sessions list with real datas from sessions.
+        for n_session in sessions:
+            self.add_session(parent, n_session)
+
+        # Add shadow_items to complete sessions list up to limit
+        while len(self.sessions) < DT_ACTIVE_SESSIONS_MAX_ITEMS:
+            self.add_session(parent, self.shadow_session)
+
+        self.sessionChanged.emit()
+
+    def update_sessions(
+        self,
+        updated_sessions: List[Dict[str, Any]],
+        parent: QModelIndex = QModelIndex(),
+    ) -> None:
+        """Update sessions with *updated_sessions*."""
+        # Edit the first rows of the list with real datas from updated_sessions.
+        for row, n_session in enumerate(updated_sessions):
+            self.edit_session(row, n_session)
+
+        # Use the shadow_item for the rest of the list if updated_items is too short.
+        for x in range(len(updated_sessions), len(self.sessions)):
+            self.edit_session(x, self.shadow_session)
+
         self.sessionChanged.emit()
 
     def data(self, index: QModelIndex, role: int = REMOTE_PATH) -> Any:
@@ -430,6 +495,8 @@ class ActiveSessionModel(QAbstractListModel):
             return self.tr(label, args)
         elif role == self.PROGRESS:
             return f"[{row['uploaded']:,} / {row['total']:,}]"
+        elif role == self.SHADOW:
+            return row.get("shadow", False)
         return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
@@ -439,9 +506,25 @@ class ActiveSessionModel(QAbstractListModel):
         self.sessions[index.row()][key] = value
         self.dataChanged.emit(index, index, [role])
 
+    def add_session(self, parent: QModelIndex, n_session: Dict[str, Any]) -> None:
+        """Add a session to existing list."""
+        self.beginInsertRows(parent, self.rowCount(), self.rowCount())
+        self.sessions.append(n_session)
+        self.endInsertRows()
+
+    def edit_session(self, row: int, n_session: Dict[str, Any]) -> None:
+        """Replace an existing session with *n_session*."""
+        idx = self.index(row, 0)
+        self.sessions[row] = n_session
+        self.dataChanged.emit(idx, idx, self.roleNames())
+
     @pyqtProperty("int", notify=sessionChanged)
     def count(self) -> int:
         return self.rowCount()
+
+    @pyqtProperty("bool", notify=sessionChanged)
+    def is_full(self) -> bool:
+        return self.row_count_no_shadow() >= DT_ACTIVE_SESSIONS_MAX_ITEMS
 
 
 class CompletedSessionModel(QAbstractListModel):
@@ -458,6 +541,7 @@ class CompletedSessionModel(QAbstractListModel):
     COMPLETED_ON = Qt.UserRole + 9
     DESCRIPTION = Qt.UserRole + 10
     PROGRESS = Qt.UserRole + 11
+    SHADOW = Qt.UserRole + 12
 
     def __init__(self, translate: Callable, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -475,6 +559,7 @@ class CompletedSessionModel(QAbstractListModel):
             self.COMPLETED_ON: b"completed_on",
             self.DESCRIPTION: b"description",
             self.PROGRESS: b"progress",
+            self.SHADOW: b"shadow",
         }
 
     def roleNames(self) -> Dict[int, bytes]:
@@ -534,6 +619,8 @@ class CompletedSessionModel(QAbstractListModel):
             return self.tr(label, args)
         elif role == self.PROGRESS:
             return f"[{row['uploaded']:,} / {row['planned_items']:,}]"
+        elif role == self.SHADOW:
+            return False  # User can't add or remove completed sessions so no need to use the shadow mechanism
         return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:

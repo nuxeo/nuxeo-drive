@@ -19,6 +19,7 @@ from ..constants import (
     APP_NAME,
     CONNECTION_ERROR,
     DEFAULT_SERVER_TYPE,
+    DT_MONITORING_MAX_ITEMS,
     TOKEN_PERMISSION,
     TransferStatus,
 )
@@ -209,8 +210,8 @@ class QMLDriveApi(QObject):
         return result
 
     def get_direct_transfer_items(self, dao: EngineDAO) -> List[Dict[str, Any]]:
-        # 5 files are displayed in the DT window
-        return dao.get_dt_uploads_raw(limit=5)
+        """Fetch at most *DT_MONITORING_MAX_ITEMS* transfers from the database."""
+        return dao.get_dt_uploads_raw(limit=DT_MONITORING_MAX_ITEMS)
 
     def get_active_sessions_items(self, dao: EngineDAO) -> List[Dict[str, Any]]:
         """Fetch the list of active sessions from the database."""

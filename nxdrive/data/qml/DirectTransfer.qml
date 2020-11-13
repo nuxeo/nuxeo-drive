@@ -69,6 +69,7 @@ Rectangle {
                 text: qsTr("NEW_TRANSFER") + tl.tr
                 Layout.alignment: Qt.AlignRight
                 Layout.rightMargin: 30
+                enabled: !ActiveSessionModel.is_full
                 onClicked: api.open_server_folders(engineUid)
             }
         }
