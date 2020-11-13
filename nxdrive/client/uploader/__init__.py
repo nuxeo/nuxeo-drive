@@ -47,7 +47,6 @@ class BaseUploader:
         file_path: Path,
         command: str,
         filename: str = None,
-        mime_type: str = None,
         **kwargs: Any,
     ) -> Dict[str, Any]:
         """Upload a file with a batch."""
@@ -140,7 +139,6 @@ class BaseUploader:
         file_path: Path,
         command: str,
         filename: str = None,
-        mime_type: str = None,
         **kwargs: Any,
     ) -> Dict[str, Any]:
         """
@@ -166,8 +164,6 @@ class BaseUploader:
         blob = FileBlob(str(file_path))
         if filename:
             blob.name = filename
-        if mime_type:
-            blob.mimetype = mime_type
 
         # Step 0.5: retrieve or instantiate a new transfer
         transfer = self._get_transfer(file_path, blob, **kwargs)

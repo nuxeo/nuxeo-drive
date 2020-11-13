@@ -43,7 +43,6 @@ class DirectTransferUploader(BaseUploader):
         file_path: Path,
         command: str = None,
         filename: str = None,
-        mime_type: str = None,
         **kwargs: Any,
     ) -> Dict[str, Any]:
         """Upload a given file to the given folderish document on the server.

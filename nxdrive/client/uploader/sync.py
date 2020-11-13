@@ -21,13 +21,10 @@ class SyncUploader(BaseUploader):
         file_path: Path,
         command: str,
         filename: str = None,
-        mime_type: str = None,
         **kwargs: Any,
     ) -> Dict[str, Any]:
         """See BaseUploader.upload_impl()."""
-        item = self.upload_impl(
-            file_path, command, filename=filename, mime_type=mime_type, **kwargs
-        )
+        item = self.upload_impl(file_path, command, filename=filename, **kwargs)
 
         # Transfer is completed, delete the upload from the database
         self.dao.remove_transfer("upload", file_path)

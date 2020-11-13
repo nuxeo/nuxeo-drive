@@ -4,7 +4,6 @@ import unicodedata
 from collections import namedtuple
 from dataclasses import dataclass, field
 from datetime import datetime
-from logging import getLogger
 from pathlib import Path
 from sqlite3 import Row
 from time import time
@@ -13,14 +12,12 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from dateutil import parser
 from dateutil.tz import tzlocal
 from nuxeo.models import Batch
-from nuxeo.utils import get_digest_algorithm, guess_mimetype
+from nuxeo.utils import get_digest_algorithm
 
 from .constants import TransferStatus
 from .exceptions import DriveError, UnknownDigest
 from .translator import Translator
 from .utils import get_date_from_sqlite, get_timestamp_from_date
-
-log = getLogger(__name__)
 
 # Settings passed to Manager.bind_server()
 Binder = namedtuple(
@@ -100,8 +97,7 @@ class RemoteFileInfo:
             can_update = False
             can_create_child = fs_item.get("canCreateChild", False)
             # Scroll API availability
-            can_scroll = fs_item.get("canScrollDescendants", False)
-            can_scroll_descendants = can_scroll
+            can_scroll_descendants = fs_item.get("canScrollDescendants", False)
         else:
             digest = fs_item["digest"]
             digest_algorithm = fs_item.get("digestAlgorithm")
@@ -161,19 +157,13 @@ class Blob:
         """ Convert Dict to Blob object. """
         name = blob["name"]
         digest = blob.get("digest") or ""
-        digest_algorithm = get_digest_algorithm(blob.get("digestAlgorithm", "")) or ""
+        digest_algorithm = blob.get("digestAlgorithm", "")
         size = int(blob.get("length", 0))
-        mimetype = blob.get("mime-type") or "application/octet-stream"
+        mimetype = blob.get("mime-type", "")
         data = blob.get("data", "")
 
-        if "octet-stream" in mimetype:
-            # Verify the mimetype to prevent uploading a file with the
-            # mimetype provided by the server that may be too-generic.
-            # TODO: use mimetypes.guess_type(..., strict=False) (needs Python client changes)
-            mimetype = guess_mimetype(name)
-            if "octet-stream" not in mimetype:
-                log.debug(f"Updated the default mimetype to {mimetype!r}")
-
+        if digest_algorithm:
+            digest_algorithm = get_digest_algorithm(digest_algorithm) or ""
         if digest_algorithm:
             digest_algorithm = digest_algorithm.lower().replace("-", "")
 
