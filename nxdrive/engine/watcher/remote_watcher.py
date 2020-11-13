@@ -535,7 +535,7 @@ class RemoteWatcher(EngineWorker):
                                     refreshed and refreshed.pair_state == "synchronized"
                                 )
 
-                            child_pair = refreshed if refreshed else child_pair
+                            child_pair = refreshed or child_pair
                         # Can be updated in previous call
                         if synced:
                             self.engine.stop_processor_on(child_pair.local_path)
@@ -760,13 +760,8 @@ class RemoteWatcher(EngineWorker):
 
             event_id = change.get("eventId")
             remote_ref = change["fileSystemItemId"]
-            processed = False
-            for refreshed_ref in refreshed:
-                if refreshed_ref.endswith(remote_ref):
-                    processed = True
-                    break
 
-            if processed:
+            if any(refreshed_ref.endswith(remote_ref) for refreshed_ref in refreshed):
                 # A more recent version was already processed
                 continue
 

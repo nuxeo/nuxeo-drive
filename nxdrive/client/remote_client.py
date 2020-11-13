@@ -535,7 +535,6 @@ class Remote(Nuxeo):
         parent_id: str,
         file_path: Path,
         filename: str = None,
-        mime_type: str = None,
         overwrite: bool = False,
         **kwargs: Any,
     ) -> RemoteFileInfo:
@@ -548,7 +547,6 @@ class Remote(Nuxeo):
             file_path,
             "NuxeoDrive.CreateFile",
             filename=filename,
-            mime_type=mime_type,
             parentId=parent_id,
             overwrite=overwrite,
             **kwargs,

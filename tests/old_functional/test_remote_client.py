@@ -6,6 +6,7 @@ from shutil import copyfile
 from tempfile import mkdtemp
 
 import pytest
+
 from nxdrive.exceptions import NotFound
 
 from . import LocalTest, make_tmp_file
@@ -387,19 +388,6 @@ class TestRemoteFileSystemClient(OneUserTest):
         file_path = self.upload_tmp_dir / "testFile.pdf"
         copyfile(self.location / "resources" / "files" / "testFile.pdf", file_path)
         fs_item_info = remote.stream_file(self.workspace_id, file_path)
-        local_client = LocalTest(self.upload_tmp_dir)
-        assert fs_item_info.name == "testFile.pdf"
-        assert (
-            fs_item_info.digest == local_client.get_info("/testFile.pdf").get_digest()
-        )
-
-    def test_bad_mime_type(self):
-        remote = self.remote_1
-
-        # Create a document by streaming a binary file
-        file_path = self.upload_tmp_dir / "testFile.pdf"
-        copyfile(self.location / "resources" / "files" / "testFile.pdf", file_path)
-        fs_item_info = remote.stream_file(self.workspace_id, file_path, mime_type="pdf")
         local_client = LocalTest(self.upload_tmp_dir)
         assert fs_item_info.name == "testFile.pdf"
         assert (
