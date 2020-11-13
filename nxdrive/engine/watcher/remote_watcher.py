@@ -535,7 +535,7 @@ class RemoteWatcher(EngineWorker):
                                     refreshed and refreshed.pair_state == "synchronized"
                                 )
 
-                            child_pair = refreshed if refreshed else child_pair
+                            child_pair = refreshed or child_pair
                         # Can be updated in previous call
                         if synced:
                             self.engine.stop_processor_on(child_pair.local_path)
