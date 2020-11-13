@@ -760,13 +760,8 @@ class RemoteWatcher(EngineWorker):
 
             event_id = change.get("eventId")
             remote_ref = change["fileSystemItemId"]
-            processed = False
-            for refreshed_ref in refreshed:
-                if refreshed_ref.endswith(remote_ref):
-                    processed = True
-                    break
 
-            if processed:
+            if any(refreshed_ref.endswith(remote_ref) for refreshed_ref in refreshed):
                 # A more recent version was already processed
                 continue
 

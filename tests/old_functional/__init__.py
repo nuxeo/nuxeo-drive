@@ -272,7 +272,7 @@ class RemoteBase(Remote):
                 file_path.unlink()
 
     def update_content(
-        self, ref: str, content: bytes, filename: str = None, mime_type: str = None
+        self, ref: str, content: bytes, filename: str = None
     ) -> RemoteFileInfo:
         """Update a document with the given content
 
@@ -286,7 +286,6 @@ class RemoteBase(Remote):
                 file_path,
                 "NuxeoDrive.UpdateFile",
                 filename=filename,
-                mime_type=mime_type,
                 id=ref,
             )
             return RemoteFileInfo.from_dict(fs_item)

@@ -732,7 +732,6 @@ class DirectEdit(Worker):
             xpath = details.xpath
             engine = details.engine
             remote = engine.remote
-            mime_type = ""
 
             if not xpath:
                 xpath = "file:content"
@@ -772,26 +771,22 @@ class DirectEdit(Worker):
 
                     remote_blob = remote_info.get_blob(xpath) if remote_info else None
                     log.debug(f"Got remote blob {remote_blob!r}")
-                    if remote_blob:
-                        mime_type = remote_blob.mimetype
-
-                        if (
-                            remote_blob.digest
-                            and remote_blob.digest_algorithm
-                            and remote_blob.digest != details.digest
-                        ):
-                            log.debug(
-                                f"Remote digest {remote_blob.digest!r} is different from the "
-                                f"recorded one {details.digest!r} - conflict detected for {ref!r}"
-                            )
-                            self.directEditConflict.emit(
-                                ref.name, ref, remote_blob.digest
-                            )
-                            continue
+                    if (
+                        remote_blob
+                        and remote_blob.digest
+                        and remote_blob.digest_algorithm
+                        and remote_blob.digest != details.digest
+                    ):
+                        log.debug(
+                            f"Remote digest {remote_blob.digest!r} is different from the "
+                            f"recorded one {details.digest!r} - conflict detected for {ref!r}"
+                        )
+                        self.directEditConflict.emit(ref.name, ref, remote_blob.digest)
+                        continue
 
                 log.info(f"Uploading file {os_path!r}")
 
-                kwargs: Dict[str, Any] = {"mime_type": mime_type}
+                kwargs: Dict[str, Any] = {}
                 if xpath == "note:note":
                     kwargs["applyVersioningPolicy"] = True
                     cmd = "NuxeoDrive.AttachBlob"
