@@ -28,10 +28,16 @@ jobs:
         path: .tox
         key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
         restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+    - name: Install system dependencies
+      run: |
+        sudo apt install xclip
+        Xvfb :99 -screen 0 1920x1080x24+32 &
     - name: Install tox
       run: python -m pip install -r tools/deps/requirements-tox.txt
     - name: Functional tests
       run: tox -e ft
+      env:
+        DISPLAY: ":99"
 
   ft_macos:
     runs-on: macos-latest
