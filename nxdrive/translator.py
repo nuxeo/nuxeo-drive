@@ -25,6 +25,9 @@ class Translator(QTranslator):
         # Load from JSON
         for translation in path.iterdir():
             label = self.guess_label(translation.name)
+            if label == "ar":
+                # NXDRIVE-2385: Arabic is not yet ready
+                continue
             self._labels[label] = json.loads(translation.read_text(encoding="utf-8"))
 
         # List language

@@ -116,4 +116,5 @@ def test_languages():
     ]
     languages = Translator.languages()
     assert languages == expected
-    assert len(languages) == len(list(folder.glob("*.json")))
+    # NXDRIVE-2385: - 1 for Arabic
+    assert len(languages) == len(list(folder.glob("*.json"))) - 1
