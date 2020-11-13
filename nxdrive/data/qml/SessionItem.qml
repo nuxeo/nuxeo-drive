@@ -8,8 +8,9 @@ Rectangle {
     id: control
     property bool active: status == "PAUSED" || status == "ONGOING"
     property bool paused: status == "PAUSED"
+    visible: !shadow
     width: parent ? parent.width : 0
-    height: 116
+    height: shadow ? 0: 116
     RowLayout {
         anchors.fill: parent
         anchors.centerIn: parent

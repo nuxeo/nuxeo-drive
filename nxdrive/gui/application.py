@@ -1668,15 +1668,23 @@ class Application(QApplication):
     @pyqtSlot(object)
     def refresh_direct_transfer_items(self, dao: EngineDAO) -> None:
         transfers = self.api.get_direct_transfer_items(dao)
-        if transfers != self.direct_transfer_model.items:
-            self.direct_transfer_model.set_items(transfers)
+        items = self.direct_transfer_model.items
+        if transfers != items:
+            if not items:
+                self.direct_transfer_model.set_items(transfers)
+            else:
+                self.direct_transfer_model.update_items(transfers)
 
     @pyqtSlot(object)
     def refresh_active_sessions_items(self, dao: EngineDAO) -> None:
         """Refresh the list of active sessions if a change is detected."""
         sessions = self.api.get_active_sessions_items(dao)
-        if sessions != self.active_session_model.sessions:
-            self.active_session_model.set_sessions(sessions)
+        current_sessions = self.active_session_model.sessions
+        if sessions != current_sessions:
+            if not current_sessions:
+                self.active_session_model.set_sessions(sessions)
+            else:
+                self.active_session_model.update_sessions(sessions)
 
     @pyqtSlot(object)
     def refresh_completed_sessions_items(self, dao: EngineDAO) -> None:

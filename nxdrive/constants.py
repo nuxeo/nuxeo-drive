@@ -31,6 +31,12 @@ BATCH_SIZE = 500  # Scroll descendants batch size (max is 1,000)
 # time, the server will finish way before that timeout.
 TX_TIMEOUT = 60 * 60 * 6  # 6 hours
 
+# Number of transfers displayed in the Direct Transfer window, onto the monitoring tab
+DT_MONITORING_MAX_ITEMS = 5
+
+# Number of sessions displayed in the Direct Transfer window, onto the active sessions tab
+DT_ACTIVE_SESSIONS_MAX_ITEMS = 15
+
 # Default update channel
 DEFAULT_CHANNEL = "centralized"
 
