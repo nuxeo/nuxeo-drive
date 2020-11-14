@@ -5,5 +5,7 @@
     <!-- These are required for binaries built by PyInstaller -->
 	<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
 	<true/>
+	<key>com.apple.security.automation.apple-events</key>
+	<true/>
 </dict>
 </plist>
