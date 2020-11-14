@@ -1,6 +1,7 @@
-import QtQuick 2.13
+import QtQuick 2.15
+// QtQuick.Dialogs has another unknown versioning
 import QtQuick.Dialogs 1.3
-import QtQuick.Layouts 1.13
+import QtQuick.Layouts 1.15
 import "icon-font/Icon.js" as MdiFont
 
 NuxeoPopup {

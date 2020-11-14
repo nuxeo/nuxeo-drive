@@ -1,5 +1,8 @@
-import QtQuick 2.13
-import QtQuick.Window 2.13
+// Import versions are 2.x where x is the Qt minor version
+// Exception for QtQuick.Layouts which use 1.x
+// https://doc.qt.io/qt-5/qtquickcontrols-index.html
+import QtQuick 2.15
+import QtQuick.Window 2.15
 import SystrayWindow 1.0
 
 QtObject {
