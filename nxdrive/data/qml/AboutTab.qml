@@ -1,6 +1,6 @@
-import QtQuick 2.13
-import QtQuick.Controls 2.13
-import QtQuick.Layouts 1.13
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import QtQuick.Layouts 1.15
 import "icon-font/Icon.js" as MdiFont
 
 Rectangle {
@@ -73,7 +73,6 @@ Rectangle {
             width: parent.width
             wrapMode: Text.WordWrap
             font.family: "Courier"
-            // GPL.txt content
             text: "The source code of Nuxeo Drive is available under the LGPL 2.1." +
                   "https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html\n\n" +
                   "Nuxeo Drive depends on those components:" +
