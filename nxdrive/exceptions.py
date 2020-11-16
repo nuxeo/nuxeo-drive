@@ -11,6 +11,12 @@ class DriveError(Exception):
     pass
 
 
+class AddonNotInstalledError(DriveError):
+    """ The nuxeo-drive addon is not installed on the server. """
+
+    pass
+
+
 class DocumentAlreadyLocked(DriveError):
     """ In Direct Edit, a document is locked by someone else. """
 
