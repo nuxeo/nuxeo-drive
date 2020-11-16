@@ -77,9 +77,8 @@ class QMLDriveApi(QObject):
         export = getattr(obj, "export", None)
         if callable(export):
             return export()
-        else:
-            log.error(f"Object {obj} has no export() method.")
-            return obj
+        log.error(f"Object {obj} has no export() method.")
+        return obj
 
     def _json(self, obj: Any) -> Any:
         # Avoid to fail on non serializable object
