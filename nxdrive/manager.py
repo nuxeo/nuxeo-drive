@@ -33,6 +33,7 @@ from .engine.dao.sqlite import ManagerDAO
 from .engine.engine import Engine
 from .engine.tracker import Tracker
 from .exceptions import (
+    AddonNotInstalledError,
     EngineInitError,
     EngineTypeMissing,
     FolderAlreadyUsed,
@@ -772,9 +773,12 @@ class Manager(QObject):
                 self, engine_def, binder=binder
             )
         except Exception as exc:
-            if not isinstance(
-                exc, (InvalidDriveException, RootAlreadyBindWithDifferentAccount)
-            ):
+            skipped_errors = (
+                AddonNotInstalledError,
+                InvalidDriveException,
+                RootAlreadyBindWithDifferentAccount,
+            )
+            if not isinstance(exc, skipped_errors):
                 log.exception("Engine error")
             self.engines.pop(uid, None)
             self.dao.delete_engine(uid)

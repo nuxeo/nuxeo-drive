@@ -24,6 +24,7 @@ from ..constants import (
 )
 from ..engine.dao.sqlite import EngineDAO
 from ..exceptions import (
+    AddonNotInstalledError,
     FolderAlreadyUsed,
     InvalidDriveException,
     InvalidSSLCertificate,
@@ -745,6 +746,8 @@ class QMLDriveApi(QObject):
             error = "FOLDER_DOES_NOT_EXISTS"
         except InvalidDriveException:
             error = "INVALID_PARTITION"
+        except AddonNotInstalledError:
+            error = "ADDON_NOT_INSTALLED"
         except Unauthorized:
             error = "UNAUTHORIZED"
         except FolderAlreadyUsed:

@@ -29,6 +29,7 @@ from ..constants import (
     TransferStatus,
 )
 from ..exceptions import (
+    AddonNotInstalledError,
     EngineInitError,
     InvalidDriveException,
     PairInterrupt,
@@ -1254,6 +1255,9 @@ class Engine(QObject):
     def _add_top_level_state(self) -> None:
         if not self.remote:
             return
+
+        if not self.remote.can_use("NuxeoDrive.GetTopLevelFolder"):
+            raise AddonNotInstalledError()
 
         local_info = self.local.get_info(ROOT)
         self.dao.insert_local_state(local_info, None)
