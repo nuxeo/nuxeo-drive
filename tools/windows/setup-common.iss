@@ -34,10 +34,6 @@ WizardSmallImageFile=wizard-small.bmp
 ; Use a modern look
 WizardStyle=modern
 
-; Minimum Windows version required
-; http://www.jrsoftware.org/ishelp/index.php?topic=winvernotes
-MinVersion=6.1.7600
-
 ; Other
 Compression=lzma
 SolidCompression=yes

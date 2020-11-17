@@ -25,7 +25,6 @@ SetupIconFile=app_icon.ico
 WizardImageFile=wizard.bmp
 WizardSmallImageFile=wizard-small.bmp
 WizardStyle=modern
-MinVersion=6.1.7600
 
 ; Overlays
 #include "setup-overlay.iss"
