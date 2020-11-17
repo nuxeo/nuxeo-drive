@@ -1,6 +1,3 @@
-# coding: utf-8
-from unittest.mock import patch
-
 import pytest
 
 from .common import SYNC_ROOT_FAC_ID, OneUserTest
@@ -24,29 +21,6 @@ class TestRemoteChanges(OneUserTest):
             self.last_event_log_id = summary["upperBound"]
         self.last_root_definitions = summary["activeSynchronizationRootDefinitions"]
         return summary
-
-    @pytest.mark.randombug("NXDRIVE-1565: Needed for the server is lagging")
-    def test_changes_without_active_roots(self):
-        summary = self.get_changes()
-        assert not summary["hasTooManyChanges"]
-        assert not summary["fileSystemChanges"]
-        assert not summary["activeSynchronizationRootDefinitions"]
-        first_timestamp = summary["syncDate"]
-        assert first_timestamp > 0
-        first_event_log_id = 0
-        if "upperBound" in summary:
-            first_event_log_id = summary["upperBound"]
-            assert first_event_log_id >= 0
-
-        summary = self.get_changes()
-        assert not summary["hasTooManyChanges"]
-        assert not summary["fileSystemChanges"]
-        assert not summary["activeSynchronizationRootDefinitions"]
-        second_time_stamp = summary["syncDate"]
-        assert second_time_stamp >= first_timestamp
-        if "upperBound" in summary:
-            second_event_log_id = summary["upperBound"]
-            assert second_event_log_id >= first_event_log_id
 
     @pytest.mark.randombug("NXDRIVE-1565: Needed for the server is lagging")
     def test_changes_root_registrations(self):
@@ -193,27 +167,3 @@ class TestRemoteChanges(OneUserTest):
         assert change["eventId"] == "documentUnlocked"
         assert change["docUuid"] == doc_id
         assert change["fileSystemItemName"] == "TestLocking.txt"
-
-    def test_wrong_server_reply(self):
-        """
-        A response that is not a dictionary or that does not contain
-        the right entries should not raise an exception.
-        It should not modify the attributes we use to track the last
-        synchronization either.
-        """
-
-        def not_dict(*args, **kwargs):
-            return "not dict"
-
-        def wrong_dict(*args, **kwargs):
-            return {"wrong": "dict"}
-
-        sync_date = self.engine_1._remote_watcher._last_sync_date
-
-        with patch.object(self.engine_1.remote, "get_changes", new=not_dict):
-            assert not self.engine_1._remote_watcher._get_changes()
-            assert self.engine_1._remote_watcher._last_sync_date == sync_date
-
-        with patch.object(self.engine_1.remote, "get_changes", new=wrong_dict):
-            assert not self.engine_1._remote_watcher._get_changes()
-            assert self.engine_1._remote_watcher._last_sync_date == sync_date
