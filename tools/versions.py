@@ -14,7 +14,7 @@ import os.path
 
 import yaml
 
-__version__ = "0.0.9"
+__version__ = "0.1.0"
 __all__ = ("create", "delete", "merge", "promote")
 
 
@@ -98,25 +98,25 @@ def create(version, category):
         "10.3": "10.3-SNAPSHOT"
         "10.10": "10.10-SNAPSHOT"
     """
-    yml = """{}:
-    min: "7.10"
-    type: {}
-    checksum:
-        algo: sha256
-        appimage: {}
-        dmg: {}
-        exe: {}
-        exe-admin: {}
-""".format(
-        version,
-        category,
-        checksum_appimage,
-        checksum_dmg,
-        checksum_exe,
-        checksum_exe_admin,
-    )
+    yml = {
+        version: {
+            "min": "7.10",
+            "type": category,
+            "checksum": {
+                "algo": "sha256",
+            },
+        }
+    }
+    if checksum_appimage:
+        yml[version]["checksum"]["appimage"] = checksum_appimage
+    if checksum_dmg:
+        yml[version]["checksum"]["dmg"] = checksum_dmg
+    if checksum_exe:
+        yml[version]["checksum"]["exe"] = checksum_exe
+    if checksum_exe_admin:
+        yml[version]["checksum"]["exe-admin"] = checksum_exe_admin
     with open(output, "w") as versions:
-        versions.write(yml)
+        versions.write(yaml.dump(yml))
 
 
 @wrap
