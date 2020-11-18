@@ -932,9 +932,7 @@ class PidLockFile:
 
         # Clean pid file
         try:
-            self.pid_filepath.unlink()
-        except FileNotFoundError:
-            pass
+            self.pid_filepath.unlink(missing_ok=True)
         except OSError:
             log.warning(
                 f"Failed to remove stalled PID file: {self.pid_filepath!r} "
@@ -977,9 +975,7 @@ class PidLockFile:
             # stopped process or a non-nxdrive process: let's delete it if
             # possible
             try:
-                self.pid_filepath.unlink()
-            except FileNotFoundError:
-                pass
+                self.pid_filepath.unlink(missing_ok=True)
             except OSError:
                 if pid is not None:
                     msg = (

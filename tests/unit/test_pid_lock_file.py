@@ -95,10 +95,6 @@ def test_unlock(mocked_unlink, tmp):
     # Now locked
     lock.lock()
 
-    # Test file already removed
-    mocked_unlink.side_effect = FileNotFoundError("Boom !")
-    lock.unlock()
-
     # Test another OSerror
     mocked_unlink.side_effect = PermissionError("Boom !")
     lock.unlock()
@@ -128,10 +124,6 @@ def test_check_running(mocked_unlink, tmp):
 
     # Set false PID number
     lock_file.write_text("999999999")
-
-    # Test file already removed
-    mocked_unlink.side_effect = FileNotFoundError("Boom !")
-    assert lock.check_running() is None
 
     # Test another OSerror
     mocked_unlink.side_effect = PermissionError("Boom !")

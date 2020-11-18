@@ -766,10 +766,7 @@ class Engine(QObject):
             main_db.with_suffix(".db-wal"),
         ):
             try:
-                file.unlink()
-            except FileNotFoundError:
-                # File already removed
-                pass
+                file.unlink(missing_ok=True)
             except OSError:
                 log.warning("Database removal error", exc_info=True)
 

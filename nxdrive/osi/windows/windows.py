@@ -2,7 +2,6 @@
 import os
 import subprocess
 import sys
-from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict
@@ -196,8 +195,7 @@ class WindowsIntegration(AbstractOSIntegration):
 
     @if_frozen
     def unregister_folder_link(self, path: Path) -> None:
-        with suppress(OSError):
-            self._get_folder_link(path.name).unlink()
+        self._get_folder_link(path.name).unlink(missing_ok=True)
 
     @if_frozen
     def register_startup(self) -> bool:

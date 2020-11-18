@@ -180,8 +180,8 @@ class ConfigurationDAO(QObject):
             except DatabaseError:
                 # The file is too damaged, we'll try and restore a backup.
                 exists = self.restore_backup()
-                if not exists and self.db.is_file():
-                    self.db.unlink()
+                if not exists:
+                    self.db.unlink(missing_ok=True)
 
         self.schema_version = self.get_schema_version()
         self._engine_uid = self.db.stem.replace("ndrive_", "")
