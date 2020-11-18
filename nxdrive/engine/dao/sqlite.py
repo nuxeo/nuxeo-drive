@@ -341,14 +341,14 @@ class ConfigurationDAO(QObject):
     def _get_read_connection(self) -> Connection:
         # If in transaction
         if self.in_tx is not None:
-            if current_thread_id() != self.in_tx:
-                log.debug("In transaction wait for read connection")
-                # Wait for the thread in transaction to finished
-                with self._tx_lock:
-                    pass
-            else:
+            if current_thread_id() == self.in_tx:
                 # Return the write connection
                 return self.conn
+
+            log.debug("In transaction wait for read connection")
+            # Wait for the thread in transaction to finished
+            with self._tx_lock:
+                pass
 
         if getattr(self._conns, "conn", None) is None:
             # Don't check same thread for closing purpose
