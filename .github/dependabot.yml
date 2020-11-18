@@ -1,9 +1,23 @@
 version: 2
 updates:
-  - package-ecosystem: "github-actions"
-    directory: "/"
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
     schedule:
-      interval: "monthly"
+      interval: monthly
+    assignees:
+      - BoboTiG
     labels:
-      - "dependencies"
-      - "QA/CI"
+      - dependencies
+      - QA/CI
+
+  # Python requirements
+  - package-ecosystem: pip
+    directory: /tools/deps
+    schedule:
+      interval: daily
+    assignees:
+      - BoboTiG
+    labels:
+      - dependencies
