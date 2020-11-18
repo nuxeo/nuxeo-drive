@@ -1,9 +1,9 @@
 # coding: utf-8
-from contextlib import suppress
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+
 from nxdrive.commandline import CliHandler
 from nxdrive.options import Options
 from nxdrive.utils import normalized_path
@@ -57,8 +57,7 @@ def config():
     yield _config
 
     for path in path_list:
-        with suppress(FileNotFoundError):
-            path.unlink()
+        path.unlink(missing_ok=True)
 
 
 def test_redact_payload(cmd):

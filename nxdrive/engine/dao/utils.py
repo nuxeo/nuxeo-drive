@@ -1,6 +1,5 @@
 # coding: utf-8
 import sqlite3
-from contextlib import suppress
 from datetime import datetime, timedelta
 from logging import getLogger
 from os import fsync
@@ -101,8 +100,7 @@ def fix_db(database: Path, dump_file: Path = Path("dump.sql")) -> None:
             backup.rename(database)
         return
     finally:
-        with suppress(OSError):
-            dump_file.unlink()
+        dump_file.unlink(missing_ok=True)
 
     new_size = database.stat().st_size
     log.info(f"Re-generation completed, saved {(old_size - new_size) / 1024} Kb.")
@@ -132,8 +130,7 @@ def restore_backup(database: Path) -> bool:
 
     latest = max(backups, key=lambda p: int(p.name.split("_")[-1]))
     log.info(f"Found a backup candidate, trying to restore {latest}")
-    if database.exists():
-        database.unlink()
+    database.unlink(missing_ok=True)
     copyfile(latest, database)
     return True
 
@@ -166,8 +163,7 @@ def save_backup(database: Path) -> bool:
     # Remove older backups
     for backup in old_backups:
         log.debug(f"Removing old backup {backup}")
-        with suppress(FileNotFoundError):
-            backup.unlink()  # NXDRIVE-1724
+        backup.unlink(missing_ok=True)
 
     backup = backup_folder / f"{database.name}_{int(datetime.now().timestamp())}"
     log.info(f"Creating backup {backup}")

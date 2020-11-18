@@ -5,7 +5,6 @@ import ctypes
 import errno
 import os
 import unicodedata
-from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
 from pathlib import Path
@@ -135,8 +134,7 @@ FolderType=Generic
         # Create the desktop.ini file inside the ReadOnly shared folder.
         os_path = self.abspath(ref)
         filename = os_path / "desktop.ini"
-        with suppress(FileNotFoundError):
-            filename.unlink()
+        filename.unlink(missing_ok=True)
 
         filename.write_text(content, encoding="utf-8")
 

@@ -88,8 +88,7 @@ class LocalClient(LocalClientMixin):
 
         # Create the 'Icon\r' file
         meta_file = target_folder / "Icon\r"
-        if meta_file.is_file():
-            meta_file.unlink()
+        meta_file.unlink(missing_ok=True)
         meta_file.touch()
 
         # Configure 'com.apple.FinderInfo' for the Icon file
