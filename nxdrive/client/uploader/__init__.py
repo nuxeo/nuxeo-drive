@@ -177,10 +177,15 @@ class BaseUploader:
         kwargs.pop("remote_parent_path", None)
         kwargs.pop("remote_parent_ref", None)
 
+        # For the upload to be chunked, the Options.chunk_upload must be True
+        # and the blob must be bigger than Options.chunk_limit, which by default
+        # is equal to Options.chunk_size.
+        chunked = Options.chunk_upload and blob.size > Options.chunk_limit * 1024 * 1024
+
         # Step 1: upload the blob
         if transfer.status is not TransferStatus.DONE:
             try:
-                self.upload_chunks(transfer, blob)
+                self.upload_chunks(transfer, blob, chunked)
             finally:
                 if blob.fd:
                     blob.fd.close()
@@ -195,15 +200,19 @@ class BaseUploader:
             self._complete_upload(transfer, blob)
 
         # Step 2: link the uploaded blob to the document
-        doc: Dict[str, Any] = self._link_blob_to_doc(command, transfer, blob, **kwargs)
+        doc: Dict[str, Any] = self._link_blob_to_doc(
+            command, transfer, blob, chunked, **kwargs
+        )
 
         # Lastly, we need to remove the batch as the "X-Batch-No-Drop" header was used in link_blob_to_doc()
-        try:
-            transfer.batch_obj.delete(0)
-        except Exception:
-            log.warning(
-                f"Cannot delete the batchId {transfer.batch_obj.uid!r}", exc_info=True
-            )
+        if chunked:
+            try:
+                transfer.batch_obj.delete(0)
+            except Exception:
+                log.warning(
+                    f"Cannot delete the batchId {transfer.batch_obj.uid!r}",
+                    exc_info=True,
+                )
 
         return doc
 
@@ -215,7 +224,7 @@ class BaseUploader:
             self.dao.remove_transfer("upload", transfer.path, is_direct_transfer=True)
             raise UploadCancelled(transfer.uid or -1)
 
-    def upload_chunks(self, transfer: Upload, blob: FileBlob) -> None:
+    def upload_chunks(self, transfer: Upload, blob: FileBlob, chunked: bool) -> None:
         """Upload a blob by chunks or in one go."""
 
         action = self.upload_action(
@@ -226,11 +235,6 @@ class BaseUploader:
         )
 
         action.is_direct_transfer = transfer.is_direct_transfer
-
-        # For the upload to be chunked, the Options.chunk_upload must be True
-        # and the blob must be bigger than Options.chunk_limit, which by default
-        # is equal to Options.chunk_size.
-        chunked = Options.chunk_upload and blob.size > Options.chunk_limit * 1024 * 1024
 
         try:
             uploader: Uploader = transfer.batch_obj.get_uploader(
@@ -304,10 +308,15 @@ class BaseUploader:
             action.finish_action()
 
     def _link_blob_to_doc(
-        self, command: str, transfer: Upload, blob: FileBlob, **kwargs: Any
+        self,
+        command: str,
+        transfer: Upload,
+        blob: FileBlob,
+        chunked: bool,
+        **kwargs: Any,
     ) -> Dict[str, Any]:
         try:
-            return self.link_blob_to_doc(command, transfer, blob, **kwargs)
+            return self.link_blob_to_doc(command, transfer, blob, chunked, **kwargs)
         except HTTPError as exc:
             if "unable to find batch associated with id" in str(exc).lower():
                 # In this case, the upload completion may be obsolete or was not done,
@@ -317,17 +326,22 @@ class BaseUploader:
             raise exc
 
     def link_blob_to_doc(
-        self, command: str, transfer: Upload, blob: FileBlob, **kwargs: Any
+        self,
+        command: str,
+        transfer: Upload,
+        blob: FileBlob,
+        chunked: bool,
+        **kwargs: Any,
     ) -> Dict[str, Any]:
         """Link the given uploaded *blob* to the given document."""
+
+        headers = {"Nuxeo-Transaction-Timeout": str(TX_TIMEOUT)}
 
         # By default, the batchId will be removed after its first use.
         # We do not want that for better upload resiliency, especially with large files.
         # The batchId must be removed manually then.
-        headers = {
-            "Nuxeo-Transaction-Timeout": str(TX_TIMEOUT),
-            "X-Batch-No-Drop": "true",
-        }
+        if chunked:
+            headers["X-Batch-No-Drop"] = "true"
 
         action = self.linking_action(
             transfer.path,
