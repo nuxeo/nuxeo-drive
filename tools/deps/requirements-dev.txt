@@ -16,8 +16,12 @@ macholib==1.14 ; sys_platform == "darwin" \
 pefile==2019.4.18 ; sys_platform == "win32" \
     --hash=sha256:a5d6e8305c6b210849b47a6174ddf9c452b2888340b8177874b862ba6c207645
     # via pyinstaller
-tools/deps/pyinstaller-41237b1.zip \
-    --hash=sha256:e14e7265f6aec4a6884ac65ff83b4cfd85164417b3b05a7b0e258494b0325f1e
+pyinstaller==4.1 \
+    --hash=sha256:954ae81de9a4bc096ff02433b3e245b9272fe53f27cac319e71fe7540952bd3d
+pyinstaller-hooks-contrib==2020.10 \
+    --hash=sha256:dd752c88c1c7bb6920f7de248c12d4411c0463877e5e64afdc4f7e93dff9fc94 \
+    --hash=sha256:bf4543a16c9c6e9dd2d70ea3fee78b81d3357a68f706df471d990213892259d9
+    # via pyinstaller
 pywin32-ctypes==0.2.0 ; sys_platform == "win32" \
     --hash=sha256:9dc2d991b3479cc2df15930958b674a48a227d5361d413827a4cfd0b5876fc98
     # via pyinstaller
