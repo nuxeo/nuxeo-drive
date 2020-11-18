@@ -110,7 +110,6 @@ info_plist = {
         "CFBundleURLSchemes": ["nxdrive"],
     },
     "LSUIElement": True,  # Implies LSBackgroundOnly, no icon in the Dock
-    "NSHighResolutionCapable": True,
 }
 
 app = BUNDLE(

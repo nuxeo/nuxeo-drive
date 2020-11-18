@@ -35,6 +35,9 @@ build_installer() {
     echo ">>> Building the release package"
     ${PYTHON} -m PyInstaller ndrive.spec --clean --noconfirm
 
+    # Check for freezer regressions
+    ensure_correctness dist/ndrive
+
     # Do some clean-up
     ${PYTHON} tools/cleanup_application_tree.py dist/ndrive
 
@@ -56,9 +59,6 @@ build_installer() {
     elif [ "${OSI}" = "linux" ]; then
         remove_excluded_files dist/ndrive
     fi
-
-    # Check for freezer regressions
-    ensure_correctness dist/ndrive
 
     # Stop now if we only want the application to be frozen (for integration tests)
     if [ "${FREEZE_ONLY:-0}" = "1" ]; then
