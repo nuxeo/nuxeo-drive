@@ -12,6 +12,8 @@ env:
     - NXDRIVE_TEST_NUXEO_URL="https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
     # Set to "release" for a beta release
     - RELEASE_TYPE="alpha"
+    # This is temporary, remove with NXDRIVE-2400
+    - TESTING="1"
 
 _before_script: &_before_script
   before_script:
@@ -38,14 +40,15 @@ jobs:
   fast_finish: true
   include:
 
-  - <<: *_build
-    name: GNU/Linux [.AppImage]
-    services:
-      - docker
-    # addons:
-    #   apt:
-    #     packages:
-    #     - appstream
+  # This is temporary, enable back with NXDRIVE-2400
+  # - <<: *_build
+  #   name: GNU/Linux [.AppImage]
+  #   services:
+  #     - docker
+  #   # addons:
+  #   #   apt:
+  #   #     packages:
+  #   #     - appstream
 
   - <<: *_build
     name: macOS [.dmg]
