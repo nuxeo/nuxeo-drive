@@ -45,10 +45,11 @@ It may evolve quickly without notification as we are following the Python develo
 
 [//]: # (XXX_PYTHON)
 
-As of now, we are using the __Python 3.7.9__.
+As of now, we are using the __Python 3.8.6__.
 
 History:
 
+- `2020-11-xx` (v4.4.6): dropped support for Python 3.7
 - `2019-06-17` (v4.1.4): dropped support for Python 3.6
 - `2018-10-30` (v4.0.0): dropped support for Python 2.7
 - `2014-??-??`: dropped support for Python 2.6

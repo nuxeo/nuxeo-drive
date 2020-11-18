@@ -18,7 +18,7 @@ from functools import lru_cache
 from itertools import islice
 from logging import getLogger
 from pathlib import Path
-from threading import get_ident
+from threading import get_native_id
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -87,8 +87,7 @@ def current_thread_id() -> int:
 
     Note: this function cannot be decorated with lru_cache().
     """
-    # TODO: use get_native_id() in Python 3.8 (XXX_PYTHON)
-    return get_ident()
+    return get_native_id()
 
 
 def disk_space(a_folder: str) -> Tuple[int, int]:
