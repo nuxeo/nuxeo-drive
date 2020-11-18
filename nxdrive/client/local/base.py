@@ -427,14 +427,14 @@ class LocalClientMixin:
                 locker = self.unlock_ref(parent_ref, unlock_parent=False)
             self.unset_readonly(ref)
             os_path = self.abspath(ref)
-            if os_path.is_file():
-                os_path.unlink()
-            elif os_path.is_dir():
+            if os_path.is_dir():
                 # Override `onerror` to catch the 1st exception and let other
                 # documents to be deleted.
                 shutil.rmtree(os_path, onerror=onerror)
                 if error:
                     raise error
+            else:
+                os_path.unlink(missing_ok=True)
         finally:
             if parent_ref is not None:
                 self.lock_ref(parent_ref, locker)
