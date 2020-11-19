@@ -4,7 +4,7 @@ versions.yml management.
 Requires the pyyaml module.
 """
 
-from __future__ import print_function, unicode_literals
+from __future__ import unicode_literals
 
 import argparse
 import glob
@@ -14,7 +14,7 @@ import os.path
 
 import yaml
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 __all__ = ("create", "delete", "merge", "promote")
 
 
@@ -69,10 +69,10 @@ def create(version, category):
     )
     for path in paths:
         path = path.format(folder, version)
-        if os.getenv("TESTING") and not os.path.isfile(path):
+        if not os.path.isfile(path):
             continue
 
-        with open(path, "rb") as installer:  # Set TESTING=1 envar to skip the error
+        with open(path, "rb") as installer:
             checksum = hashlib.sha256(installer.read()).hexdigest()
             if path.endswith("AppImage"):
                 checksum_appimage = checksum

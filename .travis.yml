@@ -12,8 +12,6 @@ env:
     - NXDRIVE_TEST_NUXEO_URL="https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
     # Set to "release" for a beta release
     - RELEASE_TYPE="alpha"
-    # This is temporary, remove with NXDRIVE-2400
-    - TESTING="1"
 
 _before_script: &_before_script
   before_script:
