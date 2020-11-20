@@ -7,6 +7,7 @@ from functools import partial
 from logging import getLogger
 from math import sqrt
 from pathlib import Path
+from random import choice
 from time import monotonic
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 from urllib.parse import unquote_plus, urlparse
@@ -66,6 +67,7 @@ from ..utils import (
     normalized_path,
     parse_protocol_url,
     short_name,
+    today_is_special,
 )
 from .api import QMLDriveApi
 from .systray import DriveSystrayIcon, SystrayWindow
@@ -172,6 +174,7 @@ class Application(QApplication):
         font = QFont("Helvetica, Times", pointSize=point_size)
         self.setFont(font)
         self.point_size = point_size / sqrt(QFontMetricsF(font).height() / point_size)
+        self.today_is_special = today_is_special()
 
         self.init_gui()
 
@@ -382,6 +385,10 @@ class Application(QApplication):
 
     def _fill_qml_context(self, context: QQmlContext) -> None:
         """ Fill the context of a QML element with the necessary resources. """
+
+        emoticon = choice("🎅 🤶 🎄 ⛄ ❄️ 🎁".split())
+        app_name = f"{emoticon} {APP_NAME}" if self.today_is_special else APP_NAME
+
         context.setContextProperty("ActiveSessionModel", self.active_session_model)
         context.setContextProperty(
             "CompletedSessionModel", self.completed_session_model
@@ -404,7 +411,7 @@ class Application(QApplication):
         context.setContextProperty("update_check_delay", Options.update_check_delay)
         context.setContextProperty("sync_enabled", Options.synchronization_enabled)
         context.setContextProperty("isFrozen", Options.is_frozen)
-        context.setContextProperty("APP_NAME", APP_NAME)
+        context.setContextProperty("APP_NAME", app_name)
         context.setContextProperty("LINUX", LINUX)
         context.setContextProperty("WINDOWS", WINDOWS)
         context.setContextProperty("feat_auto_update", Feature.auto_update)
@@ -413,6 +420,7 @@ class Application(QApplication):
         context.setContextProperty("beta_features", Beta)
         context.setContextProperty("disabled_features", DisabledFeatures)
         context.setContextProperty("tl", Translator.singleton)
+        context.setContextProperty("special", self.today_is_special)
         context.setContextProperty(
             "nuxeoVersionText", f"{APP_NAME} {self.manager.version}"
         )
@@ -424,11 +432,13 @@ class Application(QApplication):
         )
         if Options.system_wide:
             versions += " [admin]"
+        if self.today_is_special:
+            versions += f" {emoticon}"
         context.setContextProperty("modulesVersionText", versions)
 
         colors = {
             "darkBlue": "#1F28BF",
-            "nuxeoBlue": "#0066FF",
+            "nuxeoBlue": "#0B7A37" if self.today_is_special else "#0066FF",
             "nuxeoBlue50": "#7D0066FF",  # nuxeoBlue at 50% opacity (format AARRGGBB)
             "lightBlue": "#00ADED",
             "lightGreen": "#A9D843",
@@ -1344,7 +1354,11 @@ class Application(QApplication):
             "update",
         }:
             icon = QIcon()
-            icon.addFile(str(find_icon(f"{state}{suffix}.svg")))
+            file = state
+            if state == "idle" and self.today_is_special:
+                file = "xmas"
+            file += f"{suffix}.svg"
+            icon.addFile(str(find_icon(file)))
             if MAC:
                 icon.addFile(mask, mode=QIcon.Selected)
             self.icons[state] = icon

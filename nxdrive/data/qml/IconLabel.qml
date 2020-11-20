@@ -7,6 +7,7 @@ import QtQuick 2.15
     property bool enabled: true
     property string tooltip
     property string iconColor: mediumGray
+    property string iconColorDisabled: lightGray
 
     signal clicked()
 
@@ -15,13 +16,13 @@ import QtQuick 2.15
         family: "Material Design Icons"
         pointSize: point_size * (size / point_size)
     }
-    color: control.enabled ? control.iconColor : lightGray
+    color: control.enabled ? control.iconColor : iconColorDisabled
 
     MouseArea {
         anchors.fill: parent
         hoverEnabled: control.tooltip
         id: mouseArea
-        cursorShape: control.enabled ? Qt.PointingHandCursor : Qt.ForbiddenCursor
+        cursorShape: control.enabled ? Qt.PointingHandCursor : Qt.NoCursor
         onClicked: control.enabled ? control.clicked() : {}
     }
 

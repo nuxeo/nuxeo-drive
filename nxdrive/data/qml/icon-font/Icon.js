@@ -1251,6 +1251,8 @@ var Icon = {
     "redoVariant": "\uf44F",
     "refresh": "\uf450",
     "regex": "\uf451",
+    "reindeer": "\uf9b9",
+    "reindeerCircle": "\uf9ba",
     "relativeScale": "\uf452",
     "reload": "\uf453",
     "remote": "\uf454",

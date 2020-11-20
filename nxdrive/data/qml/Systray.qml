@@ -9,7 +9,7 @@ Rectangle {
     width: 365; height: 370
     border {
         width: 1
-        color: "#33000000"
+        color: special ? "#0B7A37" : "#33000000"
     }
 
     property bool hasAccounts: EngineModel.count > 0
@@ -104,7 +104,7 @@ Rectangle {
 
         Rectangle {
             Layout.fillWidth: true
-            color: lighterGray
+            color: special ? "#0B7A37" : lighterGray
             height: 50; z: 10
 
             MouseArea {
@@ -128,7 +128,8 @@ Rectangle {
                 // Icon 1: accounts
                 IconLabel {
                     id: accountIcon
-                    icon: MdiFont.Icon.accountCircle
+                    icon: special ? MdiFont.Icon.reindeerCircle : MdiFont.Icon.accountCircle
+                    iconColorDisabled: special ? "red" : lightGray
                     enabled: false
                 }
 
@@ -138,6 +139,7 @@ Rectangle {
 
                     AccountsComboBox {
                         id: accountSelect
+                        color: special ? "white" : mediumGray
 
                         // Width management: systray width minus the 5 icon's width
                         Layout.preferredWidth: systray.width - (accountIcon.width * 5)
@@ -153,6 +155,7 @@ Rectangle {
                 // Icon 2: open remote server's URL
                 IconLabel {
                     icon: MdiFont.Icon.nuxeo
+                    iconColor: special ? "white" : mediumGray
                     onClicked: api.open_remote_server(accountSelect.getRole("uid"))
                     tooltip: api.get_hostname_from_url(accountSelect.getRole("server_url"))
                 }
@@ -160,6 +163,7 @@ Rectangle {
                 // Icon 3: open local sync root folder
                 IconLabel {
                     icon: MdiFont.Icon.folder
+                    iconColor: special ? "white" : mediumGray
                     onClicked: api.open_local(accountSelect.getRole("uid"), "/")
                     tooltip: qsTr("OPEN_ROOT_FOLDER").arg(APP_NAME) + tl.tr
                 }
@@ -167,6 +171,7 @@ Rectangle {
                 // Icon 4: open the Direct Transfer window
                 IconLabel {
                     icon: MdiFont.Icon.directTransfert
+                    iconColor: special ? "white" : mediumGray
                     onClicked: feat_direct_transfer ? api.open_direct_transfer(accountSelect.getRole("uid")) : null
                     tooltip: qsTr("CONTEXT_MENU_4") + tl.tr
                     enabled: feat_direct_transfer
@@ -177,6 +182,7 @@ Rectangle {
                 IconLabel {
                     id: settingsContainer
                     icon: MdiFont.Icon.dotsVertical
+                    iconColor: special ? "white" : mediumGray
                     onClicked: contextMenu.visible = !contextMenu.visible
                 }
             }
@@ -249,6 +255,8 @@ Rectangle {
             state: ""  // Synced
             visible: !(errorState.visible || updateState.visible)
             text: sync_enabled ? qsTr("SYNCHRONIZATION_COMPLETED") + tl.tr : ""
+            color: special ? "#0B7A37" : lighterGray
+            textColor: special ? "white" : mediumGray
 
             states: [
                 State {
@@ -325,7 +333,7 @@ Rectangle {
             id: updateState
             state: "up_to_date"
             visible: !(state == "up_to_date" || state == "unavailable_site" || state == "wrong_channel")
-            color: lightBlue
+            color: special ? "#0B7A37" : lightBlue
             textColor: "white"
             icon: MdiFont.Icon.update
 
