@@ -144,9 +144,9 @@ pycodestyle==2.6.0 \
 pyflakes==2.2.0 \
     --hash=sha256:0d94e0e05a19e57a99444b6ddcf9a6eb2e5c68d3ca1e98e90707af8152c90a92 \
     --hash=sha256:35b2d75ee967ea93b55750aa9edbbf72813e06a66ba54438df2cfac9e3c27fc8
-pyfakefs==4.2.1 \
-    --hash=sha256:2b1bf60ebbbaa3bf8c4c263576ec38e69368bdce4e6d7dbdbe136999f24ece6d \
-    --hash=sha256:0aad5ac8cb671f296a497a83a4672b54ee2fc0acb947a51198ca10a3b656100f
+pyfakefs==4.3.0 \
+    --hash=sha256:dee4fc0ee691b865077f18a6d11f8fb68002bd8c346b73df259c76774c6604e1 \
+    --hash=sha256:4623770fb9994887e883d4193cc6a3746014b4287f94a73e0de04a0aa3c8a56a
     # via flake8
 pyparsing==2.4.7 \
     --hash=sha256:c203ec8783bf771a155b207279b9bccb8dea02d8f0c9e5f8ead507bc3246ecc1 \
