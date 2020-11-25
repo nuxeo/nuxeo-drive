@@ -587,8 +587,8 @@ class MixinTests(DirectEditSetup):
 
         def from_dict(blob: Dict[str, Any]) -> Blob:
             # Alter digest stuff
-            blob.pop("digest", None)
-            blob.pop("digestAlgorithm", None)
+            blob["digest"] = None
+            blob["digestAlgorithm"] = None
             return from_dict_orig(blob)
 
         filename = "picture-digestless.png"
