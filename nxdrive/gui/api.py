@@ -317,12 +317,13 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, result=list)
     def get_conflicts(self, uid: str) -> List[Dict[str, Any]]:
-        result = []
         engine = self._manager.engines.get(uid)
-        if engine:
-            for conflict in engine.get_conflicts():
-                result.append(self._export_formatted_state(uid, conflict))
-        return result
+        if not engine:
+            return []
+        return [
+            self._export_formatted_state(uid, conflict)
+            for conflict in engine.get_conflicts(limit=10)
+        ]
 
     @pyqtSlot(str, result=list)
     def get_errors(self, uid: str) -> List[Dict[str, Any]]:

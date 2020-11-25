@@ -189,6 +189,9 @@ def test_configuration_get_int(engine_dao):
 def test_conflicts(engine_dao):
     with engine_dao("engine_migration.db") as dao:
         assert dao.get_conflict_count() == 3
+        assert len(dao.get_conflicts(limit=1)) == 1
+        assert len(dao.get_conflicts(limit=2)) == 2
+        assert len(dao.get_conflicts(limit=42)) == 3
         assert len(dao.get_conflicts()) == 3
 
 
