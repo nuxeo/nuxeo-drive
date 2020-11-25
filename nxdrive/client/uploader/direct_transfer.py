@@ -38,6 +38,11 @@ class DirectTransferUploader(BaseUploader):
         ret: Optional[Upload] = self.dao.get_dt_upload(path=file_path)
         return ret
 
+    def get_upload_by_doc_pair(self, doc_pair: int = None) -> Optional[Upload]:
+        """Retrieve the eventual transfer associated to the given *doc_pair*."""
+        ret: Optional[Upload] = self.dao.get_dt_upload(doc_pair=doc_pair)
+        return ret
+
     def upload(
         self,
         file_path: Path,
