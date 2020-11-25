@@ -157,13 +157,13 @@ class Blob:
         """ Convert Dict to Blob object. """
         name = blob["name"]
         digest = blob.get("digest") or ""
-        digest_algorithm = blob.get("digestAlgorithm", "")
+        digest_algorithm = blob.get("digestAlgorithm") or ""
         size = int(blob.get("length", 0))
-        mimetype = blob.get("mime-type", "")
-        data = blob.get("data", "")
+        mimetype = blob.get("mime-type") or ""
+        data = blob.get("data") or ""
 
-        if digest_algorithm:
-            digest_algorithm = get_digest_algorithm(digest_algorithm) or ""
+        if digest and not digest_algorithm:
+            digest_algorithm = get_digest_algorithm(digest) or ""
         if digest_algorithm:
             digest_algorithm = digest_algorithm.lower().replace("-", "")
 
