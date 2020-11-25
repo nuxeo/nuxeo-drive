@@ -12,7 +12,7 @@ See the [Nuxeo Drive docs](https://doc.nuxeo.com/client-apps/nuxeo-drive/) for c
 
 ---
 
-Note: this documentation follows the Nuxeo Drive version of the master branch, which evolve quickly.
+Note: this documentation follows the Nuxeo Drive version of the `master` branch, which evolves quickly.
 To see the documentation of a given Nuxeo Drive release, use this kind of link:
 
 ```shell
@@ -108,10 +108,10 @@ The reference file [i18n.json](https://github.com/nuxeo/nuxeo-drive/blob/master/
 
 Translations for other languages are managed in the [nuxeo-drive](https://crowdin.com/project/nuxeo-drive) Crowdin project, e.g. [French](https://crowdin.com/translate/nuxeo-drive/40/en-fr).
 
-The [sync-nuxeo-drive-crowdin](https://qa.nuxeo.org/jenkins/job/Private/job/Crowdin/job/sync-nuxeo-drive-crowdin/) Jenkins job triggers a daily synchronization of:
+The [crowdin-action](https://github.com/nuxeo/nuxeo-drive/actions?query=workflow%3ACrowdin) GitHub Action triggers a daily synchronization of:
 
-* The i18n.json reference file to Crowdin. This file can be edited and changes must be pushed to the current repository.
-* The Crowdin translation files to the i18n folder, e.g. i18n-fr.json. These files must never be edited from the source tree.
+* The `i18n.json` reference file to Crowdin. This file can be edited and changes must be pushed to the current repository.
+* The Crowdin translation files to the `i18n` folder, e.g. `i18n-fr.json`. These files must never be edited from the source tree.
 
 ## Reporting Issues
 
@@ -131,11 +131,7 @@ The [sync-nuxeo-drive-crowdin](https://qa.nuxeo.org/jenkins/job/Private/job/Crow
     ndrive --log-level-file=DEBUG
     ```
 
-    By default the location of the log file is: `~/.nuxeo-drive/logs/` where `~` stands for the location of the user folder. For instance:
-
-    * GNU/Linux: `/home/username/.nuxeo-drive/logs`
-    * macOS: `/Users/username/.nuxeo-drive/logs`
-    * Windows: `C:\Users\username\.nuxeo-drive\logs`
+    By default the location of the log file is `$HOME/.nuxeo-drive/logs/`.
 
 ## License
 
