@@ -548,8 +548,9 @@ class Processor(EngineWorker):
         """Actions to do to at the end of a Direct Transfer."""
 
         # Transfer is completed, delete the upload from the database
-        path = doc_pair.local_path if WINDOWS else Path(f"/{doc_pair.local_path}")
-        self.dao.remove_transfer("upload", path, is_direct_transfer=True)
+        self.dao.remove_transfer_by_doc_pair(
+            "upload", doc_pair.id, is_direct_transfer=True
+        )
 
         # Clean-up
         self.dao.remove_state(doc_pair, recursive=recursive)

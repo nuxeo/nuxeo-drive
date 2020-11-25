@@ -95,6 +95,7 @@ class FileAction(Action):
         tmppath: Path = None,
         reporter: Any = None,
         engine: str = "",
+        doc_pair: int = None,
     ) -> None:
         super().__init__(action_type=action_type)
 
@@ -102,6 +103,7 @@ class FileAction(Action):
         self.size = size
         self.tmppath = tmppath
         self.engine = engine
+        self.doc_pair = doc_pair
 
         # Is it an empty file?
         self.empty = size == 0
@@ -172,6 +174,7 @@ class FileAction(Action):
             "speed": self.last_chunk_transfer_speed,
             "is_direct_transfer": self.is_direct_transfer,
             "engine": self.engine,
+            "doc_pair": self.doc_pair,
         }
 
     def __repr__(self) -> str:
@@ -203,18 +206,42 @@ class UploadAction(FileAction):
     """Upload: step 1/2 - Upload the file."""
 
     def __init__(
-        self, filepath: Path, size: int, reporter: Any = None, engine: str = ""
+        self,
+        filepath: Path,
+        size: int,
+        reporter: Any = None,
+        engine: str = "",
+        doc_pair: int = None,
     ) -> None:
-        super().__init__("Upload", filepath, size, reporter=reporter, engine=engine)
+        super().__init__(
+            "Upload",
+            filepath,
+            size,
+            reporter=reporter,
+            engine=engine,
+            doc_pair=doc_pair,
+        )
 
 
 class LinkingAction(FileAction):
     """Upload: step 2/2 - Create the document on the server and link the uploaded blob to it."""
 
     def __init__(
-        self, filepath: Path, size: int, reporter: Any = None, engine: str = ""
+        self,
+        filepath: Path,
+        size: int,
+        reporter: Any = None,
+        engine: str = "",
+        doc_pair: int = None,
     ) -> None:
-        super().__init__("Linking", filepath, size, reporter=reporter, engine=engine)
+        super().__init__(
+            "Linking",
+            filepath,
+            size,
+            reporter=reporter,
+            engine=engine,
+            doc_pair=doc_pair,
+        )
         self.progress = size
 
 

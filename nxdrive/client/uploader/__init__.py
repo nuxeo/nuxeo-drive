@@ -42,6 +42,10 @@ class BaseUploader:
         """Retrieve the eventual transfer associated to the given *file_path*."""
 
     @abstractmethod
+    def get_upload_by_doc_pair(self, doc_pair: int) -> Optional[Upload]:
+        """Retrieve the eventual transfer associated to the given *doc_pair*."""
+
+    @abstractmethod
     def upload(
         self,
         file_path: Path,
@@ -55,8 +59,11 @@ class BaseUploader:
         """Get and instantiate a new transfer."""
 
         # See if there is already a transfer for this file
-        transfer = self.get_upload(file_path)
-
+        doc_pair = kwargs.get("doc_pair")
+        if doc_pair:
+            transfer = self.get_upload_by_doc_pair(doc_pair=doc_pair)
+        else:
+            transfer = self.get_upload(file_path=file_path)
         batch: Optional[Batch] = None
 
         if transfer:
@@ -94,7 +101,10 @@ class BaseUploader:
 
         if not transfer:
             # Remove eventual obsolete upload (it happens when an upload using S3 has invalid metadatas)
-            self.dao.remove_transfer("upload", file_path)
+            if doc_pair:
+                self.dao.remove_transfer_by_doc_pair("upload", doc_pair)
+            else:
+                self.dao.remove_transfer("upload", file_path)
 
             # Add an upload entry in the database
             transfer = Upload(
@@ -235,6 +245,7 @@ class BaseUploader:
             blob.size,
             reporter=QApplication.instance(),
             engine=transfer.engine,
+            doc_pair=transfer.doc_pair,
         )
 
         action.is_direct_transfer = transfer.is_direct_transfer
@@ -279,7 +290,12 @@ class BaseUploader:
                     self.dao.set_transfer_progress("upload", transfer)
 
                     # Handle status changes every time a chunk is sent
-                    _transfer = self.get_upload(transfer.path)
+                    if transfer.doc_pair:
+                        _transfer = self.get_upload_by_doc_pair(
+                            doc_pair=transfer.doc_pair
+                        )
+                    else:
+                        _transfer = self.get_upload(file_path=transfer.path)
                     if _transfer:
                         self._handle_transfer_status(_transfer)
             else:
@@ -352,6 +368,7 @@ class BaseUploader:
             blob.size,
             reporter=QApplication.instance(),
             engine=transfer.engine,
+            doc_pair=transfer.doc_pair,
         )
         action.is_direct_transfer = transfer.is_direct_transfer
         try:

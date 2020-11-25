@@ -900,7 +900,7 @@ class DirectTransferFolder:
         with self._caplog.at_level(logging.INFO):
             self.wait_sync(wait_for_async=True)
 
-            sessions = engine.dao.get_completed_sessions_raw()
+            sessions = engine.dao.get_completed_sessions_raw(limit=5)
             assert sessions
             assert len(sessions) == 1
             session = sessions[0]
@@ -968,7 +968,7 @@ class DirectTransferFolder:
         engine.cancel_session(1)
         self.wait_sync(wait_for_async=True)
 
-        sessions = engine.dao.get_completed_sessions_raw()
+        sessions = engine.dao.get_completed_sessions_raw(limit=5)
         assert sessions
         assert len(sessions) == 1
         session = sessions[0]
@@ -1051,7 +1051,7 @@ class DirectTransferFolder:
         with self._caplog.at_level(logging.INFO):
             self.wait_sync(wait_for_async=True)
 
-            sessions = engine.dao.get_completed_sessions_raw()
+            sessions = engine.dao.get_completed_sessions_raw(limit=5)
             assert sessions
             assert len(sessions) == 1
             session = sessions[0]
@@ -1084,6 +1084,66 @@ class DirectTransferFolder:
             self.wait_sync(wait_for_async=True)
 
         self.checks(created)
+
+    def test_identical_sessions(self):
+        """
+        Create two sessions with the same file then pause them.
+        Ensure that two uploads are created.
+        The two sessions final status should be COMPLETED.
+        """
+        engine = self.engine_1
+
+        # There is no upload, right now
+        assert not list(engine.dao.get_dt_uploads())
+
+        def callback(*_):
+            """This will mimic what is done in SessionItem.qml."""
+            dao = engine.dao
+
+            sessions = dao.get_active_sessions_raw()
+            for session in sessions:
+                # Pause the session
+                dao.pause_session(session["uid"])
+            sessions = dao.get_active_sessions_raw()
+            uploads = list(dao.get_dt_uploads())
+            assert uploads
+            for upload in uploads:
+                assert upload.status is TransferStatus.PAUSED
+
+        for _ in range(2):
+            created = []
+            root_folder = self.tmpdir / str(uuid4())[:6]
+            root_folder.mkdir()
+            created.append(root_folder)
+
+            sub_file = root_folder / "file_test_duplicate.txt"
+            sub_file.write_text("Some content." * 1024 * 1024 * 2, encoding="utf8")
+            created.append(sub_file)
+
+            with patch.object(engine.remote, "upload_callback", new=callback):
+                with ensure_no_exception():
+                    self.direct_transfer(root_folder)
+                    self.wait_sync()
+
+        sessions = engine.dao.get_active_sessions_raw()
+        assert len(sessions) == 2
+        for session in sessions:
+            assert session["status"] is TransferStatus.PAUSED
+
+        uploads = list(engine.dao.get_dt_uploads())
+        assert len(uploads) == 2
+
+        for session in sessions:
+            engine.resume_session(session["uid"])
+
+        self.wait_sync(wait_for_async=True)
+
+        sessions = engine.dao.get_completed_sessions_raw(limit=5)
+        assert sessions
+        assert len(sessions) == 2
+        for session in sessions:
+            assert session["status"] is TransferStatus.DONE
+        assert not list(engine.dao.get_dt_uploads())
 
 
 class TestDirectTransferFolder(OneUserTest, DirectTransferFolder):
