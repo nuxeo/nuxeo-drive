@@ -96,8 +96,8 @@ def test_configuration_get(engine_dao):
 
 
 def test_configuration_get_bool(engine_dao):
-    name = "something"
     with engine_dao("engine_migration.db") as dao:
+        name = "something"
         # Boolean parameter set to True
         dao.store_bool(name, True)
         assert dao.get_bool(name) is True
@@ -151,8 +151,8 @@ def test_configuration_get_bool(engine_dao):
 
 
 def test_configuration_get_int(engine_dao):
-    name = "something"
     with engine_dao("engine_migration.db") as dao:
+        name = "something"
         # Boolean parameter set to True
         dao.store_int(name, 42)
         assert dao.get_int(name) == 42

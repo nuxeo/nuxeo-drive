@@ -121,9 +121,8 @@ class Processor(EngineWorker):
                 Processor.soft_locks[self.engine.uid] = {}
             if path in Processor.soft_locks[self.engine.uid]:
                 raise PairInterrupt
-            else:
-                Processor.soft_locks[self.engine.uid][path] = True
-                return path
+            Processor.soft_locks[self.engine.uid][path] = True
+            return path
 
     def get_current_pair(self) -> Optional[DocPair]:
         return self._current_doc_pair
