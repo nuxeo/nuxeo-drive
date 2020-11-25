@@ -55,8 +55,9 @@ class BaseUploader:
         """Get and instantiate a new transfer."""
 
         # See if there is already a transfer for this file
-        transfer = self.get_upload(file_path)
-
+        doc_pair = kwargs["doc_pair"] if "doc_pair" in kwargs else None
+        transfer = self.get_upload(file_path=file_path, doc_pair=doc_pair)
+        print(transfer)
         batch: Optional[Batch] = None
 
         if transfer:
@@ -94,7 +95,10 @@ class BaseUploader:
 
         if not transfer:
             # Remove eventual obsolete upload (it happens when an upload using S3 has invalid metadatas)
-            self.dao.remove_transfer("upload", file_path)
+            if doc_pair:
+                self.dao.remove_transfer_by_doc_pair("upload", doc_pair)
+            else:
+                self.dao.remove_transfer("upload", file_path)
 
             # Add an upload entry in the database
             transfer = Upload(
@@ -232,6 +236,7 @@ class BaseUploader:
             blob.size,
             reporter=QApplication.instance(),
             engine=transfer.engine,
+            doc_pair=transfer.doc_pair,
         )
 
         action.is_direct_transfer = transfer.is_direct_transfer
@@ -250,6 +255,7 @@ class BaseUploader:
                 # Update the progress on chunked upload only as the first call to
                 # action.progress will set the action.uploaded attr to True for
                 # empty files. This is not what we want: empty files are legits.
+                print("chunked")
                 action.progress = uploader.chunk_size * len(
                     uploader.blob.uploadedChunkIds
                 )
@@ -263,6 +269,7 @@ class BaseUploader:
 
                 # If there is an UploadError, we catch it from the processor
                 for _ in uploader.iter_upload():
+                    print("itering")
                     action.progress = action.chunk_size * len(
                         uploader.blob.uploadedChunkIds
                     )
@@ -272,7 +279,9 @@ class BaseUploader:
                     self.dao.set_transfer_progress("upload", transfer)
 
                     # Handle status changes every time a chunk is sent
-                    _transfer = self.get_upload(transfer.path)
+                    _transfer = self.get_upload(
+                        file_path=transfer.path, doc_pair=transfer.doc_pair
+                    )
                     if _transfer and _transfer.status not in (
                         TransferStatus.ONGOING,
                         TransferStatus.DONE,
@@ -305,6 +314,7 @@ class BaseUploader:
                 "Either the upload ID does not exist or the it was already completed."
             )
         finally:
+            print("finaly")
             action.finish_action()
 
     def _link_blob_to_doc(
@@ -348,6 +358,7 @@ class BaseUploader:
             blob.size,
             reporter=QApplication.instance(),
             engine=transfer.engine,
+            doc_pair=transfer.doc_pair,
         )
         action.is_direct_transfer = transfer.is_direct_transfer
         try:

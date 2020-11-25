@@ -182,7 +182,9 @@ class Remote(Nuxeo):
                     raise DownloadPaused(download.uid or -1)
         elif isinstance(action, UploadAction):
             # Get the current upload and check if it is still ongoing
-            upload = self.dao.get_upload(path=action.filepath)
+            upload = self.dao.get_upload(
+                path=action.filepath, doc_pair=action.doc_pair
+            )  # dq
             if upload and upload.status not in (
                 TransferStatus.ONGOING,
                 TransferStatus.DONE,

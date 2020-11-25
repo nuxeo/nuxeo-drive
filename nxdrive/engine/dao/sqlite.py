@@ -645,7 +645,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 16
+        return 17
 
     def _migrate_state(self, cursor: Cursor) -> None:
         try:
@@ -896,6 +896,26 @@ class EngineDAO(ConfigurationDAO):
             )
             self.store_int(SCHEMA_VERSION, 16)
 
+        if version < 17:
+            # Remove the UNIQUE constraint on paths for Uploads table.
+
+            # Copy the Uploads and Downloads table.
+            cursor.execute("ALTER TABLE Uploads RENAME TO Uploads_backup;")
+            cursor.execute("ALTER TABLE Downloads RENAME TO Downloads_backup;")
+
+            # Create again the table, with up-to-date column
+            self._create_transfer_tables(cursor)
+
+            # Insert back old datas with up-to-date informations
+            cursor.execute("INSERT INTO Uploads SELECT * FROM Uploads_backup;")
+            cursor.execute("INSERT INTO Downloads SELECT * FROM Downloads_backup;")
+
+            # Delete the backup tables
+            cursor.execute("DROP TABLE Uploads_backup;")
+            cursor.execute("DROP TABLE Downloads_backup;")
+
+            self.store_int(SCHEMA_VERSION, 17)
+
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
         if name == "States":
             self._create_state_table(cursor, force)
@@ -922,7 +942,7 @@ class EngineDAO(ConfigurationDAO):
         cursor.execute(
             "CREATE TABLE if not exists Uploads ("
             "    uid                INTEGER     NOT NULL,"
-            "    path               VARCHAR     UNIQUE,"
+            "    path               VARCHAR,"
             "    status             INTEGER,"
             "    engine             VARCHAR     DEFAULT NULL,"
             "    is_direct_edit     INTEGER     DEFAULT 0,"
@@ -2363,6 +2383,7 @@ class EngineDAO(ConfigurationDAO):
                 "progress": res.progress or 0.0,
                 "remote_parent_path": res.remote_parent_path,
                 "remote_parent_ref": res.remote_parent_ref,
+                "doc_pair": res.doc_pair,
             }
             for res in c.execute(
                 f"SELECT * FROM Uploads WHERE is_direct_transfer = 1 LIMIT {limit}"
@@ -2870,6 +2891,22 @@ class EngineDAO(ConfigurationDAO):
             c = self._get_write_connection().cursor()
             table = f"{nature.title()}s"  # Downloads/Uploads
             c.execute(f"DELETE FROM {table} WHERE path = ?", (path,))
+
+            if c.rowcount == 0:
+                return
+
+            if is_direct_transfer:
+                self.directTransferUpdated.emit()
+            else:
+                self.transferUpdated.emit()
+
+    def remove_transfer_by_doc_pair(
+        self, nature: str, doc_pair: int, is_direct_transfer: bool = False
+    ) -> None:
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            table = f"{nature.title()}s"  # Downloads/Uploads
+            c.execute(f"DELETE FROM {table} WHERE doc_pair = ?", (doc_pair,))
 
             if c.rowcount == 0:
                 return

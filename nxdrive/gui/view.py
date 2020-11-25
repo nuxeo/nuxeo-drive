@@ -269,6 +269,7 @@ class DirectTransferModel(QAbstractListModel):
     REMOTE_PARENT_PATH = Qt.UserRole + 9
     REMOTE_PARENT_REF = Qt.UserRole + 10
     SHADOW = Qt.UserRole + 11  # Tell the interface if the row should be visible or not
+    DOC_PAIR = Qt.UserRole + 12
 
     def __init__(self, translate: Callable, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -286,6 +287,7 @@ class DirectTransferModel(QAbstractListModel):
             self.REMOTE_PARENT_PATH: b"remote_parent_path",
             self.REMOTE_PARENT_REF: b"remote_parent_ref",
             self.SHADOW: b"shadow",
+            self.DOC_PAIR: b"doc_pair",
         }
         # Pretty print
         self.psize = partial(sizeof_fmt, suffix=self.tr("BYTE_ABBREV"))
@@ -355,9 +357,11 @@ class DirectTransferModel(QAbstractListModel):
     @pyqtSlot(dict)
     def set_progress(self, action: Dict[str, Any]) -> None:
         for i, item in enumerate(self.items):
-            if (item["engine"], item["name"]) != (action["engine"], action["name"]):
+            if (item["engine"], item["doc_pair"]) != (
+                action["engine"],
+                action["doc_pair"],
+            ):
                 continue
-
             idx = self.createIndex(i, 0)
             self.setData(idx, action["progress"], self.PROGRESS)
             self.setData(idx, action["progress"], self.TRANSFERRED)

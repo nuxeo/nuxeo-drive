@@ -33,10 +33,15 @@ class DirectTransferUploader(BaseUploader):
         )
         return bool(self.remote.query(query)["entries"])
 
-    def get_upload(self, file_path: Path) -> Optional[Upload]:
+    def get_upload(
+        self, file_path: Path = None, doc_pair: int = None
+    ) -> Optional[Upload]:
         """Retrieve the eventual transfer associated to the given *file_path*."""
-        ret: Optional[Upload] = self.dao.get_dt_upload(path=file_path)
-        return ret
+        if not file_path and not doc_pair:
+            return None
+        if doc_pair:
+            return self.dao.get_dt_upload(doc_pair=doc_pair)
+        return self.dao.get_dt_upload(path=file_path)
 
     def upload(
         self,

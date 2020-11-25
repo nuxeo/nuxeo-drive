@@ -75,6 +75,7 @@ Rectangle {
                     tooltip: qsTr(paused ? "RESUME" : "SUSPEND") + tl.tr
                     onClicked: {
                         if (paused) {
+                            console.log(uid)
                             api.resume_transfer("upload", engine, uid, true)
                         } else {
                             api.pause_transfer("upload", engine, uid, progress, true)
