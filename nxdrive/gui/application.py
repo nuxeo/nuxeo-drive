@@ -711,7 +711,7 @@ class Application(QApplication):
             invalid_credentials &= engine.has_invalid_credentials()
             paused &= engine.is_paused()
             offline &= engine.is_offline()
-            conflict |= bool(engine.get_conflicts())
+            conflict |= bool(engine.get_conflicts(limit=1))
 
         if offline:
             new_state = "error"
