@@ -1122,17 +1122,8 @@ def test_url(
 
 
 def today_is_special() -> bool:
-    """
-    This beautiful day is special, isn't it? As all other days, right? :)
-    """
-
-    if os.getenv("I_LOVE_XMAS", "0") == "1":
-        return True
-
-    from datetime import date
-
-    today = date.today()
-    year = today.year
-    start = date(year, 12, 24 - 3)
-    end = date(year, 12, 25 + 2)
-    return start <= today <= end
+    """This beautiful day is special, isn't it? As all other days, right? :)"""
+    return (
+        os.getenv("I_LOVE_XMAS", "0") == "1"
+        or int(datetime.utcnow().strftime("%j")) >= 354
+    )

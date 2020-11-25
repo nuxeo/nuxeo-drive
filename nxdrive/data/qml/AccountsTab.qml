@@ -42,6 +42,7 @@ Rectangle {
             // Account icon
             IconLabel {
                 icon: MdiFont.Icon.accountCircle
+                iconColorDisabled: nuxeoBlue
                 enabled: false
             }
 
