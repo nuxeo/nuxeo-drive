@@ -116,7 +116,7 @@ Size of the chunks in MiB. Has to be above 0 and lower or equal to 5120 (5 GiB).
 
 - Default value (int): `20`
 - Version added: 4.1.2
-- Version changed: 4.4.6, bumped the upper limit from `20` to `5120`
+- Version changed: 4.5.0, bumped the upper limit from `20` to `5120`
 
 * * *
 
@@ -198,7 +198,7 @@ List of document types where Direct Transfer is not allowed.
     "Section",
 ]
 ```
-- Version added: 4.4.6
+- Version added: 4.5.0
 
 * * *
 
