@@ -786,7 +786,6 @@ class DirectEdit(Worker):
 
                 kwargs: Dict[str, Any] = {}
                 if xpath == "note:note":
-                    kwargs["applyVersioningPolicy"] = True
                     cmd = "NuxeoDrive.AttachBlob"
                 else:
                     kwargs["xpath"] = xpath
