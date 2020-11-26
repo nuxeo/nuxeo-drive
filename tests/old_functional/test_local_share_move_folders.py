@@ -14,8 +14,8 @@ class TestLocalShareMoveFolders(TwoUsersTest):
 
     def setUp(self):
         """
-        1. Create folder a1 in Nuxeo Drive Test Workspace sycn root
-        2. Create folder a2 in Nuxeo Drive Test Workspace sycn root
+        1. Create folder a1 in Nuxeo Drive Test Workspace sync root
+        2. Create folder a2 in Nuxeo Drive Test Workspace sync root
         3. Add 10 image files in a1
         """
 

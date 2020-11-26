@@ -4,9 +4,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 from nuxeo.exceptions import HTTPError, Unauthorized
+from requests import ConnectionError
+
 from nxdrive.constants import ROOT, WINDOWS
 from nxdrive.utils import safe_filename
-from requests import ConnectionError
 
 from .. import ensure_no_exception
 from . import LocalTest
@@ -832,7 +833,7 @@ class TestSynchronization(OneUserTest):
         engine.start()
 
         # Create the folder
-        root_name = "Été indien"
+        root_name = "Été indian"
         root = remote.make_folder(self.workspace, root_name)
         self.wait_sync(wait_for_async=True)
         assert local.exists("/" + root_name)
