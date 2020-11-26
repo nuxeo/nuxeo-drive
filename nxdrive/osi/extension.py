@@ -34,6 +34,10 @@ class Status(Enum):
     UNSYNCED = 6
 
 
+# Network layer protocol constants used by Qt
+PROTO = {-1: "other than IPv4 and IPv6", 0: "IPv4", 1: "IPv6", 2: "either IPv4 or IPv6"}
+
+
 # Map status to emblem basename, used on GNU/Linux
 icon_status = {
     Status.SYNCED: "emblem-nuxeo_synced",
@@ -79,10 +83,20 @@ class ExtensionListener(QTcpServer):
         It is required to use this method in order to get the actual IP
         as it turns out that QHostAddress(host) does not do any DNS lookup.
         """
+        log.debug(f"Fetching {host!r} host information")
         host_info = QHostInfo.fromName(host)
+
+        error = host_info.error()
+        msg = host_info.errorString() if error != 0 else "No error"
+        log.debug(f"[error code: {error}, error message: {msg!r}]")
+
         for address in host_info.addresses():
+            log.debug(
+                f"Found {PROTO[address.protocol()]} address: {address.toString()!r}"
+            )
             if address.protocol() == QAbstractSocket.IPv4Protocol:
                 return address
+        log.debug("No address found, the server will likely fail to start!")
 
     @property
     def address(self) -> str:
@@ -95,6 +109,7 @@ class ExtensionListener(QTcpServer):
 
         Starts listening and emits a signal so that the extension can be started.
         """
+        log.debug("Starting the extension server ...")
         self.listen(self.host_to_addr(self.host), self.port)
         log.info(f"Listening to {self.explorer_name} on {self.address!r}")
         self.listening.emit()
