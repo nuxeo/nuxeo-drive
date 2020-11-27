@@ -89,7 +89,7 @@ class BaseUploader:
             # be completely disabled because of a one-time server error.
             handler = "s3" if Feature.s3 and self.remote.uploads.has_s3() else ""
 
-            # Create a new batch and save it in the DB
+            # Create a new batch
             batch = self.remote.uploads.batch(handler=handler)
 
         if not transfer:
@@ -260,6 +260,10 @@ class BaseUploader:
 
                 if transfer.batch_obj.is_s3():
                     self._patch_refresh_token(uploader, transfer)
+
+                    # Save the multipart upload ID
+                    transfer.batch = transfer.batch_obj.as_dict()
+                    self.dao.update_upload(transfer)
 
                 # If there is an UploadError, we catch it from the processor
                 for _ in uploader.iter_upload():
