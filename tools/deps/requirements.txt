@@ -2,9 +2,9 @@
 # Modules needed by the application.
 # This file is used to build fresh binaries.
 #
-boto3==1.16.0 \
-    --hash=sha256:2e16f02c8b832d401d958d7ca0a14c5bc7da17827918e6b24e5bc43dce8f496e \
-    --hash=sha256:ab5353a968a4e664b9da2dd950169b755066525fcbfdfc90e7e49c8333d95c19
+boto3==1.16.25 \
+    --hash=sha256:fb25ec578fe59aee298da2c976e2bcfd79a2eabead386e8e4f68bb3eb4ec50b3 \
+    --hash=sha256:13e6ab0abe10b4de54583067d12ed48c8477d91b7a7a8e6097d366a2a3631d17
     # via nuxeo[s3]
 botocore==1.19.25 \
     --hash=sha256:4e488351f399501a78b16e1dc466e505ccf63897c936030c56c6d3c37e57939c \
