@@ -370,11 +370,7 @@ class Processor(EngineWorker):
             except UploadCancelled as exc:
                 log.debug(f"Cancelled upload {exc.transfer_id!r}")
             except DuplicationDisabledError:
-                # Ignore the error, no need to flood the user with falsy errors
-                self.engine.dao.unsynchronize_state(
-                    doc_pair, last_error="DEDUP", ignore=True
-                )
-                self.engine.dao.reset_error(doc_pair, last_error="DEDUP")
+                self.giveup_error(doc_pair, "DEDUP")
             except CorruptedFile as exc:
                 self.increase_error(doc_pair, "CORRUPT", exception=exc)
             except UnknownDigest as exc:
