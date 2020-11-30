@@ -21,3 +21,4 @@ updates:
       - BoboTiG
     labels:
       - dependencies
+    open-pull-requests-limit: 42
