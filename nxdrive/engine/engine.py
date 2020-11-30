@@ -990,8 +990,8 @@ class Engine(QObject):
             "unsynchronized_files": self.dao.get_unsynchronized_count(),
         }
 
-    def get_conflicts(self, limit: int = 1000) -> DocPairs:
-        return self.dao.get_conflicts(limit=limit)
+    def get_conflicts(self) -> DocPairs:
+        return self.dao.get_conflicts()
 
     def conflict_resolver(self, row_id: int, emit: bool = True) -> None:
         pair = self.dao.get_state_from_id(row_id)
