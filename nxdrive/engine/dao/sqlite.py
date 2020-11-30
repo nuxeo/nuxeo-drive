@@ -1532,10 +1532,10 @@ class EngineDAO(ConfigurationDAO):
             "SELECT * FROM States WHERE pair_state = 'unsynchronized'"
         ).fetchall()
 
-    def get_conflicts(self, limit: int = 1000) -> DocPairs:
+    def get_conflicts(self) -> DocPairs:
         c = self._get_read_connection().cursor()
         return c.execute(
-            "SELECT * FROM States WHERE pair_state = 'conflicted' LIMIT ?", (limit,)
+            "SELECT * FROM States WHERE pair_state = 'conflicted'"
         ).fetchall()
 
     def get_errors(self, limit: int = 3) -> DocPairs:
