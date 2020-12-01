@@ -530,10 +530,9 @@ class CliHandler:
                 # We also do not block GNU/Linux users as it may not work properly (Ubutun 14.04 for instance)
                 if Options.is_frozen and not Options.ssl_no_verify and not LINUX:
                     raise RuntimeError("No SSL support, packaging must have failed.")
-                else:
-                    log.warning("No SSL support! HTTPS validation will be skipped.")
-                    options.ca_bundle = None
-                    options.ssl_no_verify = True
+                log.warning("No SSL support! HTTPS validation will be skipped.")
+                options.ca_bundle = None
+                options.ssl_no_verify = True
 
         if command != "uninstall":
             self._install_faulthandler()
