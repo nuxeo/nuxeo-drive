@@ -62,4 +62,7 @@ class MacLocalClient(LocalTest):
     def _process_result(result):
         ok, err = result
         if not ok:
-            raise OSError(err.utf8ValueSafe())
+            error = (
+                f"{err.localizedDescription()} (cause: {err.localizedFailureReason()})"
+            )
+            raise OSError(error)
