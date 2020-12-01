@@ -11,7 +11,12 @@ from PyQt5.QtCore import pyqtSignal, pyqtSlot
 
 from ...client.local import FileInfo
 from ...constants import BATCH_SIZE, CONNECTION_ERROR, ROOT, WINDOWS
-from ...exceptions import NotFound, ScrollDescendantsError, ThreadInterrupt
+from ...exceptions import (
+    NotFound,
+    ScrollDescendantsError,
+    ThreadInterrupt,
+    UnknownDigest,
+)
 from ...objects import DocPair, DocPairs, Metrics, RemoteFileInfo
 from ...options import Options
 from ...utils import get_date_from_sqlite, safe_filename
@@ -765,7 +770,13 @@ class RemoteWatcher(EngineWorker):
                 # A more recent version was already processed
                 continue
 
-            new_info = RemoteFileInfo.from_dict(fs_item) if fs_item else None
+            try:
+                new_info = RemoteFileInfo.from_dict(fs_item) if fs_item else None
+            except UnknownDigest:
+                log.warning(
+                    f"Ignoring unsyncable document {fs_item!r} because of unknown digest"
+                )
+                continue
 
             if self.filtered(new_info):
                 log.info(f"Ignoring banned file: {new_info!r}")
