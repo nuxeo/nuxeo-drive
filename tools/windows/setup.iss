@@ -2,9 +2,14 @@
 
 #include "setup-constants.iss"
 
+; Defining the AppId here to be able to craft the registry key
+; needed for the IsNotUpdating() function.
+#define AppId "{64519FA4-137A-4DC6-BF91-E2B698C02788}"
+#define RegKey "Software\Microsoft\Windows\CurrentVersion\Uninstall\" + AppId + "_is1"
+
 
 [Setup]
-AppId={{64519FA4-137A-4DC6-BF91-E2B698C02788}
+AppId={{#AppId}
 OutputBaseFilename=nuxeo-drive-{#MyAppVersion}
 PrivilegesRequired=lowest
 
@@ -32,7 +37,7 @@ Source: "..\..\dist\nuxeo-drive-addons.exe"; DestDir: "{app}"; Flags: ignorevers
 ; Here, to pass `None` as the key name, we just need to forget to declare `ValueName`.
 
 ; Start at Windows boot
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: "{app}\{#MyAppExeName}"; Flags: uninsdeletevalue
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: "{app}\{#MyAppExeName}"; Flags: uninsdeletevalue; Check: IsNotUpdating()
 
 ; Protocol handler "ndrive://" for Direct Edit
 Root: HKCU; Subkey: "Software\Classes\nxdrive"; ValueType: expandsz; ValueData: "Direct Edit URL"; Flags: uninsdeletekey
@@ -54,4 +59,12 @@ begin
     start := ExpandConstant('{param:START}');
     if (Length(start) > 0) or not WizardSilent() then
         Result := True;
+end;
+
+function IsNotUpdating(): Boolean;
+// Return true if the current installation is a fresh one (as opposed to an update).
+var
+    S: string;
+begin
+    Result := not RegQueryStringValue(HKCU, '{#RegKey}', 'Inno Setup: App Path', S);
 end;
