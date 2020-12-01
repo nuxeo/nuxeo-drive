@@ -143,15 +143,20 @@ class DarwinIntegration(AbstractOSIntegration):
         subprocess.Popen(args)
 
     @if_frozen
-    def register_startup(self) -> bool:
+    def startup_enabled(self) -> bool:
+        agent = self._get_agent_file()
+        return agent.is_file()
+
+    @if_frozen
+    def register_startup(self) -> None:
         """
         Register the Nuxeo Drive.app as a user Launch Agent.
         http://developer.apple.com/library/mac/#documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html
         """
-        agent = self._get_agent_file()
-        if agent.is_file():
-            return False
+        if self.startup_enabled():
+            return
 
+        agent = self._get_agent_file()
         parent = agent.parent
         if not parent.exists():
             log.info(f"Making launch agent folder {parent!r}")
@@ -160,16 +165,15 @@ class DarwinIntegration(AbstractOSIntegration):
         exe = os.path.realpath(sys.executable)
         log.info(f"Registering {exe!r} for startup in {agent!r}")
         agent.write_text(self.NDRIVE_AGENT_TEMPLATE % exe, encoding="utf-8")
-        return True
 
     @if_frozen
-    def unregister_startup(self) -> bool:
+    def unregister_startup(self) -> None:
+        if not self.startup_enabled():
+            return
+
         agent = self._get_agent_file()
-        if agent.is_file():
-            log.info(f"Unregistering startup agent {agent!r}")
-            agent.unlink()
-            return True
-        return False
+        log.info(f"Unregistering startup agent {agent!r}")
+        agent.unlink()
 
     @if_frozen
     def register_protocol_handlers(self) -> None:

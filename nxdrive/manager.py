@@ -294,10 +294,18 @@ class Manager(QObject):
 
     @if_frozen
     def _handle_os(self) -> None:
-        # Be sure to register os
+        """
+        Handle primary OS features.
+
+        Note: Before Nuxeo Drive 4.5.0, the auto start option was set here by default.
+              This is no more the case because we changed how such feature is handled
+              and we would enabled it every time the app is started on macOS. So we let
+              the feature as-is and if one wants to enable it, just click the switch
+              button in the settings window.
+              Windows is another beast, the feature is enabled by default from the
+              installer at the first installation on the machine.
+        """
         self.osi.register_protocol_handlers()
-        if self.get_auto_start():
-            self.osi.register_startup()
 
     def _get_db(self) -> Path:
         return self.home / "manager.db"
@@ -536,11 +544,6 @@ class Manager(QObject):
         log.debug(f"Changed parameter 'auto_update' to {value}")
         self.dao.store_bool("auto_update", value)
 
-    @pyqtSlot(result=bool)
-    def get_auto_start(self) -> bool:
-        # Enabled by default, if app is frozen
-        return self.dao.get_bool("auto_start", default=Options.is_frozen)
-
     def generate_report(self, path: Path = None) -> Path:
         from .report import Report
 
@@ -552,15 +555,18 @@ class Manager(QObject):
         report.generate()
         return report.get_path()
 
-    @pyqtSlot(bool, result=bool)
-    def set_auto_start(self, value: bool) -> bool:
-        log.debug(f"Changed parameter 'auto_start' to {value}")
-        self.dao.store_bool("auto_start", value)
+    @pyqtSlot(result=bool)
+    def get_auto_start(self) -> bool:
+        return self.osi.startup_enabled()
 
+    @pyqtSlot(bool)
+    def set_auto_start(self, value: bool) -> None:
+        """Change the auto start state."""
+        log.debug(f"Changed auto start state to {value}")
         if value:
-            return self.osi.register_startup()
-
-        return self.osi.unregister_startup()
+            self.osi.register_startup()
+        else:
+            self.osi.unregister_startup()
 
     @pyqtSlot(result=bool)
     def use_light_icons(self) -> bool:

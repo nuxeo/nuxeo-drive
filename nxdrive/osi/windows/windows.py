@@ -198,15 +198,24 @@ class WindowsIntegration(AbstractOSIntegration):
         self._get_folder_link(path.name).unlink(missing_ok=True)
 
     @if_frozen
-    def register_startup(self) -> bool:
-        return registry.write(
+    def startup_enabled(self) -> bool:
+        values = registry.read("Software\\Microsoft\\Windows\\CurrentVersion\\Run")
+        return bool(values and APP_NAME in values)
+
+    @if_frozen
+    def register_startup(self) -> None:
+        if self.startup_enabled():
+            return
+        registry.write(
             "Software\\Microsoft\\Windows\\CurrentVersion\\Run",
             {APP_NAME: sys.executable},
         )
 
     @if_frozen
-    def unregister_startup(self) -> bool:
-        return registry.delete_value(
+    def unregister_startup(self) -> None:
+        if not self.startup_enabled():
+            return
+        registry.delete_value(
             "Software\\Microsoft\\Windows\\CurrentVersion\\Run", APP_NAME
         )
 

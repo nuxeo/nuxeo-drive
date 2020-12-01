@@ -35,11 +35,15 @@ class AbstractOSIntegration(QObject):
         """
         pass
 
-    def register_startup(self) -> bool:
+    def startup_enabled(self) -> bool:
+        """Return True if the application is registered to boot at machine startup."""
         return False
 
-    def unregister_startup(self) -> bool:
-        return False
+    def register_startup(self) -> None:
+        pass
+
+    def unregister_startup(self) -> None:
+        pass
 
     @staticmethod
     def is_partition_supported(folder: Path) -> bool:
