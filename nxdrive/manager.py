@@ -200,7 +200,6 @@ class Manager(QObject):
         self.preferences_metrics_chosen = False
         self.check_metrics_preferences()
 
-        # Create notification service
         self._started = False
 
         # Pause if in debug
@@ -219,8 +218,10 @@ class Manager(QObject):
         self.sync_and_quit_worker = SyncAndQuitWorker(self)
         self.started.connect(self.sync_and_quit_worker.thread.start)
 
-        # Connect all Qt signals
+        # Create notification service
         self.notification_service.init_signals()
+
+        # Connect all Qt signals
         self.load()
 
         # [this worker will control next workers, so keep it first]
