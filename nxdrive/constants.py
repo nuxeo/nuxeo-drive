@@ -32,7 +32,7 @@ BATCH_SIZE = 500  # Scroll descendants batch size (max is 1,000)
 TX_TIMEOUT = 60 * 60 * 6  # 6 hours
 
 # Number of transfers displayed in the Direct Transfer window, onto the monitoring tab
-DT_MONITORING_MAX_ITEMS = 5
+DT_MONITORING_MAX_ITEMS = 20
 
 # Number of sessions displayed in the Direct Transfer window, onto the active sessions tab
 DT_ACTIVE_SESSIONS_MAX_ITEMS = 15

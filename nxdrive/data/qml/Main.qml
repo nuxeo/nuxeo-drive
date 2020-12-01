@@ -76,10 +76,8 @@ QtObject {
         visible: false
 
         signal setEngine(string uid)
-        signal setItemsCount()
 
         onSetEngine: directTransfer.setEngine(uid)
-        onSetItemsCount: directTransfer.updateCounts()
 
         DirectTransfer { id: directTransfer }
     }

@@ -67,6 +67,7 @@ from ..utils import (
     normalized_path,
     parse_protocol_url,
     short_name,
+    sizeof_fmt,
     today_is_special,
 )
 from .api import QMLDriveApi
@@ -411,6 +412,10 @@ class Application(QApplication):
         context.setContextProperty("APP_NAME", APP_NAME)
         context.setContextProperty("LINUX", LINUX)
         context.setContextProperty("WINDOWS", WINDOWS)
+        context.setContextProperty(
+            "CHUNK_SIZE",
+            sizeof_fmt(Options.chunk_size * 1024 * 1024, suffix=self.tr("BYTE_ABBREV")),
+        )
         context.setContextProperty("feat_auto_update", Feature.auto_update)
         context.setContextProperty("feat_direct_edit", Feature.direct_edit)
         context.setContextProperty("feat_direct_transfer", Feature.direct_transfer)
@@ -838,7 +843,6 @@ class Application(QApplication):
         """Display the Direct Transfer window."""
         window = self._window_root(self.direct_transfer_window)
         window.setEngine.emit(engine_uid)
-        window.setItemsCount.emit()
         self._center_on_screen(self.direct_transfer_window)
 
     @pyqtSlot()
@@ -1021,13 +1025,6 @@ class Application(QApplication):
         engine.dao.sessionUpdated.connect(
             partial(self.refresh_completed_sessions_items, engine.dao)
         )
-
-        # Refresh the Direct Transfer items count automatically
-        engine.directTranferItemsCount.connect(self.update_direct_transfer_items_count)
-
-        # Force the refresh of the Direct Transfer items count when the sync is over
-        engine.syncPartialCompleted.connect(self.update_direct_transfer_items_count)
-        engine.syncCompleted.connect(self.update_direct_transfer_items_count)
 
         engine.newSyncEnded.connect(self.manager.tracker.send_sync_event)
 
@@ -1724,11 +1721,6 @@ class Application(QApplication):
         files = self.api.get_last_files(uid, 10)
         if files != self.file_model.files:
             self.file_model.add_files(files)
-
-    @pyqtSlot()
-    def update_direct_transfer_items_count(self) -> None:
-        """Trigger an update of the Direct Transfer items count."""
-        self._window_root(self.direct_transfer_window).setItemsCount.emit()
 
     def current_language(self) -> Optional[str]:
         lang = Translator.locale()

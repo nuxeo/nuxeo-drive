@@ -9,36 +9,20 @@ Rectangle {
     anchors.fill: parent
 
     property string engineUid: ""
-    property int itemsCount: 0
     property int activeSessionsCount: 0
     property int completedSessionsCount: 0
     property double startTime: 0.0
 
     signal setEngine(string uid)
-    signal setItemsCount()
 
     onSetEngine: {
         engineUid = uid
         updateSessionsCounts()
     }
 
-    onSetItemsCount: updateCounts()
-
-    function updateCounts() {
-        itemsCount = api.get_dt_items_count(engineUid)
-    }
-
     function updateSessionsCounts() {
         activeSessionsCount = api.get_active_sessions_count(engineUid)
         completedSessionsCount = api.get_completed_sessions_count(engineUid)
-    }
-
-    Connections {
-        target: DirectTransferModel
-
-        function onFileChanged()  {
-            updateCounts()
-        }
     }
 
     Connections {
@@ -160,48 +144,34 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            Flickable {
+            ListView {
+                id: itemsList
+                width: parent.width
                 anchors.fill: parent
                 anchors.topMargin: 20
+                anchors.bottomMargin: 25
+                flickableDirection: Flickable.VerticalFlick
+                boundsBehavior: Flickable.StopAtBounds
                 clip: true
-                contentHeight: itemsList.height
-                interactive: false
+                spacing: 16
 
-                ListView {
-                    id: itemsList
-                    width: parent.width
-                    height: contentHeight
-                    spacing: 16
+                model: DirectTransferModel
+                delegate: TransferItem {}
 
-                    model: DirectTransferModel
-                    delegate: TransferItem {}
-                }
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                ScrollBar.vertical: ScrollBar {}
             }
 
-            // The number of total items to sync, including ones being synced
+            // Information about the filter on displayed files
             RowLayout {
                 anchors.bottom: parent.bottom
                 anchors.right: parent.right
-                anchors.margins: 10
+                anchors.margins: 5
 
-                // The count
                 ScaledText {
                     color: lightGray
-                    text: itemsCount
-                }
-
-                // The animated icon
-                IconLabel {
-                    color: darkGray
-                    text: MdiFont.Icon.cached
-                    font.pointSize: point_size * 0.8
-
-                    SequentialAnimation on rotation {
-                        running: true
-                        loops: Animation.Infinite; alwaysRunToEnd: true
-                        NumberAnimation { from: 360; to: 0; duration: 2000; easing.type: Easing.Linear }
-                        PauseAnimation { duration: 250 }
-                    }
+                    text: qsTr("MONITORING_DESCRIPTION").arg(CHUNK_SIZE) + tl.tr
                 }
             }
         }
