@@ -26,13 +26,6 @@ from .utils import (
 )
 
 try:
-    import ipdb
-except ImportError:
-    import pdb
-else:
-    pdb = ipdb
-
-try:
     from PyQt5.QtNetwork import QSslSocket
 except ImportError:
     QSslSocket = None
@@ -396,9 +389,15 @@ class CliHandler:
         options = parser.parse_args(filtered_args)
 
         if options.debug:
+            import threading
             from traceback import print_exception
             from types import TracebackType
             from typing import Type
+
+            try:
+                import ipdb as pdb
+            except ImportError:
+                import pdb
 
             # Automatically check all operations done with the Python client
             import nuxeo.constants
@@ -416,6 +415,12 @@ class CliHandler:
                 pdb.pm()
 
             sys.excepthook = excepthook
+
+            def texcepthook(args: Any) -> None:
+                print_exception(args.exc_type, args.exc_value, args.exc_traceback)
+                pdb.pm()
+
+            threading.excepthook = texcepthook
 
         return options
 
@@ -548,9 +553,10 @@ class CliHandler:
         if console:
             from .console import ConsoleApplication as Application  # noqa
         else:
+            from PyQt5.QtQml import qmlRegisterType
+
             from .gui.application import Application  # noqa
             from .gui.systray import SystrayWindow
-            from PyQt5.QtQml import qmlRegisterType
 
             qmlRegisterType(SystrayWindow, "SystrayWindow", 1, 0, "SystrayWindow")
         return Application(self.manager)
