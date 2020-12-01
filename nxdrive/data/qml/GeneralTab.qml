@@ -17,11 +17,16 @@ Rectangle {
 
         NuxeoSwitch {
             text: qsTr("AUTOSTART") + tl.tr
-            enabled: isFrozen && !LINUX
-            checked: manager.get_auto_start() && !LINUX
+            enabled: isFrozen
+            checked: manager.get_auto_start()
             onClicked: {
-                var success = manager.set_auto_start(checked)
-                if (!success) { checked = !checked }
+                enabled = false
+                try {
+                    manager.set_auto_start(checked)
+                    checked = manager.get_auto_start()
+                } finally {
+                    enabled = true
+                }
             }
             Layout.leftMargin: -5
         }
