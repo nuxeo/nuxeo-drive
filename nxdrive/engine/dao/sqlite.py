@@ -2346,13 +2346,21 @@ class EngineDAO(ConfigurationDAO):
                 remote_parent_ref=res.remote_parent_ref,
             )
 
-    def get_dt_uploads_raw(self, limit: int = 1) -> List[Dict[str, Any]]:
+    def get_dt_uploads_raw(
+        self, limit: int = 1, chunked: bool = False
+    ) -> List[Dict[str, Any]]:
         """
         Retrieve all Direct Transfer items.
         Return a simple dict to improve GUI performances (instead of Upload objects).
         """
         con = self._get_read_connection()
         c = con.cursor()
+
+        if chunked:
+            sql = f"SELECT * FROM Uploads WHERE is_direct_transfer = 1 AND filesize > chunk_size LIMIT {limit}"
+        else:
+            sql = f"SELECT * FROM Uploads WHERE is_direct_transfer = 1 LIMIT {limit}"
+
         return [
             {
                 "uid": res.uid,
@@ -2364,9 +2372,7 @@ class EngineDAO(ConfigurationDAO):
                 "remote_parent_path": res.remote_parent_path,
                 "remote_parent_ref": res.remote_parent_ref,
             }
-            for res in c.execute(
-                f"SELECT * FROM Uploads WHERE is_direct_transfer = 1 LIMIT {limit}"
-            ).fetchall()
+            for res in c.execute(sql).fetchall()
         ]
 
     def get_active_sessions_raw(self) -> List[Dict[str, Any]]:

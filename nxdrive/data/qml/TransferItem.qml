@@ -90,7 +90,6 @@ Rectangle {
                     iconColor: "red"
                     onClicked: {
                         application.confirm_cancel_transfer(engine, uid, name)
-                        directTransfer.updateCounts()
                     }
                 }
             }

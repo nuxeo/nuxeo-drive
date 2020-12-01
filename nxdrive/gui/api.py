@@ -132,14 +132,6 @@ class QMLDriveApi(QObject):
             count = engine.dao.get_last_files_count(duration=60)
         return count
 
-    @pyqtSlot(str, result=int)
-    def get_dt_items_count(self, uid: str) -> int:
-        """Return the count all Direct Transfer items."""
-        engine = self._manager.engines.get(uid)
-        if engine:
-            return engine.dao.get_dt_items_count()
-        return 0
-
     @pyqtSlot(QUrl, result=str)
     def to_local_file(self, url: QUrl) -> str:
         """
@@ -211,7 +203,7 @@ class QMLDriveApi(QObject):
 
     def get_direct_transfer_items(self, dao: EngineDAO) -> List[Dict[str, Any]]:
         """Fetch at most *DT_MONITORING_MAX_ITEMS* transfers from the database."""
-        return dao.get_dt_uploads_raw(limit=DT_MONITORING_MAX_ITEMS)
+        return dao.get_dt_uploads_raw(limit=DT_MONITORING_MAX_ITEMS, chunked=True)
 
     def get_active_sessions_items(self, dao: EngineDAO) -> List[Dict[str, Any]]:
         """Fetch the list of active sessions from the database."""
