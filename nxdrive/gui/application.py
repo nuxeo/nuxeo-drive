@@ -1682,6 +1682,15 @@ class Application(QApplication):
             if not items:
                 self.direct_transfer_model.set_items(transfers)
             else:
+                # Finalizing needs to be added from the previous items
+                uid_finalizing = {
+                    item["doc_pair"]: item["finalizing"]
+                    for item in items
+                    if "finalizing" in item
+                }
+                for transfer in transfers:
+                    if transfer["doc_pair"] in uid_finalizing:
+                        transfer["finalizing"] = True
                 self.direct_transfer_model.update_items(transfers)
 
     @pyqtSlot(object)

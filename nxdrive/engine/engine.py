@@ -698,12 +698,23 @@ class Engine(QObject):
         upload = self.dao.get_dt_upload(uid=transfer_uid)
         if not upload:
             return
-        self.remote.cancel_batch(upload.batch)
-        self.dao.remove_transfer("upload", upload.path, is_direct_transfer=True)
 
         doc_pair = self.dao.get_state_from_local(upload.path)
         if not doc_pair:
             return
+
+        # The Upload is currently being processed by a thread.
+        # We need to make the thread stop before cancelling the ongoing upload.
+        if upload.status is TransferStatus.ONGOING and doc_pair.processor:
+            # The CANCELLED status will trigger an exception in the thread that will remove the upload.
+            upload.status = TransferStatus.CANCELLED
+            self.dao.set_transfer_status("upload", upload)
+            return
+
+        # The Upload is not ONGOING so we can remove it safely.
+        self.remote.cancel_batch(upload.batch)
+        self.dao.remove_transfer("upload", upload.path, is_direct_transfer=True)
+
         self.dao.remove_state(doc_pair)
         session = self.dao.decrease_session_total(doc_pair.session)
         self.handle_session_status(session)

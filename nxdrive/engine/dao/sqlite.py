@@ -2369,6 +2369,7 @@ class EngineDAO(ConfigurationDAO):
                 "status": TransferStatus(res.status),
                 "engine": res.engine,
                 "progress": res.progress or 0.0,
+                "doc_pair": res.doc_pair,
                 "remote_parent_path": res.remote_parent_path,
                 "remote_parent_ref": res.remote_parent_ref,
             }
