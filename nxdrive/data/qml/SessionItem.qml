@@ -128,7 +128,12 @@ Rectangle {
                         tooltip: qsTr("CANCEL") + tl.tr
                         iconColor: "red"
                         onClicked: {
-                            application.confirm_cancel_session(engine, uid, remote_path, total - uploaded)
+                            enabled = false
+                            try {
+                                application.confirm_cancel_session(engine, uid, remote_path, total - uploaded)
+                            } finally {
+                                enabled = true
+                            }
                         }
                     }
                 }

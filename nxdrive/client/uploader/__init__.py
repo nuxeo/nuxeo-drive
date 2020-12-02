@@ -221,7 +221,6 @@ class BaseUploader:
         if transfer.status is TransferStatus.PAUSED:
             raise UploadPaused(transfer.uid or -1)
         elif transfer.status is TransferStatus.CANCELLED:
-            self.dao.remove_transfer("upload", transfer.path, is_direct_transfer=True)
             raise UploadCancelled(transfer.uid or -1)
 
     def upload_chunks(self, transfer: Upload, blob: FileBlob, chunked: bool) -> None:
@@ -277,11 +276,8 @@ class BaseUploader:
 
                     # Handle status changes every time a chunk is sent
                     _transfer = self.get_upload(transfer.path)
-                    if _transfer and _transfer.status not in (
-                        TransferStatus.ONGOING,
-                        TransferStatus.DONE,
-                    ):
-                        raise UploadPaused(transfer.uid or -1)
+                    if _transfer:
+                        self._handle_transfer_status(_transfer)
             else:
                 uploader.upload()
 

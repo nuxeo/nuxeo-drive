@@ -368,6 +368,15 @@ class Processor(EngineWorker):
                     nature, exc.transfer_id, self.engine.uid, doc_pair.id
                 )
             except UploadCancelled as exc:
+                # Triggered when an Upload status change from ONGOING to CANCELLED while being processed.
+                upload = self.engine.dao.get_dt_upload(uid=exc.transfer_id)
+                if not upload or not upload.doc_pair:
+                    return
+                self.remote.cancel_batch(upload.batch)
+                doc_pair = self.engine.dao.get_state_from_id(upload.doc_pair)
+                if not doc_pair:
+                    return
+                self._direct_transfer_cancel(doc_pair)
                 log.debug(f"Cancelled upload {exc.transfer_id!r}")
             except DuplicationDisabledError:
                 self.giveup_error(doc_pair, "DEDUP")

@@ -6,7 +6,6 @@ import "icon-font/Icon.js" as MdiFont
 
 Rectangle {
     id: control
-    property bool paused: status == "PAUSED" || status == "SUSPENDED"
     visible: !shadow
     width: parent ? parent.width : 0
     height: shadow ? 0: 55
@@ -67,29 +66,19 @@ Rectangle {
                     }
                 }
 
-                // Pause/Resume icon
-                IconLabel {
-                    enabled: !finalizing
-                    icon: paused ? MdiFont.Icon.play : MdiFont.Icon.pause
-                    iconColor: nuxeoBlue
-                    tooltip: qsTr(paused ? "RESUME" : "SUSPEND") + tl.tr
-                    onClicked: {
-                        if (paused) {
-                            api.resume_transfer("upload", engine, uid, true)
-                        } else {
-                            api.pause_transfer("upload", engine, uid, progress, true)
-                        }
-                    }
-                }
-
                 // Stop icon
                 IconLabel {
-                    enabled: paused
                     icon: MdiFont.Icon.close
                     tooltip: qsTr("CANCEL") + tl.tr
                     iconColor: "red"
+                    enabled: !finalizing
                     onClicked: {
-                        application.confirm_cancel_transfer(engine, uid, name)
+                        enabled = false
+                        try {
+                            application.confirm_cancel_transfer(engine, uid, name)
+                        } finally {
+                            enabled = !finalizing
+                        }
                     }
                 }
             }
