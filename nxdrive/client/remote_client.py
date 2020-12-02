@@ -716,7 +716,14 @@ class Remote(Nuxeo):
 
     def set_proxy(self, proxy: Proxy = None) -> None:
         if proxy:
-            settings = proxy.settings(url=self.client.host)
+            try:
+                settings = proxy.settings(url=self.client.host)
+            except Exception:
+                log.warning(
+                    "Bad proxy settings. As a result, NO proxy is currently in use.",
+                    exc_info=True,
+                )
+                return
             self.client.client_kwargs["proxies"] = settings
 
     def get_server_configuration(self) -> Dict[str, Any]:
