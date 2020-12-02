@@ -112,18 +112,26 @@ class AutomaticProxy(Proxy):
 
     def __init__(self, pac_url: str = None, js: str = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        if pac_url and "://" not in pac_url:
-            pac_url = "http://" + pac_url
-        self.pac_url = pac_url
-        self._pac_file = get_pac(
-            url=pac_url,
-            js=js,
-            allowed_content_types=[
+
+        args: Dict[str, Any] = {}
+
+        # Load the PAC file as PyPAC won't do it for us
+        if pac_url and pac_url.startswith("file:"):
+            with open(pac_url.replace("file://", "")) as pac:
+                js = pac.read()
+
+        if js:
+            args["js"] = js
+        elif pac_url:
+            args["url"] = pac_url
+            args["allowed_content_types"] = [
                 "application/octet-stream",
                 "application/x-ns-proxy-autoconfig",
                 "application/x-javascript-config",
-            ],
-        )
+            ]
+
+        self.pac_url = pac_url
+        self._pac_file = get_pac(**args)
         self._resolver = ProxyResolver(self._pac_file)
 
     def settings(self, url: str = None, **kwargs: Any) -> Dict[str, Any]:
@@ -131,7 +139,10 @@ class AutomaticProxy(Proxy):
 
 
 def get_proxy(**kwargs: Any) -> Proxy:
-    return _get_cls(kwargs.pop("category"))(**kwargs)
+    log.debug(f"Get proxy with {kwargs = }")
+    proxy = _get_cls(kwargs.pop("category"))(**kwargs)
+    log.debug(f"Got {proxy = }")
+    return proxy
 
 
 def load_proxy(dao: "EngineDAO", token: str = "") -> Proxy:
