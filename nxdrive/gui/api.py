@@ -849,14 +849,19 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, str, str, result=bool)
     def set_proxy_settings(self, config: str, url: str, pac_url: str) -> bool:
-        proxy = get_proxy(category=config, url=url, pac_url=pac_url)
-        result = self._manager.set_proxy(proxy)
-        if result:
-            self.setMessage.emit(result, "error")
+        try:
+            proxy = get_proxy(category=config, url=url, pac_url=pac_url)
+        except FileNotFoundError:
+            self.setMessage.emit("PROXY_NO_PAC_FILE", "error")
             return False
-        else:
-            self.setMessage.emit("PROXY_APPLIED", "success")
-            return True
+
+        error = self._manager.set_proxy(proxy)
+        if error:
+            self.setMessage.emit(error, "error")
+            return False
+
+        self.setMessage.emit("PROXY_APPLIED", "success")
+        return True
 
     @pyqtSlot(result=str)
     def get_deletion_behavior(self) -> str:

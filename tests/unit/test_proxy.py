@@ -30,16 +30,18 @@ def js():
     """
 
 
-@pytest.fixture()
+@pytest.fixture
 def config_dao(tmp_path):
     db = tmp_path / "tmp.db"
     dao = ConfigurationDAO(db)
-    yield dao
-    dao.dispose()
-    db.unlink()
+    try:
+        yield dao
+    finally:
+        dao.dispose()
+        db.unlink()
 
 
-@pytest.fixture()
+@pytest.fixture
 def pac_file(tmp_path, js):
     pac = tmp_path / "proxy.pac"
     pac.write_text(js, encoding="utf-8")
@@ -47,10 +49,12 @@ def pac_file(tmp_path, js):
     uri = pac.resolve().as_uri()
     if WINDOWS:
         uri = uri.replace("///", "//")
+    assert uri.startswith("file:")
 
-    yield uri
-
-    pac.unlink()
+    try:
+        yield uri
+    finally:
+        pac.unlink()
 
 
 def test_manual_proxy():
@@ -68,6 +72,22 @@ def test_pac_proxy_js(js):
     settings = proxy.settings("http://example.com")
     assert settings["http"] is None
     assert settings["https"] is None
+
+
+def test_pac_proxy_pac_file(pac_file):
+    proxy = get_proxy(category="Automatic", pac_url=pac_file)
+    assert isinstance(proxy, AutomaticProxy)
+    assert proxy._pac_file
+    settings = proxy.settings("http://nuxeo.com")
+    assert settings["http"] == settings["https"] == "http://localhost:8899"
+    settings = proxy.settings("http://example.com")
+    assert settings["http"] is None
+    assert settings["https"] is None
+
+
+def test_pac_proxy_pac_bad_file(pac_file):
+    with pytest.raises(FileNotFoundError):
+        get_proxy(category="Automatic", pac_url="file:///some missing file.pac")
 
 
 def test_load(config_dao):

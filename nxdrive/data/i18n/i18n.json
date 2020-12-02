@@ -264,6 +264,7 @@
     "PROXY_CHANGE_SETTINGS": "Change proxy settings",
     "PROXY_HOST_PLACEHOLDER": "Please enter a host",
     "PROXY_INVALID": "Proxy settings are invalid",
+    "PROXY_NO_PAC_FILE": "PAC file not found",
     "PROXY_PAC_URL_PLACEHOLDER": "Please enter the URL",
     "PROXY_PASSWORD_PLACEHOLDER": "Please enter your proxy password",
     "PROXY_USERNAME_PLACEHOLDER": "Please enter your proxy username",
