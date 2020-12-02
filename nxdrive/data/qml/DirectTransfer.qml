@@ -168,10 +168,12 @@ Rectangle {
                 anchors.bottom: parent.bottom
                 anchors.right: parent.right
                 anchors.margins: 5
+                anchors.rightMargin: 20
 
                 ScaledText {
                     color: lightGray
                     text: qsTr("MONITORING_DESCRIPTION").arg(CHUNK_SIZE) + tl.tr
+                    font.pointSize: point_size * 0.8
                 }
             }
         }
