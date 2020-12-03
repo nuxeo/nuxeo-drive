@@ -57,14 +57,14 @@ def pac_file(tmp_path, js):
         pac.unlink()
 
 
-def test_manual_proxy():
+def test_manual():
     proxy = get_proxy(category="Manual", url="localhost:3128")
     assert isinstance(proxy, ManualProxy)
     settings = proxy.settings()
     assert settings["http"] == settings["https"] == proxy.url == "http://localhost:3128"
 
 
-def test_pac_proxy_js(js):
+def test_pac_js(js):
     proxy = get_proxy(category="Automatic", js=js)
     assert isinstance(proxy, AutomaticProxy)
     settings = proxy.settings("http://nuxeo.com")
@@ -74,7 +74,7 @@ def test_pac_proxy_js(js):
     assert settings["https"] is None
 
 
-def test_pac_proxy_pac_file(pac_file):
+def test_pac_file(pac_file):
     proxy = get_proxy(category="Automatic", pac_url=pac_file)
     assert isinstance(proxy, AutomaticProxy)
     assert proxy._pac_file
@@ -85,7 +85,7 @@ def test_pac_proxy_pac_file(pac_file):
     assert settings["https"] is None
 
 
-def test_pac_proxy_pac_bad_file(pac_file):
+def test_pac_file_not_found(pac_file):
     with pytest.raises(FileNotFoundError):
         get_proxy(category="Automatic", pac_url="file:///some missing file.pac")
 
@@ -105,7 +105,7 @@ def _patch_winreg_qve(**kwargs):
 
 
 @windows_only
-def test_mock_autoconfigurl_windows(pac_file):
+def test_autoconfigurl_windows(pac_file):
     with _patch_winreg_qve(return_value=(pac_file, "foo")):
         proxy = get_proxy(category="Automatic")
         assert isinstance(proxy, AutomaticProxy)
@@ -124,7 +124,7 @@ def _patch_pyobjc_dscp(**kwargs):
 
 
 @mac_only
-def test_mock_autoconfigurl_mac(pac_file):
+def test_autoconfigurl_mac(pac_file):
     with _patch_pyobjc_dscp(
         return_value={"ProxyAutoConfigEnable": 1, "ProxyAutoConfigURLString": pac_file}
     ):
