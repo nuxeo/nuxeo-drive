@@ -99,7 +99,7 @@ def download_last_ga_release(output_dir, version):
         dst.write(req.content)
 
     # Adjust execution rights
-    os.chmod(output, stat.S_IXUSR)
+    os.chmod(output, os.stat(output).st_mode | stat.S_IXUSR)
 
     return output
 

@@ -36,7 +36,7 @@ class Updater(BaseUpdater):
         shutil.move(filename, new_executable)
 
         log.debug(f"Adjusting execution rights on {new_executable!r}")
-        os.chmod(new_executable, stat.S_IXUSR)
+        os.chmod(new_executable, os.stat(new_executable).st_mode | stat.S_IXUSR)
 
         self._restart(new_executable)
 
