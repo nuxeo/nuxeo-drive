@@ -860,6 +860,7 @@ class LocalWatcher(EngineWorker):
                         refreshed_pair.pair_state,
                         pair=refreshed_pair,
                     )
+                    self.engine.send_metric("sync", "error", "WINDOWS_RO_FOLDER")
 
     def _handle_watchdog_event_on_known_acquired_pair(
         self, doc_pair: DocPair, evt: FileSystemEvent, rel_path: Path

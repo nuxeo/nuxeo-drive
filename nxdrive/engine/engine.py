@@ -288,6 +288,14 @@ class Engine(QObject):
         if started:
             self.start()
 
+    @if_frozen
+    def send_metric(self, category: str, action: str, label: str) -> None:
+        # Skip metrics on local and Nuxeo-hosted servers
+        patterns = ("127.0.", "192.168.", "localhost", ".nuxeo.com", "nxdev", ".dev.")
+        if any(pattern in self.hostname for pattern in patterns):
+            return
+        self.manager.tracker.send_metric(category, action, label)  # type: ignore
+
     def stop_processor_on(self, path: Path) -> None:
         for worker in self.queue_manager.get_processors_on(path):
             log.debug(
@@ -479,8 +487,27 @@ class Engine(QObject):
 
     def handle_session_status(self, session: Optional[Session]) -> None:
         """Check the session status and send a notification if finished."""
-        if session and session.status is TransferStatus.DONE:
-            self.directTransferSessionFinished.emit(session.remote_path)
+        if not session or session.status is not TransferStatus.DONE:
+            return
+
+        self.directTransferSessionFinished.emit(session.remote_path)
+
+        """
+        # TODO: is it really revelant? A better way to find out if dupes were created?
+        # Metrics (duplicate imports check)
+        rpath = self.remote._escape(session.remote_path)
+        query = (
+            "SELECT * FROM Document"
+            "        WHERE ecm:mixinType != 'HiddenInNavigation'"
+            "          AND ecm:isProxy = 0"
+            "          AND ecm:isVersion = 0"
+            "          AND ecm:isTrashed = 0"
+            f"         AND ecm:path startswith '{rpath}'"
+        )
+        doc_created = len(self.query(query)["entries"])
+        label = "success" session.total_items == doc_created else "duplicates"
+        self.send_metric("direct_transfer", "upload", label)
+        """
 
     def direct_transfer(
         self,
@@ -1185,6 +1212,7 @@ class Engine(QObject):
     @if_frozen
     def _check_https(self) -> None:
         if self.server_url.startswith("https"):
+            self.send_metric("server", "protocol", "https")
             return
 
         url = self.server_url.replace("http://", "https://")
@@ -1198,10 +1226,12 @@ class Engine(QObject):
             if not devenv:
                 err += " For information, this is the encountered SSL error:"
             log.warning(err, exc_info=not devenv)
+            self.send_metric("server", "protocol", "http")
         else:
             self.server_url = url
             self.dao.update_config("server_url", self.server_url)
             log.info(f"Updated server URL to {self.server_url!r}")
+            self.send_metric("server", "protocol", "http->https")
 
     def _check_root(self) -> None:
         root = self.dao.get_state_from_local(ROOT)
