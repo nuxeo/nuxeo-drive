@@ -256,6 +256,10 @@ class Tracker(PollWorker):
 
         self._hello_sent = True
 
+    def send_metric(self, category: str, action: str, label: str) -> None:
+        """Send metrics required for the good health of the project, see NXDRIVE-2439 for details."""
+        self.send_event(category=category, action=action, label=label, value=1)
+
     @pyqtSlot(result=bool)
     def _poll(self) -> bool:
         self.send_hello()

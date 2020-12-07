@@ -473,6 +473,8 @@ class Manager(QObject):
                 self.engines[engine.uid].online.connect(self._force_autoupdate)
                 self.initEngine.emit(self.engines[engine.uid])
 
+        self.tracker.send_metric("account", "count", str(len(self._engine_definitions)))
+
     def _get_engine_db_file(self, uid: str) -> Path:
         return self.home / f"ndrive_{uid}.db"
 
