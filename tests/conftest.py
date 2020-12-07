@@ -81,9 +81,6 @@ def no_warnings(recwarn):
         elif "(rm_rf) error removing" in message:
             # First appeared with pytest 5.4.1
             continue
-        elif "Using 'method_whitelist' with Retry" in message:
-            # First appeared with urllib 1.26.0 (NXPY-191)
-            continue
 
         warn = f"{warning.filename}:{warning.lineno} {message}"
         print(warn, file=sys.stderr)
