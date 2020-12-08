@@ -10,7 +10,7 @@ from PyQt5.QtCore import pyqtSlot
 
 from ..constants import APP_NAME, MAC, WINDOWS
 from ..options import Options
-from ..utils import ga_user_agent, get_current_os
+from ..utils import ga_user_agent, get_current_os, if_frozen
 from .workers import PollWorker
 
 if not MAC:
@@ -256,6 +256,7 @@ class Tracker(PollWorker):
 
         self._hello_sent = True
 
+    @if_frozen
     def send_metric(self, category: str, action: str, label: str) -> None:
         """Send metrics required for the good health of the project, see NXDRIVE-2439 for details."""
         self.send_event(category=category, action=action, label=label, value=1)
