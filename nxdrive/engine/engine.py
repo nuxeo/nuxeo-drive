@@ -491,23 +491,9 @@ class Engine(QObject):
             return
 
         self.directTransferSessionFinished.emit(session.remote_path)
-
-        """
-        # TODO: is it really revelant? A better way to find out if dupes were created?
-        # Metrics (duplicate imports check)
-        rpath = self.remote._escape(session.remote_path)
-        query = (
-            "SELECT * FROM Document"
-            "        WHERE ecm:mixinType != 'HiddenInNavigation'"
-            "          AND ecm:isProxy = 0"
-            "          AND ecm:isVersion = 0"
-            "          AND ecm:isTrashed = 0"
-            f"         AND ecm:path startswith '{rpath}'"
-        )
-        doc_created = len(self.query(query)["entries"])
-        label = "success" session.total_items == doc_created else "duplicates"
-        self.send_metric("direct_transfer", "upload", label)
-        """
+        self.send_metric("direct_transfer", "session_items", str(session.total_items))
+        # Read https://jira.nuxeo.com/secure/EditComment!default.jspa?id=152399&commentId=503487
+        # for why we can't have metrics about dupes creation on uploads.
 
     def direct_transfer(
         self,

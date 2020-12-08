@@ -228,7 +228,7 @@ class RemoteBase(Remote):
             "          AND ecm:isVersion = 0"
             "     ORDER BY dc:title, dc:created"
         )
-        entries = self.query(query)["entries"]
+        entries = self.query(query, page_size=1000)["entries"]
         return self._filtered_results(entries)
 
     def get_content(self, fs_item_id: str, **kwargs: Any) -> Path:

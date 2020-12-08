@@ -225,7 +225,7 @@ class Remote(Nuxeo):
         trash = self._get_trash_condition() if use_trash else ""
 
         query = f"SELECT * FROM Document WHERE {id_prop} = '{ref}' {trash} AND ecm:isVersion = 0"
-        return bool(self.query(query)["entries"])
+        return self.query(query)["totalSize"] > 0
 
     def request_token(self, revoke: bool = False) -> Optional[str]:
         """Request and return a new token for the user"""
@@ -640,8 +640,8 @@ class Remote(Nuxeo):
                 ref = self._base_folder_path + ref
         return ref
 
-    def query(self, query: str) -> Dict[str, Any]:
-        return self.execute(command="Document.Query", query=query)
+    def query(self, query: str, page_size: int = 1) -> Dict[str, Any]:
+        return self.execute(command="Document.Query", query=query, pageSize=page_size)
 
     def get_info(
         self, ref: str, raise_if_missing: bool = True, fetch_parent_uid: bool = True

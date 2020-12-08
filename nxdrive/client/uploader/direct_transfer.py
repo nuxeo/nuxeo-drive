@@ -31,7 +31,7 @@ class DirectTransferUploader(BaseUploader):
             " AND ecm:isVersion = 0"
             " AND ecm:isTrashed = 0"
         )
-        return bool(self.remote.query(query)["entries"])
+        return self.remote.query(query)["totalSize"] > 0
 
     def get_upload(self, file_path: Path) -> Optional[Upload]:
         """Retrieve the eventual transfer associated to the given *file_path*."""
