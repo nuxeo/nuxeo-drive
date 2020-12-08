@@ -46,12 +46,7 @@ class Updater(BaseUpdater):
         self.final_app = Path(m.group(1) if m else exe_path)
 
         self._fix_notarization(filename)
-
-        log.info(f"Mounting {filename!r}")
-        mount_info = subprocess.check_output(["hdiutil", "mount", filename])
-        lines = mount_info.splitlines()
-        mount_dir = force_decode(lines[-1].split(b"\t")[-1])
-        log.info(f"Mounted in {mount_dir!r}")
+        mount_dir = self._mount(filename)
 
         self._backup()
         self._set_progress(70)
@@ -65,14 +60,7 @@ class Updater(BaseUpdater):
         finally:
             self._cleanup(filename)
             self._set_progress(90)
-            log.info(f"Unmounting {mount_dir!r}")
-            try:
-                subprocess.check_call(["hdiutil", "unmount", mount_dir, "-force"])
-            except subprocess.CalledProcessError:
-                log.warning(
-                    "Unmount failed, you will have to do it manually (Catalina feature).",
-                    exc_info=True,
-                )
+            self._unmount(mount_dir)
 
         # Check if the new application exists
         if not self.final_app.is_dir():
@@ -82,7 +70,33 @@ class Updater(BaseUpdater):
         # Trigger the application exit + restart
         self._set_progress(100)
         self._restart()
-        self.appUpdated.emit()
+
+    def _mount(self, filename: str) -> str:
+        """Mount the DMG."""
+        cmd = ["hdiutil", "attach", "-readonly", filename]
+        log.info(f"Mounting {filename!r}")
+        log.debug(f"Full command line: {cmd}")
+
+        mount_info = subprocess.check_output(cmd, close_fds=True)
+        lines = mount_info.splitlines()
+        mount_dir = force_decode(lines[-1].split(b"\t")[-1])
+
+        log.info(f"Mounted in {mount_dir!r}")
+        return mount_dir
+
+    def _unmount(self, mount_dir) -> None:
+        """Unmount the DMG."""
+        cmd = ["hdiutil", "unmount", "-force", mount_dir]
+        log.info(f"Unmounting {mount_dir!r}")
+        log.debug(f"Full command line: {cmd}")
+
+        try:
+            subprocess.check_call(cmd, close_fds=True)
+        except subprocess.CalledProcessError:
+            log.warning(
+                "Unmount failed, you will have to do it manually.",
+                exc_info=True,
+            )
 
     def _backup(self, restore: bool = False) -> None:
         """ Backup or restore the current application. """
@@ -134,4 +148,8 @@ class Updater(BaseUpdater):
 
         cmd = f'sleep 5 ; open "{self.final_app}"'
         log.info(f"Launching the new {APP_NAME} version in 5 seconds ...")
+        log.debug(f"Full command line: {cmd}")
         subprocess.Popen(cmd, shell=True, close_fds=True)
+
+        # Trigger the application exit
+        self.appUpdated.emit()
