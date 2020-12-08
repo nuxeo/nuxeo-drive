@@ -288,12 +288,7 @@ class Engine(QObject):
         if started:
             self.start()
 
-    @if_frozen
     def send_metric(self, category: str, action: str, label: str) -> None:
-        # Skip metrics on local and Nuxeo-hosted servers
-        patterns = ("127.0.", "192.168.", "localhost", ".nuxeo.com", "nxdev", ".dev.")
-        if any(pattern in self.hostname for pattern in patterns):
-            return
         self.manager.tracker.send_metric(category, action, label)  # type: ignore
 
     def stop_processor_on(self, path: Path) -> None:

@@ -225,7 +225,7 @@ class Remote(Nuxeo):
         trash = self._get_trash_condition() if use_trash else ""
 
         query = f"SELECT * FROM Document WHERE {id_prop} = '{ref}' {trash} AND ecm:isVersion = 0"
-        return self.query(query)["totalSize"] > 0
+        return bool(self.query(query)["totalSize"])
 
     def request_token(self, revoke: bool = False) -> Optional[str]:
         """Request and return a new token for the user"""
