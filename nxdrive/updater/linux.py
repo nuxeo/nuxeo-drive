@@ -44,8 +44,10 @@ class Updater(BaseUpdater):
         """
         Restart the current application to take into account the new version.
         """
+
         cmd = f'sleep 5 ; "{executable}"&'
         log.info(f"Launching the new {APP_NAME} version in 5 seconds ...")
+        log.debug(f"Full command line: {cmd}")
         subprocess.Popen(cmd, shell=True, close_fds=True)
 
         # Trigger the application exit

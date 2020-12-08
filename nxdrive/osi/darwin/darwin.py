@@ -9,7 +9,6 @@ from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import psutil
 import xattr
 from CoreServices import (
     CFURLCreateWithString,
@@ -71,27 +70,36 @@ class DarwinIntegration(AbstractOSIntegration):
     FINDERSYNC_ID = f"{BUNDLE_IDENTIFIER}.NuxeoFinderSync"
     FINDERSYNC_PATH = f"{_get_app()}/Contents/PlugIns/NuxeoFinderSync.appex/"
 
+    # Used to know when the FinderSync extension is loaded
+    # to prevent errors when it failed to start or when
+    # trying to stop it twice from the auto-updater.
+    _finder_sync_loaded = False
+
     @if_frozen
     def init(self) -> None:
+        if self._finder_sync_loaded:
+            return
+
         log.info("Telling plugInKit to use the FinderSync")
+        cmd_use_plugin = ["pluginkit", "-e", "use", "-i", self.FINDERSYNC_ID]
+        cmd_add_plugin_location = ["pluginkit", "-a", self.FINDERSYNC_PATH]
         try:
-            subprocess.run(
-                ["pluginkit", "-e", "use", "-i", self.FINDERSYNC_ID], check=True
-            )
-            subprocess.run(["pluginkit", "-a", self.FINDERSYNC_PATH], check=True)
-            for p in psutil.process_iter(attrs=["name", "pid"]):
-                if p.info["name"] == "NuxeoFinderSync":
-                    log.info(f"FinderSync is running with pid {p.info['pid']}")
+            subprocess.check_call(cmd_use_plugin)
+            subprocess.check_call(cmd_add_plugin_location)
+            self._finder_sync_loaded = True
         except subprocess.CalledProcessError:
             log.exception("Error while starting FinderSync")
 
     @if_frozen
     def cleanup(self) -> None:
+        if not self._finder_sync_loaded:
+            return
+
         log.info("Telling plugInKit to ignore the FinderSync")
+        cmd_ignore_plugin = ["pluginkit", "-e", "ignore", "-i", self.FINDERSYNC_ID]
         try:
-            subprocess.run(
-                ["pluginkit", "-e", "ignore", "-i", self.FINDERSYNC_ID], check=True
-            )
+            subprocess.check_call(cmd_ignore_plugin)
+            self._finder_sync_loaded = False
         except subprocess.CalledProcessError:
             log.warning("Error while stopping FinderSync", exc_info=True)
 
