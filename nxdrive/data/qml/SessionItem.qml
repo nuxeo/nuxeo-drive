@@ -129,11 +129,8 @@ Rectangle {
                         iconColor: "red"
                         onClicked: {
                             enabled = false
-                            try {
-                                application.confirm_cancel_session(engine, uid, remote_path, total - uploaded)
-                            } finally {
-                                enabled = true
-                            }
+                            var confirmed = application.confirm_cancel_session(engine, uid, remote_path, total - uploaded)
+                            enabled = !(confirmed || paused)
                         }
                     }
                 }
