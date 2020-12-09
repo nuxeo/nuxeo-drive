@@ -1,4 +1,5 @@
 # coding: utf-8
+import plistlib
 import re
 import shutil
 import subprocess
@@ -8,7 +9,6 @@ from logging import getLogger
 from pathlib import Path
 
 from ..constants import APP_NAME
-from ..utils import force_decode
 from .base import BaseUpdater
 
 __all__ = ("Updater",)
@@ -46,33 +46,20 @@ class Updater(BaseUpdater):
         self.final_app = Path(m.group(1) if m else exe_path)
 
         self._fix_notarization(filename)
-
-        log.info(f"Mounting {filename!r}")
-        mount_info = subprocess.check_output(["hdiutil", "mount", filename])
-        lines = mount_info.splitlines()
-        mount_dir = force_decode(lines[-1].split(b"\t")[-1])
-        log.info(f"Mounted in {mount_dir!r}")
-
-        self._backup()
-        self._set_progress(70)
+        mount_point = self._mount(filename)
 
         try:
-            self._copy(mount_dir)
+            self._backup()
+            self._set_progress(70)
+            self._copy(mount_point)
             self._set_progress(80)
         except Exception:
             log.exception("Content copy error")
             self._backup(restore=True)
         finally:
+            self._unmount(mount_point)
             self._cleanup(filename)
             self._set_progress(90)
-            log.info(f"Unmounting {mount_dir!r}")
-            try:
-                subprocess.check_call(["hdiutil", "unmount", mount_dir, "-force"])
-            except subprocess.CalledProcessError:
-                log.warning(
-                    "Unmount failed, you will have to do it manually (Catalina feature).",
-                    exc_info=True,
-                )
 
         # Check if the new application exists
         if not self.final_app.is_dir():
@@ -82,7 +69,33 @@ class Updater(BaseUpdater):
         # Trigger the application exit + restart
         self._set_progress(100)
         self._restart()
-        self.appUpdated.emit()
+
+    def _mount(self, filename: str) -> str:
+        """Mount the DMG and return the mount point."""
+        cmd = ["hdiutil", "mount", "-plist", filename]
+        log.info(f"Mounting file {filename!r}")
+        log.debug(f"Full command line: {cmd}")
+        output = subprocess.check_output(cmd)
+
+        entities = plistlib.loads(output)["system-entities"]
+        entity = next(se for se in entities if se["potentially-mountable"])
+        dev_entry = entity["dev-entry"]
+        mount_point: str = entity["mount-point"]
+        log.info(f"Mounted {dev_entry!r} into {mount_point!r}")
+        return mount_point
+
+    def _unmount(self, mount_point: str) -> None:
+        """Unmount the DMG."""
+        cmd = ["hdiutil", "unmount", "-force", mount_point]
+        log.info(f"Unmounting {mount_point!r}")
+        log.debug(f"Full command line: {cmd}")
+        try:
+            subprocess.check_call(cmd)
+        except subprocess.CalledProcessError:
+            log.warning(
+                "Unmount failed, you will have to do it manually.",
+                exc_info=True,
+            )
 
     def _backup(self, restore: bool = False) -> None:
         """ Backup or restore the current application. """
@@ -119,7 +132,6 @@ class Updater(BaseUpdater):
         src = f"{mount_dir}/{APP_NAME}.app"
         log.info(f"Copying {src!r} -> {self.final_app!r}")
         shutil.copytree(src, self.final_app)
-        self._fix_notarization(str(self.final_app))
 
     def _fix_notarization(self, path: str) -> None:
         """Fix the notarization (enforced security since February 2020)"""
@@ -134,4 +146,8 @@ class Updater(BaseUpdater):
 
         cmd = f'sleep 5 ; open "{self.final_app}"'
         log.info(f"Launching the new {APP_NAME} version in 5 seconds ...")
+        log.debug(f"Full command line: {cmd}")
         subprocess.Popen(cmd, shell=True, close_fds=True)
+
+        # Trigger the application exit
+        self.appUpdated.emit()

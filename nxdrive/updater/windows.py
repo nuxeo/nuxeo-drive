@@ -33,6 +33,7 @@ class Updater(BaseUpdater):
         # Using ping instead of timeout to wait 5 seconds (see NXDRIVE-1890)
         cmd = f'ping 127.0.0.1 -n 6 > nul && "{filename}" /verysilent /start=auto'
         log.info("Launching the auto-updater in 5 seconds ...")
+        log.debug(f"Full command line: {cmd}")
         subprocess.Popen(cmd, shell=True, close_fds=True)
 
         # Trigger the application exit
