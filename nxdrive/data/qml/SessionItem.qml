@@ -98,39 +98,35 @@ Rectangle {
 
                     // Pause/Resume icon
                     IconLabel {
-                        id: pause_resume_button
                         icon: paused ? MdiFont.Icon.play : MdiFont.Icon.pause
                         iconColor: nuxeoBlue
                         tooltip: qsTr(paused ? "RESUME" : "SUSPEND") + tl.tr
                         onClicked: {
-                            if (paused) {
-                                try {
-                                    pause_resume_button.enabled = false
+                            enabled = false
+                            try {
+                                if (paused) {
                                     api.resume_session(engine, uid)
-                                } finally {
-                                    pause_resume_button.enabled = true
-                                }
-                            } else {
-                                try {
-                                    pause_resume_button.enabled = false
+                                    cancel_button.enabled = false
+                                } else {
                                     api.pause_session(engine, uid)
-                                } finally {
-                                    pause_resume_button.enabled = true
+                                    cancel_button.enabled = true
                                 }
+                            } finally {
+                                enabled = true
                             }
                         }
                     }
 
                     // Stop icon
                     IconLabel {
+                        id: cancel_button
                         enabled: paused
                         icon: MdiFont.Icon.close
                         tooltip: qsTr("CANCEL") + tl.tr
                         iconColor: "red"
                         onClicked: {
                             enabled = false
-                            var confirmed = application.confirm_cancel_session(engine, uid, remote_path, total - uploaded)
-                            enabled = !(confirmed || paused)
+                            enabled = !application.confirm_cancel_session(engine, uid, remote_path, total - uploaded)
                         }
                     }
                 }
