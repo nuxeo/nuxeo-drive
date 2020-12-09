@@ -850,13 +850,14 @@ class Application(QApplication):
         """Close the Direct Transfer window."""
         self.direct_transfer_window.close()
 
-    @pyqtSlot(str, int, str)
+    @pyqtSlot(str, int, str, result=bool)
     def confirm_cancel_transfer(
         self, engine_uid: str, transfer_uid: int, name: str
-    ) -> None:
+    ) -> bool:
         """
         Show a dialog to confirm the given transfer cancel.
         Cancel transfer on validation.
+        Return True if the cancel was confirmed.
         """
         msg = self.question(
             Translator.get("DIRECT_TRANSFER_CANCEL_HEADER"),
@@ -869,17 +870,20 @@ class Application(QApplication):
         if msg.clickedButton() == continued:
             engine = self.manager.engines.get(engine_uid)
             if not engine:
-                return
+                return True
             engine.decrease_session_planned_items(transfer_uid)
             engine.cancel_upload(transfer_uid)
+            return True
+        return False
 
-    @pyqtSlot(str, int, str, int)
+    @pyqtSlot(str, int, str, int, result=bool)
     def confirm_cancel_session(
         self, engine_uid: str, session_uid: int, destination: str, pending_files: int
-    ) -> None:
+    ) -> bool:
         """
         Show a dialog to confirm the given session cancel.
         Cancel the session on validation.
+        Return True if the cancel was confirmed.
         """
         msg = self.question(
             Translator.get("SESSION_CANCEL_HEADER"),
@@ -891,6 +895,8 @@ class Application(QApplication):
         msg.exec_()
         if msg.clickedButton() == continued:
             self.api.cancel_session(engine_uid, session_uid)
+            return True
+        return False
 
     @pyqtSlot(str, object)
     def open_authentication_dialog(

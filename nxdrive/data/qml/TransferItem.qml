@@ -74,11 +74,8 @@ Rectangle {
                     enabled: !finalizing
                     onClicked: {
                         enabled = false
-                        try {
-                            application.confirm_cancel_transfer(engine, uid, name)
-                        } finally {
-                            enabled = !finalizing
-                        }
+                        var confirmed = application.confirm_cancel_transfer(engine, uid, name)
+                        enabled = !(confirmed || finalizing)
                     }
                 }
             }
