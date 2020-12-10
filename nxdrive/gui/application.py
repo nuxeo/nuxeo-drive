@@ -850,14 +850,13 @@ class Application(QApplication):
         """Close the Direct Transfer window."""
         self.direct_transfer_window.close()
 
-    @pyqtSlot(str, int, str, result=bool)
+    @pyqtSlot(str, int, str)
     def confirm_cancel_transfer(
         self, engine_uid: str, transfer_uid: int, name: str
-    ) -> bool:
+    ) -> None:
         """
         Show a dialog to confirm the given transfer cancel.
         Cancel transfer on validation.
-        Return True if the cancel was confirmed.
         """
         msg = self.question(
             Translator.get("DIRECT_TRANSFER_CANCEL_HEADER"),
@@ -870,11 +869,9 @@ class Application(QApplication):
         if msg.clickedButton() == continued:
             engine = self.manager.engines.get(engine_uid)
             if not engine:
-                return True
+                return
             engine.decrease_session_planned_items(transfer_uid)
             engine.cancel_upload(transfer_uid)
-            return True
-        return False
 
     @pyqtSlot(str, int, str, int, result=bool)
     def confirm_cancel_session(
@@ -1693,7 +1690,7 @@ class Application(QApplication):
                 pair_finalizing = {
                     item["doc_pair"]: item["finalizing"]
                     for item in items
-                    if "finalizing" in item and "shadow" not in item
+                    if item.get("finalizing", False) and "shadow" not in item
                 }
                 for transfer in transfers:
                     if transfer["doc_pair"] in pair_finalizing:

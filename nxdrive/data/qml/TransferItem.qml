@@ -71,11 +71,9 @@ Rectangle {
                     icon: MdiFont.Icon.close
                     tooltip: qsTr("CANCEL") + tl.tr
                     iconColor: "red"
-                    enabled: !finalizing
+                    enabled: !(status == "CANCELLED" || finalizing)
                     onClicked: {
-                        enabled = false
-                        var confirmed = application.confirm_cancel_transfer(engine, uid, name)
-                        enabled = !(confirmed || finalizing)
+                        application.confirm_cancel_transfer(engine, uid, name)
                     }
                 }
             }

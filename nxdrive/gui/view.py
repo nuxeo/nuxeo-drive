@@ -304,6 +304,7 @@ class DirectTransferModel(QAbstractListModel):
             # Copy the first element from items and use it as shadow_item
             self.shadow_item = items[0].copy()
             self.shadow_item["shadow"] = True
+            self.shadow_item["finalizing"] = False
 
         # Create the items list with real datas from items.
         for n_item in items:
@@ -373,6 +374,8 @@ class DirectTransferModel(QAbstractListModel):
     def edit_item(self, row: int, n_item: Dict[str, Any]) -> None:
         """Replace an existing item with *n_item*."""
         idx = self.index(row, 0)
+        if "finalizing" not in n_item:
+            n_item["finalizing"] = False
         self.items[row] = n_item
         self.dataChanged.emit(idx, idx, self.roleNames())
 
