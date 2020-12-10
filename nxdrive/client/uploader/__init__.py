@@ -217,11 +217,15 @@ class BaseUploader:
         return doc
 
     def _handle_transfer_status(self, transfer: Upload) -> None:
-        """Raise an exception if the transfer is PAUSED or CANCELLED"""
-        if transfer.status is TransferStatus.PAUSED:
-            raise UploadPaused(transfer.uid or -1)
-        elif transfer.status is TransferStatus.CANCELLED:
+        """Raise the appropriate exception depending on the transfer status."""
+        status = transfer.status
+        if status is TransferStatus.CANCELLED:
             raise UploadCancelled(transfer.uid or -1)
+        if status is TransferStatus.PAUSED or status not in (
+            TransferStatus.ONGOING,
+            TransferStatus.DONE,
+        ):
+            raise UploadPaused(transfer.uid or -1)
 
     def upload_chunks(self, transfer: Upload, blob: FileBlob, chunked: bool) -> None:
         """Upload a blob by chunks or in one go."""
