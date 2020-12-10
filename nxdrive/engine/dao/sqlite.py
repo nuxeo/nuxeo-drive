@@ -2869,6 +2869,7 @@ class EngineDAO(ConfigurationDAO):
                 f"UPDATE {table} SET status = ? WHERE uid = ?",
                 (transfer.status.value, transfer.uid),
             )
+            self.directTransferUpdated.emit()
 
     def remove_transfer(
         self, nature: str, path: Path, is_direct_transfer: bool = False
