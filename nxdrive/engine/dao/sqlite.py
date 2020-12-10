@@ -1297,32 +1297,38 @@ class EngineDAO(ConfigurationDAO):
         )
 
     def _get_to_sync_condition(self) -> str:
-        return "pair_state != 'synchronized' AND pair_state != 'unsynchronized'"
+        return "pair_state NOT IN ('synchronized', 'unsynchronized')"
 
     def register_queue_manager(self, manager: "QueueManager") -> None:
-        # Prevent any update while init queue
+        """Register the queue manager and add all *pairs* to handle into the queue."""
+
         with self.lock:
             self.queue_manager = manager
-            con = self._get_write_connection()
-            c = con.cursor()
-            # Order by path to be sure to process parents before children
-            pairs: List[DocPair] = c.execute(
-                "SELECT *"
-                "  FROM States "
-                f"WHERE {self._get_to_sync_condition()}"
+
+            c = self._get_write_connection().cursor()
+
+            # Order by path to be sure to process parents before children.
+            # Note: filter out Direct Transfer pairs when the associated session is not ongoing
+            #       (it will generate potentially a lot of work for nothing as such pairs
+            #        will be skipped in the Processor then)
+            query = (
+                "SELECT * FROM States"
+                f"   WHERE {self._get_to_sync_condition()}"
+                "      AND (session = 0"  # Pure synchronization transfers
+                "           OR session IN (SELECT uid FROM Sessions WHERE status = ?))"
                 " ORDER BY local_path ASC"
-            ).fetchall()
+            )
+            pairs = c.execute(query, (TransferStatus.ONGOING.value,)).fetchall()
+
             folders = {}
             for pair in pairs:
                 # Add all the folders
                 if pair.folderish:
                     folders[pair.local_path] = True
-                if self.queue_manager and pair.local_parent_path not in folders:
+                if pair.local_parent_path not in folders:
                     self.queue_manager.push_ref(
                         pair.id, pair.folderish, pair.pair_state
                     )
-        # Don't block everything if queue manager fail
-        # TODO As the error should be fatal not sure we need this
 
     def _queue_pair_state(
         self, row_id: int, folderish: bool, pair_state: str, pair: DocPair = None
@@ -2776,21 +2782,37 @@ class EngineDAO(ConfigurationDAO):
 
     def resume_session(self, uid: int) -> None:
         """Resume all transfers for given session."""
+        if not self.queue_manager:
+            return
+
         with self.lock:
             c = self._get_write_connection().cursor()
+
+            # Adapt the upload status of transfers that were already started when the session was paused
             c.execute(
-                "UPDATE Uploads SET status = ? WHERE doc_pair IN (SELECT id FROM States WHERE Session = ?)",
+                "UPDATE Uploads SET status = ? WHERE doc_pair IN (SELECT id FROM States WHERE session = ?)",
                 (TransferStatus.ONGOING.value, uid),
             )
 
-            if self.queue_manager:
-                rows = c.execute(
-                    "SELECT * FROM States WHERE id IN"
-                    " (SELECT doc_pair FROM Uploads WHERE doc_pair IN (SELECT id FROM States WHERE Session = ?))",
+            # Get ongoing transfers first, to let them resuming before any other not-yet-handled transfers
+            rows = c.execute(
+                "SELECT * FROM States WHERE id IN"
+                " (SELECT doc_pair FROM Uploads WHERE doc_pair IN (SELECT id FROM States WHERE session = ?))",
+                (uid,),
+            ).fetchall()
+
+            # Then, get not-yet-handled transfers
+            rows.extend(
+                c.execute(
+                    "SELECT * FROM States WHERE id NOT IN"
+                    " (SELECT doc_pair FROM Uploads WHERE doc_pair IN (SELECT id FROM States WHERE session = ?))",
                     (uid,),
                 ).fetchall()
-                for doc_pair in rows:
-                    self.queue_manager.push(doc_pair)
+            )
+
+            # Finally, push all transfers in the queue
+            for doc_pair in rows:
+                self.queue_manager.push(doc_pair)
             self.directTransferUpdated.emit()
 
     def pause_session(self, uid: int) -> None:
@@ -2799,7 +2821,7 @@ class EngineDAO(ConfigurationDAO):
             c = self._get_write_connection().cursor()
             self.change_session_status(uid, TransferStatus.PAUSED)
             c.execute(
-                "UPDATE Uploads SET status = ? WHERE doc_pair IN (SELECT id FROM States WHERE Session = ?)",
+                "UPDATE Uploads SET status = ? WHERE doc_pair IN (SELECT id FROM States WHERE session = ?)",
                 (TransferStatus.PAUSED.value, uid),
             )
             self.directTransferUpdated.emit()
@@ -2814,15 +2836,15 @@ class EngineDAO(ConfigurationDAO):
             batchs = [
                 json.loads(res.batch)
                 for res in c.execute(
-                    "SELECT * FROM Uploads WHERE doc_pair IN (SELECT id FROM States WHERE Session = ?)",
+                    "SELECT * FROM Uploads WHERE doc_pair IN (SELECT id FROM States WHERE session = ?)",
                     (uid,),
                 ).fetchall()
             ]
             c.execute(
-                "DELETE FROM Uploads WHERE doc_pair IN (SELECT id FROM States WHERE Session = ?)",
+                "DELETE FROM Uploads WHERE doc_pair IN (SELECT id FROM States WHERE session = ?)",
                 (uid,),
             )
-            c.execute("DELETE FROM States WHERE Session = ?", (uid,))
+            c.execute("DELETE FROM States WHERE session = ?", (uid,))
             c.execute(
                 "UPDATE Sessions SET total = uploaded, status = ? ,"
                 " completed_on = CURRENT_TIMESTAMP WHERE uid = ?",
