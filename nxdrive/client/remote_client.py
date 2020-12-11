@@ -337,6 +337,10 @@ class Remote(Nuxeo):
             # Download finished!
             download.status = TransferStatus.DONE
             self.dao.set_transfer_status("download", download)
+        except CorruptedFile:
+            log.info("Removing the temporary file as it seems it is now untrustable")
+            file_out.unlink(missing_ok=True)
+            raise
         finally:
             if chunked:
                 DownloadAction.finish_action()
