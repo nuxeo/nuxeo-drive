@@ -457,10 +457,9 @@ def normalized_path(path: Union[bytes, str, Path]) -> Path:
     Note: this function cannot be decorated with lru_cache().
     """
     if not isinstance(path, Path):
-        path = force_decode(path)
-    expanded = Path(path).expanduser()
-    # NXDRIVE-2319: using os.path.abspath() instead of .resolve and .absolute().
-    return Path(os.path.abspath(str(expanded)))
+        path = Path(os.fsdecode(path))
+    # NXDRIVE-2319: using os.path.abspath() instead of Path.resolve and Path.absolute().
+    return Path(os.path.abspath(path.expanduser()))
 
 
 def normalize_and_expand_path(path: str) -> Path:
@@ -565,7 +564,10 @@ def safe_long_path(path: Path) -> Path:
         https://bugs.python.org/issue18199#msg260122
     """
     if WINDOWS:
-        path = Path(f"\\\\?\\{normalized_path(path)}")
+        if path.parts[0].startswith("\\\\?\\"):
+            path = normalized_path(path)
+        else:
+            path = Path(f"\\\\?\\{normalized_path(path)}")
     return path
 
 
