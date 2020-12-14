@@ -2804,9 +2804,11 @@ class EngineDAO(ConfigurationDAO):
             # Then, get not-yet-handled transfers
             rows.extend(
                 c.execute(
-                    "SELECT * FROM States WHERE id NOT IN"
+                    "SELECT * FROM States"
+                    "        WHERE session = ?"
+                    "          AND id NOT IN"
                     " (SELECT doc_pair FROM Uploads WHERE doc_pair IN (SELECT id FROM States WHERE session = ?))",
-                    (uid,),
+                    (uid, uid),
                 ).fetchall()
             )
 
