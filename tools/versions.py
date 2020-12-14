@@ -11,10 +11,11 @@ import glob
 import hashlib
 import os
 import os.path
+from datetime import datetime, timezone
 
 import yaml
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __all__ = ("create", "delete", "merge", "promote")
 
 
@@ -98,13 +99,13 @@ def create(version, category):
         "10.3": "10.3-SNAPSHOT"
         "10.10": "10.10-SNAPSHOT"
     """
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     yml = {
         version: {
+            "checksum": {"algo": "sha256"},
+            "date": today,
             "min": "7.10",
             "type": category,
-            "checksum": {
-                "algo": "sha256",
-            },
         }
     }
     if checksum_appimage:
