@@ -690,16 +690,6 @@ class Engine(QObject):
                     dao.remove_transfer(nature, transfer.path)
                     log.info(f"Removed staled {transfer}")
 
-    def decrease_session_planned_items(self, transfer_uid: int) -> None:
-        """Decrease the linked session planned_items count."""
-        upload = self.dao.get_dt_upload(uid=transfer_uid)
-        if not upload:
-            return
-        doc_pair = self.dao.get_state_from_local(upload.path)
-        if not doc_pair:
-            return
-        self.dao.decrease_session_planned_items(doc_pair.session)
-
     def cancel_upload(self, transfer_uid: int) -> None:
         """Cancel an ongoing Direct Transfer upload and clean the database."""
         log.debug(f"Canceling transfer {transfer_uid}")
@@ -724,7 +714,7 @@ class Engine(QObject):
         self.dao.remove_transfer("upload", upload.path, is_direct_transfer=True)
 
         self.dao.remove_state(doc_pair)
-        session = self.dao.decrease_session_total(doc_pair.session)
+        session = self.dao.decrease_session_counts(doc_pair.session)
         self.handle_session_status(session)
 
     def cancel_session(self, uid: int) -> None:

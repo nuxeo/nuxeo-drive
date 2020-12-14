@@ -563,7 +563,7 @@ class Processor(EngineWorker):
             ):
                 session = self.dao.update_session(doc_pair.session)
             elif cancelled_transfer:
-                session = self.dao.decrease_session_total(doc_pair.session)
+                session = self.dao.decrease_session_counts(doc_pair.session)
             self.engine.handle_session_status(session)
 
         # For analytics

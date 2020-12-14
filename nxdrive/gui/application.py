@@ -870,7 +870,6 @@ class Application(QApplication):
             engine = self.manager.engines.get(engine_uid)
             if not engine:
                 return
-            engine.decrease_session_planned_items(transfer_uid)
             engine.cancel_upload(transfer_uid)
 
     @pyqtSlot(str, int, str, int, result=bool)
