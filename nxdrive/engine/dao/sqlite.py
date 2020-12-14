@@ -2528,9 +2528,9 @@ class EngineDAO(ConfigurationDAO):
             )
             self.sessionUpdated.emit()
 
-    def decrease_session_total(self, uid: int) -> Optional[Session]:
+    def decrease_session_counts(self, uid: int) -> Optional[Session]:
         """
-        Decrease the Session *total_items* count.
+        Decrease the Session *total_items* and *planned_items* counts.
         Update the status if all files are uploaded.
         """
         with self.lock:
@@ -2539,36 +2539,33 @@ class EngineDAO(ConfigurationDAO):
                 return None
 
             session.total_items = max(0, session.total_items - 1)
+            session.planned_items = max(0, session.planned_items - 1)
             if session.uploaded_items == session.total_items:
                 session.status = (
                     TransferStatus.DONE
                     if session.total_items
                     else TransferStatus.CANCELLED
                 )
-                sql = "UPDATE Sessions SET total = ?, status = ?, completed_on = CURRENT_TIMESTAMP WHERE uid = ?"
+                sql = (
+                    "UPDATE Sessions SET"
+                    " planned_items = ?, total = ?, status = ?, completed_on = CURRENT_TIMESTAMP"
+                    " WHERE uid = ?"
+                )
             else:
-                sql = "UPDATE Sessions SET total = ?, status = ? WHERE uid = ?"
+                sql = "UPDATE Sessions SET planned_items = ?, total = ?, status = ? WHERE uid = ?"
 
             cursor = self._get_write_connection().cursor()
             cursor.execute(
-                sql, (session.total_items, session.status.value, session.uid)
+                sql,
+                (
+                    session.planned_items,
+                    session.total_items,
+                    session.status.value,
+                    session.uid,
+                ),
             )
             self.sessionUpdated.emit()
             return session
-
-    def decrease_session_planned_items(self, uid: int) -> None:
-        """Decrease the Session *planned_items* count."""
-        with self.lock:
-            session = self.get_session(uid)
-            if not session:
-                return None
-
-            session.planned_items = max(0, session.planned_items - 1)
-            cursor = self._get_write_connection().cursor()
-            cursor.execute(
-                "UPDATE Sessions SET planned_items = ? WHERE uid = ?",
-                (session.planned_items, session.uid),
-            )
 
     def get_downloads_with_status(self, status: TransferStatus) -> List[Download]:
         return [d for d in self.get_downloads() if d.status == status]
