@@ -104,8 +104,8 @@ class Translator(QTranslator):
         if label not in self._current:
             if label not in self._fallback:
                 return label
-            return self._tokenize(self._fallback[label], values)
-        return self._tokenize(self._current[label], values)
+            return self._tokenize(self._fallback[label], values=values)
+        return self._tokenize(self._current[label], values=values)
 
     @pyqtSlot(str)
     def set_language(self, lang: str, /) -> None:
@@ -138,7 +138,7 @@ class Translator(QTranslator):
     def get(label: str, /, *, values: List[str] = None) -> str:
         if not Translator.singleton:
             raise RuntimeError("Translator not initialized")
-        return Translator.singleton.get_translation(label, values)
+        return Translator.singleton.get_translation(label, values=values)
 
     @staticmethod
     def languages() -> List[Tuple[str, str]]:

@@ -155,7 +155,7 @@ class AutoRetryCursor(Cursor):
 
 
 class AutoRetryConnection(Connection):
-    def cursor(self, *, factory: Type[Cursor] = None) -> Cursor:
+    def cursor(self, factory: Type[Cursor] = None) -> Cursor:
         factory = factory or AutoRetryCursor
         return super().cursor(factory)
 
@@ -922,9 +922,9 @@ class EngineDAO(ConfigurationDAO):
         self, cursor: Cursor, name: str, /, *, force: bool = False
     ) -> None:
         if name == "States":
-            self._create_state_table(cursor, force)
+            self._create_state_table(cursor, force=force)
         else:
-            super()._create_table(cursor, name, force)
+            super()._create_table(cursor, name, force=force)
 
     @staticmethod
     def _create_transfer_tables(cursor: Cursor, /) -> None:
@@ -1173,10 +1173,8 @@ class EngineDAO(ConfigurationDAO):
     def insert_local_state(
         self,
         info: FileInfo,
+        parent_path: Optional[Path],
         /,
-        *,
-        parent_path: Optional[Path] = None,
-        local_state: str = "created",
     ) -> int:
         digest = None
         if not info.folderish:
@@ -1193,14 +1191,14 @@ class EngineDAO(ConfigurationDAO):
         with self.lock:
             con = self._get_write_connection()
             c = con.cursor()
-            pair_state = PAIR_STATES[(local_state, "unknown")]
+            pair_state = PAIR_STATES[("created", "unknown")]
 
             c.execute(
                 "INSERT INTO States "
                 "(last_local_updated, local_digest, local_path, "
                 "local_parent_path, local_name, folderish, size, "
                 "local_state, remote_state, pair_state) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'unknown', ?)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, 'created', 'unknown', ?)",
                 (
                     info.last_modification_time,
                     digest,
@@ -1209,7 +1207,6 @@ class EngineDAO(ConfigurationDAO):
                     info.path.name,
                     info.folderish,
                     info.size,
-                    local_state,
                     pair_state,
                 ),
             )
@@ -1545,7 +1542,7 @@ class EngineDAO(ConfigurationDAO):
     def get_dt_items_count(self) -> int:
         return self.get_count("local_state = 'direct'")
 
-    def get_count(self, *, condition: str = None, table: str = "States") -> int:
+    def get_count(self, condition: str, *, table: str = "States") -> int:
         query = f"SELECT COUNT(*) as count FROM {table}"
         if condition:
             query = f"{query} WHERE {condition}"
@@ -2952,29 +2949,30 @@ class EngineDAO(ConfigurationDAO):
             self.directTransferUpdated.emit()
 
     def remove_transfer(
-        self, nature: str, path: Path, /, *, is_direct_transfer: bool = False
+        self,
+        nature: str,
+        /,
+        *,
+        doc_pair: Optional[int] = None,
+        path: Optional[Path] = None,
+        is_direct_transfer: bool = False,
     ) -> None:
         with self.lock:
             c = self._get_write_connection().cursor()
             table = f"{nature.title()}s"  # Downloads/Uploads
-            c.execute(f"DELETE FROM {table} WHERE path = ?", (path,))
 
-            if c.rowcount == 0:
-                return
-
-            if is_direct_transfer:
-                self.directTransferUpdated.emit()
+            # Handling *doc_pair* first to allow to pass both *doc_pair* and *path*
+            # and forcing the priority on *doc_pair*.
+            if doc_pair is not None:
+                c.execute(f"DELETE FROM {table} WHERE doc_pair = ?", (doc_pair,))
+            elif path:
+                c.execute(f"DELETE FROM {table} WHERE path = ?", (path,))
             else:
-                self.transferUpdated.emit()
-
-    def remove_transfer_by_doc_pair(
-        self, nature: str, doc_pair: int, is_direct_transfer: bool = False
-    ) -> None:
-        """Remove a transfer based on its *doc_pair*."""
-        with self.lock:
-            c = self._get_write_connection().cursor()
-            table = f"{nature.title()}s"  # Downloads/Uploads
-            c.execute(f"DELETE FROM {table} WHERE doc_pair = ?", (doc_pair,))
+                # Should never happen
+                log.error(
+                    f"remove_transfert({nature!r}, {doc_pair!r}, {path!r}, {is_direct_transfer!r})"
+                )
+                return
 
             if c.rowcount == 0:
                 return

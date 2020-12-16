@@ -161,7 +161,7 @@ class DirectTransfer:
 
             assert dao.get_dt_uploads_with_status(TransferStatus.PAUSED)
 
-            last_location = dao.get_config("dt_last_local_selected_location", None)
+            last_location = dao.get_config("dt_last_local_selected_location")
             assert last_location
             assert Path(last_location) == self.file.parent
 

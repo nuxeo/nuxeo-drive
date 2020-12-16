@@ -24,7 +24,9 @@ def check_executable_path_error_qt(path: Path, /) -> None:
     app.setQuitOnLastWindowClosed(True)
 
     Translator(find_resource("i18n"))
-    content = Translator.get("RUNNING_FROM_WRONG_PATH", [str(path), f"{APP_NAME}.app"])
+    content = Translator.get(
+        "RUNNING_FROM_WRONG_PATH", values=[str(path), f"{APP_NAME}.app"]
+    )
 
     icon = QPixmap(str(find_icon("app_icon.svg")))
     msg = QMessageBox()
@@ -63,7 +65,7 @@ def fatal_error_qt(exc_formatted: str, /) -> None:
     app.setQuitOnLastWindowClosed(True)
 
     dialog = QDialog()
-    dialog.setWindowTitle(tr("FATAL_ERROR_TITLE", [APP_NAME]))
+    dialog.setWindowTitle(tr("FATAL_ERROR_TITLE", values=[APP_NAME]))
     dialog.setWindowIcon(QIcon(str(find_icon("app_icon.svg"))))
     dialog.resize(800, 600)
     layout = QVBoxLayout()
@@ -71,7 +73,7 @@ def fatal_error_qt(exc_formatted: str, /) -> None:
     details = []
 
     # Display a little message to apologize
-    info = QLabel(tr("FATAL_ERROR_MSG", [APP_NAME, COMPANY]))
+    info = QLabel(tr("FATAL_ERROR_MSG", values=[APP_NAME, COMPANY]))
     info.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
     layout.addWidget(info)
 
@@ -145,7 +147,7 @@ def fatal_error_qt(exc_formatted: str, /) -> None:
     update_button = buttons.addButton(
         tr("FATAL_ERROR_UPDATE_BTN"), QDialogButtonBox.ActionRole
     )
-    update_button.setToolTip(tr("FATAL_ERROR_UPDATE_TOOLTIP", [APP_NAME]))
+    update_button.setToolTip(tr("FATAL_ERROR_UPDATE_TOOLTIP", values=[APP_NAME]))
     update_button.clicked.connect(open_update_site)
     layout.addWidget(buttons)
 

@@ -49,7 +49,7 @@ class RemoteWatcher(EngineWorker):
         self._last_sync_date: int = self.dao.get_int("remote_last_sync_date")
         self._last_event_log_id: int = self.dao.get_int("remote_last_event_log_id")
         self._last_root_definitions = self.dao.get_config(
-            "remote_last_root_definitions", ""
+            "remote_last_root_definitions", default=""
         )
         self._last_remote_full_scan: Optional[datetime] = self.dao.get_config(
             "remote_last_full_scan"
@@ -73,7 +73,7 @@ class RemoteWatcher(EngineWorker):
         try:
             while "working":
                 if now() > self._next_check:
-                    if handle_changes(first_pass):
+                    if handle_changes(first_pass=first_pass):
                         first_pass = False
 
                     # Plan the next execution
@@ -630,7 +630,7 @@ class RemoteWatcher(EngineWorker):
                     self.initiate.emit()
                 return True
 
-            full_scan = self.dao.get_config("remote_need_full_scan", None)
+            full_scan = self.dao.get_config("remote_need_full_scan")
             if full_scan is not None:
                 self._partial_full_scan(full_scan)
                 return False
@@ -680,7 +680,7 @@ class RemoteWatcher(EngineWorker):
         start = monotonic()
         try:
             return self.engine.remote.get_changes(
-                self._last_root_definitions, self._last_event_log_id
+                self._last_root_definitions, log_id=self._last_event_log_id
             )
         finally:
             end = monotonic()
@@ -1025,7 +1025,9 @@ class RemoteWatcher(EngineWorker):
                             remote_path = (
                                 f"{child_pair.remote_parent_path}/{new_info.uid}"
                             )
-                            self._force_remote_scan(child_pair, new_info, remote_path)
+                            self._force_remote_scan(
+                                child_pair, new_info, remote_path=remote_path
+                            )
                         else:
                             log.info(
                                 f"Marked doc_pair {child_pair.remote_name!r} "

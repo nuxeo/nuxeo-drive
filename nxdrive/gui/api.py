@@ -162,7 +162,7 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, result=str)
     def get_notifications(self, engine_uid: str, /) -> str:
         center = self._manager.notification_service
-        notif = self._export_notifications(center.get_notifications(engine_uid))
+        notif = self._export_notifications(center.get_notifications(engine=engine_uid))
         return self._json(notif)
 
     @pyqtSlot(result=str)
@@ -219,7 +219,7 @@ class QMLDriveApi(QObject):
         engine = self._manager.engines.get(uid)
         if engine:
             return engine.dao.get_count(
-                condition=f"status IN ({TransferStatus.ONGOING.value}, {TransferStatus.PAUSED.value})",
+                f"status IN ({TransferStatus.ONGOING.value}, {TransferStatus.PAUSED.value})",
                 table="Sessions",
             )
         return 0
@@ -230,7 +230,7 @@ class QMLDriveApi(QObject):
         engine = self._manager.engines.get(uid)
         if engine:
             return engine.dao.get_count(
-                condition=f"status IN ({TransferStatus.CANCELLED.value}, {TransferStatus.DONE.value})",
+                f"status IN ({TransferStatus.CANCELLED.value}, {TransferStatus.DONE.value})",
                 table="Sessions",
             )
         return 0
@@ -312,7 +312,7 @@ class QMLDriveApi(QObject):
         engine = self._manager.engines.get(uid)
         if engine:
             for conflict in engine.dao.get_unsynchronizeds():
-                result.append(self._export_formatted_state(uid, conflict))
+                result.append(self._export_formatted_state(uid, state=conflict))
         return result
 
     @pyqtSlot(str, result=list)
@@ -321,7 +321,7 @@ class QMLDriveApi(QObject):
         engine = self._manager.engines.get(uid)
         if engine:
             for conflict in engine.get_conflicts():
-                result.append(self._export_formatted_state(uid, conflict))
+                result.append(self._export_formatted_state(uid, state=conflict))
         return result
 
     @pyqtSlot(str, result=list)
@@ -330,7 +330,7 @@ class QMLDriveApi(QObject):
         engine = self._manager.engines.get(uid)
         if engine:
             for error in engine.dao.get_errors():
-                result.append(self._export_formatted_state(uid, error))
+                result.append(self._export_formatted_state(uid, state=error))
         return result
 
     @pyqtSlot(bool)
@@ -732,7 +732,9 @@ class QMLDriveApi(QObject):
             # Ask for the user
             msg = self.application.question(
                 Translator.get("ROOT_USED_WITH_OTHER_BINDING_HEADER"),
-                Translator.get("ROOT_USED_WITH_OTHER_BINDING", [e.username, e.url]),
+                Translator.get(
+                    "ROOT_USED_WITH_OTHER_BINDING", values=[e.username, e.url]
+                ),
             )
             msg.addButton(Translator.get("CONTINUE"), QMessageBox.AcceptRole)
             cancel = msg.addButton(Translator.get("CANCEL"), QMessageBox.RejectRole)
@@ -743,7 +745,12 @@ class QMLDriveApi(QObject):
 
             kwargs["check_fs"] = False
             self.bind_server(
-                local_folder, server_url, username, password, name, **kwargs
+                local_folder,
+                server_url,
+                username,
+                password=password,
+                name=name,
+                **kwargs,
             )
             return
         except NotFound:

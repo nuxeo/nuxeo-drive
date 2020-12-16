@@ -22,7 +22,7 @@ __all__ = (
 class Action(QObject):
     actions: Dict[int, Optional["Action"]] = {}
 
-    def __init__(self, *, action_type: str = None, progress: float = 0.0) -> None:
+    def __init__(self, action_type: str, /, *, progress: float = 0.0) -> None:
         super().__init__()
 
         self.type = action_type
@@ -79,7 +79,7 @@ class Action(QObject):
 
 class IdleAction(Action):
     def __init__(self) -> None:
-        super().__init__(action_type="Idle")
+        super().__init__("Idle")
 
 
 class FileAction(Action):
@@ -99,7 +99,7 @@ class FileAction(Action):
         engine: str = "",
         doc_pair: int = None,
     ) -> None:
-        super().__init__(action_type=action_type)
+        super().__init__(action_type)
 
         self.filepath = filepath
         self.size = size

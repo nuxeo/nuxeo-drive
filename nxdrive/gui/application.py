@@ -266,7 +266,7 @@ class Application(QApplication):
             self.conflicts_window.setMinimumHeight(600)
             self._fill_qml_context(self.conflicts_window.rootContext())
             self.conflicts_window.setSource(
-                QUrl.fromLocalFile(str(find_resource("qml", "Conflicts.qml")))
+                QUrl.fromLocalFile(str(find_resource("qml", file="Conflicts.qml")))
             )
 
             # Settings
@@ -275,7 +275,7 @@ class Application(QApplication):
             self.settings_window.setMinimumHeight(580)
             self._fill_qml_context(self.settings_window.rootContext())
             self.settings_window.setSource(
-                QUrl.fromLocalFile(str(find_resource("qml", "Settings.qml")))
+                QUrl.fromLocalFile(str(find_resource("qml", file="Settings.qml")))
             )
 
             # Systray
@@ -285,7 +285,7 @@ class Application(QApplication):
                 "systrayWindow", self.systray_window
             )
             self.systray_window.setSource(
-                QUrl.fromLocalFile(str(find_resource("qml", "Systray.qml")))
+                QUrl.fromLocalFile(str(find_resource("qml", file="Systray.qml")))
             )
 
             # Direct Transfer
@@ -294,7 +294,7 @@ class Application(QApplication):
             self.direct_transfer_window.setMinimumHeight(480)
             self._fill_qml_context(self.direct_transfer_window.rootContext())
             self.direct_transfer_window.setSource(
-                QUrl.fromLocalFile(str(find_resource("qml", "DirectTransfer.qml")))
+                QUrl.fromLocalFile(str(find_resource("qml", file="DirectTransfer.qml")))
             )
 
             flags |= Qt.Popup
@@ -302,7 +302,7 @@ class Application(QApplication):
             self.app_engine = QQmlApplicationEngine()
             self._fill_qml_context(self.app_engine.rootContext())
             self.app_engine.load(
-                QUrl.fromLocalFile(str(find_resource("qml", "Main.qml")))
+                QUrl.fromLocalFile(str(find_resource("qml", file="Main.qml")))
             )
             root = self.app_engine.rootObjects()[0]
             self.conflicts_window = root.findChild(QQuickWindow, "conflictsWindow")
@@ -463,7 +463,7 @@ class Application(QApplication):
         return window
 
     def translate(self, message: str, /, *, values: List[Any] = None) -> str:
-        return Translator.get(message, values)
+        return Translator.get(message, values=values)
 
     def _show_window(self, window: QWindow, /) -> None:
         window.show()
@@ -472,7 +472,8 @@ class Application(QApplication):
 
     def _init_translator(self) -> None:
         locale = Options.force_locale or Options.locale
-        Translator(find_resource("i18n"), self.manager.get_config("locale", locale))
+        locale = self.manager.get_config("locale", default=locale)
+        Translator(find_resource("i18n"), lang=locale)
         # Make sure that a language change changes external values like
         # the text in the contextual menu
         Translator.on_change(self._handle_language_change)
@@ -505,13 +506,13 @@ class Application(QApplication):
 
     def display_info(self, title: str, message: str, values: List[str], /) -> None:
         """Display an informative message box."""
-        msg_text = self.translate(message, values)
+        msg_text = self.translate(message, values=values)
         log.info(f"{msg_text} (values={values})")
         self._msgbox(title=title, message=msg_text)
 
     def display_warning(self, title: str, message: str, values: List[str], /) -> None:
         """Display a warning message box."""
-        msg_text = self.translate(message, values)
+        msg_text = self.translate(message, values=values)
         log.warning(f"{msg_text} (values={values})")
         self._msgbox(icon=QMessageBox.Warning, title=title, message=msg_text)
 
@@ -534,7 +535,9 @@ class Application(QApplication):
 
             msg = self.question(
                 Translator.get("DIRECT_EDIT_CONFLICT_HEADER"),
-                Translator.get("DIRECT_EDIT_CONFLICT_MESSAGE", [short_name(filename)]),
+                Translator.get(
+                    "DIRECT_EDIT_CONFLICT_MESSAGE", values=[short_name(filename)]
+                ),
                 icon=QMessageBox.Warning,
             )
             overwrite = msg.addButton(
@@ -562,7 +565,9 @@ class Application(QApplication):
 
         msg = self.question(
             Translator.get("DRIVE_ROOT_DELETED_HEADER"),
-            Translator.get("DRIVE_ROOT_DELETED", ["engine.local_folder", APP_NAME]),
+            Translator.get(
+                "DRIVE_ROOT_DELETED", values=["engine.local_folder", APP_NAME]
+            ),
             icon=QMessageBox.Critical,
         )
         recreate = msg.addButton(
@@ -592,7 +597,7 @@ class Application(QApplication):
 
         msg = self.question(
             Translator.get("DRIVE_ROOT_MOVED_HEADER"),
-            Translator.get("DRIVE_ROOT_MOVED", info),
+            Translator.get("DRIVE_ROOT_MOVED", values=info),
             icon=QMessageBox.Critical,
         )
         move = msg.addButton(Translator.get("DRIVE_ROOT_MOVE"), QMessageBox.AcceptRole)
@@ -626,7 +631,9 @@ class Application(QApplication):
 
         msg = self.question(
             Translator.get("DELETION_BEHAVIOR_HEADER"),
-            Translator.get(descr, [str(path), Translator.get("SELECT_SYNC_FOLDERS")]),
+            Translator.get(
+                descr, values=[str(path), Translator.get("SELECT_SYNC_FOLDERS")]
+            ),
         )
         if mode is DelAction.DEL_SERVER:
             unsync = msg.addButton(
@@ -675,7 +682,7 @@ class Application(QApplication):
             engine.rollback_delete(path)
         else:
             # Delete or filter out the document
-            engine.delete_doc(path, mode)
+            engine.delete_doc(path, mode=mode)
 
     @pyqtSlot(Path, Path)
     def _file_already_exists(self, oldpath: Path, newpath: Path, /) -> None:
@@ -861,7 +868,7 @@ class Application(QApplication):
         """
         msg = self.question(
             Translator.get("DIRECT_TRANSFER_CANCEL_HEADER"),
-            Translator.get("DIRECT_TRANSFER_CANCEL", [name]),
+            Translator.get("DIRECT_TRANSFER_CANCEL", values=[name]),
         )
         continued = msg.addButton(Translator.get("YES"), QMessageBox.AcceptRole)
         cancel = msg.addButton(Translator.get("NO"), QMessageBox.RejectRole)
@@ -884,7 +891,7 @@ class Application(QApplication):
         """
         msg = self.question(
             Translator.get("SESSION_CANCEL_HEADER"),
-            Translator.get("SESSION_CANCEL", [destination, str(pending_files)]),
+            Translator.get("SESSION_CANCEL", values=[destination, str(pending_files)]),
         )
         continued = msg.addButton(Translator.get("YES"), QMessageBox.AcceptRole)
         cancel = msg.addButton(Translator.get("NO"), QMessageBox.RejectRole)
@@ -1069,14 +1076,14 @@ class Application(QApplication):
         msg = ("AUTOUPDATE_UPGRADE", "AUTOUPDATE_DOWNGRADE")[
             status == UPDATE_STATUS_INCOMPATIBLE_SERVER
         ]
-        description = Translator.get(msg, [version])
+        description = Translator.get(msg, values=[version])
         flags = Notification.FLAG_BUBBLE | Notification.FLAG_UNIQUE
 
         log.warning(description)
         notification = Notification(
             uuid="AutoUpdate",
             flags=flags,
-            title=Translator.get("NOTIF_UPDATE_TITLE", [version]),
+            title=Translator.get("NOTIF_UPDATE_TITLE", values=[version]),
             description=description,
         )
         self.manager.notification_service.send_notification(notification)
@@ -1087,16 +1094,17 @@ class Application(QApplication):
         downgrade_version = self.manager.updater.version or ""
 
         msg = self.question(
-            Translator.get("SERVER_INCOMPATIBLE_HEADER", [APP_NAME, version]),
-            Translator.get("SERVER_INCOMPATIBLE", [APP_NAME, downgrade_version]),
+            Translator.get("SERVER_INCOMPATIBLE_HEADER", values=[APP_NAME, version]),
+            Translator.get("SERVER_INCOMPATIBLE", values=[APP_NAME, downgrade_version]),
             icon=QMessageBox.Warning,
         )
         if downgrade_version:
             msg.addButton(
-                Translator.get("CONTINUE_USING", [version]), QMessageBox.RejectRole
+                Translator.get("CONTINUE_USING", values=[version]),
+                QMessageBox.RejectRole,
             )
             downgrade = msg.addButton(
-                Translator.get("DOWNGRADE_TO", [downgrade_version]),
+                Translator.get("DOWNGRADE_TO", values=[downgrade_version]),
                 QMessageBox.AcceptRole,
             )
         else:
@@ -1122,15 +1130,17 @@ class Application(QApplication):
         msg = self.question(
             Translator.get("WRONG_CHANNEL_HEADER"),
             Translator.get(
-                "WRONG_CHANNEL", [version, version_channel, current_channel]
+                "WRONG_CHANNEL", values=[version, version_channel, current_channel]
             ),
             icon=QMessageBox.Warning,
         )
         switch_channel = msg.addButton(
-            Translator.get("USE_CHANNEL", [version_channel]), QMessageBox.AcceptRole
+            Translator.get("USE_CHANNEL", values=[version_channel]),
+            QMessageBox.AcceptRole,
         )
         downgrade = msg.addButton(
-            Translator.get("DOWNGRADE_TO", [downgrade_version]), QMessageBox.AcceptRole
+            Translator.get("DOWNGRADE_TO", values=[downgrade_version]),
+            QMessageBox.AcceptRole,
         )
 
         msg.exec_()
@@ -1234,7 +1244,7 @@ class Application(QApplication):
             return
 
         self.display_info(
-            Translator.get("RELEASE_NOTES_TITLE", [APP_NAME]),
+            Translator.get("RELEASE_NOTES_TITLE", values=[APP_NAME]),
             "RELEASE_NOTES_MSG",
             [APP_NAME, version],
         )
@@ -1273,7 +1283,7 @@ class Application(QApplication):
         ]
         sig = f"<code><small>{signature(cert['serialNumber'])}</small></code>"
         message = f"""
-<h2>{Translator.get("SSL_CANNOT_CONNECT", [hostname])}</h2>
+<h2>{Translator.get("SSL_CANNOT_CONNECT", values=[hostname])}</h2>
 <p style="color:red">{Translator.get("SSL_HOSTNAME_ERROR")}</p>
 
 <h2>{Translator.get("SSL_CERTIFICATE")}</h2>
@@ -1748,11 +1758,11 @@ class Application(QApplication):
         tr = Translator.get
 
         dialog = QDialog()
-        dialog.setWindowTitle(tr("SHARE_METRICS_TITLE", [APP_NAME]))
+        dialog.setWindowTitle(tr("SHARE_METRICS_TITLE", values=[APP_NAME]))
         dialog.setWindowIcon(self.icon)
         layout = QVBoxLayout()
 
-        info = QLabel(tr("SHARE_METRICS_MSG", [COMPANY]))
+        info = QLabel(tr("SHARE_METRICS_MSG", values=[COMPANY]))
         info.setTextFormat(Qt.RichText)
         info.setWordWrap(True)
         layout.addWidget(info)

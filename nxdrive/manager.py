@@ -339,7 +339,7 @@ class Manager(QObject):
         return worker
 
     def _create_autolock_service(self) -> ProcessAutoLockerWorker:
-        worker = ProcessAutoLockerWorker(30, self, folder=self.direct_edit_folder)
+        worker = ProcessAutoLockerWorker(30, self, self.direct_edit_folder)
 
         # Start only when the configuration has been retrieved
         self.server_config_updater.firstRunCompleted.connect(worker.thread.start)
@@ -509,7 +509,7 @@ class Manager(QObject):
         return str(self.__device_id)
 
     def get_config(self, value: str, /, *, default: Any = None) -> Any:
-        return self.dao.get_config(value, default)
+        return self.dao.get_config(value, default=default)
 
     def set_config(self, key: str, value: Any, /) -> None:
         Options.set(key, value, setter="manual", fail_on_error=False)
@@ -555,7 +555,7 @@ class Manager(QObject):
         for engine in self.engines.copy().values():
             log.info(f"Engine metrics: {engine.get_metrics()!r}")
 
-        report = Report(self, path)
+        report = Report(self, report_path=path)
         report.generate()
         return report.get_path()
 
@@ -871,7 +871,7 @@ class Manager(QObject):
         return any(engine.is_syncing() for engine in self.engines.values())
 
     def get_root_id(self, path: Path, /) -> str:
-        ref = LocalClient.get_path_remote_id(path, "ndriveroot")
+        ref = LocalClient.get_path_remote_id(path, name="ndriveroot")
         if not ref:
             parent = path.parent
             # We can't find in any parent

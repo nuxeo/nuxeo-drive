@@ -104,7 +104,7 @@ class LocalClient(LocalClientMixin):
         if not isinstance(remote_id, bytes):
             remote_id = unicodedata.normalize("NFC", remote_id).encode("utf-8")
 
-        locker = unlock_path(path, False)
+        locker = unlock_path(path, unlock_parent=False)
         try:
             stat_ = path.stat()
             os.setxattr(path, f"user.{name}", remote_id)  # type: ignore

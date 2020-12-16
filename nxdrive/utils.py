@@ -600,14 +600,14 @@ def safe_rename(src: Path, dst: Path, /) -> None:
 
 
 @lru_cache(maxsize=16)
-def find_resource(folder: str, /, *, filename: str = "") -> Path:
+def find_resource(folder: str, /, *, file: str = "") -> Path:
     """ Find the FS path of a directory in various OS binary packages. """
-    return normalized_path(Options.res_dir) / folder / filename
+    return normalized_path(Options.res_dir) / folder / file
 
 
 @lru_cache(maxsize=16)
 def find_icon(icon: str, /) -> Path:
-    return find_resource("icons", icon)
+    return find_resource("icons", file=icon)
 
 
 @lru_cache(maxsize=4096, typed=True)

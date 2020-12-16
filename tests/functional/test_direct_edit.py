@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from nuxeo.exceptions import CorruptedFile
+
 from nxdrive.constants import ROOT
 from nxdrive.engine.engine import Engine, ServerBindingSettings
 from nxdrive.objects import DirectEditDetails
@@ -127,7 +128,7 @@ def test_corrupted_download(app, manager_factory, tmp_path):
 
         with patch.object(engine.remote, "download", new=corrupted_download):
             tmp = direct_edit._download(
-                engine, None, None, file_out, blob, None, "test_url"
+                engine, None, None, file_out, blob, None, url="test_url"
             )
             assert not tmp
         assert received_corrupted == 3
@@ -307,7 +308,7 @@ def test_invalid_credentials(manager_factory):
     manager, engine = manager_factory()
     doc_uid = "0000"
 
-    Translator(find_resource("i18n"), "en")
+    Translator(find_resource("i18n"), lang="en")
 
     def has_invalid_credentials(self) -> bool:
         return True

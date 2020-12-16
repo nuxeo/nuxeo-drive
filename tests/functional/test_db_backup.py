@@ -21,7 +21,7 @@ def test_create_backup(manager_factory, tmp, nuxeo_url, user_factory, monkeypatc
     # Start and stop a manager
     with manager_factory(home=home, with_engine=False) as manager:
         manager.bind_server(
-            conf_folder, nuxeo_url, user.uid, user.password, start_engine=False
+            conf_folder, nuxeo_url, user.uid, password=user.password, start_engine=False
         )
 
     # Check DB and backup exist

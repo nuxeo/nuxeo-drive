@@ -541,7 +541,7 @@ class CliHandler:
             self._install_faulthandler()
             self.manager = self.get_manager()
 
-        ret_code: int = handler(options)
+        ret_code: int = handler(options=options)
         return ret_code
 
     def get_manager(self) -> "Manager":
@@ -680,7 +680,7 @@ class CliHandler:
             options.local_folder,
             options.nuxeo_url,
             options.username,
-            password,
+            password=password,
             start_engine=False,
             check_credentials=check_credentials,
         )

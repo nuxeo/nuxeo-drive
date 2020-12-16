@@ -22,7 +22,7 @@ def test_personal_space(manager_factory, tmp, nuxeo_url, user_factory, username)
 
     with manager:
         manager.bind_server(
-            conf_folder, nuxeo_url, user.uid, user.password, start_engine=False
+            conf_folder, nuxeo_url, user.uid, password=user.password, start_engine=False
         )
 
         folder = engine.remote.personal_space()

@@ -11,6 +11,7 @@ batch.upload_idx  # BaseUploader.upload_chunks()
 BlocklistQueue.repush  # Used in tests
 blob.batchId  # BaseUploader.upload_chunks()
 blob.fileIdx  # BaseUploader.upload_chunks()
+CallableFeatureHandler.__call__  # Obviously ...
 CliHandler.bind_root  # Used by the arguments parser
 CliHandler.clean_folder  # Used by the arguments parser
 CliHandler.console  # Used by the arguments parser

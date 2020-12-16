@@ -74,21 +74,21 @@ def test_batch_upload_files(engine_dao):
 
 def test_configuration_get(engine_dao):
     with engine_dao("engine_migration.db") as dao:
-        result = dao.get_config("empty", "DefaultValue")
+        result = dao.get_config("empty", default="DefaultValue")
         assert result == "DefaultValue"
 
-        result = dao.get_config("remote_user", "DefaultValue")
+        result = dao.get_config("remote_user", default="DefaultValue")
         assert result == "Administrator"
 
         dao.update_config("empty", "notAnymore")
-        result = dao.get_config("empty", "DefaultValue")
+        result = dao.get_config("empty", default="DefaultValue")
         assert result != "DefaultValue"
         dao.update_config("remote_user", "Test")
-        result = dao.get_config("remote_user", "DefaultValue")
+        result = dao.get_config("remote_user", default="DefaultValue")
         assert result == "Test"
 
         dao.update_config("empty", None)
-        result = dao.get_config("empty", "DefaultValue")
+        result = dao.get_config("empty", default="DefaultValue")
         assert result == "DefaultValue"
 
         result = dao.get_config("empty")
@@ -122,26 +122,30 @@ def test_configuration_get_bool(engine_dao):
         # Mimic old behavior to ensure no regression
 
         dao.store_int("web_authentication", 0)
-        res = dao.get_config("web_authentication", "0") == "1"
+        res = dao.get_config("web_authentication", default="0") == "1"
         assert res is False
         assert dao.get_bool("web_authentication") is res
 
         dao.store_int("web_authentication", 1)
-        res = dao.get_config("web_authentication", "0") == "1"
+        res = dao.get_config("web_authentication", default="0") == "1"
         assert res is True
         assert dao.get_bool("web_authentication") is res
 
-        res = dao.get_config("ssl_verify", "1") != "0"
+        res = dao.get_config("ssl_verify", default="1") != "0"
         assert res is True
         assert dao.get_bool("ssl_verify", default=True) is res
 
         is_frozen = True  # False value for Options.is_frozen
-        res = dao.get_config("direct_edit_auto_lock", str(int(is_frozen))) == "1"
+        res = (
+            dao.get_config("direct_edit_auto_lock", default=str(int(is_frozen))) == "1"
+        )
         assert res is True
         assert dao.get_bool("direct_edit_auto_lock", default=is_frozen) is res
 
         is_frozen = False  # False value for Options.is_frozen
-        res = dao.get_config("direct_edit_auto_lock", str(int(is_frozen))) == "1"
+        res = (
+            dao.get_config("direct_edit_auto_lock", default=str(int(is_frozen))) == "1"
+        )
         assert res is False
         assert dao.get_bool("direct_edit_auto_lock", default=is_frozen) is res
 
@@ -176,12 +180,12 @@ def test_configuration_get_int(engine_dao):
 
         # Mimic old behavior to ensure no regression
 
-        res = int(dao.get_config("remote_last_sync_date", 0))
+        res = int(dao.get_config("remote_last_sync_date", default=0))
         assert res == 1_427_818_905_000
         assert dao.get_int("remote_last_sync_date") == res
 
         dao.delete_config("remote_last_sync_date")
-        res = int(dao.get_config("remote_last_sync_date", 0))
+        res = int(dao.get_config("remote_last_sync_date", default=0))
         assert res == 0
         assert dao.get_int("remote_last_sync_date") == res
 
@@ -203,7 +207,7 @@ def test_corrupted_database(engine_dao):
 def test_errors(engine_dao):
     with engine_dao("engine_migration.db") as dao:
         assert dao.get_error_count() == 1
-        assert not dao.get_error_count(5)
+        assert not dao.get_error_count(threshold=5)
         assert len(dao.get_errors()) == 1
         row = dao.get_errors()[0]
 
@@ -220,18 +224,18 @@ def test_errors(engine_dao):
         assert not dao.get_error_count()
         dao.increase_error(row, "Test 2")
         assert not dao.get_error_count()
-        assert dao.get_error_count(1) == 1
+        assert dao.get_error_count(threshold=1) == 1
         dao.increase_error(row, "Test 3")
         assert not dao.get_error_count()
-        assert dao.get_error_count(2) == 1
+        assert dao.get_error_count(threshold=2) == 1
 
         # Synchronize with wrong version should fail
         assert not dao.synchronize_state(row, version=row.version - 1)
-        assert dao.get_error_count(2) == 1
+        assert dao.get_error_count(threshold=2) == 1
 
         # Synchronize should reset error
         assert dao.synchronize_state(row)
-        assert not dao.get_error_count(2)
+        assert not dao.get_error_count(threshold=2)
 
 
 def test_filters(engine_dao):
