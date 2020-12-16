@@ -14,6 +14,7 @@ from nuxeo.auth import TokenAuth
 from nuxeo.client import Nuxeo
 from nuxeo.compat import get_text
 from nuxeo.exceptions import CorruptedFile, HTTPError
+from nuxeo.handlers.default import Uploader
 from nuxeo.models import Batch, Document
 from nuxeo.utils import get_digest_algorithm, version_lt
 from PyQt5.QtWidgets import QApplication
@@ -63,6 +64,7 @@ class Remote(Nuxeo):
         user_id: str,
         device_id: str,
         version: str,
+        /,
         password: str = None,
         token: str = None,
         proxy: Proxy = None,
@@ -135,7 +137,7 @@ class Remote(Nuxeo):
         )
         return f"<{type(self).__name__} {attrs}>"
 
-    def transfer_start_callback(self, *_: Any) -> None:
+    def transfer_start_callback(self, uploader: Uploader, /) -> None:
         """Callback for each chunked (down|up)loads.
         Called first to set the end time of the current (down|up)loaded chunk.
         """
@@ -143,7 +145,7 @@ class Remote(Nuxeo):
         if action:
             action.chunk_transfer_end_time_ns = monotonic_ns()
 
-    def transfer_end_callback(self, *_: Any) -> None:
+    def transfer_end_callback(self, uploader: Uploader, /) -> None:
         """Callback for each chunked (down|up)loads.
         Called last to set the start time of the next chunk to (down|up)load.
         """
@@ -195,7 +197,7 @@ class Remote(Nuxeo):
         if duration > 1_000_000_000:
             action.chunk_transfer_start_time_ns = monotonic_ns()
 
-    def execute(self, **kwargs: Any) -> Any:
+    def execute(self, /, **kwargs: Any) -> Any:
         """
         This is the end point where all HTTP calls are done.
         The goal is to handle specific errors early.
@@ -208,11 +210,11 @@ class Remote(Nuxeo):
                 raise NotFound()
             raise e
 
-    def _escape(self, path: str) -> str:
+    def _escape(self, path: str, /) -> str:
         """Escape any single quote with an antislash to further use in a NXQL query."""
         return path.replace("'", r"\'")
 
-    def exists(self, ref: str, use_trash: bool = True) -> bool:
+    def exists(self, ref: str, *, use_trash: bool = True) -> bool:
         """
         Check if a document exists on the server.
 
@@ -227,7 +229,7 @@ class Remote(Nuxeo):
         query = f"SELECT * FROM Document WHERE {id_prop} = '{ref}' {trash} AND ecm:isVersion = 0"
         return bool(self.query(query)["totalSize"])
 
-    def request_token(self, revoke: bool = False) -> Optional[str]:
+    def request_token(self, *, revoke: bool = False) -> Optional[str]:
         """Request and return a new token for the user"""
         token = self.client.request_auth_token(
             device_id=self.device_id,
@@ -241,7 +243,7 @@ class Remote(Nuxeo):
     def revoke_token(self) -> None:
         self.request_token(revoke=True)
 
-    def update_token(self, token: str) -> None:
+    def update_token(self, token: str, /) -> None:
         self.auth = TokenAuth(token)
         self.client.auth = self.auth
 
@@ -252,7 +254,7 @@ class Remote(Nuxeo):
         return Document(**self.execute(command="UserWorkspace.Get"))
 
     def download(
-        self, url: str, file_path: Path, file_out: Path, digest: str, **kwargs: Any
+        self, url: str, file_path: Path, file_out: Path, digest: str, /, **kwargs: Any
     ) -> Path:
         log.debug(
             f"Downloading file from {url!r} to {file_out!r} with digest={digest!r}"
@@ -349,7 +351,7 @@ class Remote(Nuxeo):
 
         return file_out
 
-    def check_integrity(self, digest: str, download_action: DownloadAction) -> None:
+    def check_integrity(self, digest: str, download_action: DownloadAction, /) -> None:
         """
         Check the integrity of a downloaded chunked file.
         Update the progress of the verification during the computation of the digest.
@@ -392,7 +394,7 @@ class Remote(Nuxeo):
         finally:
             VerificationAction.finish_action()
 
-    def check_integrity_simple(self, digest: str, file: Path) -> None:
+    def check_integrity_simple(self, digest: str, file: Path, /) -> None:
         """Check the integrity of a relatively small downloaded file."""
         if Options.disabled_file_integrity_check:
             log.debug(
@@ -412,19 +414,19 @@ class Remote(Nuxeo):
             raise CorruptedFile(file, digest, computed_digest)
 
     def upload(
-        self, *args: Any, uploader: Type[BaseUploader] = SyncUploader, **kwargs: Any
+        self, path: Path, *, uploader: Type[BaseUploader] = SyncUploader, **kwargs: Any
     ) -> Dict[str, Any]:
         """Upload a file with a batch."""
-        return uploader(self).upload(*args, **kwargs)
+        return uploader(self).upload(path, **kwargs)
 
-    def cancel_batch(self, batch_details: Dict[str, Any]) -> None:
+    def cancel_batch(self, batch_details: Dict[str, Any], /) -> None:
         """Cancel an uploaded Batch."""
         batch = Batch(service=self.uploads, **batch_details)
         with suppress(Exception):
             batch.cancel()
 
     def get_fs_info(
-        self, fs_item_id: str, parent_fs_item_id: str = None
+        self, fs_item_id: str, *, parent_fs_item_id: str = None
     ) -> RemoteFileInfo:
         fs_item = self.get_fs_item(fs_item_id, parent_fs_item_id=parent_fs_item_id)
         if fs_item is None:
@@ -440,6 +442,7 @@ class Remote(Nuxeo):
         fs_item_id: str,
         file_path: Path,
         file_out: Path,
+        *,
         parent_fs_item_id: str = None,
         fs_item_info: RemoteFileInfo = None,
         **kwargs: Any,
@@ -469,7 +472,7 @@ class Remote(Nuxeo):
         return tmp_file
 
     def get_fs_children(
-        self, fs_item_id: str, filtered: bool = True
+        self, fs_item_id: str, *, filtered: bool = True
     ) -> List[RemoteFileInfo]:
         children = self.execute(command="NuxeoDrive.GetChildren", id=fs_item_id)
         infos = []
@@ -492,7 +495,7 @@ class Remote(Nuxeo):
         return infos
 
     def scroll_descendants(
-        self, fs_item_id: str, scroll_id: Optional[str], batch_size: int = BATCH_SIZE
+        self, fs_item_id: str, scroll_id: Optional[str], *, batch_size: int = BATCH_SIZE
     ) -> Dict[str, Any]:
         res = self.execute(
             command="NuxeoDrive.ScrollDescendants",
@@ -518,13 +521,13 @@ class Remote(Nuxeo):
             "descendants": descendants,
         }
 
-    def is_filtered(self, path: str, filtered: bool = True) -> bool:
+    def is_filtered(self, path: str, *, filtered: bool = True) -> bool:
         if filtered:
             return self.dao.is_filter(path)
         return False
 
     def make_folder(
-        self, parent_id: str, name: str, overwrite: bool = False
+        self, parent_id: str, name: str, *, overwrite: bool = False
     ) -> RemoteFileInfo:
         fs_item = self.execute(
             command="NuxeoDrive.CreateFolder",
@@ -540,6 +543,7 @@ class Remote(Nuxeo):
         file_path: Path,
         filename: str = None,
         overwrite: bool = False,
+        /,
         **kwargs: Any,
     ) -> RemoteFileInfo:
         """Create a document by streaming the file with the given path
@@ -563,6 +567,7 @@ class Remote(Nuxeo):
         file_path: Path,
         parent_fs_item_id: str = None,
         filename: str = None,
+        /,
         **kwargs: Any,
     ) -> RemoteFileInfo:
         """Update a document by streaming the file with the given path"""
@@ -576,27 +581,27 @@ class Remote(Nuxeo):
         )
         return RemoteFileInfo.from_dict(fs_item)
 
-    def delete(self, fs_item_id: str, parent_fs_item_id: str = None) -> None:
+    def delete(self, fs_item_id: str, *, parent_fs_item_id: str = None) -> None:
         self.execute(
             command="NuxeoDrive.Delete", id=fs_item_id, parentId=parent_fs_item_id
         )
 
-    def undelete(self, uid: str) -> None:
+    def undelete(self, uid: str, /) -> None:
         self.documents.untrash(uid)
 
-    def rename(self, fs_item_id: str, new_name: str) -> RemoteFileInfo:
+    def rename(self, fs_item_id: str, new_name: str, /) -> RemoteFileInfo:
         return RemoteFileInfo.from_dict(
             self.execute(command="NuxeoDrive.Rename", id=fs_item_id, name=new_name)
         )
 
-    def move(self, fs_item_id: str, new_parent_id: str) -> RemoteFileInfo:
+    def move(self, fs_item_id: str, new_parent_id: str, /) -> RemoteFileInfo:
         return RemoteFileInfo.from_dict(
             self.execute(
                 command="NuxeoDrive.Move", srcId=fs_item_id, destId=new_parent_id
             )
         )
 
-    def move2(self, fs_item_id: str, parent_ref: str, name: str) -> Dict[str, Any]:
+    def move2(self, fs_item_id: str, parent_ref: str, name: str, /) -> Dict[str, Any]:
         """Move a document using the Document.Move operation."""
         if "#" in fs_item_id:
             fs_item_id = fs_item_id.split("#")[-1]
@@ -610,7 +615,7 @@ class Remote(Nuxeo):
         return self.documents.move(fs_item_id, parent_ref, name=name)
 
     def get_fs_item(
-        self, fs_item_id: str, parent_fs_item_id: str = None
+        self, fs_item_id: str, *, parent_fs_item_id: str = None
     ) -> Optional[Dict[str, Any]]:
         if not fs_item_id:
             log.warning("get_fs_item() called without fs_item_id")
@@ -623,7 +628,7 @@ class Remote(Nuxeo):
         )
 
     def get_changes(
-        self, last_root_definitions: str, log_id: int = 0
+        self, last_root_definitions: str, *, log_id: int = 0
     ) -> Dict[str, Any]:
         return self.execute(
             command="NuxeoDrive.GetChangeSummary",
@@ -632,10 +637,10 @@ class Remote(Nuxeo):
         )
 
     # From DocumentClient
-    def fetch(self, ref: str, **kwargs: Any) -> Dict[str, Any]:
+    def fetch(self, ref: str, /, **kwargs: Any) -> Dict[str, Any]:
         return self.execute(command="Document.Fetch", value=get_text(ref), **kwargs)
 
-    def check_ref(self, ref: str) -> str:
+    def check_ref(self, ref: str, /) -> str:
         if ref.startswith("/") and self._base_folder_path is not None:
             # This is a path ref (else an id ref)
             if self._base_folder_path.endswith("/"):
@@ -644,11 +649,11 @@ class Remote(Nuxeo):
                 ref = self._base_folder_path + ref
         return ref
 
-    def query(self, query: str, page_size: int = 1) -> Dict[str, Any]:
+    def query(self, query: str, *, page_size: int = 1) -> Dict[str, Any]:
         return self.execute(command="Document.Query", query=query, pageSize=page_size)
 
     def get_info(
-        self, ref: str, raise_if_missing: bool = True, fetch_parent_uid: bool = True
+        self, ref: str, *, raise_if_missing: bool = True, fetch_parent_uid: bool = True
     ) -> Optional[NuxeoDocumentInfo]:
         try:
             doc = self.fetch(self.check_ref(ref))
@@ -666,7 +671,7 @@ class Remote(Nuxeo):
         doc.update({"root": self.base_folder_ref, "repository": self.client.repository})
         return NuxeoDocumentInfo.from_dict(doc, parent_uid=parent_uid)
 
-    def get_note(self, ref: str, file_out: Path = None) -> bytes:
+    def get_note(self, ref: str, *, file_out: Path = None) -> bytes:
         """Download the text associated to a Note document."""
         doc = self.fetch(ref)
         note = doc["properties"].get("note:note")
@@ -678,7 +683,11 @@ class Remote(Nuxeo):
         return b""
 
     def get_blob(
-        self, ref: Union[NuxeoDocumentInfo, str], file_out: Path = None, **kwargs: Any
+        self,
+        ref: Union[NuxeoDocumentInfo, str],
+        *,
+        file_out: Path = None,
+        **kwargs: Any,
     ) -> bytes:
         if isinstance(ref, NuxeoDocumentInfo):
             doc_id = ref.uid
@@ -696,13 +705,13 @@ class Remote(Nuxeo):
         )
         return blob
 
-    def lock(self, ref: str) -> None:
+    def lock(self, ref: str, /) -> None:
         self.execute(command="Document.Lock", input_obj=f"doc:{self.check_ref(ref)}")
 
-    def unlock(self, ref: str) -> None:
+    def unlock(self, ref: str, /) -> None:
         self.execute(command="Document.Unlock", input_obj=f"doc:{self.check_ref(ref)}")
 
-    def register_as_root(self, ref: str) -> bool:
+    def register_as_root(self, ref: str, /) -> bool:
         self.execute(
             command="NuxeoDrive.SetSynchronization",
             input_obj=f"doc:{self.check_ref(ref)}",
@@ -710,7 +719,7 @@ class Remote(Nuxeo):
         )
         return True
 
-    def unregister_as_root(self, ref: str) -> bool:
+    def unregister_as_root(self, ref: str, /) -> bool:
         self.execute(
             command="NuxeoDrive.SetSynchronization",
             input_obj=f"doc:{self.check_ref(ref)}",
@@ -718,7 +727,7 @@ class Remote(Nuxeo):
         )
         return True
 
-    def set_proxy(self, proxy: Proxy = None) -> None:
+    def set_proxy(self, proxy: Optional[Proxy], /) -> None:
         if proxy:
             try:
                 settings = proxy.settings(url=self.client.host)

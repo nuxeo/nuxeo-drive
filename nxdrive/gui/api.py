@@ -63,7 +63,7 @@ class QMLDriveApi(QObject):
     openAuthenticationDialog = pyqtSignal(str, object)
     setMessage = pyqtSignal(str, str)
 
-    def __init__(self, application: "Application") -> None:
+    def __init__(self, application: "Application", /) -> None:
         super().__init__()
         self._manager = application.manager
         self.application = application
@@ -74,7 +74,7 @@ class QMLDriveApi(QObject):
             self.application.open_authentication_dialog
         )
 
-    def _json_default(self, obj: Any) -> Any:
+    def _json_default(self, obj: Any, /) -> Any:
         export = getattr(obj, "export", None)
         if callable(export):
             return export()
@@ -87,7 +87,7 @@ class QMLDriveApi(QObject):
         return json.dumps(obj, default=self._json_default)
 
     def _export_formatted_state(
-        self, uid: str, state: DocPair = None
+        self, uid: str, /, *, state: DocPair = None
     ) -> Dict[str, Any]:
         if not state:
             return {}
@@ -116,7 +116,7 @@ class QMLDriveApi(QObject):
         return result
 
     @pyqtSlot(str, int, result=list)
-    def get_last_files(self, uid: str, number: int) -> List[Dict[str, Any]]:
+    def get_last_files(self, uid: str, number: int, /) -> List[Dict[str, Any]]:
         """ Return the last files transferred (see EngineDAO). """
         engine = self._manager.engines.get(uid)
         if not engine:
@@ -124,7 +124,7 @@ class QMLDriveApi(QObject):
         return [s.export() for s in engine.dao.get_last_files(number)]
 
     @pyqtSlot(str, result=int)
-    def get_last_files_count(self, uid: str) -> int:
+    def get_last_files_count(self, uid: str, /) -> int:
         """ Return the count of the last files transferred (see EngineDAO). """
         count = 0
         engine = self._manager.engines.get(uid)
@@ -133,7 +133,7 @@ class QMLDriveApi(QObject):
         return count
 
     @pyqtSlot(QUrl, result=str)
-    def to_local_file(self, url: QUrl) -> str:
+    def to_local_file(self, url: QUrl, /) -> str:
         """
         Convert the given QUrl to its local path equivalent.
 
@@ -146,21 +146,21 @@ class QMLDriveApi(QObject):
         return abspath(url.toLocalFile())
 
     @pyqtSlot(str)
-    def trigger_notification(self, uid: str) -> None:
+    def trigger_notification(self, uid: str, /) -> None:
         self.application.hide_systray()
         self._manager.notification_service.trigger_notification(uid)
 
     @pyqtSlot(str)
-    def discard_notification(self, uid: str) -> None:
+    def discard_notification(self, uid: str, /) -> None:
         self._manager.notification_service.discard_notification(uid)
 
     def _export_notifications(
-        self, notifs: Dict[str, Notification]
+        self, notifs: Dict[str, Notification], /
     ) -> List[Dict[str, Any]]:
         return [notif.export() for notif in notifs.values()]
 
     @pyqtSlot(str, result=str)
-    def get_notifications(self, engine_uid: str) -> str:
+    def get_notifications(self, engine_uid: str, /) -> str:
         center = self._manager.notification_service
         notif = self._export_notifications(center.get_notifications(engine_uid))
         return self._json(notif)
@@ -181,11 +181,11 @@ class QMLDriveApi(QObject):
         return self._manager.updater.version
 
     @pyqtSlot(str)
-    def app_update(self, version: str) -> None:
+    def app_update(self, version: str, /) -> None:
         """ Start the update to the specified version. """
         self._manager.updater.update(version)
 
-    def get_transfers(self, dao: EngineDAO) -> List[Dict[str, Any]]:
+    def get_transfers(self, dao: EngineDAO, /) -> List[Dict[str, Any]]:
         limit = 5  # 10 files are displayed in the systray, so take 5 of each kind
         result: List[Dict[str, Any]] = []
 
@@ -201,20 +201,20 @@ class QMLDriveApi(QObject):
 
         return result
 
-    def get_direct_transfer_items(self, dao: EngineDAO) -> List[Dict[str, Any]]:
+    def get_direct_transfer_items(self, dao: EngineDAO, /) -> List[Dict[str, Any]]:
         """Fetch at most *DT_MONITORING_MAX_ITEMS* transfers from the database."""
         return dao.get_dt_uploads_raw(limit=DT_MONITORING_MAX_ITEMS, chunked=True)
 
-    def get_active_sessions_items(self, dao: EngineDAO) -> List[Dict[str, Any]]:
+    def get_active_sessions_items(self, dao: EngineDAO, /) -> List[Dict[str, Any]]:
         """Fetch the list of active sessions from the database."""
         return dao.get_active_sessions_raw()
 
-    def get_completed_sessions_items(self, dao: EngineDAO) -> List[Dict[str, Any]]:
+    def get_completed_sessions_items(self, dao: EngineDAO, /) -> List[Dict[str, Any]]:
         """Fetch the list of completed sessions from the database."""
         return dao.get_completed_sessions_raw(limit=20)
 
     @pyqtSlot(str, result=int)
-    def get_active_sessions_count(self, uid: str) -> int:
+    def get_active_sessions_count(self, uid: str, /) -> int:
         """Return the count of active sessions items."""
         engine = self._manager.engines.get(uid)
         if engine:
@@ -225,7 +225,7 @@ class QMLDriveApi(QObject):
         return 0
 
     @pyqtSlot(str, result=int)
-    def get_completed_sessions_count(self, uid: str) -> int:
+    def get_completed_sessions_count(self, uid: str, /) -> int:
         """Return the count of completed sessions items."""
         engine = self._manager.engines.get(uid)
         if engine:
@@ -242,6 +242,8 @@ class QMLDriveApi(QObject):
         engine_uid: str,
         transfer_uid: int,
         progress: float,
+        /,
+        *,
         is_direct_transfer: bool = False,
     ) -> None:
         """Pause a given transfer. *nature* is either downloads or upload."""
@@ -255,7 +257,13 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, str, int, bool)
     def resume_transfer(
-        self, nature: str, engine_uid: str, uid: int, is_direct_transfer: bool = False
+        self,
+        nature: str,
+        engine_uid: str,
+        uid: int,
+        /,
+        *,
+        is_direct_transfer: bool = False,
     ) -> None:
         """Resume a given transfer. *nature* is either downloads or upload."""
         log.info(f"Resume {nature} {uid} for engine {engine_uid!r}")
@@ -265,7 +273,7 @@ class QMLDriveApi(QObject):
         engine.resume_transfer(nature, uid, is_direct_transfer=is_direct_transfer)
 
     @pyqtSlot(str, int)
-    def resume_session(self, engine_uid: str, uid: int) -> None:
+    def resume_session(self, engine_uid: str, uid: int, /) -> None:
         """Resume a given session and it's transfers."""
         log.info(f"Resume session {uid} for engine {engine_uid!r}")
         engine = self._manager.engines.get(engine_uid)
@@ -274,7 +282,7 @@ class QMLDriveApi(QObject):
         engine.resume_session(uid)
 
     @pyqtSlot(str, int)
-    def pause_session(self, engine_uid: str, uid: int) -> None:
+    def pause_session(self, engine_uid: str, uid: int, /) -> None:
         """Pause a given session and it's transfers."""
         log.info(f"Pausing session {uid} for engine {engine_uid!r}")
         engine = self._manager.engines.get(engine_uid)
@@ -282,7 +290,7 @@ class QMLDriveApi(QObject):
             return
         engine.dao.pause_session(uid)
 
-    def cancel_session(self, engine_uid: str, uid: int) -> None:
+    def cancel_session(self, engine_uid: str, uid: int, /) -> None:
         """Cancel a given session and it's transfers."""
         log.info(f"Cancelling session {uid} for engine {engine_uid!r}")
         engine = self._manager.engines.get(engine_uid)
@@ -291,7 +299,7 @@ class QMLDriveApi(QObject):
         engine.cancel_session(uid)
 
     @pyqtSlot(str, str)
-    def show_metadata(self, uid: str, ref: str) -> None:
+    def show_metadata(self, uid: str, ref: str, /) -> None:
         self.application.hide_systray()
         engine = self._manager.engines.get(uid)
         if engine:
@@ -299,7 +307,7 @@ class QMLDriveApi(QObject):
             self.application.show_metadata(path)
 
     @pyqtSlot(str, result=list)
-    def get_unsynchronizeds(self, uid: str) -> List[Dict[str, Any]]:
+    def get_unsynchronizeds(self, uid: str, /) -> List[Dict[str, Any]]:
         result = []
         engine = self._manager.engines.get(uid)
         if engine:
@@ -308,7 +316,7 @@ class QMLDriveApi(QObject):
         return result
 
     @pyqtSlot(str, result=list)
-    def get_conflicts(self, uid: str) -> List[Dict[str, Any]]:
+    def get_conflicts(self, uid: str, /) -> List[Dict[str, Any]]:
         result = []
         engine = self._manager.engines.get(uid)
         if engine:
@@ -317,7 +325,7 @@ class QMLDriveApi(QObject):
         return result
 
     @pyqtSlot(str, result=list)
-    def get_errors(self, uid: str) -> List[Dict[str, Any]]:
+    def get_errors(self, uid: str, /) -> List[Dict[str, Any]]:
         result = []
         engine = self._manager.engines.get(uid)
         if engine:
@@ -326,7 +334,7 @@ class QMLDriveApi(QObject):
         return result
 
     @pyqtSlot(bool)
-    def set_direct_edit_auto_lock(self, value: bool) -> None:
+    def set_direct_edit_auto_lock(self, value: bool, /) -> None:
         self._manager.set_direct_edit_auto_lock(value)
 
     @pyqtSlot(result=bool)
@@ -344,7 +352,7 @@ class QMLDriveApi(QObject):
         return result
 
     @pyqtSlot(bool)
-    def set_auto_start(self, value: bool) -> None:
+    def set_auto_start(self, value: bool, /) -> None:
         self._manager.set_auto_start(value)
 
     @pyqtSlot(result=bool)
@@ -352,7 +360,7 @@ class QMLDriveApi(QObject):
         return self._manager.get_auto_start()
 
     @pyqtSlot(bool)
-    def set_auto_update(self, value: bool) -> None:
+    def set_auto_update(self, value: bool, /) -> None:
         self._manager.set_auto_update(value)
 
     @pyqtSlot(result=bool)
@@ -360,7 +368,7 @@ class QMLDriveApi(QObject):
         return self._manager.get_auto_update()
 
     @pyqtSlot(str)
-    def set_update_channel(self, value: str) -> None:
+    def set_update_channel(self, value: str, /) -> None:
         self._manager.set_update_channel(value)
 
     @pyqtSlot(str)
@@ -380,7 +388,7 @@ class QMLDriveApi(QObject):
             return "[ERROR] " + str(e)
 
     @pyqtSlot(str)
-    def open_direct_transfer(self, uid: str) -> None:
+    def open_direct_transfer(self, uid: str, /) -> None:
         self.application.hide_systray()
 
         engine = self._manager.engines.get(uid)
@@ -393,7 +401,7 @@ class QMLDriveApi(QObject):
         self.application.show_direct_transfer_window(engine.uid)
 
     @pyqtSlot(str)
-    def open_server_folders(self, uid: str) -> None:
+    def open_server_folders(self, uid: str, /) -> None:
         """Hide the systray and show the server folders dialog."""
         self.application.hide_systray()
         engine = self._manager.engines.get(uid)
@@ -403,23 +411,23 @@ class QMLDriveApi(QObject):
         self.application.show_server_folders(engine, None)
 
     @pyqtSlot(str, result=str)
-    def get_hostname_from_url(self, url: str) -> str:
+    def get_hostname_from_url(self, url: str, /) -> str:
         urlp = urlparse(url)
         return urlp.hostname or url
 
     @pyqtSlot(str)
-    def open_remote_server(self, uid: str) -> None:
+    def open_remote_server(self, uid: str, /) -> None:
         self.application.hide_systray()
         engine = self._manager.engines.get(uid)
         if engine:
             engine.open_remote()
 
     @pyqtSlot(str)
-    def open_report(self, path: str) -> None:
+    def open_report(self, path: str, /) -> None:
         self._manager.open_local_file(path, select=True)
 
     @pyqtSlot(str, str)
-    def open_local(self, uid: str, path: str) -> None:
+    def open_local(self, uid: str, path: str, /) -> None:
         self.application.hide_systray()
         log.debug(f"Opening local file {path!r}")
         filepath = Path(force_decode(path).lstrip("/"))
@@ -437,7 +445,7 @@ class QMLDriveApi(QObject):
         self._manager.open_help()
 
     @pyqtSlot(str, int)
-    def open_document(self, engine_uid: str, doc_pair_id: int) -> None:
+    def open_document(self, engine_uid: str, doc_pair_id: int, /) -> None:
         """Open the local or remote document depending on the pair state"""
         engine = self._manager.engines.get(engine_uid)
         if not engine:
@@ -456,14 +464,14 @@ class QMLDriveApi(QObject):
             self.open_local(engine_uid, str(doc_pair.local_parent_path))
 
     @pyqtSlot(str)
-    def show_conflicts_resolution(self, uid: str) -> None:
+    def show_conflicts_resolution(self, uid: str, /) -> None:
         self.application.hide_systray()
         engine = self._manager.engines.get(uid)
         if engine:
             self.application.show_conflicts_resolution(engine)
 
     @pyqtSlot(str)
-    def show_settings(self, page: str) -> None:
+    def show_settings(self, page: str, /) -> None:
         self.application.hide_systray()
         log.info(f"Show settings on page {page}")
         self.application.show_settings(section=page)
@@ -484,7 +492,7 @@ class QMLDriveApi(QObject):
         return Options.update_site_url
 
     @pyqtSlot(str)
-    def web_update_token(self, uid: str) -> None:
+    def web_update_token(self, uid: str, /) -> None:
         try:
             engine = self._manager.engines.get(uid)
             if not engine:
@@ -513,7 +521,7 @@ class QMLDriveApi(QObject):
             )
             self.setMessage.emit("CONNECTION_UNKNOWN", "error")
 
-    def _has_valid_ssl_certificate(self, server_url: str) -> bool:
+    def _has_valid_ssl_certificate(self, server_url: str, /) -> bool:
         """Handle invalid SSL certificates for the server URL."""
         try:
             return test_url(server_url, proxy=self._manager.proxy)
@@ -527,7 +535,7 @@ class QMLDriveApi(QObject):
                 return self._has_valid_ssl_certificate(server_url)
         return False
 
-    def _get_authentication_url(self, server_url: str) -> str:
+    def _get_authentication_url(self, server_url: str, /) -> str:
         if not server_url:
             raise ValueError("No URL found for Nuxeo server")
 
@@ -565,7 +573,7 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, str, int, result=list)
     def get_disk_space_info_to_width(
-        self, uid: str, path: str, width: int
+        self, uid: str, path: str, width: int, /
     ) -> List[float]:
         """Return a list:
         - Size of free space converted to percentage of the width.
@@ -587,7 +595,7 @@ class QMLDriveApi(QObject):
         )
         return [result["free"], result["used_without_sync"], result["synced"]]
 
-    def _balance_percents(self, result: Dict[str, float]) -> Dict[str, float]:
+    def _balance_percents(self, result: Dict[str, float], /) -> Dict[str, float]:
         """ Return an altered version of the dict in which no value is under a minimum threshold."""
 
         result = {k: v for k, v in sorted(result.items(), key=lambda item: item[1])}
@@ -626,20 +634,20 @@ class QMLDriveApi(QObject):
         return result
 
     @pyqtSlot(str, result=str)
-    def get_drive_disk_space(self, uid: str) -> str:
+    def get_drive_disk_space(self, uid: str, /) -> str:
         """Fetch the global size of synchronized files and return a formatted version."""
         engine = self._manager.engines.get(uid)
         synced = engine.dao.get_global_size() if engine else 0
         return sizeof_fmt(synced, suffix=Translator.get("BYTE_ABBREV"))
 
     @pyqtSlot(str, result=str)
-    def get_free_disk_space(self, path: str) -> str:
+    def get_free_disk_space(self, path: str, /) -> str:
         """Fetch the size of free space and return a formatted version."""
         _, free = disk_space(path)
         return sizeof_fmt(free, suffix=Translator.get("BYTE_ABBREV"))
 
     @pyqtSlot(str, str, result=str)
-    def get_used_space_without_synced(self, uid: str, path: str) -> str:
+    def get_used_space_without_synced(self, uid: str, path: str, /) -> str:
         """Fetch the size of space used by other applications and return a formatted version."""
         engine = self._manager.engines.get(uid)
         synced = engine.dao.get_global_size() if engine else 0
@@ -647,11 +655,11 @@ class QMLDriveApi(QObject):
         return sizeof_fmt(used - synced, suffix=Translator.get("BYTE_ABBREV"))
 
     @pyqtSlot(str, bool)
-    def unbind_server(self, uid: str, purge: bool) -> None:
+    def unbind_server(self, uid: str, purge: bool, /) -> None:
         self._manager.unbind_engine(uid, purge=purge)
 
     @pyqtSlot(str)
-    def filters_dialog(self, uid: str) -> None:
+    def filters_dialog(self, uid: str, /) -> None:
         engine = self._manager.engines.get(uid)
         if engine:
             self.application.show_filters(engine)
@@ -663,6 +671,7 @@ class QMLDriveApi(QObject):
         username: str,
         password: Optional[str],
         name: Optional[str],
+        /,
         **kwargs: Any,
     ) -> None:
         # Remove any parameters from the original URL
@@ -698,6 +707,8 @@ class QMLDriveApi(QObject):
         local_folder: str,
         server_url: str,
         username: str,
+        /,
+        *,
         password: str = None,
         name: str = None,
         **kwargs: Any,
@@ -765,7 +776,7 @@ class QMLDriveApi(QObject):
         self.application._show_window(self.application.settings_window)
 
     @pyqtSlot(str, str)
-    def web_authentication(self, server_url: str, local_folder: str) -> None:
+    def web_authentication(self, server_url: str, local_folder: str, /) -> None:
         # Handle the server URL
         valid_url = False
         try:
@@ -828,7 +839,7 @@ class QMLDriveApi(QObject):
         self.setMessage.emit(error, "error")
 
     @pyqtSlot(str, str, result=bool)
-    def set_server_ui(self, uid: str, server_ui: str) -> bool:
+    def set_server_ui(self, uid: str, server_ui: str, /) -> bool:
         log.info(f"Setting ui to {server_ui}")
         engine = self._manager.engines.get(uid)
         if not engine:
@@ -848,7 +859,7 @@ class QMLDriveApi(QObject):
         return self._json(result)
 
     @pyqtSlot(str, str, str, result=bool)
-    def set_proxy_settings(self, config: str, url: str, pac_url: str) -> bool:
+    def set_proxy_settings(self, config: str, url: str, pac_url: str, /) -> bool:
         try:
             proxy = get_proxy(category=config, url=url, pac_url=pac_url)
         except FileNotFoundError:
@@ -868,18 +879,18 @@ class QMLDriveApi(QObject):
         return self._manager.get_config("deletion_behavior")
 
     @pyqtSlot(str)
-    def set_deletion_behavior(self, behavior: str) -> None:
+    def set_deletion_behavior(self, behavior: str, /) -> None:
         self._manager.set_config("deletion_behavior", behavior)
 
     @pyqtSlot(str, result=bool)
-    def has_invalid_credentials(self, uid: str) -> bool:
+    def has_invalid_credentials(self, uid: str, /) -> bool:
         engine = self._manager.engines.get(uid)
         return engine.has_invalid_credentials() if engine else False
 
     # Authentication section
 
     @pyqtSlot(str, str)
-    def handle_token(self, token: str, username: str) -> None:
+    def handle_token(self, token: str, username: str, /) -> None:
         if not token:
             error = "CONNECTION_REFUSED"
         elif "engine" in self.callback_params:
@@ -889,7 +900,7 @@ class QMLDriveApi(QObject):
         if error:
             self.setMessage.emit(error, "error")
 
-    def create_account(self, token: str, username: str) -> str:
+    def create_account(self, token: str, username: str, /) -> str:
         error = ""
         try:
             local_folder = self.callback_params["local_folder"]
@@ -920,7 +931,7 @@ class QMLDriveApi(QObject):
         finally:
             return error
 
-    def update_token(self, token: str, username: str) -> str:
+    def update_token(self, token: str, username: str, /) -> str:
         error = ""
         engine = self._manager.engines.get(self.callback_params["engine"])
         if not engine:
@@ -959,7 +970,7 @@ class QMLDriveApi(QObject):
         return self._manager.restart_needed
 
     @pyqtSlot(bool)
-    def suspend(self, start: bool) -> None:
+    def suspend(self, start: bool, /) -> None:
         if start:
             self._manager.resume()
         else:
@@ -970,7 +981,7 @@ class QMLDriveApi(QObject):
         return self._manager.is_paused
 
     @pyqtSlot(str, result=int)
-    def get_syncing_count(self, uid: str) -> int:
+    def get_syncing_count(self, uid: str, /) -> int:
         count = 0
         engine = self._manager.engines.get(uid)
         if engine:
@@ -980,31 +991,33 @@ class QMLDriveApi(QObject):
     # Conflicts section
 
     @pyqtSlot(str, int)
-    def resolve_with_local(self, uid: str, state_id: int) -> None:
+    def resolve_with_local(self, uid: str, state_id: int, /) -> None:
         engine = self._manager.engines.get(uid)
         if engine:
             engine.resolve_with_local(state_id)
 
     @pyqtSlot(str, int)
-    def resolve_with_remote(self, uid: str, state_id: int) -> None:
+    def resolve_with_remote(self, uid: str, state_id: int, /) -> None:
         engine = self._manager.engines.get(uid)
         if engine:
             engine.resolve_with_remote(state_id)
 
     @pyqtSlot(str, int)
-    def retry_pair(self, uid: str, state_id: int) -> None:
+    def retry_pair(self, uid: str, state_id: int, /) -> None:
         engine = self._manager.engines.get(uid)
         if engine:
             engine.retry_pair(state_id)
 
     @pyqtSlot(str, int, str)
-    def ignore_pair(self, uid: str, state_id: int, reason: str = "UNKNOWN") -> None:
+    def ignore_pair(
+        self, uid: str, state_id: int, /, *, reason: str = "UNKNOWN"
+    ) -> None:
         engine = self._manager.engines.get(uid)
         if engine:
             engine.ignore_pair(state_id, reason=reason)
 
     @pyqtSlot(str, str, str)
-    def open_remote(self, uid: str, remote_ref: str, remote_name: str) -> None:
+    def open_remote(self, uid: str, remote_ref: str, remote_name: str, /) -> None:
         log.info(f"Should open {remote_name!r} ({remote_ref!r})")
         try:
             engine = self._manager.engines.get(uid)
@@ -1014,7 +1027,9 @@ class QMLDriveApi(QObject):
             log.exception("Remote open error")
 
     @pyqtSlot(str, str, str)
-    def open_remote_document(self, uid: str, remote_ref: str, remote_path: str) -> None:
+    def open_remote_document(
+        self, uid: str, remote_ref: str, remote_path: str, /
+    ) -> None:
         log.info(f"Should open remote document {remote_path!r} ({remote_ref!r})")
         try:
             engine = self._manager.engines.get(uid)
@@ -1025,7 +1040,7 @@ class QMLDriveApi(QObject):
             log.exception("Remote document cannot be opened")
 
     @pyqtSlot(str, str, result=str)
-    def get_remote_document_url(self, uid: str, remote_ref: str) -> str:
+    def get_remote_document_url(self, uid: str, remote_ref: str, /) -> str:
         """Return the URL to a remote document based on its reference."""
         engine = self._manager.engines.get(uid)
         return engine.get_metadata_url(remote_ref) if engine else ""

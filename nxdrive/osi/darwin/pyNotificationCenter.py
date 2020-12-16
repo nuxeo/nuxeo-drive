@@ -28,7 +28,7 @@ class NotificationDelegator(NSObject):
             info_dict["CFBundleIdentifier"] = BUNDLE_IDENTIFIER
 
     def userNotificationCenter_didActivateNotification_(
-        self, center: NSUserNotificationCenter, notification: NSMutableDictionary
+        self, center: NSUserNotificationCenter, notification: NSMutableDictionary, /
     ) -> None:
         info = notification.userInfo()
         if info and "uuid" not in info:
@@ -42,12 +42,12 @@ class NotificationDelegator(NSObject):
         self.manager.notification_service.trigger_notification(info["uuid"])
 
     def userNotificationCenter_shouldPresentNotification_(
-        self, center: object, notification: object
+        self, center: object, notification: object, /
     ) -> bool:
         return True
 
 
-def setup_delegator(delegator: NotificationDelegator = None) -> None:
+def setup_delegator(delegator: NotificationDelegator = None, /) -> None:
     center = NSUserNotificationCenter.defaultUserNotificationCenter()
     if delegator is not None and center is not None:
         center.setDelegate_(delegator)
@@ -57,6 +57,8 @@ def notify(
     title: str,
     subtitle: str,
     info_text: str,
+    /,
+    *,
     delay: int = 0,
     sound: bool = False,
     user_info: Dict[str, str] = None,

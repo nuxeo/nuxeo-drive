@@ -49,7 +49,7 @@ WIN_MOVE_RESOLUTION_PERIOD = 2000
 TEXT_EDIT_TMP_FILE_PATTERN = r".*\.rtf\.sb\-(\w)+\-(\w)+$"
 
 
-def is_text_edit_tmp_file(name: str) -> bool:
+def is_text_edit_tmp_file(name: str, /) -> bool:
     return bool(re.match(TEXT_EDIT_TMP_FILE_PATTERN, name))
 
 
@@ -60,7 +60,7 @@ class LocalWatcher(EngineWorker):
     docDeleted = pyqtSignal(Path)
     fileAlreadyExists = pyqtSignal(Path, Path)
 
-    def __init__(self, engine: "Engine", dao: "EngineDAO") -> None:
+    def __init__(self, engine: "Engine", dao: "EngineDAO", /) -> None:
         super().__init__(engine, dao, name="LocalWatcher")
 
         self.local = self.engine.local
@@ -299,7 +299,7 @@ class LocalWatcher(EngineWorker):
         for processor in queue.get_processors_on(ROOT, exact_match=False):
             processor.stop()
 
-    def scan_pair(self, local_path: Path) -> None:
+    def scan_pair(self, local_path: Path, /) -> None:
         to_pause = not self.engine.queue_manager.is_paused()
         if to_pause:
             self._suspend_queue()
@@ -318,7 +318,7 @@ class LocalWatcher(EngineWorker):
             ret &= self.win_folder_scan_empty()
         return ret
 
-    def get_creation_time(self, child_full_path: Path) -> int:
+    def get_creation_time(self, child_full_path: Path, /) -> int:
         if WINDOWS:
             return int(child_full_path.stat().st_ctime)
 
@@ -330,7 +330,7 @@ class LocalWatcher(EngineWorker):
             return stat.st_birthtime
         return 0
 
-    def _scan_recursive(self, info: FileInfo, recursive: bool = True) -> None:
+    def _scan_recursive(self, info: FileInfo, /, *, recursive: bool = True) -> None:
         if recursive:
             # Don't interact if only one level
             self._interact()
@@ -673,7 +673,7 @@ class LocalWatcher(EngineWorker):
         else:
             log.info("No existing FS root observer reference")
 
-    def _handle_watchdog_delete(self, doc_pair: DocPair) -> None:
+    def _handle_watchdog_delete(self, doc_pair: DocPair, /) -> None:
         self.remove_void_transfers(doc_pair)
 
         # Ask for deletion confirmation if needed
@@ -688,7 +688,7 @@ class LocalWatcher(EngineWorker):
         else:
             self.engine.delete_doc(doc_pair.local_path)
 
-    def _handle_delete_on_known_pair(self, doc_pair: DocPair) -> None:
+    def _handle_delete_on_known_pair(self, doc_pair: DocPair, /) -> None:
         """Handle watchdog deleted event on a known doc pair."""
         if WINDOWS:
             # Delay on Windows the delete event
@@ -710,7 +710,7 @@ class LocalWatcher(EngineWorker):
         self._handle_watchdog_delete(doc_pair)
 
     def _handle_move_on_known_pair(
-        self, doc_pair: DocPair, evt: FileSystemEvent, rel_path: Path
+        self, doc_pair: DocPair, evt: FileSystemEvent, rel_path: Path, /
     ) -> None:
         """Handle a watchdog move event on a known doc pair."""
 
@@ -820,7 +820,7 @@ class LocalWatcher(EngineWorker):
                 self._folder_scan_events[rel_path] = t, doc_pair
 
     def _handle_watchdog_event_on_known_pair(
-        self, doc_pair: DocPair, evt: FileSystemEvent, rel_path: Path
+        self, doc_pair: DocPair, evt: FileSystemEvent, rel_path: Path, /
     ) -> None:
         log.debug(f"Watchdog event {evt!r} on known pair {doc_pair!r}")
         dao = self.dao
@@ -863,7 +863,7 @@ class LocalWatcher(EngineWorker):
                     self.engine.send_metric("sync", "error", "WINDOWS_RO_FOLDER")
 
     def _handle_watchdog_event_on_known_acquired_pair(
-        self, doc_pair: DocPair, evt: FileSystemEvent, rel_path: Path
+        self, doc_pair: DocPair, evt: FileSystemEvent, rel_path: Path, /
     ) -> None:
         client = self.local
         dao = self.dao
@@ -972,7 +972,7 @@ class LocalWatcher(EngineWorker):
         # Update state
         dao.update_local_state(doc_pair, local_info)
 
-    def handle_watchdog_root_event(self, evt: FileSystemEvent) -> None:
+    def handle_watchdog_root_event(self, evt: FileSystemEvent, /) -> None:
         if evt.event_type == "deleted":
             log.warning("Root has been deleted")
             self.rootDeleted.emit()
@@ -982,7 +982,7 @@ class LocalWatcher(EngineWorker):
             self.rootMoved.emit(dst)
 
     @tooltip("Handle watchdog event")
-    def handle_watchdog_event(self, evt: FileSystemEvent) -> None:
+    def handle_watchdog_event(self, evt: FileSystemEvent, /) -> None:
         self._metrics["last_event"] = current_milli_time()
 
         if not evt.src_path:
@@ -1308,7 +1308,7 @@ class LocalWatcher(EngineWorker):
             sys.excepthook(*sys.exc_info())
             log.exception("Watchdog exception")
 
-    def _schedule_win_folder_scan(self, doc_pair: DocPair) -> None:
+    def _schedule_win_folder_scan(self, doc_pair: DocPair, /) -> None:
         # On Windows schedule another recursive scan to make sure I/Os finished
         # ex: copy/paste, move
         if self._win_folder_scan_interval <= 0 or self._windows_folder_scan_delay <= 0:
@@ -1325,7 +1325,7 @@ class LocalWatcher(EngineWorker):
 
 
 class DriveFSEventHandler(PatternMatchingEventHandler):
-    def __init__(self, watcher: Worker, **kwargs: Any) -> None:
+    def __init__(self, watcher: Worker, /, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.counter = 0
         self.watcher = watcher
@@ -1340,14 +1340,14 @@ class DriveFSEventHandler(PatternMatchingEventHandler):
             ">"
         )
 
-    def on_any_event(self, event: FileSystemEvent) -> None:
+    def on_any_event(self, event: FileSystemEvent, /) -> None:
         self.counter += 1
         log.debug(f"Queueing watchdog: {event!r}")
         self.watcher.watchdog_queue.put(event)
 
 
 class DriveFSRootEventHandler(PatternMatchingEventHandler):
-    def __init__(self, watcher: Worker, name: str, **kwargs: Any) -> None:
+    def __init__(self, watcher: Worker, name: str, /, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.name = name
         self.counter = 0
@@ -1363,7 +1363,7 @@ class DriveFSRootEventHandler(PatternMatchingEventHandler):
             ">"
         )
 
-    def on_any_event(self, event: FileSystemEvent) -> None:
+    def on_any_event(self, event: FileSystemEvent, /) -> None:
         if basename(event.src_path) != self.name:
             return
 

@@ -135,10 +135,10 @@ class CallableFeatureHandler:
 
     """
 
-    def __init__(self, feature: str) -> None:
+    def __init__(self, feature: str, /) -> None:
         self._feature = feature
 
-    def __call__(self, new_value: bool) -> None:
+    def __call__(self, new_value: bool, /) -> None:
         """
         Method called by default when calling the object as a function.
         Update the Feature attribute with the new value.
@@ -296,7 +296,7 @@ class MetaOptions(type):
     # The return value is not checked.
     callbacks: Dict[str, Callable] = {}
 
-    def __getattr__(_, item: str) -> Any:
+    def __getattr__(_, item: str, /) -> Any:
         """
         Override to allow retrieving an option as simply as `Options.delay`.
         If the option does not exist, returns `None`.
@@ -307,7 +307,7 @@ class MetaOptions(type):
             value = None
         return value
 
-    def __setattr__(_, item: str, value: Any) -> None:
+    def __setattr__(_, item: str, value: Any, /) -> None:
         """
         Override to allow setting an option as simply as `Options.delay = 42`.
         If the option does not exist, it does nothing.
@@ -337,6 +337,8 @@ class MetaOptions(type):
     def set(
         item: str,
         new_value: Any,
+        /,
+        *,
         setter: str = "default",
         fail_on_error: bool = True,
         file: str = "",
@@ -458,6 +460,8 @@ class MetaOptions(type):
     @staticmethod
     def update(
         items: Any,
+        /,
+        *,
         setter: str = "default",
         fail_on_error: bool = True,
         file: str = "",
@@ -533,13 +537,13 @@ class Options(metaclass=MetaOptions):
 #
 
 
-def validate_chunk_limit(value: int) -> int:
+def validate_chunk_limit(value: int, /) -> int:
     if value > 0:
         return value
     raise ValueError(f"Chunk limit must be above 0 (got {value!r})")
 
 
-def validate_chunk_size(value: int) -> int:
+def validate_chunk_size(value: int, /) -> int:
     if 0 < value <= 1024 * 5:
         return value
     raise ValueError(
@@ -547,7 +551,7 @@ def validate_chunk_size(value: int) -> int:
     )
 
 
-def validate_client_version(value: str) -> str:
+def validate_client_version(value: str, /) -> str:
     """The minimum version which implements the Centralized channel is 4.2.0,
     downgrades below this version are not allowed.
     """
@@ -560,7 +564,7 @@ def validate_client_version(value: str) -> str:
     )
 
 
-def validate_tmp_file_limit(value: Union[int, float]) -> float:
+def validate_tmp_file_limit(value: Union[int, float], /) -> float:
     if value > 0:
         return float(value)
     raise ValueError("Temporary file limit must be above 0")

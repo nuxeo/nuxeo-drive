@@ -19,11 +19,11 @@ class AbstractOSIntegration(QObject):
 
     nature = "Unknown"
 
-    def __init__(self, manager: Optional["Manager"]) -> None:
+    def __init__(self, manager: Optional["Manager"], /) -> None:
         super().__init__()
         self._manager = manager
 
-    def open_local_file(self, file_path: str, select: bool = False) -> None:
+    def open_local_file(self, file_path: str, /, *, select: bool = False) -> None:
         """
         Launch the local OS program on the given file / folder.
 
@@ -46,7 +46,7 @@ class AbstractOSIntegration(QObject):
         pass
 
     @staticmethod
-    def is_partition_supported(folder: Path) -> bool:
+    def is_partition_supported(folder: Path, /) -> bool:
         return True
 
     @pyqtSlot(result=bool)
@@ -70,16 +70,16 @@ class AbstractOSIntegration(QObject):
     def register_protocol_handlers(self) -> None:
         pass
 
-    def watch_folder(self, folder: Path) -> None:
+    def watch_folder(self, folder: Path, /) -> None:
         pass
 
-    def unwatch_folder(self, folder: Path) -> None:
+    def unwatch_folder(self, folder: Path, /) -> None:
         pass
 
-    def send_sync_status(self, state: DocPair, path: Path) -> None:
+    def send_sync_status(self, state: DocPair, path: Path, /) -> None:
         pass
 
-    def send_content_sync_status(self, states: List[DocPair], path: Path) -> None:
+    def send_content_sync_status(self, states: List[DocPair], path: Path, /) -> None:
         pass
 
     def get_extension_listener(self) -> Optional[ExtensionListener]:
@@ -91,10 +91,10 @@ class AbstractOSIntegration(QObject):
     def unregister_contextual_menu(self) -> None:
         pass
 
-    def register_folder_link(self, path: Path) -> None:
+    def register_folder_link(self, path: Path, /) -> None:
         pass
 
-    def unregister_folder_link(self, path: Path) -> None:
+    def unregister_folder_link(self, path: Path, /) -> None:
         pass
 
     def get_system_configuration(self) -> Dict[str, Any]:
@@ -106,7 +106,7 @@ class AbstractOSIntegration(QObject):
         return ""
 
     @staticmethod
-    def cb_set(text: str) -> None:
+    def cb_set(text: str, /) -> None:
         """Copy some *text* into the clipboard."""
         pass
 
@@ -117,7 +117,7 @@ class AbstractOSIntegration(QObject):
         pass
 
     @staticmethod
-    def get(manager: Optional["Manager"]) -> "AbstractOSIntegration":
+    def get(manager: Optional["Manager"], /) -> "AbstractOSIntegration":
         if LINUX:
             from .linux.linux import LinuxIntegration
 

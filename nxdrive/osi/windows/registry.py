@@ -11,7 +11,7 @@ log = getLogger(__name__)
 HKCU = winreg.HKEY_CURRENT_USER
 
 
-def create(key: str) -> bool:
+def create(key: str, /) -> bool:
     """
     Create the specified key in the Current User registry.
 
@@ -26,7 +26,7 @@ def create(key: str) -> bool:
     return False
 
 
-def delete(key: str) -> bool:
+def delete(key: str, /) -> bool:
     """
     Delete the specified key from the Current User registry.
 
@@ -51,7 +51,7 @@ def delete(key: str) -> bool:
     return False
 
 
-def delete_value(key: str, value: str) -> bool:
+def delete_value(key: str, value: str, /) -> bool:
     """
     Delete the specified value from the specified key in the Current User registry.
 
@@ -69,7 +69,7 @@ def delete_value(key: str, value: str) -> bool:
     return False
 
 
-def exists(key: str) -> bool:
+def exists(key: str, /) -> bool:
     """
     Check if the specified key already exists in the Current User registry.
 
@@ -81,7 +81,7 @@ def exists(key: str) -> bool:
     return False
 
 
-def read(key: str) -> Optional[Dict[str, str]]:
+def read(key: str, /) -> Optional[Dict[str, str]]:
     """
     Read the values in the specified key in the Current User registry.
 
@@ -99,7 +99,7 @@ def read(key: str) -> Optional[Dict[str, str]]:
     return values
 
 
-def write(key: str, content: Union[str, Dict[Optional[str], str]]) -> bool:
+def write(key: str, content: Union[str, Dict[Optional[str], str]], /) -> bool:
     """
     Write the specified key in the Current User registry.
 

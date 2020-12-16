@@ -78,7 +78,7 @@ class ExtensionListener(QTcpServer):
         self.newConnection.connect(self._handle_connection)
 
     @staticmethod
-    def host_to_addr(host: str) -> QHostAddress:
+    def host_to_addr(host: str, /) -> QHostAddress:
         """Get the IPv4 address of a given hostname.
         It is required to use this method in order to get the actual IP
         as it turns out that QHostAddress(host) does not do any DNS lookup.
@@ -145,11 +145,11 @@ class ExtensionListener(QTcpServer):
         """ Called on the bytes received through the socket. """
         return force_decode(payload)
 
-    def _format_response(self, response: str) -> bytes:
+    def _format_response(self, response: str, /) -> bytes:
         """ Called on the string to send through the socket. """
         return force_encode(response)
 
-    def _handle_content(self, content: str) -> Optional[str]:
+    def _handle_content(self, content: str, /) -> Optional[str]:
         """ Called on the parsed payload, runs the handler associated with the command. """
         try:
             data = json.loads(content)
@@ -168,14 +168,14 @@ class ExtensionListener(QTcpServer):
         response = handler(value)
         return json.dumps(response)
 
-    def get_engine(self, path: Path) -> Optional[Engine]:
+    def get_engine(self, path: Path, /) -> Optional[Engine]:
         for engine in self.manager.engines.copy().values():
             if engine.local_folder in path.parents:
                 return engine
         return None
 
 
-def get_formatted_status(state: DocPair, path: Path) -> Optional[Dict[str, str]]:
+def get_formatted_status(state: DocPair, path: Path, /) -> Optional[Dict[str, str]]:
     """ For a given file and its state info, get a JSON-compatible status. """
     status = Status.UNSYNCED
 

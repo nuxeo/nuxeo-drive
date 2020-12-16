@@ -116,6 +116,8 @@ class Engine(QObject):
         self,
         manager: "Manager",
         definition: EngineDef,
+        /,
+        *,
         binder: Binder = None,
         processors: int = 10,
         remote_cls: Type[Remote] = Remote,
@@ -271,7 +273,7 @@ class Engine(QObject):
         return [thread.worker.export() for thread in self._threads]
 
     @pyqtSlot(object)
-    def _check_sync_start(self, row_id: str = None) -> None:
+    def _check_sync_start(self, *, row_id: str = None) -> None:
         if not self._sync_started:
             queue_size = self.queue_manager.get_overall_size()
             if queue_size > 0:
@@ -288,10 +290,10 @@ class Engine(QObject):
         if started:
             self.start()
 
-    def send_metric(self, category: str, action: str, label: str) -> None:
+    def send_metric(self, category: str, action: str, label: str, /) -> None:
         self.manager.tracker.send_metric(category, action, label)  # type: ignore
 
-    def stop_processor_on(self, path: Path) -> None:
+    def stop_processor_on(self, path: Path, /) -> None:
         for worker in self.queue_manager.get_processors_on(path):
             log.debug(
                 f"Quitting processor: {worker!r} as requested to stop on {path!r}"
@@ -313,14 +315,14 @@ class Engine(QObject):
 
         return download_dir
 
-    def set_local_folder(self, path: Path) -> None:
+    def set_local_folder(self, path: Path, /) -> None:
         log.info(f"Update local folder to {path!r}")
         self.local_folder = path
         self._local_watcher.stop()
         self._create_local_watcher()
         self.manager.update_engine_path(self.uid, path)
 
-    def set_local_folder_lock(self, path: Path) -> None:
+    def set_local_folder_lock(self, path: Path, /) -> None:
         self._folder_lock = path
         # Check for each processor
         log.info(f"Local Folder locking on {path!r}")
@@ -329,7 +331,7 @@ class Engine(QObject):
             sleep(1)
         log.info(f"Local Folder lock setup completed on {path!r}")
 
-    def set_ui(self, value: str, overwrite: bool = True) -> None:
+    def set_ui(self, value: str, /, *, overwrite: bool = True) -> None:
         name = ("wui", "force_ui")[overwrite]
         if getattr(self, name, "") == value:
             return
@@ -344,7 +346,7 @@ class Engine(QObject):
         log.info("Local Folder unlocking")
         self._folder_lock = None
 
-    def set_offline(self, value: bool = True) -> None:
+    def set_offline(self, *, value: bool = True) -> None:
         if value == self._offline_state:
             return
 
@@ -361,7 +363,7 @@ class Engine(QObject):
     def is_offline(self) -> bool:
         return self._offline_state
 
-    def add_filter(self, path: str) -> None:
+    def add_filter(self, path: str, /) -> None:
         remote_ref = os.path.basename(path)
         remote_parent_path = os.path.dirname(path)
         if not remote_ref:
@@ -373,12 +375,12 @@ class Engine(QObject):
             return
         self.dao.delete_remote_state(pair)
 
-    def remove_filter(self, path: str) -> None:
+    def remove_filter(self, path: str, /) -> None:
         self.dao.remove_filter(path)
         # Scan the "new" pair, use signal/slot to not block UI
         self._scanPair.emit(path)
 
-    def delete_doc(self, path: Path, mode: DelAction = None) -> None:
+    def delete_doc(self, path: Path, /, *, mode: DelAction = None) -> None:
         """ Delete doc after prompting the user for the mode. """
 
         doc_pair = self.dao.get_state_from_local(path)
@@ -413,6 +415,7 @@ class Engine(QObject):
         remote_ref: str,
         duplicate_behavior: str,
         last_local_selected_location: Optional[Path],
+        /,
     ) -> None:
         """Store last dt session infos into the database for later runs."""
         self.dao.update_config("dt_last_remote_location", remote_path)
@@ -428,6 +431,8 @@ class Engine(QObject):
         local_paths: Dict[Path, int],
         remote_parent_path: str,
         remote_parent_ref: str,
+        /,
+        *,
         duplicate_behavior: str = "create",
         last_local_selected_location: Optional[Path] = None,
     ) -> None:
@@ -480,7 +485,7 @@ class Engine(QObject):
         # And add new pairs to the queue
         self.dao.queue_many_direct_transfer_items(current_max_row_id)
 
-    def handle_session_status(self, session: Optional[Session]) -> None:
+    def handle_session_status(self, session: Optional[Session], /) -> None:
         """Check the session status and send a notification if finished."""
         if not session or session.status is not TransferStatus.DONE:
             return
@@ -495,6 +500,8 @@ class Engine(QObject):
         local_paths: Dict[Path, int],
         remote_parent_path: str,
         remote_parent_ref: str,
+        /,
+        *,
         duplicate_behavior: str = "create",
         last_local_selected_location: Optional[Path] = None,
     ) -> None:
@@ -512,6 +519,8 @@ class Engine(QObject):
         local_paths: Dict[Path, int],
         remote_parent_path: str,
         remote_parent_ref: str,
+        /,
+        *,
         duplicate_behavior: str = "create",
         last_local_selected_location: Optional[Path] = None,
     ) -> None:
@@ -528,7 +537,7 @@ class Engine(QObject):
         )
         self._threadpool.start(runner)
 
-    def rollback_delete(self, path: Path) -> None:
+    def rollback_delete(self, path: Path, /) -> None:
         """ Re-synchronize a document when a deletion is cancelled. """
         doc_pair = self.dao.get_state_from_local(path)
         if not doc_pair:
@@ -540,7 +549,7 @@ class Engine(QObject):
         if doc_pair.folderish:
             self._remote_watcher.scan_remote(doc_pair)
 
-    def get_metadata_url(self, remote_ref: str, edit: bool = False) -> str:
+    def get_metadata_url(self, remote_ref: str, /, *, edit: bool = False) -> str:
         """
         Build the document's metadata URL based on the server's UI.
         Default is Web-UI.  In case of unknown UI, use the default value.
@@ -566,7 +575,7 @@ class Engine(QObject):
     def is_paused(self) -> bool:
         return self._pause
 
-    def open_edit(self, remote_ref: str, remote_name: str) -> None:
+    def open_edit(self, remote_ref: str, remote_name: str, /) -> None:
         doc_ref = remote_ref
         if "#" in doc_ref:
             doc_ref = doc_ref[doc_ref.rfind("#") + 1 :]
@@ -581,7 +590,7 @@ class Engine(QObject):
         self._edit_thread = Thread(target=run)
         self._edit_thread.start()
 
-    def open_remote(self, url: str = None) -> None:
+    def open_remote(self, *, url: str = None) -> None:
         if url is None:
             url = self.server_url
         self.manager.open_local_file(url)
@@ -605,7 +614,7 @@ class Engine(QObject):
         self.syncResumed.emit()
 
     def _resume_transfers(
-        self, nature: str, func: Callable, is_direct_transfer: bool = False
+        self, nature: str, func: Callable, /, *, is_direct_transfer: bool = False
     ) -> None:
         """Resume all transfers returned by the *func* function."""
         resume = self.dao.resume_transfer
@@ -626,7 +635,7 @@ class Engine(QObject):
                 self.queue_manager.push(doc_pair)
 
     def resume_transfer(
-        self, nature: str, uid: int, is_direct_transfer: bool = False
+        self, nature: str, uid: int, /, *, is_direct_transfer: bool = False
     ) -> None:
         """Resume a single transfer with its nature and UID."""
         meth = (
@@ -657,7 +666,7 @@ class Engine(QObject):
         # Update the systray icon and syncing count in the systray, if there are any resumed transfers
         self._check_sync_start()
 
-    def resume_session(self, uid: int) -> None:
+    def resume_session(self, uid: int, /) -> None:
         """Resume all transfers for given session."""
         self.dao.change_session_status(uid, TransferStatus.ONGOING)
         self.dao.resume_session(uid)
@@ -690,7 +699,7 @@ class Engine(QObject):
                     dao.remove_transfer(nature, transfer.path)
                     log.info(f"Removed staled {transfer}")
 
-    def cancel_upload(self, transfer_uid: int) -> None:
+    def cancel_upload(self, transfer_uid: int, /) -> None:
         """Cancel an ongoing Direct Transfer upload and clean the database."""
         log.debug(f"Canceling transfer {transfer_uid}")
         upload = self.dao.get_dt_upload(uid=transfer_uid)
@@ -717,7 +726,7 @@ class Engine(QObject):
         session = self.dao.decrease_session_counts(doc_pair.session)
         self.handle_session_status(session)
 
-    def cancel_session(self, uid: int) -> None:
+    def cancel_session(self, uid: int, /) -> None:
         """Cancel all transfers for given session."""
         self.dao.change_session_status(uid, TransferStatus.CANCELLED)
         self.dao.cancel_session(uid)
@@ -791,7 +800,7 @@ class Engine(QObject):
         return not bool(self.local.get_remote_id(ROOT, tag))
 
     @staticmethod
-    def _normalize_url(url: str) -> str:
+    def _normalize_url(url: str, /) -> str:
         """Ensure that user provided url always has a trailing '/'"""
         if not url:
             raise ValueError(f"Invalid url: {url!r}")
@@ -830,7 +839,9 @@ class Engine(QObject):
             pwd_update_required=self.has_invalid_credentials(),
         )
 
-    def set_invalid_credentials(self, value: bool = True, reason: str = None) -> None:
+    def set_invalid_credentials(
+        self, *, value: bool = True, reason: str = None
+    ) -> None:
         changed = self._invalid_credentials is not value
         self._invalid_credentials = value
         if not changed:
@@ -857,7 +868,7 @@ class Engine(QObject):
         return value
 
     @staticmethod
-    def local_rollback(force: bool = False) -> bool:
+    def local_rollback(*, force: bool = False) -> bool:
         """
         :param force: Force the return value to be the one of `force`.
         """
@@ -867,7 +878,7 @@ class Engine(QObject):
         return False
 
     def create_thread(
-        self, worker: Worker = None, name: str = None, start_connect: bool = True
+        self, *, worker: Worker = None, name: str = None, start_connect: bool = True
     ) -> QThread:
         if worker is None:
             worker = Worker(self, name=name)
@@ -884,25 +895,25 @@ class Engine(QObject):
         self._threads.append(thread)
         return thread
 
-    def retry_pair(self, row_id: int) -> None:
+    def retry_pair(self, row_id: int, /) -> None:
         state = self.dao.get_state_from_id(row_id)
         if state is None:
             return
         self.dao.reset_error(state)
 
-    def ignore_pair(self, row_id: int, reason: str = None) -> None:
+    def ignore_pair(self, row_id: int, /, *, reason: str = None) -> None:
         state = self.dao.get_state_from_id(row_id)
         if state is None:
             return
         self.dao.unsynchronize_state(state, last_error=reason, ignore=True)
         self.dao.reset_error(state, last_error=reason)
 
-    def resolve_with_local(self, row_id: int) -> None:
+    def resolve_with_local(self, row_id: int, /) -> None:
         row = self.dao.get_state_from_id(row_id)
         if row:
             self.dao.force_local(row)
 
-    def resolve_with_remote(self, row_id: int) -> None:
+    def resolve_with_remote(self, row_id: int, /) -> None:
         row = self.dao.get_state_from_id(row_id)
         if row:
             self.dao.force_remote(row)
@@ -1000,7 +1011,7 @@ class Engine(QObject):
     def get_conflicts(self) -> DocPairs:
         return self.dao.get_conflicts()
 
-    def conflict_resolver(self, row_id: int, emit: bool = True) -> None:
+    def conflict_resolver(self, row_id: int, /, *, emit: bool = True) -> None:
         pair = self.dao.get_state_from_id(row_id)
         if not pair:
             log.debug("Conflict resolver: empty pair, skipping")
@@ -1096,7 +1107,7 @@ class Engine(QObject):
     def use_trash() -> bool:
         return True
 
-    def update_token(self, token: str, username: str) -> None:
+    def update_token(self, token: str, username: str, /) -> None:
         self._load_configuration()
         self._remote_token = token
         self.remote.update_token(token)
@@ -1129,7 +1140,7 @@ class Engine(QObject):
         }
         return self.remote_cls(*args, **kwargs)
 
-    def bind(self, binder: Binder) -> None:
+    def bind(self, binder: Binder, /) -> None:
         check_credentials = not binder.no_check
         check_fs = not (Options.nofscheck or binder.no_fscheck)
         self.server_url = self._normalize_url(binder.url)
@@ -1179,7 +1190,7 @@ class Engine(QObject):
         # create the local folder and the top level state.
         self._check_root()
 
-    def _check_fs(self, path: Path) -> None:
+    def _check_fs(self, path: Path, /) -> None:
         if not self.manager.osi.is_partition_supported(path):
             raise InvalidDriveException()
 
@@ -1227,7 +1238,7 @@ class Engine(QObject):
             self.manager.osi.register_folder_link(self.local_folder)
             set_path_readonly(self.local_folder)
 
-    def cancel_action_on(self, pair_id: int) -> None:
+    def cancel_action_on(self, pair_id: int, /) -> None:
         for thread in self._threads:
             if hasattr(thread, "worker") and isinstance(thread.worker, Processor):
                 pair = thread.worker.get_current_pair()
@@ -1284,7 +1295,7 @@ class Engine(QObject):
         self.dao.synchronize_state(row)
         # The root should also be sync
 
-    def suspend_client(self, message: str = None) -> None:
+    def suspend_client(self, *, message: str = None) -> None:
         if self.is_paused() or not self.is_started():
             raise ThreadInterrupt()
 
@@ -1310,14 +1321,14 @@ class Engine(QObject):
             log.info(f"PairInterrupt {current!r} because lock on {self._folder_lock!r}")
             raise PairInterrupt()
 
-    def create_processor(self, item_getter: Callable, **kwargs: Any) -> Processor:
+    def create_processor(self, item_getter: Callable, /, **kwargs: Any) -> Processor:
         return Processor(self, item_getter, **kwargs)
 
     def dispose_db(self) -> None:
         if self.dao:
             self.dao.dispose()
 
-    def get_user_full_name(self, userid: str, cache_only: bool = False) -> str:
+    def get_user_full_name(self, userid: str, /, *, cache_only: bool = False) -> str:
         """ Get the last contributor full name. """
 
         try:

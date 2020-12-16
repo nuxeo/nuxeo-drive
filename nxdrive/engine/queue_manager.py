@@ -16,7 +16,6 @@ from .processor import Processor
 if TYPE_CHECKING:
     from .dao.sqlite import EngineDAO  # noqa
     from .engine import Engine  # noqa
-    from .manager import Manager  # noqa
 
 __all__ = ("QueueManager",)
 
@@ -25,7 +24,7 @@ WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE = 32
 
 
 class QueueItem:
-    def __init__(self, row_id: int, folderish: bool, pair_state: str) -> None:
+    def __init__(self, row_id: int, folderish: bool, pair_state: str, /) -> None:
         self.id = row_id
         self.folderish = folderish
         self.pair_state = pair_state
@@ -49,7 +48,7 @@ class QueueManager(QObject):
     _disable = False
 
     def __init__(
-        self, engine: "Engine", dao: "EngineDAO", max_file_processors: int = 5
+        self, engine: "Engine", dao: "EngineDAO", /, *, max_file_processors: int = 5
     ) -> None:
         super().__init__()
         self.dao = dao
@@ -109,7 +108,7 @@ class QueueManager(QObject):
             # TypeError: disconnect() failed between 'newItem' and 'launch_processors'
             self.newItem.disconnect(self.launch_processors)
 
-    def set_max_processors(self, max_file_processors: int) -> None:
+    def set_max_processors(self, max_file_processors: int, /) -> None:
         if max_file_processors < 2:
             max_file_processors = 2
         self._max_processors = max_file_processors - 2
@@ -139,38 +138,44 @@ class QueueManager(QObject):
         self.enable_remote_file_queue(False)
         self.enable_remote_folder_queue(False)
 
-    def enable_local_file_queue(self, value: bool = True, emit: bool = True) -> None:
+    def enable_local_file_queue(self, *, value: bool = True, emit: bool = True) -> None:
         self._local_file_enable = value
         if self._local_file_thread is not None and not value:
             self._local_file_thread.quit()
         if value and emit:
             self.queueProcessing.emit()
 
-    def enable_local_folder_queue(self, value: bool = True, emit: bool = True) -> None:
+    def enable_local_folder_queue(
+        self, *, value: bool = True, emit: bool = True
+    ) -> None:
         self._local_folder_enable = value
         if self._local_folder_thread is not None and not value:
             self._local_folder_thread.quit()
         if value and emit:
             self.queueProcessing.emit()
 
-    def enable_remote_file_queue(self, value: bool = True, emit: bool = True) -> None:
+    def enable_remote_file_queue(
+        self, *, value: bool = True, emit: bool = True
+    ) -> None:
         self._remote_file_enable = value
         if self._remote_file_thread is not None and not value:
             self._remote_file_thread.quit()
         if value and emit:
             self.queueProcessing.emit()
 
-    def enable_remote_folder_queue(self, value: bool = True, emit: bool = True) -> None:
+    def enable_remote_folder_queue(
+        self, *, value: bool = True, emit: bool = True
+    ) -> None:
         self._remote_folder_enable = value
         if self._remote_folder_thread is not None and not value:
             self._remote_folder_thread.quit()
         if value and emit:
             self.queueProcessing.emit()
 
-    def push_ref(self, row_id: int, folderish: bool, pair_state: str) -> None:
+    def push_ref(self, row_id: int, folderish: bool, pair_state: str, /) -> None:
         self.push(QueueItem(row_id, folderish, pair_state))
 
-    def push(self, state: Union[DocPair, QueueItem]) -> None:
+    def push(self, state: Union[DocPair, QueueItem], /) -> None:
         if state.pair_state is None:
             log.debug(f"Don't push an empty pair_state: {state!r}")
             return
@@ -242,7 +247,7 @@ class QueueManager(QObject):
         return self._error_threshold
 
     def push_error(
-        self, doc_pair: DocPair, exception: Exception = None, interval: int = None
+        self, doc_pair: DocPair, /, *, exception: Exception = None, interval: int = None
     ) -> None:
         error_count = doc_pair.error_count
         err_code = WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE
@@ -399,7 +404,7 @@ class QueueManager(QObject):
             }
         )
 
-    def _create_thread(self, item_getter: Callable, **kwargs: Any) -> QThread:
+    def _create_thread(self, item_getter: Callable, /, **kwargs: Any) -> QThread:
         processor = self._engine.create_processor(item_getter, **kwargs)
         thread = self._engine.create_thread(worker=processor)
         thread.finished.connect(self._thread_finished)
@@ -438,7 +443,7 @@ class QueueManager(QObject):
 
     @staticmethod
     def is_processing_file(
-        proc: QThread, path: Path, exact_match: bool = False
+        proc: QThread, path: Path, /, *, exact_match: bool = False
     ) -> bool:
         if not proc:
             return False
@@ -464,7 +469,7 @@ class QueueManager(QObject):
             proc.stop()
 
     def get_processors_on(
-        self, path: Path, exact_match: bool = True
+        self, path: Path, /, *, exact_match: bool = True
     ) -> List[Processor]:
         with self._thread_inspection:
             res = []
@@ -490,7 +495,7 @@ class QueueManager(QObject):
                         res.append(thread.worker)
         return res
 
-    def has_file_processors_on(self, path: Path) -> bool:
+    def has_file_processors_on(self, path: Path, /) -> bool:
         with self._thread_inspection:
             # First check local and remote file
             if self.is_processing_file(

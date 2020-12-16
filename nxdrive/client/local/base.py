@@ -45,6 +45,7 @@ class FileInfo:
         path: Path,
         folderish: bool,
         last_modification_time: datetime,
+        /,
         **kwargs: Any,
     ) -> None:
         # Function to check during long-running processing like digest
@@ -90,7 +91,7 @@ class FileInfo:
             f" size={self.size}, remote_ref={self.remote_ref!r}>"
         )
 
-    def get_digest(self, digest_func: str = None) -> str:
+    def get_digest(self, *, digest_func: str = None) -> str:
         """ Lazy computation of the digest. """
         digest_func = str(digest_func or self._digest_func)
         return compute_digest(self.filepath, digest_func, callback=self.digest_callback)
@@ -99,7 +100,7 @@ class FileInfo:
 class LocalClientMixin:
     """The base class for client API implementation for the local file system."""
 
-    def __init__(self, base_folder: Path, **kwargs: Any) -> None:
+    def __init__(self, base_folder: Path, /, **kwargs: Any) -> None:
         self._digest_func = kwargs.pop("digest_func", "md5")
 
         # Function to check during long-running processing like digest
@@ -135,14 +136,14 @@ class LocalClientMixin:
         return self._case_sensitive
 
     @staticmethod
-    def is_temp_file(filepath: Path) -> bool:
+    def is_temp_file(filepath: Path, /) -> bool:
         return Options.nxdrive_home / "tmp" in filepath.parents
 
-    def set_readonly(self, ref: Path) -> None:
+    def set_readonly(self, ref: Path, /) -> None:
         path = self.abspath(ref)
         set_path_readonly(path)
 
-    def unset_readonly(self, ref: Path) -> None:
+    def unset_readonly(self, ref: Path, /) -> None:
         path = self.abspath(ref)
         if path.exists():
             unset_path_readonly(path)
@@ -152,7 +153,9 @@ class LocalClientMixin:
             self.remove_root_id(cleanup=True)
         self.clean_xattr_folder_recursive(ROOT, cleanup=True)
 
-    def clean_xattr_folder_recursive(self, path: Path, cleanup: bool = False) -> None:
+    def clean_xattr_folder_recursive(
+        self, path: Path, /, *, cleanup: bool = False
+    ) -> None:
         for child in self.get_children_info(path):
             try:
                 self.remove_remote_id(child.path, cleanup=cleanup)
@@ -161,21 +164,21 @@ class LocalClientMixin:
             if child.folderish:
                 self.clean_xattr_folder_recursive(child.path)
 
-    def remove_root_id(self, cleanup: bool = False) -> None:
+    def remove_root_id(self, *, cleanup: bool = False) -> None:
         self.remove_remote_id(ROOT, name="ndriveroot", cleanup=cleanup)
 
-    def set_root_id(self, value: bytes) -> None:
+    def set_root_id(self, value: bytes, /) -> None:
         self.set_remote_id(ROOT, value, name="ndriveroot")
 
     def get_root_id(self) -> str:
         return self.get_remote_id(ROOT, name="ndriveroot")
 
-    def remove_remote_id_impl(self, ref: Path, name: str = "ndrive") -> None:
+    def remove_remote_id_impl(self, ref: Path, /, *, name: str = "ndrive") -> None:
         """Remove a given extended attribute. Need to be implemented by subclasses."""
         raise NotImplementedError()
 
     def remove_remote_id(
-        self, ref: Path, name: str = "ndrive", cleanup: bool = False
+        self, ref: Path, /, *, name: str = "ndrive", cleanup: bool = False
     ) -> None:
         path = self.abspath(ref)
         log.debug(f"Removing xattr {name!r} from {path!r}")
@@ -192,18 +195,18 @@ class LocalClientMixin:
             if not cleanup:
                 lock_path(path, locker)
 
-    def has_folder_icon(self, ref: Path) -> bool:
+    def has_folder_icon(self, ref: Path, /) -> bool:
         """Check if the folder icon is set. Need to be implemented by subclasses."""
         raise NotImplementedError()
 
-    def set_folder_icon(self, ref: Path, icon: Path) -> None:
+    def set_folder_icon(self, ref: Path, icon: Path, /) -> None:
         """Create a special file to customize the folder icon.
         Need to be implemented by subclasses.
         """
         raise NotImplementedError()
 
     def set_remote_id(
-        self, ref: Path, remote_id: Union[bytes, str], name: str = "ndrive"
+        self, ref: Path, remote_id: Union[bytes, str], /, *, name: str = "ndrive"
     ) -> None:
         path = self.abspath(ref)
         log.debug(f"Setting xattr {name!r} with value {remote_id!r} on {path!r}")
@@ -211,22 +214,22 @@ class LocalClientMixin:
 
     @staticmethod
     def set_path_remote_id(
-        path: Path, remote_id: Union[bytes, str], name: str = "ndrive"
+        path: Path, remote_id: Union[bytes, str], /, *, name: str = "ndrive"
     ) -> None:
         raise NotImplementedError()
 
-    def get_remote_id(self, ref: Path, name: str = "ndrive") -> str:
+    def get_remote_id(self, ref: Path, /, *, name: str = "ndrive") -> str:
         path = self.abspath(ref)
         value = self.get_path_remote_id(path, name)
         log.debug(f"Getting xattr {name!r} from {path!r}: {value!r}")
         return value
 
     @staticmethod
-    def get_path_remote_id(path: Path, name: str = "ndrive") -> str:
+    def get_path_remote_id(path: Path, /, *, name: str = "ndrive") -> str:
         """Get a given extended attribute from a file/folder. Need to be implemented by subclasses."""
         raise NotImplementedError()
 
-    def get_info(self, ref: Path, check: bool = True) -> FileInfo:
+    def get_info(self, ref: Path, /, *, check: bool = True) -> FileInfo:
         if check:
             # All use cases except Direct Transfer
             os_path = self.abspath(ref)
@@ -267,7 +270,7 @@ class LocalClientMixin:
             size=size,
         )
 
-    def try_get_info(self, ref: Path) -> Optional[FileInfo]:
+    def try_get_info(self, ref: Path, /) -> Optional[FileInfo]:
         try:
             return self.get_info(ref)
         except NotFound:
@@ -278,6 +281,8 @@ class LocalClientMixin:
         local_digest: Optional[str],
         remote_digest: Optional[str],
         local_path: Path,
+        /,
+        *,
         remote_digest_algorithm: str = None,
     ) -> bool:
         """
@@ -307,7 +312,7 @@ class LocalClientMixin:
         digest = file_info.get_digest(digest_func=remote_digest_algorithm)
         return digest == remote_digest
 
-    def is_ignored(self, parent_ref: Path, file_name: str) -> bool:
+    def is_ignored(self, parent_ref: Path, file_name: str, /) -> bool:
         """ Note: added parent_ref to be able to filter on size if needed. """
 
         file_name = safe_filename(force_decode(file_name.lower()))
@@ -326,7 +331,7 @@ class LocalClientMixin:
 
         return result
 
-    def _get_children_info(self, ref: Path) -> List[FileInfo]:
+    def _get_children_info(self, ref: Path, /) -> List[FileInfo]:
         os_path = self.abspath(ref)
         result = []
 
@@ -349,7 +354,7 @@ class LocalClientMixin:
 
         return result
 
-    def get_children_info(self, ref: Path) -> List[FileInfo]:
+    def get_children_info(self, ref: Path, /) -> List[FileInfo]:
         try:
             return self._get_children_info(ref)
         except FileNotFoundError as exc:
@@ -357,16 +362,16 @@ class LocalClientMixin:
             return []
 
     def unlock_ref(
-        self, ref: Path, unlock_parent: bool = True, is_abs: bool = False
+        self, ref: Path, /, *, unlock_parent: bool = True, is_abs: bool = False
     ) -> int:
         path = ref if is_abs else self.abspath(ref)
         return unlock_path(path, unlock_parent=unlock_parent)
 
-    def lock_ref(self, ref: Path, locker: int, is_abs: bool = False) -> None:
+    def lock_ref(self, ref: Path, locker: int, /, *, is_abs: bool = False) -> None:
         path = ref if is_abs else self.abspath(ref)
         lock_path(path, locker)
 
-    def make_folder(self, parent: Path, name: str) -> Path:
+    def make_folder(self, parent: Path, name: str, /) -> Path:
         os_path, name = self._abspath_deduped(parent, name)
         locker = self.unlock_ref(parent, unlock_parent=False)
         try:
@@ -377,11 +382,11 @@ class LocalClientMixin:
         # Name should be the actual name of the folder created locally
         return parent / os_path.name
 
-    def get_new_file(self, parent: Path, name: str) -> Tuple[Path, Path, str]:
+    def get_new_file(self, parent: Path, name: str, /) -> Tuple[Path, Path, str]:
         os_path, name = self._abspath_deduped(parent, name)
         return parent / name, os_path, name
 
-    def delete(self, ref: Path) -> None:
+    def delete(self, ref: Path, /) -> None:
         os_path = self.abspath(ref)
         if not os_path.exists():
             return
@@ -408,7 +413,7 @@ class LocalClientMixin:
             # Don't want to unlock the current deleted
             self.lock_ref(os_path, locker & 2, is_abs=True)
 
-    def delete_final(self, ref: Path) -> None:
+    def delete_final(self, ref: Path, /) -> None:
         """Completely remove a given file or folder. Untrash is not possible then."""
         error = None
 
@@ -439,7 +444,7 @@ class LocalClientMixin:
             if parent_ref is not None:
                 self.lock_ref(parent_ref, locker)
 
-    def exists(self, ref: Path) -> bool:
+    def exists(self, ref: Path, /) -> bool:
         try:
             return self.abspath(ref).exists()
         except OSError:
@@ -456,7 +461,7 @@ class LocalClientMixin:
         """
         pass
 
-    def rename(self, ref: Path, to_name: str) -> FileInfo:
+    def rename(self, ref: Path, to_name: str, /) -> FileInfo:
         """ Rename a local file or folder. """
         new_name = safe_filename(to_name)
         source_os_path = self.abspath(ref)
@@ -490,7 +495,7 @@ class LocalClientMixin:
         finally:
             self.lock_ref(source_os_path, locker & 2, is_abs=True)
 
-    def move(self, ref: Path, new_parent_ref: Path, name: str = None) -> FileInfo:
+    def move(self, ref: Path, new_parent_ref: Path, /, *, name: str = None) -> FileInfo:
         """ Move a local file or folder into another folder. """
 
         if ref == ROOT:
@@ -510,7 +515,7 @@ class LocalClientMixin:
             self.lock_ref(filename, locker & 2, is_abs=True)
             self.lock_ref(parent, locker & 1 | new_locker, is_abs=True)
 
-    def change_created_time(self, filepath: Path, d_ctime: datetime) -> None:
+    def change_created_time(self, filepath: Path, d_ctime: datetime, /) -> None:
         """Change the created time of a given file.
         Here we do not raise NotImplementedError because there is no concept of
         creation time on GNU/Linux. So instead of declaring an no-op method in
@@ -519,7 +524,7 @@ class LocalClientMixin:
         pass
 
     def change_file_date(
-        self, filepath: Path, mtime: str = None, ctime: str = None
+        self, filepath: Path, /, *, mtime: str = None, ctime: str = None
     ) -> None:
         """
         Change the FS modification and creation dates of a file.
@@ -547,7 +552,7 @@ class LocalClientMixin:
             d_mtime = mktime(strptime(str(mtime), "%Y-%m-%d %H:%M:%S"))
             os.utime(filepath, (d_mtime, d_mtime))
 
-    def get_path(self, target: Path) -> Path:
+    def get_path(self, target: Path, /) -> Path:
         """ Relative path to the local client from an absolute OS path. """
         # NXDRIVE-2319: using os.path.abspath() instead of Path.resolve and Path.absolute().
         try:
@@ -557,12 +562,12 @@ class LocalClientMixin:
             # (because this is not a subpath of the other path), raise ValueError.
             return ROOT
 
-    def abspath(self, ref: Path) -> Path:
+    def abspath(self, ref: Path, /) -> Path:
         """ Absolute path on the operating system. """
         return safe_long_path(self.base_folder / ref)
 
     def _abspath_deduped(
-        self, parent: Path, orig_name: str, old_name: str = None
+        self, parent: Path, orig_name: str, /, *, old_name: str = None
     ) -> Tuple[Path, str]:
         """ Absolute path on the operating system with deduplicated names. """
 
@@ -575,7 +580,7 @@ class LocalClientMixin:
 
         raise DuplicationDisabledError("De-duplication is disabled")
 
-    def trash(self, path: Path) -> None:
+    def trash(self, path: Path, /) -> None:
         """Move a given file or folder to the trash. Untrash is possible then."""
         raise NotImplementedError()
 

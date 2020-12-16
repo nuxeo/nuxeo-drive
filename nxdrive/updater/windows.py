@@ -20,7 +20,7 @@ class Updater(BaseUpdater):
         else "nuxeo-drive-{version}.exe"
     )
 
-    def install(self, filename: str) -> None:
+    def install(self, filename: str, /) -> None:
         """
         The installer will automagically:
             - try to stop Drive, if not already done

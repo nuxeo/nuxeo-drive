@@ -29,7 +29,7 @@ log = getLogger(__name__)
 class Proxy:
     category: str
 
-    def __init__(self, **kwargs: str) -> None:
+    def __init__(self, /, **kwargs: str) -> None:
         """
         Empty init so any subclass of Proxy can receive any kwargs
         and not raise an error.
@@ -44,7 +44,7 @@ class Proxy:
         )
         return f"{type(self).__name__}<{attrs}>"
 
-    def settings(self, **kwargs: Any) -> Any:
+    def settings(self, /, **kwargs: Any) -> Any:
         return None
 
 
@@ -59,7 +59,7 @@ class NoProxy(Proxy):
 
     category = "None"
 
-    def settings(self, **kwargs: Any) -> Dict[str, Any]:
+    def settings(self, /, **kwargs: Any) -> Dict[str, Any]:
         return {"http": None, "https": None}
 
 
@@ -83,14 +83,14 @@ class ManualProxy(Proxy):
 
     category = "Manual"
 
-    def __init__(self, url: str = "", **kwargs: Any) -> None:
+    def __init__(self, *, url: str = "", **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
         if "://" not in url:
             url = f"http://{url}"
         self.url = url
 
-    def settings(self, **kwargs: Any) -> Dict[str, str]:
+    def settings(self, /, **kwargs: Any) -> Dict[str, str]:
         return {"http": self.url, "https": self.url}
 
 
@@ -110,7 +110,7 @@ class AutomaticProxy(Proxy):
 
     category = "Automatic"
 
-    def __init__(self, pac_url: str = None, js: str = None, **kwargs: Any) -> None:
+    def __init__(self, *, pac_url: str = None, js: str = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
         args: Dict[str, Any] = {}
@@ -134,7 +134,7 @@ class AutomaticProxy(Proxy):
         self._pac_file = get_pac(**args)
         self._resolver = ProxyResolver(self._pac_file)
 
-    def settings(self, url: str = None, **kwargs: Any) -> Dict[str, Any]:
+    def settings(self, *, url: str = None, **kwargs: Any) -> Dict[str, Any]:
         return self._resolver.get_proxy_for_requests(url)  # type: ignore
 
 
@@ -145,7 +145,7 @@ def get_proxy(**kwargs: Any) -> Proxy:
     return proxy
 
 
-def load_proxy(dao: "EngineDAO", token: str = "") -> Proxy:
+def load_proxy(dao: "EngineDAO", *, token: str = "") -> Proxy:
     category = dao.get_config("proxy_config", "System")
     kwargs = {}
 
@@ -178,7 +178,7 @@ def load_proxy(dao: "EngineDAO", token: str = "") -> Proxy:
     return _get_cls(category)(**kwargs)
 
 
-def save_proxy(proxy: Proxy, dao: "EngineDAO", token: str = None) -> None:
+def save_proxy(proxy: Proxy, dao: "EngineDAO", *, token: str = None) -> None:
     dao.update_config("proxy_config", proxy.category)
 
     if isinstance(proxy, AutomaticProxy):
@@ -189,7 +189,7 @@ def save_proxy(proxy: Proxy, dao: "EngineDAO", token: str = None) -> None:
         dao.update_config("proxy_url", encrypt(proxy.url, token))
 
 
-def validate_proxy(proxy: Proxy, url: str) -> bool:
+def validate_proxy(proxy: Proxy, url: str, /) -> bool:
     verify = Options.ca_bundle or not Options.ssl_no_verify
     headers = {"User-Agent": USER_AGENT}
     try:
@@ -209,7 +209,7 @@ def validate_proxy(proxy: Proxy, url: str) -> bool:
     return False
 
 
-def _get_cls(category: str) -> Type[Proxy]:
+def _get_cls(category: str, /) -> Type[Proxy]:
     proxy_cls = {
         "None": NoProxy,
         "System": SystemProxy,

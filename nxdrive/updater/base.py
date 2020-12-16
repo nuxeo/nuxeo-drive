@@ -62,7 +62,7 @@ class BaseUpdater(PollWorker):
 
     chunk_size = 8192
 
-    def __init__(self, manager: "Manager") -> None:
+    def __init__(self, manager: "Manager", /) -> None:
         super().__init__(Options.update_check_delay)
         self.manager = manager
 
@@ -132,7 +132,7 @@ class BaseUpdater(PollWorker):
     # Public methods that can be overridden
     #
 
-    def install(self, filename: str) -> None:
+    def install(self, filename: str, /) -> None:
         """
         Install the new version.
         Uninstallation of the old one or any actions needed to install
@@ -149,7 +149,7 @@ class BaseUpdater(PollWorker):
             self._poll()
 
     @pyqtSlot(str)
-    def update(self, version: str) -> None:
+    def update(self, version: str, /) -> None:
         log.info(f"Starting application update process to version {version!r}")
         self._set_status(UPDATE_STATUS_UPDATING, version=version, progress=10)
         try:
@@ -171,7 +171,7 @@ class BaseUpdater(PollWorker):
     # Private methods, should not try to override
     #
 
-    def _download(self, version: str) -> str:
+    def _download(self, version: str, /) -> str:
         """ Download a given version to a temporary file. """
 
         name = self.release_file.format(version=version)
@@ -346,19 +346,19 @@ class BaseUpdater(PollWorker):
         if self.can_update:
             self.update(self.version)
 
-    def _set_progress(self, progress: Union[int, float]) -> None:
+    def _set_progress(self, progress: Union[int, float], /) -> None:
         self.progress = progress
         self.updateProgress.emit(int(self.progress))
         QApplication.processEvents()
 
     def _set_status(
-        self, status: str, version: str = "", progress: Union[int, float] = 0
+        self, status: str, /, *, version: str = "", progress: Union[int, float] = 0
     ) -> None:
         self.status = status
         self.version = version
         self._set_progress(progress)
 
-    def get_version_channel(self, version: str) -> str:
+    def get_version_channel(self, version: str, /) -> str:
         info = self.versions.get(version)
         if info:
             return info.get("type", None) or ""
@@ -366,7 +366,7 @@ class BaseUpdater(PollWorker):
         log.debug(f"No version {version} in record.")
         return ""
 
-    def _install(self, version: str, filename: str) -> None:
+    def _install(self, version: str, filename: str, /) -> None:
         """
         OS-specific method to install the new version.
         It must take care of uninstalling the current one.
@@ -374,7 +374,7 @@ class BaseUpdater(PollWorker):
         log.info(f"Installing {APP_NAME} {version}")
         self.install(filename)
 
-    def _check_validity(self, version: str, filename: str) -> None:
+    def _check_validity(self, version: str, filename: str, /) -> None:
         """ Check the downloaded file integrity. Use SHA256 by default. """
 
         info = self.versions.get(version, {})

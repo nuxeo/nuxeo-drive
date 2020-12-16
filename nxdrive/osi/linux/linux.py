@@ -18,14 +18,14 @@ __all__ = ("LinuxIntegration",)
 log = getLogger(__name__)
 
 if TYPE_CHECKING:
-    from ..manager import Manager  # noqa
+    from ...manager import Manager  # noqa
 
 
 class LinuxIntegration(AbstractOSIntegration):
 
     nature = "GNU/Linux"
 
-    def __init__(self, manager: Optional["Manager"]):
+    def __init__(self, manager: Optional["Manager"], /):
         super().__init__(manager)
         self._icons_to_emblems()
 
@@ -38,7 +38,7 @@ class LinuxIntegration(AbstractOSIntegration):
         return data.decode("utf-8")
 
     @staticmethod
-    def cb_set(text: str) -> None:
+    def cb_set(text: str, /) -> None:
         """Copy some *text* into the clipboard. The xclip tool needs to be installed.
         Emulate: echo "blablabla" | xclip -selection c
         """
@@ -50,7 +50,7 @@ class LinuxIntegration(AbstractOSIntegration):
                 p.stdin.close()
                 p.wait()
 
-    def open_local_file(self, file_path: str, select: bool = False) -> None:
+    def open_local_file(self, file_path: str, /, *, select: bool = False) -> None:
         """Note that this function must _not_ block the execution."""
         if select:
             log.info(
@@ -117,7 +117,7 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
             )
 
     @if_frozen
-    def send_sync_status(self, doc_pair: DocPair, path: Path) -> None:
+    def send_sync_status(self, doc_pair: DocPair, path: Path, /) -> None:
         """
         Set the sync status of a file.
 
@@ -132,7 +132,7 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
         except Exception:
             log.exception("Error while setting the status to {path!r}", exc_info=True)
 
-    def _set_icon(self, status: Dict[str, str]) -> None:
+    def _set_icon(self, status: Dict[str, str], /) -> None:
         """Call gio command to set folder emblem metadata."""
         value = Status(int(status["value"]))
         path = status["path"]

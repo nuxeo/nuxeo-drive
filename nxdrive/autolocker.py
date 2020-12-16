@@ -36,7 +36,9 @@ class ProcessAutoLockerWorker(PollWorker):
     documentLocked = pyqtSignal(str)
     documentUnlocked = pyqtSignal(str)
 
-    def __init__(self, check_interval: int, manager: "Manager", folder: Path) -> None:
+    def __init__(
+        self, check_interval: int, manager: "Manager", folder: Path, /
+    ) -> None:
         super().__init__(check_interval)
         self.dao = manager.dao
         self._folder = folder
@@ -50,7 +52,7 @@ class ProcessAutoLockerWorker(PollWorker):
         self.documentLocked.connect(manager.notification_service._lockDocument)
         self.documentUnlocked.connect(manager.notification_service._unlockDocument)
 
-    def set_autolock(self, filepath: Path, locker: "DirectEdit") -> None:
+    def set_autolock(self, filepath: Path, locker: "DirectEdit", /) -> None:
         """Schedule the document lock."""
 
         if self._autolocked.get(filepath):
@@ -76,7 +78,7 @@ class ProcessAutoLockerWorker(PollWorker):
             log.exception("Unhandled error")
         return False
 
-    def orphan_unlocked(self, path: Path) -> None:
+    def orphan_unlocked(self, path: Path, /) -> None:
         """Unlock old documents, or documents from an old Direct Edit session."""
         self.dao.unlock_path(path)
 
@@ -127,17 +129,17 @@ class ProcessAutoLockerWorker(PollWorker):
         if current_locks:
             self._unlock_files(current_locks)
 
-    def _lock_files(self, items: Items) -> None:
+    def _lock_files(self, items: Items, /) -> None:
         """Schedule locks for the given documents."""
         for item in items:
             self._lock_file(item)
 
-    def _unlock_files(self, files: Iterable[Path]) -> None:
+    def _unlock_files(self, files: Iterable[Path], /) -> None:
         """Schedule unlocks for the given documents."""
         for path in files:
             self._unlock_file(path)
 
-    def _lock_file(self, item: Item) -> None:
+    def _lock_file(self, item: Item, /) -> None:
         """Lock a given document."""
         pid, path = item
         log.info(f"Locking file {path!r} (PID={pid!r})")
@@ -147,7 +149,7 @@ class ProcessAutoLockerWorker(PollWorker):
         self.dao.lock_path(path, pid, "")
         self._to_lock.remove(item)
 
-    def _unlock_file(self, path: Path) -> None:
+    def _unlock_file(self, path: Path, /) -> None:
         """Unlock a given document."""
         log.info(f"Unlocking file {path!r}")
         if path in self._lockers:

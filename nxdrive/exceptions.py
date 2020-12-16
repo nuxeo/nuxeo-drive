@@ -20,7 +20,7 @@ class AddonNotInstalledError(DriveError):
 class DocumentAlreadyLocked(DriveError):
     """ In Direct Edit, a document is locked by someone else. """
 
-    def __init__(self, username: str) -> None:
+    def __init__(self, username: str, /) -> None:
         self.username = username
 
     def __repr__(self) -> str:
@@ -42,7 +42,7 @@ class DuplicationDisabledError(ValueError):
 class EngineInitError(DriveError):
     """ Impossible to initialize a Engine. """
 
-    def __init__(self, engine: "Engine") -> None:
+    def __init__(self, engine: "Engine", /) -> None:
         self.engine = engine
 
     def __repr__(self) -> str:
@@ -98,7 +98,7 @@ class NotFound(OSError):
 class ParentNotSynced(ValueError):
     """ Fired when the parent folder of a document is not yet synchronized. """
 
-    def __init__(self, local_path: str, local_parent_path: str) -> None:
+    def __init__(self, local_path: str, local_parent_path: str, /) -> None:
         self.local_path = local_path
         self.local_parent_path = local_parent_path
 
@@ -121,7 +121,7 @@ class PairInterrupt(DriveError):
 class RootAlreadyBindWithDifferentAccount(DriveError):
     """ The bound folder is already used by another account. """
 
-    def __init__(self, username: str, url: str) -> None:
+    def __init__(self, username: str, url: str, /) -> None:
         self.username = username
         self.url = url
 
@@ -129,7 +129,7 @@ class RootAlreadyBindWithDifferentAccount(DriveError):
 class ScrollDescendantsError(DriveError):
     """ Raised when NuxeoDrive.ScrollDescendants returns something we cannot work with. """
 
-    def __init__(self, response: Any) -> None:
+    def __init__(self, response: Any, /) -> None:
         self.response = response
 
     def __repr__(self) -> str:
@@ -148,14 +148,14 @@ class StartupPageConnectionError(DriveError):
 class TransferCancelled(DriveError):
     """ A transfer has been cancelled, the file's processing should stop. """
 
-    def __init__(self, transfer_id: int) -> None:
+    def __init__(self, transfer_id: int, /) -> None:
         self.transfer_id = transfer_id
 
 
 class TransferPaused(DriveError):
     """ A transfer has been paused, the file's processing should stop. """
 
-    def __init__(self, transfer_id: int) -> None:
+    def __init__(self, transfer_id: int, /) -> None:
         self.transfer_id = transfer_id
 
 
@@ -180,7 +180,7 @@ class UploadCancelled(TransferCancelled):
 class UnknownDigest(ValueError):
     """ The digest doesn't fit any known algorithms. """
 
-    def __init__(self, digest: str) -> None:
+    def __init__(self, digest: str, /) -> None:
         self.digest = digest
 
     def __repr__(self) -> str:
@@ -193,7 +193,7 @@ class UnknownDigest(ValueError):
 class UnknownPairState(ValueError):
     """ The local and remote state don't fit any pair state. """
 
-    def __init__(self, local_state: str, remote_state: str) -> None:
+    def __init__(self, local_state: str, remote_state: str, /) -> None:
         self.local_state = local_state
         self.remote_state = remote_state
 

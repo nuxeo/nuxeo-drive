@@ -11,7 +11,7 @@ from ...utils import compute_fake_pid_from_path
 __all__ = ("get_other_opened_files",)
 
 
-def _get_opened_files_adobe_cc(obj: str) -> Iterator[Item]:
+def _get_opened_files_adobe_cc(obj: str, /) -> Iterator[Item]:
     """
     Retrieve documents path of opened files of the given *obj* (application).
     Where application is one of the Adobe Creative Suite:

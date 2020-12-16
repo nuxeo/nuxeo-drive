@@ -72,7 +72,7 @@ class WindowsIntegration(AbstractOSIntegration):
         return text
 
     @staticmethod
-    def cb_set(text: str) -> None:
+    def cb_set(text: str, /) -> None:
         """Copy some *text* into the clipboard.
         Emulate: CTRL + C
         """
@@ -84,7 +84,7 @@ class WindowsIntegration(AbstractOSIntegration):
         win32clipboard.CloseClipboard()
 
     @pyqtSlot(result=bool)
-    def install_addons(self, setup: str = "nuxeo-drive-addons.exe") -> bool:
+    def install_addons(self, *, setup: str = "nuxeo-drive-addons.exe") -> bool:
         """Install addons using the installer shipped within the main installer."""
         installer = Path(sys.executable).parent / setup
         if not installer.is_file():
@@ -101,7 +101,7 @@ class WindowsIntegration(AbstractOSIntegration):
         return False
 
     @staticmethod
-    def is_partition_supported(path: Path) -> bool:
+    def is_partition_supported(path: Path, /) -> bool:
         """
         Only NTFS is supported on Windows.
         FAT and FAT32 do not support extended attributes.
@@ -124,7 +124,7 @@ class WindowsIntegration(AbstractOSIntegration):
             for key, value in config.items()
         }
 
-    def open_local_file(self, file_path: str, select: bool = False) -> None:
+    def open_local_file(self, file_path: str, /, *, select: bool = False) -> None:
         """Note that this function must _not_ block the execution."""
         if select:
             win32api.ShellExecute(
@@ -169,7 +169,7 @@ class WindowsIntegration(AbstractOSIntegration):
 
     @if_frozen
     def register_contextual_menu_entry(
-        self, name: str, command: str, icon: str, n: int
+        self, name: str, command: str, icon: str, n: int, /
     ) -> None:
         registry.write(
             f"Software\\Classes\\*\\shell\\{APP_NAME}\\shell\\item{n}",
@@ -188,13 +188,13 @@ class WindowsIntegration(AbstractOSIntegration):
             registry.delete(f"Software\\Classes\\{item}\\shell\\{APP_NAME}")
 
     @if_frozen
-    def register_folder_link(self, path: Path) -> None:
+    def register_folder_link(self, path: Path, /) -> None:
         favorite = self._get_folder_link(path.name)
         if not favorite.is_file():
             self._create_shortcut(favorite, path)
 
     @if_frozen
-    def unregister_folder_link(self, path: Path) -> None:
+    def unregister_folder_link(self, path: Path, /) -> None:
         self._get_folder_link(path.name).unlink(missing_ok=True)
 
     @if_frozen
@@ -219,7 +219,7 @@ class WindowsIntegration(AbstractOSIntegration):
             "Software\\Microsoft\\Windows\\CurrentVersion\\Run", APP_NAME
         )
 
-    def _create_shortcut(self, favorite: Path, path: Path) -> None:
+    def _create_shortcut(self, favorite: Path, path: Path, /) -> None:
         try:
             shell = Dispatch("WScript.Shell")
             shortcut = shell.CreateShortCut(str(favorite))
@@ -236,7 +236,7 @@ class WindowsIntegration(AbstractOSIntegration):
         return Path(Options.home) / "Links" / f"{name or APP_NAME}.lnk"
 
     @if_frozen
-    def send_sync_status(self, state: DocPair, path: Path) -> None:
+    def send_sync_status(self, state: DocPair, path: Path, /) -> None:
         shell.SHChangeNotify(
             shellcon.SHCNE_UPDATEITEM,
             shellcon.SHCNF_PATH | shellcon.SHCNF_FLUSH,
@@ -244,7 +244,7 @@ class WindowsIntegration(AbstractOSIntegration):
             None,
         )
 
-    def _watch_or_ignore(self, folder: Path, action: str) -> None:
+    def _watch_or_ignore(self, folder: Path, action: str, /) -> None:
 
         if not self._manager:
             return
@@ -261,11 +261,11 @@ class WindowsIntegration(AbstractOSIntegration):
         log.info(f"{folder!r} is now in Explorer {action} list")
 
     @if_frozen
-    def watch_folder(self, folder: Path) -> None:
+    def watch_folder(self, folder: Path, /) -> None:
         self._watch_or_ignore(folder, "watch")
 
     @if_frozen
-    def unwatch_folder(self, folder: Path) -> None:
+    def unwatch_folder(self, folder: Path, /) -> None:
         self._watch_or_ignore(folder, "ignore")
 
     def get_extension_listener(self) -> WindowsExtensionListener:

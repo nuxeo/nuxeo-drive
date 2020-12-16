@@ -10,7 +10,7 @@ log = getLogger(__name__)
 
 
 class BlocklistItem:
-    def __init__(self, path: Path, next_try: int = 30) -> None:
+    def __init__(self, path: Path, /, *, next_try: int = 30) -> None:
         self.path = path
         self._interval = next_try
 
@@ -23,10 +23,10 @@ class BlocklistItem:
     def __str__(self) -> str:
         return repr(self)
 
-    def check(self, cur_time: int) -> bool:
+    def check(self, cur_time: int, /) -> bool:
         return cur_time > self._next_try
 
-    def increase(self, next_try: int = None) -> None:
+    def increase(self, *, next_try: int = None) -> None:
         # Only used in tests, but it is more practical to keep there.
         self.count += 1
         cur_time = int(monotonic())
@@ -37,7 +37,7 @@ class BlocklistItem:
 
 
 class BlocklistQueue:
-    def __init__(self, delay: int = 30) -> None:
+    def __init__(self, *, delay: int = 30) -> None:
         self._delay = delay
 
         self._queue: Dict[Path, BlocklistItem] = {}
@@ -54,13 +54,13 @@ class BlocklistQueue:
         with self._lock:
             return not bool(self._queue)
 
-    def push(self, path: Path) -> None:
+    def push(self, path: Path, /) -> None:
         with self._lock:
             item = BlocklistItem(path, next_try=self._delay)
             log.debug(f"Adding {item!r} for {self._delay} sec")
             self._queue[path] = item
 
-    def repush(self, item: BlocklistItem, increase_wait: bool = True) -> None:
+    def repush(self, item: BlocklistItem, /, *, increase_wait: bool = True) -> None:
         # Only used in tests, but it is more practical to keep there.
         with self._lock:
             item.increase(next_try=None if increase_wait else self._delay)

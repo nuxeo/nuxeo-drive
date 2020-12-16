@@ -11,7 +11,7 @@ from nxdrive.options import Options
 __all__ = ("check_executable_path", "check_os_version", "show_critical_error")
 
 
-def check_executable_path_error_qt(path: Path) -> None:
+def check_executable_path_error_qt(path: Path, /) -> None:
     """Display an error using Qt about the app not running from the right path."""
 
     from PyQt5.QtGui import QPixmap
@@ -35,7 +35,7 @@ def check_executable_path_error_qt(path: Path) -> None:
     msg.exec_()
 
 
-def fatal_error_qt(exc_formatted: str) -> None:
+def fatal_error_qt(exc_formatted: str, /) -> None:
     """Display a "friendly" dialog box on fatal error using Qt."""
 
     from PyQt5.QtCore import Qt, QUrl
@@ -52,7 +52,7 @@ def fatal_error_qt(exc_formatted: str) -> None:
     from nxdrive.translator import Translator
     from nxdrive.utils import find_icon, find_resource
 
-    def section(header: str, content: str) -> str:
+    def section(header: str, content: str, /) -> str:
         """Format a "section" of information."""
         return f"{header}\n```\n{content.strip()}\n```"
 
@@ -169,7 +169,7 @@ def fatal_error_qt(exc_formatted: str) -> None:
     app.exec_()
 
 
-def fatal_error_win(text: str) -> None:
+def fatal_error_win(text: str, /) -> None:
     """
     Display a fatal error using Windows-specific dialog.
     Taken from https://stackoverflow.com/a/27257176/1117028.
@@ -184,7 +184,7 @@ def fatal_error_win(text: str) -> None:
     ctypes.windll.user32.MessageBoxW(0, text, title, MB_OK | ICON_STOP)
 
 
-def fatal_error_mac(text: str) -> None:
+def fatal_error_mac(text: str, /) -> None:
     """Display a fatal error using macOS-specific dialog."""
 
     import subprocess

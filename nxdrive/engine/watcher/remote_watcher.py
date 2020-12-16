@@ -41,7 +41,7 @@ class RemoteWatcher(EngineWorker):
     noChangesFound = pyqtSignal()
     remoteWatcherStopped = pyqtSignal()
 
-    def __init__(self, engine: "Engine", dao: "EngineDAO") -> None:
+    def __init__(self, engine: "Engine", dao: "EngineDAO", /) -> None:
         super().__init__(engine, dao, name="RemoteWatcher")
 
         self.empty_polls = 0
@@ -86,7 +86,7 @@ class RemoteWatcher(EngineWorker):
             raise
 
     @tooltip("Remote scanning")
-    def scan_remote(self, from_state: DocPair = None) -> None:
+    def scan_remote(self, *, from_state: DocPair = None) -> None:
         """Recursively scan the bound remote folder looking for updates"""
         log.debug("Remote full scan")
         start = monotonic()
@@ -121,11 +121,11 @@ class RemoteWatcher(EngineWorker):
         self.remoteScanFinished.emit()
 
     @pyqtSlot(str)
-    def scan_pair(self, remote_path: str) -> None:
+    def scan_pair(self, remote_path: str, /) -> None:
         self.dao.add_path_to_scan(str(remote_path))
         self._next_check = 0
 
-    def _scan_pair(self, remote_path: str) -> None:
+    def _scan_pair(self, remote_path: str, /) -> None:
         if remote_path is None:
             return
         remote_path = str(remote_path)
@@ -175,7 +175,7 @@ class RemoteWatcher(EngineWorker):
             self.scan_remote()
 
     @staticmethod
-    def _check_modified(pair: DocPair, info: RemoteFileInfo) -> bool:
+    def _check_modified(pair: DocPair, info: RemoteFileInfo, /) -> bool:
         return any(
             {
                 pair.remote_can_delete != info.can_delete,
@@ -192,6 +192,8 @@ class RemoteWatcher(EngineWorker):
         self,
         doc_pair: DocPair,
         remote_info: RemoteFileInfo,
+        /,
+        *,
         force_recursion: bool = True,
         moved: bool = False,
     ) -> None:
@@ -211,7 +213,7 @@ class RemoteWatcher(EngineWorker):
             )
 
     def _scan_remote_scroll(
-        self, doc_pair: DocPair, remote_info: RemoteFileInfo, moved: bool = False
+        self, doc_pair: DocPair, remote_info: RemoteFileInfo, /, *, moved: bool = False
     ) -> None:
         """
         Perform a scroll scan of the bound remote folder looking for updates.
@@ -355,6 +357,8 @@ class RemoteWatcher(EngineWorker):
         self,
         doc_pair: DocPair,
         remote_info: RemoteFileInfo,
+        /,
+        *,
         force_recursion: bool = True,
     ) -> None:
         """
@@ -427,7 +431,7 @@ class RemoteWatcher(EngineWorker):
         self.dao.add_path_scanned(remote_parent_path)
 
     def _init_scan_remote(
-        self, doc_pair: DocPair, remote_info: RemoteFileInfo
+        self, doc_pair: DocPair, remote_info: RemoteFileInfo, /
     ) -> Optional[str]:
         if remote_info is None:
             raise ValueError(f"Cannot bind {doc_pair!r} to missing remote info")
@@ -451,7 +455,7 @@ class RemoteWatcher(EngineWorker):
         return remote_parent_path
 
     def _find_remote_child_match_or_create(
-        self, parent_pair: DocPair, child_info: RemoteFileInfo
+        self, parent_pair: DocPair, child_info: RemoteFileInfo, /
     ) -> Optional[Tuple[DocPair, bool]]:
         if parent_pair.last_error == "DEDUP":
             log.info(
@@ -570,7 +574,7 @@ class RemoteWatcher(EngineWorker):
         child_pair = self.dao.get_state_from_id(row_id, from_write=True)
         return (child_pair, True) if child_pair else None
 
-    def _handle_readonly(self, doc_pair: DocPair) -> None:
+    def _handle_readonly(self, doc_pair: DocPair, /) -> None:
         # Don't use readonly on folder for win32 and on Locally Edited
         if doc_pair.folderish and WINDOWS:
             return
@@ -581,7 +585,7 @@ class RemoteWatcher(EngineWorker):
             log.info(f"Unsetting {doc_pair.local_path!r} as readonly")
             self.engine.local.unset_readonly(doc_pair.local_path)
 
-    def _partial_full_scan(self, path: str) -> None:
+    def _partial_full_scan(self, path: str, /) -> None:
         log.info(f"Continue full scan of {path!r}")
         if path == "/":
             self.scan_remote()
@@ -602,7 +606,7 @@ class RemoteWatcher(EngineWorker):
 
         return not online
 
-    def _handle_changes(self, first_pass: bool = False) -> bool:
+    def _handle_changes(self, *, first_pass: bool = False) -> bool:
         # If synchronization features are disabled, we just need to emit
         # the appropriate signal to let the systray icon be updated.
         if not Options.synchronization_enabled:
@@ -719,6 +723,8 @@ class RemoteWatcher(EngineWorker):
         self,
         doc_pair: DocPair,
         remote_info: RemoteFileInfo,
+        /,
+        *,
         remote_path: str = None,
         force_recursion: bool = True,
         moved: bool = False,
@@ -1059,7 +1065,7 @@ class RemoteWatcher(EngineWorker):
             self.dao.delete_remote_state(delete_pair)
             self.remove_void_transfers(delete_pair)
 
-    def filtered(self, info: Optional[RemoteFileInfo]) -> bool:
+    def filtered(self, info: Optional[RemoteFileInfo], /) -> bool:
         """ Check if a remote document is locally ignored. """
         return (
             info is not None

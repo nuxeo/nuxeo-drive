@@ -20,7 +20,7 @@ log = getLogger(__name__)
 class FileInfo:
     """The base class of a document."""
 
-    def __init__(self, parent: QObject = None) -> None:
+    def __init__(self, *, parent: QObject = None) -> None:
         self.parent = parent
         self.children: List["FileInfo"] = []
 
@@ -34,7 +34,7 @@ class FileInfo:
             f"label={self.get_label()}, parent={self.get_path()!r}>"
         )
 
-    def add_child(self, child: "FileInfo") -> None:
+    def add_child(self, child: "FileInfo", /) -> None:
         """Add a new child to the parent item."""
         self.children.append(child)
 
@@ -82,7 +82,7 @@ class FileInfo:
 class Doc(FileInfo):
     """A folderish document. Used by the Direct Transfer feature."""
 
-    def __init__(self, doc: Document, parent: FileInfo = None) -> None:
+    def __init__(self, doc: Document, /, *, parent: FileInfo = None) -> None:
         super().__init__(parent=parent)
         self.doc = doc
 
@@ -125,7 +125,12 @@ class FilteredDoc(FileInfo):
     """A document. Used by the filters feature."""
 
     def __init__(
-        self, fs_info: RemoteFileInfo, state: Qt.CheckState, parent: "Documents" = None
+        self,
+        fs_info: RemoteFileInfo,
+        state: Qt.CheckState,
+        /,
+        *,
+        parent: "Documents" = None,
     ) -> None:
         super().__init__(parent=parent)
 
@@ -168,12 +173,12 @@ class FilteredDoc(FileInfo):
 class FilteredDocuments:
     """Display all documents (files and folders) of all sync roots. Used by the filters feature."""
 
-    def __init__(self, remote: Remote, filters: Filters) -> None:
+    def __init__(self, remote: Remote, filters: Filters, /) -> None:
         self.remote = remote
         self.filters = tuple(filters)
         self.roots: List["Documents"] = []
 
-    def get_item_state(self, path: str) -> Qt.CheckState:
+    def get_item_state(self, path: str, /) -> Qt.CheckState:
         """Guess the new item state based on its parent state from actual filtered documents."""
         if not path.endswith("/"):
             path += "/"
@@ -196,7 +201,7 @@ class FilteredDocuments:
             self.roots.append(root)
             yield root
 
-    def get_children(self, parent: "Documents") -> Iterator["Documents"]:
+    def get_children(self, parent: "Documents", /) -> Iterator["Documents"]:
         """Fetch children of a given *parent*."""
         for info in self.remote.get_fs_children(parent.get_id(), filtered=False):
             yield FilteredDoc(info, self.get_item_state(info.path), parent=parent)
@@ -205,7 +210,7 @@ class FilteredDocuments:
 class FoldersOnly:
     """Display _all_, and only, folders from the remote server. Used by the Direct Transfer feature."""
 
-    def __init__(self, remote: Remote) -> None:
+    def __init__(self, remote: Remote, /) -> None:
         self.remote = remote
         self.children = partial(
             self.remote.documents.get_children, enrichers=["permissions"]
@@ -251,7 +256,7 @@ class FoldersOnly:
             log.warning("Error while retrieving documents on '/'", exc_info=True)
             yield Doc(Document(title="/", contextParameters={"permissions": []}))
 
-    def get_children(self, parent: "Documents") -> Iterator["Documents"]:
+    def get_children(self, parent: "Documents", /) -> Iterator["Documents"]:
         """Fetch children of a given *parent*."""
         for doc in self.children(uid=parent.get_id()):
             if "Folderish" in doc.facets:

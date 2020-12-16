@@ -41,7 +41,7 @@ class Runner(QRunnable):
 class Worker(QObject):
     """" Utility class that handle one thread. """
 
-    def __init__(self, thread: QThread = None, **kwargs: Any) -> None:
+    def __init__(self, *, thread: QThread = None, **kwargs: Any) -> None:
         super().__init__()
         if thread is None:
             thread = QThread()
@@ -160,7 +160,7 @@ class Worker(QObject):
         return self._action
 
     @action.setter
-    def action(self, value: Any) -> None:
+    def action(self, value: Any, /) -> None:
         self._action = value
 
     def get_metrics(self) -> Metrics:
@@ -208,14 +208,20 @@ class Worker(QObject):
 
 class EngineWorker(Worker):
     def __init__(
-        self, engine: "Engine", dao: "EngineDAO", thread: QThread = None, **kwargs: Any
+        self,
+        engine: "Engine",
+        dao: "EngineDAO",
+        /,
+        *,
+        thread: QThread = None,
+        **kwargs: Any,
     ) -> None:
         super().__init__(thread=thread, **kwargs)
         self.engine = engine
         self.dao = dao
 
     def giveup_error(
-        self, doc_pair: DocPair, error: str, exception: Exception = None
+        self, doc_pair: DocPair, error: str, /, *, exception: Exception = None
     ) -> None:
         details = str(exception) if exception else None
         log.info(f"Give up for error [{error}] ({details}) for {doc_pair!r}")
@@ -230,7 +236,7 @@ class EngineWorker(Worker):
         self.engine.send_metric("sync", "error", error)
 
     def increase_error(
-        self, doc_pair: DocPair, error: str, exception: Exception = None
+        self, doc_pair: DocPair, error: str, /, *, exception: Exception = None
     ) -> None:
         details = None
         if exception:
@@ -239,7 +245,7 @@ class EngineWorker(Worker):
         self.dao.increase_error(doc_pair, error, details=details)
         self.engine.queue_manager.push_error(doc_pair, exception=exception)
 
-    def remove_void_transfers(self, doc_pair: DocPair) -> None:
+    def remove_void_transfers(self, doc_pair: DocPair, /) -> None:
         """ Remove uploads and downloads on the target doc pair. """
         if doc_pair.folderish:
             # Folderish documents don't use transfers
@@ -254,7 +260,7 @@ class EngineWorker(Worker):
 
 class PollWorker(Worker):
     def __init__(
-        self, check_interval: int, thread: QThread = None, **kwargs: Any
+        self, check_interval: int, /, *, thread: QThread = None, **kwargs: Any
     ) -> None:
         super().__init__(thread=thread, **kwargs)
         # Be sure to run on start

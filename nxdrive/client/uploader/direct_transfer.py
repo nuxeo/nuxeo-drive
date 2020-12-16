@@ -18,7 +18,7 @@ class DirectTransferUploader(BaseUploader):
     linking_action = LinkingAction
     upload_action = UploadAction
 
-    def exists(self, parent_ref: str, name: str) -> bool:
+    def exists(self, parent_ref: str, name: str, /) -> bool:
         """
         Fetch a document based on its parent's UID and document's name.
         Return True if such document exists.
@@ -33,12 +33,12 @@ class DirectTransferUploader(BaseUploader):
         )
         return bool(self.remote.query(query)["totalSize"])
 
-    def get_upload(self, file_path: Path) -> Optional[Upload]:
+    def get_upload(self, file_path: Path, /) -> Optional[Upload]:
         """Retrieve the eventual transfer associated to the given *file_path*."""
         ret: Optional[Upload] = self.dao.get_dt_upload(path=file_path)
         return ret
 
-    def get_upload_by_doc_pair(self, doc_pair: int = None) -> Optional[Upload]:
+    def get_upload_by_doc_pair(self, *, doc_pair: int = None) -> Optional[Upload]:
         """Retrieve the eventual transfer associated to the given *doc_pair*."""
         ret: Optional[Upload] = self.dao.get_dt_upload(doc_pair=doc_pair)
         return ret
@@ -46,6 +46,8 @@ class DirectTransferUploader(BaseUploader):
     def upload(
         self,
         file_path: Path,
+        /,
+        *,
         command: str = None,
         filename: str = None,
         **kwargs: Any,
@@ -108,7 +110,7 @@ class DirectTransferUploader(BaseUploader):
 
         return item
 
-    def upload_folder(self, **kwargs: Any) -> Dict[str, Any]:
+    def upload_folder(self, /, **kwargs: Any) -> Dict[str, Any]:
         """Create a folder using the FileManager."""
         res: Dict[str, Any] = self.remote.execute(
             command="FileManager.CreateFolder",

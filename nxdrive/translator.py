@@ -18,7 +18,7 @@ class Translator(QTranslator):
     singleton = None
     current_language: str = ""
 
-    def __init__(self, path: Path, lang: str = None) -> None:
+    def __init__(self, path: Path, /, *, lang: str = None) -> None:
         super().__init__()
         self._labels: Dict[str, Dict[str, str]] = {}
 
@@ -45,7 +45,9 @@ class Translator(QTranslator):
 
         Translator.singleton = self
 
-    def translate(self, _context: str, text: str, _disambiguation: str, _n: int) -> str:
+    def translate(
+        self, _context: str, text: str, _disambiguation: str, _n: int, /
+    ) -> str:
         """
         *_context* is set by PyQt, e.g.: QQmlImportDatabase or Conflicts.
         *text* is the translation label or english PyQt error message, e.g.: EXTRA_FILE_COUNT or "is not a type".
@@ -63,7 +65,7 @@ class Translator(QTranslator):
         return ""
 
     @staticmethod
-    def guess_label(filename: str) -> str:
+    def guess_label(filename: str, /) -> str:
         """
         Guess the language ID from a given filename.
             'i18n.json' -> 'en'
@@ -76,13 +78,13 @@ class Translator(QTranslator):
         return label
 
     @staticmethod
-    def on_change(func: Callable) -> None:
+    def on_change(func: Callable, /) -> None:
         if not Translator.singleton:
             raise RuntimeError("Translator not initialized")
         Translator.singleton.languageChanged.connect(func)
 
     @staticmethod
-    def _tokenize(label: str, values: List[Any] = None) -> str:
+    def _tokenize(label: str, /, *, values: List[Any] = None) -> str:
         """
         Format the label with its arguments.
 
@@ -98,7 +100,7 @@ class Translator(QTranslator):
         result = re.sub(r"%(\d+)", r"{\1}", label)
         return result.format(*([""] + values))
 
-    def get_translation(self, label: str, values: List[Any] = None) -> str:
+    def get_translation(self, label: str, /, *, values: List[Any] = None) -> str:
         if label not in self._current:
             if label not in self._fallback:
                 return label
@@ -106,7 +108,7 @@ class Translator(QTranslator):
         return self._tokenize(self._current[label], values)
 
     @pyqtSlot(str)
-    def set_language(self, lang: str) -> None:
+    def set_language(self, lang: str, /) -> None:
         try:
             self._current = self._labels[lang]
         except KeyError:
@@ -117,13 +119,13 @@ class Translator(QTranslator):
                 self.languageChanged.emit()
 
     @staticmethod
-    def set(lang: str) -> None:
+    def set(lang: str, /) -> None:
         if not Translator.singleton:
             raise RuntimeError("Translator not initialized")
         Translator.singleton.set_language(lang)
 
     @staticmethod
-    def format_datetime(date: datetime) -> str:
+    def format_datetime(date: datetime, /) -> str:
         return date.strftime(Translator.get("DATETIME_FORMAT"))
 
     @staticmethod
@@ -133,7 +135,7 @@ class Translator(QTranslator):
         return Translator.singleton.current_language
 
     @staticmethod
-    def get(label: str, values: List[str] = None) -> str:
+    def get(label: str, /, *, values: List[str] = None) -> str:
         if not Translator.singleton:
             raise RuntimeError("Translator not initialized")
         return Translator.singleton.get_translation(label, values)

@@ -11,7 +11,7 @@ __all__ = ("fix_db", "restore_backup", "save_backup")
 log = getLogger(__name__)
 
 
-def is_healthy(database: Path) -> bool:
+def is_healthy(database: Path, /) -> bool:
     """
     Integrity check of the entire database.
     http://www.sqlite.org/pragma.html#pragma_integrity_check
@@ -23,7 +23,7 @@ def is_healthy(database: Path) -> bool:
         return bool(status[0] == "ok")
 
 
-def dump(database: Path, dump_file: Path) -> None:
+def dump(database: Path, dump_file: Path, /) -> None:
     """
     Dump the entire database content into `dump_file`.
     This function provides the same capabilities as the .dump command
@@ -44,7 +44,7 @@ def dump(database: Path, dump_file: Path) -> None:
     log.info("Dump finished with success.")
 
 
-def read(dump_file: Path, database: Path) -> None:
+def read(dump_file: Path, database: Path, /) -> None:
     """
     Load the `dump_file` content into the given database.
     This function provides the same capabilities as the .read command
@@ -57,7 +57,7 @@ def read(dump_file: Path, database: Path) -> None:
     log.info("Restoration done with success.")
 
 
-def fix_db(database: Path, dump_file: Path = Path("dump.sql")) -> None:
+def fix_db(database: Path, /, *, dump_file: Path = Path("dump.sql")) -> None:
     """
     Re-generate the whole database content to fix eventual FS corruptions.
     This will prevent `sqlite3.DatabaseError: database disk image is malformed`
@@ -106,7 +106,7 @@ def fix_db(database: Path, dump_file: Path = Path("dump.sql")) -> None:
     log.info(f"Re-generation completed, saved {(old_size - new_size) / 1024} Kb.")
 
 
-def restore_backup(database: Path) -> bool:
+def restore_backup(database: Path, /) -> bool:
     """
     Restore a backup of a given database.
 
@@ -135,7 +135,7 @@ def restore_backup(database: Path) -> bool:
     return True
 
 
-def save_backup(database: Path) -> bool:
+def save_backup(database: Path, /) -> bool:
     """
     Save a backup of a given database.
 

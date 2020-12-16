@@ -11,7 +11,7 @@ from . import BaseUploader
 class SyncUploader(BaseUploader):
     """Upload capabilities for the synchronization engine."""
 
-    def get_upload(self, file_path: Path) -> Optional[Upload]:
+    def get_upload(self, file_path: Path, /) -> Optional[Upload]:
         """Retrieve the eventual transfer associated to the given *file_path*."""
         ret: Optional[Upload] = self.dao.get_upload(path=file_path)
         return ret
@@ -21,6 +21,7 @@ class SyncUploader(BaseUploader):
         file_path: Path,
         command: str,
         filename: str = None,
+        /,
         **kwargs: Any,
     ) -> Dict[str, Any]:
         """See BaseUploader.upload_impl()."""
