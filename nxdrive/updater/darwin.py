@@ -28,7 +28,7 @@ class Updater(BaseUpdater):
     ext = "dmg"
     release_file = "nuxeo-drive-{version}.dmg"
 
-    def install(self, filename: str) -> None:
+    def install(self, filename: str, /) -> None:
         """
         Steps:
             - mount the.dmg
@@ -70,7 +70,7 @@ class Updater(BaseUpdater):
         self._set_progress(100)
         self._restart()
 
-    def _mount(self, filename: str) -> str:
+    def _mount(self, filename: str, /) -> str:
         """Mount the DMG and return the mount point."""
         cmd = ["hdiutil", "mount", "-plist", filename]
         log.info(f"Mounting file {filename!r}")
@@ -84,7 +84,7 @@ class Updater(BaseUpdater):
         log.info(f"Mounted {dev_entry!r} into {mount_point!r}")
         return mount_point
 
-    def _unmount(self, mount_point: str) -> None:
+    def _unmount(self, mount_point: str, /) -> None:
         """Unmount the DMG."""
         cmd = ["hdiutil", "unmount", "-force", mount_point]
         log.info(f"Unmounting {mount_point!r}")
@@ -97,7 +97,7 @@ class Updater(BaseUpdater):
                 exc_info=True,
             )
 
-    def _backup(self, restore: bool = False) -> None:
+    def _backup(self, *, restore: bool = False) -> None:
         """ Backup or restore the current application. """
 
         src = self.final_app
@@ -117,7 +117,7 @@ class Updater(BaseUpdater):
         # TODO: remove str() when upgrading to Python 3.9 XXX_PYTHON
         shutil.move(str(src), dst)
 
-    def _cleanup(self, filename: str) -> None:
+    def _cleanup(self, filename: str, /) -> None:
         """ Remove some files. """
 
         paths = (f"{self.final_app}.old", filename)
@@ -126,14 +126,14 @@ class Updater(BaseUpdater):
                 shutil.rmtree(path)
                 log.info(f"Deleted {path!r}")
 
-    def _copy(self, mount_dir: str) -> None:
+    def _copy(self, mount_dir: str, /) -> None:
         """ Copy the new application content to /Applications. """
 
         src = f"{mount_dir}/{APP_NAME}.app"
         log.info(f"Copying {src!r} -> {self.final_app!r}")
         shutil.copytree(src, self.final_app)
 
-    def _fix_notarization(self, path: str) -> None:
+    def _fix_notarization(self, path: str, /) -> None:
         """Fix the notarization (enforced security since February 2020)"""
         with suppress(subprocess.CalledProcessError):
             subprocess.check_call(["xattr", "-d", "com.apple.quarantine", path])

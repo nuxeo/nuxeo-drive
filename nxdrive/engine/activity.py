@@ -22,7 +22,7 @@ __all__ = (
 class Action(QObject):
     actions: Dict[int, Optional["Action"]] = {}
 
-    def __init__(self, action_type: str = None, progress: float = 0.0) -> None:
+    def __init__(self, *, action_type: str = None, progress: float = 0.0) -> None:
         super().__init__()
 
         self.type = action_type
@@ -40,7 +40,7 @@ class Action(QObject):
         return self._progress
 
     @progress.setter
-    def progress(self, value: float) -> None:
+    def progress(self, value: float, /) -> None:
         self._progress = value
 
     def get_percent(self) -> float:
@@ -51,7 +51,7 @@ class Action(QObject):
         return Action.actions.copy()
 
     @staticmethod
-    def get_current_action(thread_id: int = None) -> Optional["Action"]:
+    def get_current_action(*, thread_id: int = None) -> Optional["Action"]:
         idx = thread_id or current_thread_id()
         return Action.actions.get(idx, None) if idx else None
 
@@ -92,6 +92,8 @@ class FileAction(Action):
         action_type: str,
         filepath: Path,
         size: int,
+        /,
+        *,
         tmppath: Path = None,
         reporter: Any = None,
         engine: str = "",
@@ -127,7 +129,7 @@ class FileAction(Action):
         self._connect_reporter(reporter)
         self.started.emit(self)
 
-    def _connect_reporter(self, reporter: Optional[QApplication]) -> None:
+    def _connect_reporter(self, reporter: Optional[QApplication], /) -> None:
         if not reporter:
             return
 
@@ -141,7 +143,7 @@ class FileAction(Action):
         return self._progress
 
     @progress.setter
-    def progress(self, value: float) -> None:
+    def progress(self, value: float, /) -> None:
         self._progress = value
 
         if self.empty and not self.uploaded:
@@ -190,7 +192,13 @@ class DownloadAction(FileAction):
     """Download: step 1/2 - Download the file."""
 
     def __init__(
-        self, filepath: Path, size: int, tmppath: Path = None, reporter: Any = None
+        self,
+        filepath: Path,
+        size: int,
+        /,
+        *,
+        tmppath: Path = None,
+        reporter: Any = None,
     ) -> None:
         super().__init__("Download", filepath, size, tmppath=tmppath, reporter=reporter)
 
@@ -198,7 +206,7 @@ class DownloadAction(FileAction):
 class VerificationAction(FileAction):
     """Download: step 2/2 - Checking the file integrity."""
 
-    def __init__(self, filepath: Path, size: int, reporter: Any = None) -> None:
+    def __init__(self, filepath: Path, size: int, /, *, reporter: Any = None) -> None:
         super().__init__("Verification", filepath, size, reporter=reporter)
 
 
@@ -209,6 +217,8 @@ class UploadAction(FileAction):
         self,
         filepath: Path,
         size: int,
+        /,
+        *,
         reporter: Any = None,
         engine: str = "",
         doc_pair: int = None,
@@ -230,6 +240,8 @@ class LinkingAction(FileAction):
         self,
         filepath: Path,
         size: int,
+        /,
+        *,
         reporter: Any = None,
         engine: str = "",
         doc_pair: int = None,

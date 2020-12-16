@@ -27,17 +27,17 @@ def disable_overlay() -> None:
     registry.write(OVERLAYS_REGISTRY_KEY, {ENABLE_OVERLAY: "0"})
 
 
-def set_filter_folders(paths: Set[Path]) -> None:
+def set_filter_folders(paths: Set[Path], /) -> None:
     filters = json.dumps([str(path) for path in paths])
     registry.write(OVERLAYS_REGISTRY_KEY, {FILTER_FOLDERS: filters})
 
 
-def refresh_files(paths: List[Path]) -> None:
+def refresh_files(paths: List[Path], /) -> None:
     for path in paths:
         update_explorer(path)
 
 
-def update_explorer(path: Path) -> None:
+def update_explorer(path: Path, /) -> None:
     shell.SHChangeNotify(
         shellcon.SHCNE_UPDATEITEM,
         shellcon.SHCNF_PATH | shellcon.SHCNF_FLUSH,
@@ -61,13 +61,13 @@ class WindowsExtensionListener(ExtensionListener):
         super().__init__(*args, **kwargs)
         self.handlers["getFileIconId"] = self.handle_status
 
-    def _parse_payload(self, payload: bytes) -> str:
+    def _parse_payload(self, payload: bytes, /) -> str:
         return payload.replace(b"\0", b"").decode("cp1252")
 
-    def _format_response(self, response: str) -> bytes:
+    def _format_response(self, response: str, /) -> bytes:
         return force_encode(chr(0).join(response) + chr(0))
 
-    def handle_status(self, path: Any) -> Optional[Dict[str, str]]:
+    def handle_status(self, path: Any, /) -> Optional[Dict[str, str]]:
         if not isinstance(path, str):
             return None
         path = Path(unicodedata.normalize("NFC", path))

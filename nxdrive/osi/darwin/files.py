@@ -11,7 +11,7 @@ from ...utils import compute_fake_pid_from_path
 __all__ = ("get_other_opened_files",)
 
 
-def _is_running(identifier: str) -> bool:
+def _is_running(identifier: str, /) -> bool:
     """
     Check if a given application bundle identifier is found in
     the list of opened applications, meaning it is running.
@@ -27,7 +27,7 @@ def _is_running(identifier: str) -> bool:
     return any(str(app.bundleIdentifier()) == identifier for app in running_apps)
 
 
-def _get_opened_files_adobe_cc(identifier: str) -> Iterator[Item]:
+def _get_opened_files_adobe_cc(identifier: str, /) -> Iterator[Item]:
     """
     Retrieve documents path of opened files of the given bundle *identifier* (application).
     Where application is one of the Adobe Creative Suite:

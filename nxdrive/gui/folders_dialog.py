@@ -38,7 +38,7 @@ DOC_URL = "https://doc.nuxeo.com/n/CBX/#duplicates-behavior"
 class DialogMixin(QDialog):
     """The base class for the tree view window."""
 
-    def __init__(self, application: "Application", engine: Engine) -> None:
+    def __init__(self, application: "Application", engine: Engine, /) -> None:
         super().__init__(None)
 
         # Customize the window
@@ -80,7 +80,7 @@ class DocumentsDialog(DialogMixin):
     # The windows's title
     title_label = "FILTERS_WINDOW_TITLE"
 
-    def __init__(self, application: "Application", engine: Engine) -> None:
+    def __init__(self, application: "Application", engine: Engine, /) -> None:
         super().__init__(application, engine)
 
         self.vertical_layout.addWidget(self.tree_view)
@@ -185,7 +185,7 @@ class DocumentsDialog(DialogMixin):
         if not self.engine.is_started():
             self.engine.start()
 
-    def _select_unselect_all_roots(self, _: Qt.CheckState) -> None:
+    def _select_unselect_all_roots(self, _: Qt.CheckState, /) -> None:
         """The Select/Unselect all roots button."""
         state = Qt.Checked if self.select_all_state else Qt.Unchecked
 
@@ -208,7 +208,7 @@ class FoldersDialog(DialogMixin):
     title_label = "DIRECT_TRANSFER_WINDOW_TITLE"
 
     def __init__(
-        self, application: "Application", engine: Engine, path: Optional[Path]
+        self, application: "Application", engine: Engine, path: Optional[Path], /
     ) -> None:
         """*path* is None when the dialog window is opened from a click on the systray menu icon."""
 
@@ -307,7 +307,7 @@ class FoldersDialog(DialogMixin):
 
         return groupbox
 
-    def _add_subgroup_duplicate_behavior(self, layout: QHBoxLayout) -> None:
+    def _add_subgroup_duplicate_behavior(self, layout: QHBoxLayout, /) -> None:
         """Add a sub-group for the duplicates behavior option."""
         label = QLabel(Translator.get("DUPLICATE_BEHAVIOR", [DOC_URL]))
         label.setToolTip(Translator.get("DUPLICATE_BEHAVIOR_TOOLTIP"))
@@ -363,7 +363,7 @@ class FoldersDialog(DialogMixin):
             txt += f" (+{self.overall_count - 1:,})"
         return txt
 
-    def _process_additionnal_local_paths(self, paths: List[str]) -> None:
+    def _process_additionnal_local_paths(self, paths: List[str], /) -> None:
         """Append more local paths to the upload queue."""
         for local_path in paths:
             if not local_path:

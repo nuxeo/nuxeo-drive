@@ -35,7 +35,7 @@ log = getLogger(__name__)
 class LocalClient(LocalClientMixin):
     """Windows client API implementation for the local file system."""
 
-    def change_created_time(self, filepath: Path, d_ctime: datetime) -> None:
+    def change_created_time(self, filepath: Path, d_ctime: datetime, /) -> None:
         """Change the created time of a given file."""
         winfile = win32file.CreateFileW(
             str(filepath),
@@ -53,7 +53,7 @@ class LocalClient(LocalClientMixin):
         win32file.SetFileTime(winfile, d_ctime)
 
     @staticmethod
-    def get_path_remote_id(path: Path, name: str = "ndrive") -> str:
+    def get_path_remote_id(path: Path, /, *, name: str = "ndrive") -> str:
         """Get a given extended attribute from a file/folder."""
         try:
             with open(f"{path}:{name}", "rb") as f:
@@ -61,11 +61,11 @@ class LocalClient(LocalClientMixin):
         except OSError:
             return ""
 
-    def has_folder_icon(self, ref: Path) -> bool:
+    def has_folder_icon(self, ref: Path, /) -> bool:
         """Check if the folder icon is set."""
         return (self.abspath(ref) / "desktop.ini").is_file()
 
-    def is_ignored(self, parent_ref: Path, file_name: str) -> bool:
+    def is_ignored(self, parent_ref: Path, file_name: str, /) -> bool:
         """ Note: added parent_ref to be able to filter on size if needed. """
 
         file_name = safe_filename(force_decode(file_name.lower()))
@@ -98,7 +98,7 @@ class LocalClient(LocalClientMixin):
 
         return result
 
-    def remove_remote_id_impl(self, path: Path, name: str = "ndrive") -> None:
+    def remove_remote_id_impl(self, path: Path, /, *, name: str = "ndrive") -> None:
         """Remove a given extended attribute."""
         path_alt = f"{path}:{name}"
         try:
@@ -112,7 +112,8 @@ class LocalClient(LocalClientMixin):
             finally:
                 set_path_readonly(path)
 
-    def set_file_attribute(self, path: Path) -> None:
+    @staticmethod
+    def set_file_attribute(path: Path, /) -> None:
         """Set a special attribute (not extended attribute) to a given file."""
         # 128 = FILE_ATTRIBUTE_NORMAL (a file that does not have other attributes set)
         # See http://msdn.microsoft.com/en-us/library/aa365535%28v=vs.85%29.aspx
@@ -147,7 +148,7 @@ FolderType=Generic
 
     @staticmethod
     def set_path_remote_id(
-        path: Path, remote_id: Union[bytes, str], name: str = "ndrive"
+        path: Path, remote_id: Union[bytes, str], /, *, name: str = "ndrive"
     ) -> None:
         if not isinstance(remote_id, bytes):
             remote_id = unicodedata.normalize("NFC", remote_id).encode("utf-8")
@@ -183,6 +184,6 @@ FolderType=Generic
         finally:
             lock_path(path, locker)
 
-    def trash(self, path: Path) -> None:
+    def trash(self, path: Path, /) -> None:
         """Move a given file or folder to the trash. Untrash is possible then."""
         send2trash(str(path))

@@ -26,7 +26,7 @@ class LocalClient(LocalClientMixin):
 
     shared_icons = Path.home() / ".local/share/icons"
 
-    def has_folder_icon(self, ref: Path) -> bool:
+    def has_folder_icon(self, ref: Path, /) -> bool:
         """Check if the folder icon is set."""
         emblem = self.shared_icons / "emblem-nuxeo.svg"
 
@@ -45,7 +45,7 @@ class LocalClient(LocalClientMixin):
         return bool(matcher.findall(output))
 
     @staticmethod
-    def get_path_remote_id(path: Path, name: str = "ndrive") -> str:
+    def get_path_remote_id(path: Path, /, *, name: str = "ndrive") -> str:
         """Get a given extended attribute from a file/folder."""
         try:
             return (
@@ -56,7 +56,7 @@ class LocalClient(LocalClientMixin):
             return ""
 
     @staticmethod
-    def remove_remote_id_impl(path: Path, name: str = "ndrive") -> None:
+    def remove_remote_id_impl(path: Path, /, *, name: str = "ndrive") -> None:
         """Remove a given extended attribute."""
         try:
             os.removexattr(path, f"user.{name}")  # type: ignore
@@ -66,7 +66,7 @@ class LocalClient(LocalClientMixin):
             if exc.errno not in (errno.ENODATA, errno.EPROTONOSUPPORT):
                 raise exc
 
-    def set_folder_icon(self, ref: Path, icon: Path) -> None:
+    def set_folder_icon(self, ref: Path, icon: Path, /) -> None:
         """Use commandline to customize the folder icon."""
         folder = self.abspath(ref)
 
@@ -99,7 +99,7 @@ class LocalClient(LocalClientMixin):
 
     @staticmethod
     def set_path_remote_id(
-        path: Path, remote_id: Union[bytes, str], name: str = "ndrive"
+        path: Path, remote_id: Union[bytes, str], /, *, name: str = "ndrive"
     ) -> None:
         if not isinstance(remote_id, bytes):
             remote_id = unicodedata.normalize("NFC", remote_id).encode("utf-8")
@@ -114,6 +114,6 @@ class LocalClient(LocalClientMixin):
         finally:
             lock_path(path, locker)
 
-    def trash(self, path: Path) -> None:
+    def trash(self, path: Path, /) -> None:
         """Move a given file or folder to the trash. Untrash is possible then."""
         send2trash(str(path))

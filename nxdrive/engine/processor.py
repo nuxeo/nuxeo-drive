@@ -65,14 +65,16 @@ class Processor(EngineWorker):
 
     _current_doc_pair: Optional[DocPair] = None
 
-    def __init__(self, engine: "Engine", item_getter: Callable, **kwargs: Any) -> None:
+    def __init__(
+        self, engine: "Engine", item_getter: Callable, /, **kwargs: Any
+    ) -> None:
         super().__init__(engine, engine.dao, **kwargs)
         self._get_item = item_getter
         self.engine = engine
         self.local = self.engine.local
         self.remote = self.engine.remote
 
-    def _unlock_soft_path(self, path: Path) -> None:
+    def _unlock_soft_path(self, path: Path, /) -> None:
         log.debug(f"Soft unlocking {path!r}")
         path = Path(str(path).lower())
         with Processor.path_locker:
@@ -81,7 +83,7 @@ class Processor(EngineWorker):
             else:
                 Processor.soft_locks[self.engine.uid].pop(path, None)
 
-    def _unlock_readonly(self, path: Path) -> None:
+    def _unlock_readonly(self, path: Path, /) -> None:
         with Processor.readonly_locker:
             if self.engine.uid not in Processor.readonly_locks:
                 Processor.readonly_locks[self.engine.uid] = {}
@@ -94,7 +96,7 @@ class Processor(EngineWorker):
                 log.debug(f"Readonly unlock: unlock on {path!r} with {lock}")
                 Processor.readonly_locks[self.engine.uid][path] = [1, lock]
 
-    def _lock_readonly(self, path: Path) -> None:
+    def _lock_readonly(self, path: Path, /) -> None:
         with Processor.readonly_locker:
             if self.engine.uid not in Processor.readonly_locks:
                 Processor.readonly_locks[self.engine.uid] = {}
@@ -113,7 +115,7 @@ class Processor(EngineWorker):
                 log.debug(f"Readonly lock: relocked {path!r} with {lock}")
                 del Processor.readonly_locks[self.engine.uid][path]
 
-    def _lock_soft_path(self, path: Path) -> Path:
+    def _lock_soft_path(self, path: Path, /) -> Path:
         log.debug(f"Soft locking {path!r}")
         path = Path(str(path).lower())
         with Processor.path_locker:
@@ -128,7 +130,7 @@ class Processor(EngineWorker):
         return self._current_doc_pair
 
     @staticmethod
-    def check_pair_state(doc_pair: DocPair) -> bool:
+    def check_pair_state(doc_pair: DocPair, /) -> bool:
         """ Eliminate unprocessable states. """
 
         if any(
@@ -445,7 +447,7 @@ class Processor(EngineWorker):
 
             self._interact()
 
-    def _check_exists_on_the_server(self, doc_pair: DocPair) -> None:
+    def _check_exists_on_the_server(self, doc_pair: DocPair, /) -> None:
         """Used when the server is not available to do specific actions.
         Note that this check is not yet handled for Direct Transfer.
         """
@@ -492,7 +494,7 @@ class Processor(EngineWorker):
             self.pairSyncEnded.emit(self._current_metrics)
 
     def _handle_pair_handler_exception(
-        self, doc_pair: DocPair, handler_name: str, e: Exception
+        self, doc_pair: DocPair, handler_name: str, e: Exception, /
     ) -> None:
         if isinstance(e, OSError) and e.errno in NO_SPACE_ERRORS:
             self.engine.suspend()
@@ -503,7 +505,7 @@ class Processor(EngineWorker):
             log.exception("Unknown error")
             self.increase_error(doc_pair, f"SYNC_HANDLER_{handler_name}", exception=e)
 
-    def _synchronize_direct_transfer(self, doc_pair: DocPair) -> None:
+    def _synchronize_direct_transfer(self, doc_pair: DocPair, /) -> None:
         """Direct Transfer of a local path."""
         session = self.dao.get_session(doc_pair.session)
         if session and session.status is TransferStatus.PAUSED:
@@ -535,7 +537,7 @@ class Processor(EngineWorker):
 
         self._direct_transfer_end(doc_pair, cancelled_transfer=False)
 
-    def _direct_transfer_cancel(self, doc_pair: DocPair) -> None:
+    def _direct_transfer_cancel(self, doc_pair: DocPair, /) -> None:
         """Actions to do to cancel a Direct Transfer."""
         self._direct_transfer_end(doc_pair, cancelled_transfer=True, recursive=True)
 
@@ -543,6 +545,8 @@ class Processor(EngineWorker):
         self,
         doc_pair: DocPair,
         cancelled_transfer: bool,
+        /,
+        *,
         recursive: bool = False,
     ) -> None:
         """Actions to do to at the end of a Direct Transfer."""
@@ -570,7 +574,7 @@ class Processor(EngineWorker):
         # For analytics
         self.engine.manager.directTransferStats.emit(doc_pair.folderish, doc_pair.size)
 
-    def _synchronize_conflicted(self, doc_pair: DocPair) -> None:
+    def _synchronize_conflicted(self, doc_pair: DocPair, /) -> None:
         if doc_pair.local_state == "moved" and doc_pair.remote_state in (
             "moved",
             "unknown",
@@ -590,7 +594,7 @@ class Processor(EngineWorker):
             self.dao.synchronize_state(doc_pair)
 
     def _synchronize_if_not_remotely_dirty(
-        self, doc_pair: DocPair, remote_info: RemoteFileInfo = None
+        self, doc_pair: DocPair, /, *, remote_info: RemoteFileInfo = None
     ) -> None:
         if remote_info is not None and (
             remote_info.name != doc_pair.local_name
@@ -628,7 +632,7 @@ class Processor(EngineWorker):
 
         self.dao.synchronize_state(doc_pair, dynamic_states=dynamic_states)
 
-    def _synchronize_locally_modified(self, doc_pair: DocPair) -> None:
+    def _synchronize_locally_modified(self, doc_pair: DocPair, /) -> None:
         fs_item_info = None
         if doc_pair.local_digest == UNACCESSIBLE_HASH:
             # Try to update
@@ -694,12 +698,12 @@ class Processor(EngineWorker):
             self.dao.update_remote_state(doc_pair, fs_item_info, versioned=False)
         self._synchronize_if_not_remotely_dirty(doc_pair, remote_info=fs_item_info)
 
-    def _get_normal_state_from_remote_ref(self, ref: str) -> Optional[DocPair]:
+    def _get_normal_state_from_remote_ref(self, ref: str, /) -> Optional[DocPair]:
         # TODO Select the only states that is not a collection
         return self.dao.get_normal_state_from_remote(ref)
 
     def _postpone_pair(
-        self, doc_pair: DocPair, reason: str = "", interval: int = None
+        self, doc_pair: DocPair, /, *, reason: str = "", interval: int = None
     ) -> None:
         """ Wait 60 sec for it. """
 
@@ -710,12 +714,12 @@ class Processor(EngineWorker):
         )
         self.engine.send_metric("sync", "error", reason)
 
-    def _synchronize_locally_resolved(self, doc_pair: DocPair) -> None:
+    def _synchronize_locally_resolved(self, doc_pair: DocPair, /) -> None:
         """ NXDRIVE-766: processes a locally resolved conflict. """
         self._synchronize_locally_created(doc_pair, overwrite=True)
 
     def _synchronize_locally_created(
-        self, doc_pair: DocPair, overwrite: bool = False
+        self, doc_pair: DocPair, /, *, overwrite: bool = False
     ) -> None:
         """
         :param bool overwrite: Allows to overwrite an existing document
@@ -986,7 +990,7 @@ class Processor(EngineWorker):
                 )
                 self._handle_unsynchronized(doc_pair)
 
-    def _synchronize_locally_deleted(self, doc_pair: DocPair) -> None:
+    def _synchronize_locally_deleted(self, doc_pair: DocPair, /) -> None:
         if not doc_pair.remote_ref:
             self.dao.remove_state(doc_pair)
             self._search_for_dedup(doc_pair)
@@ -1032,18 +1036,20 @@ class Processor(EngineWorker):
         self._search_for_dedup(doc_pair)
         self.remove_void_transfers(doc_pair)
 
-    def _synchronize_locally_moved_remotely_modified(self, doc_pair: DocPair) -> None:
+    def _synchronize_locally_moved_remotely_modified(
+        self, doc_pair: DocPair, /
+    ) -> None:
         self._synchronize_locally_moved(doc_pair, update=False)
         refreshed_pair = self.dao.get_state_from_id(doc_pair.id)
         if refreshed_pair:
             self._synchronize_remotely_modified(refreshed_pair)
 
-    def _synchronize_locally_moved_created(self, doc_pair: DocPair) -> None:
+    def _synchronize_locally_moved_created(self, doc_pair: DocPair, /) -> None:
         doc_pair.remote_ref = ""
         self._synchronize_locally_created(doc_pair)
 
     def _synchronize_locally_moved(
-        self, doc_pair: DocPair, update: bool = True
+        self, doc_pair: DocPair, /, *, update: bool = True
     ) -> None:
         """A file has been moved locally."""
 
@@ -1124,7 +1130,7 @@ class Processor(EngineWorker):
             else:
                 self._synchronize_locally_modified(doc_pair)
 
-    def _synchronize_deleted_unknown(self, doc_pair: DocPair) -> None:
+    def _synchronize_deleted_unknown(self, doc_pair: DocPair, /) -> None:
         """
         Somehow a pair can get to an inconsistent state:
         <local_state='deleted',remote_state='unknown',pair_state='unknown'>
@@ -1140,7 +1146,7 @@ class Processor(EngineWorker):
         )
         self.dao.remove_state(doc_pair)
 
-    def _download_content(self, doc_pair: DocPair, file_path: Path) -> Path:
+    def _download_content(self, doc_pair: DocPair, file_path: Path, /) -> Path:
         # Check if the file is already on the HD
         pair = self.dao.get_valid_duplicate_file(doc_pair.remote_digest)
         tmp_folder = self.engine.download_dir / doc_pair.remote_ref.split("#")[-1]
@@ -1171,7 +1177,7 @@ class Processor(EngineWorker):
             doc_pair_id=doc_pair.id,
         )
 
-    def _update_remotely(self, doc_pair: DocPair, is_renaming: bool) -> None:
+    def _update_remotely(self, doc_pair: DocPair, is_renaming: bool, /) -> None:
         os_path = self.local.abspath(doc_pair.local_path)
         if is_renaming:
             new_os_path = os_path.with_name(safe_filename(doc_pair.remote_name))
@@ -1202,7 +1208,7 @@ class Processor(EngineWorker):
         self.dao.update_last_transfer(doc_pair.id, "download")
         self._refresh_local_state(doc_pair, updated_info)
 
-    def _search_for_dedup(self, doc_pair: DocPair, name: str = None) -> None:
+    def _search_for_dedup(self, doc_pair: DocPair, /, *, name: str = None) -> None:
         if name is None:
             name = doc_pair.local_name
         # Auto resolve duplicate
@@ -1214,7 +1220,7 @@ class Processor(EngineWorker):
             log.info(f"Dupe pair found {dupe_pair!r}")
             self.dao.reset_error(dupe_pair)
 
-    def _synchronize_remotely_modified(self, doc_pair: DocPair) -> None:
+    def _synchronize_remotely_modified(self, doc_pair: DocPair, /) -> None:
         is_renaming = safe_filename(doc_pair.remote_name) != doc_pair.local_name
         try:
             if (
@@ -1312,7 +1318,7 @@ class Processor(EngineWorker):
                 # Release folder lock in any case
                 self.engine.release_folder_lock()
 
-    def _synchronize_remotely_created(self, doc_pair: DocPair) -> None:
+    def _synchronize_remotely_created(self, doc_pair: DocPair, /) -> None:
         name = doc_pair.remote_name
 
         # Find the parent pair to find the path of the local folder to
@@ -1396,7 +1402,7 @@ class Processor(EngineWorker):
                     self._synchronize_remotely_modified(new_pair)
 
     def _create_remotely(
-        self, doc_pair: DocPair, parent_pair: DocPair, name: str
+        self, doc_pair: DocPair, parent_pair: DocPair, name: str, /
     ) -> Path:
         # TODO Shared this locking system / Can have concurrent lock
         local_parent_path = parent_pair.local_path
@@ -1437,7 +1443,7 @@ class Processor(EngineWorker):
         finally:
             self._lock_readonly(local_parent_path)
 
-    def _synchronize_remotely_deleted(self, doc_pair: DocPair) -> None:
+    def _synchronize_remotely_deleted(self, doc_pair: DocPair, /) -> None:
         remote_id = self.local.get_remote_id(doc_pair.local_path)
         if remote_id != doc_pair.remote_ref:
             log.warning(
@@ -1476,7 +1482,7 @@ class Processor(EngineWorker):
             if doc_pair.folderish:
                 self.engine.release_folder_lock()
 
-    def _synchronize_unknown_deleted(self, doc_pair: DocPair) -> None:
+    def _synchronize_unknown_deleted(self, doc_pair: DocPair, /) -> None:
         # Somehow a pair can get to an inconsistent state:
         # <local_state='unknown', remote_state='deleted', pair_state='unknown'>
         # Even though we are not able to figure out how this can happen we
@@ -1502,7 +1508,7 @@ class Processor(EngineWorker):
             )
 
     def _refresh_remote(
-        self, doc_pair: DocPair, remote_info: RemoteFileInfo = None
+        self, doc_pair: DocPair, /, *, remote_info: RemoteFileInfo = None
     ) -> None:
         if remote_info is None:
             remote_info = self.remote.get_fs_info(doc_pair.remote_ref)
@@ -1511,7 +1517,7 @@ class Processor(EngineWorker):
                 doc_pair, remote_info, versioned=False, queue=False
             )
 
-    def _refresh_local_state(self, doc_pair: DocPair, local_info: FileInfo) -> None:
+    def _refresh_local_state(self, doc_pair: DocPair, local_info: FileInfo, /) -> None:
         if doc_pair.local_digest is None and not doc_pair.folderish:
             doc_pair.local_digest = local_info.get_digest()
         self.dao.update_local_state(doc_pair, local_info, versioned=False, queue=False)
@@ -1521,7 +1527,7 @@ class Processor(EngineWorker):
             "%Y-%m-%d %H:%M:%S"
         )
 
-    def _is_remote_move(self, doc_pair: DocPair) -> Tuple[bool, Optional[DocPair]]:
+    def _is_remote_move(self, doc_pair: DocPair, /) -> Tuple[bool, Optional[DocPair]]:
         local_parent = self.dao.get_state_from_local(doc_pair.local_parent_path)
         remote_parent = self._get_normal_state_from_remote_ref(
             doc_pair.remote_parent_ref
@@ -1536,12 +1542,12 @@ class Processor(EngineWorker):
         return state, remote_parent
 
     def _handle_failed_remote_move(
-        self, source_pair: DocPair, target_pair: DocPair
+        self, source_pair: DocPair, target_pair: DocPair, /
     ) -> None:
         pass
 
     def _handle_failed_remote_rename(
-        self, source_pair: DocPair, target_pair: DocPair
+        self, source_pair: DocPair, target_pair: DocPair, /
     ) -> bool:
         """Cancel a local rename using the remote name."""
 
@@ -1584,11 +1590,11 @@ class Processor(EngineWorker):
             log.exception("Cannot rollback local modification")
         return False
 
-    def _handle_unsynchronized(self, doc_pair: DocPair) -> None:
+    def _handle_unsynchronized(self, doc_pair: DocPair, /) -> None:
         # Used for overwrite
         pass
 
-    def _handle_readonly(self, doc_pair: DocPair) -> None:
+    def _handle_readonly(self, doc_pair: DocPair, /) -> None:
         # Don't use readonly on folder for win32 and on Locally Edited
         if doc_pair.folderish and WINDOWS:
             return

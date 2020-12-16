@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 class DatabaseBackupWorker(PollWorker):
     """ Class for making backups of the manager and engine databases. """
 
-    def __init__(self, manager: "Manager"):
+    def __init__(self, manager: "Manager", /):
         """Backup every hour."""
         super().__init__(60 * 60)
         self.manager = manager
@@ -48,7 +48,7 @@ class ServerOptionsUpdater(PollWorker):
     # A signal to let other component know that the first run has been done
     firstRunCompleted = pyqtSignal()
 
-    def __init__(self, manager: "Manager"):
+    def __init__(self, manager: "Manager", /):
         default_delay = 60 * 60  # 1 hour
         # The check will be done every *update_check_delay* seconds or *default_delay*
         # when the channel is centralized.
@@ -144,7 +144,7 @@ class ServerOptionsUpdater(PollWorker):
 class SyncAndQuitWorker(PollWorker):
     """Class for checking if the application needs to be exited."""
 
-    def __init__(self, manager: "Manager"):
+    def __init__(self, manager: "Manager", /):
         """Check every 10 seconds."""
         super().__init__(10)
         self.manager = manager

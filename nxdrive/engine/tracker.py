@@ -25,7 +25,7 @@ __all__ = ("Tracker",)
 log = getLogger(__name__)
 
 
-def analytics_enabled(meth: Callable) -> Callable:
+def analytics_enabled(meth: Callable, /) -> Callable:
     """Did the user allow to share metrics?"""
 
     def inner(*args: Any, **kwargs: Any) -> Any:
@@ -37,7 +37,12 @@ def analytics_enabled(meth: Callable) -> Callable:
 
 class Tracker(PollWorker):
     def __init__(
-        self, manager: "Manager", uid: str = "UA-81135-23", interval: int = 60 * 60
+        self,
+        manager: "Manager",
+        /,
+        *,
+        uid: str = "UA-81135-23",
+        interval: int = 60 * 60,
     ) -> None:
         # Send stats every hour by default
         super().__init__(check_interval=interval)
@@ -121,6 +126,8 @@ class Tracker(PollWorker):
 
     def send_event(
         self,
+        /,
+        *,
         category: str = "",
         action: str = "",
         label: str = "",
@@ -184,7 +191,7 @@ class Tracker(PollWorker):
 
     @analytics_enabled
     @pyqtSlot(object)
-    def send_sync_event(self, metrics: Dict[str, Any]) -> None:
+    def send_sync_event(self, metrics: Dict[str, Any], /) -> None:
         """Sent each time the Processor handles an event.
         This is mostly to have real time stats on GA.
         """
@@ -199,7 +206,7 @@ class Tracker(PollWorker):
 
     @analytics_enabled
     @pyqtSlot(str, int)
-    def send_directedit_open(self, name: str, timing: int) -> None:
+    def send_directedit_open(self, name: str, timing: int, /) -> None:
         _, extension = os.path.splitext(name)
         if not extension:
             extension = "unknown"
@@ -210,7 +217,7 @@ class Tracker(PollWorker):
 
     @analytics_enabled
     @pyqtSlot(str, int)
-    def send_directedit_edit(self, name: str, timing: int) -> None:
+    def send_directedit_edit(self, name: str, timing: int, /) -> None:
         _, extension = os.path.splitext(name)
         if not extension:
             extension = "unknown"
@@ -221,7 +228,7 @@ class Tracker(PollWorker):
 
     @analytics_enabled
     @pyqtSlot(bool, int)
-    def send_direct_transfer(self, folderish: bool, size: int) -> None:
+    def send_direct_transfer(self, folderish: bool, size: int, /) -> None:
         nature = "folder" if folderish else "file"
         self.send_event(
             category="DirectTransfer", action="Sent", label=nature, value=size
@@ -257,7 +264,7 @@ class Tracker(PollWorker):
         self._hello_sent = True
 
     @if_frozen
-    def send_metric(self, category: str, action: str, label: str) -> None:
+    def send_metric(self, category: str, action: str, label: str, /) -> None:
         """Send metrics required for the good health of the project, see NXDRIVE-2439 for details."""
         self.send_event(category=category, action=action, label=label, value=1)
 

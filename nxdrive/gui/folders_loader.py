@@ -19,7 +19,9 @@ log = getLogger(__name__)
 class ContentLoaderMixin(QRunnable):
     """The base class for content loading of the tree view."""
 
-    def __init__(self, tree: "TreeViewMixin", item: QStandardItemModel = None) -> None:
+    def __init__(
+        self, tree: "TreeViewMixin", /, *, item: QStandardItemModel = None
+    ) -> None:
         super().__init__()
         self.tree = tree
         self.item = item or self.tree.model().invisibleRootItem()
@@ -59,7 +61,7 @@ class ContentLoaderMixin(QRunnable):
         self.fill_tree(children)
         self.tree.set_loading_cursor(False)
 
-    def add_loading_subitem(self, item: QStandardItem) -> None:
+    def add_loading_subitem(self, item: QStandardItem, /) -> None:
         """Add "Loading..." entry in advance for when the user will click on an item to expand it."""
         load_item = QStandardItem(Translator.get("LOADING"))
         load_item.setSelectable(False)
@@ -69,13 +71,13 @@ class ContentLoaderMixin(QRunnable):
         """A new child of an item is available. To be implemented by specific classes."""
         raise NotImplementedError()
 
-    def sort_children(self, children: List[Documents]) -> List[Documents]:
+    def sort_children(self, children: List[Documents], /) -> List[Documents]:
         """Sort child alphabetically (NXDRIVE-12).
         Put in a specific method to be able to override if needed.
         """
         return sorted(children, key=lambda x: x.get_label().lower())
 
-    def fill_tree(self, children: List[Documents]) -> None:
+    def fill_tree(self, children: List[Documents], /) -> None:
         """Fill the tree view with the new fetched children."""
         self.item.removeRows(0, self.item.rowCount())
         for child in self.sort_children(children):
@@ -89,7 +91,7 @@ class ContentLoaderMixin(QRunnable):
 class DocumentContentLoader(ContentLoaderMixin):
     """A contents loader for synced documents. Used by the filters feature."""
 
-    def new_subitem(self, child: FilteredDoc) -> QStandardItem:
+    def new_subitem(self, child: FilteredDoc, /) -> QStandardItem:
         """A new child of an item is available. Create an item to append to its parent.
         The new item is a checkable item with 3 states.
         """
@@ -109,7 +111,7 @@ class DocumentContentLoader(ContentLoaderMixin):
 class FolderContentLoader(ContentLoaderMixin):
     """A contents loader for folderish documents. Used by the Direct Transfer feature."""
 
-    def new_subitem(self, child: Doc) -> QStandardItem:
+    def new_subitem(self, child: Doc, /) -> QStandardItem:
         """A new child of an item is available. Create an item to append to its parent.
         The new item is a simple selectable item (if the user has enough right to).
         """

@@ -21,8 +21,8 @@ from ...objects import Upload
 from ...options import Options
 
 if TYPE_CHECKING:
-    from .remote_client import Remote  # noqa
-    from ..engine.dao.sqlite import EngineDAO  # noqa
+    from ..remote_client import Remote  # noqa
+    from ...engine.dao.sqlite import EngineDAO  # noqa
 
 log = getLogger(__name__)
 
@@ -33,16 +33,16 @@ class BaseUploader:
     linking_action = LinkingAction
     upload_action = UploadAction
 
-    def __init__(self, remote: "Remote") -> None:
+    def __init__(self, remote: "Remote", /) -> None:
         self.remote = remote
         self.dao = remote.dao
 
     @abstractmethod
-    def get_upload(self, file_path: Path) -> Optional[Upload]:
+    def get_upload(self, file_path: Path, /) -> Optional[Upload]:
         """Retrieve the eventual transfer associated to the given *file_path*."""
 
     @abstractmethod
-    def get_upload_by_doc_pair(self, doc_pair: int) -> Optional[Upload]:
+    def get_upload_by_doc_pair(self, doc_pair: int, /) -> Optional[Upload]:
         """Retrieve the eventual transfer associated to the given *doc_pair*."""
 
     @abstractmethod
@@ -50,12 +50,16 @@ class BaseUploader:
         self,
         file_path: Path,
         command: str,
+        /,
+        *,
         filename: str = None,
         **kwargs: Any,
     ) -> Dict[str, Any]:
         """Upload a file with a batch."""
 
-    def _get_transfer(self, file_path: Path, blob: FileBlob, **kwargs: Any) -> Upload:
+    def _get_transfer(
+        self, file_path: Path, blob: FileBlob, /, **kwargs: Any
+    ) -> Upload:
         """Get and instantiate a new transfer."""
 
         # See if there is already a transfer for this file
@@ -139,7 +143,7 @@ class BaseUploader:
         transfer.batch_obj = batch
         return transfer
 
-    def _set_transfer_status(self, transfer: Upload, status: TransferStatus) -> None:
+    def _set_transfer_status(self, transfer: Upload, status: TransferStatus, /) -> None:
         """Set and save the transfer status."""
         transfer.status = status
         self.dao.set_transfer_status("upload", transfer)
@@ -148,6 +152,7 @@ class BaseUploader:
         self,
         file_path: Path,
         command: str,
+        *,
         filename: str = None,
         **kwargs: Any,
     ) -> Dict[str, Any]:
@@ -226,7 +231,7 @@ class BaseUploader:
 
         return doc
 
-    def _handle_transfer_status(self, transfer: Upload) -> None:
+    def _handle_transfer_status(self, transfer: Upload, /) -> None:
         """Raise the appropriate exception depending on the transfer status."""
         status = transfer.status
         if status is TransferStatus.CANCELLED:
@@ -237,7 +242,7 @@ class BaseUploader:
         ):
             raise UploadPaused(transfer.uid or -1)
 
-    def upload_chunks(self, transfer: Upload, blob: FileBlob, chunked: bool) -> None:
+    def upload_chunks(self, transfer: Upload, blob: FileBlob, chunked: bool, /) -> None:
         """Upload a blob by chunks or in one go."""
 
         action = self.upload_action(
@@ -333,6 +338,7 @@ class BaseUploader:
         transfer: Upload,
         blob: FileBlob,
         chunked: bool,
+        /,
         **kwargs: Any,
     ) -> Dict[str, Any]:
         try:
@@ -351,6 +357,7 @@ class BaseUploader:
         transfer: Upload,
         blob: FileBlob,
         chunked: bool,
+        /,
         **kwargs: Any,
     ) -> Dict[str, Any]:
         """Link the given uploaded *blob* to the given document."""
@@ -383,11 +390,11 @@ class BaseUploader:
         finally:
             action.finish_action()
 
-    def _patch_refresh_token(self, uploader: Uploader, transfer: Upload) -> None:
+    def _patch_refresh_token(self, uploader: Uploader, transfer: Upload, /) -> None:
         """Patch Uploader.refresh_token() to save potential credentials changes for next runs."""
         meth_orig = uploader.service.refresh_token
 
-        def refresh(batch: Batch, **kwargs: Any) -> Any:
+        def refresh(batch: Batch, /, **kwargs: Any) -> Any:
             # Call the original method
             try:
                 return meth_orig(batch, **kwargs)
@@ -400,7 +407,7 @@ class BaseUploader:
         uploader.service.refresh_token = refresh
 
     @staticmethod
-    def _complete_upload(transfer: Upload, blob: FileBlob) -> None:
+    def _complete_upload(transfer: Upload, blob: FileBlob, /) -> None:
         """Helper to complete an upload."""
 
         # Set those attributes as FileBlob does not have them

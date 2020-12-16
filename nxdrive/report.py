@@ -36,7 +36,7 @@ class Report:
             final_path = report.path
     """
 
-    def __init__(self, manager: "Manager", report_path: Path = None) -> None:
+    def __init__(self, manager: "Manager", /, *, report_path: Path = None) -> None:
         self._manager = manager
         name = f"report_{datetime.now().strftime('%y%m%d_%H%M%S')}"
         report_path = report_path or self._manager.home / "reports" / name
@@ -45,7 +45,7 @@ class Report:
             report_path.parent.mkdir()
         self._zipfile = report_path.with_suffix(".zip")
 
-    def copy_logs(self, myzip: ZipFile) -> None:
+    def copy_logs(self, myzip: ZipFile, /) -> None:
         """
         Copy all log files to the ZIP report.
         If one log file fails, we just try the next one.
@@ -72,7 +72,7 @@ class Report:
                 log.exception(f"Impossible to copy the log {rel_path!r}")
 
     @staticmethod
-    def copy_db(myzip: ZipFile, dao: "EngineDAO") -> None:
+    def copy_db(myzip: ZipFile, dao: "EngineDAO", /) -> None:
         """
         Copy a database file to the ZIP report.
         If it fails, we just try ignore the file.
@@ -90,7 +90,7 @@ class Report:
         return self._zipfile
 
     @staticmethod
-    def export_logs(lines: int = constants.MAX_LOG_DISPLAYED) -> Iterator[bytes]:
+    def export_logs(lines: int = constants.MAX_LOG_DISPLAYED, /) -> Iterator[bytes]:
         """
         Export all lines from the memory logger.
 

@@ -38,7 +38,9 @@ class EngineModel(QAbstractListModel):
     FORCE_UI_ROLE = Qt.UserRole + 6
     ACCOUNT_ROLE = Qt.UserRole + 7
 
-    def __init__(self, application: "Application", parent: QObject = None) -> None:
+    def __init__(
+        self, application: "Application", /, *, parent: QObject = None
+    ) -> None:
         super().__init__(parent)
         self.application = application
         self.engines_uid: List[str] = []
@@ -59,7 +61,7 @@ class EngineModel(QAbstractListModel):
     def nameRoles(self) -> Dict[bytes, int]:
         return self.roles
 
-    def addEngine(self, uid: str, parent: QModelIndex = QModelIndex()) -> None:
+    def addEngine(self, uid: str, /, *, parent: QModelIndex = QModelIndex()) -> None:
         if uid in self.engines_uid:
             return
         count = self.rowCount()
@@ -69,12 +71,12 @@ class EngineModel(QAbstractListModel):
         self._connect_engine(self.application.manager.engines[uid])
         self.engineChanged.emit()
 
-    def removeEngine(self, uid: str) -> None:
+    def removeEngine(self, uid: str, /) -> None:
         idx = self.engines_uid.index(uid)
         self.removeRows(idx, 1)
         self.engineChanged.emit()
 
-    def data(self, index: QModelIndex, role: int = UID_ROLE) -> str:
+    def data(self, index: QModelIndex, /, *, role: int = UID_ROLE) -> str:
         index = index.row()
         if index < 0 or index >= self.count:
             return ""
@@ -87,7 +89,7 @@ class EngineModel(QAbstractListModel):
         return getattr(engine, self.names[role].decode())
 
     @pyqtSlot(int, str, result=str)
-    def get(self, index: int, role: str = "uid") -> str:
+    def get(self, index: int, /, *, role: str = "uid") -> str:
         if index < 0 or index >= self.count:
             return ""
 
@@ -99,7 +101,7 @@ class EngineModel(QAbstractListModel):
         return getattr(engine, role)
 
     def removeRows(
-        self, row: int, count: int, parent: QModelIndex = QModelIndex()
+        self, row: int, count: int, /, *, parent: QModelIndex = QModelIndex()
     ) -> bool:
         try:
             self.beginRemoveRows(parent, row, row + count - 1)
@@ -150,7 +152,7 @@ class TransferModel(QAbstractListModel):
     FINALIZING = Qt.UserRole + 8
     PROGRESS_METRICS = Qt.UserRole + 9
 
-    def __init__(self, translate: Callable, parent: QObject = None) -> None:
+    def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
         super().__init__(parent)
         self.tr = translate
         self.transfers: List[Dict[str, Any]] = []
@@ -168,7 +170,7 @@ class TransferModel(QAbstractListModel):
             self.FINALIZING: b"finalizing",
         }
 
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+    def rowCount(self, *, parent: QModelIndex = QModelIndex()) -> int:
         return len(self.transfers)
 
     def roleNames(self) -> Dict[int, bytes]:
@@ -179,7 +181,7 @@ class TransferModel(QAbstractListModel):
         return self.rowCount()
 
     def set_transfers(
-        self, transfers: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
+        self, transfers: List[Dict[str, Any]], /, *, parent: QModelIndex = QModelIndex()
     ) -> None:
         self.beginRemoveRows(parent, 0, self.rowCount() - 1)
         self.transfers.clear()
@@ -191,7 +193,7 @@ class TransferModel(QAbstractListModel):
 
         self.fileChanged.emit()
 
-    def get_progress(self, row: Dict[str, Any]) -> str:
+    def get_progress(self, row: Dict[str, Any], /) -> str:
         """Return a nicely formatted line to know the transfer progression.
         E.g: 10.0 MiB / 42.0 MiB [24%]
         """
@@ -216,7 +218,7 @@ class TransferModel(QAbstractListModel):
             txt += f" {icon} {psize(speed)}/s"
         return txt
 
-    def data(self, index: QModelIndex, role: int = NAME) -> Any:
+    def data(self, index: QModelIndex, /, *, role: int = NAME) -> Any:
         row = self.transfers[index.row()]
         if role == self.STATUS:
             return row["status"].name
@@ -226,7 +228,7 @@ class TransferModel(QAbstractListModel):
             return self.get_progress(row)
         return row[self.names[role].decode()]
 
-    def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
+    def setData(self, index: QModelIndex, value: Any, /, *, role: int = None) -> None:
         if role is None:
             return
         key = force_decode(self.roleNames()[role])
@@ -234,7 +236,7 @@ class TransferModel(QAbstractListModel):
         self.dataChanged.emit(index, index, [role])
 
     @pyqtSlot(dict)
-    def set_progress(self, action: Dict[str, Any]) -> None:
+    def set_progress(self, action: Dict[str, Any], /) -> None:
         for i, item in enumerate(self.transfers):
             if item["name"] != action["name"]:
                 continue
@@ -251,7 +253,7 @@ class TransferModel(QAbstractListModel):
             if action["action_type"] in ("Linking", "Verification"):
                 self.setData(idx, True, self.FINALIZING)
 
-    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+    def flags(self, index: QModelIndex, /) -> Qt.ItemFlags:
         return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
 
@@ -271,7 +273,7 @@ class DirectTransferModel(QAbstractListModel):
     SHADOW = Qt.UserRole + 11  # Tell the interface if the row should be visible or not
     DOC_PAIR = Qt.UserRole + 12
 
-    def __init__(self, translate: Callable, parent: QObject = None) -> None:
+    def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
         super().__init__(parent)
         self.tr = translate
         self.items: List[Dict[str, Any]] = []
@@ -293,14 +295,14 @@ class DirectTransferModel(QAbstractListModel):
         self.psize = partial(sizeof_fmt, suffix=self.tr("BYTE_ABBREV"))
         self.shadow_item: Dict[str, Any] = {}
 
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+    def rowCount(self, *, parent: QModelIndex = QModelIndex()) -> int:
         return len(self.items)
 
     def roleNames(self) -> Dict[int, bytes]:
         return self.names
 
     def set_items(
-        self, items: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
+        self, items: List[Dict[str, Any]], /, *, parent: QModelIndex = QModelIndex()
     ) -> None:
         if items and not self.shadow_item:
             # Copy the first element from items and use it as shadow_item
@@ -319,7 +321,11 @@ class DirectTransferModel(QAbstractListModel):
         self.fileChanged.emit()
 
     def update_items(
-        self, updated_items: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
+        self,
+        updated_items: List[Dict[str, Any]],
+        /,
+        *,
+        parent: QModelIndex = QModelIndex(),
     ) -> None:
         """Update items with *updated_items*."""
         # Edit the first rows of the list with real datas from updated_items.
@@ -332,7 +338,7 @@ class DirectTransferModel(QAbstractListModel):
 
         self.fileChanged.emit()
 
-    def data(self, index: QModelIndex, role: int = NAME) -> Any:
+    def data(self, index: QModelIndex, /, *, role: int = NAME) -> Any:
         row = self.items[index.row()]
         if role == self.STATUS:
             return row["status"].name
@@ -348,7 +354,7 @@ class DirectTransferModel(QAbstractListModel):
             return self.psize(row["filesize"] * row["progress"] / 100)
         return row[self.names[role].decode()]
 
-    def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
+    def setData(self, index: QModelIndex, value: Any, /, *, role: int = None) -> None:
         if role is None:
             return
         key = force_decode(self.roleNames()[role])
@@ -356,7 +362,7 @@ class DirectTransferModel(QAbstractListModel):
         self.dataChanged.emit(index, index, [role])
 
     @pyqtSlot(dict)
-    def set_progress(self, action: Dict[str, Any]) -> None:
+    def set_progress(self, action: Dict[str, Any], /) -> None:
         for i, item in enumerate(self.items):
             if (
                 item["engine"] != action["engine"]
@@ -370,13 +376,13 @@ class DirectTransferModel(QAbstractListModel):
             if action["action_type"] == "Linking":
                 self.setData(idx, True, self.FINALIZING)
 
-    def add_item(self, parent: QModelIndex, n_item: Dict[str, Any]) -> None:
+    def add_item(self, parent: QModelIndex, n_item: Dict[str, Any], /) -> None:
         """Add an item to existing list."""
         self.beginInsertRows(parent, self.rowCount(), self.rowCount())
         self.items.append(n_item)
         self.endInsertRows()
 
-    def edit_item(self, row: int, n_item: Dict[str, Any]) -> None:
+    def edit_item(self, row: int, n_item: Dict[str, Any], /) -> None:
         """Replace an existing item with *n_item*."""
         idx = self.index(row, 0)
         if "finalizing" not in n_item:
@@ -401,7 +407,7 @@ class ActiveSessionModel(QAbstractListModel):
     PROGRESS = Qt.UserRole + 11
     SHADOW = Qt.UserRole + 12  # Tell the interface if the row should be visible or not
 
-    def __init__(self, translate: Callable, parent: QObject = None) -> None:
+    def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
         super().__init__(parent)
         self.tr = translate
         self.sessions: List[Dict[str, Any]] = []
@@ -424,14 +430,14 @@ class ActiveSessionModel(QAbstractListModel):
     def roleNames(self) -> Dict[int, bytes]:
         return self.names
 
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+    def rowCount(self, *, parent: QModelIndex = QModelIndex()) -> int:
         return len(self.sessions)
 
-    def row_count_no_shadow(self, parent: QModelIndex = QModelIndex()) -> int:
+    def row_count_no_shadow(self, *, parent: QModelIndex = QModelIndex()) -> int:
         return len([session for session in self.sessions if "shadow" not in session])
 
     def set_sessions(
-        self, sessions: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
+        self, sessions: List[Dict[str, Any]], /, *, parent: QModelIndex = QModelIndex()
     ) -> None:
         if sessions and not self.shadow_session:
             # Copy the first element from sessions and use it as shadow_session
@@ -451,6 +457,8 @@ class ActiveSessionModel(QAbstractListModel):
     def update_sessions(
         self,
         updated_sessions: List[Dict[str, Any]],
+        /,
+        *,
         parent: QModelIndex = QModelIndex(),
     ) -> None:
         """Update sessions with *updated_sessions*."""
@@ -464,7 +472,7 @@ class ActiveSessionModel(QAbstractListModel):
 
         self.sessionChanged.emit()
 
-    def data(self, index: QModelIndex, role: int = REMOTE_PATH) -> Any:
+    def data(self, index: QModelIndex, /, *, role: int = REMOTE_PATH) -> Any:
         row = self.sessions[index.row()]
         if role == self.REMOTE_PATH:
             return str(row["remote_path"])
@@ -507,20 +515,20 @@ class ActiveSessionModel(QAbstractListModel):
             return row.get("shadow", False)
         return row[self.names[role].decode()]
 
-    def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
+    def setData(self, index: QModelIndex, value: Any, /, *, role: int = None) -> None:
         if role is None:
             return
         key = force_decode(self.roleNames()[role])
         self.sessions[index.row()][key] = value
         self.dataChanged.emit(index, index, [role])
 
-    def add_session(self, parent: QModelIndex, n_session: Dict[str, Any]) -> None:
+    def add_session(self, parent: QModelIndex, n_session: Dict[str, Any], /) -> None:
         """Add a session to existing list."""
         self.beginInsertRows(parent, self.rowCount(), self.rowCount())
         self.sessions.append(n_session)
         self.endInsertRows()
 
-    def edit_session(self, row: int, n_session: Dict[str, Any]) -> None:
+    def edit_session(self, row: int, n_session: Dict[str, Any], /) -> None:
         """Replace an existing session with *n_session*."""
         idx = self.index(row, 0)
         self.sessions[row] = n_session
@@ -551,7 +559,7 @@ class CompletedSessionModel(QAbstractListModel):
     PROGRESS = Qt.UserRole + 11
     SHADOW = Qt.UserRole + 12
 
-    def __init__(self, translate: Callable, parent: QObject = None) -> None:
+    def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
         super().__init__(parent)
         self.tr = translate
         self.sessions: List[Dict[str, Any]] = []
@@ -573,11 +581,11 @@ class CompletedSessionModel(QAbstractListModel):
     def roleNames(self) -> Dict[int, bytes]:
         return self.names
 
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+    def rowCount(self, *, parent: QModelIndex = QModelIndex()) -> int:
         return len(self.sessions)
 
     def set_sessions(
-        self, sessions: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
+        self, sessions: List[Dict[str, Any]], /, *, parent: QModelIndex = QModelIndex()
     ) -> None:
         self.beginRemoveRows(parent, 0, self.rowCount() - 1)
         self.sessions.clear()
@@ -588,7 +596,7 @@ class CompletedSessionModel(QAbstractListModel):
         self.endInsertRows()
         self.sessionChanged.emit()
 
-    def data(self, index: QModelIndex, role: int = REMOTE_PATH) -> Any:
+    def data(self, index: QModelIndex, /, *, role: int = REMOTE_PATH) -> Any:
         row = self.sessions[index.row()]
         if role == self.REMOTE_PATH:
             return str(row["remote_path"])
@@ -631,7 +639,7 @@ class CompletedSessionModel(QAbstractListModel):
             return False  # User can't add or remove completed sessions so no need to use the shadow mechanism
         return row[self.names[role].decode()]
 
-    def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
+    def setData(self, index: QModelIndex, value: Any, /, *, role: int = None) -> None:
         if role is None:
             return
         key = force_decode(self.roleNames()[role])
@@ -662,7 +670,7 @@ class FileModel(QAbstractListModel):
     STATE = Qt.UserRole + 14
     SIZE = Qt.UserRole + 15
 
-    def __init__(self, translate: Callable, parent: QObject = None) -> None:
+    def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
         super().__init__(parent)
         self.tr = translate
         self.files: List[Dict[str, Any]] = []
@@ -687,11 +695,11 @@ class FileModel(QAbstractListModel):
     def roleNames(self) -> Dict[int, bytes]:
         return self.names
 
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+    def rowCount(self, *, parent: QModelIndex = QModelIndex()) -> int:
         return len(self.files)
 
     def add_files(
-        self, files: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
+        self, files: List[Dict[str, Any]], /, *, parent: QModelIndex = QModelIndex()
     ) -> None:
         self.beginRemoveRows(parent, 0, self.rowCount() - 1)
         self.files.clear()
@@ -702,7 +710,7 @@ class FileModel(QAbstractListModel):
         self.endInsertRows()
         self.fileChanged.emit()
 
-    def data(self, index: QModelIndex, role: int = NAME) -> Any:
+    def data(self, index: QModelIndex, /, *, role: int = NAME) -> Any:
         row = self.files[index.row()]
         if role == self.LOCAL_PARENT_PATH:
             return str(row["local_parent_path"])
@@ -713,7 +721,7 @@ class FileModel(QAbstractListModel):
             return f"({sizeof_fmt(row['size'], suffix=suffix)})"
         return row[self.names[role].decode()]
 
-    def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
+    def setData(self, index: QModelIndex, value: Any, /, *, role: int = None) -> None:
         if role is None:
             return
         key = force_decode(self.roleNames()[role])
@@ -724,7 +732,7 @@ class FileModel(QAbstractListModel):
     def count(self) -> int:
         return self.rowCount()
 
-    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+    def flags(self, index: QModelIndex, /) -> Qt.ItemFlags:
         return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
 
@@ -732,7 +740,7 @@ class LanguageModel(QAbstractListModel):
     NAME_ROLE = Qt.UserRole + 1
     TAG_ROLE = Qt.UserRole + 2
 
-    def __init__(self, parent: QObject = None) -> None:
+    def __init__(self, *, parent: QObject = None) -> None:
         super().__init__(parent)
         self.languages: List[Tuple[str, str]] = []
 
@@ -740,14 +748,18 @@ class LanguageModel(QAbstractListModel):
         return {self.NAME_ROLE: b"name", self.TAG_ROLE: b"tag"}
 
     def addLanguages(
-        self, languages: List[Tuple[str, str]], parent: QModelIndex = QModelIndex()
+        self,
+        languages: List[Tuple[str, str]],
+        /,
+        *,
+        parent: QModelIndex = QModelIndex(),
     ) -> None:
         count = self.rowCount()
         self.beginInsertRows(parent, count, count + len(languages) - 1)
         self.languages.extend(languages)
         self.endInsertRows()
 
-    def data(self, index: QModelIndex, role: int = TAG_ROLE) -> str:
+    def data(self, index: QModelIndex, /, *, role: int = TAG_ROLE) -> str:
         row = self.languages[index.row()]
         if role == self.NAME_ROLE:
             return row[1]
@@ -764,7 +776,7 @@ class LanguageModel(QAbstractListModel):
         return self.languages[index][1]
 
     def removeRows(
-        self, row: int, count: int, parent: QModelIndex = QModelIndex()
+        self, row: int, count: int, /, *, parent: QModelIndex = QModelIndex()
     ) -> bool:
         try:
             self.beginRemoveRows(parent, row, row + count - 1)
@@ -775,5 +787,5 @@ class LanguageModel(QAbstractListModel):
         except Exception:
             return False
 
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+    def rowCount(self, *, parent: QModelIndex = QModelIndex()) -> int:
         return len(self.languages)

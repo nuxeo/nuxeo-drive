@@ -340,7 +340,7 @@ class Application(QApplication):
             self._window_root(self.systray_window).updateProgress
         )
 
-    def _center_on_screen(self, window: QQuickView) -> None:
+    def _center_on_screen(self, window: QQuickView, /) -> None:
         """Display and center the window on the screen."""
         # Display the window
         self._show_window(window)
@@ -362,7 +362,7 @@ class Application(QApplication):
         )
 
     @pyqtSlot(object)
-    def action_progressing(self, action: Action) -> None:
+    def action_progressing(self, action: Action, /) -> None:
         if not isinstance(action, Action):
             log.warning(f"An action is needed, got {action!r}")
             return
@@ -373,7 +373,7 @@ class Application(QApplication):
         else:
             self.transfer_model.set_progress(export)
 
-    def add_engines(self, engines: Union[Engine, List[Engine]]) -> None:
+    def add_engines(self, engines: Union[Engine, List[Engine]], /) -> None:
         if not engines:
             return
 
@@ -381,10 +381,10 @@ class Application(QApplication):
         for engine in engines:
             self.engine_model.addEngine(engine.uid)
 
-    def remove_engine(self, uid: str) -> None:
+    def remove_engine(self, uid: str, /) -> None:
         self.engine_model.removeEngine(uid)
 
-    def _fill_qml_context(self, context: QQmlContext) -> None:
+    def _fill_qml_context(self, context: QQmlContext, /) -> None:
         """ Fill the context of a QML element with the necessary resources. """
 
         context.setContextProperty("ActiveSessionModel", self.active_session_model)
@@ -457,15 +457,15 @@ class Application(QApplication):
         for name, value in colors.items():
             context.setContextProperty(name, value)
 
-    def _window_root(self, window: QWindow) -> QWindow:
+    def _window_root(self, window: QWindow, /) -> QWindow:
         if WINDOWS:
             return window.rootObject()
         return window
 
-    def translate(self, message: str, values: List[Any] = None) -> str:
+    def translate(self, message: str, /, *, values: List[Any] = None) -> str:
         return Translator.get(message, values)
 
-    def _show_window(self, window: QWindow) -> None:
+    def _show_window(self, window: QWindow, /) -> None:
         window.show()
         window.raise_()
         window.requestActivate()
@@ -482,6 +482,7 @@ class Application(QApplication):
 
     def _msgbox(
         self,
+        *,
         icon: QIcon = QMessageBox.Information,
         title: str = APP_NAME,
         header: str = "",
@@ -502,27 +503,27 @@ class Application(QApplication):
             msg.exec_()
         return msg
 
-    def display_info(self, title: str, message: str, values: List[str]) -> None:
+    def display_info(self, title: str, message: str, values: List[str], /) -> None:
         """Display an informative message box."""
         msg_text = self.translate(message, values)
         log.info(f"{msg_text} (values={values})")
         self._msgbox(title=title, message=msg_text)
 
-    def display_warning(self, title: str, message: str, values: List[str]) -> None:
+    def display_warning(self, title: str, message: str, values: List[str], /) -> None:
         """Display a warning message box."""
         msg_text = self.translate(message, values)
         log.warning(f"{msg_text} (values={values})")
         self._msgbox(icon=QMessageBox.Warning, title=title, message=msg_text)
 
     def question(
-        self, header: str, message: str, icon: QIcon = QMessageBox.Question
+        self, header: str, message: str, /, *, icon: QIcon = QMessageBox.Question
     ) -> QMessageBox:
         """Display a question message box."""
         log.debug(f"Question: {message}")
         return self._msgbox(icon=icon, header=header, message=message, execute=False)
 
     @pyqtSlot(str, Path, str)
-    def _direct_edit_conflict(self, filename: str, ref: Path, digest: str) -> None:
+    def _direct_edit_conflict(self, filename: str, ref: Path, digest: str, /) -> None:
         log.debug(f"Entering _direct_edit_conflict for {filename!r} / {ref!r}")
         try:
             if filename in self._conflicts_modals:
@@ -550,7 +551,7 @@ class Application(QApplication):
             )
 
     @pyqtSlot(str, list)
-    def _direct_edit_error(self, message: str, values: List[str]) -> None:
+    def _direct_edit_error(self, message: str, values: List[str], /) -> None:
         """ Display a simple Direct Edit error message. """
         self.display_warning(f"Direct Edit - {APP_NAME}", message, values)
 
@@ -584,7 +585,7 @@ class Application(QApplication):
         self.display_warning(APP_NAME, "NO_SPACE_LEFT_ON_DEVICE", [])
 
     @pyqtSlot(Path)
-    def _root_moved(self, new_path: Path) -> None:
+    def _root_moved(self, new_path: Path, /) -> None:
         engine = self.sender()
         log.info(f"Root has been moved for engine: {engine.uid} to {new_path!r}")
         info = [engine.local_folder, APP_NAME, str(new_path)]
@@ -613,7 +614,7 @@ class Application(QApplication):
             engine.set_local_folder(new_path)
             engine.start()
 
-    def confirm_deletion(self, path: Path) -> DelAction:
+    def confirm_deletion(self, path: Path, /) -> DelAction:
         mode = self.manager.get_deletion_behavior()
         unsync = None
         if mode is DelAction.DEL_SERVER:
@@ -660,7 +661,7 @@ class Application(QApplication):
         return DelAction.ROLLBACK
 
     @pyqtSlot(Path)
-    def _doc_deleted(self, path: Path) -> None:
+    def _doc_deleted(self, path: Path, /) -> None:
         engine: Engine = self.sender()
 
         if not Behavior.server_deletion:
@@ -677,7 +678,7 @@ class Application(QApplication):
             engine.delete_doc(path, mode)
 
     @pyqtSlot(Path, Path)
-    def _file_already_exists(self, oldpath: Path, newpath: Path) -> None:
+    def _file_already_exists(self, oldpath: Path, newpath: Path, /) -> None:
         msg = self.question(
             Translator.get("FILE_ALREADY_EXISTS_HEADER"),
             Translator.get("FILE_ALREADY_EXISTS", values=[str(oldpath)]),
@@ -693,7 +694,7 @@ class Application(QApplication):
             newpath.unlink()
 
     @pyqtSlot(object)
-    def dropped_engine(self, engine: Engine) -> None:
+    def dropped_engine(self, engine: Engine, /) -> None:
         # Update icon in case the engine dropped was syncing
         self.change_systray_icon()
 
@@ -740,14 +741,14 @@ class Application(QApplication):
 
         self.set_icon_state(new_state)
 
-    def refresh_conflicts(self, uid: str) -> None:
+    def refresh_conflicts(self, uid: str, /) -> None:
         """ Update the content of the conflicts/errors window. """
         self.conflicts_model.add_files(self.api.get_conflicts(uid))
         self.errors_model.add_files(self.api.get_errors(uid))
         self.ignoreds_model.add_files(self.api.get_unsynchronizeds(uid))
 
     @pyqtSlot(object)
-    def show_conflicts_resolution(self, engine: Engine) -> None:
+    def show_conflicts_resolution(self, engine: Engine, /) -> None:
         """ Display the conflicts/errors window. """
         self.refresh_conflicts(engine.uid)
         self._window_root(self.conflicts_window).setEngine.emit(engine.uid)
@@ -755,7 +756,7 @@ class Application(QApplication):
 
     @pyqtSlot()  # From systray.py
     @pyqtSlot(str)  # All other calls
-    def show_settings(self, section: str = "General") -> None:
+    def show_settings(self, *, section: str = "General") -> None:
         sections = {"General": 0, "Features": 1, "Accounts": 2, "About": 3}
         self._window_root(self.settings_window).setSection.emit(sections[section])
         self._center_on_screen(self.settings_window)
@@ -798,7 +799,7 @@ class Application(QApplication):
         self.filters_dlg = None
 
     @pyqtSlot(object)
-    def show_filters(self, engine: Engine) -> None:
+    def show_filters(self, engine: Engine, /) -> None:
         if self.filters_dlg:
             self.filters_dlg.close()
             self.filters_dlg = None
@@ -815,7 +816,7 @@ class Application(QApplication):
         self._center_on_screen(self.settings_window)
 
     @pyqtSlot(object)
-    def show_server_folders(self, engine: Engine, path: Optional[Path]) -> None:
+    def show_server_folders(self, engine: Engine, path: Optional[Path], /) -> None:
         """Display the remote folders dialog window.
         *path* is None when the dialog window is opened from a click on the systray menu icon.
         """
@@ -839,7 +840,7 @@ class Application(QApplication):
         self.show_direct_transfer_window(self.filters_dlg.engine.uid)
 
     @pyqtSlot(str)
-    def show_direct_transfer_window(self, engine_uid: str) -> None:
+    def show_direct_transfer_window(self, engine_uid: str, /) -> None:
         """Display the Direct Transfer window."""
         window = self._window_root(self.direct_transfer_window)
         window.setEngine.emit(engine_uid)
@@ -852,7 +853,7 @@ class Application(QApplication):
 
     @pyqtSlot(str, int, str)
     def confirm_cancel_transfer(
-        self, engine_uid: str, transfer_uid: int, name: str
+        self, engine_uid: str, transfer_uid: int, name: str, /
     ) -> None:
         """
         Show a dialog to confirm the given transfer cancel.
@@ -874,7 +875,7 @@ class Application(QApplication):
 
     @pyqtSlot(str, int, str, int, result=bool)
     def confirm_cancel_session(
-        self, engine_uid: str, session_uid: int, destination: str, pending_files: int
+        self, engine_uid: str, session_uid: int, destination: str, pending_files: int, /
     ) -> bool:
         """
         Show a dialog to confirm the given session cancel.
@@ -896,7 +897,7 @@ class Application(QApplication):
 
     @pyqtSlot(str, object)
     def open_authentication_dialog(
-        self, url: str, callback_params: Dict[str, str]
+        self, url: str, callback_params: Dict[str, str], /
     ) -> None:
         self.api.callback_params = callback_params
         if Options.is_frozen:
@@ -916,7 +917,7 @@ class Application(QApplication):
         else:
             self._web_auth_not_frozen(url)
 
-    def _web_auth_not_frozen(self, url: str) -> None:
+    def _web_auth_not_frozen(self, url: str, /) -> None:
         """
         Open a dialog box to fill the credentials.
         Then a request will be done using the Python client to
@@ -982,7 +983,7 @@ class Application(QApplication):
         dialog.exec_()
 
     @pyqtSlot(object)
-    def _connect_engine(self, engine: Engine) -> None:
+    def _connect_engine(self, engine: Engine, /) -> None:
         engine.syncStarted.connect(self.change_systray_icon)
         engine.syncCompleted.connect(self.change_systray_icon)
         engine.syncCompleted.connect(self.force_refresh_files)
@@ -1154,7 +1155,7 @@ class Application(QApplication):
         setup_delegator(self._delegator)
 
     @pyqtSlot(object)
-    def _new_notification(self, notif: Notification) -> None:
+    def _new_notification(self, notif: Notification, /) -> None:
         if not notif.is_bubble():
             return
 
@@ -1176,14 +1177,14 @@ class Application(QApplication):
         self.tray_icon.showMessage(notif.title, notif.description, icon, 10000)
 
     @pyqtSlot(str, str)
-    def _handle_notification_action(self, action: str, engine_uid: str) -> None:
+    def _handle_notification_action(self, action: str, engine_uid: str, /) -> None:
         func = getattr(self.api, action, None)
         if not func:
             log.error(f"Action {action}() is not defined in {self.api}")
             return
         func(engine_uid)
 
-    def set_icon_state(self, state: str, force: bool = False) -> bool:
+    def set_icon_state(self, state: str, /, *, force: bool = False) -> bool:
         """
         Execute systray icon change operations triggered by state change.
 
@@ -1220,7 +1221,7 @@ class Application(QApplication):
         return f"{self.default_tooltip} - {action!r}"
 
     @if_frozen
-    def show_release_notes(self, version: str) -> None:
+    def show_release_notes(self, version: str, /) -> None:
         """ Display release notes of a given version. """
 
         if "CI" in os.environ:
@@ -1238,7 +1239,7 @@ class Application(QApplication):
             [APP_NAME, version],
         )
 
-    def accept_unofficial_ssl_cert(self, hostname: str) -> bool:
+    def accept_unofficial_ssl_cert(self, hostname: str, /) -> bool:
         """Ask the user to bypass the SSL certificate verification."""
         from ..utils import get_certificate_details
 
@@ -1328,11 +1329,11 @@ class Application(QApplication):
 
         return continue_with_bad_ssl_cert
 
-    def show_metadata(self, path: Path) -> None:
+    def show_metadata(self, path: Path, /) -> None:
         self.manager.ctx_edit_metadata(path)
 
     @pyqtSlot(bool)
-    def load_icons_set(self, use_light_icons: bool = False) -> None:
+    def load_icons_set(self, *, use_light_icons: bool = False) -> None:
         """Load a given icons set (either the default one "dark", or the light one)."""
         if self.use_light_icons is use_light_icons:
             return
@@ -1417,7 +1418,7 @@ class Application(QApplication):
             self.tray_icon.setContextMenu(self.tray_icon.get_context_menu())
         self.osi.register_contextual_menu()
 
-    def event(self, event: QEvent) -> bool:
+    def event(self, event: QEvent, /) -> bool:
         """ Handle URL scheme events under macOS. """
         url = getattr(event, "url", None)
         if not url:
@@ -1442,7 +1443,7 @@ class Application(QApplication):
         return os.getenv("NXDRIVE_URL", "")
 
     @pyqtSlot(str, result=bool)
-    def _handle_nxdrive_url(self, url: str) -> bool:
+    def _handle_nxdrive_url(self, url: str, /) -> bool:
         """ Handle an nxdrive protocol URL. """
 
         info = parse_protocol_url(url)
@@ -1540,7 +1541,7 @@ class Application(QApplication):
             del con
         log.info("Successfully closed server socket")
 
-    def _select_account(self, engines: List[Engine]) -> Optional[Engine]:
+    def _select_account(self, engines: List[Engine], /) -> Optional[Engine]:
         """Display a selection box to let the user choose 1 account."""
 
         dialog = QDialog()
@@ -1593,7 +1594,7 @@ class Application(QApplication):
 
         return selected_engine
 
-    def ctx_direct_transfer(self, path: Path) -> None:
+    def ctx_direct_transfer(self, path: Path, /) -> None:
         """Direct Transfer of local files and folders to anywhere on the server."""
 
         if not self.manager.wait_for_server_config():
@@ -1634,7 +1635,7 @@ class Application(QApplication):
 
         self.show_server_folders(engine, path)
 
-    def update_status(self, engine: Engine) -> None:
+    def update_status(self, engine: Engine, /) -> None:
         """
         Update the systray status for synchronization,
         conflicts/errors and software updates.
@@ -1671,13 +1672,13 @@ class Application(QApplication):
         )
 
     @pyqtSlot(object)
-    def refresh_transfers(self, dao: EngineDAO) -> None:
+    def refresh_transfers(self, dao: EngineDAO, /) -> None:
         transfers = self.api.get_transfers(dao)
         if transfers != self.transfer_model.transfers:
             self.transfer_model.set_transfers(transfers)
 
     @pyqtSlot(object)
-    def refresh_direct_transfer_items(self, dao: EngineDAO) -> None:
+    def refresh_direct_transfer_items(self, dao: EngineDAO, /) -> None:
         transfers = self.api.get_direct_transfer_items(dao)
         items = self.direct_transfer_model.items
         if transfers != items:
@@ -1697,7 +1698,7 @@ class Application(QApplication):
                 self.direct_transfer_model.update_items(transfers)
 
     @pyqtSlot(object)
-    def refresh_active_sessions_items(self, dao: EngineDAO) -> None:
+    def refresh_active_sessions_items(self, dao: EngineDAO, /) -> None:
         """Refresh the list of active sessions if a change is detected."""
         sessions = self.api.get_active_sessions_items(dao)
         current_sessions = self.active_session_model.sessions
@@ -1708,7 +1709,7 @@ class Application(QApplication):
                 self.active_session_model.update_sessions(sessions)
 
     @pyqtSlot(object)
-    def refresh_completed_sessions_items(self, dao: EngineDAO) -> None:
+    def refresh_completed_sessions_items(self, dao: EngineDAO, /) -> None:
         """Refresh the list of completed sessions if a change is detected."""
         sessions = self.api.get_completed_sessions_items(dao)
         if sessions != self.completed_session_model.sessions:
@@ -1721,7 +1722,7 @@ class Application(QApplication):
         self.refresh_files({})
 
     @pyqtSlot(object)
-    def refresh_files(self, metrics: Dict[str, Any]) -> None:
+    def refresh_files(self, metrics: Dict[str, Any], /) -> None:
         """Refresh the files list every second to go easy on the QML side and prevent GUI lags."""
         if monotonic() - self._last_refresh_view > 1.0:
             engine = self.sender()
@@ -1729,7 +1730,7 @@ class Application(QApplication):
             self._last_refresh_view = monotonic()
 
     @pyqtSlot(str)
-    def get_last_files(self, uid: str) -> None:
+    def get_last_files(self, uid: str, /) -> None:
         files = self.api.get_last_files(uid, 10)
         if files != self.file_model.files:
             self.file_model.add_files(files)

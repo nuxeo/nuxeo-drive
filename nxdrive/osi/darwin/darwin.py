@@ -115,7 +115,7 @@ class DarwinIntegration(AbstractOSIntegration):
         return data.decode("utf-8")
 
     @staticmethod
-    def cb_set(text: str) -> None:
+    def cb_set(text: str, /) -> None:
         """Copy some *text* into the clipboard.
         Emulate: echo "blablabla" | pbcopy w
         """
@@ -197,7 +197,7 @@ class DarwinIntegration(AbstractOSIntegration):
         log.info(f"Registered bundle {bundle_id!r} for URL scheme {NXDRIVE_SCHEME!r}")
 
     @staticmethod
-    def is_partition_supported(folder: Path) -> bool:
+    def is_partition_supported(folder: Path, /) -> bool:
         if folder is None:
             return False
         result = False
@@ -225,7 +225,7 @@ class DarwinIntegration(AbstractOSIntegration):
                     folder.rmdir()
         return result
 
-    def _send_notification(self, name: str, content: Dict[str, Any]) -> None:
+    def _send_notification(self, name: str, content: Dict[str, Any], /) -> None:
         """
         Send a notification through the macOS notification center
         to the FinderSync app extension.
@@ -236,7 +236,7 @@ class DarwinIntegration(AbstractOSIntegration):
         nc = NSDistributedNotificationCenter.defaultCenter()
         nc.postNotificationName_object_userInfo_(name, None, content)
 
-    def _set_monitoring(self, operation: str, path: Path) -> None:
+    def _set_monitoring(self, operation: str, path: Path, /) -> None:
         """
         Set the monitoring of a folder by the FinderSync.
 
@@ -247,17 +247,17 @@ class DarwinIntegration(AbstractOSIntegration):
         self._send_notification(name, {"operation": operation, "path": str(path)})
 
     @if_frozen
-    def watch_folder(self, folder: Path) -> None:
+    def watch_folder(self, folder: Path, /) -> None:
         log.info(f"FinderSync now watching {folder!r}")
         self._set_monitoring("watch", folder)
 
     @if_frozen
-    def unwatch_folder(self, folder: Path) -> None:
+    def unwatch_folder(self, folder: Path, /) -> None:
         log.info(f"FinderSync now ignoring {folder!r}")
         self._set_monitoring("unwatch", folder)
 
     @if_frozen
-    def send_sync_status(self, state: DocPair, path: Path) -> None:
+    def send_sync_status(self, state: DocPair, path: Path, /) -> None:
         """
         Send the sync status of a file to the FinderSync.
 
@@ -274,7 +274,7 @@ class DarwinIntegration(AbstractOSIntegration):
             log.exception("Error while trying to send status to FinderSync")
 
     @if_frozen
-    def send_content_sync_status(self, states: List[DocPair], path: Path) -> None:
+    def send_content_sync_status(self, states: List[DocPair], path: Path, /) -> None:
         """
         Send the sync status of the content of a folder to the FinderSync.
 
@@ -316,7 +316,7 @@ class DarwinIntegration(AbstractOSIntegration):
         self._send_notification(name, {"entries": entries})
 
     @if_frozen
-    def register_folder_link(self, path: Path) -> None:
+    def register_folder_link(self, path: Path, /) -> None:
         favorites = self._get_favorite_list() or []
         if not favorites:
             log.warning("Could not fetch the Finder favorite list.")
@@ -338,7 +338,7 @@ class DarwinIntegration(AbstractOSIntegration):
             log.info(f"Registered new favorite in Finder for: {path!r}")
 
     @if_frozen
-    def unregister_folder_link(self, path: Path) -> None:
+    def unregister_folder_link(self, path: Path, /) -> None:
         favorites = self._get_favorite_list()
         if not favorites:
             log.warning("Could not fetch Finder favorites")
@@ -365,7 +365,7 @@ class DarwinIntegration(AbstractOSIntegration):
 
     @staticmethod
     def _find_item_in_list(
-        lst: List[str], name: str
+        lst: List[str], name: str, /
     ) -> Optional[LSSharedFileListItemRef]:
         for item in LSSharedFileListCopySnapshot(lst, None)[0]:
             item_name = LSSharedFileListItemCopyDisplayName(item)

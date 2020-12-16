@@ -25,7 +25,7 @@ class TreeViewMixin(QTreeView):
     """The base class of a tree view."""
 
     def __init__(
-        self, parent: "DialogMixin", client: Union[FoldersOnly, FilteredDocuments]
+        self, parent: "DialogMixin", client: Union[FoldersOnly, FilteredDocuments], /
     ) -> None:
         super().__init__(parent)
         self.setHeaderHidden(True)
@@ -43,13 +43,13 @@ class TreeViewMixin(QTreeView):
         # When an item is clicked, load its children
         self.expanded.connect(self.expand_item)
 
-    def expand_item(self, index: QModelIndex) -> None:
+    def expand_item(self, index: QModelIndex, /) -> None:
         """When an item is clicked, load its children."""
         index = self.model().index(index.row(), 0, index.parent())
         item = self.model().itemFromIndex(index)
         self.load_children(item)
 
-    def load_children(self, item: QStandardItemModel = None) -> None:
+    def load_children(self, *, item: QStandardItemModel = None) -> None:
         """Load children of a given *item*."""
         if not self.client:
             # May happen when the user has invalid credentials
@@ -60,7 +60,7 @@ class TreeViewMixin(QTreeView):
         loader = self.loader(self, item)
         QThreadPool.globalInstance().start(loader)
 
-    def set_loading_cursor(self, busy: bool) -> None:
+    def set_loading_cursor(self, busy: bool, /) -> None:
         """Set the cursor based on the actual status.
         When busy, it means children are being fetched (i.e. a HTTP call is ongoing).
         In that case, change the cursor to let the user know something is happening.
@@ -85,7 +85,7 @@ class DocumentTreeView(TreeViewMixin):
     # The content's loader for synced documents
     loader = DocumentContentLoader
 
-    def __init__(self, parent: "DocumentsDialog", client: FilteredDocuments) -> None:
+    def __init__(self, parent: "DocumentsDialog", client: FilteredDocuments, /) -> None:
         super().__init__(parent, client)
 
         # When an item is changed, update its eventual parents and children states
@@ -94,7 +94,7 @@ class DocumentTreeView(TreeViewMixin):
         # Keep track of dirty items
         self.dirty_items: List[QStandardItemModel] = []
 
-    def update_item_changed(self, item: QObject) -> None:
+    def update_item_changed(self, item: QObject, /) -> None:
         """Append the item the the *.dirty_items* dict.
         That dict will be used by DocumentsDialog.apply_filters() tp update the view.
         """
@@ -113,7 +113,7 @@ class DocumentTreeView(TreeViewMixin):
         elif not is_dirty and is_in_dirty:
             self.dirty_items.remove(fs_info)
 
-    def item_check_parent(self, item: QObject) -> None:
+    def item_check_parent(self, item: QObject, /) -> None:
         """Retrieve the state of all children to update its own state accordingly."""
         sum_states = sum(
             item.child(idx).checkState() == Qt.Checked for idx in range(item.rowCount())
@@ -124,7 +124,7 @@ class DocumentTreeView(TreeViewMixin):
             item.setCheckState(Qt.PartiallyChecked)
         self.resolve_item_up_changed(item)
 
-    def resolve_item_down_changed(self, item: QObject) -> None:
+    def resolve_item_down_changed(self, item: QObject, /) -> None:
         """Put the same state for every child."""
         self.update_item_changed(item)
         state = item.checkState()
@@ -133,7 +133,7 @@ class DocumentTreeView(TreeViewMixin):
             child.setCheckState(state)
             self.resolve_item_down_changed(child)
 
-    def resolve_item_up_changed(self, item: QObject) -> None:
+    def resolve_item_up_changed(self, item: QObject, /) -> None:
         """Update the state of the parent."""
         self.update_item_changed(item)
 
@@ -145,7 +145,7 @@ class DocumentTreeView(TreeViewMixin):
         self.update_item_changed(parent)
         self.item_check_parent(parent)
 
-    def resolve_item(self, item: QObject) -> None:
+    def resolve_item(self, item: QObject, /) -> None:
         """When an item is changed, update its eventual parents and children states."""
         # Disconnect from signal to update the tree has we want
         self.setEnabled(False)
@@ -167,13 +167,13 @@ class FolderTreeView(TreeViewMixin):
     # The content's loader for folderish documents
     loader = FolderContentLoader
 
-    def __init__(self, parent: "FoldersDialog", client: FoldersOnly) -> None:
+    def __init__(self, parent: "FoldersDialog", client: FoldersOnly, /) -> None:
         super().__init__(parent, client)
 
         # Actions to do when a folder is (de)selected
         self.selectionModel().selectionChanged.connect(self.on_selection_changed)
 
-    def on_selection_changed(self, new: QItemSelection) -> None:
+    def on_selection_changed(self, new: QItemSelection, /) -> None:
         """Actions to do when a folder is (de)selected."""
         try:
             # Get the index of the current selection

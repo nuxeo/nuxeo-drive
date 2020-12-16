@@ -23,7 +23,7 @@ class DarwinExtensionListener(ExtensionListener):
         self.handlers["get-status"] = self.handle_status
         self.handlers["trigger-watch"] = self.handle_trigger_watch
 
-    def handle_status(self, path: Any) -> None:
+    def handle_status(self, path: Any, /) -> None:
         if not isinstance(path, str):
             return None
         path = Path(unicodedata.normalize("NFC", path))

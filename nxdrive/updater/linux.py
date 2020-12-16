@@ -20,7 +20,7 @@ class Updater(BaseUpdater):
     ext = "appimage"
     release_file = "nuxeo-drive-{version}-x86_64.AppImage"
 
-    def install(self, filename: str) -> None:
+    def install(self, filename: str, /) -> None:
         """
         Steps:
             - move the new executable next to the current running AppImage file
@@ -40,7 +40,7 @@ class Updater(BaseUpdater):
 
         self._restart(new_executable)
 
-    def _restart(self, executable: str) -> None:
+    def _restart(self, executable: str, /) -> None:
         """
         Restart the current application to take into account the new version.
         """

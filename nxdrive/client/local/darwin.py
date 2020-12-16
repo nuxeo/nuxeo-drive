@@ -25,7 +25,7 @@ log = getLogger(__name__)
 class LocalClient(LocalClientMixin):
     """macOS Client API implementation."""
 
-    def change_created_time(self, filepath: Path, d_ctime: datetime) -> None:
+    def change_created_time(self, filepath: Path, d_ctime: datetime, /) -> None:
         """Change the created time of a given file."""
         cmd = ["touch", "-mt", d_ctime.strftime("%Y%m%d%H%M.%S"), str(filepath)]
         try:
@@ -35,12 +35,12 @@ class LocalClient(LocalClientMixin):
             # Note: Passing "exc_info=True" is useless as there will be no useful details.
             log.warning(f"Cannot change the created time of {filepath!r}")
 
-    def has_folder_icon(self, ref: Path) -> bool:
+    def has_folder_icon(self, ref: Path, /) -> bool:
         """Check if the folder icon is set."""
         return (self.abspath(ref) / "Icon\r").is_file()
 
     @staticmethod
-    def get_path_remote_id(path: Path, name: str = "ndrive") -> str:
+    def get_path_remote_id(path: Path, /, *, name: str = "ndrive") -> str:
         """Get a given extended attribute from a file/folder."""
         try:
             return (
@@ -58,7 +58,7 @@ class LocalClient(LocalClientMixin):
         result[icon_flag_index] = icon_flag_value
         return result
 
-    def remove_remote_id_impl(self, path: Path, name: str = "ndrive") -> None:
+    def remove_remote_id_impl(self, path: Path, /, *, name: str = "ndrive") -> None:
         """Remove a given extended attribute."""
         try:
             xattr.removexattr(str(path), name)
@@ -68,7 +68,7 @@ class LocalClient(LocalClientMixin):
             if exc.errno not in (errno.ENODATA, errno.EPROTONOSUPPORT):
                 raise exc
 
-    def set_folder_icon(self, ref: Path, icon: Path) -> None:
+    def set_folder_icon(self, ref: Path, icon: Path, /) -> None:
         """Create a special file to customize the folder icon.
         1. Read the com.apple.ResourceFork extended attribute from the icon file
         2. Set the com.apple.FinderInfo extended attribute with folder icon flag
@@ -101,7 +101,7 @@ class LocalClient(LocalClientMixin):
 
     @staticmethod
     def set_path_remote_id(
-        path: Path, remote_id: Union[bytes, str], name: str = "ndrive"
+        path: Path, remote_id: Union[bytes, str], /, *, name: str = "ndrive"
     ) -> None:
         if not isinstance(remote_id, bytes):
             remote_id = unicodedata.normalize("NFC", remote_id).encode("utf-8")
@@ -116,7 +116,7 @@ class LocalClient(LocalClientMixin):
         finally:
             lock_path(path, locker)
 
-    def trash(self, path: Path) -> None:
+    def trash(self, path: Path, /) -> None:
         """Move a given file or folder to the trash. Untrash is possible then."""
         # Using deprecated APIs that still works on Mojave.
         # See next commented code when it will no more work.

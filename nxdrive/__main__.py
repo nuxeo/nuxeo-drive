@@ -21,7 +21,7 @@ from nxdrive.fatal_error import (
 from nxdrive.options import Options
 
 
-def before_send(event: Any, _hint: Any) -> Any:
+def before_send(event: Any, _hint: Any, /) -> Any:
     """
     Alter an event before sending to the Sentry server.
     The event will not be sent if None is returned.
@@ -77,7 +77,7 @@ def setup_sentry() -> None:
     )
 
 
-def signal_handler(signum: int, frame: FrameType) -> None:
+def signal_handler(signum: int, frame: FrameType, /) -> None:
     """Signal handler."""
     from PyQt5.QtWidgets import QApplication
 

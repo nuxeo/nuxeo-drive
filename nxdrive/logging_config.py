@@ -35,7 +35,7 @@ is_logging_configured = False
 
 
 class CustomMemoryHandler(BufferingHandler):
-    def __init__(self, capacity: int = constants.MAX_LOG_DISPLAYED) -> None:
+    def __init__(self, *, capacity: int = constants.MAX_LOG_DISPLAYED) -> None:
         super().__init__(capacity)
         self._old_buffer: List[LogRecord] = []
 
@@ -50,7 +50,7 @@ class CustomMemoryHandler(BufferingHandler):
         finally:
             self.release()
 
-    def get_buffer(self, count: int) -> List[LogRecord]:
+    def get_buffer(self, count: int, /) -> List[LogRecord]:
         """Returns latest *count* lines from the memory buffer."""
         if count < 1:
             return []
@@ -93,7 +93,7 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
             if entry.is_file():
                 yield Path(entry)
 
-    def compress(self, file: Path) -> None:
+    def compress(self, file: Path, /) -> None:
         """Compress one rotated log file."""
         with file.open(mode="rb") as f, ZipFile(f"{file}.zip", mode="w") as z:
             z.writestr(file.name, f.read(), ZIP_DEFLATED)
@@ -121,7 +121,7 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
         self.compress_and_purge()
 
 
-def no_trace(level: str) -> str:
+def no_trace(level: str, /) -> str:
     level = level.upper()
     if level == "TRACE":
         logging.getLogger().warning(
@@ -132,6 +132,7 @@ def no_trace(level: str) -> str:
 
 
 def configure(
+    *,
     log_filename: str = None,
     file_level: str = DEFAULT_LEVEL_FILE,
     console_level: str = DEFAULT_LEVEL_CONSOLE,
@@ -201,14 +202,14 @@ def configure(
         logging.getLogger("botocore").setLevel(logging.ERROR)
 
 
-def get_handler(name: str) -> Optional[logging.Handler]:
+def get_handler(name: str, /) -> Optional[logging.Handler]:
     for handler in logging.getLogger().handlers:
         if handler.name == name:
             return handler
     return None
 
 
-def get_level(level: str, default: str) -> str:
+def get_level(level: str, default: str, /) -> str:
     try:
         check_level(level)
         return no_trace(level)
@@ -217,7 +218,7 @@ def get_level(level: str, default: str) -> str:
         return default
 
 
-def check_level(level: str) -> str:
+def check_level(level: str, /) -> str:
     """Handle bad logging level."""
     try:
         level = no_trace(level)
@@ -229,13 +230,13 @@ def check_level(level: str) -> str:
         return level
 
 
-def update_logger_console(level: str) -> None:
+def update_logger_console(level: str, /) -> None:
     handler = get_handler("nxdrive_console")
     if handler:
         handler.setLevel(level)
 
 
-def update_logger_file(level: str) -> None:
+def update_logger_file(level: str, /) -> None:
     handler = get_handler("nxdrive_file")
     if handler:
         handler.setLevel(level)

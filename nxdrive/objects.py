@@ -64,7 +64,7 @@ class RemoteFileInfo:
     # the descendants can be used
 
     @staticmethod
-    def from_dict(fs_item: Dict[str, Any]) -> "RemoteFileInfo":
+    def from_dict(fs_item: Dict[str, Any], /) -> "RemoteFileInfo":
         """Convert Automation file system item description to RemoteFileInfo"""
         try:
             uid = fs_item["id"]
@@ -153,7 +153,7 @@ class Blob:
     data: str  # download url of the blob or content if it's a note
 
     @staticmethod
-    def from_dict(blob: Dict[str, Any]) -> "Blob":
+    def from_dict(blob: Dict[str, Any], /) -> "Blob":
         """ Convert Dict to Blob object. """
         name = blob["name"]
         digest = blob.get("digest") or ""
@@ -194,7 +194,9 @@ class NuxeoDocumentInfo:
     properties: Dict[str, Any]  # properties
 
     @staticmethod
-    def from_dict(doc: Dict[str, Any], parent_uid: str = None) -> "NuxeoDocumentInfo":
+    def from_dict(
+        doc: Dict[str, Any], /, *, parent_uid: str = None
+    ) -> "NuxeoDocumentInfo":
         """Convert Automation document description to NuxeoDocumentInfo"""
         try:
             root = doc["root"]
@@ -257,7 +259,7 @@ class NuxeoDocumentInfo:
             props,
         )
 
-    def get_blob(self, xpath: str) -> Optional[Blob]:
+    def get_blob(self, xpath: str, /) -> Optional[Blob]:
         """Retrieve blob details from a given *xpath*.
         There is no real limitation on the *xpath*.
         Those are all valid if they are present in the *properties* attribute
@@ -368,7 +370,7 @@ class DocPair(Row):
             ">"
         )
 
-    def __getattr__(self, name: str) -> Optional[Union[str, Path]]:
+    def __getattr__(self, name: str, /) -> Optional[Union[str, Path]]:
         if name in ("local_path", "local_parent_path"):
             return Path((self[name] or "").lstrip("/"))
         if name == "remote_ref":
@@ -418,7 +420,9 @@ class DocPair(Row):
             self.remote_can_delete & self.remote_can_rename & self.remote_can_update
         ) == 0
 
-    def update_state(self, local_state: str = None, remote_state: str = None) -> None:
+    def update_state(
+        self, *, local_state: str = None, remote_state: str = None
+    ) -> None:
         if local_state is not None:
             self.local_state = local_state
         if remote_state is not None:
@@ -434,7 +438,7 @@ class EngineDef(Row):
     uid: str
     name: str
 
-    def __getattr__(self, name: str) -> Optional[Union[str, Path]]:
+    def __getattr__(self, name: str, /) -> Optional[Union[str, Path]]:
         if name == "local_folder":
             return Path(self[name])
         return self[name]  # type: ignore

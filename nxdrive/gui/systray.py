@@ -18,7 +18,7 @@ __all__ = ("DriveSystrayIcon",)
 
 
 class DriveSystrayIcon(QSystemTrayIcon):
-    def __init__(self, application: "Application") -> None:
+    def __init__(self, application: "Application", /) -> None:
         super().__init__(application)
         self.application = application
         self.messageClicked.connect(self.application.message_clicked)
@@ -33,7 +33,7 @@ class DriveSystrayIcon(QSystemTrayIcon):
             # will show up every click on the systray icon.
             self.setContextMenu(self.get_context_menu())
 
-    def handle_mouse_click(self, reason: int) -> None:
+    def handle_mouse_click(self, reason: int, /) -> None:
         """
         Handle any mouse click on the systray icon.
         It is not needed to handle the right click as it
@@ -86,7 +86,7 @@ class DriveSystrayIcon(QSystemTrayIcon):
 
 
 class SystrayWindow(QQuickView):
-    def event(self, event: QEvent) -> bool:
+    def event(self, event: QEvent, /) -> bool:
         if event.type() == QEvent.FocusOut or (
             event.type() == QEvent.MouseButtonPress
             and not self.geometry().contains(event.screenPos().toPoint())

@@ -48,7 +48,7 @@ def auto_updates_state() -> AutoUpdateState:
 
 
 def is_version_compatible(
-    version_id: str, version: Version, server: str, has_browser_login: bool
+    version_id: str, version: Version, server: str, has_browser_login: bool, /
 ) -> bool:
     """
     Check Drive <-> server version compatibility.
@@ -77,7 +77,7 @@ def is_version_compatible(
 
 
 def get_compatible_versions(
-    versions: Versions, server_ver: Optional[str], has_browser_login: bool
+    versions: Versions, server_ver: Optional[str], has_browser_login: bool, /
 ) -> Versions:
     """
     Find all Drive versions compatible with the current server instance.
@@ -104,7 +104,7 @@ def get_compatible_versions(
     return candidates
 
 
-def get_latest_version(versions: Versions, channel: str) -> str:
+def get_latest_version(versions: Versions, channel: str, /) -> str:
     """ Get the most recent version of a given channel. """
     versions_list = [
         version
@@ -126,6 +126,7 @@ def get_update_status(
     channel: str,
     server_version: Optional[str],
     login_type: Login,
+    /,
 ) -> Tuple[str, str]:
     """Given a Drive version, determine the definitive status of the application."""
 

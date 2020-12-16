@@ -91,7 +91,7 @@ class Manager(QObject):
     __device_id = None
     autolock_service: ProcessAutoLockerWorker
 
-    def __init__(self, home: Path) -> None:
+    def __init__(self, home: Path, /) -> None:
         super().__init__()
 
         self.arch = get_arch()  # public because used in the Tracker
@@ -390,7 +390,7 @@ class Manager(QObject):
         self.started.connect(self._extension_listener.start_listening)
         self.stopped.connect(self._extension_listener.close)
 
-    def resume(self, euid: str = None) -> None:
+    def resume(self, *, euid: str = None) -> None:
         if not self.is_paused:
             return
         self.is_paused = False
@@ -400,7 +400,7 @@ class Manager(QObject):
             engine.resume()
         self.resumed.emit()
 
-    def suspend(self, euid: str = None) -> None:
+    def suspend(self, *, euid: str = None) -> None:
         if self.is_paused:
             return
         self.is_paused = True
@@ -410,7 +410,7 @@ class Manager(QObject):
             engine.suspend()
         self.suspended.emit()
 
-    def stop(self, euid: str = None) -> None:
+    def stop(self, *, euid: str = None) -> None:
         # Make a backup in case something happens
         self.dao.save_backup()
 
@@ -434,7 +434,7 @@ class Manager(QObject):
             except Exception:
                 log.exception(f"Could not start the engine {uid}")
 
-    def start(self, euid: str = None) -> None:
+    def start(self, *, euid: str = None) -> None:
         self._started = True
 
         if not self.server_config_updater.first_run:
@@ -476,7 +476,7 @@ class Manager(QObject):
         if self.engines:
             self.tracker.send_metric("account", "count", str(len(self.engines)))
 
-    def _get_engine_db_file(self, uid: str) -> Path:
+    def _get_engine_db_file(self, uid: str, /) -> Path:
         return self.home / f"ndrive_{uid}.db"
 
     def _force_autoupdate(self) -> None:
@@ -484,7 +484,7 @@ class Manager(QObject):
             self.updater.force_poll()
 
     @pyqtSlot(str)
-    def open_local_file(self, file_path: str, select: bool = False) -> None:
+    def open_local_file(self, file_path: str, /, *, select: bool = False) -> None:
         """Launch the local OS program on the given file / folder."""
         file_path = force_decode(file_path)
         log.info(f"Launching editor on {file_path!r}")
@@ -508,10 +508,10 @@ class Manager(QObject):
             self.dao.update_config("device_id", self.__device_id)
         return str(self.__device_id)
 
-    def get_config(self, value: str, default: Any = None) -> Any:
+    def get_config(self, value: str, /, *, default: Any = None) -> Any:
         return self.dao.get_config(value, default)
 
-    def set_config(self, key: str, value: Any) -> None:
+    def set_config(self, key: str, value: Any, /) -> None:
         Options.set(key, value, setter="manual", fail_on_error=False)
         self.dao.update_config(key, value)
 
@@ -521,17 +521,17 @@ class Manager(QObject):
         return self.dao.get_bool("direct_edit_auto_lock", default=Options.is_frozen)
 
     @pyqtSlot(bool)
-    def set_direct_edit_auto_lock(self, value: bool) -> None:
+    def set_direct_edit_auto_lock(self, value: bool, /) -> None:
         log.debug(f"Changed parameter 'direct_edit_auto_lock' to {value}")
         self.dao.store_bool("direct_edit_auto_lock", value)
 
     @pyqtSlot(str, result=bool)
-    def get_feature_state(self, name: str) -> bool:
+    def get_feature_state(self, name: str, /) -> bool:
         """Get the value of the Feature attribute."""
         return bool(getattr(Feature, name))
 
     @pyqtSlot(str, bool)
-    def set_feature_state(self, name: str, value: bool) -> None:
+    def set_feature_state(self, name: str, value: bool, /) -> None:
         """Set the value of the feature in Options and save changes in config file."""
         Options.set(f"feature_{name}", value, setter="manual")
         save_config({f"feature_{name}": value})
@@ -544,11 +544,11 @@ class Manager(QObject):
         return value
 
     @pyqtSlot(bool)
-    def set_auto_update(self, value: bool) -> None:
+    def set_auto_update(self, value: bool, /) -> None:
         log.debug(f"Changed parameter 'auto_update' to {value}")
         self.dao.store_bool("auto_update", value)
 
-    def generate_report(self, path: Path = None) -> Path:
+    def generate_report(self, *, path: Path = None) -> Path:
         from .report import Report
 
         log.info(f"Manager metrics: {self.get_metrics()!r}")
@@ -564,7 +564,7 @@ class Manager(QObject):
         return self.osi.startup_enabled()
 
     @pyqtSlot(bool)
-    def set_auto_start(self, value: bool) -> None:
+    def set_auto_start(self, value: bool, /) -> None:
         """Change the auto start state."""
         log.debug(f"Changed auto start state to {value}")
         if value:
@@ -578,7 +578,7 @@ class Manager(QObject):
         return self.dao.get_bool("light_icons")
 
     @pyqtSlot(bool)
-    def set_light_icons(self, value: bool) -> None:
+    def set_light_icons(self, value: bool, /) -> None:
         self.set_config("light_icons", value)
         self.reloadIconsSet.emit(value)
 
@@ -589,7 +589,7 @@ class Manager(QObject):
         )
 
     @pyqtSlot(str)
-    def set_update_channel(self, value: str) -> None:
+    def set_update_channel(self, value: str, /) -> None:
         self.set_config("channel", value)
         self.prompted_wrong_channel = False
         self.updater.refresh_status()
@@ -602,7 +602,7 @@ class Manager(QObject):
         )
 
     @pyqtSlot(str)
-    def set_log_level(self, value: str) -> None:
+    def set_log_level(self, value: str, /) -> None:
         if value == "DEBUG":
             log.warning("Setting log level to DEBUG, sensitive data may be logged.")
         self.set_config("log_level_file", value)
@@ -622,10 +622,12 @@ class Manager(QObject):
     def get_deletion_behavior(self) -> DelAction:
         return DelAction(self.get_config("deletion_behavior", default="unsync"))
 
-    def set_deletion_behavior(self, behavior: DelAction) -> None:
+    def set_deletion_behavior(self, behavior: DelAction, /) -> None:
         self.set_config("deletion_behavior", behavior.value)
 
-    def get_server_login_type(self, server_url: str, _raise: bool = True) -> Login:
+    def get_server_login_type(
+        self, server_url: str, /, *, _raise: bool = True
+    ) -> Login:
         # Take into account URL parameters
         parts = urlsplit(server_url)
         url = urlunsplit(
@@ -681,6 +683,8 @@ class Manager(QObject):
         local_folder: Path,
         url: str,
         username: str,
+        /,
+        *,
         password: str = None,
         token: str = None,
         name: str = None,
@@ -700,11 +704,11 @@ class Manager(QObject):
             DEFAULT_SERVER_TYPE, local_folder, name, binder, starts=start_engine
         )
 
-    def _get_engine_name(self, server_url: str) -> str:
+    def _get_engine_name(self, server_url: str, /) -> str:
         urlp = urlparse(server_url)
         return urlp.hostname or ""
 
-    def check_local_folder_available(self, path: Path) -> bool:
+    def check_local_folder_available(self, path: Path, /) -> bool:
         if not self._engine_definitions:
             return True
         for engine in self._engine_definitions:
@@ -713,7 +717,7 @@ class Manager(QObject):
                 return False
         return True
 
-    def update_engine_path(self, uid: str, path: Path) -> None:
+    def update_engine_path(self, uid: str, path: Path, /) -> None:
         # Don't update the engine by itself,
         # should be only used by engine.update_engine_path
         if uid in self.engines:
@@ -730,6 +734,8 @@ class Manager(QObject):
         local_folder: Path,
         name: Optional[str],
         binder: Binder,
+        /,
+        *,
         starts: bool = True,
     ) -> "Engine":
         """Bind a local folder to a remote server."""
@@ -818,7 +824,7 @@ class Manager(QObject):
 
         return self.engines[uid]
 
-    def unbind_engine(self, uid: str, purge: bool = False) -> None:
+    def unbind_engine(self, uid: str, /, *, purge: bool = False) -> None:
         """Remove an Engine. If *purge* is True, then local files will be deleted."""
 
         log.debug(f"Unbinding Engine {uid}, local files purgation is {purge}")
@@ -864,7 +870,7 @@ class Manager(QObject):
         """Return True if any engine is still syncing stuff."""
         return any(engine.is_syncing() for engine in self.engines.values())
 
-    def get_root_id(self, path: Path) -> str:
+    def get_root_id(self, path: Path, /) -> str:
         ref = LocalClient.get_path_remote_id(path, "ndriveroot")
         if not ref:
             parent = path.parent
@@ -874,7 +880,7 @@ class Manager(QObject):
             return self.get_root_id(parent)
         return ref
 
-    def ctx_access_online(self, path: Path) -> None:
+    def ctx_access_online(self, path: Path, /) -> None:
         """ Open the user's browser to a remote document. """
 
         log.info(f"Opening metadata window for {path!r}")
@@ -888,7 +894,7 @@ class Manager(QObject):
         else:
             self.open_local_file(url)
 
-    def ctx_copy_share_link(self, path: Path) -> str:
+    def ctx_copy_share_link(self, path: Path, /) -> str:
         """ Copy the document's share-link to the clipboard. """
 
         url = self.get_metadata_infos(path)
@@ -896,7 +902,7 @@ class Manager(QObject):
         log.info(f"Copied {url!r}")
         return url
 
-    def ctx_edit_metadata(self, path: Path) -> None:
+    def ctx_edit_metadata(self, path: Path, /) -> None:
         """ Open the user's browser to a remote document's metadata. """
 
         log.info(f"Opening metadata window for {path!r}")
@@ -910,7 +916,7 @@ class Manager(QObject):
         else:
             self.open_local_file(url)
 
-    def get_metadata_infos(self, path: Path, edit: bool = False) -> str:
+    def get_metadata_infos(self, path: Path, /, *, edit: bool = False) -> str:
         remote_ref = LocalClient.get_path_remote_id(path)
         if not remote_ref:
             raise ValueError(f"Could not find file {path!r} as {APP_NAME} managed")
@@ -925,7 +931,7 @@ class Manager(QObject):
 
         return engine.get_metadata_url(remote_ref, edit=edit)
 
-    def send_sync_status(self, path: Path) -> None:
+    def send_sync_status(self, path: Path, /) -> None:
         for engine in self.engines.copy().values():
             # Only send status if we picked the right
             # engine and if we're not targeting the root
@@ -938,7 +944,7 @@ class Manager(QObject):
             self.osi.send_content_sync_status(states, path)
             return
 
-    def wait_for_server_config(self, timeout: int = 10) -> bool:
+    def wait_for_server_config(self, *, timeout: int = 10) -> bool:
         """Wait for the server's config to be fetched (*timeout* seconds maximum).
         Return True if the server's config has been fetched with success.
 

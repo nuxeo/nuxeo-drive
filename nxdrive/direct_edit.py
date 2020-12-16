@@ -72,7 +72,7 @@ class DirectEdit(Worker):
     directEditStarting = pyqtSignal(str, str)
     directEditLocked = pyqtSignal(str, str, datetime)
 
-    def __init__(self, manager: "Manager", folder: Path) -> None:
+    def __init__(self, manager: "Manager", folder: Path, /) -> None:
         super().__init__()
 
         self._manager = manager
@@ -119,7 +119,7 @@ class DirectEdit(Worker):
         )
 
     @pyqtSlot(object)
-    def _autolock_orphans(self, locks: List[Path]) -> None:
+    def _autolock_orphans(self, locks: List[Path], /) -> None:
         log.debug(f"Orphans lock: {locks!r}")
         for lock in locks:
             if self._folder in lock.parents:
@@ -127,7 +127,7 @@ class DirectEdit(Worker):
                 ref = self.local.get_path(lock)
                 self._lock_queue.put((ref, "unlock_orphan"))
 
-    def autolock_lock(self, src_path: Path) -> None:
+    def autolock_lock(self, src_path: Path, /) -> None:
         ref = self.local.get_path(src_path)
         self._lock_queue.put((ref, "lock"))
 
@@ -143,7 +143,7 @@ class DirectEdit(Worker):
         super().stop()
         self._stop = True
 
-    def stop_client(self, message: str = None) -> None:
+    def stop_client(self, *, message: str = None) -> None:
         if self._stop:
             raise ThreadInterrupt()
 
@@ -247,7 +247,7 @@ class DirectEdit(Worker):
             # Finally
             purge(child.path)
 
-    def __get_engine(self, url: str, user: str = None) -> Optional["Engine"]:
+    def __get_engine(self, url: str, /, *, user: str = None) -> Optional["Engine"]:
         if not url:
             return None
 
@@ -272,7 +272,7 @@ class DirectEdit(Worker):
         return None
 
     def _get_engine(
-        self, server_url: str, doc_id: str = None, user: str = None
+        self, server_url: str, /, *, doc_id: str = None, user: str = None
     ) -> Optional["Engine"]:
         engine = self.__get_engine(server_url, user=user)
 
@@ -298,6 +298,8 @@ class DirectEdit(Worker):
         file_out: Path,
         blob: Blob,
         xpath: str,
+        /,
+        *,
         url: str = None,
     ) -> Optional[Path]:
         # Close to processor method - should try to refactor ?
@@ -377,7 +379,9 @@ class DirectEdit(Worker):
 
         return file_out
 
-    def _get_info(self, engine: "Engine", doc_id: str) -> Optional[NuxeoDocumentInfo]:
+    def _get_info(
+        self, engine: "Engine", doc_id: str, /
+    ) -> Optional[NuxeoDocumentInfo]:
         try:
             doc = engine.remote.fetch(
                 doc_id, headers={"fetch-document": "lock"}, enrichers=["permissions"]
@@ -432,7 +436,7 @@ class DirectEdit(Worker):
 
         return info
 
-    def _get_tmp_file(self, doc_id: str, filename: str) -> Path:
+    def _get_tmp_file(self, doc_id: str, filename: str, /) -> Path:
         """Return the temporary file that will be used to download contents.
         Using a method to help testing.
         """
@@ -441,7 +445,13 @@ class DirectEdit(Worker):
         return tmp_folder / filename
 
     def _prepare_edit(
-        self, server_url: str, doc_id: str, user: str = None, download_url: str = None
+        self,
+        server_url: str,
+        doc_id: str,
+        /,
+        *,
+        user: str = None,
+        download_url: str = None,
     ) -> Optional[Path]:
         start_time = current_milli_time()
         engine = self._get_engine(server_url, doc_id=doc_id, user=user)
@@ -540,7 +550,13 @@ class DirectEdit(Worker):
 
     @pyqtSlot(str, str, str, str)
     def edit(
-        self, server_url: str, doc_id: str, user: str = None, download_url: str = None
+        self,
+        server_url: str,
+        doc_id: str,
+        /,
+        *,
+        user: str = None,
+        download_url: str = None,
     ) -> None:
         if not Feature.direct_edit:
             self.directEditError.emit("DIRECT_EDIT_NOT_ENABLED", [])
@@ -565,7 +581,7 @@ class DirectEdit(Worker):
             else:
                 raise e
 
-    def _extract_edit_info(self, ref: Path) -> DirectEditDetails:
+    def _extract_edit_info(self, ref: Path, /) -> DirectEditDetails:
         dir_path = ref.parent
         server_url = self.local.get_remote_id(dir_path, name="nxdirectedit")
         if not server_url:
@@ -598,14 +614,14 @@ class DirectEdit(Worker):
         log.debug(f"Direct Edit {details}")
         return details
 
-    def force_update(self, ref: Path, digest: str) -> None:
+    def force_update(self, ref: Path, digest: str, /) -> None:
         dir_path = ref.parent
         self.local.set_remote_id(
             dir_path, digest.encode("utf-8"), name="nxdirecteditdigest"
         )
         self._upload_queue.put(ref)
 
-    def _lock(self, remote: Remote, uid: str) -> bool:
+    def _lock(self, remote: Remote, uid: str, /) -> bool:
         """Lock a document."""
         try:
             remote.lock(uid)
@@ -699,7 +715,7 @@ class DirectEdit(Worker):
         for item in errors:
             self._lock_queue.put(item)
 
-    def _send_lock_status(self, ref: str) -> None:
+    def _send_lock_status(self, ref: str, /) -> None:
         manager = self._manager
         for engine in manager.engines.copy().values():
             dao = engine.dao
@@ -848,7 +864,7 @@ class DirectEdit(Worker):
                 log.exception(f"Direct Edit unhandled error for ref {ref!r}")
                 self._handle_upload_error(ref, os_path)
 
-    def _handle_upload_error(self, ref: Path, os_path: Path) -> None:
+    def _handle_upload_error(self, ref: Path, os_path: Path, /) -> None:
         """Retry the upload if the number of attempts is below *._error_threshold* else discard it."""
         self._upload_errors[ref] += 1
         if self._upload_errors[ref] < self._error_threshold:
@@ -929,7 +945,7 @@ class DirectEdit(Worker):
             self._observer = None
 
     @tooltip("Handle watchdog event")
-    def handle_watchdog_event(self, evt: FileSystemEvent) -> None:
+    def handle_watchdog_event(self, evt: FileSystemEvent, /) -> None:
         src_path = normalize_event_filename(evt.src_path)
 
         # Event on the folder by itself

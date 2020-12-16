@@ -31,7 +31,7 @@ except ImportError:
     QSslSocket = None
 
 if TYPE_CHECKING:
-    from .application import Application  # noqa
+    from .gui.application import Application  # noqa
     from .console import ConsoleApplication  # noqa
     from .manager import Manager  # noqa
 
@@ -70,7 +70,7 @@ class CliHandler:
     def get_version(self) -> str:
         return __version__
 
-    def make_cli_parser(self, add_subparsers: bool = True) -> ArgumentParser:
+    def make_cli_parser(self, *, add_subparsers: bool = True) -> ArgumentParser:
         """
         Parse commandline arguments using a git-like subcommands scheme.
         """
@@ -360,7 +360,7 @@ class CliHandler:
 
     """Command Line Interface handler: parse options and execute operation"""
 
-    def parse_cli(self, argv: List[str]) -> Namespace:
+    def parse_cli(self, argv: List[str], /) -> Namespace:
         """Parse the command line argument using argparse and protocol URL"""
         # Filter psn argument provided by OSX .app service launcher
         # https://developer.apple.com/library/mac/documentation/Carbon/Reference/LaunchServicesReference/LaunchServicesReference.pdf
@@ -426,7 +426,7 @@ class CliHandler:
 
         return options
 
-    def load_config(self, parser: ArgumentParser) -> None:
+    def load_config(self, parser: ArgumentParser, /) -> None:
         """
         Load local configuration from different sources:
             - the registry on Windows
@@ -494,10 +494,10 @@ class CliHandler:
             force_configure=True,
         )
 
-    def uninstall(self, options: Namespace = None) -> None:
+    def uninstall(self, *, options: Namespace = None) -> None:
         AbstractOSIntegration.get(None).uninstall()
 
-    def handle(self, argv: List[str]) -> int:
+    def handle(self, argv: List[str], /) -> int:
         """ Parse options, setup logs and manager and dispatch execution. """
 
         # Pre-configure the logging to catch early errors
@@ -550,7 +550,7 @@ class CliHandler:
         return Manager(Options.nxdrive_home)
 
     def _get_application(
-        self, console: bool = False
+        self, *, console: bool = False
     ) -> Union["Application", "ConsoleApplication"]:
         if console:
             from .console import ConsoleApplication as Application  # noqa
@@ -563,7 +563,7 @@ class CliHandler:
             qmlRegisterType(SystrayWindow, "SystrayWindow", 1, 0, "SystrayWindow")
         return Application(self.manager)
 
-    def launch(self, options: Namespace = None, console: bool = False) -> int:
+    def launch(self, *, options: Namespace = None, console: bool = False) -> int:
         """Launch the Qt app in the main thread and sync in another thread."""
         from .utils import PidLockFile
 
@@ -588,7 +588,7 @@ class CliHandler:
         log.info(f"{APP_NAME} exited with code {exit_code}")
         return exit_code
 
-    def redact_payload(self, payload: bytes) -> bytes:
+    def redact_payload(self, payload: bytes, /) -> bytes:
         """Some information may not be needed in logs."""
 
         # Do not disclose the token in logs
@@ -597,7 +597,7 @@ class CliHandler:
 
         return payload
 
-    def _send_to_running_instance(self, payload: bytes, pid: int) -> None:
+    def _send_to_running_instance(self, payload: bytes, pid: int, /) -> None:
         from PyQt5.QtCore import QByteArray
         from PyQt5.QtNetwork import QLocalSocket
 
@@ -623,7 +623,7 @@ class CliHandler:
             del client
         log.debug("Successfully closed client socket")
 
-    def clean_folder(self, options: Namespace) -> int:
+    def clean_folder(self, options: Namespace, /) -> int:
         from .client.local import LocalClient
 
         if not options.local_folder:
@@ -634,40 +634,40 @@ class CliHandler:
         client.clean_xattr_root()
         return 0
 
-    def console(self, options: Namespace) -> int:
+    def console(self, options: Namespace, /) -> int:
         if options.debug_pydev:
             from pydev import pydevd
 
             pydevd.settrace()
         return self.launch(options=options, console=True)
 
-    def ctx_access_online(self, options: Namespace) -> None:
+    def ctx_access_online(self, options: Namespace, /) -> None:
         """ Event fired by "Access online" menu entry. """
         file_path = normalized_path(options.file)
         self.manager.ctx_access_online(file_path)
 
-    def ctx_copy_share_link(self, options: Namespace) -> None:
+    def ctx_copy_share_link(self, options: Namespace, /) -> None:
         """ Event fired by "Copy share-link" menu entry. """
         file_path = normalized_path(options.file)
         self.manager.ctx_copy_share_link(file_path)
 
-    def ctx_edit_metadata(self, options: Namespace) -> None:
+    def ctx_edit_metadata(self, options: Namespace, /) -> None:
         """ Event fired by "Edit metadata" menu entry. """
         file_path = normalized_path(options.file)
         self.manager.ctx_edit_metadata(file_path)
 
-    def ctx_direct_transfer(self, options: Namespace) -> int:
+    def ctx_direct_transfer(self, options: Namespace, /) -> int:
         """Event fired by "Direct Transfer" menu entry."""
         # Craft the URL to be handled later at application startup
         Options.protocol_url = f"nxdrive://direct-transfer/{options.file}"
         self.launch(options=options)
         return 0
 
-    def download_edit(self, options: Namespace) -> int:
+    def download_edit(self, options: Namespace, /) -> int:
         self.launch(options=options)
         return 0
 
-    def bind_server(self, options: Namespace) -> int:
+    def bind_server(self, options: Namespace, /) -> int:
         password, check_credentials = None, True
         if not options.password:
             check_credentials = False
@@ -686,7 +686,7 @@ class CliHandler:
         )
         return 0
 
-    def unbind_server(self, options: Namespace) -> int:
+    def unbind_server(self, options: Namespace, /) -> int:
         for uid, engine in self.manager.engines.copy().items():
             if engine.local_folder == options.local_folder:
                 self.manager.unbind_engine(uid)
@@ -694,7 +694,7 @@ class CliHandler:
         log.warning(f"No engine registered for local folder {options.local_folder!r}")
         return 1
 
-    def bind_root(self, options: Namespace) -> int:
+    def bind_root(self, options: Namespace, /) -> int:
         for engine in self.manager.engines.copy().values():
             if engine.local_folder == options.local_folder:
                 engine.remote.register_as_root(options.remote_root)
@@ -702,7 +702,7 @@ class CliHandler:
         log.warning(f"No engine registered for local folder {options.local_folder!r}")
         return 1
 
-    def unbind_root(self, options: Namespace) -> int:
+    def unbind_root(self, options: Namespace, /) -> int:
         for engine in self.manager.engines.copy().values():
             if engine.local_folder == options.local_folder:
                 engine.remote.unregister_as_root(options.remote_root)
