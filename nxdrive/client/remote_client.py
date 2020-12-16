@@ -467,7 +467,7 @@ class Remote(Nuxeo):
         )
 
         # Download completed, remove it from the database
-        self.dao.remove_transfer("download", file_path)
+        self.dao.remove_transfer("download", path=file_path)
 
         return tmp_file
 
@@ -553,7 +553,7 @@ class Remote(Nuxeo):
         """
         fs_item = self.upload(
             file_path,
-            "NuxeoDrive.CreateFile",
+            command="NuxeoDrive.CreateFile",
             filename=filename,
             parentId=parent_id,
             overwrite=overwrite,
@@ -573,7 +573,7 @@ class Remote(Nuxeo):
         """Update a document by streaming the file with the given path"""
         fs_item = self.upload(
             file_path,
-            "NuxeoDrive.UpdateFile",
+            command="NuxeoDrive.UpdateFile",
             filename=filename,
             id=fs_item_id,
             parentId=parent_fs_item_id,

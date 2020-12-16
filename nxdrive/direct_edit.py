@@ -367,7 +367,7 @@ class DirectEdit(Worker):
                         )
                         return None
                 finally:
-                    engine.dao.remove_transfer("download", file_path)
+                    engine.dao.remove_transfer("download", path=file_path)
             else:
                 engine.remote.get_blob(
                     info,

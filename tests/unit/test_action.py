@@ -42,7 +42,7 @@ def test_action():
 
 
 def test_action_with_values():
-    action = Action(action_type="Trying", progress=42.222)
+    action = Action("Trying", progress=42.222)
     assert "%" in repr(action)
     details = action.export()
     assert details["progress"] == 42.222
@@ -136,7 +136,7 @@ def test_file_action_inexistant_file(tmp):
 
 def test_file_action_with_values():
     filepath = Path("fake/test.odt")
-    action = FileAction("Mocking", filepath, size=42)
+    action = FileAction("Mocking", filepath, 42)
     assert action.type == "Mocking"
 
     # Test repr() when .get_percent() equals 0
@@ -174,7 +174,7 @@ def test_file_action_signals():
             pass
 
     filepath = Path("fake/test.odt")
-    action = FileAction("Mocking", filepath, size=42, reporter=Reporter())
+    action = FileAction("Mocking", filepath, 42, reporter=Reporter())
 
     Action.finish_action()
     assert action.finished

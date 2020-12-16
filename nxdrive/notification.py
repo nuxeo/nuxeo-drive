@@ -212,9 +212,9 @@ class ErrorNotification(Notification):
         name = doc_pair.local_name or doc_pair.remote_name or ""
         values = [short_name(name)]
         super().__init__(
-            "ERROR",
-            title=Translator.get("ERROR", values),
-            description=Translator.get("ERROR_ON_FILE", values),
+            uid="ERROR",
+            title=Translator.get("ERROR", values=values),
+            description=Translator.get("ERROR_ON_FILE", values=values),
             engine_uid=engine_uid,
             level=Notification.LEVEL_ERROR,
             flags=(
@@ -234,10 +234,10 @@ class LockNotification(Notification):
         values = [short_name(filename)]
         prefix = "" if lock else "UN"
         super().__init__(
-            f"{prefix}LOCK",
+            uid=f"{prefix}LOCK",
             title=Translator.get("AUTOLOCK"),
             description=Translator.get(
-                f"{prefix}LOCK_NOTIFICATION_DESCRIPTION", values
+                f"{prefix}LOCK_NOTIFICATION_DESCRIPTION", values=values
             ),
             flags=(
                 Notification.FLAG_VOLATILE
@@ -261,9 +261,9 @@ class DirectEditErrorLockNotification(Notification):
         description = f"{title}_DESCRIPTION"
 
         super().__init__(
-            "ERROR",
-            title=Translator.get(title, values),
-            description=Translator.get(description, values),
+            uid="ERROR",
+            title=Translator.get(title, values=values),
+            description=Translator.get(description, values=values),
             level=Notification.LEVEL_ERROR,
             flags=(
                 Notification.FLAG_VOLATILE
@@ -278,9 +278,9 @@ class ConflictNotification(Notification):
     def __init__(self, engine_uid: str, doc_pair: DocPair, /) -> None:
         values = [short_name(doc_pair.local_name)]
         super().__init__(
-            "CONFLICT_FILE",
-            title=Translator.get("CONFLICT", values),
-            description=Translator.get("CONFLICT_ON_FILE", values),
+            uid="CONFLICT_FILE",
+            title=Translator.get("CONFLICT", values=values),
+            description=Translator.get("CONFLICT_ON_FILE", values=values),
             engine_uid=engine_uid,
             level=Notification.LEVEL_WARNING,
             flags=(
@@ -304,9 +304,9 @@ class ReadOnlyNotification(Notification):
             values.append(short_name(parent))
         description = "READONLY_FILE" if parent is None else "READONLY_FOLDER"
         super().__init__(
-            "READONLY",
-            title=Translator.get("READONLY", values),
-            description=Translator.get(description, values),
+            uid="READONLY",
+            title=Translator.get("READONLY", values=values),
+            description=Translator.get(description, values=values),
             engine_uid=engine_uid,
             level=Notification.LEVEL_WARNING,
             flags=Notification.FLAG_PERSISTENT | Notification.FLAG_BUBBLE,
@@ -317,9 +317,9 @@ class DirectEditReadOnlyNotification(Notification):
     def __init__(self, filename: str, /) -> None:
         values = [short_name(filename)]
         super().__init__(
-            "DIRECT_EDIT_READONLY",
-            title=Translator.get("READONLY", values),
-            description=Translator.get("DIRECT_EDIT_READONLY_FILE", values),
+            uid="DIRECT_EDIT_READONLY",
+            title=Translator.get("READONLY", values=values),
+            description=Translator.get("DIRECT_EDIT_READONLY_FILE", values=values),
             level=Notification.LEVEL_WARNING,
             flags=Notification.FLAG_PERSISTENT | Notification.FLAG_BUBBLE,
         )
@@ -329,9 +329,9 @@ class DirectEditForbiddenNotification(Notification):
     def __init__(self, doc_id: str, user_id: str, hostname: str, /) -> None:
         values = [doc_id, user_id, hostname]
         super().__init__(
-            "DIRECT_EDIT_FORBIDDEN",
+            uid="DIRECT_EDIT_FORBIDDEN",
             title=Translator.get("DIRECT_EDIT_FORBIDDEN_TITLE"),
-            description=Translator.get("DIRECT_EDIT_FORBIDDEN_MSG", values),
+            description=Translator.get("DIRECT_EDIT_FORBIDDEN_MSG", values=values),
             level=Notification.LEVEL_WARNING,
             flags=Notification.FLAG_PERSISTENT | Notification.FLAG_BUBBLE,
         )
@@ -342,9 +342,9 @@ class DirectEditStartingNotification(Notification):
         values_title = [hostname]
         values_msg = [short_name(filename)]
         super().__init__(
-            "DIRECT_EDIT_SARTING",
-            title=Translator.get("DIRECT_EDIT_STARTING_TITLE", values_title),
-            description=Translator.get("DIRECT_EDIT_STARTING_MSG", values_msg),
+            uid="DIRECT_EDIT_SARTING",
+            title=Translator.get("DIRECT_EDIT_STARTING_TITLE", values=values_title),
+            description=Translator.get("DIRECT_EDIT_STARTING_MSG", values=values_msg),
             level=Notification.LEVEL_INFO,
             flags=Notification.FLAG_PERSISTENT | Notification.FLAG_BUBBLE,
         )
@@ -354,9 +354,9 @@ class DeleteReadOnlyNotification(Notification):
     def __init__(self, engine_uid: str, filename: str, /) -> None:
         values = [short_name(filename)]
         super().__init__(
-            "DELETE_READONLY",
-            title=Translator.get("DELETE_READONLY", values),
-            description=Translator.get("DELETE_READONLY_DOCUMENT", values),
+            uid="DELETE_READONLY",
+            title=Translator.get("DELETE_READONLY", values=values),
+            description=Translator.get("DELETE_READONLY_DOCUMENT", values=values),
             engine_uid=engine_uid,
             level=Notification.LEVEL_WARNING,
             flags=Notification.FLAG_PERSISTENT | Notification.FLAG_BUBBLE,
@@ -373,9 +373,9 @@ class LockedNotification(Notification):
             lock_created.strftime("%m/%d/%Y %H:%M:%S"),
         ]
         super().__init__(
-            "LOCKED",
-            title=Translator.get("LOCKED", values),
-            description=Translator.get("LOCKED_FILE", values),
+            uid="LOCKED",
+            title=Translator.get("LOCKED", values=values),
+            description=Translator.get("LOCKED_FILE", values=values),
             engine_uid=engine_uid,
             level=Notification.LEVEL_WARNING,
             flags=(
@@ -397,9 +397,9 @@ class DirectEditLockedNotification(Notification):
             lock_created.strftime("%m/%d/%Y %H:%M:%S"),
         ]
         super().__init__(
-            "DIRECT_EDIT_LOCKED",
-            title=Translator.get("LOCKED", values),
-            description=Translator.get("DIRECT_EDIT_LOCKED_FILE", values),
+            uid="DIRECT_EDIT_LOCKED",
+            title=Translator.get("LOCKED", values=values),
+            description=Translator.get("DIRECT_EDIT_LOCKED_FILE", values=values),
             level=Notification.LEVEL_WARNING,
             flags=(
                 Notification.FLAG_VOLATILE
@@ -414,9 +414,9 @@ class DirectEditUpdatedNotification(Notification):
     def __init__(self, filename: str, /) -> None:
         values = [short_name(filename)]
         super().__init__(
-            "DIRECT_EDIT_UPDATED",
-            title=Translator.get("UPDATED", values),
-            description=Translator.get("DIRECT_EDIT_UPDATED_FILE", values),
+            uid="DIRECT_EDIT_UPDATED",
+            title=Translator.get("UPDATED", values=values),
+            description=Translator.get("DIRECT_EDIT_UPDATED_FILE", values=values),
             flags=(
                 Notification.FLAG_VOLATILE
                 | Notification.FLAG_BUBBLE
@@ -432,7 +432,7 @@ class DirectTransferError(Notification):
     def __init__(self, file: Path, /) -> None:
         values = [file.name]
         super().__init__(
-            "DIRECT_TRANSFER_ERROR",
+            uid="DIRECT_TRANSFER_ERROR",
             title="Direct Transfer",
             description=Translator.get("DIRECT_TRANSFER_ERROR", values=values),
             level=Notification.LEVEL_ERROR,
@@ -446,9 +446,9 @@ class DirectTransferSessionFinished(Notification):
     def __init__(self, remote_path: str, /) -> None:
         values = [remote_path]
         super().__init__(
-            "DIRECT_TRANSFER_SESSION_END",
+            uid="DIRECT_TRANSFER_SESSION_END",
             title="Direct Transfer",
-            description=Translator.get("DIRECT_TRANSFER_SESSION_END", values),
+            description=Translator.get("DIRECT_TRANSFER_SESSION_END", values=values),
             level=Notification.LEVEL_INFO,
             flags=Notification.FLAG_PERSISTENT | Notification.FLAG_BUBBLE,
         )
@@ -459,9 +459,9 @@ class ErrorOpenedFile(Notification):
         values = [short_name(path), APP_NAME]
         msg = ("FILE", "FOLDER")[is_folder]
         super().__init__(
-            "WINDOWS_ERROR",
+            uid="WINDOWS_ERROR",
             title=Translator.get("WINDOWS_ERROR_TITLE"),
-            description=Translator.get(f"WINDOWS_ERROR_OPENED_{msg}", values),
+            description=Translator.get(f"WINDOWS_ERROR_OPENED_{msg}", values=values),
             level=Notification.LEVEL_ERROR,
             flags=(
                 Notification.FLAG_UNIQUE
@@ -475,9 +475,9 @@ class LongPathError(Notification):
     def __init__(self, path: str, /) -> None:
         values = [short_name(path)]
         super().__init__(
-            "LONG_PATH_ERROR",
+            uid="LONG_PATH_ERROR",
             title=Translator.get("LONG_PATH_ERROR_TITLE"),
-            description=Translator.get("LONG_PATH_ERROR_MSG", values),
+            description=Translator.get("LONG_PATH_ERROR_MSG", values=values),
             level=Notification.LEVEL_ERROR,
             flags=(
                 Notification.FLAG_UNIQUE
@@ -490,7 +490,7 @@ class LongPathError(Notification):
 class InvalidCredentialNotification(Notification):
     def __init__(self, engine_uid: str, /) -> None:
         super().__init__(
-            "INVALID_CREDENTIALS",
+            uid="INVALID_CREDENTIALS",
             title=Translator.get("AUTH_EXPIRED"),
             description=Translator.get("AUTH_UPDATE_ACTION"),
             engine_uid=engine_uid,
@@ -572,7 +572,9 @@ class DefaultNotificationService(NotificationService):
 
     def _newReadonly(self, filename: str, /, *, parent: str = None) -> None:
         engine_uid = self.sender().uid
-        self.send_notification(ReadOnlyNotification(engine_uid, filename, parent))
+        self.send_notification(
+            ReadOnlyNotification(engine_uid, filename, parent=parent)
+        )
 
     def _directEditForbidden(self, doc_id: str, user_id: str, hostname: str) -> None:
         self.send_notification(

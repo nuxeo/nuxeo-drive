@@ -131,7 +131,7 @@ class DocumentsDialog(DialogMixin):
         label = QLabel(parent=self)
         text = Translator.get(
             "NO_ROOTS",
-            [
+            values=[
                 self.engine.server_url,
                 "https://doc.nuxeo.com/nxdoc/nuxeo-drive/#synchronizing-a-folder",
             ],
@@ -218,13 +218,13 @@ class FoldersDialog(DialogMixin):
         self.paths: Dict[Path, int] = {}
 
         self.remote_folder_ref = self.engine.dao.get_config(
-            "dt_last_remote_location_ref", ""
+            "dt_last_remote_location_ref", default=""
         )
         self.last_local_selected_location = self.engine.dao.get_config(
-            "dt_last_local_selected_location", None
+            "dt_last_local_selected_location"
         )
         self.duplicates_behavior = self.engine.dao.get_config(
-            "dt_last_duplicates_behavior", "create"
+            "dt_last_duplicates_behavior", default="create"
         )
 
         self.vertical_layout.addWidget(self._add_group_local())
@@ -302,14 +302,14 @@ class FoldersDialog(DialogMixin):
 
         # Populate the remote folder with the previously selected, if any
         self.remote_folder.setText(
-            self.engine.dao.get_config("dt_last_remote_location", "")
+            self.engine.dao.get_config("dt_last_remote_location", default="")
         )
 
         return groupbox
 
     def _add_subgroup_duplicate_behavior(self, layout: QHBoxLayout, /) -> None:
         """Add a sub-group for the duplicates behavior option."""
-        label = QLabel(Translator.get("DUPLICATE_BEHAVIOR", [DOC_URL]))
+        label = QLabel(Translator.get("DUPLICATE_BEHAVIOR", values=[DOC_URL]))
         label.setToolTip(Translator.get("DUPLICATE_BEHAVIOR_TOOLTIP"))
         label.setTextFormat(Qt.RichText)
         label.setOpenExternalLinks(True)

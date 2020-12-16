@@ -54,13 +54,13 @@ def test_non_iniialized():
 
 
 def test_load_bad_language():
-    Translator(get_folder("i18n"), "zzzzzz")
+    Translator(get_folder("i18n"), lang="zzzzzz")
     # Should fallback on en
     assert Translator.locale() == "en"
 
 
 def test_load_existing_language():
-    Translator(get_folder("i18n"), "fr")
+    Translator(get_folder("i18n"), lang="fr")
 
     # Should not fallback on en
     assert Translator.locale() == "fr"
@@ -83,15 +83,15 @@ def test_load_existing_language():
 def test_token(token, result):
     options = ["First Token", "Another One"]
     Translator(get_folder("i18n"))
-    assert Translator.get(token, options) == result
+    assert Translator.get(token, values=options) == result
 
 
 def test_translate_twice():
     """ Check that the values array is not mutated. """
     Translator(get_folder("i18n"))
     values = ["value"]
-    first = Translator.get("TOKEN_NORMAL", values)
-    second = Translator.get("TOKEN_NORMAL", values)
+    first = Translator.get("TOKEN_NORMAL", values=values)
+    second = Translator.get("TOKEN_NORMAL", values=values)
 
     assert first == second
     assert values == ["value"]

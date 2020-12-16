@@ -30,8 +30,8 @@ def test_autolock(tmp):
 def test_notifications(tmp):
     from nxdrive.notification import Notification
 
-    notif = Notification("warning", flags=Notification.FLAG_DISCARDABLE)
-    notif2 = Notification("plop")
+    notif = Notification(uid="warning", flags=Notification.FLAG_DISCARDABLE)
+    notif2 = Notification(uid="plop")
 
     with Manager(tmp()) as manager:
         dao = manager.dao

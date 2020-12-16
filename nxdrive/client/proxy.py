@@ -146,7 +146,7 @@ def get_proxy(**kwargs: Any) -> Proxy:
 
 
 def load_proxy(dao: "EngineDAO", *, token: str = "") -> Proxy:
-    category = dao.get_config("proxy_config", "System")
+    category = dao.get_config("proxy_config", default="System")
     kwargs = {}
 
     if category == "Automatic":

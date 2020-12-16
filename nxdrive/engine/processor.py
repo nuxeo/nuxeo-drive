@@ -191,7 +191,7 @@ class Processor(EngineWorker):
 
                 if MAC and self.local.exists(doc_pair.local_path):
                     finder_info = self.local.get_remote_id(
-                        doc_pair.local_path, "com.apple.FinderInfo"
+                        doc_pair.local_path, name="com.apple.FinderInfo"
                     )
                     if finder_info and "brokMACS" in finder_info:
                         log.debug(f"Skip as pair is in use by Finder: {doc_pair!r}")
@@ -479,7 +479,7 @@ class Processor(EngineWorker):
             remote_info = self.remote.get_fs_info(doc_pair.remote_ref)
             paths = remote_info.path.partition("/defaultFileSystemItemFactory")
             doc_pair.remote_parent_path = paths[0]
-            self._refresh_remote(doc_pair, remote_info=remote_info)
+            self._refresh_remote(doc_pair, remote_info)
 
             # Set the synced states and remote name
             doc_pair.remote_name = remote_info.name
@@ -535,11 +535,11 @@ class Processor(EngineWorker):
             doc_pair=doc_pair,
         )
 
-        self._direct_transfer_end(doc_pair, cancelled_transfer=False)
+        self._direct_transfer_end(doc_pair, False)
 
     def _direct_transfer_cancel(self, doc_pair: DocPair, /) -> None:
         """Actions to do to cancel a Direct Transfer."""
-        self._direct_transfer_end(doc_pair, cancelled_transfer=True, recursive=True)
+        self._direct_transfer_end(doc_pair, True, recursive=True)
 
     def _direct_transfer_end(
         self,
@@ -552,8 +552,8 @@ class Processor(EngineWorker):
         """Actions to do to at the end of a Direct Transfer."""
 
         # Transfer is completed, delete the upload from the database
-        self.dao.remove_transfer_by_doc_pair(
-            "upload", doc_pair.id, is_direct_transfer=True
+        self.dao.remove_transfer(
+            "upload", doc_pair=doc_pair.id, is_direct_transfer=True
         )
 
         # Clean-up
@@ -682,10 +682,10 @@ class Processor(EngineWorker):
                         fs_info = None
 
                     if fs_info is None or fs_info.lock_owner is None:
-                        self.dao.unsynchronize_state(doc_pair, "READONLY")
+                        self.dao.unsynchronize_state(doc_pair, last_error="READONLY")
                         self.engine.newReadonly.emit(doc_pair.local_name, None)
                     else:
-                        self.dao.unsynchronize_state(doc_pair, "LOCKED")
+                        self.dao.unsynchronize_state(doc_pair, last_error="LOCKED")
                         self.engine.newLocked.emit(
                             doc_pair.local_name,
                             fs_info.lock_owner,
@@ -703,9 +703,9 @@ class Processor(EngineWorker):
         return self.dao.get_normal_state_from_remote(ref)
 
     def _postpone_pair(
-        self, doc_pair: DocPair, /, *, reason: str = "", interval: int = None
+        self, doc_pair: DocPair, reason: str, /, *, interval: int = None
     ) -> None:
-        """ Wait 60 sec for it. """
+        """ Wait *interval* sec for it. """
 
         log.debug(f"Postpone action on document({reason}): {doc_pair!r}")
         doc_pair.error_count = 1
@@ -758,7 +758,7 @@ class Processor(EngineWorker):
             # Illegal state: report the error and let's wait for the
             # parent folder issue to get resolved first
             if parent_pair is not None and parent_pair.pair_state == "unsynchronized":
-                self.dao.unsynchronize_state(doc_pair, "PARENT_UNSYNC")
+                self.dao.unsynchronize_state(doc_pair, last_error="PARENT_UNSYNC")
                 self._handle_unsynchronized(doc_pair)
                 return
             raise ParentNotSynced(
@@ -984,7 +984,7 @@ class Processor(EngineWorker):
                 self.dao.remove_state(doc_pair)
             else:
                 log.info(f"Set pair unsynchronized: {doc_pair!r}")
-                self.dao.unsynchronize_state(doc_pair, "READONLY")
+                self.dao.unsynchronize_state(doc_pair, last_error="READONLY")
                 self.engine.newReadonly.emit(
                     doc_pair.local_name, parent_pair.remote_name
                 )
@@ -1054,7 +1054,7 @@ class Processor(EngineWorker):
         """A file has been moved locally."""
 
         remote_info = None
-        self._search_for_dedup(doc_pair, doc_pair.remote_name)
+        self._search_for_dedup(doc_pair, name=doc_pair.remote_name)
 
         parent_ref = self.local.get_remote_id(doc_pair.local_parent_path)
         if not parent_ref:
@@ -1087,7 +1087,7 @@ class Processor(EngineWorker):
                         doc_pair.remote_ref, parent_ref, doc_pair.local_name
                     )
 
-                self._refresh_remote(doc_pair, remote_info=remote_info)
+                self._refresh_remote(doc_pair, remote_info)
             except Exception as e:
                 log.error(str(e))
                 self._handle_failed_remote_rename(doc_pair, doc_pair)
@@ -1193,7 +1193,7 @@ class Processor(EngineWorker):
         if remote_id:
             self.local.set_remote_id(tmp_file, doc_pair.remote_ref)
         updated_info = self.local.move(
-            tmp_file, doc_pair.local_parent_path, doc_pair.remote_name
+            tmp_file, doc_pair.local_parent_path, name=doc_pair.remote_name
         )
 
         with suppress(OSError):
@@ -1242,7 +1242,7 @@ class Processor(EngineWorker):
 
                 if not new_parent_pair:
                     # A move to a folder that has not yet been processed
-                    self._postpone_pair(doc_pair, reason="PARENT_UNSYNC")
+                    self._postpone_pair(doc_pair, "PARENT_UNSYNC")
                     return
 
                 if not (is_move or is_renaming):
@@ -1426,7 +1426,7 @@ class Processor(EngineWorker):
             self.local.set_remote_id(tmp_file, doc_pair.remote_ref)
 
             # Move the TMP file to the local sync folder
-            info = self.local.move(tmp_file, local_parent_path, name)
+            info = self.local.move(tmp_file, local_parent_path, name=name)
 
             # Set the modification time of the file to the server one
             mtime = doc_pair.last_remote_updated
@@ -1508,7 +1508,7 @@ class Processor(EngineWorker):
             )
 
     def _refresh_remote(
-        self, doc_pair: DocPair, /, *, remote_info: RemoteFileInfo = None
+        self, doc_pair: DocPair, remote_info: RemoteFileInfo, /
     ) -> None:
         if remote_info is None:
             remote_info = self.remote.get_fs_info(doc_pair.remote_ref)

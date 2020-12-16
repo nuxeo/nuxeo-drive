@@ -41,7 +41,9 @@ class Runner(QRunnable):
 class Worker(QObject):
     """" Utility class that handle one thread. """
 
-    def __init__(self, *, thread: QThread = None, **kwargs: Any) -> None:
+    def __init__(
+        self, *, thread: QThread = None, name: str = "", **kwargs: Any
+    ) -> None:
         super().__init__()
         if thread is None:
             thread = QThread()
@@ -50,7 +52,7 @@ class Worker(QObject):
         thread.worker = self
         self.thread = thread
 
-        self._name = kwargs.get("name", type(self).__name__)
+        self._name = name or type(self).__name__
 
         self._running = False
         self._continue = False
@@ -154,7 +156,7 @@ class Worker(QObject):
     @property
     def action(self) -> Action:
         if self._action is None:
-            self._action = Action.get_current_action(self.thread_id)
+            self._action = Action.get_current_action(thread_id=self.thread_id)
         if self._action is None:
             self._action = IdleAction()
         return self._action
@@ -255,7 +257,7 @@ class EngineWorker(Worker):
         if doc_pair.local_state != "direct":
             fullpath = self.engine.local.abspath(fullpath)
         for nature in ("download", "upload"):
-            self.dao.remove_transfer(nature, fullpath)
+            self.dao.remove_transfer(nature, path=fullpath)
 
 
 class PollWorker(Worker):

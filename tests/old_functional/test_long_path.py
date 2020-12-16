@@ -72,7 +72,7 @@ class TestLongPath(OneUserTest):
             self.local_nxdrive_folder_1,
             self.nuxeo_url,
             self.user_1,
-            self.password_1,
+            password=self.password_1,
             start_engine=False,
         )
 

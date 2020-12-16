@@ -420,13 +420,9 @@ class DocPair(Row):
             self.remote_can_delete & self.remote_can_rename & self.remote_can_update
         ) == 0
 
-    def update_state(
-        self, *, local_state: str = None, remote_state: str = None
-    ) -> None:
-        if local_state is not None:
-            self.local_state = local_state
-        if remote_state is not None:
-            self.remote_state = remote_state
+    def update_state(self, local_state: str, remote_state: str) -> None:
+        self.local_state = local_state
+        self.remote_state = remote_state
 
 
 DocPairs = List[DocPair]

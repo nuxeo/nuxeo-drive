@@ -47,7 +47,7 @@ class TreeViewMixin(QTreeView):
         """When an item is clicked, load its children."""
         index = self.model().index(index.row(), 0, index.parent())
         item = self.model().itemFromIndex(index)
-        self.load_children(item)
+        self.load_children(item=item)
 
     def load_children(self, *, item: QStandardItemModel = None) -> None:
         """Load children of a given *item*."""
@@ -57,7 +57,7 @@ class TreeViewMixin(QTreeView):
             return
 
         self.set_loading_cursor(True)
-        loader = self.loader(self, item)
+        loader = self.loader(self, item=item)
         QThreadPool.globalInstance().start(loader)
 
     def set_loading_cursor(self, busy: bool, /) -> None:

@@ -55,7 +55,11 @@ def manager_factory(
             conf_folder = (local_folder or manager.home) / "nuxeo-conf"
             user = user or user_factory()
             manager.bind_server(
-                conf_folder, nuxeo_url, user.uid, user.password, start_engine=False
+                conf_folder,
+                nuxeo_url,
+                user.uid,
+                password=user.password,
+                start_engine=False,
             )
 
             # Let the possibility to access user's attributes from the manager

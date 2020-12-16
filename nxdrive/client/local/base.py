@@ -220,7 +220,7 @@ class LocalClientMixin:
 
     def get_remote_id(self, ref: Path, /, *, name: str = "ndrive") -> str:
         path = self.abspath(ref)
-        value = self.get_path_remote_id(path, name)
+        value = self.get_path_remote_id(path, name=name)
         log.debug(f"Getting xattr {name!r} from {path!r}: {value!r}")
         return value
 
@@ -485,7 +485,7 @@ class LocalClientMixin:
                 target_os_path = self.abspath(parent / new_name)
             else:
                 target_os_path, new_name = self._abspath_deduped(
-                    parent, new_name, old_name
+                    parent, new_name, old_name=old_name
                 )
             if old_name != new_name:
                 safe_rename(source_os_path, target_os_path)

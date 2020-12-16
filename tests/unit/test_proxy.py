@@ -67,9 +67,9 @@ def test_manual():
 def test_pac_js(js):
     proxy = get_proxy(category="Automatic", js=js)
     assert isinstance(proxy, AutomaticProxy)
-    settings = proxy.settings("http://nuxeo.com")
+    settings = proxy.settings(url="http://nuxeo.com")
     assert settings["http"] == settings["https"] == "http://localhost:8899"
-    settings = proxy.settings("http://example.com")
+    settings = proxy.settings(url="http://example.com")
     assert settings["http"] is None
     assert settings["https"] is None
 
@@ -78,9 +78,9 @@ def test_pac_file(pac_file):
     proxy = get_proxy(category="Automatic", pac_url=pac_file)
     assert isinstance(proxy, AutomaticProxy)
     assert proxy._pac_file
-    settings = proxy.settings("http://nuxeo.com")
+    settings = proxy.settings(url="http://nuxeo.com")
     assert settings["http"] == settings["https"] == "http://localhost:8899"
-    settings = proxy.settings("http://example.com")
+    settings = proxy.settings(url="http://example.com")
     assert settings["http"] is None
     assert settings["https"] is None
 
@@ -93,8 +93,8 @@ def test_pac_file_not_found(pac_file):
 def test_load(config_dao):
     proxy = get_proxy(category="Manual", url="localhost:3128")
 
-    save_proxy(proxy, config_dao, "mock_token")
-    loaded_proxy = load_proxy(config_dao, "mock_token")
+    save_proxy(proxy, config_dao, token="mock_token")
+    loaded_proxy = load_proxy(config_dao, token="mock_token")
 
     assert isinstance(loaded_proxy, ManualProxy)
     assert proxy.settings() == loaded_proxy.settings()
@@ -110,9 +110,9 @@ def test_autoconfigurl_windows(pac_file):
         proxy = get_proxy(category="Automatic")
         assert isinstance(proxy, AutomaticProxy)
         assert proxy._pac_file is not None
-        settings = proxy.settings("http://nuxeo.com")
+        settings = proxy.settings(url="http://nuxeo.com")
         assert settings["http"] == settings["https"] == "http://localhost:8899"
-        settings = proxy.settings("http://example.com")
+        settings = proxy.settings(url="http://example.com")
         assert settings["http"] is None
         assert settings["https"] is None
 
@@ -131,9 +131,9 @@ def test_autoconfigurl_mac(pac_file):
         proxy = get_proxy(category="Automatic")
         assert isinstance(proxy, AutomaticProxy)
         assert proxy._pac_file
-        settings = proxy.settings("http://nuxeo.com")
+        settings = proxy.settings(url="http://nuxeo.com")
         assert settings["http"] == settings["https"] == "http://localhost:8899"
-        settings = proxy.settings("http://example.com")
+        settings = proxy.settings(url="http://example.com")
         assert settings["http"] is None
         assert settings["https"] is None
 

@@ -424,7 +424,7 @@ class TwoUsersTest(TestCase):
         user = user or getattr(self, f"user_{number_str}")
         password = password or getattr(self, f"password_{number_str}")
         engine = manager.bind_server(
-            folder, self.nuxeo_url, user, password, start_engine=start_engine
+            folder, self.nuxeo_url, user, password=password, start_engine=start_engine
         )
 
         self.app.aboutToQuit.connect(manager.stop)
@@ -679,7 +679,7 @@ class TwoUsersTest(TestCase):
 
         path = Path(os.getenv("REPORT_PATH", "."))
         file = f"{self._testMethodName}-{sys.platform.lower()}"
-        self.manager_1.generate_report(path / file)
+        self.manager_1.generate_report(path=path / file)
 
     def _set_read_permission(self, user, doc_path, grant):
         input_obj = "doc:" + doc_path

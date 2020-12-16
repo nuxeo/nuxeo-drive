@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type
 from urllib.parse import urlsplit
 
 import requests
+from nuxeo.handlers.default import Uploader
 from nuxeo.exceptions import HTTPError
 from PyQt5.QtCore import QObject, QThread, QThreadPool, pyqtSignal, pyqtSlot
 
@@ -242,7 +243,7 @@ class Engine(QObject):
 
     def _create_local_watcher(self) -> None:
         self._local_watcher = LocalWatcher(self, self.dao)
-        self.create_thread(worker=self._local_watcher)
+        self.create_thread(self._local_watcher, "LocalWatcher")
 
         # Launch the Remote Watcher after first local scan
         self._local_watcher.localScanFinished.connect(self._remote_watcher.run)
@@ -255,7 +256,7 @@ class Engine(QObject):
 
     def _create_remote_watcher(self) -> None:
         self._remote_watcher = RemoteWatcher(self, self.dao)
-        self.create_thread(worker=self._remote_watcher, start_connect=False)
+        self.create_thread(self._remote_watcher, "RemoteWatcher", start_connect=False)
 
         # Launch queue processors after first remote_watcher pass
         self._remote_watcher.initiate.connect(self.queue_manager.init_processors)
@@ -696,7 +697,7 @@ class Engine(QObject):
                     log.info(f"Updated status of staled {transfer}")
                 else:
                     # Remove staled transfers
-                    dao.remove_transfer(nature, transfer.path)
+                    dao.remove_transfer(nature, path=transfer.path)
                     log.info(f"Removed staled {transfer}")
 
     def cancel_upload(self, transfer_uid: int, /) -> None:
@@ -720,7 +721,7 @@ class Engine(QObject):
 
         # The Upload is not ONGOING so we can remove it safely.
         self.remote.cancel_batch(upload.batch)
-        self.dao.remove_transfer("upload", upload.path, is_direct_transfer=True)
+        self.dao.remove_transfer("upload", path=upload.path, is_direct_transfer=True)
 
         self.dao.remove_state(doc_pair)
         session = self.dao.decrease_session_counts(doc_pair.session)
@@ -792,12 +793,12 @@ class Engine(QObject):
             self.rootDeleted.emit()
             return False
 
-        self.local.set_remote_id(ROOT, tag_value, tag)
-        if self.local.get_remote_id(ROOT, tag) != tag_value.decode("utf-8"):
+        self.local.set_remote_id(ROOT, tag_value, name=tag)
+        if self.local.get_remote_id(ROOT, name=tag) != tag_value.decode("utf-8"):
             return False
 
-        self.local.remove_remote_id(ROOT, tag)
-        return not bool(self.local.get_remote_id(ROOT, tag))
+        self.local.remove_remote_id(ROOT, name=tag)
+        return not bool(self.local.get_remote_id(ROOT, name=tag))
 
     @staticmethod
     def _normalize_url(url: str, /) -> str:
@@ -860,7 +861,7 @@ class Engine(QObject):
     @property
     def have_folder_upload(self) -> bool:
         """Check if the server can handle folder upload via the FileManager."""
-        value = self.dao.get_bool("have_folder_upload", False)
+        value = self.dao.get_bool("have_folder_upload", default=False)
         if not value:
             value = self.remote.can_use("FileManager.CreateFolder")
             if value:
@@ -878,7 +879,7 @@ class Engine(QObject):
         return False
 
     def create_thread(
-        self, *, worker: Worker = None, name: str = None, start_connect: bool = True
+        self, worker: Worker, name: str, /, *, start_connect: bool = True
     ) -> QThread:
         if worker is None:
             worker = Worker(self, name=name)
@@ -1295,7 +1296,7 @@ class Engine(QObject):
         self.dao.synchronize_state(row)
         # The root should also be sync
 
-    def suspend_client(self, *, message: str = None) -> None:
+    def suspend_client(self, uploader: Uploader, /, *, message: str = None) -> None:
         if self.is_paused() or not self.is_started():
             raise ThreadInterrupt()
 

@@ -27,7 +27,7 @@ def test_conflict_resolver(manager_factory, tmp):
         file.write_text("azerty")
 
         finfo = FileInfo(path, file, False, datetime.now())
-        rowid = dao.insert_local_state(finfo)
+        rowid = dao.insert_local_state(finfo, None)
 
         # Edit pair states to mimic a synced document
         doc_pair = dao.get_state_from_id(rowid)
@@ -61,7 +61,7 @@ def test_delete_doc(manager_factory, tmp):
         """Create a valid doc pair in the database and return the local_path field."""
         # Craft the local file
         finfo = FileInfo(Path("."), Path(name), False, datetime.now())
-        dao.insert_local_state(finfo)
+        dao.insert_local_state(finfo, None)
 
         if synced:
             # Edit pair states to mimic a synced document

@@ -25,13 +25,13 @@ class Report:
 
     Usage:
 
-        report = Report(manager, output_dir)
+        report = Report(manager, report_path=output_dir)
         report.generate()
         final_path = report.get_path()
 
     TODO: More pythonic class
 
-        with Report(manager, output_dir) as report:
+        with Report(manager, report_path=output_dir) as report:
             report.generate()
             final_path = report.path
     """

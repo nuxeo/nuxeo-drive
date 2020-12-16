@@ -38,20 +38,18 @@ class BaseUploader:
         self.dao = remote.dao
 
     @abstractmethod
-    def get_upload(self, file_path: Path, /) -> Optional[Upload]:
-        """Retrieve the eventual transfer associated to the given *file_path*."""
-
-    @abstractmethod
-    def get_upload_by_doc_pair(self, doc_pair: int, /) -> Optional[Upload]:
-        """Retrieve the eventual transfer associated to the given *doc_pair*."""
+    def get_upload(
+        self, *, path: Optional[Path], doc_pair: Optional[int]
+    ) -> Optional[Upload]:
+        """Retrieve the eventual transfer associated to the given *doc_pair*, if provided, else the given *path*."""
 
     @abstractmethod
     def upload(
         self,
         file_path: Path,
-        command: str,
         /,
         *,
+        command: str = "",
         filename: str = None,
         **kwargs: Any,
     ) -> Dict[str, Any]:
@@ -64,10 +62,7 @@ class BaseUploader:
 
         # See if there is already a transfer for this file
         doc_pair = kwargs.get("doc_pair")
-        if doc_pair:
-            transfer = self.get_upload_by_doc_pair(doc_pair=doc_pair)
-        else:
-            transfer = self.get_upload(file_path=file_path)
+        transfer = self.get_upload(doc_pair=doc_pair, path=file_path)
         batch: Optional[Batch] = None
 
         if transfer:
@@ -105,10 +100,7 @@ class BaseUploader:
 
         if not transfer:
             # Remove eventual obsolete upload (it happens when an upload using S3 has invalid metadatas)
-            if doc_pair:
-                self.dao.remove_transfer_by_doc_pair("upload", doc_pair)
-            else:
-                self.dao.remove_transfer("upload", file_path)
+            self.dao.remove_transfer("upload", doc_pair=doc_pair, path=file_path)
 
             # Add an upload entry in the database
             transfer = Upload(
@@ -295,12 +287,9 @@ class BaseUploader:
                     self.dao.set_transfer_progress("upload", transfer)
 
                     # Handle status changes every time a chunk is sent
-                    if transfer.doc_pair:
-                        _transfer = self.get_upload_by_doc_pair(
-                            doc_pair=transfer.doc_pair
-                        )
-                    else:
-                        _transfer = self.get_upload(file_path=transfer.path)
+                    _transfer = self.get_upload(
+                        doc_pair=transfer.doc_pair, path=transfer.path
+                    )
                     if _transfer:
                         self._handle_transfer_status(_transfer)
             else:
