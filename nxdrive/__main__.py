@@ -12,31 +12,13 @@ from contextlib import suppress
 from types import FrameType
 from typing import Any, Set
 
-from nxdrive.constants import APP_NAME, MAC
+from nxdrive.constants import APP_NAME
 from nxdrive.fatal_error import (
     check_executable_path,
     check_os_version,
     show_critical_error,
 )
 from nxdrive.options import Options
-
-if MAC:
-    # NXDRIVE-2270: this envar is required in order to support Big Sur.
-    #
-    # From Tor Arne Vestbø, a Qt core-dev:
-    #
-    #   macOS nowadays (10.14 and above) defaults to apps using CoreAnimation layers for their views,
-    #   if the app was built using Xcode 10 or above, to opt in to this behavior.
-    #
-    #   The legacy code path, surface-backed views, appears to have regressed in macOS Big Sur.
-    #   It may be an issue in Qt's use of this mode, or a regression in macOS, or both, but
-    #   investigating it is not a high priority.
-    #
-    #   The QT_MAC_WANTS_LAYER environment variable tells Qt to use layers even if it's not
-    #   automatically enabled by macOS based on the Xcode version you used to build.
-    #
-    #   Clarification: Layer-backed views are not a problem on newer macOS, surface-backed views are.
-    os.environ["QT_MAC_WANTS_LAYER"] = "1"
 
 
 def before_send(event: Any, _hint: Any) -> Any:
