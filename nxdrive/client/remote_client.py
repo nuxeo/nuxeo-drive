@@ -65,6 +65,7 @@ class Remote(Nuxeo):
         device_id: str,
         version: str,
         /,
+        *,
         password: str = None,
         token: str = None,
         proxy: Proxy = None,
@@ -214,7 +215,7 @@ class Remote(Nuxeo):
         """Escape any single quote with an antislash to further use in a NXQL query."""
         return path.replace("'", r"\'")
 
-    def exists(self, ref: str, *, use_trash: bool = True) -> bool:
+    def exists(self, ref: str, /, *, use_trash: bool = True) -> bool:
         """
         Check if a document exists on the server.
 
@@ -414,7 +415,12 @@ class Remote(Nuxeo):
             raise CorruptedFile(file, digest, computed_digest)
 
     def upload(
-        self, path: Path, *, uploader: Type[BaseUploader] = SyncUploader, **kwargs: Any
+        self,
+        path: Path,
+        /,
+        *,
+        uploader: Type[BaseUploader] = SyncUploader,
+        **kwargs: Any,
     ) -> Dict[str, Any]:
         """Upload a file with a batch."""
         return uploader(self).upload(path, **kwargs)
@@ -426,7 +432,7 @@ class Remote(Nuxeo):
             batch.cancel()
 
     def get_fs_info(
-        self, fs_item_id: str, *, parent_fs_item_id: str = None
+        self, fs_item_id: str, /, *, parent_fs_item_id: str = None
     ) -> RemoteFileInfo:
         fs_item = self.get_fs_item(fs_item_id, parent_fs_item_id=parent_fs_item_id)
         if fs_item is None:
@@ -442,6 +448,7 @@ class Remote(Nuxeo):
         fs_item_id: str,
         file_path: Path,
         file_out: Path,
+        /,
         *,
         parent_fs_item_id: str = None,
         fs_item_info: RemoteFileInfo = None,
@@ -472,7 +479,7 @@ class Remote(Nuxeo):
         return tmp_file
 
     def get_fs_children(
-        self, fs_item_id: str, *, filtered: bool = True
+        self, fs_item_id: str, /, *, filtered: bool = True
     ) -> List[RemoteFileInfo]:
         children = self.execute(command="NuxeoDrive.GetChildren", id=fs_item_id)
         infos = []
@@ -495,7 +502,12 @@ class Remote(Nuxeo):
         return infos
 
     def scroll_descendants(
-        self, fs_item_id: str, scroll_id: Optional[str], *, batch_size: int = BATCH_SIZE
+        self,
+        fs_item_id: str,
+        scroll_id: Optional[str],
+        /,
+        *,
+        batch_size: int = BATCH_SIZE,
     ) -> Dict[str, Any]:
         res = self.execute(
             command="NuxeoDrive.ScrollDescendants",
@@ -521,13 +533,13 @@ class Remote(Nuxeo):
             "descendants": descendants,
         }
 
-    def is_filtered(self, path: str, *, filtered: bool = True) -> bool:
+    def is_filtered(self, path: str, /, *, filtered: bool = True) -> bool:
         if filtered:
             return self.dao.is_filter(path)
         return False
 
     def make_folder(
-        self, parent_id: str, name: str, *, overwrite: bool = False
+        self, parent_id: str, name: str, /, *, overwrite: bool = False
     ) -> RemoteFileInfo:
         fs_item = self.execute(
             command="NuxeoDrive.CreateFolder",
@@ -541,9 +553,10 @@ class Remote(Nuxeo):
         self,
         parent_id: str,
         file_path: Path,
+        /,
+        *,
         filename: str = None,
         overwrite: bool = False,
-        /,
         **kwargs: Any,
     ) -> RemoteFileInfo:
         """Create a document by streaming the file with the given path
@@ -565,10 +578,11 @@ class Remote(Nuxeo):
         self,
         fs_item_id: str,
         file_path: Path,
+        /,
+        *,
         parent_fs_item_id: str = None,
         filename: str = None,
-        /,
-        **kwargs: Any,
+        engine_uid: str = None,
     ) -> RemoteFileInfo:
         """Update a document by streaming the file with the given path"""
         fs_item = self.upload(
@@ -577,11 +591,11 @@ class Remote(Nuxeo):
             filename=filename,
             id=fs_item_id,
             parentId=parent_fs_item_id,
-            **kwargs,
+            engine_uid=engine_uid,
         )
         return RemoteFileInfo.from_dict(fs_item)
 
-    def delete(self, fs_item_id: str, *, parent_fs_item_id: str = None) -> None:
+    def delete(self, fs_item_id: str, /, *, parent_fs_item_id: str = None) -> None:
         self.execute(
             command="NuxeoDrive.Delete", id=fs_item_id, parentId=parent_fs_item_id
         )
@@ -615,7 +629,7 @@ class Remote(Nuxeo):
         return self.documents.move(fs_item_id, parent_ref, name=name)
 
     def get_fs_item(
-        self, fs_item_id: str, *, parent_fs_item_id: str = None
+        self, fs_item_id: str, /, *, parent_fs_item_id: str = None
     ) -> Optional[Dict[str, Any]]:
         if not fs_item_id:
             log.warning("get_fs_item() called without fs_item_id")
@@ -628,7 +642,7 @@ class Remote(Nuxeo):
         )
 
     def get_changes(
-        self, last_root_definitions: str, *, log_id: int = 0
+        self, last_root_definitions: str, /, *, log_id: int = 0
     ) -> Dict[str, Any]:
         return self.execute(
             command="NuxeoDrive.GetChangeSummary",
@@ -649,11 +663,16 @@ class Remote(Nuxeo):
                 ref = self._base_folder_path + ref
         return ref
 
-    def query(self, query: str, *, page_size: int = 1) -> Dict[str, Any]:
+    def query(self, query: str, /, *, page_size: int = 1) -> Dict[str, Any]:
         return self.execute(command="Document.Query", query=query, pageSize=page_size)
 
     def get_info(
-        self, ref: str, *, raise_if_missing: bool = True, fetch_parent_uid: bool = True
+        self,
+        ref: str,
+        /,
+        *,
+        raise_if_missing: bool = True,
+        fetch_parent_uid: bool = True,
     ) -> Optional[NuxeoDocumentInfo]:
         try:
             doc = self.fetch(self.check_ref(ref))
@@ -671,7 +690,7 @@ class Remote(Nuxeo):
         doc.update({"root": self.base_folder_ref, "repository": self.client.repository})
         return NuxeoDocumentInfo.from_dict(doc, parent_uid=parent_uid)
 
-    def get_note(self, ref: str, *, file_out: Path = None) -> bytes:
+    def get_note(self, ref: str, /, *, file_out: Path = None) -> bytes:
         """Download the text associated to a Note document."""
         doc = self.fetch(ref)
         note = doc["properties"].get("note:note")
@@ -685,6 +704,7 @@ class Remote(Nuxeo):
     def get_blob(
         self,
         ref: Union[NuxeoDocumentInfo, str],
+        /,
         *,
         file_out: Path = None,
         **kwargs: Any,
@@ -728,16 +748,18 @@ class Remote(Nuxeo):
         return True
 
     def set_proxy(self, proxy: Optional[Proxy], /) -> None:
-        if proxy:
-            try:
-                settings = proxy.settings(url=self.client.host)
-            except Exception:
-                log.warning(
-                    "Bad proxy settings. As a result, NO proxy is currently in use.",
-                    exc_info=True,
-                )
-                return
-            self.client.client_kwargs["proxies"] = settings
+        if not proxy:
+            return
+
+        try:
+            settings = proxy.settings(url=self.client.host)
+        except Exception:
+            log.warning(
+                "Bad proxy settings. As a result, NO proxy is currently in use.",
+                exc_info=True,
+            )
+            return
+        self.client.client_kwargs["proxies"] = settings
 
     def get_server_configuration(self) -> Dict[str, Any]:
         try:

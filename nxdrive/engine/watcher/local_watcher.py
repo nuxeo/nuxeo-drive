@@ -1168,7 +1168,7 @@ class LocalWatcher(EngineWorker):
                                 "Moving to a read-only folder: "
                                 f"{from_pair!r} -> {dst_parent!r}"
                             )
-                            dao.unsynchronize_state(from_pair, last_error="READONLY")
+                            dao.unsynchronize_state(from_pair, "READONLY")
                             self.engine.newReadonly.emit(
                                 from_pair.local_name, dst_parent.remote_name
                             )

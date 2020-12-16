@@ -13,8 +13,8 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type
 from urllib.parse import urlsplit
 
 import requests
-from nuxeo.handlers.default import Uploader
 from nuxeo.exceptions import HTTPError
+from nuxeo.handlers.default import Uploader
 from PyQt5.QtCore import QObject, QThread, QThreadPool, pyqtSignal, pyqtSlot
 
 from ..client.local import LocalClient
@@ -902,11 +902,11 @@ class Engine(QObject):
             return
         self.dao.reset_error(state)
 
-    def ignore_pair(self, row_id: int, /, *, reason: str = None) -> None:
+    def ignore_pair(self, row_id: int, reason: str, /) -> None:
         state = self.dao.get_state_from_id(row_id)
         if state is None:
             return
-        self.dao.unsynchronize_state(state, last_error=reason, ignore=True)
+        self.dao.unsynchronize_state(state, reason, ignore=True)
         self.dao.reset_error(state, last_error=reason)
 
     def resolve_with_local(self, row_id: int, /) -> None:
@@ -1296,7 +1296,7 @@ class Engine(QObject):
         self.dao.synchronize_state(row)
         # The root should also be sync
 
-    def suspend_client(self, uploader: Uploader, /, *, message: str = None) -> None:
+    def suspend_client(self, uploader: Uploader, /) -> None:
         if self.is_paused() or not self.is_started():
             raise ThreadInterrupt()
 

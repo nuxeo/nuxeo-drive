@@ -471,10 +471,10 @@ class QMLDriveApi(QObject):
             self.application.show_conflicts_resolution(engine)
 
     @pyqtSlot(str)
-    def show_settings(self, page: str, /) -> None:
+    def show_settings(self, section: str, /) -> None:
         self.application.hide_systray()
-        log.info(f"Show settings on page {page}")
-        self.application.show_settings(section=page)
+        log.info(f"Show settings on section {section}")
+        self.application.show_settings(section)
 
     @pyqtSlot()
     def quit(self) -> None:
@@ -952,7 +952,7 @@ class QMLDriveApi(QObject):
 
             engine.update_token(token, username)
             self.application.set_icon_state("idle")
-            self.application.show_settings(section="Accounts")
+            self.application.show_settings("Accounts")
             self.setMessage.emit("CONNECTION_SUCCESS", "success")
 
         except CONNECTION_ERROR as e:
@@ -1016,12 +1016,10 @@ class QMLDriveApi(QObject):
             engine.retry_pair(state_id)
 
     @pyqtSlot(str, int, str)
-    def ignore_pair(
-        self, uid: str, state_id: int, /, *, reason: str = "UNKNOWN"
-    ) -> None:
+    def ignore_pair(self, uid: str, state_id: int, reason: str, /) -> None:
         engine = self._manager.engines.get(uid)
         if engine:
-            engine.ignore_pair(state_id, reason=reason)
+            engine.ignore_pair(state_id, reason)
 
     @pyqtSlot(str, str, str)
     def open_remote(self, uid: str, remote_ref: str, remote_name: str, /) -> None:

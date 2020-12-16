@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Pattern
 from urllib.parse import quote
 
 from nuxeo.exceptions import CorruptedFile, Forbidden, HTTPError, Unauthorized
+from nuxeo.handlers.default import Uploader
 from nuxeo.models import Blob
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from requests import codes
@@ -143,7 +144,7 @@ class DirectEdit(Worker):
         super().stop()
         self._stop = True
 
-    def stop_client(self, *, message: str = None) -> None:
+    def stop_client(self, uploader: Uploader, /) -> None:
         if self._stop:
             raise ThreadInterrupt()
 

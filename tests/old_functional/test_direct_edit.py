@@ -56,7 +56,7 @@ class DirectEditSetup:
         self.direct_edit._stop_watchdog()
         self.direct_edit.stop()
         with pytest.raises(ThreadInterrupt):
-            self.direct_edit.stop_client()
+            self.direct_edit.stop_client(None)
 
 
 class MixinTests(DirectEditSetup):

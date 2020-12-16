@@ -682,10 +682,10 @@ class Processor(EngineWorker):
                         fs_info = None
 
                     if fs_info is None or fs_info.lock_owner is None:
-                        self.dao.unsynchronize_state(doc_pair, last_error="READONLY")
+                        self.dao.unsynchronize_state(doc_pair, "READONLY")
                         self.engine.newReadonly.emit(doc_pair.local_name, None)
                     else:
-                        self.dao.unsynchronize_state(doc_pair, last_error="LOCKED")
+                        self.dao.unsynchronize_state(doc_pair, "LOCKED")
                         self.engine.newLocked.emit(
                             doc_pair.local_name,
                             fs_info.lock_owner,
@@ -758,7 +758,7 @@ class Processor(EngineWorker):
             # Illegal state: report the error and let's wait for the
             # parent folder issue to get resolved first
             if parent_pair is not None and parent_pair.pair_state == "unsynchronized":
-                self.dao.unsynchronize_state(doc_pair, last_error="PARENT_UNSYNC")
+                self.dao.unsynchronize_state(doc_pair, "PARENT_UNSYNC")
                 self._handle_unsynchronized(doc_pair)
                 return
             raise ParentNotSynced(
@@ -984,7 +984,7 @@ class Processor(EngineWorker):
                 self.dao.remove_state(doc_pair)
             else:
                 log.info(f"Set pair unsynchronized: {doc_pair!r}")
-                self.dao.unsynchronize_state(doc_pair, last_error="READONLY")
+                self.dao.unsynchronize_state(doc_pair, "READONLY")
                 self.engine.newReadonly.emit(
                     doc_pair.local_name, parent_pair.remote_name
                 )

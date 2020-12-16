@@ -144,6 +144,7 @@ class BaseUploader:
         self,
         file_path: Path,
         command: str,
+        /,
         *,
         filename: str = None,
         **kwargs: Any,
