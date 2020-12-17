@@ -12,7 +12,6 @@ import nuxeo.constants
 import requests
 from nuxeo.auth import TokenAuth
 from nuxeo.client import Nuxeo
-from nuxeo.compat import get_text
 from nuxeo.exceptions import CorruptedFile, HTTPError
 from nuxeo.handlers.default import Uploader
 from nuxeo.models import Batch, Document
@@ -650,9 +649,17 @@ class Remote(Nuxeo):
             lastSyncActiveRootDefinitions=last_root_definitions,
         )
 
-    # From DocumentClient
-    def fetch(self, ref: str, /, **kwargs: Any) -> Dict[str, Any]:
-        return self.execute(command="Document.Fetch", value=get_text(ref), **kwargs)
+    def fetch(
+        self,
+        ref: str,
+        /,
+        *,
+        headers: Dict[str, str] = None,
+        enrichers: List[str] = None,
+    ) -> Dict[str, Any]:
+        return self.execute(
+            command="Document.Fetch", value=ref, headers=headers, enrichers=enrichers
+        )
 
     def check_ref(self, ref: str, /) -> str:
         if ref.startswith("/") and self._base_folder_path is not None:
