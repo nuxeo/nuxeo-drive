@@ -617,19 +617,19 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         new_folder_id = remote.make_folder(self.folder_id, "New folder").uid
         self.wait_sync(wait_for_async=True)
 
-        def callback(*_):
+        def callback(uploader):
             """ Add delay when upload and download. """
             if self.engine_1.file_id and not self.engine_1.has_rename:
                 # Rename remote file while downloading
                 remote.move(self.engine_1.file_id, new_folder_id)
                 self.engine_1.has_rename = True
             time.sleep(3)
-            Engine.suspend_client(self.engine_1)
+            Engine.suspend_client(self.engine_1, uploader)
 
         self.engine_1.has_rename = False
         self.engine_1.file_id = None
 
-        Options.set("tmp_file_limit", 0.1, "manual")
+        Options.set("tmp_file_limit", 0.1, setter="manual")
         try:
             self.engine_1.remote.download_callback = callback
             file = self.location / "resources" / "files" / "testFile.pdf"
@@ -675,14 +675,14 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         local = self.local_1
         remote = self.remote_document_client_1
 
-        def callback(*_):
+        def callback(uploader):
             """ Add delay when upload and download. """
             if not self.engine_1.has_rename:
                 # Rename remote file while downloading
                 self.remote_1.rename(self.folder_id, "Test folder renamed")
                 self.engine_1.has_rename = True
             time.sleep(3)
-            Engine.suspend_client(self.engine_1)
+            Engine.suspend_client(self.engine_1, uploader)
 
         self.engine_1.has_rename = False
 
@@ -712,11 +712,11 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
     def _remote_rename_while_upload(self):
         local = self.local_1
 
-        def callback(*_):
+        def callback(uploader):
             """ Add delay when upload and download. """
             if not local.exists("/Test folder renamed"):
                 time.sleep(1)
-            Engine.suspend_client(self.engine_1)
+            Engine.suspend_client(self.engine_1, uploader)
 
         with patch.object(self.engine_1.remote, "download_callback", new=callback):
             # Create a document by streaming a binary file

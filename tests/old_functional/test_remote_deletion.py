@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import pytest
 from nuxeo.utils import version_lt
+
 from nxdrive.engine.engine import Engine
 from nxdrive.options import Options
 
@@ -81,10 +82,10 @@ class TestRemoteDeletion(OneUserTest):
         remote = self.remote_document_client_1
         self.engine_1.start()
 
-        def callback(*_):
+        def callback(uploader):
             """ Add delay when upload and download. """
             time.sleep(1)
-            Engine.suspend_client(self.engine_1)
+            Engine.suspend_client(self.engine_1, uploader)
 
         with patch.object(self.engine_1.remote, "download_callback", new=callback):
             # Create documents in the remote root workspace
@@ -108,7 +109,7 @@ class TestRemoteDeletion(OneUserTest):
         local = self.local_1
         remote = self.remote_document_client_1
 
-        def callback(*_):
+        def callback(uploader):
             """ Add delay when upload and download. """
             if not self.engine_1.has_delete:
                 # Delete remote file while downloading
@@ -119,14 +120,14 @@ class TestRemoteDeletion(OneUserTest):
                 else:
                     self.engine_1.has_delete = True
             time.sleep(1)
-            Engine.suspend_client(self.engine_1)
+            Engine.suspend_client(self.engine_1, uploader)
 
         self.engine_1.start()
         self.engine_1.has_delete = False
 
         filepath = self.location / "resources" / "files" / "testFile.pdf"
 
-        Options.set("tmp_file_limit", 0.1, "manual")
+        Options.set("tmp_file_limit", 0.1, setter="manual")
         with patch.object(self.engine_1.remote, "download_callback", new=callback):
             remote.make_folder("/", "Test folder")
             remote.make_file("/Test folder", "testFile.pdf", file_path=filepath)

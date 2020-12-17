@@ -1,9 +1,12 @@
 # coding: utf-8
 import unicodedata
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ..extension import ExtensionListener
+
+if TYPE_CHECKING:
+    from ...manager import Manager  # noqa
 
 
 class DarwinExtensionListener(ExtensionListener):
@@ -18,8 +21,8 @@ class DarwinExtensionListener(ExtensionListener):
 
     explorer_name = "Finder"
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, manager: "Manager") -> None:
+        super().__init__(manager)
         self.handlers["get-status"] = self.handle_status
         self.handlers["trigger-watch"] = self.handle_trigger_watch
 

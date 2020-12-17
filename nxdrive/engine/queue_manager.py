@@ -5,7 +5,7 @@ from logging import getLogger
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Lock
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
 from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal, pyqtSlot
 
@@ -398,10 +398,8 @@ class QueueManager(QObject):
             }
         )
 
-    def _create_thread(
-        self, item_getter: Callable, name: str, /, **kwargs: Any
-    ) -> QThread:
-        processor = self._engine.create_processor(item_getter, **kwargs)
+    def _create_thread(self, item_getter: Callable, name: str, /) -> QThread:
+        processor = self._engine.create_processor(item_getter)
         thread = self._engine.create_thread(processor, name)
         thread.finished.connect(self._thread_finished)
         thread.start()

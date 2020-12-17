@@ -42,7 +42,7 @@ class RemoteWatcher(EngineWorker):
     remoteWatcherStopped = pyqtSignal()
 
     def __init__(self, engine: "Engine", dao: "EngineDAO", /) -> None:
-        super().__init__(engine, dao, name="RemoteWatcher")
+        super().__init__(engine, dao, "RemoteWatcher")
 
         self.empty_polls = 0
         self._next_check = 0.0
@@ -73,7 +73,7 @@ class RemoteWatcher(EngineWorker):
         try:
             while "working":
                 if now() > self._next_check:
-                    if handle_changes(first_pass=first_pass):
+                    if handle_changes(first_pass):
                         first_pass = False
 
                     # Plan the next execution
@@ -606,7 +606,7 @@ class RemoteWatcher(EngineWorker):
 
         return not online
 
-    def _handle_changes(self, *, first_pass: bool = False) -> bool:
+    def _handle_changes(self, first_pass: bool, /) -> bool:
         # If synchronization features are disabled, we just need to emit
         # the appropriate signal to let the systray icon be updated.
         if not Options.synchronization_enabled:

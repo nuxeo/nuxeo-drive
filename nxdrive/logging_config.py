@@ -6,7 +6,7 @@ import os
 from logging import Formatter, LogRecord
 from logging.handlers import BufferingHandler, TimedRotatingFileHandler
 from pathlib import Path
-from typing import Any, Generator, List, Optional
+from typing import Generator, List, Optional
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from . import constants
@@ -73,11 +73,10 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
     Extended version of TimedRotatingFileHandler that compress logs on rollover.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, file: str, when: str, backup_count: int) -> None:
         """Set UTF-8 as default encoding to prevent logging issues
         on Windows with non-latin characters."""
-        kwargs["encoding"] = "utf-8"
-        super().__init__(*args, **kwargs)
+        super().__init__(file, when=when, backupCount=backup_count, encoding="utf-8")
         self.compress_and_purge()
 
     def compress_and_purge(self) -> None:
@@ -179,9 +178,7 @@ def configure(
     file_level = get_level(file_level, DEFAULT_LEVEL_FILE)
     file_handler = get_handler("nxdrive_file")
     if log_filename:
-        file_handler = TimedCompressedRotatingFileHandler(
-            log_filename, when="midnight", backupCount=30
-        )
+        file_handler = TimedCompressedRotatingFileHandler(log_filename, "midnight", 30)
         file_handler.name = "nxdrive_file"
         file_handler.setFormatter(formatter)
         file_handler.setLevel(file_level)

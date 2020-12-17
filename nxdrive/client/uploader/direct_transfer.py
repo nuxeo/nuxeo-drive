@@ -82,8 +82,8 @@ class DirectTransferUploader(BaseUploader):
 
         if doc_pair.folderish:
             item = self.upload_folder(
-                input_obj=doc_pair.remote_parent_path,
-                params={"title": doc_pair.local_name},
+                doc_pair.remote_parent_path,
+                {"title": doc_pair.local_name},
             )
             self.dao.update_remote_parent_path_dt(
                 str(file_path), item["path"], item["uid"]
@@ -107,10 +107,11 @@ class DirectTransferUploader(BaseUploader):
 
         return item
 
-    def upload_folder(self, /, **kwargs: Any) -> Dict[str, Any]:
+    def upload_folder(self, parent: str, params: Dict[str, str], /) -> Dict[str, Any]:
         """Create a folder using the FileManager."""
         res: Dict[str, Any] = self.remote.execute(
             command="FileManager.CreateFolder",
-            **kwargs,
+            input_obj=parent,
+            params=params,
         )
         return res

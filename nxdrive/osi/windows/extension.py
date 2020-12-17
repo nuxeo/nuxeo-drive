@@ -3,7 +3,7 @@ import json
 import unicodedata
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
 from win32com.shell import shell, shellcon
 
@@ -11,6 +11,9 @@ from ...constants import CONFIG_REGISTRY_KEY
 from ...utils import force_encode
 from ..extension import ExtensionListener, get_formatted_status
 from . import registry
+
+if TYPE_CHECKING:
+    from ...manager import Manager  # noqa
 
 log = getLogger(__name__)
 
@@ -57,8 +60,8 @@ class WindowsExtensionListener(ExtensionListener):
 
     explorer_name = "Explorer"
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, manager: "Manager") -> None:
+        super().__init__(manager)
         self.handlers["getFileIconId"] = self.handle_status
 
     def _parse_payload(self, payload: bytes, /) -> str:

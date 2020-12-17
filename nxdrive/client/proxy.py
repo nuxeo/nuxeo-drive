@@ -29,9 +29,9 @@ log = getLogger(__name__)
 class Proxy:
     category: str
 
-    def __init__(self, /, **kwargs: str) -> None:
+    def __init__(self, *, url: str = "", pac_url: str = "") -> None:
         """
-        Empty init so any subclass of Proxy can receive any kwargs
+        Empty init so any subclass of Proxy can receive those kwargs
         and not raise an error.
         """
         pass
@@ -44,8 +44,8 @@ class Proxy:
         )
         return f"{type(self).__name__}<{attrs}>"
 
-    def settings(self, /, **kwargs: Any) -> Any:
-        return None
+    def settings(self, *, url: str = None) -> Dict[str, Any]:
+        return {}
 
 
 class NoProxy(Proxy):
@@ -59,7 +59,7 @@ class NoProxy(Proxy):
 
     category = "None"
 
-    def settings(self, /, **kwargs: Any) -> Dict[str, Any]:
+    def settings(self, *, url: str = None) -> Dict[str, Any]:
         return {"http": None, "https": None}
 
 
@@ -83,14 +83,12 @@ class ManualProxy(Proxy):
 
     category = "Manual"
 
-    def __init__(self, *, url: str = "", **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-
+    def __init__(self, *, url: str = "", pac_url: str = "") -> None:
         if "://" not in url:
             url = f"http://{url}"
         self.url = url
 
-    def settings(self, /, **kwargs: Any) -> Dict[str, str]:
+    def settings(self, *, url: str = None) -> Dict[str, Any]:
         return {"http": self.url, "https": self.url}
 
 
@@ -110,37 +108,34 @@ class AutomaticProxy(Proxy):
 
     category = "Automatic"
 
-    def __init__(self, *, pac_url: str = None, js: str = None, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-
+    def __init__(self, *, url: str = "", pac_url: str = "") -> None:
         args: Dict[str, Any] = {}
 
-        # Load the PAC file as PyPAC won't do it for us
-        if pac_url and pac_url.startswith("file:"):
-            with open(pac_url.replace("file://", "")) as pac:
-                js = pac.read()
-
-        if js:
-            args["js"] = js
-        elif pac_url:
-            args["url"] = pac_url
-            args["allowed_content_types"] = [
-                "application/octet-stream",
-                "application/x-ns-proxy-autoconfig",
-                "application/x-javascript-config",
-            ]
+        if pac_url:
+            # Load the PAC file as PyPAC won't do it for us
+            if pac_url.startswith("file:"):
+                with open(pac_url.replace("file://", "")) as pac:
+                    args["js"] = pac.read()
+            else:
+                args["url"] = pac_url
+                args["allowed_content_types"] = [
+                    "application/octet-stream",
+                    "application/x-ns-proxy-autoconfig",
+                    "application/x-javascript-config",
+                ]
 
         self.pac_url = pac_url
         self._pac_file = get_pac(**args)
         self._resolver = ProxyResolver(self._pac_file)
 
-    def settings(self, *, url: str = None, **kwargs: Any) -> Dict[str, Any]:
-        return self._resolver.get_proxy_for_requests(url)  # type: ignore
+    def settings(self, *, url: str = None) -> Dict[str, Any]:
+        ret: Dict[str, Any] = self._resolver.get_proxy_for_requests(url)
+        return ret
 
 
-def get_proxy(**kwargs: Any) -> Proxy:
-    log.debug(f"Get proxy with {kwargs = }")
-    proxy = _get_cls(kwargs.pop("category"))(**kwargs)
+def get_proxy(category: str, /, *, url: str = "", pac_url: str = "") -> Proxy:
+    log.debug(f"Get proxy with {url = } and {pac_url = }")
+    proxy = _get_cls(category)(url=url, pac_url=pac_url)
     log.debug(f"Got {proxy = }")
     return proxy
 

@@ -1977,7 +1977,7 @@ class EngineDAO(ConfigurationDAO):
         return False
 
     def unsynchronize_state(
-        self, row: DocPair, /, *, last_error: str = None, ignore: bool = False
+        self, row: DocPair, last_error: str, /, *, ignore: bool = False
     ) -> None:
         local_state = "local_state = 'unsynchronized'," if ignore else ""
         with self.lock:

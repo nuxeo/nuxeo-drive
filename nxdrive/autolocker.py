@@ -39,7 +39,7 @@ class ProcessAutoLockerWorker(PollWorker):
     def __init__(
         self, check_interval: int, manager: "Manager", folder: Path, /
     ) -> None:
-        super().__init__(check_interval)
+        super().__init__(check_interval, "AutoLocker")
         self.dao = manager.dao
         self._folder = folder
 

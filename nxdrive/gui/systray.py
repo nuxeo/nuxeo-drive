@@ -51,7 +51,7 @@ class DriveSystrayIcon(QSystemTrayIcon):
                 self.application.show_systray()
         elif reason == QSystemTrayIcon.MiddleClick:
             # On middle click, open settings.  Yeah, it rocks!
-            self.application.show_settings()
+            self.application.show_settings("General")
 
     def get_context_menu(self) -> QMenu:
         """

@@ -12,7 +12,7 @@ from logging import getLogger
 from pathlib import Path
 from tempfile import mkdtemp
 from time import mktime, strptime
-from typing import Any, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, List, Optional, Tuple, Type, Union
 
 from nuxeo.utils import get_digest_algorithm
 
@@ -46,11 +46,15 @@ class FileInfo:
         folderish: bool,
         last_modification_time: datetime,
         /,
-        **kwargs: Any,
+        *,
+        digest_func: str = "md5",
+        digest_callback: Callable = None,
+        remote_ref: str = "",
+        size: int = 0,
     ) -> None:
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
-        self.digest_callback = kwargs.pop("digest_callback", None)
+        self.digest_callback = digest_callback
 
         filepath = root / path
         self.path = Path(unicodedata.normalize("NFC", str(path)))
@@ -66,20 +70,19 @@ class FileInfo:
         else:
             # Guess the file size to help catching file changes in the watcher.
             # This will prevent to do checksum comparisons, which are expensive.
-            size = kwargs.pop("size", 0)
             if size == 0:
                 with suppress(FileNotFoundError):
                     size = self.filepath.stat().st_size
         self.size = size
 
         self.folderish = folderish  # True if a Folder
-        self.remote_ref = kwargs.pop("remote_ref", "")
+        self.remote_ref = remote_ref
 
         # Last OS modification date of the file
         self.last_modification_time = last_modification_time
 
         # Function to use
-        self._digest_func = kwargs.pop("digest_func", "MD5").lower()
+        self._digest_func = digest_func
 
         # Precompute base name once and for all as it's often useful in practice
         self.name = self.filepath.name
@@ -100,17 +103,24 @@ class FileInfo:
 class LocalClientMixin:
     """The base class for client API implementation for the local file system."""
 
-    def __init__(self, base_folder: Path, /, **kwargs: Any) -> None:
-        self._digest_func = kwargs.pop("digest_func", "md5")
+    def __init__(
+        self,
+        base_folder: Path,
+        /,
+        *,
+        digest_callback: Callable = None,
+        download_dir: Path = ROOT,
+    ) -> None:
+        self._digest_func = "md5"
 
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
-        self.digest_callback = kwargs.pop("digest_callback", None)
+        self.digest_callback = digest_callback
 
         self.base_folder = base_folder.resolve()
 
         # The download folder from the engine, mostly used in .rename()
-        self.download_dir = kwargs.pop("download_dir", ROOT)
+        self.download_dir = download_dir
 
         self._case_sensitive: Optional[bool] = None
 

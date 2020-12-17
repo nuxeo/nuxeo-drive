@@ -9,7 +9,7 @@ from pathlib import Path
 from queue import Queue
 from threading import Lock
 from time import mktime, sleep
-from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple
 
 from PyQt5.QtCore import pyqtSignal
 from watchdog.events import FileSystemEvent, PatternMatchingEventHandler
@@ -61,7 +61,7 @@ class LocalWatcher(EngineWorker):
     fileAlreadyExists = pyqtSignal(Path, Path)
 
     def __init__(self, engine: "Engine", dao: "EngineDAO", /) -> None:
-        super().__init__(engine, dao, name="LocalWatcher")
+        super().__init__(engine, dao, "LocalWatcher")
 
         self.local = self.engine.local
         self.lock = Lock()
@@ -1168,7 +1168,7 @@ class LocalWatcher(EngineWorker):
                                 "Moving to a read-only folder: "
                                 f"{from_pair!r} -> {dst_parent!r}"
                             )
-                            dao.unsynchronize_state(from_pair, last_error="READONLY")
+                            dao.unsynchronize_state(from_pair, "READONLY")
                             self.engine.newReadonly.emit(
                                 from_pair.local_name, dst_parent.remote_name
                             )
@@ -1325,8 +1325,10 @@ class LocalWatcher(EngineWorker):
 
 
 class DriveFSEventHandler(PatternMatchingEventHandler):
-    def __init__(self, watcher: Worker, /, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
+    def __init__(
+        self, watcher: Worker, /, *, ignore_patterns: List[str] = None
+    ) -> None:
+        super().__init__(ignore_patterns=ignore_patterns)
         self.counter = 0
         self.watcher = watcher
 
@@ -1347,8 +1349,10 @@ class DriveFSEventHandler(PatternMatchingEventHandler):
 
 
 class DriveFSRootEventHandler(PatternMatchingEventHandler):
-    def __init__(self, watcher: Worker, name: str, /, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
+    def __init__(
+        self, watcher: Worker, name: str, /, *, ignore_patterns: List[str] = None
+    ) -> None:
+        super().__init__(ignore_patterns=ignore_patterns)
         self.name = name
         self.counter = 0
         self.watcher = watcher

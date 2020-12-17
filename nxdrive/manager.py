@@ -126,7 +126,7 @@ class Manager(QObject):
         self.db_backup_worker: Optional[DatabaseBackupWorker] = None
 
         if Options.proxy_server is not None:
-            self.proxy = get_proxy(category="Manual", url=Options.proxy_server)
+            self.proxy = get_proxy("Manual", url=Options.proxy_server)
             save_proxy(self.proxy, self.dao, token=self.device_id)
         else:
             self.proxy = load_proxy(self.dao)
@@ -390,33 +390,27 @@ class Manager(QObject):
         self.started.connect(self._extension_listener.start_listening)
         self.stopped.connect(self._extension_listener.close)
 
-    def resume(self, *, euid: str = None) -> None:
+    def resume(self) -> None:
         if not self.is_paused:
             return
         self.is_paused = False
         for uid, engine in self.engines.copy().items():
-            if euid is not None and euid != uid:
-                continue
             engine.resume()
         self.resumed.emit()
 
-    def suspend(self, *, euid: str = None) -> None:
+    def suspend(self) -> None:
         if self.is_paused:
             return
         self.is_paused = True
         for uid, engine in self.engines.copy().items():
-            if euid is not None and euid != uid:
-                continue
             engine.suspend()
         self.suspended.emit()
 
-    def stop(self, *, euid: str = None) -> None:
+    def stop(self) -> None:
         # Make a backup in case something happens
         self.dao.save_backup()
 
         for uid, engine in self.engines.copy().items():
-            if euid is not None and euid != uid:
-                continue
             if engine.is_started():
                 engine.stop()
         self.osi.cleanup()
@@ -434,7 +428,7 @@ class Manager(QObject):
             except Exception:
                 log.exception(f"Could not start the engine {uid}")
 
-    def start(self, *, euid: str = None) -> None:
+    def start(self) -> None:
         self._started = True
 
         if not self.server_config_updater.first_run:

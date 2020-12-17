@@ -471,10 +471,10 @@ class QMLDriveApi(QObject):
             self.application.show_conflicts_resolution(engine)
 
     @pyqtSlot(str)
-    def show_settings(self, page: str, /) -> None:
+    def show_settings(self, section: str, /) -> None:
         self.application.hide_systray()
-        log.info(f"Show settings on page {page}")
-        self.application.show_settings(section=page)
+        log.info(f"Show settings on section {section}")
+        self.application.show_settings(section)
 
     @pyqtSlot()
     def quit(self) -> None:
@@ -672,7 +672,9 @@ class QMLDriveApi(QObject):
         password: Optional[str],
         name: Optional[str],
         /,
-        **kwargs: Any,
+        *,
+        token: Optional[str] = None,
+        check_fs: bool = True,
     ) -> None:
         # Remove any parameters from the original URL
         parts = urlsplit(url)
@@ -682,9 +684,9 @@ class QMLDriveApi(QObject):
         binder = Binder(
             username=username,
             password=password,
-            token=kwargs.get("token"),
+            token=token,
             no_check=False,
-            no_fscheck=not kwargs.get("check_fs", True),
+            no_fscheck=not check_fs,
             url=url,
         )
         log.info(f"Binder is : {binder.url}/{binder.username}")
@@ -711,7 +713,8 @@ class QMLDriveApi(QObject):
         *,
         password: str = None,
         name: str = None,
-        **kwargs: Any,
+        token: str = None,
+        check_fs: bool = True,
     ) -> None:
         if not server_url:
             self.setMessage.emit("CONNECTION_ERROR", "error")
@@ -724,7 +727,8 @@ class QMLDriveApi(QObject):
                 username,
                 password,
                 name,
-                **kwargs,
+                token=token,
+                check_fs=check_fs,
             )
         except RootAlreadyBindWithDifferentAccount as e:
             log.warning(Translator.get("FOLDER_USED", values=[APP_NAME]))
@@ -743,14 +747,14 @@ class QMLDriveApi(QObject):
                 self.setMessage.emit("FOLDER_USED", "error")
                 return
 
-            kwargs["check_fs"] = False
             self.bind_server(
                 local_folder,
                 server_url,
                 username,
                 password=password,
                 name=name,
-                **kwargs,
+                token=token,
+                check_fs=False,
             )
             return
         except NotFound:
@@ -868,7 +872,7 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, str, str, result=bool)
     def set_proxy_settings(self, config: str, url: str, pac_url: str, /) -> bool:
         try:
-            proxy = get_proxy(category=config, url=url, pac_url=pac_url)
+            proxy = get_proxy(config, url=url, pac_url=pac_url)
         except FileNotFoundError:
             self.setMessage.emit("PROXY_NO_PAC_FILE", "error")
             return False
@@ -923,9 +927,7 @@ class QMLDriveApi(QObject):
                 local_folder,
                 server_url,
                 username,
-                password=None,
                 token=token,
-                name=None,
             )
 
             log.info(f"RETURN FROM BIND_SERVER IS: '{error}'")
@@ -952,7 +954,7 @@ class QMLDriveApi(QObject):
 
             engine.update_token(token, username)
             self.application.set_icon_state("idle")
-            self.application.show_settings(section="Accounts")
+            self.application.show_settings("Accounts")
             self.setMessage.emit("CONNECTION_SUCCESS", "success")
 
         except CONNECTION_ERROR as e:
@@ -1016,12 +1018,10 @@ class QMLDriveApi(QObject):
             engine.retry_pair(state_id)
 
     @pyqtSlot(str, int, str)
-    def ignore_pair(
-        self, uid: str, state_id: int, /, *, reason: str = "UNKNOWN"
-    ) -> None:
+    def ignore_pair(self, uid: str, state_id: int, reason: str, /) -> None:
         engine = self._manager.engines.get(uid)
         if engine:
-            engine.ignore_pair(state_id, reason=reason)
+            engine.ignore_pair(state_id, reason)
 
     @pyqtSlot(str, str, str)
     def open_remote(self, uid: str, remote_ref: str, remote_name: str, /) -> None:

@@ -41,18 +41,15 @@ class Runner(QRunnable):
 class Worker(QObject):
     """" Utility class that handle one thread. """
 
-    def __init__(
-        self, *, thread: QThread = None, name: str = "", **kwargs: Any
-    ) -> None:
+    def __init__(self, name: str, /) -> None:
         super().__init__()
-        if thread is None:
-            thread = QThread()
+        thread = QThread()
         self.moveToThread(thread)
 
         thread.worker = self
         self.thread = thread
 
-        self._name = name or type(self).__name__
+        self._name = name
 
         self._running = False
         self._continue = False
@@ -209,16 +206,8 @@ class Worker(QObject):
 
 
 class EngineWorker(Worker):
-    def __init__(
-        self,
-        engine: "Engine",
-        dao: "EngineDAO",
-        /,
-        *,
-        thread: QThread = None,
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(thread=thread, **kwargs)
+    def __init__(self, engine: "Engine", dao: "EngineDAO", name: str, /) -> None:
+        super().__init__(name)
         self.engine = engine
         self.dao = dao
 
@@ -261,10 +250,8 @@ class EngineWorker(Worker):
 
 
 class PollWorker(Worker):
-    def __init__(
-        self, check_interval: int, /, *, thread: QThread = None, **kwargs: Any
-    ) -> None:
-        super().__init__(thread=thread, **kwargs)
+    def __init__(self, check_interval: int, name: str, /) -> None:
+        super().__init__(name)
         # Be sure to run on start
         self.thread.started.connect(self.run)
         self._check_interval = check_interval

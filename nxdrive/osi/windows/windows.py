@@ -269,4 +269,5 @@ class WindowsIntegration(AbstractOSIntegration):
         self._watch_or_ignore(folder, "ignore")
 
     def get_extension_listener(self) -> WindowsExtensionListener:
+        assert self._manager
         return WindowsExtensionListener(self._manager)
