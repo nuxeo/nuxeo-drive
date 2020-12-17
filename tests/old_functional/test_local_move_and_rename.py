@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import pytest
 from nuxeo.exceptions import HTTPError
+
 from nxdrive.engine.dao.sqlite import EngineDAO
 
 from .. import ensure_no_exception, env
@@ -87,7 +88,7 @@ class TestLocalMoveAndRename(OneUserTest):
 
         def set_remote_id(ref: Path, remote_id: bytes, name: str = "ndrive"):
             nonlocal local, marker
-            LocalTest.set_remote_id(local, ref, remote_id, name)
+            LocalTest.set_remote_id(local, ref, remote_id, name=name)
             if not marker and ref.name == "File.txt":
                 local.rename(ref, "Renamed File.txt")
                 marker = True
@@ -117,7 +118,7 @@ class TestLocalMoveAndRename(OneUserTest):
             if not marker and ref.name == "File.txt":
                 self.engine_1.local.rename(ref, "Renamed File.txt")
                 marker = True
-            LocalTest.set_remote_id(local, ref, remote_id, name)
+            LocalTest.set_remote_id(local, ref, remote_id, name=name)
 
         with patch.object(self.engine_1.local, "set_remote_id", new=set_remote_id):
             local.make_file("/", "File.txt", content=b"Some Content 2")
