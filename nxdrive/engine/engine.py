@@ -1322,8 +1322,8 @@ class Engine(QObject):
             log.info(f"PairInterrupt {current!r} because lock on {self._folder_lock!r}")
             raise PairInterrupt()
 
-    def create_processor(self, item_getter: Callable, /, **kwargs: Any) -> Processor:
-        return Processor(self, item_getter, **kwargs)
+    def create_processor(self, item_getter: Callable, /) -> Processor:
+        return Processor(self, item_getter)
 
     def dispose_db(self) -> None:
         if self.dao:

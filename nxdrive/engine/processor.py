@@ -8,7 +8,7 @@ from logging import getLogger
 from pathlib import Path
 from threading import Lock
 from time import monotonic_ns, sleep
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
 
 from nuxeo.exceptions import (
     CorruptedFile,
@@ -65,10 +65,8 @@ class Processor(EngineWorker):
 
     _current_doc_pair: Optional[DocPair] = None
 
-    def __init__(
-        self, engine: "Engine", item_getter: Callable, /, **kwargs: Any
-    ) -> None:
-        super().__init__(engine, engine.dao, **kwargs)
+    def __init__(self, engine: "Engine", item_getter: Callable, /) -> None:
+        super().__init__(engine, engine.dao)
         self._get_item = item_getter
         self.engine = engine
         self.local = self.engine.local
