@@ -672,7 +672,9 @@ class QMLDriveApi(QObject):
         password: Optional[str],
         name: Optional[str],
         /,
-        **kwargs: Any,
+        *,
+        token: Optional[str] = None,
+        check_fs: bool = True,
     ) -> None:
         # Remove any parameters from the original URL
         parts = urlsplit(url)
@@ -682,9 +684,9 @@ class QMLDriveApi(QObject):
         binder = Binder(
             username=username,
             password=password,
-            token=kwargs.get("token"),
+            token=token,
             no_check=False,
-            no_fscheck=not kwargs.get("check_fs", True),
+            no_fscheck=not check_fs,
             url=url,
         )
         log.info(f"Binder is : {binder.url}/{binder.username}")
@@ -711,7 +713,8 @@ class QMLDriveApi(QObject):
         *,
         password: str = None,
         name: str = None,
-        **kwargs: Any,
+        token: str = None,
+        check_fs: bool = True,
     ) -> None:
         if not server_url:
             self.setMessage.emit("CONNECTION_ERROR", "error")
@@ -724,7 +727,8 @@ class QMLDriveApi(QObject):
                 username,
                 password,
                 name,
-                **kwargs,
+                token=token,
+                check_fs=check_fs,
             )
         except RootAlreadyBindWithDifferentAccount as e:
             log.warning(Translator.get("FOLDER_USED", values=[APP_NAME]))
@@ -743,14 +747,14 @@ class QMLDriveApi(QObject):
                 self.setMessage.emit("FOLDER_USED", "error")
                 return
 
-            kwargs["check_fs"] = False
             self.bind_server(
                 local_folder,
                 server_url,
                 username,
                 password=password,
                 name=name,
-                **kwargs,
+                token=token,
+                check_fs=False,
             )
             return
         except NotFound:
@@ -923,9 +927,7 @@ class QMLDriveApi(QObject):
                 local_folder,
                 server_url,
                 username,
-                password=None,
                 token=token,
-                name=None,
             )
 
             log.info(f"RETURN FROM BIND_SERVER IS: '{error}'")
