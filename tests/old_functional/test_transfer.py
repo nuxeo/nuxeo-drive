@@ -5,11 +5,12 @@ from unittest.mock import patch
 
 import pytest
 from nuxeo.exceptions import HTTPError
+from requests.exceptions import ConnectionError
+
 from nxdrive.client.uploader.sync import SyncUploader
 from nxdrive.constants import FILE_BUFFER_SIZE, TransferStatus
 from nxdrive.options import Options
 from nxdrive.state import State
-from requests.exceptions import ConnectionError
 
 from .. import ensure_no_exception
 from ..markers import not_windows
@@ -34,7 +35,7 @@ class TestDownload(OneUserTest):
         on the current download in the systray menu.
         """
 
-        def callback(*_, **__):
+        def callback(downloader):
             """
             This will mimic what is done in SystrayTranfer.qml:
                 - call API.pause_transfer() that will call:
@@ -63,7 +64,7 @@ class TestDownload(OneUserTest):
             # Call the original function to make the paused download
             # effective at the 2nd iteration
             for cb in callback_orig:
-                cb()
+                cb(downloader)
 
         engine = self.engine_1
         dao = self.engine_1.dao
@@ -96,7 +97,7 @@ class TestDownload(OneUserTest):
         or clicking on the Suspend menu entry from the systray.
         """
 
-        def callback(*_, **__):
+        def callback(downloader):
             """This will mimic what is done in SystrayMenu.qml: suspend the app."""
             # Ensure we have 1 ongoing download
             downloads = list(dao.get_downloads())
@@ -109,7 +110,7 @@ class TestDownload(OneUserTest):
 
             # Call the original function to make the suspended download effective
             for cb in callback_orig:
-                cb()
+                cb(downloader)
 
         engine = self.engine_1
         dao = self.engine_1.dao
@@ -138,7 +139,7 @@ class TestDownload(OneUserTest):
     def test_modifying_paused_download(self):
         """Modifying a paused download should discard the current download."""
 
-        def callback(*_, **__):
+        def callback(downloader):
             """Pause the download and apply changes to the document."""
             nonlocal count
             count += 1
@@ -158,7 +159,7 @@ class TestDownload(OneUserTest):
 
             # Call the original function to make the paused download effective
             for cb in callback_orig:
-                cb()
+                cb(downloader)
 
         count = 0
         remote = self.remote_1
@@ -188,7 +189,7 @@ class TestDownload(OneUserTest):
     def test_deleting_paused_download(self):
         """Deleting a paused download should discard the current download."""
 
-        def callback(*_, **__):
+        def callback(downloader):
             """Pause the download and delete the document."""
             # Ensure we have 1 ongoing download
             downloads = list(dao.get_downloads())
@@ -204,7 +205,7 @@ class TestDownload(OneUserTest):
 
             # Call the original function to make the paused download effective
             for cb in callback_orig:
-                cb()
+                cb(downloader)
 
         remote = self.remote_1
         engine = self.engine_1
@@ -252,7 +253,7 @@ class TestUpload(OneUserTest):
         on the current upload in the systray menu.
         """
 
-        def callback(*_):
+        def callback(uploader):
             """
             This will mimic what is done in SystrayTranfer.qml:
                 - call API.pause_transfer() that will call:
@@ -293,7 +294,7 @@ class TestUpload(OneUserTest):
         or clicking on the Suspend menu entry from the systray.
         """
 
-        def callback(*_):
+        def callback(uploader):
             """This will mimic what is done in SystrayMenu.qml: suspend the app."""
             # Ensure we have 1 ongoing upload
             uploads = list(dao.get_uploads())
@@ -326,7 +327,7 @@ class TestUpload(OneUserTest):
     def test_modifying_paused_upload(self):
         """Modifying a paused upload should discard the current upload."""
 
-        def callback(*_):
+        def callback(uploader):
             """Pause the upload and apply changes to the document."""
             # Ensure we have 1 ongoing upload
             uploads = list(dao.get_uploads())
@@ -365,7 +366,7 @@ class TestUpload(OneUserTest):
     def test_deleting_paused_upload(self):
         """Deleting a paused upload should discard the current upload."""
 
-        def callback(*_):
+        def callback(uploader):
             """Pause the upload and delete the document."""
             # Ensure we have 1 ongoing upload
             uploads = list(dao.get_uploads())
@@ -559,10 +560,10 @@ class TestUpload(OneUserTest):
             """Simulate an error."""
             raise ConnectionError("Mocked error")
 
-        def callback(upload):
+        def callback(uploader):
             """Patch send_data() after chunk 1 is sent."""
-            if len(upload.blob.uploadedChunkIds) == 1:
-                upload.service.send_data = send_data
+            if len(uploader.blob.uploadedChunkIds) == 1:
+                uploader.service.send_data = send_data
 
         engine = self.engine_1
         dao = self.engine_1.dao
@@ -638,10 +639,10 @@ class TestUpload(OneUserTest):
             """Simulate an error."""
             raise ConnectionError("Mocked error")
 
-        def callback(upload):
+        def callback(uploader):
             """Patch send_data() after chunk 1 is sent."""
-            if len(upload.blob.uploadedChunkIds) == 1:
-                upload.service.send_data = send_data
+            if len(uploader.blob.uploadedChunkIds) == 1:
+                uploader.service.send_data = send_data
 
         bad_remote1 = self.get_bad_remote()
         bad_remote1.upload_callback = callback
@@ -690,9 +691,9 @@ class TestUpload(OneUserTest):
 
         # Step 3: resume the upload, the linking should work
 
-        def callback(upload):
+        def callback(uploader):
             """Just check the batch ID _did_ change."""
-            assert upload.blob.batchId not in (batch_id, "deadbeaf")
+            assert uploader.blob.batchId not in (batch_id, "deadbeaf")
 
         inspector = self.get_bad_remote()
         inspector.upload_callback
@@ -712,7 +713,7 @@ class TestUpload(OneUserTest):
         status and State.has_crashed value.
         """
 
-        def callback(*_):
+        def callback(uploader):
             """Suspend the upload and engine."""
             self.manager_1.suspend()
 
