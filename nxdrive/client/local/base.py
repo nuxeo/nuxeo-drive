@@ -12,7 +12,7 @@ from logging import getLogger
 from pathlib import Path
 from tempfile import mkdtemp
 from time import mktime, strptime
-from typing import Any, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, List, Optional, Tuple, Type, Union
 
 from nuxeo.utils import get_digest_algorithm
 
@@ -100,17 +100,24 @@ class FileInfo:
 class LocalClientMixin:
     """The base class for client API implementation for the local file system."""
 
-    def __init__(self, base_folder: Path, /, **kwargs: Any) -> None:
-        self._digest_func = kwargs.pop("digest_func", "md5")
+    def __init__(
+        self,
+        base_folder: Path,
+        /,
+        *,
+        digest_callback: Callable = None,
+        download_dir: Path = ROOT,
+    ) -> None:
+        self._digest_func = "md5"
 
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
-        self.digest_callback = kwargs.pop("digest_callback", None)
+        self.digest_callback = digest_callback
 
         self.base_folder = base_folder.resolve()
 
         # The download folder from the engine, mostly used in .rename()
-        self.download_dir = kwargs.pop("download_dir", ROOT)
+        self.download_dir = download_dir
 
         self._case_sensitive: Optional[bool] = None
 
