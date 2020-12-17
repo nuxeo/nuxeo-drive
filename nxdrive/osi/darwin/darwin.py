@@ -374,4 +374,5 @@ class DarwinIntegration(AbstractOSIntegration):
         return None
 
     def get_extension_listener(self) -> DarwinExtensionListener:
+        assert self._manager
         return DarwinExtensionListener(self._manager)

@@ -4,7 +4,7 @@ import stat
 from enum import Enum
 from logging import getLogger
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
+from typing import TYPE_CHECKING, Callable, Dict, Optional
 
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtNetwork import (
@@ -69,8 +69,8 @@ class ExtensionListener(QTcpServer):
     listening = pyqtSignal()
     explorer_name = ""
 
-    def __init__(self, manager: "Manager", *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, manager: "Manager") -> None:
+        super().__init__()
         self.manager = manager
         self.host = "localhost"
         self.port = 10650
