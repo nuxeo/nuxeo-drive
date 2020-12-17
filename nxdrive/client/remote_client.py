@@ -74,7 +74,7 @@ class Remote(Nuxeo):
         dao: "EngineDAO" = None,
         repository: str = Options.remote_repo,
         timeout: int = Options.timeout,
-        **kwargs: Any,
+        verify: bool = True,
     ) -> None:
         auth = TokenAuth(token) if token else (user_id, password)
 
@@ -84,7 +84,7 @@ class Remote(Nuxeo):
             app_name=APP_NAME,
             version=version,
             repository=repository,
-            **kwargs,
+            verify=verify,
         )
 
         self.client.headers.update(
