@@ -126,7 +126,7 @@ class Manager(QObject):
         self.db_backup_worker: Optional[DatabaseBackupWorker] = None
 
         if Options.proxy_server is not None:
-            self.proxy = get_proxy(category="Manual", url=Options.proxy_server)
+            self.proxy = get_proxy("Manual", url=Options.proxy_server)
             save_proxy(self.proxy, self.dao, token=self.device_id)
         else:
             self.proxy = load_proxy(self.dao)

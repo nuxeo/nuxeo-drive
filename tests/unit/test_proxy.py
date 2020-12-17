@@ -58,24 +58,14 @@ def pac_file(tmp_path, js):
 
 
 def test_manual():
-    proxy = get_proxy(category="Manual", url="localhost:3128")
+    proxy = get_proxy("Manual", url="localhost:3128")
     assert isinstance(proxy, ManualProxy)
     settings = proxy.settings()
     assert settings["http"] == settings["https"] == proxy.url == "http://localhost:3128"
 
 
-def test_pac_js(js):
-    proxy = get_proxy(category="Automatic", js=js)
-    assert isinstance(proxy, AutomaticProxy)
-    settings = proxy.settings(url="http://nuxeo.com")
-    assert settings["http"] == settings["https"] == "http://localhost:8899"
-    settings = proxy.settings(url="http://example.com")
-    assert settings["http"] is None
-    assert settings["https"] is None
-
-
 def test_pac_file(pac_file):
-    proxy = get_proxy(category="Automatic", pac_url=pac_file)
+    proxy = get_proxy("Automatic", pac_url=pac_file)
     assert isinstance(proxy, AutomaticProxy)
     assert proxy._pac_file
     settings = proxy.settings(url="http://nuxeo.com")
@@ -87,11 +77,11 @@ def test_pac_file(pac_file):
 
 def test_pac_file_not_found(pac_file):
     with pytest.raises(FileNotFoundError):
-        get_proxy(category="Automatic", pac_url="file:///some missing file.pac")
+        get_proxy("Automatic", pac_url="file:///some missing file.pac")
 
 
 def test_load(config_dao):
-    proxy = get_proxy(category="Manual", url="localhost:3128")
+    proxy = get_proxy("Manual", url="localhost:3128")
 
     save_proxy(proxy, config_dao, token="mock_token")
     loaded_proxy = load_proxy(config_dao, token="mock_token")
@@ -107,7 +97,7 @@ def _patch_winreg_qve(**kwargs):
 @windows_only
 def test_autoconfigurl_windows(pac_file):
     with _patch_winreg_qve(return_value=(pac_file, "foo")):
-        proxy = get_proxy(category="Automatic")
+        proxy = get_proxy("Automatic")
         assert isinstance(proxy, AutomaticProxy)
         assert proxy._pac_file is not None
         settings = proxy.settings(url="http://nuxeo.com")
@@ -128,7 +118,7 @@ def test_autoconfigurl_mac(pac_file):
     with _patch_pyobjc_dscp(
         return_value={"ProxyAutoConfigEnable": 1, "ProxyAutoConfigURLString": pac_file}
     ):
-        proxy = get_proxy(category="Automatic")
+        proxy = get_proxy("Automatic")
         assert isinstance(proxy, AutomaticProxy)
         assert proxy._pac_file
         settings = proxy.settings(url="http://nuxeo.com")

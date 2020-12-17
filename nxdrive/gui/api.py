@@ -868,7 +868,7 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, str, str, result=bool)
     def set_proxy_settings(self, config: str, url: str, pac_url: str, /) -> bool:
         try:
-            proxy = get_proxy(category=config, url=url, pac_url=pac_url)
+            proxy = get_proxy(config, url=url, pac_url=pac_url)
         except FileNotFoundError:
             self.setMessage.emit("PROXY_NO_PAC_FILE", "error")
             return False
