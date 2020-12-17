@@ -74,7 +74,7 @@ class DirectEdit(Worker):
     directEditLocked = pyqtSignal(str, str, datetime)
 
     def __init__(self, manager: "Manager", folder: Path, /) -> None:
-        super().__init__()
+        super().__init__("DirectEdit")
 
         self._manager = manager
         self._folder = folder

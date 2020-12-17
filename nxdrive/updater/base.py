@@ -63,7 +63,7 @@ class BaseUpdater(PollWorker):
     chunk_size = 8192
 
     def __init__(self, manager: "Manager", /) -> None:
-        super().__init__(Options.update_check_delay)
+        super().__init__(Options.update_check_delay, "Updater")
         self.manager = manager
 
         self.status = UPDATE_STATUS_UP_TO_DATE

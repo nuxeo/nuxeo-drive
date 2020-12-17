@@ -61,7 +61,7 @@ class LocalWatcher(EngineWorker):
     fileAlreadyExists = pyqtSignal(Path, Path)
 
     def __init__(self, engine: "Engine", dao: "EngineDAO", /) -> None:
-        super().__init__(engine, dao, name="LocalWatcher")
+        super().__init__(engine, dao, "LocalWatcher")
 
         self.local = self.engine.local
         self.lock = Lock()

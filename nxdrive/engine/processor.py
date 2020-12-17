@@ -66,7 +66,7 @@ class Processor(EngineWorker):
     _current_doc_pair: Optional[DocPair] = None
 
     def __init__(self, engine: "Engine", item_getter: Callable, /) -> None:
-        super().__init__(engine, engine.dao)
+        super().__init__(engine, engine.dao, "Processor")
         self._get_item = item_getter
         self.engine = engine
         self.local = self.engine.local

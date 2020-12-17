@@ -42,7 +42,7 @@ class RemoteWatcher(EngineWorker):
     remoteWatcherStopped = pyqtSignal()
 
     def __init__(self, engine: "Engine", dao: "EngineDAO", /) -> None:
-        super().__init__(engine, dao, name="RemoteWatcher")
+        super().__init__(engine, dao, "RemoteWatcher")
 
         self.empty_polls = 0
         self._next_check = 0.0

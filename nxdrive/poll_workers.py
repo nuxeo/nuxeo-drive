@@ -22,7 +22,7 @@ class DatabaseBackupWorker(PollWorker):
 
     def __init__(self, manager: "Manager", /):
         """Backup every hour."""
-        super().__init__(60 * 60)
+        super().__init__(60 * 60, "DatabaseBackup")
         self.manager = manager
 
     @pyqtSlot(result=bool)
@@ -52,7 +52,8 @@ class ServerOptionsUpdater(PollWorker):
         default_delay = 60 * 60  # 1 hour
         # The check will be done every *update_check_delay* seconds or *default_delay*
         # when the channel is centralized.
-        super().__init__(Options.update_check_delay or default_delay)
+        delay = Options.update_check_delay or default_delay
+        super().__init__(delay, "ServerOptionsUpdater")
         self.manager = manager
 
         # Notify the Manager that the server's config has been fetched at least one time.
@@ -146,7 +147,7 @@ class SyncAndQuitWorker(PollWorker):
 
     def __init__(self, manager: "Manager", /):
         """Check every 10 seconds."""
-        super().__init__(10)
+        super().__init__(10, "SyncAndQuit")
         self.manager = manager
 
         # Skip the first check to let engines having time to start

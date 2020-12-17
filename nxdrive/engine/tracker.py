@@ -45,7 +45,7 @@ class Tracker(PollWorker):
         interval: int = 60 * 60,
     ) -> None:
         # Send stats every hour by default
-        super().__init__(interval)
+        super().__init__(interval, "Tracker")
 
         self._manager = manager
         self.uid = uid
