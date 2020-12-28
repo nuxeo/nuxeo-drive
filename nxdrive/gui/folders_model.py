@@ -9,6 +9,7 @@ from PyQt5.QtCore import QObject, Qt
 from ..client.remote_client import Remote
 from ..objects import Filters, RemoteFileInfo
 from ..options import Options
+from ..qt_constants import Checked, PartiallyChecked, Unchecked
 from ..translator import Translator
 
 __all__ = ("Documents", "FileInfo", "FilteredDocuments", "FilteredDoc")
@@ -185,13 +186,13 @@ class FilteredDocuments:
 
         if path.startswith(self.filters):
             # The document is filtered
-            return Qt.Unchecked
+            return Unchecked
         elif any(filter_path.startswith(path) for filter_path in self.filters):
             # The document has a child that is filtered
-            return Qt.PartiallyChecked
+            return PartiallyChecked
 
         # The document is not filtered at all
-        return Qt.Checked
+        return Checked
 
     def get_top_documents(self) -> Iterator["Documents"]:
         """Fetch all sync roots."""

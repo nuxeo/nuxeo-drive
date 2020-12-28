@@ -601,6 +601,8 @@ class CliHandler:
         from PyQt5.QtCore import QByteArray
         from PyQt5.QtNetwork import QLocalSocket
 
+        from .qt_constants import ConnectedState
+
         named_pipe = f"{BUNDLE_IDENTIFIER}.protocol.{pid}"
         log.debug(
             f"Opening a local socket to the running instance on {named_pipe} "
@@ -617,7 +619,7 @@ class CliHandler:
             client.write(QByteArray(payload))
             client.waitForBytesWritten()
             client.disconnectFromServer()
-            if client.state() == QLocalSocket.ConnectedState:
+            if client.state() == ConnectedState:
                 client.waitForDisconnected()
         finally:
             del client

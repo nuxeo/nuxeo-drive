@@ -14,6 +14,7 @@ from PyQt5.QtCore import (
 )
 
 from ..constants import DT_ACTIVE_SESSIONS_MAX_ITEMS, DT_MONITORING_MAX_ITEMS
+from ..qt_constants import ItemIsEditable, ItemIsEnabled, ItemIsSelectable, UserRole
 from ..translator import Translator
 from ..utils import force_decode, get_date_from_sqlite, sizeof_fmt
 
@@ -30,13 +31,13 @@ class EngineModel(QAbstractListModel):
     uiChanged = pyqtSignal()
     authChanged = pyqtSignal()
 
-    UID_ROLE = Qt.UserRole + 1
-    TYPE_ROLE = Qt.UserRole + 2
-    FOLDER_ROLE = Qt.UserRole + 3
-    URL_ROLE = Qt.UserRole + 4
-    UI_ROLE = Qt.UserRole + 5
-    FORCE_UI_ROLE = Qt.UserRole + 6
-    ACCOUNT_ROLE = Qt.UserRole + 7
+    UID_ROLE = UserRole + 1
+    TYPE_ROLE = UserRole + 2
+    FOLDER_ROLE = UserRole + 3
+    URL_ROLE = UserRole + 4
+    UI_ROLE = UserRole + 5
+    FORCE_UI_ROLE = UserRole + 6
+    ACCOUNT_ROLE = UserRole + 7
 
     def __init__(
         self, application: "Application", /, *, parent: QObject = None
@@ -142,15 +143,15 @@ class EngineModel(QAbstractListModel):
 class TransferModel(QAbstractListModel):
     fileChanged = pyqtSignal()
 
-    ID = Qt.UserRole + 1
-    NAME = Qt.UserRole + 2
-    STATUS = Qt.UserRole + 3
-    PROGRESS = Qt.UserRole + 4
-    TYPE = Qt.UserRole + 5
-    ENGINE = Qt.UserRole + 6
-    IS_DIRECT_EDIT = Qt.UserRole + 7
-    FINALIZING = Qt.UserRole + 8
-    PROGRESS_METRICS = Qt.UserRole + 9
+    ID = UserRole + 1
+    NAME = UserRole + 2
+    STATUS = UserRole + 3
+    PROGRESS = UserRole + 4
+    TYPE = UserRole + 5
+    ENGINE = UserRole + 6
+    IS_DIRECT_EDIT = UserRole + 7
+    FINALIZING = UserRole + 8
+    PROGRESS_METRICS = UserRole + 9
 
     def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -254,24 +255,24 @@ class TransferModel(QAbstractListModel):
                 self.setData(idx, True, role=self.FINALIZING)
 
     def flags(self, index: QModelIndex, /) -> Qt.ItemFlags:
-        return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
+        return ItemIsEditable | ItemIsEnabled | ItemIsSelectable
 
 
 class DirectTransferModel(QAbstractListModel):
     fileChanged = pyqtSignal()
 
-    ID = Qt.UserRole + 1
-    NAME = Qt.UserRole + 2
-    STATUS = Qt.UserRole + 3
-    PROGRESS = Qt.UserRole + 4
-    ENGINE = Qt.UserRole + 5
-    FINALIZING = Qt.UserRole + 6
-    SIZE = Qt.UserRole + 7
-    TRANSFERRED = Qt.UserRole + 8
-    REMOTE_PARENT_PATH = Qt.UserRole + 9
-    REMOTE_PARENT_REF = Qt.UserRole + 10
-    SHADOW = Qt.UserRole + 11  # Tell the interface if the row should be visible or not
-    DOC_PAIR = Qt.UserRole + 12
+    ID = UserRole + 1
+    NAME = UserRole + 2
+    STATUS = UserRole + 3
+    PROGRESS = UserRole + 4
+    ENGINE = UserRole + 5
+    FINALIZING = UserRole + 6
+    SIZE = UserRole + 7
+    TRANSFERRED = UserRole + 8
+    REMOTE_PARENT_PATH = UserRole + 9
+    REMOTE_PARENT_REF = UserRole + 10
+    SHADOW = UserRole + 11  # Tell the interface if the row should be visible or not
+    DOC_PAIR = UserRole + 12
 
     def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -394,18 +395,18 @@ class DirectTransferModel(QAbstractListModel):
 class ActiveSessionModel(QAbstractListModel):
     sessionChanged = pyqtSignal()
 
-    UID = Qt.UserRole + 1
-    STATUS = Qt.UserRole + 2
-    REMOTE_REF = Qt.UserRole + 3
-    REMOTE_PATH = Qt.UserRole + 4
-    UPLOADED = Qt.UserRole + 5
-    TOTAL = Qt.UserRole + 6
-    ENGINE = Qt.UserRole + 7
-    CREATED_ON = Qt.UserRole + 8
-    COMPLETED_ON = Qt.UserRole + 9
-    DESCRIPTION = Qt.UserRole + 10
-    PROGRESS = Qt.UserRole + 11
-    SHADOW = Qt.UserRole + 12  # Tell the interface if the row should be visible or not
+    UID = UserRole + 1
+    STATUS = UserRole + 2
+    REMOTE_REF = UserRole + 3
+    REMOTE_PATH = UserRole + 4
+    UPLOADED = UserRole + 5
+    TOTAL = UserRole + 6
+    ENGINE = UserRole + 7
+    CREATED_ON = UserRole + 8
+    COMPLETED_ON = UserRole + 9
+    DESCRIPTION = UserRole + 10
+    PROGRESS = UserRole + 11
+    SHADOW = UserRole + 12  # Tell the interface if the row should be visible or not
 
     def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -546,18 +547,18 @@ class ActiveSessionModel(QAbstractListModel):
 class CompletedSessionModel(QAbstractListModel):
     sessionChanged = pyqtSignal()
 
-    UID = Qt.UserRole + 1
-    STATUS = Qt.UserRole + 2
-    REMOTE_REF = Qt.UserRole + 3
-    REMOTE_PATH = Qt.UserRole + 4
-    UPLOADED = Qt.UserRole + 5
-    TOTAL = Qt.UserRole + 6
-    ENGINE = Qt.UserRole + 7
-    CREATED_ON = Qt.UserRole + 8
-    COMPLETED_ON = Qt.UserRole + 9
-    DESCRIPTION = Qt.UserRole + 10
-    PROGRESS = Qt.UserRole + 11
-    SHADOW = Qt.UserRole + 12
+    UID = UserRole + 1
+    STATUS = UserRole + 2
+    REMOTE_REF = UserRole + 3
+    REMOTE_PATH = UserRole + 4
+    UPLOADED = UserRole + 5
+    TOTAL = UserRole + 6
+    ENGINE = UserRole + 7
+    CREATED_ON = UserRole + 8
+    COMPLETED_ON = UserRole + 9
+    DESCRIPTION = UserRole + 10
+    PROGRESS = UserRole + 11
+    SHADOW = UserRole + 12
 
     def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -654,21 +655,21 @@ class CompletedSessionModel(QAbstractListModel):
 class FileModel(QAbstractListModel):
     fileChanged = pyqtSignal()
 
-    ID = Qt.UserRole + 1
-    DETAILS = Qt.UserRole + 2
-    FOLDERISH = Qt.UserRole + 3
-    LAST_CONTRIBUTOR = Qt.UserRole + 4
-    LAST_ERROR = Qt.UserRole + 5
-    LAST_REMOTE_UPDATE = Qt.UserRole + 6
-    LAST_SYNC_DATE = Qt.UserRole + 7
-    LAST_TRANSFER = Qt.UserRole + 8
-    LOCAL_PARENT_PATH = Qt.UserRole + 9
-    LOCAL_PATH = Qt.UserRole + 10
-    NAME = Qt.UserRole + 11
-    REMOTE_NAME = Qt.UserRole + 12
-    REMOTE_REF = Qt.UserRole + 13
-    STATE = Qt.UserRole + 14
-    SIZE = Qt.UserRole + 15
+    ID = UserRole + 1
+    DETAILS = UserRole + 2
+    FOLDERISH = UserRole + 3
+    LAST_CONTRIBUTOR = UserRole + 4
+    LAST_ERROR = UserRole + 5
+    LAST_REMOTE_UPDATE = UserRole + 6
+    LAST_SYNC_DATE = UserRole + 7
+    LAST_TRANSFER = UserRole + 8
+    LOCAL_PARENT_PATH = UserRole + 9
+    LOCAL_PATH = UserRole + 10
+    NAME = UserRole + 11
+    REMOTE_NAME = UserRole + 12
+    REMOTE_REF = UserRole + 13
+    STATE = UserRole + 14
+    SIZE = UserRole + 15
 
     def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -733,12 +734,12 @@ class FileModel(QAbstractListModel):
         return self.rowCount()
 
     def flags(self, index: QModelIndex, /) -> Qt.ItemFlags:
-        return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
+        return ItemIsEditable | ItemIsEnabled | ItemIsSelectable
 
 
 class LanguageModel(QAbstractListModel):
-    NAME_ROLE = Qt.UserRole + 1
-    TAG_ROLE = Qt.UserRole + 2
+    NAME_ROLE = UserRole + 1
+    TAG_ROLE = UserRole + 2
 
     def __init__(self, *, parent: QObject = None) -> None:
         super().__init__(parent)

@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Callable, Dict, Optional
 
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtNetwork import (
-    QAbstractSocket,
     QHostAddress,
     QHostInfo,
     QTcpServer,
@@ -17,6 +16,7 @@ from PyQt5.QtNetwork import (
 
 from ..engine.engine import Engine
 from ..objects import DocPair
+from ..qt_constants import ConnectedState, IPv4Protocol
 from ..utils import force_decode, force_encode
 
 if TYPE_CHECKING:
@@ -94,7 +94,7 @@ class ExtensionListener(QTcpServer):
             log.debug(
                 f"Found {PROTO[address.protocol()]} address: {address.toString()!r}"
             )
-            if address.protocol() == QAbstractSocket.IPv4Protocol:
+            if address.protocol() == IPv4Protocol:
                 return address
         log.debug("No address found, the server will likely fail to start!")
 
@@ -137,7 +137,7 @@ class ExtensionListener(QTcpServer):
                     con.write(self._format_response(response))
 
         con.disconnectFromHost()
-        if con.state() == QTcpSocket.ConnectedState:
+        if con.state() == ConnectedState:
             con.waitForDisconnected()
         del con
 

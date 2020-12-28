@@ -3,9 +3,10 @@ from collections import namedtuple
 from unittest.mock import patch
 
 import pytest
-from PyQt5.QtNetwork import QAbstractSocket, QHostAddress
+from PyQt5.QtNetwork import QHostAddress
 
 from nxdrive.osi.extension import ExtensionListener, Status, get_formatted_status
+from nxdrive.qt_constants import IPv4Protocol
 
 DocPair = namedtuple(
     "DocPair",
@@ -24,7 +25,7 @@ def test_host_to_addr_bad(host):
 def test_host_to_addr_good():
     address = ExtensionListener.host_to_addr("localhost")
     assert isinstance(address, QHostAddress)
-    assert address.protocol() == QAbstractSocket.IPv4Protocol
+    assert address.protocol() == IPv4Protocol
     assert address.toString() == "127.0.0.1"
 
 
