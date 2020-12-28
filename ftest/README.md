@@ -25,7 +25,7 @@ Uses the [ant-assembly-maven-plugin](https://github.com/nuxeo/ant-assembly-maven
 ## Run tests with Maven
 
     mvn clean verify
-    
+
 If you are at the root of the [nuxeo-drive](https://github.com/nuxeo/nuxeo-drive/) repository, run:
 
     mvn clean verify -f ftest/pom.xml
