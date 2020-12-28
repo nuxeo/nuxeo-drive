@@ -6,10 +6,10 @@ Usually Nuxeo Drive is automatically initialized at first startup. This includes
 - Creation of the local folder: `~/.Nuxeo Drive`
 - Initialization of the SQLite database: `~/.nuxeo-drive/nxdrive.db`
 
-You might want to do this initialization manually, for example to preset the Nuxeo server URL and proxy configuration before launching Nuxeo Drive the first time.  
-This can be useful for the deployment of Nuxeo Drive on a large set of desktops, allowing end users to work on a preconfigured instance, only needing to provide their credentials at first startup. 
+You might want to do this initialization manually, for example to preset the Nuxeo server URL and proxy configuration before launching Nuxeo Drive the first time.
+This can be useful for the deployment of Nuxeo Drive on a large set of desktops, allowing end users to work on a preconfigured instance, only needing to provide their credentials at first startup.
 
-Please note that we only provide UNIX command lines in the following process, they can easily be adapted for Windows.  
+Please note that we only provide UNIX command lines in the following process, they can easily be adapted for Windows.
 Of course all this can be scripted.
 
 ## Configuration folder and SQLite database file creation
