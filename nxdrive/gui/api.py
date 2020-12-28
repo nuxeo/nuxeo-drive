@@ -11,7 +11,6 @@ from urllib.parse import urlencode, urlparse, urlsplit, urlunsplit
 import requests
 from nuxeo.exceptions import HTTPError, Unauthorized
 from PyQt5.QtCore import QObject, QUrl, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import QMessageBox
 from urllib3.exceptions import LocationParseError
 
 from ..client.proxy import get_proxy
@@ -37,6 +36,7 @@ from ..feature import Feature
 from ..notification import Notification
 from ..objects import Binder, DocPair
 from ..options import Options
+from ..qt_constants import AcceptRole, RejectRole
 from ..translator import Translator
 from ..updater.constants import Login
 from ..utils import (
@@ -740,8 +740,8 @@ class QMLDriveApi(QObject):
                     "ROOT_USED_WITH_OTHER_BINDING", values=[e.username, e.url]
                 ),
             )
-            msg.addButton(Translator.get("CONTINUE"), QMessageBox.AcceptRole)
-            cancel = msg.addButton(Translator.get("CANCEL"), QMessageBox.RejectRole)
+            msg.addButton(Translator.get("CONTINUE"), AcceptRole)
+            cancel = msg.addButton(Translator.get("CANCEL"), RejectRole)
             msg.exec_()
             if msg.clickedButton() == cancel:
                 self.setMessage.emit("FOLDER_USED", "error")

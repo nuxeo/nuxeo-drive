@@ -5,13 +5,13 @@ from PyQt5.QtCore import (
     QItemSelection,
     QModelIndex,
     QObject,
-    Qt,
     QThreadPool,
     pyqtSignal,
 )
 from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtWidgets import QTreeView
 
+from ..qt_constants import BusyCursor, Checked, PartiallyChecked, UserRole
 from .folders_loader import DocumentContentLoader, FolderContentLoader
 from .folders_model import FilteredDocuments, FoldersOnly
 
@@ -67,7 +67,7 @@ class TreeViewMixin(QTreeView):
         """
         try:
             if busy:
-                self.setCursor(Qt.BusyCursor)
+                self.setCursor(BusyCursor)
             else:
                 self.unsetCursor()
         except RuntimeError:
@@ -98,7 +98,7 @@ class DocumentTreeView(TreeViewMixin):
         """Append the item the the *.dirty_items* dict.
         That dict will be used by DocumentsDialog.apply_filters() tp update the view.
         """
-        fs_info = item.data(Qt.UserRole)
+        fs_info = item.data(UserRole)
 
         # Fake children have no data attached
         if not fs_info:
@@ -116,12 +116,12 @@ class DocumentTreeView(TreeViewMixin):
     def item_check_parent(self, item: QObject, /) -> None:
         """Retrieve the state of all children to update its own state accordingly."""
         sum_states = sum(
-            item.child(idx).checkState() == Qt.Checked for idx in range(item.rowCount())
+            item.child(idx).checkState() == Checked for idx in range(item.rowCount())
         )
         if sum_states == item.rowCount():
-            item.setCheckState(Qt.Checked)
+            item.setCheckState(Checked)
         else:
-            item.setCheckState(Qt.PartiallyChecked)
+            item.setCheckState(PartiallyChecked)
         self.resolve_item_up_changed(item)
 
     def resolve_item_down_changed(self, item: QObject, /) -> None:
@@ -141,7 +141,7 @@ class DocumentTreeView(TreeViewMixin):
         if not (parent and parent.isCheckable()):
             return
 
-        parent.setCheckState(Qt.PartiallyChecked)
+        parent.setCheckState(PartiallyChecked)
         self.update_item_changed(parent)
         self.item_check_parent(parent)
 
@@ -184,7 +184,7 @@ class FolderTreeView(TreeViewMixin):
             path_ref = ""
         else:
             # Get the selected folder's path
-            item = self.model().itemFromIndex(index).data(Qt.UserRole)
+            item = self.model().itemFromIndex(index).data(UserRole)
             path = item.get_path()
             path_ref = item.get_id()
 

@@ -4,9 +4,18 @@ from typing import TYPE_CHECKING
 
 from PyQt5.QtCore import QEvent
 from PyQt5.QtQuick import QQuickView
-from PyQt5.QtWidgets import QApplication, QMenu, QStyle, QSystemTrayIcon
+from PyQt5.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
 from ..constants import MAC
+from ..qt_constants import (
+    SP_DialogCloseButton,
+    SP_FileDialogInfoView,
+    SP_MessageBoxQuestion,
+    FocusOut,
+    MiddleClick,
+    MouseButtonPress,
+    Trigger,
+)
 from ..translator import Translator
 
 if TYPE_CHECKING:
@@ -42,14 +51,14 @@ class DriveSystrayIcon(QSystemTrayIcon):
 
         Note: only the left click is detected on macOS.
         """
-        if reason == QSystemTrayIcon.Trigger:
+        if reason == Trigger:
             # On left click, open the usual menu with engines and sync files
             # If it is already open, we close it
             if self.application.systray_window.isVisible():
                 self.application.hide_systray()
             else:
                 self.application.show_systray()
-        elif reason == QSystemTrayIcon.MiddleClick:
+        elif reason == MiddleClick:
             # On middle click, open settings.  Yeah, it rocks!
             self.application.show_settings("General")
 
@@ -65,19 +74,19 @@ class DriveSystrayIcon(QSystemTrayIcon):
         style = QApplication.style()
         menu = QMenu()
         menu.addAction(
-            style.standardIcon(QStyle.SP_FileDialogInfoView),
+            style.standardIcon(SP_FileDialogInfoView),
             Translator.get("SETTINGS"),
             self.application.show_settings,
         )
         menu.addSeparator()
         menu.addAction(
-            style.standardIcon(QStyle.SP_MessageBoxQuestion),
+            style.standardIcon(SP_MessageBoxQuestion),
             Translator.get("HELP"),
             self.application.open_help,
         )
         menu.addSeparator()
         menu.addAction(
-            style.standardIcon(QStyle.SP_DialogCloseButton),
+            style.standardIcon(SP_DialogCloseButton),
             Translator.get("QUIT"),
             self.application.exit_app,
         )
@@ -87,8 +96,8 @@ class DriveSystrayIcon(QSystemTrayIcon):
 
 class SystrayWindow(QQuickView):
     def event(self, event: QEvent, /) -> bool:
-        if event.type() == QEvent.FocusOut or (
-            event.type() == QEvent.MouseButtonPress
+        if event.type() == FocusOut or (
+            event.type() == MouseButtonPress
             and not self.geometry().contains(event.screenPos().toPoint())
         ):
             # The click was outside of the systray
