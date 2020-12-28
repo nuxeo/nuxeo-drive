@@ -8,7 +8,7 @@ from argparse import ArgumentParser, Namespace
 from configparser import DEFAULTSECT, ConfigParser
 from datetime import datetime
 from logging import getLogger
-from typing import TYPE_CHECKING, Any, List, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Union
 
 from . import __version__
 from .constants import APP_NAME, BUNDLE_IDENTIFIER, DEFAULT_CHANNEL, LINUX
@@ -475,7 +475,7 @@ class CliHandler:
         if args:
             parser.set_defaults(**args)
 
-    def _configure_logger(self, command: str, options: Namespace) -> None:
+    def _configure_logger(self, command: str, options: Namespace, /) -> None:
         """ Configure the logging framework from the provided options. """
 
         # Ensure the log folder exists
@@ -494,7 +494,7 @@ class CliHandler:
             force_configure=True,
         )
 
-    def uninstall(self, *, options: Namespace = None) -> None:
+    def uninstall(self, options: Optional[Namespace], /) -> None:
         AbstractOSIntegration.get(None).uninstall()
 
     def handle(self, argv: List[str], /) -> int:
@@ -541,7 +541,7 @@ class CliHandler:
             self._install_faulthandler()
             self.manager = self.get_manager()
 
-        ret_code: int = handler(options=options)
+        ret_code: int = handler(options)
         return ret_code
 
     def get_manager(self) -> "Manager":
@@ -563,7 +563,7 @@ class CliHandler:
             qmlRegisterType(SystrayWindow, "SystrayWindow", 1, 0, "SystrayWindow")
         return Application(self.manager)
 
-    def launch(self, *, options: Namespace = None, console: bool = False) -> int:
+    def launch(self, options: Optional[Namespace], /, *, console: bool = False) -> int:
         """Launch the Qt app in the main thread and sync in another thread."""
         from .utils import PidLockFile
 
@@ -639,7 +639,7 @@ class CliHandler:
             from pydev import pydevd
 
             pydevd.settrace()
-        return self.launch(options=options, console=True)
+        return self.launch(options, console=True)
 
     def ctx_access_online(self, options: Namespace, /) -> None:
         """ Event fired by "Access online" menu entry. """
@@ -660,11 +660,11 @@ class CliHandler:
         """Event fired by "Direct Transfer" menu entry."""
         # Craft the URL to be handled later at application startup
         Options.protocol_url = f"nxdrive://direct-transfer/{options.file}"
-        self.launch(options=options)
+        self.launch(options)
         return 0
 
     def download_edit(self, options: Namespace, /) -> int:
-        self.launch(options=options)
+        self.launch(options)
         return 0
 
     def bind_server(self, options: Namespace, /) -> int:
