@@ -3,6 +3,7 @@ from pathlib import Path
 from time import sleep
 
 import pytest
+
 from nxdrive.engine.blocklist_queue import BlocklistItem, BlocklistQueue
 
 

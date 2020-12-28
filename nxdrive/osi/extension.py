@@ -7,12 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, Optional
 
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtNetwork import (
-    QHostAddress,
-    QHostInfo,
-    QTcpServer,
-    QTcpSocket,
-)
+from PyQt5.QtNetwork import QHostAddress, QHostInfo, QTcpServer, QTcpSocket
 
 from ..engine.engine import Engine
 from ..objects import DocPair

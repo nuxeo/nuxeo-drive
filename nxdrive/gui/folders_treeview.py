@@ -1,13 +1,7 @@
 # coding: utf-8
 from typing import TYPE_CHECKING, List, Union
 
-from PyQt5.QtCore import (
-    QItemSelection,
-    QModelIndex,
-    QObject,
-    QThreadPool,
-    pyqtSignal,
-)
+from PyQt5.QtCore import QItemSelection, QModelIndex, QObject, QThreadPool, pyqtSignal
 from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtWidgets import QTreeView
 

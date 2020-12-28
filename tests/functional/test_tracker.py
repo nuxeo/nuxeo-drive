@@ -1,6 +1,7 @@
 from time import monotonic_ns
 
 import pytest
+
 from nxdrive.engine.tracker import Tracker
 from nxdrive.options import Options
 

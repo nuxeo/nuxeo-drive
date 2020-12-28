@@ -8,12 +8,12 @@ from PyQt5.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
 from ..constants import MAC
 from ..qt_constants import (
-    SP_DialogCloseButton,
-    SP_FileDialogInfoView,
-    SP_MessageBoxQuestion,
     FocusOut,
     MiddleClick,
     MouseButtonPress,
+    SP_DialogCloseButton,
+    SP_FileDialogInfoView,
+    SP_MessageBoxQuestion,
     Trigger,
 )
 from ..translator import Translator
