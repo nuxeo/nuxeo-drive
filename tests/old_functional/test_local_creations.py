@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import pytest
 from nuxeo.exceptions import Unauthorized
+
 from nxdrive.constants import MAC, WINDOWS
 
 from .. import ensure_no_exception

@@ -6,8 +6,9 @@ from pathlib import Path
 from typing import List, Tuple
 from unittest.mock import Mock, patch
 
-import nxdrive.autolocker
 import pytest
+
+import nxdrive.autolocker
 from nxdrive.engine.dao.sqlite import ManagerDAO
 
 from .. import ensure_no_exception

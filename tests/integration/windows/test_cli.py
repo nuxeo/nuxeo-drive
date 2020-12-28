@@ -1,6 +1,7 @@
 from logging import getLogger
 
 import pytest
+
 from nxdrive.constants import WINDOWS
 
 from .utils import fatal_error_dlg, main_window, share_metrics_dlg

@@ -1,4 +1,4 @@
-from PyQt5.QtCore import Qt, QEvent
+from PyQt5.QtCore import QEvent, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtNetwork import QAbstractSocket, QLocalServer
 from PyQt5.QtWidgets import (

@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Any, Dict
 
 import pytest
+
 from nxdrive.exceptions import DriveError, UnknownDigest
 from nxdrive.objects import Blob, NuxeoDocumentInfo, RemoteFileInfo
 
