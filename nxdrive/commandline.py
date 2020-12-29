@@ -26,7 +26,7 @@ from .utils import (
 )
 
 try:
-    from PyQt5.QtNetwork import QSslSocket
+    from .qt.imports import QSslSocket
 except ImportError:
     QSslSocket = None
 
@@ -555,10 +555,9 @@ class CliHandler:
         if console:
             from .console import ConsoleApplication as Application  # noqa
         else:
-            from PyQt5.QtQml import qmlRegisterType
-
             from .gui.application import Application  # noqa
             from .gui.systray import SystrayWindow
+            from .qt.imports import qmlRegisterType
 
             qmlRegisterType(SystrayWindow, "SystrayWindow", 1, 0, "SystrayWindow")
         return Application(self.manager)
@@ -598,10 +597,8 @@ class CliHandler:
         return payload
 
     def _send_to_running_instance(self, payload: bytes, pid: int, /) -> None:
-        from PyQt5.QtCore import QByteArray
-        from PyQt5.QtNetwork import QLocalSocket
-
         from .qt import constants as qt
+        from .qt.imports import QByteArray, QLocalSocket
 
         named_pipe = f"{BUNDLE_IDENTIFIER}.protocol.{pid}"
         log.debug(

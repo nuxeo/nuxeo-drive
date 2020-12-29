@@ -1,15 +1,17 @@
 """
 Put here all PyQt constants used across the project.
 """
-from PyQt5.QtCore import QEvent, Qt
-from PyQt5.QtGui import QIcon
-from PyQt5.QtNetwork import QAbstractSocket, QLocalServer
-from PyQt5.QtWidgets import (
+from .imports import (
+    QAbstractSocket,
     QDialogButtonBox,
+    QEvent,
+    QIcon,
     QLineEdit,
+    QLocalServer,
     QMessageBox,
     QStyle,
     QSystemTrayIcon,
+    Qt,
     QTextEdit,
 )
 

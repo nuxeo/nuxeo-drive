@@ -15,7 +15,6 @@ from urllib.parse import quote
 from nuxeo.exceptions import CorruptedFile, Forbidden, HTTPError, Unauthorized
 from nuxeo.handlers.default import Uploader
 from nuxeo.models import Blob
-from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from requests import codes
 from watchdog.events import FileSystemEvent
 from watchdog.observers import Observer
@@ -31,6 +30,7 @@ from .exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt
 from .feature import Feature
 from .objects import DirectEditDetails, Metrics, NuxeoDocumentInfo
 from .options import Options
+from .qt.imports import pyqtSignal, pyqtSlot
 from .utils import (
     current_milli_time,
     force_decode,

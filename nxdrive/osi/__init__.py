@@ -3,10 +3,9 @@ from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from PyQt5.QtCore import QObject, pyqtSlot
-
 from ..constants import APP_NAME, LINUX, MAC, WINDOWS
 from ..objects import DocPair
+from ..qt.imports import QObject, pyqtSlot
 from .extension import ExtensionListener
 
 if TYPE_CHECKING:

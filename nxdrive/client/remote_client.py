@@ -16,7 +16,6 @@ from nuxeo.exceptions import CorruptedFile, HTTPError
 from nuxeo.handlers.default import Uploader
 from nuxeo.models import Batch, Document
 from nuxeo.utils import get_digest_algorithm, version_lt
-from PyQt5.QtWidgets import QApplication
 
 from ..constants import (
     APP_NAME,
@@ -37,6 +36,7 @@ from ..exceptions import (
 )
 from ..objects import Download, NuxeoDocumentInfo, RemoteFileInfo
 from ..options import Options
+from ..qt.imports import QApplication
 from ..utils import compute_digest, get_device, lock_path, sizeof_fmt, unlock_path
 from .proxy import Proxy
 from .uploader import BaseUploader

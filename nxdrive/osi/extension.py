@@ -6,12 +6,10 @@ from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, Optional
 
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtNetwork import QHostAddress, QHostInfo, QTcpServer, QTcpSocket
-
 from ..engine.engine import Engine
 from ..objects import DocPair
 from ..qt import constants as qt
+from ..qt.imports import QHostAddress, QHostInfo, QTcpServer, QTcpSocket, pyqtSignal
 from ..utils import force_decode, force_encode
 
 if TYPE_CHECKING:

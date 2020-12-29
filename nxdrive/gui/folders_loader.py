@@ -2,10 +2,8 @@
 from logging import getLogger
 from typing import TYPE_CHECKING, List, Optional
 
-from PyQt5.QtCore import QRunnable, QVariant
-from PyQt5.QtGui import QStandardItem, QStandardItemModel
-
 from ..qt import constants as qt
+from ..qt.imports import QRunnable, QStandardItem, QStandardItemModel, QVariant
 from ..translator import Translator
 from .folders_model import Doc, Documents, FilteredDoc
 

@@ -12,24 +12,6 @@ from time import monotonic
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 from urllib.parse import unquote_plus, urlparse
 
-from PyQt5.QtCore import QEvent, QRect, Qt, QTimer, QUrl, pyqtSlot
-from PyQt5.QtGui import QCursor, QFont, QFontMetricsF, QIcon, QWindow
-from PyQt5.QtNetwork import QLocalServer, QLocalSocket
-from PyQt5.QtQml import QQmlApplicationEngine, QQmlContext
-from PyQt5.QtQuick import QQuickView, QQuickWindow
-from PyQt5.QtWidgets import (
-    QApplication,
-    QCheckBox,
-    QComboBox,
-    QDialog,
-    QDialogButtonBox,
-    QLabel,
-    QMessageBox,
-    QStyle,
-    QTextEdit,
-    QVBoxLayout,
-)
-
 from ..behavior import Behavior
 from ..constants import (
     APP_NAME,
@@ -49,6 +31,35 @@ from ..gui.folders_dialog import DialogMixin, DocumentsDialog, FoldersDialog
 from ..notification import Notification
 from ..options import Options
 from ..qt import constants as qt
+from ..qt.imports import (
+    QApplication,
+    QCheckBox,
+    QComboBox,
+    QCursor,
+    QDialog,
+    QDialogButtonBox,
+    QEvent,
+    QFont,
+    QFontMetricsF,
+    QIcon,
+    QLabel,
+    QLocalServer,
+    QLocalSocket,
+    QMessageBox,
+    QQmlApplicationEngine,
+    QQmlContext,
+    QQuickView,
+    QQuickWindow,
+    QRect,
+    QStyle,
+    Qt,
+    QTextEdit,
+    QTimer,
+    QUrl,
+    QVBoxLayout,
+    QWindow,
+    pyqtSlot,
+)
 from ..state import State
 from ..translator import Translator
 from ..updater.constants import (
@@ -426,11 +437,7 @@ class Application(QApplication):
             "nuxeoVersionText", f"{APP_NAME} {self.manager.version}"
         )
         metrics = self.manager.get_metrics()
-        versions = (
-            f'Python {metrics["python_version"]}, '
-            f'Qt {metrics["qt_version"]}, '
-            f'SIP {metrics["sip_version"]}'
-        )
+        versions = f"Python {metrics['python_version']} & Qt {metrics['qt_version']}"
         if Options.system_wide:
             versions += " [admin]"
         if self.today_is_special:
@@ -928,7 +935,8 @@ class Application(QApplication):
         """
 
         from nuxeo.client import Nuxeo
-        from PyQt5.QtWidgets import QLineEdit
+
+        from ..qt.imports import QLineEdit
 
         dialog = QDialog()
         dialog.setWindowTitle(self.translate("WEB_AUTHENTICATION_WINDOW_TITLE"))

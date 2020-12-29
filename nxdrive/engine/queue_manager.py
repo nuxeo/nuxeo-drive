@@ -7,10 +7,9 @@ from queue import Empty, Queue
 from threading import Lock
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
-from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal, pyqtSlot
-
 from ..objects import DocPair, Metrics
 from ..options import Options
+from ..qt.imports import QObject, QThread, QTimer, pyqtSignal, pyqtSlot
 from .processor import Processor
 
 if TYPE_CHECKING:

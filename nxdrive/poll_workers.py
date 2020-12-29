@@ -2,11 +2,10 @@
 import logging
 from typing import TYPE_CHECKING
 
-from PyQt5.QtCore import pyqtSignal, pyqtSlot
-
 from .behavior import Behavior
 from .engine.workers import PollWorker
 from .options import Options
+from .qt.imports import pyqtSignal, pyqtSlot
 from .updater.constants import UPDATE_STATUS_UPDATING
 from .utils import normalize_and_expand_path
 

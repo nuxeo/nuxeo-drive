@@ -3,8 +3,11 @@ from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
+from ..constants import APP_NAME
+from ..engine.engine import Engine
+from ..options import Options
+from ..qt import constants as qt
+from ..qt.imports import (
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -14,13 +17,9 @@ from PyQt5.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
+    Qt,
     QVBoxLayout,
 )
-
-from ..constants import APP_NAME
-from ..engine.engine import Engine
-from ..options import Options
-from ..qt import constants as qt
 from ..translator import Translator
 from ..utils import get_tree_list, sizeof_fmt
 from .folders_model import FilteredDocuments, FoldersOnly

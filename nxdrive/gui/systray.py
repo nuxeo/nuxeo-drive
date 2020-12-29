@@ -2,12 +2,9 @@
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-from PyQt5.QtCore import QEvent
-from PyQt5.QtQuick import QQuickView
-from PyQt5.QtWidgets import QApplication, QMenu, QSystemTrayIcon
-
 from ..constants import MAC
 from ..qt import constants as qt
+from ..qt.imports import QApplication, QEvent, QMenu, QQuickView, QSystemTrayIcon
 from ..translator import Translator
 
 if TYPE_CHECKING:

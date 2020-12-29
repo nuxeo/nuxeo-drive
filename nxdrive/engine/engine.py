@@ -15,7 +15,6 @@ from urllib.parse import urlsplit
 import requests
 from nuxeo.exceptions import HTTPError
 from nuxeo.handlers.default import Uploader
-from PyQt5.QtCore import QObject, QThread, QThreadPool, pyqtSignal, pyqtSlot
 
 from ..client.local import LocalClient
 from ..client.local.base import LocalClientMixin
@@ -39,6 +38,7 @@ from ..exceptions import (
 )
 from ..objects import Binder, DocPairs, EngineDef, Metrics, Session
 from ..options import Options
+from ..qt.imports import QObject, QThread, QThreadPool, pyqtSignal, pyqtSlot
 from ..state import State
 from ..utils import (
     current_thread_id,

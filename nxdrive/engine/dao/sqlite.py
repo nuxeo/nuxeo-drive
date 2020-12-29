@@ -36,7 +36,6 @@ from typing import (
 )
 
 from nuxeo.utils import get_digest_algorithm
-from PyQt5.QtCore import QObject, pyqtSignal
 
 from ...client.local import FileInfo
 from ...constants import (
@@ -59,6 +58,7 @@ from ...objects import (
     Upload,
 )
 from ...options import Options
+from ...qt.imports import QObject, pyqtSignal
 from ...utils import current_thread_id
 from .utils import fix_db, restore_backup, save_backup
 

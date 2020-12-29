@@ -4,12 +4,12 @@ from logging import getLogger
 from typing import Iterator, List, Union
 
 from nuxeo.models import Document
-from PyQt5.QtCore import QObject, Qt
 
 from ..client.remote_client import Remote
 from ..objects import Filters, RemoteFileInfo
 from ..options import Options
 from ..qt import constants as qt
+from ..qt.imports import QObject, Qt
 from ..translator import Translator
 
 __all__ = ("Documents", "FileInfo", "FilteredDocuments", "FilteredDoc")
