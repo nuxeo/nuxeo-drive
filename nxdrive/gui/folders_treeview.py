@@ -1,11 +1,16 @@
 # coding: utf-8
 from typing import TYPE_CHECKING, List, Union
 
-from PyQt5.QtCore import QItemSelection, QModelIndex, QObject, QThreadPool, pyqtSignal
-from PyQt5.QtGui import QStandardItemModel
-from PyQt5.QtWidgets import QTreeView
-
 from ..qt import constants as qt
+from ..qt.imports import (
+    QItemSelection,
+    QModelIndex,
+    QObject,
+    QStandardItemModel,
+    QThreadPool,
+    QTreeView,
+    pyqtSignal,
+)
 from .folders_loader import DocumentContentLoader, FolderContentLoader
 from .folders_model import FilteredDocuments, FoldersOnly
 

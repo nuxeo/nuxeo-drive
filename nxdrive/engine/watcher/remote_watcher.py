@@ -7,7 +7,6 @@ from time import monotonic, sleep
 from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Tuple
 
 from nuxeo.exceptions import BadQuery, HTTPError, Unauthorized
-from PyQt5.QtCore import pyqtSignal, pyqtSlot
 
 from ...client.local import FileInfo
 from ...constants import BATCH_SIZE, CONNECTION_ERROR, ROOT, WINDOWS
@@ -19,6 +18,7 @@ from ...exceptions import (
 )
 from ...objects import DocPair, DocPairs, Metrics, RemoteFileInfo
 from ...options import Options
+from ...qt.imports import pyqtSignal, pyqtSlot
 from ...utils import get_date_from_sqlite, safe_filename
 from ..activity import Action, tooltip
 from ..workers import EngineWorker

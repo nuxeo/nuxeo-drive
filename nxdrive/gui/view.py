@@ -3,7 +3,10 @@ from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple
 
 from dateutil.tz import tzlocal
-from PyQt5.QtCore import (
+
+from ..constants import DT_ACTIVE_SESSIONS_MAX_ITEMS, DT_MONITORING_MAX_ITEMS
+from ..qt import constants as qt
+from ..qt.imports import (
     QAbstractListModel,
     QModelIndex,
     QObject,
@@ -12,9 +15,6 @@ from PyQt5.QtCore import (
     pyqtSignal,
     pyqtSlot,
 )
-
-from ..constants import DT_ACTIVE_SESSIONS_MAX_ITEMS, DT_MONITORING_MAX_ITEMS
-from ..qt import constants as qt
 from ..translator import Translator
 from ..utils import force_decode, get_date_from_sqlite, sizeof_fmt
 

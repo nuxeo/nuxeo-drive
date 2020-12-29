@@ -6,10 +6,10 @@ from time import monotonic_ns
 from typing import TYPE_CHECKING, Any, Callable, Dict
 
 import requests
-from PyQt5.QtCore import pyqtSlot
 
 from ..constants import APP_NAME, MAC, WINDOWS
 from ..options import Options
+from ..qt.imports import pyqtSlot
 from ..utils import ga_user_agent, get_current_os, if_frozen
 from .workers import PollWorker
 

@@ -11,7 +11,6 @@ from threading import Lock
 from time import mktime, sleep
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple
 
-from PyQt5.QtCore import pyqtSignal
 from watchdog.events import FileSystemEvent, PatternMatchingEventHandler
 from watchdog.observers import Observer
 
@@ -20,6 +19,7 @@ from ...constants import LINUX, MAC, ROOT, UNACCESSIBLE_HASH, WINDOWS
 from ...exceptions import ThreadInterrupt
 from ...objects import DocPair, Metrics
 from ...options import Options
+from ...qt.imports import pyqtSignal
 from ...utils import current_milli_time, force_decode, is_generated_tmp_file
 from ...utils import normalize_event_filename as normalize
 from ..activity import tooltip

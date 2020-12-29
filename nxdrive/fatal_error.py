@@ -14,10 +14,8 @@ __all__ = ("check_executable_path", "check_os_version", "show_critical_error")
 def check_executable_path_error_qt(path: Path, /) -> None:
     """Display an error using Qt about the app not running from the right path."""
 
-    from PyQt5.QtGui import QPixmap
-    from PyQt5.QtWidgets import QApplication, QMessageBox
-
     from nxdrive.qt import constants as qt
+    from nxdrive.qt.imports import QApplication, QMessageBox, QPixmap
     from nxdrive.translator import Translator
     from nxdrive.utils import find_icon, find_resource
 
@@ -41,18 +39,18 @@ def check_executable_path_error_qt(path: Path, /) -> None:
 def fatal_error_qt(exc_formatted: str, /) -> None:
     """Display a "friendly" dialog box on fatal error using Qt."""
 
-    from PyQt5.QtCore import QUrl
-    from PyQt5.QtGui import QDesktopServices, QIcon
-    from PyQt5.QtWidgets import (
+    from nxdrive.qt import constants as qt
+    from nxdrive.qt.imports import (
         QApplication,
+        QDesktopServices,
         QDialog,
         QDialogButtonBox,
+        QIcon,
         QLabel,
         QTextEdit,
+        QUrl,
         QVBoxLayout,
     )
-
-    from nxdrive.qt import constants as qt
     from nxdrive.translator import Translator
     from nxdrive.utils import find_icon, find_resource
 

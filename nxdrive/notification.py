@@ -6,10 +6,9 @@ from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING, Any, Dict
 
-from PyQt5.QtCore import QObject, pyqtSignal
-
 from .constants import APP_NAME
 from .objects import DocPair
+from .qt.imports import QObject, pyqtSignal
 from .translator import Translator
 from .utils import short_name
 

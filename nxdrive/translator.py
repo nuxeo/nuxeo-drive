@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Tuple
 
-from PyQt5.QtCore import QTranslator, pyqtProperty, pyqtSignal, pyqtSlot
+from .qt.imports import QTranslator, pyqtProperty, pyqtSignal, pyqtSlot
 
 __all__ = ("Translator",)
 

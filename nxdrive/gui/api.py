@@ -10,7 +10,6 @@ from urllib.parse import urlencode, urlparse, urlsplit, urlunsplit
 
 import requests
 from nuxeo.exceptions import HTTPError, Unauthorized
-from PyQt5.QtCore import QObject, QUrl, pyqtSignal, pyqtSlot
 from urllib3.exceptions import LocationParseError
 
 from ..client.proxy import get_proxy
@@ -37,6 +36,7 @@ from ..notification import Notification
 from ..objects import Binder, DocPair
 from ..options import Options
 from ..qt import constants as qt
+from ..qt.imports import QObject, QUrl, pyqtSignal, pyqtSlot
 from ..translator import Translator
 from ..updater.constants import Login
 from ..utils import (

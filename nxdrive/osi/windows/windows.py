@@ -8,13 +8,13 @@ from typing import Any, Dict
 
 import win32api
 import win32file
-from PyQt5.QtCore import pyqtSlot
 from win32com.client import Dispatch
 from win32com.shell import shell, shellcon
 
 from ...constants import APP_NAME, CONFIG_REGISTRY_KEY
 from ...objects import DocPair
 from ...options import Options
+from ...qt.imports import pyqtSlot
 from ...translator import Translator
 from ...utils import force_encode, get_value, if_frozen
 from .. import AbstractOSIntegration

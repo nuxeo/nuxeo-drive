@@ -6,13 +6,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Dict, Iterable, Iterator
 
 import psutil
-from PyQt5.QtCore import QTimer, pyqtSignal
 
 from .constants import LINUX, MAC, WINDOWS
 from .engine.workers import PollWorker
 from .exceptions import ThreadInterrupt
 from .objects import Item, Items
 from .options import Options
+from .qt.imports import QTimer, pyqtSignal
 
 if TYPE_CHECKING:
     from .direct_edit import DirectEdit  # noqa

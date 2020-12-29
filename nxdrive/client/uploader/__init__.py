@@ -11,7 +11,6 @@ from botocore.exceptions import ClientError
 from nuxeo.exceptions import HTTPError
 from nuxeo.handlers.default import Uploader
 from nuxeo.models import Batch, FileBlob
-from PyQt5.QtWidgets import QApplication
 
 from ...constants import TX_TIMEOUT, TransferStatus
 from ...engine.activity import LinkingAction, UploadAction
@@ -19,6 +18,7 @@ from ...exceptions import UploadCancelled, UploadPaused
 from ...feature import Feature
 from ...objects import Upload
 from ...options import Options
+from ...qt.imports import QApplication
 
 if TYPE_CHECKING:
     from ..remote_client import Remote  # noqa

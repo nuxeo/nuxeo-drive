@@ -4,9 +4,8 @@
 from logging import getLogger
 from typing import TYPE_CHECKING, Any
 
-from PyQt5.QtCore import QCoreApplication, QTimer
-
 from .constants import APP_NAME, COMPANY
+from .qt.imports import QCoreApplication, QTimer
 
 if TYPE_CHECKING:
     from .manager import Manager  # noqa

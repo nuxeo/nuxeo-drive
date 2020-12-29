@@ -3,9 +3,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from PyQt5.QtCore import QObject, pyqtSignal
-from PyQt5.QtWidgets import QApplication
-
+from ..qt.imports import QApplication, QObject, pyqtSignal
 from ..utils import current_thread_id
 
 __all__ = (

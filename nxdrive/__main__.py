@@ -79,7 +79,7 @@ def setup_sentry() -> None:
 
 def signal_handler(signum: int, frame: FrameType, /) -> None:
     """Signal handler."""
-    from PyQt5.QtWidgets import QApplication
+    from nxdrive.qt.imports import QApplication
 
     signame = signal.Signals(signum).name
     print("\r", flush=True)

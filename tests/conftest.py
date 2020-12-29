@@ -161,7 +161,7 @@ def app():
     Fixture required to be able to process Qt events and quit smoothly the application.
     To use in "functional" and "unit" tests only.
     """
-    from PyQt5.QtCore import QCoreApplication, QTimer
+    from nxdrive.qt.imports import QCoreApplication, QTimer
 
     app = QCoreApplication([])
 

@@ -16,7 +16,6 @@ import pytest
 from faker import Faker
 from nuxeo.exceptions import BadQuery
 from nuxeo.models import Document, User
-from PyQt5.QtCore import QCoreApplication, QTimer, pyqtSignal, pyqtSlot
 from sentry_sdk import configure_scope
 
 from nxdrive import __version__
@@ -24,6 +23,7 @@ from nxdrive.constants import LINUX, MAC, WINDOWS
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.manager import Manager
 from nxdrive.options import Options
+from nxdrive.qt.imports import QCoreApplication, QTimer, pyqtSignal, pyqtSlot
 from nxdrive.translator import Translator
 from nxdrive.utils import normalized_path
 

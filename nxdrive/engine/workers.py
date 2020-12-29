@@ -4,10 +4,9 @@ from logging import getLogger
 from time import sleep, time
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
 
-from PyQt5.QtCore import QCoreApplication, QObject, QRunnable, QThread, pyqtSlot
-
 from ..exceptions import ThreadInterrupt
 from ..objects import DocPair, Metrics
+from ..qt.imports import QCoreApplication, QObject, QRunnable, QThread, pyqtSlot
 from ..utils import current_thread_id
 from .activity import Action, IdleAction
 

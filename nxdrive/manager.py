@@ -12,8 +12,6 @@ from urllib.parse import urlparse, urlsplit, urlunsplit
 from weakref import CallableProxyType, proxy
 
 import requests
-from PyQt5.QtCore import QT_VERSION_STR, QObject, pyqtSignal, pyqtSlot
-from PyQt5.sip import SIP_VERSION_STR
 
 from . import __version__
 from .autolocker import ProcessAutoLockerWorker
@@ -48,6 +46,7 @@ from .objects import Binder, EngineDef, Metrics
 from .options import Options
 from .osi import AbstractOSIntegration
 from .poll_workers import DatabaseBackupWorker, ServerOptionsUpdater, SyncAndQuitWorker
+from .qt.imports import QT_VERSION_STR, QObject, pyqtSignal, pyqtSlot
 from .updater import updater
 from .updater.constants import Login
 from .utils import (
@@ -266,7 +265,6 @@ class Manager(QObject):
             "tracker_id": self.tracker.uid,
             "tracking": Options.use_analytics,
             "sentry": Options.use_sentry,
-            "sip_version": SIP_VERSION_STR,
             "qt_version": QT_VERSION_STR,
             "python_version": platform.python_version(),
             "os": self._os,

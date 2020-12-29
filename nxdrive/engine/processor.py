@@ -17,7 +17,6 @@ from nuxeo.exceptions import (
     Unauthorized,
     UploadError,
 )
-from PyQt5.QtCore import pyqtSignal
 from urllib3.exceptions import MaxRetryError
 
 from ..behavior import Behavior
@@ -44,6 +43,7 @@ from ..exceptions import (
     UploadPaused,
 )
 from ..objects import DocPair, RemoteFileInfo
+from ..qt.imports import pyqtSignal
 from ..utils import is_generated_tmp_file, lock_path, safe_filename, unlock_path
 from .workers import EngineWorker
 

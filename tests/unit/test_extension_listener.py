@@ -3,10 +3,10 @@ from collections import namedtuple
 from unittest.mock import patch
 
 import pytest
-from PyQt5.QtNetwork import QHostAddress
 
 from nxdrive.osi.extension import ExtensionListener, Status, get_formatted_status
 from nxdrive.qt.constants import IPv4Protocol
+from nxdrive.qt.imports import QHostAddress
 
 DocPair = namedtuple(
     "DocPair",
