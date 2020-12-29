@@ -1345,7 +1345,7 @@ class Application(QApplication):
         self.manager.ctx_edit_metadata(path)
 
     @pyqtSlot(bool)
-    def load_icons_set(self, *, use_light_icons: bool = False) -> None:
+    def load_icons_set(self, use_light_icons: bool, /) -> None:
         """Load a given icons set (either the default one "dark", or the light one)."""
         if self.use_light_icons is use_light_icons:
             return
@@ -1414,7 +1414,7 @@ class Application(QApplication):
 
     def setup_systray(self) -> None:
         """Setup the icon system tray and its associated menu."""
-        self.load_icons_set(use_light_icons=self.initial_icons_set())
+        self.load_icons_set(self.initial_icons_set())
 
         self.tray_icon = DriveSystrayIcon(self)
         if not self.tray_icon.isSystemTrayAvailable():
