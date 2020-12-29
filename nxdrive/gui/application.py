@@ -48,30 +48,7 @@ from ..feature import Beta, DisabledFeatures, Feature
 from ..gui.folders_dialog import DialogMixin, DocumentsDialog, FoldersDialog
 from ..notification import Notification
 from ..options import Options
-from ..qt_constants import (
-    AA_EnableHighDpiScaling,
-    AcceptRole,
-    AlignCenter,
-    Apply,
-    Cancel,
-    ConnectedState,
-    Critical,
-    Drawer,
-    FramelessWindowHint,
-    Information,
-    LeftToRight,
-    Ok,
-    Password,
-    Popup,
-    Question,
-    RejectRole,
-    RichText,
-    Selected,
-    WaitCursor,
-    Warning,
-    WindowStaysOnTopHint,
-    WorldAccessOption,
-)
+from ..qt import constants as qt
 from ..state import State
 from ..translator import Translator
 from ..updater.constants import (
@@ -114,7 +91,7 @@ if TYPE_CHECKING:
 __all__ = ("Application",)
 
 # Enable High-DPI
-QApplication.setAttribute(AA_EnableHighDpiScaling, True)
+QApplication.setAttribute(qt.AA_EnableHighDpiScaling, True)
 
 log = getLogger(__name__)
 
@@ -280,7 +257,7 @@ class Application(QApplication):
         self.engine_model.statusChanged.connect(self.update_status)
         self.language_model.addLanguages(Translator.languages())
 
-        flags = FramelessWindowHint | WindowStaysOnTopHint
+        flags = qt.FramelessWindowHint | qt.WindowStaysOnTopHint
 
         if WINDOWS:
             # Conflicts
@@ -320,7 +297,7 @@ class Application(QApplication):
                 QUrl.fromLocalFile(str(find_resource("qml", file="DirectTransfer.qml")))
             )
 
-            flags |= Popup
+            flags |= qt.Popup
         else:
             self.app_engine = QQmlApplicationEngine()
             self._fill_qml_context(self.app_engine.rootContext())
@@ -336,7 +313,7 @@ class Application(QApplication):
             )
 
             if LINUX:
-                flags |= Drawer
+                flags |= qt.Drawer
 
         self.aboutToQuit.connect(self._shutdown)
         self.systray_window.setFlags(flags)
@@ -377,8 +354,8 @@ class Application(QApplication):
 
         window.setGeometry(
             QStyle.alignedRect(
-                LeftToRight,
-                AlignCenter,
+                qt.LeftToRight,
+                qt.AlignCenter,
                 window.size(),
                 screen.availableGeometry(),
             )
@@ -507,7 +484,7 @@ class Application(QApplication):
     def _msgbox(
         self,
         *,
-        icon: QIcon = Information,
+        icon: QIcon = qt.Information,
         title: str = APP_NAME,
         header: str = "",
         message: str = "",
@@ -518,7 +495,7 @@ class Application(QApplication):
         msg.setWindowTitle(title)
         msg.setWindowIcon(self.icon)
         msg.setIcon(icon)
-        msg.setTextFormat(RichText)
+        msg.setTextFormat(qt.RichText)
         if header:
             msg.setText(header)
         if message:
@@ -540,7 +517,7 @@ class Application(QApplication):
         self._msgbox(icon=Warning, title=title, message=msg_text)
 
     def question(
-        self, header: str, message: str, /, *, icon: QIcon = Question
+        self, header: str, message: str, /, *, icon: QIcon = qt.Question
     ) -> QMessageBox:
         """Display a question message box."""
         log.debug(f"Question: {message}")
@@ -564,9 +541,9 @@ class Application(QApplication):
                 icon=Warning,
             )
             overwrite = msg.addButton(
-                Translator.get("DIRECT_EDIT_CONFLICT_OVERWRITE"), AcceptRole
+                Translator.get("DIRECT_EDIT_CONFLICT_OVERWRITE"), qt.AcceptRole
             )
-            msg.addButton(Translator.get("CANCEL"), RejectRole)
+            msg.addButton(Translator.get("CANCEL"), qt.RejectRole)
             msg.exec_()
             if msg.clickedButton() == overwrite:
                 self.manager.direct_edit.force_update(ref, digest)
@@ -591,10 +568,12 @@ class Application(QApplication):
             Translator.get(
                 "DRIVE_ROOT_DELETED", values=["engine.local_folder", APP_NAME]
             ),
-            icon=Critical,
+            icon=qt.Critical,
         )
-        recreate = msg.addButton(Translator.get("DRIVE_ROOT_RECREATE"), AcceptRole)
-        disconnect = msg.addButton(Translator.get("DRIVE_ROOT_DISCONNECT"), RejectRole)
+        recreate = msg.addButton(Translator.get("DRIVE_ROOT_RECREATE"), qt.AcceptRole)
+        disconnect = msg.addButton(
+            Translator.get("DRIVE_ROOT_DISCONNECT"), qt.RejectRole
+        )
 
         msg.exec_()
         res = msg.clickedButton()
@@ -617,11 +596,13 @@ class Application(QApplication):
         msg = self.question(
             Translator.get("DRIVE_ROOT_MOVED_HEADER"),
             Translator.get("DRIVE_ROOT_MOVED", values=info),
-            icon=Critical,
+            icon=qt.Critical,
         )
-        move = msg.addButton(Translator.get("DRIVE_ROOT_MOVE"), AcceptRole)
-        recreate = msg.addButton(Translator.get("DRIVE_ROOT_RECREATE"), AcceptRole)
-        disconnect = msg.addButton(Translator.get("DRIVE_ROOT_DISCONNECT"), RejectRole)
+        move = msg.addButton(Translator.get("DRIVE_ROOT_MOVE"), qt.AcceptRole)
+        recreate = msg.addButton(Translator.get("DRIVE_ROOT_RECREATE"), qt.AcceptRole)
+        disconnect = msg.addButton(
+            Translator.get("DRIVE_ROOT_DISCONNECT"), qt.RejectRole
+        )
         msg.exec_()
         res = msg.clickedButton()
 
@@ -651,9 +632,9 @@ class Application(QApplication):
             ),
         )
         if mode is DelAction.DEL_SERVER:
-            unsync = msg.addButton(Translator.get("JUST_UNSYNC"), RejectRole)
-        msg.addButton(Translator.get("CANCEL"), RejectRole)
-        confirm = msg.addButton(Translator.get(confirm_text), AcceptRole)
+            unsync = msg.addButton(Translator.get("JUST_UNSYNC"), qt.RejectRole)
+        msg.addButton(Translator.get("CANCEL"), qt.RejectRole)
+        confirm = msg.addButton(Translator.get(confirm_text), qt.AcceptRole)
 
         cb = QCheckBox(Translator.get("DONT_ASK_AGAIN"))
         msg.setCheckBox(cb)
@@ -671,8 +652,8 @@ class Application(QApplication):
                 Translator.get("DELETION_BEHAVIOR_HEADER"),
                 Translator.get("DELETION_BEHAVIOR_SWITCH"),
             )
-            msg.addButton(Translator.get("NO"), RejectRole)
-            confirm = msg.addButton(Translator.get("YES"), AcceptRole)
+            msg.addButton(Translator.get("NO"), qt.RejectRole)
+            confirm = msg.addButton(Translator.get("YES"), qt.AcceptRole)
             msg.exec_()
             if msg.clickedButton() == confirm:
                 self.manager.set_deletion_behavior(DelAction.UNSYNC)
@@ -702,10 +683,10 @@ class Application(QApplication):
         msg = self.question(
             Translator.get("FILE_ALREADY_EXISTS_HEADER"),
             Translator.get("FILE_ALREADY_EXISTS", values=[str(oldpath)]),
-            icon=Critical,
+            icon=qt.Critical,
         )
-        replace = msg.addButton(Translator.get("REPLACE"), AcceptRole)
-        msg.addButton(Translator.get("CANCEL"), RejectRole)
+        replace = msg.addButton(Translator.get("REPLACE"), qt.AcceptRole)
+        msg.addButton(Translator.get("CANCEL"), qt.RejectRole)
         msg.exec_()
         if msg.clickedButton() == replace:
             oldpath.unlink()
@@ -882,8 +863,8 @@ class Application(QApplication):
             Translator.get("DIRECT_TRANSFER_CANCEL_HEADER"),
             Translator.get("DIRECT_TRANSFER_CANCEL", values=[name]),
         )
-        continued = msg.addButton(Translator.get("YES"), AcceptRole)
-        cancel = msg.addButton(Translator.get("NO"), RejectRole)
+        continued = msg.addButton(Translator.get("YES"), qt.AcceptRole)
+        cancel = msg.addButton(Translator.get("NO"), qt.RejectRole)
         msg.setDefaultButton(cancel)
         msg.exec_()
         if msg.clickedButton() == continued:
@@ -905,8 +886,8 @@ class Application(QApplication):
             Translator.get("SESSION_CANCEL_HEADER"),
             Translator.get("SESSION_CANCEL", values=[destination, str(pending_files)]),
         )
-        continued = msg.addButton(Translator.get("YES"), AcceptRole)
-        cancel = msg.addButton(Translator.get("NO"), RejectRole)
+        continued = msg.addButton(Translator.get("YES"), qt.AcceptRole)
+        cancel = msg.addButton(Translator.get("NO"), qt.RejectRole)
         msg.setDefaultButton(cancel)
         msg.exec_()
         if msg.clickedButton() == continued:
@@ -928,7 +909,7 @@ class Application(QApplication):
             through the app, it opens in the browser and retrieves the login token
             by opening an nxdrive:// URL.
             """
-            QApplication.setOverrideCursor(WaitCursor)
+            QApplication.setOverrideCursor(qt.WaitCursor)
             try:
                 webbrowser.open_new_tab(url)
             finally:
@@ -958,7 +939,7 @@ class Application(QApplication):
 
         username = QLineEdit("Administrator", parent=dialog)
         password = QLineEdit("Administrator", parent=dialog)
-        password.setEchoMode(Password)
+        password.setEchoMode(qt.Password)
         layout.addWidget(username)
         layout.addWidget(password)
 
@@ -993,7 +974,7 @@ class Application(QApplication):
             dialog.close()
 
         buttons = QDialogButtonBox()
-        buttons.setStandardButtons(Cancel | Ok)
+        buttons.setStandardButtons(qt.Cancel | qt.Ok)
         buttons.accepted.connect(auth)
         buttons.rejected.connect(dialog.close)
         layout.addWidget(buttons)
@@ -1113,14 +1094,14 @@ class Application(QApplication):
         if downgrade_version:
             msg.addButton(
                 Translator.get("CONTINUE_USING", values=[version]),
-                RejectRole,
+                qt.RejectRole,
             )
             downgrade = msg.addButton(
                 Translator.get("DOWNGRADE_TO", values=[downgrade_version]),
-                AcceptRole,
+                qt.AcceptRole,
             )
         else:
-            msg.addButton(Translator.get("CONTINUE"), RejectRole)
+            msg.addButton(Translator.get("CONTINUE"), qt.RejectRole)
 
         msg.exec_()
         if downgrade_version and msg.clickedButton() == downgrade:
@@ -1148,11 +1129,11 @@ class Application(QApplication):
         )
         switch_channel = msg.addButton(
             Translator.get("USE_CHANNEL", values=[version_channel]),
-            AcceptRole,
+            qt.AcceptRole,
         )
         downgrade = msg.addButton(
             Translator.get("DOWNGRADE_TO", values=[downgrade_version]),
-            AcceptRole,
+            qt.AcceptRole,
         )
 
         msg.exec_()
@@ -1189,11 +1170,12 @@ class Application(QApplication):
 
             return notify(notif.title, "", notif.description, user_info=user_info)
 
-        icon = Information
         if notif.level == Notification.LEVEL_WARNING:
             icon = Warning
         elif notif.level == Notification.LEVEL_ERROR:
-            icon = Critical
+            icon = qt.Critical
+        else:
+            icon = qt.Information
 
         self.current_notification = notif
         self.tray_icon.showMessage(notif.title, notif.description, icon, 10000)
@@ -1330,14 +1312,14 @@ class Application(QApplication):
             dialog.accept()
 
         buttons = QDialogButtonBox()
-        buttons.setStandardButtons(Ok | Cancel)
-        buttons.button(Ok).setEnabled(False)
+        buttons.setStandardButtons(qt.Ok | qt.Cancel)
+        buttons.button(qt.Ok).setEnabled(False)
         buttons.accepted.connect(accept)
         buttons.rejected.connect(dialog.close)
 
         def bypass_triggered(state: int) -> None:
             """Enable the OK button only when the checkbox is checked."""
-            buttons.button(Ok).setEnabled(bool(state))
+            buttons.button(qt.Ok).setEnabled(bool(state))
 
         bypass = QCheckBox(Translator.get("SSL_TRUST_ANYWAY"))
         bypass.stateChanged.connect(bypass_triggered)
@@ -1380,7 +1362,7 @@ class Application(QApplication):
             file += f"{suffix}.svg"
             icon.addFile(str(find_icon(file)))
             if MAC:
-                icon.addFile(mask, mode=Selected)
+                icon.addFile(mask, mode=qt.Selected)
             self.icons[state] = icon
 
         self.use_light_icons = use_light_icons
@@ -1527,7 +1509,7 @@ class Application(QApplication):
         """
         named_pipe = f"{BUNDLE_IDENTIFIER}.protocol.{os.getpid()}"
         server = QLocalServer()
-        server.setSocketOptions(WorldAccessOption)
+        server.setSocketOptions(qt.WorldAccessOption)
         server.newConnection.connect(self._handle_connection)
         try:
             server.listen(named_pipe)
@@ -1557,7 +1539,7 @@ class Application(QApplication):
                 self._handle_nxdrive_url(url)
 
             con.disconnectFromServer()
-            if con.state() == ConnectedState:
+            if con.state() == qt.ConnectedState:
                 con.waitForDisconnected()
         finally:
             del con
@@ -1603,7 +1585,7 @@ class Application(QApplication):
 
         # The buttons
         buttons = QDialogButtonBox()
-        buttons.setStandardButtons(Ok | Cancel)
+        buttons.setStandardButtons(qt.Ok | qt.Cancel)
         buttons.accepted.connect(accept)
         buttons.rejected.connect(close)
 
@@ -1775,7 +1757,7 @@ class Application(QApplication):
         layout = QVBoxLayout()
 
         info = QLabel(tr("SHARE_METRICS_MSG", values=[COMPANY]))
-        info.setTextFormat(RichText)
+        info.setTextFormat(qt.RichText)
         info.setWordWrap(True)
         layout.addWidget(info)
 
@@ -1797,7 +1779,7 @@ class Application(QApplication):
 
         # Buttons
         buttons = QDialogButtonBox()
-        buttons.setStandardButtons(Apply)
+        buttons.setStandardButtons(qt.Apply)
         buttons.clicked.connect(dialog.close)
         layout.addWidget(buttons)
         dialog.setLayout(layout)

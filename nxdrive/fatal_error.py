@@ -17,7 +17,7 @@ def check_executable_path_error_qt(path: Path, /) -> None:
     from PyQt5.QtGui import QPixmap
     from PyQt5.QtWidgets import QApplication, QMessageBox
 
-    from nxdrive.qt_constants import AcceptRole
+    from nxdrive.qt import constants as qt
     from nxdrive.translator import Translator
     from nxdrive.utils import find_icon, find_resource
 
@@ -34,7 +34,7 @@ def check_executable_path_error_qt(path: Path, /) -> None:
     msg.setIconPixmap(icon)
     msg.setText(content)
     msg.setWindowTitle(APP_NAME)
-    msg.addButton(Translator.get("QUIT"), AcceptRole)
+    msg.addButton(Translator.get("QUIT"), qt.AcceptRole)
     msg.exec_()
 
 
@@ -52,13 +52,7 @@ def fatal_error_qt(exc_formatted: str, /) -> None:
         QVBoxLayout,
     )
 
-    from nxdrive.qt_constants import (
-        ActionRole,
-        AlignHCenter,
-        AlignVCenter,
-        FixedPixelWidth,
-        Ok,
-    )
+    from nxdrive.qt import constants as qt
     from nxdrive.translator import Translator
     from nxdrive.utils import find_icon, find_resource
 
@@ -82,14 +76,14 @@ def fatal_error_qt(exc_formatted: str, /) -> None:
 
     # Display a little message to apologize
     info = QLabel(tr("FATAL_ERROR_MSG", values=[APP_NAME, COMPANY]))
-    info.setAlignment(AlignHCenter | AlignVCenter)
+    info.setAlignment(qt.AlignHCenter | qt.AlignVCenter)
     layout.addWidget(info)
 
     # Display CLI arguments
     if sys.argv[1:]:
         text = tr("FATAL_ERROR_CLI_ARGS")
         label_cli = QLabel(text)
-        label_cli.setAlignment(AlignVCenter)
+        label_cli.setAlignment(qt.AlignVCenter)
         cli_args = QTextEdit()
         cli_args.setStyleSheet(css)
         cli_args.setReadOnly(True)
@@ -103,7 +97,7 @@ def fatal_error_qt(exc_formatted: str, /) -> None:
     # Display the exception
     text = tr("FATAL_ERROR_EXCEPTION")
     label_exc = QLabel(text)
-    label_exc.setAlignment(AlignVCenter)
+    label_exc.setAlignment(qt.AlignVCenter)
     exception = QTextEdit()
     exception.setStyleSheet(css)
     exception.setReadOnly(True)
@@ -124,14 +118,14 @@ def fatal_error_qt(exc_formatted: str, /) -> None:
             text = tr("FATAL_ERROR_LOGS")
             label_log = QLabel(text)
             details.append(section(text, lines))
-            label_log.setAlignment(AlignVCenter)
+            label_log.setAlignment(qt.AlignVCenter)
             layout.addWidget(label_log)
 
             logs = QTextEdit()
             logs.setStyleSheet(css)
             logs.setReadOnly(True)
             logs.setLineWrapColumnOrWidth(4096)
-            logs.setLineWrapMode(FixedPixelWidth)
+            logs.setLineWrapMode(qt.FixedPixelWidth)
             logs.setText(lines)
             layout.addWidget(logs)
 
@@ -150,9 +144,9 @@ def fatal_error_qt(exc_formatted: str, /) -> None:
 
     # Buttons
     buttons = QDialogButtonBox()
-    buttons.setStandardButtons(Ok)
+    buttons.setStandardButtons(qt.Ok)
     buttons.accepted.connect(dialog.close)
-    update_button = buttons.addButton(tr("FATAL_ERROR_UPDATE_BTN"), ActionRole)
+    update_button = buttons.addButton(tr("FATAL_ERROR_UPDATE_BTN"), qt.ActionRole)
     update_button.setToolTip(tr("FATAL_ERROR_UPDATE_TOOLTIP", values=[APP_NAME]))
     update_button.clicked.connect(open_update_site)
     layout.addWidget(buttons)
@@ -167,7 +161,7 @@ def fatal_error_qt(exc_formatted: str, /) -> None:
         from nxdrive.osi import AbstractOSIntegration
 
         osi = AbstractOSIntegration.get(None)
-        copy_paste = buttons.addButton(tr("FATAL_ERROR_DETAILS_COPY"), ActionRole)
+        copy_paste = buttons.addButton(tr("FATAL_ERROR_DETAILS_COPY"), qt.ActionRole)
         copy_paste.clicked.connect(copy)
 
     dialog.setLayout(layout)

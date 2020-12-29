@@ -11,7 +11,7 @@ from PyQt5.QtNetwork import QHostAddress, QHostInfo, QTcpServer, QTcpSocket
 
 from ..engine.engine import Engine
 from ..objects import DocPair
-from ..qt_constants import ConnectedState, IPv4Protocol
+from ..qt import constants as qt
 from ..utils import force_decode, force_encode
 
 if TYPE_CHECKING:
@@ -89,7 +89,7 @@ class ExtensionListener(QTcpServer):
             log.debug(
                 f"Found {PROTO[address.protocol()]} address: {address.toString()!r}"
             )
-            if address.protocol() == IPv4Protocol:
+            if address.protocol() == qt.IPv4Protocol:
                 return address
         log.debug("No address found, the server will likely fail to start!")
 
@@ -132,7 +132,7 @@ class ExtensionListener(QTcpServer):
                     con.write(self._format_response(response))
 
         con.disconnectFromHost()
-        if con.state() == ConnectedState:
+        if con.state() == qt.ConnectedState:
             con.waitForDisconnected()
         del con
 

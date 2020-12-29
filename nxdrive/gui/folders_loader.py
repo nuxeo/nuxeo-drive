@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, List, Optional
 from PyQt5.QtCore import QRunnable, QVariant
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
 
-from ..qt_constants import UserRole
+from ..qt import constants as qt
 from ..translator import Translator
 from .folders_model import Doc, Documents, FilteredDoc
 
@@ -28,7 +28,7 @@ class ContentLoaderMixin(QRunnable):
         self.item = item or self.tree.model().invisibleRootItem()
         self.info: Optional[Documents] = None
         if item:
-            self.info = self.item.data(UserRole)
+            self.info = self.item.data(qt.UserRole)
 
     def run(self) -> None:
         """Fetch children of a given item."""
@@ -105,7 +105,7 @@ class DocumentContentLoader(ContentLoaderMixin):
         subitem.setEnabled(child.enable())
         subitem.setSelectable(child.selectable())
         subitem.setEditable(False)
-        subitem.setData(QVariant(child), UserRole)
+        subitem.setData(QVariant(child), qt.UserRole)
         return subitem
 
 
@@ -120,5 +120,5 @@ class FolderContentLoader(ContentLoaderMixin):
         subitem.setEnabled(child.enable())
         subitem.setSelectable(child.selectable())
         subitem.setEditable(False)
-        subitem.setData(QVariant(child), UserRole)
+        subitem.setData(QVariant(child), qt.UserRole)
         return subitem

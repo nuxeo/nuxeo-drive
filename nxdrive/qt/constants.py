@@ -1,3 +1,6 @@
+"""
+Put here all PyQt constants used across the project.
+"""
 from PyQt5.QtCore import QEvent, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtNetwork import QAbstractSocket, QLocalServer
