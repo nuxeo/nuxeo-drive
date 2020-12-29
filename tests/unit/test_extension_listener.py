@@ -6,7 +6,7 @@ import pytest
 from PyQt5.QtNetwork import QHostAddress
 
 from nxdrive.osi.extension import ExtensionListener, Status, get_formatted_status
-from nxdrive.qt_constants import IPv4Protocol
+from nxdrive.qt.constants import IPv4Protocol
 
 DocPair = namedtuple(
     "DocPair",

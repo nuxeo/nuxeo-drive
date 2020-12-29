@@ -20,19 +20,7 @@ from PyQt5.QtWidgets import (
 from ..constants import APP_NAME
 from ..engine.engine import Engine
 from ..options import Options
-from ..qt_constants import (
-    ActionRole,
-    AlignHCenter,
-    AlignVCenter,
-    Cancel,
-    Checked,
-    Horizontal,
-    Ok,
-    RichText,
-    Unchecked,
-    WA_DeleteOnClose,
-    WindowStaysOnTopHint,
-)
+from ..qt import constants as qt
 from ..translator import Translator
 from ..utils import get_tree_list, sizeof_fmt
 from .folders_model import FilteredDocuments, FoldersOnly
@@ -55,7 +43,7 @@ class DialogMixin(QDialog):
         super().__init__(None)
 
         # Customize the window
-        self.setAttribute(WA_DeleteOnClose)
+        self.setAttribute(qt.WA_DeleteOnClose)
         self.setWindowIcon(application.icon)
         self.setWindowTitle(Translator.get(self.title_label, values=[APP_NAME]))
 
@@ -63,7 +51,7 @@ class DialogMixin(QDialog):
         # so after the login in the browser, we open the filters window with
         # the "stay on top" hint to make sure it comes back to the front
         # instead of just having a blinking icon in the taskbar.
-        self.setWindowFlags(WindowStaysOnTopHint)
+        self.setWindowFlags(qt.WindowStaysOnTopHint)
 
         self.engine = engine
         self.application = application
@@ -74,7 +62,7 @@ class DialogMixin(QDialog):
 
         # Buttons
         self.button_box: QDialogButtonBox = QDialogButtonBox(self)
-        self.button_box.setOrientation(Horizontal)
+        self.button_box.setOrientation(qt.Horizontal)
         self.button_box.setStandardButtons(self.get_buttons())
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
@@ -84,7 +72,7 @@ class DialogMixin(QDialog):
 
     def get_buttons(self) -> QDialogButtonBox.StandardButtons:
         """Create the buttons to display at the bottom of the window."""
-        return Ok | Cancel
+        return qt.Ok | qt.Cancel
 
 
 class DocumentsDialog(DialogMixin):
@@ -112,11 +100,11 @@ class DocumentsDialog(DialogMixin):
             Translator.get("SELECT_ALL"),
         )
 
-        buttons = Ok
+        buttons = qt.Ok
         if not self.engine.is_syncing():
-            buttons |= Cancel
+            buttons |= qt.Cancel
             self.select_all_button = self.button_box.addButton(
-                self.select_all_text[self.select_all_state], ActionRole
+                self.select_all_text[self.select_all_state], qt.ActionRole
             )
             self.select_all_button.clicked.connect(self._select_unselect_all_roots)
         return buttons
@@ -128,7 +116,7 @@ class DocumentsDialog(DialogMixin):
         if self.engine.is_syncing():
             label = QLabel(Translator.get("FILTERS_DISABLED"))
             label.setMargin(15)
-            label.setAlignment(AlignHCenter | AlignVCenter)
+            label.setAlignment(qt.AlignHCenter | qt.AlignVCenter)
             return label
 
         self.resize(491, 443)
@@ -154,7 +142,7 @@ class DocumentsDialog(DialogMixin):
         label.setWordWrap(True)
         label.setVisible(False)
         label.setOpenExternalLinks(True)
-        label.setAlignment(AlignHCenter | AlignVCenter)
+        label.setAlignment(qt.AlignHCenter | qt.AlignVCenter)
         return label
 
     def _handle_no_roots(self) -> None:
@@ -179,11 +167,11 @@ class DocumentsDialog(DialogMixin):
         items = sorted(self.tree_view.dirty_items, key=lambda x: x.get_path())
         for item in items:
             path = item.get_path()
-            if item.state == Unchecked:
+            if item.state == qt.Unchecked:
                 self.engine.add_filter(path)
-            elif item.state == Checked:
+            elif item.state == qt.Checked:
                 self.engine.remove_filter(path)
-            elif item.old_state == Unchecked:
+            elif item.old_state == qt.Unchecked:
                 # Now partially checked and was before a filter
 
                 # Remove current parent filter and need to commit to enable the add
@@ -192,7 +180,7 @@ class DocumentsDialog(DialogMixin):
                 # We need to browse every child and create a filter for
                 # unchecked as they are not dirty but has become root filter
                 for child in item.get_children():
-                    if child.state == Unchecked:
+                    if child.state == qt.Unchecked:
                         self.engine.add_filter(child.get_path())
 
         if not self.engine.is_started():
@@ -200,7 +188,7 @@ class DocumentsDialog(DialogMixin):
 
     def _select_unselect_all_roots(self, _: Qt.CheckState, /) -> None:
         """The Select/Unselect all roots button."""
-        state = Checked if self.select_all_state else Unchecked
+        state = qt.Checked if self.select_all_state else qt.Unchecked
 
         roots = sorted(self.tree_view.client.roots, key=lambda x: x.get_path())
         for num, root in enumerate(roots):
@@ -324,7 +312,7 @@ class FoldersDialog(DialogMixin):
         """Add a sub-group for the duplicates behavior option."""
         label = QLabel(Translator.get("DUPLICATE_BEHAVIOR", values=[DOC_URL]))
         label.setToolTip(Translator.get("DUPLICATE_BEHAVIOR_TOOLTIP"))
-        label.setTextFormat(RichText)
+        label.setTextFormat(qt.RichText)
         label.setOpenExternalLinks(True)
         layout.addWidget(label)
 
@@ -359,7 +347,7 @@ class FoldersDialog(DialogMixin):
         # Required criteria:
         #   - at least 1 local path
         #   - a selected remote path
-        self.button_box.button(Ok).setEnabled(
+        self.button_box.button(qt.Ok).setEnabled(
             bool(self.paths) and bool(self.remote_folder.text())
         )
 
