@@ -521,7 +521,7 @@ class Application(QApplication):
         """Display a warning message box."""
         msg_text = self.translate(message, values=values)
         log.warning(f"{msg_text} (values={values})")
-        self._msgbox(icon=Warning, title=title, message=msg_text)
+        self._msgbox(icon=qt.Warning, title=title, message=msg_text)
 
     def question(
         self, header: str, message: str, /, *, icon: QIcon = qt.Question
@@ -545,7 +545,7 @@ class Application(QApplication):
                 Translator.get(
                     "DIRECT_EDIT_CONFLICT_MESSAGE", values=[short_name(filename)]
                 ),
-                icon=Warning,
+                icon=qt.Warning,
             )
             overwrite = msg.addButton(
                 Translator.get("DIRECT_EDIT_CONFLICT_OVERWRITE"), qt.AcceptRole
@@ -1097,7 +1097,7 @@ class Application(QApplication):
         msg = self.question(
             Translator.get("SERVER_INCOMPATIBLE_HEADER", values=[APP_NAME, version]),
             Translator.get("SERVER_INCOMPATIBLE", values=[APP_NAME, downgrade_version]),
-            icon=Warning,
+            icon=qt.Warning,
         )
         if downgrade_version:
             msg.addButton(
@@ -1133,7 +1133,7 @@ class Application(QApplication):
             Translator.get(
                 "WRONG_CHANNEL", values=[version, version_channel, current_channel]
             ),
-            icon=Warning,
+            icon=qt.Warning,
         )
         switch_channel = msg.addButton(
             Translator.get("USE_CHANNEL", values=[version_channel]),
@@ -1179,11 +1179,11 @@ class Application(QApplication):
             return notify(notif.title, "", notif.description, user_info=user_info)
 
         if notif.level == Notification.LEVEL_WARNING:
-            icon = Warning
+            icon = qt.ST_Warning
         elif notif.level == Notification.LEVEL_ERROR:
-            icon = qt.Critical
+            icon = qt.ST_Critical
         else:
-            icon = qt.Information
+            icon = qt.ST_Information
 
         self.current_notification = notif
         self.tray_icon.showMessage(notif.title, notif.description, icon, 10000)
