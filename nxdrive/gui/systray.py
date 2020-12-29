@@ -49,7 +49,11 @@ class DriveSystrayIcon(QSystemTrayIcon):
                 self.application.show_systray()
         elif reason == qt.MiddleClick:
             # On middle click, open settings.  Yeah, it rocks!
-            self.application.show_settings("General")
+            self._open_settings()
+
+    def _open_settings(self) -> None:
+        """Open the settings window."""
+        self.application.show_settings("General")
 
     def get_context_menu(self) -> QMenu:
         """
@@ -65,7 +69,7 @@ class DriveSystrayIcon(QSystemTrayIcon):
         menu.addAction(
             style.standardIcon(qt.SP_FileDialogInfoView),
             Translator.get("SETTINGS"),
-            self.application.show_settings,
+            self._open_settings,
         )
         menu.addSeparator()
         menu.addAction(
