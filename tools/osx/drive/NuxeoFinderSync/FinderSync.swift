@@ -7,7 +7,7 @@
 //  Contributors:
 //      Mickaël Schoentgen
 //
-//  Copyright © 2018-2020 Nuxeo. All rights reserved.
+//  Copyright © 2018-2021 Nuxeo. All rights reserved.
 //
 
 import Cocoa
