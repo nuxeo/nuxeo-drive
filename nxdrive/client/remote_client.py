@@ -424,6 +424,15 @@ class Remote(Nuxeo):
         """Upload a file with a batch."""
         return uploader(self).upload(path, **kwargs)
 
+    def upload_folder(self, parent: str, params: Dict[str, str], /) -> Dict[str, Any]:
+        """Create a folder using the FileManager."""
+        res: Dict[str, Any] = self.execute(
+            command="FileManager.CreateFolder",
+            input_obj=parent,
+            params=params,
+        )
+        return res
+
     def cancel_batch(self, batch_details: Dict[str, Any], /) -> None:
         """Cancel an uploaded Batch."""
         batch = Batch(service=self.uploads, **batch_details)
