@@ -1,4 +1,3 @@
-# coding: utf-8
 import shutil
 from contextlib import suppress
 from pathlib import Path

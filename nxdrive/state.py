@@ -1,4 +1,3 @@
-# coding: utf-8
 """
 General application state.
 Introduced in Nuxeo Drive 4.4.4.

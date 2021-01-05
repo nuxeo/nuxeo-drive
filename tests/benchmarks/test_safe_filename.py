@@ -1,4 +1,3 @@
-# coding: utf-8
 """
 The current implementation used in Drive is str.replace().
 If is not the most efficient for small ASCII-only filenames,

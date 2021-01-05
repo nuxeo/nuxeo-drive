@@ -1,4 +1,3 @@
-# coding: utf-8
 """
 Duplicates are created when the parent is renamed while syncing up.
 

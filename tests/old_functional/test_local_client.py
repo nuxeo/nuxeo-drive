@@ -1,4 +1,3 @@
-# coding: utf-8
 """
 Test LocalClient with normal FS operations and OS-specific ones (simulated).
 See local_client_darwin.py and local_client_windows.py for more information.

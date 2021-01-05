@@ -1,10 +1,7 @@
-# coding: utf-8
 """
 versions.yml management.
 Requires the pyyaml module.
 """
-
-from __future__ import unicode_literals
 
 import argparse
 import glob
@@ -56,7 +53,7 @@ def check(versions):
 
 
 def create(version, category):
-    # type: (str) -> None
+    # type: (str, str) -> None
     """ Create a version file with default values. """
 
     # Compute installers checksum

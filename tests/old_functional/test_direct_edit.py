@@ -1,4 +1,3 @@
-# coding: utf-8
 import time
 from logging import ERROR, getLogger
 from pathlib import Path

@@ -1,4 +1,3 @@
-# coding: utf-8
 """"
 Test if changes made to local file system when Drive is offline sync's back
 later when Drive becomes online.

@@ -1,4 +1,3 @@
-# coding: utf-8
 """
  1 install Nuxeo 7.10
  2 install Drive 2.4.6

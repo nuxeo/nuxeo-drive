@@ -1,4 +1,3 @@
-# coding: utf-8
 from contextlib import suppress
 from logging import getLogger
 from time import sleep, time

@@ -1,4 +1,3 @@
-# coding: utf-8
 """
 Technical Background: GetChildren API can throw error
     due to network issues or server load.

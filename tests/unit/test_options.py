@@ -1,4 +1,3 @@
-# coding: utf-8
 import argparse
 from contextlib import suppress
 from unittest.mock import patch

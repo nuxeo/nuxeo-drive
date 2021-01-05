@@ -1,4 +1,3 @@
-# coding: utf-8
 from contextlib import suppress
 from datetime import datetime
 from logging import getLogger

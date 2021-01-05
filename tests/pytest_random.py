@@ -1,7 +1,6 @@
-# coding: utf-8
-""" Pytest plugin to mitigate random failures.
-
-    Adapted from github.com/pytest-dev/pytest-rerunfailures
+"""
+Pytest plugin to mitigate random failures.
+Adapted from github.com/pytest-dev/pytest-rerunfailures
 """
 
 import os

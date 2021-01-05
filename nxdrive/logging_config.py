@@ -1,4 +1,3 @@
-# coding: utf-8
 """ Utilities to log nxdrive operations and failures. """
 
 import logging

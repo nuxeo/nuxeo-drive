@@ -1,4 +1,3 @@
-# coding: utf-8
 import shutil
 import time
 from pathlib import Path

@@ -1,4 +1,3 @@
-# coding: utf-8
 """[macOS] Automatic notarization process.
 
 Usage: python notarize FILE [NOTARIZATION_UUID]

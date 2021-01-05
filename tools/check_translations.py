@@ -1,4 +1,3 @@
-# coding: utf-8
 """
 This script allows the user to check the project translations files and print on the standard
 output the differences between the reference translation file and the others files.

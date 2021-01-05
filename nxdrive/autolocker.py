@@ -1,4 +1,3 @@
-# coding: utf-8
 from contextlib import suppress
 from copy import deepcopy
 from logging import getLogger

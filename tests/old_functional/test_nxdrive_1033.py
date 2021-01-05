@@ -1,4 +1,3 @@
-# coding: utf-8
 """
 1. Connect Drive in 2 PC's with same account (Drive-01, Drive-02)
 2. Drive-01: Create a Folder "Folder01" and upload 20 files into it

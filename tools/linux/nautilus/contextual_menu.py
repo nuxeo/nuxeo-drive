@@ -1,7 +1,5 @@
-# coding: utf-8
 import subprocess
-from urllib import unquote
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 from gi.repository import GObject, Nautilus
 

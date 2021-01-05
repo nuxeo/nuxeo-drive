@@ -1,9 +1,6 @@
-# coding: utf-8
 """
 Git changelog generator.
 """
-
-from __future__ import print_function, unicode_literals
 
 import argparse
 import codecs
