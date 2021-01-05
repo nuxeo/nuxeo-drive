@@ -1,4 +1,3 @@
-# coding: utf-8
 import json
 import unicodedata
 from logging import getLogger

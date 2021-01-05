@@ -1,4 +1,3 @@
-# coding: utf-8
 """
 This script allows the user to check that the pytest cache folder contains
 a valid lastfailed file. Will return 1 if the cache file is not found or if

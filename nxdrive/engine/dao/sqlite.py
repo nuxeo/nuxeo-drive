@@ -1,4 +1,3 @@
-# coding: utf-8
 """
 Query formatting in this file is based on http://www.sqlstyle.guide/
 """

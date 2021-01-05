@@ -1,4 +1,3 @@
-# coding: utf-8
 """
 Launch Nuxeo Drive functional tests against a running Nuxeo instance.
 

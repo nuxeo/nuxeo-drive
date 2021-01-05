@@ -1,4 +1,3 @@
-# coding: utf-8
 from logging import getLogger
 from pathlib import Path
 from random import randint

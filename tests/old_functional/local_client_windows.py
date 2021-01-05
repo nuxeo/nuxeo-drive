@@ -1,4 +1,3 @@
-# coding: utf-8
 """
 Intent of this file is to use Explorer operations to make FS to simulate user
 actions.

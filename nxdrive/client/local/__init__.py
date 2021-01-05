@@ -1,4 +1,3 @@
-# coding: utf-8
 """ API to access local resources for synchronization. """
 from .base import FileInfo, get
 

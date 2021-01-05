@@ -1,4 +1,3 @@
-# coding: utf-8
 from shutil import copyfile
 
 from .. import ensure_no_exception

@@ -1,4 +1,3 @@
-# coding: utf-8
 """
 Nuxeo Drive - Synchronization client for Nuxeo.
 https://doc.nuxeo.com/nxdoc/nuxeo-drive/

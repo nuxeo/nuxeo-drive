@@ -1,4 +1,3 @@
-# coding: utf-8
 import errno
 from enum import Enum
 from pathlib import Path

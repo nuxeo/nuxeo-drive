@@ -1,4 +1,3 @@
-# coding: utf-8
 import errno
 import re
 import sqlite3

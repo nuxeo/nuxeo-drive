@@ -1,6 +1,3 @@
-# coding: utf-8
-
-
 def test_simple_filter(engine_dao):
     with engine_dao("manager_migration.db") as dao:
 

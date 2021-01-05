@@ -1,4 +1,3 @@
-# coding: utf-8
 from ..markers import not_windows
 from .common import OneUserTest
 

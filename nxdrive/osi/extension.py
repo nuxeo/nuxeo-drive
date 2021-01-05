@@ -1,4 +1,3 @@
-# coding: utf-8
 import json
 import stat
 from enum import Enum

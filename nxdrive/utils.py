@@ -1,4 +1,3 @@
-# coding: utf-8
 """
 We are using lazy imports (understand imports in functions) specifically here
 to speed-up command line calls without loading everything at startup.

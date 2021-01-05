@@ -1,4 +1,3 @@
-# coding: utf-8
 from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Union

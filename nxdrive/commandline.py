@@ -1,4 +1,3 @@
-# coding: utf-8
 """ Utilities to operate Nuxeo Drive from the command line. """
 
 import faulthandler

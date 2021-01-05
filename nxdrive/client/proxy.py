@@ -1,4 +1,3 @@
-# coding: utf-8
 from logging import getLogger
 from typing import TYPE_CHECKING, Any, Dict, Type
 

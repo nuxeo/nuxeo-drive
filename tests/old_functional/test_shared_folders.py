@@ -1,4 +1,3 @@
-# coding: utf-8
 from pathlib import Path
 
 from ..utils import random_png

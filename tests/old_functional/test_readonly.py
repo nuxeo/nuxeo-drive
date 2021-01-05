@@ -1,4 +1,3 @@
-# coding: utf-8
 import shutil
 from logging import getLogger
 from pathlib import Path

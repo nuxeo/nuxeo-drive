@@ -1,4 +1,3 @@
-# coding: utf-8
 """
 Intent of this file is to use OSX File Manager to make FS operations to simulate
 user actions.

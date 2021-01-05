@@ -1,7 +1,6 @@
-# coding: utf-8
-""" Tests for pytests_random: a pytest plugin to mitigate random failures.
-
-    Adapted from github.com/pytest-dev/pytest-rerunfailures
+"""
+Tests for pytests_random: a pytest plugin to mitigate random failures.
+Adapted from github.com/pytest-dev/pytest-rerunfailures
 """
 import pytest
 

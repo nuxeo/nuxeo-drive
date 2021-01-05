@@ -1,4 +1,3 @@
-# coding: utf-8
 """ Detect slow threads. """
 
 import re
