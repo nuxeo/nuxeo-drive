@@ -122,34 +122,34 @@ def test_configuration_get_bool(engine_dao):
 
         dao.store_int("web_authentication", 0)
         res = dao.get_config("web_authentication", default="0") == "1"
-        assert res is False
+        assert not res
         assert dao.get_bool("web_authentication") is res
 
         dao.store_int("web_authentication", 1)
         res = dao.get_config("web_authentication", default="0") == "1"
-        assert res is True
+        assert res
         assert dao.get_bool("web_authentication") is res
 
         res = dao.get_config("ssl_verify", default="1") != "0"
-        assert res is True
+        assert res
         assert dao.get_bool("ssl_verify", default=True) is res
 
         is_frozen = True  # False value for Options.is_frozen
         res = (
             dao.get_config("direct_edit_auto_lock", default=str(int(is_frozen))) == "1"
         )
-        assert res is True
+        assert res
         assert dao.get_bool("direct_edit_auto_lock", default=is_frozen) is res
 
         is_frozen = False  # False value for Options.is_frozen
         res = (
             dao.get_config("direct_edit_auto_lock", default=str(int(is_frozen))) == "1"
         )
-        assert res is False
+        assert not res
         assert dao.get_bool("direct_edit_auto_lock", default=is_frozen) is res
 
         res = dao.get_config("light_icons") == "1"
-        assert res is False
+        assert not res
         assert dao.get_bool("light_icons") is res
 
 
