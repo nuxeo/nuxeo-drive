@@ -98,8 +98,8 @@ def main() -> int:
 
     try:
         # XXX_PYTHON
-        if sys.version_info < (3, 8):
-            raise RuntimeError(f"{APP_NAME} requires Python 3.8")
+        if sys.version_info < (3, 9, 1):
+            raise RuntimeError(f"{APP_NAME} requires Python 3.9.1+")
 
         # NXDRIVE-2230: Ensure the OS locale will be respected through the application
         locale.setlocale(locale.LC_TIME, "")

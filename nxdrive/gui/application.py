@@ -1,7 +1,6 @@
 # coding: utf-8
 """ Main Qt application handling OS events and system tray UI. """
 import os
-import sys
 import webbrowser
 from functools import partial
 from logging import getLogger
@@ -1401,11 +1400,8 @@ class Application(QApplication):
                 # The Dark mode on macOS is set
                 use_light_icons = True
             elif WINDOWS:
-                win_ver = sys.getwindowsversion()
-                version = (win_ver.major, win_ver.minor)
-                if version > (6, 1):  # Windows 7
-                    # Windows 8+ has a dark them by default
-                    use_light_icons = True
+                # Windows 8+ has a dark them by default
+                use_light_icons = True
         else:
             # The value stored in DTB as a string '0' or '1', convert to boolean
             use_light_icons = bool(int(use_light_icons))

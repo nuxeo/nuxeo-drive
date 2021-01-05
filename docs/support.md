@@ -6,8 +6,6 @@ This page is targeting the current Nuxeo Drive release. You can check for older 
 https://github.com/nuxeo/nuxeo-drive/blob/release-$VERSION/docs/support.md
 ```
 
-
-
 ## Server
 
 Nuxeo Drive always supports all versions [currently supported](https://www.nuxeo.com/legal/supported-versions/) by Nuxeo (at the time of each release), with those [minimum HF requirements](https://doc.nuxeo.com/client-apps/nuxeo-drive-faq/#what-are-the-required-nuxeo-versionshotfixes-when-using-a-drive-client-version).
@@ -23,7 +21,8 @@ Check the [supported OS](https://doc.nuxeo.com/client-apps/nuxeo-drive-faq/#what
 
 History:
 
-- `2020-11-xx` (v4.5.0): dropped support for Windows 7 without SP1
+- `2021-xx-xx` (v5.0.0): dropped support for Windows 7
+- `2020-12-15` (v4.5.0): dropped support for Windows 7 without SP1
 - `2019-11-14` (v4.3.0): dropped support for macOS 10.11
 - `2019-09-26` (v4.2.0): added support for GNU/Linux
 - `2018-06-11` (v3.1.1): dropped support for macOS 10.10
@@ -45,15 +44,15 @@ It may evolve quickly without notification as we are following the Python develo
 
 [//]: # (XXX_PYTHON)
 
-As of now, we are using the __Python 3.8.6__.
+As of now, we are using the __Python 3.9.1__.
 
 History:
 
-- `2020-11-xx` (v4.5.0): dropped support for Python 3.7
+- `2021-xx-xx` (v5.0.0): dropped support for Python 3.8
+- `2020-12-15` (v4.5.0): dropped support for Python 3.7
 - `2019-06-17` (v4.1.4): dropped support for Python 3.6
 - `2018-10-30` (v4.0.0): dropped support for Python 2.7
 - `2014-??-??`: dropped support for Python 2.6
-
 
 ### Translations
 

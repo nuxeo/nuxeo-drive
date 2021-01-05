@@ -97,7 +97,7 @@ function build_installer {
 	# Remove compiled QML files
 	Get-ChildItem -Path "dist\ndrive" -Recurse -File -Include *.qmlc | Foreach ($_) {Remove-Item -Verbose $_.Fullname}
 
-	add_missing_ddls
+	# add_missing_ddls
 	sign "dist\ndrive\ndrive.exe"
 
 	# Stop now if we only want the application to be frozen (for integration tests)
@@ -212,7 +212,7 @@ function check_upgrade {
 function check_vars {
 	# Check required variables
 	if (-Not ($Env:PYTHON_DRIVE_VERSION)) {
-		$Env:PYTHON_DRIVE_VERSION = '3.8.6'  # XXX_PYTHON
+		$Env:PYTHON_DRIVE_VERSION = '3.9.1'  # XXX_PYTHON
 	}
 	if (-Not ($Env:WORKSPACE)) {
 		if ($Env:TRAVIS_BUILD_DIR) {

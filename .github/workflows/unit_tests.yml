@@ -16,7 +16,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8.6  # XXX_PYTHON
+        python-version: 3.9.1  # XXX_PYTHON
     - uses: actions/cache@v2.1.3
       with:
         path: ~/.cache/pip
@@ -39,7 +39,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8.6  # XXX_PYTHON
+        python-version: 3.9.1  # XXX_PYTHON
     - uses: actions/cache@v2.1.3
       with:
         path: ~/Library/Caches/pip
@@ -62,7 +62,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8.6  # XXX_PYTHON
+        python-version: 3.9.1  # XXX_PYTHON
         architecture: 'x86'
     - uses: actions/cache@v2.1.3
       with:
