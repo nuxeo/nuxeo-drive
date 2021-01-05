@@ -99,7 +99,7 @@ check_upgrade() {
 check_vars() {
     # Check required variables
     if [ "${PYTHON_DRIVE_VERSION:-unset}" = "unset" ]; then
-        export PYTHON_DRIVE_VERSION="3.8.6"  # XXX_PYTHON
+        export PYTHON_DRIVE_VERSION="3.9.1"  # XXX_PYTHON
     fi
     if [ "${WORKSPACE:-unset}" = "unset" ]; then
         if [ "${TRAVIS_BUILD_DIR:-unset}" != "unset" ]; then

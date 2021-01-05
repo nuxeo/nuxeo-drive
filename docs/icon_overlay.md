@@ -39,13 +39,6 @@ The revelant source code can be found in the `tools/windows/setup-admin.iss` fil
 
 ### Building
 
-The setup to build the DLLs on Windows 7 is the following:
-
-- Visual Studio Express 2010
-- The [Windows SDK for Windows 7 and .NET Framework 4](https://www.microsoft.com/en-us/download/details.aspx?id=8279)
-- The [Windows Driver Kit 7.1.0](https://www.microsoft.com/en-us/download/details.aspx?id=11800)
-- The [Visual C++ 2010 SP1 Compiler Update](https://www.microsoft.com/en-us/download/details.aspx?id=4422)
-
 On Windows 10, you should be able to install all the recent C++ dependencies with Visual Studio 2017.
 
 The projects are in `tools/windows/NuxeoDriveShellExtensions`.
