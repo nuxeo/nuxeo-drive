@@ -1,4 +1,3 @@
-# coding: utf-8
 import winreg
 from contextlib import suppress
 from logging import getLogger

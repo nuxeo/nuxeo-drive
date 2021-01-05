@@ -1,4 +1,3 @@
-# coding: utf-8
 from enum import Flag, auto
 
 # Update statuses

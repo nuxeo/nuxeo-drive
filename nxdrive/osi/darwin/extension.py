@@ -1,4 +1,3 @@
-# coding: utf-8
 import unicodedata
 from pathlib import Path
 from typing import TYPE_CHECKING, Any

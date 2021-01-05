@@ -1,4 +1,3 @@
-# coding: utf-8
 import time
 
 from .common import OS_STAT_MTIME_RESOLUTION, OneUserTest, TwoUsersTest

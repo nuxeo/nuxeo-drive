@@ -1,4 +1,3 @@
-# coding: utf-8
 from contextlib import suppress
 from pathlib import Path
 from typing import Iterator

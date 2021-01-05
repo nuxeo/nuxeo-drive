@@ -1,4 +1,3 @@
-# coding: utf-8
 import shutil
 import time
 from typing import Optional

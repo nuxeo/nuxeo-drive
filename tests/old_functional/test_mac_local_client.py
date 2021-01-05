@@ -1,4 +1,3 @@
-# coding: utf-8
 from ..markers import mac_only
 from .common import OneUserTest
 

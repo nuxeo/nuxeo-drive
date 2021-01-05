@@ -1,4 +1,3 @@
-# coding: utf-8
 """Collection of pytest markers to ease test filtering."""
 import os
 

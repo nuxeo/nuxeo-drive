@@ -1,4 +1,3 @@
-# coding: utf-8
 """
 Test behaviors when the server allows duplicates and not the client.
 """

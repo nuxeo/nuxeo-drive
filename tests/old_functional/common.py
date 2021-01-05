@@ -1,4 +1,3 @@
-# coding: utf-8
 """ Common test utilities. """
 import os
 import sys

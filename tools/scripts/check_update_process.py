@@ -1,4 +1,3 @@
-# coding: utf-8
 """
 NXDRIVE-961: We need to be strong against any update process regressions.
 

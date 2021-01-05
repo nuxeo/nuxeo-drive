@@ -1,5 +1,3 @@
-# coding: utf-8
-import pathlib  # noqa
 from datetime import datetime
 from logging import getLogger
 from sqlite3 import DatabaseError

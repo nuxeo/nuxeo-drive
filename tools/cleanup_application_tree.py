@@ -1,4 +1,3 @@
-# coding: utf-8
 """
 Remove files from the package that are not needed and too big.
 This script can be launched after PyInstaller and before installers creation.

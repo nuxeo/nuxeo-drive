@@ -1,4 +1,3 @@
-# coding: utf-8
 import webbrowser
 from logging import getLogger
 from pathlib import Path

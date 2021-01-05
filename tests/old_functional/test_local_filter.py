@@ -1,5 +1,3 @@
-# coding: utf-8
-
 from .common import FS_ITEM_ID_PREFIX, SYNC_ROOT_FAC_ID, OneUserTest
 
 

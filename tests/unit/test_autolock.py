@@ -1,4 +1,3 @@
-# coding: utf-8
 """
 Test the Auto-Lock feature used heavily by Direct Edit.
 """
