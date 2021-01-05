@@ -41,6 +41,9 @@ SolidCompression=yes
 ; Controls which files Setup will check for being in use before upgrading
 CloseApplicationsFilter=*.*
 
+; Minimum Windows version required (Windows 8)
+MinVersion=6.2.9200
+
 
 [UninstallDelete]
 ; Force the installation directory to be removed when uninstalling

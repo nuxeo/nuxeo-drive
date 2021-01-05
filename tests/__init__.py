@@ -2,7 +2,6 @@ import logging
 import os
 import os.path
 import re
-import shutil
 import subprocess
 import sys
 from contextlib import contextmanager
@@ -16,21 +15,6 @@ logging.raiseExceptions = False
 
 # Automatically check all operations done with the Python client
 nuxeo.constants.CHECK_PARAMS = True
-
-
-def _basename(path: str) -> str:
-    """
-    Patch shutil._basename for pathlib compatibility.
-    TODO: remove when https://bugs.python.org/issue32689 is fixed (XXX_PYTHON)
-    """
-    if isinstance(path, os.PathLike):
-        return path.name
-
-    sep = os.path.sep + (os.path.altsep or "")
-    return os.path.basename(path.rstrip(sep))
-
-
-shutil._basename = _basename
 
 
 def configure_logs():
