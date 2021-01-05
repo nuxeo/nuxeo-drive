@@ -27,9 +27,19 @@ release() {
 mv -vf ${REMOTE_PATH_PROD}/beta/*${drive_version}* ${REMOTE_PATH_PROD}/release/
 
 # Create symbolic links of the latest packages
-ln -sfv "${REMOTE_PATH_PROD}/release/nuxeo-drive-${drive_version}-x86_64.AppImage" "${REMOTE_PATH_PROD}/nuxeo-drive-x86_64.AppImage"
-ln -sfv "${REMOTE_PATH_PROD}/release/nuxeo-drive-${drive_version}.dmg" "${REMOTE_PATH_PROD}/nuxeo-drive.dmg"
-ln -sfv "${REMOTE_PATH_PROD}/release/nuxeo-drive-${drive_version}.exe" "${REMOTE_PATH_PROD}/nuxeo-drive.exe"
+
+deploy() {
+    local src="\$1"
+    local dst="\$2"
+    local src_file="${REMOTE_PATH_PROD}/release/\${src}"
+    [ -f "\${src_file}" ] \\
+        && ln -sfv "\${src_file}" "${REMOTE_PATH_PROD}/\${dst}" \\
+        || echo " !! Missing \${src_file} file"
+}
+
+deploy "nuxeo-drive-${drive_version}-x86_64.AppImage" "nuxeo-drive-x86_64.AppImage"
+deploy "nuxeo-drive-${drive_version}.dmg" "nuxeo-drive.dmg"
+deploy "nuxeo-drive-${drive_version}.exe" "nuxeo-drive.exe"
 EOF
 
     echo ">>> [release ${drive_version}] Generating the versions file"
