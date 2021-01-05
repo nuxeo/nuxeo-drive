@@ -169,10 +169,13 @@ pycryptodomex==3.9.9 \
     --hash=sha256:b696876ee583d15310be57311e90e153a84b7913ac93e6b99675c0c9867926d0 \
     --hash=sha256:7651211e15109ac0058a49159265d9f6e6423c8a81c65434d3c56d708417a05b \
     --hash=sha256:7b5b7c5896f8172ea0beb283f7f9428e0ab88ec248ce0a5b8c98d73e26267d51
-pyobjc-core==7.0.1 ; sys_platform == "darwin" \
-    --hash=sha256:6f84a5744e44ec709daca1e66b95c3c010e4159bc2cfc442c27c0d28b0456eda \
-    --hash=sha256:e2fdba7997d5c9d518256f9d2e9f7780fcc6332b0371207374f38d7e9fad7bc8 \
-    --hash=sha256:7213bfd48c49f5b4d479256924e0120d728ed449de8188cba9e204c434ed07f2
+pyobjc-core==7.1 ; sys_platform == "darwin" \
+    --hash=sha256:f9fb45c9916f2a03ecd6b9ecde4c35d1d0f1a590ae2ea2372f9d9a360226ac1d \
+    --hash=sha256:fff8e87358c6195a2937004f279050cce3d4c02cd77acd73c5ad367307def855 \
+    --hash=sha256:afb38efd3f2960eb49eb78552d465cfd025a9d6efa06cd4cd8694dafbe7c6e06 \
+    --hash=sha256:7cb329c4119044fe83bcb3c5d4794d636c706ff0cb7c1c77d36ef5c373100082 \
+    --hash=sha256:7913d7b20217c294900537faf58e5cc15942ed7af277bf05db25667d18255114 \
+    --hash=sha256:a0616d5d816b4471f8f782c3a9a8923d2cc85014d88ad4f7fec694be9e6ea349
     # via pyobjc-framework-Cocoa
 pyobjc-framework-Cocoa==7.0.1 ; sys_platform == "darwin" \
     --hash=sha256:4675accc4720b42f456a35ba7cdd9e1cb44b9b84fcc600beef120ae05d2c5d27 \
