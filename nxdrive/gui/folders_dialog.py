@@ -377,12 +377,13 @@ class FoldersDialog(DialogMixin):
         self.new_folder.setMaxLength(64)
         self.new_folder.setValidator(regexp_validator())
 
-        self.new_folder_button = QPushButton(Translator.get("Edit"), self)
-        self.new_folder_button.clicked.connect(self._new_folder_button_action)
+        if self.engine.have_folder_upload:
+            self.new_folder_button = QPushButton(Translator.get("Edit"), self)
+            self.new_folder_button.clicked.connect(self._new_folder_button_action)
 
-        layout.addWidget(label)
-        layout.addWidget(self.new_folder)
-        layout.addWidget(self.new_folder_button)
+            layout.addWidget(label)
+            layout.addWidget(self.new_folder)
+            layout.addWidget(self.new_folder_button)
 
     def accept(self) -> None:
         """Action to do when the OK button is clicked."""
