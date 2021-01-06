@@ -539,6 +539,10 @@ class ActiveSessionModel(QAbstractListModel):
     def count(self) -> int:
         return self.rowCount()
 
+    @pyqtProperty("int", notify=sessionChanged)
+    def count_no_shadow(self) -> int:
+        return self.row_count_no_shadow()
+
     @pyqtProperty("bool", notify=sessionChanged)
     def is_full(self) -> bool:
         return self.row_count_no_shadow() >= DT_ACTIVE_SESSIONS_MAX_ITEMS

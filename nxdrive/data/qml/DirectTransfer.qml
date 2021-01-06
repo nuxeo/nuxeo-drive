@@ -110,7 +110,7 @@ Rectangle {
                 anchors.fill: parent
                 horizontalAlignment: Qt.AlignHCenter
                 verticalAlignment: Qt.AlignVCenter
-                visible: !parent.count
+                visible: !ActiveSessionModel.count_no_shadow
                 text: qsTr("NO_ACTIVE_SESSION") + tl.tr
                 font.pointSize: point_size * 1.2
             }
