@@ -37,6 +37,9 @@ DT_MONITORING_MAX_ITEMS = 20
 # Number of sessions displayed in the Direct Transfer window, onto the active sessions tab
 DT_ACTIVE_SESSIONS_MAX_ITEMS = 15
 
+# List of chars that cannot be used in filenames (either OS or Nuxeo restrictions)
+INVALID_CHARS = r'/:\\|*><?"'
+
 # Default update channel
 DEFAULT_CHANNEL = "centralized"
 

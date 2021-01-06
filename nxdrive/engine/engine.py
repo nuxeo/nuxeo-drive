@@ -6,7 +6,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from functools import partial
 from logging import getLogger
-from pathlib import Path
+from pathlib import Path, PurePath
 from threading import Thread
 from time import sleep
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type
@@ -427,6 +427,22 @@ class Engine(QObject):
                 "dt_last_local_selected_location", last_local_selected_location
             )
 
+    def _create_remote_folder(
+        self, remote_parent_path: str, new_folder: str, /
+    ) -> Dict[str, Any]:
+        try:
+            return self.remote.upload_folder(
+                remote_parent_path,
+                {"title": new_folder},
+            )
+        except Exception:
+            log.warning(
+                f"Could not create the {new_folder!r} folder in the {remote_parent_path!r} remote folder",
+                exc_info=True,
+            )
+            self.directTranferError.emit(PurePath(remote_parent_path, new_folder))
+            return {}
+
     def _direct_transfer(
         self,
         local_paths: Dict[Path, int],
@@ -436,6 +452,7 @@ class Engine(QObject):
         *,
         duplicate_behavior: str = "create",
         last_local_selected_location: Optional[Path] = None,
+        new_folder: Optional[str] = None,
     ) -> None:
         """Plan the Direct Transfer."""
 
@@ -446,6 +463,16 @@ class Engine(QObject):
             duplicate_behavior,
             last_local_selected_location,
         )
+        if new_folder:
+            item = self._create_remote_folder(remote_parent_path, new_folder)
+            if not item:
+                return
+            remote_parent_path = item["path"]
+            remote_parent_ref = item["uid"]
+
+        # Allow to only create a folder and return.
+        if not local_paths:
+            return
 
         all_paths = local_paths.keys()
         items = [
@@ -505,6 +532,7 @@ class Engine(QObject):
         *,
         duplicate_behavior: str = "create",
         last_local_selected_location: Optional[Path] = None,
+        new_folder: Optional[str] = None,
     ) -> None:
         """Plan the Direct Transfer."""
         self._direct_transfer(
@@ -513,6 +541,7 @@ class Engine(QObject):
             remote_parent_ref,
             duplicate_behavior=duplicate_behavior,
             last_local_selected_location=last_local_selected_location,
+            new_folder=new_folder,
         )
 
     def direct_transfer_async(
@@ -524,6 +553,7 @@ class Engine(QObject):
         *,
         duplicate_behavior: str = "create",
         last_local_selected_location: Optional[Path] = None,
+        new_folder: Optional[str] = None,
     ) -> None:
         """Plan the Direct Transfer. Async to not freeze the GUI."""
         from .workers import Runner
@@ -535,6 +565,7 @@ class Engine(QObject):
             remote_parent_ref,
             duplicate_behavior=duplicate_behavior,
             last_local_selected_location=last_local_selected_location,
+            new_folder=new_folder,
         )
         self._threadpool.start(runner)
 

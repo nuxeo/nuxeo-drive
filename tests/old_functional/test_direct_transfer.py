@@ -97,6 +97,7 @@ class DirectTransfer:
         self,
         duplicate_behavior: str = "create",
         last_local_selected_location: Optional[Path] = None,
+        new_folder: Optional[str] = None,
     ) -> None:
         self.engine_1.direct_transfer(
             {self.file: self.file_size},
@@ -104,6 +105,7 @@ class DirectTransfer:
             self.ws.uid,
             duplicate_behavior=duplicate_behavior,
             last_local_selected_location=last_local_selected_location,
+            new_folder=new_folder,
         )
 
     def test_upload(self):
@@ -115,6 +117,45 @@ class DirectTransfer:
         with ensure_no_exception():
             self.direct_transfer()
             self.sync_and_check()
+
+    def test_upload_new_folder(self):
+        """A regular Direct Transfer inside a new remote folder."""
+
+        # There is no upload, right now
+        self.no_uploads()
+        new_folder_name = str(uuid4())[:6]
+        with ensure_no_exception():
+            self.direct_transfer(new_folder=new_folder_name)
+            self.sync_and_check(check_for_blob=False)
+
+        children = self.remote_document_client_1.get_children_info(self.workspace)
+        assert len(children) == 1
+        assert children[0].name == new_folder_name
+        subfolder = self.remote_document_client_1.get_children_info(children[0].uid)
+        assert len(subfolder) == 1
+        assert subfolder[0].name == self.file.name
+
+    def test_upload_new_folder_empty(self):
+        """An empty Direct Transfer that should just create a new remote folder."""
+
+        # There is no upload, right now
+        self.no_uploads()
+        new_folder_name = str(uuid4())[:6]
+        with ensure_no_exception():
+            self.engine_1.direct_transfer(
+                {},
+                self.ws.path,
+                self.ws.uid,
+                duplicate_behavior="create",
+                last_local_selected_location=None,
+                new_folder=new_folder_name,
+            )
+            self.sync_and_check(check_for_blob=False)
+
+        children = self.remote_document_client_1.get_children_info(self.workspace)
+        assert len(children) == 1
+        assert children[0].name == new_folder_name
+        assert not self.remote_document_client_1.get_children_info(children[0].uid)
 
     def test_cancel_upload(self):
         """

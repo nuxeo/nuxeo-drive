@@ -13,9 +13,11 @@ from .imports import (
     QSystemTrayIcon,
     Qt,
     QTextEdit,
+    QValidator,
 )
 
 AA_EnableHighDpiScaling = Qt.ApplicationAttribute.AA_EnableHighDpiScaling
+Acceptable = QValidator.State.Acceptable
 AcceptRole = QMessageBox.ButtonRole.AcceptRole
 ActionRole = QDialogButtonBox.ButtonRole.ActionRole
 AlignCenter = Qt.AlignmentFlag.AlignCenter
@@ -34,12 +36,14 @@ FramelessWindowHint = Qt.WindowType.FramelessWindowHint
 Horizontal = Qt.Orientation.Horizontal
 IPv4Protocol = QAbstractSocket.NetworkLayerProtocol.IPv4Protocol
 Information = QMessageBox.Icon.Information
+Invalid = QValidator.State.Invalid
 ItemIsEditable = Qt.ItemFlag.ItemIsEditable
 ItemIsEnabled = Qt.ItemFlag.ItemIsEnabled
 ItemIsSelectable = Qt.ItemFlag.ItemIsSelectable
 LeftToRight = Qt.LayoutDirection.LeftToRight
 MiddleClick = QSystemTrayIcon.ActivationReason.MiddleClick
 MouseButtonPress = QEvent.Type.MouseButtonPress
+MouseFocusReason = Qt.FocusReason.MouseFocusReason
 Ok = QDialogButtonBox.StandardButton.Ok
 PartiallyChecked = Qt.CheckState.PartiallyChecked
 Password = QLineEdit.EchoMode.Password
@@ -60,5 +64,6 @@ UserRole = Qt.ItemDataRole.UserRole
 WA_DeleteOnClose = Qt.WidgetAttribute.WA_DeleteOnClose
 WaitCursor = Qt.CursorShape.WaitCursor
 Warning = QMessageBox.Icon.Warning
+WhatsThisCursor = Qt.CursorShape.WhatsThisCursor
 WindowStaysOnTopHint = Qt.WindowType.WindowStaysOnTopHint
 WorldAccessOption = QLocalServer.SocketOption.WorldAccessOption

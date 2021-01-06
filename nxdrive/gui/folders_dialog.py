@@ -3,7 +3,7 @@ from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
-from ..constants import APP_NAME
+from ..constants import APP_NAME, INVALID_CHARS
 from ..engine.engine import Engine
 from ..options import Options
 from ..qt import constants as qt
@@ -17,6 +17,8 @@ from ..qt.imports import (
     QLabel,
     QLineEdit,
     QPushButton,
+    QRegExp,
+    QRegExpValidator,
     Qt,
     QVBoxLayout,
 )
@@ -33,6 +35,15 @@ __all__ = ("DocumentsDialog", "FoldersDialog")
 log = getLogger(__name__)
 
 DOC_URL = "https://doc.nuxeo.com/n/CBX/#duplicates-behavior"
+
+
+def regexp_validator() -> QRegExpValidator:
+    """
+    Generate a validator based on a specific regexp that will check an user input.
+    This code has been moved to a method to allow unit testing.
+    """
+    expr = QRegExp(f"^[^{INVALID_CHARS}]+")
+    return QRegExpValidator(expr)
 
 
 class DialogMixin(QDialog):
@@ -207,6 +218,10 @@ class FoldersDialog(DialogMixin):
     # The windows's title
     title_label = "DIRECT_TRANSFER_WINDOW_TITLE"
 
+    # CSS for the new folder input field
+    CSS = "* { border: 1px solid rgba(128, 128, 128, 50); border-radius: 5px; padding: 2px }"
+    CSS_DISABLED = CSS + "* { background-color: rgba(0, 0, 0, 0) }"
+
     def __init__(
         self, application: "Application", engine: Engine, path: Optional[Path], /
     ) -> None:
@@ -274,10 +289,13 @@ class FoldersDialog(DialogMixin):
         layout = QVBoxLayout()
         groupbox.setLayout(layout)
 
-        sublayout = QHBoxLayout()
-        layout.addLayout(sublayout)
+        duplicate_sublayout = QHBoxLayout()
+        new_folder_sublayout = QHBoxLayout()
+        layout.addLayout(duplicate_sublayout)
+        layout.addLayout(new_folder_sublayout)
 
-        self._add_subgroup_duplicate_behavior(sublayout)
+        self._add_subgroup_duplicate_behavior(duplicate_sublayout)
+        self._add_subgroup_new_folder(new_folder_sublayout)
 
         return groupbox
 
@@ -329,6 +347,43 @@ class FoldersDialog(DialogMixin):
         # Prevent previous objects to take the whole width, that does not render well for human eyes
         layout.addStretch(0)
 
+    def _new_folder_button_action(self) -> None:
+        """Update *new_folder_button* appearance and refresh *button_ok* state."""
+        css = self.CSS
+        label = "OK"
+        if self.new_folder.isReadOnly():
+            read_only_state = False
+            self.new_folder.setFocus(qt.MouseFocusReason)
+        else:
+            css = self.CSS_DISABLED
+            label = "Edit"
+            read_only_state = True
+
+        self.new_folder.setReadOnly(read_only_state)
+        self.new_folder_button.setText(Translator.get(label))
+        self.new_folder.setStyleSheet(css)
+        self.button_ok_state()
+
+    def _add_subgroup_new_folder(self, layout: QHBoxLayout, /) -> None:
+        """Add a sub-group for the new folder option."""
+        label = QLabel(Translator.get("NEW_REMOTE_FOLDER"))
+        label.setToolTip(Translator.get("NEW_REMOTE_FOLDER_TOOLTIP"))
+        label.setCursor(qt.WhatsThisCursor)
+
+        self.new_folder = QLineEdit()
+        self.new_folder.setStyleSheet(self.CSS_DISABLED)
+        self.new_folder.setReadOnly(True)
+        self.new_folder.setFrame(False)
+        self.new_folder.setMaxLength(64)
+        self.new_folder.setValidator(regexp_validator())
+
+        self.new_folder_button = QPushButton(Translator.get("Edit"), self)
+        self.new_folder_button.clicked.connect(self._new_folder_button_action)
+
+        layout.addWidget(label)
+        layout.addWidget(self.new_folder)
+        layout.addWidget(self.new_folder_button)
+
     def accept(self) -> None:
         """Action to do when the OK button is clicked."""
         super().accept()
@@ -338,16 +393,21 @@ class FoldersDialog(DialogMixin):
             self.remote_folder_ref,
             duplicate_behavior=self.cb.currentData(),
             last_local_selected_location=self.last_local_selected_location,
+            new_folder=self.new_folder.text(),
         )
 
     def button_ok_state(self) -> None:
         """Handle the state of the OK button. It should be enabled when particular criteria are met."""
 
         # Required criteria:
-        #   - at least 1 local path
+        #   - at least 1 local path or a new folder to create
         #   - a selected remote path
         self.button_box.button(qt.Ok).setEnabled(
-            bool(self.paths) and bool(self.remote_folder.text())
+            (
+                bool(self.paths)
+                or (bool(self.new_folder.text()) and self.new_folder.isReadOnly())
+            )
+            and bool(self.remote_folder.text())
         )
 
     def get_tree_view(self) -> FolderTreeView:
