@@ -1,6 +1,7 @@
 # Code to ignore for Vulture.
 
 AbstractOSIntegration.cb_get  # OSI
+ActiveSessionModel.count_no_shadow  # Used in QML
 ActiveSessionModel.is_full  # Used in QML
 Application.about_to_quit  # Used in QML
 Application.close_direct_transfer_window  # Used in QML
