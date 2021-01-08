@@ -18,21 +18,6 @@ class DirectTransferUploader(BaseUploader):
     linking_action = LinkingAction
     upload_action = UploadAction
 
-    def exists(self, parent_ref: str, name: str, /) -> bool:
-        """
-        Fetch a document based on its parent's UID and document's name.
-        Return True if such document exists.
-        """
-        name = self.remote._escape(name)
-        query = (
-            "SELECT * FROM Document"
-            f" WHERE ecm:parentId = '{parent_ref}' AND dc:title = '{name}'"
-            " AND ecm:isProxy = 0"
-            " AND ecm:isVersion = 0"
-            " AND ecm:isTrashed = 0"
-        )
-        return bool(self.remote.query(query)["totalSize"])
-
     def get_upload(
         self, *, path: Optional[Path], doc_pair: Optional[int]
     ) -> Optional[Upload]:
@@ -73,7 +58,7 @@ class DirectTransferUploader(BaseUploader):
             f"Direct Transfer of {file_path!r} into {doc_pair.remote_parent_path!r} ({doc_pair.remote_parent_ref!r})"
         )
 
-        if doc_pair.duplicate_behavior == "ignore" and self.exists(
+        if doc_pair.duplicate_behavior == "ignore" and self.remote.exists_in_parent(
             doc_pair.remote_parent_ref, file_path.name
         ):
             msg = f"Ignoring the transfer as a document already has the name {file_path.name!r} on the server"

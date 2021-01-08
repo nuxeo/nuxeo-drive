@@ -51,6 +51,8 @@ from ..qt.imports import (
     QQuickView,
     QQuickWindow,
     QRect,
+    QSizePolicy,
+    QSpacerItem,
     QStyle,
     Qt,
     QTextEdit,
@@ -857,6 +859,35 @@ class Application(QApplication):
     def close_direct_transfer_window(self) -> None:
         """Close the Direct Transfer window."""
         self.direct_transfer_window.close()
+
+    def folder_duplicate_warning(
+        self, duplicates: List[str], remote_path: str, /
+    ) -> None:
+        """
+        Show a dialog to confirm the given transfer cancel.
+        Cancel transfer on validation.
+        """
+        log.warning(f"Duplicate folders detected on remote (values={duplicates})")
+
+        title = Translator.get("Folder duplicates detected")
+
+        duplicates_list_html = ""
+        for index, value in enumerate(duplicates):
+            if index == 4:
+                duplicates_list_html += "<li>...</li>"
+                break
+            duplicates_list_html += f"<li>{value}</li>"
+
+        desc = Translator.get(
+            "FOLDER_DUPLICATES_MSG", values=[remote_path, duplicates_list_html]
+        )
+        msg_box = self._msgbox(
+            icon=qt.Warning, title=title, message=desc, execute=False
+        )
+        spacer = QSpacerItem(600, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        layout = msg_box.layout()
+        layout.addItem(spacer, layout.rowCount(), 0, 1, layout.columnCount())
+        msg_box.exec_()
 
     @pyqtSlot(str, int, str)
     def confirm_cancel_transfer(
