@@ -877,7 +877,7 @@ class Application(QApplication):
         Show a dialog to confirm the given transfer cancel.
         Cancel transfer on validation.
         """
-        title = Translator.get("Folder duplicates detected")
+        title = Translator.get("FOLDER_DUPLICATES_DETECTED")
 
         duplicates_list_html = ""
         for index, value in enumerate(duplicates):
