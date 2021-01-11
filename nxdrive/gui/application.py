@@ -867,7 +867,9 @@ class Application(QApplication):
         Show a dialog to confirm the given transfer cancel.
         Cancel transfer on validation.
         """
-        log.warning(f"Duplicate folders detected on remote (values={duplicates})")
+        log.warning(
+            f"Duplicate folders detected on remote {remote_path!r} (values={duplicates})"
+        )
 
         title = Translator.get("Folder duplicates detected")
 

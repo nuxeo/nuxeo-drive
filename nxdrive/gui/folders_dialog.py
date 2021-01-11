@@ -416,6 +416,7 @@ class FoldersDialog(DialogMixin):
                 folder_duplicates, self.remote_folder.text()
             )
             return
+
         self.engine.direct_transfer_async(
             self.paths,
             self.remote_folder.text(),
