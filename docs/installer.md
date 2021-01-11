@@ -24,13 +24,13 @@ We decided to use [PyInstaller](http://www.pyinstaller.org/) to freeze the code:
 
 ### Installers
 
-Currently, only macOS and Windows are supported.
-There is no built-in support for installer on GNU/Linux, only a universal binary (AppImage file).
+Installers are available for macOS and Windows.
+There is no built-in support for installer on GNU/Linux, just a universal binary (AppImage file).
 
 #### macOS
 
 We generate a signed DMG of the final folder created by PyInstaller and containing all required files for Drive to work.
-If you want to exactly know how it is done, check the file `tools/osx/deploy_jenkins_slace.sh`.
+If you want to exactly know how it is done, check the file `tools/osx/deploy_ci_agent.sh`.
 
 #### Windows
 
