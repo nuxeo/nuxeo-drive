@@ -631,8 +631,7 @@ def retrieve_ssl_certificate(hostname: str, /, *, port: int = 443) -> str:
     import ssl
 
     with ssl.create_connection((hostname, port)) as conn:  # type: ignore
-        context = ssl.SSLContext(ssl.PROTOCOL_TLS)
-        with context.wrap_socket(conn, server_hostname=hostname) as sock:
+        with ssl.SSLContext().wrap_socket(conn, server_hostname=hostname) as sock:
             cert_data: bytes = sock.getpeercert(binary_form=True)  # type: ignore
             return ssl.DER_cert_to_PEM_cert(cert_data)
 
