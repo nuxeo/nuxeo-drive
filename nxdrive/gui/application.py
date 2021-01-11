@@ -520,7 +520,13 @@ class Application(QApplication):
         self._msgbox(title=title, message=msg_text)
 
     def display_warning(
-        self, title: str, message: str, values: List[str], execute: bool = True, /
+        self,
+        title: str,
+        message: str,
+        values: List[str],
+        /,
+        *,
+        execute: bool = True,
     ) -> QMessageBox:
         """Display a warning message box."""
         msg_text = self.translate(message, values=values)
@@ -871,10 +877,6 @@ class Application(QApplication):
         Show a dialog to confirm the given transfer cancel.
         Cancel transfer on validation.
         """
-        log.warning(
-            f"Duplicate folders detected on remote {remote_path!r} (values={duplicates})"
-        )
-
         title = Translator.get("Folder duplicates detected")
 
         duplicates_list_html = ""
@@ -885,7 +887,10 @@ class Application(QApplication):
             duplicates_list_html += f"<li>{value}</li>"
 
         msg_box = self.display_warning(
-            title, "FOLDER_DUPLICATES_MSG", [remote_path, duplicates_list_html], False
+            title,
+            "FOLDER_DUPLICATES_MSG",
+            [remote_path, duplicates_list_html],
+            execute=False,
         )
         spacer = QSpacerItem(600, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
         layout = msg_box.layout()
