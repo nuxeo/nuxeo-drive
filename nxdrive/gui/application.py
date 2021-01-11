@@ -519,11 +519,15 @@ class Application(QApplication):
         log.info(f"{msg_text} (values={values})")
         self._msgbox(title=title, message=msg_text)
 
-    def display_warning(self, title: str, message: str, values: List[str], /) -> None:
+    def display_warning(
+        self, title: str, message: str, values: List[str], execute: bool = True, /
+    ) -> QMessageBox:
         """Display a warning message box."""
         msg_text = self.translate(message, values=values)
         log.warning(f"{msg_text} (values={values})")
-        self._msgbox(icon=qt.Warning, title=title, message=msg_text)
+        return self._msgbox(
+            icon=qt.Warning, title=title, message=msg_text, execute=execute
+        )
 
     def question(
         self, header: str, message: str, /, *, icon: QIcon = qt.Question
@@ -880,11 +884,8 @@ class Application(QApplication):
                 break
             duplicates_list_html += f"<li>{value}</li>"
 
-        desc = Translator.get(
-            "FOLDER_DUPLICATES_MSG", values=[remote_path, duplicates_list_html]
-        )
-        msg_box = self._msgbox(
-            icon=qt.Warning, title=title, message=desc, execute=False
+        msg_box = self.display_warning(
+            title, "FOLDER_DUPLICATES_MSG", [remote_path, duplicates_list_html], False
         )
         spacer = QSpacerItem(600, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
         layout = msg_box.layout()
