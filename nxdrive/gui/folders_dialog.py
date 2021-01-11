@@ -390,7 +390,7 @@ class FoldersDialog(DialogMixin):
         layout.addWidget(self.new_folder_button)
 
     def _find_folders_duplicates(self) -> List[str]:
-        """Return a list of all the duplicate folders found on the remote."""
+        """Return a list of duplicate folder(s) found on the remote path."""
         if bool(self.new_folder.text()):
             return []
         all_paths = self.paths.keys()
