@@ -631,7 +631,7 @@ def retrieve_ssl_certificate(hostname: str, /, *, port: int = 443) -> str:
     import ssl
 
     with ssl.create_connection((hostname, port)) as conn:  # type: ignore
-        context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS)
         with context.wrap_socket(conn, server_hostname=hostname) as sock:
             cert_data: bytes = sock.getpeercert(binary_form=True)  # type: ignore
             return ssl.DER_cert_to_PEM_cert(cert_data)
@@ -647,7 +647,7 @@ def get_certificate_details(
     Note: This function uses a undocumented method of the _ssl module.
           It is continuously tested in our CI to ensure it still
           available after any Python upgrade.
-          Certified working as of Python 3.6.7.
+          Certified working as of Python 3.8.6.
     """
 
     import ssl
