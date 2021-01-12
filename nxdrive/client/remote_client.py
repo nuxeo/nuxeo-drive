@@ -229,15 +229,16 @@ class Remote(Nuxeo):
         query = f"SELECT * FROM Document WHERE {id_prop} = '{ref}' {trash} AND ecm:isVersion = 0"
         return bool(self.query(query)["totalSize"])
 
-    def exists_in_parent(self, parent_ref: str, name: str, /) -> bool:
+    def exists_in_parent(self, parent_ref: str, name: str, folderish: bool, /) -> bool:
         """
         Fetch a document based on its parent's UID and document's name.
         Return True if such document exists.
         """
         name = self._escape(name)
+        mixin_type = f"ecm:mixinType {'=' if folderish else '<>'} 'Folderish'"
         query = (
             "SELECT * FROM Document"
-            f" WHERE ecm:parentId = '{parent_ref}' AND dc:title = '{name}'"
+            f" WHERE ecm:parentId = '{parent_ref}' AND dc:title = '{name}' AND {mixin_type}"
             " AND ecm:isProxy = 0"
             " AND ecm:isVersion = 0"
             " AND ecm:isTrashed = 0"
