@@ -229,6 +229,21 @@ class Remote(Nuxeo):
         query = f"SELECT * FROM Document WHERE {id_prop} = '{ref}' {trash} AND ecm:isVersion = 0"
         return bool(self.query(query)["totalSize"])
 
+    def exists_in_parent(self, parent_ref: str, name: str, /) -> bool:
+        """
+        Fetch a document based on its parent's UID and document's name.
+        Return True if such document exists.
+        """
+        name = self._escape(name)
+        query = (
+            "SELECT * FROM Document"
+            f" WHERE ecm:parentId = '{parent_ref}' AND dc:title = '{name}'"
+            " AND ecm:isProxy = 0"
+            " AND ecm:isVersion = 0"
+            " AND ecm:isTrashed = 0"
+        )
+        return bool(self.query(query)["totalSize"])
+
     def request_token(self, *, revoke: bool = False) -> Optional[str]:
         """Request and return a new token for the user"""
         token = self.client.request_auth_token(

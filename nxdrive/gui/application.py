@@ -51,6 +51,8 @@ from ..qt.imports import (
     QQuickView,
     QQuickWindow,
     QRect,
+    QSizePolicy,
+    QSpacerItem,
     QStyle,
     Qt,
     QTextEdit,
@@ -517,11 +519,21 @@ class Application(QApplication):
         log.info(f"{msg_text} (values={values})")
         self._msgbox(title=title, message=msg_text)
 
-    def display_warning(self, title: str, message: str, values: List[str], /) -> None:
+    def display_warning(
+        self,
+        title: str,
+        message: str,
+        values: List[str],
+        /,
+        *,
+        execute: bool = True,
+    ) -> QMessageBox:
         """Display a warning message box."""
         msg_text = self.translate(message, values=values)
         log.warning(f"{msg_text} (values={values})")
-        self._msgbox(icon=qt.Warning, title=title, message=msg_text)
+        return self._msgbox(
+            icon=qt.Warning, title=title, message=msg_text, execute=execute
+        )
 
     def question(
         self, header: str, message: str, /, *, icon: QIcon = qt.Question
@@ -857,6 +869,33 @@ class Application(QApplication):
     def close_direct_transfer_window(self) -> None:
         """Close the Direct Transfer window."""
         self.direct_transfer_window.close()
+
+    def folder_duplicate_warning(
+        self, duplicates: List[str], remote_path: str, /
+    ) -> None:
+        """
+        Show a dialog to confirm the given transfer cancel.
+        Cancel transfer on validation.
+        """
+        title = Translator.get("FOLDER_DUPLICATES_DETECTED")
+
+        duplicates_list_html = ""
+        for index, value in enumerate(duplicates):
+            if index == 4:
+                duplicates_list_html += "<li>...</li>"
+                break
+            duplicates_list_html += f"<li>{value}</li>"
+
+        msg_box = self.display_warning(
+            title,
+            "FOLDER_DUPLICATES_MSG",
+            [remote_path, duplicates_list_html],
+            execute=False,
+        )
+        spacer = QSpacerItem(600, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        layout = msg_box.layout()
+        layout.addItem(spacer, layout.rowCount(), 0, 1, layout.columnCount())
+        msg_box.exec_()
 
     @pyqtSlot(str, int, str)
     def confirm_cancel_transfer(

@@ -235,6 +235,9 @@ class FoldersDialog(DialogMixin):
         self.remote_folder_ref = self.engine.dao.get_config(
             "dt_last_remote_location_ref", default=""
         )
+        self.last_remote_location = self.engine.dao.get_config(
+            "dt_last_remote_location", default=""
+        )
         self.last_local_selected_location = self.engine.dao.get_config(
             "dt_last_local_selected_location"
         )
@@ -319,9 +322,7 @@ class FoldersDialog(DialogMixin):
         sublayout.addWidget(self.remote_folder)
 
         # Populate the remote folder with the previously selected, if any
-        self.remote_folder.setText(
-            self.engine.dao.get_config("dt_last_remote_location", default="")
-        )
+        self.remote_folder.setText(self.last_remote_location)
 
         return groupbox
 
@@ -388,9 +389,37 @@ class FoldersDialog(DialogMixin):
         layout.addWidget(self.new_folder)
         layout.addWidget(self.new_folder_button)
 
+    def _find_folders_duplicates(self) -> List[str]:
+        """Return a list of duplicate folder(s) found on the remote path."""
+        all_paths = self.paths.keys()
+        parent = self.remote_folder_ref
+        new_folder = self.new_folder.text()
+        if bool(new_folder):
+            if self.engine.remote.exists_in_parent(parent, new_folder):
+                return [new_folder]
+            return []
+        return [
+            path.name
+            for path in all_paths
+            if (
+                path.parent not in all_paths
+                and path.is_dir()
+                and self.engine.remote.exists_in_parent(parent, path.name)
+            )
+        ]
+
     def accept(self) -> None:
         """Action to do when the OK button is clicked."""
         super().accept()
+
+        folder_duplicates = self._find_folders_duplicates()
+
+        if folder_duplicates:
+            self.application.folder_duplicate_warning(
+                folder_duplicates, self.remote_folder.text()
+            )
+            return
+
         self.engine.direct_transfer_async(
             self.paths,
             self.remote_folder.text(),
