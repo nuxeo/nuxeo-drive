@@ -59,7 +59,7 @@ class DirectTransferUploader(BaseUploader):
         )
 
         if doc_pair.duplicate_behavior == "ignore" and self.remote.exists_in_parent(
-            doc_pair.remote_parent_ref, file_path.name
+            doc_pair.remote_parent_ref, file_path.name, doc_pair.folderish
         ):
             msg = f"Ignoring the transfer as a document already has the name {file_path.name!r} on the server"
             log.debug(msg)

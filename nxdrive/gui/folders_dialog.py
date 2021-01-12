@@ -391,20 +391,22 @@ class FoldersDialog(DialogMixin):
 
     def _find_folders_duplicates(self) -> List[str]:
         """Return a list of duplicate folder(s) found on the remote path."""
-        all_paths = self.paths.keys()
         parent = self.remote_folder_ref
+
         new_folder = self.new_folder.text()
         if bool(new_folder):
-            if self.engine.remote.exists_in_parent(parent, new_folder):
+            if self.engine.remote.exists_in_parent(parent, new_folder, True):
                 return [new_folder]
             return []
+
+        all_paths = self.paths.keys()
         return [
             path.name
             for path in all_paths
             if (
                 path.parent not in all_paths
                 and path.is_dir()
-                and self.engine.remote.exists_in_parent(parent, path.name)
+                and self.engine.remote.exists_in_parent(parent, path.name, True)
             )
         ]
 
