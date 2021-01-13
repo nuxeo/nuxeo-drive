@@ -280,7 +280,7 @@ Rectangle {
             // Remove the account
             visible: hasAccounts
             text: qsTr("DISCONNECT") + tl.tr
-            color: red
+            primary: false
             onClicked: accountDeletion.open()
         }
 
@@ -288,8 +288,6 @@ Rectangle {
             // Add a new account
             Layout.alignment: Qt.AlignRight
             text: qsTr("NEW_ENGINE") + tl.tr
-            color: hasAccounts ? mediumGray : nuxeoBlue
-            inverted: !hasAccounts
             onClicked: newAccountPopup.open()
         }
     }

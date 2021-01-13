@@ -3,40 +3,39 @@ import QtQuick.Controls 2.15
 
 Button {
     id: control
-    property string lightColor : nuxeoBlue
-    property string darkColor : darkBlue
     property int radius: 4
     property int borderWidth: 1
     property int size: 12
-    property bool inverted: false
 
-    property string color
-    color: control.hovered ? control.darkColor : control.lightColor
-
+    // Primary or secondary actions
+    property bool primary: true
 
     contentItem: ScaledText {
         id: buttonText
         text: control.text
 
+        leftPadding: 5
+        rightPadding: 5
         opacity: enabled ? 1.0 : 0.3
         anchors {
             centerIn: buttonBackground
         }
-        color: control.inverted ? "white" : control.color
+        color: control.primary ? (control.hovered ? primaryTextHover : primaryText) : (control.hovered ? secondaryTextHover : secondaryText)
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
     }
 
     background: Rectangle {
         id: buttonBackground
-        width: buttonText.width + control.size; height: buttonText.height + control.size
+        width: buttonText.width + control.size
+        height: buttonText.height + control.size
         opacity: enabled ? 1 : 0.3
-        color: control.inverted ? control.color : "transparent"
+        color: control.primary ? (control.hovered ? primaryBgHover : primaryBg) : (control.hovered ? secondaryBgHover : secondaryBg)
         radius: control.radius
 
         border {
             width: borderWidth
-            color: control.color
+            color: control.primary ? buttonBackground.color : buttonText.color
         }
     }
 

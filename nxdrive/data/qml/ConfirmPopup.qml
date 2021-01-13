@@ -46,9 +46,7 @@ NuxeoPopup {
                 NuxeoButton {
                     id: cancelButton
                     text: qsTr("CANCEL") + tl.tr
-                    lightColor: mediumGray
-                    darkColor: darkGray
-                    inverted: true
+                    primary: false
                     Layout.alignment: Qt.AlignLeft
 
                     onClicked: {
@@ -61,8 +59,6 @@ NuxeoPopup {
                 NuxeoButton {
                     id: okButton
                     text: qsTr("CONTINUE") + tl.tr
-                    inverted: true
-                    color: control.okColor
                     Layout.alignment: Qt.AlignRight
 
                     onClicked: {

@@ -54,15 +54,13 @@ NuxeoPopup {
             NuxeoButton {
                 id: cancelButton
                 text: qsTr("CANCEL") + tl.tr
-                lightColor: mediumGray
-                darkColor: darkGray
+                primary: false
                 onClicked: control.close()
             }
 
             NuxeoButton {
                 id: okButton
                 text: qsTr("APPLY") + tl.tr
-                inverted: true
                 onClicked: {
                     var level = logLevel.currentText
                     if (level != control.level) {
