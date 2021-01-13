@@ -76,15 +76,13 @@ NuxeoPopup {
             NuxeoButton {
                 id: cancelButton
                 text: qsTr("CANCEL") + tl.tr
-                lightColor: mediumGray
-                darkColor: darkGray
+                primary: false
                 onClicked: control.close()
             }
 
             NuxeoButton {
                 id: okButton
                 text: qsTr("APPLY") + tl.tr
-                inverted: true
                 onClicked: {
                     var current_channel = api.get_update_channel()
                     var channel = channelType.model.get(channelType.currentIndex).value

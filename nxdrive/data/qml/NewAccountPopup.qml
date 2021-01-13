@@ -78,15 +78,13 @@ NuxeoPopup {
 
             NuxeoButton {
                 text: qsTr("CANCEL") + tl.tr
-                lightColor: mediumGray
-                darkColor: darkGray
+                primary: false
                 onClicked: control.close()
             }
 
             NuxeoButton {
                 id: connectButton
                 enabled: urlInput.acceptableInput && folderInput.text
-                inverted: true
                 text: qsTr("CONNECT") + tl.tr
 
                 onClicked: {

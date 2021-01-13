@@ -98,8 +98,7 @@ NuxeoPopup {
             NuxeoButton {
                 id: cancelButton
                 text: qsTr("CANCEL") + tl.tr
-                lightColor: mediumGray
-                darkColor: darkGray
+                primary: false
                 onClicked: control.close()
             }
 
@@ -110,7 +109,6 @@ NuxeoPopup {
                     proxyType.currentIndex < 2
                     || (isManual && urlInput.text)
                     || (isAuto && pacUrlInput.text)
-                inverted: true
                 onClicked: {
                     // No check is done on setting change as we want to revalidate the existing proxy
                     if (api.set_proxy_settings(

@@ -448,19 +448,24 @@ class Application(QApplication):
         context.setContextProperty("modulesVersionText", versions)
 
         colors = {
-            "darkBlue": "#1F28BF",
             "nuxeoBlue": "#0066FF",
             "nuxeoBlue50": "#7D0066FF",  # nuxeoBlue at 50% opacity (format AARRGGBB)
             "lightBlue": "#00ADED",
             "lightGreen": "#A9D843",
-            "teal": "#73D2CF",
-            "purple": "#8400FF",
             "red": "#C02828",
             "orange": "#FF9E00",
             "darkGray": "#495055",
             "mediumGray": "#7F8284",
             "lightGray": "#BCBFBF",
             "lighterGray": "#F5F5F5",
+            "primaryBg": "#0066FF",
+            "primaryBgHover": "#0052CC",
+            "primaryText": "#FFFFFF",
+            "primaryTextHover": "#FFFFFF",
+            "secondaryBg": "transparent",
+            "secondaryBgHover": "#0052CC",
+            "secondaryText": "#0066FF",
+            "secondaryTextHover": "#FFFFFF",
         }
 
         for name, value in colors.items():

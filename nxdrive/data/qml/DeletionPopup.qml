@@ -65,15 +65,13 @@ NuxeoPopup {
             NuxeoButton {
                 id: cancelButton
                 text: qsTr("CANCEL") + tl.tr
-                lightColor: mediumGray
-                darkColor: darkGray
+                primary: false
                 onClicked: control.close()
             }
 
             NuxeoButton {
                 id: okButton
                 text: qsTr("APPLY") + tl.tr
-                inverted: true
                 onClicked: {
                     var current_value = api.get_deletion_behavior()
                     var value = deletionBehavior.model.get(deletionBehavior.currentIndex).value

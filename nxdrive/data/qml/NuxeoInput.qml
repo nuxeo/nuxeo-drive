@@ -7,7 +7,7 @@ TextInput {
 
     font.pointSize: point_size
     wrapMode: TextInput.Wrap
-    selectionColor: teal
+    selectionColor: primaryBg
     horizontalAlignment: TextInput.AlignLeft
     verticalAlignment: TextInput.AlignVCenter
     selectByMouse: true
