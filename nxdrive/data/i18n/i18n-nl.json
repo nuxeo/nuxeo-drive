@@ -153,7 +153,7 @@
     "FATAL_ERROR_UPDATE_BTN": "Laatste versie downloaden",
     "FATAL_ERROR_UPDATE_TOOLTIP": "Wij raden u aan om te updaten naar de laatste versie van %1",
     "FEATURE_AUTO_UPDATE": "Schakel het update-mechanisme van de applicatie in of uit.",
-    "FEATURE_DIRECT_TRANSFER": "Eenmalige overdracht van content tussen Nuxeo Server en de desktop. Herstart de applicatie om de wijziging toe te passen.",
+    "FEATURE_DIRECT_TRANSFER": "One-time transfer of content between the Nuxeo Server and the desktop.",
     "FEATURE_DIRECT_EDIT": "Bewerk een van de inhoud van het document vanuit hun overzichttabblad, zelfs als ze niet zijn gesynchroniseerd.",
     "FEATURE_S3": "Verbeter de snelheid van uw uploads door gebruik te maken van de AWS-infrastructuur. Zelfs als deze functie is ingeschakeld, is deze functie alleen effectief voor Nuxeo Cloud-klanten en voor Nuxeo-servers waarop de add-on S3 Direct Upload is geïnstalleerd en up-to-date is.",
     "FEEDBACK_LINK": "Ontbreekt er iets? Deel uw feedback hier.",

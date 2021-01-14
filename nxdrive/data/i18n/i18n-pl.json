@@ -153,7 +153,7 @@
     "FATAL_ERROR_UPDATE_BTN": "Pobierz najnowszą wersję",
     "FATAL_ERROR_UPDATE_TOOLTIP": "Zalecamy aktualizację do najnowszej wersji %1",
     "FEATURE_AUTO_UPDATE": "Włącz lub wyłącz mechanizm aktualizacji aplikacji.",
-    "FEATURE_DIRECT_TRANSFER": "One-time transfer of content between the Nuxeo Server and the desktop. You must restart the application to apply the change.",
+    "FEATURE_DIRECT_TRANSFER": "One-time transfer of content between the Nuxeo Server and the desktop.",
     "FEATURE_DIRECT_EDIT": "Edytuj dowolną zawartość dokumentu z zakładki Podsumowania, nawet jeśli nie są one zsynchronizowane.",
     "FEATURE_S3": "Popraw szybkość wysyłania poprzez wykorzystanie infrastruktury AWS. Nawet włączone, ta funkcja będzie skuteczna tylko dla klientów Nuxeo Cloud oraz dla serwerów Nuxeo z zainstalowanym i aktualnym dodatkiem S3 Direct Upload.",
     "FEEDBACK_LINK": "Coś brakuje? Podziel się swoją opinią tutaj.",
