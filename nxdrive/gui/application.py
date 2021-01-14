@@ -90,6 +90,7 @@ from .view import (
     CompletedSessionModel,
     DirectTransferModel,
     EngineModel,
+    FeatureModel,
     FileModel,
     LanguageModel,
     TransferModel,
@@ -256,8 +257,11 @@ class Application(QApplication):
 
         self.api = QMLDriveApi(self)
         self.active_session_model = ActiveSessionModel(self.translate)
+        self.auto_update_feature_model = FeatureModel(Feature.auto_update)
         self.completed_session_model = CompletedSessionModel(self.translate)
+        self.direct_edit_feature_model = FeatureModel(Feature.direct_edit)
         self.direct_transfer_model = DirectTransferModel(self.translate)
+        self.direct_transfer_feature_model = FeatureModel(Feature.direct_transfer)
         self.conflicts_model = FileModel(self.translate)
         self.errors_model = FileModel(self.translate)
         self.engine_model = EngineModel(self)
@@ -353,6 +357,15 @@ class Application(QApplication):
             self._window_root(self.systray_window).updateProgress
         )
 
+        self.manager.featureUpdate.connect(self._update_feature_state)
+
+    def _update_feature_state(self, name: str, value: bool, /) -> None:
+        """Check if the feature model exists from *name* then update it with *value*."""
+        feature = getattr(self, f"{name}_feature_model", None)
+        if not feature:
+            return
+        feature.enabled = value
+
     def _center_on_screen(self, window: QQuickView, /) -> None:
         """Display and center the window on the screen."""
         # Display the window
@@ -429,9 +442,11 @@ class Application(QApplication):
             "CHUNK_SIZE",
             sizeof_fmt(Options.chunk_size * 1024 * 1024, suffix=self.tr("BYTE_ABBREV")),
         )
-        context.setContextProperty("feat_auto_update", Feature.auto_update)
-        context.setContextProperty("feat_direct_edit", Feature.direct_edit)
-        context.setContextProperty("feat_direct_transfer", Feature.direct_transfer)
+        context.setContextProperty("feat_auto_update", self.auto_update_feature_model)
+        context.setContextProperty("feat_direct_edit", self.direct_edit_feature_model)
+        context.setContextProperty(
+            "feat_direct_transfer", self.direct_transfer_feature_model
+        )
         context.setContextProperty("beta_features", Beta)
         context.setContextProperty("disabled_features", DisabledFeatures)
         context.setContextProperty("tl", Translator.singleton)

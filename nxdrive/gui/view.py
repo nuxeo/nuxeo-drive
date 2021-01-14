@@ -794,3 +794,22 @@ class LanguageModel(QAbstractListModel):
 
     def rowCount(self, parent: QModelIndex = QModelIndex(), /) -> int:
         return len(self.languages)
+
+
+class FeatureModel(QObject):
+
+    stateChanged = pyqtSignal()
+
+    def __init__(self, enabled: bool, /) -> None:
+        super().__init__()
+        self._enabled = enabled
+
+    @pyqtProperty(bool, notify=stateChanged)
+    def enabled(self) -> bool:
+        return self._enabled
+
+    @enabled.setter  # type: ignore
+    # See https://github.com/python/mypy/issues/9911
+    def enabled(self, enabled: bool) -> None:
+        self._enabled = enabled
+        self.stateChanged.emit()

@@ -81,6 +81,7 @@ class Manager(QObject):
     resumed = pyqtSignal()
     directEdit = pyqtSignal(str, str, str, str)
     restartNeeded = pyqtSignal()
+    featureUpdate = pyqtSignal(str, bool)
 
     # Direct Transfer statistics
     # args: folderish document, document size
@@ -527,6 +528,7 @@ class Manager(QObject):
         """Set the value of the feature in Options and save changes in config file."""
         Options.set(f"feature_{name}", value, setter="manual")
         save_config({f"feature_{name}": value})
+        self.featureUpdate.emit(name, value)
 
     @pyqtSlot(result=bool)
     def get_auto_update(self) -> bool:
