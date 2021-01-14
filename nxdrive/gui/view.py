@@ -808,7 +808,8 @@ class FeatureModel(QObject):
     def enabled(self) -> bool:
         return self._enabled
 
-    @enabled.setter
-    def enabled(self, enabled) -> None:
+    @enabled.setter  # type: ignore
+    # See https://github.com/python/mypy/issues/9911
+    def enabled(self, enabled: bool) -> None:
         self._enabled = enabled
         self.stateChanged.emit()

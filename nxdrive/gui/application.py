@@ -359,8 +359,8 @@ class Application(QApplication):
 
         self.manager.featureUpdate.connect(self._update_feature_state)
 
-    def _update_feature_state(self, name: str, value: bool) -> None:
-        """Check if the feature model exist from *name* then update it with *value*."""
+    def _update_feature_state(self, name: str, value: bool, /) -> None:
+        """Check if the feature model exists from *name* then update it with *value*."""
         feature = getattr(self, f"{name}_feature_model", None)
         if not feature:
             return
