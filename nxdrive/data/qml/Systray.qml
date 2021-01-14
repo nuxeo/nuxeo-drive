@@ -172,10 +172,10 @@ Rectangle {
                 IconLabel {
                     icon: MdiFont.Icon.directTransfert
                     iconColor: mediumGray
-                    onClicked: feat_direct_transfer ? api.open_direct_transfer(accountSelect.getRole("uid")) : null
+                    onClicked: feat_direct_transfer.enabled ? api.open_direct_transfer(accountSelect.getRole("uid")) : null
                     tooltip: qsTr("CONTEXT_MENU_4") + tl.tr
-                    enabled: feat_direct_transfer
-                    opacity: feat_direct_transfer ? 1.0 : 0.5
+                    enabled: feat_direct_transfer.enabled
+                    opacity: feat_direct_transfer.enabled ? 1.0 : 0.5
                 }
 
                 // Icon 5: sub-menu
