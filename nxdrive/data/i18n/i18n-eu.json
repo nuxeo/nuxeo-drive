@@ -153,7 +153,7 @@
     "FATAL_ERROR_UPDATE_BTN": "Deskargatu azken bertsioa",
     "FATAL_ERROR_UPDATE_TOOLTIP": "%1(r)en azken bertsiora eguneratzea gomendatzen dizugu",
     "FEATURE_AUTO_UPDATE": "Gaitu/desgaitu aplikazioaren eguneratze mekanismoa.",
-    "FEATURE_DIRECT_TRANSFER": "One-time transfer of content between the Nuxeo Server and the desktop. You must restart the application to apply the change.",
+    "FEATURE_DIRECT_TRANSFER": "One-time transfer of content between the Nuxeo Server and the desktop.",
     "FEATURE_DIRECT_EDIT": "Editatu dokumentuaren edozein eduki Laburpena fitxatik, nahiz eta hau sinkronizatuta ez egon.",
     "FEATURE_S3": "Hobetu igoeren abiadura AWS azpiegiturari etekina ateraz. Gaituta ere, eginbide hau Nuxeo Cloud-eko bezeroentzat soilik egongo da martxan eta S3 Direct Upload gehigarria instalatuta eta eguneratuta daukaten Nuxeo zerbitzarietan.",
     "FEEDBACK_LINK": "Zerbait ez dabil ondo? Eman arazoaren berri hemen.",
