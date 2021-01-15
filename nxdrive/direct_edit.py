@@ -653,7 +653,7 @@ class DirectEdit(Worker):
             return True
         except HTTPError as exc:
             if exc.status == codes.INTERNAL_SERVER_ERROR:
-                # INTERNAL_SERVER_ERROR is raised on double lock.
+                # INTERNAL_SERVER_ERROR is raised if the lock was acquired by someone else.
                 if "Document already locked by" in exc.message:
                     return True
             raise exc
