@@ -652,9 +652,11 @@ class DirectEdit(Worker):
         except NotFound:
             return True
         except HTTPError as exc:
-            if exc.status is codes.INTERNAL_SERVER_ERROR:
+            if exc.status == codes.INTERNAL_SERVER_ERROR:
                 # INTERNAL_SERVER_ERROR is raised on double lock.
-                return True
+                locked = re.findall(r"Document already locked by", exc.message)
+                if locked:
+                    return True
             raise exc
         else:
             # Document unlocked ! No need to purge
