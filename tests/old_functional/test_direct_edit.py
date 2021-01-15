@@ -1009,14 +1009,21 @@ class TestDirectEditLock(TwoUsersTest, DirectEditSetup):
         # Lock the document with user 1
         assert self.direct_edit._lock(self.remote, doc_id)
 
+        with ensure_no_exception():
+            # Try to unlock with user 2, should return True for purge
+            assert self.direct_edit._unlock(self.remote_2, doc_id)
+
+    def test_unlock_different_user_error_500(self):
+        filename = "test_unlock_different_user.txt"
+        doc_id = self.remote.make_file_with_no_blob("/", filename)
+
         def unlock(*_, **__):
             """
             Patch Remote.unlock() so that it raises
             a specific HTTPError.
             """
-            raise HTTPError(
-                status=500, message=f"Document already locked by {self.user_1!r}"
-            )
+            err = f"(Mock'ed) Document already locked by {self.user_1}"
+            raise HTTPError(status=500, message=err)
 
         with patch.object(self.remote_2, "unlock", new=unlock), ensure_no_exception():
             # Try to unlock with user 2, should return True for purge
