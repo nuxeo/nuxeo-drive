@@ -1000,3 +1000,15 @@ class TestDirectEditLock(TwoUsersTest, DirectEditSetup):
         with pytest.raises(DocumentAlreadyLocked) as exc:
             self.direct_edit._lock(self.remote_2, doc_id)
         assert str(exc.value) == f"Document already locked by {self.user_1!r}"
+
+    def test_unlock_different_user(self):
+        filename = "test_unlock_different_user.txt"
+        doc_id = self.remote.make_file_with_no_blob("/", filename)
+        self.remote.attach_blob(doc_id, b"Some content.", filename)
+
+        # Lock the document with user 1
+        assert self.direct_edit._lock(self.remote, doc_id)
+
+        # Try to unlock with user 2, should return True for purge
+        with pytest.raises(HTTPError):
+            assert self.direct_edit._unlock(self.remote_2, doc_id)

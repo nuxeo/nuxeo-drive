@@ -645,6 +645,21 @@ class DirectEdit(Worker):
 
         return False
 
+    def _unlock(self, remote: Remote, uid: str, /) -> bool:
+        """Unlock a document. Return True if purge is needed."""
+        try:
+            remote.unlock(uid)
+        except NotFound:
+            return True
+        except HTTPError as exc:
+            if exc.status is codes.INTERNAL_SERVER_ERROR:
+                # INTERNAL_SERVER_ERROR is raised on double lock.
+                return True
+            raise exc
+        else:
+            # Document unlocked ! No need to purge
+            return False
+
     def _handle_lock_queue(self) -> None:
         errors = []
 
@@ -670,12 +685,7 @@ class DirectEdit(Worker):
                     self.autolock.documentLocked.emit(ref.name)
                     continue
 
-                try:
-                    remote.unlock(uid)
-                except NotFound:
-                    purge = True
-                else:
-                    purge = False
+                purge = self._unlock(remote, uid)
 
                 if purge or action == "unlock_orphan":
                     path = self.local.abspath(ref)
