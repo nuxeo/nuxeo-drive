@@ -982,7 +982,7 @@ class TestDirectEditLock(TwoUsersTest, DirectEditSetup):
 
         received = False
         filename = "Mode operatoire.txt"
-        doc_id = self.remote.make_file_with_blob("/", filename, b"Some content.")
+        doc_id = self.remote.make_file_with_no_blob("/", filename)
         self.remote_document_client_2.lock(doc_id)
         self.direct_edit.directEditLocked.connect(locked_file_signal)
         self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
@@ -991,7 +991,6 @@ class TestDirectEditLock(TwoUsersTest, DirectEditSetup):
     def test_double_lock_different_user(self):
         filename = "Mode opératoire².txt"
         doc_id = self.remote.make_file_with_no_blob("/", filename)
-        self.remote.attach_blob(doc_id, b"Some content.", filename)
 
         # Lock the document with user 1
         assert self.direct_edit._lock(self.remote, doc_id)
@@ -1004,7 +1003,6 @@ class TestDirectEditLock(TwoUsersTest, DirectEditSetup):
     def test_unlock_different_user(self):
         filename = "test_unlock_different_user.txt"
         doc_id = self.remote.make_file_with_no_blob("/", filename)
-        self.remote.attach_blob(doc_id, b"Some content.", filename)
 
         # Lock the document with user 1
         assert self.direct_edit._lock(self.remote, doc_id)
