@@ -622,28 +622,33 @@ class DirectEdit(Worker):
         )
         self._upload_queue.put(ref)
 
+    @staticmethod
+    def _guess_user_from_http_error(message: str, /) -> str:
+        """Find the username from the error *message*.
+        *message* is an HTTP error and likely contains the username
+        when it is about document (un)locking issues.
+        """
+        matches = re.findall(r"Document already locked by ([^:]+)", message)
+        user: str = matches[0] if matches else ""
+        return user
+
     def _lock(self, remote: Remote, uid: str, /) -> bool:
         """Lock a document."""
         try:
             remote.lock(uid)
         except HTTPError as exc:
             if exc.status in (codes.CONFLICT, codes.INTERNAL_SERVER_ERROR):
-                # CONFLICT if NXP-24359 is part of the current server HF
-                # else INTERNAL_SERVER_ERROR is raised on double lock.
-                username = re.findall(r"Document already locked by (.+):", exc.message)
-                if username:
-                    if username[0] != remote.user_id:
-                        # Already locked by someone else
-                        raise DocumentAlreadyLocked(username[0])
-                    # Already locked by the same user
+                # INTERNAL_SERVER_ERROR on old servers (<11.1, <2021.0) [missing NXP-24359]
+                user = self._guess_user_from_http_error(exc.message)
+                if user:
+                    if user != remote.user_id:
+                        raise DocumentAlreadyLocked(user)
                     log.debug("You already locked that document!")
                     return False
             raise exc
-        else:
-            # Document locked!
-            return True
 
-        return False
+        # Document locked!
+        return True
 
     def _unlock(self, remote: Remote, uid: str, /) -> bool:
         """Unlock a document. Return True if purge is needed."""
@@ -652,14 +657,16 @@ class DirectEdit(Worker):
         except NotFound:
             return True
         except HTTPError as exc:
-            if exc.status == codes.INTERNAL_SERVER_ERROR:
-                # INTERNAL_SERVER_ERROR is raised if the lock was acquired by someone else.
-                if "Document already locked by" in exc.message:
+            if exc.status in (codes.CONFLICT, codes.INTERNAL_SERVER_ERROR):
+                # INTERNAL_SERVER_ERROR on old servers (< 7.10)
+                user = self._guess_user_from_http_error(exc.message)
+                if user:
+                    log.warning(f"Skipping document unlock as it's locked by {user!r}")
                     return True
             raise exc
-        else:
-            # Document unlocked ! No need to purge
-            return False
+
+        # Document unlocked! No need to purge.
+        return False
 
     def _handle_lock_queue(self) -> None:
         errors = []
