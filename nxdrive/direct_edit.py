@@ -654,8 +654,7 @@ class DirectEdit(Worker):
         except HTTPError as exc:
             if exc.status == codes.INTERNAL_SERVER_ERROR:
                 # INTERNAL_SERVER_ERROR is raised on double lock.
-                locked = re.findall(r"Document already locked by", exc.message)
-                if locked:
+                if "Document already locked by" in exc.message:
                     return True
             raise exc
         else:

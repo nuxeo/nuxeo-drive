@@ -1015,9 +1015,9 @@ class TestDirectEditLock(TwoUsersTest, DirectEditSetup):
             a specific HTTPError.
             """
             raise HTTPError(
-                status=500, message="Document already locked by {self.user_1!r}"
+                status=500, message=f"Document already locked by {self.user_1!r}"
             )
 
-        with patch.object(self.remote_2, "unlock", new=unlock):
+        with patch.object(self.remote_2, "unlock", new=unlock), ensure_no_exception():
             # Try to unlock with user 2, should return True for purge
             assert self.direct_edit._unlock(self.remote_2, doc_id)
