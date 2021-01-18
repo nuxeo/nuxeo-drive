@@ -464,6 +464,7 @@ class Engine(QObject):
             last_local_selected_location,
         )
         if new_folder:
+            self.send_metric("direct_transfer", "new_folder", 1)
             item = self._create_remote_folder(remote_parent_path, new_folder)
             if not item:
                 return
