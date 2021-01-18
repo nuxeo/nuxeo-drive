@@ -255,7 +255,7 @@ class DirectEdit(Worker):
         url = simplify_url(url)
         for engine in self._manager.engines.copy().values():
             bind = engine.get_binder()
-            server_url = bind.server_url.rstrip("/")
+            server_url = simplify_url(bind.server_url.rstrip("/"))
             if server_url == url and (not user or user == bind.username):
                 return engine
 
