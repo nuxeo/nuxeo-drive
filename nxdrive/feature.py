@@ -29,6 +29,6 @@ Feature = SimpleNamespace(
     s3=False,
 )
 
-Beta: List[str] = ["direct_transfer", "s3"]
+Beta: List[str] = ["s3"]
 
 DisabledFeatures: List[str] = []
