@@ -250,12 +250,9 @@ def check_os_version() -> bool:
                 f"macOS 10.12 (Sierra) or newer is required (your version is {version})."
             )
             return False
-    elif WINDOWS:
-        win_ver = sys.getwindowsversion()
-        version_number = (win_ver.major, win_ver.minor)
-        if version_number < (6, 1):
-            fatal_error_win("Windows 7 or newer is required.")
-            return False
+    elif WINDOWS and sys.getwindowsversion()[:2] < (6, 1):
+        fatal_error_win("Windows 7 or newer is required.")
+        return False
 
     return True
 
