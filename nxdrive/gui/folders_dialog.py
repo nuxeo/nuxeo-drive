@@ -1,4 +1,5 @@
 # coding: utf-8
+import webbrowser
 from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
@@ -326,13 +327,28 @@ class FoldersDialog(DialogMixin):
 
         return groupbox
 
+    def _open_duplicates_doc(self, _: bool) -> None:
+        """Open the duplicates management documentation in a browser tab."""
+        webbrowser.open_new_tab(DOC_URL)
+
     def _add_subgroup_duplicate_behavior(self, layout: QHBoxLayout, /) -> None:
         """Add a sub-group for the duplicates behavior option."""
-        label = QLabel(Translator.get("DUPLICATE_BEHAVIOR", values=[DOC_URL]))
+        label = QLabel(Translator.get("DUPLICATE_BEHAVIOR"))
         label.setToolTip(Translator.get("DUPLICATE_BEHAVIOR_TOOLTIP"))
         label.setTextFormat(qt.RichText)
         label.setOpenExternalLinks(True)
+        label.setCursor(qt.WhatsThisCursor)
         layout.addWidget(label)
+
+        btn_info = QPushButton()
+        btn_info.setIcon(self.style().standardIcon(qt.SP_FileDialogInfoView))
+        btn_info.setAutoFillBackground(True)
+        btn_info.clicked.connect(self._open_duplicates_doc)
+        btn_info.setStyleSheet(
+            "border-style: solid;border-color: transparent;border-width: 1px;border-radius: 9px;"
+        )
+        btn_info.setCursor(qt.PointingHandCursor)
+        layout.addWidget(btn_info)
 
         self.cb = QComboBox()
         self.cb.addItem(Translator.get("DUPLICATE_BEHAVIOR_CREATE"), "create")

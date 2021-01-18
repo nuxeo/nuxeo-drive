@@ -47,6 +47,7 @@ MouseFocusReason = Qt.FocusReason.MouseFocusReason
 Ok = QDialogButtonBox.StandardButton.Ok
 PartiallyChecked = Qt.CheckState.PartiallyChecked
 Password = QLineEdit.EchoMode.Password
+PointingHandCursor = Qt.CursorShape.PointingHandCursor
 Popup = Qt.WindowType.Popup
 Question = QMessageBox.Icon.Question
 RejectRole = QMessageBox.ButtonRole.RejectRole
