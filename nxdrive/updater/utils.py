@@ -35,7 +35,7 @@ def auto_updates_state() -> AutoUpdateState:
         return AutoUpdateState.DISABLED
 
     # XXX: Remove that code with NXDRIVE-2364.
-    if WINDOWS and sys.getwindowsversion()[:2] == (6, 2):
+    if WINDOWS and sys.getwindowsversion()[:2] == (6, 1):
         log.info("You are running Windows 7, which is no more supported.")
         return AutoUpdateState.DISABLED
 
