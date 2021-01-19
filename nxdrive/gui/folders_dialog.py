@@ -334,6 +334,18 @@ class FoldersDialog(DialogMixin):
 
         return groupbox
 
+    def _add_info_icon(self, tr_label: str) -> QPushButton:
+        """Create an information icon with a tooltip."""
+        icon = self.style().standardIcon(qt.SP_FileDialogInfoView)
+        button = QPushButton()
+        button.setStyleSheet(self._TOOLTIP_CSS)
+        button.setToolTip(Translator.get(tr_label))
+        button.setIcon(icon)
+        button.setFlat(True)
+        button.setMaximumSize(icon.availableSizes()[0])
+        button.setSizePolicy(qt.Fixed, qt.Fixed)
+        return button
+
     def _open_duplicates_doc(self, _: bool) -> None:
         """Open the duplicates management documentation in a browser tab."""
         webbrowser.open_new_tab(DOC_URL)
@@ -345,17 +357,10 @@ class FoldersDialog(DialogMixin):
         label.setOpenExternalLinks(True)
         layout.addWidget(label)
 
-        btn_info = QPushButton()
-        icon = self.style().standardIcon(qt.SP_FileDialogInfoView)
-        btn_info.setStyleSheet(self._TOOLTIP_CSS)
-        btn_info.setToolTip(Translator.get("DUPLICATE_BEHAVIOR_TOOLTIP"))
-        btn_info.setIcon(icon)
-        btn_info.setFlat(True)
-        btn_info.setMaximumSize(icon.availableSizes()[0])
-        btn_info.setSizePolicy(qt.Fixed, qt.Fixed)
-        btn_info.clicked.connect(self._open_duplicates_doc)
-        btn_info.setCursor(qt.PointingHandCursor)
-        layout.addWidget(btn_info)
+        info_icon = self._add_info_icon("DUPLICATE_BEHAVIOR_TOOLTIP")
+        info_icon.clicked.connect(self._open_duplicates_doc)
+        info_icon.setCursor(qt.PointingHandCursor)
+        layout.addWidget(info_icon)
 
         self.cb = QComboBox()
         self.cb.addItem(Translator.get("DUPLICATE_BEHAVIOR_CREATE"), "create")
