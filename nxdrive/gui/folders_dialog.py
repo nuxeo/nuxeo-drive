@@ -395,10 +395,6 @@ class FoldersDialog(DialogMixin):
 
     def _add_subgroup_new_folder(self, layout: QHBoxLayout, /) -> None:
         """Add a sub-group for the new folder option."""
-        label = QLabel(Translator.get("NEW_REMOTE_FOLDER"))
-        label.setToolTip(Translator.get("NEW_REMOTE_FOLDER_TOOLTIP"))
-        label.setCursor(qt.WhatsThisCursor)
-
         self.new_folder = QLineEdit()
         self.new_folder.setStyleSheet(self.CSS_DISABLED)
         self.new_folder.setReadOnly(True)
@@ -413,7 +409,8 @@ class FoldersDialog(DialogMixin):
             self.new_folder_button.setHidden(True)
             return
 
-        layout.addWidget(label)
+        layout.addWidget(QLabel(Translator.get("NEW_REMOTE_FOLDER")))
+        layout.addWidget(self._add_info_icon("NEW_REMOTE_FOLDER_TOOLTIP"))
         layout.addWidget(self.new_folder)
         layout.addWidget(self.new_folder_button)
 
