@@ -378,21 +378,34 @@ class FoldersDialog(DialogMixin):
         layout.addStretch(0)
 
     def _new_folder_button_action(self) -> None:
-        """Update *new_folder_button* appearance and refresh *button_ok* state."""
-        css = self.CSS
-        label = "OK"
-        if self.new_folder.isReadOnly():
-            read_only_state = False
-            self.new_folder.setFocus(qt.MouseFocusReason)
-        else:
-            css = self.CSS_DISABLED
-            label = "Edit"
-            read_only_state = True
+        """Show a dialog allowing to edit the value of *new_folder*."""
+        dialog = QDialog(parent=self)
+        dialog.setWindowTitle(Translator.get("NEW_REMOTE_FOLDER"))
+        dialog.resize(250, 100)
 
-        self.new_folder.setReadOnly(read_only_state)
-        self.new_folder_button.setText(Translator.get(label))
-        self.new_folder.setStyleSheet(css)
-        self.button_ok_state()
+        layout = QVBoxLayout()
+
+        remote_name = QLineEdit(self.new_folder.text(), parent=dialog)
+        remote_name.setMaxLength(64)
+        remote_name.setValidator(regexp_validator())
+        remote_name.setClearButtonEnabled(True)
+        layout.addWidget(remote_name)
+
+        buttons = QDialogButtonBox()
+        buttons.setStandardButtons(qt.Ok)
+
+        def save_new_remote_name() -> None:
+            """Copy data from *remote_name* into *new_folder*."""
+            name = remote_name.text()
+            self.new_folder.setText(name.strip())
+            self.button_ok_state()
+            dialog.close()
+
+        buttons.accepted.connect(save_new_remote_name)
+        layout.addWidget(buttons)
+
+        dialog.setLayout(layout)
+        dialog.exec_()
 
     def _add_subgroup_new_folder(self, layout: QHBoxLayout, /) -> None:
         """Add a sub-group for the new folder option."""
@@ -400,10 +413,8 @@ class FoldersDialog(DialogMixin):
         self.new_folder.setStyleSheet(self.CSS_DISABLED)
         self.new_folder.setReadOnly(True)
         self.new_folder.setFrame(False)
-        self.new_folder.setMaxLength(64)
-        self.new_folder.setValidator(regexp_validator())
 
-        self.new_folder_button = QPushButton(Translator.get("Edit"), self)
+        self.new_folder_button = QPushButton(Translator.get("SET"), self)
         self.new_folder_button.clicked.connect(self._new_folder_button_action)
 
         if not self.engine.have_folder_upload:
