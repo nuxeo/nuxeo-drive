@@ -388,6 +388,7 @@ class FoldersDialog(DialogMixin):
             css = self.CSS_DISABLED
             label = "Edit"
             read_only_state = True
+            self.new_folder.setText(self.new_folder.text().strip())
 
         self.new_folder.setReadOnly(read_only_state)
         self.new_folder_button.setText(Translator.get(label))
