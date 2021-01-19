@@ -181,15 +181,18 @@ class FolderTreeView(TreeViewMixin):
             # The selection has been cleared
             path = ""
             path_ref = ""
+            title = ""
         else:
             # Get the selected folder's path
             item = self.model().itemFromIndex(index).data(qt.UserRole)
             path = item.get_path()
             path_ref = item.get_id()
+            title = item.get_label()
 
         # Set the remote folder according to the selected folder
         self.parent.remote_folder.setText(path)
         self.parent.remote_folder_ref = path_ref
+        self.parent.remote_folder_title = title
 
         # Set the OK button state depending of the current selection
         self.parent.button_ok_state()

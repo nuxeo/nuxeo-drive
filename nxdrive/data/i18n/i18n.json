@@ -164,7 +164,7 @@
     "FINALIZING": "Finalizing ...",
     "FOLDER_DOES_NOT_EXISTS": "This folder does not exist",
     "FOLDER_DUPLICATES_DETECTED": "Duplicate folder detected",
-    "FOLDER_DUPLICATES_MSG": "The following folder(s) already exist under \"%1\":<ul>%2</ul>Please rename them or process to several transfers within those folders.",
+    "FOLDER_DUPLICATES_MSG": "The following folder(s) already exist under <a href=\"%1\">%2</a>:<ul>%3</ul>Please rename them or process to several transfers within those folders.",
     "FOLDER_PERMISSION_ERROR": "No enough rights to use the local folder",
     "FOLDER_USED": "Folder already used by another account",
     "FREE_DISK_SPACE": "Free disk space",

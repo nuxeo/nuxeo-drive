@@ -245,6 +245,9 @@ class FoldersDialog(DialogMixin):
         self.remote_folder_ref = self.engine.dao.get_config(
             "dt_last_remote_location_ref", default=""
         )
+        self.remote_folder_title = self.engine.dao.get_config(
+            "dt_last_remote_location_title", default=""
+        )
         self.last_remote_location = self.engine.dao.get_config(
             "dt_last_remote_location", default=""
         )
@@ -460,7 +463,9 @@ class FoldersDialog(DialogMixin):
 
         if folder_duplicates:
             self.application.folder_duplicate_warning(
-                folder_duplicates, self.remote_folder.text()
+                folder_duplicates,
+                self.remote_folder_title,
+                self.engine.get_metadata_url(self.remote_folder_ref),
             )
             return
 
@@ -468,6 +473,7 @@ class FoldersDialog(DialogMixin):
             self.paths,
             self.remote_folder.text(),
             self.remote_folder_ref,
+            self.remote_folder_title,
             duplicate_behavior=self.cb.currentData(),
             last_local_selected_location=self.last_local_selected_location,
             new_folder=self.new_folder.text(),
