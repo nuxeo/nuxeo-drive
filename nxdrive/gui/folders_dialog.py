@@ -223,6 +223,13 @@ class FoldersDialog(DialogMixin):
     CSS = "* { border: 1px solid rgba(128, 128, 128, 50); border-radius: 5px; padding: 2px }"
     CSS_DISABLED = CSS + "* { background-color: rgba(0, 0, 0, 0) }"
 
+    # CSS for tooltips
+    _TOOLTIP_CSS = (
+        # Hack to show the entire icon
+        "* { background-color: transparent }"
+        "QToolTip { padding: 10px; color: #000; background-color: #F4F4F4 }"
+    )
+
     def __init__(
         self, application: "Application", engine: Engine, path: Optional[Path], /
     ) -> None:
@@ -334,19 +341,19 @@ class FoldersDialog(DialogMixin):
     def _add_subgroup_duplicate_behavior(self, layout: QHBoxLayout, /) -> None:
         """Add a sub-group for the duplicates behavior option."""
         label = QLabel(Translator.get("DUPLICATE_BEHAVIOR"))
-        label.setToolTip(Translator.get("DUPLICATE_BEHAVIOR_TOOLTIP"))
         label.setTextFormat(qt.RichText)
         label.setOpenExternalLinks(True)
-        label.setCursor(qt.WhatsThisCursor)
         layout.addWidget(label)
 
         btn_info = QPushButton()
-        btn_info.setIcon(self.style().standardIcon(qt.SP_FileDialogInfoView))
-        btn_info.setAutoFillBackground(True)
+        icon = self.style().standardIcon(qt.SP_FileDialogInfoView)
+        btn_info.setStyleSheet(self._TOOLTIP_CSS)
+        btn_info.setToolTip(Translator.get("DUPLICATE_BEHAVIOR_TOOLTIP"))
+        btn_info.setIcon(icon)
+        btn_info.setFlat(True)
+        btn_info.setMaximumSize(icon.availableSizes()[0])
+        btn_info.setSizePolicy(qt.Fixed, qt.Fixed)
         btn_info.clicked.connect(self._open_duplicates_doc)
-        btn_info.setStyleSheet(
-            "border-style: solid;border-color: transparent;border-width: 1px;border-radius: 9px;"
-        )
         btn_info.setCursor(qt.PointingHandCursor)
         layout.addWidget(btn_info)
 
