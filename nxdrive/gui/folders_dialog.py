@@ -1,4 +1,5 @@
 # coding: utf-8
+import webbrowser
 from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
@@ -222,6 +223,13 @@ class FoldersDialog(DialogMixin):
     CSS = "* { border: 1px solid rgba(128, 128, 128, 50); border-radius: 5px; padding: 2px }"
     CSS_DISABLED = CSS + "* { background-color: rgba(0, 0, 0, 0) }"
 
+    # CSS for tooltips
+    _TOOLTIP_CSS = (
+        # Hack to show the entire icon
+        "* { background-color: transparent }"
+        "QToolTip { padding: 10px; color: #000; background-color: #F4F4F4 }"
+    )
+
     def __init__(
         self, application: "Application", engine: Engine, path: Optional[Path], /
     ) -> None:
@@ -326,13 +334,33 @@ class FoldersDialog(DialogMixin):
 
         return groupbox
 
+    def _add_info_icon(self, tr_label: str) -> QPushButton:
+        """Create an information icon with a tooltip."""
+        icon = self.style().standardIcon(qt.SP_FileDialogInfoView)
+        button = QPushButton()
+        button.setStyleSheet(self._TOOLTIP_CSS)
+        button.setToolTip(Translator.get(tr_label))
+        button.setIcon(icon)
+        button.setFlat(True)
+        button.setMaximumSize(icon.availableSizes()[0])
+        button.setSizePolicy(qt.Fixed, qt.Fixed)
+        return button
+
+    def _open_duplicates_doc(self, _: bool) -> None:
+        """Open the duplicates management documentation in a browser tab."""
+        webbrowser.open_new_tab(DOC_URL)
+
     def _add_subgroup_duplicate_behavior(self, layout: QHBoxLayout, /) -> None:
         """Add a sub-group for the duplicates behavior option."""
-        label = QLabel(Translator.get("DUPLICATE_BEHAVIOR", values=[DOC_URL]))
-        label.setToolTip(Translator.get("DUPLICATE_BEHAVIOR_TOOLTIP"))
+        label = QLabel(Translator.get("DUPLICATE_BEHAVIOR"))
         label.setTextFormat(qt.RichText)
         label.setOpenExternalLinks(True)
         layout.addWidget(label)
+
+        info_icon = self._add_info_icon("DUPLICATE_BEHAVIOR_TOOLTIP")
+        info_icon.clicked.connect(self._open_duplicates_doc)
+        info_icon.setCursor(qt.PointingHandCursor)
+        layout.addWidget(info_icon)
 
         self.cb = QComboBox()
         self.cb.addItem(Translator.get("DUPLICATE_BEHAVIOR_CREATE"), "create")
@@ -367,10 +395,6 @@ class FoldersDialog(DialogMixin):
 
     def _add_subgroup_new_folder(self, layout: QHBoxLayout, /) -> None:
         """Add a sub-group for the new folder option."""
-        label = QLabel(Translator.get("NEW_REMOTE_FOLDER"))
-        label.setToolTip(Translator.get("NEW_REMOTE_FOLDER_TOOLTIP"))
-        label.setCursor(qt.WhatsThisCursor)
-
         self.new_folder = QLineEdit()
         self.new_folder.setStyleSheet(self.CSS_DISABLED)
         self.new_folder.setReadOnly(True)
@@ -385,7 +409,8 @@ class FoldersDialog(DialogMixin):
             self.new_folder_button.setHidden(True)
             return
 
-        layout.addWidget(label)
+        layout.addWidget(QLabel(Translator.get("NEW_REMOTE_FOLDER")))
+        layout.addWidget(self._add_info_icon("NEW_REMOTE_FOLDER_TOOLTIP"))
         layout.addWidget(self.new_folder)
         layout.addWidget(self.new_folder_button)
 

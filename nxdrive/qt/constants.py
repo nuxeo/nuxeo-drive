@@ -9,6 +9,7 @@ from .imports import (
     QLineEdit,
     QLocalServer,
     QMessageBox,
+    QSizePolicy,
     QStyle,
     QSystemTrayIcon,
     Qt,
@@ -30,6 +31,7 @@ Checked = Qt.CheckState.Checked
 ConnectedState = QAbstractSocket.SocketState.ConnectedState
 Critical = QMessageBox.Icon.Critical
 Drawer = Qt.WindowType.Drawer
+Fixed = QSizePolicy.Fixed
 FixedPixelWidth = QTextEdit.LineWrapMode.FixedPixelWidth
 FocusOut = QEvent.Type.FocusOut
 FramelessWindowHint = Qt.WindowType.FramelessWindowHint
@@ -47,6 +49,7 @@ MouseFocusReason = Qt.FocusReason.MouseFocusReason
 Ok = QDialogButtonBox.StandardButton.Ok
 PartiallyChecked = Qt.CheckState.PartiallyChecked
 Password = QLineEdit.EchoMode.Password
+PointingHandCursor = Qt.CursorShape.PointingHandCursor
 Popup = Qt.WindowType.Popup
 Question = QMessageBox.Icon.Question
 RejectRole = QMessageBox.ButtonRole.RejectRole
