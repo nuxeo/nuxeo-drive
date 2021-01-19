@@ -380,7 +380,7 @@ class FoldersDialog(DialogMixin):
     def _new_folder_button_action(self) -> None:
         """Show a dialog allowing to edit the value of *new_folder*."""
         dialog = QDialog(parent=self)
-        dialog.setWindowTitle(Translator.get("SET_REMOTE_TITLE"))
+        dialog.setWindowTitle(Translator.get("NEW_REMOTE_FOLDER"))
         dialog.resize(250, 100)
 
         layout = QVBoxLayout()
@@ -388,6 +388,7 @@ class FoldersDialog(DialogMixin):
         remote_name = QLineEdit(self.new_folder.text(), parent=dialog)
         remote_name.setMaxLength(64)
         remote_name.setValidator(regexp_validator())
+        remote_name.setClearButtonEnabled(True)
         layout.addWidget(remote_name)
 
         buttons = QDialogButtonBox()
