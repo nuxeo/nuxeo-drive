@@ -103,6 +103,7 @@ class DirectTransfer:
             {self.file: self.file_size},
             self.ws.path,
             self.ws.uid,
+            self.ws.title,
             duplicate_behavior=duplicate_behavior,
             last_local_selected_location=last_local_selected_location,
             new_folder=new_folder,
@@ -146,6 +147,7 @@ class DirectTransfer:
                 {},
                 self.ws.path,
                 self.ws.uid,
+                self.ws.title,
                 duplicate_behavior="create",
                 last_local_selected_location=None,
                 new_folder=new_folder_name,
@@ -732,6 +734,7 @@ class DirectTransferFolder:
             paths,
             self.ws.path,
             self.ws.uid,
+            self.ws.title,
             duplicate_behavior=duplicate_behavior,
         )
 

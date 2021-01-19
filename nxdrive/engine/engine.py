@@ -414,6 +414,7 @@ class Engine(QObject):
         self,
         remote_path: str,
         remote_ref: str,
+        remote_title: str,
         duplicate_behavior: str,
         last_local_selected_location: Optional[Path],
         /,
@@ -421,6 +422,7 @@ class Engine(QObject):
         """Store last dt session infos into the database for later runs."""
         self.dao.update_config("dt_last_remote_location", remote_path)
         self.dao.update_config("dt_last_remote_location_ref", remote_ref)
+        self.dao.update_config("dt_last_remote_location_title", remote_title)
         self.dao.update_config("dt_last_duplicates_behavior", duplicate_behavior)
         if last_local_selected_location:
             self.dao.update_config(
@@ -448,6 +450,7 @@ class Engine(QObject):
         local_paths: Dict[Path, int],
         remote_parent_path: str,
         remote_parent_ref: str,
+        remote_parent_title: str,
         /,
         *,
         duplicate_behavior: str = "create",
@@ -460,6 +463,7 @@ class Engine(QObject):
         self._save_last_dt_session_infos(
             remote_parent_path,
             remote_parent_ref,
+            remote_parent_title,
             duplicate_behavior,
             last_local_selected_location,
         )
@@ -529,6 +533,7 @@ class Engine(QObject):
         local_paths: Dict[Path, int],
         remote_parent_path: str,
         remote_parent_ref: str,
+        remote_parent_title: str,
         /,
         *,
         duplicate_behavior: str = "create",
@@ -540,6 +545,7 @@ class Engine(QObject):
             local_paths,
             remote_parent_path,
             remote_parent_ref,
+            remote_parent_title,
             duplicate_behavior=duplicate_behavior,
             last_local_selected_location=last_local_selected_location,
             new_folder=new_folder,
@@ -550,6 +556,7 @@ class Engine(QObject):
         local_paths: Dict[Path, int],
         remote_parent_path: str,
         remote_parent_ref: str,
+        remote_parent_title: str,
         /,
         *,
         duplicate_behavior: str = "create",
@@ -564,6 +571,7 @@ class Engine(QObject):
             local_paths,
             remote_parent_path,
             remote_parent_ref,
+            remote_parent_title,
             duplicate_behavior=duplicate_behavior,
             last_local_selected_location=last_local_selected_location,
             new_folder=new_folder,

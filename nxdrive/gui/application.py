@@ -891,7 +891,7 @@ class Application(QApplication):
         self.direct_transfer_window.close()
 
     def folder_duplicate_warning(
-        self, duplicates: List[str], remote_path: str, /
+        self, duplicates: List[str], remote_path: str, remote_url: str, /
     ) -> None:
         """
         Show a dialog to confirm the given transfer cancel.
@@ -902,14 +902,14 @@ class Application(QApplication):
         duplicates_list_html = ""
         for index, value in enumerate(duplicates):
             if index == 4:
-                duplicates_list_html += "<li>...</li>"
+                duplicates_list_html += "<li>…</li>"
                 break
             duplicates_list_html += f"<li>{value}</li>"
 
         msg_box = self.display_warning(
             title,
             "FOLDER_DUPLICATES_MSG",
-            [remote_path, duplicates_list_html],
+            [remote_url, remote_path, duplicates_list_html],
             execute=False,
         )
         spacer = QSpacerItem(600, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
