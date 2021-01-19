@@ -15,16 +15,18 @@ from ..qt.imports import (
     QFileDialog,
     QGroupBox,
     QHBoxLayout,
+    QIcon,
     QLabel,
     QLineEdit,
     QPushButton,
     QRegExp,
     QRegExpValidator,
+    QSize,
     Qt,
     QVBoxLayout,
 )
 from ..translator import Translator
-from ..utils import get_tree_list, sizeof_fmt
+from ..utils import find_icon, get_tree_list, sizeof_fmt
 from .folders_model import FilteredDocuments, FoldersOnly
 from .folders_treeview import DocumentTreeView, FolderTreeView
 
@@ -336,13 +338,12 @@ class FoldersDialog(DialogMixin):
 
     def _add_info_icon(self, tr_label: str) -> QPushButton:
         """Create an information icon with a tooltip."""
-        icon = self.style().standardIcon(qt.SP_FileDialogInfoView)
         button = QPushButton()
         button.setStyleSheet(self._TOOLTIP_CSS)
         button.setToolTip(Translator.get(tr_label))
-        button.setIcon(icon)
+        button.setIcon(QIcon(str(find_icon("info_icon.svg"))))  # 16x16 px
         button.setFlat(True)
-        button.setMaximumSize(icon.availableSizes()[0])
+        button.setMaximumSize(QSize(16, 16))
         button.setSizePolicy(qt.Fixed, qt.Fixed)
         return button
 
