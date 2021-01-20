@@ -686,9 +686,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
 
         self.engine_1.has_rename = False
 
-        with patch.object(
-            self.engine_1.remote, "download_callback", new_callable=callback
-        ):
+        with patch.object(self.engine_1.remote, "download_callback", new=callback):
             file = self.location / "resources" / "files" / "testFile.pdf"
             content = file.read_bytes()
             remote.make_file("/Test folder", "testFile.pdf", content=content)

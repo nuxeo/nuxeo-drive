@@ -182,7 +182,7 @@ class TestRemoteFileSystemClient(OneUserTest):
         scroll_id = None
         while True:
             scroll_res = remote.scroll_descendants(
-                self.workspace_id, scroll_id=scroll_id, batch_size=2
+                self.workspace_id, scroll_id, batch_size=2
             )
             assert isinstance(scroll_res, dict)
             scroll_id = scroll_res["scroll_id"]
