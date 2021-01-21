@@ -460,8 +460,8 @@ def normalized_path(path: Union[bytes, str, Path], /) -> Path:
     """
     if not isinstance(path, Path):
         path = Path(os.fsdecode(path))
-    # NXDRIVE-2319: using os.path.abspath() instead of Path.resolve and Path.absolute().
-    return Path(os.path.abspath(path.expanduser()))
+    # NXDRIVE-2485: using os.path.realpath() instead of Path.resolve() and Path().absolute().
+    return Path(os.path.realpath(path.expanduser()))
 
 
 def normalize_and_expand_path(path: str, /) -> Path:
