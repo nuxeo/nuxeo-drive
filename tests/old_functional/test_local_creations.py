@@ -449,7 +449,7 @@ class TestLocalCreations(OneUserTest):
         info.name = "Bar~.md"
         info.path = Path(self.workspace_title) / "Bar~.md"
         info.filepath = info.filepath.with_name("Bar~.md")
-        engine.dao.insert_local_state(info, parent_path=f"/{self.workspace_title}")
+        engine.dao.insert_local_state(info, f"/{self.workspace_title}")
 
         # Wait and check
         self.wait_sync()
