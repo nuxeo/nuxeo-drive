@@ -564,9 +564,9 @@ class LocalClientMixin:
 
     def get_path(self, target: Path, /) -> Path:
         """ Relative path to the local client from an absolute OS path. """
-        # NXDRIVE-2319: using os.path.abspath() instead of Path.resolve and Path.absolute().
+        # NXDRIVE-2485: using os.path.realpath() instead of Path.resolve() and Path.absolute().
         try:
-            return Path(os.path.abspath(target)).relative_to(self.base_folder)
+            return Path(os.path.realpath(target)).relative_to(self.base_folder)
         except ValueError:
             # From the Path.relative_to() doc: if the operation is not possible
             # (because this is not a subpath of the other path), raise ValueError.
