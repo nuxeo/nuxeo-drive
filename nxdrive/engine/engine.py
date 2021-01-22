@@ -588,7 +588,7 @@ class Engine(QObject):
             self.dao.remove_state_children(doc_pair)
         self.dao.force_remote_creation(doc_pair)
         if doc_pair.folderish:
-            self._remote_watcher.scan_remote(doc_pair)
+            self._remote_watcher.scan_remote(from_state=doc_pair)
 
     def get_metadata_url(self, remote_ref: str, /, *, edit: bool = False) -> str:
         """
