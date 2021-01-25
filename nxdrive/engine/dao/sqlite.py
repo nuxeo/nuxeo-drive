@@ -1666,7 +1666,7 @@ class EngineDAO(ConfigurationDAO):
         return res
 
     def _get_recursive_remote_condition(self, doc_pair: DocPair, /) -> str:
-        path = self._escape(f"{doc_pair.remote_parent_path}/{doc_pair.remote_name}")
+        path = self._escape(f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}")
         return (
             f" WHERE remote_parent_path LIKE '{path}/%'"
             f"    OR remote_parent_path = '{path}'"
