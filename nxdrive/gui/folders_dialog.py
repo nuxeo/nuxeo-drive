@@ -313,6 +313,11 @@ class FoldersDialog(DialogMixin):
         self._add_subgroup_duplicate_behavior(duplicate_sublayout)
         self._add_subgroup_new_folder(new_folder_sublayout)
 
+        # Adjust spacing
+        layout.setSpacing(0)
+        duplicate_sublayout.setSpacing(2)
+        new_folder_sublayout.setSpacing(2)
+
         return groupbox
 
     def _add_group_remote(self) -> QGroupBox:
@@ -429,6 +434,9 @@ class FoldersDialog(DialogMixin):
         layout.addWidget(self.new_folder)
         layout.addWidget(self.new_folder_button)
 
+        # Prevent previous objects to take the whole width, that does not render well for human eyes
+        layout.addStretch(0)
+
     def _find_folders_duplicates(self) -> List[str]:
         """Return a list of duplicate folder(s) found on the remote path."""
         parent = self.remote_folder_ref
@@ -495,7 +503,7 @@ class FoldersDialog(DialogMixin):
 
     def get_tree_view(self) -> FolderTreeView:
         """Render the folders tree."""
-        self.resize(800, 400)
+        self.resize(800, 450)
         client = FoldersOnly(self.engine.remote)
         return FolderTreeView(self, client)
 
