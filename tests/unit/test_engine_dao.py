@@ -1,4 +1,6 @@
 # coding: utf-8
+import os
+from datetime import datetime
 from pathlib import Path
 
 from nxdrive.constants import TransferStatus
@@ -288,6 +290,38 @@ def test_last_sync(engine_dao):
         assert len(files) == 3
         for i in range(3):
             assert files[i].id == ids[i]
+
+
+def test_dao_register_adapter(engine_dao):
+    """Verify *local_path* States to ensure there is no \\ stored."""
+    local_path = Path(os.path.realpath(__file__))
+    parent_path = Path(os.path.dirname(__file__))
+
+    with engine_dao("engine_migration_16.db") as dao:
+        dao._get_write_connection().row_factory = None
+        c = dao._get_write_connection().cursor()
+
+        c.execute(
+            "INSERT INTO States "
+            "(last_local_updated, local_digest, local_path, "
+            "local_parent_path, local_name, folderish, size, "
+            "local_state, remote_state, pair_state) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, 'created', 'unknown', ?)",
+            (
+                datetime.now(),
+                "mocked",
+                local_path,
+                parent_path,
+                local_path.name,
+                False,
+                500,
+                "unknown",
+            ),
+        )
+
+        row = c.execute("SELECT local_path FROM States WHERE id = ?", (3,)).fetchone()
+        assert row
+        assert "\\" not in row[0]
 
 
 def test_migration_db_v1(engine_dao):

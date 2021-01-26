@@ -127,10 +127,10 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
 
 def _adapt_path(path: Path, /) -> str:
     """Adapt a Path object to str before insertion into database."""
-    path_str = f"{path}"
-    if path_str == ".":
-        path_str = "/"
-    elif not path.is_absolute():
+    if path == ROOT:
+        return "/"
+    path_str = path.as_posix()
+    if not path.is_absolute():
         path_str = f"/{path_str}"
     return path_str
 
