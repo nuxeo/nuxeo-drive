@@ -127,10 +127,10 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
 
 def _adapt_path(path: Path, /) -> str:
     """Adapt a Path object to str before insertion into database."""
-    path_str = f"{path}"
-    if path_str == ".":
-        path_str = "/"
-    elif not path.is_absolute():
+    if path == ROOT:
+        return "/"
+    path_str = path.as_posix()
+    if not path.is_absolute():
         path_str = f"/{path_str}"
     return path_str
 
@@ -647,7 +647,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 17
+        return 18
 
     def _migrate_state(self, cursor: Cursor, /) -> None:
         try:
@@ -917,6 +917,16 @@ class EngineDAO(ConfigurationDAO):
             cursor.execute("DROP TABLE Downloads_backup;")
 
             self.store_int(SCHEMA_VERSION, 17)
+
+        if version < 18:
+            # Replace all backslashes from local paths in States.
+            if WINDOWS:
+                cursor.execute(
+                    "UPDATE States SET local_path = REPLACE(local_path, '\\', '/'),"
+                    " local_parent_path = REPLACE(local_parent_path, '\\', '/')"
+                )
+
+            self.store_int(SCHEMA_VERSION, 18)
 
     def _create_table(
         self, cursor: Cursor, name: str, /, *, force: bool = False

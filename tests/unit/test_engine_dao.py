@@ -1,4 +1,6 @@
 # coding: utf-8
+import os
+from datetime import datetime
 from pathlib import Path
 
 from nxdrive.constants import TransferStatus
@@ -290,6 +292,40 @@ def test_last_sync(engine_dao):
             assert files[i].id == ids[i]
 
 
+def test_dao_register_adapter(engine_dao):
+    """Non-regression test for NXDRIVE-2489: ensure local paths do not contain backslashes."""
+    local_path = Path(os.path.realpath(__file__))
+
+    with engine_dao("engine_migration_16.db") as dao:
+        dao._get_write_connection().row_factory = None
+        c = dao._get_write_connection().cursor()
+
+        c.execute(
+            "INSERT INTO States "
+            "(last_local_updated, local_digest, local_path, "
+            "local_parent_path, local_name, folderish, size, "
+            "local_state, remote_state, pair_state) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, 'created', 'unknown', ?)",
+            (
+                datetime.now(),
+                "mocked",
+                local_path,
+                local_path.parent,
+                local_path.name,
+                False,
+                500,
+                "unknown",
+            ),
+        )
+
+        row = c.execute(
+            "SELECT local_path, local_parent_path FROM States WHERE id = ?", (3,)
+        ).fetchone()
+        assert row
+        assert "\\" not in row[0]
+        assert "\\" not in row[1]
+
+
 def test_migration_db_v1(engine_dao):
     with engine_dao("engine_migration.db") as dao:
         c = dao._get_read_connection().cursor()
@@ -385,3 +421,21 @@ def test_migration_db_v16(engine_dao):
         assert not session.completed_on
         assert session.created_on
         assert session.planned_items == 1
+
+
+@windows_only
+def test_migration_db_v18(engine_dao):
+    """Verify States after migration from v17 to v18."""
+    with engine_dao("engine_migration_18.db") as dao:
+        dao._get_write_connection().row_factory = None
+        c = dao._get_write_connection().cursor()
+
+        rows = c.execute(
+            "SELECT local_path, local_parent_path FROM States",
+        ).fetchall()
+
+        assert rows
+        for row in rows:
+            if row[0].startswith("/SYNC"):
+                assert "\\" not in row[0]
+                assert "\\" not in row[1]
