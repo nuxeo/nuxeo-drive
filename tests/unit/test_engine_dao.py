@@ -421,3 +421,20 @@ def test_migration_db_v16(engine_dao):
         assert not session.completed_on
         assert session.created_on
         assert session.planned_items == 1
+
+
+def test_migration_db_v18(engine_dao):
+    """Verify States after migration from v17 to v18."""
+    with engine_dao("engine_migration_18.db") as dao:
+        dao._get_write_connection().row_factory = None
+        c = dao._get_write_connection().cursor()
+
+        rows = c.execute(
+            "SELECT local_path, local_parent_path FROM States",
+        ).fetchall()
+
+        assert rows
+        for row in rows:
+            if row[0].startswith("/SYNC"):
+                assert "\\" not in row[0]
+                assert "\\" not in row[1]

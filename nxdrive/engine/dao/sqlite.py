@@ -647,7 +647,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 17
+        return 18
 
     def _migrate_state(self, cursor: Cursor, /) -> None:
         try:
@@ -917,6 +917,15 @@ class EngineDAO(ConfigurationDAO):
             cursor.execute("DROP TABLE Downloads_backup;")
 
             self.store_int(SCHEMA_VERSION, 17)
+
+        if version < 18:
+            # Replace all backslashs from local paths in States.
+            cursor.execute(
+                "UPDATE States SET local_path = REPLACE(local_path, '\\', '/'),"
+                " local_parent_path = REPLACE(local_parent_path, '\\', '/')"
+            )
+
+            self.store_int(SCHEMA_VERSION, 18)
 
     def _create_table(
         self, cursor: Cursor, name: str, /, *, force: bool = False
