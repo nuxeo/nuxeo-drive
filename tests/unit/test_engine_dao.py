@@ -423,6 +423,7 @@ def test_migration_db_v16(engine_dao):
         assert session.planned_items == 1
 
 
+@windows_only
 def test_migration_db_v18(engine_dao):
     """Verify States after migration from v17 to v18."""
     with engine_dao("engine_migration_18.db") as dao:
