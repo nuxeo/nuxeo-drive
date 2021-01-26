@@ -919,11 +919,12 @@ class EngineDAO(ConfigurationDAO):
             self.store_int(SCHEMA_VERSION, 17)
 
         if version < 18:
-            # Replace all backslashs from local paths in States.
-            cursor.execute(
-                "UPDATE States SET local_path = REPLACE(local_path, '\\', '/'),"
-                " local_parent_path = REPLACE(local_parent_path, '\\', '/')"
-            )
+            # Replace all backslashes from local paths in States.
+            if WINDOWS:
+                cursor.execute(
+                    "UPDATE States SET local_path = REPLACE(local_path, '\\', '/'),"
+                    " local_parent_path = REPLACE(local_parent_path, '\\', '/')"
+                )
 
             self.store_int(SCHEMA_VERSION, 18)
 
