@@ -820,40 +820,37 @@ class Processor(EngineWorker):
                     "Compare parents: "
                     f"{fs_item_info.parent_uid!r} | {parent_pair.remote_ref!r}"
                 )
+
                 # Document exists on the server
                 if (
                     parent_pair.remote_ref
                     and parent_pair.remote_ref == fs_item_info.parent_uid
-                    and self.local.is_equal_digests(
-                        doc_pair.local_digest, fs_item_info.digest, doc_pair.local_path
-                    )
                     and (
                         doc_pair.local_name == info.name
                         or doc_pair.local_state == "resolved"
                     )
                 ):
-                    if overwrite and info.folderish:
-                        self._synchronize_locally_moved(doc_pair)
-                    else:
-                        log.warning(
-                            "Document is already on the server, should not create: "
-                            f"{doc_pair!r} | {fs_item_info!r}"
-                        )
-                    self.dao.synchronize_state(doc_pair)
-                    return
-                # Document exists on the server but is different
-                elif (
-                    parent_pair.remote_ref
-                    and parent_pair.remote_ref == fs_item_info.parent_uid
-                    and not self.local.is_equal_digests(
+                    same_digests = self.local.is_equal_digests(
                         doc_pair.local_digest, fs_item_info.digest, doc_pair.local_path
                     )
-                    and (
-                        doc_pair.local_name == info.name
-                        or doc_pair.local_state == "resolved"
-                    )
-                ):
-                    if doc_pair.pair_state == "locally_resolved":
+                    if same_digests:
+                        if overwrite and info.folderish:
+                            self._synchronize_locally_moved(doc_pair)
+                        else:
+                            log.warning(
+                                "Document is already on the server, should not create: "
+                                f"{doc_pair!r} | {fs_item_info!r}"
+                            )
+                            remote_parent_path = f"{parent_pair.remote_parent_path}/{parent_pair.remote_ref}"
+                            self.dao.update_remote_state(
+                                doc_pair,
+                                fs_item_info,
+                                remote_parent_path=remote_parent_path,
+                                queue=False,
+                                versioned=False,
+                            )
+                        self.dao.synchronize_state(doc_pair)
+                    elif doc_pair.pair_state == "locally_resolved":
                         if fs_item_info.name != doc_pair.local_name:
                             fs_item_info = self.remote.rename(
                                 fs_item_info.uid, doc_pair.local_name
@@ -874,6 +871,13 @@ class Processor(EngineWorker):
                         if refreshed and overwrite:
                             self._synchronize_locally_modified(refreshed)
                     return
+            except NotFound:
+                # The document has an invalid remote ID.
+                # It happens when locally untrashing a folder
+                # containing files. Just ignore the error and proceed
+                # to the document creation.
+                log.info(f"Removing xattr on {doc_pair.local_path!r}")
+                self.local.remove_remote_id(doc_pair.local_path)
             except HTTPError as e:
                 # undelete will fail if you don't have the rights
                 if e.status not in {401, 403}:
@@ -882,13 +886,6 @@ class Processor(EngineWorker):
                     "Create new document as current known document "
                     f"is not accessible: {remote_ref}"
                 )
-            except NotFound:
-                # The document has an invalid remote ID.
-                # It happens when locally untrashing a folder
-                # containing files. Just ignore the error and proceed
-                # to the document creation.
-                log.info(f"Removing xattr on {doc_pair.local_path!r}")
-                self.local.remove_remote_id(doc_pair.local_path)
 
         parent_ref: str = parent_pair.remote_ref
         if parent_pair.remote_can_create_child:
