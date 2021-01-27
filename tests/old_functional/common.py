@@ -239,7 +239,10 @@ class TwoUsersTest(TestCase):
 
             # Generate a report if there are exceptions (failures or unexpected errors)
             if result._excinfo:
-                self.generate_report(result._excinfo)
+                try:
+                    self.generate_report(result._excinfo)
+                except Exception:
+                    log.warning("Report generation failed", exc_info=True)
 
             with suppress(Exception):
                 self.app.quit()
