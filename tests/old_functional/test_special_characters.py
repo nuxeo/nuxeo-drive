@@ -1,4 +1,8 @@
 # coding: utf-8
+import pytest
+
+from nxdrive.constants import MAC
+
 from ..markers import not_windows
 from .common import OneUserTest
 
@@ -40,6 +44,7 @@ class TestSpecialCharacters(OneUserTest):
         assert info.name == new_file_name
 
     @not_windows(reason="Explorer prevents using those characters")
+    @pytest.mark.xfail(reason="NXDRIVE-2498", condition=MAC)
     def test_rename_local(self):
         local = self.local_1
         remote = self.remote_1
