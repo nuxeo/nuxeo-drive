@@ -1021,6 +1021,7 @@ class DirectTransferFolder:
         uploads = list(engine.dao.get_dt_uploads())
         assert not uploads
 
+    @pytest.mark.xfail(reason="NXDRIVE-2495")
     def test_pause_resume_session_non_chunked(self):
         """
         Test the session pause and resume system for sessions containing non-chunked files.
