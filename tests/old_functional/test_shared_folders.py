@@ -120,7 +120,7 @@ class TestSharedFolders(TwoUsersTest):
 
         # First checks
         file_pair_state = self.engine_1.dao.get_state_from_local(
-            Path("/Folder01/File01.txt")
+            Path("/Folder01") / "File01.txt"
         )
         assert file_pair_state is not None
         file_remote_ref = file_pair_state.remote_ref
