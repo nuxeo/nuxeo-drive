@@ -134,7 +134,7 @@ def _path(path: Path) -> str:
     posix_path = path.as_posix()
     if posix_path == ".":  # Note: ROOT.as_posix() and Path().as_posix() will return "."
         return "/"
-    if posix_path[0] != "/":
+    if posix_path[0] != "/" and not path.is_absolute():
         return f"/{posix_path}"
     return posix_path
 
