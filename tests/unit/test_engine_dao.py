@@ -393,7 +393,7 @@ def test_migration_db_v15(engine_dao):
         assert last_session
 
         # The 4 dt items should be linked to the session
-        doc_pairs = dao.get_local_children(local_parent_path)
+        doc_pairs = dao.get_local_children(Path(local_parent_path))
         assert len(doc_pairs) == 4
         for pair in doc_pairs:
             assert pair.session == last_session.uid

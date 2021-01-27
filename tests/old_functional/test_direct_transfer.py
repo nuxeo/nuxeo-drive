@@ -588,7 +588,7 @@ class DirectTransfer:
         self.no_uploads()
 
         # There is no state to handle in the database
-        assert not dao.get_local_children("/")
+        assert not dao.get_local_children(Path("/"))
 
     def test_server_error_upload(self):
         """Test a server error happening after chunks were uploaded, at the Blob.AttachOnDocument operation call."""
@@ -859,8 +859,7 @@ class DirectTransferFolder:
             with ensure_no_exception():
                 self.direct_transfer(root_folder)
                 planned = [
-                    self.engine_1.dao.get_state_from_local(str(item))
-                    for item in created
+                    self.engine_1.dao.get_state_from_local(item) for item in created
                 ]
                 assert len(planned) == len(created)
                 assert all(dt["session"] == x + 1 for dt in planned)

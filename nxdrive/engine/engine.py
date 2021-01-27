@@ -1,6 +1,7 @@
 # coding: utf-8
 import datetime
 import os
+import os.path
 import shutil
 from contextlib import suppress
 from dataclasses import dataclass
@@ -482,8 +483,8 @@ class Engine(QObject):
         all_paths = local_paths.keys()
         items = [
             (
-                path,
-                path.parent,
+                path.as_posix(),
+                path.parent.as_posix(),
                 path.name,
                 path.is_dir(),
                 size,
@@ -502,7 +503,7 @@ class Engine(QObject):
             f" ... database_batch_size is {bsize}, duplicate_behavior is {duplicate_behavior!r}"
         )
         current_max_row_id = -1
-        description = items[0][0].name
+        description = os.path.basename(items[0][0])
         if len(items) > 1:
             description = f"{description} (+{len(items) - 1:,})"
         session_uid = self.dao.create_session(

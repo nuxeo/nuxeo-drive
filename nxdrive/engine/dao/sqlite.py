@@ -1202,6 +1202,7 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             pair_state = PAIR_STATES[("created", "unknown")]
+            local_parent_path = parent_path.as_posix() if parent_path else None
 
             c.execute(
                 "INSERT INTO States "
@@ -1212,8 +1213,8 @@ class EngineDAO(ConfigurationDAO):
                 (
                     info.last_modification_time,
                     digest,
-                    info.path,
-                    parent_path,
+                    info.path.as_posix(),
+                    local_parent_path,
                     info.path.name,
                     info.folderish,
                     info.size,
@@ -1221,12 +1222,16 @@ class EngineDAO(ConfigurationDAO):
                 ),
             )
             row_id = c.lastrowid
-            parent = c.execute(
-                "SELECT * FROM States WHERE local_path = ?", (parent_path,)
-            ).fetchone()
+            parent = (
+                c.execute(
+                    "SELECT * FROM States WHERE local_path = ?", (local_parent_path,)
+                ).fetchone()
+                if local_parent_path
+                else None
+            )
 
             # Don't queue if parent is not yet created
-            if (parent is None and parent_path is None) or (
+            if (parent is None and local_parent_path is None) or (
                 parent and parent.pair_state != "locally_created"
             ):
                 self._queue_pair_state(row_id, info.folderish, pair_state)
@@ -1431,7 +1436,7 @@ class EngineDAO(ConfigurationDAO):
             log.debug(f"Increasing version to {row.version + 1} for pair {row!r}")
 
         with self.lock:
-            parent_path = info.path.parent
+            parent_path = info.path.parent.as_posix()
             con = self._get_write_connection()
             c = con.cursor()
             c.execute(
@@ -1449,7 +1454,7 @@ class EngineDAO(ConfigurationDAO):
                 (
                     info.last_modification_time,
                     row.local_digest,
-                    info.path,
+                    info.path.as_posix(),
                     parent_path,
                     info.path.name,
                     row.local_state,
@@ -1596,7 +1601,7 @@ class EngineDAO(ConfigurationDAO):
     def get_local_children(self, path: Path, /) -> DocPairs:
         c = self._get_read_connection().cursor()
         return c.execute(
-            "SELECT * FROM States WHERE local_parent_path = ?", (path,)
+            "SELECT * FROM States WHERE local_parent_path = ?", (path.as_posix(),)
         ).fetchall()
 
     def get_states_from_partial_local(
@@ -1748,11 +1753,15 @@ class EngineDAO(ConfigurationDAO):
             # Don't need to update the path as it is refresh later
             c.execute(
                 "UPDATE States SET local_parent_path = ? WHERE id = ?",
-                (new_path, doc_pair.id),
+                (new_path.as_posix(), doc_pair.id),
             )
 
     def update_remote_parent_path_dt(
-        self, local_parent_path: str, remote_parent_path: str, remote_parent_ref: str, /
+        self,
+        local_parent_path: Path,
+        remote_parent_path: str,
+        remote_parent_ref: str,
+        /,
     ) -> None:
         """
         Used in Direct Transfer to update remote_parent_path and remote_state of a folder's children.
@@ -1762,14 +1771,14 @@ class EngineDAO(ConfigurationDAO):
             doc_pairs = c.execute(
                 "SELECT * FROM States WHERE local_state = 'direct' AND remote_state = 'todo'"
                 " AND local_parent_path = ?",
-                (local_parent_path,),
+                (local_parent_path.as_posix(),),
             ).fetchall()
 
             c.execute(
                 "UPDATE States SET remote_state = 'unknown', remote_parent_path = ?,"
                 " remote_parent_ref = ?, processor = 0"
                 " WHERE local_state = 'direct' AND remote_state = 'todo' AND local_parent_path = ?",
-                (remote_parent_path, remote_parent_ref, local_parent_path),
+                (remote_parent_path, remote_parent_ref, local_parent_path.as_posix()),
             )
 
             for doc_pair in doc_pairs:
@@ -1828,7 +1837,7 @@ class EngineDAO(ConfigurationDAO):
     def get_state_from_local(self, path: Path, /) -> Optional[DocPair]:
         c = self._get_read_connection().cursor()
         return c.execute(
-            "SELECT * FROM States WHERE local_path = ?", (path,)
+            "SELECT * FROM States WHERE local_path = ?", (path.as_posix(),)
         ).fetchone()
 
     def insert_remote_state(
@@ -1868,8 +1877,8 @@ class EngineDAO(ConfigurationDAO):
                     info.digest,
                     info.folderish,
                     info.last_contributor,
-                    local_path,
-                    local_parent_path,
+                    local_path.as_posix(),
+                    local_parent_path.as_posix(),
                     pair_state,
                     info.name,
                     info.creation_time,
@@ -1898,7 +1907,7 @@ class EngineDAO(ConfigurationDAO):
                 " WHERE remote_parent_ref = ?"
                 "    OR local_parent_path = ?"
                 "   AND " + self._get_to_sync_condition(),
-                (row.remote_ref, row.local_path),
+                (row.remote_ref, row.local_path.as_posix()),
             ).fetchall()
             if children:
                 log.info(f"Queuing {len(children)} children of {row}")
@@ -2104,7 +2113,7 @@ class EngineDAO(ConfigurationDAO):
                         row.pair_state,
                         datetime.utcnow(),
                         row.id,
-                        row.local_path,
+                        row.local_path.as_posix(),
                         row.remote_name,
                         row.remote_ref,
                         row.remote_parent_ref,

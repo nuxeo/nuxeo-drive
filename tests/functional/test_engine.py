@@ -65,7 +65,7 @@ def test_delete_doc(manager_factory, tmp):
 
         if synced:
             # Edit pair states to mimic a synced document
-            doc_pair = dao.get_state_from_local(f"/{name}")
+            doc_pair = dao.get_state_from_local(Path(f"/{name}"))
             assert doc_pair is not None
             assert doc_pair.local_name == name
             doc_pair.local_state = "synchronized"
@@ -94,11 +94,11 @@ def test_delete_doc(manager_factory, tmp):
 
         # Test a file not synced
         engine.delete_doc(doc_pair("unsynced", synced=False))
-        assert dao.get_state_from_local("/unsynced") is None
+        assert dao.get_state_from_local(Path("/unsynced")) is None
 
         # Test UNSYNC a synced file:
         engine.delete_doc(doc_pair("action unsync"), mode=DelAction.UNSYNC)
-        assert dao.get_state_from_local("/action unsync") is None
+        assert dao.get_state_from_local(Path("/action unsync")) is None
 
         # Test UNSYNC a synced file with remote paths, to prevent such error:
         #   TypeError: unsupported operand type(s) for +: 'NoneType' and 'str'
@@ -108,12 +108,12 @@ def test_delete_doc(manager_factory, tmp):
             doc_pair("action unsync with paths", with_rpaths=True),
             mode=DelAction.UNSYNC,
         )
-        assert dao.get_state_from_local("/action unsync with paths") is None
+        assert dao.get_state_from_local(Path("/action unsync with paths")) is None
         assert len(dao.get_filters()) == 1
 
         # Test DELETE a synced file
         engine.delete_doc(doc_pair("action delete"), mode=DelAction.DEL_SERVER)
-        assert dao.get_state_from_local("/action delete") is not None
+        assert dao.get_state_from_local(Path("/action delete")) is not None
 
         # Test no mode set
         engine.delete_doc(doc_pair("no mode set"))

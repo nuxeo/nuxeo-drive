@@ -240,7 +240,7 @@ class TestSynchronization(OneUserTest):
         self.wait_sync(wait_for_async=True)
 
         dao = self.engine_1.dao
-        children = dao.get_local_children("/")
+        children = dao.get_local_children(Path("/"))
         assert children
         doc_pair = children[0]
         assert doc_pair.export()
@@ -603,7 +603,7 @@ class TestSynchronization(OneUserTest):
         assert file_names == [filename]
 
     def test_synchronize_error_remote(self):
-        path = f"/{self.workspace_title}/test.odt"
+        path = Path(f"/{self.workspace_title}") / "test.odt"
         remote = self.remote_document_client_1
         dao = self.engine_1.dao
 
