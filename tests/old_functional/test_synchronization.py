@@ -574,7 +574,7 @@ class TestSynchronization(OneUserTest):
         remote.update(file, properties={"note:note": "new content"})
         self.wait_sync(wait_for_async=True, enforce_errors=False)
         assert local.get_content(f"/{foldername}/{filename}") == b"new content"
-        file_state = self.get_dao_state_from_engine_1(f"/{foldername}/{filename}")
+        file_state = self.get_dao_state_from_engine_1(f"{foldername}/{filename}")
         assert file_state.pair_state == "synchronized"
         assert file_state.local_digest == file_state.remote_digest
 

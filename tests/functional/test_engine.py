@@ -57,15 +57,16 @@ def test_delete_doc(manager_factory, tmp):
     manager, engine = manager_factory()
     dao = engine.dao
 
-    def doc_pair(name: str, synced: bool = True, with_rpaths: bool = False) -> str:
+    def doc_pair(name: str, synced: bool = True, with_rpaths: bool = False) -> Path:
         """Create a valid doc pair in the database and return the local_path field."""
         # Craft the local file
         finfo = FileInfo(Path("."), Path(name), False, datetime.now())
-        dao.insert_local_state(finfo, None)
+        dao.insert_local_state(finfo, Path(name).parent)
+        local_path = Path(f"/{name}")
 
         if synced:
             # Edit pair states to mimic a synced document
-            doc_pair = dao.get_state_from_local(Path(f"/{name}"))
+            doc_pair = dao.get_state_from_local(local_path)
             assert doc_pair is not None
             assert doc_pair.local_name == name
             doc_pair.local_state = "synchronized"
@@ -86,7 +87,7 @@ def test_delete_doc(manager_factory, tmp):
                 doc_pair.remote_parent_path = "remote-aprent-path"
                 dao.update_remote_state(doc_pair, rinfo)
 
-        return f"/{name}"
+        return local_path
 
     with manager:
         # Test a file without associated doc pair

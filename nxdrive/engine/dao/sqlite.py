@@ -126,22 +126,20 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
 
 
 def _path(path: Path) -> str:
-    """Return the string needed to work with data from the database from a given *path*."""
+    """
+    Return the string needed to work with data from the database from a given *path*.
+    It is used across the whole file and also in the SQLite adapter to convert
+    a Path object to str before insertion into database.
+    """
     posix_path = path.as_posix()
-    return "/" if posix_path in ("", ".") else posix_path
-
-
-def _adapt_path(path: Path, /) -> str:
-    """Adapt a Path object to str before insertion into database."""
-    if path == ROOT:
+    if posix_path == ".":  # Note: ROOT.as_posix() and Path().as_posix() will return "."
         return "/"
-    path_str = _path(path)
-    if not path.is_absolute():
-        path_str = f"/{path_str}"
-    return path_str
+    if posix_path[0] != "/":
+        return f"/{posix_path}"
+    return posix_path
 
 
-register_adapter(WindowsPath if WINDOWS else PosixPath, _adapt_path)
+register_adapter(WindowsPath if WINDOWS else PosixPath, _path)
 
 
 class AutoRetryCursor(Cursor):
