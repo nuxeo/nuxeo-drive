@@ -357,7 +357,7 @@ class DirectEdit(Worker):
                             )
 
                             # Remove the faultive tmp file
-                            file_out.unlink()
+                            file_out.unlink(missing_ok=True)
 
                             # Wait before the next try
                             delay = 5 * (try_count + 1)
