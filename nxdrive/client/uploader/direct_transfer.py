@@ -71,7 +71,7 @@ class DirectTransferUploader(BaseUploader):
                 {"title": doc_pair.local_name},
             )
             self.dao.update_remote_parent_path_dt(
-                str(file_path), item["path"], item["uid"]
+                file_path.as_posix(), item["path"], item["uid"]
             )
         else:
             # Only replace the document if the user wants to
