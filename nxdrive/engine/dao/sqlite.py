@@ -1616,11 +1616,11 @@ class EngineDAO(ConfigurationDAO):
     ) -> DocPairs:
         c = self._get_read_connection().cursor()
 
+        local_path = _path(path)
         if path == ROOT:
-            local_path = "/%"
+            local_path += "%"
         else:
-            suffix = "/%" if strict else "%"
-            local_path = f"/{_path(path)}{suffix}"
+            local_path += "/%" if strict else "%"
 
         return c.execute(
             "SELECT * FROM States WHERE local_path LIKE ?", (local_path,)
@@ -1677,7 +1677,7 @@ class EngineDAO(ConfigurationDAO):
         return state
 
     def _get_recursive_condition(self, doc_pair: DocPair, /) -> str:
-        path = self._escape(f"/{_path(doc_pair.local_path)}")
+        path = self._escape(_path(doc_pair.local_path))
         res = (
             f" WHERE (local_parent_path LIKE '{path}/%'"
             f"        OR local_parent_path = '{path}')"
@@ -1701,8 +1701,8 @@ class EngineDAO(ConfigurationDAO):
         (including starting and ending slashes).
         """
 
-        old = f"/{_path(old_path)}/"
-        new = f"/{_path(new_path)}/"
+        old = f"{_path(old_path)}/"
+        new = f"{_path(new_path)}/"
         log.debug(f"Updating all local paths from {old!r} to {new!r}")
 
         with self.lock:
@@ -1746,7 +1746,7 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             if doc_pair.folderish:
-                path = self._escape(f"/{_path(new_path / new_name)}")
+                path = self._escape(_path(new_path / new_name))
                 count = len(self._escape(_path(doc_pair.local_path)))
                 query = (
                     "UPDATE States"
@@ -2046,7 +2046,7 @@ class EngineDAO(ConfigurationDAO):
                     row.remote_state,
                     row.pair_state,
                     datetime.utcnow(),
-                    f"/{_path(row.local_path)}%",
+                    f"{_path(row.local_path)}%",
                 ),
             )
 
