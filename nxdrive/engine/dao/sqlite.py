@@ -1202,6 +1202,9 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             pair_state = PAIR_STATES[("created", "unknown")]
+
+            # parent_path is None when registering a new sync root
+            local_path = info.path.as_posix() if parent_path else "/"
             local_parent_path = parent_path.as_posix() if parent_path else None
 
             c.execute(
@@ -1213,7 +1216,7 @@ class EngineDAO(ConfigurationDAO):
                 (
                     info.last_modification_time,
                     digest,
-                    info.path.as_posix(),
+                    local_path,
                     local_parent_path,
                     info.path.name,
                     info.folderish,
@@ -1599,9 +1602,10 @@ class EngineDAO(ConfigurationDAO):
         ).fetchall()
 
     def get_local_children(self, path: Path, /) -> DocPairs:
+        local_parent_path = "/" if path == ROOT else path.as_posix()
         c = self._get_read_connection().cursor()
         return c.execute(
-            "SELECT * FROM States WHERE local_parent_path = ?", (path.as_posix(),)
+            "SELECT * FROM States WHERE local_parent_path = ?", (local_parent_path,)
         ).fetchall()
 
     def get_states_from_partial_local(
@@ -1835,9 +1839,10 @@ class EngineDAO(ConfigurationDAO):
             c.execute("DELETE FROM States " + condition)
 
     def get_state_from_local(self, path: Path, /) -> Optional[DocPair]:
+        local_path = "/" if path == ROOT else path.as_posix()
         c = self._get_read_connection().cursor()
         return c.execute(
-            "SELECT * FROM States WHERE local_path = ?", (path.as_posix(),)
+            "SELECT * FROM States WHERE local_path = ?", (local_path,)
         ).fetchone()
 
     def insert_remote_state(
