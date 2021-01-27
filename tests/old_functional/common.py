@@ -706,7 +706,7 @@ class TwoUsersTest(TestCase):
                ex: /Folder is converted to /{{workspace_title}}/Folder).
         :return: The pair from dao of engine 1 according to the path.
         """
-        abs_path = f"/{self.workspace_title}{path}"
+        abs_path = Path(f"/{self.workspace_title}") / path
         return self.engine_1.dao.get_state_from_local(abs_path)
 
     def set_readonly(self, user: str, doc_path: str, grant: bool = True):

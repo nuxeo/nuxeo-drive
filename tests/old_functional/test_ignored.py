@@ -1,4 +1,6 @@
 # coding: utf-8
+from pathlib import Path
+
 from .common import OneUserTest
 
 
@@ -17,7 +19,7 @@ class TestIgnored(OneUserTest):
         self.wait_sync(wait_for_async=True)
         assert local.exists("/abcde.txt")
         # Check we only have one file locally
-        assert len(dao.get_local_children("/")) == 1
+        assert len(dao.get_local_children(Path("/"))) == 1
         # Check that there is an error
         errors = dao.get_errors()
         assert len(errors) == 1

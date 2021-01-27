@@ -240,7 +240,7 @@ class TestSynchronization(OneUserTest):
         self.wait_sync(wait_for_async=True)
 
         dao = self.engine_1.dao
-        children = dao.get_local_children("/")
+        children = dao.get_local_children(Path("/"))
         assert children
         doc_pair = children[0]
         assert doc_pair.export()
@@ -574,7 +574,7 @@ class TestSynchronization(OneUserTest):
         remote.update(file, properties={"note:note": "new content"})
         self.wait_sync(wait_for_async=True, enforce_errors=False)
         assert local.get_content(f"/{foldername}/{filename}") == b"new content"
-        file_state = self.get_dao_state_from_engine_1(f"/{foldername}/{filename}")
+        file_state = self.get_dao_state_from_engine_1(f"{foldername}/{filename}")
         assert file_state.pair_state == "synchronized"
         assert file_state.local_digest == file_state.remote_digest
 
@@ -603,7 +603,7 @@ class TestSynchronization(OneUserTest):
         assert file_names == [filename]
 
     def test_synchronize_error_remote(self):
-        path = f"/{self.workspace_title}/test.odt"
+        path = Path(f"/{self.workspace_title}") / "test.odt"
         remote = self.remote_document_client_1
         dao = self.engine_1.dao
 

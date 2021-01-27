@@ -415,7 +415,7 @@ class TestReadOnly(OneUserTest):
         assert local.exists("/foo")
 
         # Check can_delete flag in pair state
-        state = self.get_dao_state_from_engine_1("/foo")
+        state = self.get_dao_state_from_engine_1("foo")
         assert not state.remote_can_delete
 
         # Locally rename the folder

@@ -70,9 +70,7 @@ class DirectTransferUploader(BaseUploader):
                 doc_pair.remote_parent_path,
                 {"title": doc_pair.local_name},
             )
-            self.dao.update_remote_parent_path_dt(
-                str(file_path), item["path"], item["uid"]
-            )
+            self.dao.update_remote_parent_path_dt(file_path, item["path"], item["uid"])
         else:
             # Only replace the document if the user wants to
             overwrite = doc_pair.duplicate_behavior == "override"

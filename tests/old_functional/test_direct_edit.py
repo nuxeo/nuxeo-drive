@@ -893,7 +893,7 @@ class MixinTests(DirectEditSetup):
         )
 
         # Filter the root to remove local data
-        ws_path = f"/{self.engine_1.dao.get_state_from_local('/').remote_ref}"
+        ws_path = f"/{self.engine_1.dao.get_state_from_local(Path('/')).remote_ref}"
         self.engine_1.add_filter(ws_path)
         self.wait_sync()
         assert not self.local.get_children_info("/")
