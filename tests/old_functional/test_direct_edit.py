@@ -644,6 +644,7 @@ class MixinTests(DirectEditSetup):
         with patch.object(Blob, "from_dict", new=from_dict), ensure_no_exception():
             self._direct_edit_update(doc_id, filename, content_updated, url=url)
 
+    @pytest.mark.xfail(reason="NXDRIVE-2496")
     def test_blob_with_non_standard_digest_and_standard_algo(self):
         """It should be possible to edit a document having a blob with a non-standard digest
         but with a standard algorithm.
