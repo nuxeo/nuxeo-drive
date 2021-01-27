@@ -5,6 +5,8 @@ from pathlib import Path
 from shutil import copyfile
 from unittest.mock import Mock, patch
 
+import pytest
+
 from nxdrive.constants import WINDOWS
 from nxdrive.engine.engine import Engine
 from nxdrive.options import Options
@@ -671,6 +673,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         assert local.exists("/Test folder/testFile2.pdf")
         assert not local.exists("/Test folder/testFile.pdf")
 
+    @pytest.mark.xfail(reason="NXDRIVE-2494")
     def test_synchronize_remote_rename_while_download_file(self):
         local = self.local_1
         remote = self.remote_document_client_1
