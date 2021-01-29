@@ -88,9 +88,9 @@ coverage==5.3.1 \
 entrypoints==0.3 \
     --hash=sha256:589f874b313739ad35be6e0cd7efde2a4e9b6fea91edcc34e58ecbb8dbe56d19
     # via flake8
-execnet==1.7.1 \
-    --hash=sha256:cacb9df31c9680ec5f95553976c4da484d407e85e41c83cb812aa014f0eddc50 \
-    --hash=sha256:d4efd397930c46415f62f8a31388d6be4f27a91d7550eb79bc64a756e0056547
+execnet==1.8.0 \
+    --hash=sha256:7a13113028b1e1cc4c6492b28098b3c6576c9dccc7973bfe47b342afadafb2ac \
+    --hash=sha256:b73c5565e517f24b62dea8a5ceac178c661c4309d3aa0c3e420856c072c411b4
     # via pytest-xdist
 faker==5.6.1 \
     --hash=sha256:e4d981700628a6c428372c3664f22f8e85cd42199bb47434a0c0785176a8efa5 \
