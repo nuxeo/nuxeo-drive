@@ -19,7 +19,7 @@ Rectangle {
 
         ScaledText {
             text: qsTr("SECTION_FEATURES_DESC") + tl.tr
-            color: mediumGray
+            color: secondaryText
             width: parent.width
             Layout.bottomMargin: 20
             Layout.maximumWidth: 570
@@ -47,7 +47,7 @@ Rectangle {
                     }
                     ScaledText {
                         text: qsTr(features_layout.features_lst[index][2]) + tl.tr
-                        color: mediumGray
+                        color: secondaryText
                         width: parent.width
                         Layout.maximumWidth: 570
                         Layout.leftMargin: 33
@@ -58,7 +58,7 @@ Rectangle {
         }
         ScaledText {
             text: qsTr("SECTION_FEATURES_BETA") + tl.tr
-            color: mediumGray
+            color: secondaryText
             width: parent.width
             Layout.topMargin: 40
             Layout.maximumWidth: 570

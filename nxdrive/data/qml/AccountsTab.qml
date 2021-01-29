@@ -30,7 +30,7 @@ Rectangle {
         }
 
         // User selection
-        ScaledText { text: qsTr("USERNAME") + tl.tr; color: mediumGray }
+        ScaledText { text: qsTr("USERNAME") + tl.tr; color: label }
         GridLayout {
             columns: 2
 
@@ -76,7 +76,7 @@ Rectangle {
                 property string forceUi: force_ui || wui
 
                 // Server URL
-                ScaledText { text: qsTr("URL") + tl.tr; color: mediumGray }
+                ScaledText { text: qsTr("URL") + tl.tr; color: label }
                 Link {
                     text: server_url
                     onClicked: api.open_remote_server(accountSelect.getRole("uid"))
@@ -85,7 +85,7 @@ Rectangle {
                 // Server UI (Web-UI or JSF)
                 ScaledText {
                     text: qsTr("SERVER_UI") + tl.tr
-                    color: mediumGray
+                    color: label
                     Layout.alignment: Qt.AlignTop
                 }
                 ColumnLayout {
@@ -134,7 +134,7 @@ Rectangle {
                 ScaledText {
                     text: qsTr("ENGINE_FOLDER") + tl.tr
                     visible: sync_enabled
-                    color: mediumGray
+                    color: label
                 }
                 Link {
                     text: folder
@@ -145,7 +145,7 @@ Rectangle {
                 // Disk space details
                 ScaledText {
                     text: qsTr("STORAGE") + tl.tr;
-                    color: mediumGray
+                    color: label
                 }
                 Rectangle {
                     height: 20
@@ -160,14 +160,14 @@ Rectangle {
                         property var disk_info: api.get_disk_space_info_to_width(accountSelect.getRole("uid"), folder, width)
 
                         RectangleTooltip {
-                            color: nuxeoBlue;
+                            color: interactiveLink;
                             width: parent.disk_info[2]
                             height: parent.height
                             tooltip: "%1\n%2".arg(APP_NAME).arg(api.get_drive_disk_space(accountSelect.getRole("uid")))
                         }
 
                         RectangleTooltip {
-                            color: lightGray;
+                            color: disabledText;
                             width: parent.disk_info[1]
                             height: parent.height
                             tooltip: qsTr("OTHER") + "\n%1".arg(api.get_used_space_without_synced(accountSelect.getRole("uid"), folder)) + tl.tr
@@ -185,7 +185,7 @@ Rectangle {
                 ScaledText {
                     text: qsTr("SELECTIVE_SYNC") + tl.tr
                     visible: sync_enabled
-                    color: mediumGray
+                    color: label
                     Layout.alignment: Qt.AlignTop
                 }
                 ColumnLayout {
@@ -195,7 +195,7 @@ Rectangle {
                         text: qsTr("SELECTIVE_SYNC_DESCR") + tl.tr
                         Layout.maximumWidth: 400
                         wrapMode: Text.WordWrap
-                        color: mediumGray
+                        color: secondaryText
                     }
                     Link {
                         text: qsTr("SELECT_SYNC_FOLDERS") + tl.tr
@@ -207,7 +207,7 @@ Rectangle {
                 ScaledText {
                     visible: sync_enabled
                     text: qsTr("CONFLICTS_AND_ERRORS") + tl.tr
-                    color: mediumGray
+                    color: label
                 }
                 Link {
                     visible: sync_enabled

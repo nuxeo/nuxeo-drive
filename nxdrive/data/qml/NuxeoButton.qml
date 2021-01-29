@@ -20,7 +20,7 @@ Button {
         anchors {
             centerIn: buttonBackground
         }
-        color: control.primary ? (control.hovered ? primaryTextHover : primaryText) : (control.hovered ? secondaryTextHover : secondaryText)
+        color: control.primary ? (control.hovered ? primaryButtonTextHover : primaryButtonText) : (control.hovered ? secondaryButtonTextHover : secondaryButtonText)
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
     }

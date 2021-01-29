@@ -29,12 +29,13 @@ Rectangle {
             ColumnLayout {
                 ScaledText {
                     text: nuxeoVersionText
+                    color: primaryText
                     font {
                         pointSize: point_size * 1.8
                         weight: Font.Bold
                     }
                 }
-                ScaledText { text: modulesVersionText; color: mediumGray }
+                ScaledText { text: modulesVersionText; color: secondaryText }
             }
         }
 
@@ -73,6 +74,7 @@ Rectangle {
             width: parent.width
             wrapMode: Text.WordWrap
             font.family: "Courier"
+            color: primaryText
             text: "The source code of Nuxeo Drive is available under the LGPL 2.1." +
                   "https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html\n\n" +
                   "Nuxeo Drive depends on those components:" +

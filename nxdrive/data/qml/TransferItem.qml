@@ -70,7 +70,7 @@ Rectangle {
                 IconLabel {
                     icon: MdiFont.Icon.close
                     tooltip: qsTr("CANCEL") + tl.tr
-                    iconColor: "red"
+                    iconColor: iconFailure
                     enabled: !(status == "CANCELLED" || finalizing)
                     onClicked: {
                         application.confirm_cancel_transfer(engine, uid, name)

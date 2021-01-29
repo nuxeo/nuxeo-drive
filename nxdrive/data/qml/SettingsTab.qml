@@ -5,8 +5,6 @@ TabButton {
     id: control
     property int barIndex
     property int index
-    property string color
-    property string underlineColor: nuxeoBlue
     property bool activated: barIndex == index
 
     height: 50
@@ -14,12 +12,12 @@ TabButton {
 
     contentItem:  ScaledText {
         text: control.text
+        color: activated ? focusedTab: unfocusedTab
         font{
-            weight: Font.Bold
+            weight: activated ? 600 : 400
             pointSize: point_size * 1.2
         }
         opacity: enabled ? 1.0 : 0.3
-        color: activated ? control.underlineColor : control.color
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
     }
@@ -31,7 +29,7 @@ TabButton {
         HorizontalSeparator {
             height: activated ? 2 : 1; radius: 1
             anchors.bottom: parent.bottom
-            color: activated ? control.underlineColor : lightGray
+            color: activated ? focusedUnderline: unfocusedUnderline
         }
     }
 

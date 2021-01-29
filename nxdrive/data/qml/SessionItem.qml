@@ -20,7 +20,7 @@ Rectangle {
         // The border rectangle
         Rectangle {
             border.width: 1
-            border.color: lightGray
+            border.color: grayBorder
             radius: 10
 
             Layout.fillWidth: true
@@ -45,6 +45,7 @@ Rectangle {
                         Layout.fillWidth: true
                         elide: Text.ElideMiddle
                         font.pointSize: point_size * 1.2
+                        color: primaryText
                     }
 
                     // Remote link
@@ -55,6 +56,7 @@ Rectangle {
                         Layout.topMargin: 12
 
                         // Folder icon and link
+                        // mettre bonne couleur
                         IconLink {
                             text: remote_path
                             elide: Text.ElideMiddle
@@ -74,15 +76,15 @@ Rectangle {
                         IconLabel {
                             visible: status == "COMPLETED" || status == "CANCELLED"
                             icon: status == "COMPLETED" ? MdiFont.Icon.check : MdiFont.Icon.close
-                            iconColor: status == "COMPLETED" ? "green" : "red"
+                            iconColor: status == "COMPLETED" ? iconSuccess : iconFailure
                         }
                         ScaledText {
                             text: progress
-                            color: darkGray
+                            color: secondaryText
                         }
                         ScaledText {
                             text: (active ? created_on : completed_on) + tl.tr
-                            color: darkGray
+                            color: secondaryText
                         }
                     }
                 }

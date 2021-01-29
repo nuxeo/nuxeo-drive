@@ -5,7 +5,7 @@ ScaledText {
 
     signal clicked()
 
-    color: nuxeoBlue
+    color: interactiveLink
 
     horizontalAlignment: Text.AlignLeft
     verticalAlignment: Text.AlignVCenter

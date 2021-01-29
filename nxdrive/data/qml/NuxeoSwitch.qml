@@ -6,9 +6,9 @@ Switch {
     id: control
 
     property bool enabled: true
-    property string checkedColor: enabled ? nuxeoBlue : lightGray
-    property string uncheckedColor: enabled ? mediumGray : lightGray
-    property string textColor: enabled ? darkGray : lightGray
+    property string checkedColor: enabled ? switchOnEnabled : switchDisabled
+    property string uncheckedColor: enabled ? switchOffEnabled : switchDisabled
+    property string textColor: enabled ? primaryText : disabledText
     property int size: 8
     property int leftOffset: size * 4 + spacing
     leftPadding: leftOffset

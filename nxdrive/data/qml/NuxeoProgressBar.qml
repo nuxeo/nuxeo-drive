@@ -6,8 +6,8 @@ ProgressBar {
     from: 0
     to: 100
 
-    property string color: lightBlue
-    property string bgColor: lighterGray
+    property string color: progressFilled
+    property string bgColor: progressEmpty
     property string bgColor2: "lightgoldenrodyellow"
     property string text: ""
     property int cursorSize: 20

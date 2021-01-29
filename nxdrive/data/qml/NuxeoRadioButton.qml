@@ -3,7 +3,7 @@ import QtQuick.Controls 2.15
 
 RadioButton {
     id: control
-    property string color: nuxeoBlue
+    property string color: interactiveLink
     property int size: 4
     property int leftOffset: size * 4 + spacing
     leftPadding: leftOffset
@@ -15,7 +15,7 @@ RadioButton {
         y: parent.height / 2 - height / 2
         radius: control.size * 2
         border {
-            color: control.checked ? control.color : mediumGray
+            color: control.checked ? control.color : secondaryText
             width: 2
         }
 
@@ -34,6 +34,7 @@ RadioButton {
         text: control.text
         opacity: enabled ? 1.0 : 0.3
         verticalAlignment: Text.AlignVCenter
+        color: primaryText
     }
 
     MouseArea {
