@@ -92,9 +92,9 @@ execnet==1.8.0 \
     --hash=sha256:7a13113028b1e1cc4c6492b28098b3c6576c9dccc7973bfe47b342afadafb2ac \
     --hash=sha256:b73c5565e517f24b62dea8a5ceac178c661c4309d3aa0c3e420856c072c411b4
     # via pytest-xdist
-faker==5.6.1 \
-    --hash=sha256:e4d981700628a6c428372c3664f22f8e85cd42199bb47434a0c0785176a8efa5 \
-    --hash=sha256:818cce31afc6482d8371df783a282b025acc464e7e03d743eb4645c2bf33e3c8
+faker==5.8.0 \
+    --hash=sha256:0783729c61501d52efea2967aff6e6fcb8370f0f6b5a558f2a81233642ae529a \
+    --hash=sha256:6b2995ffff6c2b02bc5daad96f8c24c021e5bd491d9d53d31bcbd66f348181d4
 flake8==3.8.4 \
     --hash=sha256:749dbbd6bfd0cf1318af27bf97a14e28e5ff548ef8e5b1566ccfb25a11e7c839 \
     --hash=sha256:aadae8761ec651813c24be05c6f7b4680857ef6afaae4651a4eccaef97ce6c3b
