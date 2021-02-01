@@ -11,7 +11,7 @@ def create_tree(tmp):
     root = Path(("\\\\?\\" if WINDOWS else "") + str(tmp()))
 
     path = root
-    for i in range(5):
+    for _ in range(5):
         # From the third subfolder, the path is not trashable from Explorer
         path = path / filename
     path = path.with_suffix(".txt")
