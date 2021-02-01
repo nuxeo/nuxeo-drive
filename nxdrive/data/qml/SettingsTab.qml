@@ -12,7 +12,7 @@ TabButton {
 
     contentItem:  ScaledText {
         text: control.text
-        color: activated ? focusedTab: unfocusedTab
+        color: activated ? focusedTab : unfocusedTab
         font{
             weight: activated ? 600 : 400
             pointSize: point_size * 1.2
@@ -29,7 +29,7 @@ TabButton {
         HorizontalSeparator {
             height: activated ? 2 : 1; radius: 1
             anchors.bottom: parent.bottom
-            color: activated ? focusedUnderline: unfocusedUnderline
+            color: activated ? focusedUnderline : unfocusedUnderline
         }
     }
 

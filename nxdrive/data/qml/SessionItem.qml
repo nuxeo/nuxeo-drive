@@ -56,7 +56,6 @@ Rectangle {
                         Layout.topMargin: 12
 
                         // Folder icon and link
-                        // mettre bonne couleur
                         IconLink {
                             text: remote_path
                             elide: Text.ElideMiddle
