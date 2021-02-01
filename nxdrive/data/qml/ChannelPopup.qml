@@ -61,7 +61,6 @@ NuxeoPopup {
         ConfirmPopup {
             id: useAlpha
             message: qsTr("CHANNEL_CONFIRM_DANGEROUS") + tl.tr
-            okColor: red
             onOk: {
                 var channel = channelType.model.get(channelType.currentIndex).value
                 api.set_update_channel(channel)

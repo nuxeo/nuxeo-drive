@@ -42,7 +42,7 @@ Rectangle {
             // Account icon
             IconLabel {
                 icon: MdiFont.Icon.accountCircle
-                iconColorDisabled: nuxeoBlue
+                iconColorDisabled: primaryBg
                 enabled: false
             }
 
@@ -150,7 +150,7 @@ Rectangle {
                 Rectangle {
                     height: 20
                     width: 350
-                    border.color: nuxeoBlue
+                    border.color: progressFilled
                     border.width: 1
                     radius: 2
                     Row {
@@ -297,7 +297,6 @@ Rectangle {
     ConfirmPopup {
         id: accountDeletion
         message: qsTr("CONFIRM_DISCONNECT") + tl.tr
-        okColor: red
 
         // Global variable to be able to get the checkbox state from ConfirmPopup.qml
         property bool purge_local_files: false

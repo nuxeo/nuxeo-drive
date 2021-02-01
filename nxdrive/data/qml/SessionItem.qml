@@ -100,7 +100,7 @@ Rectangle {
                     // Pause/Resume icon
                     IconLabel {
                         icon: paused ? MdiFont.Icon.play : MdiFont.Icon.pause
-                        iconColor: nuxeoBlue
+                        iconColor: primaryIcon
                         tooltip: qsTr(paused ? "RESUME" : "SUSPEND") + tl.tr
                         onClicked: {
                             enabled = false

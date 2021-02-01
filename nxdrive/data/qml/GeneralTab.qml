@@ -145,7 +145,7 @@ Rectangle {
             id: addonInstallLink
             text: qsTr(enabled ? "INSTALL_ADDONS" : "ADDONS_INSTALLED") + tl.tr
             enabled: !osi.addons_installed()
-            color: enabled ? nuxeoBlue : mediumGray
+            color: enabled ? interactiveLink : disabledText
             visible: isFrozen && WINDOWS
             onClicked: {
                 addonInstallLink.enabled = !osi.install_addons()
