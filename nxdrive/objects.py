@@ -20,12 +20,12 @@ from .utils import get_date_from_sqlite, get_timestamp_from_date
 
 # Settings passed to Manager.bind_server()
 Binder = namedtuple(
-    "binder", ["username", "password", "token", "url", "no_check", "no_fscheck"]
+    "Binder", ["username", "password", "token", "url", "no_check", "no_fscheck"]
 )
 
 # Direct Edit details, returned from DirectEdit._extract_edit_info()
 DirectEditDetails = namedtuple(
-    "details", ["uid", "engine", "digest_func", "digest", "xpath", "editing"]
+    "DirectEditDetails", ["uid", "engine", "digest_func", "digest", "xpath", "editing"]
 )
 
 # List of filters from the database
