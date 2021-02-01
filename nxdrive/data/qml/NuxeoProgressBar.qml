@@ -65,7 +65,7 @@ ProgressBar {
             anchors.left: parent.left
             padding: 5
             text: control.text
-            style: Text.Outline
+            style: Text.Sunken
             styleColor: lighterGray
         }
     }
