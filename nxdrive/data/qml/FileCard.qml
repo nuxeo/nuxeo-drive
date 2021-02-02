@@ -122,7 +122,7 @@ ShadowRectangle {
                     id: openRemoteLink
                     text: qsTr("OPEN_REMOTE") + tl.tr
                     visible: type == "conflict"
-                    onClicked: api.open_remote(engineUid, fileData.remote_ref, fileData.remote_name)
+                    onClicked: api.open_remote_document(engineUid, fileData.remote_ref, fileData.remote_name)
                 }
 
                 // Resolution options popup list
