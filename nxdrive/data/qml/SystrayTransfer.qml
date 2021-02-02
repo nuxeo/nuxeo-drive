@@ -73,7 +73,7 @@ Rectangle {
 
         NuxeoProgressBar {
             id: progressBar
-            color: finalizing ? progressIndeterminate : progressFilled
+            color: progressFilled
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignRight
             Layout.leftMargin: 15
