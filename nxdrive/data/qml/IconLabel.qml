@@ -6,8 +6,8 @@ import QtQuick 2.15
     property string icon
     property bool enabled: true
     property string tooltip
-    property string iconColor: mediumGray
-    property string iconColorDisabled: lightGray
+    property string iconColor: secondaryIcon
+    property string iconColorDisabled: disabledIcon
 
     signal clicked()
 

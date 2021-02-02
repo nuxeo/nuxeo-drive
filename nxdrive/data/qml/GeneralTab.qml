@@ -59,14 +59,14 @@ Rectangle {
 
             Layout.topMargin: 5
 
-            ScaledText { text: qsTr("LANGUAGE_SELECT") + tl.tr; color: darkGray }
+            ScaledText { text: qsTr("LANGUAGE_SELECT") + tl.tr; color: primaryText }
 
             NuxeoComboBox {
                 id: languageBox
                 model: languageModel
                 textRole: "name"
 
-                TextMetrics { id: textMetrics; font: languageBox.font }
+                TextMetrics { id: textMetrics; font: languageBox.font; }
                 Component.onCompleted: {
                     // Compute the dropdown list width based on the longest item.
                     for (var i = 0; i < languageModel.rowCount(); i++) {
@@ -85,12 +85,14 @@ Rectangle {
             Layout.preferredWidth: parent.width * 0.9
             Layout.topMargin: 20
             Layout.bottomMargin: 20
+            color: unfocusedUnderline
         }
 
         ScaledText {
             text: qsTr("ADVANCED_SETTINGS") + tl.tr
             font.pointSize: point_size * 1.4
             Layout.bottomMargin: 15
+            color: primaryText
         }
 
         Link {
@@ -143,7 +145,7 @@ Rectangle {
             id: addonInstallLink
             text: qsTr(enabled ? "INSTALL_ADDONS" : "ADDONS_INSTALLED") + tl.tr
             enabled: !osi.addons_installed()
-            color: enabled ? nuxeoBlue : mediumGray
+            color: enabled ? interactiveLink : disabledText
             visible: isFrozen && WINDOWS
             onClicked: {
                 addonInstallLink.enabled = !osi.install_addons()

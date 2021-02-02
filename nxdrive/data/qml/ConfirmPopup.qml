@@ -4,7 +4,6 @@ import QtQuick.Layouts 1.15
 NuxeoPopup {
     id: control
     property string message
-    property string okColor: nuxeoBlue
 
     signal ok()
     signal cancel()

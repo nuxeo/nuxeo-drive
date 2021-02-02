@@ -6,7 +6,7 @@ import QtQuick.Window 2.15
 Rectangle {
     id: conflicts
     anchors.fill: parent
-    color: lighterGray
+    color: uiBackground
 
     property string engineUid: ""
 
@@ -46,7 +46,7 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            color: lighterGray
+            color: uiBackground
 
             ColumnLayout {
                 id: content
@@ -117,7 +117,7 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            color: lighterGray
+            color: uiBackground
 
             ListView {
                 id: ignoredsList

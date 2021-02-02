@@ -6,19 +6,18 @@ ProgressBar {
     from: 0
     to: 100
 
-    property string color: lightBlue
-    property string bgColor: lighterGray
-    property string bgColor2: "lightgoldenrodyellow"
+    property string color: progressFilled
+    property string bgColor: progressEmpty
     property string text: ""
     property int cursorSize: 20
-    property int duration: 15000
+    property int duration: 1500
     // https://doc.qt.io/qt-5/qml-qtquick-animator.html
     property int easingType: Easing.OutInBack
 
     background: Rectangle {
         width: control.width
         height: control.height
-        color: control.indeterminate ? control.bgColor2 : control.bgColor
+        color: control.bgColor
     }
 
     contentItem: Item {
@@ -65,8 +64,8 @@ ProgressBar {
             anchors.left: parent.left
             padding: 5
             text: control.text
-            style: Text.Outline
-            styleColor: lighterGray
+            style: Text.Sunken
+            styleColor: uiBackground
         }
     }
 }

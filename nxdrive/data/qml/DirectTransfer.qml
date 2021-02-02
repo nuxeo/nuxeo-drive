@@ -113,6 +113,7 @@ Rectangle {
                 visible: !ActiveSessionModel.count_no_shadow
                 text: qsTr("NO_ACTIVE_SESSION") + tl.tr
                 font.pointSize: point_size * 1.2
+                color: primaryText
             }
 
             Layout.fillWidth: true

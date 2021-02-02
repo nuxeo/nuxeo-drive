@@ -6,14 +6,14 @@ ToolTip {
     delay: 600
     contentItem: ScaledText {
         text: control.text
-        color: "#FFFFFF"
+        color: lightTheme
         verticalAlignment: Text.AlignVCenter
         horizontalAlignment: Text.AlignHCenter
     }
 
     background: Rectangle {
-        border.color: "#848484"
-        color: "#848484"
+        border.color: grayBorder
+        color: grayBorder
         radius: 3
     }
 }

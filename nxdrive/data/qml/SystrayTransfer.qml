@@ -32,6 +32,7 @@ Rectangle {
                     Layout.fillWidth: true
                     font.pointSize: point_size * 1.2
                     elide: Text.ElideRight
+                    color: primaryText
                 }
 
                 RowLayout {
@@ -39,13 +40,14 @@ Rectangle {
                     IconLabel {
                         size: 12
                         icon: download ? MdiFont.Icon.download : MdiFont.Icon.upload
+                        iconColor: secondaryIcon
                         enabled: false
                     }
                     // Progression
                     ScaledText {
                         text: progress_metrics + (!download && finalizing ? " • " + qsTr("FINALIZING") + tl.tr : "")
                         font.pointSize: point_size * 0.8
-                        color: mediumGray
+                        color: secondaryText
                     }
                 }
             }
@@ -54,6 +56,7 @@ Rectangle {
                 visible: !is_direct_edit && !finalizing
                 z: 20; Layout.alignment: Qt.AlignRight; Layout.rightMargin: 10
                 icon: paused ? MdiFont.Icon.play : MdiFont.Icon.pause
+                iconColor: primaryIcon
                 tooltip: qsTr(paused ? "RESUME" : "SUSPEND") + tl.tr
                 onClicked: {
                     // engine is set for Direct Edit transfers only
@@ -70,7 +73,7 @@ Rectangle {
 
         NuxeoProgressBar {
             id: progressBar
-            color: finalizing ? lightGreen : lightBlue
+            color: progressFilledLight
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignRight
             Layout.leftMargin: 15

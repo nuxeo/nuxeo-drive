@@ -21,7 +21,7 @@ Rectangle {
         // Progression: transferred data
         ScaledText {
             text: qsTr("DIRECT_TRANSFER_DETAILS").arg(progress).arg(transferred).arg(filesize) + tl.tr
-            color: darkGray
+            color: secondaryText
             Layout.leftMargin: icon.width + 5
             font.pointSize: point_size * 0.8
         }
@@ -46,7 +46,7 @@ Rectangle {
                     id: progressBar
                     Layout.fillWidth: true
                     height: 30
-                    border.color: nuxeoBlue
+                    border.color: progressFilled
                     border.width: 1
                     radius: 3
                     opacity: 0.7
@@ -56,8 +56,7 @@ Rectangle {
                         height: parent.height - 2
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.horizontalCenter: parent.horizontalCenter
-                        color: nuxeoBlue50
-                        bgColor2: "#eeeeee"
+                        color: progressFilledLight
                         value: progress || 0.0
                         text: name
                         // Indeterminate progress bar when linking the blob to the document (last upload step)
@@ -70,7 +69,7 @@ Rectangle {
                 IconLabel {
                     icon: MdiFont.Icon.close
                     tooltip: qsTr("CANCEL") + tl.tr
-                    iconColor: "red"
+                    iconColor: iconFailure
                     enabled: !(status == "CANCELLED" || finalizing)
                     onClicked: {
                         application.confirm_cancel_transfer(engine, uid, name)

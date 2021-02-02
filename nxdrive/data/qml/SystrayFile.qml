@@ -24,6 +24,7 @@ Rectangle {
                 // File name
                 ScaledText {
                     text: name
+                    color: primaryText
                     Layout.fillWidth: true
                     font.pointSize: point_size * 1.2
                     elide: Text.ElideRight
@@ -39,13 +40,13 @@ Rectangle {
                     ScaledText {
                         text: last_sync_date
                         font.pointSize: point_size * 0.8
-                        color: mediumGray
+                        color: secondaryText
                     }
                     // File size
                     ScaledText {
                         text: size
                         font.pointSize: point_size * 0.8
-                        color: mediumGray
+                        color: secondaryText
                     }
                 }
             }
@@ -56,6 +57,7 @@ Rectangle {
                 Layout.alignment: Qt.AlignRight
                 Layout.rightMargin: 0
                 icon: MdiFont.Icon.openInApp
+                iconColor: secondaryIcon
                 onClicked: api.show_metadata(accountSelect.getRole("uid"), local_path)
                 tooltip: qsTr("OPEN_REMOTE") + tl.tr
             }
@@ -66,6 +68,7 @@ Rectangle {
                 Layout.alignment: Qt.AlignLeft
                 Layout.rightMargin: 10
                 icon: MdiFont.Icon.pencil
+                iconColor: secondaryIcon
                 onClicked: api.open_local(accountSelect.getRole("uid"), local_path)
                 tooltip: qsTr("OPEN_LOCAL") + tl.tr
             }

@@ -6,9 +6,9 @@ Switch {
     id: control
 
     property bool enabled: true
-    property string checkedColor: enabled ? nuxeoBlue : lightGray
-    property string uncheckedColor: enabled ? mediumGray : lightGray
-    property string textColor: enabled ? darkGray : lightGray
+    property string checkedColor: enabled ? switchOnEnabled : switchDisabled
+    property string uncheckedColor: enabled ? switchOffEnabled : switchDisabled
+    property string textColor: enabled ? primaryText : disabledText
     property int size: 8
     property int leftOffset: size * 4 + spacing
     leftPadding: leftOffset
@@ -19,7 +19,7 @@ Switch {
         x: control.leftPadding - leftOffset
         y: parent.height / 2 - height / 2
         radius: size
-        color: control.checked ? checkedColor : "white"
+        color: control.checked ? checkedColor : lightTheme
         border {
             color: control.checked ? checkedColor : uncheckedColor
             width: 2
@@ -34,7 +34,7 @@ Switch {
             width: roundSize
             height: roundSize
             radius: size
-            color: control.checked ? (control.down ? lighterGray : "white") : uncheckedColor
+            color: control.checked ? (control.down ? uiBackground : lightTheme) : uncheckedColor
             border.width: 0
         }
     }

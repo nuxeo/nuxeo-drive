@@ -5,7 +5,7 @@ import "icon-font/Icon.js" as MdiFont
 
 HoverRectangle {
     id: control
-    color: lighterGray
+    color: uiBackground
     Layout.fillWidth: true; height: 40
     opacity: 1
 

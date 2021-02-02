@@ -20,7 +20,7 @@ Rectangle {
         // The border rectangle
         Rectangle {
             border.width: 1
-            border.color: lightGray
+            border.color: grayBorder
             radius: 10
 
             Layout.fillWidth: true
@@ -45,6 +45,7 @@ Rectangle {
                         Layout.fillWidth: true
                         elide: Text.ElideMiddle
                         font.pointSize: point_size * 1.2
+                        color: primaryText
                     }
 
                     // Remote link
@@ -74,15 +75,15 @@ Rectangle {
                         IconLabel {
                             visible: status == "COMPLETED" || status == "CANCELLED"
                             icon: status == "COMPLETED" ? MdiFont.Icon.check : MdiFont.Icon.close
-                            iconColor: status == "COMPLETED" ? "green" : "red"
+                            iconColor: status == "COMPLETED" ? iconSuccess : iconFailure
                         }
                         ScaledText {
                             text: progress
-                            color: darkGray
+                            color: secondaryText
                         }
                         ScaledText {
                             text: (active ? created_on : completed_on) + tl.tr
-                            color: darkGray
+                            color: secondaryText
                         }
                     }
                 }
@@ -99,7 +100,7 @@ Rectangle {
                     // Pause/Resume icon
                     IconLabel {
                         icon: paused ? MdiFont.Icon.play : MdiFont.Icon.pause
-                        iconColor: nuxeoBlue
+                        iconColor: primaryIcon
                         tooltip: qsTr(paused ? "RESUME" : "SUSPEND") + tl.tr
                         onClicked: {
                             enabled = false
@@ -123,7 +124,7 @@ Rectangle {
                         enabled: paused
                         icon: MdiFont.Icon.close
                         tooltip: qsTr("CANCEL") + tl.tr
-                        iconColor: "red"
+                        iconColor: iconFailure
                         onClicked: {
                             enabled = false
                             enabled = !application.confirm_cancel_session(engine, uid, remote_path, total - uploaded)
