@@ -49,6 +49,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Set, Tuple, Union
 
+from . import __version__
 from .feature import DisabledFeatures, Feature
 
 __all__ = ("Options",)
@@ -245,6 +246,7 @@ class MetaOptions(type):
         "ignored_files": (__files, "default"),
         "ignored_prefixes": (__prefixes, "default"),
         "ignored_suffixes": (__suffixes, "default"),
+        "is_alpha": (__version__.count(".") != 2, "default"),
         "is_frozen": (_get_frozen_state(), "default"),
         "locale": ("en", "default"),
         "log_level_console": ("WARNING", "default"),
@@ -563,6 +565,14 @@ def validate_client_version(value: str, /) -> str:
     )
 
 
+def validate_use_sentry(value: bool, /) -> bool:
+    if Options.is_frozen and not Options.is_alpha:
+        return value
+    raise ValueError(
+        "Sentry is forcibly enabled on alpha versions or when the app is ran from sources"
+    )
+
+
 def validate_tmp_file_limit(value: Union[int, float], /) -> float:
     if value > 0:
         return float(value)
@@ -576,4 +586,5 @@ for feature in vars(Feature).keys():
 Options.checkers["chunk_limit"] = validate_chunk_limit
 Options.checkers["chunk_size"] = validate_chunk_size
 Options.checkers["client_version"] = validate_client_version
+Options.checkers["use_sentry"] = validate_use_sentry
 Options.checkers["tmp_file_limit"] = validate_tmp_file_limit

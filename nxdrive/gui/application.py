@@ -1833,9 +1833,6 @@ class Application(QApplication):
         em_analytics = QCheckBox(tr("SHARE_METRICS_ERROR_REPORTING"))
         em_analytics.setChecked(True)
         em_analytics.stateChanged.connect(errors_choice)
-        # Sentry must be enabled on alpha versions or when the app is ran from sources
-        if not (Options.is_frozen and self.manager.version.count(".") == 2):
-            em_analytics.setEnabled(False)
         layout.addWidget(em_analytics)
 
         cb_analytics = QCheckBox(tr("SHARE_METRICS_ANALYTICS"))
