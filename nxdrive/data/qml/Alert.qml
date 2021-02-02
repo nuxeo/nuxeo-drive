@@ -27,7 +27,7 @@ ShadowRectangle {
         id: content
         anchors.fill: parent
         padding: control.padding
-        color: "white"
+        color: lightTheme
 
         text: control.text
         wrapMode: Text.WordWrap

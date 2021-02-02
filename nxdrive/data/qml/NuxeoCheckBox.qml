@@ -3,9 +3,9 @@ import QtQuick.Controls 2.15
 
 CheckBox {
     id: control
-    property string color: "#333"
-    property string borderColor: "#333"
-    property string checkColor: "#333"
+    property string color: darkShadow
+    property string borderColor: darkShadow
+    property string checkColor: darkShadow
 
     indicator: Rectangle {
         implicitWidth: 14

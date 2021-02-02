@@ -9,7 +9,7 @@ Rectangle {
     width: 365; height: 370
     border {
         width: 1
-        color: "#33000000"
+        color: darkShadow
     }
 
     property bool hasAccounts: EngineModel.count > 0
@@ -293,7 +293,7 @@ Rectangle {
             id: errorState
             state: ""  // no errors/conflicts
             visible: state != "" && (state == "auth_expired" || (ConflictsModel.count + ErrorsModel.count) > 0)
-            textColor: "white"
+            textColor: lightTheme
             icon: MdiFont.Icon.alert
 
             states: [
@@ -334,7 +334,7 @@ Rectangle {
             state: "up_to_date"
             visible: !(state == "up_to_date" || state == "unavailable_site" || state == "wrong_channel")
             color: progressFilledLight
-            textColor: "white"
+            textColor: lightTheme
             icon: MdiFont.Icon.update
 
             states: [
@@ -383,7 +383,7 @@ Rectangle {
         height: parent.height - 2
         anchors.centerIn: parent
         z: 5
-        color: "white"
+        color: lightTheme
 
         ColumnLayout {
             width: parent.width * 3/4

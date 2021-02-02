@@ -19,7 +19,7 @@ Switch {
         x: control.leftPadding - leftOffset
         y: parent.height / 2 - height / 2
         radius: size
-        color: control.checked ? checkedColor : "white"
+        color: control.checked ? checkedColor : lightTheme
         border {
             color: control.checked ? checkedColor : uncheckedColor
             width: 2
@@ -34,7 +34,7 @@ Switch {
             width: roundSize
             height: roundSize
             radius: size
-            color: control.checked ? (control.down ? uiBackground : "white") : uncheckedColor
+            color: control.checked ? (control.down ? uiBackground : lightTheme) : uncheckedColor
             border.width: 0
         }
     }

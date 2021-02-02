@@ -496,6 +496,8 @@ class Application(QApplication):
             "iconFailure": "#DA1E28",
             "errorContent": "#C02828",
             "warningContent": "#FF9E00",
+            "lightTheme": "#FFFFFF",
+            "darkShadow": "#333333",
         }
 
         for name, value in colors.items():
