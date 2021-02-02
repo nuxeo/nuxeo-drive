@@ -287,7 +287,9 @@ class Manager(QObject):
         state_file = Options.nxdrive_home / "metrics.state"
         if state_file.is_file():
             lines = state_file.read_text(encoding="utf-8").splitlines()
-            Options.use_sentry = "sentry" in lines
+            # Sentry must be enabled on alpha versions or when the app is ran from sources
+            if Options.is_frozen and self.version.count(".") == 2:
+                Options.use_sentry = "sentry" in lines
             Options.use_analytics = "analytics" in lines
             self.preferences_metrics_chosen = True
 
