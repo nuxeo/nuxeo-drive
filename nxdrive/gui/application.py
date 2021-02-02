@@ -481,7 +481,6 @@ class Application(QApplication):
             "progressFilled": "#0066FF",
             "progressFilledLight": "#7D0066FF",  # Added 50% opacity (format AARRGGBB)
             "progressEmpty": "#F4F4F4",
-            "progressIndeterminate": "#FAFAD2",
             "focusedTab": "#161616",
             "unfocusedTab": "#525252",
             "focusedUnderline": "#0066FF",

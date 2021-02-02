@@ -57,7 +57,6 @@ Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.horizontalCenter: parent.horizontalCenter
                         color: progressFilledLight
-                        bgColor2: progressEmpty
                         value: progress || 0.0
                         text: name
                         // Indeterminate progress bar when linking the blob to the document (last upload step)

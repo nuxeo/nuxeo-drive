@@ -8,17 +8,16 @@ ProgressBar {
 
     property string color: progressFilled
     property string bgColor: progressEmpty
-    property string bgColor2: progressIndeterminate
     property string text: ""
     property int cursorSize: 20
-    property int duration: 15000
+    property int duration: 1500
     // https://doc.qt.io/qt-5/qml-qtquick-animator.html
     property int easingType: Easing.OutInBack
 
     background: Rectangle {
         width: control.width
         height: control.height
-        color: control.indeterminate ? control.bgColor2 : control.bgColor
+        color: control.bgColor
     }
 
     contentItem: Item {
