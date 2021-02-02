@@ -3,7 +3,7 @@ import QtQuick 2.15
 TextInput {
     id: control
     property string placeholderText
-    property string lineColor: nuxeoBlue
+    property string lineColor: focusedUnderline
 
     font.pointSize: point_size
     wrapMode: TextInput.Wrap

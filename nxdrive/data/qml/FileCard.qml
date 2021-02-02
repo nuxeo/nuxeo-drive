@@ -24,7 +24,7 @@ ShadowRectangle {
         // Color badge
         Rectangle {
             width: 10; height: 10; radius: 10
-            color: type == "conflict" ? orange : red
+            color: type == "conflict" ? warningContent : errorContent
             Layout.alignment: Qt.AlignTop | Qt.AlignRight
         }
 

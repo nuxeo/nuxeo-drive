@@ -4,7 +4,7 @@ import "icon-font/Icon.js" as MdiFont
 
 ComboBox {
     id: control
-    property string color: nuxeoBlue
+    property string color: primaryBg
     property int modelWidth
 
     // No elide by default, sub-components can change that property
@@ -56,7 +56,7 @@ ComboBox {
         }
 
         background: Rectangle {
-            border.color: nuxeoBlue
+            border.color: focusedUnderline
             radius: 2
         }
     }

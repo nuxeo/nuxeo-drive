@@ -9,7 +9,7 @@ Rectangle {
 
     signal clicked()
 
-    color: clickArea.containsMouse ? lightGray : lighterGray
+    color: clickArea.containsMouse ? lightGray : uiBackground
 
     ScaledText {
         id: itemText

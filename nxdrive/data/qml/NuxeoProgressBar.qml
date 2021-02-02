@@ -66,7 +66,7 @@ ProgressBar {
             padding: 5
             text: control.text
             style: Text.Sunken
-            styleColor: lighterGray
+            styleColor: uiBackground
         }
     }
 }

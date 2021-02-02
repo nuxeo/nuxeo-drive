@@ -124,7 +124,7 @@ Rectangle {
                         enabled: paused
                         icon: MdiFont.Icon.close
                         tooltip: qsTr("CANCEL") + tl.tr
-                        iconColor: "red"
+                        iconColor: iconFailure
                         onClicked: {
                             enabled = false
                             enabled = !application.confirm_cancel_session(engine, uid, remote_path, total - uploaded)

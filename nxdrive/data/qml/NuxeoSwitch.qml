@@ -34,7 +34,7 @@ Switch {
             width: roundSize
             height: roundSize
             radius: size
-            color: control.checked ? (control.down ? lighterGray : "white") : uncheckedColor
+            color: control.checked ? (control.down ? uiBackground : "white") : uncheckedColor
             border.width: 0
         }
     }

@@ -14,9 +14,9 @@ ShadowRectangle {
 
     onDisplay: {
         if (type == 'error') {
-            control.color = red
+            control.color = errorContent
         } else {
-            control.color = lightBlue
+            control.color = progressFilledLight
         }
         control.text = msg
         control.visible = true

@@ -7,7 +7,7 @@ ShadowRectangle {
     visible: false
     width: menuContent.width
     height: menuContent.height
-    color: lighterGray
+    color: uiBackground
     radius: 2
     spread: 0
 

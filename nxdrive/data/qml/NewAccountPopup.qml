@@ -31,7 +31,7 @@ NuxeoPopup {
             NuxeoInput {
                 id: urlInput
                 Layout.fillWidth: true
-                lineColor: acceptableInput ? nuxeoBlue : "red"
+                lineColor: acceptableInput ? focusedUnderline : errorContent
                 inputMethodHints: Qt.ImhUrlCharactersOnly
                 KeyNavigation.tab: folderInput
                 placeholderText: "https://server.com/nuxeo"
@@ -53,7 +53,7 @@ NuxeoPopup {
                 NuxeoInput {
                     id: folderInput
                     Layout.fillWidth: true
-                    lineColor: nuxeoBlue
+                    lineColor: focusedUnderline
                     onTextChanged: freeSpace.text = api.get_free_disk_space(folderInput.text)
                 }
 

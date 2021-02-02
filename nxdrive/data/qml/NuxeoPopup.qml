@@ -16,13 +16,13 @@ Popup {
             width: parent.width; height: 40
             anchors.top: parent.top
             radius: parent.radius
-            color: lighterGray; visible: title
+            color: uiBackground; visible: title
             ScaledText { text: title; anchors.centerIn: parent }
         }
         Rectangle {
             width: parent.width; height: 10
             anchors.bottom: titleContainer.bottom
-            color: lighterGray; visible: title
+            color: uiBackground; visible: title
         }
     }
 

@@ -461,14 +461,8 @@ class Application(QApplication):
         context.setContextProperty("modulesVersionText", versions)
 
         colors = {
-            "nuxeoBlue": "#0066FF",
-            "lightBlue": "#00ADED",
-            "lightGreen": "#A9D843",
-            "red": "#C02828",
-            "orange": "#FF9E00",
             "mediumGray": "#7F8284",
             "lightGray": "#BCBFBF",
-            "lighterGray": "#F5F5F5",
             "uiBackground": "#F4F4F4",
             "primaryBg": "#0066FF",
             "primaryBgHover": "#0052CC",
@@ -500,6 +494,8 @@ class Application(QApplication):
             "grayBorder": "#8D8D8D",
             "iconSuccess": "#24A148",
             "iconFailure": "#DA1E28",
+            "errorContent": "#C02828",
+            "warningContent": "#FF9E00",
         }
 
         for name, value in colors.items():

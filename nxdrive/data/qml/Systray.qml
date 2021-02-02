@@ -214,7 +214,7 @@ Rectangle {
                     spacing: 15
                     visible: TransferModel.count > 0
                     interactive: false
-                    highlight: Rectangle { color: lighterGray }
+                    highlight: Rectangle { color: uiBackground }
 
                     model: TransferModel
                     delegate: SystrayTransfer {}
@@ -230,7 +230,7 @@ Rectangle {
                     spacing: 15
                     visible: FileModel.count > 0
                     interactive: false
-                    highlight: Rectangle { color: lighterGray }
+                    highlight: Rectangle { color: uiBackground }
 
                     model: FileModel
                     delegate: SystrayFile {}
@@ -310,7 +310,7 @@ Rectangle {
                     name: "auth_expired"
                     PropertyChanges {
                         target: errorState
-                        color: red
+                        color: errorContent
                         text: qsTr("AUTH_EXPIRED") + tl.tr
                         subText: qsTr("AUTH_UPDATE_ACTION") + tl.tr
                         onClicked: api.web_update_token(accountSelect.getRole("uid"))
@@ -320,7 +320,7 @@ Rectangle {
                     name: "error"
                     PropertyChanges {
                         target: errorState
-                        color: red
+                        color: errorContent
                         text: qsTr("ERRORS_SYSTRAY").arg(ErrorsModel.count) + tl.tr
                         onClicked: api.show_conflicts_resolution(accountSelect.getRole("uid"))
                     }
@@ -333,7 +333,7 @@ Rectangle {
             id: updateState
             state: "up_to_date"
             visible: !(state == "up_to_date" || state == "unavailable_site" || state == "wrong_channel")
-            color: lightBlue
+            color: progressFilledLight
             textColor: "white"
             icon: MdiFont.Icon.update
 
@@ -367,7 +367,7 @@ Rectangle {
                     }
                     PropertyChanges {
                         target: updateState
-                        color: red
+                        color: errorContent
                         text: qsTr("NOTIF_UPDATE_DOWNGRADE").arg(api.get_update_version()) + tl.tr
                         onClicked: updatePopup.open()
                     }

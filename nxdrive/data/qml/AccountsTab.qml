@@ -219,12 +219,12 @@ Rectangle {
                 ScaledText {
                     visible: !authenticated
                     text: qsTr("AUTH_EXPIRED") + tl.tr
-                    color: red
+                    color: errorContent
                 }
                 Link {
                     visible: !authenticated
                     text: qsTr("AUTH_UPDATE_ACTION") + tl.tr
-                    color: red
+                    color: errorContent
                     onClicked: api.web_update_token(uid)
                 }
             }
