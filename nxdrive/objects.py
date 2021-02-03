@@ -59,8 +59,8 @@ class RemoteFileInfo:
     can_create_child: bool  # True is can create child
     lock_owner: Optional[str]  # lock owner
     lock_created: Optional[datetime]  # lock creation time
-    can_scroll_descendants: bool  # True if the API to scroll through
-    # the descendants can be used
+    # True if the API to scroll through the descendants can be used
+    can_scroll_descendants: bool
 
     @staticmethod
     def from_dict(fs_item: Dict[str, Any], /) -> "RemoteFileInfo":
@@ -365,7 +365,7 @@ class DocPair(Row):
             f" local_state={self.local_state!r},"
             f" remote_state={self.remote_state!r},"
             f" pair_state={self.pair_state!r},"
-            # f" filter_path={self.path!r}"
+            f" last_error={self.last_error!r}"
             ">"
         )
 

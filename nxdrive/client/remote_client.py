@@ -514,15 +514,16 @@ class Remote(Nuxeo):
                     f"Ignoring unsyncable document {fs_item!r} because of unknown digest (get_fs_children())"
                 )
                 continue
-        if filtered:
-            filtered_infos = []
-            for info in infos:
-                if not self.is_filtered(info.path):
-                    filtered_infos.append(info)
-                else:
-                    log.info(f"Filtering out item {info!r}")
-            return filtered_infos
-        return infos
+        if not filtered:
+            return infos
+
+        filtered_infos = []
+        for info in infos:
+            if not self.is_filtered(info.path):
+                filtered_infos.append(info)
+            else:
+                log.info(f"Filtering out item {info!r}")
+        return filtered_infos
 
     def scroll_descendants(
         self,

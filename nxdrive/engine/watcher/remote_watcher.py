@@ -1022,7 +1022,7 @@ class RemoteWatcher(EngineWorker):
                         parent_pair, new_info
                     )
                     if match_pair:
-                        child_pair, new_pair = match_pair
+                        child_pair = match_pair[0]
                         if child_pair.folderish:
                             log.info(
                                 "Remote recursive scan of the content "

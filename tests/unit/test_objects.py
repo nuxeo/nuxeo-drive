@@ -154,14 +154,15 @@ def test_get_blob_xpath_bad(xpath, doc):
 def test_remote_doc_folder(remote_doc_dict):
     remote_doc_dict["folder"] = True
     document = RemoteFileInfo.from_dict(remote_doc_dict)
-    assert document
+    assert document.folderish
 
 
-def test_remote_doc_file(remote_doc_dict):
-    remote_doc_dict["digestAlgorithm"] = "md5"
+def test_remote_doc_digest(remote_doc_dict):
+    remote_doc_dict["digestAlgorithm"] = "MD5"
     remote_doc_dict["digest"] = "fakedigest"
     document = RemoteFileInfo.from_dict(remote_doc_dict)
-    assert document
+    assert document.digest == "fakedigest"
+    assert document.digest_algorithm == "md5"
 
 
 def test_remote_doc_raise_unwnown_digest(remote_doc_dict):

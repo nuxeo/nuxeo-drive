@@ -227,9 +227,7 @@ class EngineWorker(Worker):
     def increase_error(
         self, doc_pair: DocPair, error: str, /, *, exception: Exception = None
     ) -> None:
-        details = None
-        if exception:
-            details = str(exception)
+        details = str(exception) if exception else None
         log.info(f"Increasing error [{error}] ({details}) for {doc_pair!r}")
         self.dao.increase_error(doc_pair, error, details=details)
         self.engine.queue_manager.push_error(doc_pair, exception=exception)

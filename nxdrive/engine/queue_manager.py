@@ -247,7 +247,7 @@ class QueueManager(QObject):
             isinstance(exception, OSError)
             and getattr(exception, "winerror", None) == err_code
         ):
-            strerror = exception.strerror if hasattr(exception, "strerror") else ""
+            strerror = getattr(exception, "strerror", "")
             log.info(
                 "Detected WindowsError with code "
                 f"{err_code}: {strerror!r}, "
