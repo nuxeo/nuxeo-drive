@@ -570,10 +570,10 @@ class Processor(EngineWorker):
             if self.local.is_equal_digests(
                 doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path
             ):
-                log.info("Auto-resolve conflict has digest are the same")
+                log.info("Auto-resolve conflict as digests are the same")
                 self.dao.synchronize_state(doc_pair)
         elif self.local.get_remote_id(doc_pair.local_path) == doc_pair.remote_ref:
-            log.info("Auto-resolve conflict has folder has same remote_id")
+            log.info("Auto-resolve conflict as folder has same remote UID")
             self.dao.synchronize_state(doc_pair)
 
     def _synchronize_if_not_remotely_dirty(
