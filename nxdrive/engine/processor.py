@@ -7,7 +7,7 @@ from logging import getLogger
 from pathlib import Path
 from threading import Lock
 from time import monotonic_ns, sleep
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 
 from nuxeo.exceptions import (
     CorruptedFile,
@@ -62,14 +62,14 @@ class Processor(EngineWorker):
     readonly_locks: Dict[str, Dict[Path, List[int]]] = {}
     readonly_locker = Lock()
 
-    _current_doc_pair: Optional[DocPair] = None
-
     def __init__(self, engine: "Engine", item_getter: Callable, /) -> None:
         super().__init__(engine, engine.dao, "Processor")
         self._get_item = item_getter
         self.engine = engine
         self.local = self.engine.local
         self.remote = self.engine.remote
+        self._current_doc_pair: Optional[DocPair] = None
+        self._current_metrics: Dict[str, Any] = {}
 
     def _unlock_soft_path(self, path: Path, /) -> None:
         log.debug(f"Soft unlocking {path!r}")
@@ -129,16 +129,133 @@ class Processor(EngineWorker):
     @staticmethod
     def check_pair_state(doc_pair: DocPair, /) -> bool:
         """ Eliminate unprocessable states. """
-
-        if any(
+        return all(
             (
-                doc_pair.pair_state in ("synchronized", "unsynchronized"),
-                doc_pair.pair_state.startswith("parent_"),
+                doc_pair.pair_state not in ("synchronized", "unsynchronized"),
+                not doc_pair.pair_state.startswith("parent_"),
+                doc_pair.remote_state != "todo",  # Specific to Direct Transfer
             )
+        )
+
+    def _handle_doc_pair_sync(self, doc_pair: DocPair, sync_handler: Callable) -> None:
+        """Actions to be done to handle a synchronization item. Called by ._execute()."""
+        self.engine.manager.osi.send_sync_status(
+            doc_pair, self.local.abspath(doc_pair.local_path)
+        )
+
+        if MAC and self.local.exists(doc_pair.local_path):
+            finder_info = self.local.get_remote_id(
+                doc_pair.local_path, name="com.apple.FinderInfo"
+            )
+            if finder_info and "brokMACS" in finder_info:
+                log.debug(f"Skip as pair is in use by Finder: {doc_pair!r}")
+                self._postpone_pair(doc_pair, "Finder using file", interval=3)
+                return
+
+        # TODO Update as the server don't take hash to avoid conflict yet
+        if doc_pair.pair_state.startswith("locally") and doc_pair.remote_ref:
+            try:
+                remote_info = self.remote.get_fs_info(doc_pair.remote_ref)
+                if (
+                    remote_info.digest != doc_pair.remote_digest
+                    and doc_pair.remote_digest is not None
+                ):
+                    doc_pair.remote_state = "modified"
+                elif doc_pair.folderish and remote_info.name != doc_pair.remote_name:
+                    doc_pair.remote_state = "moved"
+                self._refresh_remote(doc_pair, remote_info)
+
+                # Can run into conflict
+                if doc_pair.pair_state == "conflicted":
+                    return
+
+                refreshed = self.dao.get_state_from_id(doc_pair.id)
+                if not (refreshed and self.check_pair_state(refreshed)):
+                    return
+                doc_pair = refreshed or doc_pair
+            except NotFound:
+                doc_pair.remote_ref = ""
+
+        # NXDRIVE-842: parent is in disabled duplication error
+        parent_pair = self._get_normal_state_from_remote_ref(doc_pair.remote_parent_ref)
+        if parent_pair and parent_pair.last_error == "DEDUP":
+            return
+
+        parent_path = doc_pair.local_parent_path
+
+        if not self.local.exists(parent_path):
+            if not parent_pair or doc_pair.local_parent_path == parent_pair.local_path:
+                self.dao.remove_state(doc_pair)
+                return
+
+            # The parent folder has been renamed sooner
+            # in the current synchronization
+            doc_pair.local_parent_path = parent_pair.local_path
+
+        # Skip downloads in process
+        download = self.engine.dao.get_download(doc_pair=doc_pair.id)
+        if download and download.status not in (
+            TransferStatus.ONGOING,
+            TransferStatus.DONE,
         ):
-            log.debug(f"Skip pair in non-processable state: {doc_pair!r}")
-            return False
-        return True
+            log.info(f"Download is paused for {doc_pair!r}")
+            return
+
+        # Skip uploads in process
+        upload = self.engine.dao.get_upload(doc_pair=doc_pair.id)
+        if upload and upload.status not in (
+            TransferStatus.ONGOING,
+            TransferStatus.DONE,
+        ):
+            log.info(f"Upload is paused for {doc_pair!r}")
+            return
+
+        self.pairSyncStarted.emit(self._current_metrics)
+        soft_lock = self._lock_soft_path(doc_pair.local_path)
+        log.debug(f"Calling {sync_handler.__name__}() on {doc_pair!r}")
+        try:
+            sync_handler(doc_pair)
+        finally:
+            self._unlock_soft_path(soft_lock)
+
+        pair = self.dao.get_state_from_id(doc_pair.id)
+        if pair and "deleted" not in pair.pair_state:
+            self.engine.manager.osi.send_sync_status(
+                pair, self.local.abspath(pair.local_path)
+            )
+
+        self.pairSyncEnded.emit(self._current_metrics)
+
+    def _handle_doc_pair_dt(self, doc_pair: DocPair, sync_handler: Callable) -> None:
+        """Actions to be done to handle a Direct Transfer item. Called by ._execute()."""
+        log.debug(f"Calling {sync_handler.__name__}() on {doc_pair!r}")
+        try:
+            sync_handler(doc_pair)
+        except Exception:
+            # Show a notification on error
+            file = doc_pair.local_path if WINDOWS else Path(f"/{doc_pair.local_path}")
+            self.engine.directTranferError.emit(file)
+
+    def _get_next_doc_pair(self, item: DocPair) -> Optional[DocPair]:
+        """Get the *doc_pair* to handle from the database."""
+        try:
+            return self.dao.acquire_state(self.thread_id, item.id)
+        except sqlite3.OperationalError:
+            state = self.dao.get_state_from_id(item.id)
+            if state:
+                if (
+                    WINDOWS
+                    and state.pair_state == "locally_moved"
+                    and not state.remote_can_rename
+                ):
+                    log.info(
+                        "A local rename on a read-only folder is allowed "
+                        " on Windows, but it should not. Skipping."
+                    )
+                else:
+                    log.debug(f"Cannot acquire state for item {item!r} ({state!r})")
+                    self._postpone_pair(item, "Pair in use", interval=3)
+        return None
 
     def _execute(self) -> None:
         while "There are items in the queue":
@@ -146,149 +263,34 @@ class Processor(EngineWorker):
             if not item:
                 break
 
-            try:
-                doc_pair = self.dao.acquire_state(self.thread_id, item.id)
-            except sqlite3.OperationalError:
-                state = self.dao.get_state_from_id(item.id)
-                if state:
-                    if (
-                        WINDOWS
-                        and state.pair_state == "locally_moved"
-                        and not state.remote_can_rename
-                    ):
-                        log.info(
-                            "A local rename on a read-only folder is allowed "
-                            " on Windows, but it should not. Skipping."
-                        )
-                        continue
-
-                    log.debug(f"Cannot acquire state for item {item!r} ({state!r})")
-                    self._postpone_pair(item, "Pair in use", interval=3)
-                continue
-
+            doc_pair = self._get_next_doc_pair(item)
             if not doc_pair:
                 log.debug(f"Did not acquire state, dropping {item!r}")
                 continue
 
-            if doc_pair.remote_state == "todo":
-                log.debug(f"Parent folder not yet uploaded for {doc_pair.local_path!r}")
-                continue
-
-            soft_lock = None
-            handler_name = ""
+            handler_name = f"_synchronize_{doc_pair.pair_state}"
+            sync_handler = getattr(self, handler_name, None)
             try:
-                log.info(f"Executing processor on {doc_pair!r}({doc_pair.version})")
-                self._current_doc_pair = doc_pair
                 if not self.check_pair_state(doc_pair):
+                    log.debug(f"Skip non-processable {doc_pair!r}")
                     continue
 
-                self.engine.manager.osi.send_sync_status(
-                    doc_pair, self.local.abspath(doc_pair.local_path)
-                )
-
-                if MAC and self.local.exists(doc_pair.local_path):
-                    finder_info = self.local.get_remote_id(
-                        doc_pair.local_path, name="com.apple.FinderInfo"
-                    )
-                    if finder_info and "brokMACS" in finder_info:
-                        log.debug(f"Skip as pair is in use by Finder: {doc_pair!r}")
-                        self._postpone_pair(doc_pair, "Finder using file", interval=3)
-                        continue
-
-                # TODO Update as the server don't take hash to avoid conflict yet
-                if doc_pair.pair_state.startswith("locally") and doc_pair.remote_ref:
-                    try:
-                        remote_info = self.remote.get_fs_info(doc_pair.remote_ref)
-                        if (
-                            remote_info.digest != doc_pair.remote_digest
-                            and doc_pair.remote_digest is not None
-                        ):
-                            doc_pair.remote_state = "modified"
-                        elif (
-                            doc_pair.folderish
-                            and remote_info.name != doc_pair.remote_name
-                        ):
-                            doc_pair.remote_state = "moved"
-                        self._refresh_remote(doc_pair, remote_info)
-
-                        # Can run into conflict
-                        if doc_pair.pair_state == "conflicted":
-                            continue
-
-                        refreshed = self.dao.get_state_from_id(doc_pair.id)
-                        if not (refreshed and self.check_pair_state(refreshed)):
-                            continue
-                        doc_pair = refreshed or doc_pair
-                    except NotFound:
-                        doc_pair.remote_ref = ""
-
-                # NXDRIVE-842: parent is in disabled duplication error
-                parent_pair = self._get_normal_state_from_remote_ref(
-                    doc_pair.remote_parent_ref
-                )
-                if parent_pair and parent_pair.last_error == "DEDUP":
-                    continue
-
-                parent_path = doc_pair.local_parent_path
-
-                if doc_pair.local_state != "direct" and not self.local.exists(
-                    parent_path
-                ):
-                    if (
-                        not parent_pair
-                        or doc_pair.local_parent_path == parent_pair.local_path
-                    ):
-                        self.dao.remove_state(doc_pair)
-                        continue
-
-                    # The parent folder has been renamed sooner
-                    # in the current synchronization
-                    doc_pair.local_parent_path = parent_pair.local_path
-
-                # Skip files in process
-                download = self.engine.dao.get_download(doc_pair=doc_pair.id)
-                if download and download.status not in (
-                    TransferStatus.ONGOING,
-                    TransferStatus.DONE,
-                ):
-                    log.info(f"Download is paused for {doc_pair!r}")
-                    continue
-                upload = self.engine.dao.get_upload(doc_pair=doc_pair.id)
-                if upload and upload.status not in (
-                    TransferStatus.ONGOING,
-                    TransferStatus.DONE,
-                ):
-                    log.info(f"Upload is paused for {doc_pair!r}")
-                    continue
-
-                handler_name = f"_synchronize_{doc_pair.pair_state}"
-                sync_handler = getattr(self, handler_name, None)
+                log.info(f"Executing processor on {doc_pair!r}({doc_pair.version})")
                 if not sync_handler:
-                    log.info(
-                        f"Unhandled pair_state {doc_pair.pair_state!r} for {doc_pair!r}"
-                    )
+                    log.info(f"Unhandled {doc_pair.pair_state=} for {doc_pair!r}")
                     self.increase_error(doc_pair, "ILLEGAL_STATE")
                     continue
 
+                self._current_doc_pair = doc_pair
                 self._current_metrics = {
                     "handler": doc_pair.pair_state,
                     "start_ns": monotonic_ns(),
                 }
-                log.debug(f"Calling {handler_name}() on doc pair {doc_pair!r}")
 
-                if "direct" not in handler_name:
-                    self.pairSyncStarted.emit(self._current_metrics)
-                soft_lock = self._lock_soft_path(doc_pair.local_path)
-                sync_handler(doc_pair)
-
-                pair = self.dao.get_state_from_id(doc_pair.id)
-                if pair and "deleted" not in pair.pair_state:
-                    self.engine.manager.osi.send_sync_status(
-                        pair, self.local.abspath(pair.local_path)
-                    )
-
-                if "direct" not in handler_name:
-                    self.pairSyncEnded.emit(self._current_metrics)
+                if doc_pair.local_state == "direct":
+                    self._handle_doc_pair_dt(doc_pair, sync_handler)
+                else:
+                    self._handle_doc_pair_sync(doc_pair, sync_handler)
             except ThreadInterrupt:
                 self.engine.queue_manager.push(doc_pair)
                 raise
@@ -307,7 +309,7 @@ class Processor(EngineWorker):
                 self.giveup_error(doc_pair, "INVALID_CREDENTIALS")
             except Forbidden:
                 log.warning(
-                    f" Access to the document {doc_pair.remote_ref!r} on server {self.engine.hostname!r}"
+                    f"Access to the document {doc_pair.remote_ref!r} on server {self.engine.hostname!r}"
                     f" is forbidden for user {self.engine.remote_user!r}"
                 )
             except (PairInterrupt, ParentNotSynced) as exc:
@@ -398,7 +400,6 @@ class Processor(EngineWorker):
             except OSError as exc:
                 # Try to handle different kind of Windows error
                 error = getattr(exc, "winerror", exc.errno)
-
                 if error in (errno.ENOENT, errno.ESRCH):
                     """
                     ENOENT: No such file or directory
@@ -426,20 +427,8 @@ class Processor(EngineWorker):
             except Exception as exc:
                 # Workaround to forward unhandled exceptions to sys.excepthook between all Qthreads
                 sys.excepthook(*sys.exc_info())
-
-                # Show a notification for Direct Transfer errors
-                if doc_pair.pair_state.startswith("direct_transfer"):
-                    file = (
-                        doc_pair.local_path
-                        if WINDOWS
-                        else Path(f"/{doc_pair.local_path}")
-                    )
-                    self.engine.directTranferError.emit(file)
-
                 self._handle_pair_handler_exception(doc_pair, handler_name, exc)
             finally:
-                if soft_lock:
-                    self._unlock_soft_path(soft_lock)
                 self.dao.release_state(self.thread_id)
 
             self._interact()
@@ -706,9 +695,7 @@ class Processor(EngineWorker):
 
         log.debug(f"Postpone action on document({reason}): {doc_pair!r}")
         doc_pair.error_count = 1
-        self.engine.queue_manager.push_error(
-            doc_pair, exception=None, interval=interval
-        )
+        self.engine.queue_manager.push_error(doc_pair, interval=interval)
         self.engine.send_metric("sync", "error", reason)
 
     def _synchronize_locally_resolved(self, doc_pair: DocPair, /) -> None:
