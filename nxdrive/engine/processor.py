@@ -28,6 +28,7 @@ from ..constants import (
     NO_SPACE_ERRORS,
     UNACCESSIBLE_HASH,
     WINDOWS,
+    DigestStatus,
     TransferStatus,
 )
 from ..exceptions import (
@@ -43,7 +44,13 @@ from ..exceptions import (
 )
 from ..objects import DocPair, RemoteFileInfo
 from ..qt.imports import pyqtSignal
-from ..utils import is_generated_tmp_file, lock_path, safe_filename, unlock_path
+from ..utils import (
+    digest_status,
+    is_generated_tmp_file,
+    lock_path,
+    safe_filename,
+    unlock_path,
+)
 from .workers import EngineWorker
 
 if TYPE_CHECKING:
@@ -137,8 +144,24 @@ class Processor(EngineWorker):
             )
         )
 
+    @staticmethod
+    def _digest_status(doc_pair: DocPair) -> DigestStatus:
+        """Get the digest status of the given *doc_pair*."""
+        if doc_pair.folderish or doc_pair.pair_state != "remotely_created":
+            return DigestStatus.OK
+        return digest_status(doc_pair.remote_digest)
+
     def _handle_doc_pair_sync(self, doc_pair: DocPair, sync_handler: Callable) -> None:
         """Actions to be done to handle a synchronization item. Called by ._execute()."""
+
+        status = self._digest_status(doc_pair)
+        if status is not DigestStatus.OK:
+            # Ignoring the document, it will still be present in the database.
+            # A future Audit event may resolve its state.
+            log.info(f"Skip non-standard remote digest {doc_pair.remote_digest!r}")
+            self.dao.unsynchronize_state(doc_pair, status.name)
+            return
+
         self.engine.manager.osi.send_sync_status(
             doc_pair, self.local.abspath(doc_pair.local_path)
         )
@@ -383,7 +406,15 @@ class Processor(EngineWorker):
             except CorruptedFile as exc:
                 self.increase_error(doc_pair, "CORRUPT", exception=exc)
             except UnknownDigest as exc:
-                self.giveup_error(doc_pair, "UNKNOWN_DIGEST", exception=exc)
+                # This happens when locally creating a file and the server has async blob digest computation.
+                # Ignoring the document, it will still be present in the database.
+                # A future Audit event may resolve its state.
+                log.info(
+                    "Putting the document in the ignore list as it has a "
+                    f"non-standard remote digest {exc.digest!r}"
+                )
+                status = DigestStatus.REMOTE_HASH_ASYNC
+                self.dao.unsynchronize_state(doc_pair, status.name)
             except PermissionError:
                 """
                 WindowsError: [Error 32] The process cannot access the

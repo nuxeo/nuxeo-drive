@@ -26,13 +26,7 @@ from ..constants import (
     TransferStatus,
 )
 from ..engine.activity import Action, DownloadAction, UploadAction, VerificationAction
-from ..exceptions import (
-    DownloadPaused,
-    NotFound,
-    ScrollDescendantsError,
-    UnknownDigest,
-    UploadPaused,
-)
+from ..exceptions import DownloadPaused, NotFound, ScrollDescendantsError, UploadPaused
 from ..objects import Download, NuxeoDocumentInfo, RemoteFileInfo
 from ..options import Options
 from ..qt.imports import QApplication
@@ -505,15 +499,8 @@ class Remote(Nuxeo):
         self, fs_item_id: str, /, *, filtered: bool = True
     ) -> List[RemoteFileInfo]:
         children = self.execute(command="NuxeoDrive.GetChildren", id=fs_item_id)
-        infos = []
-        for fs_item in children:
-            try:
-                infos.append(RemoteFileInfo.from_dict(fs_item))
-            except UnknownDigest:
-                log.warning(
-                    f"Ignoring unsyncable document {fs_item!r} because of unknown digest (get_fs_children())"
-                )
-                continue
+        infos = [RemoteFileInfo.from_dict(fs_item) for fs_item in children]
+
         if not filtered:
             return infos
 
@@ -542,19 +529,11 @@ class Remote(Nuxeo):
         if not (isinstance(res, dict) and res):
             raise ScrollDescendantsError(res)
 
-        descendants = []
-        for fs_item in res["fileSystemItems"]:
-            try:
-                descendants.append(RemoteFileInfo.from_dict(fs_item))
-            except UnknownDigest:
-                log.warning(
-                    f"Ignoring unsyncable document {fs_item!r} because of unknown digest (scroll_descendants())"
-                )
-                continue
-
         return {
             "scroll_id": res["scrollId"],
-            "descendants": descendants,
+            "descendants": [
+                RemoteFileInfo.from_dict(fs_item) for fs_item in res["fileSystemItems"]
+            ],
         }
 
     def is_filtered(self, path: str, /, *, filtered: bool = True) -> bool:
