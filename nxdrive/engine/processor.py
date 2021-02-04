@@ -235,6 +235,7 @@ class Processor(EngineWorker):
             # Show a notification on error
             file = doc_pair.local_path if WINDOWS else Path(f"/{doc_pair.local_path}")
             self.engine.directTranferError.emit(file)
+            raise
 
     def _get_next_doc_pair(self, item: DocPair) -> Optional[DocPair]:
         """Get the *doc_pair* to handle from the database."""
