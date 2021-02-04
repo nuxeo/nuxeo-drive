@@ -14,7 +14,7 @@ from nuxeo.models import Batch
 from nuxeo.utils import get_digest_algorithm
 
 from .constants import TransferStatus
-from .exceptions import DriveError, UnknownDigest
+from .exceptions import DriveError
 from .translator import Translator
 from .utils import get_date_from_sqlite, get_timestamp_from_date
 
@@ -45,10 +45,8 @@ def _guess_digest_and_algo(item: Dict[str, Any]) -> Tuple[str, str]:
     digest_algorithm = item.get("digestAlgorithm") or ""
     if digest_algorithm:
         digest_algorithm = digest_algorithm.lower().replace("-", "")
-    else:
-        digest_algorithm = get_digest_algorithm(digest)
-        if not digest_algorithm:
-            raise UnknownDigest()
+    elif digest:
+        digest_algorithm = get_digest_algorithm(digest) or ""
     return digest, digest_algorithm
 
 

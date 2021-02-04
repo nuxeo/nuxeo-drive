@@ -2220,8 +2220,8 @@ class EngineDAO(ConfigurationDAO):
                 "       pair_state = ?"
             )
 
-            if not no_digest and info.digest is not None:
-                query += f", remote_digest = '{info.digest}'"
+            if not no_digest and info.digest:
+                query += f", remote_digest = '{self._escape(info.digest)}'"
 
             if versioned:
                 query += ", version = version+1"

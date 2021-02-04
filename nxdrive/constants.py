@@ -100,6 +100,28 @@ class DelAction(Enum):
     ROLLBACK = "rollback"
 
 
+class DigestStatus(Enum):
+    """ Used to figure out the document's digest state. """
+
+    # Digest and digest algorithm are fine
+    OK = 0
+
+    # No digest?!
+    REMOTE_HASH_EMPTY = 1
+
+    # The document is using a non-standard digest on purpose: it will be computed async (see NXDRIVE-2140).
+    # This is only for files uploaded with S3 direct upload and bigger than a (usually small) limit
+    # (any file uploaded in multipart will need an async digest, and multipart is often enabled by
+    # client libraries after 16MB or a similar size). So it'll apply to a lot of media files.
+    # Also it always applies for S3 direct upload when server-side encryption with SSE-KMS is enabled.
+    # Also it always applies if the server blob provider is configured to use another digest algorithm than MD5.
+    REMOTE_HASH_ASYNC = 2
+
+    # The document is using a non-standard digest and thus we cannot compute it locally
+    # (this is likely a Live Connect document, see NXDRIVE-1973 comment)
+    REMOTE_HASH_EXOTIC = 3
+
+
 class TransferStatus(Enum):
     """ Used to represent an upload/download status. """
 

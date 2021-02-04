@@ -11,7 +11,7 @@ from unittest.mock import patch
 import pytest
 
 import nxdrive.utils
-from nxdrive.constants import APP_NAME, WINDOWS
+from nxdrive.constants import APP_NAME, WINDOWS, DigestStatus
 from nxdrive.options import Options
 
 from ..markers import not_windows, windows_only
@@ -128,6 +128,20 @@ def test_current_thread_id():
     thread_id = nxdrive.utils.current_thread_id()
     assert isinstance(thread_id, int)
     assert thread_id > 0
+
+
+@pytest.mark.parametrize(
+    "digest, expected_status",
+    [
+        ("", DigestStatus.REMOTE_HASH_EMPTY),
+        ("0" * 32, DigestStatus.OK),
+        ("0" * 32 + "-0", DigestStatus.REMOTE_HASH_ASYNC),
+        ('"MTYxMTIyODA1ODUzNA"', DigestStatus.REMOTE_HASH_EXOTIC),
+        ("z" * 32, DigestStatus.REMOTE_HASH_EXOTIC),
+    ],
+)
+def test_digest_status(digest, expected_status):
+    assert nxdrive.utils.digest_status(digest) is expected_status
 
 
 def test_encrypt_decrypt():
