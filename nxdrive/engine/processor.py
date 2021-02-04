@@ -143,12 +143,12 @@ class Processor(EngineWorker):
             doc_pair, self.local.abspath(doc_pair.local_path)
         )
 
-        if MAC and self.local.exists(doc_pair.local_path):
+        if MAC:
             finder_info = self.local.get_remote_id(
                 doc_pair.local_path, name="com.apple.FinderInfo"
             )
             if finder_info and "brokMACS" in finder_info:
-                log.debug(f"Skip as pair is in use by Finder: {doc_pair!r}")
+                log.debug("Skip as pair is in use by Finder")
                 self._postpone_pair(doc_pair, "Finder using file", interval=3)
                 return
 
@@ -212,7 +212,7 @@ class Processor(EngineWorker):
 
         self.pairSyncStarted.emit(self._current_metrics)
         soft_lock = self._lock_soft_path(doc_pair.local_path)
-        log.debug(f"Calling {sync_handler.__name__}() on {doc_pair!r}")
+        log.debug(f"Calling {sync_handler.__name__}()")
         try:
             sync_handler(doc_pair)
         finally:
@@ -228,7 +228,7 @@ class Processor(EngineWorker):
 
     def _handle_doc_pair_dt(self, doc_pair: DocPair, sync_handler: Callable) -> None:
         """Actions to be done to handle a Direct Transfer item. Called by ._execute()."""
-        log.debug(f"Calling {sync_handler.__name__}() on {doc_pair!r}")
+        log.debug(f"Calling {sync_handler.__name__}()")
         try:
             sync_handler(doc_pair)
         except Exception:
@@ -278,7 +278,7 @@ class Processor(EngineWorker):
 
                 log.info(f"Executing processor on {doc_pair!r}({doc_pair.version})")
                 if not sync_handler:
-                    log.info(f"Unhandled {doc_pair.pair_state=} for {doc_pair!r}")
+                    log.info(f"Unhandled {doc_pair.pair_state=}")
                     self.increase_error(doc_pair, "ILLEGAL_STATE")
                     continue
 
@@ -296,9 +296,7 @@ class Processor(EngineWorker):
                 self.engine.queue_manager.push(doc_pair)
                 raise
             except NotFound:
-                log.warning(
-                    f"The document or its parent does not exist anymore: {doc_pair!r}"
-                )
+                log.warning("The document or its parent does not exist anymore")
                 self.remove_void_transfers(doc_pair)
 
                 # For Direct Transfer items, it means the FileManager did not find the
@@ -314,7 +312,7 @@ class Processor(EngineWorker):
                     f" is forbidden for user {self.engine.remote_user!r}"
                 )
             except (PairInterrupt, ParentNotSynced) as exc:
-                log.info(f"{type(exc).__name__} on {doc_pair!r}, wait 1s and requeue")
+                log.info(f"{type(exc).__name__}, wait 1s and requeue")
                 sleep(1)
                 self.engine.queue_manager.push(doc_pair)
             except CONNECTION_ERROR:
@@ -336,15 +334,15 @@ class Processor(EngineWorker):
                         # We saw it happened once a migration is done.
                         # Nuxeo kept the document reference but it does
                         # not exist physically anywhere.
-                        log.info(f"The document does not exist anymore: {doc_pair!r}")
+                        log.info("The document does not exist anymore")
                         self.dao.remove_state(doc_pair)
                 elif exc.status == 409:  # Conflict
                     # It could happen on multiple files drag'n drop
                     # starting with identical characters.
-                    log.warning(f"Delaying conflicted document: {doc_pair!r}")
+                    log.warning("Delaying conflicted document")
                     self._postpone_pair(doc_pair, "Conflict")
                 elif exc.status == 416:
-                    log.warning(f"Invalid downloaded temporary file: {doc_pair!r}")
+                    log.warning("Invalid downloaded temporary file")
                     tmp_folder = (
                         self.engine.download_dir / doc_pair.remote_ref.split("#")[-1]
                     )
@@ -361,7 +359,7 @@ class Processor(EngineWorker):
                     self._handle_pair_handler_exception(doc_pair, error, exc)
             except UploadError as exc:
                 log.info(exc)
-                log.warning(f"Delaying failed upload: {doc_pair!r}")
+                log.warning("Delaying failed upload")
                 self._postpone_pair(doc_pair, "Upload")
             except (DownloadPaused, UploadPaused) as exc:
                 nature = "download" if isinstance(exc, DownloadPaused) else "upload"
@@ -406,9 +404,7 @@ class Processor(EngineWorker):
                     ENOENT: No such file or directory
                     ESRCH: No such process (The system cannot find the file specified, on Windows)
                     """
-                    log.info(
-                        f"The document does not exist anymore locally: {doc_pair!r}"
-                    )
+                    log.info("The document does not exist anymore locally")
                     self.dao.remove_state(doc_pair)
                 elif error in LONG_FILE_ERRORS:
                     self.dao.remove_filter(
