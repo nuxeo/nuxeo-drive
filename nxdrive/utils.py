@@ -635,6 +635,13 @@ def retrieve_ssl_certificate(hostname: str, /, *, port: int = 443) -> str:
             return ssl.DER_cert_to_PEM_cert(cert_data)
 
 
+def client_certificate():
+    client_certificate = (Options.cert_file, Options.cert_key_file)
+    if not all(client_certificate):
+        client_certificate = None
+    return client_certificate
+
+
 @lru_cache(maxsize=4)
 def get_certificate_details(
     *, hostname: str = "", cert_data: str = ""
@@ -1108,14 +1115,10 @@ def test_url(
     from requests.exceptions import SSLError
     from urllib3.util.url import parse_url
 
-    client_certificate = (Options.cert_file, Options.cert_key_file)
-    if not all(client_certificate):
-        client_certificate = None
-
     kwargs: Dict[str, Any] = {
         "timeout": timeout,
         "verify": Options.ca_bundle or not Options.ssl_no_verify,
-        "cert": client_certificate,
+        "cert": client_certificate(),
         "headers": {"User-Agent": USER_AGENT},
     }
     try:

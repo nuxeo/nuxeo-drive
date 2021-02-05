@@ -557,6 +557,8 @@ update-check-delay = 0
 
 [custom]
 ca_bundle = C:\certificates\terena-ssl.crt
+cert_file = C:\certificates\client-ssl.crt
+cert_key_file = C:\certificates\client-ssl.key
 debug = False
 log-level-file = DEBUG
 ignored_suffixes =
