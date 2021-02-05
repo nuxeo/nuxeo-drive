@@ -102,7 +102,7 @@ See the `requests` [documentation](http://docs.python-requests.org/en/master/use
 
 #### `cert-key-file`
 
-File that is the key to the specified [cert-file].
+File that is the key to the specified [cert-file](#cert-file).
 The file MUST NOT be password protected to be usable.
 If set, [cert-file](#cert-file) must also be set otherwise it will be ignored.
 See the `requests` [documentation](http://docs.python-requests.org/en/master/user/advanced/#ssl-cert-verification) for more details.
@@ -580,8 +580,6 @@ update-check-delay = 0
 
 [custom]
 ca_bundle = C:\certificates\terena-ssl.crt
-cert_file = C:\certificates\client-ssl.crt
-cert_key_file = C:\certificates\client-ssl.key
 debug = False
 log-level-file = DEBUG
 ignored_suffixes =

@@ -584,6 +584,7 @@ def validate_use_sentry(value: bool, /) -> bool:
 def validate_cert_path(cert_path: str, /) -> bool:
     if not Path(cert_path).is_file():
         raise ValueError(f"The file {cert_path!r} does not exist")
+    return cert_path
 
 
 def validate_tmp_file_limit(value: Union[int, float], /) -> float:

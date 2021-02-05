@@ -89,7 +89,7 @@ class MissingClientSSLCertificate(DriveError):
     """ The server needs a client SSL certificate. """
 
     def __repr__(self) -> str:
-        return "No client-side SSL certificate. Use 'cert' and 'key' to provide client side SSL certificate."
+        return "No client-side SSL certificate. Use 'cert_file' and 'cert_key_file'."
 
     def __str__(self) -> str:
         return repr(self)

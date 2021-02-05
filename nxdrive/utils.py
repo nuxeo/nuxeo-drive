@@ -42,7 +42,11 @@ from .constants import (
     USER_AGENT,
     WINDOWS,
 )
-from .exceptions import InvalidSSLCertificate, UnknownDigest
+from .exceptions import (
+    InvalidSSLCertificate,
+    MissingClientSSLCertificate,
+    UnknownDigest,
+)
 from .options import Options
 
 if TYPE_CHECKING:
@@ -1140,7 +1144,7 @@ def test_url(
         if "CERTIFICATE_VERIFY_FAILED" in str(exc):
             raise InvalidSSLCertificate()
         elif "ALERT_CERTIFICATE_REQUIRED" in str(exc):
-            raise InvalidSSLCertificate()
+            raise MissingClientSSLCertificate()
     except requests.HTTPError as exc:
         if exc.response.status_code in (401, 403):
             # When there is only Web-UI installed, the code is 401.
