@@ -639,14 +639,14 @@ def retrieve_ssl_certificate(hostname: str, /, *, port: int = 443) -> str:
             return ssl.DER_cert_to_PEM_cert(cert_data)
 
 
-def client_certificate() -> Optional[Tuple[str]]:
+def client_certificate() -> Optional[Tuple[str, str]]:
     """
     Fetch the paths to the certification file and it's key from the option.
     Return None if one of them is missing.
     """
     client_certificate = (Options.cert_file, Options.cert_key_file)
     if not all(client_certificate):
-        client_certificate = None
+        return None
     return client_certificate
 
 
