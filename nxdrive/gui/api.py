@@ -26,6 +26,7 @@ from ..exceptions import (
     FolderAlreadyUsed,
     InvalidDriveException,
     InvalidSSLCertificate,
+    MissingClientSSLCertificate,
     NotFound,
     RootAlreadyBindWithDifferentAccount,
     StartupPageConnectionError,
@@ -532,6 +533,8 @@ class QMLDriveApi(QObject):
                 Options.ca_bundle = None
                 Options.ssl_no_verify = True
                 return self._has_valid_ssl_certificate(server_url)
+        except MissingClientSSLCertificate:
+            return False
         return False
 
     def _get_authentication_url(self, server_url: str, /) -> str:

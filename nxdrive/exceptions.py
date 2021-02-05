@@ -85,6 +85,16 @@ class InvalidSSLCertificate(DriveError):
         return repr(self)
 
 
+class MissingClientSSLCertificate(DriveError):
+    """ The server needs a client SSL certificate. """
+
+    def __repr__(self) -> str:
+        return "No client-side SSL certificate. Use 'cert' and 'key' to provide client side SSL certificate."
+
+    def __str__(self) -> str:
+        return repr(self)
+
+
 class NotFound(OSError):
     """
     A remote document is not found on the server

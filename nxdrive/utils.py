@@ -1108,9 +1108,14 @@ def test_url(
     from requests.exceptions import SSLError
     from urllib3.util.url import parse_url
 
+    client_certificate = (Options.cert_file, Options.cert_key_file)
+    if not all(client_certificate):
+        client_certificate = None
+
     kwargs: Dict[str, Any] = {
         "timeout": timeout,
         "verify": Options.ca_bundle or not Options.ssl_no_verify,
+        "cert": client_certificate,
         "headers": {"User-Agent": USER_AGENT},
     }
     try:
@@ -1126,6 +1131,8 @@ def test_url(
                 return True
     except SSLError as exc:
         if "CERTIFICATE_VERIFY_FAILED" in str(exc):
+            raise InvalidSSLCertificate()
+        elif "ALERT_CERTIFICATE_REQUIRED" in str(exc):
             raise InvalidSSLCertificate()
     except requests.HTTPError as exc:
         if exc.response.status_code in (401, 403):

@@ -4,7 +4,17 @@ from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
 from time import monotonic_ns
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 from urllib.parse import unquote
 
 import nuxeo.constants
@@ -74,6 +84,7 @@ class Remote(Nuxeo):
         repository: str = Options.remote_repo,
         timeout: int = Options.timeout,
         verify: bool = True,
+        cert: Tuple[str] = None,
     ) -> None:
         auth = TokenAuth(token) if token else (user_id, password)
 
@@ -84,6 +95,7 @@ class Remote(Nuxeo):
             version=version,
             repository=repository,
             verify=verify,
+            cert=cert,
         )
 
         self.client.headers.update(

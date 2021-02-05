@@ -644,12 +644,16 @@ class Manager(QObject):
 
         log.info(f"Proxy configuration for startup page connection: {self.proxy}")
         try:
+            client_certificate = (Options.cert_file, Options.cert_key_file)
+            if not all(client_certificate):
+                client_certificate = None
             with requests.get(
                 url,
                 headers=headers,
                 proxies=self.proxy.settings(url=url),
                 timeout=STARTUP_PAGE_CONNECTION_TIMEOUT,
                 verify=Options.ca_bundle or not Options.ssl_no_verify,
+                cert=client_certificate,
             ) as resp:
                 status = resp.status_code
         except Exception as e:

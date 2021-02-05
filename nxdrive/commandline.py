@@ -139,6 +139,18 @@ class CliHandler:
             help="Allows invalid/custom certificates. Highly unadvised to enable this option.",
         )
 
+        # common_parser.add_argument(
+        #     "--cert",
+        #     default=Options.cert_file,
+        #     help="Path to the client ssl certificate.",
+        # )
+
+        # common_parser.add_argument(
+        #     "--key",
+        #     default=Options.cert_key_file,
+        #     help="Path to the client ssl certificate key file.",
+        # )
+
         common_parser.add_argument(
             "--sync-and-quit",
             default=Options.sync_and_quit,
@@ -534,6 +546,8 @@ class CliHandler:
 
                 log.warning("No SSL support! HTTPS validation will be skipped.")
                 options.ca_bundle = None
+                options.cert_file = None
+                options.cert_key_file = None
                 options.ssl_no_verify = True
 
         if command != "uninstall":

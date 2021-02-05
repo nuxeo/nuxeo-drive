@@ -185,10 +185,17 @@ def save_proxy(proxy: Proxy, dao: "EngineDAO", *, token: str = None) -> None:
 
 def validate_proxy(proxy: Proxy, url: str, /) -> bool:
     verify = Options.ca_bundle or not Options.ssl_no_verify
+    client_certificate = (Options.cert_file, Options.cert_key_file)
+    if not all(client_certificate):
+        client_certificate = None
     headers = {"User-Agent": USER_AGENT}
     try:
         with requests.get(
-            url, headers=headers, proxies=proxy.settings(url=url), verify=verify
+            url,
+            headers=headers,
+            proxies=proxy.settings(url=url),
+            verify=verify,
+            cert=client_certificate,
         ):
             return True
     except OSError:

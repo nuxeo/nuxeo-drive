@@ -1030,11 +1030,16 @@ class Application(QApplication):
             """Retrieve a token and create the account."""
             user = str(username.text())
             pwd = str(password.text())
+
+            client_certificate = (Options.cert_file, Options.cert_key_file)
+            if not all(client_certificate):
+                client_certificate = None
             nuxeo = Nuxeo(
                 host=url,
                 auth=(user, pwd),
                 proxies=self.manager.proxy.settings(url=url),
                 verify=Options.ca_bundle or not Options.ssl_no_verify,
+                cert=client_certificate,
             )
             try:
                 token = nuxeo.client.request_auth_token(
