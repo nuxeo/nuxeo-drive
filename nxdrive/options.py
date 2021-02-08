@@ -121,9 +121,8 @@ def _is_system_wide() -> bool:
     )
 
 
-def default_log_level_file() -> str:
-    """Determine the desired default file logging level."""
-    return "DEBUG" if _is_alpha() or not _get_frozen_state() else "INFO"
+# Determine the desired default file logging level
+DEFAULT_LOG_LEVEL_FILE = "DEBUG" if _is_alpha() or not _get_frozen_state() else "INFO"
 
 
 class CallableFeatureHandler:
@@ -260,7 +259,7 @@ class MetaOptions(type):
         "is_frozen": (_get_frozen_state(), "default"),
         "locale": ("en", "default"),
         "log_level_console": ("WARNING", "default"),
-        "log_level_file": (default_log_level_file(), "default"),
+        "log_level_file": (DEFAULT_LOG_LEVEL_FILE, "default"),
         "max_errors": (3, "default"),
         "nxdrive_home": (__home / ".nuxeo-drive", "default"),
         "nofscheck": (False, "default"),

@@ -39,10 +39,9 @@ from .exceptions import (
     StartupPageConnectionError,
 )
 from .feature import Feature
-from .logging_config import DEFAULT_LEVEL_FILE
 from .notification import DefaultNotificationService
 from .objects import Binder, EngineDef, Metrics
-from .options import Options
+from .options import DEFAULT_LOG_LEVEL_FILE, Options
 from .osi import AbstractOSIntegration
 from .poll_workers import DatabaseBackupWorker, ServerOptionsUpdater, SyncAndQuitWorker
 from .qt.imports import QT_VERSION_STR, QObject, pyqtSignal, pyqtSlot
@@ -595,10 +594,10 @@ class Manager(QObject):
 
     def get_log_level(self) -> str:
         if not Options.is_frozen or Options.is_alpha:
-            return Options.log_level_file
+            return DEFAULT_LOG_LEVEL_FILE
         return (
             self.dao.get_config("log_level_file", default=Options.log_level_file)
-            or DEFAULT_LEVEL_FILE
+            or DEFAULT_LOG_LEVEL_FILE
         )
 
     def set_log_level(self, value: str, /) -> None:
