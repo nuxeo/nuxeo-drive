@@ -9,7 +9,7 @@ from typing import Generator, List, Optional
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from . import constants
-from .options import DEFAULT_LOG_LEVEL_FILE, Options
+from .options import DEFAULT_LOG_LEVEL_CONSOLE, DEFAULT_LOG_LEVEL_FILE, Options
 
 __all__ = ("configure", "get_handler")
 
@@ -20,7 +20,6 @@ FORMAT = Formatter(
 )
 
 LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR"}
-DEFAULT_LEVEL_CONSOLE = "WARNING"
 
 # Singleton logging context for each process.
 # Alternatively we could use the setproctitle to handle the command name
@@ -133,7 +132,7 @@ def configure(
     *,
     log_filename: str = None,
     file_level: str = DEFAULT_LOG_LEVEL_FILE,
-    console_level: str = DEFAULT_LEVEL_CONSOLE,
+    console_level: str = DEFAULT_LOG_LEVEL_CONSOLE,
     command_name: str = None,
     force_configure: bool = False,
     formatter: Formatter = None,
@@ -162,7 +161,7 @@ def configure(
         root_logger.addHandler(memory_handler)
 
     # Define a Handler which writes messages to sys.stderr
-    console_level = get_level(console_level, DEFAULT_LEVEL_CONSOLE)
+    console_level = get_level(console_level, DEFAULT_LOG_LEVEL_CONSOLE)
     console_handler = get_handler("nxdrive_console")
     if not console_handler:
         console_handler = logging.StreamHandler()
