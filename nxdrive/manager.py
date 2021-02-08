@@ -39,10 +39,9 @@ from .exceptions import (
     StartupPageConnectionError,
 )
 from .feature import Feature
-from .logging_config import DEFAULT_LEVEL_FILE
 from .notification import DefaultNotificationService
 from .objects import Binder, EngineDef, Metrics
-from .options import Options
+from .options import DEFAULT_LOG_LEVEL_FILE, Options
 from .osi import AbstractOSIntegration
 from .poll_workers import DatabaseBackupWorker, ServerOptionsUpdater, SyncAndQuitWorker
 from .qt.imports import QT_VERSION_STR, QObject, pyqtSignal, pyqtSlot
@@ -504,8 +503,14 @@ class Manager(QObject):
         return self.dao.get_config(value, default=default)
 
     def set_config(self, key: str, value: Any, /) -> None:
+        """Update a configuration setting.
+        The modification may be disallowed so we ensure the correctness before saving change.
+        """
+        old_value = getattr(Options, key)
         Options.set(key, value, setter="manual", fail_on_error=False)
-        self.dao.update_config(key, value)
+        new_value = getattr(Options, key)
+        if old_value != new_value:
+            self.dao.update_config(key, value)
 
     @pyqtSlot(result=bool)
     def get_direct_edit_auto_lock(self) -> bool:
@@ -587,17 +592,15 @@ class Manager(QObject):
         self.prompted_wrong_channel = False
         self.updater.refresh_status()
 
-    @pyqtSlot(result=str)
     def get_log_level(self) -> str:
+        if not Options.is_frozen or Options.is_alpha:
+            return DEFAULT_LOG_LEVEL_FILE
         return (
             self.dao.get_config("log_level_file", default=Options.log_level_file)
-            or DEFAULT_LEVEL_FILE
+            or DEFAULT_LOG_LEVEL_FILE
         )
 
-    @pyqtSlot(str)
     def set_log_level(self, value: str, /) -> None:
-        if value == "DEBUG":
-            log.warning("Setting log level to DEBUG, sensitive data may be logged.")
         self.set_config("log_level_file", value)
 
     def set_proxy(self, proxy: "Proxy") -> str:

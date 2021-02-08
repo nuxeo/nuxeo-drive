@@ -9,7 +9,7 @@ from typing import Generator, List, Optional
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from . import constants
-from .options import Options
+from .options import DEFAULT_LOG_LEVEL_CONSOLE, DEFAULT_LOG_LEVEL_FILE, Options
 
 __all__ = ("configure", "get_handler")
 
@@ -20,8 +20,6 @@ FORMAT = Formatter(
 )
 
 LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR"}
-DEFAULT_LEVEL_CONSOLE = "WARNING"
-DEFAULT_LEVEL_FILE = "INFO"
 
 # Singleton logging context for each process.
 # Alternatively we could use the setproctitle to handle the command name
@@ -31,6 +29,7 @@ DEFAULT_LEVEL_FILE = "INFO"
 _logging_context = {}
 
 is_logging_configured = False
+log = logging.getLogger(__name__)
 
 
 class CustomMemoryHandler(BufferingHandler):
@@ -132,8 +131,8 @@ def no_trace(level: str, /) -> str:
 def configure(
     *,
     log_filename: str = None,
-    file_level: str = DEFAULT_LEVEL_FILE,
-    console_level: str = DEFAULT_LEVEL_CONSOLE,
+    file_level: str = DEFAULT_LOG_LEVEL_FILE,
+    console_level: str = DEFAULT_LOG_LEVEL_CONSOLE,
     command_name: str = None,
     force_configure: bool = False,
     formatter: Formatter = None,
@@ -162,7 +161,7 @@ def configure(
         root_logger.addHandler(memory_handler)
 
     # Define a Handler which writes messages to sys.stderr
-    console_level = get_level(console_level, DEFAULT_LEVEL_CONSOLE)
+    console_level = get_level(console_level, DEFAULT_LOG_LEVEL_CONSOLE)
     console_handler = get_handler("nxdrive_console")
     if not console_handler:
         console_handler = logging.StreamHandler()
@@ -174,7 +173,7 @@ def configure(
         console_handler.setLevel(console_level)
 
     # Define a handler for file based log with rotation if needed
-    file_level = get_level(file_level, DEFAULT_LEVEL_FILE)
+    file_level = get_level(file_level, DEFAULT_LOG_LEVEL_FILE)
     file_handler = get_handler("nxdrive_file")
     if log_filename:
         file_handler = TimedCompressedRotatingFileHandler(log_filename, "midnight", 30)
@@ -207,14 +206,14 @@ def get_handler(name: str, /) -> Optional[logging.Handler]:
 
 def get_level(level: str, default: str, /) -> str:
     try:
-        check_level(level)
+        _check_level(level)
         return no_trace(level)
     except ValueError as exc:
         logging.getLogger().warning(str(exc))
         return default
 
 
-def check_level(level: str, /) -> str:
+def _check_level(level: str, /) -> str:
     """Handle bad logging level."""
     try:
         level = no_trace(level)
@@ -226,20 +225,32 @@ def check_level(level: str, /) -> str:
         return level
 
 
-def update_logger_console(level: str, /) -> None:
-    handler = get_handler("nxdrive_console")
-    if handler:
-        handler.setLevel(level)
+def _check_level_file(value: str, /) -> str:
+    _check_level(value)
+    if value != DEFAULT_LOG_LEVEL_FILE and not (
+        Options.is_frozen and not Options.is_alpha
+    ):
+        raise ValueError(
+            "DEBUG logs are forcibly enabled on alpha versions or when the app is ran from sources"
+        )
+    return value
 
 
-def update_logger_file(level: str, /) -> None:
-    handler = get_handler("nxdrive_file")
-    if handler:
-        handler.setLevel(level)
+def _update_logger(name: str, level: str, /) -> None:
+    handler = get_handler(name)
+    if not handler:
+        return
+    handler.setLevel(level)
+    if level == "DEBUG":
+        log.warning("Setting log level to DEBUG, sensitive data may be logged.")
 
 
 # Install logs callbacks
-Options.checkers["log_level_console"] = check_level
-Options.checkers["log_level_file"] = check_level
-Options.callbacks["log_level_console"] = update_logger_console
-Options.callbacks["log_level_file"] = update_logger_file
+Options.checkers["log_level_console"] = _check_level
+Options.checkers["log_level_file"] = _check_level_file
+Options.callbacks["log_level_console"] = lambda level: _update_logger(
+    "nxdrive_console", level
+)
+Options.callbacks["log_level_file"] = lambda level: _update_logger(
+    "nxdrive_file", level
+)

@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, List, Optional, Union
 from . import __version__
 from .constants import APP_NAME, BUNDLE_IDENTIFIER, DEFAULT_CHANNEL, LINUX
 from .logging_config import configure
-from .options import Options
+from .options import DEFAULT_LOG_LEVEL_CONSOLE, DEFAULT_LOG_LEVEL_FILE, Options
 from .osi import AbstractOSIntegration
 from .state import State
 from .utils import (
@@ -83,14 +83,14 @@ class CliHandler:
 
         common_parser.add_argument(
             "--log-level-file",
-            default=Options.log_level_file,
+            default=DEFAULT_LOG_LEVEL_FILE,
             choices=("TRACE", "DEBUG", "INFO", "WARNING", "ERROR"),
             help="Minimum log level for the file log",
         )
 
         common_parser.add_argument(
             "--log-level-console",
-            default=Options.log_level_console,
+            default=DEFAULT_LOG_LEVEL_CONSOLE,
             choices=("TRACE", "DEBUG", "INFO", "WARNING", "ERROR"),
             help="Minimum log level for the console log",
         )
