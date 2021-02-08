@@ -1,6 +1,7 @@
 import shutil
 from unittest.mock import patch
 
+from nxdrive.engine.watcher.constants import SECURITY_UPDATED_EVENT
 from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
 
 from ..utils import random_png
@@ -86,7 +87,7 @@ class TestLocalShareMoveFolders(TwoUsersTest):
         def get_changes(self):
             summary = original_get_changes(self)
             for event in summary["fileSystemChanges"]:
-                if event["eventId"] == "securityUpdated":
+                if event["eventId"] == SECURITY_UPDATED_EVENT:
                     nonlocal src
                     nonlocal dst
                     shutil.move(src, dst)

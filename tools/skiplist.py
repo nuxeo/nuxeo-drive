@@ -86,6 +86,7 @@ QMLDriveApi.set_proxy_settings  # Used in QML
 QMLDriveApi.set_server_ui  # Used in QML
 QMLDriveApi.to_local_file  # Used in QML
 QMLDriveApi.web_update_token  # Used in QML
+ROOT_REGISTERED  # Used in tests
 registry.create  # Used in test_windows_registry.py
 shortcut.Targetpath  # WindowsIntegration._create_shortcut()
 shortcut.WorkingDirectory  # WindowsIntegration._create_shortcut()

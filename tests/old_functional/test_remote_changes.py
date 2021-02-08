@@ -1,5 +1,12 @@
 import pytest
 
+from nxdrive.engine.watcher.constants import (
+    DELETED_EVENT,
+    DOCUMENT_LOCKED,
+    DOCUMENT_UNLOCKED,
+    ROOT_REGISTERED,
+)
+
 from .common import SYNC_ROOT_FAC_ID, OneUserTest
 
 
@@ -86,13 +93,13 @@ class TestRemoteChanges(OneUserTest):
         assert len(summary["fileSystemChanges"]) == 2
 
         change = summary["fileSystemChanges"][0]
-        assert change["eventId"] == "deleted"
+        assert change["eventId"] == DELETED_EVENT
         assert not change["fileSystemItemName"]
         assert change["repositoryId"] == "default"
         assert change["docUuid"] == folder_2
 
         change = summary["fileSystemChanges"][1]
-        assert change["eventId"] == "deleted"
+        assert change["eventId"] == DELETED_EVENT
         assert not change["fileSystemItemName"]
         assert change["repositoryId"] == "default"
         assert change["docUuid"] == folder_1
@@ -117,7 +124,7 @@ class TestRemoteChanges(OneUserTest):
         assert len(summary["fileSystemChanges"]) == 1
 
         change = summary["fileSystemChanges"][0]
-        assert change["eventId"] == "rootRegistered"
+        assert change["eventId"] == ROOT_REGISTERED
         assert change["fileSystemItemName"] == "Folder 1"
         assert change["fileSystemItemId"] == f"{SYNC_ROOT_FAC_ID}{folder_1}"
 
@@ -128,13 +135,13 @@ class TestRemoteChanges(OneUserTest):
         assert len(summary["fileSystemChanges"]) == 2
 
         for change in summary["fileSystemChanges"]:
-            if change["eventId"] == "rootRegistered":
+            if change["eventId"] == ROOT_REGISTERED:
                 assert change["fileSystemItemName"] == self.workspace_title
                 assert (
                     change["fileSystemItemId"] == f"{SYNC_ROOT_FAC_ID}{self.workspace}"
                 )
                 assert change["fileSystemItem"] is not None
-            elif change["eventId"] == "deleted":
+            elif change["eventId"] == DELETED_EVENT:
                 assert not change["fileSystemItemName"]
                 assert change["fileSystemItemId"] == f"default#{folder_1}"
                 assert not change["fileSystemItem"]
@@ -155,7 +162,7 @@ class TestRemoteChanges(OneUserTest):
         assert len(summary["fileSystemChanges"]) == 1
 
         change = summary["fileSystemChanges"][0]
-        assert change["eventId"] == "documentLocked"
+        assert change["eventId"] == DOCUMENT_LOCKED
         assert change["docUuid"] == doc_id
         assert change["fileSystemItemName"] == "TestLocking.txt"
 
@@ -164,6 +171,6 @@ class TestRemoteChanges(OneUserTest):
         assert len(summary["fileSystemChanges"]) == 1
 
         change = summary["fileSystemChanges"][0]
-        assert change["eventId"] == "documentUnlocked"
+        assert change["eventId"] == DOCUMENT_UNLOCKED
         assert change["docUuid"] == doc_id
         assert change["fileSystemItemName"] == "TestLocking.txt"
