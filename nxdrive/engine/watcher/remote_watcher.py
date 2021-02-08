@@ -21,6 +21,13 @@ from ...qt.imports import pyqtSignal, pyqtSlot
 from ...utils import get_date_from_sqlite, safe_filename
 from ..activity import Action, tooltip
 from ..workers import EngineWorker
+from .constants import (
+    DELETED_EVENT,
+    DOCUMENT_LOCKED,
+    DOCUMENT_MOVED,
+    DOCUMENT_UNLOCKED,
+    SECURITY_UPDATED_EVENT,
+)
 
 if TYPE_CHECKING:
     from ..dao.sqlite import EngineDAO  # noqa
@@ -822,7 +829,7 @@ class RemoteWatcher(EngineWorker):
                 if not doc_pair:
                     continue
                 doc_pair_repr = doc_pair.local_path or doc_pair.remote_name
-                if event_id == "deleted":
+                if event_id == DELETED_EVENT:
                     if fs_item is None or new_info is None:
                         if doc_pair.last_error == "DEDUP":
                             log.info(f"Delete pair from duplicate: {doc_pair!r}")
@@ -840,7 +847,7 @@ class RemoteWatcher(EngineWorker):
                         updated = True
                         break
                 elif fs_item is None or new_info is None:
-                    if event_id == "securityUpdated":
+                    if event_id == SECURITY_UPDATED_EVENT:
                         log.info(
                             f"Security has been updated for doc_pair {doc_pair_repr!r} "
                             "denying Read access, marking it as deleted"
@@ -855,7 +862,7 @@ class RemoteWatcher(EngineWorker):
                     # Specific cases of a move on a locally edited doc
                     if (
                         remote_parent_factory == COLLECTION_SYNC_ROOT_FACTORY_NAME
-                        and event_id == "documentMoved"
+                        and event_id == DOCUMENT_MOVED
                     ):
                         # If moved from a non sync root to a sync root,
                         # break to creation case (updated is False).
@@ -864,7 +871,7 @@ class RemoteWatcher(EngineWorker):
                         break
                     elif (
                         new_info_parent_factory == COLLECTION_SYNC_ROOT_FACTORY_NAME
-                        and event_id == "documentMoved"
+                        and event_id == DOCUMENT_MOVED
                     ):
                         # If moved from a sync root to a non sync root,
                         # delete from local sync root
@@ -907,7 +914,7 @@ class RemoteWatcher(EngineWorker):
                         # Force remote state update in case of a
                         # locked / unlocked event since lock info is not
                         # persisted, so not part of the dirty check
-                        lock_update = event_id in ("documentLocked", "documentUnlocked")
+                        lock_update = event_id in (DOCUMENT_LOCKED, DOCUMENT_UNLOCKED)
 
                         # Perform a regular document update on a document
                         # that has been updated, renamed or moved
@@ -917,7 +924,7 @@ class RemoteWatcher(EngineWorker):
                                 new_info.digest != doc_pair.remote_digest,
                                 safe_filename(new_info.name) != doc_pair.remote_name,
                                 new_info.parent_uid != doc_pair.remote_parent_ref,
-                                event_id == "securityUpdated",
+                                event_id == SECURITY_UPDATED_EVENT,
                                 lock_update,
                             )
                         ):
@@ -926,7 +933,7 @@ class RemoteWatcher(EngineWorker):
                         log.info(
                             f"Refreshing remote state info for doc_pair={doc_pair!r}, "
                             f"event_id={event_id!r}, new_info={new_info!r} "
-                            f"(force_recursion={event_id == 'securityUpdated'})"
+                            f"(force_recursion={event_id == SECURITY_UPDATED_EVENT})"
                         )
 
                         remote_parent_path = os.path.dirname(new_info.path)
@@ -968,7 +975,7 @@ class RemoteWatcher(EngineWorker):
 
                         if doc_pair.folderish:
                             if (
-                                event_id == "securityUpdated"
+                                event_id == SECURITY_UPDATED_EVENT
                                 and not doc_pair.remote_can_create_child
                                 and new_info.can_create_child
                             ):
@@ -977,14 +984,14 @@ class RemoteWatcher(EngineWorker):
 
                             log.debug(
                                 f"Force scan recursive on {doc_pair!r}, "
-                                f"permissions change={event_id == 'securityUpdated'!r}"
+                                f"permissions change={event_id == SECURITY_UPDATED_EVENT!r}"
                             )
                             self._force_remote_scan(
                                 doc_pair,
                                 consistent_new_info,
                                 remote_path=new_info.path,
-                                force_recursion=event_id == "securityUpdated",
-                                moved=event_id == "documentMoved",
+                                force_recursion=event_id == SECURITY_UPDATED_EVENT,
+                                moved=event_id == DOCUMENT_MOVED,
                             )
 
                         if lock_update:
