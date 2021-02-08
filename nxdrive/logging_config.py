@@ -9,7 +9,7 @@ from typing import Generator, List, Optional
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from . import constants
-from .options import Options
+from .options import Options, default_log_level_file
 
 __all__ = ("configure", "get_handler")
 
@@ -21,7 +21,7 @@ FORMAT = Formatter(
 
 LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR"}
 DEFAULT_LEVEL_CONSOLE = "WARNING"
-DEFAULT_LEVEL_FILE = "INFO"
+DEFAULT_LEVEL_FILE = default_log_level_file()
 
 # Singleton logging context for each process.
 # Alternatively we could use the setproctitle to handle the command name
@@ -31,6 +31,7 @@ DEFAULT_LEVEL_FILE = "INFO"
 _logging_context = {}
 
 is_logging_configured = False
+log = logging.getLogger(__name__)
 
 
 class CustomMemoryHandler(BufferingHandler):
@@ -226,20 +227,28 @@ def check_level(level: str, /) -> str:
         return level
 
 
-def update_logger_console(level: str, /) -> None:
-    handler = get_handler("nxdrive_console")
-    if handler:
-        handler.setLevel(level)
+def check_level_file(value: str, /) -> str:
+    check_level(value)
+    if value != DEFAULT_LEVEL_FILE and not (Options.is_frozen and not Options.is_alpha):
+        raise ValueError(
+            "DEBUG logs are forcibly enabled on alpha versions or when the app is ran from sources"
+        )
+    return value
 
 
-def update_logger_file(level: str, /) -> None:
-    handler = get_handler("nxdrive_file")
-    if handler:
-        handler.setLevel(level)
+def update_logger(name: str, level: str, /) -> None:
+    handler = get_handler(name)
+    if not handler:
+        return
+    handler.setLevel(level)
+    if level == "DEBUG":
+        log.warning("Setting log level to DEBUG, sensitive data may be logged.")
 
 
 # Install logs callbacks
 Options.checkers["log_level_console"] = check_level
-Options.checkers["log_level_file"] = check_level
-Options.callbacks["log_level_console"] = update_logger_console
-Options.callbacks["log_level_file"] = update_logger_file
+Options.checkers["log_level_file"] = check_level_file
+Options.callbacks["log_level_console"] = lambda level: update_logger(
+    "nxdrive_console", level
+)
+Options.callbacks["log_level_file"] = lambda level: update_logger("nxdrive_file", level)

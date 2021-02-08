@@ -65,7 +65,9 @@ NuxeoPopup {
                     var level = logLevel.currentText
                     if (level != control.level) {
                         api.set_log_level(level)
-                        control.level = level
+                        // Ensure displayed value is correct (the change may have been disallowed)
+                        control.level = api.get_log_level()
+                        logLevel.currentIndex = logLevel.model.indexOf(control.level)
                     }
                     control.close()
                 }

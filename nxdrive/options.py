@@ -108,12 +108,22 @@ def _get_resources_dir() -> Path:
     return path / "data"
 
 
+def _is_alpha() -> bool:
+    """Return True if the current version is considered alpha."""
+    return __version__.count(".") != 2
+
+
 def _is_system_wide() -> bool:
     # TODO: check OK with Nuitka
     return (
         sys.platform == "win32"
         and Path(sys.executable).with_name("system-wide.txt").is_file()
     )
+
+
+def default_log_level_file() -> str:
+    """Determine the desired default file logging level."""
+    return "DEBUG" if _is_alpha() or not _get_frozen_state() else "INFO"
 
 
 class CallableFeatureHandler:
@@ -246,11 +256,11 @@ class MetaOptions(type):
         "ignored_files": (__files, "default"),
         "ignored_prefixes": (__prefixes, "default"),
         "ignored_suffixes": (__suffixes, "default"),
-        "is_alpha": (__version__.count(".") != 2, "default"),
+        "is_alpha": (_is_alpha(), "default"),
         "is_frozen": (_get_frozen_state(), "default"),
         "locale": ("en", "default"),
         "log_level_console": ("WARNING", "default"),
-        "log_level_file": ("INFO", "default"),
+        "log_level_file": (default_log_level_file(), "default"),
         "max_errors": (3, "default"),
         "nxdrive_home": (__home / ".nuxeo-drive", "default"),
         "nofscheck": (False, "default"),
