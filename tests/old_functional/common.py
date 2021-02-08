@@ -233,6 +233,9 @@ class TwoUsersTest(TestCase):
         log.info("TEST run start")
 
         def launch_test():
+            # Cleanup potential old report
+            self._get_report_file().unlink(missing_ok=True)
+
             # Note: we cannot use super().run(result) here
             super(TwoUsersTest, self).run(result)
 
@@ -276,6 +279,11 @@ class TwoUsersTest(TestCase):
             sync_thread.join(30)
 
         log.info("TEST run end")
+
+    def _get_report_file(self) -> Path:
+        path = Path(os.getenv("REPORT_PATH", "."))
+        file = f"{self._testMethodName}-{sys.platform.lower()}.zip"
+        return path / file
 
     def _create_user(self, number: int) -> User:
         def _company_domain(company_: str) -> str:
@@ -679,9 +687,7 @@ class TwoUsersTest(TestCase):
         if not unexpected_error:
             return
 
-        path = Path(os.getenv("REPORT_PATH", "."))
-        file = f"{self._testMethodName}-{sys.platform.lower()}"
-        self.manager_1.generate_report(path=path / file)
+        self.manager_1.generate_report(path=self._get_report_file())
 
     def _set_read_permission(self, user, doc_path, grant):
         input_obj = "doc:" + doc_path
