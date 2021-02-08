@@ -208,14 +208,14 @@ def get_handler(name: str, /) -> Optional[logging.Handler]:
 
 def get_level(level: str, default: str, /) -> str:
     try:
-        check_level(level)
+        _check_level(level)
         return no_trace(level)
     except ValueError as exc:
         logging.getLogger().warning(str(exc))
         return default
 
 
-def check_level(level: str, /) -> str:
+def _check_level(level: str, /) -> str:
     """Handle bad logging level."""
     try:
         level = no_trace(level)
@@ -227,8 +227,8 @@ def check_level(level: str, /) -> str:
         return level
 
 
-def check_level_file(value: str, /) -> str:
-    check_level(value)
+def _check_level_file(value: str, /) -> str:
+    _check_level(value)
     if value != DEFAULT_LEVEL_FILE and not (Options.is_frozen and not Options.is_alpha):
         raise ValueError(
             "DEBUG logs are forcibly enabled on alpha versions or when the app is ran from sources"
@@ -236,7 +236,7 @@ def check_level_file(value: str, /) -> str:
     return value
 
 
-def update_logger(name: str, level: str, /) -> None:
+def _update_logger(name: str, level: str, /) -> None:
     handler = get_handler(name)
     if not handler:
         return
@@ -246,9 +246,11 @@ def update_logger(name: str, level: str, /) -> None:
 
 
 # Install logs callbacks
-Options.checkers["log_level_console"] = check_level
-Options.checkers["log_level_file"] = check_level_file
-Options.callbacks["log_level_console"] = lambda level: update_logger(
+Options.checkers["log_level_console"] = _check_level
+Options.checkers["log_level_file"] = _check_level_file
+Options.callbacks["log_level_console"] = lambda level: _update_logger(
     "nxdrive_console", level
 )
-Options.callbacks["log_level_file"] = lambda level: update_logger("nxdrive_file", level)
+Options.callbacks["log_level_file"] = lambda level: _update_logger(
+    "nxdrive_file", level
+)
