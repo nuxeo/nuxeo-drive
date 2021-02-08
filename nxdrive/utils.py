@@ -43,6 +43,7 @@ from .constants import (
     WINDOWS,
 )
 from .exceptions import (
+    EncryptedSSLCertificateKey,
     InvalidSSLCertificate,
     MissingClientSSLCertificate,
     UnknownDigest,
@@ -1117,7 +1118,7 @@ def test_url(
     login_page: str = Options.startup_page,
     proxy: "Proxy" = None,
     timeout: int = 5,
-) -> bool:
+) -> str:
     """Try to request the login page to see if the URL is valid."""
     import requests
     from requests.exceptions import SSLError
@@ -1139,18 +1140,21 @@ def test_url(
             resp.raise_for_status()
             if resp.status_code == 200:  # Happens when JSF is installed
                 log.debug(f"Valid URL: {url}")
-                return True
+                return ""
     except SSLError as exc:
         if "CERTIFICATE_VERIFY_FAILED" in str(exc):
             raise InvalidSSLCertificate()
-        elif "ALERT_CERTIFICATE_REQUIRED" in str(exc):
+        elif "CERTIFICATE_REQUIRED" in str(exc):
             raise MissingClientSSLCertificate()
+        elif "password is required" in str(exc):
+            raise EncryptedSSLCertificateKey()
+
     except requests.HTTPError as exc:
         if exc.response.status_code in (401, 403):
             # When there is only Web-UI installed, the code is 401.
             log.debug(f"Valid URL: {url}")
-            return True
-    return False
+            return ""
+    return "CONNECTION_ERROR"
 
 
 def today_is_special() -> bool:
