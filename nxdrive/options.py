@@ -66,11 +66,6 @@ def _get_freezer() -> Optional[str]:
     return None
 
 
-def _get_frozen_state() -> bool:
-    """Find the current state of the application."""
-    return _get_freezer() is not None
-
-
 def _get_home() -> Path:
     """
     Get the user home directory.
@@ -119,9 +114,12 @@ def _is_system_wide() -> bool:
 # True if the current version is considered alpha
 _IS_ALPHA = __version__.count(".") != 2
 
+# Current state of the application
+_IS_FROZEN = _get_freezer() is not None
+
 # Determine desired defaults for logging level
 DEFAULT_LOG_LEVEL_CONSOLE = "WARNING"
-DEFAULT_LOG_LEVEL_FILE = "DEBUG" if _IS_ALPHA or not _get_frozen_state() else "INFO"
+DEFAULT_LOG_LEVEL_FILE = "DEBUG" if _IS_ALPHA or not _IS_FROZEN else "INFO"
 
 
 class CallableFeatureHandler:
@@ -255,7 +253,7 @@ class MetaOptions(type):
         "ignored_prefixes": (__prefixes, "default"),
         "ignored_suffixes": (__suffixes, "default"),
         "is_alpha": (_IS_ALPHA, "default"),
-        "is_frozen": (_get_frozen_state(), "default"),
+        "is_frozen": (_IS_FROZEN, "default"),
         "locale": ("en", "default"),
         "log_level_console": (DEFAULT_LOG_LEVEL_CONSOLE, "default"),
         "log_level_file": (DEFAULT_LOG_LEVEL_FILE, "default"),
