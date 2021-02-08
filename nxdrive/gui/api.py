@@ -522,7 +522,7 @@ class QMLDriveApi(QObject):
             )
             self.setMessage.emit("CONNECTION_UNKNOWN", "error")
 
-    def _has_valid_ssl_certificate(self, server_url: str, /) -> str:
+    def _get_ssl_error(self, server_url: str, /) -> str:
         """Handle invalid SSL certificates for the server URL."""
         try:
             return test_url(server_url, proxy=self._manager.proxy)
@@ -533,7 +533,7 @@ class QMLDriveApi(QObject):
             if self.application.accept_unofficial_ssl_cert(hostname):
                 Options.ca_bundle = None
                 Options.ssl_no_verify = True
-                return self._has_valid_ssl_certificate(server_url)
+                return self._get_ssl_error(server_url)
         except MissingClientSSLCertificate as exc:
             log.warning(exc)
             return "MISSING_CLIENT_SSL"
@@ -798,7 +798,7 @@ class QMLDriveApi(QObject):
         # Handle the server URL
         error = ""
         try:
-            error = self._has_valid_ssl_certificate(server_url)
+            error = self._get_ssl_error(server_url)
         except (LocationParseError, ValueError, requests.RequestException):
             log.debug(f"Bad URL: {server_url}")
         except Exception:
