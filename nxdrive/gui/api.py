@@ -17,6 +17,7 @@ from ..constants import (
     CONNECTION_ERROR,
     DEFAULT_SERVER_TYPE,
     DT_MONITORING_MAX_ITEMS,
+    LINUX,
     TOKEN_PERMISSION,
     TransferStatus,
 )
@@ -347,6 +348,23 @@ class QMLDriveApi(QObject):
             log.exception("Report error")
             return "[ERROR] " + str(e)
 
+    @pyqtSlot(str, str, result=str)
+    def generate_csv(self, session_id: str, engine_uid: str) -> str:
+        """
+        Generate a CSV file from the *session_id*.
+        Return the local path on success.
+        Return an empty string on failure.
+        """
+        try:
+            engine = self._manager.engines.get(engine_uid)
+            if not engine:
+                return ""
+            csv_path = self._manager.generate_csv(int(session_id), engine)
+            return str(csv_path) if csv_path else ""
+        except Exception as e:
+            log.exception(f"CSV error: {str(e)}")
+            return ""
+
     @pyqtSlot(str)
     def open_direct_transfer(self, uid: str, /) -> None:
         self.application.hide_systray()
@@ -384,6 +402,16 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str)
     def open_report(self, path: str, /) -> None:
+        self._manager.open_local_file(path, select=True)
+
+    @pyqtSlot(str)
+    def open_csv(self, path: str, /) -> None:
+        """
+        Open the folder containing the CSV.
+        On Windows and MacOS the file will be selected.
+        """
+        if LINUX:
+            path = str(Path(path).parent)
         self._manager.open_local_file(path, select=True)
 
     @pyqtSlot(str, str)

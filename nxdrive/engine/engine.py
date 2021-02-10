@@ -170,6 +170,7 @@ class Engine(QObject):
         self._load_configuration()
 
         self.download_dir = self._set_download_dir()
+        self.csv_dir = self._set_csv_dir()
 
         if not binder:
             if not self.server_url:
@@ -316,6 +317,15 @@ class Engine(QObject):
         self.local.download_dir = download_dir
 
         return download_dir
+
+    def _set_csv_dir(self) -> Path:
+        """Create the csv dir if not already."""
+        csv_dir = safe_long_path(self.manager.home) / "csv"
+        if csv_dir.is_dir():
+            return csv_dir
+        log.info(f"Creating csv folder {csv_dir!r}")
+        csv_dir.mkdir(exist_ok=True)
+        return csv_dir
 
     def set_local_folder(self, path: Path, /) -> None:
         log.info(f"Update local folder to {path!r}")
@@ -468,6 +478,7 @@ class Engine(QObject):
             duplicate_behavior,
             last_local_selected_location,
         )
+        new_folder_item = None
         if new_folder:
             self.send_metric("direct_transfer", "new_folder", "1")
             item = self._create_remote_folder(remote_parent_path, new_folder)
@@ -475,6 +486,7 @@ class Engine(QObject):
                 return
             remote_parent_path = item["path"]
             remote_parent_ref = item["uid"]
+            new_folder_item = item
 
         # Allow to only create a folder and return.
         if not local_paths:
@@ -509,6 +521,9 @@ class Engine(QObject):
         session_uid = self.dao.create_session(
             remote_parent_path, remote_parent_ref, len(items), self.uid, description
         )
+        if new_folder_item:
+            self.dao.save_session_item(session_uid, new_folder_item)
+
         for batch_items in grouper(items, bsize):
             row_id = self.dao.plan_many_direct_transfer_items(batch_items, session_uid)
             if current_max_row_id == -1:

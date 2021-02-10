@@ -558,6 +558,23 @@ class Manager(QObject):
         report.generate()
         return report.get_path()
 
+    def generate_csv(self, session_id: int, engine: Engine) -> Optional[Path]:
+        """
+        Generate a CSV file based on the *session_id*.
+        """
+        from .session_csv import SessionCsv
+
+        log.info(f"Generating CSV file from Direct Transfer session {session_id}.")
+
+        session = engine.dao.get_session(session_id)
+        if not session:
+            return None
+
+        session_items = engine.dao.get_session_items(session_id)
+        session_csv = SessionCsv(self, engine, session)
+        session_csv.generate(session_items)
+        return session_csv.get_path()
+
     @pyqtSlot(result=bool)  # from GeneralTab.qml
     def get_auto_start(self) -> bool:
         return self.osi.startup_enabled()

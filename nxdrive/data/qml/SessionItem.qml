@@ -67,7 +67,7 @@ Rectangle {
 
                     // Session status
                     GridLayout {
-                        columns: 3
+                        columns: 4
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.topMargin: active ? 4 : 0
@@ -84,6 +84,24 @@ Rectangle {
                         ScaledText {
                             text: (active ? created_on : completed_on) + tl.tr
                             color: secondaryText
+                        }
+                        RowLayout {
+                            Link {
+                                id: csvCreationLink
+                                text: qsTr("CREATE_CSV") + tl.tr
+                                visible: !csvFileLink.text
+                                onClicked: {
+                                    var link = api.generate_csv(uid, engine)
+                                    csvFileLink.csv_url = link
+                                    csvFileLink.text = link.split(/[\\/]/).pop()
+                                }
+                            }
+                            Link {
+                                id: csvFileLink
+                                visible: csvFileLink.text
+                                property string csv_url
+                                onClicked: api.open_csv(csv_url)
+                            }
                         }
                     }
                 }

@@ -50,6 +50,7 @@
     "CONTEXT_MENU_4": "Upload content",
     "CONTINUE": "Continue",
     "CONTINUE_USING": "Continue using Drive %1",
+    "CREATE_CSV": "Export to CSV",
     "CREATE_REPORT": "Generate a bug report",
     "DATETIME_FORMAT": "%x %X",
     "DEBUG": "Debug",
