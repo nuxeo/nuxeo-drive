@@ -301,7 +301,7 @@ Rectangle {
                     name: "conflicted"
                     PropertyChanges {
                         target: errorState
-                        color: orange
+                        color: warningContent
                         text: qsTr("CONFLICTS_SYSTRAY").arg(ConflictsModel.count) + tl.tr
                         onClicked: api.show_conflicts_resolution(accountSelect.getRole("uid"))
                     }
