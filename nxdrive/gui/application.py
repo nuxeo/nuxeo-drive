@@ -215,7 +215,7 @@ class Application(QApplication):
 
         # Display release notes on new version
         if self.manager.old_version != self.manager.version:
-            self.show_release_notes(self.manager.version)
+            self._show_release_notes(self.manager.old_version, self.manager.version)
 
         # Listen for nxdrive:// sent by a new instance
         self.init_nxdrive_listener()
@@ -1308,18 +1308,18 @@ class Application(QApplication):
         return f"{self.default_tooltip} - {action!r}"
 
     @if_frozen
-    def show_release_notes(self, version: str, /) -> None:
+    def _show_release_notes(self, previous: str, current: str, /) -> None:
         """ Display release notes of a given version. """
 
         if "CI" in os.environ or Options.is_alpha:
             return
 
         channel = self.manager.get_update_channel()
-        log.info(f"Showing release notes, {version=} {channel=}")
+        log.info(f"Showing release notes, {previous=} {current=} {channel=}")
         self.display_info(
             Translator.get("RELEASE_NOTES_TITLE", values=[APP_NAME]),
             "RELEASE_NOTES_MSG",
-            [APP_NAME, version],
+            [APP_NAME, current],
         )
 
     def accept_unofficial_ssl_cert(self, hostname: str, /) -> bool:
