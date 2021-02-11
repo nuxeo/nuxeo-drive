@@ -553,16 +553,17 @@ class DirectEdit(Worker):
         self,
         server_url: str,
         doc_id: str,
+        user: Optional[str],
+        download_url: Optional[str],
         /,
-        *,
-        user: str = None,
-        download_url: str = None,
     ) -> None:
         if not Feature.direct_edit:
             self.directEditError.emit("DIRECT_EDIT_NOT_ENABLED", [])
             return
 
-        log.info(f"Direct Editing doc {doc_id!r} on {server_url!r}")
+        log.info(
+            f"Direct Editing {doc_id=} on {server_url=} for {user=} with {download_url=}"
+        )
         try:
             # Download the file
             file_path = self._prepare_edit(
