@@ -11,10 +11,10 @@ NuxeoPopup {
     topPadding: 60
     leftPadding: 50
     rightPadding: 50
-    property string level: api.get_log_level()
+    property string level: manager.get_log_level()
 
     onOpened: {
-        var level = api.get_log_level()
+        var level = manager.get_log_level()
         logLevel.currentIndex = logLevel.model.indexOf(level)
     }
 
@@ -64,9 +64,9 @@ NuxeoPopup {
                 onClicked: {
                     var level = logLevel.currentText
                     if (level != control.level) {
-                        api.set_log_level(level)
+                        manager.set_log_level(level)
                         // Ensure displayed value is correct (the change may have been disallowed)
-                        control.level = api.get_log_level()
+                        control.level = manager.get_log_level()
                         logLevel.currentIndex = logLevel.model.indexOf(control.level)
                     }
                     control.close()
