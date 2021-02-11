@@ -870,7 +870,6 @@ class Application(QApplication):
         self.filters_dlg.show()
         self._center_on_screen(self.settings_window)
 
-    @pyqtSlot(object)
     def show_server_folders(self, engine: Engine, path: Optional[Path], /) -> None:
         """Display the remote folders dialog window.
         *path* is None when the dialog window is opened from a click on the systray menu icon.
@@ -1702,12 +1701,13 @@ class Application(QApplication):
         log.info(f"Direct Transfer: {path!r}")
 
         # Select the good account to use
+        engine: Optional[Engine] = None
         if len(engines) > 1:
             # The user has to select the desired account
-            engine: Optional[Engine] = self._select_account(engines)
+            engine = self._select_account(engines)
         elif engines:
             engine = engines[0]
-        else:
+        if not engine:
             self.display_warning(
                 f"Direct Transfer - {APP_NAME}", "DIRECT_TRANSFER_NO_ACCOUNT", []
             )

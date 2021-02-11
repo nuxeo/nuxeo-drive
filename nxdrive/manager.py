@@ -474,7 +474,7 @@ class Manager(QObject):
         if self.updater.get_next_poll() > 60 and self.updater.get_last_poll() > 1800:
             self.updater.force_poll()
 
-    @pyqtSlot(str)
+    @pyqtSlot(str)  # from IconLink.qml
     def open_local_file(self, file_path: str, /, *, select: bool = False) -> None:
         """Launch the local OS program on the given file / folder."""
         file_path = force_decode(file_path)
@@ -512,36 +512,36 @@ class Manager(QObject):
         if old_value != new_value:
             self.dao.update_config(key, value)
 
-    @pyqtSlot(result=bool)
+    @pyqtSlot(result=bool)  # from GeneralTab.qml
     def get_direct_edit_auto_lock(self) -> bool:
         # Enabled by default, if app is frozen
         return self.dao.get_bool("direct_edit_auto_lock", default=Options.is_frozen)
 
-    @pyqtSlot(bool)
+    @pyqtSlot(bool)  # from GeneralTab.qml
     def set_direct_edit_auto_lock(self, value: bool, /) -> None:
         log.debug(f"Changed parameter 'direct_edit_auto_lock' to {value}")
         self.dao.store_bool("direct_edit_auto_lock", value)
 
-    @pyqtSlot(str, result=bool)
+    @pyqtSlot(str, result=bool)  # from FeaturesTab.qml
     def get_feature_state(self, name: str, /) -> bool:
         """Get the value of the Feature attribute."""
         return bool(getattr(Feature, name))
 
-    @pyqtSlot(str, bool)
+    @pyqtSlot(str, bool)  # from FeaturesTab.qml
     def set_feature_state(self, name: str, value: bool, /) -> None:
         """Set the value of the feature in Options and save changes in config file."""
         Options.set(f"feature_{name}", value, setter="manual")
         save_config({f"feature_{name}": value})
         self.featureUpdate.emit(name, value)
 
-    @pyqtSlot(result=bool)
+    @pyqtSlot(result=bool)  # from GeneralTab.qml
     def get_auto_update(self) -> bool:
         # Enabled by default, if app is frozen
         value: bool = Options.update_check_delay > 0
         value &= self.dao.get_bool("auto_update", default=Options.is_frozen)
         return value
 
-    @pyqtSlot(bool)
+    @pyqtSlot(bool)  # from GeneralTab.qml
     def set_auto_update(self, value: bool, /) -> None:
         log.debug(f"Changed parameter 'auto_update' to {value}")
         self.dao.store_bool("auto_update", value)
@@ -557,11 +557,11 @@ class Manager(QObject):
         report.generate()
         return report.get_path()
 
-    @pyqtSlot(result=bool)
+    @pyqtSlot(result=bool)  # from GeneralTab.qml
     def get_auto_start(self) -> bool:
         return self.osi.startup_enabled()
 
-    @pyqtSlot(bool)
+    @pyqtSlot(bool)  # from GeneralTab.qml
     def set_auto_start(self, value: bool, /) -> None:
         """Change the auto start state."""
         log.debug(f"Changed auto start state to {value}")
@@ -570,28 +570,29 @@ class Manager(QObject):
         else:
             self.osi.unregister_startup()
 
-    @pyqtSlot(result=bool)
+    @pyqtSlot(result=bool)  # from GeneralTab.qml
     def use_light_icons(self) -> bool:
         """Return True is the current icons set is the light one."""
         return self.dao.get_bool("light_icons")
 
-    @pyqtSlot(bool)
+    @pyqtSlot(bool)  # from GeneralTab.qml
     def set_light_icons(self, value: bool, /) -> None:
         self.set_config("light_icons", value)
         self.reloadIconsSet.emit(value)
 
-    @pyqtSlot(result=str)
+    @pyqtSlot(result=str)  # from ChannelPopup.qml and Systray.qml
     def get_update_channel(self) -> str:
         return (
             self.dao.get_config("channel", default=Options.channel) or DEFAULT_CHANNEL
         )
 
-    @pyqtSlot(str)
+    @pyqtSlot(str)  # from ChannelPopup.qml and Systray.qml
     def set_update_channel(self, value: str, /) -> None:
         self.set_config("channel", value)
         self.prompted_wrong_channel = False
         self.updater.refresh_status()
 
+    @pyqtSlot(result=str)  # from LogLevelPopup.qml
     def get_log_level(self) -> str:
         if not Options.is_frozen or Options.is_alpha:
             return DEFAULT_LOG_LEVEL_FILE
@@ -600,6 +601,7 @@ class Manager(QObject):
             or DEFAULT_LOG_LEVEL_FILE
         )
 
+    @pyqtSlot(str)  # from LogLevelPopup.qml
     def set_log_level(self, value: str, /) -> None:
         self.set_config("log_level_file", value)
 

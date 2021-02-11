@@ -106,7 +106,7 @@ class Translator(QTranslator):
             return self._tokenize(self._fallback[label], values=values)
         return self._tokenize(self._current[label], values=values)
 
-    @pyqtSlot(str)
+    @pyqtSlot(str)  # from GeneralTab.qml
     def set_language(self, lang: str, /) -> None:
         try:
             self._current = self._labels[lang]
