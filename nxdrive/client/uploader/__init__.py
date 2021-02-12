@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 from botocore.exceptions import ClientError
 from nuxeo.exceptions import HTTPError
 from nuxeo.handlers.default import Uploader
+from nuxeo.handlers.s3 import UploaderS3  # noqa; fix lazy import error
 from nuxeo.models import Batch, FileBlob
 
 from ...constants import TX_TIMEOUT, TransferStatus
