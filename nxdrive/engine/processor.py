@@ -380,9 +380,8 @@ class Processor(EngineWorker):
                 else:
                     error = f"{handler_name}_http_error_{exc.status}"
                     self._handle_pair_handler_exception(doc_pair, error, exc)
-            except UploadError as exc:
-                log.info(exc)
-                log.warning("Delaying failed upload")
+            except UploadError:
+                log.warning("Delaying failed upload", exc_info=True)
                 self._postpone_pair(doc_pair, "Upload")
             except (DownloadPaused, UploadPaused) as exc:
                 nature = "download" if isinstance(exc, DownloadPaused) else "upload"
