@@ -40,7 +40,7 @@ from .exceptions import (
 )
 from .feature import Feature
 from .notification import DefaultNotificationService
-from .objects import Binder, EngineDef, Metrics
+from .objects import Binder, EngineDef, Metrics, Session
 from .options import DEFAULT_LOG_LEVEL_FILE, Options
 from .osi import AbstractOSIntegration
 from .poll_workers import DatabaseBackupWorker, ServerOptionsUpdater, SyncAndQuitWorker
@@ -558,22 +558,37 @@ class Manager(QObject):
         report.generate()
         return report.get_path()
 
-    def generate_csv(self, session_id: int, engine: Engine) -> Optional[Path]:
+    def generate_csv(self, session_id: int, engine: Engine) -> bool:
         """
-        Generate a CSV file based on the *session_id*.
+        Generate a CSV file based on the *session_id* in an async Runner.
         """
-        from .session_csv import SessionCsv
+        from .engine.workers import Runner
 
         log.info(f"Generating CSV file from Direct Transfer session {session_id}.")
 
         session = engine.dao.get_session(session_id)
         if not session:
-            return None
+            return False
 
-        session_items = engine.dao.get_session_items(session_id)
-        session_csv = SessionCsv(self, engine, session)
-        session_csv.generate(session_items)
-        return session_csv.get_path()
+        runner = Runner(self._generate_csv_async, engine, session)
+        engine._threadpool.start(runner)
+        return True
+
+    def _generate_csv_async(self, engine: Engine, session: Session) -> None:
+        from .session_csv import SessionCsv
+
+        try:
+            session_items = engine.dao.get_session_items(session.uid)
+            session_csv = SessionCsv(self, engine, session)
+            session_csv.create_tmp()
+            engine.dao.sessionUpdated.emit()
+            session_csv.store_data(session_items)
+        except Exception as e:
+            log.exception(f"CSV Error: {str(e)}")
+            csv_path = session_csv.get_path()
+            csv_path.unlink()
+        finally:
+            engine.dao.sessionUpdated.emit()
 
     @pyqtSlot(result=bool)  # from GeneralTab.qml
     def get_auto_start(self) -> bool:

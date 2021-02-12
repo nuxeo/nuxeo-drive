@@ -348,22 +348,19 @@ class QMLDriveApi(QObject):
             log.exception("Report error")
             return "[ERROR] " + str(e)
 
-    @pyqtSlot(str, str, result=str)
-    def generate_csv(self, session_id: str, engine_uid: str) -> str:
+    @pyqtSlot(str, str, result=bool)
+    def generate_csv(self, session_id: str, engine_uid: str) -> bool:
         """
         Generate a CSV file from the *session_id*.
-        Return the local path on success.
-        Return an empty string on failure.
         """
         try:
             engine = self._manager.engines.get(engine_uid)
             if not engine:
-                return ""
-            csv_path = self._manager.generate_csv(int(session_id), engine)
-            return str(csv_path) if csv_path else ""
+                return False
+            return self._manager.generate_csv(int(session_id), engine)
         except Exception as e:
             log.exception(f"CSV error: {str(e)}")
-            return ""
+            return False
 
     @pyqtSlot(str)
     def open_direct_transfer(self, uid: str, /) -> None:

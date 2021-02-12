@@ -52,6 +52,7 @@
     "CONTINUE_USING": "Continue using Drive %1",
     "CREATE_CSV": "Export to CSV",
     "CREATE_REPORT": "Generate a bug report",
+    "CSV_GENERATING": "Generating…",
     "DATETIME_FORMAT": "%x %X",
     "DEBUG": "Debug",
     "DEBUG_INVALID_CREDENTIALS": "Toggle Invalid Credentials",

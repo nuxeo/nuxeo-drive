@@ -89,18 +89,17 @@ Rectangle {
                             Link {
                                 id: csvCreationLink
                                 text: qsTr("CREATE_CSV") + tl.tr
-                                visible: !csvFileLink.text
+                                visible: !active && !csvFileLink.text
                                 onClicked: {
-                                    var link = api.generate_csv(uid, engine)
-                                    csvFileLink.csv_url = link
-                                    csvFileLink.text = link.split(/[\\/]/).pop()
+                                    api.generate_csv(uid, engine)
                                 }
                             }
                             Link {
                                 id: csvFileLink
-                                visible: csvFileLink.text
-                                property string csv_url
-                                onClicked: api.open_csv(csv_url)
+                                visible: !active && csv_path
+                                enabled: !active && csv_path != "async_gen"
+                                text: !active && csv_path == "async_gen" ? qsTr("CSV_GENERATING") + tl.tr: (!active && csv_path ? csv_path.split(/[\\/]/).pop(): "")
+                                onClicked: api.open_csv(csv_path)
                             }
                         }
                     }

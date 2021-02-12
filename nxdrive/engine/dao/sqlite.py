@@ -942,7 +942,7 @@ class EngineDAO(ConfigurationDAO):
 
             self.store_int(SCHEMA_VERSION, 18)
 
-        if version > 19:
+        if version < 19:
             # Create the SessionItems table.
 
             self._create_session_items_table(cursor)
@@ -1017,10 +1017,10 @@ class EngineDAO(ConfigurationDAO):
         """Create the SessionItems table."""
         cursor.execute(
             "CREATE TABLE if not exists SessionItems ("
-            "    uid     INTEGER     NOT NULL,"
+            "    id     INTEGER     NOT NULL,"
             "    session_id     INTEGER     NOT NULL,"
             "    data         VARCHAR   NOT NULL,"
-            "    PRIMARY KEY (uid)"
+            "    PRIMARY KEY (id)"
             ")"
         )
 

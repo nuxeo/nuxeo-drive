@@ -170,7 +170,7 @@ class Engine(QObject):
         self._load_configuration()
 
         self.download_dir = self._set_download_dir()
-        self.csv_dir = self._set_csv_dir()
+        self.csv_dir = self._set_csv_dir_or_cleanup()
 
         if not binder:
             if not self.server_url:
@@ -318,13 +318,20 @@ class Engine(QObject):
 
         return download_dir
 
-    def _set_csv_dir(self) -> Path:
-        """Create the csv dir if not already."""
+    def _set_csv_dir_or_cleanup(self) -> Path:
+        """
+        Create the csv dir if not already exist.
+        Otherwise cleanup old tmp csv files.
+        """
         csv_dir = safe_long_path(self.manager.home) / "csv"
         if csv_dir.is_dir():
-            return csv_dir
-        log.info(f"Creating csv folder {csv_dir!r}")
-        csv_dir.mkdir(exist_ok=True)
+            log.info(f"Cleaning csv folder {csv_dir!r}")
+            tmp_files = csv_dir.glob("*.tmp")
+            for tmp in tmp_files:
+                tmp.unlink()
+        else:
+            log.info(f"Creating csv folder {csv_dir!r}")
+            csv_dir.mkdir(exist_ok=True)
         return csv_dir
 
     def set_local_folder(self, path: Path, /) -> None:

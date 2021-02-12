@@ -562,6 +562,7 @@ class CompletedSessionModel(QAbstractListModel):
     DESCRIPTION = qt.UserRole + 10
     PROGRESS = qt.UserRole + 11
     SHADOW = qt.UserRole + 12
+    CSV_PATH = qt.UserRole + 13
 
     def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -580,6 +581,7 @@ class CompletedSessionModel(QAbstractListModel):
             self.DESCRIPTION: b"description",
             self.PROGRESS: b"progress",
             self.SHADOW: b"shadow",
+            self.CSV_PATH: b"csv_path",
         }
 
     def roleNames(self) -> Dict[int, bytes]:

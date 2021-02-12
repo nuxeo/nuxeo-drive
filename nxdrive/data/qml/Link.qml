@@ -5,6 +5,8 @@ ScaledText {
 
     signal clicked()
 
+    property bool enabled: true
+
     color: interactiveLink
 
     horizontalAlignment: Text.AlignLeft
@@ -12,6 +14,7 @@ ScaledText {
 
     MouseArea {
         id: linkArea
+        enabled: parent.enabled
         width: parent.width * 3/2
         height: parent.height * 3/2
         anchors.centerIn: parent
