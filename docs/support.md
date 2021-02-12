@@ -21,6 +21,7 @@ Check the [supported OS](https://doc.nuxeo.com/client-apps/nuxeo-drive-faq/#what
 
 History:
 
+- `2021-02-xx` (v5.0.0): dropped support for macOS 10.12
 - `2021-01-28` (v4.5.1): dropped support for Windows 7
 - `2020-12-15` (v4.5.0): dropped support for Windows 7 without SP1
 - `2019-11-14` (v4.3.0): dropped support for macOS 10.11

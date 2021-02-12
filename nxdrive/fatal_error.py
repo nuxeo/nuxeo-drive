@@ -245,9 +245,9 @@ def check_os_version() -> bool:
         from platform import mac_ver
 
         version = mac_ver()[0]
-        if StrictVersion(version) < StrictVersion("10.12"):
+        if StrictVersion(version) < StrictVersion("10.13"):
             fatal_error_mac(
-                f"macOS 10.12 (Sierra) or newer is required (your version is {version})."
+                f"macOS 10.13 (High Sierra) or newer is required (your version is {version})."
             )
             return False
     elif WINDOWS and sys.getwindowsversion()[:2] < (6, 2):
