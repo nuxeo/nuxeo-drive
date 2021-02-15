@@ -79,13 +79,12 @@ QMLDriveApi.get_proxy_settings  # Used in QML
 QMLDriveApi.get_update_status  # Used in QML
 QMLDriveApi.get_update_url  # Used in QML
 QMLDriveApi.get_update_version  # Used in QML
-QMLDriveApi.open_csv  # Used in QML
 QMLDriveApi.open_direct_transfer  # Used in QML
 QMLDriveApi.open_document  # Used in QML
+QMLDriveApi.open_file  # Used in QML
 QMLDriveApi.open_local  # Used in QML
 QMLDriveApi.open_remote_server  # Used in QML
 QMLDriveApi.open_remote_document  # Used in QML
-QMLDriveApi.open_report  # Used in QML
 QMLDriveApi.open_server_folders  # Used in QML
 QMLDriveApi.set_proxy_settings  # Used in QML
 QMLDriveApi.set_server_ui  # Used in QML

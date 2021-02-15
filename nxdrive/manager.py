@@ -563,8 +563,6 @@ class Manager(QObject):
         """
         Generate a CSV file based on the *session_id* in an async Runner.
         """
-        log.info(f"Generating CSV file from Direct Transfer session {session_id}.")
-
         session = engine.dao.get_session(session_id)
         if not session:
             return False
@@ -574,17 +572,20 @@ class Manager(QObject):
         return True
 
     def _generate_csv_async(self, engine: Engine, session: Session) -> None:
-        from .session_csv import SessionCsv
+        from .session_csv import SessionCsv  # Circular import with Manager otherwise
 
         try:
             session_items = engine.dao.get_session_items(session.uid)
             session_csv = SessionCsv(self, engine, session)
             session_csv.create_tmp()
             engine.dao.sessionUpdated.emit()
+            log.info(
+                f"Generating CSV file from Direct Transfer session {session_csv.output_file}."
+            )
             session_csv.store_data(session_items)
         except Exception:
             log.exception("Asynchronous CSV generation error")
-            session_csv.output_file.unlink()
+            session_csv.output_tmp.unlink(missing_ok=True)
         finally:
             engine.dao.sessionUpdated.emit()
 

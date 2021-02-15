@@ -1807,10 +1807,9 @@ class Application(QApplication):
         csv_path = self.manager.home / "csv" / name
         if csv_path.with_suffix(".tmp").is_file():
             row["csv_path"] = "async_gen"
-        elif not csv_path.with_suffix(".csv").is_file():
-            row["csv_path"] = ""
         else:
-            row["csv_path"] = str(csv_path.with_suffix(".csv"))
+            output_file = csv_path.with_suffix(".csv")
+            row["csv_path"] = str(output_file) if output_file.is_file() else ""
         return row
 
     @pyqtSlot()

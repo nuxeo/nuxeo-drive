@@ -1,4 +1,5 @@
 import csv
+from pathlib import Path
 from typing import Any, Dict, List
 
 from nxdrive.objects import Session
@@ -9,13 +10,13 @@ from .manager import Manager
 
 class SessionCsv:
     """
-    Class to create a CSV from a DT session.
+    Class to create a CSV from a Direct Transfer session.
 
     Usage:
 
         session_csv = SessionCsv(manager, engine, session)
         session_csv.generate(session_items)
-        output_path = csv.get_path()
+        output_path = session_csv.output_file
     """
 
     def __init__(self, manager: "Manager", engine: Engine, session: Session, /) -> None:
@@ -23,20 +24,20 @@ class SessionCsv:
         self._engine = engine
         self._session = session
 
-        name = f"session_{session.completed_on.replace(':', '-').replace(' ', '_')}.tmp"
-        self.output_file = self._manager.home / "csv" / name
-        if not self.output_file.parent.exists():
-            self.output_file.parent.mkdir()
+        name = f"session_{session.completed_on.replace(':', '-').replace(' ', '_')}"
+        self.output_file = Path(self._manager.home / "csv" / name).with_suffix(".csv")
+        self.output_tmp = Path(self._manager.home / "csv" / name).with_suffix(".tmp")
+        self.output_file.parent.mkdir(exist_ok=True)
 
     def create_tmp(self) -> None:
         """Create a CSV file ready to be ingested by the Nuxeo CSV importer.
         It must be compatible with the add-on and so followes those specifications:
             https://doc.nuxeo.com/nxdoc/nuxeo-csv/#csv-file-definition.
         """
-        if self.output_file.is_file():
+        if self.output_tmp.is_file():
             return
 
-        with open(self.output_file, "w", newline="") as csv_file:
+        with open(self.output_tmp, "w", newline="") as csv_file:
             writer = csv.writer(
                 csv_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_ALL
             )
@@ -44,10 +45,10 @@ class SessionCsv:
 
     def store_data(self, data: List[Dict[str, Any]]) -> None:
         """Fill the csv file with the elements from *data*."""
-        if not self.output_file.is_file():
+        if not self.output_tmp.is_file():
             return
 
-        with open(self.output_file, "a", newline="") as csv_file:
+        with open(self.output_tmp, "a", newline="") as csv_file:
             writer = csv.writer(
                 csv_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_ALL
             )
@@ -64,5 +65,4 @@ class SessionCsv:
                         elem["type"],
                     ]
                 )
-        self.output_file.rename(self.output_file.with_suffix(".csv"))
-        self.output_file = self.output_file.with_suffix(".csv")
+        self.output_tmp.rename(self.output_file)

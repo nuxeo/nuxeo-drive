@@ -17,7 +17,6 @@ from ..constants import (
     CONNECTION_ERROR,
     DEFAULT_SERVER_TYPE,
     DT_MONITORING_MAX_ITEMS,
-    LINUX,
     TOKEN_PERMISSION,
     TransferStatus,
 )
@@ -398,16 +397,10 @@ class QMLDriveApi(QObject):
             engine.open_remote()
 
     @pyqtSlot(str)
-    def open_report(self, path: str, /) -> None:
-        self._manager.open_local_file(path, select=True)
-
-    @pyqtSlot(str)
-    def open_csv(self, path: str, /) -> None:
+    def open_file(self, path: str, /) -> None:
         """
-        Open the folder containing the CSV.
+        Open the file's folder and select it.
         """
-        if LINUX:
-            path = str(Path(path).parent)
         self._manager.open_local_file(path, select=True)
 
     @pyqtSlot(str, str)

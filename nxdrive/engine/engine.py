@@ -487,11 +487,11 @@ class Engine(QObject):
         )
         if new_folder:
             self.send_metric("direct_transfer", "new_folder", "1")
-            new_folder_item = self._create_remote_folder(remote_parent_path, new_folder)
-            if not new_folder_item:
+            item = self._create_remote_folder(remote_parent_path, new_folder)
+            if not item:
                 return
-            remote_parent_path = new_folder_item["path"]
-            remote_parent_ref = new_folder_item["uid"]
+            remote_parent_path = item["path"]
+            remote_parent_ref = item["uid"]
 
         # Allow to only create a folder and return.
         if not local_paths:

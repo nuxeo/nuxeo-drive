@@ -1018,7 +1018,7 @@ class EngineDAO(ConfigurationDAO):
         cursor.execute(
             "CREATE TABLE if not exists SessionItems ("
             "    session_id     INTEGER     NOT NULL,"
-            "    data         VARCHAR   NOT NULL )"
+            "    data           VARCHAR     NOT NULL)"
         )
 
     @staticmethod

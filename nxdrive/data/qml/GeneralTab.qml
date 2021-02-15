@@ -137,7 +137,7 @@ Rectangle {
             Link {
                 id: lastReportLink
                 property string report_url
-                onClicked: api.open_report(report_url)
+                onClicked: api.open_file(report_url)
             }
         }
 
