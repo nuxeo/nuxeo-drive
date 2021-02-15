@@ -68,6 +68,7 @@ from ..updater.constants import (
     UPDATE_STATUS_UP_TO_DATE,
 )
 from ..utils import (
+    client_certificate,
     find_icon,
     find_resource,
     force_decode,
@@ -1029,11 +1030,13 @@ class Application(QApplication):
             """Retrieve a token and create the account."""
             user = str(username.text())
             pwd = str(password.text())
+
             nuxeo = Nuxeo(
                 host=url,
                 auth=(user, pwd),
                 proxies=self.manager.proxy.settings(url=url),
                 verify=Options.ca_bundle or not Options.ssl_no_verify,
+                cert=client_certificate(),
             )
             try:
                 token = nuxeo.client.request_auth_token(

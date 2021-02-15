@@ -48,6 +48,7 @@ from .qt.imports import QT_VERSION_STR, QObject, pyqtSignal, pyqtSlot
 from .updater import updater
 from .updater.constants import Login
 from .utils import (
+    client_certificate,
     force_decode,
     get_arch,
     get_current_os_full,
@@ -652,6 +653,7 @@ class Manager(QObject):
                 proxies=self.proxy.settings(url=url),
                 timeout=STARTUP_PAGE_CONNECTION_TIMEOUT,
                 verify=Options.ca_bundle or not Options.ssl_no_verify,
+                cert=client_certificate(),
             ) as resp:
                 status = resp.status_code
         except Exception as e:

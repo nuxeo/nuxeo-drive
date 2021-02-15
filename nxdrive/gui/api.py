@@ -23,9 +23,11 @@ from ..constants import (
 from ..engine.dao.sqlite import EngineDAO
 from ..exceptions import (
     AddonNotInstalledError,
+    EncryptedSSLCertificateKey,
     FolderAlreadyUsed,
     InvalidDriveException,
     InvalidSSLCertificate,
+    MissingClientSSLCertificate,
     NotFound,
     RootAlreadyBindWithDifferentAccount,
     StartupPageConnectionError,
@@ -479,7 +481,7 @@ class QMLDriveApi(QObject):
             )
             self.setMessage.emit("CONNECTION_UNKNOWN", "error")
 
-    def _has_valid_ssl_certificate(self, server_url: str, /) -> bool:
+    def _get_ssl_error(self, server_url: str, /) -> str:
         """Handle invalid SSL certificates for the server URL."""
         try:
             return test_url(server_url, proxy=self._manager.proxy)
@@ -490,8 +492,14 @@ class QMLDriveApi(QObject):
             if self.application.accept_unofficial_ssl_cert(hostname):
                 Options.ca_bundle = None
                 Options.ssl_no_verify = True
-                return self._has_valid_ssl_certificate(server_url)
-        return False
+                return self._get_ssl_error(server_url)
+        except MissingClientSSLCertificate as exc:
+            log.warning(exc)
+            return "MISSING_CLIENT_SSL"
+        except EncryptedSSLCertificateKey as exc:
+            log.warning(exc)
+            return "ENCRYPTED_CLIENT_SSL_KEY"
+        return "CONNECTION_ERROR"
 
     def _get_authentication_url(self, server_url: str, /) -> str:
         if not server_url:
@@ -747,15 +755,15 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, str)
     def web_authentication(self, server_url: str, local_folder: str, /) -> None:
         # Handle the server URL
-        valid_url = False
+        error = ""
         try:
-            valid_url = self._has_valid_ssl_certificate(server_url)
+            error = self._get_ssl_error(server_url)
         except (LocationParseError, ValueError, requests.RequestException):
             log.debug(f"Bad URL: {server_url}")
         except Exception:
             log.exception("Unhandled error")
-        if not valid_url:
-            self.setMessage.emit("CONNECTION_ERROR", "error")
+        if error:
+            self.setMessage.emit(error, "error")
             return
 
         parts = urlsplit(server_url)

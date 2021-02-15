@@ -89,6 +89,29 @@ See the `requests` [documentation](http://docs.python-requests.org/en/master/use
 
 * * *
 
+#### `cert-file`
+
+File that is a client certificate signed by the server Certificate Authorities.
+If set, [cert-key-file](#cert-key-file) must also be set, otherwise it will be ignored.
+See the `requests` [documentation](http://docs.python-requests.org/en/master/user/advanced/#ssl-cert-verification) for more details.
+
+- Default value (str): None
+- Version added: 5.0.0
+
+* * *
+
+#### `cert-key-file`
+
+File that is the key to the specified [cert-file](#cert-file).
+The file MUST NOT be password protected to be usable.
+If set, [cert-file](#cert-file) must also be set, otherwise it will be ignored.
+See the `requests` [documentation](http://docs.python-requests.org/en/master/user/advanced/#ssl-cert-verification) for more details.
+
+- Default value (str): None
+- Version added: 5.0.0
+
+* * *
+
 #### `channel`
 
 Update channel. Can be `centralized`, `release`, `beta` or `alpha`.

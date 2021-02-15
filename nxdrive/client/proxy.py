@@ -7,7 +7,7 @@ from pypac.resolver import ProxyResolver
 
 from ..constants import USER_AGENT
 from ..options import Options
-from ..utils import decrypt, encrypt, force_decode
+from ..utils import client_certificate, decrypt, encrypt, force_decode
 
 if TYPE_CHECKING:
     from ..engine.dao.sqlite import EngineDAO  # noqa
@@ -188,7 +188,11 @@ def validate_proxy(proxy: Proxy, url: str, /) -> bool:
     headers = {"User-Agent": USER_AGENT}
     try:
         with requests.get(
-            url, headers=headers, proxies=proxy.settings(url=url), verify=verify
+            url,
+            headers=headers,
+            proxies=proxy.settings(url=url),
+            verify=verify,
+            cert=client_certificate(),
         ):
             return True
     except OSError:

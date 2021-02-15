@@ -43,7 +43,12 @@ from .constants import (
     WINDOWS,
     DigestStatus,
 )
-from .exceptions import InvalidSSLCertificate, UnknownDigest
+from .exceptions import (
+    EncryptedSSLCertificateKey,
+    InvalidSSLCertificate,
+    MissingClientSSLCertificate,
+    UnknownDigest,
+)
 from .options import Options
 
 if TYPE_CHECKING:
@@ -636,6 +641,17 @@ def retrieve_ssl_certificate(hostname: str, /, *, port: int = 443) -> str:
             return ssl.DER_cert_to_PEM_cert(cert_data)
 
 
+def client_certificate() -> Optional[Tuple[str, str]]:
+    """
+    Fetch the paths to the certification file and it's key from the option.
+    Return None if one of them is missing.
+    """
+    client_certificate = (Options.cert_file, Options.cert_key_file)
+    if not all(client_certificate):
+        return None
+    return client_certificate
+
+
 @lru_cache(maxsize=4)
 def get_certificate_details(
     *, hostname: str = "", cert_data: str = ""
@@ -1120,7 +1136,7 @@ def test_url(
     login_page: str = Options.startup_page,
     proxy: "Proxy" = None,
     timeout: int = 5,
-) -> bool:
+) -> str:
     """Try to request the login page to see if the URL is valid."""
     import requests
     from requests.exceptions import SSLError
@@ -1129,6 +1145,7 @@ def test_url(
     kwargs: Dict[str, Any] = {
         "timeout": timeout,
         "verify": Options.ca_bundle or not Options.ssl_no_verify,
+        "cert": client_certificate(),
         "headers": {"User-Agent": USER_AGENT},
     }
     try:
@@ -1141,16 +1158,21 @@ def test_url(
             resp.raise_for_status()
             if resp.status_code == 200:  # Happens when JSF is installed
                 log.debug(f"Valid URL: {url}")
-                return True
+                return ""
     except SSLError as exc:
         if "CERTIFICATE_VERIFY_FAILED" in str(exc):
             raise InvalidSSLCertificate()
+        elif "CERTIFICATE_REQUIRED" in str(exc):
+            raise MissingClientSSLCertificate()
+        elif "password is required" in str(exc):
+            raise EncryptedSSLCertificateKey()
+
     except requests.HTTPError as exc:
         if exc.response.status_code in (401, 403):
             # When there is only Web-UI installed, the code is 401.
             log.debug(f"Valid URL: {url}")
-            return True
-    return False
+            return ""
+    return "CONNECTION_ERROR"
 
 
 def today_is_special() -> bool:

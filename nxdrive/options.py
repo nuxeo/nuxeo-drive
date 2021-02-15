@@ -232,6 +232,8 @@ class MetaOptions(type):
         "big_file": (300, "default"),
         "browser_startup_page": ("drive_browser_login.jsp", "default"),
         "ca_bundle": (None, "default"),
+        "cert_file": (None, "default"),
+        "cert_key_file": (None, "default"),
         "channel": ("centralized", "default"),
         "chunk_limit": (20, "default"),
         "chunk_size": (20, "default"),
@@ -579,6 +581,12 @@ def validate_use_sentry(value: bool, /) -> bool:
     )
 
 
+def validate_cert_path(cert_path: str, /) -> str:
+    if not Path(cert_path).is_file():
+        raise ValueError(f"The file {cert_path!r} does not exist")
+    return cert_path
+
+
 def validate_tmp_file_limit(value: Union[int, float], /) -> float:
     if value > 0:
         return float(value)
@@ -594,3 +602,5 @@ Options.checkers["chunk_size"] = validate_chunk_size
 Options.checkers["client_version"] = validate_client_version
 Options.checkers["use_sentry"] = validate_use_sentry
 Options.checkers["tmp_file_limit"] = validate_tmp_file_limit
+Options.checkers["cert_file"] = validate_cert_path
+Options.checkers["cert_key_file"] = validate_cert_path

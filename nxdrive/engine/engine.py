@@ -41,6 +41,7 @@ from ..options import Options
 from ..qt.imports import QObject, QThread, QThreadPool, pyqtSignal, pyqtSlot
 from ..state import State
 from ..utils import (
+    client_certificate,
     current_thread_id,
     find_icon,
     find_suitable_tmp_dir,
@@ -861,6 +862,7 @@ class Engine(QObject):
         if Options.ssl_no_verify:
             self._ssl_verify = False
         self._ca_bundle = Options.ca_bundle or self.dao.get_config("ca_bundle")
+        self._client_certificate = client_certificate()
 
         if not self._remote_token:
             self.set_invalid_credentials(
@@ -1178,6 +1180,7 @@ class Engine(QObject):
             "dao": self.dao,
             "proxy": self.manager.proxy,
             "verify": verify,
+            "cert": self._client_certificate,
         }
         return self.remote_cls(*args, **kwargs)
 
@@ -1210,6 +1213,7 @@ class Engine(QObject):
         # from the ponctual bypass-ssl window prompted at the account creation.
         self._ssl_verify = not Options.ssl_no_verify
         self._ca_bundle = Options.ca_bundle
+        self._client_certificate = client_certificate()
 
         if check_credentials:
             self.remote = self.init_remote()
