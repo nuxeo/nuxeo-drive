@@ -52,11 +52,14 @@ class SessionCsv:
                 csv_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_ALL
             )
             for elem in data:
+                name = (
+                    elem["path"]
+                    .removeprefix(self._session.remote_path)
+                    .removeprefix("/")
+                )
                 writer.writerow(
                     [
-                        elem["path"]
-                        .removeprefix(self._session.remote_path)
-                        .removeprefix("/"),
+                        name,
                         elem["properties"]["dc:title"],
                         elem["type"],
                     ]
