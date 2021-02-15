@@ -88,7 +88,7 @@ Rectangle {
                         RowLayout {
                             Link {
                                 id: csvCreationLink
-                                text: qsTr("CREATE_CSV") + tl.tr
+                                text: qsTr("EXPORT_CSV") + tl.tr
                                 visible: !active && !csvFileLink.text
                                 onClicked: {
                                     api.generate_csv(uid, engine)
@@ -98,7 +98,7 @@ Rectangle {
                                 id: csvFileLink
                                 visible: !active && csv_path
                                 enabled: !active && csv_path != "async_gen"
-                                text: !active && csv_path == "async_gen" ? qsTr("CSV_GENERATING") + tl.tr: (!active && csv_path ? csv_path.split(/[\\/]/).pop(): "")
+                                text: active ? "" :  (csv_path == "async_gen" ? qsTr("CSV_GENERATING") : csv_path.split(/[\\/]/).pop()) + tl.tr
                                 onClicked: api.open_csv(csv_path)
                             }
                         }

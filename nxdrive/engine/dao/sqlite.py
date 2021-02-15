@@ -1017,11 +1017,8 @@ class EngineDAO(ConfigurationDAO):
         """Create the SessionItems table."""
         cursor.execute(
             "CREATE TABLE if not exists SessionItems ("
-            "    id     INTEGER     NOT NULL,"
             "    session_id     INTEGER     NOT NULL,"
-            "    data         VARCHAR   NOT NULL,"
-            "    PRIMARY KEY (id)"
-            ")"
+            "    data         VARCHAR   NOT NULL )"
         )
 
     @staticmethod
@@ -2667,7 +2664,7 @@ class EngineDAO(ConfigurationDAO):
         with self.lock:
             cursor = self._get_write_connection().cursor()
             cursor.execute(
-                "INSERT INTO SessionItems (session_id, data) " "VALUES (?, ?)",
+                "INSERT INTO SessionItems (session_id, data) VALUES (?, ?)",
                 (
                     session_id,
                     json.dumps(item),
@@ -2677,14 +2674,13 @@ class EngineDAO(ConfigurationDAO):
     def get_session_items(self, session_id: int) -> List[Dict[str, Any]]:
         """Get all SessionItems linked to *session_id*."""
 
-        with self.lock:
-            cursor = self._get_read_connection().cursor()
-            sql = "SELECT * FROM SessionItems WHERE session_id = ?"
+        cursor = self._get_read_connection().cursor()
+        sql = "SELECT data FROM SessionItems WHERE session_id = ?"
 
-            return [
-                json.loads(res.data)
-                for res in cursor.execute(sql, (session_id,)).fetchall()
-            ]
+        return [
+            json.loads(res.data)
+            for res in cursor.execute(sql, (session_id,)).fetchall()
+        ]
 
     def get_downloads_with_status(self, status: TransferStatus, /) -> List[Download]:
         return [d for d in self.get_downloads() if d.status == status]

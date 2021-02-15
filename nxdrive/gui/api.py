@@ -353,13 +353,13 @@ class QMLDriveApi(QObject):
         """
         Generate a CSV file from the *session_id*.
         """
+        engine = self._manager.engines.get(engine_uid)
+        if not engine:
+            return False
         try:
-            engine = self._manager.engines.get(engine_uid)
-            if not engine:
-                return False
             return self._manager.generate_csv(int(session_id), engine)
-        except Exception as e:
-            log.exception(f"CSV error: {str(e)}")
+        except Exception:
+            log.exception("CSV export error.")
             return False
 
     @pyqtSlot(str)
@@ -405,7 +405,6 @@ class QMLDriveApi(QObject):
     def open_csv(self, path: str, /) -> None:
         """
         Open the folder containing the CSV.
-        On Windows and MacOS the file will be selected.
         """
         if LINUX:
             path = str(Path(path).parent)

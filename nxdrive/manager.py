@@ -29,6 +29,7 @@ from .direct_edit import DirectEdit
 from .engine.dao.sqlite import ManagerDAO
 from .engine.engine import Engine
 from .engine.tracker import Tracker
+from .engine.workers import Runner
 from .exceptions import (
     AddonNotInstalledError,
     EngineInitError,
@@ -562,8 +563,6 @@ class Manager(QObject):
         """
         Generate a CSV file based on the *session_id* in an async Runner.
         """
-        from .engine.workers import Runner
-
         log.info(f"Generating CSV file from Direct Transfer session {session_id}.")
 
         session = engine.dao.get_session(session_id)
@@ -583,10 +582,9 @@ class Manager(QObject):
             session_csv.create_tmp()
             engine.dao.sessionUpdated.emit()
             session_csv.store_data(session_items)
-        except Exception as e:
-            log.exception(f"CSV Error: {str(e)}")
-            csv_path = session_csv.get_path()
-            csv_path.unlink()
+        except Exception:
+            log.exception("Asynchronous CSV generation error")
+            session_csv.output_file.unlink()
         finally:
             engine.dao.sessionUpdated.emit()
 

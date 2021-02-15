@@ -320,18 +320,18 @@ class Engine(QObject):
 
     def _set_csv_dir_or_cleanup(self) -> Path:
         """
-        Create the csv dir if not already exist.
-        Otherwise cleanup old tmp csv files.
+        Create the CSV dir if not already exist.
+        Otherwise cleanup old tmp CSV files.
         """
         csv_dir = safe_long_path(self.manager.home) / "csv"
         if csv_dir.is_dir():
-            log.info(f"Cleaning csv folder {csv_dir!r}")
+            log.info(f"Cleaning CSV folder {csv_dir!r}")
             tmp_files = csv_dir.glob("*.tmp")
             for tmp in tmp_files:
                 tmp.unlink()
         else:
-            log.info(f"Creating csv folder {csv_dir!r}")
-            csv_dir.mkdir(exist_ok=True)
+            log.info(f"Creating CSV folder {csv_dir!r}")
+            csv_dir.mkdir()
         return csv_dir
 
     def set_local_folder(self, path: Path, /) -> None:
@@ -485,15 +485,13 @@ class Engine(QObject):
             duplicate_behavior,
             last_local_selected_location,
         )
-        new_folder_item = None
         if new_folder:
             self.send_metric("direct_transfer", "new_folder", "1")
-            item = self._create_remote_folder(remote_parent_path, new_folder)
-            if not item:
+            new_folder_item = self._create_remote_folder(remote_parent_path, new_folder)
+            if not new_folder_item:
                 return
-            remote_parent_path = item["path"]
-            remote_parent_ref = item["uid"]
-            new_folder_item = item
+            remote_parent_path = new_folder_item["path"]
+            remote_parent_ref = new_folder_item["uid"]
 
         # Allow to only create a folder and return.
         if not local_paths:
@@ -528,8 +526,6 @@ class Engine(QObject):
         session_uid = self.dao.create_session(
             remote_parent_path, remote_parent_ref, len(items), self.uid, description
         )
-        if new_folder_item:
-            self.dao.save_session_item(session_uid, new_folder_item)
 
         for batch_items in grouper(items, bsize):
             row_id = self.dao.plan_many_direct_transfer_items(batch_items, session_uid)
