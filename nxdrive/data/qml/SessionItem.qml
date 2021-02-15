@@ -99,7 +99,7 @@ Rectangle {
                                 visible: !active && csv_path
                                 enabled: !active && csv_path != "async_gen"
                                 text: active ? "" :  (csv_path == "async_gen" ? qsTr("CSV_GENERATING") : csv_path.split(/[\\/]/).pop()) + tl.tr
-                                onClicked: api.open_file(csv_path)
+                                onClicked: api.open_in_explorer(csv_path)
                             }
                         }
                     }

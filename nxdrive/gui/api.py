@@ -397,7 +397,7 @@ class QMLDriveApi(QObject):
             engine.open_remote()
 
     @pyqtSlot(str)
-    def open_file(self, path: str, /) -> None:
+    def open_in_explorer(self, path: str, /) -> None:
         """
         Open the file's folder and select it.
         """

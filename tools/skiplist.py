@@ -81,7 +81,7 @@ QMLDriveApi.get_update_url  # Used in QML
 QMLDriveApi.get_update_version  # Used in QML
 QMLDriveApi.open_direct_transfer  # Used in QML
 QMLDriveApi.open_document  # Used in QML
-QMLDriveApi.open_file  # Used in QML
+QMLDriveApi.open_in_explorer  # Used in QML
 QMLDriveApi.open_local  # Used in QML
 QMLDriveApi.open_remote_server  # Used in QML
 QMLDriveApi.open_remote_document  # Used in QML
