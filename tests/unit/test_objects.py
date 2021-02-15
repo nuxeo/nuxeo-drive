@@ -3,7 +3,7 @@ from typing import Any, Dict
 
 import pytest
 
-from nxdrive.exceptions import DriveError, UnknownDigest
+from nxdrive.exceptions import DriveError
 from nxdrive.objects import Blob, NuxeoDocumentInfo, RemoteFileInfo
 
 
@@ -154,20 +154,39 @@ def test_get_blob_xpath_bad(xpath, doc):
 def test_remote_doc_folder(remote_doc_dict):
     remote_doc_dict["folder"] = True
     document = RemoteFileInfo.from_dict(remote_doc_dict)
-    assert document
+    assert document.folderish
 
 
-def test_remote_doc_file(remote_doc_dict):
-    remote_doc_dict["digestAlgorithm"] = "md5"
+def test_remote_doc_digest(remote_doc_dict):
+    remote_doc_dict["digestAlgorithm"] = "MD5"
     remote_doc_dict["digest"] = "fakedigest"
     document = RemoteFileInfo.from_dict(remote_doc_dict)
-    assert document
+    assert document.digest == "fakedigest"
+    assert document.digest_algorithm == "md5"
 
 
-def test_remote_doc_raise_unwnown_digest(remote_doc_dict):
-    remote_doc_dict["digest"] = "fakedigest"
-    with pytest.raises(UnknownDigest):
-        RemoteFileInfo.from_dict(remote_doc_dict)
+def test_remote_doc_async_digest(remote_doc_dict):
+    remote_doc_dict["digest"] = "0123456789-0"
+    remote_doc_dict["digestAlgorithm"] = None
+    document = RemoteFileInfo.from_dict(remote_doc_dict)
+    assert document.digest == "0123456789-0"
+    assert not document.digest_algorithm
+
+
+def test_remote_doc_live_connect_exotic_digest(remote_doc_dict):
+    remote_doc_dict["digest"] = '"MTYxMTIyODA1ODUzNA"'
+    remote_doc_dict["digestAlgorithm"] = None
+    document = RemoteFileInfo.from_dict(remote_doc_dict)
+    assert document.digest == '"MTYxMTIyODA1ODUzNA"'
+    assert not document.digest_algorithm
+
+
+def test_remote_doc_live_connect_standard_digest(remote_doc_dict):
+    remote_doc_dict["digest"] = "0" * 64
+    remote_doc_dict["digestAlgorithm"] = None
+    document = RemoteFileInfo.from_dict(remote_doc_dict)
+    assert document.digest == "0" * 64
+    assert document.digest_algorithm == "sha256"
 
 
 def test_remote_doc_raise_drive_error(remote_doc_dict):

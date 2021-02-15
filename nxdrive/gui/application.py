@@ -216,7 +216,7 @@ class Application(QApplication):
 
         # Display release notes on new version
         if self.manager.old_version != self.manager.version:
-            self.show_release_notes(self.manager.version)
+            self._show_release_notes(self.manager.old_version, self.manager.version)
 
         # Listen for nxdrive:// sent by a new instance
         self.init_nxdrive_listener()
@@ -871,7 +871,6 @@ class Application(QApplication):
         self.filters_dlg.show()
         self._center_on_screen(self.settings_window)
 
-    @pyqtSlot(object)
     def show_server_folders(self, engine: Engine, path: Optional[Path], /) -> None:
         """Display the remote folders dialog window.
         *path* is None when the dialog window is opened from a click on the systray menu icon.
@@ -1311,18 +1310,18 @@ class Application(QApplication):
         return f"{self.default_tooltip} - {action!r}"
 
     @if_frozen
-    def show_release_notes(self, version: str, /) -> None:
+    def _show_release_notes(self, previous: str, current: str, /) -> None:
         """ Display release notes of a given version. """
 
         if "CI" in os.environ or Options.is_alpha:
             return
 
         channel = self.manager.get_update_channel()
-        log.info(f"Showing release notes, {version=} {channel=}")
+        log.info(f"Showing release notes, {previous=} {current=} {channel=}")
         self.display_info(
             Translator.get("RELEASE_NOTES_TITLE", values=[APP_NAME]),
             "RELEASE_NOTES_MSG",
-            [APP_NAME, version],
+            [APP_NAME, current],
         )
 
     def accept_unofficial_ssl_cert(self, hostname: str, /) -> bool:
@@ -1705,12 +1704,13 @@ class Application(QApplication):
         log.info(f"Direct Transfer: {path!r}")
 
         # Select the good account to use
+        engine: Optional[Engine] = None
         if len(engines) > 1:
             # The user has to select the desired account
-            engine: Optional[Engine] = self._select_account(engines)
+            engine = self._select_account(engines)
         elif engines:
             engine = engines[0]
-        else:
+        if not engine:
             self.display_warning(
                 f"Direct Transfer - {APP_NAME}", "DIRECT_TRANSFER_NO_ACCOUNT", []
             )

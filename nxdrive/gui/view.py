@@ -89,7 +89,7 @@ class EngineModel(QAbstractListModel):
         return getattr(engine, self.names[role].decode())
 
     @pyqtSlot(int, str, result=str)
-    def get(self, index: int, /, *, role: str = "uid") -> str:
+    def get(self, index: int, role: str = "uid", /) -> str:
         if index < 0 or index >= self.count:
             return ""
 

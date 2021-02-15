@@ -301,7 +301,7 @@ Rectangle {
                     name: "conflicted"
                     PropertyChanges {
                         target: errorState
-                        color: orange
+                        color: warningContent
                         text: qsTr("CONFLICTS_SYSTRAY").arg(ConflictsModel.count) + tl.tr
                         onClicked: api.show_conflicts_resolution(accountSelect.getRole("uid"))
                     }
@@ -343,7 +343,7 @@ Rectangle {
                     PropertyChanges {
                         target: updatePopup
                         version: api.get_update_version()
-                        channel: api.get_update_channel()
+                        channel: manager.get_update_channel()
                     }
                     PropertyChanges {
                         target: updateState
@@ -363,7 +363,7 @@ Rectangle {
                     PropertyChanges {
                         target: updatePopup
                         version: api.get_update_version()
-                        channel: api.get_update_channel()
+                        channel: manager.get_update_channel()
                     }
                     PropertyChanges {
                         target: updateState

@@ -14,7 +14,7 @@ from nuxeo.models import Batch
 from nuxeo.utils import get_digest_algorithm
 
 from .constants import TransferStatus
-from .exceptions import DriveError, UnknownDigest
+from .exceptions import DriveError
 from .translator import Translator
 from .utils import get_date_from_sqlite, get_timestamp_from_date
 
@@ -39,6 +39,29 @@ Item = Tuple[int, Path]
 Items = List[Item]
 
 
+def _guess_digest_and_algo(item: Dict[str, Any]) -> Tuple[str, str]:
+    """Guess the digest and the algorithm used, if not already specified."""
+    digest = item.get("digest") or ""
+    digest_algorithm = item.get("digestAlgorithm") or ""
+    if digest_algorithm:
+        digest_algorithm = digest_algorithm.lower().replace("-", "")
+    elif digest:
+        digest_algorithm = get_digest_algorithm(digest) or ""
+    return digest, digest_algorithm
+
+
+def _to_date(timestamp: Optional[int]) -> Optional[datetime]:
+    if not isinstance(timestamp, int):
+        return None
+
+    try:
+        return datetime.fromtimestamp(timestamp // 1000)
+    except (OSError, OverflowError):
+        # OSError: [Errno 22] Invalid argument (Windows 7, see NXDRIVE-1600)
+        # OverflowError: timestamp out of range for platform time_t
+        return None
+
+
 # Data Transfer Object for remote file info
 @dataclass
 class RemoteFileInfo:
@@ -59,8 +82,8 @@ class RemoteFileInfo:
     can_create_child: bool  # True is can create child
     lock_owner: Optional[str]  # lock owner
     lock_created: Optional[datetime]  # lock creation time
-    can_scroll_descendants: bool  # True if the API to scroll through
-    # the descendants can be used
+    # True if the API to scroll through the descendants can be used
+    can_scroll_descendants: bool
 
     @staticmethod
     def from_dict(fs_item: Dict[str, Any], /) -> "RemoteFileInfo":
@@ -74,20 +97,8 @@ class RemoteFileInfo:
             raise DriveError(f"This item is missing mandatory information: {fs_item}")
 
         folderish = fs_item.get("folder", False)
-
-        def to_date(timestamp: Optional[int]) -> Optional[datetime]:
-            if not isinstance(timestamp, int):
-                return None
-
-            try:
-                return datetime.fromtimestamp(timestamp // 1000)
-            except (OSError, OverflowError):
-                # OSError: [Errno 22] Invalid argument (Windows 7, see NXDRIVE-1600)
-                # OverflowError: timestamp out of range for platform time_t
-                return None
-
-        last_update = to_date(fs_item.get("lastModificationDate"))
-        creation = to_date(fs_item.get("creationDate"))
+        last_update = _to_date(fs_item.get("lastModificationDate"))
+        creation = _to_date(fs_item.get("creationDate"))
 
         if folderish:
             digest = None
@@ -98,14 +109,7 @@ class RemoteFileInfo:
             # Scroll API availability
             can_scroll_descendants = fs_item.get("canScrollDescendants", False)
         else:
-            digest = fs_item["digest"]
-            digest_algorithm = fs_item.get("digestAlgorithm")
-            if digest_algorithm:
-                digest_algorithm = digest_algorithm.lower().replace("-", "")
-            else:
-                digest_algorithm = get_digest_algorithm(digest)
-            if not digest_algorithm:
-                raise UnknownDigest(digest)
+            digest, digest_algorithm = _guess_digest_and_algo(fs_item)
             download_url = fs_item.get("downloadURL")
             can_update = fs_item.get("canUpdate", False)
             can_create_child = False
@@ -155,17 +159,10 @@ class Blob:
     def from_dict(blob: Dict[str, Any], /) -> "Blob":
         """ Convert Dict to Blob object. """
         name = blob["name"]
-        digest = blob.get("digest") or ""
-        digest_algorithm = blob.get("digestAlgorithm") or ""
+        digest, digest_algorithm = _guess_digest_and_algo(blob)
         size = int(blob.get("length", 0))
         mimetype = blob.get("mime-type") or ""
         data = blob.get("data") or ""
-
-        if digest and not digest_algorithm:
-            digest_algorithm = get_digest_algorithm(digest) or ""
-        if digest_algorithm:
-            digest_algorithm = digest_algorithm.lower().replace("-", "")
-
         return Blob(name, digest, digest_algorithm, size, mimetype, data)
 
 
@@ -365,7 +362,7 @@ class DocPair(Row):
             f" local_state={self.local_state!r},"
             f" remote_state={self.remote_state!r},"
             f" pair_state={self.pair_state!r},"
-            # f" filter_path={self.path!r}"
+            f" last_error={self.last_error!r}"
             ">"
         )
 

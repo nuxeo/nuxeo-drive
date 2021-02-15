@@ -32,7 +32,11 @@ FileInfo.is_hidden  # Used in QML
 FolderTreeview.resizeEvent  # Internal use of PyQt
 logging_config.debuglevel  # Only used when LOG_EVERYTHING envar is set
 Manager.get_feature_state  # Used in QML
+Manager.set_direct_edit_auto_lock  # Used in QML
+Manager.set_auto_update  # Used in QML
+Manager.set_auto_start  # Used in QML
 Manager.set_feature_state  # Used in QML
+Manager.set_log_level  # Used in QML
 Manager.set_light_icons  # Used in QML
 MetaOptions.mock  # Used in tests
 NotificationDelegator.userNotificationCenter_didActivateNotification_

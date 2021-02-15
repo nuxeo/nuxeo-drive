@@ -9,12 +9,7 @@ from nuxeo.exceptions import BadQuery, HTTPError, Unauthorized
 
 from ...client.local import FileInfo
 from ...constants import BATCH_SIZE, CONNECTION_ERROR, ROOT, WINDOWS
-from ...exceptions import (
-    NotFound,
-    ScrollDescendantsError,
-    ThreadInterrupt,
-    UnknownDigest,
-)
+from ...exceptions import NotFound, ScrollDescendantsError, ThreadInterrupt
 from ...objects import DocPair, DocPairs, Metrics, RemoteFileInfo
 from ...options import Options
 from ...qt.imports import pyqtSignal, pyqtSlot
@@ -794,18 +789,10 @@ class RemoteWatcher(EngineWorker):
             remote_ref = change["fileSystemItemId"]
 
             if any(refreshed_ref.endswith(remote_ref) for refreshed_ref in refreshed):
-                # A more recent version was already processed
+                log.debug("A more recent version was already processed")
                 continue
 
-            try:
-                new_info = RemoteFileInfo.from_dict(fs_item) if fs_item else None
-            except UnknownDigest:
-                log.warning(
-                    f"Ignoring unsyncable document {fs_item!r} because of unknown digest"
-                )
-                self.engine.send_metric("sync", "error", "UNKNOWN_DIGEST")
-                continue
-
+            new_info = RemoteFileInfo.from_dict(fs_item) if fs_item else None
             if self.filtered(new_info):
                 log.info(f"Ignoring banned file: {new_info!r}")
                 continue
@@ -828,6 +815,7 @@ class RemoteWatcher(EngineWorker):
             for doc_pair in doc_pairs:
                 if not doc_pair:
                     continue
+
                 doc_pair_repr = doc_pair.local_path or doc_pair.remote_name
                 if event_id == DELETED_EVENT:
                     if fs_item is None or new_info is None:
@@ -1022,7 +1010,7 @@ class RemoteWatcher(EngineWorker):
                         parent_pair, new_info
                     )
                     if match_pair:
-                        child_pair, new_pair = match_pair
+                        child_pair = match_pair[0]
                         if child_pair.folderish:
                             log.info(
                                 "Remote recursive scan of the content "

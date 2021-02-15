@@ -31,7 +31,7 @@ from typing import (
 )
 from urllib.parse import urlsplit, urlunsplit
 
-from nuxeo.utils import get_digest_hash
+from nuxeo.utils import get_digest_algorithm, get_digest_hash
 
 from .constants import (
     APP_NAME,
@@ -41,6 +41,7 @@ from .constants import (
     UNACCESSIBLE_HASH,
     USER_AGENT,
     WINDOWS,
+    DigestStatus,
 )
 from .exceptions import (
     EncryptedSSLCertificateKey,
@@ -1064,6 +1065,23 @@ def compute_digest(
         return UNACCESSIBLE_HASH
 
     return str(h.hexdigest())
+
+
+def digest_status(digest: str) -> DigestStatus:
+    """Determine the given *digest* status. It will be use to know when a document can be synced."""
+    if not digest:
+        return DigestStatus.REMOTE_HASH_EMPTY
+
+    # Likely a crafted digest to tell us it will be computed async (NXDRIVE-2140)
+    if "-" in digest:
+        return DigestStatus.REMOTE_HASH_ASYNC
+
+    # The digest seems good
+    if get_digest_algorithm(digest):
+        return DigestStatus.OK
+
+    # The digest will not be locally computable (likely a Live Connect document)
+    return DigestStatus.REMOTE_HASH_EXOTIC
 
 
 def config_paths() -> Tuple[Tuple[Path, ...], Path]:

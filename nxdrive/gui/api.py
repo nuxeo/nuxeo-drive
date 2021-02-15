@@ -167,11 +167,6 @@ class QMLDriveApi(QObject):
         return self._json(notif)
 
     @pyqtSlot(result=str)
-    def get_update_channel(self) -> str:
-        """ Return the channel of the update. """
-        return self._manager.get_update_channel()
-
-    @pyqtSlot(result=str)
     def get_update_status(self) -> str:
         """ Return the status of the update. """
         return self._manager.updater.status
@@ -334,14 +329,6 @@ class QMLDriveApi(QObject):
                 result.append(self._export_formatted_state(uid, state=error))
         return result
 
-    @pyqtSlot(bool)
-    def set_direct_edit_auto_lock(self, value: bool, /) -> None:
-        self._manager.set_direct_edit_auto_lock(value)
-
-    @pyqtSlot(result=bool)
-    def get_direct_edit_auto_lock(self) -> bool:
-        return self._manager.get_direct_edit_auto_lock()
-
     @pyqtSlot(result=list)
     def get_features_list(self) -> List[List[str]]:
         """Return the list of declared features with their value, title and translation key."""
@@ -351,34 +338,6 @@ class QMLDriveApi(QObject):
             translation_key = f"FEATURE_{feature.upper()}"
             result.append([title, feature, translation_key])
         return result
-
-    @pyqtSlot(bool)
-    def set_auto_start(self, value: bool, /) -> None:
-        self._manager.set_auto_start(value)
-
-    @pyqtSlot(result=bool)
-    def get_auto_start(self) -> bool:
-        return self._manager.get_auto_start()
-
-    @pyqtSlot(bool)
-    def set_auto_update(self, value: bool, /) -> None:
-        self._manager.set_auto_update(value)
-
-    @pyqtSlot(result=bool)
-    def get_auto_update(self) -> bool:
-        return self._manager.get_auto_update()
-
-    @pyqtSlot(str)
-    def set_update_channel(self, value: str, /) -> None:
-        self._manager.set_update_channel(value)
-
-    @pyqtSlot(str)
-    def set_log_level(self, value: str) -> None:
-        self._manager.set_log_level(value)
-
-    @pyqtSlot(result=str)
-    def get_log_level(self) -> str:
-        return self._manager.get_log_level()
 
     @pyqtSlot(result=str)
     def generate_report(self) -> str:

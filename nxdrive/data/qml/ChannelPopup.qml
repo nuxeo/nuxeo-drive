@@ -13,7 +13,7 @@ NuxeoPopup {
     rightPadding: 50
 
     onOpened: {
-        var channel = api.get_update_channel()
+        var channel = manager.get_update_channel()
         switch(channel) {
             case "centralized":
                 channelType.currentIndex = 0
@@ -63,7 +63,7 @@ NuxeoPopup {
             message: qsTr("CHANNEL_CONFIRM_DANGEROUS") + tl.tr
             onOk: {
                 var channel = channelType.model.get(channelType.currentIndex).value
-                api.set_update_channel(channel)
+                manager.set_update_channel(channel)
                 control.close()
             }
         }
@@ -83,7 +83,7 @@ NuxeoPopup {
                 id: okButton
                 text: qsTr("APPLY") + tl.tr
                 onClicked: {
-                    var current_channel = api.get_update_channel()
+                    var current_channel = manager.get_update_channel()
                     var channel = channelType.model.get(channelType.currentIndex).value
                     if (channel == current_channel) {
                         control.close()
@@ -91,7 +91,7 @@ NuxeoPopup {
                     else if (channel == 'alpha') {
                         useAlpha.open()
                     } else {
-                        api.set_update_channel(channel)
+                        manager.set_update_channel(channel)
                         control.close()
                     }
                 }
