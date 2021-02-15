@@ -2659,7 +2659,7 @@ class EngineDAO(ConfigurationDAO):
             return session
 
     def save_session_item(self, session_id: int, item: Dict[str, Any]) -> None:
-        """Save the session uploded item data into the SessionItems table."""
+        """Save the session uploaded item data into the SessionItems table."""
 
         with self.lock:
             cursor = self._get_write_connection().cursor()
