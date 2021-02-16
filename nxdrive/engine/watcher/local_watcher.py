@@ -904,7 +904,7 @@ class LocalWatcher(EngineWorker):
         # makes sens to bypass this check.
         if (
             local_info.size < Options.big_file * 1024 * 1024
-            and doc_pair.local_state == "synchronized"
+            and doc_pair.pair_state == "synchronized"
         ):
             digest = local_info.get_digest()
             # Unchanged digest, can be the case if only the last
