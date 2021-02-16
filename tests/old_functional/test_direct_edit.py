@@ -74,8 +74,8 @@ class MixinTests(DirectEditSetup):
                 self.direct_edit.edit(
                     info["server_url"],
                     info["doc_id"],
-                    user=info["user"],
-                    download_url=info["download_url"],
+                    info["user"],
+                    info["download_url"],
                 )
             else:
                 self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
