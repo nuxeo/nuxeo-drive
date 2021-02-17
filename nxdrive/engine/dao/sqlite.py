@@ -229,6 +229,9 @@ class ConfigurationDAO(QObject):
         and https://www.sqlite.org/c3ref/wal_checkpoint_v2.html)
         This method can be used to force committing changes to the main database. To use wisely.
         """
+        if self._journal_mode != "WAL":
+            return
+
         log.debug(f"Forcing WAL checkpoint on {self.db!r}")
         with self.lock:
             conn = self._get_write_connection()
