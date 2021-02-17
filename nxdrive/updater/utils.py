@@ -1,12 +1,10 @@
 import re
-import sys
 from distutils.version import LooseVersion
 from logging import getLogger
 from typing import Any, Dict, Optional, Tuple
 
 from nuxeo.utils import version_le, version_lt
 
-from ..constants import WINDOWS
 from ..feature import Feature
 from ..options import Options
 from .constants import (
@@ -31,11 +29,6 @@ def auto_updates_state() -> AutoUpdateState:
     if not (Feature.auto_update and Options.is_frozen):
         # Cannot update if the feature is completely disabled
         # Cannot update non-packaged versions
-        return AutoUpdateState.DISABLED
-
-    # XXX: Remove that code with NXDRIVE-2364.
-    if WINDOWS and sys.getwindowsversion()[:2] == (6, 1):
-        log.info("You are running Windows 7, which is no more supported.")
         return AutoUpdateState.DISABLED
 
     if Options.update_check_delay > 0:
