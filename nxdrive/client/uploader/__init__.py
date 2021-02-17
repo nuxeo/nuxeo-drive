@@ -195,13 +195,20 @@ class BaseUploader:
 
         # Step 1: upload the blob
         if transfer.status is not TransferStatus.DONE:
-            try:
-                self.upload_chunks(transfer, blob, chunked)
-            finally:
-                if blob.fd:
-                    blob.fd.close()
+            # For S3 direct upload, when the ETag is set means it was already completed on S3.
+            # No need then to try to resume the upload on S3 as we would only get an error.
+            if transfer.batch_obj.is_s3() and transfer.batch_obj.etag:
+                log.debug(
+                    "The transfer was already completed on S3, jumping to the completion step"
+                )
+            else:
+                try:
+                    self.upload_chunks(transfer, blob, chunked)
+                finally:
+                    if blob.fd:
+                        blob.fd.close()
 
-            # Step 1.5: complete the upload on the third-party provider
+            # Step 1.5: complete the upload
             self._complete_upload(transfer, blob)
 
             # The data was transferred, save the status for eventual future retries
@@ -337,7 +344,8 @@ class BaseUploader:
         try:
             return self.link_blob_to_doc(command, transfer, blob, chunked, **kwargs)
         except HTTPError as exc:
-            if "unable to find batch associated with id" in str(exc).lower():
+            error = str(exc).lower()
+            if exc.status == 404 or "status code: 404" in error:
                 # In this case, the upload completion may be obsolete or was not done,
                 # changing the transfer status to let the Processor handling it again and
                 # (re)do the completion.
@@ -412,5 +420,7 @@ class BaseUploader:
             transfer.batch_obj.blobs[0] = blob
 
         # Complete the upload
-        if transfer.batch_obj.is_s3() and transfer.status is not TransferStatus.DONE:
-            transfer.batch_obj.complete(timeout=TX_TIMEOUT)
+        if transfer.status is not TransferStatus.DONE:
+            timeout = TX_TIMEOUT
+            headers = {"Nuxeo-Transaction-Timeout": str(timeout)}
+            transfer.batch_obj.complete(headers=headers, timeout=timeout)
