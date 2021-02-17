@@ -170,6 +170,7 @@ class AutoRetryConnection(Connection):
 class ConfigurationDAO(QObject):
 
     _state_factory: Type[Row] = DocPair
+    _journal_mode: str = "WAL"
 
     def __init__(self, db: Path, /) -> None:
         super().__init__()
@@ -303,7 +304,7 @@ class ConfigurationDAO(QObject):
             self.store_int(SCHEMA_VERSION, 1)
 
     def _init_db(self, cursor: Cursor, /) -> None:
-        cursor.execute("PRAGMA journal_mode = WAL")
+        cursor.execute(f"PRAGMA journal_mode = {self._journal_mode}")
         self._create_configuration_table(cursor)
 
     def _create_configuration_table(self, cursor: Cursor, /) -> None:
@@ -443,6 +444,9 @@ class ConfigurationDAO(QObject):
 class ManagerDAO(ConfigurationDAO):
 
     _state_factory = EngineDef
+    _journal_mode: str = (
+        "DELETE"  # WAL not needed as we write less often (NXDRIVE-2524).
+    )
 
     def get_schema_version(self) -> int:
         return 2
