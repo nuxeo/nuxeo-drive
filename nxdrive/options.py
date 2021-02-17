@@ -256,6 +256,7 @@ class MetaOptions(type):
         "ignored_suffixes": (__suffixes, "default"),
         "is_alpha": (_IS_ALPHA, "default"),
         "is_frozen": (_IS_FROZEN, "default"),
+        "light_icons": (False, "default"),
         "locale": ("en", "default"),
         "log_level_console": (DEFAULT_LOG_LEVEL_CONSOLE, "default"),
         "log_level_file": (DEFAULT_LOG_LEVEL_FILE, "default"),
