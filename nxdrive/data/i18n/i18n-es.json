@@ -184,7 +184,7 @@
     "IGNORE_REASON_READONLY": "Este archivo o su matriz son de solo lectura",
     "IGNORE_REASON_REMOTE_HASH_ASYNC": "This document's digest is being computed asynchronously on the server. Waiting for it…",
     "IGNORE_REASON_REMOTE_HASH_EMPTY": "This document's digest is empty. Its integrity cannot be verified.",
-    "IGNORE_REASON_REMOTE_HASH_EXOTIC": "This document's digest doesn't fit any algorithm. Its integrity cannot be verified.",
+    "IGNORE_REASON_REMOTE_HASH_EXOTIC": "El resumen de este documento no encaja con ningún algoritmo. No se puede verificar su integridad.",
     "IGNORE_REASON_UNKNOWN": "Este archivo se ha ignorado por un motivo desconocido",
     "INSTALL_ADDONS": "Instalar complementos (como superposiciones de iconos) [requiere derechos administrativos]",
     "INVALID_CREDENTIALS": "Credenciales no válidas",
