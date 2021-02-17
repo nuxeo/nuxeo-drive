@@ -444,9 +444,9 @@ class ConfigurationDAO(QObject):
 class ManagerDAO(ConfigurationDAO):
 
     _state_factory = EngineDef
-    _journal_mode: str = (
-        "DELETE"  # WAL not needed as we write less often (NXDRIVE-2524).
-    )
+
+    # WAL not needed as we write less often and it may have issues on GNU/Linux (NXDRIVE-2524)
+    _journal_mode: str = "DELETE"
 
     def get_schema_version(self) -> int:
         return 2
