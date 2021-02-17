@@ -8,6 +8,7 @@ from time import monotonic_ns
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from botocore.exceptions import ClientError
+from nuxeo.constants import UP_AMAZON_S3
 from nuxeo.exceptions import HTTPError
 from nuxeo.handlers.default import Uploader
 from nuxeo.handlers.s3 import UploaderS3  # noqa; fix lazy import error
@@ -77,7 +78,7 @@ class BaseUploader:
             # is not possible for S3 as there is no blob at the current index
             # until the S3 upload is done itself and the call to
             # batch.complete() done.
-            file_idx = None if transfer.batch.get("provider", "") == "s3" else 0
+            file_idx = None if transfer.batch.get("provider", "") == UP_AMAZON_S3 else 0
 
             # Check if the associated batch still exists server-side
             try:
@@ -94,7 +95,9 @@ class BaseUploader:
             # .uploads.handlers() result is cached, so it is convenient to call it each time here
             # in case the server did not answer correctly the previous time and thus S3 would
             # be completely disabled because of a one-time server error.
-            handler = "s3" if Feature.s3 and self.remote.uploads.has_s3() else ""
+            handler = (
+                UP_AMAZON_S3 if Feature.s3 and self.remote.uploads.has_s3() else ""
+            )
 
             # Create a new batch
             batch = self.remote.uploads.batch(handler=handler)
