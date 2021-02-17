@@ -24,7 +24,6 @@ from ...qt.imports import QApplication
 
 if TYPE_CHECKING:
     from ..remote_client import Remote  # noqa
-    from ...engine.dao.sqlite import EngineDAO  # noqa
 
 log = getLogger(__name__)
 
@@ -394,7 +393,7 @@ class BaseUploader:
                 return meth_orig(batch, **kwargs)
             finally:
                 # Save changes in the database
-                log.debug("Batch.extraInfo has been updated")
+                log.debug(f"Batch.extraInfo updated with {batch!r}")
                 transfer.batch = batch.as_dict()
                 self.dao.update_upload(transfer)
 
@@ -404,8 +403,7 @@ class BaseUploader:
     def _complete_upload(transfer: Upload, blob: FileBlob, /) -> None:
         """Helper to complete an upload."""
 
-        # Set those attributes as FileBlob does not have them
-        # and they are required for the step 2 of .upload_impl()
+        # Set those attributes as FileBlob does not have them and they are required to complete the upload
         blob.batchId = transfer.batch_obj.uid
         blob.fileIdx = 0
         transfer.batch_obj.upload_idx = 1
@@ -413,6 +411,6 @@ class BaseUploader:
         if not transfer.batch_obj.blobs or not transfer.batch_obj.blobs[0]:
             transfer.batch_obj.blobs[0] = blob
 
-        # Complete the upload on the S3 side
+        # Complete the upload
         if transfer.batch_obj.is_s3() and transfer.status is not TransferStatus.DONE:
             transfer.batch_obj.complete(timeout=TX_TIMEOUT)
