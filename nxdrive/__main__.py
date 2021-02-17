@@ -7,7 +7,9 @@ import os
 import platform
 import signal
 import sys
+import threading
 from contextlib import suppress
+from datetime import datetime
 from types import FrameType
 from typing import Any, Set
 
@@ -86,11 +88,54 @@ def signal_handler(signum: int, frame: FrameType, /) -> None:
     QApplication.processEvents()
 
 
+def unraisablehook(unraisable) -> None:
+    """"""
+    file = Options.nxdrive_home / "logs" / "bad_errors.log"
+    file.parent.mkdir(exist_ok=True)
+    with file.open(mode="a", encoding="utf-8") as fh:
+        fh.write(f"\n\n\n>>> {datetime.now()}\n")
+        exc_type, exc_value, exc_traceback, err_msg, obj = unraisable
+        fh.write(f" -> {exc_type = }\n")
+        fh.write(f" -> {exc_value = }\n")
+        fh.write(f" -> {exc_traceback = }\n")
+        fh.write(f" -> {err_msg = }\n")
+        fh.write(f" -> {obj = }\n")
+
+
+def missed_error(exc_type, exc_value, exc_traceback) -> None:
+    """"""
+    file = Options.nxdrive_home / "logs" / "missed_errors.log"
+    file.parent.mkdir(exist_ok=True)
+    with file.open(mode="a", encoding="utf-8") as fh:
+        fh.write(f"\n\n\n>>> {datetime.now()}\n")
+        fh.write(f" -> {exc_type = }\n")
+        fh.write(f" -> {exc_value = }\n")
+        fh.write(f" -> {exc_traceback = }\n")
+
+
+def missed_error_thread(args) -> None:
+    """"""
+    file = Options.nxdrive_home / "logs" / "missed_thread_errors.log"
+    file.parent.mkdir(exist_ok=True)
+    with file.open(mode="a", encoding="utf-8") as fh:
+        fh.write(f"\n\n\n>>> {datetime.now()}\n")
+        exc_type, exc_value, exc_traceback, thread = args
+        fh.write(f" -> {exc_type = }\n")
+        fh.write(f" -> {exc_value = }\n")
+        fh.write(f" -> {exc_traceback = }\n")
+        fh.write(f" -> {thread = }\n")
+
+
 def main() -> int:
     """ Entry point. """
 
     # Catch CTRL+C
     signal.signal(signal.SIGINT, signal_handler)
+
+    # Catch unhandled exceptions
+    sys.unraisablehook = unraisablehook
+    sys.excepthook = missed_error
+    threading.excepthook = missed_error_thread
 
     ret = 0
 
