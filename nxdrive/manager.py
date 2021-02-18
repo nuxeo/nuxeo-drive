@@ -576,7 +576,7 @@ class Manager(QObject):
 
         try:
             session_items = engine.dao.get_session_items(session.uid)
-            session_csv = SessionCsv(self, engine, session)
+            session_csv = SessionCsv(self, session)
             session_csv.create_tmp()
             engine.dao.sessionUpdated.emit()
             log.info(

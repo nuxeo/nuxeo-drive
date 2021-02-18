@@ -1803,6 +1803,8 @@ class Application(QApplication):
     def _add_csv_path_to_session(self, row: Dict[str, Any]) -> Dict[str, Any]:
         """Add the *csv_path* key to the session dict."""
         date = row["completed_on"]
+        if not date:
+            return row
         name = f"session_{date.replace(':', '-').replace(' ', '_')}"
         csv_path = self.manager.home / "csv" / name
         if csv_path.with_suffix(".tmp").is_file():

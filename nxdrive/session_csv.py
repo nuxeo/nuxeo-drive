@@ -4,8 +4,10 @@ from typing import Any, Dict, List
 
 from nxdrive.objects import Session
 
-from .engine.engine import Engine
 from .manager import Manager
+
+DELIMITER = ","
+QUOTECHAR = '"'
 
 
 class SessionCsv:
@@ -14,19 +16,18 @@ class SessionCsv:
 
     Usage:
 
-        session_csv = SessionCsv(manager, engine, session)
+        session_csv = SessionCsv(manager, session)
         session_csv.generate(session_items)
         output_path = session_csv.output_file
     """
 
-    def __init__(self, manager: "Manager", engine: Engine, session: Session, /) -> None:
+    def __init__(self, manager: "Manager", session: Session, /) -> None:
         self._manager = manager
-        self._engine = engine
         self._session = session
 
-        name = f"session_{session.completed_on.replace(':', '-').replace(' ', '_')}"
+        name = f"session_{session.completed_on.replace(':', '-').replace(' ', '_')}.csv"
         self.output_file = Path(self._manager.home / "csv" / name).with_suffix(".csv")
-        self.output_tmp = Path(self._manager.home / "csv" / name).with_suffix(".tmp")
+        self.output_tmp = self.output_file.with_suffix(".tmp")
         self.output_file.parent.mkdir(exist_ok=True)
 
     def create_tmp(self) -> None:
@@ -39,7 +40,10 @@ class SessionCsv:
 
         with open(self.output_tmp, "w", newline="") as csv_file:
             writer = csv.writer(
-                csv_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_ALL
+                csv_file,
+                delimiter=DELIMITER,
+                quotechar=QUOTECHAR,
+                quoting=csv.QUOTE_ALL,
             )
             writer.writerow(["name", "dc:title", "type"])
 
@@ -50,7 +54,10 @@ class SessionCsv:
 
         with open(self.output_tmp, "a", newline="") as csv_file:
             writer = csv.writer(
-                csv_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_ALL
+                csv_file,
+                delimiter=DELIMITER,
+                quotechar=QUOTECHAR,
+                quoting=csv.QUOTE_ALL,
             )
             for elem in data:
                 name = (
