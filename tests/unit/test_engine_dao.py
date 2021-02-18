@@ -200,7 +200,7 @@ def test_conflicts(engine_dao):
 def test_corrupted_database(engine_dao):
     """ DatabaseError: database disk image is malformed. """
     with engine_dao("corrupted_database.db") as dao:
-        c = dao._get_read_connection().cursor()
+        c = dao._read_con.cursor()
         cols = c.execute("SELECT * FROM States").fetchall()
         assert len(cols) == 3
 
@@ -296,8 +296,8 @@ def test_dao_register_adapter(engine_dao):
     local_path = Path(os.path.realpath(__file__))
 
     with engine_dao("engine_migration_16.db") as dao:
-        dao._get_write_connection().row_factory = None
-        c = dao._get_write_connection().cursor()
+        dao._write_con.row_factory = None
+        c = dao._write_con.cursor()
 
         c.execute(
             "INSERT INTO States "
@@ -327,7 +327,7 @@ def test_dao_register_adapter(engine_dao):
 
 def test_migration_db_v1(engine_dao):
     with engine_dao("engine_migration.db") as dao:
-        c = dao._get_read_connection().cursor()
+        c = dao._read_con.cursor()
 
         cols = c.execute("PRAGMA table_info('States')").fetchall()
         assert len(cols) == 33
@@ -339,7 +339,7 @@ def test_migration_db_v1(engine_dao):
 def test_migration_db_v1_with_duplicates(engine_dao):
     """ Test a non empty DB. """
     with engine_dao("engine_migration_duplicate.db") as dao:
-        c = dao._get_read_connection().cursor()
+        c = dao._read_con.cursor()
         rows = c.execute("SELECT * FROM States").fetchall()
         assert not rows
 
@@ -426,8 +426,8 @@ def test_migration_db_v16(engine_dao):
 def test_migration_db_v18(engine_dao):
     """Verify States after migration from v17 to v18."""
     with engine_dao("engine_migration_18.db") as dao:
-        dao._get_write_connection().row_factory = None
-        c = dao._get_write_connection().cursor()
+        dao._read_con.row_factory = None
+        c = dao._read_con.cursor()
 
         rows = c.execute(
             "SELECT local_path, local_parent_path FROM States",
