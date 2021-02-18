@@ -58,14 +58,7 @@ class Report:
             if not path.is_file():
                 continue
             if (
-                path.name
-                not in (
-                    "bad_errors.log",
-                    "missed_thread.log",
-                    "missed_thread_errors.log",
-                    "nxdrive.log",
-                    "segfault.log",
-                )
+                path.name not in ("nxdrive.log", "segfault.log")
                 and path.suffix != ".zip"
             ):
                 continue
