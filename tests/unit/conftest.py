@@ -36,7 +36,7 @@ class MockEngineDAO(EngineDAO):
             return None
 
         mode = f" AND last_transfer='{sync_mode}' " if sync_mode else ""
-        c = self._get_read_connection().cursor()
+        c = self._read_con.cursor()
         return c.execute(
             "SELECT *"
             "  FROM States "
@@ -56,7 +56,7 @@ class MockEngineDAO(EngineDAO):
         state = self.get_normal_state_from_remote(ref)
         if not state:
             return None
-        c = self._get_read_connection().cursor()
+        c = self._read_con.cursor()
         return c.execute(
             "SELECT *"
             "  FROM States"

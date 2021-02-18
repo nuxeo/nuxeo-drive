@@ -925,8 +925,7 @@ class Engine(QObject):
     ) -> QThread:
         if worker is None:
             worker = Worker(self, name=name)
-
-        if isinstance(worker, Processor):
+        elif isinstance(worker, Processor):
             worker.pairSyncStarted.connect(self.newSyncStarted)
             worker.pairSyncEnded.connect(self.newSyncEnded)
 
