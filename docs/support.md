@@ -21,7 +21,7 @@ Check the [supported OS](https://doc.nuxeo.com/client-apps/nuxeo-drive-faq/#what
 
 History:
 
-- `2021-02-xx` (v5.0.0): dropped support for macOS 10.12
+- `2021-02-19` (v5.0.0): dropped support for macOS 10.12
 - `2021-01-28` (v4.5.1): dropped support for Windows 7
 - `2020-12-15` (v4.5.0): dropped support for Windows 7 without SP1
 - `2019-11-14` (v4.3.0): dropped support for macOS 10.11
@@ -49,7 +49,7 @@ As of now, we are using the __Python 3.9.1__.
 
 History:
 
-- `2021-xx-xx` (v5.0.0): dropped support for Python 3.8
+- `2021-02-19` (v5.0.0): dropped support for Python 3.8
 - `2020-12-15` (v4.5.0): dropped support for Python 3.7
 - `2019-06-17` (v4.1.4): dropped support for Python 3.6
 - `2018-10-30` (v4.0.0): dropped support for Python 2.7
