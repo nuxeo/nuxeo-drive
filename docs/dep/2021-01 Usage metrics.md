@@ -2,7 +2,9 @@
 
 - Created: 2021-01-08
 - Last-Modified: 2021-02-19
-- Author: Mickaël Schoentgen <mschoentgen@nuxeo.com>
+- Authors: Mickaël Schoentgen <mschoentgen@nuxeo.com>,
+           Romain Grasland <rgrasland@nuxeo.com>
+- Reviewer: Nelson Silva <nsilva@nuxeo.com>
 - Status: draft
 - Related-Ticket: [NXDRIVE-2461](https://jira.nuxeo.com/browse/NXDRIVE-2461)
 
@@ -74,7 +76,7 @@ Username (string). It is sent to every request.
 "X-User-Id": "alice"
 ```
 
-### X-Direct-Edit
+### Direct Edit
 
 Direct Edit feature metrics, sent at the end of an edition.
 
@@ -120,7 +122,7 @@ How many times the user saved the file (integer).
 "X-Direct-Edit-Save-Count": 2
 ```
 
-### X-Direct-Transfer
+### Direct Transfer
 
 Direct Transfer feature metrics.
 
@@ -162,7 +164,7 @@ Real-time: ❌
 "X-Direct-Transfer-Session-Status": "cancelled|done"
 ```
 
-### X-Sync
+### Synchronization
 
 Metrics related to the synchronization.
 
@@ -209,13 +211,13 @@ Real-time: ❌
 "X-Sync-Time": 4200000000
 ```
 
-### X-Filter
+### Filters
 
 Metrics related to filters.
 
 Impacted endpoint: `/me`.
 
-### X-Filter-Count
+### X-Filters-Count
 
 Ho many filtered documents (integer).
 
@@ -225,7 +227,7 @@ Real-time: ❌
 "X-Filter-Count": 1
 ```
 
-### X-Filter-Depths
+### X-Filters-Depths
 
 Depth of the path of documents compared to their synchronization root (list of integers).
 
@@ -235,7 +237,7 @@ Real-time: ❌
 "X-Filter-Depths": [1, 5, 5, 15]
 ```
 
-### X-Filter-Root-Count
+### X-Filters-Root-Count
 
 How many synchronization roots (interger).
 
