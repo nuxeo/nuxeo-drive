@@ -29,6 +29,7 @@ from .direct_edit import DirectEdit
 from .engine.dao.sqlite import ManagerDAO
 from .engine.engine import Engine
 from .engine.tracker import Tracker
+from .engine.workers import Runner
 from .exceptions import (
     AddonNotInstalledError,
     EngineInitError,
@@ -40,7 +41,7 @@ from .exceptions import (
 )
 from .feature import Feature
 from .notification import DefaultNotificationService
-from .objects import Binder, EngineDef, Metrics
+from .objects import Binder, EngineDef, Metrics, Session
 from .options import DEFAULT_LOG_LEVEL_FILE, Options
 from .osi import AbstractOSIntegration
 from .poll_workers import DatabaseBackupWorker, ServerOptionsUpdater, SyncAndQuitWorker
@@ -557,6 +558,36 @@ class Manager(QObject):
         report = Report(self, report_path=path)
         report.generate()
         return report.get_path()
+
+    def generate_csv(self, session_id: int, engine: Engine) -> bool:
+        """
+        Generate a CSV file based on the *session_id* in an async Runner.
+        """
+        session = engine.dao.get_session(session_id)
+        if not session:
+            return False
+
+        runner = Runner(self._generate_csv_async, engine, session)
+        engine._threadpool.start(runner)
+        return True
+
+    def _generate_csv_async(self, engine: Engine, session: Session) -> None:
+        from .session_csv import SessionCsv  # Circular import with Manager otherwise
+
+        try:
+            session_items = engine.dao.get_session_items(session.uid)
+            session_csv = SessionCsv(self, session)
+            session_csv.create_tmp()
+            engine.dao.sessionUpdated.emit()
+            log.info(
+                f"Generating CSV file from Direct Transfer session {session_csv.output_file}."
+            )
+            session_csv.store_data(session_items)
+        except Exception:
+            log.exception("Asynchronous CSV generation error")
+            session_csv.output_tmp.unlink(missing_ok=True)
+        finally:
+            engine.dao.sessionUpdated.emit()
 
     @pyqtSlot(result=bool)  # from GeneralTab.qml
     def get_auto_start(self) -> bool:

@@ -347,6 +347,20 @@ class QMLDriveApi(QObject):
             log.exception("Report error")
             return "[ERROR] " + str(e)
 
+    @pyqtSlot(str, str, result=bool)
+    def generate_csv(self, session_id: str, engine_uid: str) -> bool:
+        """
+        Generate a CSV file from the *session_id*.
+        """
+        engine = self._manager.engines.get(engine_uid)
+        if not engine:
+            return False
+        try:
+            return self._manager.generate_csv(int(session_id), engine)
+        except Exception:
+            log.exception("CSV export error.")
+            return False
+
     @pyqtSlot(str)
     def open_direct_transfer(self, uid: str, /) -> None:
         self.application.hide_systray()
@@ -383,7 +397,10 @@ class QMLDriveApi(QObject):
             engine.open_remote()
 
     @pyqtSlot(str)
-    def open_report(self, path: str, /) -> None:
+    def open_in_explorer(self, path: str, /) -> None:
+        """
+        Open the file's folder and select it.
+        """
         self._manager.open_local_file(path, select=True)
 
     @pyqtSlot(str, str)

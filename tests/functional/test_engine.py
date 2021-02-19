@@ -3,9 +3,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 from nxdrive.client.local import FileInfo
-from nxdrive.constants import DelAction
+from nxdrive.constants import DelAction, TransferStatus
 from nxdrive.exceptions import ThreadInterrupt
-from nxdrive.objects import RemoteFileInfo
+from nxdrive.manager import Manager
+from nxdrive.objects import RemoteFileInfo, Session
+from nxdrive.session_csv import SessionCsv
 
 from .. import ensure_no_exception
 
@@ -120,3 +122,35 @@ def test_delete_doc(manager_factory, tmp):
 
         # Test ROLLBACK a synced file, this is a no-op for now
         engine.delete_doc(doc_pair("action rollback"), mode=DelAction.ROLLBACK)
+
+
+def test_temporary_csv_cleanup(tmp, user_factory, nuxeo_url):
+    session = Session(
+        uid=2,
+        remote_path="/default-domain/UserWorkspaces/Administrator/test_csv",
+        remote_ref="08716a45-7154-4c2a-939c-bb70a7a2805e",
+        status=TransferStatus.DONE,
+        uploaded_items=10,
+        total_items=10,
+        engine="f513f5b371cc11eb85d008002733076e",
+        created_on="2021-02-18 15:15:38",
+        completed_on="2021-02-18 15:15:39",
+        description="icons-svg (+9)",
+        planned_items=10,
+    )
+    with Manager(tmp()) as manager:
+        session_csv = SessionCsv(manager, session)
+
+        session_csv.create_tmp()
+        assert session_csv.output_tmp.is_file()
+        assert not session_csv.output_file.is_file()
+        conf_folder = manager.home / "nuxeo-conf"
+        user = user_factory()
+        manager.bind_server(
+            conf_folder,
+            nuxeo_url,
+            user.uid,
+            password=user.password,
+            start_engine=False,
+        )
+        assert not session_csv.output_tmp.is_file()

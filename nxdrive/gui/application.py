@@ -1795,8 +1795,24 @@ class Application(QApplication):
     def refresh_completed_sessions_items(self, dao: EngineDAO, /) -> None:
         """Refresh the list of completed sessions if a change is detected."""
         sessions = self.api.get_completed_sessions_items(dao)
+        sessions = [self._add_csv_path_to_session(session) for session in sessions]
+
         if sessions != self.completed_session_model.sessions:
             self.completed_session_model.set_sessions(sessions)
+
+    def _add_csv_path_to_session(self, row: Dict[str, Any]) -> Dict[str, Any]:
+        """Add the *csv_path* key to the session dict."""
+        date = row["completed_on"]
+        if not date:
+            # The session was cancelled
+            return row
+        name = f"session_{date.replace(':', '-').replace(' ', '_')}.csv"
+        csv_path = self.manager.home / "csv" / name
+        if csv_path.with_suffix(".tmp").is_file():
+            row["csv_path"] = "async_gen"
+        else:
+            row["csv_path"] = str(csv_path) if csv_path.is_file() else ""
+        return row
 
     @pyqtSlot()
     def force_refresh_files(self) -> None:

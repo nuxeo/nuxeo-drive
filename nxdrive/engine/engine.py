@@ -170,6 +170,7 @@ class Engine(QObject):
         self._load_configuration()
 
         self.download_dir = self._set_download_dir()
+        self.csv_dir = self._set_csv_dir_or_cleanup()
 
         if not binder:
             if not self.server_url:
@@ -316,6 +317,22 @@ class Engine(QObject):
         self.local.download_dir = download_dir
 
         return download_dir
+
+    def _set_csv_dir_or_cleanup(self) -> Path:
+        """
+        Create the CSV dir if not already exist.
+        Otherwise cleanup old tmp CSV files.
+        """
+        csv_dir = safe_long_path(self.manager.home) / "csv"
+        if csv_dir.is_dir():
+            log.info(f"Cleaning CSV folder {csv_dir!r}")
+            tmp_files = csv_dir.glob("*.tmp")
+            for tmp in tmp_files:
+                tmp.unlink()
+        else:
+            log.info(f"Creating CSV folder {csv_dir!r}")
+            csv_dir.mkdir()
+        return csv_dir
 
     def set_local_folder(self, path: Path, /) -> None:
         log.info(f"Update local folder to {path!r}")
@@ -509,6 +526,7 @@ class Engine(QObject):
         session_uid = self.dao.create_session(
             remote_parent_path, remote_parent_ref, len(items), self.uid, description
         )
+
         for batch_items in grouper(items, bsize):
             row_id = self.dao.plan_many_direct_transfer_items(batch_items, session_uid)
             if current_max_row_id == -1:

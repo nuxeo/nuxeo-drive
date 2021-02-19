@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from ...engine.activity import LinkingAction, UploadAction
-from ...objects import Upload
+from ...objects import DocPair, Upload
 from . import BaseUploader
 
 log = getLogger(__name__)
@@ -52,7 +52,7 @@ class DirectTransferUploader(BaseUploader):
             - https://jira.nuxeo.com/browse/NXP-22959;
             - create a new operation `Document.GetOrCreate` that ensures atomicity.
         """
-        doc_pair = kwargs.pop("doc_pair")
+        doc_pair: DocPair = kwargs.pop("doc_pair")
 
         log.info(
             f"Direct Transfer of {file_path!r} into {doc_pair.remote_parent_path!r} ({doc_pair.remote_parent_ref!r})"
@@ -87,5 +87,5 @@ class DirectTransferUploader(BaseUploader):
                 remote_parent_ref=doc_pair.remote_parent_ref,
                 doc_pair=doc_pair.id,
             )
-
+        self.dao.save_session_item(doc_pair.session, item)
         return item

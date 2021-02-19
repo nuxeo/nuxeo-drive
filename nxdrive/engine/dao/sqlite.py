@@ -661,7 +661,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 18
+        return 19
 
     def _migrate_state(self, cursor: Cursor, /) -> None:
         try:
@@ -942,6 +942,12 @@ class EngineDAO(ConfigurationDAO):
 
             self.store_int(SCHEMA_VERSION, 18)
 
+        if version < 19:
+            # Create the SessionItems table.
+
+            self._create_session_items_table(cursor)
+            self.store_int(SCHEMA_VERSION, 19)
+
     def _create_table(
         self, cursor: Cursor, name: str, /, *, force: bool = False
     ) -> None:
@@ -1004,6 +1010,15 @@ class EngineDAO(ConfigurationDAO):
             "    planned_items  INTEGER,"
             "    PRIMARY KEY (uid)"
             ")"
+        )
+
+    @staticmethod
+    def _create_session_items_table(cursor: Cursor, /) -> None:
+        """Create the SessionItems table."""
+        cursor.execute(
+            "CREATE TABLE if not exists SessionItems ("
+            "    session_id     INTEGER     NOT NULL,"
+            "    data           VARCHAR     NOT NULL)"
         )
 
     @staticmethod
@@ -1075,6 +1090,7 @@ class EngineDAO(ConfigurationDAO):
         self._create_state_table(cursor)
         self._create_transfer_tables(cursor)
         self._create_sessions_table(cursor)
+        self._create_session_items_table(cursor)
 
     def acquire_state(
         self, thread_id: Optional[int], row_id: int, /
@@ -2641,6 +2657,30 @@ class EngineDAO(ConfigurationDAO):
             )
             self.sessionUpdated.emit()
             return session
+
+    def save_session_item(self, session_id: int, item: Dict[str, Any]) -> None:
+        """Save the session uploaded item data into the SessionItems table."""
+
+        with self.lock:
+            cursor = self._get_write_connection().cursor()
+            cursor.execute(
+                "INSERT INTO SessionItems (session_id, data) VALUES (?, ?)",
+                (
+                    session_id,
+                    json.dumps(item),
+                ),
+            )
+
+    def get_session_items(self, session_id: int) -> List[Dict[str, Any]]:
+        """Get all SessionItems linked to *session_id*."""
+
+        cursor = self._get_read_connection().cursor()
+        sql = "SELECT data FROM SessionItems WHERE session_id = ?"
+
+        return [
+            json.loads(res.data)
+            for res in cursor.execute(sql, (session_id,)).fetchall()
+        ]
 
     def get_downloads_with_status(self, status: TransferStatus, /) -> List[Download]:
         return [d for d in self.get_downloads() if d.status == status]
