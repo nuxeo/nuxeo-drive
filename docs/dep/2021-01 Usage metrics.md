@@ -34,7 +34,7 @@ Metrics sent to every request.
 
 #### User-Agent
 
-A well-crafter string following https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
+A well-crafted string following https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent.
 
 It contains:
 
@@ -63,6 +63,14 @@ How many errors during the edition (integer).
 #### NX-metric-directEdit.file.ext
 
 Lower-case file extension (string).
+
+#### NX-metric-directEdit.file.mime
+
+Lower-case file MIME type (string).
+
+#### NX-metric-directEdit.file.size
+
+File size (integer).
 
 #### NX-metric-directEdit.recovery.count
 
@@ -104,6 +112,24 @@ Real-time: ❌
 ### Synchronization
 
 Metrics related to the synchronization.
+
+#### NX-metric-sync.file.ext
+
+Impacted endpoint: `/upload` (when getting a `batchID`)
+
+Lower-case file extension (string).
+
+#### NX-metric-sync.file.mime
+
+Impacted endpoint: `/upload` (when getting a `batchID`)
+
+Lower-case file MIME type (string).
+
+#### NX-metric-sync.file.size
+
+Impacted endpoint: `/upload` (when getting a `batchID`)
+
+File size (integer).
 
 #### NX-metric-sync.action
 
