@@ -2,9 +2,8 @@ import csv
 from pathlib import Path
 from typing import Any, Dict, List
 
-from nxdrive.objects import Session
-
 from .manager import Manager
+from .objects import Session
 
 DELIMITER = ","
 QUOTECHAR = '"'
