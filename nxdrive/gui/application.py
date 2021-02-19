@@ -1804,14 +1804,14 @@ class Application(QApplication):
         """Add the *csv_path* key to the session dict."""
         date = row["completed_on"]
         if not date:
+            # The session was cancelled
             return row
-        name = f"session_{date.replace(':', '-').replace(' ', '_')}"
+        name = f"session_{date.replace(':', '-').replace(' ', '_')}.csv"
         csv_path = self.manager.home / "csv" / name
         if csv_path.with_suffix(".tmp").is_file():
             row["csv_path"] = "async_gen"
         else:
-            output_file = csv_path.with_suffix(".csv")
-            row["csv_path"] = str(output_file) if output_file.is_file() else ""
+            row["csv_path"] = str(csv_path) if csv_path.is_file() else ""
         return row
 
     @pyqtSlot()

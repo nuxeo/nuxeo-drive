@@ -59,12 +59,9 @@ class SessionCsv:
                 quotechar=QUOTECHAR,
                 quoting=csv.QUOTE_ALL,
             )
+            remote_path = self._session.remote_path.rstrip("/") + "/"
             for elem in data:
-                name = (
-                    elem["path"]
-                    .removeprefix(self._session.remote_path)
-                    .removeprefix("/")
-                )
+                name = elem["path"].removeprefix(remote_path)
                 writer.writerow(
                     [
                         name,
