@@ -1,7 +1,7 @@
 # Usage Metrics
 
 - Created: 2021-01-08
-- Last-Modified: 2021-01-15
+- Last-Modified: 2021-02-19
 - Author: Mickaël Schoentgen <mschoentgen@nuxeo.com>
 - Status: draft
 - Related-Ticket: [NXDRIVE-2461](https://jira.nuxeo.com/browse/NXDRIVE-2461)
@@ -32,11 +32,15 @@ Metrics sent to every request.
 
 #### User-Agent
 
-TBD.
-
 A string containing the application name and version, and OS details. It follows
 
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
+
+It must contain:
+- application name and version
+- installation type (`system` for system-wide or `user` user-only)
+- OS name, version (`X.Y` notation only to ease filtering on that value), architecture, type (`arm64|i386|x86_64|...`)
+
 
 #### X-Account-Number
 
@@ -60,48 +64,6 @@ Uniq ID for the account on the machine (string). It is sent to every request.
 
 ```python
 "X-Device-Id": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
-```
-
-#### X-Installation-type
-
-Installation type (system-wide or user-only) (string). It is sent to every request.
-
-```python
-"X-Application-type": "system|user"
-```
-
-#### X-OS-Architecture
-
-OS architecture (integer). It is sent to every request.
-
-```python
-"X-OS-Architecture": 64
-```
-
-#### X-OS-Machine
-
-Machine type (string). It is sent to every request.
-
-```python
-"X-OS-Machine": "arm64|i386|x86_64|..."
-```
-
-#### X-OS-Name
-
-OS name in its simplest form (string). It is sent to every request.
-
-```python
-"X-OS-Name": "linux|mac|windows"
-```
-
-#### X-OS-Version
-
-OS version: "major.minor" numbers only (string). It is sent to every request.
-
-TODO: `[11, 1]` is prefered, or even `{"major": 11, "minor": 1}`?
-
-```python
-"X-OS-version": "11.1"
 ```
 
 #### X-User-Id
