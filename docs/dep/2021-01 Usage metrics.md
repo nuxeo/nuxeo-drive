@@ -2,9 +2,9 @@
 
 - Created: 2021-01-08
 - Last-Modified: 2021-02-19
-- Authors: Mickaël Schoentgen <mschoentgen@nuxeo.com>,
-           Romain Grasland <rgrasland@nuxeo.com>
+- Author: Mickaël Schoentgen <mschoentgen@nuxeo.com>
 - Reviewer: Nelson Silva <nsilva@nuxeo.com>
+- Implementer: Romain Grasland <rgrasland@nuxeo.com>
 - Status: draft
 - Related-Ticket: [NXDRIVE-2461](https://jira.nuxeo.com/browse/NXDRIVE-2461)
 
