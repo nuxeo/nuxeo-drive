@@ -103,7 +103,7 @@ Session number (integer).
 
 #### NX-metric-directTransfer.session.status
 
-Final session status (string). It is sent at the end of a session. Choises: `cancelled|done`.
+Final session status (string). It is sent at the end of a session. Choices: `cancelled|done`.
 
 Impacted endpoint: `/me`.
 
