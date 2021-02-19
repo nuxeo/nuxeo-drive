@@ -163,7 +163,7 @@ Real-time: ❌
 "X-Filter-Depths": [1, 5, 5, 15]
 ```
 
-### NX-metric-filters.rootCount
+### NX-metric-filters.root.count
 
 How many synchronization roots (interger).
 
