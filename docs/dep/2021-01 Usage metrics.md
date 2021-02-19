@@ -97,6 +97,18 @@ Impacted endpoint: `/upload`.
 
 File duplicate creation option (string). Choices: `create|ignore|override`.
 
+#### NX-metric-directTransfer.file.ext
+
+Lower-case file extension (string).
+
+#### NX-metric-directTransfer.file.mime
+
+Lower-case file MIME type (string).
+
+#### NX-metric-directTransfer.file.size
+
+File size (integer).
+
 #### NX-metric-directTransfer.session.number
 
 Session number (integer).
