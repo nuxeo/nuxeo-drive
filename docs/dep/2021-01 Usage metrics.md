@@ -28,53 +28,23 @@ Most metrics are real-time. If not, it is specified and will be sent through the
 
 ## Metrics
 
-### Context
+### General
 
 Metrics sent to every request.
 
 #### User-Agent
 
-A string containing the application name and version, and OS details. It follows
+A well-crafter string following https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
 
-https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
+It contains:
 
-It must contain:
 - application name and version
 - installation type (`system` for system-wide or `user` user-only)
 - OS name, version (`X.Y` notation only to ease filtering on that value), architecture, type (`arm64|i386|x86_64|...`)
 
+#### NX-metric-account.number
 
-#### X-Account-Number
-
-Account number, incremented for each new account (integer). It is sent to every request.
-
-```python
-"X-Account-Number": 1
-```
-
-#### X-Application-Name
-
-Application name (string). It is sent to every request.
-
-```python
-"X-Application-Name": "Nuxeo Drive"
-```
-
-#### X-Device-Id
-
-Uniq ID for the account on the machine (string). It is sent to every request.
-
-```python
-"X-Device-Id": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
-```
-
-#### X-User-Id
-
-Username (string). It is sent to every request.
-
-```python
-"X-User-Id": "alice"
-```
+Account number, incremented for each new account (integer).
 
 ### Direct Edit
 
@@ -82,45 +52,25 @@ Direct Edit feature metrics, sent at the end of an edition.
 
 Impacted operation: `Document.Unlock`.
 
-#### X-Direct-Edit-Conflict-Count
+#### NX-metric-directEdit.conflict.count
 
 How many conflicts during the edition (integer).
 
-```python
-"X-Direct-Edit-Conflict-Count": 0
-```
-
-#### X-Direct-Edit-Error-Count
+#### NX-metric-directEdit.error.count
 
 How many errors during the edition (integer).
 
-```python
-"X-Direct-Edit-Error-Count": 0
-```
+#### NX-metric-directEdit.file.ext
 
-#### X-Direct-Edit-Extension
+Lower-case file extension (string).
 
-File extension (string).
-
-```python
-"X-Direct-Edit-Extension": "docx|..."
-```
-
-#### X-Direct-Edit-Recovery-Count
+#### NX-metric-directEdit.recovery.count
 
 How many times the document was recovered (integer).
 
-```python
-"X-Direct-Edit-Recovery-Count": 0
-```
-
-#### X-Direct-Edit-Save-Count
+#### NX-metric-directEdit.save.count
 
 How many times the user saved the file (integer).
-
-```python
-"X-Direct-Edit-Save-Count": 2
-```
 
 ### Direct Transfer
 
@@ -132,45 +82,33 @@ Impacted operations:
 
 - `FileManager.CreateFolder`
 - `FileManager.Import`
-- `FileManager.ImportWithProperties` (not yet, but soon)
 
 Impacted endpoint: `/upload`.
 
-#### X-Direct-Transfer-Duplicate-Behavior
+#### NX-metric-directTransfer.dupeBehavior
 
-File duplicate creation option (string).
+File duplicate creation option (string). Choices: `create|ignore|override`.
 
-```python
-"X-Direct-Transfer-Duplicate-Behavior": "create|ignore|override"
-```
-
-#### X-Direct-Transfer-Session-Number
+#### NX-metric-directTransfer.session.number
 
 Session number (integer).
 
-```python
-"X-Direct-Transfer-Session-Number": 1
-```
+#### NX-metric-directTransfer.session.status
 
-#### X-Direct-Transfer-Session-Status
-
-Final session status (string). It is sent at the end of a session.
+Final session status (string). It is sent at the end of a session. Choises: `cancelled|done`.
 
 Impacted endpoint: `/me`.
 
 Real-time: ❌
 
-```python
-"X-Direct-Transfer-Session-Status": "cancelled|done"
-```
-
 ### Synchronization
 
 Metrics related to the synchronization.
 
-#### X-Sync-Action
+#### NX-metric-sync.action
 
 Event that triggered the transfer (string). It is sent to every request made.
+Choices: `remotely_created|locally_modified|...`.
 
 Impacted operations:
 
@@ -183,23 +121,15 @@ Impacted endpoints:
 - `/nxfile`
 - `/upload`
 
-```python
-"X-Sync-Action": "remotely_created|locally_modified|..."
-```
+#### NX-metric-sync.error
 
-#### X-Sync-Error
-
-Error label (string).
+Lower-case error label (string).
 
 Impacted endpoint: `/me`.
 
 Real-time: ❌
 
-```python
-"X-Sync-Error": "dedup|...",
-```
-
-#### X-Sync-Time
+#### NX-metric-sync.time
 
 Time between the event trigger and the end of the action, in nanoseconds (integer).
 
@@ -207,17 +137,13 @@ Impacted endpoint: `/me`.
 
 Real-time: ❌
 
-```python
-"X-Sync-Time": 4200000000
-```
-
 ### Filters
 
 Metrics related to filters.
 
 Impacted endpoint: `/me`.
 
-### X-Filters-Count
+### NX-metric-filters.count
 
 Ho many filtered documents (integer).
 
@@ -227,7 +153,7 @@ Real-time: ❌
 "X-Filter-Count": 1
 ```
 
-### X-Filters-Depths
+### NX-metric-filters.depths
 
 Depth of the path of documents compared to their synchronization root (list of integers).
 
@@ -237,12 +163,8 @@ Real-time: ❌
 "X-Filter-Depths": [1, 5, 5, 15]
 ```
 
-### X-Filters-Root-Count
+### NX-metric-filters.rootCount
 
 How many synchronization roots (interger).
 
 Real-time: ❌
-
-```python
-"X-Filter-Root-Count": 1
-```
