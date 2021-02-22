@@ -254,6 +254,26 @@ class Processor(EngineWorker):
         log.debug(f"Calling {sync_handler.__name__}()")
         try:
             sync_handler(doc_pair)
+        except NotFound:
+            # It means the FileManager did not find the batchId, meaning it is being (or was already) processed.
+            # No need to upload it again, the document should already be created on will be "shortly".
+            self._direct_transfer_cancel(doc_pair)
+            raise
+        except HTTPError as exc:
+            if exc.status != 404:
+                raise
+            self._postpone_pair(doc_pair, "Parent not yet synced")
+        except UploadCancelled as exc:
+            # Triggered when an Upload status change from ONGOING to CANCELLED while being processed.
+            upload = self.engine.dao.get_dt_upload(uid=exc.transfer_id)
+            if not upload or not upload.doc_pair:
+                return
+            self.remote.cancel_batch(upload.batch)
+            refreshed_doc_pair = self.engine.dao.get_state_from_id(upload.doc_pair)
+            if not refreshed_doc_pair:
+                return
+            self._direct_transfer_cancel(refreshed_doc_pair)
+            log.debug(f"Cancelled upload {exc.transfer_id!r}")
         except Exception:
             # Show a notification on error
             file = doc_pair.local_path if WINDOWS else Path(f"/{doc_pair.local_path}")
@@ -321,12 +341,6 @@ class Processor(EngineWorker):
             except NotFound:
                 log.warning("The document or its parent does not exist anymore")
                 self.remove_void_transfers(doc_pair)
-
-                # For Direct Transfer items, it means the FileManager did not find the
-                # batchId, meaning it is being (or was already) processed. No need to upload
-                # it again, the document should already be created on will be "shortly".
-                if doc_pair.local_state == "direct":
-                    self._direct_transfer_cancel(doc_pair)
             except Unauthorized:
                 self.giveup_error(doc_pair, "INVALID_CREDENTIALS")
             except Forbidden:
@@ -349,16 +363,11 @@ class Processor(EngineWorker):
                 self._postpone_pair(doc_pair, "MAX_RETRY_ERROR")
             except HTTPError as exc:
                 if exc.status == 404:
-                    if doc_pair.local_state == "direct":
-                        # Happening while Direct Transfer'ring a document,
-                        # that means the parent folder is not yet created. Postpone.
-                        self._postpone_pair(doc_pair, "Parent not yet synced")
-                    else:
-                        # We saw it happened once a migration is done.
-                        # Nuxeo kept the document reference but it does
-                        # not exist physically anywhere.
-                        log.info("The document does not exist anymore")
-                        self.dao.remove_state(doc_pair)
+                    # We saw it happened once a migration is done.
+                    # Nuxeo kept the document reference but it does
+                    # not exist physically anywhere.
+                    log.info("The document does not exist anymore")
+                    self.dao.remove_state(doc_pair)
                 elif exc.status == 409:  # Conflict
                     # It could happen on multiple files drag'n drop
                     # starting with identical characters.
@@ -389,17 +398,6 @@ class Processor(EngineWorker):
                 self.engine.dao.set_transfer_doc(
                     nature, exc.transfer_id, self.engine.uid, doc_pair.id
                 )
-            except UploadCancelled as exc:
-                # Triggered when an Upload status change from ONGOING to CANCELLED while being processed.
-                upload = self.engine.dao.get_dt_upload(uid=exc.transfer_id)
-                if not upload or not upload.doc_pair:
-                    return
-                self.remote.cancel_batch(upload.batch)
-                doc_pair = self.engine.dao.get_state_from_id(upload.doc_pair)
-                if not doc_pair:
-                    return
-                self._direct_transfer_cancel(doc_pair)
-                log.debug(f"Cancelled upload {exc.transfer_id!r}")
             except DuplicationDisabledError:
                 self.giveup_error(doc_pair, "DEDUP")
             except CorruptedFile as exc:
