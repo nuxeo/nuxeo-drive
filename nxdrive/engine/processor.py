@@ -269,10 +269,10 @@ class Processor(EngineWorker):
             if not upload or not upload.doc_pair:
                 return
             self.remote.cancel_batch(upload.batch)
-            doc_pair = self.engine.dao.get_state_from_id(upload.doc_pair)
-            if not doc_pair:
+            refreshed_doc_pair = self.engine.dao.get_state_from_id(upload.doc_pair)
+            if not refreshed_doc_pair:
                 return
-            self._direct_transfer_cancel(doc_pair)
+            self._direct_transfer_cancel(refreshed_doc_pair)
             log.debug(f"Cancelled upload {exc.transfer_id!r}")
         except Exception:
             # Show a notification on error
