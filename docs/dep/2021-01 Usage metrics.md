@@ -1,7 +1,7 @@
 # Usage Metrics
 
 - Created: 2021-01-08
-- Last-Modified: 2021-02-19
+- Last-Modified: 2021-02-22
 - Author: Mickaël Schoentgen <mschoentgen@nuxeo.com>
 - Reviewer: Nelson Silva <nsilva@nuxeo.com>
 - Implementer: Romain Grasland <rgrasland@nuxeo.com>
@@ -52,31 +52,19 @@ Direct Edit feature metrics, sent at the end of an edition.
 
 Impacted operation: `Document.Unlock`.
 
-#### NX-metric-directEdit.conflict.count
+#### NX-metric-directEdit.conflict.hit
 
 How many conflicts during the edition (integer).
 
-#### NX-metric-directEdit.error.count
+#### NX-metric-directEdit.error.hit
 
 How many errors during the edition (integer).
 
-#### NX-metric-directEdit.file.ext
-
-Lower-case file extension (string).
-
-#### NX-metric-directEdit.file.mime
-
-Lower-case file MIME type (string).
-
-#### NX-metric-directEdit.file.size
-
-File size (integer).
-
-#### NX-metric-directEdit.recovery.count
+#### NX-metric-directEdit.recovery.hit
 
 How many times the document was recovered (integer).
 
-#### NX-metric-directEdit.save.count
+#### NX-metric-directEdit.save.hit
 
 How many times the user saved the file (integer).
 
@@ -97,18 +85,6 @@ Impacted endpoint: `/upload`.
 
 File duplicate creation option (string). Choices: `create|ignore|override`.
 
-#### NX-metric-directTransfer.file.ext
-
-Lower-case file extension (string).
-
-#### NX-metric-directTransfer.file.mime
-
-Lower-case file MIME type (string).
-
-#### NX-metric-directTransfer.file.size
-
-File size (integer).
-
 #### NX-metric-directTransfer.session.number
 
 Session number (integer).
@@ -124,24 +100,6 @@ Real-time: ❌
 ### Synchronization
 
 Metrics related to the synchronization.
-
-#### NX-metric-sync.file.ext
-
-Impacted endpoint: `/upload` (when getting a `batchID`)
-
-Lower-case file extension (string).
-
-#### NX-metric-sync.file.mime
-
-Impacted endpoint: `/upload` (when getting a `batchID`)
-
-Lower-case file MIME type (string).
-
-#### NX-metric-sync.file.size
-
-Impacted endpoint: `/upload` (when getting a `batchID`)
-
-File size (integer).
 
 #### NX-metric-sync.action
 
