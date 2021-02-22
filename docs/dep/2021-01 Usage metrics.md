@@ -2,7 +2,8 @@
 
 - Created: 2021-01-08
 - Last-Modified: 2021-02-22
-- Author: Mickaël Schoentgen <mschoentgen@nuxeo.com>
+- Author: Mickaël Schoentgen <mschoentgen@nuxeo.com>,
+          Romain Grasland <rgrasland@nuxeo.com>
 - Reviewer: Nelson Silva <nsilva@nuxeo.com>
 - Implementer: Romain Grasland <rgrasland@nuxeo.com>
 - Status: draft
@@ -81,7 +82,7 @@ Impacted operations:
 
 Impacted endpoint: `/upload`.
 
-#### NX-metric-directTransfer.dupeBehavior
+#### NX-metric-directTransfer.duplicate.behavior
 
 File duplicate creation option (string). Choices: `create|ignore|override`.
 
@@ -133,9 +134,19 @@ Impacted endpoint: `/me`.
 
 Real-time: ❌
 
-### Filters
+### Other
 
-Metrics related to filters.
+Metrics related to 
+
+Impacted endpoint: `/me`.
+
+### NX-metric-app.crashed
+
+Real-time: ❌
+
+### NX-metric-database.migration.failure
+
+Real-time: ❌
 
 Impacted endpoint: `/me`.
 
@@ -144,10 +155,6 @@ Impacted endpoint: `/me`.
 Ho many filtered documents (integer).
 
 Real-time: ❌
-
-```python
-"X-Filter-Count": 1
-```
 
 ### NX-metric-filters.depths
 
