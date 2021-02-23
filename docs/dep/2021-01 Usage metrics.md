@@ -152,31 +152,44 @@ Real-time: ❌
 
 ### Other
 
-Impacted endpoint: `/me`.
-
 ### NX-metric-app.crashed.hit
+
+Impacted endpoint: `/me`.
 
 Real-time: ❌
 
+### NX-metric-app.perf.ram
+
+Impacted endpoint: `/config`.
+
+Real-time: ❌
+
+
 ### NX-metric-app.crashed.type
+
+Impacted endpoint: `/me`.
 
 Real-time: ❌
 
 ### NX-metric-database.migration.failure
 
-Real-time: ❌
-
 Impacted endpoint: `/me`.
+
+Real-time: ❌
 
 ### NX-metric-filtered.doc UID
 ### NX-metric-filtered.depth INT (O = sync root, else subdoc)
 
 Depth of the path of documents compared to their synchronization root (list of integers).
 
+Impacted endpoint: `/me`.
+
 Real-time: ❌
 
 ### NX-metric-filters.syncRoot.count
 
 How many synchronization roots (interger).
+
+Impacted endpoint: `/me`.
 
 Real-time: ❌
