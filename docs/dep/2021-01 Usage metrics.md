@@ -40,12 +40,15 @@ A well-crafted string following https://developer.mozilla.org/en-US/docs/Web/HTT
 It contains:
 
 - application name and version
-- installation type (`system` for system-wide or `user` user-only)
 - OS name, version (`X.Y` notation only to ease filtering on that value), architecture, type (`arm64|i386|x86_64|...`)
 
 #### NX-metric-account.number
 
 Account number, incremented for each new account (integer).
+
+#### NX-metric-installation.type
+
+Installation type (`system-wide` or `user-only`).
 
 #### NX-metric-metrics.ga
 #### NX-metric-metrics.sentry
