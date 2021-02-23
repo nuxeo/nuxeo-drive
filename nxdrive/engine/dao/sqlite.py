@@ -196,7 +196,6 @@ class ConfigurationDAO(QObject):
         self.in_tx = None
         self._tx_lock = RLock()
         self.conn: Optional[Connection] = None
-        self._connections: List[Connection] = []
         self._conns = local()
         self._create_main_conn()
         if not self.conn:
@@ -333,16 +332,14 @@ class ConfigurationDAO(QObject):
             timeout=10,
         )
         self.conn.row_factory = self._state_factory
-        self._connections.append(self.conn)
 
     def dispose(self) -> None:
         log.info(f"Disposing SQLite database {self.db!r}")
-        if hasattr(self, "_connections"):
-            for con in self._connections:
-                con.close()
-            del self._connections
-        if hasattr(self, "conn"):
-            del self.conn
+        if hasattr(self._conns, "conn"):
+            self._conns.conn.close()
+            del self._conns.conn
+        if self.conn:
+            self.conn.close()
 
     def _get_write_connection(self) -> Connection:
         if self.in_tx:
@@ -363,8 +360,7 @@ class ConfigurationDAO(QObject):
             with self._tx_lock:
                 pass
 
-        if getattr(self._conns, "conn", None) is None:
-            # Don't check same thread for closing purpose
+        if not hasattr(self._conns, "conn"):
             self._conns.conn = connect(
                 str(self.db),
                 check_same_thread=False,
@@ -373,7 +369,6 @@ class ConfigurationDAO(QObject):
                 timeout=10,
             )
             self._conns.conn.row_factory = self._state_factory
-            self._connections.append(self._conns.conn)
 
         return self._conns.conn
 
