@@ -49,6 +49,13 @@ Account number, incremented for each new account (integer).
 #### NX-metric-installation.type
 
 Installation type (`system-wide` or `user-only`).
+#### NX-metric-execution.profile
+
+Profile of execution (`private` for qa/dev/sources otherwise `public`)
+
+#### NX-metric-execution.session.uid
+
+Unique uuid generated at Drive startup
 
 #### NX-metric-metrics.ga
 #### NX-metric-metrics.sentry
