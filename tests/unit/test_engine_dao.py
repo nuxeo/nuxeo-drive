@@ -426,8 +426,8 @@ def test_migration_db_v16(engine_dao):
 def test_migration_db_v18(engine_dao):
     """Verify States after migration from v17 to v18."""
     with engine_dao("engine_migration_18.db") as dao:
-        dao._get_write_connection().row_factory = None
-        c = dao._get_write_connection().cursor()
+        dao._get_read_connection().row_factory = None
+        c = dao._get_read_connection().cursor()
 
         rows = c.execute(
             "SELECT local_path, local_parent_path FROM States",

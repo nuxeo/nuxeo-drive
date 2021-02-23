@@ -234,8 +234,8 @@ class ConfigurationDAO(QObject):
         log.debug(f"Forcing WAL checkpoint on {self.db!r}")
         with self.lock:
             conn = self._get_write_connection()
-            cursor = conn.cursor()
-            cursor.execute("PRAGMA wal_checkpoint(PASSIVE)")
+            c = conn.cursor()
+            c.execute("PRAGMA wal_checkpoint(PASSIVE)")
 
     def restore_backup(self) -> bool:
         try:
@@ -326,9 +326,9 @@ class ConfigurationDAO(QObject):
         )
         self.conn = connect(
             str(self.db),
-            check_same_thread=False,
+            check_same_thread=False,  # Don't check same thread for closing purpose
             factory=AutoRetryConnection,
-            isolation_level=None,
+            isolation_level=None,  # Autocommit mode
             timeout=10,
         )
         self.conn.row_factory = self._state_factory
@@ -363,9 +363,9 @@ class ConfigurationDAO(QObject):
         if not hasattr(self._conns, "conn"):
             self._conns.conn = connect(
                 str(self.db),
-                check_same_thread=False,
+                check_same_thread=False,  # Don't check same thread for closing purpose
                 factory=AutoRetryConnection,
-                isolation_level=None,
+                isolation_level=None,  # Autocommit mode
                 timeout=10,
             )
             self._conns.conn.row_factory = self._state_factory
@@ -1273,12 +1273,11 @@ class EngineDAO(ConfigurationDAO):
         It is recommended to now exceed 500 *items* for each call of this method.
         """
         with self.lock:
-            cur = self._get_write_connection().cursor()
+            c = self._get_write_connection().cursor()
 
             # This will be needed later
-            current_max_row_id = cur.execute(
-                "SELECT max(ROWID) FROM States"
-            ).fetchone()[0]
+            sql = "SELECT max(ROWID) FROM States"
+            current_max_row_id = c.execute(sql).fetchone()[0]
 
             # Insert data in one shot
             query = (
@@ -1288,7 +1287,7 @@ class EngineDAO(ConfigurationDAO):
                 "local_state, remote_state, pair_state, session)"
                 f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'direct', ?, 'direct_transfer', {session})"
             )
-            cur.executemany(query, items)
+            c.executemany(query, items)
             return current_max_row_id
 
     def queue_many_direct_transfer_items(self, current_max_row_id: int, /) -> None:
@@ -1297,11 +1296,11 @@ class EngineDAO(ConfigurationDAO):
             return
 
         with self.lock:
-            cur = self._get_write_connection().cursor()
+            c = self._get_write_connection().cursor()
 
             # Send new pairs into the queue manager
             query = "SELECT * FROM States WHERE ROWID > ? AND local_state = 'direct' ORDER BY ROWID ASC"
-            for new_pair in cur.execute(query, (current_max_row_id,)):
+            for new_pair in c.execute(query, (current_max_row_id,)):
                 self.queue_manager.push(new_pair)
                 self._items_count += 1
 
@@ -1686,11 +1685,10 @@ class EngineDAO(ConfigurationDAO):
             c = self._get_read_connection().cursor()
 
         try:
-            state = c.execute("SELECT * FROM States WHERE id = ?", (row_id,)).fetchone()
+            return c.execute("SELECT * FROM States WHERE id = ?", (row_id,)).fetchone()
         finally:
             if from_write:
                 self.lock.release()
-        return state
 
     def _get_recursive_condition(self, doc_pair: DocPair, /) -> str:
         path = self._escape(_adapt_path(doc_pair.local_path))
@@ -2113,8 +2111,6 @@ class EngineDAO(ConfigurationDAO):
 
             # Retry without version for folder
             if not result and row.folderish:
-                con = self._get_write_connection()
-                c = con.cursor()
                 c.execute(
                     "UPDATE States"
                     "   SET local_state = ?,"
@@ -2146,7 +2142,6 @@ class EngineDAO(ConfigurationDAO):
 
             if not result:
                 log.debug(f"Was not able to synchronize state: {row!r}")
-                c = self._get_read_connection().cursor()
                 row2: DocPair = c.execute(
                     "SELECT * FROM States WHERE id = ?", (row.id,)
                 ).fetchone()
@@ -2559,8 +2554,8 @@ class EngineDAO(ConfigurationDAO):
     ) -> int:
         """Create a new session. Return the session ID."""
         with self.lock:
-            cursor = self._get_write_connection().cursor()
-            cursor.execute(
+            c = self._get_write_connection().cursor()
+            c.execute(
                 "INSERT INTO Sessions (remote_path, remote_ref, total, status, engine, description, planned_items) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
@@ -2574,7 +2569,7 @@ class EngineDAO(ConfigurationDAO):
                 ),
             )
             self.sessionUpdated.emit()
-            return cursor.lastrowid
+            return c.lastrowid
 
     def update_session(self, uid: int, /) -> Optional[Session]:
         """
@@ -2593,10 +2588,8 @@ class EngineDAO(ConfigurationDAO):
             else:
                 sql = "UPDATE Sessions SET uploaded = ?, status = ? WHERE uid = ?"
 
-            cursor = self._get_write_connection().cursor()
-            cursor.execute(
-                sql, (session.uploaded_items, session.status.value, session.uid)
-            )
+            c = self._get_write_connection().cursor()
+            c.execute(sql, (session.uploaded_items, session.status.value, session.uid))
             self.sessionUpdated.emit()
             return session
 
@@ -2607,8 +2600,8 @@ class EngineDAO(ConfigurationDAO):
             if not session:
                 return None
 
-            cursor = self._get_write_connection().cursor()
-            cursor.execute(
+            c = self._get_write_connection().cursor()
+            c.execute(
                 "UPDATE Sessions SET status = ? WHERE uid = ?",
                 (status.value, session.uid),
             )
@@ -2640,8 +2633,8 @@ class EngineDAO(ConfigurationDAO):
             else:
                 sql = "UPDATE Sessions SET planned_items = ?, total = ?, status = ? WHERE uid = ?"
 
-            cursor = self._get_write_connection().cursor()
-            cursor.execute(
+            c = self._get_write_connection().cursor()
+            c.execute(
                 sql,
                 (
                     session.planned_items,
@@ -2657,8 +2650,8 @@ class EngineDAO(ConfigurationDAO):
         """Save the session uploaded item data into the SessionItems table."""
 
         with self.lock:
-            cursor = self._get_write_connection().cursor()
-            cursor.execute(
+            c = self._get_write_connection().cursor()
+            c.execute(
                 "INSERT INTO SessionItems (session_id, data) VALUES (?, ?)",
                 (
                     session_id,
@@ -2669,12 +2662,11 @@ class EngineDAO(ConfigurationDAO):
     def get_session_items(self, session_id: int) -> List[Dict[str, Any]]:
         """Get all SessionItems linked to *session_id*."""
 
-        cursor = self._get_read_connection().cursor()
+        c = self._get_read_connection().cursor()
         sql = "SELECT data FROM SessionItems WHERE session_id = ?"
 
         return [
-            json.loads(res.data)
-            for res in cursor.execute(sql, (session_id,)).fetchall()
+            json.loads(res.data) for res in c.execute(sql, (session_id,)).fetchall()
         ]
 
     def get_downloads_with_status(self, status: TransferStatus, /) -> List[Download]:
