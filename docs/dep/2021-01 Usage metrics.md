@@ -47,6 +47,12 @@ It contains:
 
 Account number, incremented for each new account (integer).
 
+#### NX-metric-metrics.ga
+#### NX-metric-metrics.sentry
+#### NX-metric-metrics.custom
+
+Integer.
+
 ### Direct Edit
 
 Direct Edit feature metrics, sent at the end of an edition.
