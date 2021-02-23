@@ -1,7 +1,7 @@
 # Usage Metrics
 
 - Created: 2021-01-08
-- Last-Modified: 2021-02-22
+- Last-Modified: 2021-02-23
 - Author: Mickaël Schoentgen <mschoentgen@nuxeo.com>,
           Romain Grasland <rgrasland@nuxeo.com>
 - Reviewer: Nelson Silva <nsilva@nuxeo.com>
@@ -57,7 +57,7 @@ Impacted operation: `Document.Unlock`.
 
 How many conflicts during the edition (integer).
 
-#### NX-metric-directEdit.error.hit
+#### NX-metric-directEdit.error.count
 
 How many errors during the edition (integer).
 
@@ -65,7 +65,10 @@ How many errors during the edition (integer).
 
 How many times the document was recovered (integer).
 
-#### NX-metric-directEdit.save.hit
+#### NX-metric-directEdit.save.count
+
+(lors du unlock)
+(How many save per “session” (i.e before the document is closed)
 
 How many times the user saved the file (integer).
 
@@ -85,6 +88,18 @@ Impacted endpoint: `/upload`.
 #### NX-metric-directTransfer.duplicate.behavior
 
 File duplicate creation option (string). Choices: `create|ignore|override`.
+
+#### NX-metric-directTransfer.option.newFolder
+
+Bool when the option "new folder" is used.
+
+#### NX-metric-directTransfer.transfer.time
+
+Time between the event trigger and the end of the action, in nanoseconds (integer).
+
+Impacted endpoint: `/me`.
+
+Real-time: ❌
 
 #### NX-metric-directTransfer.session.number
 
@@ -118,7 +133,7 @@ Impacted endpoints:
 - `/nxfile`
 - `/upload`
 
-#### NX-metric-sync.error
+#### NX-metric-sync.error.type
 
 Lower-case error label (string).
 
@@ -136,11 +151,13 @@ Real-time: ❌
 
 ### Other
 
-Metrics related to 
-
 Impacted endpoint: `/me`.
 
-### NX-metric-app.crashed
+### NX-metric-app.crashed.hit
+
+Real-time: ❌
+
+### NX-metric-app.crashed.type
 
 Real-time: ❌
 
@@ -150,23 +167,14 @@ Real-time: ❌
 
 Impacted endpoint: `/me`.
 
-### NX-metric-filters.count
-
-Ho many filtered documents (integer).
-
-Real-time: ❌
-
-### NX-metric-filters.depths
+### NX-metric-filtered.doc UID
+### NX-metric-filtered.depth INT (O = sync root, else subdoc)
 
 Depth of the path of documents compared to their synchronization root (list of integers).
 
 Real-time: ❌
 
-```python
-"X-Filter-Depths": [1, 5, 5, 15]
-```
-
-### NX-metric-filters.root.count
+### NX-metric-filters.syncRoot.count
 
 How many synchronization roots (interger).
 
