@@ -233,8 +233,7 @@ class ConfigurationDAO(QObject):
 
         log.debug(f"Forcing WAL checkpoint on {self.db!r}")
         with self.lock:
-            conn = self._get_write_connection()
-            c = conn.cursor()
+            c = self._get_write_connection().cursor()
             c.execute("PRAGMA wal_checkpoint(PASSIVE)")
 
     def restore_backup(self) -> bool:
@@ -377,8 +376,7 @@ class ConfigurationDAO(QObject):
 
     def delete_config(self, name: str, /) -> None:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             self._delete_config(c, name)
 
     def update_config(self, name: str, value: Any, /) -> None:
@@ -388,8 +386,7 @@ class ConfigurationDAO(QObject):
         #     return
 
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute(
                 "UPDATE OR IGNORE Configuration"
                 "             SET value = ?"
@@ -483,8 +480,7 @@ class ManagerDAO(ConfigurationDAO):
 
     def insert_notification(self, notification: Notification, /) -> None:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute(
                 "INSERT INTO Notifications "
                 "(uid, engine, level, title, description, action, flags) "
@@ -502,13 +498,11 @@ class ManagerDAO(ConfigurationDAO):
 
     def unlock_path(self, path: Path, /) -> None:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute("DELETE FROM AutoLock WHERE path = ?", (path,))
 
     def get_locks(self) -> List[Row]:
-        con = self._get_read_connection()
-        c = con.cursor()
+        c = self._get_read_connection().cursor()
         return c.execute("SELECT * FROM AutoLock").fetchall()
 
     def get_locked_paths(self) -> List[Path]:
@@ -516,8 +510,7 @@ class ManagerDAO(ConfigurationDAO):
 
     def lock_path(self, path: Path, process: int, doc_id: str, /) -> None:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             try:
                 c.execute(
                     "INSERT INTO AutoLock (path, process, remote_id) "
@@ -536,8 +529,7 @@ class ManagerDAO(ConfigurationDAO):
 
     def update_notification(self, notification: Notification, /) -> None:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute(
                 "UPDATE Notifications"
                 "   SET level = ?,"
@@ -567,8 +559,7 @@ class ManagerDAO(ConfigurationDAO):
         #    1 = Notification.FLAG_DISCARD
         #    4 = Notification.FLAG_DISCARDABLE
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute(
                 "UPDATE Notifications"
                 "   SET flags = (flags | 1)"
@@ -579,8 +570,7 @@ class ManagerDAO(ConfigurationDAO):
 
     def remove_notification(self, uid: str, /) -> None:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute("DELETE FROM Notifications WHERE uid = ?", (uid,))
 
     def _migrate_db(self, cursor: Cursor, version: int, /) -> None:
@@ -615,16 +605,14 @@ class ManagerDAO(ConfigurationDAO):
 
     def update_engine_path(self, engine: str, path: Path, /) -> None:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute(
                 "UPDATE Engines SET local_folder = ? WHERE uid = ?", (path, engine)
             )
 
     def add_engine(self, engine: str, path: Path, key: str, name: str, /) -> EngineDef:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute(
                 "INSERT INTO Engines (local_folder, engine, uid, name) "
                 "VALUES (?, ?, ?, ?)",
@@ -634,8 +622,7 @@ class ManagerDAO(ConfigurationDAO):
 
     def delete_engine(self, uid: str, /) -> None:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute("DELETE FROM Engines WHERE uid = ?", (uid,))
 
 
@@ -1105,8 +1092,7 @@ class EngineDAO(ConfigurationDAO):
 
     def release_processor(self, processor_id: int, /) -> bool:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             # TO_REVIEW Might go back to primary key id
             c.execute(
                 "UPDATE States  SET processor = 0 WHERE processor = ?", (processor_id,)
@@ -1116,8 +1102,7 @@ class EngineDAO(ConfigurationDAO):
 
     def acquire_processor(self, thread_id: int, row_id: int, /) -> bool:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute(
                 "UPDATE States"
                 "   SET processor = ?"
@@ -1162,8 +1147,7 @@ class EngineDAO(ConfigurationDAO):
 
     def delete_remote_state(self, doc_pair: DocPair, /) -> None:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             update = (
                 "UPDATE States"
                 "   SET remote_state = 'deleted',"
@@ -1224,8 +1208,7 @@ class EngineDAO(ConfigurationDAO):
                 digest = info.get_digest()
 
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             pair_state = PAIR_STATES[("created", "unknown")]
 
             c.execute(
@@ -1414,16 +1397,14 @@ class EngineDAO(ConfigurationDAO):
 
     def update_last_transfer(self, row_id: int, transfer: str, /) -> None:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute(
                 "UPDATE States SET last_transfer = ? WHERE id = ?", (transfer, row_id)
             )
 
     def update_remote_name(self, row_id: int, remote_name: str, /) -> None:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute(
                 "UPDATE States SET remote_name = ? WHERE id = ?", (remote_name, row_id)
             )
@@ -1460,8 +1441,7 @@ class EngineDAO(ConfigurationDAO):
 
         with self.lock:
             parent_path = info.path.parent
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute(
                 "UPDATE States"
                 "   SET last_local_updated = ?,"
@@ -1501,8 +1481,7 @@ class EngineDAO(ConfigurationDAO):
 
     def update_local_modification_time(self, row: DocPair, info: FileInfo, /) -> None:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute(
                 "UPDATE States SET last_local_updated = ? WHERE id = ?",
                 (info.last_modification_time, row.id),
@@ -1720,8 +1699,7 @@ class EngineDAO(ConfigurationDAO):
         log.debug(f"Updating all local paths from {old!r} to {new!r}")
 
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             query = (
                 "UPDATE States"
                 "  SET local_parent_path = replace(local_parent_path, ?, ?),"
@@ -1732,8 +1710,7 @@ class EngineDAO(ConfigurationDAO):
 
     def update_remote_parent_path(self, doc_pair: DocPair, new_path: str, /) -> None:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             if doc_pair.folderish:
                 count = len(
                     self._escape(f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}")
@@ -1757,8 +1734,7 @@ class EngineDAO(ConfigurationDAO):
         self, doc_pair: DocPair, new_name: str, new_path: Path, /
     ) -> None:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             if doc_pair.folderish:
                 path = self._escape(_adapt_path(new_path / new_name))
                 count = len(self._escape(_adapt_path(doc_pair.local_path)))
@@ -1809,8 +1785,7 @@ class EngineDAO(ConfigurationDAO):
 
     def mark_descendants_remotely_created(self, doc_pair: DocPair, /) -> None:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             update = (
                 "UPDATE States"
                 "   SET local_digest = NULL,"
@@ -1833,8 +1808,7 @@ class EngineDAO(ConfigurationDAO):
         recursive: bool = True,
     ) -> None:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute("DELETE FROM States WHERE id = ?", (doc_pair.id,))
             if recursive and doc_pair.folderish:
                 if remote_recursion:
@@ -1847,8 +1821,7 @@ class EngineDAO(ConfigurationDAO):
         self, doc_pair: DocPair, /, *, remote_recursion: bool = False
     ) -> None:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             if remote_recursion:
                 condition = self._get_recursive_remote_condition(doc_pair)
             else:
@@ -1870,8 +1843,7 @@ class EngineDAO(ConfigurationDAO):
         /,
     ) -> int:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             pair_state = PAIR_STATES[("unknown", "created")]
             c.execute(
                 "INSERT INTO States "
@@ -1920,8 +1892,7 @@ class EngineDAO(ConfigurationDAO):
 
     def queue_children(self, row: DocPair, /) -> None:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             children: List[DocPair] = c.execute(
                 "SELECT *"
                 "  FROM States"
@@ -1940,8 +1911,7 @@ class EngineDAO(ConfigurationDAO):
     ) -> None:
         with self.lock:
             error_date = datetime.utcnow()
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute(
                 "UPDATE States"
                 "   SET last_error = ?,"
@@ -1956,8 +1926,7 @@ class EngineDAO(ConfigurationDAO):
 
     def reset_error(self, row: DocPair, /, *, last_error: str = None) -> None:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute(
                 "UPDATE States"
                 "   SET last_error = ?,"
@@ -1974,8 +1943,7 @@ class EngineDAO(ConfigurationDAO):
 
     def _force_sync(self, row: DocPair, local: str, remote: str, pair: str, /) -> bool:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute(
                 "UPDATE States"
                 "   SET local_state = ?,"
@@ -2005,8 +1973,7 @@ class EngineDAO(ConfigurationDAO):
 
     def set_conflict_state(self, row: DocPair, /) -> bool:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute(
                 "UPDATE States SET pair_state = ? WHERE id = ?", ("conflicted", row.id)
             )
@@ -2021,8 +1988,7 @@ class EngineDAO(ConfigurationDAO):
     ) -> None:
         local_state = "local_state = 'unsynchronized'," if ignore else ""
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute(
                 "UPDATE States"
                 "   SET pair_state = 'unsynchronized',"
@@ -2043,8 +2009,7 @@ class EngineDAO(ConfigurationDAO):
         row.remote_state = "unknown"
         row.pair_state = self._get_pair_state(row)
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute(
                 "UPDATE States"
                 "   SET local_state = ?,"
@@ -2081,8 +2046,7 @@ class EngineDAO(ConfigurationDAO):
         row.pair_state = self._get_pair_state(row)
 
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute(
                 "UPDATE States"
                 "   SET local_state = ?,"
@@ -2214,8 +2178,7 @@ class EngineDAO(ConfigurationDAO):
             row.pair_state = self._get_pair_state(row)
 
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             query = (
                 "UPDATE States"
                 "   SET remote_ref = ?,"
@@ -2280,8 +2243,7 @@ class EngineDAO(ConfigurationDAO):
     def add_path_to_scan(self, path: str, /) -> None:
         path = self._clean_filter_path(path)
         with self.lock, suppress(IntegrityError):
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             # Remove any subchildren as it is gonna be scanned anyway
             c.execute("DELETE FROM ToRemoteScan WHERE path LIKE ?", (f"{path}%",))
             c.execute("INSERT INTO ToRemoteScan (path) VALUES (?)", (path,))
@@ -2289,8 +2251,7 @@ class EngineDAO(ConfigurationDAO):
     def delete_path_to_scan(self, path: str, /) -> None:
         path = self._clean_filter_path(path)
         with self.lock, suppress(IntegrityError):
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute("DELETE FROM ToRemoteScan WHERE path = ?", (path,))
 
     def get_paths_to_scan(self) -> List[str]:
@@ -2302,14 +2263,12 @@ class EngineDAO(ConfigurationDAO):
     def add_path_scanned(self, path: str, /) -> None:
         path = self._clean_filter_path(path)
         with self.lock, suppress(IntegrityError):
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute("INSERT INTO RemoteScan (path) VALUES (?)", (path,))
 
     def clean_scanned(self) -> None:
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute("DELETE FROM RemoteScan")
 
     def is_path_scanned(self, path: str, /) -> bool:
@@ -2336,8 +2295,7 @@ class EngineDAO(ConfigurationDAO):
         log.debug(f"Add filter on {path!r}")
 
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             # Delete any subfilters
             c.execute("DELETE FROM Filters WHERE path LIKE ?", (f"{path}%",))
 
@@ -2356,15 +2314,13 @@ class EngineDAO(ConfigurationDAO):
         path = self._clean_filter_path(path)
         log.debug(f"Remove filter on {path!r}")
         with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
+            c = self._get_write_connection().cursor()
             c.execute("DELETE FROM Filters WHERE path LIKE ?", (f"{path}%",))
             self._filters = self.get_filters()
             self.get_syncing_count()
 
     def get_downloads(self) -> Generator[Download, None, None]:
-        con = self._get_read_connection()
-        c = con.cursor()
+        c = self._get_read_connection().cursor()
         for res in c.execute("SELECT * FROM Downloads").fetchall():
             try:
                 status = TransferStatus(res.status)
@@ -2386,8 +2342,7 @@ class EngineDAO(ConfigurationDAO):
             )
 
     def get_uploads(self) -> Generator[Upload, None, None]:
-        con = self._get_read_connection()
-        c = con.cursor()
+        c = self._get_read_connection().cursor()
         for res in c.execute(
             "SELECT * FROM Uploads WHERE is_direct_transfer = 0"
         ).fetchall():
@@ -2412,8 +2367,7 @@ class EngineDAO(ConfigurationDAO):
 
     def get_dt_uploads(self) -> Generator[Upload, None, None]:
         """Retrieve all Direct Transfer items (only needed details)."""
-        con = self._get_read_connection()
-        c = con.cursor()
+        c = self._get_read_connection().cursor()
         for res in c.execute(
             "SELECT * FROM Uploads WHERE is_direct_transfer = 1"
         ).fetchall():
@@ -2439,8 +2393,7 @@ class EngineDAO(ConfigurationDAO):
         Retrieve all Direct Transfer items.
         Return a simple dict to improve GUI performances (instead of Upload objects).
         """
-        con = self._get_read_connection()
-        c = con.cursor()
+        c = self._get_read_connection().cursor()
 
         if chunked:
             sql = f"SELECT * FROM Uploads WHERE is_direct_transfer = 1 AND filesize > chunk_size LIMIT {limit}"
@@ -2468,8 +2421,7 @@ class EngineDAO(ConfigurationDAO):
         Actives Direct Transfer sessions have the status ONGOING or PAUSED.
         Return a simple dict to improve GUI performances.
         """
-        con = self._get_read_connection()
-        c = con.cursor()
+        c = self._get_read_connection().cursor()
         return [
             {
                 "uid": res.uid,
@@ -2496,8 +2448,7 @@ class EngineDAO(ConfigurationDAO):
         Completed Direct Transfer sessions have the status DONE or CANCELLED.
         Return a simple dict to improve GUI performances.
         """
-        con = self._get_read_connection()
-        c = con.cursor()
+        c = self._get_read_connection().cursor()
         return [
             {
                 "uid": res.uid,
@@ -2522,8 +2473,7 @@ class EngineDAO(ConfigurationDAO):
         """
         Get a session by its uid.
         """
-        con = self._get_read_connection()
-        c = con.cursor()
+        c = self._get_read_connection().cursor()
         res = c.execute("SELECT * FROM Sessions WHERE uid = ?", (uid,)).fetchone()
         return (
             Session(
