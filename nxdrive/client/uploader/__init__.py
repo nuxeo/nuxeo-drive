@@ -384,11 +384,14 @@ class BaseUploader:
             doc_pair=transfer.doc_pair,
         )
         action.is_direct_transfer = transfer.is_direct_transfer
+        if "headers" in kwargs:
+            kwargs["headers"].update(headers)
+        else:
+            kwargs["headers"] = headers
         try:
             res: Dict[str, Any] = self.remote.execute(
                 command=command,
                 input_obj=blob,
-                headers=headers,
                 timeout=TX_TIMEOUT,
                 **kwargs,
             )

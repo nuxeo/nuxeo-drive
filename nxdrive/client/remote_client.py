@@ -1,3 +1,4 @@
+import json
 import os
 import socket
 from contextlib import suppress
@@ -37,6 +38,18 @@ from ..constants import (
 )
 from ..engine.activity import Action, DownloadAction, UploadAction, VerificationAction
 from ..exceptions import DownloadPaused, NotFound, ScrollDescendantsError, UploadPaused
+from ..metrics.constants import (
+    EXEC_PROFILE,
+    EXEC_SESSION_UID,
+    GLOBAL_METRICS,
+    INSTALLATION_TYPE,
+    METRICS_CUSTOM,
+    METRICS_GA,
+    METRICS_LOCALE,
+    METRICS_SENTRY,
+    UPDATER_CHANNEL,
+)
+from ..metrics.poll_metrics import CustomPollMetrics
 from ..objects import Download, NuxeoDocumentInfo, RemoteFileInfo
 from ..options import Options
 from ..qt.imports import QApplication
@@ -92,11 +105,25 @@ class Remote(Nuxeo):
             cert=cert,
         )
 
+        installation_type = "system" if Options.system_wide else "user"
+
+        nx_metrics = {
+            INSTALLATION_TYPE: installation_type,
+            EXEC_PROFILE: Options.exec_profile,
+            EXEC_SESSION_UID: Options.session_uid,
+            METRICS_CUSTOM: int(Options.custom_metrics),
+            METRICS_GA: int(Options.use_analytics),
+            METRICS_SENTRY: int(Options.use_sentry),
+            UPDATER_CHANNEL: Options.channel,
+            METRICS_LOCALE: Options.locale,
+        }
+
         self.client.headers.update(
             {
                 "X-User-Id": user_id,
                 "X-Device-Id": device_id,
                 "Cache-Control": "no-cache",
+                GLOBAL_METRICS: json.dumps(nx_metrics),
             }
         )
 
@@ -137,6 +164,9 @@ class Remote(Nuxeo):
 
         # Cache the result for future uploads
         self.uploads.has_s3()
+
+        self.metrics = CustomPollMetrics(self)
+        self.metrics.start()
 
     def __repr__(self) -> str:
         attrs = ", ".join(
@@ -448,12 +478,15 @@ class Remote(Nuxeo):
         """Upload a file with a batch."""
         return uploader(self).upload(path, **kwargs)
 
-    def upload_folder(self, parent: str, params: Dict[str, str], /) -> Dict[str, Any]:
+    def upload_folder(
+        self, parent: str, params: Dict[str, str], /, *, headers: Dict[str, Any] = {}
+    ) -> Dict[str, Any]:
         """Create a folder using the FileManager."""
         res: Dict[str, Any] = self.execute(
             command="FileManager.CreateFolder",
             input_obj=parent,
             params=params,
+            headers=headers,
         )
         return res
 
@@ -754,8 +787,12 @@ class Remote(Nuxeo):
     def lock(self, ref: str, /) -> None:
         self.execute(command="Document.Lock", input_obj=f"doc:{self.check_ref(ref)}")
 
-    def unlock(self, ref: str, /) -> None:
-        self.execute(command="Document.Unlock", input_obj=f"doc:{self.check_ref(ref)}")
+    def unlock(self, ref: str, headers: Dict[str, Any], /) -> None:
+        self.execute(
+            command="Document.Unlock",
+            input_obj=f"doc:{self.check_ref(ref)}",
+            headers=headers,
+        )
 
     def register_as_root(self, ref: str, /) -> bool:
         self.execute(

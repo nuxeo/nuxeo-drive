@@ -1,3 +1,4 @@
+import json
 import os
 import platform
 import shutil
@@ -40,12 +41,14 @@ from .exceptions import (
     StartupPageConnectionError,
 )
 from .feature import Feature
+from .metrics.constants import CRASHED_HIT, REQUEST_METRICS
 from .notification import DefaultNotificationService
 from .objects import Binder, EngineDef, Metrics, Session
 from .options import DEFAULT_LOG_LEVEL_FILE, Options
 from .osi import AbstractOSIntegration
 from .poll_workers import DatabaseBackupWorker, ServerOptionsUpdater, SyncAndQuitWorker
 from .qt.imports import QT_VERSION_STR, QObject, pyqtSignal, pyqtSlot
+from .state import State
 from .updater import updater
 from .updater.constants import Login
 from .utils import (
@@ -444,6 +447,7 @@ class Manager(QObject):
         self._engine_definitions = self._engine_definitions or self.dao.get_engines()
         self.engines = {}
 
+        last_engine = None
         for engine in self._engine_definitions.copy():
             if engine.engine not in self._engine_types:
                 log.error(f"Cannot find {engine.engine} engine type anymore")
@@ -468,9 +472,15 @@ class Manager(QObject):
             else:
                 self.engines[engine.uid].online.connect(self._force_autoupdate)
                 self.initEngine.emit(self.engines[engine.uid])
+                last_engine = self.engines[engine.uid]
 
         if self.engines:
             self.tracker.send_metric("account", "count", str(len(self.engines)))
+
+        if last_engine and State.has_crashed:
+            last_engine.remote.metrics.send(
+                {REQUEST_METRICS: json.dumps({CRASHED_HIT: 1})}
+            )
 
     def _get_engine_db_file(self, uid: str, /) -> Path:
         return self.home / f"ndrive_{uid}.db"

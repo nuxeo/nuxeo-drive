@@ -1,4 +1,5 @@
 import errno
+import json
 import shutil
 import sqlite3
 import sys
@@ -42,6 +43,7 @@ from ..exceptions import (
     UploadCancelled,
     UploadPaused,
 )
+from ..metrics.constants import DT_SESSION_STATUS, REQUEST_METRICS
 from ..objects import DocPair, RemoteFileInfo
 from ..qt.imports import pyqtSignal
 from ..utils import (
@@ -580,6 +582,17 @@ class Processor(EngineWorker):
                 session = self.dao.update_session(doc_pair.session)
             elif cancelled_transfer:
                 session = self.dao.decrease_session_counts(doc_pair.session)
+            self.remote.metrics.send(
+                {
+                    REQUEST_METRICS: json.dumps(
+                        {
+                            DT_SESSION_STATUS: "done"
+                            if session and session.status is TransferStatus.DONE
+                            else "cancelled"
+                        }
+                    )
+                }
+            )
             self.engine.handle_session_status(session)
 
         # For analytics

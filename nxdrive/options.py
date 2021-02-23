@@ -48,6 +48,7 @@ from contextlib import suppress
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Set, Tuple, Union
+from uuid import uuid4
 
 from . import __version__
 from .feature import DisabledFeatures, Feature
@@ -227,6 +228,9 @@ class MetaOptions(type):
         "original_version",
     }
 
+    # Used to differentiate between QA/dev and prod
+    _default_exec_profile = "public" if _IS_FROZEN else "private"
+
     # Default options
     options: Dict[str, Tuple[Any, str]] = {
         "big_file": (300, "default"),
@@ -239,6 +243,7 @@ class MetaOptions(type):
         "chunk_size": (20, "default"),
         "chunk_upload": (True, "default"),
         "client_version": (None, "default"),
+        "custom_metrics": (True, "default"),
         "database_batch_size": (256, "default"),
         "debug": (False, "default"),
         "debug_pydev": (False, "default"),
@@ -246,6 +251,7 @@ class MetaOptions(type):
         "deletion_behavior": ("unsync", "default"),
         "disabled_file_integrity_check": (False, "default"),
         "disallowed_types_for_dt": (__doctypes_no_dt, "default"),
+        "exec_profile": (_default_exec_profile, "default"),
         "findersync_batch_size": (50, "default"),
         "force_locale": (None, "default"),
         "freezer": (_get_freezer(), "default"),
@@ -267,6 +273,7 @@ class MetaOptions(type):
         "proxy_server": (None, "default"),
         "remote_repo": ("default", "default"),
         "res_dir": (_get_resources_dir(), "default"),
+        "session_uid": (str(uuid4()), "default"),
         "ssl_no_verify": (False, "default"),
         "startup_page": ("drive_login.jsp", "default"),
         "sync_and_quit": (False, "default"),
@@ -600,6 +607,12 @@ def validate_tmp_file_limit(value: Union[int, float], /) -> float:
     raise ValueError("Temporary file limit must be above 0")
 
 
+def validate_exec_profile(value: str, /) -> str:
+    if value in ("public", "private"):
+        return value
+    raise ValueError("Can only be 'public' or 'private'.")
+
+
 # Handler callback for each feature
 for feature in vars(Feature).keys():
     Options.callbacks[f"feature_{feature}"] = CallableFeatureHandler(feature)
@@ -616,3 +629,4 @@ Options.checkers["use_sentry"] = validate_use_sentry
 Options.checkers["tmp_file_limit"] = validate_tmp_file_limit
 Options.checkers["cert_file"] = validate_cert_path
 Options.checkers["cert_key_file"] = validate_cert_path
+Options.checkers["exec_profile"] = validate_exec_profile

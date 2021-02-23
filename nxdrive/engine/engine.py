@@ -1,4 +1,5 @@
 import datetime
+import json
 import os
 import os.path
 import shutil
@@ -35,6 +36,12 @@ from ..exceptions import (
     PairInterrupt,
     RootAlreadyBindWithDifferentAccount,
     ThreadInterrupt,
+)
+from ..metrics.constants import (
+    DT_NEW_FOLDER,
+    DT_SESSION_NUMBER,
+    REQUEST_METRICS,
+    SYNC_ROOT_COUNT,
 )
 from ..objects import Binder, DocPairs, EngineDef, Metrics, Session
 from ..options import Options
@@ -196,6 +203,8 @@ class Engine(QObject):
 
         # Will manage Runners
         self._threadpool = QThreadPool().globalInstance()
+
+        self._send_roots_metrics()
 
     def __repr__(self) -> str:
         return (
@@ -448,12 +457,20 @@ class Engine(QObject):
             )
 
     def _create_remote_folder(
-        self, remote_parent_path: str, new_folder: str, /
+        self, remote_parent_path: str, new_folder: str, session_id: int, /
     ) -> Dict[str, Any]:
         try:
             return self.remote.upload_folder(
                 remote_parent_path,
                 {"title": new_folder},
+                headers={
+                    REQUEST_METRICS: json.dumps(
+                        {
+                            DT_NEW_FOLDER: 1,
+                            DT_SESSION_NUMBER: session_id,
+                        }
+                    )
+                },
             )
         except Exception:
             log.warning(
@@ -487,7 +504,10 @@ class Engine(QObject):
         )
         if new_folder:
             self.send_metric("direct_transfer", "new_folder", "1")
-            item = self._create_remote_folder(remote_parent_path, new_folder)
+            expected_session_uid = self.dao.get_count("uid != 0", table="Sessions") + 1
+            item = self._create_remote_folder(
+                remote_parent_path, new_folder, expected_session_uid
+            )
             if not item:
                 return
             remote_parent_path = item["path"]
@@ -867,6 +887,20 @@ class Engine(QObject):
         if not url.endswith("/"):
             return url + "/"
         return url
+
+    def _send_roots_metrics(self):
+        root_info = self.remote.get_filesystem_root_info()
+        self.remote.metrics.send(
+            {
+                REQUEST_METRICS: json.dumps(
+                    {
+                        SYNC_ROOT_COUNT: len(
+                            self.remote.get_fs_children(root_info.uid, filtered=True)
+                        )
+                    }
+                )
+            }
+        )
 
     def _load_configuration(self) -> None:
         self._web_authentication = self.dao.get_bool("web_authentication")
