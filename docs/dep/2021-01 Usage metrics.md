@@ -93,14 +93,6 @@ File duplicate creation option (string). Choices: `create|ignore|override`.
 
 Bool when the option "new folder" is used.
 
-#### NX-metric-directTransfer.transfer.time
-
-Time between the event trigger and the end of the action, in nanoseconds (integer).
-
-Impacted endpoint: `/me`.
-
-Real-time: ❌
-
 #### NX-metric-directTransfer.session.number
 
 Session number (integer).
