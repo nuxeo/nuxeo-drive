@@ -91,14 +91,20 @@ Rectangle {
                                 text: qsTr("EXPORT_CSV") + tl.tr
                                 visible: !active && !csvFileLink.text
                                 onClicked: {
-                                    api.generate_csv(uid, engine)
+                                    if (api.generate_csv(uid, engine)) {
+                                        csvCreationLink.visible = false
+                                        csvFileLink.visible = true
+                                        csvFileLink.enabled = false
+                                        csvFileLink.text = qsTr("GENERATING") + tl.tr
+                                    }
+
                                 }
                             }
                             Link {
                                 id: csvFileLink
                                 visible: !active && csv_path
                                 enabled: !active && csv_path != "async_gen"
-                                text: active ? "" :  (csv_path == "async_gen" ? qsTr("CSV_GENERATING") : csv_path.split(/[\\/]/).pop()) + tl.tr
+                                text: active ? "" :  (csv_path == "async_gen" ? qsTr("GENERATING") : csv_path.split(/[\\/]/).pop()) + tl.tr
                                 onClicked: api.open_in_explorer(csv_path)
                             }
                         }

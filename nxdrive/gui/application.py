@@ -1781,7 +1781,7 @@ class Application(QApplication):
                 self.direct_transfer_model.update_items(transfers)
 
     @pyqtSlot(object)
-    def refresh_active_sessions_items(self, dao: EngineDAO, /) -> None:
+    def refresh_active_sessions_items(self, dao: EngineDAO, _: bool = False, /) -> None:
         """Refresh the list of active sessions if a change is detected."""
         sessions = self.api.get_active_sessions_items(dao)
         current_sessions = self.active_session_model.sessions
@@ -1792,12 +1792,14 @@ class Application(QApplication):
                 self.active_session_model.update_sessions(sessions)
 
     @pyqtSlot(object)
-    def refresh_completed_sessions_items(self, dao: EngineDAO, /) -> None:
+    def refresh_completed_sessions_items(
+        self, dao: EngineDAO, force: bool = False, /
+    ) -> None:
         """Refresh the list of completed sessions if a change is detected."""
         sessions = self.api.get_completed_sessions_items(dao)
         sessions = [self._add_csv_path_to_session(session) for session in sessions]
 
-        if sessions != self.completed_session_model.sessions:
+        if sessions != self.completed_session_model.sessions or force:
             self.completed_session_model.set_sessions(sessions)
 
     def _add_csv_path_to_session(self, row: Dict[str, Any]) -> Dict[str, Any]:
