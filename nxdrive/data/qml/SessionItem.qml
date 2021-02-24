@@ -91,11 +91,16 @@ Rectangle {
                                 text: qsTr("EXPORT_CSV") + tl.tr
                                 visible: !active && !csvFileLink.text
                                 onClicked: {
-                                    if (api.generate_csv(uid, engine)) {
-                                        csvCreationLink.visible = false
-                                        csvFileLink.visible = true
-                                        csvFileLink.enabled = false
-                                        csvFileLink.text = qsTr("GENERATING") + tl.tr
+                                    csvCreationLink.enabled = false
+                                    try {
+                                        if (api.generate_csv(uid, engine)) {
+                                            csvCreationLink.visible = false
+                                            csvFileLink.visible = true
+                                            csvFileLink.enabled = false
+                                            csvFileLink.text = qsTr("GENERATING") + tl.tr
+                                        }
+                                    } finally {
+                                        csvCreationLink.enabled = true
                                     }
 
                                 }
