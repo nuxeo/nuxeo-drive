@@ -1165,19 +1165,11 @@ class EngineDAO(ConfigurationDAO):
     def delete_local_state(self, doc_pair: DocPair, /) -> None:
         try:
             with self.lock:
-                con = self._get_write_connection()
-                c = con.cursor()
-                update = (
-                    "UPDATE States"
-                    "   SET local_state = 'deleted',"
-                    "       pair_state = ?"
-                )
-                c.execute(f"{update} WHERE id = ?", ("locally_deleted", doc_pair.id))
+                c = self._get_write_connection().cursor()
+                sql = "UPDATE States SET local_state = 'deleted', pair_state = 'locally_deleted'"
+                c.execute(f"{sql} WHERE id = ?", (doc_pair.id,))
                 if doc_pair.folderish:
-                    c.execute(
-                        update + " " + self._get_recursive_condition(doc_pair),
-                        ("locally_deleted",),
-                    )
+                    c.execute(f"{sql} {self._get_recursive_condition(doc_pair)}")
         finally:
             if self.queue_manager:
                 self.queue_manager.interrupt_processors_on(
