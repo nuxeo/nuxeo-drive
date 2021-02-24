@@ -25,7 +25,7 @@ from typing import List
 Feature = SimpleNamespace(
     auto_update=True,
     direct_edit=True,
-    direct_transfer=False,
+    direct_transfer=True,
     s3=False,
 )
 
