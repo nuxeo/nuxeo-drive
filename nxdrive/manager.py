@@ -578,7 +578,7 @@ class Manager(QObject):
             session_items = engine.dao.get_session_items(session.uid)
             session_csv = SessionCsv(self, session)
             session_csv.create_tmp()
-            engine.dao.sessionUpdated.emit()
+            engine.dao.sessionUpdated.emit(False)
             log.info(
                 f"Generating CSV file from Direct Transfer session {session_csv.output_file}."
             )
@@ -587,7 +587,7 @@ class Manager(QObject):
             log.exception("Asynchronous CSV generation error")
             session_csv.output_tmp.unlink(missing_ok=True)
         finally:
-            engine.dao.sessionUpdated.emit()
+            engine.dao.sessionUpdated.emit(True)
 
     @pyqtSlot(result=bool)  # from GeneralTab.qml
     def get_auto_start(self) -> bool:

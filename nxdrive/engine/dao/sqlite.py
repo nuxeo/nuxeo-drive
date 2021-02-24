@@ -631,7 +631,7 @@ class EngineDAO(ConfigurationDAO):
     newConflict = pyqtSignal(object)
     transferUpdated = pyqtSignal()
     directTransferUpdated = pyqtSignal()
-    sessionUpdated = pyqtSignal()
+    sessionUpdated = pyqtSignal(bool)
 
     def __init__(self, db: Path, /) -> None:
         super().__init__(db)
@@ -2510,7 +2510,7 @@ class EngineDAO(ConfigurationDAO):
                     total,
                 ),
             )
-            self.sessionUpdated.emit()
+            self.sessionUpdated.emit(False)
             return c.lastrowid
 
     def update_session(self, uid: int, /) -> Optional[Session]:
@@ -2532,7 +2532,7 @@ class EngineDAO(ConfigurationDAO):
 
             c = self._get_write_connection().cursor()
             c.execute(sql, (session.uploaded_items, session.status.value, session.uid))
-            self.sessionUpdated.emit()
+            self.sessionUpdated.emit(False)
             return session
 
     def change_session_status(self, uid: int, status: TransferStatus, /) -> None:
@@ -2547,7 +2547,7 @@ class EngineDAO(ConfigurationDAO):
                 "UPDATE Sessions SET status = ? WHERE uid = ?",
                 (status.value, session.uid),
             )
-            self.sessionUpdated.emit()
+            self.sessionUpdated.emit(False)
 
     def decrease_session_counts(self, uid: int, /) -> Optional[Session]:
         """
@@ -2585,7 +2585,7 @@ class EngineDAO(ConfigurationDAO):
                     session.uid,
                 ),
             )
-            self.sessionUpdated.emit()
+            self.sessionUpdated.emit(False)
             return session
 
     def save_session_item(self, session_id: int, item: Dict[str, Any]) -> None:
@@ -2909,7 +2909,7 @@ class EngineDAO(ConfigurationDAO):
                 ),
             )
             self.directTransferUpdated.emit()
-            self.sessionUpdated.emit()
+            self.sessionUpdated.emit(False)
             return batchs
 
     def set_transfer_doc(
