@@ -61,6 +61,8 @@ Unique uuid generated at Drive startup
 #### NX-metric-metrics.sentry
 #### NX-metric-metrics.custom
 
+#### NX-metric-updater.channel
+
 Integer.
 
 ### Direct Edit
