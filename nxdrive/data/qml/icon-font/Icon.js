@@ -475,6 +475,7 @@ var Icon = {
     "crosshairs": "\uf1A3",
     "crosshairsGps": "\uf1A4",
     "crown": "\uf1A5",
+    "csv": "\uf9bb",
     "cube": "\uf1A6",
     "cubeOutline": "\uf1A7",
     "cubeSend": "\uf1A8",
