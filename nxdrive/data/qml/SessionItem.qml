@@ -86,23 +86,33 @@ Rectangle {
                             color: secondaryText
                         }
                         RowLayout {
-                            Link {
-                                id: csvCreationLink
-                                text: qsTr("EXPORT_CSV") + tl.tr
+                            Layout.leftMargin: 10
+                            RowLayout {
+                                id: csvRow
                                 visible: !active && !csvFileLink.text
-                                onClicked: {
-                                    csvCreationLink.enabled = false
-                                    try {
-                                        if (api.generate_csv(uid, engine)) {
-                                            csvCreationLink.visible = false
-                                            csvFileLink.visible = true
-                                            csvFileLink.enabled = false
-                                            csvFileLink.text = qsTr("GENERATING") + tl.tr
+                                IconLabel {
+                                    icon: MdiFont.Icon.csv;
+                                    size: 15
+                                    tooltip: qsTr("EXPORT_CSV") + tl.tr
+                                }
+                                Link {
+                                    id: csvCreationLink
+                                    Layout.fillWidth: true
+                                    elide: Text.ElideNone
+                                    onClicked: {
+                                        csvCreationLink.enabled = false
+                                        try {
+                                            if (api.generate_csv(uid, engine)) {
+                                                csvRow.visible = false
+                                                csvFileLink.visible = true
+                                                csvFileLink.enabled = false
+                                                csvFileLink.text = qsTr("GENERATING") + tl.tr
+                                            }
+                                        } finally {
+                                            csvCreationLink.enabled = true
                                         }
-                                    } finally {
-                                        csvCreationLink.enabled = true
-                                    }
 
+                                    }
                                 }
                             }
                             Link {
