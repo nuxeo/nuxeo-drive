@@ -653,7 +653,7 @@ class Manager(QObject):
         return ""
 
     def get_deletion_behavior(self) -> DelAction:
-        return DelAction(self.get_config("deletion_behavior", default="unsync"))
+        return DelAction(Options.deletion_behavior)
 
     def set_deletion_behavior(self, behavior: DelAction, /) -> None:
         self.set_config("deletion_behavior", behavior.value)

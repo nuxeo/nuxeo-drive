@@ -870,7 +870,7 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(result=str)
     def get_deletion_behavior(self) -> str:
-        return self._manager.get_config("deletion_behavior")
+        return Options.deletion_behavior
 
     @pyqtSlot(str)
     def set_deletion_behavior(self, behavior: str, /) -> None:

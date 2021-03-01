@@ -48,6 +48,7 @@ Options.__getattr__  # Used by MetaOptions
 Options.__repr__  # Used for logging
 Options.__setattr__  # Used by MetaOptions
 Options.__str__  # Used for logging
+Options.deletion_behavior  # Used in Manager
 _.row_factory  # Internal use of SQLite
 PatternMatchingEventHandler.on_any_event  # Used by Watchdog
 Processor._synchronize_conflicted  # Used by Processor._execute()

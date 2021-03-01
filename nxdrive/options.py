@@ -582,7 +582,7 @@ def validate_use_sentry(value: bool, /) -> bool:
     )
 
 
-def _validate_deletion_behavior(value: str, /) -> bool:
+def _validate_deletion_behavior(value: str, /) -> str:
     if value in ("unsync", "delete_server"):
         return value
     raise ValueError(f"Unknown deletion behavior {value!r}")
@@ -605,7 +605,7 @@ for feature in vars(Feature).keys():
     Options.callbacks[f"feature_{feature}"] = CallableFeatureHandler(feature)
 
 Options.callbacks["deletion_behavior"] = lambda v: log.info(
-    f"Deletion behavior changed to {v!r}"
+    f"Deletion behavior set to {v!r}"
 )
 
 Options.checkers["chunk_limit"] = validate_chunk_limit
