@@ -938,8 +938,11 @@ class LocalWatcher(EngineWorker):
                 ongoing_copy = True
             if ongoing_copy:
                 if not local_info.remote_ref and doc_pair.remote_ref:
-                    client.set_remote_id(rel_path, doc_pair.remote_ref)
-                    local_info.remote_ref = doc_pair.remote_ref
+                    try:
+                        client.set_remote_id(rel_path, doc_pair.remote_ref)
+                        local_info.remote_ref = doc_pair.remote_ref
+                    except OSError:
+                        log.warning("Cannot set the remote ID", exc_info=True)
                 self.remove_void_transfers(doc_pair)
                 return
 
