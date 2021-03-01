@@ -193,7 +193,10 @@ class Manager(QObject):
                 self.dao.store_bool("direct_edit_auto_lock", True)
 
         # Set default deletion behavior
-        if not self.get_config("deletion_behavior"):
+        del_action = self.get_config("deletion_behavior")
+        if del_action:
+            Options.deletion_behavior = del_action
+        else:
             self.set_config("deletion_behavior", "unsync")
 
         # Check for metrics approval
@@ -650,7 +653,7 @@ class Manager(QObject):
         return ""
 
     def get_deletion_behavior(self) -> DelAction:
-        return DelAction(self.get_config("deletion_behavior", default="unsync"))
+        return DelAction(Options.deletion_behavior)
 
     def set_deletion_behavior(self, behavior: DelAction, /) -> None:
         self.set_config("deletion_behavior", behavior.value)

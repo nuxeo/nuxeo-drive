@@ -582,6 +582,12 @@ def validate_use_sentry(value: bool, /) -> bool:
     )
 
 
+def _validate_deletion_behavior(value: str, /) -> str:
+    if value in ("unsync", "delete_server"):
+        return value
+    raise ValueError(f"Unknown deletion behavior {value!r}")
+
+
 def validate_cert_path(cert_path: str, /) -> str:
     if not Path(cert_path).is_file():
         raise ValueError(f"The file {cert_path!r} does not exist")
@@ -598,9 +604,14 @@ def validate_tmp_file_limit(value: Union[int, float], /) -> float:
 for feature in vars(Feature).keys():
     Options.callbacks[f"feature_{feature}"] = CallableFeatureHandler(feature)
 
+Options.callbacks["deletion_behavior"] = lambda v: log.info(
+    f"Deletion behavior set to {v!r}"
+)
+
 Options.checkers["chunk_limit"] = validate_chunk_limit
 Options.checkers["chunk_size"] = validate_chunk_size
 Options.checkers["client_version"] = validate_client_version
+Options.checkers["deletion_behavior"] = _validate_deletion_behavior
 Options.checkers["use_sentry"] = validate_use_sentry
 Options.checkers["tmp_file_limit"] = validate_tmp_file_limit
 Options.checkers["cert_file"] = validate_cert_path
