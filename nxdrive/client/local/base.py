@@ -341,25 +341,23 @@ class LocalClientMixin:
         return result
 
     def _get_children_info(self, ref: Path, /) -> List[FileInfo]:
-        os_path = self.abspath(ref)
+        full_path = self.abspath(ref)
+        paths = [(entry.path, entry.name) for entry in os.scandir(full_path)]
         result = []
 
-        for child in sorted(os_path.iterdir()):
-            if self.is_ignored(ref, child.name) or self.is_temp_file(child):
-                log.info(f"Ignoring banned file {child.name!r} in {os_path!r}")
+        for path, name in sorted(paths):
+            if self.is_ignored(ref, name) or self.is_temp_file(Path(path)):
+                log.info(f"Ignoring banned file {name!r} in {full_path!r}")
                 continue
 
-            child_ref = ref / child.name
+            child_ref = ref / name
             try:
-                info = self.get_info(child_ref)
+                result.append(self.get_info(child_ref))
             except NotFound:
                 log.warning(
-                    "The child file has been deleted in the mean time"
-                    " or while reading some of its attributes"
+                    f"The child file {child_ref!r} has been deleted in the"
+                    " mean time or while reading some of its attributes"
                 )
-                continue
-            if info:
-                result.append(info)
 
         return result
 
