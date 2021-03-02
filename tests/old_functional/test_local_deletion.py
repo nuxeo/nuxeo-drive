@@ -238,3 +238,65 @@ class TestLocalDeletion(OneUserTest):
         self.wait_sync()
         assert remote.exists(old_info.uid)
         assert local.exists(file_path)
+
+    @Options.mock()
+    def test_trash_file_should_respect_deletion_behavior_unsync(self):
+        Options.deletion_behavior = "unsync"
+
+        local, engine = self.local_1, self.engine_1
+        remote = self.remote_document_client_1
+        folder, file = "folder", "file.txt"
+        file_path = f"/{folder}/{file}"
+
+        # Create local data
+        local.make_folder("/", folder)
+        local.make_file(f"/{folder}", file, content=b"This is a content")
+
+        # Sync'n check
+        self.wait_sync()
+        assert remote.exists(file_path)
+
+        # Mimic "stop Drive"
+        engine.stop()
+
+        # Delete the file
+        local.delete(file_path)
+
+        # Mimic "start Drive"
+        engine.start()
+        self.wait_sync()
+
+        # Checks
+        assert remote.exists(file_path)
+        assert not local.exists(file_path)
+
+    @Options.mock()
+    def test_trash_file_should_respect_deletion_behavior_delete_server(self):
+        Options.deletion_behavior = "delete_server"
+
+        local, engine = self.local_1, self.engine_1
+        remote = self.remote_document_client_1
+        folder, file = "folder", "file.txt"
+        file_path = f"/{folder}/{file}"
+
+        # Create local data
+        local.make_folder("/", folder)
+        local.make_file(f"/{folder}", file, content=b"This is a content")
+
+        # Sync'n check
+        self.wait_sync()
+        assert remote.exists(file_path)
+
+        # Mimic "stop Drive"
+        engine.stop()
+
+        # Delete the file
+        local.delete(file_path)
+
+        # Mimic "start Drive"
+        engine.start()
+        self.wait_sync()
+
+        # Checks
+        assert not remote.exists(file_path)
+        assert not local.exists(file_path)

@@ -376,7 +376,7 @@ class TwoUsersTest(TestCase):
             remote.register_as_root(self.workspace)
 
         # Force deletion behavior to real deletion for all tests
-        manager.dao.update_config("deletion_behavior", "delete_server")
+        manager.set_config("deletion_behavior", "delete_server")
         manager.dao.store_bool("show_deletion_prompt", False)
 
         # And now persist in attributes
