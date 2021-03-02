@@ -159,6 +159,8 @@ def test_file_action_with_values():
     assert details["progress"] == 100.0
     assert details["uploaded"]
 
+    Action.finish_action()
+
 
 def test_file_action_signals():
     """Try to mimic QThread signals to test ._connect_reporter()."""
