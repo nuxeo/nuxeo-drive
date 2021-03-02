@@ -396,7 +396,7 @@ class Manager(QObject):
         if not self.is_paused:
             return
         self.is_paused = False
-        for uid, engine in self.engines.copy().items():
+        for engine in self.engines.copy().values():
             engine.resume()
         self.resumed.emit()
 
@@ -404,7 +404,7 @@ class Manager(QObject):
         if self.is_paused:
             return
         self.is_paused = True
-        for uid, engine in self.engines.copy().items():
+        for engine in self.engines.copy().values():
             engine.suspend()
         self.suspended.emit()
 
@@ -412,7 +412,7 @@ class Manager(QObject):
         # Make a backup in case something happens
         self.dao.save_backup()
 
-        for uid, engine in self.engines.copy().items():
+        for engine in self.engines.copy().values():
             if engine.is_started():
                 engine.stop()
         self.osi.cleanup()
@@ -421,14 +421,14 @@ class Manager(QObject):
 
     def start_engines(self) -> None:
         """Start all engines."""
-        for uid, engine in self.engines.copy().items():
+        for engine in self.engines.copy().values():
             if self.is_paused:
                 continue
 
             try:
                 engine.start()
             except Exception:
-                log.exception(f"Could not start the engine {uid}")
+                log.exception(f"Could not start {engine}")
 
     def start(self) -> None:
         self._started = True
