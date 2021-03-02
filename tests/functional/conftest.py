@@ -44,7 +44,7 @@ def manager_factory(
         manager = Manager(home or tmp())
 
         # Force deletion behavior to real deletion for all tests
-        manager.dao.update_config("deletion_behavior", "delete_server")
+        manager.set_config("deletion_behavior", "delete_server")
         manager.dao.store_bool("show_deletion_prompt", False)
 
         request.addfinalizer(manager.close)

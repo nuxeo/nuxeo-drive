@@ -280,10 +280,10 @@ class LocalWatcher(EngineWorker):
         self.localScanFinished.emit()
 
     def _scan_handle_deleted_files(self) -> None:
-        for deleted in self._delete_files:
-            if deleted in self._protected_files:
+        for remote_ref, doc_pair in self._delete_files.copy().items():
+            if remote_ref in self._protected_files:
                 continue
-            self.dao.delete_local_state(self._delete_files[deleted])
+            self.engine.delete_doc(doc_pair.local_path)
         self._delete_files = {}
 
     def get_metrics(self) -> Metrics:
