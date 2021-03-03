@@ -13,7 +13,7 @@
     "AUTH_UPDATE_ACTION": "Kliknij tutaj, aby zalogować się ponownie",
     "AUTOMATIC": "Użyj skryptu konfiguracji automatycznej",
     "AUTOSTART": "Uruchom przy starcie systemu",
-    "AUTOUPDATE": "Aktualizuj automatycznie",
+    "AUTOUPDATE": "Install new version automatically",
     "AUTOUPDATE_DOWNGRADE": "Wersja nie jest kompatybilna z serwerem. Wymagana jest redukcja do %1 . Synchronizacja rozpocznie się dopiero w tym momencie.",
     "AUTOUPDATE_UPGRADE": "Dostępna jest nowa wersja %1!",
     "AVAILABLE": "Dostępny",

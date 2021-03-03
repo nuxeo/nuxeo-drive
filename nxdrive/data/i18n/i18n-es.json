@@ -13,7 +13,7 @@
     "AUTH_UPDATE_ACTION": "Haga clic aquí para volver a iniciar sesión",
     "AUTOMATIC": "Utilizar el script de configuración automática",
     "AUTOSTART": "Iniciar al arrancar",
-    "AUTOUPDATE": "Actualización automática de Drive",
+    "AUTOUPDATE": "Install new version automatically",
     "AUTOUPDATE_DOWNGRADE": "Se necesita volver a versión %1.",
     "AUTOUPDATE_UPGRADE": "Una nueva versión %1 disponible.",
     "AVAILABLE": "Disponible",

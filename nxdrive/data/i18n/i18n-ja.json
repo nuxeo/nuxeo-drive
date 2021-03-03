@@ -13,7 +13,7 @@
     "AUTH_UPDATE_ACTION": "ここをクリックして再びログインしてください",
     "AUTOMATIC": "自動構成スクリプトを使用",
     "AUTOSTART": "ブート時に起動",
-    "AUTOUPDATE": "ドライブを自動的に更新",
+    "AUTOUPDATE": "Install new version automatically",
     "AUTOUPDATE_DOWNGRADE": "バージョンがサーバと互換性がないので、%1 へのダウングレードが必要です。それまでは同期が開始されません。",
     "AUTOUPDATE_UPGRADE": "新バージョン%1が利用できます",
     "AVAILABLE": "利用可能",

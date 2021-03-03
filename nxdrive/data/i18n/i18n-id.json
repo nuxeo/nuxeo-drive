@@ -13,7 +13,7 @@
     "AUTH_UPDATE_ACTION": "Click here to log back in",
     "AUTOMATIC": "Gunakan skrip Konfigurasi secara Otomatis",
     "AUTOSTART": "Mulai saat boot",
-    "AUTOUPDATE": "Perbarui Drive secara otomatis",
+    "AUTOUPDATE": "Install new version automatically",
     "AUTOUPDATE_DOWNGRADE": "Diturunkan ke %1 sangat dibutuhkan.",
     "AUTOUPDATE_UPGRADE": "Sebuah versi baru %1 sudah tersedia.",
     "AVAILABLE": "Available",

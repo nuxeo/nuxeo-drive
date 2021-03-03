@@ -13,7 +13,7 @@
     "AUTH_UPDATE_ACTION": "انقر هنا لتسجيل الدخول مرة أخرى",
     "AUTOMATIC": "Use Automatic Configuration Script",
     "AUTOSTART": "تشغيل مع إقلاع النظام",
-    "AUTOUPDATE": "تحديث Drive تلقائيًا",
+    "AUTOUPDATE": "Install new version automatically",
     "AUTOUPDATE_DOWNGRADE": "Version not compatible with the server, a downgrade to %1 is needed. Synchronization won't start until then.",
     "AUTOUPDATE_UPGRADE": "يتوفر إصدار جديد %1",
     "AVAILABLE": "متوفر",
