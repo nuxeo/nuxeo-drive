@@ -3,13 +3,10 @@ In this file we cannot use a relative import here, else Drive will not start whe
 See https://github.com/pyinstaller/pyinstaller/issues/2560
 """
 import locale
-import os
 import platform
 import signal
 import sys
-from contextlib import suppress
 from types import FrameType
-from typing import Any, Set
 
 from nxdrive.constants import APP_NAME
 from nxdrive.fatal_error import (
@@ -17,62 +14,6 @@ from nxdrive.fatal_error import (
     check_os_version,
     show_critical_error,
 )
-from nxdrive.options import Options
-
-
-def before_send(event: Any, _hint: Any, /) -> Any:
-    """
-    Alter an event before sending to the Sentry server.
-    The event will not be sent if None is returned.
-    """
-
-    # Sentry may have been disabled later, via a CLI argument or GUI parameter
-    if not Options.use_sentry:
-        return None
-
-    # Local vars to hide from Sentry reports
-    to_redact: Set[str] = {"password", "pwd", "token"}
-    replace: str = "<REDACTED>"
-
-    # Remove passwords from locals
-    with suppress(KeyError):
-        for thread in event["threads"]:
-            for frame in thread["stacktrace"]["frames"]:
-                for var in to_redact:
-                    # Only alter the value if it exists
-                    if var in frame["vars"]:
-                        frame["vars"][var] = replace
-
-    return event
-
-
-def setup_sentry() -> None:
-    """ Setup Sentry. """
-
-    if os.getenv("SKIP_SENTRY", "0") == "1":
-        return
-
-    sentry_dsn: str = os.getenv(
-        "SENTRY_DSN",
-        "https://c4daa72433b443b08bd25e0c523ecef5@o223531.ingest.sentry.io/1372714",
-    )
-    if not sentry_dsn:
-        return
-
-    import sentry_sdk
-
-    from nxdrive import __version__
-
-    sentry_sdk.init(
-        dsn=sentry_dsn,
-        environment=os.getenv("SENTRY_ENV", "production"),
-        release=__version__,
-        attach_stacktrace=True,
-        before_send=before_send,
-        # Set traces_sample_rate to 1.0 to capture 100%
-        # of transactions for performance monitoring.
-        traces_sample_rate=1.0,
-    )
 
 
 def signal_handler(signum: int, frame: FrameType, /) -> None:
@@ -105,14 +46,15 @@ def main() -> int:
         if not (check_executable_path() and check_os_version()):
             return 1
 
-        # Setup Sentry even if the user did not allow it because it can be tweaked
-        # later via the "use-sentry" parameter. It will be useless if Sentry is not installed first.
-        setup_sentry()
-
         from sentry_sdk import configure_scope
 
         from nxdrive.commandline import CliHandler
+        from nxdrive.tracing import setup_sentry
         from nxdrive.utils import get_current_os
+
+        # Setup Sentry even if the user did not allow it because it can be tweaked
+        # later via the "use-sentry" parameter. It will be useless if Sentry is not installed first.
+        setup_sentry()
 
         with configure_scope() as scope:
             # Append OS and Python versions to all events
