@@ -13,7 +13,7 @@
     "AUTH_UPDATE_ACTION": "Cliquez ici pour vous identifier",
     "AUTOMATIC": "Utiliser le script de configuration automatique",
     "AUTOSTART": "Lancer au démarrage de l'ordinateur",
-    "AUTOUPDATE": "Mise à jour automatique de Drive",
+    "AUTOUPDATE": "Install new version automatically",
     "AUTOUPDATE_DOWNGRADE": "Mise à jour %1 requise. La synchronisation ne pourra pas démarrer.",
     "AUTOUPDATE_UPGRADE": "Une nouvelle version %1 est disponible.",
     "AVAILABLE": "Disponible",

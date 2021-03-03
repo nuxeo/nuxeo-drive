@@ -13,7 +13,7 @@
     "AUTH_UPDATE_ACTION": "Zum erneuten Anmelden hier klicken",
     "AUTOMATIC": "Automatisches Konfigurationsskript verwenden",
     "AUTOSTART": "Beim Hochfahren starten",
-    "AUTOUPDATE": "Drive automatisch aktualisieren",
+    "AUTOUPDATE": "Install new version automatically",
     "AUTOUPDATE_DOWNGRADE": "Downgrade auf %1 ist erforderlich.",
     "AUTOUPDATE_UPGRADE": "Eine neue Version %1 ist verfügbar.",
     "AVAILABLE": "Verfügbar",

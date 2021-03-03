@@ -13,7 +13,7 @@
     "AUTH_UPDATE_ACTION": "Klik hier om opnieuw aan te melden",
     "AUTOMATIC": "Gebruik script voor automatische configuratie",
     "AUTOSTART": "Uitvoeren bij opstarten",
-    "AUTOUPDATE": "Drive automatisch bijwerken",
+    "AUTOUPDATE": "Install new version automatically",
     "AUTOUPDATE_DOWNGRADE": "Versie niet compatibel met de server, u hebt een downgrade naar %1 nodig. Synchronisatie begint pas na de downgrade.",
     "AUTOUPDATE_UPGRADE": "Er is een nieuwe versie %1 beschikbaar.",
     "AVAILABLE": "Beschikbaar",

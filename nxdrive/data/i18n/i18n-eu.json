@@ -13,7 +13,7 @@
     "AUTH_UPDATE_ACTION": "Egin klik hemen saioa berriro hasteko",
     "AUTOMATIC": "Erabili konfigurazio automatikorako scripta",
     "AUTOSTART": "Aktibatu sistema abiaraztean",
-    "AUTOUPDATE": "Eguneratu Drive automatikoki",
+    "AUTOUPDATE": "Install new version automatically",
     "AUTOUPDATE_DOWNGRADE": "Bertsioa ez da zerbitzariarekin bateragarria, %1 bertsiora leheneratu beharra duzu. Sinkronizazioa ez da hasiko hau egin arte.",
     "AUTOUPDATE_UPGRADE": "%1 bertsio berria eskuragarri dago.",
     "AVAILABLE": "Erabilgarri",

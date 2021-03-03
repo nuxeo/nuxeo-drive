@@ -13,7 +13,7 @@
     "AUTH_UPDATE_ACTION": "Fai clic qui per accedere di nuovo",
     "AUTOMATIC": "Usa script configurazione automatica",
     "AUTOSTART": "Avvia al riavvio del sistema",
-    "AUTOUPDATE": "Aggiorna Drive automaticamente",
+    "AUTOUPDATE": "Install new version automatically",
     "AUTOUPDATE_DOWNGRADE": "Versione non compatibile con il server, è necessario eseguire un downgrade alla versione %1. La sincronizzazione inizierà solo dopo il downgrade.",
     "AUTOUPDATE_UPGRADE": "È disponibile la nuova versione %1.",
     "AVAILABLE": "Disponibile",
