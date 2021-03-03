@@ -254,7 +254,7 @@ launch_tests() {
         echo ">>> Launching synchronization functional tests, file by file"
         echo "    (first, run for each test file, failures are ignored to have"
         echo "     a whole picture of errors)"
-        total="$(find tests/old_functional -name "test_*.py" | wc -l)"
+        total="$(find tests/old_functional -name "test_*.py" | wc -l | tr -d '[:space:]')"
         number=1
         for test_file in $(find tests/old_functional -name "test_*.py"); do
             echo ""
