@@ -477,6 +477,12 @@ class Upload(Transfer):
     remote_parent_path: str = ""
     remote_parent_ref: str = ""
     batch_obj: Batch = None
+    is_dirty: bool = field(init=False, default=False)
+
+    def token_callback(self, batch: Batch, _: Dict[str, Any]) -> None:
+        """Callback triggered when token is refreshed."""
+        self.batch = batch.as_dict()
+        self.is_dirty = True
 
 
 @dataclass

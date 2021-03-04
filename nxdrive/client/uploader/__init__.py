@@ -258,15 +258,17 @@ class BaseUploader:
 
         action.is_direct_transfer = transfer.is_direct_transfer
 
-        try:
-            uploader: Uploader = transfer.batch_obj.get_uploader(
-                blob,
-                chunked=chunked,
-                chunk_size=transfer.chunk_size,
-                callback=self.remote.upload_callback,
-            )
+        kwargs = {
+            "chunked": chunked,
+            "chunk_size": transfer.chunk_size,
+            "callback": self.remote.upload_callback,
+        }
+        if transfer.batch_obj.is_s3():
+            kwargs["token_callback"] = transfer.token_callback
 
-            log.debug(f"Using {type(uploader).__name__!r} uploader")
+        try:
+            uploader: Uploader = transfer.batch_obj.get_uploader(blob, **kwargs)
+            log.debug(f"Using {uploader!r}")
 
             if uploader.chunked:
                 # Update the progress on chunked upload only as the first call to
@@ -281,8 +283,6 @@ class BaseUploader:
                 action.chunk_transfer_start_time_ns = monotonic_ns()
 
                 if transfer.batch_obj.is_s3():
-                    self._patch_refresh_token(uploader, transfer)
-
                     # Save the multipart upload ID
                     transfer.batch = transfer.batch_obj.as_dict()
                     self.dao.update_upload(transfer)
@@ -296,6 +296,12 @@ class BaseUploader:
                     # Save the progression
                     transfer.progress = action.get_percent()
                     self.dao.set_transfer_progress("upload", transfer)
+
+                    # Token was refreshed, save it in the database
+                    if transfer.is_dirty:
+                        log.debug(f"Batch.extraInfo updated with {transfer.batch!r}")
+                        self.dao.update_upload(transfer)
+                        transfer.is_dirty = False
 
                     # Handle status changes every time a chunk is sent
                     _transfer = self.get_upload(
@@ -390,22 +396,6 @@ class BaseUploader:
             return res
         finally:
             action.finish_action()
-
-    def _patch_refresh_token(self, uploader: Uploader, transfer: Upload, /) -> None:
-        """Patch Uploader.refresh_token() to save potential credentials changes for next runs."""
-        meth_orig = uploader.service.refresh_token
-
-        def refresh(batch: Batch, /, **kwargs: Any) -> Any:
-            # Call the original method
-            try:
-                return meth_orig(batch, **kwargs)
-            finally:
-                # Save changes in the database
-                log.debug(f"Batch.extraInfo updated with {batch!r}")
-                transfer.batch = batch.as_dict()
-                self.dao.update_upload(transfer)
-
-        uploader.service.refresh_token = refresh
 
     @staticmethod
     def _complete_upload(transfer: Upload, blob: FileBlob, /) -> None:
