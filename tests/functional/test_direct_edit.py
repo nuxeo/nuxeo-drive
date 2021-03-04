@@ -54,9 +54,7 @@ def test_binder(manager_factory):
         assert binder.local_folder
 
         # Test user name retrieval
-        full_username = (
-            f"{manager.user_details.firstName} {manager.user_details.lastName}"
-        )
+        full_username = f"{manager.user_details.properties['firstName']} {manager.user_details.properties['lastName']}"
         username = engine.get_user_full_name(binder.username)
         assert username == full_username
 

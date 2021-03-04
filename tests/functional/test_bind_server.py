@@ -11,7 +11,11 @@ def test_bind_local_folder_already_used(manager_factory, tmp, nuxeo_url, user_fa
     with manager:
         # First bind: OK
         manager.bind_server(
-            conf_folder, nuxeo_url, user.uid, password=user.password, start_engine=False
+            conf_folder,
+            nuxeo_url,
+            user.uid,
+            password=user.properties["password"],
+            start_engine=False,
         )
 
         # Check Engine.export()
@@ -25,6 +29,6 @@ def test_bind_local_folder_already_used(manager_factory, tmp, nuxeo_url, user_fa
                 conf_folder,
                 nuxeo_url,
                 user.uid,
-                password=user.password,
+                password=user.properties["password"],
                 start_engine=False,
             )

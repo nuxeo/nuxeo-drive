@@ -205,7 +205,7 @@ class TwoUsersTest(TestCase):
             self.root_remote.deactivate_profile(self.server_profile)
 
         for user in list(self.users):
-            self.root_remote.users.delete(user.username)
+            self.root_remote.users.delete(user.uid)
             self.users.remove(user)
 
         self.ws.delete()
@@ -307,10 +307,6 @@ class TwoUsersTest(TestCase):
 
         user = self.root_remote.users.create(User(properties=properties))
         log.warning(f"Created user {user}")
-
-        # Convenient attributes
-        for k, v in properties.items():
-            setattr(user, k, v)
 
         setattr(self, f"user_{number}", username)
         setattr(self, f"password_{number}", username)
