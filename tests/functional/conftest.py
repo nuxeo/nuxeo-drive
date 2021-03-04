@@ -57,7 +57,7 @@ def manager_factory(
                 conf_folder,
                 nuxeo_url,
                 user.uid,
-                password=user.password,
+                password=user.properties["password"],
                 start_engine=False,
             )
 
@@ -98,13 +98,9 @@ def user_factory(request, server, faker):
         }
 
         user = server.users.create(User(properties=properties))
+        user.properties["password"] = password
         request.addfinalizer(user.delete)
         log.info(f"[FIXTURE] Created {user}")
-
-        # Convenient attributes
-        for k, v in properties.items():
-            setattr(user, k, v)
-
         return user
 
     yield _make_user
@@ -125,10 +121,6 @@ def obj_factory(request, server):
         obj = server.documents.create(new, parent_path=env.WS_DIR)
         request.addfinalizer(obj.delete)
         log.info(f"[FIXTURE] Created {obj}")
-
-        # Convenient attributes
-        for k, v in obj.properties.items():
-            setattr(obj, k, v)
 
         if enable_sync:
             operation = server.operations.new("NuxeoDrive.SetSynchronization")

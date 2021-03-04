@@ -150,7 +150,7 @@ def test_temporary_csv_cleanup(tmp, user_factory, nuxeo_url):
             conf_folder,
             nuxeo_url,
             user.uid,
-            password=user.password,
+            password=user.properties["password"],
             start_engine=False,
         )
         assert not session_csv.output_tmp.is_file()
