@@ -71,6 +71,7 @@ class MixinTests(DirectEditSetup):
         with patch.object(self.manager_1, "open_local_file", new=open_local_file):
             if url:
                 info = parse_protocol_url(url)
+                assert info
                 self.direct_edit.edit(
                     info["server_url"],
                     info["doc_id"],

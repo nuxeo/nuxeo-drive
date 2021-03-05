@@ -2,7 +2,7 @@
 Test the Auto-Lock feature used heavily by Direct Edit.
 """
 from pathlib import Path
-from typing import List, Tuple
+from typing import Generator, Tuple
 from unittest.mock import Mock, patch
 
 import pytest
@@ -47,7 +47,7 @@ def test_autolock(app, autolock, tmpdir):
         file.touch()
         return file
 
-    def files() -> List[Tuple[int, Path]]:
+    def files() -> Generator[Tuple[int, Path], None, None]:
         # Watched file to unlock
         yield 4, file1  # 1
 

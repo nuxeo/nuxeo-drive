@@ -89,6 +89,8 @@ def test_cleanup_file(direct_edit):
 
 def test_corrupted_download(app, manager_factory, tmp_path):
     manager, engine = manager_factory()
+    received_corrupted = 0
+    received_failure = False
 
     def corrupted_error_signals(label: str, values: List) -> None:
         nonlocal received_corrupted
@@ -110,9 +112,6 @@ def test_corrupted_download(app, manager_factory, tmp_path):
         raise CorruptedFile("Mock'ed test", "remote-digest", "local-digest")
 
     with manager:
-        received_corrupted = 0
-        received_failure = False
-
         direct_edit = manager.direct_edit
         direct_edit._folder.mkdir()
 
@@ -284,6 +283,7 @@ def test_document_not_found(manager_factory):
 
     manager, engine = manager_factory()
     doc_uid = "0000"
+    received = False
 
     def error_signal(label: str, values: List) -> None:
         nonlocal received
@@ -293,7 +293,6 @@ def test_document_not_found(manager_factory):
 
     with manager:
         direct_edit = manager.direct_edit
-        received = False
         direct_edit.directEditError.connect(error_signal)
 
         direct_edit._prepare_edit(engine.server_url, doc_uid)
@@ -305,6 +304,7 @@ def test_invalid_credentials(manager_factory):
 
     manager, engine = manager_factory()
     doc_uid = "0000"
+    received = False
 
     Translator(find_resource("i18n"), lang="en")
 
@@ -317,7 +317,6 @@ def test_invalid_credentials(manager_factory):
 
     with manager:
         direct_edit = manager.direct_edit
-        received = False
         engine.invalidAuthentication.connect(error_signal)
 
         with patch.object(

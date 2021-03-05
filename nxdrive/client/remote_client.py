@@ -286,22 +286,14 @@ class Remote(Nuxeo):
 
         headers: Dict[str, str] = {}
         downloaded = 0
-        if file_out:
-            # Retrieve current size of the TMP file, if any, to know where to start the download
-            with suppress(FileNotFoundError):
-                downloaded = file_out.stat().st_size
-                headers = {"Range": f"bytes={downloaded}-"}
+        # Retrieve current size of the TMP file, if any, to know where to start the download
+        with suppress(FileNotFoundError):
+            downloaded = file_out.stat().st_size
+            headers = {"Range": f"bytes={downloaded}-"}
 
         resp = self.client.request(
             "GET", url.replace(self.client.host, ""), headers=headers
         )
-
-        if not file_out:
-            # Return the pointer to the data
-            result = resp.content
-            del resp
-            return result
-
         size = int(resp.headers.get("Content-Length", 0)) if resp else 0
         chunked = size > (Options.tmp_file_limit * 1024 * 1024)
 

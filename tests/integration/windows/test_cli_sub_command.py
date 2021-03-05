@@ -17,7 +17,7 @@ if not WINDOWS:
 log = getLogger(__name__)
 
 
-def launch(exe, args: str, wait: int = 0) -> None:
+def launch(exe, args: str, wait: int = 0) -> bool:
     try:
         with exe(args=args, wait=wait) as app:
             return not fatal_error_dlg(app)
@@ -25,12 +25,12 @@ def launch(exe, args: str, wait: int = 0) -> None:
         return False
 
 
-def bind(exe, args: str) -> None:
+def bind(exe, args: str) -> bool:
     """bind-server option. Used at several places so moved out test functions."""
     return launch(exe, f"bind-server {args}")
 
 
-def unbind(exe, args: str) -> None:
+def unbind(exe, args: str) -> bool:
     """unbind-server option. Used at several places so moved out test functions."""
     return launch(exe, f"unbind-server {args}")
 

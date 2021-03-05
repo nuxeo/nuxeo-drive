@@ -1,7 +1,7 @@
 from logging import getLogger
 from pathlib import Path
 from random import randint
-from typing import Callable, Optional
+from typing import Callable, Generator, Optional
 from uuid import uuid4
 
 import pytest
@@ -30,7 +30,9 @@ def faker() -> Callable[[], Faker]:
 
 
 @pytest.fixture()
-def manager_factory(request, tmp, nuxeo_url, user_factory) -> Callable[[], Manager]:
+def manager_factory(
+    request, tmp_path, nuxeo_url, user_factory
+) -> Generator[Callable[[], Manager], None, None]:
     """Manager instance with automatic clean-up."""
 
     def _make_manager(
@@ -39,7 +41,8 @@ def manager_factory(request, tmp, nuxeo_url, user_factory) -> Callable[[], Manag
         local_folder: Optional[Path] = None,
         user: Optional[User] = None,
     ):
-        manager = Manager(home or tmp())
+        home_folder = Path(home) if home else tmp_path
+        manager = Manager(home_folder)
 
         # Force deletion behavior to real deletion for all tests
         manager.set_config("deletion_behavior", "delete_server")

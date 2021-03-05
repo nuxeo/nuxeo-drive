@@ -76,8 +76,8 @@ def make_tmp_file(folder: Path, content: bytes) -> Path:
     """
     import tempfile
 
-    fd, path = tempfile.mkstemp(suffix="-nxdrive-file-to-upload", dir=folder)
-    path = Path(path)
+    fd, name = tempfile.mkstemp(suffix="-nxdrive-file-to-upload", dir=folder)
+    path = Path(name)
     try:
         path.write_bytes(force_encode(content))
     finally:
@@ -193,9 +193,7 @@ class RemoteBase(Remote):
     def __init__(self, *args, upload_tmp_dir: str = None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.upload_tmp_dir = (
-            upload_tmp_dir if upload_tmp_dir is not None else tempfile.gettempdir()
-        )
+        self.upload_tmp_dir = Path(upload_tmp_dir or tempfile.gettempdir())
 
         # Save bandwidth by caching operations details
         global OPS_CACHE
@@ -240,11 +238,7 @@ class RemoteBase(Remote):
         """
         fs_item_info = self.get_fs_info(fs_item_id)
         url = self.client.host + fs_item_info.download_url
-
-        # Placeholders
-        file_path = file_out = ""
-
-        return self.download(url, file_path, file_out, fs_item_info.digest, **kwargs)
+        return self.client.request("GET", url.replace(self.client.host, "")).content
 
     def get_roots(self) -> List[NuxeoDocumentInfo]:
         res = self.execute(command="NuxeoDrive.GetRoots")
@@ -259,8 +253,8 @@ class RemoteBase(Remote):
         """
         if content is not None:
             file_path = make_tmp_file(self.upload_tmp_dir, content)
-        else:
-            file_path = name
+        # else:
+        #     file_path = name
         try:
             fs_item = self.upload(
                 file_path,
@@ -493,7 +487,7 @@ class DocRemote(RemoteTest):
               will be a Note. It this is not what you want, use make_file_with_blob().
         """
         tmp_created = file_path is None
-        if not file_path:
+        if not file_path and content:
             file_path = make_tmp_file(self.upload_tmp_dir, content)
 
         try:
@@ -532,7 +526,7 @@ class DocRemote(RemoteTest):
     def stream_file(self, parent: str, file_path: Path, **kwargs) -> NuxeoDocumentInfo:
         """Create a document by streaming the file with the given path"""
         ref = self.make_file(parent, file_path.name, file_path=file_path)
-        return self.get_info(ref)
+        return self.fetch(self.check_ref(ref))
 
     def attach_blob(self, ref: str, content: bytes, filename: str):
         file_path = make_tmp_file(self.upload_tmp_dir, content)

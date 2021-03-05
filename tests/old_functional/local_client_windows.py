@@ -19,7 +19,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 from win32com.shell import shell, shellcon
 
@@ -42,16 +42,15 @@ class WindowsLocalClient(LocalTest):
         return abs_path
 
     def do_op(
-        self, op: int, path_from: Path, path_to: Union[Path, None], flags: int
+        self, op: int, path_from: Path, path_to: Optional[Path], flags: int
     ) -> None:
         """Actually do the requested SHFileOperation operation.
         Errors are automatically handled.
         """
         # *path_to* can be set to None for deletion of *path_from*
-        if path_to:
-            path_to = str(path_to)
-
-        rc, aborted = shell.SHFileOperation((0, op, str(path_from), path_to, flags))
+        rc, aborted = shell.SHFileOperation(
+            (0, op, str(path_from), str(path_to) if path_to else None, flags)
+        )
 
         if aborted:
             rc = errno.ECONNABORTED

@@ -100,6 +100,8 @@ def ensure_no_exception():
         ...     # some code where you do not want any exception
     """
 
+    received = False
+
     def error(type_, value, traceback) -> None:
         """ Install an exception hook to catch any error. """
         # Mock'ed errors should not entrave the check
@@ -112,7 +114,6 @@ def ensure_no_exception():
         print(value)
         print(repr(traceback))
 
-    received = False
     excepthook, sys.excepthook = sys.excepthook, error
 
     try:

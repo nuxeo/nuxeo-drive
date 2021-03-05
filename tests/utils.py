@@ -73,6 +73,7 @@ def random_png(filename: Path = None, size: int = 0) -> Union[None, bytes]:
         return png
 
     filename.write_bytes(png)
+    return None
 
 
 def salt(text: str, prefix: str = "ndt-", with_suffix: bool = True) -> str:

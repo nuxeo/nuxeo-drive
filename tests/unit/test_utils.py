@@ -4,7 +4,7 @@ import sys
 from collections import namedtuple
 from datetime import datetime
 from math import pow
-from pathlib import Path, _posix_flavour, _windows_flavour
+from pathlib import Path
 from time import sleep
 from unittest.mock import patch
 
@@ -32,18 +32,6 @@ BAD_HOSTNAMES = [
 ]
 
 Stat = namedtuple("Stat", "st_size")
-
-
-class MockedPath(Path):
-    """Simple way to test Path methods.
-    Using mock did not make it.
-    """
-
-    _flavour = _windows_flavour if WINDOWS else _posix_flavour
-
-    def resolve(self, *_, **__):
-        """ Raise a PermissionError. """
-        raise PermissionError("Boom!")
 
 
 @pytest.mark.parametrize(
