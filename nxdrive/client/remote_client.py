@@ -135,6 +135,9 @@ class Remote(Nuxeo):
         else:
             self.base_folder_ref, self._base_folder_path = None, None
 
+        # Cache the result for future uploads
+        self.uploads.has_s3()
+
     def __repr__(self) -> str:
         attrs = ", ".join(
             f"{attr}={getattr(self, attr, None)!r}"
