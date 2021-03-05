@@ -16,7 +16,7 @@ from nxdrive.fatal_error import (
 )
 
 
-def signal_handler(signum: int, frame: FrameType, /) -> None:
+def signal_handler(signum: int, _: FrameType, /) -> None:
     """Signal handler."""
     from nxdrive.qt.imports import QApplication
 
