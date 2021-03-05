@@ -18,7 +18,7 @@ from nuxeo.models import Document, User
 from sentry_sdk import configure_scope
 
 from nxdrive import __version__
-from nxdrive.constants import LINUX, MAC, WINDOWS
+from nxdrive.constants import MAC, WINDOWS
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.manager import Manager
 from nxdrive.options import Options
@@ -287,11 +287,13 @@ class TwoUsersTest(TestCase):
 
     def _create_user(self, number: int) -> User:
         def _company_domain(company_: str) -> str:
-            company_domain = company_.lower()
-            company_domain = company_domain.replace(",", "_")
-            company_domain = company_domain.replace(" ", "_")
-            company_domain = company_domain.replace("-", "_")
-            company_domain = company_domain.replace("__", "_")
+            return (
+                company_.lower()
+                .replace(",", "_")
+                .replace(" ", "_")
+                .replace("-", "_")
+                .replace("__", "_")
+            )
 
         company = self.fake.company()
         company_domain = _company_domain(company)
@@ -405,15 +407,17 @@ class TwoUsersTest(TestCase):
             - File Manager (macOS)
         On GNU/Linux, there is not specific behavior so the original LocalClient will be used.
         """
+        if MAC:
+            from .local_client_darwin import MacLocalClient
 
-        if LINUX:
-            client = LocalTest
-        elif MAC:
-            from .local_client_darwin import MacLocalClient as client
-        elif WINDOWS:
-            from .local_client_windows import WindowsLocalClient as client
+            return MacLocalClient(path)
 
-        return client(path)
+        if WINDOWS:
+            from .local_client_windows import WindowsLocalClient
+
+            return WindowsLocalClient(path)
+
+        return LocalTest(path)
 
     def bind_engine(
         self,

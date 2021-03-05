@@ -3,6 +3,7 @@ import os
 import shutil
 from copy import copy
 from pathlib import Path
+from typing import Dict, Union
 
 import pytest
 
@@ -72,7 +73,9 @@ class TestVolume(OneUserTest):
 
         for folder in range(folders):
             foldername = get_name(True, DEPTH - depth + 1, folder + 1)
-            folderobj = {"path": os.path.join(parent["path"], foldername)}
+            folderobj: Dict[str, Union[str, Dict[str, str]]] = {
+                "path": os.path.join(parent["path"], foldername)
+            }
             self.local_1.make_folder(parent["path"], foldername)
             items += 1
 

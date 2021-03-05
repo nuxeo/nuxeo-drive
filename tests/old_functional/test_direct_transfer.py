@@ -66,7 +66,7 @@ class DirectTransfer:
             return False
         return bool(doc.properties["file:content"])
 
-    def no_uploads(self) -> bool:
+    def no_uploads(self) -> None:
         """Check there is no ongoing uploads."""
         assert not self.engine_1.dao.get_dt_upload(path=self.file)
 
