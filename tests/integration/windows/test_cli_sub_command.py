@@ -52,16 +52,16 @@ def test_bind_server(nuxeo_url, exe, args):
     Test only with no access to the server to prevent useless binds.
     Real binds are tested in test_unbind_server().
     """
-    assert bind(exe, args.format(user="Administrator", url=nuxeo_url))
+    assert bind(exe, args.format(user=env.NXDRIVE_TEST_USERNAME, url=nuxeo_url))
 
 
 @pytest.mark.parametrize(
     "args",
     [
         "",
-        "Administrator",
-        "http://localhost:8080/nuxeo",
-        "--password=Administrator",
+        env.NXDRIVE_TEST_USERNAME,
+        env.NXDRIVE_TEST_NUXEO_URL,
+        f"--password={env.NXDRIVE_TEST_PASSWORD}",
         "--local-folder=foo",
     ],
 )
@@ -76,7 +76,7 @@ def test_unbind_server(nuxeo_url, exe, folder):
     """Will also test clean-folder."""
     expanded_folder = os.path.expandvars(folder)
     local_folder = f'--local-folder="{folder}"'
-    args = f"Administrator {nuxeo_url} {local_folder}"
+    args = f"{env.NXDRIVE_TEST_USERNAME} {nuxeo_url} {local_folder}"
 
     try:
         assert bind(exe, args)
@@ -124,7 +124,7 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
 
     try:
         # 1st, bind the server
-        args = f"Administrator {nuxeo_url} {local_folder} --password Administrator"
+        args = f"{env.NXDRIVE_TEST_USERNAME} {nuxeo_url} {local_folder} --password {env.NXDRIVE_TEST_PASSWORD}"
         assert bind(exe, args)
         assert folder.is_dir()
 
@@ -195,7 +195,7 @@ def test_ctx_menu_entries(nuxeo_url, exe, server, tmp):
 
     try:
         # 1st, bind the server
-        args = f"Administrator {nuxeo_url} {local_folder} --password Administrator"
+        args = f"{env.NXDRIVE_TEST_USERNAME} {nuxeo_url} {local_folder} --password {env.NXDRIVE_TEST_PASSWORD}"
         assert bind(exe, args)
         assert folder.is_dir()
 

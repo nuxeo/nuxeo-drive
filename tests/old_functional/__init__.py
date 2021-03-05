@@ -627,7 +627,7 @@ class DocRemote(RemoteTest):
         self.execute(
             command="Document.SetACE",
             input_obj=input_obj,
-            user="Administrator",
+            user=env.NXDRIVE_TEST_USERNAME,
             permission="Everything",
             overwrite=overwrite,
         )

@@ -1020,8 +1020,10 @@ class Application(QApplication):
 
         layout = QVBoxLayout()
 
-        username = QLineEdit("Administrator", parent=dialog)
-        password = QLineEdit("Administrator", parent=dialog)
+        default_user = os.getenv("NXDRIVE_TEST_USERNAME", "Administrator")
+        default_pwd = os.getenv("NXDRIVE_TEST_PASSWORD", "Administrator")
+        username = QLineEdit(default_user, parent=dialog)
+        password = QLineEdit(default_pwd, parent=dialog)
         password.setEchoMode(qt.Password)
         layout.addWidget(username)
         layout.addWidget(password)
