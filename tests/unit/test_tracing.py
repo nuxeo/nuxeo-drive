@@ -33,6 +33,7 @@ def sentry_init(monkeypatch):
 #
 
 
+@pytest.mark.randombug("GitHub CI unstabilities")
 def test_flooding_prevention(sentry_init):
     """Ensure that an infinite synchronization due to a unhandled error
     will not explode the Sentry quota.
