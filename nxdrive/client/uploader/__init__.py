@@ -65,6 +65,7 @@ class BaseUploader:
         doc_pair = kwargs.get("doc_pair")
         transfer = self.get_upload(doc_pair=doc_pair, path=file_path)
         batch: Optional[Batch] = None
+        uploads = self.remote.uploads
 
         if transfer:
             if transfer.status not in (TransferStatus.ONGOING, TransferStatus.DONE):
@@ -81,25 +82,23 @@ class BaseUploader:
 
             # Check if the associated batch still exists server-side
             try:
-                self.remote.uploads.get(transfer.batch["batchId"], file_idx=file_idx)
+                uploads.get(transfer.batch["batchId"], file_idx=file_idx)
             except HTTPError as exc:
                 if exc.status != 404:
                     raise
                 log.debug("No associated batch found, restarting from zero")
             else:
                 log.debug("Associated batch found, resuming the upload")
-                batch = Batch(service=self.remote.uploads, **transfer.batch)
+                batch = Batch(service=uploads, **transfer.batch)
 
         if not batch:
             # .uploads.handlers() result is cached, so it is convenient to call it each time here
             # in case the server did not answer correctly the previous time and thus S3 would
             # be completely disabled because of a one-time server error.
-            handler = (
-                UP_AMAZON_S3 if Feature.s3 and self.remote.uploads.has_s3() else ""
-            )
+            handler = UP_AMAZON_S3 if Feature.s3 and uploads.has_s3() else ""
 
             # Create a new batch
-            batch = self.remote.uploads.batch(handler=handler)
+            batch = uploads.batch(handler=handler)
 
         if not transfer:
             # Remove eventual obsolete upload (it happens when an upload using S3 has invalid metadatas)
