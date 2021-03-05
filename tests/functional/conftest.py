@@ -30,9 +30,7 @@ def faker() -> Callable[[], Faker]:
 
 
 @pytest.fixture()
-def manager_factory(
-    request, tmp, nuxeo_url, user_factory, server
-) -> Callable[[], Manager]:
+def manager_factory(request, tmp, nuxeo_url, user_factory) -> Callable[[], Manager]:
     """Manager instance with automatic clean-up."""
 
     def _make_manager(
@@ -85,7 +83,7 @@ def user_factory(request, server, faker):
         company.lower().replace(",", "_").replace(" ", "_").replace("-", "_")
     )
 
-    def _make_user(username: str = "", password: str = "Administrator"):
+    def _make_user(username: str = "", password: str = env.NXDRIVE_TEST_PASSWORD):
         first_name, last_name = fake.name().split(" ", 1)
         username = username or f"{first_name.lower()}-{randint(1, 99_999)}"
         properties = {

@@ -11,6 +11,7 @@ on:
 env:
   FREEZE_ONLY: 1
   NXDRIVE_TEST_NUXEO_URL: https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo
+  NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_TEST_PASSWORD }}
 
 jobs:
   it_windows:

@@ -137,7 +137,7 @@ def server(nuxeo_url):
     For now, we do not allow to use another than Administrator:Administrator
     to prevent unexpected actions on critical servers.
     """
-    auth = ("Administrator", "Administrator")
+    auth = (env.NXDRIVE_TEST_USERNAME, env.NXDRIVE_TEST_PASSWORD)
     server = Nuxeo(host=nuxeo_url, auth=auth)
     server.client.set(schemas=["dublincore"])
 
