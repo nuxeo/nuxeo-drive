@@ -13,10 +13,12 @@ from nxdrive.utils import normalized_path
 class MockEngineDAO(EngineDAO):
     """ Convenient class with auto-cleanup at exit. """
 
+    tmp = None
+
     def __init__(self, fname):
         root = normalized_path(__file__).parent.parent
         src = root / "resources" / "databases" / fname
-        dst = src.with_name(f"{uuid4()}.db")
+        dst = self.tmp / src.with_name(f"{uuid4()}.db").name
         shutil.copy(src, dst)
         time.sleep(1)
         super().__init__(dst)
@@ -84,5 +86,7 @@ class MockEngineDAO(EngineDAO):
 
 
 @pytest.fixture()
-def engine_dao():
-    return MockEngineDAO
+def engine_dao(tmp_path):
+    dao = MockEngineDAO
+    dao.tmp = tmp_path
+    return dao
