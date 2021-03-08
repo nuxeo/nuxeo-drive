@@ -9,7 +9,7 @@ from uuid import uuid4
 import pytest
 from nuxeo.exceptions import Forbidden, HTTPError
 
-from nxdrive.constants import WINDOWS
+from nxdrive.constants import FILE_BUFFER_SIZE, WINDOWS
 from nxdrive.exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt
 from nxdrive.objects import Blob, NuxeoDocumentInfo
 from nxdrive.options import Options
@@ -21,6 +21,9 @@ from . import LocalTest, make_tmp_file
 from .common import OneUserNoSync, OneUserTest, TwoUsersTest
 
 log = getLogger(__name__)
+
+# File size to trigger chunk downloads
+DOWNLOAD_CHUNK_FILE_SIZE = int(Options.tmp_file_limit * 1024 * 1024) * 2
 
 
 def direct_edit_is_starting(*args, **kwargs):
@@ -700,8 +703,28 @@ class MixinTests(DirectEditSetup):
             self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
             assert received
 
-    def test_corrupted_download(self):
+    def test_corrupted_download_ok_if_retried(self):
         """Test corrupted downloads that finally works."""
+
+        # Create the test file
+        filename = "download corrupted.txt"
+        doc_id = self.remote.make_file_with_blob(
+            "/", filename, b"0" * DOWNLOAD_CHUNK_FILE_SIZE
+        )
+        url = f"nxfile/default/{doc_id}/file:content/{filename}"
+        tmp_file = self.direct_edit._get_tmp_file(doc_id, filename)
+
+        # Start Direct Edit'ing the document
+        try_count = 0
+
+        def callback(_):
+            """Make the download callback to alter the temporary file before the first downloaded chunk."""
+            nonlocal try_count
+            try_count += 1
+            if try_count < 2:
+                tmp_file.write_bytes(b"1")
+
+        original_request = self.engine_1.remote.client.request
 
         def request(*args, **kwargs):
             """We need to inspect headers to catch if "Range" is defined.
@@ -712,44 +735,51 @@ class MixinTests(DirectEditSetup):
             assert "Range" not in headers
             return original_request(*args, **kwargs)
 
-        def save_to_file(*args, **kwargs):
-            """Make the download raise a CorruptedFile error for tries 1 and 2."""
-            nonlocal try_count
-            try_count += 1
+        # Retry the download, it should throw a CorruptedFile error and start the download from the ground
+        with patch.object(self.engine_1.remote.client, "request", new=request):
+            file = self.direct_edit._prepare_edit(
+                self.nuxeo_url, doc_id, download_url=url, callback=callback
+            )
+            assert try_count > 2
+            assert isinstance(file, Path)
+            assert file.is_file()
 
-            if try_count < 2:
-                file_out = args[2]
-                file_out.write_bytes(b"invalid data")
-            else:
-                original_save_to_file(*args, **kwargs)
+    def test_corrupted_download_complete_failure(self):
+        """Test corrupted downloads that never works."""
 
-        original_save_to_file = self.engine_1.remote.operations.save_to_file
-        original_request = self.engine_1.remote.client.request
-
-        # Create the test file, it should be large enough to trigger chunk downloads (here 26 MiB)
+        # Create the test file
         filename = "download corrupted.txt"
         doc_id = self.remote.make_file_with_blob(
-            "/", filename, b"Some content." * 1024 * 1024 * 2
+            "/", filename, b"0" * DOWNLOAD_CHUNK_FILE_SIZE
         )
+        url = f"nxfile/default/{doc_id}/file:content/{filename}"
+        tmp_file = self.direct_edit._get_tmp_file(doc_id, filename)
 
         # Start Direct Edit'ing the document
-        with patch.object(
-            self.engine_1.remote.operations, "save_to_file", new=save_to_file
-        ):
-            with patch.object(self.engine_1.remote.client, "request", new=request):
-                try_count = 0
-                url = f"nxfile/default/{doc_id}/file:content/{filename}"
-                file = self.direct_edit._prepare_edit(
-                    self.nuxeo_url, doc_id, download_url=url
-                )
-                assert try_count == 2
-                assert isinstance(file, Path)
-                assert file.is_file()
+
+        def callback(_):
+            """Make the download callback to alter the temporary file before each downloaded chunk."""
+            tmp_file.write_bytes(b"1")
+
+        # The download will be retried several times without success
+        file = self.direct_edit._prepare_edit(
+            self.nuxeo_url, doc_id, download_url=url, callback=callback
+        )
+        assert not file
 
     @Options.mock()
     def test_corrupted_download_but_no_integrity_check(self):
         """Test corrupted downloads that finally works because there is not integrity check."""
 
+        # Create the test file
+        filename = "download corrupted but it's OK.txt"
+        doc_id = self.remote.make_file_with_blob(
+            "/", filename, b"0" * DOWNLOAD_CHUNK_FILE_SIZE
+        )
+
+        Options.disabled_file_integrity_check = True
+        original_request = self.engine_1.remote.client.request
+
         def request(*args, **kwargs):
             """We need to inspect headers to catch if "Range" is defined.
             If that header is set, it means that a download is resumed, and it should not as
@@ -759,44 +789,26 @@ class MixinTests(DirectEditSetup):
             assert "Range" not in headers
             return original_request(*args, **kwargs)
 
-        def save_to_file(*args, **kwargs):
-            """Make the download raise a CorruptedFile error for tries 1 and 2."""
+        def callback(_):
+            """Make the download raise a CorruptedFile error."""
             nonlocal try_count
             try_count += 1
-
             if try_count < 2:
-                file_out = args[2]
-                file_out.write_bytes(b"invalid data")
-            else:
-                original_save_to_file(*args, **kwargs)
-
-        original_save_to_file = self.engine_1.remote.operations.save_to_file
-        original_request = self.engine_1.remote.client.request
-
-        # Create the test file, it should be large enough to trigger chunk downloads (here 26 MiB)
-        filename = "download corrupted but it's OK.txt"
-        doc_id = self.remote.make_file_with_blob(
-            "/", filename, b"Some content." * 1024 * 1024 * 2
-        )
-
-        Options.disabled_file_integrity_check = True
+                tmp_file.write_bytes(b"1")
 
         # Start Direct Edit'ing the document
-        with patch.object(
-            self.engine_1.remote.operations, "save_to_file", new=save_to_file
-        ):
-            with patch.object(self.engine_1.remote.client, "request", new=request):
-                try_count = 0
-                url = f"nxfile/default/{doc_id}/file:content/{filename}"
-                file = self.direct_edit._prepare_edit(
-                    self.nuxeo_url, doc_id, download_url=url
-                )
-                assert try_count == 1
-                assert isinstance(file, Path)
-                assert file.is_file()
+        try_count = 0
+        tmp_file = self.direct_edit._get_tmp_file(doc_id, filename)
+        with patch.object(self.engine_1.remote.client, "request", new=request):
+            url = f"nxfile/default/{doc_id}/file:content/{filename}"
+            file = self.direct_edit._prepare_edit(
+                self.nuxeo_url, doc_id, download_url=url, callback=callback
+            )
+            assert isinstance(file, Path)
+            assert file.is_file()
 
-                expected = "disabled_file_integrity_check is True, skipping"
-                assert any(expected in str(log) for log in self._caplog.records)
+            expected = "disabled_file_integrity_check is True, skipping"
+            assert any(expected in str(log) for log in self._caplog.records)
 
     def test_resumed_download(self):
         """Test a download that failed for some reason. The next edition will resume the download.
@@ -813,15 +825,15 @@ class MixinTests(DirectEditSetup):
 
         request_orig = self.engine_1.remote.client.request
 
-        # Create the test file, it should be large enough to trigger chunk downloads (here 26 MiB)
+        # Create the test file
         filename = "download resumed.txt"
         doc_id = self.remote.make_file_with_blob(
-            "/", filename, b"Some content." * 1024 * 1024 * 2
+            "/", filename, b"0" * DOWNLOAD_CHUNK_FILE_SIZE
         )
 
         # Simulate a partially downloaded file
         tmp_path = self.direct_edit._get_tmp_file(doc_id, filename)
-        tmp_path.write_bytes(b"0" * 1024)
+        tmp_path.write_bytes(b"0" * FILE_BUFFER_SIZE)
 
         # Start Direct Edit'ing the document
         with patch.object(self.engine_1.remote.client, "request", new=request):

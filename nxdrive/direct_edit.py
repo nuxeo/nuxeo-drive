@@ -8,7 +8,7 @@ from pathlib import Path
 from queue import Empty, Queue
 from threading import Lock
 from time import sleep
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Pattern
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Pattern
 from urllib.parse import quote
 
 from nuxeo.exceptions import CorruptedFile, Forbidden, HTTPError, Unauthorized
@@ -300,6 +300,7 @@ class DirectEdit(Worker):
         xpath: str,
         /,
         *,
+        callback: Optional[Callable] = None,
         url: str = None,
     ) -> Optional[Path]:
         # Close to processor method - should try to refactor ?
@@ -345,7 +346,7 @@ class DirectEdit(Worker):
                                 file_path,
                                 file_out,
                                 blob.digest,
-                                callback=self.stop_client,
+                                callback=callback or self.stop_client,
                                 is_direct_edit=True,
                                 engine_uid=engine.uid,
                             )
@@ -452,6 +453,7 @@ class DirectEdit(Worker):
         *,
         user: str = None,
         download_url: str = None,
+        callback: Optional[Callable] = None,
     ) -> Optional[Path]:
         start_time = current_milli_time()
         engine = self._get_engine(server_url, doc_id=doc_id, user=user)
@@ -514,7 +516,14 @@ class DirectEdit(Worker):
         try:
             # Download the file
             tmp_file = self._download(
-                engine, info, file_path, file_out, blob, xpath, url=url
+                engine,
+                info,
+                file_path,
+                file_out,
+                blob,
+                xpath,
+                url=url,
+                callback=callback,
             )
             if tmp_file is None:
                 log.warning("Download failed")

@@ -631,8 +631,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         self.engine_1.file_id = None
 
         Options.set("tmp_file_limit", 0.1, setter="manual")
-        try:
-            self.engine_1.remote.download_callback = callback
+        with patch.object(self.engine_1.remote, "download_callback", new=callback):
             file = self.location / "resources" / "files" / "testFile.pdf"
             content = file.read_bytes()
             self.engine_1.file_id = remote.make_file(
@@ -643,8 +642,6 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
             self.wait_sync(wait_for_async=True)
             assert not local.exists("/Test folder/testFile.pdf")
             assert local.exists("/Test folder/New folder/testFile.pdf")
-        finally:
-            self.engine_1.remote.download_callback = Engine.suspend_client
 
     @windows_only
     def test_synchronize_remote_rename_file_while_accessing(self):

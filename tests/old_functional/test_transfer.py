@@ -556,14 +556,10 @@ class TestUpload(OneUserTest):
     def test_chunk_upload_error(self):
         """Test a server error happening while uploading chunks."""
 
-        def send_data(*args, **kwargs):
-            """Simulate an error."""
-            raise ConnectionError("Mocked error")
-
         def callback(uploader):
-            """Patch send_data() after chunk 1 is sent."""
-            if len(uploader.blob.uploadedChunkIds) == 1:
-                uploader.service.send_data = send_data
+            """Mimic a connection issue after chunk 1 is sent."""
+            if len(uploader.blob.uploadedChunkIds) > 1:
+                raise ConnectionError("Mocked error")
 
         engine = self.engine_1
         dao = self.engine_1.dao
@@ -576,18 +572,17 @@ class TestUpload(OneUserTest):
         # There is no upload, right now
         assert not list(dao.get_uploads())
 
-        with patch.object(engine, "remote", new=bad_remote):
-            with ensure_no_exception():
-                self.wait_sync()
+        with patch.object(engine, "remote", new=bad_remote), ensure_no_exception():
+            self.wait_sync(timeout=3)
 
-                # There should be 1 upload with ONGOING transfer status
-                uploads = list(dao.get_uploads())
-                assert len(uploads) == 1
-                upload = uploads[0]
-                assert upload.status == TransferStatus.ONGOING
+            # There should be 1 upload with ONGOING transfer status
+            uploads = list(dao.get_uploads())
+            assert len(uploads) == 1
+            upload = uploads[0]
+            assert upload.status == TransferStatus.ONGOING
 
-                # The file on the server should not exist yet
-                assert not self.remote_1.exists("/test.bin")
+            # The file on the server should not exist yet
+            assert not self.remote_1.exists("/test.bin")
 
         # Resync and check the file exists
         self.wait_sync()
@@ -635,21 +630,17 @@ class TestUpload(OneUserTest):
 
         # Step 1: upload one chunk and fail
 
-        def send_data(*args, **kwargs):
-            """Simulate an error."""
-            raise ConnectionError("Mocked error")
-
         def callback(uploader):
-            """Patch send_data() after chunk 1 is sent."""
-            if len(uploader.blob.uploadedChunkIds) == 1:
-                uploader.service.send_data = send_data
+            """Mimic a connection issue after chunk 1 is sent."""
+            if len(uploader.blob.uploadedChunkIds) > 1:
+                raise ConnectionError("Mocked error")
 
         bad_remote1 = self.get_bad_remote()
         bad_remote1.upload_callback = callback
         batch_id = None
 
         with patch.object(engine, "remote", new=bad_remote1), ensure_no_exception():
-            self.wait_sync()
+            self.wait_sync(timeout=3)
 
             # There should be 1 upload with ONGOING transfer status
             uploads = list(dao.get_uploads())
