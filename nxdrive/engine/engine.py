@@ -888,7 +888,7 @@ class Engine(QObject):
             return url + "/"
         return url
 
-    def _send_roots_metrics(self):
+    def _send_roots_metrics(self) -> None:
         root_info = self.remote.get_filesystem_root_info()
         self.remote.metrics.send(
             {

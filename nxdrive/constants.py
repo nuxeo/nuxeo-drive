@@ -1,4 +1,6 @@
 import errno
+import platform as plat
+import sysconfig
 from enum import Enum
 from pathlib import Path
 from sys import platform
@@ -17,7 +19,10 @@ NXDRIVE_SCHEME = "nxdrive"
 BUNDLE_IDENTIFIER = "org.nuxeo.drive"
 APP_NAME = "Nuxeo Drive"
 COMPANY = "Nuxeo"
-USER_AGENT = f"{APP_NAME}/{__version__}".lower().replace(" ", "-")
+USER_AGENT = (
+    f"{APP_NAME}/{__version__}".lower().replace(" ", "-")
+    + f" ({plat.system()} {plat.release()}; {sysconfig.get_platform()}; {plat.machine()})"
+)
 
 TIMEOUT = 20  # Seconds
 STARTUP_PAGE_CONNECTION_TIMEOUT = 30  # Seconds

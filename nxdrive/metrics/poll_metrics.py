@@ -28,7 +28,7 @@ class CustomPollMetrics(PollWorker):
         self._timeout = Options.timeout if Options.timeout > 0 else TIMEOUT
         self._enabled = Options.custom_metrics
 
-    def _poll(self) -> None:
+    def _poll(self) -> bool:
         if not self._enabled:
             self.quit()  # Quit thread on first poll
 
@@ -54,6 +54,7 @@ class CustomPollMetrics(PollWorker):
         finally:
             for elem in errors:
                 self.send(elem)
+        return True
 
     def send(self, metrics: Metrics) -> None:
         if self._enabled:

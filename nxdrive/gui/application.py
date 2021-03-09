@@ -1117,6 +1117,7 @@ class Application(QApplication):
         )
 
         engine.newSyncEnded.connect(self.manager.tracker.send_sync_event)
+        engine.newSyncEnded.connect(engine.remote.metrics.push_sync_event)
 
         self.change_systray_icon()
 
