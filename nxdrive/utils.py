@@ -10,6 +10,7 @@ import os.path
 import re
 import stat
 import sys
+import sysconfig
 from configparser import ConfigParser
 from copy import deepcopy
 from datetime import datetime
@@ -17,6 +18,7 @@ from functools import lru_cache
 from itertools import islice
 from logging import getLogger
 from pathlib import Path
+from platform import machine
 from threading import get_native_id
 from typing import (
     TYPE_CHECKING,
@@ -39,7 +41,6 @@ from .constants import (
     FILE_BUFFER_SIZE,
     MAC,
     UNACCESSIBLE_HASH,
-    USER_AGENT,
     WINDOWS,
     DigestStatus,
 )
@@ -246,8 +247,22 @@ def get_current_os_full() -> Tuple[str, ...]:
 
 
 @lru_cache(maxsize=1)
-def ga_user_agent() -> str:
-    """Try to create a UA that is parsable by Google Analytics processor."""
+def user_agent() -> str:
+    """
+    Try to create a UA that is parsable by Google Analytics processor and Datadog.
+    Example: 'Nuxeo-Drive/5.0.1 (Ubuntu 18.04 bionic; linux-x86_64; x86_64)'
+    """
+    from . import __version__
+
+    return (
+        f"{APP_NAME.replace(' ', '-')}/{__version__}"
+        f" ({get_os_infos()}; {sysconfig.get_platform()}; {machine()})"
+    )
+
+
+@lru_cache(maxsize=1)
+def get_os_infos() -> str:
+    """Return OS name and version."""
     osi = get_current_os_full()
     if MAC:
         return osi[0]
@@ -1146,7 +1161,7 @@ def test_url(
         "timeout": timeout,
         "verify": Options.ca_bundle or not Options.ssl_no_verify,
         "cert": client_certificate(),
-        "headers": {"User-Agent": USER_AGENT},
+        "headers": {"User-Agent": user_agent()},
     }
     try:
         parse_url(url)

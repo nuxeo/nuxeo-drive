@@ -23,7 +23,6 @@ from .constants import (
     DEFAULT_SERVER_TYPE,
     NO_SPACE_ERRORS,
     STARTUP_PAGE_CONNECTION_TIMEOUT,
-    USER_AGENT,
     DelAction,
 )
 from .direct_edit import DirectEdit
@@ -61,6 +60,7 @@ from .utils import (
     if_frozen,
     normalized_path,
     save_config,
+    user_agent,
 )
 
 if TYPE_CHECKING:
@@ -686,7 +686,7 @@ class Manager(QObject):
             "X-Application-Name": APP_NAME,
             "X-Device-Id": self.device_id,
             "X-Client-Version": self.version,
-            "User-Agent": USER_AGENT,
+            "User-Agent": user_agent(),
         }
 
         log.info(f"Proxy configuration for startup page connection: {self.proxy}")

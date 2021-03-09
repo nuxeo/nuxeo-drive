@@ -1,9 +1,7 @@
 import os
 import platform
 import sys
-import sysconfig
 from logging import getLogger
-from platform import machine
 from time import monotonic_ns
 from typing import TYPE_CHECKING, Any, Callable, Dict
 
@@ -12,7 +10,7 @@ import requests
 from ..constants import APP_NAME, MAC, WINDOWS
 from ..options import Options
 from ..qt.imports import pyqtSlot
-from ..utils import ga_user_agent, get_current_os, if_frozen
+from ..utils import get_current_os, if_frozen, user_agent
 from .workers import PollWorker
 
 if not MAC:
@@ -123,11 +121,8 @@ class Tracker(PollWorker):
 
     @property
     def user_agent(self) -> str:
-        """ Format a custom user agent. """
-        return (
-            f"{APP_NAME.replace(' ', '-')}/{self._manager.version}"
-            f" ({ga_user_agent()}; {sysconfig.get_platform()}; {machine()})"
-        )
+        """Return the user agent."""
+        return user_agent()
 
     def send_event(
         self,

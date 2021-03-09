@@ -53,7 +53,14 @@ from ..metrics.poll_metrics import CustomPollMetrics
 from ..objects import Download, NuxeoDocumentInfo, RemoteFileInfo
 from ..options import Options
 from ..qt.imports import QApplication
-from ..utils import compute_digest, get_device, lock_path, sizeof_fmt, unlock_path
+from ..utils import (
+    compute_digest,
+    get_device,
+    lock_path,
+    sizeof_fmt,
+    unlock_path,
+    user_agent,
+)
 from .proxy import Proxy
 from .uploader import BaseUploader
 from .uploader.sync import SyncUploader
@@ -123,10 +130,10 @@ class Remote(Nuxeo):
                 "X-User-Id": user_id,
                 "X-Device-Id": device_id,
                 "Cache-Control": "no-cache",
+                "User-Agent": user_agent(),
                 GLOBAL_METRICS: json.dumps(nx_metrics),
             }
         )
-
         self.set_proxy(proxy)
 
         if dao:

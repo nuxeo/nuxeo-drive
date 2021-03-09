@@ -51,7 +51,7 @@ def test_with_some_errors(my_remote):
         """Mocked'ed client request that raise an Exception"""
         nonlocal called_count
         called_count += 1
-        if called_count % 2 == 0:  # Is a pair number
+        if called_count % 2 == 0:  # even number
             raise Exception("Mock'ed")
 
     with patch.object(my_remote.client, "request", new=fake_client_request):
@@ -73,7 +73,7 @@ def test_thread_interrupt(my_remote):
         """Mocked'ed client request that raise a ThreadInterrupt"""
         nonlocal called_count
         called_count += 1
-        if called_count == 3:  # Is a pair number
+        if called_count == 3:
             raise ThreadInterrupt("Mock'ed")
 
     with patch.object(my_remote.client, "request", new=fake_client_request):

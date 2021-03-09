@@ -52,6 +52,8 @@ class CustomPollMetrics(PollWorker):
                         "Could not send metrics. Pushing to queue.", exc_info=True
                     )
                     errors.append(metrics)
+        except ThreadInterrupt:
+            raise
         finally:
             for elem in errors:
                 self.send(elem)

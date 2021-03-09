@@ -9,11 +9,12 @@ import requests
 import yaml
 from nuxeo.utils import version_lt
 
-from ..constants import APP_NAME, CONNECTION_ERROR, NO_SPACE_ERRORS, USER_AGENT
+from ..constants import APP_NAME, CONNECTION_ERROR, NO_SPACE_ERRORS
 from ..engine.workers import PollWorker
 from ..feature import Feature
 from ..options import Options
 from ..qt.imports import QApplication, pyqtSignal, pyqtSlot
+from ..utils import user_agent
 from . import UpdateError
 from .constants import (
     UPDATE_STATUS_INCOMPATIBLE_SERVER,
@@ -175,7 +176,7 @@ class BaseUpdater(PollWorker):
         name = self.release_file.format(version=version)
         url = "/".join([self.update_site, self.versions[version]["type"], name])
         path = os.path.join(gettempdir(), uuid.uuid4().hex + "_" + name)
-        headers = {"User-Agent": USER_AGENT}
+        headers = {"User-Agent": user_agent()}
 
         log.info(f"Fetching {APP_NAME} {version} from {url!r} into {path!r}")
         try:
@@ -207,7 +208,7 @@ class BaseUpdater(PollWorker):
         """ Fetch available versions. It sets `self.versions` on success. """
 
         url = f"{self.update_site}/versions.yml"
-        headers = {"User-Agent": USER_AGENT}
+        headers = {"User-Agent": user_agent()}
         try:
             # Note: I do not think we should pass the `verify` kwarg here
             # because updates are critical and must be stored on a secured server.

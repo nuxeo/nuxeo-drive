@@ -1,13 +1,9 @@
 import errno
-import sysconfig
 from enum import Enum
 from pathlib import Path
-from platform import machine, release, system
 from sys import platform as platform_def
 
 from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
-
-from . import __version__
 
 LINUX = platform_def == "linux"
 MAC = platform_def == "darwin"
@@ -19,10 +15,6 @@ NXDRIVE_SCHEME = "nxdrive"
 BUNDLE_IDENTIFIER = "org.nuxeo.drive"
 APP_NAME = "Nuxeo Drive"
 COMPANY = "Nuxeo"
-USER_AGENT = (
-    f"{APP_NAME}/{__version__}".lower().replace(" ", "-")
-    + f" ({system()} {release()}; {sysconfig.get_platform()}; {machine()})"
-)
 
 TIMEOUT = 20  # Seconds
 STARTUP_PAGE_CONNECTION_TIMEOUT = 30  # Seconds
