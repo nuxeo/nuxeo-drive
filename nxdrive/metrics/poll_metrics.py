@@ -31,6 +31,7 @@ class CustomPollMetrics(PollWorker):
     def _poll(self) -> bool:
         if not self._enabled:
             self.quit()  # Quit thread on first poll
+            return False
 
         errors = []  # Errors are stored and re-injected on exception
         try:
@@ -44,13 +45,13 @@ class CustomPollMetrics(PollWorker):
                     self._remote.client.request(
                         "GET", ENDPOINT, headers=metrics, timeout=self._timeout
                     )
+                except ThreadInterrupt:
+                    raise
                 except Exception:
                     log.warning(
                         "Could not send metrics. Pushing to queue.", exc_info=True
                     )
                     errors.append(metrics)
-        except ThreadInterrupt:
-            raise
         finally:
             for elem in errors:
                 self.send(elem)

@@ -1,7 +1,9 @@
 import os
 import platform
 import sys
+import sysconfig
 from logging import getLogger
+from platform import machine
 from time import monotonic_ns
 from typing import TYPE_CHECKING, Any, Callable, Dict
 
@@ -122,9 +124,9 @@ class Tracker(PollWorker):
     @property
     def user_agent(self) -> str:
         """ Format a custom user agent. """
-
         return (
-            f"{APP_NAME.replace(' ', '-')}/{self._manager.version} ({ga_user_agent()})"
+            f"{APP_NAME.replace(' ', '-')}/{self._manager.version}"
+            f" ({ga_user_agent()}; {sysconfig.get_platform()}; {machine()})"
         )
 
     def send_event(

@@ -1,17 +1,17 @@
 import errno
-import platform as plat
 import sysconfig
 from enum import Enum
 from pathlib import Path
-from sys import platform
+from platform import machine, release, system
+from sys import platform as platform_def
 
 from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 
 from . import __version__
 
-LINUX = platform == "linux"
-MAC = platform == "darwin"
-WINDOWS = platform == "win32"
+LINUX = platform_def == "linux"
+MAC = platform_def == "darwin"
+WINDOWS = platform_def == "win32"
 
 # Custom protocol URL (nxdrive://...)
 NXDRIVE_SCHEME = "nxdrive"
@@ -21,7 +21,7 @@ APP_NAME = "Nuxeo Drive"
 COMPANY = "Nuxeo"
 USER_AGENT = (
     f"{APP_NAME}/{__version__}".lower().replace(" ", "-")
-    + f" ({plat.system()} {plat.release()}; {sysconfig.get_platform()}; {plat.machine()})"
+    + f" ({system()} {release()}; {sysconfig.get_platform()}; {machine()})"
 )
 
 TIMEOUT = 20  # Seconds
