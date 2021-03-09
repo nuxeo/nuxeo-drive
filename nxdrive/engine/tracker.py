@@ -1,4 +1,5 @@
 import os
+import platform
 import sys
 from logging import getLogger
 from time import monotonic_ns
@@ -62,6 +63,7 @@ class Tracker(PollWorker):
             "cd10": self._manager.arch,
             "cd11": self._current_os,
             "cd12": Options.channel,
+            "cd13": platform.machine() or "unknown",
         }
 
         # https://developers.google.com/analytics/devguides/collection/protocol/v1/parameters
@@ -80,7 +82,9 @@ class Tracker(PollWorker):
 
         self._session.headers.update({"user-agent": self.user_agent})
 
-        log.debug(f"Created the Google Analytics tracker with data {self._data}")
+        log.debug(
+            f"Created the Google Analytics tracker with data {self._data} and custom dimensions {self._dimensions}"
+        )
 
         self._hello_sent = False
 
