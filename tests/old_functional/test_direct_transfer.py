@@ -4,7 +4,6 @@ Test the Direct Transfer feature in different scenarii.
 import logging
 import re
 from pathlib import Path
-from shutil import copyfile
 from time import sleep
 from typing import Optional
 from unittest.mock import patch
@@ -37,16 +36,18 @@ class DirectTransfer:
         Options.chunk_limit = 1
         Options.chunk_size = 1
 
-        # The file used for the Direct Transfer (must be > 1 MiB)
+        # The file used for the Direct Transfer
         source = (
             self.location / "resources" / "databases" / "engine_migration_duplicate.db"
         )
-        assert source.stat().st_size > 1024 * 1024
+        assert source.stat().st_size > 1024 * 1024 * 1.5
+        source_data = source.read_bytes()
 
         # Work with a copy of the file to allow parallel testing
         self.file = self.tmpdir / f"{uuid4()}.bin"
-        copyfile(source, self.file)
+        self.file.write_bytes(source_data * 2)
         self.file_size = self.file.stat().st_size
+        assert self.file_size > 1024 * 1024 * 3  # Must be > 3 MiB
 
     def tearDown(self):
         # Restore options
@@ -631,14 +632,10 @@ class DirectTransfer:
     def test_chunk_upload_error(self):
         """Test a server error happening while uploading chunks."""
 
-        def send_data(*args, **kwargs):
-            """Simulate an error."""
-            raise ConnectionError("Mocked error")
-
-        def callback(upload):
-            """Patch send_data() after chunk 1 is sent."""
-            if len(upload.blob.uploadedChunkIds) == 1:
-                upload.service.send_data = send_data
+        def callback(uploader):
+            """Mimic a connection issue after chunk 1 is sent."""
+            if len(uploader.blob.uploadedChunkIds) > 1:
+                raise ConnectionError("Mocked error")
 
         engine = self.engine_1
         dao = engine.dao
@@ -648,19 +645,18 @@ class DirectTransfer:
         # There is no upload, right now
         self.no_uploads()
 
-        with patch.object(engine, "remote", new=bad_remote):
-            with ensure_no_exception():
-                self.direct_transfer()
-                self.wait_sync()
+        with patch.object(engine, "remote", new=bad_remote), ensure_no_exception():
+            self.direct_transfer()
+            self.wait_sync(timeout=3)
 
-                # There should be 1 upload with ONGOING transfer status
-                uploads = list(dao.get_dt_uploads())
-                assert len(uploads) == 1
-                upload = uploads[0]
-                assert upload.status == TransferStatus.ONGOING
+            # There should be 1 upload with ONGOING transfer status
+            uploads = list(dao.get_dt_uploads())
+            assert len(uploads) == 1
+            upload = uploads[0]
+            assert upload.status == TransferStatus.ONGOING
 
-                # The file does not exist on the server
-                assert not self.has_blob()
+            # The file does not exist on the server
+            assert not self.has_blob()
 
         self.sync_and_check()
 
