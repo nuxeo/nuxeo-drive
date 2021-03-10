@@ -134,6 +134,7 @@ class Remote(Nuxeo):
                 GLOBAL_METRICS: json.dumps(nx_metrics),
             }
         )
+
         self.set_proxy(proxy)
 
         if dao:

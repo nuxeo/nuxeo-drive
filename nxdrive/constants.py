@@ -1,13 +1,13 @@
 import errno
 from enum import Enum
 from pathlib import Path
-from sys import platform as platform_def
+from sys import platform
 
 from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 
-LINUX = platform_def == "linux"
-MAC = platform_def == "darwin"
-WINDOWS = platform_def == "win32"
+LINUX = platform == "linux"
+MAC = platform == "darwin"
+WINDOWS = platform == "win32"
 
 # Custom protocol URL (nxdrive://...)
 NXDRIVE_SCHEME = "nxdrive"
