@@ -15,7 +15,7 @@ METRICS_CUSTOM = "metrics.custom"
 METRICS_GA = "metrics.ga"
 METRICS_SENTRY = "metrics.sentry"
 UPDATER_CHANNEL = "updater.channel"
-METRICS_LOCALE = "execution.locale"
+EXEC_LOCALE = "execution.locale"
 OS_MACHINE = "os.machine"
 OS_LOCALE = "os.locale"
 

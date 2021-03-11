@@ -40,13 +40,13 @@ from ..constants import (
 from ..engine.activity import Action, DownloadAction, UploadAction, VerificationAction
 from ..exceptions import DownloadPaused, NotFound, ScrollDescendantsError, UploadPaused
 from ..metrics.constants import (
+    EXEC_LOCALE,
     EXEC_PROFILE,
     EXEC_SESSION_UID,
     GLOBAL_METRICS,
     INSTALLATION_TYPE,
     METRICS_CUSTOM,
     METRICS_GA,
-    METRICS_LOCALE,
     METRICS_SENTRY,
     OS_LOCALE,
     OS_MACHINE,
@@ -125,7 +125,7 @@ class Remote(Nuxeo):
             METRICS_GA: int(Options.use_analytics),
             METRICS_SENTRY: int(Options.use_sentry),
             UPDATER_CHANNEL: Options.channel,
-            METRICS_LOCALE: Options.locale,
+            EXEC_LOCALE: Options.locale,
             OS_MACHINE: machine(),
             OS_LOCALE: get_current_locale(),
         }

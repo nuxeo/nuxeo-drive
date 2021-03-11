@@ -673,7 +673,7 @@ class DirectEdit(Worker):
         try:
             remote.unlock(
                 uid,
-                {REQUEST_METRICS: json.dumps(self._file_metrics[ref])},
+                {REQUEST_METRICS: json.dumps(self._file_metrics.pop(ref, {}))},
             )
         except NotFound:
             return True
@@ -685,8 +685,6 @@ class DirectEdit(Worker):
                     log.warning(f"Skipping document unlock as it's locked by {user!r}")
                     return True
             raise exc
-        finally:
-            self._file_metrics.pop(ref)
 
         # Document unlocked! No need to purge.
         return False

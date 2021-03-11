@@ -50,7 +50,6 @@ class Tracker(PollWorker):
 
         self._session = requests.sessions.Session()
         self._tracking_url = "https://ssl.google-analytics.com/collect"
-        self.__current_locale = ""
 
         # Main dimensions, see .send_event() docstring for details.
         self._dimensions = {
@@ -69,7 +68,7 @@ class Tracker(PollWorker):
             "cid": self._manager.device_id,  # client ID
             "ua": user_agent(),  # user agent
             "de": sys.getfilesystemencoding(),  # encoding
-            "ul": self.current_locale,  # language
+            "ul": get_current_locale(),  # language
             "an": APP_NAME,  # application name
             "av": self._manager.version,  # application version
         }
@@ -81,16 +80,6 @@ class Tracker(PollWorker):
         )
 
         self._hello_sent = False
-
-    @property
-    def current_locale(self) -> str:
-        """ Detect the OS default language. """
-
-        if self.__current_locale:
-            return self.__current_locale
-
-        self.__current_locale = get_current_locale()
-        return self.__current_locale
 
     def send_event(
         self,

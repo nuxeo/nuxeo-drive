@@ -51,9 +51,6 @@ from .exceptions import (
 from .metrics.utils import user_agent
 from .options import Options
 
-if not MAC:
-    import locale
-
 if TYPE_CHECKING:
     from .client.proxy import Proxy  # noqa
 
@@ -1109,6 +1106,8 @@ def get_current_locale() -> str:
         # Always UTF-8 on macOS
         encoding = "UTF-8"
     else:
+        import locale
+
         encoding = locale.getdefaultlocale()[1] or ""
 
     # Guess the current locale name

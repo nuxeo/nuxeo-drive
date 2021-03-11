@@ -10,6 +10,8 @@ import pytest
 from nuxeo.exceptions import Forbidden, HTTPError
 
 from nxdrive.constants import FILE_BUFFER_SIZE, WINDOWS
+from nxdrive.direct_edit import DirectEdit
+
 from nxdrive.exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt
 from nxdrive.objects import Blob, NuxeoDocumentInfo
 from nxdrive.options import Options
@@ -38,7 +40,7 @@ class DirectEditSetup:
     @pytest.fixture(autouse=True)
     def setup_teardown(self):
         # Test setup
-        self.direct_edit = self.manager_1.direct_edit
+        self.direct_edit: DirectEdit = self.manager_1.direct_edit
         self.direct_edit.directEditUploadCompleted.connect(self.app.sync_completed)
         self.direct_edit.directEditStarting.connect(direct_edit_is_starting)
         self.direct_edit.start()
@@ -1021,7 +1023,7 @@ class TestDirectEditLock(TwoUsersTest, DirectEditSetup):
 
         with ensure_no_exception():
             # Try to unlock with user 2, should return True for purge
-            assert self.direct_edit._unlock(self.remote_2, doc_id)
+            assert self.direct_edit._unlock(self.remote_2, doc_id, "ref")
 
     def test_unlock_different_user_error_500(self):
         filename = "test_unlock_different_user.txt"
@@ -1037,4 +1039,4 @@ class TestDirectEditLock(TwoUsersTest, DirectEditSetup):
 
         with patch.object(self.remote_2, "unlock", new=unlock), ensure_no_exception():
             # Try to unlock with user 2, should return True for purge
-            assert self.direct_edit._unlock(self.remote_2, doc_id)
+            assert self.direct_edit._unlock(self.remote_2, doc_id, "ref")
