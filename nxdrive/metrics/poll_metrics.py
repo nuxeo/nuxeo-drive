@@ -29,7 +29,8 @@ class CustomPollMetrics(PollWorker):
 
     @property
     def enable(self) -> bool:
-        return Options.custom_metrics
+        state: bool = Options.custom_metrics
+        return state
 
     def _poll(self) -> bool:
         errors = []  # Errors are stored and re-injected on exception
