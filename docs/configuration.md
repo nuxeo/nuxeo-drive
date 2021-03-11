@@ -161,7 +161,6 @@ Force the client version to run when using the centralized update channel (must 
 
 * * *
 
-
 #### `consider-ssl-errors`
 
 Define if SSL errors should be ignored.
@@ -238,7 +237,7 @@ List of document types where Direct Transfer is not allowed.
 #### `exec-profile`
 
 Define the execution profile for the application in metrics.
-Can be `private` in dev/qa cases or `public` for production versions.
+Can be `private` for development/QA cases or `public` for production versions.
 
 - Default value (str): `public`
 - Version added: 5.10
