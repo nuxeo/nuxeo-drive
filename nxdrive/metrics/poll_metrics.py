@@ -25,7 +25,7 @@ class CustomPollMetrics(PollWorker):
         self._remote = remote
         self._metrics_queue: Queue = Queue()
 
-        self._timeout = Options.timeout if Options.timeout > 0 else TIMEOUT
+        self._timeout = max(Options.timeout, TIMEOUT)
         self._enabled = Options.custom_metrics
 
     def _poll(self) -> bool:
@@ -38,7 +38,6 @@ class CustomPollMetrics(PollWorker):
             while True:
                 try:
                     metrics = self._metrics_queue.get_nowait()
-                    print(f"Sending {metrics}")  # DEV
                 except Empty:
                     break
                 try:

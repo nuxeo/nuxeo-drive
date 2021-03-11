@@ -137,11 +137,11 @@ class DirectEdit(Worker):
                 self._lock_queue.put((ref, "unlock_orphan"))
 
     def autolock_lock(self, src_path: Path, /) -> None:
-        ref = self.local.get_path(src_path)
+        ref = self._get_ref(src_path)
         self._lock_queue.put((ref, "lock"))
 
     def autolock_unlock(self, src_path: Path) -> None:
-        ref = self.local.get_path(src_path)
+        ref = self._get_ref(src_path)
         self._lock_queue.put((ref, "unlock"))
 
     def start(self) -> None:
@@ -928,9 +928,8 @@ class DirectEdit(Worker):
             "DIRECT_EDIT_UPLOAD_FAILED",
             [f'<a href="file:///{os_path.parent}">{ref.name}</a>'],
         )
-        remote.metrics.send({REQUEST_METRICS: json.dumps(self._file_metrics[ref])})
+        remote.metrics.send({REQUEST_METRICS: json.dumps(self._file_metrics.pop(ref))})
         self._upload_errors.pop(ref, None)
-        self._file_metrics.pop(ref)
 
     def _handle_queues(self) -> None:
         # Lock any document
@@ -1014,9 +1013,7 @@ class DirectEdit(Worker):
         if evt.event_type == "moved":
             src_path = normalize_event_filename(evt.dest_path)
 
-        ref = self.local.get_path(src_path)
-        if ref not in self._file_metrics:
-            self._file_metrics[ref] = defaultdict(int)
+        ref = self._get_ref(src_path)
         dir_path = self.local.get_path(src_path.parent)
         name = self.local.get_remote_id(dir_path, name="nxdirecteditname")
 
@@ -1051,3 +1048,9 @@ class DirectEdit(Worker):
         if evt.event_type != "deleted":
             self._upload_queue.put(ref)
             self._file_metrics[ref][DE_SAVE_COUNT] += 1
+
+    def _get_ref(self, src_path: Path) -> Path:
+        ref = self.local.get_path(src_path)
+        if ref not in self._file_metrics:
+            self._file_metrics[ref] = defaultdict(int)
+        return ref

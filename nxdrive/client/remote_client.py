@@ -4,6 +4,7 @@ import socket
 from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
+from platform import machine
 from time import monotonic_ns
 from typing import (
     TYPE_CHECKING,
@@ -47,6 +48,8 @@ from ..metrics.constants import (
     METRICS_GA,
     METRICS_LOCALE,
     METRICS_SENTRY,
+    OS_LOCALE,
+    OS_MACHINE,
     UPDATER_CHANNEL,
 )
 from ..metrics.poll_metrics import CustomPollMetrics
@@ -54,7 +57,13 @@ from ..metrics.utils import current_os, user_agent
 from ..objects import Download, NuxeoDocumentInfo, RemoteFileInfo
 from ..options import Options
 from ..qt.imports import QApplication
-from ..utils import compute_digest, lock_path, sizeof_fmt, unlock_path
+from ..utils import (
+    compute_digest,
+    get_current_locale,
+    lock_path,
+    sizeof_fmt,
+    unlock_path,
+)
 from .proxy import Proxy
 from .uploader import BaseUploader
 from .uploader.sync import SyncUploader
@@ -117,6 +126,8 @@ class Remote(Nuxeo):
             METRICS_SENTRY: int(Options.use_sentry),
             UPDATER_CHANNEL: Options.channel,
             METRICS_LOCALE: Options.locale,
+            OS_MACHINE: machine(),
+            OS_LOCALE: get_current_locale(),
         }
 
         self.client.headers.update(

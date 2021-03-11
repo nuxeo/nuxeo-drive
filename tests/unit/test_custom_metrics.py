@@ -68,7 +68,7 @@ def test_with_some_errors(my_remote):
 
 
 def test_thread_interrupt(my_remote):
-    """A ThreadInterrupt exception is thrown, stopping the _poll."""
+    """A ThreadInterrupt exception is thrown, stopping the poll."""
 
     called_count = 0
 
@@ -95,9 +95,7 @@ def test_disabled_metrics(my_remote):
     """Custom metrics are disabled, nothing is sent."""
 
     called_count = 0
-
-    options = {"custom_metrics": False}
-    Options.update(options, setter="local")
+    Options.custom_metrics = False
 
     def fake_client_request(self, *_, **__):
         """Mocked'ed client request"""

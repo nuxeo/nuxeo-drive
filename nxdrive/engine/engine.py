@@ -889,17 +889,11 @@ class Engine(QObject):
         return url
 
     def _send_roots_metrics(self) -> None:
-        root_info = self.remote.get_filesystem_root_info()
+        roots_count = self.dao.get_count(
+            "remote_parent_ref = 'org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#'"
+        )
         self.remote.metrics.send(
-            {
-                REQUEST_METRICS: json.dumps(
-                    {
-                        SYNC_ROOT_COUNT: len(
-                            self.remote.get_fs_children(root_info.uid, filtered=True)
-                        )
-                    }
-                )
-            }
+            {REQUEST_METRICS: json.dumps({SYNC_ROOT_COUNT: roots_count})}
         )
 
     def _load_configuration(self) -> None:

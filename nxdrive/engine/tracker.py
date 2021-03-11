@@ -8,15 +8,12 @@ from typing import TYPE_CHECKING, Any, Callable, Dict
 
 import requests
 
-from ..constants import APP_NAME, MAC, WINDOWS
+from ..constants import APP_NAME
 from ..metrics.utils import current_os, user_agent
 from ..options import Options
 from ..qt.imports import pyqtSlot
-from ..utils import if_frozen
+from ..utils import get_current_locale, if_frozen
 from .workers import PollWorker
-
-if not MAC:
-    import locale
 
 if TYPE_CHECKING:
     from ..manager import Manager  # noqa
@@ -92,28 +89,7 @@ class Tracker(PollWorker):
         if self.__current_locale:
             return self.__current_locale
 
-        # Guess the encoding
-        if MAC:
-            # Always UTF-8 on macOS
-            encoding = "UTF-8"
-        else:
-            encoding = locale.getdefaultlocale()[1] or ""
-
-        # Guess the current locale name
-        if WINDOWS:
-            import ctypes
-
-            l10n_code = ctypes.windll.kernel32.GetUserDefaultUILanguage()
-            l10n = locale.windows_locale[l10n_code]
-        elif MAC:
-            from CoreServices import NSLocale
-
-            l10n_code = NSLocale.currentLocale()
-            l10n = NSLocale.localeIdentifier(l10n_code)
-        else:
-            l10n = locale.getdefaultlocale()[0] or ""
-
-        self.__current_locale = ".".join([l10n, encoding])
+        self.__current_locale = get_current_locale()
         return self.__current_locale
 
     def send_event(

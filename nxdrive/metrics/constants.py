@@ -1,6 +1,6 @@
 # HTTP headers for metrics
-REQUEST_METRICS = "NX-metric-drive.request"
-GLOBAL_METRICS = "NX-metric-drive.global"
+REQUEST_METRICS = "NX-metric-drive-request"
+GLOBAL_METRICS = "NX-metric-drive-global"
 
 # Endpoint for async metrics
 ENDPOINT = "/site/api/v1/me"
@@ -15,7 +15,9 @@ METRICS_CUSTOM = "metrics.custom"
 METRICS_GA = "metrics.ga"
 METRICS_SENTRY = "metrics.sentry"
 UPDATER_CHANNEL = "updater.channel"
-METRICS_LOCALE = "locale"
+METRICS_LOCALE = "execution.locale"
+OS_MACHINE = "os.machine"
+OS_LOCALE = "os.locale"
 
 # Direct Edit
 DE_CONFLICT_HIT = "directEdit.conflict.hit"
@@ -31,7 +33,6 @@ DT_SESSION_STATUS = "directTransfer.session.status"
 
 # Synchronization
 SYNC_ERROR_LABEL = "sync.error.label"
-SYNC_ERROR_TRACE = "sync.error.trace"
 SYNC_ACTION = "sync.action"
 SYNC_TIME = "sync.time"
 

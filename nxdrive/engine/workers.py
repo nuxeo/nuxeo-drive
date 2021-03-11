@@ -5,12 +5,7 @@ from time import sleep, time
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
 
 from ..exceptions import ThreadInterrupt
-from ..metrics.constants import (
-    REQUEST_METRICS,
-    SYNC_ACTION,
-    SYNC_ERROR_LABEL,
-    SYNC_ERROR_TRACE,
-)
+from ..metrics.constants import REQUEST_METRICS, SYNC_ACTION, SYNC_ERROR_LABEL
 from ..objects import DocPair, Metrics
 from ..qt.imports import QCoreApplication, QObject, QRunnable, QThread, pyqtSlot
 from ..utils import current_thread_id
@@ -234,8 +229,6 @@ class EngineWorker(Worker):
             SYNC_ERROR_LABEL: error.lower(),
             SYNC_ACTION: doc_pair.pair_state,
         }
-        if exception:
-            metrics[SYNC_ERROR_TRACE] = str(exception)
         self.engine.remote.metrics.send({REQUEST_METRICS: json.dumps(metrics)})
 
     def increase_error(

@@ -51,6 +51,9 @@ from .exceptions import (
 from .metrics.utils import user_agent
 from .options import Options
 
+if not MAC:
+    import locale
+
 if TYPE_CHECKING:
     from .client.proxy import Proxy  # noqa
 
@@ -1096,3 +1099,31 @@ def today_is_special() -> bool:
         os.getenv("I_LOVE_XMAS", "0") == "1"
         or int(datetime.utcnow().strftime("%j")) >= 354
     )
+
+
+def get_current_locale() -> str:
+    """ Detect and return the OS default language. """
+
+    # Guess the encoding
+    if MAC:
+        # Always UTF-8 on macOS
+        encoding = "UTF-8"
+    else:
+        encoding = locale.getdefaultlocale()[1] or ""
+
+    # Guess the current locale name
+    if WINDOWS:
+        import ctypes
+
+        l10n_code = ctypes.windll.kernel32.GetUserDefaultUILanguage()
+        l10n = locale.windows_locale[l10n_code]
+    elif MAC:
+        from CoreServices import NSLocale
+
+        l10n_code = NSLocale.currentLocale()
+        l10n = NSLocale.localeIdentifier(l10n_code)
+    else:
+        l10n = locale.getdefaultlocale()[0] or ""
+
+    current_locale = ".".join([l10n, encoding])
+    return current_locale

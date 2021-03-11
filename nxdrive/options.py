@@ -122,6 +122,9 @@ _IS_FROZEN = _get_freezer() is not None
 DEFAULT_LOG_LEVEL_CONSOLE = "WARNING"
 DEFAULT_LOG_LEVEL_FILE = "DEBUG" if _IS_ALPHA or not _IS_FROZEN else "INFO"
 
+# Used to differentiate between QA/dev and prod
+_DEFAULT_EXEC_PROFILE = "public" if _IS_FROZEN else "private"
+
 
 class CallableFeatureHandler:
     """
@@ -228,9 +231,6 @@ class MetaOptions(type):
         "original_version",
     }
 
-    # Used to differentiate between QA/dev and prod
-    _default_exec_profile = "public" if _IS_FROZEN else "private"
-
     # Default options
     options: Dict[str, Tuple[Any, str]] = {
         "big_file": (300, "default"),
@@ -251,7 +251,7 @@ class MetaOptions(type):
         "deletion_behavior": ("unsync", "default"),
         "disabled_file_integrity_check": (False, "default"),
         "disallowed_types_for_dt": (__doctypes_no_dt, "default"),
-        "exec_profile": (_default_exec_profile, "default"),
+        "exec_profile": (_DEFAULT_EXEC_PROFILE, "default"),
         "findersync_batch_size": (50, "default"),
         "force_locale": (None, "default"),
         "freezer": (_get_freezer(), "default"),
@@ -607,7 +607,7 @@ def validate_tmp_file_limit(value: Union[int, float], /) -> float:
     raise ValueError("Temporary file limit must be above 0")
 
 
-def validate_exec_profile(value: str, /) -> str:
+def _validate_exec_profile(value: str, /) -> str:
     if value in ("public", "private"):
         return value
     raise ValueError("Can only be 'public' or 'private'.")
@@ -629,4 +629,4 @@ Options.checkers["use_sentry"] = validate_use_sentry
 Options.checkers["tmp_file_limit"] = validate_tmp_file_limit
 Options.checkers["cert_file"] = validate_cert_path
 Options.checkers["cert_key_file"] = validate_cert_path
-Options.checkers["exec_profile"] = validate_exec_profile
+Options.checkers["exec_profile"] = _validate_exec_profile
