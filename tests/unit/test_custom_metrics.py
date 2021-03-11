@@ -126,7 +126,7 @@ def test_current_os_full():
     if MAC:
         expected = r"^macOS \d{2}\.\d{1,2}\.\d{1,2}$"
     elif WINDOWS:
-        expected = r"^Windows \d{1,2}\.\d{1,2}\.\d{1,2}$"
+        expected = r"^Windows \d{1,2}\.\d{1,2}\.\d+$"
     else:
         expected = r"^\w+ \d{1,2}\.\d{1,2}\.\d{1,2}$"
     assert re.fullmatch(expected, current_os(full=True))
