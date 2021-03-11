@@ -1,11 +1,17 @@
 """
 Uploader used by the Direct Transfer feature.
 """
+import json
 from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from ...engine.activity import LinkingAction, UploadAction
+from ...metrics.constants import (
+    DT_DUPLICATE_BEHAVIOR,
+    DT_SESSION_NUMBER,
+    REQUEST_METRICS,
+)
 from ...objects import DocPair, Upload
 from . import BaseUploader
 
@@ -69,6 +75,7 @@ class DirectTransferUploader(BaseUploader):
             item = self.remote.upload_folder(
                 doc_pair.remote_parent_path,
                 {"title": doc_pair.local_name},
+                headers={DT_SESSION_NUMBER: doc_pair.session},
             )
             self.dao.update_remote_parent_path_dt(file_path, item["path"], item["uid"])
         else:
@@ -86,6 +93,14 @@ class DirectTransferUploader(BaseUploader):
                 remote_parent_path=doc_pair.remote_parent_path,
                 remote_parent_ref=doc_pair.remote_parent_ref,
                 doc_pair=doc_pair.id,
+                headers={
+                    REQUEST_METRICS: json.dumps(
+                        {
+                            DT_DUPLICATE_BEHAVIOR: doc_pair.duplicate_behavior,
+                            DT_SESSION_NUMBER: doc_pair.session,
+                        }
+                    )
+                },
             )
         self.dao.save_session_item(doc_pair.session, item)
         return item

@@ -27,6 +27,12 @@ from .engine.watcher.local_watcher import DriveFSEventHandler
 from .engine.workers import Worker
 from .exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt
 from .feature import Feature
+from .metrics.constants import (
+    DE_CONFLICT_HIT,
+    DE_ERROR_COUNT,
+    DE_RECOVERY_HIT,
+    DE_SAVE_COUNT,
+)
 from .objects import DirectEditDetails, Metrics, NuxeoDocumentInfo
 from .options import Options
 from .qt.imports import pyqtSignal, pyqtSlot
@@ -117,6 +123,7 @@ class DirectEdit(Worker):
         self.directEditUploadCompleted.connect(
             self._manager.notification_service._directEditUpdated
         )
+        self._file_metrics: Dict[Path, Any] = {}
 
     @pyqtSlot(object)
     def _autolock_orphans(self, locks: List[Path], /) -> None:
@@ -128,11 +135,11 @@ class DirectEdit(Worker):
                 self._lock_queue.put((ref, "unlock_orphan"))
 
     def autolock_lock(self, src_path: Path, /) -> None:
-        ref = self.local.get_path(src_path)
+        ref = self._get_ref(src_path)
         self._lock_queue.put((ref, "lock"))
 
     def autolock_unlock(self, src_path: Path) -> None:
-        ref = self.local.get_path(src_path)
+        ref = self._get_ref(src_path)
         self._lock_queue.put((ref, "unlock"))
 
     def start(self) -> None:
@@ -659,10 +666,10 @@ class DirectEdit(Worker):
         # Document locked!
         return True
 
-    def _unlock(self, remote: Remote, uid: str, /) -> bool:
+    def _unlock(self, remote: Remote, uid: str, ref: Path, /) -> bool:
         """Unlock a document. Return True if purge is needed."""
         try:
-            remote.unlock(uid)
+            remote.unlock(uid, headers=self._file_metrics.pop(ref, {}))
         except NotFound:
             return True
         except HTTPError as exc:
@@ -702,7 +709,7 @@ class DirectEdit(Worker):
                     self.autolock.documentLocked.emit(ref.name)
                     continue
 
-                purge = self._unlock(remote, uid)
+                purge = self._unlock(remote, uid, ref)
 
                 if purge or action == "unlock_orphan":
                     path = self.local.abspath(ref)
@@ -824,6 +831,7 @@ class DirectEdit(Worker):
                             f"recorded one {details.digest!r} - conflict detected for {ref!r}"
                         )
                         self.directEditConflict.emit(ref.name, ref, remote_blob.digest)
+                        remote.metrics.send({DE_CONFLICT_HIT: 1})
                         continue
 
                 log.info(f"Uploading file {os_path!r}")
@@ -844,6 +852,10 @@ class DirectEdit(Worker):
                     is_direct_edit=True,
                     **kwargs,
                 )
+
+                # The file is in the upload queue but not in the dict if it is pushed by the recovery system.
+                if ref not in self._file_metrics:
+                    remote.metrics.send({DE_RECOVERY_HIT: 1})
 
                 # Update hash value
                 dir_path = ref.parent
@@ -871,7 +883,7 @@ class DirectEdit(Worker):
             except CONNECTION_ERROR:
                 # Try again in 30s
                 log.warning(f"Connection error while uploading {ref!r}", exc_info=True)
-                self._handle_upload_error(ref, os_path)
+                self._handle_upload_error(ref, os_path, remote)
             except HTTPError as e:
                 if e.status == 500 and "Cannot set property on a version" in e.message:
                     log.warning(
@@ -886,14 +898,18 @@ class DirectEdit(Worker):
                 else:
                     # Try again in 30s
                     log.exception(f"Direct Edit unhandled HTTP error for ref {ref!r}")
-                    self._handle_upload_error(ref, os_path)
+                    self._handle_upload_error(ref, os_path, remote)
             except Exception:
                 # Try again in 30s
                 log.exception(f"Direct Edit unhandled error for ref {ref!r}")
-                self._handle_upload_error(ref, os_path)
+                self._handle_upload_error(ref, os_path, remote)
 
-    def _handle_upload_error(self, ref: Path, os_path: Path, /) -> None:
+    def _handle_upload_error(self, ref: Path, os_path: Path, remote: Remote, /) -> None:
         """Retry the upload if the number of attempts is below *._error_threshold* else discard it."""
+        if ref not in self._file_metrics:
+            self._file_metrics[ref] = defaultdict(int)
+        self._file_metrics[ref][DE_ERROR_COUNT] += 1
+
         self._upload_errors[ref] += 1
         if self._upload_errors[ref] < self._error_threshold:
             self._error_queue.push(ref)
@@ -904,6 +920,7 @@ class DirectEdit(Worker):
             "DIRECT_EDIT_UPLOAD_FAILED",
             [f'<a href="file:///{os_path.parent}">{ref.name}</a>'],
         )
+        remote.metrics.send(self._file_metrics.pop(ref, {}))
         self._upload_errors.pop(ref, None)
 
     def _handle_queues(self) -> None:
@@ -988,7 +1005,7 @@ class DirectEdit(Worker):
         if evt.event_type == "moved":
             src_path = normalize_event_filename(evt.dest_path)
 
-        ref = self.local.get_path(src_path)
+        ref = self._get_ref(src_path)
         dir_path = self.local.get_path(src_path.parent)
         name = self.local.get_remote_id(dir_path, name="nxdirecteditname")
 
@@ -1022,3 +1039,10 @@ class DirectEdit(Worker):
 
         if evt.event_type != "deleted":
             self._upload_queue.put(ref)
+            self._file_metrics[ref][DE_SAVE_COUNT] += 1
+
+    def _get_ref(self, src_path: Path) -> Path:
+        ref = self.local.get_path(src_path)
+        if ref not in self._file_metrics:
+            self._file_metrics[ref] = defaultdict(int)
+        return ref

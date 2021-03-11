@@ -1,8 +1,10 @@
+import json
 import os
 import socket
 from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
+from platform import machine
 from time import monotonic_ns
 from typing import (
     TYPE_CHECKING,
@@ -37,10 +39,32 @@ from ..constants import (
 )
 from ..engine.activity import Action, DownloadAction, UploadAction, VerificationAction
 from ..exceptions import DownloadPaused, NotFound, ScrollDescendantsError, UploadPaused
+from ..metrics.constants import (
+    EXEC_LOCALE,
+    EXEC_PROFILE,
+    EXEC_SESSION_UID,
+    GLOBAL_METRICS,
+    INSTALLATION_TYPE,
+    METRICS_CUSTOM,
+    METRICS_GA,
+    METRICS_SENTRY,
+    OS_LOCALE,
+    OS_MACHINE,
+    REQUEST_METRICS,
+    UPDATER_CHANNEL,
+)
+from ..metrics.poll_metrics import CustomPollMetrics
+from ..metrics.utils import current_os, user_agent
 from ..objects import Download, NuxeoDocumentInfo, RemoteFileInfo
 from ..options import Options
 from ..qt.imports import QApplication
-from ..utils import compute_digest, get_device, lock_path, sizeof_fmt, unlock_path
+from ..utils import (
+    compute_digest,
+    get_current_locale,
+    lock_path,
+    sizeof_fmt,
+    unlock_path,
+)
 from .proxy import Proxy
 from .uploader import BaseUploader
 from .uploader.sync import SyncUploader
@@ -92,11 +116,28 @@ class Remote(Nuxeo):
             cert=cert,
         )
 
+        installation_type = "system" if Options.system_wide else "user"
+
+        nx_metrics = {
+            INSTALLATION_TYPE: installation_type,
+            EXEC_PROFILE: Options.exec_profile,
+            EXEC_SESSION_UID: Options.session_uid,
+            METRICS_CUSTOM: int(Options.custom_metrics),
+            METRICS_GA: int(Options.use_analytics),
+            METRICS_SENTRY: int(Options.use_sentry),
+            UPDATER_CHANNEL: Options.channel,
+            EXEC_LOCALE: Options.locale,
+            OS_MACHINE: machine(),
+            OS_LOCALE: get_current_locale(),
+        }
+
         self.client.headers.update(
             {
                 "X-User-Id": user_id,
                 "X-Device-Id": device_id,
                 "Cache-Control": "no-cache",
+                "User-Agent": user_agent(),
+                GLOBAL_METRICS: json.dumps(nx_metrics),
             }
         )
 
@@ -137,6 +178,9 @@ class Remote(Nuxeo):
 
         # Cache the result for future uploads
         self.uploads.has_s3()
+
+        self.metrics = CustomPollMetrics(self)
+        self.metrics.start()
 
     def __repr__(self) -> str:
         attrs = ", ".join(
@@ -259,7 +303,7 @@ class Remote(Nuxeo):
             device_id=self.device_id,
             app_name=APP_NAME,
             permission=TOKEN_PERMISSION,
-            device=get_device(),
+            device=current_os(full=True),
             revoke=revoke,
         )
         return None if "\n" in token else token
@@ -448,13 +492,18 @@ class Remote(Nuxeo):
         """Upload a file with a batch."""
         return uploader(self).upload(path, **kwargs)
 
-    def upload_folder(self, parent: str, params: Dict[str, str], /) -> Dict[str, Any]:
+    def upload_folder(
+        self, parent: str, params: Dict[str, str], /, *, headers: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
         """Create a folder using the FileManager."""
-        res: Dict[str, Any] = self.execute(
-            command="FileManager.CreateFolder",
-            input_obj=parent,
-            params=params,
-        )
+        kwargs: Dict[str, Any] = {
+            "command": "FileManager.CreateFolder",
+            "input_obj": parent,
+            "params": params,
+        }
+        if headers:
+            kwargs["headers"] = {REQUEST_METRICS: json.dumps(headers)}
+        res: Dict[str, Any] = self.execute(**kwargs)
         return res
 
     def cancel_batch(self, batch_details: Dict[str, Any], /) -> None:
@@ -754,8 +803,14 @@ class Remote(Nuxeo):
     def lock(self, ref: str, /) -> None:
         self.execute(command="Document.Lock", input_obj=f"doc:{self.check_ref(ref)}")
 
-    def unlock(self, ref: str, /) -> None:
-        self.execute(command="Document.Unlock", input_obj=f"doc:{self.check_ref(ref)}")
+    def unlock(self, ref: str, /, *, headers: Dict[str, Any] = None) -> None:
+        kwargs: Dict[str, Any] = {
+            "command": "Document.Unlock",
+            "input_obj": f"doc:{self.check_ref(ref)}",
+        }
+        if headers:
+            kwargs["headers"] = {REQUEST_METRICS: json.dumps(headers)}
+        self.execute(**kwargs)
 
     def register_as_root(self, ref: str, /) -> bool:
         self.execute(

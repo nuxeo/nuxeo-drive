@@ -33,6 +33,7 @@ from ..exceptions import (
     StartupPageConnectionError,
 )
 from ..feature import Feature
+from ..metrics.utils import current_os
 from ..notification import Notification
 from ..objects import Binder, DocPair
 from ..options import Options
@@ -45,7 +46,6 @@ from ..utils import (
     force_decode,
     get_date_from_sqlite,
     get_default_local_folder,
-    get_device,
     normalized_path,
     sizeof_fmt,
     test_url,
@@ -530,7 +530,7 @@ class QMLDriveApi(QObject):
                 "deviceId": self._manager.device_id,
                 "applicationName": APP_NAME,
                 "permission": TOKEN_PERMISSION,
-                "deviceDescription": get_device(),
+                "deviceDescription": current_os(full=True),
                 "forceAnonymousLogin": "true",
                 "useProtocol": "true",
             }

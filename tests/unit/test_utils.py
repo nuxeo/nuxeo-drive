@@ -1,6 +1,5 @@
 import configparser
 import os
-import sys
 from collections import namedtuple
 from datetime import datetime
 from math import pow
@@ -273,21 +272,6 @@ def test_generated_tempory_file(name, state):
     assert nxdrive.utils.is_generated_tmp_file(name) == state
 
 
-def test_get_arch():
-    import struct
-
-    # Clear the LRU cache to allow testing a different value
-    nxdrive.utils.get_arch.cache_clear()
-
-    with patch.object(struct, "calcsize", return_value=12):
-        assert nxdrive.utils.get_arch() == f"{12 * 8}-bit"
-
-    # Clear the LRU cache to revert previous cached value
-    nxdrive.utils.get_arch.cache_clear()
-
-    assert nxdrive.utils.get_arch() in ("32-bit", "64-bit")
-
-
 def test_get_certificate_details_from_file():
     cert_data = """
 -----BEGIN CERTIFICATE-----
@@ -401,20 +385,6 @@ def test_find_icon():
     assert isinstance(nxdrive.utils.find_icon("boom"), Path)
 
 
-def test_get_current_os():
-    ver = nxdrive.utils.get_current_os()
-    assert isinstance(ver, tuple)
-    assert ver
-    assert isinstance(ver[0], str)
-    assert isinstance(ver[1], str)
-
-
-def test_get_current_os_full():
-    ver = nxdrive.utils.get_current_os_full()
-    assert isinstance(ver, tuple)
-    assert ver
-
-
 def test_get_date_from_sqlite():
     func = nxdrive.utils.get_date_from_sqlite
 
@@ -445,19 +415,6 @@ def test_get_default_local_folder():
         assert str(folder).startswith(str(good_folder))
     else:
         assert folder == good_folder
-
-
-def test_get_device_unknown():
-    """For unknown platforms, we just remove spaces."""
-
-    # Clear the LRU cache to allow testing a different value
-    nxdrive.utils.get_device.cache_clear()
-
-    with patch.object(sys, "platform", "The Black Star"):
-        assert nxdrive.utils.get_device() == "TheBlackStar"
-
-    # Clear the LRU cache to revert previous cached value
-    nxdrive.utils.get_device.cache_clear()
 
 
 def test_get_timestamp_from_date():

@@ -2,22 +2,20 @@ import os
 import platform
 import sys
 from logging import getLogger
+from struct import calcsize
 from time import monotonic_ns
 from typing import TYPE_CHECKING, Any, Callable, Dict
 
 import requests
 
-from ..constants import APP_NAME, MAC, WINDOWS
+from ..constants import APP_NAME
+from ..metrics.utils import current_os, user_agent
 from ..options import Options
 from ..qt.imports import pyqtSlot
-from ..utils import ga_user_agent, get_current_os, if_frozen
+from ..utils import get_current_locale, if_frozen
 from .workers import PollWorker
 
-if not MAC:
-    import locale
-
 if TYPE_CHECKING:
-    from .engine import Engine  # noqa
     from ..manager import Manager  # noqa
 
 __all__ = ("Tracker",)
@@ -50,18 +48,13 @@ class Tracker(PollWorker):
         self._manager = manager
         self.uid = uid
 
-        self._current_os = " ".join(get_current_os()).strip()
-        if WINDOWS:
-            self._current_os = f"Microsoft {self._current_os}"
-
         self._session = requests.sessions.Session()
         self._tracking_url = "https://ssl.google-analytics.com/collect"
-        self.__current_locale = ""
 
         # Main dimensions, see .send_event() docstring for details.
         self._dimensions = {
-            "cd10": self._manager.arch,
-            "cd11": self._current_os,
+            "cd10": f"{calcsize('P') * 8}-bit",
+            "cd11": current_os(),
             "cd12": Options.channel,
             "cd13": platform.machine() or "unknown",
         }
@@ -73,59 +66,20 @@ class Tracker(PollWorker):
             # "aip": "1",  # anonymize IP
             "tid": self.uid,  # tracking ID
             "cid": self._manager.device_id,  # client ID
-            "ua": self.user_agent,  # user agent
+            "ua": user_agent(),  # user agent
             "de": sys.getfilesystemencoding(),  # encoding
-            "ul": self.current_locale,  # language
+            "ul": get_current_locale(),  # language
             "an": APP_NAME,  # application name
             "av": self._manager.version,  # application version
         }
 
-        self._session.headers.update({"user-agent": self.user_agent})
+        self._session.headers.update({"user-agent": user_agent()})
 
         log.debug(
             f"Created the Google Analytics tracker with data {self._data} and custom dimensions {self._dimensions}"
         )
 
         self._hello_sent = False
-
-    @property
-    def current_locale(self) -> str:
-        """ Detect the OS default language. """
-
-        if self.__current_locale:
-            return self.__current_locale
-
-        # Guess the encoding
-        if MAC:
-            # Always UTF-8 on macOS
-            encoding = "UTF-8"
-        else:
-            encoding = locale.getdefaultlocale()[1] or ""
-
-        # Guess the current locale name
-        if WINDOWS:
-            import ctypes
-
-            l10n_code = ctypes.windll.kernel32.GetUserDefaultUILanguage()
-            l10n = locale.windows_locale[l10n_code]
-        elif MAC:
-            from CoreServices import NSLocale
-
-            l10n_code = NSLocale.currentLocale()
-            l10n = NSLocale.localeIdentifier(l10n_code)
-        else:
-            l10n = locale.getdefaultlocale()[0] or ""
-
-        self.__current_locale = ".".join([l10n, encoding])
-        return self.__current_locale
-
-    @property
-    def user_agent(self) -> str:
-        """ Format a custom user agent. """
-
-        return (
-            f"{APP_NAME.replace(' ', '-')}/{self._manager.version} ({ga_user_agent()})"
-        )
 
     def send_event(
         self,

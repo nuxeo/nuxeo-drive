@@ -24,6 +24,7 @@ from ..constants import (
     LINUX,
     MAC,
     ROOT,
+    SYNC_ROOT,
     WINDOWS,
     DelAction,
     TransferStatus,
@@ -36,6 +37,7 @@ from ..exceptions import (
     RootAlreadyBindWithDifferentAccount,
     ThreadInterrupt,
 )
+from ..metrics.constants import DT_NEW_FOLDER, DT_SESSION_NUMBER, SYNC_ROOT_COUNT
 from ..objects import Binder, DocPairs, EngineDef, Metrics, Session
 from ..options import Options
 from ..qt.imports import QObject, QThread, QThreadPool, pyqtSignal, pyqtSlot
@@ -196,6 +198,8 @@ class Engine(QObject):
 
         # Will manage Runners
         self._threadpool = QThreadPool().globalInstance()
+
+        self._send_roots_metrics()
 
     def __repr__(self) -> str:
         return (
@@ -448,12 +452,13 @@ class Engine(QObject):
             )
 
     def _create_remote_folder(
-        self, remote_parent_path: str, new_folder: str, /
+        self, remote_parent_path: str, new_folder: str, session_id: int, /
     ) -> Dict[str, Any]:
         try:
             return self.remote.upload_folder(
                 remote_parent_path,
                 {"title": new_folder},
+                headers={DT_NEW_FOLDER: 1, DT_SESSION_NUMBER: session_id},
             )
         except Exception:
             log.warning(
@@ -487,7 +492,10 @@ class Engine(QObject):
         )
         if new_folder:
             self.send_metric("direct_transfer", "new_folder", "1")
-            item = self._create_remote_folder(remote_parent_path, new_folder)
+            expected_session_uid = self.dao.get_count("uid != 0", table="Sessions") + 1
+            item = self._create_remote_folder(
+                remote_parent_path, new_folder, expected_session_uid
+            )
             if not item:
                 return
             remote_parent_path = item["path"]
@@ -868,6 +876,13 @@ class Engine(QObject):
             return url + "/"
         return url
 
+    def _send_roots_metrics(self) -> None:
+        """Send a metric about the number of locally enabled sync roots."""
+        if not self.remote or not Options.synchronization_enabled:
+            return
+        roots_count = self.dao.get_count(f"remote_parent_path = '{SYNC_ROOT}'")
+        self.remote.metrics.send({SYNC_ROOT_COUNT: roots_count})
+
     def _load_configuration(self) -> None:
         self._web_authentication = self.dao.get_bool("web_authentication")
         self.server_url = self.dao.get_config("server_url")
@@ -1122,6 +1137,10 @@ class Engine(QObject):
 
         # Make a backup in case something happens
         self.dao.save_backup()
+
+        if self.remote:
+            log.debug("Sending all waiting async metrics.")
+            self.remote.metrics.force_poll()
 
         self._stopped = True
 

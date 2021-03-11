@@ -17,9 +17,6 @@ def test_tracker_instance_and_attrs(manager_factory):
         tracker = Tracker(manager, uid="")
         assert repr(tracker)
 
-        assert tracker.current_locale
-        assert tracker.user_agent
-
 
 @pytest.mark.parametrize(
     "is_frozen, use_analytics, metrics_shared",

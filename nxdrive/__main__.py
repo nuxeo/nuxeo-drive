@@ -49,8 +49,8 @@ def main() -> int:
         from sentry_sdk import configure_scope
 
         from nxdrive.commandline import CliHandler
+        from nxdrive.metrics.utils import current_os
         from nxdrive.tracing import setup_sentry
-        from nxdrive.utils import get_current_os
 
         # Setup Sentry even if the user did not allow it because it can be tweaked
         # later via the "use-sentry" parameter. It will be useless if Sentry is not installed first.
@@ -59,11 +59,10 @@ def main() -> int:
         with configure_scope() as scope:
             # Append OS and Python versions to all events
             # pylint: disable=protected-access
-            os_name, os_version = get_current_os()
             scope._contexts.update(
                 {
                     "runtime": {"name": "Python", "version": platform.python_version()},
-                    "os": {"name": os_name, "version": os_version},
+                    "os": {"name": current_os(full=True)},
                 }
             )
 

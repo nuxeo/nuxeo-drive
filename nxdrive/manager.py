@@ -5,6 +5,7 @@ import sqlite3
 import uuid
 from logging import getLogger
 from pathlib import Path
+from platform import machine
 from time import sleep
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 from urllib.parse import urlparse, urlsplit, urlunsplit
@@ -22,7 +23,6 @@ from .constants import (
     DEFAULT_SERVER_TYPE,
     NO_SPACE_ERRORS,
     STARTUP_PAGE_CONNECTION_TIMEOUT,
-    USER_AGENT,
     DelAction,
 )
 from .direct_edit import DirectEdit
@@ -40,21 +40,21 @@ from .exceptions import (
     StartupPageConnectionError,
 )
 from .feature import Feature
+from .metrics.constants import CRASHED_HIT
+from .metrics.utils import current_os, user_agent
 from .notification import DefaultNotificationService
 from .objects import Binder, EngineDef, Metrics, Session
 from .options import DEFAULT_LOG_LEVEL_FILE, Options
 from .osi import AbstractOSIntegration
 from .poll_workers import DatabaseBackupWorker, ServerOptionsUpdater, SyncAndQuitWorker
 from .qt.imports import QT_VERSION_STR, QObject, pyqtSignal, pyqtSlot
+from .state import State
 from .updater import updater
 from .updater.constants import Login
 from .utils import (
     client_certificate,
     force_decode,
-    get_arch,
-    get_current_os_full,
     get_default_local_folder,
-    get_device,
     if_frozen,
     normalized_path,
     save_config,
@@ -93,10 +93,6 @@ class Manager(QObject):
 
     def __init__(self, home: Path, /) -> None:
         super().__init__()
-
-        self.arch = get_arch()  # public because used in the Tracker
-        self._os = get_device()
-        self._platform = get_current_os_full()
 
         # Primary attributes to allow initializing the notification center early
         self.home: Path = normalized_path(home)
@@ -271,9 +267,8 @@ class Manager(QObject):
             "sentry": Options.use_sentry,
             "qt_version": QT_VERSION_STR,
             "python_version": platform.python_version(),
-            "os": self._os,
-            "platform": self._platform,
-            "arch": self.arch,
+            "os": current_os(full=True),
+            "machine": machine(),
             "appname": APP_NAME,
         }
 
@@ -444,6 +439,7 @@ class Manager(QObject):
         self._engine_definitions = self._engine_definitions or self.dao.get_engines()
         self.engines = {}
 
+        last_engine = None
         for engine in self._engine_definitions.copy():
             if engine.engine not in self._engine_types:
                 log.error(f"Cannot find {engine.engine} engine type anymore")
@@ -468,9 +464,13 @@ class Manager(QObject):
             else:
                 self.engines[engine.uid].online.connect(self._force_autoupdate)
                 self.initEngine.emit(self.engines[engine.uid])
+                last_engine = self.engines[engine.uid]
 
         if self.engines:
             self.tracker.send_metric("account", "count", str(len(self.engines)))
+
+        if last_engine and State.has_crashed:
+            last_engine.remote.metrics.send({CRASHED_HIT: 1})
 
     def _get_engine_db_file(self, uid: str, /) -> Path:
         return self.home / f"ndrive_{uid}.db"
@@ -676,7 +676,7 @@ class Manager(QObject):
             "X-Application-Name": APP_NAME,
             "X-Device-Id": self.device_id,
             "X-Client-Version": self.version,
-            "User-Agent": USER_AGENT,
+            "User-Agent": user_agent(),
         }
 
         log.info(f"Proxy configuration for startup page connection: {self.proxy}")

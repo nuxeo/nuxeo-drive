@@ -39,7 +39,6 @@ from .constants import (
     FILE_BUFFER_SIZE,
     MAC,
     UNACCESSIBLE_HASH,
-    USER_AGENT,
     WINDOWS,
     DigestStatus,
 )
@@ -49,6 +48,7 @@ from .exceptions import (
     MissingClientSSLCertificate,
     UnknownDigest,
 )
+from .metrics.utils import user_agent
 from .options import Options
 
 if TYPE_CHECKING:
@@ -63,8 +63,6 @@ DEFAULTS_CERT_DETAILS = {
     "notAfter": "N/A",
     "notBefore": "N/A",
 }
-
-DEVICE_DESCRIPTIONS = {"darwin": "macOS", "linux": "GNU/Linux", "win32": "Windows"}
 
 log = getLogger(__name__)
 
@@ -185,89 +183,6 @@ def current_milli_time() -> int:
     from time import time
 
     return int(round(time() * 1000))
-
-
-@lru_cache(maxsize=1)
-def get_arch() -> str:
-    """ Detect the OS architecture. """
-
-    from struct import calcsize
-
-    return f"{calcsize('P') * 8}-bit"
-
-
-@lru_cache(maxsize=1)
-def get_current_os() -> Tuple[str, str]:
-    """ Detect the OS version. """
-
-    device = get_device()
-
-    if device == "macOS":
-        from platform import mac_ver
-
-        # Ex: macOS 10.12.6
-        version = mac_ver()[0]
-    elif device == "GNU/Linux":
-        import distro
-
-        # Ex: Debian GNU/Linux testing buster
-        details = distro.linux_distribution()
-        device = details[0]
-        version = " ".join(details[1:])
-    else:
-        from platform import win32_ver
-
-        # Ex: Windows 7
-        version = win32_ver()[0]
-
-    return (device, version.strip())
-
-
-@lru_cache(maxsize=1)
-def get_current_os_full() -> Tuple[str, ...]:
-    """ Detect the full OS version for log debugging. """
-
-    device = get_device()
-
-    if device == "macOS":
-        from platform import mac_ver
-
-        # https://docs.python.org/3/library/platform.html#platform.mac_ver
-        ver = mac_ver()
-        return (ver[0], *ver[1], ver[2])
-    elif device == "GNU/Linux":
-        import distro
-
-        return tuple(distro.linux_distribution())
-    else:
-        from platform import win32_ver
-
-        return win32_ver()
-
-
-@lru_cache(maxsize=1)
-def ga_user_agent() -> str:
-    """Try to create a UA that is parsable by Google Analytics processor."""
-    osi = get_current_os_full()
-    if MAC:
-        return osi[0]
-    elif WINDOWS:
-        # GA determines the Windows version based on "NT X.Y"
-        release = ".".join(osi[1].split(".")[:2])  # "10.0.16299" -> "10.10"
-        return f"Windows NT {release}"
-    return " ".join(osi).strip()
-
-
-@lru_cache(maxsize=1)
-def get_device() -> str:
-    """ Retrieve the device type. """
-
-    from sys import platform
-
-    device = DEVICE_DESCRIPTIONS.get(platform)
-    if not device:
-        device = platform.replace(" ", "")
-    return device
 
 
 def get_default_local_folder() -> Path:
@@ -1146,7 +1061,7 @@ def test_url(
         "timeout": timeout,
         "verify": Options.ca_bundle or not Options.ssl_no_verify,
         "cert": client_certificate(),
-        "headers": {"User-Agent": USER_AGENT},
+        "headers": {"User-Agent": user_agent()},
     }
     try:
         parse_url(url)
@@ -1181,3 +1096,32 @@ def today_is_special() -> bool:
         os.getenv("I_LOVE_XMAS", "0") == "1"
         or int(datetime.utcnow().strftime("%j")) >= 354
     )
+
+
+def get_current_locale() -> str:
+    """ Detect and return the OS default language. """
+
+    # Guess the encoding
+    if MAC:
+        # Always UTF-8 on macOS
+        encoding = "UTF-8"
+    else:
+        import locale
+
+        encoding = locale.getdefaultlocale()[1] or ""
+
+    # Guess the current locale name
+    if WINDOWS:
+        import ctypes
+
+        l10n_code = ctypes.windll.kernel32.GetUserDefaultUILanguage()
+        l10n = locale.windows_locale[l10n_code]
+    elif MAC:
+        from CoreServices import NSLocale
+
+        l10n_code = NSLocale.currentLocale()
+        l10n = NSLocale.localeIdentifier(l10n_code)
+    else:
+        l10n = locale.getdefaultlocale()[0] or ""
+
+    return ".".join([l10n, encoding])

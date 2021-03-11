@@ -5,8 +5,6 @@ from sys import platform
 
 from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 
-from . import __version__
-
 LINUX = platform == "linux"
 MAC = platform == "darwin"
 WINDOWS = platform == "win32"
@@ -17,7 +15,6 @@ NXDRIVE_SCHEME = "nxdrive"
 BUNDLE_IDENTIFIER = "org.nuxeo.drive"
 APP_NAME = "Nuxeo Drive"
 COMPANY = "Nuxeo"
-USER_AGENT = f"{APP_NAME}/{__version__}".lower().replace(" ", "-")
 
 TIMEOUT = 20  # Seconds
 STARTUP_PAGE_CONNECTION_TIMEOUT = 30  # Seconds
@@ -49,6 +46,8 @@ UNACCESSIBLE_HASH = "TO_COMPUTE"
 TOKEN_PERMISSION = "ReadWrite"
 
 DEFAULT_SERVER_TYPE = "NXDRIVE"
+
+SYNC_ROOT = "/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#"
 
 # Document's UID and token regexp
 DOC_UID_REG = "[0-f]{8}-[0-f]{4}-[0-f]{4}-[0-f]{4}-[0-f]{12}"

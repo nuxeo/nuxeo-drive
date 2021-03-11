@@ -171,6 +171,15 @@ Define if SSL errors should be ignored.
 
 * * *
 
+#### `custom-metrics`
+
+Asynchronously send custom metrics from time to time to the server.
+
+- Default value (bool): True
+- Version added: 5.1.0
+
+* * *
+
 #### `database-batch-size`
 
 [Direct Transfer] When adding files into the database, the operation is done by batch instead of one at a time.
@@ -222,6 +231,16 @@ List of document types where Direct Transfer is not allowed.
 ]
 ```
 - Version added: 4.5.0
+
+* * *
+
+#### `exec-profile`
+
+Define the execution profile for the application in metrics.
+Can be `private` for development/QA cases or `public` for production versions.
+
+- Default value (str): `public`
+- Version added: 5.10
 
 * * *
 

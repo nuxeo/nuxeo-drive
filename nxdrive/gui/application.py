@@ -26,6 +26,7 @@ from ..engine.dao.sqlite import EngineDAO
 from ..engine.engine import Engine
 from ..feature import Beta, DisabledFeatures, Feature
 from ..gui.folders_dialog import DialogMixin, DocumentsDialog, FoldersDialog
+from ..metrics.utils import current_os
 from ..notification import Notification
 from ..options import Options
 from ..qt import constants as qt
@@ -72,8 +73,6 @@ from ..utils import (
     find_icon,
     find_resource,
     force_decode,
-    get_current_os_full,
-    get_device,
     if_frozen,
     normalize_event_filename,
     normalized_path,
@@ -1045,7 +1044,7 @@ class Application(QApplication):
                     device_id=self.manager.device_id,
                     app_name=APP_NAME,
                     permission=TOKEN_PERMISSION,
-                    device=get_device(),
+                    device=current_os(full=True),
                 )
             except Exception as exc:
                 log.error(f"Connection error: {exc}")
@@ -1117,6 +1116,7 @@ class Application(QApplication):
         )
 
         engine.newSyncEnded.connect(self.manager.tracker.send_sync_event)
+        engine.newSyncEnded.connect(engine.remote.metrics.push_sync_event)
 
         self.change_systray_icon()
 
@@ -1467,8 +1467,9 @@ class Application(QApplication):
             use_light_icons = False
 
             if LINUX:
-                platform = get_current_os_full()
-                if "manjaro" in platform[0].lower():
+                import distro
+
+                if "manjaro" in distro.name().lower():
                     # Manjaro has a dark them by default and the notification area has the same color
                     # as our dark icons, so use the light ones.
                     use_light_icons = True
