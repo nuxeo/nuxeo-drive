@@ -1,3 +1,5 @@
+from nxdrive.constants import SYNC_ROOT
+
 from .common import FS_ITEM_ID_PREFIX, SYNC_ROOT_FAC_ID, OneUserTest
 
 
@@ -38,11 +40,7 @@ class TestLocalFilter(OneUserTest):
 
         # Add remote folder as filter then synchronize
         doc = remote.get_info("/Test folder")
-        root_path = (
-            "/org.nuxeo.drive.service.impl."
-            "DefaultTopLevelFolderItemFactory#/"
-            f"{SYNC_ROOT_FAC_ID}{doc.root}"
-        )
+        root_path = f"{SYNC_ROOT}/{SYNC_ROOT_FAC_ID}{doc.root}"
         doc_path = f"{root_path}/{FS_ITEM_ID_PREFIX}{doc.uid}"
 
         self.engine_1.add_filter(doc_path)
@@ -125,11 +123,7 @@ class TestLocalFilter(OneUserTest):
         doc_file = remote.get_info("/Test/joe.txt")
         doc = remote.get_info("/Test")
         filtered_doc = remote.get_info("/Test/Filtered")
-        root_path = (
-            "/org.nuxeo.drive.service.impl."
-            "DefaultTopLevelFolderItemFactory#/"
-            f"{SYNC_ROOT_FAC_ID}{doc.root}"
-        )
+        root_path = f"{SYNC_ROOT}/{SYNC_ROOT_FAC_ID}{doc.root}"
         doc_path_filtered = f"{root_path}/{FS_ITEM_ID_PREFIX}{doc.uid}/{FS_ITEM_ID_PREFIX}{filtered_doc.uid}"
 
         self.engine_1.add_filter(doc_path_filtered)
@@ -179,11 +173,7 @@ class TestLocalFilter(OneUserTest):
 
         # Add remote folder as filter then synchronize
         doc = remote.get_info("/Test")
-        root_path = (
-            "/org.nuxeo.drive.service.impl."
-            "DefaultTopLevelFolderItemFactory#/"
-            f"{SYNC_ROOT_FAC_ID}{doc.root}"
-        )
+        root_path = f"{SYNC_ROOT}/{SYNC_ROOT_FAC_ID}{doc.root}"
         doc_path = f"{root_path}/{FS_ITEM_ID_PREFIX}{doc.uid}"
 
         self.engine_1.add_filter(doc_path)

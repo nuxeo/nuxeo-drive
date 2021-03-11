@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from nuxeo.exceptions import Forbidden
 
-from nxdrive.constants import WINDOWS
+from nxdrive.constants import SYNC_ROOT, WINDOWS
 
 from ..markers import windows_only
 from .common import FS_ITEM_ID_PREFIX, SYNC_ROOT_FAC_ID, OneUserTest, TwoUsersTest
@@ -387,9 +387,7 @@ class TestReadOnly(OneUserTest):
             assert self.engine_1.dao.get_filters()
             doc_pair = remote.get_info(folder_ro1)
             ref = (
-                "/org.nuxeo.drive.service.impl"
-                ".DefaultTopLevelFolderItemFactory#"
-                f"/{SYNC_ROOT_FAC_ID}"
+                f"{SYNC_ROOT}/{SYNC_ROOT_FAC_ID}"
                 f"{doc_pair.root}/{FS_ITEM_ID_PREFIX}{doc_pair.uid}"
             )
             assert self.engine_1.dao.is_filter(ref)
