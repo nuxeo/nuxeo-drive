@@ -47,6 +47,8 @@ TOKEN_PERMISSION = "ReadWrite"
 
 DEFAULT_SERVER_TYPE = "NXDRIVE"
 
+SYNC_ROOT = "/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#"
+
 # Document's UID and token regexp
 DOC_UID_REG = "[0-f]{8}-[0-f]{4}-[0-f]{4}-[0-f]{4}-[0-f]{12}"
 

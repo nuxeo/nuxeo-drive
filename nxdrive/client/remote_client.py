@@ -803,7 +803,7 @@ class Remote(Nuxeo):
     def lock(self, ref: str, /) -> None:
         self.execute(command="Document.Lock", input_obj=f"doc:{self.check_ref(ref)}")
 
-    def unlock(self, ref: str, /, *, headers: Optional[Dict[str, int]] = None) -> None:
+    def unlock(self, ref: str, /, *, headers: Optional[Dict[str, Any]] = None) -> None:
         kwargs = {
             "command": "Document.Unlock",
             "input_obj": f"doc:{self.check_ref(ref)}",

@@ -5,8 +5,6 @@ GLOBAL_METRICS = "NX-metric-drive-global"
 # Endpoint for async metrics
 ENDPOINT = "/site/api/v1/me"
 
-CHECK_INTERVAL = 60 * 15
-
 # General
 INSTALLATION_TYPE = "installation.type"
 EXEC_PROFILE = "execution.profile"

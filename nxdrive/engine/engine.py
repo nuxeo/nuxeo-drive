@@ -25,6 +25,7 @@ from ..constants import (
     LINUX,
     MAC,
     ROOT,
+    SYNC_ROOT,
     WINDOWS,
     DelAction,
     TransferStatus,
@@ -882,14 +883,11 @@ class Engine(QObject):
         return url
 
     def _send_roots_metrics(self) -> None:
-        if not self.remote:
+        """Send a metric about the number of locally enabled sync roots."""
+        if not self.remote or not Options.synchronization_enabled:
             return
-        roots_count = self.dao.get_count(
-            "remote_parent_ref = 'org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#'"
-        )
-        self.remote.metrics.send(
-            {REQUEST_METRICS: json.dumps({SYNC_ROOT_COUNT: roots_count})}
-        )
+        roots_count = self.dao.get_count(f"remote_parent_path = '{SYNC_ROOT}'")
+        self.remote.metrics.send(SYNC_ROOT_COUNT=roots_count)
 
     def _load_configuration(self) -> None:
         self._web_authentication = self.dao.get_bool("web_authentication")

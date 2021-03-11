@@ -244,6 +244,7 @@ class MetaOptions(type):
         "chunk_upload": (True, "default"),
         "client_version": (None, "default"),
         "custom_metrics": (True, "default"),
+        "custom_metrics_poll_interval": (60 * 15, "default"),
         "database_batch_size": (256, "default"),
         "debug": (False, "default"),
         "debug_pydev": (False, "default"),
