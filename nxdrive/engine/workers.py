@@ -4,7 +4,7 @@ from time import sleep, time
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
 
 from ..exceptions import ThreadInterrupt
-from ..metrics.constants import SYNC_ACTION, SYNC_ERROR_LABEL  # noqa
+from ..metrics.constants import SYNC_ACTION, SYNC_ERROR_LABEL
 from ..objects import DocPair, Metrics
 from ..qt.imports import QCoreApplication, QObject, QRunnable, QThread, pyqtSlot
 from ..utils import current_thread_id
