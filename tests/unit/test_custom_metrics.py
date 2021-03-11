@@ -106,7 +106,7 @@ def test_disabled_metrics(my_remote):
         metrics = CustomPollMetrics(my_remote)
         for _ in range(0, 12):
             metrics.send({"test": "data"})
-        assert not metrics._poll()
+        metrics._poll()
         assert called_count == 0
         assert metrics._metrics_queue.empty()
         assert metrics._metrics_queue.qsize() == 0
