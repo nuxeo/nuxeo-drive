@@ -63,7 +63,7 @@ class CustomPollMetrics(PollWorker):
 
     def send(self, metrics: Metrics) -> None:
         """Push metrics into the queue, if enabled."""
-        if not self._enabled:
+        if not self._enabled or not metrics:
             return
         self._metrics_queue.put(metrics)
 
