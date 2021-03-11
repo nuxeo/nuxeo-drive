@@ -882,6 +882,8 @@ class Engine(QObject):
         return url
 
     def _send_roots_metrics(self) -> None:
+        if not self.remote:
+            return
         roots_count = self.dao.get_count(
             "remote_parent_ref = 'org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#'"
         )
