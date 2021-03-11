@@ -75,9 +75,7 @@ class DirectTransferUploader(BaseUploader):
             item = self.remote.upload_folder(
                 doc_pair.remote_parent_path,
                 {"title": doc_pair.local_name},
-                headers={
-                    REQUEST_METRICS: json.dumps({DT_SESSION_NUMBER: doc_pair.session})
-                },
+                headers={DT_SESSION_NUMBER: doc_pair.session},
             )
             self.dao.update_remote_parent_path_dt(file_path, item["path"], item["uid"])
         else:

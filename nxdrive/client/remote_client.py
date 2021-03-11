@@ -493,15 +493,17 @@ class Remote(Nuxeo):
         return uploader(self).upload(path, **kwargs)
 
     def upload_folder(
-        self, parent: str, params: Dict[str, str], /, *, headers: Dict[str, Any] = {}
+        self, parent: str, params: Dict[str, str], /, *, headers: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """Create a folder using the FileManager."""
-        res: Dict[str, Any] = self.execute(
-            command="FileManager.CreateFolder",
-            input_obj=parent,
-            params=params,
-            headers=headers,
-        )
+        kwargs = {
+            "command": "FileManager.CreateFolder",
+            "input_obj": parent,
+            "params": params,
+        }
+        if headers:
+            kwargs["headers"] = {REQUEST_METRICS: json.dumps(headers)}
+        res: Dict[str, Any] = self.execute(**kwargs)
         return res
 
     def cancel_batch(self, batch_details: Dict[str, Any], /) -> None:
@@ -801,7 +803,7 @@ class Remote(Nuxeo):
     def lock(self, ref: str, /) -> None:
         self.execute(command="Document.Lock", input_obj=f"doc:{self.check_ref(ref)}")
 
-    def unlock(self, ref: str, headers: Dict[str, Any], /) -> None:
+    def unlock(self, ref: str, /, *, headers: Optional[Dict[str, int]] = None) -> None:
         kwargs = {
             "command": "Document.Unlock",
             "input_obj": f"doc:{self.check_ref(ref)}",

@@ -463,14 +463,7 @@ class Engine(QObject):
             return self.remote.upload_folder(
                 remote_parent_path,
                 {"title": new_folder},
-                headers={
-                    REQUEST_METRICS: json.dumps(
-                        {
-                            DT_NEW_FOLDER: 1,
-                            DT_SESSION_NUMBER: session_id,
-                        }
-                    )
-                },
+                headers={DT_NEW_FOLDER: 1, DT_SESSION_NUMBER: session_id},
             )
         except Exception:
             log.warning(
