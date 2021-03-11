@@ -7,7 +7,7 @@ from ..constants import APP_NAME, MAC, WINDOWS
 
 
 @lru_cache(maxsize=1)
-def _get_current_os_details() -> Tuple[str]:
+def _get_current_os_details() -> Tuple[str, str, str]:
     """Get OS details: name, full version, simplified version [x.y].
 
     Examples:
@@ -20,7 +20,7 @@ def _get_current_os_details() -> Tuple[str]:
         ver_full = platform.mac_ver()[0]  # 10.15.3
     elif WINDOWS:
         name = "Windows"
-        ver_full = platform.win_ver()[1]  # 10.0.19041
+        ver_full = platform.win32_ver()[1]  # 10.0.19041
     else:
         import distro
 
@@ -44,7 +44,7 @@ def current_os(*, full: bool = False) -> str:
 
 @lru_cache(maxsize=1)
 def user_agent() -> str:
-    """Mininal user agent for all HTTP requests.
+    """Minimal user agent for all HTTP requests.
     Example: Nuxeo-Drive/5.1.0 (macOS 10.15)
     """
     return f"{APP_NAME.replace(' ', '-')}/{__version__} ({current_os()})"

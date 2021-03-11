@@ -59,11 +59,10 @@ def main() -> int:
         with configure_scope() as scope:
             # Append OS and Python versions to all events
             # pylint: disable=protected-access
-            os_name, os_version = current_os()[:2]
             scope._contexts.update(
                 {
                     "runtime": {"name": "Python", "version": platform.python_version()},
-                    "os": {"name": os_name, "version": os_version},
+                    "os": {"name": current_os(full=True)},
                 }
             )
 
