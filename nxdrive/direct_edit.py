@@ -1,5 +1,4 @@
 import errno
-import json
 import re
 import shutil
 from collections import defaultdict
@@ -33,7 +32,6 @@ from .metrics.constants import (
     DE_ERROR_COUNT,
     DE_RECOVERY_HIT,
     DE_SAVE_COUNT,
-    REQUEST_METRICS,
 )
 from .objects import DirectEditDetails, Metrics, NuxeoDocumentInfo
 from .options import Options
@@ -833,9 +831,7 @@ class DirectEdit(Worker):
                             f"recorded one {details.digest!r} - conflict detected for {ref!r}"
                         )
                         self.directEditConflict.emit(ref.name, ref, remote_blob.digest)
-                        remote.metrics.send(
-                            {REQUEST_METRICS: json.dumps({DE_CONFLICT_HIT: 1})}
-                        )
+                        remote.metrics.send({DE_CONFLICT_HIT: 1})
                         continue
 
                 log.info(f"Uploading file {os_path!r}")
@@ -859,9 +855,7 @@ class DirectEdit(Worker):
 
                 # The file is in the upload queue but not in the dict if it is pushed by the recovery system.
                 if ref not in self._file_metrics:
-                    remote.metrics.send(
-                        {REQUEST_METRICS: json.dumps({DE_RECOVERY_HIT: 1})}
-                    )
+                    remote.metrics.send({DE_RECOVERY_HIT: 1})
 
                 # Update hash value
                 dir_path = ref.parent
@@ -926,7 +920,7 @@ class DirectEdit(Worker):
             "DIRECT_EDIT_UPLOAD_FAILED",
             [f'<a href="file:///{os_path.parent}">{ref.name}</a>'],
         )
-        remote.metrics.send({REQUEST_METRICS: json.dumps(self._file_metrics.pop(ref))})
+        remote.metrics.send(self._file_metrics.pop(ref, {}))
         self._upload_errors.pop(ref, None)
 
     def _handle_queues(self) -> None:

@@ -1,3 +1,4 @@
+import json
 from logging import getLogger
 from queue import Empty, Queue
 from time import monotonic_ns
@@ -9,7 +10,7 @@ from ..exceptions import ThreadInterrupt
 from ..objects import Metrics
 from ..options import Options
 from ..qt.imports import pyqtSlot
-from .constants import ENDPOINT, REQUEST_METRICS, SYNC_ACTION, SYNC_TIME  # noqa
+from .constants import ENDPOINT, REQUEST_METRICS, SYNC_ACTION, SYNC_TIME
 
 log = getLogger(__name__)
 
@@ -34,6 +35,7 @@ class CustomPollMetrics(PollWorker):
             return False
 
         errors = []  # Errors are stored and re-injected on exception
+        dumps = json.dumps
         try:
             while True:
                 try:
@@ -41,8 +43,9 @@ class CustomPollMetrics(PollWorker):
                 except Empty:
                     break
                 try:
+                    headers = {REQUEST_METRICS: dumps(metrics)}
                     self._remote.client.request(
-                        "GET", ENDPOINT, headers=metrics, timeout=self._timeout
+                        "GET", ENDPOINT, headers=headers, timeout=self._timeout
                     )
                 except ThreadInterrupt:
                     raise
@@ -58,7 +61,7 @@ class CustomPollMetrics(PollWorker):
                 self.send(elem)
         return True
 
-    def send(self, **metrics: Any) -> None:
+    def send(self, metrics: Metrics) -> None:
         """Push metrics into the queue, if enabled."""
         if not self._enabled:
             return
@@ -70,9 +73,4 @@ class CustomPollMetrics(PollWorker):
         if not self._enabled:
             return
         elapsed = monotonic_ns() - metrics["start_ns"]
-        self.send(
-            {
-                SYNC_ACTION: metrics["handler"],
-                SYNC_TIME: elapsed,
-            }
-        )
+        self.send({SYNC_ACTION: metrics["handler"], SYNC_TIME: elapsed})

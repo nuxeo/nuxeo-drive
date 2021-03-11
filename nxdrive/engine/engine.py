@@ -1,5 +1,4 @@
 import datetime
-import json
 import os
 import os.path
 import shutil
@@ -38,12 +37,7 @@ from ..exceptions import (
     RootAlreadyBindWithDifferentAccount,
     ThreadInterrupt,
 )
-from ..metrics.constants import (
-    DT_NEW_FOLDER,
-    DT_SESSION_NUMBER,
-    REQUEST_METRICS,
-    SYNC_ROOT_COUNT,
-)
+from ..metrics.constants import DT_NEW_FOLDER, DT_SESSION_NUMBER, SYNC_ROOT_COUNT
 from ..objects import Binder, DocPairs, EngineDef, Metrics, Session
 from ..options import Options
 from ..qt.imports import QObject, QThread, QThreadPool, pyqtSignal, pyqtSlot
@@ -887,7 +881,7 @@ class Engine(QObject):
         if not self.remote or not Options.synchronization_enabled:
             return
         roots_count = self.dao.get_count(f"remote_parent_path = '{SYNC_ROOT}'")
-        self.remote.metrics.send(SYNC_ROOT_COUNT=roots_count)
+        self.remote.metrics.send({SYNC_ROOT_COUNT: roots_count})
 
     def _load_configuration(self) -> None:
         self._web_authentication = self.dao.get_bool("web_authentication")

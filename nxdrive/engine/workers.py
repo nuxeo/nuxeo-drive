@@ -1,11 +1,10 @@
-import json
 from contextlib import suppress
 from logging import getLogger
 from time import sleep, time
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
 
 from ..exceptions import ThreadInterrupt
-from ..metrics.constants import REQUEST_METRICS, SYNC_ACTION, SYNC_ERROR_LABEL
+from ..metrics.constants import SYNC_ACTION, SYNC_ERROR_LABEL  # noqa
 from ..objects import DocPair, Metrics
 from ..qt.imports import QCoreApplication, QObject, QRunnable, QThread, pyqtSlot
 from ..utils import current_thread_id
@@ -229,7 +228,7 @@ class EngineWorker(Worker):
             SYNC_ERROR_LABEL: error.lower(),
             SYNC_ACTION: doc_pair.pair_state,
         }
-        self.engine.remote.metrics.send({REQUEST_METRICS: json.dumps(metrics)})
+        self.engine.remote.metrics.send(metrics)
 
     def increase_error(
         self, doc_pair: DocPair, error: str, /, *, exception: Exception = None

@@ -1,4 +1,3 @@
-import json
 import os
 import platform
 import shutil
@@ -41,7 +40,7 @@ from .exceptions import (
     StartupPageConnectionError,
 )
 from .feature import Feature
-from .metrics.constants import CRASHED_HIT, REQUEST_METRICS
+from .metrics.constants import CRASHED_HIT
 from .metrics.utils import current_os, user_agent
 from .notification import DefaultNotificationService
 from .objects import Binder, EngineDef, Metrics, Session
@@ -471,9 +470,7 @@ class Manager(QObject):
             self.tracker.send_metric("account", "count", str(len(self.engines)))
 
         if last_engine and State.has_crashed:
-            last_engine.remote.metrics.send(
-                {REQUEST_METRICS: json.dumps({CRASHED_HIT: 1})}
-            )
+            last_engine.remote.metrics.send({CRASHED_HIT: 1})
 
     def _get_engine_db_file(self, uid: str, /) -> Path:
         return self.home / f"ndrive_{uid}.db"

@@ -496,7 +496,7 @@ class Remote(Nuxeo):
         self, parent: str, params: Dict[str, str], /, *, headers: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """Create a folder using the FileManager."""
-        kwargs = {
+        kwargs: Dict[str, Any] = {
             "command": "FileManager.CreateFolder",
             "input_obj": parent,
             "params": params,
@@ -803,8 +803,8 @@ class Remote(Nuxeo):
     def lock(self, ref: str, /) -> None:
         self.execute(command="Document.Lock", input_obj=f"doc:{self.check_ref(ref)}")
 
-    def unlock(self, ref: str, /, *, headers: Optional[Dict[str, Any]] = None) -> None:
-        kwargs = {
+    def unlock(self, ref: str, /, *, headers: Dict[str, Any] = None) -> None:
+        kwargs: Dict[str, Any] = {
             "command": "Document.Unlock",
             "input_obj": f"doc:{self.check_ref(ref)}",
         }
