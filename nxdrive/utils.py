@@ -1124,5 +1124,4 @@ def get_current_locale() -> str:
     else:
         l10n = locale.getdefaultlocale()[0] or ""
 
-    current_locale = ".".join([l10n, encoding])
-    return current_locale
+    return ".".join([l10n, encoding])
