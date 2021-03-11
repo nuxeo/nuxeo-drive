@@ -671,10 +671,7 @@ class DirectEdit(Worker):
     def _unlock(self, remote: Remote, uid: str, ref: Path, /) -> bool:
         """Unlock a document. Return True if purge is needed."""
         try:
-            remote.unlock(
-                uid,
-                {REQUEST_METRICS: json.dumps(self._file_metrics.pop(ref, {}))},
-            )
+            remote.unlock(uid, self._file_metrics.pop(ref, {}))
         except NotFound:
             return True
         except HTTPError as exc:

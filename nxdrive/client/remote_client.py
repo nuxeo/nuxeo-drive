@@ -50,6 +50,7 @@ from ..metrics.constants import (
     METRICS_SENTRY,
     OS_LOCALE,
     OS_MACHINE,
+    REQUEST_METRICS,
     UPDATER_CHANNEL,
 )
 from ..metrics.poll_metrics import CustomPollMetrics
@@ -801,11 +802,13 @@ class Remote(Nuxeo):
         self.execute(command="Document.Lock", input_obj=f"doc:{self.check_ref(ref)}")
 
     def unlock(self, ref: str, headers: Dict[str, Any], /) -> None:
-        self.execute(
-            command="Document.Unlock",
-            input_obj=f"doc:{self.check_ref(ref)}",
-            headers=headers,
-        )
+        kwargs = {
+            "command": "Document.Unlock",
+            "input_obj": f"doc:{self.check_ref(ref)}",
+        }
+        if headers:
+            kwargs["headers"] = {REQUEST_METRICS: json.dumps(headers)}
+        self.execute(**kwargs)
 
     def register_as_root(self, ref: str, /) -> bool:
         self.execute(
