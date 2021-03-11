@@ -1138,6 +1138,10 @@ class Engine(QObject):
         # Make a backup in case something happens
         self.dao.save_backup()
 
+        if self.remote:
+            log.debug("Sending all waiting async metrics.")
+            self.remote.metrics.force_poll()
+
         self._stopped = True
 
         # The signal will propagate to all Workers. Each Worker being a QThread,

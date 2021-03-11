@@ -61,6 +61,10 @@ class CustomPollMetrics(PollWorker):
                 self.send(elem)
         return True
 
+    def force_poll(self) -> None:
+        """Call the poll method without waiting for timeout."""
+        self._poll()
+
     def send(self, metrics: Metrics) -> None:
         """Push metrics into the queue, if enabled."""
         if not self._enabled or not metrics:
