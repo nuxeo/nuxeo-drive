@@ -2,7 +2,7 @@ import os
 import platform
 import sys
 from logging import getLogger
-from platform import machine
+from struct import calcsize
 from time import monotonic_ns
 from typing import TYPE_CHECKING, Any, Callable, Dict
 
@@ -19,7 +19,6 @@ if not MAC:
     import locale
 
 if TYPE_CHECKING:
-    from .engine import Engine  # noqa
     from ..manager import Manager  # noqa
 
 __all__ = ("Tracker",)
@@ -58,7 +57,7 @@ class Tracker(PollWorker):
 
         # Main dimensions, see .send_event() docstring for details.
         self._dimensions = {
-            "cd10": machine(),
+            "cd10": f"{calcsize('P') * 8}-bit",
             "cd11": current_os(),
             "cd12": Options.channel,
             "cd13": platform.machine() or "unknown",
