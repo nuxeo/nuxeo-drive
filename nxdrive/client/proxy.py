@@ -5,8 +5,9 @@ import requests
 from pypac import get_pac
 from pypac.resolver import ProxyResolver
 
+from ..metrics.utils import user_agent
 from ..options import Options
-from ..utils import client_certificate, decrypt, encrypt, force_decode, user_agent
+from ..utils import client_certificate, decrypt, encrypt, force_decode
 
 if TYPE_CHECKING:
     from ..engine.dao.sqlite import EngineDAO  # noqa

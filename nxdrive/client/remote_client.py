@@ -50,17 +50,11 @@ from ..metrics.constants import (
     UPDATER_CHANNEL,
 )
 from ..metrics.poll_metrics import CustomPollMetrics
+from ..metrics.utils import current_os, user_agent
 from ..objects import Download, NuxeoDocumentInfo, RemoteFileInfo
 from ..options import Options
 from ..qt.imports import QApplication
-from ..utils import (
-    compute_digest,
-    get_device,
-    lock_path,
-    sizeof_fmt,
-    unlock_path,
-    user_agent,
-)
+from ..utils import compute_digest, lock_path, sizeof_fmt, unlock_path
 from .proxy import Proxy
 from .uploader import BaseUploader
 from .uploader.sync import SyncUploader
@@ -297,7 +291,7 @@ class Remote(Nuxeo):
             device_id=self.device_id,
             app_name=APP_NAME,
             permission=TOKEN_PERMISSION,
-            device=get_device(),
+            device=current_os(full=True),
             revoke=revoke,
         )
         return None if "\n" in token else token

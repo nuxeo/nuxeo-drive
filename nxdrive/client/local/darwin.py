@@ -128,7 +128,7 @@ class LocalClient(LocalClientMixin):
         """
         # Code kept for future usage, when Apple will remove those deprecated APIs (or PyObjC)
         # will need to define:
-        #       self.mac_ver = get_current_os()[1]
+        #       self.mac_ver = ...
         if version_lt(self.mac_ver, "10.14"):
             # Before Mojave (that code actually works on Mojave though, but APIs are deprecated)
             parent, files = str(path.parent),  [path.name]

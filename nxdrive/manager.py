@@ -6,6 +6,7 @@ import sqlite3
 import uuid
 from logging import getLogger
 from pathlib import Path
+from platform import machine
 from time import sleep
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 from urllib.parse import urlparse, urlsplit, urlunsplit
@@ -41,6 +42,7 @@ from .exceptions import (
 )
 from .feature import Feature
 from .metrics.constants import CRASHED_HIT, REQUEST_METRICS
+from .metrics.utils import current_os, user_agent
 from .notification import DefaultNotificationService
 from .objects import Binder, EngineDef, Metrics, Session
 from .options import DEFAULT_LOG_LEVEL_FILE, Options
@@ -53,14 +55,10 @@ from .updater.constants import Login
 from .utils import (
     client_certificate,
     force_decode,
-    get_arch,
-    get_current_os_full,
     get_default_local_folder,
-    get_device,
     if_frozen,
     normalized_path,
     save_config,
-    user_agent,
 )
 
 if TYPE_CHECKING:
@@ -96,10 +94,6 @@ class Manager(QObject):
 
     def __init__(self, home: Path, /) -> None:
         super().__init__()
-
-        self.arch = get_arch()  # public because used in the Tracker
-        self._os = get_device()
-        self._platform = get_current_os_full()
 
         # Primary attributes to allow initializing the notification center early
         self.home: Path = normalized_path(home)
@@ -274,9 +268,8 @@ class Manager(QObject):
             "sentry": Options.use_sentry,
             "qt_version": QT_VERSION_STR,
             "python_version": platform.python_version(),
-            "os": self._os,
-            "platform": self._platform,
-            "arch": self.arch,
+            "os": current_os(full=True),
+            "machine": machine(),
             "appname": APP_NAME,
         }
 

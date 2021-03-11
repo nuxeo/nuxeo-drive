@@ -2,15 +2,17 @@ import os
 import platform
 import sys
 from logging import getLogger
+from platform import machine
 from time import monotonic_ns
 from typing import TYPE_CHECKING, Any, Callable, Dict
 
 import requests
 
 from ..constants import APP_NAME, MAC, WINDOWS
+from ..metrics.utils import current_os, user_agent
 from ..options import Options
 from ..qt.imports import pyqtSlot
-from ..utils import get_current_os, if_frozen, user_agent
+from ..utils import if_frozen
 from .workers import PollWorker
 
 if not MAC:
@@ -50,18 +52,14 @@ class Tracker(PollWorker):
         self._manager = manager
         self.uid = uid
 
-        self._current_os = " ".join(get_current_os()).strip()
-        if WINDOWS:
-            self._current_os = f"Microsoft {self._current_os}"
-
         self._session = requests.sessions.Session()
         self._tracking_url = "https://ssl.google-analytics.com/collect"
         self.__current_locale = ""
 
         # Main dimensions, see .send_event() docstring for details.
         self._dimensions = {
-            "cd10": self._manager.arch,
-            "cd11": self._current_os,
+            "cd10": machine(),
+            "cd11": current_os(),
             "cd12": Options.channel,
             "cd13": platform.machine() or "unknown",
         }
@@ -73,14 +71,14 @@ class Tracker(PollWorker):
             # "aip": "1",  # anonymize IP
             "tid": self.uid,  # tracking ID
             "cid": self._manager.device_id,  # client ID
-            "ua": self.user_agent,  # user agent
+            "ua": user_agent(),  # user agent
             "de": sys.getfilesystemencoding(),  # encoding
             "ul": self.current_locale,  # language
             "an": APP_NAME,  # application name
             "av": self._manager.version,  # application version
         }
 
-        self._session.headers.update({"user-agent": self.user_agent})
+        self._session.headers.update({"user-agent": user_agent()})
 
         log.debug(
             f"Created the Google Analytics tracker with data {self._data} and custom dimensions {self._dimensions}"
@@ -118,11 +116,6 @@ class Tracker(PollWorker):
 
         self.__current_locale = ".".join([l10n, encoding])
         return self.__current_locale
-
-    @property
-    def user_agent(self) -> str:
-        """Return the user agent."""
-        return user_agent()
 
     def send_event(
         self,

@@ -12,9 +12,9 @@ from nuxeo.utils import version_lt
 from ..constants import APP_NAME, CONNECTION_ERROR, NO_SPACE_ERRORS
 from ..engine.workers import PollWorker
 from ..feature import Feature
+from ..metrics.utils import user_agent
 from ..options import Options
 from ..qt.imports import QApplication, pyqtSignal, pyqtSlot
-from ..utils import user_agent
 from . import UpdateError
 from .constants import (
     UPDATE_STATUS_INCOMPATIBLE_SERVER,

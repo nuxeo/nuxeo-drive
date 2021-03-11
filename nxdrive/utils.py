@@ -10,7 +10,6 @@ import os.path
 import re
 import stat
 import sys
-import sysconfig
 from configparser import ConfigParser
 from copy import deepcopy
 from datetime import datetime
@@ -18,7 +17,6 @@ from functools import lru_cache
 from itertools import islice
 from logging import getLogger
 from pathlib import Path
-from platform import machine
 from threading import get_native_id
 from typing import (
     TYPE_CHECKING,
@@ -50,6 +48,7 @@ from .exceptions import (
     MissingClientSSLCertificate,
     UnknownDigest,
 )
+from .metrics.utils import user_agent
 from .options import Options
 
 if TYPE_CHECKING:
@@ -64,8 +63,6 @@ DEFAULTS_CERT_DETAILS = {
     "notAfter": "N/A",
     "notBefore": "N/A",
 }
-
-DEVICE_DESCRIPTIONS = {"darwin": "macOS", "linux": "GNU/Linux", "win32": "Windows"}
 
 log = getLogger(__name__)
 
@@ -186,103 +183,6 @@ def current_milli_time() -> int:
     from time import time
 
     return int(round(time() * 1000))
-
-
-@lru_cache(maxsize=1)
-def get_arch() -> str:
-    """ Detect the OS architecture. """
-
-    from struct import calcsize
-
-    return f"{calcsize('P') * 8}-bit"
-
-
-@lru_cache(maxsize=1)
-def get_current_os() -> Tuple[str, str]:
-    """ Detect the OS version. """
-
-    device = get_device()
-
-    if device == "macOS":
-        from platform import mac_ver
-
-        # Ex: macOS 10.12.6
-        version = mac_ver()[0]
-    elif device == "GNU/Linux":
-        import distro
-
-        # Ex: Debian GNU/Linux testing buster
-        details = distro.linux_distribution()
-        device = details[0]
-        version = " ".join(details[1:])
-    else:
-        from platform import win32_ver
-
-        # Ex: Windows 7
-        version = win32_ver()[0]
-
-    return (device, version.strip())
-
-
-@lru_cache(maxsize=1)
-def get_current_os_full() -> Tuple[str, ...]:
-    """ Detect the full OS version for log debugging. """
-
-    device = get_device()
-
-    if device == "macOS":
-        from platform import mac_ver
-
-        # https://docs.python.org/3/library/platform.html#platform.mac_ver
-        ver = mac_ver()
-        return (ver[0], *ver[1], ver[2])
-    elif device == "GNU/Linux":
-        import distro
-
-        return tuple(distro.linux_distribution())
-    else:
-        from platform import win32_ver
-
-        return win32_ver()
-
-
-@lru_cache(maxsize=1)
-def user_agent() -> str:
-    """
-    Try to create a UA that is parsable by Google Analytics processor and Datadog.
-    Example: 'Nuxeo-Drive/5.0.1 (Ubuntu 18.04 bionic; linux-x86_64; x86_64)'
-    """
-    from . import __version__
-
-    return (
-        f"{APP_NAME.replace(' ', '-')}/{__version__}"
-        f" ({get_os_infos()}; {sysconfig.get_platform()}; {machine()})"
-    )
-
-
-@lru_cache(maxsize=1)
-def get_os_infos() -> str:
-    """Return OS name and version."""
-    osi = get_current_os_full()
-    if MAC:
-        return osi[0]
-    elif WINDOWS:
-        # GA determines the Windows version based on "NT X.Y"
-        release = ".".join(osi[1].split(".")[:2])  # "10.0.16299" -> "10.10"
-        return f"Windows NT {release}"
-    return " ".join(osi).strip()
-
-
-@lru_cache(maxsize=1)
-def get_device() -> str:
-    """ Retrieve the device type. """
-
-    from sys import platform
-
-    device = DEVICE_DESCRIPTIONS.get(platform)
-    if not device:
-        device = platform.replace(" ", "")
-    return device
 
 
 def get_default_local_folder() -> Path:

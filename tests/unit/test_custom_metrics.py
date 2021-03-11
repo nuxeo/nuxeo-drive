@@ -1,10 +1,13 @@
+import re
 from time import monotonic_ns
 from unittest.mock import patch
 
 import pytest
 
+from nxdrive.constants import MAC, WINDOWS
 from nxdrive.exceptions import ThreadInterrupt
 from nxdrive.metrics.poll_metrics import CustomPollMetrics
+from nxdrive.metrics.utils import current_os, user_agent
 from nxdrive.options import Options
 
 
@@ -109,3 +112,35 @@ def test_disabled_metrics(my_remote):
         assert called_count == 0
         assert metrics._metrics_queue.empty()
         assert metrics._metrics_queue.qsize() == 0
+
+
+def test_current_os():
+    if MAC:
+        expected = re.compile(r"^macOS \d{2}\.\d{1,2}$")
+    elif WINDOWS:
+        expected = re.compile(r"^Windows \d{1,2}\.\d{1,2}$")
+    else:
+        expected = re.compile(r"^\w+ \d{1,2}\.\d{1,2}$")
+    assert expected.fullmatch(current_os())
+
+
+def test_current_os_full():
+    if MAC:
+        expected = r"^macOS \d{2}\.\d{1,2}\.\d{1,2}$"
+    elif WINDOWS:
+        expected = r"^Windows \d{1,2}\.\d{1,2}\.\d{1,2}$"
+    else:
+        expected = r"^\w+ \d{1,2}\.\d{1,2}\.\d{1,2}$"
+    assert re.fullmatch(expected, current_os(full=True))
+
+
+def test_user_agent():
+    if MAC:
+        expected = r"^Nuxeo-Drive/\d{1,2}\.\d{1,2}\.\d{1,2} \(macOS \d{2}\.\d{1,2}\)$"
+    elif WINDOWS:
+        expected = (
+            r"^Nuxeo-Drive/\d{1,2}\.\d{1,2}\.\d{1,2} \(Windows \d{1,2}\.\d{1,2}\)$"
+        )
+    else:
+        expected = r"^Nuxeo-Drive/\d{1,2}\.\d{1,2}\.\d{1,2} \(\w+ \d{1,2}\.\d{1,2}\)$"
+    assert re.fullmatch(expected, user_agent())
