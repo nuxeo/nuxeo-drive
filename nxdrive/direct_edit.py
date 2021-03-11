@@ -912,8 +912,11 @@ class DirectEdit(Worker):
 
     def _handle_upload_error(self, ref: Path, os_path: Path, remote: Remote, /) -> None:
         """Retry the upload if the number of attempts is below *._error_threshold* else discard it."""
-        self._upload_errors[ref] += 1
+        if ref not in self._file_metrics:
+            self._file_metrics[ref] = defaultdict(int)
         self._file_metrics[ref][DE_ERROR_COUNT] += 1
+
+        self._upload_errors[ref] += 1
         if self._upload_errors[ref] < self._error_threshold:
             self._error_queue.push(ref)
             return
