@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 from urllib.parse import urlparse, urlsplit, urlunsplit
 from weakref import CallableProxyType, proxy
 
+import nuxeo
 import requests
 
 from . import __version__
@@ -267,6 +268,7 @@ class Manager(QObject):
             "sentry": Options.use_sentry,
             "qt_version": QT_VERSION_STR,
             "python_version": platform.python_version(),
+            "python_client_version": nuxeo.__version__,
             "os": current_os(full=True),
             "machine": machine(),
             "appname": APP_NAME,
