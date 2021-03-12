@@ -1,6 +1,7 @@
 """ Main Qt application handling OS events and system tray UI. """
 import os
 import webbrowser
+from contextlib import suppress
 from functools import partial
 from logging import getLogger
 from math import sqrt
@@ -517,7 +518,9 @@ class Application(QApplication):
     def _show_window(self, window: QWindow, /) -> None:
         window.show()
         window.raise_()
-        window.requestActivate()
+        with suppress(AttributeError):
+            # QDialog does not have such attribute
+            window.requestActivate()
 
     def _init_translator(self) -> None:
         locale = Options.force_locale or Options.locale
@@ -871,8 +874,8 @@ class Application(QApplication):
             self.filters_dlg.destroyed.connect(self.settings_window.close)
             delattr(self, "close_settings_too")
 
-        self.filters_dlg.show()
         self._center_on_screen(self.settings_window)
+        self._show_window(self.filters_dlg)
 
     def show_server_folders(self, engine: Engine, path: Optional[Path], /) -> None:
         """Display the remote folders dialog window.
