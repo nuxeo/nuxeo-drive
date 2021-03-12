@@ -699,6 +699,9 @@ class QMLDriveApi(QObject):
         token: str = None,
         check_fs: bool = True,
     ) -> None:
+        # Arise the settings window to let the user know the error
+        self.application._show_window(self.application.settings_window)
+
         if not server_url:
             self.setMessage.emit("CONNECTION_ERROR", "error")
             return
@@ -765,9 +768,6 @@ class QMLDriveApi(QObject):
 
         log.warning(Translator.get(error))
         self.setMessage.emit(error, "error")
-
-        # Arise the settings window to let the user know the error
-        self.application._show_window(self.application.settings_window)
 
     @pyqtSlot(str, str)
     def web_authentication(self, server_url: str, local_folder: str, /) -> None:
