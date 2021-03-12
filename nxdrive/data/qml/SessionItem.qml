@@ -98,7 +98,6 @@ Rectangle {
                                 Link {
                                     id: csvCreationLink
                                     Layout.fillWidth: true
-                                    elide: Text.ElideNone
                                     onClicked: {
                                         csvCreationLink.enabled = false
                                         try {
@@ -117,6 +116,8 @@ Rectangle {
                             }
                             Link {
                                 id: csvFileLink
+                                Layout.fillWidth: true
+                                elide: Text.ElideMiddle
                                 visible: !active && csv_path
                                 enabled: !active && csv_path != "async_gen"
                                 text: active ? "" :  (csv_path == "async_gen" ? qsTr("GENERATING") : csv_path.split(/[\\/]/).pop()) + tl.tr
