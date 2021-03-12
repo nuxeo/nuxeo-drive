@@ -386,6 +386,9 @@ class Application(QApplication):
             )
         )
 
+        # Ensure the window is shown on top of others
+        self._show_window(window)
+
     @pyqtSlot(object)
     def action_progressing(self, action: Action, /) -> None:
         if not isinstance(action, Action):
