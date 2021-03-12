@@ -274,6 +274,8 @@ class Processor(EngineWorker):
                 return
             self._direct_transfer_cancel(refreshed_doc_pair)
             log.debug(f"Cancelled upload {exc.transfer_id!r}")
+        except UploadPaused:
+            raise
         except Exception:
             # Show a notification on error
             file = doc_pair.local_path if WINDOWS else Path(f"/{doc_pair.local_path}")
