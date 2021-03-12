@@ -37,7 +37,12 @@ from ..exceptions import (
     RootAlreadyBindWithDifferentAccount,
     ThreadInterrupt,
 )
-from ..metrics.constants import DT_NEW_FOLDER, DT_SESSION_NUMBER, SYNC_ROOT_COUNT
+from ..metrics.constants import (
+    DT_NEW_FOLDER,
+    DT_SESSION_NUMBER,
+    DT_SESSION_STATUS,
+    SYNC_ROOT_COUNT,
+)
 from ..objects import Binder, DocPairs, EngineDef, Metrics, Session
 from ..options import Options
 from ..qt.imports import QObject, QThread, QThreadPool, pyqtSignal, pyqtSlot
@@ -551,6 +556,7 @@ class Engine(QObject):
             return
 
         self.directTransferSessionFinished.emit(session.remote_path)
+        self.remote.metrics.send({DT_SESSION_STATUS: "done"})
         self.send_metric("direct_transfer", "session_items", str(session.total_items))
         # Read https://jira.nuxeo.com/secure/EditComment!default.jspa?id=152399&commentId=503487
         # for why we can't have metrics about dupes creation on uploads.
@@ -798,6 +804,7 @@ class Engine(QObject):
         """Cancel all transfers for given session."""
         self.dao.change_session_status(uid, TransferStatus.CANCELLED)
         self.dao.cancel_session(uid)
+        self.remote.metrics.send({DT_SESSION_STATUS: "cancelled"})
         # We could cancel all batches, but in reality it would freeze the GUI.
         # Cancelling a session with a lot of items is worthless the use of a specific thread
         # to do the clean-up ourselves. Let the server doing it for us. We will be able to

@@ -42,7 +42,6 @@ from ..exceptions import (
     UploadCancelled,
     UploadPaused,
 )
-from ..metrics.constants import DT_SESSION_STATUS
 from ..objects import DocPair, RemoteFileInfo
 from ..qt.imports import pyqtSignal
 from ..utils import (
@@ -581,12 +580,6 @@ class Processor(EngineWorker):
                 session = self.dao.update_session(doc_pair.session)
             elif cancelled_transfer:
                 session = self.dao.decrease_session_counts(doc_pair.session)
-            status = (
-                "done"
-                if session and session.status is TransferStatus.DONE
-                else "cancelled"
-            )
-            self.remote.metrics.send({DT_SESSION_STATUS: status})
             self.engine.handle_session_status(session)
 
         # For analytics
