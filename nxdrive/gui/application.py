@@ -452,7 +452,11 @@ class Application(QApplication):
             "nuxeoVersionText", f"{APP_NAME} {self.manager.version}"
         )
         metrics = self.manager.get_metrics()
-        versions = f"Python {metrics['python_version']} & Qt {metrics['qt_version']}"
+        versions = (
+            f"Python {metrics['python_version']}"
+            f" & Qt {metrics['qt_version']}"
+            f" & Python client {metrics['python_client_version']}"
+        )
         if Options.system_wide:
             versions += " [admin]"
         if self.today_is_special:
