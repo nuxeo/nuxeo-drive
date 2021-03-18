@@ -264,6 +264,10 @@ def show_critical_error() -> None:
 
     full_error = "".join(traceback.format_exception(*sys.exc_info()))
 
+    with suppress(Exception):
+        crash_file = Options.nxdrive_home / "crash.state"
+        crash_file.write_text(full_error)
+
     try:
         fatal_error_qt(full_error)
     except Exception as exc:

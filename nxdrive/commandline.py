@@ -5,6 +5,7 @@ import os
 import sys
 from argparse import ArgumentParser, Namespace
 from configparser import DEFAULTSECT, ConfigParser
+from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
 from typing import TYPE_CHECKING, Any, List, Optional, Union
@@ -577,12 +578,13 @@ class CliHandler:
                 log.warning(f"{APP_NAME} is already running: exiting.")
             return 0
 
+        exit_code: int = 1
         with HealthCheck():
             # Monitor the "minimum syndical".
             # If a crash happens outside that context manager, this is not considered a crash
             # as we only do care about synchronization parts that could be altered.
             app = self._get_application(console=console)
-            exit_code: int = app.exec_()
+            exit_code = app.exec_()
 
         lock.unlock()
         log.info(f"{APP_NAME} exited with code {exit_code}")
@@ -739,6 +741,8 @@ class HealthCheck:
             if self.crash_file.is_file():
                 log.warning("It seems the application crashed at the previous run 😮")
                 State.has_crashed = True
+                with suppress(OSError):
+                    State.crash_details = self.crash_file.read_text().strip()
             else:
                 # Create the file for the next run
                 self.crash_file.touch()
