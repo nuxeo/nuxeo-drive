@@ -627,8 +627,6 @@ class RemoteWatcher(EngineWorker):
                 self.scan_remote()
 
                 # Might need to handle the changes now
-                if first_pass:
-                    self.initiate.emit()
                 return True
 
             full_scan = self.dao.get_config("remote_need_full_scan")
@@ -672,6 +670,8 @@ class RemoteWatcher(EngineWorker):
         else:
             return True
         finally:
+            if first_pass:
+                self.initiate.emit()  # Signal must absolutely be sent on first pass (see NXDRIVE-2573).
             Action.finish_action()
 
         return False
