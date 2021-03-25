@@ -457,7 +457,7 @@ function launch_test($path, $pytest_args) {
 		# Do not fail on error as all failures will be re-run another time at the end
 		$junitxml = junit_arg $path 2
 		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest `
-			--last-failed --last-failed-no-failures none $junitxml
+			-n0 --last-failed --last-failed-no-failures none $junitxml
 	}
 }
 
@@ -502,7 +502,7 @@ function launch_tests {
 			if ($lastExitCode -eq 0) {
 				$junitxml = junit_arg "final"
 				& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest `
-					--last-failed --last-failed-no-failures none $junitxml
+					-n0 --last-failed --last-failed-no-failures none $junitxml
 				# The above command will exit with error code 5 if there is no failure to rerun
 				$ret = $lastExitCode
 			}

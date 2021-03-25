@@ -234,7 +234,7 @@ launch_test() {
         ${PYTHON} tools/check_pytest_lastfailed.py || return
 
         # Do not fail on error as all failures will be re-run another time at the end
-        ${cmd} --last-failed --last-failed-no-failures none `junit_arg ${path} 2`  || true
+        ${cmd} -n0 --last-failed --last-failed-no-failures none `junit_arg ${path} 2`  || true
     fi
 }
 
@@ -271,7 +271,7 @@ launch_tests() {
             set +e
             # Will return 0 if rerun is needed else 1
             ${PYTHON} tools/check_pytest_lastfailed.py && \
-                ${PYTHON} -bb -Wall -m pytest --last-failed --last-failed-no-failures none `junit_arg "final"`
+                ${PYTHON} -bb -Wall -m pytest -n0 --last-failed --last-failed-no-failures none `junit_arg "final"`
             # The above command will exit with error code 5 if there is no failure to rerun
             ret=$?
             set -e
