@@ -441,14 +441,21 @@ class DirectTransferError(Notification):
 class DirectTransferSessionFinished(Notification):
     """Display a notification when a Direct Transfer session is finished."""
 
-    def __init__(self, remote_path: str, /) -> None:
+    def __init__(self, engine_uid: str, remote_ref: str, remote_path: str, /) -> None:
         values = [remote_path]
         super().__init__(
             uid="DIRECT_TRANSFER_SESSION_END",
             title="Direct Transfer",
             description=Translator.get("DIRECT_TRANSFER_SESSION_END", values=values),
             level=Notification.LEVEL_INFO,
-            flags=Notification.FLAG_PERSISTENT | Notification.FLAG_BUBBLE,
+            flags=(
+                Notification.FLAG_PERSISTENT
+                | Notification.FLAG_BUBBLE
+                | Notification.FLAG_ACTIONABLE
+                | Notification.FLAG_DISCARD_ON_TRIGGER
+                | Notification.FLAG_REMOVE_ON_DISCARD
+            ),
+            action="open_remote_document",
         )
 
 
@@ -528,9 +535,13 @@ class DefaultNotificationService(NotificationService):
         """Display a notification when a Direct Transfer is in error."""
         self.send_notification(DirectTransferError(file))
 
-    def _direct_transfer_session_finshed(self, remote_path: str, /) -> None:
+    def _direct_transfer_session_finshed(
+        self, engine_uid: str, remote_ref: str, remote_path: str, /
+    ) -> None:
         """Display a notification when a Direct Transfer session is finished."""
-        self.send_notification(DirectTransferSessionFinished(remote_path))
+        self.send_notification(
+            DirectTransferSessionFinished(engine_uid, remote_ref, remote_path)
+        )
 
     def _errorOpenedFile(self, doc: DocPair, /) -> None:
         self.send_notification(ErrorOpenedFile(str(doc.local_path), doc.folderish))
