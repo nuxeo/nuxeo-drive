@@ -66,6 +66,7 @@ class Notification:
         title: str = "",
         description: str = "",
         action: str = "",
+        action_args: tuple = (),
     ) -> None:
         self.flags = flags
         self.level = level
@@ -73,6 +74,7 @@ class Notification:
         self.description = description
         self.action = action
         self.engine_uid = engine_uid
+        self.action_args = action_args
 
         self.uid = ""
         if uid:
@@ -133,7 +135,7 @@ class NotificationService(QObject):
 
     newNotification = pyqtSignal(object)
     discardNotification = pyqtSignal(object)
-    triggerNotification = pyqtSignal(str, str)
+    triggerNotification = pyqtSignal(str, object)
 
     def __init__(self, manager: "Manager", /) -> None:
         super().__init__()
@@ -188,7 +190,7 @@ class NotificationService(QObject):
             return
         notification = self._notifications[uid]
         if notification.is_actionable():
-            self.triggerNotification.emit(notification.action, notification.engine_uid)
+            self.triggerNotification.emit(notification.action, notification.action_args)
         if notification.is_discard_on_trigger():
             self.discard_notification(uid)
 
@@ -224,6 +226,7 @@ class ErrorNotification(Notification):
                 | Notification.FLAG_REMOVE_ON_DISCARD
             ),
             action="show_conflicts_resolution",
+            action_args=(engine_uid,),
         )
 
 
@@ -290,6 +293,7 @@ class ConflictNotification(Notification):
                 | Notification.FLAG_REMOVE_ON_DISCARD
             ),
             action="show_conflicts_resolution",
+            action_args=(engine_uid,),
         )
 
 
@@ -456,6 +460,11 @@ class DirectTransferSessionFinished(Notification):
                 | Notification.FLAG_REMOVE_ON_DISCARD
             ),
             action="open_remote_document",
+            action_args=(
+                engine_uid,
+                remote_ref,
+                remote_path,
+            ),
         )
 
 
@@ -508,6 +517,7 @@ class InvalidCredentialNotification(Notification):
                 | Notification.FLAG_SYSTRAY
             ),
             action="web_update_token",
+            action_args=(engine_uid,),
         )
 
 

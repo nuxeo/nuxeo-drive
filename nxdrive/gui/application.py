@@ -1294,13 +1294,13 @@ class Application(QApplication):
         self.current_notification = notif
         self.tray_icon.showMessage(notif.title, notif.description, icon, 10000)
 
-    @pyqtSlot(str, str)
-    def _handle_notification_action(self, action: str, engine_uid: str, /) -> None:
+    @pyqtSlot(str, object)
+    def _handle_notification_action(self, action: str, action_args: tuple, /) -> None:
         func = getattr(self.api, action, None)
         if not func:
             log.error(f"Action {action}() is not defined in {self.api}")
             return
-        func(engine_uid)
+        func(*action_args)
 
     def set_icon_state(self, state: str, /, *, force: bool = False) -> bool:
         """
