@@ -101,7 +101,7 @@ class Doc(FileInfo):
         return (
             "HiddenInCreation" not in self.doc.facets
             and self.doc.type not in Options.disallowed_types_for_dt
-            and "ReadWrite" in self.doc.contextParameters["permissions"]
+            and "AddChildren" in self.doc.contextParameters["permissions"]
         )
 
     def get_id(self) -> str:
@@ -224,7 +224,11 @@ class FoldersOnly:
         personal_space.title = Translator.get("PERSONAL_SPACE")
 
         # Append permissions, the user always has write rights on its own space
-        personal_space.contextParameters["permissions"] = ["Read", "ReadWrite"]
+        personal_space.contextParameters["permissions"] = [
+            "AddChildren",
+            "Read",
+            "ReadWrite",
+        ]
 
         return Doc(personal_space)
 
