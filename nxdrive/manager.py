@@ -963,7 +963,7 @@ class Manager(QObject):
         try:
             engine = self.engines[root_values[3]]
         except (KeyError, IndexError):
-            raise ValueError(f"Unknown engine {root_values[3]} for {path!r}")
+            raise ValueError(f"Unknown engine for {path!r} ({root_values=})")
 
         return engine.get_metadata_url(remote_ref, edit=edit)
 
