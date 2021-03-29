@@ -43,13 +43,13 @@ def find_errors_in_tested_file(
     errors = []
     for key, sentence in reference_translation.items():
         if key not in translation:
-            errors.append(f"{file} {key!r}")
+            print(f"{file} {key!r} : Missing key declaration.")
             continue
         reference_sentence_arguments = matcher.findall(sentence)
         tested_sentence_arguments = matcher.findall(translation[key])
 
         if sorted(reference_sentence_arguments) != sorted(tested_sentence_arguments):
-            errors.append(f"{file} {key!r}")
+            errors.append(f"{file} {key!r} : Wrong number of arguments.")
     return errors
 
 
@@ -69,7 +69,7 @@ def run_check(translations_folder: str) -> int:
     for file in translations.glob("i18n-*.json"):
         translation = json.loads(file.read_text(encoding="utf-8"))
         warnings += [
-            f"{file} {key!r}"
+            f"{file} {key!r} : Seems to be an obsolete key."
             for key in set(translation).difference(set(reference_translation))
         ]
 
