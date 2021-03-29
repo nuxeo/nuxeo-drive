@@ -94,6 +94,7 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
     ("deleted", "created"): "remotely_created",
     ("modified", "deleted"): "remotely_deleted",
     ("deleted", "modified"): "remotely_created",
+    ("deleted", "moved"): "remotely_created",
     # conflict cases that need manual resolution
     ("modified", "created"): "conflicted",
     ("modified", "modified"): "conflicted",
