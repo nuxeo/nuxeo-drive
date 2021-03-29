@@ -36,4 +36,5 @@ SYNC_TIME = "sync.time"
 
 # Other
 CRASHED_HIT = "app.crashed.hit"
+CRASHED_TRACE = "app.crashed.trace"
 SYNC_ROOT_COUNT = "filters.syncRoot.count"

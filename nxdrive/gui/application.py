@@ -27,6 +27,7 @@ from ..engine.dao.sqlite import EngineDAO
 from ..engine.engine import Engine
 from ..feature import Beta, DisabledFeatures, Feature
 from ..gui.folders_dialog import DialogMixin, DocumentsDialog, FoldersDialog
+from ..metrics.constants import CRASHED_HIT, CRASHED_TRACE
 from ..metrics.utils import current_os
 from ..notification import Notification
 from ..options import Options
@@ -224,6 +225,9 @@ class Application(QApplication):
         # Connect this slot last so the other slots connected
         # to self.aboutToQuit can run beforehand.
         self.aboutToQuit.connect(self.manager.stop)
+
+        # Send previous crash metrics
+        self._send_crash_metrics()
 
         # Handle the eventual command via the custom URL scheme
         if Options.protocol_url:
@@ -647,6 +651,19 @@ class Application(QApplication):
         elif res == recreate:
             engine.reinit()
             engine.start()
+
+    def _send_crash_metrics(self) -> None:
+        if not State.has_crashed:
+            return
+
+        metrics = {CRASHED_HIT: 1}
+        if State.crash_details:
+            metrics[CRASHED_TRACE] = State.crash_details
+
+        for engine in self.manager.engines.copy().values():
+            if engine.remote:
+                engine.remote.metrics.send(metrics)
+                break
 
     @pyqtSlot()
     def _no_space_left(self) -> None:

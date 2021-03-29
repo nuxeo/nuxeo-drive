@@ -13,4 +13,4 @@ Available parameters:
 """
 from types import SimpleNamespace
 
-State = SimpleNamespace(about_to_quit=False, has_crashed=False)
+State = SimpleNamespace(about_to_quit=False, crash_details="", has_crashed=False)
