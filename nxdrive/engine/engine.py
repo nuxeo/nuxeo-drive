@@ -114,7 +114,7 @@ class Engine(QObject):
 
     # Direct Transfer
     directTranferError = pyqtSignal(Path)
-    directTransferSessionFinished = pyqtSignal(str)
+    directTransferSessionFinished = pyqtSignal(str, str, str)
 
     type = "NXDRIVE"
     # Folder locker - LocalFolder processor can prevent
@@ -555,7 +555,9 @@ class Engine(QObject):
         if not session or session.status is not TransferStatus.DONE:
             return
 
-        self.directTransferSessionFinished.emit(session.remote_path)
+        self.directTransferSessionFinished.emit(
+            self.uid, session.remote_ref, session.remote_path
+        )
         self.remote.metrics.send({DT_SESSION_STATUS: "done"})
         self.send_metric("direct_transfer", "session_items", str(session.total_items))
         # Read https://jira.nuxeo.com/secure/EditComment!default.jspa?id=152399&commentId=503487

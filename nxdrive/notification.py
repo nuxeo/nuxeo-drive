@@ -3,7 +3,7 @@ from datetime import datetime
 from logging import getLogger
 from pathlib import Path
 from threading import Lock
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, Tuple
 
 from .constants import APP_NAME
 from .objects import DocPair
@@ -66,6 +66,7 @@ class Notification:
         title: str = "",
         description: str = "",
         action: str = "",
+        action_args: Tuple[Any, ...] = (),
     ) -> None:
         self.flags = flags
         self.level = level
@@ -73,6 +74,7 @@ class Notification:
         self.description = description
         self.action = action
         self.engine_uid = engine_uid
+        self.action_args = action_args
 
         self.uid = ""
         if uid:
@@ -133,7 +135,7 @@ class NotificationService(QObject):
 
     newNotification = pyqtSignal(object)
     discardNotification = pyqtSignal(object)
-    triggerNotification = pyqtSignal(str, str)
+    triggerNotification = pyqtSignal(str, object)
 
     def __init__(self, manager: "Manager", /) -> None:
         super().__init__()
@@ -188,7 +190,7 @@ class NotificationService(QObject):
             return
         notification = self._notifications[uid]
         if notification.is_actionable():
-            self.triggerNotification.emit(notification.action, notification.engine_uid)
+            self.triggerNotification.emit(notification.action, notification.action_args)
         if notification.is_discard_on_trigger():
             self.discard_notification(uid)
 
@@ -224,6 +226,7 @@ class ErrorNotification(Notification):
                 | Notification.FLAG_REMOVE_ON_DISCARD
             ),
             action="show_conflicts_resolution",
+            action_args=(engine_uid,),
         )
 
 
@@ -290,6 +293,7 @@ class ConflictNotification(Notification):
                 | Notification.FLAG_REMOVE_ON_DISCARD
             ),
             action="show_conflicts_resolution",
+            action_args=(engine_uid,),
         )
 
 
@@ -441,14 +445,26 @@ class DirectTransferError(Notification):
 class DirectTransferSessionFinished(Notification):
     """Display a notification when a Direct Transfer session is finished."""
 
-    def __init__(self, remote_path: str, /) -> None:
+    def __init__(self, engine_uid: str, remote_ref: str, remote_path: str, /) -> None:
         values = [remote_path]
         super().__init__(
             uid="DIRECT_TRANSFER_SESSION_END",
             title="Direct Transfer",
             description=Translator.get("DIRECT_TRANSFER_SESSION_END", values=values),
             level=Notification.LEVEL_INFO,
-            flags=Notification.FLAG_PERSISTENT | Notification.FLAG_BUBBLE,
+            flags=(
+                Notification.FLAG_PERSISTENT
+                | Notification.FLAG_BUBBLE
+                | Notification.FLAG_ACTIONABLE
+                | Notification.FLAG_DISCARD_ON_TRIGGER
+                | Notification.FLAG_REMOVE_ON_DISCARD
+            ),
+            action="open_remote_document",
+            action_args=(
+                engine_uid,
+                remote_ref,
+                remote_path,
+            ),
         )
 
 
@@ -501,6 +517,7 @@ class InvalidCredentialNotification(Notification):
                 | Notification.FLAG_SYSTRAY
             ),
             action="web_update_token",
+            action_args=(engine_uid,),
         )
 
 
@@ -528,9 +545,13 @@ class DefaultNotificationService(NotificationService):
         """Display a notification when a Direct Transfer is in error."""
         self.send_notification(DirectTransferError(file))
 
-    def _direct_transfer_session_finshed(self, remote_path: str, /) -> None:
+    def _direct_transfer_session_finshed(
+        self, engine_uid: str, remote_ref: str, remote_path: str, /
+    ) -> None:
         """Display a notification when a Direct Transfer session is finished."""
-        self.send_notification(DirectTransferSessionFinished(remote_path))
+        self.send_notification(
+            DirectTransferSessionFinished(engine_uid, remote_ref, remote_path)
+        )
 
     def _errorOpenedFile(self, doc: DocPair, /) -> None:
         self.send_notification(ErrorOpenedFile(str(doc.local_path), doc.folderish))

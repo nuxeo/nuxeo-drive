@@ -8,7 +8,7 @@ from math import sqrt
 from pathlib import Path
 from random import choice
 from time import monotonic
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import unquote_plus, urlparse
 
 from ..behavior import Behavior
@@ -1294,13 +1294,15 @@ class Application(QApplication):
         self.current_notification = notif
         self.tray_icon.showMessage(notif.title, notif.description, icon, 10000)
 
-    @pyqtSlot(str, str)
-    def _handle_notification_action(self, action: str, engine_uid: str, /) -> None:
+    @pyqtSlot(str, object)
+    def _handle_notification_action(
+        self, action: str, action_args: Tuple[Any, ...], /
+    ) -> None:
         func = getattr(self.api, action, None)
         if not func:
             log.error(f"Action {action}() is not defined in {self.api}")
             return
-        func(engine_uid)
+        func(*action_args)
 
     def set_icon_state(self, state: str, /, *, force: bool = False) -> bool:
         """
