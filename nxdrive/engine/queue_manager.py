@@ -6,6 +6,7 @@ from queue import Empty, Queue
 from threading import Lock
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
+from ..constants import WINDOWS
 from ..objects import DocPair, Metrics
 from ..options import Options
 from ..qt.imports import QObject, QThread, QTimer, pyqtSignal, pyqtSlot
@@ -244,28 +245,27 @@ class QueueManager(QObject):
         error_count = doc_pair.error_count
         err_code = WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE
         if (
-            isinstance(exception, OSError)
-            and getattr(exception, "winerror", None) == err_code
+            WINDOWS
+            and isinstance(exception, OSError)
+            and exception.winerror == err_code  # type: ignore
         ):
-            strerror = getattr(exception, "strerror", "")
             log.info(
-                "Detected WindowsError with code "
-                f"{err_code}: {strerror!r}, "
-                "won't increase next try interval"
+                "The file is locked by the OS, won't increase next try interval"
+                f" (error n°{err_code}: {exception.strerror!r})"
             )
             error_count = 1
+
         if error_count > self._error_threshold:
             self.newErrorGiveUp.emit(doc_pair.id)
-            log.info(f"Giving up on pair : {doc_pair!r}")
+            log.info(f"Giving up on pair {doc_pair!r}")
             return
+
         if interval is None:
             interval = self._error_interval * error_count
         doc_pair.error_next_try = interval + int(time.time())
         log.info(f"Temporary ignore pair for {interval}s: {doc_pair!r}")
         with self._error_lock:
-            emit_sig = False
-            if doc_pair.id not in self._on_error_queue:
-                emit_sig = True
+            emit_sig = doc_pair.id not in self._on_error_queue
             self._on_error_queue[doc_pair.id] = doc_pair
             if emit_sig:
                 self.newError.emit(doc_pair.id)
