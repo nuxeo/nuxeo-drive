@@ -103,7 +103,7 @@ def disk_space(a_folder: str, /) -> Tuple[int, int]:
     for path in (folder, *folder.parents):
         try:
             data = shutil.disk_usage(path)
-        except FileNotFoundError:
+        except OSError:
             continue
         else:
             used = data.used
