@@ -946,8 +946,49 @@ class EngineDAO(ConfigurationDAO):
             self._create_transfer_tables(cursor)
 
             # Insert back old datas with up-to-date constraints
-            cursor.execute("INSERT INTO Uploads SELECT * FROM Uploads_backup;")
-            cursor.execute("INSERT INTO Downloads SELECT * FROM Downloads_backup;")
+            sql = (
+                "INSERT INTO Uploads"
+                " (uid, path, status, engine, is_direct_edit, is_direct_transfer, progress, filesize, doc_pair,"
+                "  batch, chunk_size, remote_parent_path, remote_parent_ref)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            )
+            for row in cursor.execute("SELECT * FROM Uploads_backup"):
+                upload_values = (
+                    row.uid,
+                    row.path,
+                    row.status,
+                    row.engine,
+                    row.is_direct_edit,
+                    row.is_direct_transfer,
+                    row.progress,
+                    row.filesize,
+                    row.doc_pair,
+                    row.batch,
+                    row.chunk_size,
+                    row.remote_parent_path,
+                    row.remote_parent_ref,
+                )
+                cursor.execute(sql, upload_values)
+
+            sql = (
+                "INSERT INTO Downloads"
+                " (uid, path, status, engine, is_direct_edit, progress, filesize, doc_pair, tmpname, url)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            )
+            for row in cursor.execute("SELECT * FROM Downloads_backup"):
+                download_values = (
+                    row.uid,
+                    row.path,
+                    row.status,
+                    row.engine,
+                    row.is_direct_edit,
+                    row.progress,
+                    row.filesize,
+                    row.doc_pair,
+                    row.tmpname,
+                    row.url,
+                )
+                cursor.execute(sql, download_values)
 
             # Delete the backup tables
             cursor.execute("DROP TABLE Uploads_backup;")
