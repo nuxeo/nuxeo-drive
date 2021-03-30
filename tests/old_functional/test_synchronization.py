@@ -2,7 +2,7 @@ import time
 from pathlib import Path
 from unittest.mock import patch
 
-from nuxeo.exceptions import HTTPError, Unauthorized
+from nuxeo.exceptions import Conflict, HTTPError, Unauthorized
 from requests import ConnectionError
 
 from nxdrive.constants import ROOT, WINDOWS
@@ -746,7 +746,7 @@ class TestSynchronization(OneUserTest):
 
         # Simulate a server conflict on file upload
         bad_remote = self.get_bad_remote()
-        error = HTTPError(status=409, message="Mock Conflict")
+        error = Conflict(message="Mock Conflict")
         bad_remote.make_upload_raise(error)
         bad_remote.raise_on = _raise_for_second_file_only
 

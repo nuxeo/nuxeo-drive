@@ -6,6 +6,8 @@ from queue import Empty, Queue
 from threading import Lock
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
+from nuxeo.exceptions import OngoingRequestError
+
 from ..constants import WINDOWS
 from ..objects import DocPair, Metrics
 from ..options import Options
@@ -244,6 +246,8 @@ class QueueManager(QObject):
     ) -> None:
         error_count = doc_pair.error_count
         err_code = WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE
+        emit_sig = doc_pair.id not in self._on_error_queue
+
         if (
             WINDOWS
             and isinstance(exception, OSError)
@@ -254,6 +258,8 @@ class QueueManager(QObject):
                 f" (error n°{err_code}: {exception.strerror!r})"
             )
             error_count = 1
+        elif isinstance(exception, OngoingRequestError):
+            emit_sig = False  # No notification as it is not an error on its own
 
         if error_count > self._error_threshold:
             self.newErrorGiveUp.emit(doc_pair.id)
@@ -263,11 +269,11 @@ class QueueManager(QObject):
         if interval is None:
             interval = self._error_interval * error_count
         doc_pair.error_next_try = interval + int(time.time())
+
         log.info(f"Temporary ignore pair for {interval}s: {doc_pair!r}")
-        with self._error_lock:
-            emit_sig = doc_pair.id not in self._on_error_queue
-            self._on_error_queue[doc_pair.id] = doc_pair
-            if emit_sig:
+        if emit_sig:
+            with self._error_lock:
+                self._on_error_queue[doc_pair.id] = doc_pair
                 self.newError.emit(doc_pair.id)
 
     def _get_local_folder(self) -> Optional[DocPair]:

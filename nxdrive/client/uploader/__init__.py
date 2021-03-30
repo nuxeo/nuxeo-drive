@@ -6,9 +6,10 @@ from logging import getLogger
 from pathlib import Path
 from time import monotonic_ns
 from typing import TYPE_CHECKING, Any, Dict, Optional
+from uuid import uuid4
 
 from botocore.exceptions import ClientError
-from nuxeo.constants import UP_AMAZON_S3
+from nuxeo.constants import IDEMPOTENCY_KEY, UP_AMAZON_S3
 from nuxeo.exceptions import HTTPError
 from nuxeo.handlers.default import Uploader
 from nuxeo.handlers.s3 import UploaderS3  # noqa; fix lazy import error
@@ -26,6 +27,9 @@ if TYPE_CHECKING:
     from ..remote_client import Remote  # noqa
 
 log = getLogger(__name__)
+
+# Idempotent requests for those calls
+_IDEMPOTENT_CMDS = {"FileManager.Import", "NuxeoDrive.CreateFile"}
 
 
 class BaseUploader:
@@ -57,7 +61,7 @@ class BaseUploader:
         """Upload a file with a batch."""
 
     def _get_transfer(
-        self, file_path: Path, blob: FileBlob, /, **kwargs: Any
+        self, file_path: Path, blob: FileBlob, command: str, /, **kwargs: Any
     ) -> Upload:
         """Get and instantiate a new transfer."""
 
@@ -119,6 +123,11 @@ class BaseUploader:
                 remote_parent_ref=kwargs.pop("remote_parent_ref", ""),
                 doc_pair=kwargs.pop("doc_pair", None),
             )
+
+            # Inject the request UID, if allowed and required
+            if Options.use_idempotent_requests and command in _IDEMPOTENT_CMDS:
+                transfer.request_uid = str(uuid4())
+
             log.debug(f"Instantiated transfer {transfer}")
             if transfer.is_direct_transfer:
                 self.dao.save_dt_upload(transfer)
@@ -176,7 +185,7 @@ class BaseUploader:
             blob.name = filename
 
         # Step 0.5: retrieve or instantiate a new transfer
-        transfer = self._get_transfer(file_path, blob, **kwargs)
+        transfer = self._get_transfer(file_path, blob, command, **kwargs)
         self._handle_transfer_status(transfer)
 
         # Step 0.75: delete superfluous arguments that would raise a BadQuery error later
@@ -369,6 +378,8 @@ class BaseUploader:
         """Link the given uploaded *blob* to the given document."""
 
         headers = {"Nuxeo-Transaction-Timeout": str(TX_TIMEOUT)}
+        if transfer.request_uid:
+            headers[IDEMPOTENCY_KEY] = transfer.request_uid
 
         # By default, the batchId will be removed after its first use.
         # We do not want that for better upload resiliency, especially with large files.
@@ -392,7 +403,7 @@ class BaseUploader:
             res: Dict[str, Any] = self.remote.execute(
                 command=command,
                 input_obj=blob,
-                timeout=TX_TIMEOUT,
+                timeout=kwargs.pop("timeout", TX_TIMEOUT),
                 **kwargs,
             )
             return res

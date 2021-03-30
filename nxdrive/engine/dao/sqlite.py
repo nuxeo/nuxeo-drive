@@ -644,7 +644,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 19
+        return 20
 
     def _migrate_state(self, cursor: Cursor, /) -> None:
         try:
@@ -1012,6 +1012,13 @@ class EngineDAO(ConfigurationDAO):
             self._create_session_items_table(cursor)
             self.store_int(SCHEMA_VERSION, 19)
 
+        if version < 20:
+            # Add the *request_uid* field to the Uploads table
+            self._append_to_table(
+                cursor, "Uploads", ("request_uid", "VARCHAR", "DEFAULT", "NULL")
+            )
+            self.store_int(SCHEMA_VERSION, 20)
+
     def _create_table(
         self, cursor: Cursor, name: str, /, *, force: bool = False
     ) -> None:
@@ -1052,6 +1059,7 @@ class EngineDAO(ConfigurationDAO):
             "    chunk_size         INTEGER,"
             "    remote_parent_path VARCHAR     DEFAULT NULL,"
             "    remote_parent_ref  VARCHAR     DEFAULT NULL,"
+            "    request_uid        VARCHAR     DEFAULT NULL,"
             "    PRIMARY KEY (uid)"
             ")"
         )
@@ -2437,6 +2445,7 @@ class EngineDAO(ConfigurationDAO):
                 doc_pair=res.doc_pair,
                 batch=json.loads(res.batch),
                 chunk_size=res.chunk_size or 0,
+                request_uid=res.request_uid,
             )
 
     def get_dt_uploads(self) -> Generator[Upload, None, None]:
@@ -2458,6 +2467,7 @@ class EngineDAO(ConfigurationDAO):
                 progress=res.progress,
                 remote_parent_path=res.remote_parent_path,
                 remote_parent_ref=res.remote_parent_ref,
+                request_uid=res.request_uid,
             )
 
     def get_dt_uploads_raw(
@@ -2791,13 +2801,14 @@ class EngineDAO(ConfigurationDAO):
                 upload.remote_parent_path,
                 upload.remote_parent_ref,
                 upload.doc_pair,
+                upload.request_uid,
             )
             c = self._get_write_connection().cursor()
             sql = (
                 "INSERT INTO Uploads "
                 "(path, status, engine, is_direct_edit, is_direct_transfer, filesize, batch, chunk_size,"
-                " remote_parent_path, remote_parent_ref, doc_pair)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                " remote_parent_path, remote_parent_ref, doc_pair, request_uid)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             )
             c.execute(sql, values)
 
@@ -2832,14 +2843,15 @@ class EngineDAO(ConfigurationDAO):
                 upload.remote_parent_path,
                 upload.remote_parent_ref,
                 upload.doc_pair,
+                upload.request_uid,
             )
             c = self._get_write_connection().cursor()
             sql = (
                 "INSERT INTO Uploads "
                 "(path, status, engine, is_direct_edit, is_direct_transfer, filesize, batch, chunk_size,"
-                " remote_parent_path, remote_parent_ref, doc_pair)"
+                " remote_parent_path, remote_parent_ref, doc_pair, request_uid)"
                 " VALUES (?, IFNULL((SELECT s.status FROM States st INNER JOIN Sessions s ON st.session = s.uid "
-                "AND st.id = ?), ?), ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                "AND st.id = ?), ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             )
             c.execute(sql, values)
 

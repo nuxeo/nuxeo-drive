@@ -510,6 +510,69 @@ class TestUpload(OneUserTest):
         assert self.remote_1.exists(f"/{file}")
         assert not dao.get_errors(limit=0)
 
+    @pytest.mark.randombug("Randomly fail when run in parallel")
+    @Options.mock()
+    def test_server_error_but_upload_ok_idempotent_call(self):
+        """
+        Test an error happening after chunks were uploaded and the NuxeoDrive.CreateFile operation call.
+        This will cover cases when the app crashed in-between or when an errors happened but the doc was created.
+
+        Thanks to idempotent requests, only one document will be created with success.
+        """
+
+        class SerialUploader(SyncUploader):
+            def link_blob_to_doc(self, *args, **kwargs):
+                # Test the OngoingRequestError by setting a very small timeout
+                # (the retry mechanism will trigger several calls almost simultaneously)
+                kwargs["timeout"] = 0.01
+                return super().link_blob_to_doc(*args, **kwargs)
+
+        def upload(*args, **kwargs):
+            """Set our specific uploader to simulate server error."""
+            kwargs.pop("uploader", None)
+            return upload_orig(*args, uploader=SerialUploader, **kwargs)
+
+        engine = self.engine_1
+        remote = self.remote_1
+        dao = engine.dao
+        upload_orig = engine.remote.upload
+        file = "t'ée sんt.bin"
+
+        # Locally create a file that will be uploaded remotely
+        self.local_1.make_file("/", file, content=b"0" * FILE_BUFFER_SIZE * 2)
+
+        # There is no upload, right now
+        assert not list(dao.get_uploads())
+
+        # Enable idempotent requests
+        Options.use_idempotent_requests = True
+
+        with patch.object(engine.remote, "upload", new=upload), patch.object(
+            engine.queue_manager, "_error_interval", new=3
+        ), ensure_no_exception():
+            self.wait_sync()
+
+        # The file should be present on the server
+        assert remote.exists(f"/{file}")
+        children = remote.get_children_info(self.workspace)
+        assert len(children) == 1
+
+        # Check the upload
+        uploads = list(dao.get_uploads())
+        assert len(uploads) == 1
+        upload = uploads[0]
+        assert upload.status is TransferStatus.DONE
+        assert upload.request_uid
+
+        # Resync and checks
+        with ensure_no_exception():
+            self.wait_sync()
+
+        assert not list(dao.get_uploads())
+        assert not dao.get_errors(limit=0)
+        children = remote.get_children_info(self.workspace)
+        assert len(children) == 1
+
     def test_server_error_upload(self):
         """Test a server error happening after chunks were uploaded, at the NuxeoDrive.CreateFile operation call."""
 

@@ -512,6 +512,19 @@ Share anonymous usage analytics to help the developers build the best experience
 - Version added: 4.1.0
 - Version changed: 4.4.5, a minimal set of GDPR-information is sent even if set to `False` (see [NXDRIVE-2254](https://jira.nuxeo.com/browse/NXDRIVE-2254))
 
+#### `use-idempotent-requests`
+
+Control whenever specific HTTP calls should be made idempotent or not.
+
+- Default value (bool): `False`
+- Version added: 5.1.1
+
+It requires [NXP-29978](https://jira.nuxeo.com/browse/NXP-29978) on the server.
+
+If enabled, those requests will be impacted:
+- `FileManager.Import` (Direct Transfer)
+- `NuxeoDrive.CreateFile` (synchronization)
+
 * * *
 
 #### `use-sentry`

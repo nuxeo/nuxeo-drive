@@ -438,3 +438,15 @@ def test_migration_db_v18(engine_dao):
             if row[0].startswith("/SYNC"):
                 assert "\\" not in row[0]
                 assert "\\" not in row[1]
+
+
+def test_migration_db_v20(engine_dao):
+    """Verify Uploads.request_uid presence after v20 migration."""
+    with engine_dao("engine_migration_16.db") as dao:
+        dao._get_read_connection().row_factory = None
+        c = dao._get_read_connection().cursor()
+        rows = c.execute("SELECT request_uid FROM Uploads").fetchall()
+        assert rows
+        for row in rows:
+            # The request_uid default value is None
+            assert not row[0]

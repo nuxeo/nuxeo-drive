@@ -289,6 +289,7 @@ class MetaOptions(type):
             "default",
         ),
         "use_analytics": (False, "default"),
+        "use_idempotent_requests": (False, "default"),
         "use_sentry": (True, "default"),
     }
 
