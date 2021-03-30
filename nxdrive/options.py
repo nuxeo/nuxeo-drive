@@ -288,8 +288,8 @@ class MetaOptions(type):
             "https://community.nuxeo.com/static/drive-updates",
             "default",
         ),
-        "use_sentry": (True, "default"),
         "use_analytics": (False, "default"),
+        "use_sentry": (True, "default"),
     }
 
     # Add dynamic options from Features
