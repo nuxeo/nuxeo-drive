@@ -477,6 +477,7 @@ class Upload(Transfer):
     remote_parent_path: str = ""
     remote_parent_ref: str = ""
     batch_obj: Batch = None
+    request_uid: Optional[str] = None
     is_dirty: bool = field(init=False, default=False)
 
     def token_callback(self, batch: Batch, _: Dict[str, Any]) -> None:

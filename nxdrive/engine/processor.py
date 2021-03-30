@@ -10,9 +10,11 @@ from time import monotonic_ns, sleep
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 
 from nuxeo.exceptions import (
+    Conflict,
     CorruptedFile,
     Forbidden,
     HTTPError,
+    OngoingRequestError,
     Unauthorized,
     UploadError,
 )
@@ -319,6 +321,7 @@ class Processor(EngineWorker):
             try:
                 if not self.check_pair_state(doc_pair):
                     log.debug(f"Skip non-processable {doc_pair!r}")
+                    self.remove_void_transfers(doc_pair)
                     continue
 
                 log.info(f"Executing processor on {doc_pair!r}({doc_pair.version})")
@@ -363,6 +366,15 @@ class Processor(EngineWorker):
             except MaxRetryError:
                 log.warning("Connection retries issue", exc_info=True)
                 self._postpone_pair(doc_pair, "MAX_RETRY_ERROR")
+            except OngoingRequestError as exc:
+                # The idempotent request is being processed, just recheck later
+                log.info(exc)
+                self._postpone_pair(doc_pair, "OngoingRequest", exception=exc)
+            except Conflict:
+                # It could happen on multiple files drag'n drop
+                # starting with identical characters.
+                log.warning("Delaying conflicted document")
+                self._postpone_pair(doc_pair, "Conflict")
             except HTTPError as exc:
                 if exc.status == 404:
                     # We saw it happened once a migration is done.
@@ -370,11 +382,6 @@ class Processor(EngineWorker):
                     # not exist physically anywhere.
                     log.info("The document does not exist anymore")
                     self.dao.remove_state(doc_pair)
-                elif exc.status == 409:  # Conflict
-                    # It could happen on multiple files drag'n drop
-                    # starting with identical characters.
-                    log.warning("Delaying conflicted document")
-                    self._postpone_pair(doc_pair, "Conflict")
                 elif exc.status == 416:
                     log.warning("Invalid downloaded temporary file")
                     tmp_folder = (
@@ -716,13 +723,21 @@ class Processor(EngineWorker):
         return self.dao.get_normal_state_from_remote(ref)
 
     def _postpone_pair(
-        self, doc_pair: DocPair, reason: str, /, *, interval: int = None
+        self,
+        doc_pair: DocPair,
+        reason: str,
+        /,
+        *,
+        exception: Exception = None,
+        interval: int = None,
     ) -> None:
         """ Wait *interval* sec for it. """
 
         log.debug(f"Postpone action on document({reason}): {doc_pair!r}")
         doc_pair.error_count = 1
-        self.engine.queue_manager.push_error(doc_pair, interval=interval)
+        self.engine.queue_manager.push_error(
+            doc_pair, exception=exception, interval=interval
+        )
         self.engine.send_metric("sync", "error", reason)
 
     def _synchronize_locally_resolved(self, doc_pair: DocPair, /) -> None:
