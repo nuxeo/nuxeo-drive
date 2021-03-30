@@ -3,7 +3,7 @@ from datetime import datetime
 from logging import getLogger
 from pathlib import Path
 from threading import Lock
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, Tuple
 
 from .constants import APP_NAME
 from .objects import DocPair
@@ -66,7 +66,7 @@ class Notification:
         title: str = "",
         description: str = "",
         action: str = "",
-        action_args: tuple = (),
+        action_args: Tuple[Any, ...] = (),
     ) -> None:
         self.flags = flags
         self.level = level
