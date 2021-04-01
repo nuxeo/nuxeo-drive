@@ -15,7 +15,7 @@ from ..feature import Feature
 from ..metrics.utils import user_agent
 from ..options import Options
 from ..qt.imports import QApplication, pyqtSignal, pyqtSlot
-from . import UpdateError
+from . import UpdateError, UpdateIntegrityError
 from .constants import (
     UPDATE_STATUS_INCOMPATIBLE_SERVER,
     UPDATE_STATUS_UNAVAILABLE_SITE,
@@ -162,6 +162,8 @@ class BaseUpdater(PollWorker):
                 raise
         except CONNECTION_ERROR:
             log.warning("Error during update request", exc_info=True)
+        except UpdateIntegrityError as exc:
+            log.warning(exc)
         except Exception:
             self._set_status(UPDATE_STATUS_UPDATE_AVAILABLE, version=version)
             log.exception("Update failed")
@@ -387,12 +389,8 @@ class BaseUpdater(PollWorker):
                 func.update(chunk)
         computed = func.hexdigest()
 
-        log.debug(
-            f"Integrity check [{algo.upper()}] for {filename!r}: "
-            f"good={checksum!r}, found={computed!r}"
-        )
         if computed != checksum:
-            raise UpdateError(f"Installer integrity check failed for {filename!r}")
+            raise UpdateIntegrityError(filename, algo, checksum, computed)
 
     @pyqtSlot(result=bool)
     def _poll(self) -> bool:
