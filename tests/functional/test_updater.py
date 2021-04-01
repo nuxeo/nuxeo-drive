@@ -32,6 +32,14 @@ VERSIONS = {
             "foo": _checksum,
         },
     },
+    "4.5.0": {
+        "type": "beta",
+        "min": "10.10",
+        "checksum": {
+            "algo": "sha256",
+            "foo": "bad_checksum",
+        },
+    },
 }
 
 
@@ -193,6 +201,20 @@ def test_frozen_updates_disabled_centralized_client_version(
         # The server config has been fetched, the update can be done
         manager.server_config_updater.first_run = False
         check_attrs(updater, True, True, "4.4.0")
+
+
+@Options.mock()
+def test_installer_integrity_failure(manager_factory, monkey_requests):
+    """Check installer integrity failure."""
+    Options.is_frozen = True
+    Options.client_version = "4.5.0"
+
+    with manager_factory(with_engine=False) as manager:
+        updater = Updater(manager)
+
+        # The server config has been fetched, the update can be done
+        manager.server_config_updater.first_run = False
+        check_attrs(updater, True, False, "4.5.0")
 
 
 @Options.mock()

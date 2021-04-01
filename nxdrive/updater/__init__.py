@@ -16,6 +16,24 @@ class UpdateError(Exception):
     """ Error handling class. """
 
 
+class UpdateIntegrityError(UpdateError):
+    """ Installer integrity error handling class. """
+
+    def __init__(
+        self, name: str, algo: str, remote_checksum: str, local_checksum: str
+    ) -> None:
+        self.name = name
+        self.algo = algo
+        self.remote_checksum = remote_checksum
+        self.local_checksum = local_checksum
+
+    def __str__(self) -> str:
+        return (
+            f"Integrity check failed [{self.algo}] for {self.name!r}: "
+            f"good={self.remote_checksum!r}, found={self.local_checksum!r}"
+        )
+
+
 def updater(manager: "Manager", /) -> "Updater":
     """
     Factory returning a proper Updater class instance.
@@ -39,4 +57,4 @@ def updater(manager: "Manager", /) -> "Updater":
     return windows.Updater(manager)
 
 
-__all__ = ("UpdateError", "updater")
+__all__ = ("UpdateError", "UpdateIntegrityError", "updater")
