@@ -1,10 +1,11 @@
+import logging
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
 from nxdrive.client.local import FileInfo
 from nxdrive.constants import DelAction, TransferStatus
-from nxdrive.exceptions import ThreadInterrupt
+from nxdrive.exceptions import ThreadInterrupt, UnknownDigest
 from nxdrive.manager import Manager
 from nxdrive.objects import RemoteFileInfo, Session
 from nxdrive.session_csv import SessionCsv
@@ -12,12 +13,15 @@ from nxdrive.session_csv import SessionCsv
 from .. import ensure_no_exception
 
 
-def test_conflict_resolver(manager_factory, tmp):
+def test_conflict_resolver(manager_factory, tmp, caplog):
     manager, engine = manager_factory()
     dao = engine.dao
 
     def bad(*args, **kwargs):
         raise ThreadInterrupt("Mock'ed exception")
+
+    def unknown_digest(*args, **kwargs):
+        raise UnknownDigest("Mock'ed exception")
 
     def doc_pair(name: str) -> int:
         """Create a valid doc pair in the database and return the row ID."""
@@ -39,7 +43,9 @@ def test_conflict_resolver(manager_factory, tmp):
 
         return rowid
 
-    with ensure_no_exception(), manager:
+    with caplog.at_level(logging.ERROR), ensure_no_exception(), manager:
+        caplog.clear()
+
         # Test a conflict with an inexistent doc_pair
         engine.conflict_resolver(42)
 
@@ -47,11 +53,17 @@ def test_conflict_resolver(manager_factory, tmp):
         rowid = doc_pair("conflict")
         engine.conflict_resolver(rowid, emit=False)
 
+        # Test a conflict with unknown digest
+        with patch.object(engine.local, "is_equal_digests", new=unknown_digest):
+            engine.conflict_resolver(rowid)
+
         # Test a conflict when the Engine is stopped and the digest computation fails accordingly.
         # It should not fail.
         engine.stop()
         with patch.object(engine.local, "is_equal_digests", new=bad):
             engine.conflict_resolver(rowid, emit=False)
+
+        assert not caplog.records
 
 
 def test_delete_doc(manager_factory, tmp):

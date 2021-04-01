@@ -36,6 +36,7 @@ from ..exceptions import (
     PairInterrupt,
     RootAlreadyBindWithDifferentAccount,
     ThreadInterrupt,
+    UnknownDigest,
 )
 from ..metrics.constants import (
     DT_NEW_FOLDER,
@@ -1133,6 +1134,10 @@ class Engine(QObject):
             # The engine has not yet started, just skip the exception as the conflict
             # is already seen by the user from within the systray menu and in the conflicts window.
             pass
+        except UnknownDigest:
+            log.info(
+                f"Delaying conflict resolution of {pair!r} because of non-standard digest"
+            )
         except Exception:
             log.exception("Conflict resolver error")
 
