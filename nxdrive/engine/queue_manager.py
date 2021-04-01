@@ -190,7 +190,7 @@ class QueueManager(QObject):
                     f"{self._local_file_queue.qsize()}"
                 )
             self.newItem.emit(row_id)
-        elif state.pair_state.startswith("remotely"):
+        elif state.pair_state.startswith(("remotely", "parent_remotely")):
             if state.folderish:
                 self._remote_folder_queue.put(state)
                 log.debug(
