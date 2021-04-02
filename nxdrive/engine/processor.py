@@ -278,6 +278,8 @@ class Processor(EngineWorker):
             log.debug(f"Cancelled upload {exc.transfer_id!r}")
         except UploadPaused:
             raise
+        except RuntimeError:
+            raise
         except Exception:
             # Show a notification on error
             file = doc_pair.local_path if WINDOWS else Path(f"/{doc_pair.local_path}")
@@ -458,6 +460,19 @@ class Processor(EngineWorker):
                     self._postpone_pair(doc_pair, "Trashing not possible")
                 else:
                     self._handle_pair_handler_exception(doc_pair, handler_name, exc)
+            except RuntimeError as exc:
+                if "but the refreshed credentials are still expired" in str(exc):
+                    log.warning(
+                        "AWS credentials were refreshed, but the refreshed credentials are still expired"
+                    )
+                    log.info("Reinitializing the upload")
+                    self.dao.remove_transfer(
+                        "upload",
+                        doc_pair=doc_pair.id,
+                        is_direct_transfer=doc_pair.local_state == "direct",
+                    )
+                else:
+                    raise
             except Exception as exc:
                 # Workaround to forward unhandled exceptions to sys.excepthook between all Qthreads
                 sys.excepthook(*sys.exc_info())
