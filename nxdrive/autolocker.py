@@ -167,7 +167,7 @@ def get_open_files() -> Iterator[Item]:
     """
 
     # Let's skip all errors at the top the the code.
-    # It would be an endless fight to catch specific errors only.
+    # It would be an endless fight to catch specific errors only
     # Here, it is typically MemoryError's.
     try:
         for proc in psutil.process_iter(attrs=["pid"]):

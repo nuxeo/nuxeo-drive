@@ -42,4 +42,27 @@ jobs:
     - name: Install tox
       run: python -m pip install -r tools/deps/requirements-tox.txt
     - name: Integration tests
-      run: tox -e integration
+      run: tox -e integration -- --cov-report xml:artifacts_int/int_coverage_windows.xml
+    - name: Upload
+      if: ${{ success() }} || ${{ failure() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: artifacts_int
+        path: artifacts_int
+
+  upload_codecov:
+    needs: [it_windows]
+    if: ${{ success() }} || ${{ failure() }}
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download coverage report
+      uses: actions/download-artifact@v2
+      with:
+        name: artifacts_int
+        path: artifacts_int
+    - name: Upload integration coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        files: ./artifacts_int/int_coverage_windows.xml
+        flags: integration
+        env_vars: OS,PYTHON
