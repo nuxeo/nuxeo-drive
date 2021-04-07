@@ -30,13 +30,15 @@ jobs:
     - name: Install tox
       run: python -m pip install -r tools/deps/requirements-tox.txt
     - name: Unit tests
-      run: tox -e unit -- --cov-report xml:artifacts_ut/ut_coverage_linux.xml
-    - name: Upload
+      run: tox -e unit -- --cov-report xml:ut_coverage_linux.xml
+    - name: Upload coverage to Codecov
       if: ${{ success() }} || ${{ failure() }}
-      uses: actions/upload-artifact@v2
+      uses: codecov/codecov-action@v1
       with:
-        name: artifacts_ut
-        path: artifacts_ut
+        files: ./ut_coverage_linux.xml
+        flags: unit
+        env_vars: OS,PYTHON
+        token: ${{ secrets.CODECOV_TOKEN }}
 
   ut_macos:
     runs-on: macos-latest
@@ -59,13 +61,15 @@ jobs:
     - name: Install tox
       run: python -m pip install -r tools/deps/requirements-tox.txt
     - name: Unit tests
-      run: tox -e unit -- --cov-report xml:artifacts_ut/ut_coverage_macos.xml
-    - name: Upload
+      run: tox -e unit -- --cov-report xml:ut_coverage_macos.xml
+    - name: Upload coverage to Codecov
       if: ${{ success() }} || ${{ failure() }}
-      uses: actions/upload-artifact@v2
+      uses: codecov/codecov-action@v1
       with:
-        name: artifacts_ut
-        path: artifacts_ut
+        files: ./ut_coverage_macos.xml
+        flags: unit
+        env_vars: OS,PYTHON
+        token: ${{ secrets.CODECOV_TOKEN }}
 
   ut_windows:
     runs-on: windows-latest
@@ -90,27 +94,12 @@ jobs:
     - name: Install tox
       run: python -m pip install -r tools/deps/requirements-tox.txt
     - name: Unit tests
-      run: tox -e unit -- --cov-report xml:artifacts_ut/ut_coverage_windows.xml
-    - name: Upload
+      run: tox -e unit -- --cov-report xml:ut_coverage_windows.xml
+    - name: Upload coverage to Codecov
       if: ${{ success() }} || ${{ failure() }}
-      uses: actions/upload-artifact@v2
-      with:
-        name: artifacts_ut
-        path: artifacts_ut
-
-  upload_codecov:
-    needs: [ut_linux, ut_macos, ut_windows]
-    if: ${{ success() }} || ${{ failure() }}
-    runs-on: ubuntu-latest
-    steps:
-    - name: Download coverage reports
-      uses: actions/download-artifact@v2
-      with:
-        name: artifacts_ut
-        path: artifacts_ut
-    - name: Upload unit coverage to Codecov
       uses: codecov/codecov-action@v1
       with:
-        files: ./artifacts_ut/ut_coverage_linux.xml,./artifacts_ut/ut_coverage_macos.xml,./artifacts_ut/ut_coverage_windows.xml
+        files: ./ut_coverage_windows.xml
         flags: unit
         env_vars: OS,PYTHON
+        token: ${{ secrets.CODECOV_TOKEN }}
