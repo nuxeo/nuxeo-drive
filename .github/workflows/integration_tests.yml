@@ -42,12 +42,12 @@ jobs:
     - name: Install tox
       run: python -m pip install -r tools/deps/requirements-tox.txt
     - name: Integration tests
-      run: tox -e integration -- --cov-report xml:int_coverage_windows.xml
+      run: tox -e integration
     - name: Upload coverage to Codecov
       if: ${{ success() }} || ${{ failure() }}
       uses: codecov/codecov-action@v1
       with:
-        files: ./int_coverage_windows.xml
+        files: ./coverage.xml
         flags: integration
         env_vars: OS,PYTHON
         token: ${{ secrets.CODECOV_TOKEN }}

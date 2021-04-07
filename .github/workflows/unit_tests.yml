@@ -30,12 +30,12 @@ jobs:
     - name: Install tox
       run: python -m pip install -r tools/deps/requirements-tox.txt
     - name: Unit tests
-      run: tox -e unit -- --cov-report xml:ut_coverage_linux.xml
+      run: tox -e unit
     - name: Upload coverage to Codecov
       if: ${{ success() }} || ${{ failure() }}
       uses: codecov/codecov-action@v1
       with:
-        files: ./ut_coverage_linux.xml
+        files: ./coverage.xml
         flags: unit
         env_vars: OS,PYTHON
         token: ${{ secrets.CODECOV_TOKEN }}
@@ -61,12 +61,12 @@ jobs:
     - name: Install tox
       run: python -m pip install -r tools/deps/requirements-tox.txt
     - name: Unit tests
-      run: tox -e unit -- --cov-report xml:ut_coverage_macos.xml
+      run: tox -e unit
     - name: Upload coverage to Codecov
       if: ${{ success() }} || ${{ failure() }}
       uses: codecov/codecov-action@v1
       with:
-        files: ./ut_coverage_macos.xml
+        files: ./coverage.xml
         flags: unit
         env_vars: OS,PYTHON
         token: ${{ secrets.CODECOV_TOKEN }}
@@ -94,12 +94,12 @@ jobs:
     - name: Install tox
       run: python -m pip install -r tools/deps/requirements-tox.txt
     - name: Unit tests
-      run: tox -e unit -- --cov-report xml:ut_coverage_windows.xml
+      run: tox -e unit
     - name: Upload coverage to Codecov
       if: ${{ success() }} || ${{ failure() }}
       uses: codecov/codecov-action@v1
       with:
-        files: ./ut_coverage_windows.xml
+        files: ./coverage.xml
         flags: unit
         env_vars: OS,PYTHON
         token: ${{ secrets.CODECOV_TOKEN }}

@@ -36,14 +36,14 @@ jobs:
     - name: Install tox
       run: python -m pip install -r tools/deps/requirements-tox.txt
     - name: Functional tests
-      run: tox -e ft -- --cov-report xml:ft_coverage_linux.xml
+      run: tox -e ft
       env:
         DISPLAY: ":99"
     - name: Upload coverage to Codecov
       if: ${{ success() }} || ${{ failure() }}
       uses: codecov/codecov-action@v1
       with:
-        files: ./ft_coverage_linux.xml
+        files: ./coverage.xml
         flags: functional
         env_vars: OS,PYTHON
         token: ${{ secrets.CODECOV_TOKEN }}
@@ -69,12 +69,12 @@ jobs:
     - name: Install tox
       run: python -m pip install -r tools/deps/requirements-tox.txt
     - name: Functional tests
-      run: tox -e ft -- --cov-report xml:ft_coverage_macos.xml
+      run: tox -e ft
     - name: Upload coverage to Codecov
       if: ${{ success() }} || ${{ failure() }}
       uses: codecov/codecov-action@v1
       with:
-        files: ./ft_coverage_macos.xml
+        files: ./coverage.xml
         flags: functional
         env_vars: OS,PYTHON
         token: ${{ secrets.CODECOV_TOKEN }}
@@ -100,12 +100,12 @@ jobs:
     - name: Install tox
       run: python -m pip install -r tools/deps/requirements-tox.txt
     - name: Functional tests
-      run: tox -e ft -- --cov-report xml:ft_coverage_windows.xml
+      run: tox -e ft
     - name: Upload coverage to Codecov
       if: ${{ success() }} || ${{ failure() }}
       uses: codecov/codecov-action@v1
       with:
-        files: ./ft_coverage_windows.xml
+        files: ./coverage.xml
         flags: functional
         env_vars: OS,PYTHON
         token: ${{ secrets.CODECOV_TOKEN }}
