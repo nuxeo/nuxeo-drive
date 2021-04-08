@@ -7,6 +7,11 @@ on:
     - 'nxdrive/**/*.py'
     - 'tests/integration/**/*.py'
     - 'tools/deps/*.txt'
+  push:
+    branches: [master]
+    paths:
+    - 'nxdrive/**/*.py'
+    - 'tests/integration/**/*.py'
 
 env:
   FREEZE_ONLY: 1
