@@ -6,6 +6,11 @@ on:
     - '.github/workflows/functional_tests.yml'
     - 'nxdrive/**/*.py'
     - 'tests/functional/*.py'
+  push:
+    branches: [master]
+    paths:
+    - 'nxdrive/**/*.py'
+    - 'tests/functional/*.py'
 
 env:
   NXDRIVE_TEST_NUXEO_URL: https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo

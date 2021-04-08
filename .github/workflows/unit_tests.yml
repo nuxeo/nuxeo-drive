@@ -3,10 +3,17 @@ name: Unit tests
 on:
   pull_request:
     paths:
+    - '.github/workflows/unit_tests.yml'
     - 'nxdrive/**/*.py'
     - 'tests/*.py'
     - 'tests/unit/*.py'
     - 'tools/deps/*.txt'
+  push:
+    branches: [master]
+    paths:
+    - 'nxdrive/**/*.py'
+    - 'tests/*.py'
+    - 'tests/unit/*.py'
 
 jobs:
   ut_linux:
