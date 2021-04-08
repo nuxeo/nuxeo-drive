@@ -10,6 +10,8 @@ from .qt.imports import QTranslator, pyqtProperty, pyqtSignal, pyqtSlot
 
 __all__ = ("Translator",)
 
+_CACHE: Dict[str, str] = {}
+
 
 class Translator(QTranslator):
 
@@ -99,12 +101,17 @@ class Translator(QTranslator):
         result = re.sub(r"%(\d+)", r"{\1}", label)
         return result.format(*([""] + values))
 
-    def get_translation(self, label: str, /, *, values: List[Any] = None) -> str:
-        if label not in self._current:
-            if label not in self._fallback:
-                return label
-            return self._tokenize(self._fallback[label], values=values)
-        return self._tokenize(self._current[label], values=values)
+    def get_translation(self, label: str, values: List[Any] = None) -> str:
+        value = _CACHE.get(label)
+        if value is None:
+            token_label = self._current.get(label, self._fallback.get(label, label))
+            value = (
+                self._tokenize(token_label, values=values)
+                if token_label != label
+                else label
+            )
+            _CACHE[label] = value
+        return value
 
     @pyqtSlot(str)  # from GeneralTab.qml
     def set_language(self, lang: str, /) -> None:
@@ -115,6 +122,7 @@ class Translator(QTranslator):
         else:
             if self.current_language != lang:
                 self.current_language = lang
+                _CACHE.clear()
                 self.languageChanged.emit()
 
     @staticmethod
@@ -134,7 +142,7 @@ class Translator(QTranslator):
         return Translator.singleton.current_language
 
     @staticmethod
-    def get(label: str, /, *, values: List[str] = None) -> str:
+    def get(label: str, /, *, values: List[Any] = None) -> str:
         if not Translator.singleton:
             raise RuntimeError("Translator not initialized")
         return Translator.singleton.get_translation(label, values=values)
