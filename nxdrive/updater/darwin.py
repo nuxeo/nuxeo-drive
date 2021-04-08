@@ -43,6 +43,7 @@ class Updater(BaseUpdater):
         exe_path = sys.executable
         m = re.match(r"(.*\.app).*", exe_path)
         self.final_app = Path(m.group(1) if m else exe_path)
+        self._relocate_in_home()
 
         self._fix_notarization(filename)
         mount_point = self._mount(filename)
@@ -68,6 +69,22 @@ class Updater(BaseUpdater):
         # Trigger the application exit + restart
         self._set_progress(100)
         self._restart()
+
+    def _relocate_in_home(self) -> None:
+        """Ensure the app is located into $HOME/Applications."""
+        if str(self.final_app.parent) != "/Applications":
+            # Likely already at the good location
+            return
+
+        new_location = Path().home() / "Applications" / self.final_app.name
+
+        # Delete eventual obsolete version
+        with suppress(FileNotFoundError):
+            shutil.rmtree(new_location)
+
+        log.info(f"Relocating {self.final_app!r} -> {new_location!r}")
+        shutil.move(self.final_app, new_location)
+        self.final_app = new_location
 
     def _mount(self, filename: str, /) -> str:
         """Mount the DMG and return the mount point."""
