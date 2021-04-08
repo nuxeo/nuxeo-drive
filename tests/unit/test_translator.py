@@ -46,7 +46,7 @@ def test_load_file():
     assert Translator.get("CONNECTION_REFUSED") == "Connection refused"
 
 
-def test_non_iniialized():
+def test_non_initialized():
     Translator.singleton = None
     with pytest.raises(RuntimeError):
         Translator.get("TEST")
