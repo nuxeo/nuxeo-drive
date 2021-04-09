@@ -214,7 +214,7 @@
     "MISSING_UPDATE_INFO": "Eguneratze-informazioa ez dago eskuragarri",
     "MISSING_UPDATE_VERSION": "Ez dago bertsio bateragarririk eskuragarri",
     "MONITORING": "Monitorizatzen",
-    "MONITORING_DESCRIPTION": "Fitxategiaren tamaina > %1 denerako soilik",
+    "MONITORING_DESCRIPTION": "Display limited to file size > %1",
     "NAME": "Izena",
     "NETWORK_ERROR_AuthenticationRequiredError": "Autentifikazioa beharrezkoa",
     "NETWORK_ERROR_ClientNetwork": "Ezin izan da zerbitzarira konektatu",

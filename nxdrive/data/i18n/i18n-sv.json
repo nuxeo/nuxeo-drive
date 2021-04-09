@@ -214,7 +214,7 @@
     "MISSING_UPDATE_INFO": "Uppdateringsinformation inte tillgänglig",
     "MISSING_UPDATE_VERSION": "Ingen kompatibel version tillgänglig",
     "MONITORING": "Övervakning",
-    "MONITORING_DESCRIPTION": "Begränsad till filstorlek > %1",
+    "MONITORING_DESCRIPTION": "Display limited to file size > %1",
     "NAME": "Namn",
     "NETWORK_ERROR_AuthenticationRequiredError": "Autentisering krävs",
     "NETWORK_ERROR_ClientNetwork": "Det går inte att ansluta till servern",

@@ -214,7 +214,7 @@
     "MISSING_UPDATE_INFO": "情報更新が利用できません",
     "MISSING_UPDATE_VERSION": "互換性のあるバージョンが利用できません",
     "MONITORING": "モニタリング",
-    "MONITORING_DESCRIPTION": "ファイルサイズに制限 > %1",
+    "MONITORING_DESCRIPTION": "Display limited to file size > %1",
     "NAME": "名前",
     "NETWORK_ERROR_AuthenticationRequiredError": "認証が必要です",
     "NETWORK_ERROR_ClientNetwork": "サーバに接続できません",
