@@ -773,7 +773,14 @@ class Engine(QObject):
                     log.info(f"Updated status of staled {transfer}")
                 else:
                     # Remove staled transfers
-                    dao.remove_transfer(nature, path=transfer.path)
+                    is_direct_transfer = (
+                        nature == "upload" and transfer.is_direct_transfer
+                    )
+                    dao.remove_transfer(
+                        nature,
+                        path=transfer.path,
+                        is_direct_transfer=is_direct_transfer,
+                    )
                     log.info(f"Removed staled {transfer}")
 
     def cancel_upload(self, transfer_uid: int, /) -> None:
