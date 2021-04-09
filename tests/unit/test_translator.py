@@ -96,6 +96,17 @@ def test_translate_twice():
     assert values == ["value"]
 
 
+def test_translate_twice_different_values():
+    """ Check that the values array is taken into account in the LRU cache. """
+    Translator(get_folder("i18n"))
+    values1 = ["value1"]
+    values2 = ["value2"]
+    first = Translator.get("TOKEN_NORMAL", values=values1)
+    second = Translator.get("TOKEN_NORMAL", values=values2)
+
+    assert first != second
+
+
 def test_languages():
     """Check that all languages are well retrieved."""
     folder = Path(__file__).parent.parent.parent / "nxdrive" / "data" / "i18n"
