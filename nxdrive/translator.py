@@ -102,7 +102,8 @@ class Translator(QTranslator):
         return result.format(*([""] + values))
 
     def get_translation(self, label: str, values: List[Any] = None) -> str:
-        value = _CACHE.get(label)
+        key = f"{label}{hash(tuple(values or ''))}"
+        value = _CACHE.get(key)
         if value is None:
             token_label = self._current.get(label, self._fallback.get(label, label))
             value = (
@@ -110,7 +111,7 @@ class Translator(QTranslator):
                 if token_label != label
                 else label
             )
-            _CACHE[label] = value
+            _CACHE[key] = value
         return value
 
     @pyqtSlot(str)  # from GeneralTab.qml
