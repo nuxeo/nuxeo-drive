@@ -214,7 +214,7 @@
     "MISSING_UPDATE_INFO": "Geen update-informatie beschikbaar",
     "MISSING_UPDATE_VERSION": "Geen compatibele versie beschikbaar",
     "MONITORING": "Controle",
-    "MONITORING_DESCRIPTION": "Beperkt tot bestandsgrootte > %1",
+    "MONITORING_DESCRIPTION": "Display limited to file size > %1",
     "NAME": "Naam",
     "NETWORK_ERROR_AuthenticationRequiredError": "Verificatie vereist",
     "NETWORK_ERROR_ClientNetwork": "Kan geen verbinding met de server maken",

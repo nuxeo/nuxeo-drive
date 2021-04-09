@@ -214,7 +214,7 @@
     "MISSING_UPDATE_INFO": "Información de actualización no disponible",
     "MISSING_UPDATE_VERSION": "No hay ninguna versión compatible disponible",
     "MONITORING": "Monitoreo",
-    "MONITORING_DESCRIPTION": "Limitado al tamaño del archivo > %1",
+    "MONITORING_DESCRIPTION": "Display limited to file size > %1",
     "NAME": "Nombre",
     "NETWORK_ERROR_AuthenticationRequiredError": "Se requiere autenticación",
     "NETWORK_ERROR_ClientNetwork": "No se puede conectar al servidor",

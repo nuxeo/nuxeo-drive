@@ -214,7 +214,7 @@
     "MISSING_UPDATE_INFO": "Aktualizacja informacji jest niedostępna",
     "MISSING_UPDATE_VERSION": "Brak kompatybilnej wersji",
     "MONITORING": "Monitoring",
-    "MONITORING_DESCRIPTION": "Limited to file size > %1",
+    "MONITORING_DESCRIPTION": "Display limited to file size > %1",
     "NAME": "Nazwa",
     "NETWORK_ERROR_AuthenticationRequiredError": "Wymagana autoryzacja",
     "NETWORK_ERROR_ClientNetwork": "Nie można połączyć się z serwerem",

@@ -214,7 +214,7 @@
     "MISSING_UPDATE_INFO": "Perbaruan informasi tidak tersedia",
     "MISSING_UPDATE_VERSION": "Tidak ada versi yang kompatibel yang tersedia",
     "MONITORING": "Monitoring",
-    "MONITORING_DESCRIPTION": "Limited to file size > %1",
+    "MONITORING_DESCRIPTION": "Display limited to file size > %1",
     "NAME": "Nama",
     "NETWORK_ERROR_AuthenticationRequiredError": "Otentikasi diperlukan",
     "NETWORK_ERROR_ClientNetwork": "Tidak dapat terhubung ke server",
