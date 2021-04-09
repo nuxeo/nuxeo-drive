@@ -248,7 +248,11 @@ class EngineWorker(Worker):
         if doc_pair.local_state != "direct":
             fullpath = self.engine.local.abspath(fullpath)
         for nature in ("download", "upload"):
-            self.dao.remove_transfer(nature, path=fullpath)
+            self.dao.remove_transfer(
+                nature,
+                path=fullpath,
+                is_direct_transfer=doc_pair.local_state == "direct",
+            )
 
 
 class PollWorker(Worker):

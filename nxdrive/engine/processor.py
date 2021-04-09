@@ -400,8 +400,21 @@ class Processor(EngineWorker):
                 else:
                     error = f"{handler_name}_http_error_{exc.status}"
                     self._handle_pair_handler_exception(doc_pair, error, exc)
-            except UploadError:
-                log.warning("Delaying failed upload", exc_info=True)
+            except UploadError as exc:
+                exc_info = True
+                if "ExpiredToken" in exc.info:
+                    # It happens to non-chunked uploads, it is safe to restart the upload completely
+                    log.debug("AWS credentials are exprired for a non-chunked upload")
+                    self.dao.remove_transfer(
+                        "upload",
+                        doc_pair=doc_pair.id,
+                        is_direct_transfer=doc_pair.local_state == "direct",
+                    )
+                    exc_info = False
+                log.warning(
+                    f"Delaying failed upload of {exc.name!r} (error: {exc.info})",
+                    exc_info=exc_info,
+                )
                 self._postpone_pair(doc_pair, "Upload")
             except (DownloadPaused, UploadPaused) as exc:
                 nature = "download" if isinstance(exc, DownloadPaused) else "upload"

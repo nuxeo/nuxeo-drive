@@ -106,7 +106,13 @@ class BaseUploader:
             batch = uploads.batch(handler=handler)
 
             # Remove eventual obsolete upload (it happens when an upload using S3 has invalid metadatas)
-            self.dao.remove_transfer("upload", doc_pair=doc_pair, path=file_path)
+            is_direct_transfer = kwargs.get("is_direct_transfer", False)
+            self.dao.remove_transfer(
+                "upload",
+                doc_pair=doc_pair,
+                path=file_path,
+                is_direct_transfer=is_direct_transfer,
+            )
 
             # Add an upload entry in the database
             transfer = Upload(
@@ -118,7 +124,7 @@ class BaseUploader:
                 engine=kwargs.get("engine_uid", None),
                 filesize=blob.size,
                 is_direct_edit=kwargs.get("is_direct_edit", False),
-                is_direct_transfer=kwargs.get("is_direct_transfer", False),
+                is_direct_transfer=is_direct_transfer,
                 remote_parent_path=kwargs.pop("remote_parent_path", ""),
                 remote_parent_ref=kwargs.pop("remote_parent_ref", ""),
                 doc_pair=kwargs.pop("doc_pair", None),
