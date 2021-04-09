@@ -91,6 +91,7 @@ class BaseUploader:
                 if exc.status != 404:
                     raise
                 log.debug("No associated batch found, restarting from zero")
+                transfer = None
             else:
                 log.debug("Associated batch found, resuming the upload")
                 batch = Batch(service=uploads, **transfer.batch)
@@ -104,7 +105,6 @@ class BaseUploader:
             # Create a new batch
             batch = uploads.batch(handler=handler)
 
-        if not transfer:
             # Remove eventual obsolete upload (it happens when an upload using S3 has invalid metadatas)
             self.dao.remove_transfer("upload", doc_pair=doc_pair, path=file_path)
 
@@ -133,16 +133,8 @@ class BaseUploader:
                 self.dao.save_dt_upload(transfer)
             else:
                 self.dao.save_upload(transfer)
-        elif transfer.batch["batchId"] != batch.uid:
-            # The upload was not a fresh one but its batch ID was perimed.
-            # Before NXDRIVE-2183, the batch ID was not updated and so the second step
-            # of the upload (attaching the blob to a document) was failing.
-            log.debug(
-                f"Updating the batchId from {transfer.batch['batchId']} to {batch.uid}"
-            )
-            transfer.batch["batchId"] = batch.uid
-            self.dao.update_upload(transfer)
 
+        assert transfer  # Fix for mypy
         transfer.batch_obj = batch
         return transfer
 
