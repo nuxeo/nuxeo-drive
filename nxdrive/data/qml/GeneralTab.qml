@@ -115,7 +115,7 @@ Rectangle {
 
         Link {
             id: deletionPopupLink
-            text: qsTr("DELETION_BEHAVIOR_CHANGE_SETTINGS") + tl.tr
+            text: qsTr("DELETION_BEHAVIOR") + tl.tr
             onClicked: deletionPopup.open()
         }
 

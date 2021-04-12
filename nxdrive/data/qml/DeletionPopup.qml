@@ -5,7 +5,7 @@ import QtQuick.Layouts 1.15
 NuxeoPopup {
     id: control
 
-    title: qsTr("DELETION_BEHAVIOR_CHANGE_SETTINGS") + tl.tr
+    title: qsTr("DELETION_BEHAVIOR") + tl.tr
     width: 400
     contentHeight: 150
     topPadding: 60
