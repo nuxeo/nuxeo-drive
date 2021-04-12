@@ -9,15 +9,14 @@ NuxeoPopup {
     signal ok()
     signal cancel()
 
-    width: 250
-    height: 150
+    width: 300
+    height: contentHeight + buttonsArea.height + 20
 
     contentItem: Item {
         width: control.width; height: control.height
 
         ColumnLayout {
             width: parent.width - 30
-            height: parent.height - 30
             anchors.centerIn: parent
             spacing: 20
 
@@ -40,6 +39,7 @@ NuxeoPopup {
             }
 
             RowLayout {
+                id: buttonsArea
                 Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
                 spacing: 20
 
