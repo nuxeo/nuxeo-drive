@@ -4,6 +4,7 @@ import QtQuick.Layouts 1.15
 NuxeoPopup {
     id: control
     property string message
+    property string cb_text
 
     signal ok()
     signal cancel()
@@ -32,8 +33,8 @@ NuxeoPopup {
             // It will set accountDeletion.purge_local_files when visible
             NuxeoCheckBox {
                 id: confirmCheckbox
-                visible: typeof(accountDeletion) !== "undefined"
-                text: qsTr("PURGE_LOCAL_FILES") + tl.tr
+                visible: cb_text
+                text: cb_text
                 checked: true
             }
 
