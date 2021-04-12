@@ -297,6 +297,7 @@ Rectangle {
     ConfirmPopup {
         id: accountDeletion
         message: qsTr("CONFIRM_DISCONNECT") + tl.tr
+        cb_text: qsTr("PURGE_LOCAL_FILES").arg(APP_NAME).arg(accountSelect.getRole("folder")) + tl.tr
 
         // Global variable to be able to get the checkbox state from ConfirmPopup.qml
         property bool purge_local_files: false
