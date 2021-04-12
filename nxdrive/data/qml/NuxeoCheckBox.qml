@@ -32,5 +32,6 @@ CheckBox {
         color: control.color
         verticalAlignment: Text.AlignVCenter
         leftPadding: control.indicator.width + control.spacing
+        wrapMode: Text.WordWrap
     }
 }
