@@ -36,6 +36,7 @@ NuxeoPopup {
                 visible: cb_text
                 text: cb_text
                 checked: true
+                Layout.maximumWidth: parent.width
             }
 
             RowLayout {
