@@ -89,7 +89,7 @@ Rectangle {
                             Layout.leftMargin: 10
                             RowLayout {
                                 id: csvRow
-                                visible: !active && !csvFileLink.text
+                                visible: !active && !csvFileLink.text && uploaded > 0
                                 IconLabel {
                                     icon: MdiFont.Icon.csv;
                                     size: 15
