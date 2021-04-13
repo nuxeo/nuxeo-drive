@@ -155,6 +155,7 @@ class Manager(QObject):
             log.info(
                 ">>> Synchronization features are disabled, only Direct Edit and Direct Transfer will work."
             )
+        self.set_feature_state("synchronization", Options.synchronization_enabled)
 
         self.old_version = None
 

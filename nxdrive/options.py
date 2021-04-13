@@ -143,6 +143,16 @@ class CallableFeatureHandler:
             setattr(Feature, self._feature, new_value)
 
 
+class SynchronzationHandler(CallableFeatureHandler):
+    def __init__(self, feature: str, /) -> None:
+        super().__init__(feature)
+
+    def __call__(self, new_value: bool, /) -> None:
+        if getattr(Feature, self._feature) is not new_value:
+            setattr(Feature, self._feature, new_value)
+            Options.synchronization_enabled = new_value
+
+
 class MetaOptions(type):
     """
     All configurable options are used by this lone object.
@@ -263,7 +273,7 @@ class MetaOptions(type):
         "ssl_no_verify": (False, "default"),
         "startup_page": ("drive_login.jsp", "default"),
         "sync_and_quit": (False, "default"),
-        "synchronization_enabled": (True, "default"),
+        "synchronization_enabled": (False, "default"),
         "system_wide": (_is_system_wide(), "default"),
         "theme": ("ui5", "default"),
         "timeout": (30, "default"),
@@ -603,6 +613,8 @@ def _validate_exec_profile(value: str, /) -> str:
 # Handler callback for each feature
 for feature in vars(Feature).keys():
     Options.callbacks[f"feature_{feature}"] = CallableFeatureHandler(feature)
+
+Options.callbacks["feature_synchronization"] = SynchronzationHandler("synchronization")
 
 Options.callbacks["deletion_behavior"] = lambda v: log.info(
     f"Deletion behavior set to {v!r}"
