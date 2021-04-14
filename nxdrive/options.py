@@ -148,10 +148,10 @@ class CallableFeatureHandler:
 
 class SynchronzationHandler(CallableFeatureHandler):
     def __call__(self, new_value: bool, /) -> bool:
-        if super().__call__(new_value):
+        option_updated = super().__call__(new_value)
+        if option_updated:
             Options.synchronization_enabled = new_value
-            return True
-        return False
+        return option_updated
 
 
 class MetaOptions(type):
