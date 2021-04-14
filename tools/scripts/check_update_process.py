@@ -43,7 +43,7 @@ import yaml
 # Alter the lookup path to be able to find Nuxeo Drive sources
 sys.path.insert(0, os.getcwd())
 
-__version__ = "3.0.0"
+__version__ = "4.0.0"
 
 EXT = {"darwin": "dmg", "linux": "appimage", "win32": "exe"}[sys.platform]
 Server = http.server.SimpleHTTPRequestHandler
@@ -207,26 +207,21 @@ def launch_drive(executable, args=None):
     subprocess.check_call(cmd)
 
 
-def save_log(output, name):
-    """Save log files for job archives."""
-
-    dst = os.path.join(output, f"nxdrive-{EXT}-{name}.log")
+def cat_log():
+    """Cat the log file."""
 
     if EXT == "exe":
         src = expandvars("C:\\Users\\%username%\\.nuxeo-drive\\logs\\nxdrive.log")
     else:
         src = expanduser("~/.nuxeo-drive/logs/nxdrive.log")
 
-    try:
-        os.remove(dst)
-        print(">>> Deleted", repr(dst), flush=True)
-    except FileNotFoundError:
-        pass
-    try:
-        shutil.copyfile(src, dst)
-        print(">>> Copied", repr(src), "->", repr(dst), flush=True)
-    except FileNotFoundError:
-        pass
+    print("", flush=True)
+    print("", flush=True)
+    print(">>> $ cat", src, flush=True)
+    with open(src, encoding="utf-8") as fh:
+        print(fh.read(), flush=True)
+        print("", flush=True)
+        print("", flush=True)
 
 
 def set_options():
@@ -243,8 +238,8 @@ def set_options():
 
     options = [
         "channel = alpha",
-        "log-level-console = WARNING",
         "log-level-file = DEBUG",
+        "exec-profile = private",
         "synchronization-enabled = False",
         "sync-and-quit = True",
         "update-check-delay = 8",
@@ -507,8 +502,8 @@ def job(root, version, executable, previous_version, name):
         # Start the web server
         webserver(root)
 
-        # Save the log file for job archives
-        save_log(src, name)
+        # Display the log file
+        cat_log()
 
         # And assert the version is the good one
         current_ver = get_version()
