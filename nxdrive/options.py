@@ -47,7 +47,7 @@ import sys
 from contextlib import suppress
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, Set, Tuple, Union
 from uuid import uuid4
 
 from . import __version__
@@ -58,13 +58,18 @@ __all__ = ("Options",)
 log = logging.getLogger(__name__)
 
 
-def _get_freezer() -> Optional[str]:
-    """Name of the actual module used to freeze the application."""
-    if "__compiled__" in globals():
-        return "nuitka"
-    elif hasattr(sys, "frozen"):
-        return "pyinstaller"
-    return None
+# True if the current version is considered alpha
+_IS_ALPHA = __version__.count(".") != 2
+
+# Current state of the application (supports only PyInstaller)
+_IS_FROZEN = hasattr(sys, "frozen")
+
+# Determine desired defaults for logging level
+DEFAULT_LOG_LEVEL_CONSOLE = "WARNING"
+DEFAULT_LOG_LEVEL_FILE = "DEBUG" if _IS_ALPHA or not _IS_FROZEN else "INFO"
+
+# Used to differentiate between QA/dev and prod
+_DEFAULT_EXEC_PROFILE = "public" if _IS_FROZEN else "private"
 
 
 def _get_home() -> Path:
@@ -96,34 +101,15 @@ def _get_home() -> Path:
 
 def _get_resources_dir() -> Path:
     """Find the resources directory."""
-    freezer = _get_freezer()
-    if freezer != "pyinstaller":
-        path = Path(__file__).parent
-    else:
-        path = Path(getattr(sys, "_MEIPASS"))
+    path = Path(getattr(sys, "_MEIPASS")) if _IS_FROZEN else Path(__file__).parent
     return path / "data"
 
 
 def _is_system_wide() -> bool:
-    # TODO: check OK with Nuitka
     return (
         sys.platform == "win32"
         and Path(sys.executable).with_name("system-wide.txt").is_file()
     )
-
-
-# True if the current version is considered alpha
-_IS_ALPHA = __version__.count(".") != 2
-
-# Current state of the application
-_IS_FROZEN = _get_freezer() is not None
-
-# Determine desired defaults for logging level
-DEFAULT_LOG_LEVEL_CONSOLE = "WARNING"
-DEFAULT_LOG_LEVEL_FILE = "DEBUG" if _IS_ALPHA or not _IS_FROZEN else "INFO"
-
-# Used to differentiate between QA/dev and prod
-_DEFAULT_EXEC_PROFILE = "public" if _IS_FROZEN else "private"
 
 
 class CallableFeatureHandler:
@@ -255,7 +241,6 @@ class MetaOptions(type):
         "exec_profile": (_DEFAULT_EXEC_PROFILE, "default"),
         "findersync_batch_size": (50, "default"),
         "force_locale": (None, "default"),
-        "freezer": (_get_freezer(), "default"),
         "handshake_timeout": (60, "default"),
         "home": (__home, "default"),
         "ignored_files": (__files, "default"),

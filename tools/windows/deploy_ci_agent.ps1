@@ -302,28 +302,6 @@ function ExitWithCode($retCode) {
 	exit
 }
 
-function freeze_nuitka() {
-	$env:PATH = "C:\mingw64\mingw32\bin;$env:PATH"
-
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO -m nuitka `
-		--standalone `
-		--follow-imports `
-		--python-flag=nosite,noasserts `
-		--mingw64 `
-		--plugin-enable=qt-plugins=iconengines,imageformats,platforms,platformthemes,qml,styles `
-		--windows-icon=tools\windows\app_icon.ico `
-		--windows-disable-console `
-		--assume-yes-for-downloads `
-		nxdrive
-
-	# TODO: VersionInfo for the final executable
-	# TODO: UPX
-
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
-}
-
 function freeze_pyinstaller() {
 	# Note: -OO option cannot be set with PyInstaller
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m PyInstaller ndrive.spec --noconfirm

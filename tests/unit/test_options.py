@@ -15,6 +15,15 @@ with suppress(KeyError):
     del Options.callbacks["log_level_file"]
 
 
+def test_options_instantiation():
+    with pytest.raises(RuntimeError):
+        Options()
+
+
+def test_ignored_option():
+    Options.set("command", "foo")
+
+
 @Options.mock()
 def test_batch_update_from_argparse():
     """ Simulate CLI args. """
@@ -89,6 +98,17 @@ def test_callback():
     Options.delay = 42
     assert checkpoint == 42
 
+    # Simply trigger other callbacks, for coverage
+    Options.cert_file = "unknown"
+    Options.cert_file = __file__
+    Options.deletion_behavior = "unsync"
+    Options.deletion_behavior = "unknown"
+    Options.exec_profile = "private"
+    Options.exec_profile = "unknown"
+    Options.use_sentry = False
+    Options.is_frozen = True
+    Options.use_sentry = False
+
 
 @Options.mock()
 def test_callback_bad_behavior():
@@ -131,6 +151,7 @@ def test_error():
     with configure_scope() as scope:
         scope._should_capture = False
         Options.set("no key", 42, fail_on_error=False)
+        Options.set("update_site_url", 42, setter="manual", fail_on_error=False)
 
     with pytest.raises(TypeError) as err:
         Options.set("delay", "foo")
@@ -227,24 +248,24 @@ def test_server_and_local_config_with_default_value_forced():
     """
 
     # The option is set to True by default
-    assert Options.synchronization_enabled
+    assert Options.custom_metrics
 
     # The default arguments from the CLI are not taken into account
-    Options.set("synchronization_enabled", True, setter="cli")
+    Options.set("custom_metrics", True, setter="cli")
     assert str(Options) == "Options()"
 
     # The user has a config file setting the option to True,
     # even if this is the default value, it should be taken into account
-    Options.set("synchronization_enabled", True, setter="local")
-    assert str(Options) == "Options(synchronization_enabled[local]=True)"
+    Options.set("custom_metrics", True, setter="local")
+    assert str(Options) == "Options(custom_metrics[local]=True)"
 
     # Even further: the user has set the default value manually, it has the priority over all
-    Options.set("synchronization_enabled", True, setter="manual")
-    assert str(Options) == "Options(synchronization_enabled[manual]=True)"
+    Options.set("custom_metrics", True, setter="manual")
+    assert str(Options) == "Options(custom_metrics[manual]=True)"
 
     # The server's config has then no power
-    Options.set("synchronization_enabled", False, setter="server")
-    assert Options.synchronization_enabled
+    Options.set("custom_metrics", False, setter="server")
+    assert Options.custom_metrics
 
 
 def test_site_update_url():
