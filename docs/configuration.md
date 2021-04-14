@@ -463,7 +463,7 @@ If set to `False`, nothing will be downloaded/uploaded/synchronized but Direct E
 - Default value (bool): `True`
 - Version added: 4.4.0
 
-The option is deprecated and will be removed in a future release. Use "feature.synchronization" instead.
+The option is deprecated and will be removed in a future release. Use `feature.synchronization` instead.
 
 * * *
 
