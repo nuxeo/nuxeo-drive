@@ -134,23 +134,24 @@ class CallableFeatureHandler:
     def __init__(self, feature: str, /) -> None:
         self._feature = feature
 
-    def __call__(self, new_value: bool, /) -> None:
+    def __call__(self, new_value: bool, /) -> bool:
         """
         Method called by default when calling the object as a function.
         Update the Feature attribute with the new value.
+        Return True if the value has been updated.
         """
         if getattr(Feature, self._feature) is not new_value:
             setattr(Feature, self._feature, new_value)
+            return True
+        return False
 
 
 class SynchronzationHandler(CallableFeatureHandler):
-    def __init__(self, feature: str, /) -> None:
-        super().__init__(feature)
-
-    def __call__(self, new_value: bool, /) -> None:
-        if getattr(Feature, self._feature) is not new_value:
-            setattr(Feature, self._feature, new_value)
+    def __call__(self, new_value: bool, /) -> bool:
+        if super().__call__(new_value):
             Options.synchronization_enabled = new_value
+            return True
+        return False
 
 
 class MetaOptions(type):
@@ -618,6 +619,10 @@ Options.callbacks["feature_synchronization"] = SynchronzationHandler("synchroniz
 
 Options.callbacks["deletion_behavior"] = lambda v: log.info(
     f"Deletion behavior set to {v!r}"
+)
+
+Options.callbacks["synchronization_enabled"] = lambda v: log.info(
+    "The option is deprecated and will be removed in a future release. Use 'feature.synchronization' instead."
 )
 
 Options.checkers["chunk_limit"] = validate_chunk_limit

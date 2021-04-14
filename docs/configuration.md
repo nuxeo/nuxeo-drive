@@ -457,13 +457,13 @@ Launch the synchronization and then exit the application.
 
 #### `synchronization-enabled`
 
-> The option is deprecated and will be removed in a future release. Use "feature.synchronization" instead.
-
 Synchronization features are enabled.
 If set to `False`, nothing will be downloaded/uploaded/synchronized but Direct Edit and Direct Transfer features will work.
 
 - Default value (bool): `True`
 - Version added: 4.4.0
+
+The option is deprecated and will be removed in a future release. Use "feature.synchronization" instead.
 
 * * *
 

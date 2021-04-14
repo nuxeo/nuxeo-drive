@@ -151,11 +151,12 @@ class Manager(QObject):
                 # Update global options using the value stored in the database
                 Options.synchronization_enabled = sync_enabled != "0"
 
+            self.set_feature_state("synchronization", Options.synchronization_enabled)
+
         if not Options.synchronization_enabled:
             log.info(
                 ">>> Synchronization features are disabled, only Direct Edit and Direct Transfer will work."
             )
-        self.set_feature_state("synchronization", Options.synchronization_enabled)
 
         self.old_version = None
 

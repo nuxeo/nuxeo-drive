@@ -26,8 +26,8 @@ Feature = SimpleNamespace(
     auto_update=True,
     direct_edit=True,
     direct_transfer=True,
-    synchronization=False,
     s3=False,
+    synchronization=False,
 )
 
 Beta: List[str] = ["s3"]

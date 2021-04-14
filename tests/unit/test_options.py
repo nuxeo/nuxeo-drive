@@ -314,16 +314,22 @@ def test_disabled_features(caplog):
     """Simple test for disabled features."""
     assert Options.feature_auto_update is True
     assert Options.feature_s3 is False
+    assert Options.feature_synchronization is False
 
     with patch("nxdrive.options.DisabledFeatures", new=["auto_update"]):
-        options = {"feature_auto_update": False, "feature_s3": True}
+        options = {
+            "feature_auto_update": False,
+            "feature_s3": True,
+            "feature_synchronization": True,
+        }
         Options.update(options, setter="manual")
 
     # feature_auto_update has been ignored as it is in DisabledFeatures
     assert Options.feature_auto_update is True
 
-    # feature_s3 has been modified as expected
+    # feature_s3  and feature_synchronization have been modified as expected
     assert Options.feature_s3 is True
+    assert Options.feature_synchronization is True
 
     # Check that a warning has been fired
     record = caplog.records[0]
