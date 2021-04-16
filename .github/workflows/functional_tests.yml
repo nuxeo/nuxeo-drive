@@ -51,7 +51,6 @@ jobs:
         files: ./coverage.xml
         flags: functional
         env_vars: OS,PYTHON
-        token: ${{ secrets.CODECOV_TOKEN }}
 
 
   ft_macos:
@@ -82,7 +81,6 @@ jobs:
         files: ./coverage.xml
         flags: functional
         env_vars: OS,PYTHON
-        token: ${{ secrets.CODECOV_TOKEN }}
 
   ft_windows:
     runs-on: windows-latest
@@ -113,7 +111,6 @@ jobs:
         files: ./coverage.xml
         flags: functional
         env_vars: OS,PYTHON
-        token: ${{ secrets.CODECOV_TOKEN }}
 
   cleanup:
     runs-on: ubuntu-latest

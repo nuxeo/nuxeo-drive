@@ -55,4 +55,3 @@ jobs:
         files: ./coverage.xml
         flags: integration
         env_vars: OS,PYTHON
-        token: ${{ secrets.CODECOV_TOKEN }}
