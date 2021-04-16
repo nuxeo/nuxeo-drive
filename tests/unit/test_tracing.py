@@ -17,8 +17,8 @@ class CustomTransport(Transport):
         self._queue = None
 
 
-@pytest.fixture
-def sentry_init(monkeypatch):
+@pytest.fixture(scope="function")
+def sentry_init_custom(monkeypatch):
     def inner(*a, **kw):
         hub = Hub.current
         client = Client(*a, **kw)
@@ -33,7 +33,7 @@ def sentry_init(monkeypatch):
 #
 
 
-def test_flooding_prevention(sentry_init):
+def test_flooding_prevention(sentry_init_custom):
     """Ensure that an infinite synchronization due to a unhandled error
     will not explode the Sentry quota.
     """
@@ -52,7 +52,7 @@ def test_flooding_prevention(sentry_init):
         except Exception:
             capture_exception()
 
-    sentry_init(before_send=nxdrive.tracing.before_send)
+    sentry_init_custom(before_send=nxdrive.tracing.before_send)
 
     # Ensure there is no event by default
     assert not nxdrive.tracing._EVENTS
