@@ -771,6 +771,13 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, str)
     def web_authentication(self, server_url: str, local_folder: str, /) -> None:
+        # Handle local folder
+        if not self._manager.check_local_folder_available(
+            normalized_path(local_folder)
+        ):
+            self.setMessage.emit("FOLDER_USED", "error")
+            return
+
         # Handle the server URL
         error = ""
         try:
@@ -783,26 +790,14 @@ class QMLDriveApi(QObject):
             self.setMessage.emit(error, "error")
             return
 
-        parts = urlsplit(server_url)
-
-        # Handle the engine
-        engine_type = parts.fragment or DEFAULT_SERVER_TYPE
-
+        # Detect if the server can use the appropriate login webpage
         try:
-            # Handle local folder
-            if not self._manager.check_local_folder_available(
-                normalized_path(local_folder)
-            ):
-                raise FolderAlreadyUsed()
-
-            # Connect to startup page
             login_type = self._manager.get_server_login_type(server_url)
-            url = self._get_authentication_url(server_url)
-
-            if login_type is not Login.OLD:
-                # Page should exists, let's open authentication dialog
-                log.info(f"Web authentication is available on server {server_url}")
-            else:
+        except StartupPageConnectionError:
+            self.setMessage.emit("CONNECTION_ERROR", "error")
+            return
+        else:
+            if login_type is Login.OLD:
                 # Startup page is not available
                 log.info(
                     f"Web authentication not available on server {server_url}, "
@@ -813,24 +808,24 @@ class QMLDriveApi(QObject):
                     # browser login is not available.
                     self._manager.updater.force_downgrade()
                     return
+            else:
+                # Page should exists, let's open authentication dialog
+                log.info(f"Web authentication is available on server {server_url}")
 
+        # Connect to the authentication page
+        try:
+            url = self._get_authentication_url(server_url)
             callback_params = {
                 "local_folder": local_folder,
                 "server_url": server_url,
-                "engine_type": engine_type,
+                "engine_type": urlsplit(server_url).fragment or DEFAULT_SERVER_TYPE,
             }
             self.openAuthenticationDialog.emit(url, callback_params)
-            return
-        except FolderAlreadyUsed:
-            error = "FOLDER_USED"
-        except StartupPageConnectionError:
-            error = "CONNECTION_ERROR"
         except Exception:
             log.exception(
                 "Unexpected error while trying to open web authentication window"
             )
-            error = "CONNECTION_UNKNOWN"
-        self.setMessage.emit(error, "error")
+            self.setMessage.emit("CONNECTION_UNKNOWN", "error")
 
     @pyqtSlot(str, str, result=bool)
     def set_server_ui(self, uid: str, server_ui: str, /) -> bool:
