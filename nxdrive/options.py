@@ -611,6 +611,13 @@ def _validate_exec_profile(value: str, /) -> str:
     raise ValueError("Can only be 'public' or 'private'.")
 
 
+def _callback_synchronization_enabled(new_value):
+    log.info(
+        "The option is deprecated and will be removed in a future release. Use 'feature.synchronization' instead."
+    )
+    Options.feature_synchronization = new_value
+
+
 # Handler callback for each feature
 for feature in vars(Feature).keys():
     Options.callbacks[f"feature_{feature}"] = CallableFeatureHandler(feature)
@@ -621,9 +628,7 @@ Options.callbacks["deletion_behavior"] = lambda v: log.info(
     f"Deletion behavior set to {v!r}"
 )
 
-Options.callbacks["synchronization_enabled"] = lambda v: log.info(
-    "The option is deprecated and will be removed in a future release. Use 'feature.synchronization' instead."
-)
+Options.callbacks["synchronization_enabled"] = _callback_synchronization_enabled
 
 Options.checkers["chunk_limit"] = validate_chunk_limit
 Options.checkers["chunk_size"] = validate_chunk_size

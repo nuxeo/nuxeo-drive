@@ -530,9 +530,11 @@ class Manager(QObject):
         return bool(getattr(Feature, name))
 
     @pyqtSlot(str, bool)  # from FeaturesTab.qml
-    def set_feature_state(self, name: str, value: bool, /) -> None:
+    def set_feature_state(
+        self, name: str, value: bool, /, *, setter: str = "manual"
+    ) -> None:
         """Set the value of the feature in Options and save changes in config file."""
-        Options.set(f"feature_{name}", value, setter="manual")
+        Options.set(f"feature_{name}", value, setter=setter)
         save_config({f"feature_{name}": value})
         self.featureUpdate.emit(name, value)
 
