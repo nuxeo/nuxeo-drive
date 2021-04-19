@@ -153,7 +153,7 @@ class Manager(QObject):
 
             self.set_feature_state("synchronization", Options.synchronization_enabled)
 
-        if not Options.synchronization_enabled:
+        if not Feature.synchronization:
             log.info(
                 ">>> Synchronization features are disabled, only Direct Edit and Direct Transfer will work."
             )
@@ -531,11 +531,12 @@ class Manager(QObject):
 
     @pyqtSlot(str, bool)  # from FeaturesTab.qml
     def set_feature_state(
-        self, name: str, value: bool, /, *, setter: str = "manual"
+        self, name: str, value: bool, /, *, setter: str = "manual", save: bool = True
     ) -> None:
         """Set the value of the feature in Options and save changes in config file."""
         Options.set(f"feature_{name}", value, setter=setter)
-        save_config({f"feature_{name}": value})
+        if save:
+            save_config({f"feature_{name}": value})
         self.featureUpdate.emit(name, value)
 
     @pyqtSlot(result=bool)  # from GeneralTab.qml

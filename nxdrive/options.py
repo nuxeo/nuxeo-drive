@@ -149,7 +149,7 @@ class CallableFeatureHandler:
 class SynchronzationHandler(CallableFeatureHandler):
     def __call__(self, new_value: bool, /) -> bool:
         option_updated = super().__call__(new_value)
-        if option_updated:
+        if option_updated and Options.synchronization_enabled != new_value:
             Options.synchronization_enabled = new_value
         return option_updated
 
@@ -611,11 +611,11 @@ def _validate_exec_profile(value: str, /) -> str:
     raise ValueError("Can only be 'public' or 'private'.")
 
 
-def _callback_synchronization_enabled(new_value):
-    log.info(
+def _callback_synchronization_enabled(new_value: bool) -> None:
+    log.warning(
         "The option is deprecated and will be removed in a future release. Use 'feature.synchronization' instead."
     )
-    Options.feature_synchronization = new_value
+    setattr(Options, "feature_synchronization", new_value)
 
 
 # Handler callback for each feature

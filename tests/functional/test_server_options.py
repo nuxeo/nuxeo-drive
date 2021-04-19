@@ -186,7 +186,7 @@ def test_delay_remote_watcher(app, manager_factory):
 
 @Options.mock()
 def test_synchronization_enabled(manager_factory):
-    """Check that synchronization_enabled also disable feature_synchronization."""
+    """Check that synchronization_enabled also disables feature_synchronization."""
     manager, engine = manager_factory()
     updater = ServerOptionsUpdater(manager)
 

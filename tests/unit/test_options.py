@@ -333,7 +333,7 @@ def test_disabled_features(caplog):
 
 @Options.mock()
 def test_synchronization_feature_handler():
-    """Verify that the custom handler for feature_synchronization is called when updating the option state."""
+    """Verify that the custom handler for *feature_synchronization* is called when updating the option state."""
     assert Options.feature_synchronization is False
     assert Options.synchronization_enabled is False
 

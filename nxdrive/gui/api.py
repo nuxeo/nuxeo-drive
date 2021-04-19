@@ -682,7 +682,7 @@ class QMLDriveApi(QObject):
         self.application.close_settings_too = True
 
         # Display the filters window to let the user choose what to sync
-        if Options.synchronization_enabled:
+        if Feature.synchronization:
             self.filters_dialog(engine.uid)
         self.setMessage.emit("CONNECTION_SUCCESS", "success")
 

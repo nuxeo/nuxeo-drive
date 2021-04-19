@@ -16,6 +16,7 @@ from watchdog.observers import Observer
 from ...client.local import FileInfo
 from ...constants import LINUX, MAC, ROOT, UNACCESSIBLE_HASH, WINDOWS
 from ...exceptions import ThreadInterrupt
+from ...feature import Feature
 from ...objects import DocPair, Metrics
 from ...options import Options
 from ...qt.imports import pyqtSignal
@@ -258,7 +259,7 @@ class LocalWatcher(EngineWorker):
     def _scan(self) -> None:
         # If synchronization features are disabled, we just need to emit that specific
         # signal to let the Remote Watcher start its own thread and the Queue Manager.
-        if not Options.synchronization_enabled:
+        if not Feature.synchronization:
             self.localScanFinished.emit()
             return
 
@@ -640,12 +641,12 @@ class LocalWatcher(EngineWorker):
         self._event_handler = DriveFSEventHandler(self, ignore_patterns=ignore_patterns)
         self._observer.schedule(self._event_handler, str(base), recursive=True)
 
-        if Options.synchronization_enabled:
+        if Feature.synchronization:
             self._root_observer.start()
             self._observer.start()
 
     def _stop_watchdog(self) -> None:
-        if not Options.synchronization_enabled:
+        if not Feature.synchronization:
             return
 
         if self._observer:
