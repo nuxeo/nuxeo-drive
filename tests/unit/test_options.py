@@ -316,11 +316,7 @@ def test_disabled_features(caplog):
     assert Options.feature_s3 is False
 
     with patch("nxdrive.options.DisabledFeatures", new=["auto_update"]):
-        options = {
-            "feature_auto_update": False,
-            "feature_s3": True,
-            "feature_synchronization": True,
-        }
+        options = {"feature_auto_update": False, "feature_s3": True}
         Options.update(options, setter="manual")
 
     # feature_auto_update has been ignored as it is in DisabledFeatures
@@ -337,7 +333,7 @@ def test_disabled_features(caplog):
 
 @Options.mock()
 def test_synchronization_feature_handler():
-
+    """Verify that the custom handler for feature_synchronization is called when updating the option state."""
     assert Options.feature_synchronization is False
     assert Options.synchronization_enabled is False
 
