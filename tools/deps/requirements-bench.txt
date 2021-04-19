@@ -4,5 +4,6 @@
 #
 py-cpuinfo==8.0.0 \
     --hash=sha256:5f269be0e08e33fd959de96b34cd4aeeeacac014dd8305f70eb28d06de2345c5
-pytest-benchmark==3.2.3 \
-    --hash=sha256:01f79d38d506f5a3a0a9ada22ded714537bbdfc8147a881a35c1655db07289d9
+pytest-benchmark==3.4.1 \
+    --hash=sha256:36d2b08c4882f6f997fd3126a3d6dfd70f3249cde178ed8bbc0b73db7c20f809 \
+    --hash=sha256:40e263f912de5a81d891619032983557d62a3d85843f9a9f30b98baea0cd7b47
