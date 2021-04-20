@@ -254,7 +254,7 @@ Rectangle {
             id: syncState
             state: ""  // Synced
             visible: !(errorState.visible || updateState.visible)
-            text: sync_enabled ? qsTr("SYNCHRONIZATION_COMPLETED") + tl.tr : ""
+            text: feat_synchronization.enabled ? qsTr("SYNCHRONIZATION_COMPLETED") + tl.tr : ""
             color: uiBackground
             textColor: secondaryText
 

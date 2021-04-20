@@ -134,13 +134,17 @@ class CallableFeatureHandler:
     def __init__(self, feature: str, /) -> None:
         self._feature = feature
 
-    def __call__(self, new_value: bool, /) -> None:
+    def __call__(self, new_value: bool, /) -> bool:
         """
         Method called by default when calling the object as a function.
         Update the Feature attribute with the new value.
+        Return True if the value has been updated.
         """
+        result = False
         if getattr(Feature, self._feature) is not new_value:
             setattr(Feature, self._feature, new_value)
+            result = True
+        return result
 
 
 class MetaOptions(type):
@@ -263,7 +267,7 @@ class MetaOptions(type):
         "ssl_no_verify": (False, "default"),
         "startup_page": ("drive_login.jsp", "default"),
         "sync_and_quit": (False, "default"),
-        "synchronization_enabled": (True, "default"),
+        "synchronization_enabled": (False, "default"),
         "system_wide": (_is_system_wide(), "default"),
         "theme": ("ui5", "default"),
         "timeout": (30, "default"),
@@ -600,6 +604,14 @@ def _validate_exec_profile(value: str, /) -> str:
     raise ValueError("Can only be 'public' or 'private'.")
 
 
+def _callback_synchronization_enabled(new_value: bool) -> None:
+    log.warning(
+        "The option is deprecated since 5.1.2 and will be removed in a future release."
+        " Use 'feature.synchronization' instead."
+    )
+    setattr(Options, "feature_synchronization", new_value)
+
+
 # Handler callback for each feature
 for feature in vars(Feature).keys():
     Options.callbacks[f"feature_{feature}"] = CallableFeatureHandler(feature)
@@ -607,6 +619,8 @@ for feature in vars(Feature).keys():
 Options.callbacks["deletion_behavior"] = lambda v: log.info(
     f"Deletion behavior set to {v!r}"
 )
+
+Options.callbacks["synchronization_enabled"] = _callback_synchronization_enabled
 
 Options.checkers["chunk_limit"] = validate_chunk_limit
 Options.checkers["chunk_size"] = validate_chunk_size

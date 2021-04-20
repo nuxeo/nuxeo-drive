@@ -81,8 +81,9 @@ def test_behavior_not_good(caplog, manager_factory):
         ("s3", "s3", False),
     ],
 )
-def test_features(feature, feat_name, default, manager_factory):
+def test_features(feature, feat_name, default, manager_factory, tmp_path):
     """Check that features are well handled."""
+    Options.nxdrive_home = tmp_path
     manager, engine = manager_factory()
     updater = ServerOptionsUpdater(manager)
     opt_name = f"feature_{feat_name}"
@@ -182,3 +183,25 @@ def test_delay_remote_watcher(app, manager_factory):
                 count = 0
                 sleep(10)
                 assert count >= 4
+
+
+@Options.mock()
+def test_synchronization_enabled(manager_factory):
+    """Check that synchronization_enabled also disables feature_synchronization."""
+    manager, engine = manager_factory()
+    updater = ServerOptionsUpdater(manager)
+
+    def disabled():
+        return {"synchronization_enabled": True}
+
+    # Default values are False
+    assert Options.synchronization_enabled is False
+    assert Options.feature_synchronization is False
+    assert Feature.synchronization is False
+
+    # Mimic the IT team disabling the option
+    with patch.object(engine.remote, "get_server_configuration", new=disabled):
+        updater._poll()
+        assert Options.synchronization_enabled is True
+        assert Options.feature_synchronization is True
+        assert Feature.synchronization is True

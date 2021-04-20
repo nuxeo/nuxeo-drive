@@ -218,9 +218,10 @@ def test_installer_integrity_failure(manager_factory, monkey_requests):
 
 
 @Options.mock()
-def test_feature_auto_update(manager_factory):
-    """The application is frozen and auto-update enabled, then disable dvia the server config."""
+def test_feature_auto_update(manager_factory, tmp_path):
+    """The application is frozen and auto-update enabled, then disabled via the server config."""
     Options.is_frozen = True
+    Options.nxdrive_home = tmp_path
     assert Feature.auto_update
     assert Options.feature_auto_update
 

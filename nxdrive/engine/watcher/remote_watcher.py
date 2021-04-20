@@ -10,6 +10,7 @@ from nuxeo.exceptions import BadQuery, HTTPError, Unauthorized
 from ...client.local import FileInfo
 from ...constants import BATCH_SIZE, CONNECTION_ERROR, ROOT, WINDOWS
 from ...exceptions import NotFound, ScrollDescendantsError, ThreadInterrupt
+from ...feature import Feature
 from ...objects import DocPair, DocPairs, Metrics, RemoteFileInfo
 from ...options import Options
 from ...qt.imports import pyqtSignal, pyqtSlot
@@ -610,7 +611,7 @@ class RemoteWatcher(EngineWorker):
     def _handle_changes(self, first_pass: bool, /) -> bool:
         # If synchronization features are disabled, we just need to emit
         # the appropriate signal to let the systray icon be updated.
-        if not Options.synchronization_enabled:
+        if not Feature.synchronization:
             if first_pass:
                 self.initiate.emit()
                 return True

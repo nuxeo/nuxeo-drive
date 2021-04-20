@@ -109,28 +109,13 @@ class ServerOptionsUpdater(PollWorker):
             # (this is a limitation of the local config format)
             if "feature" in conf:
                 for feature, value in conf["feature"].items():
-                    feature = f"feature_{feature.replace('-', '_').lower()}"
-                    conf[feature] = value
+                    feature = feature.replace("-", "_").lower()
+                    self.manager.set_feature_state(feature, value, setter="server")
                 del conf["feature"]
 
             # We cannot use fail_on_error=True because the server may
             # be outdated and still have obsolete options.
             Options.update(conf, setter="server", fail_on_error=False)
-
-            # Save this option so that it has direct effect at the next start
-            key = "synchronization_enabled"
-            if key in conf:
-                value = conf[key]
-                if not isinstance(value, bool):
-                    log.warning(
-                        f"Bad value from the server's config: {key!r}={value!r} (a boolean is required)"
-                    )
-                elif getattr(Options, key) is not value:
-                    self.manager.dao.update_config(key, value)
-
-                    # Does the application need to be restarted?
-                    if not self.first_run:
-                        self.manager.restartNeeded.emit()
 
             if self.first_run:
                 self.firstRunCompleted.emit()

@@ -38,6 +38,7 @@ from ..exceptions import (
     ThreadInterrupt,
     UnknownDigest,
 )
+from ..feature import Feature
 from ..metrics.constants import (
     DT_NEW_FOLDER,
     DT_SESSION_NUMBER,
@@ -895,7 +896,7 @@ class Engine(QObject):
 
     def _send_roots_metrics(self) -> None:
         """Send a metric about the number of locally enabled sync roots."""
-        if not self.remote or not Options.synchronization_enabled:
+        if not self.remote or not Feature.synchronization:
             return
         roots_count = self.dao.get_count(f"remote_parent_path = '{SYNC_ROOT}'")
         self.remote.metrics.send({SYNC_ROOT_COUNT: roots_count})

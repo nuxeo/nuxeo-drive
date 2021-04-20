@@ -36,7 +36,7 @@ ShadowRectangle {
             id: engineToggle
             property bool isPaused: api.is_paused()
             property string suspendAction: isPaused ? "RESUME" : "SUSPEND"
-            visible: !api.restart_needed() && sync_enabled
+            visible: !api.restart_needed() && feat_synchronization.enabled
 
             text: qsTr(suspendAction) + tl.tr
             onClicked: {

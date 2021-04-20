@@ -268,6 +268,7 @@ class Application(QApplication):
         self.conflicts_model = FileModel(self.translate)
         self.errors_model = FileModel(self.translate)
         self.engine_model = EngineModel(self)
+        self.synchronization_feature_model = FeatureModel(Feature.synchronization)
         self.transfer_model = TransferModel(self.translate)
         self.file_model = FileModel(self.translate)
         self.ignoreds_model = FileModel(self.translate)
@@ -439,7 +440,6 @@ class Application(QApplication):
         context.setContextProperty("updater", self.manager.updater)
         context.setContextProperty("point_size", self.point_size)
         context.setContextProperty("update_check_delay", Options.update_check_delay)
-        context.setContextProperty("sync_enabled", Options.synchronization_enabled)
         context.setContextProperty("isFrozen", Options.is_frozen)
         context.setContextProperty("APP_NAME", APP_NAME)
         context.setContextProperty("LINUX", LINUX)
@@ -452,6 +452,9 @@ class Application(QApplication):
         context.setContextProperty("feat_direct_edit", self.direct_edit_feature_model)
         context.setContextProperty(
             "feat_direct_transfer", self.direct_transfer_feature_model
+        )
+        context.setContextProperty(
+            "feat_synchronization", self.synchronization_feature_model
         )
         context.setContextProperty("beta_features", Beta)
         context.setContextProperty("disabled_features", DisabledFeatures)

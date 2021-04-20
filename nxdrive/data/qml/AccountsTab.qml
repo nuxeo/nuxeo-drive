@@ -73,6 +73,7 @@ Rectangle {
                 columnSpacing: 50
                 rowSpacing: 20
                 property bool authenticated: !api.has_invalid_credentials(uid)
+                property bool sync_enabled: feat_synchronization.enabled
                 property string forceUi: force_ui || wui
 
                 // Server URL
