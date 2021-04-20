@@ -1,4 +1,5 @@
 import datetime
+import json
 import os
 import os.path
 import shutil
@@ -16,19 +17,11 @@ import requests
 from nuxeo.exceptions import HTTPError
 from nuxeo.handlers.default import Uploader
 
+from ..auth import Token
 from ..client.local import LocalClient
 from ..client.local.base import LocalClientMixin
 from ..client.remote_client import Remote
-from ..constants import (
-    CONNECTION_ERROR,
-    LINUX,
-    MAC,
-    ROOT,
-    SYNC_ROOT,
-    WINDOWS,
-    DelAction,
-    TransferStatus,
-)
+from ..constants import LINUX, MAC, ROOT, SYNC_ROOT, WINDOWS, DelAction, TransferStatus
 from ..exceptions import (
     AddonNotInstalledError,
     EngineInitError,
@@ -138,6 +131,7 @@ class Engine(QObject):
 
         self.version = manager.version
         self.remote: Remote = None  # type: ignore
+        self._remote_token: Token = None  # type: ignore
 
         self.remote_cls = remote_cls
         self.local_cls = local_cls
@@ -838,20 +832,8 @@ class Engine(QObject):
 
     def unbind(self) -> None:
         self.stop()
-        try:
-            if self.remote:
-                self.remote.revoke_token()
-        except HTTPError:
-            # Token already revoked
-            pass
-        except CONNECTION_ERROR:
-            log.warning("Unable to revoke the token", exc_info=True)
-        except Exception:
-            log.warning("Unbind error", exc_info=True)
-
         self.manager.osi.unwatch_folder(self.local_folder)
         self.manager.osi.unregister_folder_link(self.local_folder)
-
         self.dispose_db()
 
         try:
@@ -872,6 +854,9 @@ class Engine(QObject):
                 file.unlink(missing_ok=True)
             except OSError:
                 log.warning("Database removal error", exc_info=True)
+
+        if self.remote:
+            self.remote.revoke_token()
 
     def check_fs_marker(self) -> bool:
         tag, tag_value = "drive-fs-test", b"NXDRIVE_VERIFICATION"
@@ -902,6 +887,24 @@ class Engine(QObject):
         roots_count = self.dao.get_count(f"remote_parent_path = '{SYNC_ROOT}'")
         self.remote.metrics.send({SYNC_ROOT_COUNT: roots_count})
 
+    def _load_token(self) -> Token:
+        """Retrieve the token from the database."""
+        token = self.dao.get_config("remote_token")
+        try:
+            # OAuth2 token
+            res: Token = json.loads(token)
+        except (TypeError, json.JSONDecodeError):
+            # Nuxeo token
+            res = token
+        return res
+
+    def _save_token(self, token: Token) -> None:
+        """Store the token into the database.
+        Prevent saving a Nuxeo token in a JSON formatted form to no break downgrades.
+        """
+        stored_token = json.dumps(token) if isinstance(token, dict) else token
+        self.dao.update_config("remote_token", stored_token)
+
     def _load_configuration(self) -> None:
         self._web_authentication = self.dao.get_bool("web_authentication")
         self.server_url = self.dao.get_config("server_url")
@@ -909,7 +912,7 @@ class Engine(QObject):
         self.wui = self.dao.get_config("ui", default="web")
         self.force_ui = self.dao.get_config("force_ui")
         self.remote_user = self.dao.get_config("remote_user")
-        self._remote_token = self.dao.get_config("remote_token")
+        self._remote_token = self._load_token()
         self._ssl_verify = self.dao.get_bool("ssl_verify", default=True)
         if Options.ssl_no_verify:
             self._ssl_verify = False
@@ -1210,11 +1213,11 @@ class Engine(QObject):
     def use_trash() -> bool:
         return True
 
-    def update_token(self, token: str, username: str, /) -> None:
+    def update_token(self, token: Token, username: str, /) -> None:
         self._load_configuration()
         self._remote_token = token
         self.remote.update_token(token)
-        self.dao.update_config("remote_token", self._remote_token)
+        self._save_token(self._remote_token)
         self.set_invalid_credentials(value=False)
         if username != self.remote_user:
             self.remote_user = username
@@ -1250,9 +1253,9 @@ class Engine(QObject):
         self.server_url = self._normalize_url(binder.url)
         self.remote_user = binder.username
         self._remote_password = binder.password
-        self._remote_token = binder.token
-        self._web_authentication = self._remote_token is not None
-        self.remote = None  # type: ignore
+        if binder.token:
+            self._remote_token = binder.token
+        self._web_authentication = bool(binder.token)
 
         # Check first if the folder is on a supported FS
         if check_fs:
@@ -1286,7 +1289,7 @@ class Engine(QObject):
         self.dao.store_bool("web_authentication", self._web_authentication)
         self.dao.update_config("server_url", self.server_url)
         self.dao.update_config("remote_user", self.remote_user)
-        self.dao.update_config("remote_token", self._remote_token)
+        self._save_token(self._remote_token)
         self.dao.store_bool("ssl_verify", self._ssl_verify)
         self.dao.update_config("ca_bundle", self._ca_bundle)
 

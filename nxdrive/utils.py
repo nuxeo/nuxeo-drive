@@ -711,6 +711,9 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
             fr"(?P<token>{DOC_UID_REG})/"
             r"user/(?P<username>.*)"
         ),
+        # Event to continue the OAuth2 login flow
+        # authorize?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
+        r"nxdrive://(?P<cmd>authorize)\?code=(?P<code>[^&]+)&state=(?P<state>.*)",
     )
 
     match_res = None
@@ -731,6 +734,12 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
             "command": cmd,
             "token": parsed_url["token"],
             "username": parsed_url["username"],
+        }
+    elif cmd == "authorize":
+        return {
+            "command": cmd,
+            "code": parsed_url["code"],
+            "state": parsed_url["state"],
         }
     return {"command": cmd, "filepath": parsed_url["path"]}
 

@@ -1031,7 +1031,7 @@ class Application(QApplication):
             finally:
                 QApplication.restoreOverrideCursor()
         else:
-            self._web_auth_not_frozen(url)
+            self._web_auth_not_frozen(callback_params["server_url"])
 
     def _web_auth_not_frozen(self, url: str, /) -> None:
         """
@@ -1076,9 +1076,9 @@ class Application(QApplication):
             )
             try:
                 token = nuxeo.client.request_auth_token(
-                    device_id=self.manager.device_id,
+                    self.manager.device_id,
+                    TOKEN_PERMISSION,
                     app_name=APP_NAME,
-                    permission=TOKEN_PERMISSION,
                     device=current_os(full=True),
                 )
             except Exception as exc:
@@ -1086,10 +1086,6 @@ class Application(QApplication):
                 token = ""
             finally:
                 del nuxeo
-
-            # Check we have a token and not a HTML response
-            if "\n" in token:
-                token = ""
 
             self.api.handle_token(token, user)
             dialog.close()
@@ -1590,9 +1586,9 @@ class Application(QApplication):
             "edit-metadata": manager.ctx_edit_metadata,
         }.get(cmd, None)
         if func:
-            func(path)
+            args: Tuple[Any, ...] = (path,)
         elif "edit" in cmd:
-            if not self.manager.wait_for_server_config():
+            if not manager.wait_for_server_config():
                 self.display_warning(
                     f"Direct Edit - {APP_NAME}", "DIRECT_EDIT_NOT_POSSIBLE", []
                 )
@@ -1602,14 +1598,25 @@ class Application(QApplication):
                 self.show_msgbox_restart_needed()
                 return False
 
-            manager.directEdit.emit(
-                info["server_url"], info["doc_id"], info["user"], info["download_url"]
+            func = manager.directEdit.emit
+            args = (
+                info["server_url"],
+                info["doc_id"],
+                info["user"],
+                info["download_url"],
             )
+        elif cmd == "authorize":
+            func = self.api.continue_oauth2_flow
+            args = (info["code"], info["state"])
         elif cmd == "token":
-            self.api.handle_token(info["token"], info["username"])
+            func = self.api.handle_token
+            args = (info["token"], info["username"])
         else:
             log.warning(f"Unknown event URL={url}, info={info!r}, path={path!r}")
             return False
+
+        log.info(f"Calling {func}{args}")
+        func(*args)
         return True
 
     def init_nxdrive_listener(self) -> None:

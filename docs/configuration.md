@@ -402,6 +402,42 @@ Disable the standard check for binding, to allow installation on network filesys
 
 * * *
 
+#### `oauth2-authorization-endpoint`
+
+The URL of the authorization endpoint for OAuth2.
+
+- Default value (str): None
+- Version added: 5.2.0
+
+* * *
+
+#### `oauth2-client-id`
+
+Oauth2 client ID.
+
+- Default value (str): `nuxeo-drive`
+- Version added: 5.2.0
+
+* * *
+
+#### `oauth2-client-secret`
+
+OAuth2 client secret.
+
+- Default value (str): None
+- Version added: 5.2.0
+
+* * *
+
+#### `oauth2-token-endpoint`
+
+The URL of the token endpoint for OAuth2.
+
+- Default value (str): None
+- Version added: 5.2.0
+
+* * *
+
 
 #### `proxy-exceptions`
 
