@@ -573,7 +573,7 @@ Available features:
 | `auto_updates` | true | 4.4.2 | Allow or disallow auto-updates.
 | `direct_edit` | true | 4.4.2 | Allow or disallow Direct Edit.
 | `direct_transfer` | true | 4.4.2 | Allow or disallow Direct Transfer.
- `synchronization` | false | 5.1.2 | Enable or disable the synchronization features.
+| `synchronization` | false | 5.1.2 | Enable or disable the synchronization features.
 | `s3` | true | 4.4.2 | Allow or disallow using Amazon S3 direct uploads.
 
 Here is how to tweak features via the local configuration file:
