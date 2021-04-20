@@ -73,9 +73,8 @@ Rectangle {
                 columnSpacing: 50
                 rowSpacing: 20
                 property bool authenticated: !api.has_invalid_credentials(uid)
-                property bool sync_feature_enabled: feat_synchronization.enabled
+                property bool sync_enabled: feat_synchronization.enabled
                 property string forceUi: force_ui || wui
-
 
                 // Server URL
                 ScaledText { text: qsTr("URL") + tl.tr; color: label }
@@ -135,12 +134,12 @@ Rectangle {
                 // Local folder
                 ScaledText {
                     text: qsTr("ENGINE_FOLDER") + tl.tr
-                    visible: sync_feature_enabled
+                    visible: sync_enabled
                     color: label
                 }
                 Link {
                     text: folder
-                    visible: sync_feature_enabled
+                    visible: sync_enabled
                     onClicked: api.open_local(accountSelect.getRole("uid"), "/")
                 }
 
@@ -186,12 +185,12 @@ Rectangle {
                 // Filters
                 ScaledText {
                     text: qsTr("SELECTIVE_SYNC") + tl.tr
-                    visible: sync_feature_enabled
+                    visible: sync_enabled
                     color: label
                     Layout.alignment: Qt.AlignTop
                 }
                 ColumnLayout {
-                    visible: sync_feature_enabled
+                    visible: sync_enabled
 
                     ScaledText {
                         text: qsTr("SELECTIVE_SYNC_DESCR") + tl.tr
@@ -207,12 +206,12 @@ Rectangle {
 
                 // Conflicts/Errors
                 ScaledText {
-                    visible: sync_feature_enabled
+                    visible: sync_enabled
                     text: qsTr("CONFLICTS_AND_ERRORS") + tl.tr
                     color: label
                 }
                 Link {
-                    visible: sync_feature_enabled
+                    visible: sync_enabled
                     text: qsTr("OPEN_WINDOW") + tl.tr
                     onClicked: api.show_conflicts_resolution(uid)
                 }

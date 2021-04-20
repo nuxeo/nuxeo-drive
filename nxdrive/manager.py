@@ -144,9 +144,6 @@ class Manager(QObject):
                     self.set_feature_state("synchronization", True)
                 self.dao.delete_config("synchronization_enabled")
 
-        if not Feature.synchronization:
-            log.info(">>> Synchronization features are disabled.")
-
         self.old_version = None
 
         if Options.is_frozen:
@@ -542,6 +539,8 @@ class Manager(QObject):
     def generate_report(self, *, path: Path = None) -> Path:
         from .report import Report
 
+        log.info(f"Features: {Feature.__dict__}")
+        log.info(f"Options: {Options!r}")
         log.info(f"Manager metrics: {self.get_metrics()!r}")
         for engine in self.engines.copy().values():
             log.info(f"Engine metrics: {engine.get_metrics()!r}")
