@@ -606,8 +606,8 @@ def _validate_exec_profile(value: str, /) -> str:
 
 def _callback_synchronization_enabled(new_value: bool) -> None:
     log.warning(
-        """The option is deprecated since 5.1.2 and will be removed in a future release.
-         Use 'feature.synchronization' instead."""
+        "The option is deprecated since 5.1.2 and will be removed in a future release."
+        " Use 'feature.synchronization' instead."
     )
     setattr(Options, "feature_synchronization", new_value)
 
