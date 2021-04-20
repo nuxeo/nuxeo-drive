@@ -13,6 +13,7 @@ from weakref import CallableProxyType, proxy
 
 import nuxeo
 import requests
+from nuxeo.utils import version_le
 
 from . import __version__
 from .autolocker import ProcessAutoLockerWorker
@@ -134,29 +135,17 @@ class Manager(QObject):
         if Options.force_locale is not None:
             self.set_config("locale", Options.force_locale)
 
-        # Handle synchronization state early
-        sync_enabled = self.dao.get_config("synchronization_enabled")
-        if sync_enabled is not None:
-            # If the option has been set from another conf source, it has the precedence
-            # over the old (and maybe obsolete) value stored in the database
-            if (
-                Options.options["synchronization_enabled"][1] != "default"
-                and Options.synchronization_enabled != sync_enabled
-            ):
-                # Update the value stored in the database using the the global options value
-                self.dao.update_config(
-                    "synchronization_enabled", Options.synchronization_enabled
-                )
-            else:
-                # Update global options using the value stored in the database
-                Options.synchronization_enabled = sync_enabled != "0"
-
-            self.set_feature_state("synchronization", Options.synchronization_enabled)
+        # Backward-compatibility: handle synchronization state early
+        if version_le(__version__, "5.1.2"):
+            sync_enabled = self.dao.get_config("synchronization_enabled")
+            if sync_enabled is not None:
+                # Note: no need to handle the case where the sync is disabled because it is the default behavior
+                if sync_enabled != "0":
+                    self.set_feature_state("synchronization", True)
+                self.dao.delete_config("synchronization_enabled")
 
         if not Feature.synchronization:
-            log.info(
-                ">>> Synchronization features are disabled, only Direct Edit and Direct Transfer will work."
-            )
+            log.info(">>> Synchronization features are disabled.")
 
         self.old_version = None
 
@@ -531,12 +520,11 @@ class Manager(QObject):
 
     @pyqtSlot(str, bool)  # from FeaturesTab.qml
     def set_feature_state(
-        self, name: str, value: bool, /, *, setter: str = "manual", save: bool = True
+        self, name: str, value: bool, /, *, setter: str = "manual"
     ) -> None:
         """Set the value of the feature in Options and save changes in config file."""
         Options.set(f"feature_{name}", value, setter=setter)
-        if save:
-            save_config({f"feature_{name}": value})
+        save_config({f"feature_{name}": value})
         self.featureUpdate.emit(name, value)
 
     @pyqtSlot(result=bool)  # from GeneralTab.qml

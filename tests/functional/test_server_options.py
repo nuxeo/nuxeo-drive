@@ -81,8 +81,9 @@ def test_behavior_not_good(caplog, manager_factory):
         ("s3", "s3", False),
     ],
 )
-def test_features(feature, feat_name, default, manager_factory):
+def test_features(feature, feat_name, default, manager_factory, tmp_path):
     """Check that features are well handled."""
+    Options.nxdrive_home = tmp_path
     manager, engine = manager_factory()
     updater = ServerOptionsUpdater(manager)
     opt_name = f"feature_{feat_name}"

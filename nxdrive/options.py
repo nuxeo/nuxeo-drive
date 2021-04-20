@@ -146,14 +146,6 @@ class CallableFeatureHandler:
         return False
 
 
-class SynchronzationHandler(CallableFeatureHandler):
-    def __call__(self, new_value: bool, /) -> bool:
-        option_updated = super().__call__(new_value)
-        if option_updated and Options.synchronization_enabled != new_value:
-            Options.synchronization_enabled = new_value
-        return option_updated
-
-
 class MetaOptions(type):
     """
     All configurable options are used by this lone object.
@@ -621,8 +613,6 @@ def _callback_synchronization_enabled(new_value: bool) -> None:
 # Handler callback for each feature
 for feature in vars(Feature).keys():
     Options.callbacks[f"feature_{feature}"] = CallableFeatureHandler(feature)
-
-Options.callbacks["feature_synchronization"] = SynchronzationHandler("synchronization")
 
 Options.callbacks["deletion_behavior"] = lambda v: log.info(
     f"Deletion behavior set to {v!r}"

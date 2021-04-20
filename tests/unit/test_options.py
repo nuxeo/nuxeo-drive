@@ -329,29 +329,3 @@ def test_disabled_features(caplog):
     record = caplog.records[0]
     assert record.levelname == "WARNING"
     assert record.message == "'feature_auto_update' cannot be changed."
-
-
-@Options.mock()
-def test_synchronization_feature_handler():
-    """Verify that the custom handler for *feature_synchronization* is called when updating the option state."""
-    assert Options.feature_synchronization is False
-    assert Options.synchronization_enabled is False
-
-    options = {
-        "feature_synchronization": True,
-    }
-    Options.update(options, setter="manual")
-
-    # feature_synchronization has been updated as expected
-    assert Options.feature_synchronization is True
-
-    # feature_synchronization custom handler has updated synchronization_enabled
-    assert Options.synchronization_enabled is True
-
-    options = {
-        "feature_synchronization": True,
-    }
-    Options.update(options, setter="manual")
-
-    # feature_synchronization doesn't change
-    assert Options.feature_synchronization is True

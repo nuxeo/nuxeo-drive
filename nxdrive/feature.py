@@ -18,6 +18,9 @@ Available parameters and introduced version:
 - s3 (4.4.2)
     Allow or disallow using Amazon S3 direct uploads.
 
+- synchronization (5.1.2)
+    Enable or disable the synchronization features.
+
 """
 from types import SimpleNamespace
 from typing import List

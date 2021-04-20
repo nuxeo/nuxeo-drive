@@ -460,8 +460,9 @@ Launch the synchronization and then exit the application.
 Synchronization features are enabled.
 If set to `False`, nothing will be downloaded/uploaded/synchronized but Direct Edit and Direct Transfer features will work.
 
-- Default value (bool): `True`
+- Default value (bool): `False`
 - Version added: 4.4.0
+- Version changed: 5.1.2, changed from `True` to `False`
 
 The option is deprecated and will be removed in a future release. Use `feature.synchronization` instead.
 

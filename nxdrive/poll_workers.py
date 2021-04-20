@@ -110,9 +110,7 @@ class ServerOptionsUpdater(PollWorker):
             if "feature" in conf:
                 for feature, value in conf["feature"].items():
                     feature = feature.replace("-", "_").lower()
-                    self.manager.set_feature_state(
-                        feature, value, setter="server", save=False
-                    )
+                    self.manager.set_feature_state(feature, value, setter="server")
                 del conf["feature"]
 
             # We cannot use fail_on_error=True because the server may
