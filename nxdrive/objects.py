@@ -6,22 +6,30 @@ from datetime import datetime
 from pathlib import Path
 from sqlite3 import Row
 from time import time
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 
 from dateutil import parser
 from dateutil.tz import tzlocal
 from nuxeo.models import Batch
 from nuxeo.utils import get_digest_algorithm
 
+from .auth import Token
 from .constants import TransferStatus
 from .exceptions import DriveError
 from .translator import Translator
 from .utils import get_date_from_sqlite, get_timestamp_from_date
 
-# Settings passed to Manager.bind_server()
-Binder = namedtuple(
-    "Binder", ["username", "password", "token", "url", "no_check", "no_fscheck"]
-)
+
+class Binder(NamedTuple):
+    """Settings passed to Manager.bind_server()."""
+
+    username: str
+    password: str
+    token: Optional[Token]
+    url: str
+    no_check: bool
+    no_fscheck: bool
+
 
 # Direct Edit details, returned from DirectEdit._extract_edit_info()
 DirectEditDetails = namedtuple(

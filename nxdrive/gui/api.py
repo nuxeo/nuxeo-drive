@@ -8,16 +8,16 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from urllib.parse import urlencode, urlparse, urlsplit, urlunsplit
 
 import requests
-from nuxeo.exceptions import HTTPError, Unauthorized
+from nuxeo.exceptions import HTTPError, OAuth2Error, Unauthorized
 from urllib3.exceptions import LocationParseError
 
+from ..auth import OAuthentication, Token, get_auth
 from ..client.proxy import get_proxy
 from ..constants import (
     APP_NAME,
     CONNECTION_ERROR,
     DEFAULT_SERVER_TYPE,
     DT_MONITORING_MAX_ITEMS,
-    TOKEN_PERMISSION,
     TransferStatus,
 )
 from ..engine.dao.sqlite import EngineDAO
@@ -33,7 +33,6 @@ from ..exceptions import (
     StartupPageConnectionError,
 )
 from ..feature import Feature
-from ..metrics.utils import current_os
 from ..notification import Notification
 from ..objects import Binder, DocPair
 from ..options import Options
@@ -518,31 +517,6 @@ class QMLDriveApi(QObject):
             return "ENCRYPTED_CLIENT_SSL_KEY"
         return "CONNECTION_ERROR"
 
-    def _get_authentication_url(self, server_url: str, /) -> str:
-        if not server_url:
-            raise ValueError("No URL found for Nuxeo server")
-
-        if not Options.is_frozen:
-            return server_url
-
-        params = urlencode(
-            {
-                "deviceId": self._manager.device_id,
-                "applicationName": APP_NAME,
-                "permission": TOKEN_PERMISSION,
-                "deviceDescription": current_os(full=True),
-                "forceAnonymousLogin": "true",
-                "useProtocol": "true",
-            }
-        )
-
-        # Handle URL parameters
-        parts = urlsplit(server_url)
-        path = f"{parts.path}/{Options.browser_startup_page}".replace("//", "/")
-
-        params = f"{parts.query}&{params}" if parts.query else params
-        return urlunsplit((parts.scheme, parts.netloc, path, params, parts.fragment))
-
     # Settings section
 
     @pyqtSlot(result=str)
@@ -652,11 +626,11 @@ class QMLDriveApi(QObject):
         local_folder: Path,
         url: str,
         username: str,
-        password: Optional[str],
+        password: str,
         name: Optional[str],
         /,
         *,
-        token: Optional[str] = None,
+        token: Token = None,
         check_fs: bool = True,
     ) -> None:
         # Remove any parameters from the original URL
@@ -672,7 +646,7 @@ class QMLDriveApi(QObject):
             no_fscheck=not check_fs,
             url=url,
         )
-        log.info(f"Binder is : {binder.url}/{binder.username}")
+        log.info(f"Binder is {binder.url}/{binder.username}")
 
         engine = self._manager.bind_engine(
             DEFAULT_SERVER_TYPE, local_folder, name, binder, starts=False
@@ -694,9 +668,9 @@ class QMLDriveApi(QObject):
         username: str,
         /,
         *,
-        password: str = None,
+        password: str = "",
         name: str = None,
-        token: str = None,
+        token: Token = None,
         check_fs: bool = True,
     ) -> None:
         # Arise the settings window to let the user know the error
@@ -769,8 +743,10 @@ class QMLDriveApi(QObject):
         log.warning(Translator.get(error))
         self.setMessage.emit(error, "error")
 
-    @pyqtSlot(str, str)
-    def web_authentication(self, server_url: str, local_folder: str, /) -> None:
+    @pyqtSlot(str, str, bool)
+    def web_authentication(
+        self, server_url: str, local_folder: str, use_legacy_auth: bool, /
+    ) -> None:
         # Handle local folder
         if not self._manager.check_local_folder_available(
             normalized_path(local_folder)
@@ -814,13 +790,20 @@ class QMLDriveApi(QObject):
 
         # Connect to the authentication page
         try:
-            url = self._get_authentication_url(server_url)
             callback_params = {
                 "local_folder": local_folder,
                 "server_url": server_url,
                 "engine_type": urlsplit(server_url).fragment or DEFAULT_SERVER_TYPE,
             }
-            self.openAuthenticationDialog.emit(url, callback_params)
+            # The good authentication class is chosen following the type of the token
+            crafted_token: Token = "" if use_legacy_auth else {}
+            auth = get_auth(
+                server_url,
+                crafted_token,
+                dao=self._manager.dao,
+                device_id=self._manager.device_id,
+            )
+            self.openAuthenticationDialog.emit(auth.connect_url(), callback_params)
         except Exception:
             log.exception(
                 "Unexpected error while trying to open web authentication window"
@@ -879,7 +862,47 @@ class QMLDriveApi(QObject):
     # Authentication section
 
     @pyqtSlot(str, str)
+    def continue_oauth2_flow(self, code: str, state: str, /) -> None:
+        """Handle a OAuth2 flow to create an account."""
+        manager = self._manager
+        stored_url = manager.get_config("tmp_oauth2_url")
+        stored_code_verifier = manager.get_config("tmp_oauth2_code_verifier")
+        stored_state = manager.get_config("tmp_oauth2_state")
+
+        # Pre-checks
+        error = ""
+        if not stored_url:
+            error = "OAUTH2_MISSING_URL"
+        elif state != stored_state:
+            error = "OAUTH2_STATE_MISMATCH"
+        if error:
+            self.setMessage.emit(error, "error")
+            return
+
+        # Get required data and add the account
+        try:
+            auth = OAuthentication(stored_url, dao=self._manager.dao)
+            token = auth.get_token(
+                code_verifier=stored_code_verifier, code=code, state=state
+            )
+        except OAuth2Error:
+            log.warning("Unexpected error while trying to get a token", exc_info=True)
+            error = "CONNECTION_UNKNOWN"
+        else:
+            username = auth.get_username()
+            error = self.create_account(token, username)
+        finally:
+            # Clean-up
+            manager.dao.delete_config("tmp_oauth2_url")
+            manager.dao.delete_config("tmp_oauth2_code_verifier")
+            manager.dao.delete_config("tmp_oauth2_state")
+
+            if error:
+                self.setMessage.emit(error, "error")
+
+    @pyqtSlot(str, str)
     def handle_token(self, token: str, username: str, /) -> None:
+        """Handle a Nuxeo token to create an account."""
         if not token:
             error = "CONNECTION_REFUSED"
         elif "engine" in self.callback_params:
@@ -889,7 +912,7 @@ class QMLDriveApi(QObject):
         if error:
             self.setMessage.emit(error, "error")
 
-    def create_account(self, token: str, username: str, /) -> str:
+    def create_account(self, token: Token, username: str, /) -> str:
         error = ""
         try:
             local_folder = self.callback_params["local_folder"]
@@ -898,8 +921,9 @@ class QMLDriveApi(QObject):
                 + "#"
                 + self.callback_params["engine_type"]
             )
-
-            log.info(f"Creating new account [{local_folder}, {server_url}, {username}]")
+            log.info(
+                f"Creating new account [{local_folder=}, {server_url=}, {username=}]"
+            )
 
             error = self.bind_server(
                 local_folder,
@@ -907,18 +931,16 @@ class QMLDriveApi(QObject):
                 username,
                 token=token,
             )
-
-            log.info(f"RETURN FROM BIND_SERVER IS: '{error}'")
+            log.info(f"Return from bind_server() is {error!r}")
         except Exception:
             log.exception(
                 "Unexpected error while trying to create a new account "
-                f"[{local_folder}, {server_url}, {username}]"
+                f"[{local_folder=}, {server_url=}, {username=}]"
             )
             error = "CONNECTION_UNKNOWN"
-        finally:
-            return error
+        return error
 
-    def update_token(self, token: str, username: str, /) -> str:
+    def update_token(self, token: Token, username: str, /) -> str:
         error = ""
         engine = self._manager.engines.get(self.callback_params["engine"])
         if not engine:

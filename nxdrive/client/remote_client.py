@@ -21,13 +21,14 @@ from urllib.parse import unquote
 
 import nuxeo.constants
 import requests
-from nuxeo.auth import TokenAuth
+from nuxeo.auth import BasicAuth
 from nuxeo.client import Nuxeo
 from nuxeo.exceptions import CorruptedFile, HTTPError
 from nuxeo.handlers.default import Uploader
 from nuxeo.models import Batch, Document
 from nuxeo.utils import get_digest_algorithm, version_lt
 
+from ..auth import Token, get_auth
 from ..constants import (
     APP_NAME,
     BATCH_SIZE,
@@ -92,8 +93,8 @@ class Remote(Nuxeo):
         version: str,
         /,
         *,
-        password: str = None,
-        token: str = None,
+        password: str = "",
+        token: Token = None,
         proxy: Proxy = None,
         download_callback: Callable = None,
         upload_callback: Callable = None,
@@ -104,7 +105,12 @@ class Remote(Nuxeo):
         verify: bool = True,
         cert: Tuple[str] = None,
     ) -> None:
-        auth = TokenAuth(token) if token else (user_id, password)
+        if token:
+            self.auth = get_auth(url, token, device_id=device_id)
+            auth = self.auth.auth
+        else:
+            self.auth = BasicAuth(user_id, password)
+            auth = self.auth
 
         super().__init__(
             auth=auth,
@@ -297,23 +303,33 @@ class Remote(Nuxeo):
         )
         return bool(self.query(query)["totalSize"])
 
-    def request_token(self, *, revoke: bool = False) -> Optional[str]:
-        """Request and return a new token for the user"""
-        token = self.client.request_auth_token(
-            device_id=self.device_id,
-            app_name=APP_NAME,
-            permission=TOKEN_PERMISSION,
-            device=current_os(full=True),
-            revoke=revoke,
-        )
-        return None if "\n" in token else token
+    def request_token(self) -> Token:
+        """Request and return a new token."""
+        if isinstance(self.auth, BasicAuth):
+            token = self.client.request_auth_token(
+                self.device_id,
+                TOKEN_PERMISSION,
+                app_name=APP_NAME,
+                device=current_os(full=True),
+            )
+            self.auth = self.client.auth
+        else:
+            token = self.auth.get_token(client=self.client)
+        return token
 
     def revoke_token(self) -> None:
-        self.request_token(revoke=True)
+        """Revoke the current token."""
+        try:
+            self.auth.revoke_token(client=self.client)
+        except HTTPError:
+            # Token already revoked
+            pass
+        except Exception:
+            log.warning("Unable to revoke the token", exc_info=True)
 
-    def update_token(self, token: str, /) -> None:
-        self.auth = TokenAuth(token)
-        self.client.auth = self.auth
+    def update_token(self, token: Token, /) -> None:
+        """Update the current token with the provided one."""
+        self.auth.set_token(token)
 
     def personal_space(self) -> Document:
         """Retrieve the "Personal space" special folder.

@@ -6,7 +6,7 @@ import "icon-font/Icon.js" as MdiFont
 
 NuxeoPopup {
     id: control
-    width: 400
+    width: 450
     height: 250
     padding: 20
 
@@ -27,6 +27,7 @@ NuxeoPopup {
             Keys.onReturnPressed: connectButton.clicked()
             Keys.onEnterPressed: connectButton.clicked()
 
+            // Server URL
             ScaledText { text: qsTr("URL") + tl.tr; color: mediumGray }
             NuxeoInput {
                 id: urlInput
@@ -40,6 +41,7 @@ NuxeoPopup {
                 validator: RegExpValidator { regExp: /^https?:\/\/[^\s<"\/]+\/[^\s<"]+$/ }
             }
 
+            // Local folder
             ScaledText {
                 text: qsTr("ENGINE_FOLDER") + tl.tr
                 wrapMode: Text.WordWrap
@@ -48,6 +50,7 @@ NuxeoPopup {
                 color: mediumGray
             }
 
+            // Free disk space based on the selected local folder
             RowLayout {
                 Layout.fillWidth: true
                 NuxeoInput {
@@ -71,8 +74,20 @@ NuxeoPopup {
                 id: freeSpace
                 visible: folderInput.text
             }
+
+            // Authentication method
+            ScaledText {
+                text: qsTr("USE_LEGACY_AUTH") + tl.tr;
+                color: mediumGray
+            }
+            NuxeoCheckBox {
+                id: useLegacyAuth
+                checked: true
+                leftPadding: 0
+            }
         }
 
+        // Cancel/Connect buttons
         RowLayout {
             Layout.alignment: Qt.AlignRight
 
@@ -88,7 +103,7 @@ NuxeoPopup {
                 text: qsTr("CONNECT") + tl.tr
 
                 onClicked: {
-                    api.web_authentication(urlInput.text, folderInput.text)
+                    api.web_authentication(urlInput.text, folderInput.text, useLegacyAuth.checked)
                     control.close()
                 }
             }

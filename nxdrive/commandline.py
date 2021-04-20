@@ -670,7 +670,7 @@ class CliHandler:
         return 0
 
     def bind_server(self, options: Namespace, /) -> int:
-        password, check_credentials = None, True
+        password, check_credentials = "", True
         if not options.password:
             check_credentials = False
         else:

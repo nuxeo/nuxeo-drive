@@ -677,6 +677,18 @@ def test_parse_protocol_url_edit_missing_username():
         nxdrive.utils.parse_protocol_url(url)
 
 
+def test_parse_protocol_url_oauth2_token():
+    """Simple token parsing."""
+    url = "nxdrive://authorize?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA"
+    info = nxdrive.utils.parse_protocol_url(url)
+    assert isinstance(info, dict)
+    assert info == {
+        "command": "authorize",
+        "code": "EAhJq9aZau",
+        "state": "uuIwrlQy810Ra49DhDIaH2tXDYYowA",
+    }
+
+
 def test_parse_protocol_url_token():
     """Simple token parsing."""
     url = "nxdrive://token/12345678-acbd-1234-cdef-1234567890ab/user/Administrator@127.0.0.1"

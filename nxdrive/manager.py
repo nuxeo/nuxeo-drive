@@ -16,6 +16,7 @@ import requests
 from nuxeo.utils import version_le
 
 from . import __version__
+from .auth import Token
 from .autolocker import ProcessAutoLockerWorker
 from .client.local import LocalClient
 from .client.proxy import get_proxy, load_proxy, save_proxy, validate_proxy
@@ -706,8 +707,8 @@ class Manager(QObject):
         username: str,
         /,
         *,
-        password: str = None,
-        token: str = None,
+        password: str = "",
+        token: Token = None,
         name: str = None,
         start_engine: bool = True,
         check_credentials: bool = True,
