@@ -140,10 +140,11 @@ class CallableFeatureHandler:
         Update the Feature attribute with the new value.
         Return True if the value has been updated.
         """
+        result = False
         if getattr(Feature, self._feature) is not new_value:
             setattr(Feature, self._feature, new_value)
-            return True
-        return False
+            result = True
+        return result
 
 
 class MetaOptions(type):
