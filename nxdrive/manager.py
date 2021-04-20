@@ -539,8 +539,8 @@ class Manager(QObject):
     def generate_report(self, *, path: Path = None) -> Path:
         from .report import Report
 
-        log.info(f"Features: {Feature.__dict__}")
-        log.info(f"Options: {Options!r}")
+        log.info(f"Features: {Feature}")
+        log.info(f"Options: {Options}")
         log.info(f"Manager metrics: {self.get_metrics()!r}")
         for engine in self.engines.copy().values():
             log.info(f"Engine metrics: {engine.get_metrics()!r}")
