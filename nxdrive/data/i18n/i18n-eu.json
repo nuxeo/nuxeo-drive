@@ -156,6 +156,7 @@
     "FEATURE_DIRECT_TRANSFER": "Edukiaren aldi bakarreko transferentzia Nuxeo zerbitzaria eta mahaigainaren artean.",
     "FEATURE_DIRECT_EDIT": "Editatu dokumentuaren edozein eduki Laburpena fitxatik, nahiz eta hau sinkronizatuta ez egon.",
     "FEATURE_S3": "Hobetu igoeren abiadura AWS azpiegiturari etekina ateraz. Gaituta ere, eginbide hau Nuxeo Cloud-eko bezeroentzat soilik egongo da martxan eta S3 Direct Upload gehigarria instalatuta eta eguneratuta daukaten Nuxeo zerbitzarietan.",
+    "FEATURE_SYNCHRONIZATION": "Enable or disable the bidirectional synchronization between the local environment and the Nuxeo Platform.",
     "FEEDBACK_LINK": "Zerbait ez dabil ondo? Eman arazoaren berri hemen.",
     "FILE_ALREADY_EXISTS": "Dagoeneko badago \"%1\" izendun fitxategi bat karpeta honetan. Lekuz aldatzen ari zarenarekin ordeztu nahi duzu?",
     "FILE_ALREADY_EXISTS_HEADER": "Bikoiztutako fitxategi bat aurkitu da.",

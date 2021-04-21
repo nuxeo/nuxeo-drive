@@ -156,6 +156,7 @@
     "FEATURE_DIRECT_TRANSFER": "Transfert direct de contenu entre le serveur Nuxeo et le bureau.",
     "FEATURE_DIRECT_EDIT": "Modifiez le contenu d'un document à partir de l'onglet Résumé même s'ils ne sont pas synchronisés.",
     "FEATURE_S3": "Améliorez la vitesse de vos envois en exploitant l'infrastructure AWS. Même activée, cette fonctionnalité ne sera effective que pour les clients de Nuxeo Cloud et pour les serveurs Nuxeo avec l'addon S3 Direct Upload installé et à jour.",
+    "FEATURE_SYNCHRONIZATION": "Enable or disable the bidirectional synchronization between the local environment and the Nuxeo Platform.",
     "FEEDBACK_LINK": "Il manque quelque chose ? Partager vos commentaires ici.",
     "FILE_ALREADY_EXISTS": "Il y a déjà un fichier nommé \"%1\" dans ce dossier. Voulez-vous le remplacer par celui que vous déplacez ?",
     "FILE_ALREADY_EXISTS_HEADER": "Un doublon a été trouvé.",
