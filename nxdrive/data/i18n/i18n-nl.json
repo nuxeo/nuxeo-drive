@@ -156,6 +156,7 @@
     "FEATURE_DIRECT_TRANSFER": "Directe overdracht van inhoud tussen de Nuxeo-server en het bureaublad.",
     "FEATURE_DIRECT_EDIT": "Bewerk een van de inhoud van het document vanuit hun overzichttabblad, zelfs als ze niet zijn gesynchroniseerd.",
     "FEATURE_S3": "Verbeter de snelheid van uw uploads door gebruik te maken van de AWS-infrastructuur. Zelfs als deze functie is ingeschakeld, is deze functie alleen effectief voor Nuxeo Cloud-klanten en voor Nuxeo-servers waarop de add-on S3 Direct Upload is geïnstalleerd en up-to-date is.",
+    "FEATURE_SYNCHRONIZATION": "Enable or disable the bidirectional synchronization between the local environment and the Nuxeo Platform.",
     "FEEDBACK_LINK": "Ontbreekt er iets? Deel uw feedback hier.",
     "FILE_ALREADY_EXISTS": "Er is al een bestand genaamd \"%1\" in deze map. Wilt u het vervangen door degene die u verplaatst?",
     "FILE_ALREADY_EXISTS_HEADER": "Er is een dubbel bestand gevonden.",
