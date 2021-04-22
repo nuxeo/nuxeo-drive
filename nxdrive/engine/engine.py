@@ -137,6 +137,7 @@ class Engine(QObject):
         super().__init__()
 
         self.version = manager.version
+        self.remote: Remote = None  # type: ignore
 
         self.remote_cls = remote_cls
         self.local_cls = local_cls
@@ -185,7 +186,7 @@ class Engine(QObject):
             if not self.server_url:
                 raise EngineInitError(self)
             self._check_https()
-            self.remote: Remote = self.init_remote()
+            self.remote = self.init_remote()
 
         self._create_queue_manager()
         self._create_remote_watcher()
