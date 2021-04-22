@@ -2,6 +2,7 @@
 Uploader used by the Remote client for all upload stuff.
 """
 from abc import abstractmethod
+from json import JSONDecodeError
 from logging import getLogger
 from pathlib import Path
 from time import monotonic_ns
@@ -103,7 +104,12 @@ class BaseUploader:
             handler = UP_AMAZON_S3 if Feature.s3 and uploads.has_s3() else ""
 
             # Create a new batch
-            batch = uploads.batch(handler=handler)
+            try:
+                batch = uploads.batch(handler=handler)
+            except JSONDecodeError as exc:
+                err = "Cannot parse the batch response: invalid data from the server"
+                log.warning(err)
+                raise HTTPError(status=500, message=err) from exc
 
             # Remove eventual obsolete upload (it happens when an upload using S3 has invalid metadatas)
             is_direct_transfer = kwargs.get("is_direct_transfer", False)

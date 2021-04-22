@@ -1,9 +1,11 @@
 """
 Test pause/resume transfers in different scenarii.
 """
+import re
 from unittest.mock import patch
 
 import pytest
+import responses
 from nuxeo.exceptions import HTTPError
 from requests.exceptions import ConnectionError
 
@@ -613,6 +615,45 @@ class TestUpload(OneUserTest):
 
         # Resync and check the file exists
         self.wait_sync()
+        assert not list(dao.get_uploads())
+        assert self.remote_1.exists("/test.bin")
+
+    def test_server_error_upload_invalid_batch_response(self):
+        """Test a server error happening when asking for a batchId."""
+        remote = self.remote_1
+        dao = self.engine_1.dao
+        # Locally create a file that will be uploaded remotely
+        self.local_1.make_file("/", "test.bin", content=b"0" * 1024)
+
+        # There is no upload, right now
+        assert not list(dao.get_uploads())
+
+        # Alter the first request done to get a batchId
+        url = remote.client.host + remote.uploads.endpoint
+        with ensure_no_exception(), responses.RequestsMock() as rsps:
+            # Other requests should not be altered
+            rsps.add_passthru(re.compile(fr"^(?!{url}).*"))
+
+            html = (
+                '<!DOCTYPE html PUBLIC -//W3C//DTD XHTML 1.1//EN http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">'
+                '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">'
+                "<head><title>The page is temporarily unavailable</title>"
+                '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />'
+            )
+            rsps.add(responses.POST, url, body=html)
+
+            self.wait_sync()
+
+        assert not self.remote_1.exists("/test.bin")
+        assert len(dao.get_errors(limit=0)) == 1
+
+        # Reset the error
+        for state in dao.get_errors():
+            dao.reset_error(state)
+
+        # Resync and check the file exist
+        with ensure_no_exception():
+            self.wait_sync()
         assert not list(dao.get_uploads())
         assert self.remote_1.exists("/test.bin")
 
