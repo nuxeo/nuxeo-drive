@@ -11,7 +11,6 @@ from nuxeo.exceptions import Forbidden, HTTPError
 
 from nxdrive.constants import FILE_BUFFER_SIZE, WINDOWS
 from nxdrive.direct_edit import DirectEdit
-
 from nxdrive.exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt
 from nxdrive.objects import Blob, NuxeoDocumentInfo
 from nxdrive.options import Options
@@ -324,6 +323,37 @@ class MixinTests(DirectEditSetup):
             assert "assert b'Initial' == b'New'" in str(exc.value)
         # And the error queue should still be be empty, the bad upload has beend discarded
         assert self.direct_edit._error_queue.empty()
+
+    def test_direct_edit_502_error(self):
+        """
+        When uploading changes to a proxy, an HTTPError 502 is raised.
+        The upload must be postponed and the error caught.
+        """
+        count = 0
+        original_upload = self.engine_1.remote.upload
+
+        def upload(*args, **kwargs):
+            """Mocked remote.upload method that raises a HTTPError 502"""
+            nonlocal count
+
+            count += 1
+            if count < 3:
+                raise HTTPError(status=502, message="Mock'ed Client Error: Bad Gateway")
+            return original_upload(*args, **kwargs)
+
+        filename = "error-502-test.txt"
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Initial")
+
+        with patch.object(
+            self.engine_1.remote, "upload", new=upload
+        ), ensure_no_exception():
+            self._direct_edit_update(doc_id, filename, b"New")
+
+        # And the error queue should still be be empty, the bad upload has beend discarded
+        assert self.direct_edit._error_queue.empty()
+
+        expected = "because server is unavailable"
+        assert any(expected in str(log) for log in self._caplog.records)
 
     def test_direct_edit_max_error(self):
         """
