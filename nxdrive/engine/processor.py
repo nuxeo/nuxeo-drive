@@ -394,7 +394,7 @@ class Processor(EngineWorker):
                     self._postpone_pair(doc_pair, "Requested Range Not Satisfiable")
                 elif exc.status == 500:
                     self.increase_error(doc_pair, "SERVER_ERROR", exception=exc)
-                elif exc.status in (502, 503):
+                elif exc.status in (502, 503, 504):
                     log.warning("Server is unavailable", exc_info=True)
                     self._check_exists_on_the_server(doc_pair)
                 else:
