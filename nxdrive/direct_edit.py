@@ -895,6 +895,12 @@ class DirectEdit(Worker):
                         f"Unable to process Direct Edit on {ref} "
                         f"({details}) because it is a proxy."
                     )
+                elif e.status in (502, 503, 504):
+                    log.warning(
+                        f"Unable to process Direct Edit on {ref} "
+                        f"({details}) because server is unavailable."
+                    )
+                    self._handle_upload_error(ref, os_path, remote)
                 else:
                     # Try again in 30s
                     log.exception(f"Direct Edit unhandled HTTP error for ref {ref!r}")
