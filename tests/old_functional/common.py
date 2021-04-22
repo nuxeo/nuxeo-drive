@@ -743,6 +743,7 @@ class OneUserTest(TwoUsersTest):
 
     def setup_method(self, *args, **kwargs):
         kwargs["user_2"] = False
+        Options.feature_synchronization = True
         super().setup_method(*args, **kwargs)
 
     def wait_sync(
@@ -838,5 +839,5 @@ class OneUserNoSync(OneUserTest):
     """ Tests requiring only one user with synchronization features disabled. """
 
     def setup_method(self, *args, **kwargs):
-        Options.synchronization_enabled = False
+        Options.feature_synchronization = False
         super().setup_method(*args, **kwargs)
