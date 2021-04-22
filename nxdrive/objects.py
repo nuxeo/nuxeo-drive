@@ -93,7 +93,7 @@ class RemoteFileInfo:
             parent_uid = fs_item["parentId"]
             path = fs_item["path"]
             name = unicodedata.normalize("NFC", fs_item["name"])
-        except KeyError:
+        except (KeyError, TypeError):
             raise DriveError(f"This item is missing mandatory information: {fs_item}")
 
         folderish = fs_item.get("folder", False)
@@ -202,7 +202,7 @@ class NuxeoDocumentInfo:
             name = unicodedata.normalize("NFC", props["dc:title"])
             folderish = "Folderish" in doc["facets"]
             modified = doc["lastModified"]
-        except KeyError:
+        except (KeyError, TypeError):
             raise DriveError(f"This document is missing mandatory information: {doc}")
 
         last_update = parser.parse(modified)
