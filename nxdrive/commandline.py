@@ -85,14 +85,14 @@ class CliHandler:
         common_parser.add_argument(
             "--log-level-file",
             default=DEFAULT_LOG_LEVEL_FILE,
-            choices=("TRACE", "DEBUG", "INFO", "WARNING", "ERROR"),
+            choices=("DEBUG", "INFO", "WARNING", "ERROR"),
             help="Minimum log level for the file log",
         )
 
         common_parser.add_argument(
             "--log-level-console",
             default=DEFAULT_LOG_LEVEL_CONSOLE,
-            choices=("TRACE", "DEBUG", "INFO", "WARNING", "ERROR"),
+            choices=("DEBUG", "INFO", "WARNING", "ERROR"),
             help="Minimum log level for the console log",
         )
 

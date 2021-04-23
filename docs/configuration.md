@@ -357,9 +357,8 @@ Can be `DEBUG`, `INFO`, `WARNING` or `ERROR`.
 
 - Default value (str): `WARNING`
 - Version added: 2.0
-- Version changed: 4.1.0, removed the `TRACE` level
-
-`TRACE` level has been deprecated since 4.1.0, and will be treated as `DEBUG`.
+- Version changed: 4.1.0, `TRACE` level has been deprecated and is treated as `DEBUG`
+- Version changed: 5.2.0, `TRACE` level is removed
 
 * * *
 
@@ -370,9 +369,8 @@ Can be `DEBUG`, `INFO`, `WARNING` or `ERROR`.
 
 - Default value (str): `INFO`
 - Version added: 2.0
-- Version changed: 4.1.0, removed the `TRACE` level
-
-`TRACE` level has been deprecated since 4.1.0, and will be treated as `DEBUG`.
+- Version changed: 4.1.0, `TRACE` level has been deprecated and is treated as `DEBUG`
+- Version changed: 5.2.0, `TRACE` level is removed
 
 * * *
 
