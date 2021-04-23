@@ -118,16 +118,6 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
         self.compress_and_purge()
 
 
-def no_trace(level: str, /) -> str:
-    level = level.upper()
-    if level == "TRACE":
-        logging.getLogger().warning(
-            "TRACE level is deprecated since 4.1.0. Please use DEBUG instead."
-        )
-        level = "DEBUG"
-    return level
-
-
 def configure(
     *,
     log_filename: str = None,
@@ -207,7 +197,7 @@ def get_handler(name: str, /) -> Optional[logging.Handler]:
 def get_level(level: str, default: str, /) -> str:
     try:
         _check_level(level)
-        return no_trace(level)
+        return level
     except ValueError as exc:
         logging.getLogger().warning(str(exc))
         return default
@@ -216,7 +206,6 @@ def get_level(level: str, default: str, /) -> str:
 def _check_level(level: str, /) -> str:
     """Handle bad logging level."""
     try:
-        level = no_trace(level)
         logging._nameToLevel[level]  # pylint: disable=protected-access
     except (AttributeError, ValueError, KeyError):
         err = f"Unknown logging level {level!r}, need to be one of {LOG_LEVELS}."
