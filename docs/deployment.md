@@ -33,7 +33,7 @@ See [pyenv](https://github.com/yyuu/pyenv/wiki/Common-build-problems#requirement
 
 ## Windows
 
-**PowerShell 4.0 or above** is required to run this script. You can find installation instructions [here](https://docs.microsoft.com/en-us/powershell/scripting/setup/installing-windows-powershell).
+**PowerShell 5.1 or above** is required to run this script. You can find installation instructions [here](https://docs.microsoft.com/fr-fr/powershell/scripting/windows-powershell/wmf/setup/install-configure?view=powershell-7.1).
 
 ### Usage
 
