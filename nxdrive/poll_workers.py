@@ -107,6 +107,7 @@ class ServerOptionsUpdater(PollWorker):
 
             # Features needs to be reworked to match the format in Options
             # (this is a limitation of the local config format)
+            old_feature_sync = Options.feature_synchronization
             if "feature" in conf:
                 for feature, value in conf["feature"].items():
                     feature = feature.replace("-", "_").lower()
@@ -116,6 +117,13 @@ class ServerOptionsUpdater(PollWorker):
             # We cannot use fail_on_error=True because the server may
             # be outdated and still have obsolete options.
             Options.update(conf, setter="server", fail_on_error=False)
+
+            #  If the feature_synchronization state has changed a restart must be done
+            if (
+                not self.first_run
+                and Options.feature_synchronization != old_feature_sync
+            ):
+                self.manager.restartNeeded.emit()
 
             if self.first_run:
                 self.firstRunCompleted.emit()

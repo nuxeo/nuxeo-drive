@@ -801,9 +801,10 @@ class FeatureModel(QObject):
 
     stateChanged = pyqtSignal()
 
-    def __init__(self, enabled: bool, /) -> None:
+    def __init__(self, enabled: bool, /, *, restart_needed: bool = False) -> None:
         super().__init__()
         self._enabled = enabled
+        self._restart_needed = restart_needed
 
     @pyqtProperty(bool, notify=stateChanged)
     def enabled(self) -> bool:
@@ -814,3 +815,7 @@ class FeatureModel(QObject):
     def enabled(self, enabled: bool) -> None:
         self._enabled = enabled
         self.stateChanged.emit()
+
+    @property
+    def restart_needed(self) -> bool:
+        return self._restart_needed
