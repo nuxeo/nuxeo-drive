@@ -27,10 +27,10 @@ from typing import List
 
 Feature = SimpleNamespace(
     auto_update=True,
+    synchronization=False,
     direct_edit=True,
     direct_transfer=True,
     s3=False,
-    synchronization=False,
 )
 
 Beta: List[str] = ["s3"]

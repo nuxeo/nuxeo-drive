@@ -268,7 +268,9 @@ class Application(QApplication):
         self.conflicts_model = FileModel(self.translate)
         self.errors_model = FileModel(self.translate)
         self.engine_model = EngineModel(self)
-        self.synchronization_feature_model = FeatureModel(Feature.synchronization)
+        self.synchronization_feature_model = FeatureModel(
+            Feature.synchronization, restart_needed=True
+        )
         self.transfer_model = TransferModel(self.translate)
         self.file_model = FileModel(self.translate)
         self.ignoreds_model = FileModel(self.translate)
@@ -369,6 +371,9 @@ class Application(QApplication):
         if not feature:
             return
         feature.enabled = value
+
+        if feature.restart_needed:
+            self.manager.restartNeeded.emit()
 
     def _center_on_screen(self, window: QQuickView, /) -> None:
         """Display and center the window on the screen."""
