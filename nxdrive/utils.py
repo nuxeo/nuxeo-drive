@@ -52,6 +52,8 @@ from .metrics.utils import user_agent
 from .options import Options
 
 if TYPE_CHECKING:
+    from cryptography.hazmat.primitives.ciphers import Cipher
+
     from .client.proxy import Proxy  # noqa
 
 
@@ -601,63 +603,49 @@ def get_certificate_details(
     return defaults
 
 
-@lru_cache(maxsize=4, typed=True)
-def encrypt(
-    plaintext: Union[bytes, str], secret: Union[bytes, str], /, *, lazy: bool = True
-) -> bytes:
-    """Symmetric encryption using AES."""
+def _cryptor(key: bytes, iv: bytes) -> "Cipher":
+    """Instantiate a new AES (de|en)cryptor."""
+    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
+    return Cipher(algorithms.AES(key), mode=modes.CFB8(iv))
+
+
+def encrypt(plaintext: Union[bytes, str], key: Union[bytes, str]) -> bytes:
+    """Chiper *plaintext* using AES with the given *key*."""
     import base64
-
-    from Cryptodome.Cipher import AES
-    from Cryptodome.Random import get_random_bytes
 
     plaintext = force_encode(plaintext)
-    secret = force_encode(secret)
-    secret = _lazysecret(secret) if lazy else secret
-    iv = get_random_bytes(AES.block_size)
-    encobj = AES.new(secret, AES.MODE_CFB, iv)
-    return base64.b64encode(iv + encobj.encrypt(plaintext))
+    key = _pad_secret(force_encode(key))
+    iv = os.urandom(16)
+    encryptor = _cryptor(key, iv).encryptor()  # type: ignore
+    return base64.b64encode(iv + encryptor.update(plaintext) + encryptor.finalize())
 
 
-@lru_cache(maxsize=4, typed=True)
-def decrypt(
-    ciphertext: Union[bytes, str], secret: Union[bytes, str], /, *, lazy: bool = True
-) -> Optional[bytes]:
-    """Symmetric decryption using AES."""
-
+def decrypt(secure_data: Union[bytes, str], key: Union[bytes, str]) -> Optional[bytes]:
+    """Dechiper AES *secure_data* with the given *key*."""
     import base64
 
-    from Cryptodome.Cipher import AES
-
-    ciphertext = force_encode(ciphertext)
-    secret = force_encode(secret)
-    secret = _lazysecret(secret) if lazy else secret
-    ciphertext = base64.b64decode(ciphertext)
-    iv = ciphertext[: AES.block_size]
-    ciphertext = ciphertext[AES.block_size :]
-
-    # Don't fail on decrypt
+    key = _pad_secret(force_encode(key))
+    data = base64.b64decode(force_encode(secure_data))
+    iv = data[:16]
+    ciphertext = data[16:]
+    decryptor = _cryptor(key, iv).decryptor()  # type: ignore
     try:
-        encobj = AES.new(secret, AES.MODE_CFB, iv)
-        data: bytes = encobj.decrypt(ciphertext)
+        res: bytes = decryptor.update(ciphertext) + decryptor.finalize()
+        return res
     except Exception:
         return None
-    else:
-        return data
 
 
-@lru_cache(maxsize=4)
-def _lazysecret(
-    secret: bytes, /, *, blocksize: int = 32, padding: bytes = b"}"
-) -> bytes:
-    """Pad secret if not legal AES block size (16, 24, 32)."""
-    length = len(secret)
-    if length > blocksize:
-        return secret[: -(length - blocksize)]
-    if length not in (16, 24, 32):
-        return secret + (blocksize - length) * padding
-    return secret
+def _pad_secret(key: bytes) -> bytes:
+    """Pad secret for AES block size (32 bits)."""
+    length = len(key)
+    if length == 32:
+        return key
+    size = 32 - length
+    if length > 32:
+        return key[:size]
+    return key + bytes([size]) * size
 
 
 @lru_cache(maxsize=4)

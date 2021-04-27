@@ -143,29 +143,33 @@ def test_digest_status(digest, expected_status):
     assert nxdrive.utils.digest_status(digest) is expected_status
 
 
-def test_encrypt_decrypt():
+@pytest.mark.parametrize(
+    "key",
+    [
+        "12345678-acbd-1234-cdef-1234567890ab",
+        "12345678-acbd-1234-cdef-1234567890ab",
+        "12345678-acbd-1234-cdef-12345678",  # 32
+        "12345678-acbd-1234-cdef-123456",
+        "12345678-acbd-1234-cdefg",  # 24
+        "12345678-acbd-12",  # 16
+        "",
+    ],
+)
+def test_encrypt_decrypt(key):
     enc = nxdrive.utils.encrypt
     dec = nxdrive.utils.decrypt
+    secret_data = b"Administrator"
+    secure_data = enc(secret_data, key)
+    assert dec(secure_data, key) == secret_data
 
-    pwd = b"Administrator"
 
-    # Test secret with length > block size
-    token = b"12345678-acbd-1234-cdef-1234567890ab"
-    cipher = enc(pwd, token)
-    assert dec(cipher, token) == pwd
-
-    # Test secret with length multiple of 2
-    token = "12345678-acbd-1234-cdef-12345678"
-    cipher = enc(pwd, token)
-    assert dec(cipher, token) == pwd
-
-    # Test secret with length not multiple of 2
-    token = "12345678-acbd-1234-cdef-123456"
-    cipher = enc(pwd, token)
-    assert dec(cipher, token) == pwd
-
-    # Decrypt failure
-    assert dec("", token) is None
+def test_decrypt():
+    """Ensure the old way of encrypting data works with the new one (NXDRIVE-2617)."""
+    # secure_data was generated using PyCryptodomex
+    secure_data = b"g3PB1AN9bKZmeeZEa3A3vqLBgXNa6eEUdKjdumU="
+    key = b"12345678-acbd-1234-cdef-1234567890ab"
+    secret_data = nxdrive.utils.decrypt(secure_data, key)
+    assert secret_data == b"Administrator"
 
 
 @windows_only(reason="Unix has no drive concept")
