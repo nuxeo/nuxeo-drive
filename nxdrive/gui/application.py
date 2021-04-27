@@ -423,7 +423,7 @@ class Application(QApplication):
         self.engine_model.removeEngine(uid)
 
     def _fill_qml_context(self, context: QQmlContext, /) -> None:
-        """ Fill the context of a QML element with the necessary resources. """
+        """Fill the context of a QML element with the necessary resources."""
 
         context.setContextProperty("ActiveSessionModel", self.active_session_model)
         context.setContextProperty(
@@ -632,7 +632,7 @@ class Application(QApplication):
 
     @pyqtSlot(str, list)
     def _direct_edit_error(self, message: str, values: List[str], /) -> None:
-        """ Display a simple Direct Edit error message. """
+        """Display a simple Direct Edit error message."""
         self.display_warning(f"Direct Edit - {APP_NAME}", message, values)
 
     @pyqtSlot()
@@ -833,14 +833,14 @@ class Application(QApplication):
         self.set_icon_state(new_state)
 
     def refresh_conflicts(self, uid: str, /) -> None:
-        """ Update the content of the conflicts/errors window. """
+        """Update the content of the conflicts/errors window."""
         self.conflicts_model.add_files(self.api.get_conflicts(uid))
         self.errors_model.add_files(self.api.get_errors(uid))
         self.ignoreds_model.add_files(self.api.get_unsynchronizeds(uid))
 
     @pyqtSlot(object)
     def show_conflicts_resolution(self, engine: Engine, /) -> None:
-        """ Display the conflicts/errors window. """
+        """Display the conflicts/errors window."""
         self.refresh_conflicts(engine.uid)
         self._window_root(self.conflicts_window).setEngine.emit(engine.uid)
         self._center_on_screen(self.conflicts_window)
@@ -1346,7 +1346,7 @@ class Application(QApplication):
 
     @if_frozen
     def _show_release_notes(self, previous: str, current: str, /) -> None:
-        """ Display release notes of a given version. """
+        """Display release notes of a given version."""
 
         if "CI" in os.environ or Options.is_alpha:
             return
@@ -1537,7 +1537,7 @@ class Application(QApplication):
         self.osi.register_contextual_menu()
 
     def event(self, event: QEvent, /) -> bool:
-        """ Handle URL scheme events under macOS. """
+        """Handle URL scheme events under macOS."""
         url = getattr(event, "url", None)
         if not url:
             # This is not an event for us!
@@ -1552,7 +1552,7 @@ class Application(QApplication):
 
     @pyqtSlot()
     def show_msgbox_restart_needed(self) -> None:
-        """ Display a message to ask the user to restart the application. """
+        """Display a message to ask the user to restart the application."""
         self.display_warning(APP_NAME, "RESTART_NEEDED_MSG", [APP_NAME])
 
     @pyqtSlot(result=str)
@@ -1562,7 +1562,7 @@ class Application(QApplication):
 
     @pyqtSlot(str, result=bool)
     def _handle_nxdrive_url(self, url: str, /) -> bool:
-        """ Handle an nxdrive protocol URL. """
+        """Handle an nxdrive protocol URL."""
 
         info = parse_protocol_url(url)
         if not info:
@@ -1648,7 +1648,7 @@ class Application(QApplication):
         self.aboutToQuit.connect(self._nxdrive_listener.close)
 
     def _handle_connection(self) -> None:
-        """ Retrieve the connection with other instances and handle the incoming data. """
+        """Retrieve the connection with other instances and handle the incoming data."""
 
         con: QLocalSocket = None
         try:
@@ -1891,7 +1891,7 @@ class Application(QApplication):
         return None
 
     def show_metrics_acceptance(self) -> None:
-        """ Display a "friendly" dialog box to ask user for metrics approval. """
+        """Display a "friendly" dialog box to ask user for metrics approval."""
 
         tr = Translator.get
 

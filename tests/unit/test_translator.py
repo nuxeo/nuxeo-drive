@@ -86,7 +86,7 @@ def test_token(token, result):
 
 
 def test_translate_twice():
-    """ Check that the values array is not mutated. """
+    """Check that the values array is not mutated."""
     Translator(get_folder("i18n"))
     values = ["value"]
     first = Translator.get("TOKEN_NORMAL", values=values)
@@ -97,7 +97,7 @@ def test_translate_twice():
 
 
 def test_translate_twice_different_values():
-    """ Check that the values array is taken into account in the LRU cache. """
+    """Check that the values array is taken into account in the LRU cache."""
     Translator(get_folder("i18n"))
     values1 = ["value1"]
     values2 = ["value2"]

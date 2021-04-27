@@ -10,7 +10,7 @@ except ImportError:
 @mac_only
 class TestMacSpecific(OneUserTest):
     def test_finder_in_use(self):
-        """ Test that if Finder is using the file we postpone the sync. """
+        """Test that if Finder is using the file we postpone the sync."""
 
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)

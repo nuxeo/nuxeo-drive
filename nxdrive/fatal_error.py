@@ -150,7 +150,7 @@ def fatal_error_qt(exc_formatted: str, /) -> None:
     layout.addWidget(buttons)
 
     def copy() -> None:
-        """Copy details to the clipboard and change the text of the button. """
+        """Copy details to the clipboard and change the text of the button."""
         osi.cb_set("\n".join(details))
         copy_paste.setText(tr("FATAL_ERROR_DETAILS_COPIED"))
 

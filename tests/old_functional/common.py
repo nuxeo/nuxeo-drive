@@ -144,7 +144,7 @@ class TwoUsersTest(TestCase):
     def setup_method(
         self, test_method, register_roots=True, user_2=True, server_profile=None
     ):
-        """ Setup method that will be invoked for every test method of a class."""
+        """Setup method that will be invoked for every test method of a class."""
 
         log.info("TEST master setup start")
 
@@ -197,7 +197,7 @@ class TwoUsersTest(TestCase):
             self._append_user_attrs(2, register_roots)
 
     def teardown_method(self, test_method):
-        """ Clean-up method. """
+        """Clean-up method."""
 
         log.info("TEST master teardown start")
 
@@ -388,7 +388,7 @@ class TwoUsersTest(TestCase):
         setattr(self, f"remote_{number}", remote)
 
     def get_bad_remote(self):
-        """ A Remote client that will raise some error. """
+        """A Remote client that will raise some error."""
         return RemoteTest(
             self.nuxeo_url,
             self.user_1,
@@ -653,7 +653,7 @@ class TwoUsersTest(TestCase):
         return file_count, dir_count
 
     def generate_report(self, exceptions: List[Exception]) -> None:
-        """ Generate a report on failure. """
+        """Generate a report on failure."""
         # Track any exception that could happen, specially those we would not
         # see if the test succeed.
 
@@ -739,7 +739,7 @@ class TwoUsersTest(TestCase):
 
 
 class OneUserTest(TwoUsersTest):
-    """ Tests requiring only one user. """
+    """Tests requiring only one user."""
 
     def setup_method(self, *args, **kwargs):
         kwargs["user_2"] = False
@@ -836,7 +836,7 @@ class OneUserTest(TwoUsersTest):
 
 
 class OneUserNoSync(OneUserTest):
-    """ Tests requiring only one user with synchronization features disabled. """
+    """Tests requiring only one user with synchronization features disabled."""
 
     def setup_method(self, *args, **kwargs):
         Options.feature_synchronization = False

@@ -107,7 +107,7 @@ class ExtensionListener(QTcpServer):
         self.listening.emit()
 
     def _handle_connection(self) -> None:
-        """ Called when an Explorer instance is connecting. """
+        """Called when an Explorer instance is connecting."""
         con: QTcpSocket = self.nextPendingConnection()
 
         if not (con and con.waitForConnected()):
@@ -134,15 +134,15 @@ class ExtensionListener(QTcpServer):
         del con
 
     def _parse_payload(self, payload: bytes) -> str:
-        """ Called on the bytes received through the socket. """
+        """Called on the bytes received through the socket."""
         return force_decode(payload)
 
     def _format_response(self, response: str, /) -> bytes:
-        """ Called on the string to send through the socket. """
+        """Called on the string to send through the socket."""
         return force_encode(response)
 
     def _handle_content(self, content: str, /) -> Optional[str]:
-        """ Called on the parsed payload, runs the handler associated with the command. """
+        """Called on the parsed payload, runs the handler associated with the command."""
         try:
             data = json.loads(content)
         except Exception:
@@ -168,7 +168,7 @@ class ExtensionListener(QTcpServer):
 
 
 def get_formatted_status(state: DocPair, path: Path, /) -> Optional[Dict[str, str]]:
-    """ For a given file and its state info, get a JSON-compatible status. """
+    """For a given file and its state info, get a JSON-compatible status."""
     status = Status.UNSYNCED
 
     try:

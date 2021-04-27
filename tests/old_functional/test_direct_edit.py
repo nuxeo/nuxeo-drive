@@ -546,7 +546,7 @@ class MixinTests(DirectEditSetup):
             assert not self.local.exists(local_path)
 
     def test_network_loss(self):
-        """ Updates should be sent when the network is up again. """
+        """Updates should be sent when the network is up again."""
         filename = "networkless file.txt"
         doc_id = self.remote.make_file_with_blob("/", filename, b"Initial content.")
 
@@ -592,7 +592,7 @@ class MixinTests(DirectEditSetup):
         )
 
     def test_edit_document_with_folderish_facet(self):
-        """ Ensure we can Direct Edit documents that have the Folderish facet. """
+        """Ensure we can Direct Edit documents that have the Folderish facet."""
 
         filename = "picture-as-folder.png"
         content = random_png(size=42)

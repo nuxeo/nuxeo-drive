@@ -1063,7 +1063,7 @@ class RemoteWatcher(EngineWorker):
             self.remove_void_transfers(delete_pair)
 
     def filtered(self, info: Optional[RemoteFileInfo], /) -> bool:
-        """ Check if a remote document is locally ignored. """
+        """Check if a remote document is locally ignored."""
         return (
             info is not None
             and not info.folderish

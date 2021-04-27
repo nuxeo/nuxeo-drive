@@ -400,12 +400,12 @@ class ConfigurationDAO(QObject):
             )
 
     def store_bool(self, name: str, value: bool, /) -> None:
-        """ Store a boolean parameter. """
+        """Store a boolean parameter."""
 
         self.update_config(name, bool(value))
 
     def store_int(self, name: str, value: int, /) -> None:
-        """ Store an integer parameter. """
+        """Store an integer parameter."""
 
         self.update_config(name, int(value))
 

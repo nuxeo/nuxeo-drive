@@ -39,7 +39,7 @@ def get_condition(item):
 
 
 def pytest_configure(config):
-    """ Set the default mode upon pytest loading. """
+    """Set the default mode upon pytest loading."""
     config.default_mode = os.environ.get("RANDOM_BUG_MODE", None)
     if config.default_mode not in {"RELAX", "STRICT", "BYPASS"}:
         config.default_mode = None
@@ -56,7 +56,7 @@ def pytest_configure(config):
 
 
 def pytest_collection_modifyitems(items):
-    """ Once tests have been collected, skip the ones marked BYPASS. """
+    """Once tests have been collected, skip the ones marked BYPASS."""
     for item in items:
         marker = get_random(item)
         if not marker:
@@ -68,7 +68,7 @@ def pytest_collection_modifyitems(items):
 
 
 def pytest_runtest_protocol(item, nextitem):
-    """ runtest_setup/call/teardown protocol implementation. """
+    """runtest_setup/call/teardown protocol implementation."""
     condition = get_condition(item)
     if not condition:
         # The test doesn't have the random marker or doesn't

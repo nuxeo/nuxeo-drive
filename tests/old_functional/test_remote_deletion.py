@@ -82,7 +82,7 @@ class TestRemoteDeletion(OneUserTest):
         self.engine_1.start()
 
         def callback(uploader):
-            """ Add delay when upload and download. """
+            """Add delay when upload and download."""
             time.sleep(1)
             Engine.suspend_client(self.engine_1, uploader)
 
@@ -109,7 +109,7 @@ class TestRemoteDeletion(OneUserTest):
         remote = self.remote_document_client_1
 
         def callback(uploader):
-            """ Add delay when upload and download. """
+            """Add delay when upload and download."""
             if not self.engine_1.has_delete:
                 # Delete remote file while downloading
                 try:

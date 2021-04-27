@@ -216,7 +216,7 @@ class TestLocalCreations(OneUserTest):
         assert children[0].name == filename_upper
 
     def test_local_create_folders_with_dots(self):
-        """ Check that folders containing dots are well synced. """
+        """Check that folders containing dots are well synced."""
 
         remote = self.remote_document_client_1
         local = self.local_1
@@ -238,7 +238,7 @@ class TestLocalCreations(OneUserTest):
         assert local.exists(f"/{folder2}")
 
     def test_local_modification_date(self):
-        """ Check that the files have the Platform modification date. """
+        """Check that the files have the Platform modification date."""
         remote = self.remote_document_client_1
         local = self.local_1
         engine = self.engine_1
@@ -257,7 +257,7 @@ class TestLocalCreations(OneUserTest):
         assert local.abspath(filename).stat().st_mtime < remote_mtime
 
     def test_local_modification_date_non_latin(self):
-        """ Check that non-latin files have the Platform modification date. """
+        """Check that non-latin files have the Platform modification date."""
         remote = self.remote_document_client_1
         local = self.local_1
         engine = self.engine_1
@@ -277,7 +277,7 @@ class TestLocalCreations(OneUserTest):
         assert local.abspath(filename).stat().st_mtime < remote_mtime
 
     def test_local_modification_date_kanjis_file(self):
-        """ Check that Kanjis files have the Platform modification date. """
+        """Check that Kanjis files have the Platform modification date."""
         remote = self.remote_1
         local = self.local_1
         engine = self.engine_1
@@ -298,7 +298,7 @@ class TestLocalCreations(OneUserTest):
         assert local.abspath(filename).stat().st_mtime < remote_mtime + 0.5
 
     def test_local_modification_date_hiraganas_file(self):
-        """ Check that Hiraganas files have the Platform modification date. """
+        """Check that Hiraganas files have the Platform modification date."""
         remote = self.remote_1
         local = self.local_1
         engine = self.engine_1
@@ -319,7 +319,7 @@ class TestLocalCreations(OneUserTest):
         assert local.abspath(filename).stat().st_mtime < remote_mtime + 0.5
 
     def test_local_creation_date(self):
-        """ Check that the files have the Platform modification date. """
+        """Check that the files have the Platform modification date."""
         remote = self.remote_1
         local = self.local_1
         engine = self.engine_1
@@ -352,7 +352,7 @@ class TestLocalCreations(OneUserTest):
         assert local_mtime < after_mtime + 0.5
 
     def test_local_creation_date_kanjis_file(self):
-        """ Check that Kanjis files have the Platform modification date. """
+        """Check that Kanjis files have the Platform modification date."""
         remote = self.remote_1
         local = self.local_1
         engine = self.engine_1
@@ -387,7 +387,7 @@ class TestLocalCreations(OneUserTest):
         assert local_mtime < after_mtime + 0.5
 
     def test_local_creation_date_hiraganas_file(self):
-        """ Check that Hiraganas files have the Platform modification date. """
+        """Check that Hiraganas files have the Platform modification date."""
         remote = self.remote_1
         local = self.local_1
         engine = self.engine_1

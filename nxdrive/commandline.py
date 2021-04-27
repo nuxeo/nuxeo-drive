@@ -65,7 +65,7 @@ DEFAULT_LOCAL_FOLDER = get_default_local_folder()
 
 
 class CliHandler:
-    """ Set default arguments. """
+    """Set default arguments."""
 
     def get_version(self) -> str:
         return __version__
@@ -476,7 +476,7 @@ class CliHandler:
             parser.set_defaults(**args)
 
     def _configure_logger(self, command: str, options: Namespace, /) -> None:
-        """ Configure the logging framework from the provided options. """
+        """Configure the logging framework from the provided options."""
 
         # Ensure the log folder exists
         folder_log = os.path.join(options.nxdrive_home, "logs")
@@ -498,7 +498,7 @@ class CliHandler:
         AbstractOSIntegration.get(None).uninstall()
 
     def handle(self, argv: List[str], /) -> int:
-        """ Parse options, setup logs and manager and dispatch execution. """
+        """Parse options, setup logs and manager and dispatch execution."""
 
         # Pre-configure the logging to catch early errors
         configure(console_level="DEBUG", command_name="early")
@@ -644,17 +644,17 @@ class CliHandler:
         return self.launch(options, console=True)
 
     def ctx_access_online(self, options: Namespace, /) -> None:
-        """ Event fired by "Access online" menu entry. """
+        """Event fired by "Access online" menu entry."""
         file_path = normalized_path(options.file)
         self.manager.ctx_access_online(file_path)
 
     def ctx_copy_share_link(self, options: Namespace, /) -> None:
-        """ Event fired by "Copy share-link" menu entry. """
+        """Event fired by "Copy share-link" menu entry."""
         file_path = normalized_path(options.file)
         self.manager.ctx_copy_share_link(file_path)
 
     def ctx_edit_metadata(self, options: Namespace, /) -> None:
-        """ Event fired by "Edit metadata" menu entry. """
+        """Event fired by "Edit metadata" menu entry."""
         file_path = normalized_path(options.file)
         self.manager.ctx_edit_metadata(file_path)
 
@@ -714,7 +714,7 @@ class CliHandler:
 
     @staticmethod
     def _install_faulthandler() -> None:
-        """ Utility to help debug segfaults. """
+        """Utility to help debug segfaults."""
         segfault_filename = Options.nxdrive_home / "logs" / "segfault.log"
         log.info(f"Enabling faulthandler in {segfault_filename!r}")
 

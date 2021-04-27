@@ -339,19 +339,19 @@ class RemoteTest(RemoteBase):
         return super().execute(*args, **kwargs)
 
     def make_download_raise(self, error):
-        """ Make next calls to do_get() raise the provided exception. """
+        """Make next calls to do_get() raise the provided exception."""
         self._download_remote_error = error
 
     def make_upload_raise(self, error):
-        """ Make next calls to upload() raise the provided exception. """
+        """Make next calls to upload() raise the provided exception."""
         self._upload_remote_error = error
 
     def make_server_call_raise(self, error):
-        """ Make next calls to the server raise the provided exception. """
+        """Make next calls to the server raise the provided exception."""
         self._server_error = error
 
     def _raise(self, exc, *args, **kwargs):
-        """ Make the next calls raise `exc` if `raise_on()` allowed it. """
+        """Make the next calls raise `exc` if `raise_on()` allowed it."""
 
         if exc:
             if not callable(self.raise_on):
@@ -360,7 +360,7 @@ class RemoteTest(RemoteBase):
                 raise exc
 
     def reset_errors(self):
-        """ Remove custom errors. """
+        """Remove custom errors."""
 
         self._download_remote_error = None
         self._upload_remote_error = None

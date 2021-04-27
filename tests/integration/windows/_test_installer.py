@@ -47,7 +47,7 @@ class Installer:
 
 @pytest.fixture()
 def installer_path():
-    """ Generate a fresh installer. """
+    """Generate a fresh installer."""
     cmd = ["powershell", ".\\tools\\windows\\deploy_ci_agent.ps1", "-build"]
     log.info("Building the installer: %r", cmd)
     subprocess.Popen(cmd)

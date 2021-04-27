@@ -39,14 +39,14 @@ def test_flooding_prevention(sentry_init_custom):
     """
 
     def whoopsy():
-        """Problematic function ... """
+        """Problematic function ..."""
         try:
             raise ValueError("Mock'ed error")
         except Exception:
             capture_exception()
 
     def whoopsy2():
-        """Problematic function ... """
+        """Problematic function ..."""
         try:
             raise ValueError("Mock'ed error")
         except Exception:

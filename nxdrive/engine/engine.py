@@ -75,7 +75,7 @@ class FsMarkerException(Exception):
 
 
 class Engine(QObject):
-    """ Used for threads interaction. """
+    """Used for threads interaction."""
 
     started = pyqtSignal()
     _stop = pyqtSignal()
@@ -406,7 +406,7 @@ class Engine(QObject):
         self._scanPair.emit(path)
 
     def delete_doc(self, path: Path, /, *, mode: DelAction = None) -> None:
-        """ Delete doc after prompting the user for the mode. """
+        """Delete doc after prompting the user for the mode."""
 
         doc_pair = self.dao.get_state_from_local(path)
         if not doc_pair:
@@ -611,7 +611,7 @@ class Engine(QObject):
         self._threadpool.start(runner)
 
     def rollback_delete(self, path: Path, /) -> None:
-        """ Re-synchronize a document when a deletion is cancelled. """
+        """Re-synchronize a document when a deletion is cancelled."""
         doc_pair = self.dao.get_state_from_local(path)
         if not doc_pair:
             log.info(f"Unable to rollback delete on non-existent doc {path}")
@@ -1437,7 +1437,7 @@ class Engine(QObject):
             self.dao.dispose()
 
     def get_user_full_name(self, userid: str, /, *, cache_only: bool = False) -> str:
-        """ Get the last contributor full name. """
+        """Get the last contributor full name."""
 
         try:
             return self._user_cache[userid]
@@ -1464,7 +1464,7 @@ class Engine(QObject):
 
 @dataclass
 class ServerBindingSettings:
-    """ Summarize server binding settings. """
+    """Summarize server binding settings."""
 
     server_url: str
     web_authentication: bool

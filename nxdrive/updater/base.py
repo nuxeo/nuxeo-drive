@@ -37,7 +37,7 @@ log = getLogger(__name__)
 
 
 class BaseUpdater(PollWorker):
-    """ Updater class for frozen application. """
+    """Updater class for frozen application."""
 
     # Used to trigger the application exit on successful update
     appUpdated = pyqtSignal()
@@ -173,7 +173,7 @@ class BaseUpdater(PollWorker):
     #
 
     def _download(self, version: str, /) -> str:
-        """ Download a given version to a temporary file. """
+        """Download a given version to a temporary file."""
 
         name = self.release_file.format(version=version)
         url = "/".join([self.update_site, self.versions[version]["type"], name])
@@ -207,7 +207,7 @@ class BaseUpdater(PollWorker):
         return path
 
     def _fetch_versions(self) -> None:
-        """ Fetch available versions. It sets `self.versions` on success. """
+        """Fetch available versions. It sets `self.versions` on success."""
 
         url = f"{self.update_site}/versions.yml"
         headers = {"User-Agent": user_agent()}
@@ -230,7 +230,7 @@ class BaseUpdater(PollWorker):
             self.versions = versions
 
     def _get_update_status(self) -> None:
-        """ Retrieve available versions and find a possible candidate. """
+        """Retrieve available versions and find a possible candidate."""
 
         try:
             # Fetch all available versions
@@ -309,7 +309,7 @@ class BaseUpdater(PollWorker):
         self.serverIncompatible.emit()
 
     def _handle_status(self) -> None:
-        """ Handle update check status. """
+        """Handle update check status."""
 
         if self.status == UPDATE_STATUS_UNAVAILABLE_SITE:
             log.warning(
@@ -376,7 +376,7 @@ class BaseUpdater(PollWorker):
         self.install(filename)
 
     def _check_validity(self, version: str, filename: str, /) -> None:
-        """ Check the downloaded file integrity. Use SHA256 by default. """
+        """Check the downloaded file integrity. Use SHA256 by default."""
 
         info = self.versions.get(version, {})
         checksums = info.get("checksum", {})

@@ -329,7 +329,7 @@ class MetaOptions(type):
             MetaOptions.set(item, value, setter="manual")
 
     def __repr__(_) -> str:
-        """ Display all options. """
+        """Display all options."""
         options = [
             f"{name}[{setter}]={value!r}"
             for name, (value, setter) in MetaOptions.options.items()
@@ -337,7 +337,7 @@ class MetaOptions(type):
         return f"Options({', '.join(options)})"
 
     def __str__(_) -> str:
-        """ Display non default options. """
+        """Display non default options."""
         options = [
             f"{name}[{setter}]={value!r}"
             for name, (value, setter) in MetaOptions.options.items()
@@ -540,7 +540,7 @@ class MetaOptions(type):
 
 class Options(metaclass=MetaOptions):
     def __init__(self) -> None:
-        """ Prevent class instances. """
+        """Prevent class instances."""
         raise RuntimeError("Instantiation is not allowed.")
 
 

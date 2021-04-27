@@ -80,7 +80,7 @@ class TestSharedFolders(TwoUsersTest):
         self._test_local_changes_while_not_running(True)
 
     def _test_local_changes_while_not_running(self, unbind):
-        """ NXDRIVE-646: not uploading renamed file from shared folder. """
+        """NXDRIVE-646: not uploading renamed file from shared folder."""
         local_1 = self.local_root_client_1
         remote_1 = self.remote_document_client_1
         remote_2 = self.remote_document_client_2
@@ -187,7 +187,7 @@ class TestSharedFolders(TwoUsersTest):
             assert not remote_2.exists("/Folder01/SubFolder01/Image01.png")
 
     def test_conflict_resolution_with_renaming(self):
-        """ NXDRIVE-645: shared Folders conflict resolution with renaming. """
+        """NXDRIVE-645: shared Folders conflict resolution with renaming."""
 
         local = self.local_1
         remote = self.remote_document_client_2

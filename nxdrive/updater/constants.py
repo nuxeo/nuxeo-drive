@@ -10,7 +10,7 @@ UPDATE_STATUS_WRONG_CHANNEL = "wrong_channel"
 
 
 class AutoUpdateState(Flag):
-    """ Used to figure out if the application can be updated. """
+    """Used to figure out if the application can be updated."""
 
     DISABLED = 0
     ENABLED = auto()
@@ -18,7 +18,7 @@ class AutoUpdateState(Flag):
 
 
 class Login(Flag):
-    """ Used to figure out which login endpoint is used for a given server. """
+    """Used to figure out which login endpoint is used for a given server."""
 
     NONE = 0
     OLD = auto()

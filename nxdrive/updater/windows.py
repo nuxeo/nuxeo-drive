@@ -10,7 +10,7 @@ log = getLogger(__name__)
 
 
 class Updater(BaseUpdater):
-    """ Windows updater. """
+    """Windows updater."""
 
     ext = "exe-admin" if Options.system_wide else "exe"
     release_file = (

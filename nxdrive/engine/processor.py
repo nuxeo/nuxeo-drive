@@ -137,7 +137,7 @@ class Processor(EngineWorker):
 
     @staticmethod
     def check_pair_state(doc_pair: DocPair, /) -> bool:
-        """ Eliminate unprocessable states. """
+        """Eliminate unprocessable states."""
         return all(
             (
                 doc_pair.pair_state not in ("synchronized", "unsynchronized"),
@@ -759,7 +759,7 @@ class Processor(EngineWorker):
         exception: Exception = None,
         interval: int = None,
     ) -> None:
-        """ Wait *interval* sec for it. """
+        """Wait *interval* sec for it."""
 
         log.debug(f"Postpone action on document({reason}): {doc_pair!r}")
         doc_pair.error_count = 1
@@ -769,7 +769,7 @@ class Processor(EngineWorker):
         self.engine.send_metric("sync", "error", reason)
 
     def _synchronize_locally_resolved(self, doc_pair: DocPair, /) -> None:
-        """ NXDRIVE-766: processes a locally resolved conflict. """
+        """NXDRIVE-766: processes a locally resolved conflict."""
         self._synchronize_locally_created(doc_pair, overwrite=True)
 
     def _synchronize_locally_created(

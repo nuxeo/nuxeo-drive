@@ -65,7 +65,7 @@ class LocalClient(LocalClientMixin):
         return (self.abspath(ref) / "desktop.ini").is_file()
 
     def is_ignored(self, parent_ref: Path, file_name: str, /) -> bool:
-        """ Note: added parent_ref to be able to filter on size if needed. """
+        """Note: added parent_ref to be able to filter on size if needed."""
 
         file_name = safe_filename(force_decode(file_name.lower()))
 

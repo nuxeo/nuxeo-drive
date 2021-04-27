@@ -26,7 +26,7 @@ def test_acquire_processors(engine_dao):
 
 
 def test_batch_folder_files(engine_dao):
-    """ Verify that the batch is ok. """
+    """Verify that the batch is ok."""
     with engine_dao("engine_migration.db") as dao:
         ids = range(25, 47)
         index = 0
@@ -50,7 +50,7 @@ def test_batch_folder_files(engine_dao):
 
 
 def test_batch_upload_files(engine_dao):
-    """ Verify that the batch is ok. """
+    """Verify that the batch is ok."""
     with engine_dao("engine_migration.db") as dao:
         ids = [58, 62, 61, 60, 63]
         index = 0
@@ -198,7 +198,7 @@ def test_conflicts(engine_dao):
 
 
 def test_corrupted_database(engine_dao):
-    """ DatabaseError: database disk image is malformed. """
+    """DatabaseError: database disk image is malformed."""
     with engine_dao("corrupted_database.db") as dao:
         c = dao._get_read_connection().cursor()
         cols = c.execute("SELECT * FROM States").fetchall()
@@ -240,7 +240,7 @@ def test_errors(engine_dao):
 
 
 def test_filters(engine_dao):
-    """ Contains by default /fakeFilter/Test_Parent and /fakeFilter/Retest. """
+    """Contains by default /fakeFilter/Test_Parent and /fakeFilter/Retest."""
     with engine_dao("engine_migration.db") as dao:
         assert len(dao.get_filters()) == 2
 
@@ -270,7 +270,7 @@ def test_init_db(engine_dao):
 
 
 def test_last_sync(engine_dao):
-    """ Based only on file so not showing 2. """
+    """Based only on file so not showing 2."""
     with engine_dao("engine_migration.db") as dao:
         ids = [58, 8, 62, 61, 60]
         files = dao.get_last_files(5)
@@ -337,7 +337,7 @@ def test_migration_db_v1(engine_dao):
 
 
 def test_migration_db_v1_with_duplicates(engine_dao):
-    """ Test a non empty DB. """
+    """Test a non empty DB."""
     with engine_dao("engine_migration_duplicate.db") as dao:
         c = dao._get_read_connection().cursor()
         rows = c.execute("SELECT * FROM States").fetchall()

@@ -114,7 +114,7 @@ class Updater(BaseUpdater):
             )
 
     def _backup(self, *, restore: bool = False) -> None:
-        """ Backup or restore the current application. """
+        """Backup or restore the current application."""
 
         src = self.final_app
         dst = src.with_suffix(f"{src.suffix}.old")
@@ -133,7 +133,7 @@ class Updater(BaseUpdater):
         shutil.move(src, dst)
 
     def _cleanup(self, filename: str, /) -> None:
-        """ Remove some files. """
+        """Remove some files."""
 
         paths = (f"{self.final_app}.old", filename)
         for path in paths:
@@ -142,7 +142,7 @@ class Updater(BaseUpdater):
                 log.info(f"Deleted {path!r}")
 
     def _copy(self, mount_dir: str, /) -> None:
-        """ Copy the new application content to /Applications. """
+        """Copy the new application content to /Applications."""
 
         src = f"{mount_dir}/{APP_NAME}.app"
         log.info(f"Copying {src!r} -> {self.final_app!r}")

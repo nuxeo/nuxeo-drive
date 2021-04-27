@@ -165,7 +165,7 @@ class Blob:
 
     @staticmethod
     def from_dict(blob: Dict[str, Any], /) -> "Blob":
-        """ Convert Dict to Blob object. """
+        """Convert Dict to Blob object."""
         name = blob["name"]
         digest, digest_algorithm = _guess_digest_and_algo(blob)
         size = int(blob.get("length", 0))

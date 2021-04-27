@@ -117,7 +117,7 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, int, result=list)
     def get_last_files(self, uid: str, number: int, /) -> List[Dict[str, Any]]:
-        """ Return the last files transferred (see EngineDAO). """
+        """Return the last files transferred (see EngineDAO)."""
         engine = self._manager.engines.get(uid)
         if not engine:
             return []
@@ -125,7 +125,7 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, result=int)
     def get_last_files_count(self, uid: str, /) -> int:
-        """ Return the count of the last files transferred (see EngineDAO). """
+        """Return the count of the last files transferred (see EngineDAO)."""
         count = 0
         engine = self._manager.engines.get(uid)
         if engine:
@@ -167,17 +167,17 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(result=str)
     def get_update_status(self) -> str:
-        """ Return the status of the update. """
+        """Return the status of the update."""
         return self._manager.updater.status
 
     @pyqtSlot(result=str)
     def get_update_version(self) -> str:
-        """ Return the version of the update, if one is available. """
+        """Return the version of the update, if one is available."""
         return self._manager.updater.version
 
     @pyqtSlot(str)
     def app_update(self, version: str, /) -> None:
-        """ Start the update to the specified version. """
+        """Start the update to the specified version."""
         self._manager.updater.update(version)
 
     def get_transfers(self, dao: EngineDAO, /) -> List[Dict[str, Any]]:
@@ -553,7 +553,7 @@ class QMLDriveApi(QObject):
         return [result["free"], result["used_without_sync"], result["synced"]]
 
     def _balance_percents(self, result: Dict[str, float], /) -> Dict[str, float]:
-        """ Return an altered version of the dict in which no value is under a minimum threshold."""
+        """Return an altered version of the dict in which no value is under a minimum threshold."""
 
         result = {k: v for k, v in sorted(result.items(), key=lambda item: item[1])}
         keys = list(result)

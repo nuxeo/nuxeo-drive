@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 
 
 class DatabaseBackupWorker(PollWorker):
-    """ Class for making backups of the manager and engine databases. """
+    """Class for making backups of the manager and engine databases."""
 
     def __init__(self, manager: "Manager", /):
         """Backup every hour."""
@@ -25,7 +25,7 @@ class DatabaseBackupWorker(PollWorker):
 
     @pyqtSlot(result=bool)
     def _poll(self) -> bool:
-        """ Perform the backups. """
+        """Perform the backups."""
 
         if not self.manager:
             return False
@@ -41,7 +41,7 @@ class DatabaseBackupWorker(PollWorker):
 
 
 class ServerOptionsUpdater(PollWorker):
-    """ Class for checking the server's config.json updates. """
+    """Class for checking the server's config.json updates."""
 
     # A signal to let other component know that the first run has been done
     firstRunCompleted = pyqtSignal()
@@ -67,7 +67,7 @@ class ServerOptionsUpdater(PollWorker):
 
     @pyqtSlot(result=bool)
     def _poll(self) -> bool:
-        """ Check for the configuration file and apply updates. """
+        """Check for the configuration file and apply updates."""
 
         for engine in self.manager.engines.copy().values():
             if not engine.remote:

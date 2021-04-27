@@ -619,7 +619,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         self.wait_sync(wait_for_async=True)
 
         def callback(uploader):
-            """ Add delay when upload and download. """
+            """Add delay when upload and download."""
             if self.engine_1.file_id and not self.engine_1.has_rename:
                 # Rename remote file while downloading
                 remote.move(self.engine_1.file_id, new_folder_id)
@@ -675,7 +675,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         remote = self.remote_document_client_1
 
         def callback(uploader):
-            """ Add delay when upload and download. """
+            """Add delay when upload and download."""
             if not self.engine_1.has_rename:
                 # Rename remote file while downloading
                 self.remote_1.rename(self.folder_id, "Test folder renamed")
@@ -710,7 +710,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         local = self.local_1
 
         def callback(uploader):
-            """ Add delay when upload and download. """
+            """Add delay when upload and download."""
             if not local.exists("/Test folder renamed"):
                 time.sleep(1)
             Engine.suspend_client(self.engine_1, uploader)

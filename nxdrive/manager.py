@@ -903,7 +903,7 @@ class Manager(QObject):
         return ref
 
     def ctx_access_online(self, path: Path, /) -> None:
-        """ Open the user's browser to a remote document. """
+        """Open the user's browser to a remote document."""
 
         log.info(f"Opening metadata window for {path!r}")
         try:
@@ -917,7 +917,7 @@ class Manager(QObject):
             self.open_local_file(url)
 
     def ctx_copy_share_link(self, path: Path, /) -> str:
-        """ Copy the document's share-link to the clipboard. """
+        """Copy the document's share-link to the clipboard."""
 
         url = self.get_metadata_infos(path)
         self.osi.cb_set(url)
@@ -925,7 +925,7 @@ class Manager(QObject):
         return url
 
     def ctx_edit_metadata(self, path: Path, /) -> None:
-        """ Open the user's browser to a remote document's metadata. """
+        """Open the user's browser to a remote document's metadata."""
 
         log.info(f"Opening metadata window for {path!r}")
         try:

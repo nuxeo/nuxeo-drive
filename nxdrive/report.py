@@ -115,7 +115,7 @@ class Report:
                     yield line.encode(errors="replace")
 
     def generate(self) -> None:
-        """ Create the ZIP report with all interesting files. """
+        """Create the ZIP report with all interesting files."""
 
         log.info(f"Create report {self._zipfile!r}")
 

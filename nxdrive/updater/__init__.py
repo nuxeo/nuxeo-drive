@@ -13,11 +13,11 @@ log = getLogger(__name__)
 
 
 class UpdateError(Exception):
-    """ Error handling class. """
+    """Error handling class."""
 
 
 class UpdateIntegrityError(UpdateError):
-    """ Installer integrity error handling class. """
+    """Installer integrity error handling class."""
 
     def __init__(
         self, name: str, algo: str, remote_checksum: str, local_checksum: str

@@ -82,7 +82,7 @@ class TestReadOnly(OneUserTest):
             remote.update(file, properties={"note:note": "Remotely changed"})
 
     def test_file_delete(self):
-        """ Local deletions are filtered. """
+        """Local deletions are filtered."""
 
         remote = self.remote_document_client_1
         local = self.local_1
@@ -264,7 +264,7 @@ class TestReadOnly(OneUserTest):
             assert not remote.get_children_info("/")
 
     def test_folder_delete(self):
-        """ Local deletions are filtered. """
+        """Local deletions are filtered."""
 
         remote = self.remote_document_client_1
         local = self.local_1
@@ -492,7 +492,7 @@ class TestReadOnly(OneUserTest):
 
 class TestReadOnly2(TwoUsersTest):
     def test_document_locked(self):
-        """ Check locked documents: they are read-only. """
+        """Check locked documents: they are read-only."""
 
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)

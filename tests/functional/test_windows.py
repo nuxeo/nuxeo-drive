@@ -7,7 +7,7 @@ except ImportError:
 
 
 def test_registry_configuration(request, manager_factory):
-    """ Test the configuration stored in the registry. """
+    """Test the configuration stored in the registry."""
 
     with manager_factory(with_engine=False) as manager:
         osi = manager.osi

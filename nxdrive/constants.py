@@ -92,7 +92,7 @@ CONNECTION_ERROR = (ChunkedEncodingError, ConnectionError, Timeout)
 
 
 class DelAction(Enum):
-    """ Used to figure out which login endpoint is used for a given server. """
+    """Used to figure out which login endpoint is used for a given server."""
 
     DEL_SERVER = "delete_server"
     UNSYNC = "unsync"
@@ -100,7 +100,7 @@ class DelAction(Enum):
 
 
 class DigestStatus(Enum):
-    """ Used to figure out the document's digest state. """
+    """Used to figure out the document's digest state."""
 
     # Digest and digest algorithm are fine
     OK = 0
@@ -122,7 +122,7 @@ class DigestStatus(Enum):
 
 
 class TransferStatus(Enum):
-    """ Used to represent an upload/download status. """
+    """Used to represent an upload/download status."""
 
     ONGOING = 1
     PAUSED = 2

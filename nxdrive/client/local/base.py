@@ -36,7 +36,7 @@ log = getLogger(__name__)
 
 
 class FileInfo:
-    """ Data Transfer Object for file info on the Local FS. """
+    """Data Transfer Object for file info on the Local FS."""
 
     def __init__(
         self,
@@ -94,7 +94,7 @@ class FileInfo:
         )
 
     def get_digest(self, *, digest_func: str = None) -> str:
-        """ Lazy computation of the digest. """
+        """Lazy computation of the digest."""
         digest_func = str(digest_func or self._digest_func)
         return compute_digest(self.filepath, digest_func, callback=self.digest_callback)
 
@@ -322,7 +322,7 @@ class LocalClientMixin:
         return digest == remote_digest
 
     def is_ignored(self, parent_ref: Path, file_name: str, /) -> bool:
-        """ Note: added parent_ref to be able to filter on size if needed. """
+        """Note: added parent_ref to be able to filter on size if needed."""
 
         file_name = safe_filename(force_decode(file_name.lower()))
 
@@ -427,7 +427,7 @@ class LocalClientMixin:
         error = None
 
         def onerror(func: Any, path: Path, exc_info: Any) -> None:
-            """ Assign the error only once. """
+            """Assign the error only once."""
             nonlocal error
             if not error:
                 error = exc_info[1]
@@ -471,7 +471,7 @@ class LocalClientMixin:
         pass
 
     def rename(self, ref: Path, to_name: str, /) -> FileInfo:
-        """ Rename a local file or folder. """
+        """Rename a local file or folder."""
         new_name = safe_filename(to_name)
         source_os_path = self.abspath(ref)
         parent = ref.parent
@@ -505,7 +505,7 @@ class LocalClientMixin:
             self.lock_ref(source_os_path, locker & 2, is_abs=True)
 
     def move(self, ref: Path, new_parent_ref: Path, /, *, name: str = None) -> FileInfo:
-        """ Move a local file or folder into another folder. """
+        """Move a local file or folder into another folder."""
 
         if ref == ROOT:
             raise ValueError("Cannot move the toplevel folder.")
@@ -562,7 +562,7 @@ class LocalClientMixin:
             os.utime(filepath, (d_mtime, d_mtime))
 
     def get_path(self, target: Path, /) -> Path:
-        """ Relative path to the local client from an absolute OS path. """
+        """Relative path to the local client from an absolute OS path."""
         # NXDRIVE-2485: using os.path.realpath() instead of Path.resolve() and Path.absolute().
         try:
             return Path(os.path.realpath(target)).relative_to(self.base_folder)
@@ -572,13 +572,13 @@ class LocalClientMixin:
             return ROOT
 
     def abspath(self, ref: Path, /) -> Path:
-        """ Absolute path on the operating system. """
+        """Absolute path on the operating system."""
         return safe_long_path(self.base_folder / ref)
 
     def _abspath_deduped(
         self, parent: Path, orig_name: str, /, *, old_name: str = None
     ) -> Tuple[Path, str]:
-        """ Absolute path on the operating system with deduplicated names. """
+        """Absolute path on the operating system with deduplicated names."""
 
         # Make name safe by removing invalid chars
         name = safe_filename(orig_name)

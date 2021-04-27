@@ -54,7 +54,7 @@ def before_send(event: Any, hint: Any) -> Any:
 
 
 def setup_sentry() -> None:
-    """ Setup Sentry. """
+    """Setup Sentry."""
 
     if os.getenv("SKIP_SENTRY", "0") == "1":
         return
@@ -101,7 +101,7 @@ def ensure_no_exception():
     """
 
     def error(type_, value, traceback) -> None:
-        """ Install an exception hook to catch any error. """
+        """Install an exception hook to catch any error."""
         # Mock'ed errors should not entrave the check
         if "mock" in str(value).lower():
             return

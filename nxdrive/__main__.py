@@ -28,7 +28,7 @@ def signal_handler(signum: int, _: FrameType, /) -> None:
 
 
 def main() -> int:
-    """ Entry point. """
+    """Entry point."""
 
     # Catch CTRL+C
     signal.signal(signal.SIGINT, signal_handler)

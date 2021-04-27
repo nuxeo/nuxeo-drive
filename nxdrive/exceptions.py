@@ -5,19 +5,19 @@ if TYPE_CHECKING:
 
 
 class DriveError(Exception):
-    """ Mother exception. """
+    """Mother exception."""
 
     pass
 
 
 class AddonNotInstalledError(DriveError):
-    """ The nuxeo-drive addon is not installed on the server. """
+    """The nuxeo-drive addon is not installed on the server."""
 
     pass
 
 
 class DocumentAlreadyLocked(DriveError):
-    """ In Direct Edit, a document is locked by someone else. """
+    """In Direct Edit, a document is locked by someone else."""
 
     def __init__(self, username: str, /) -> None:
         self.username = username
@@ -39,7 +39,7 @@ class DuplicationDisabledError(ValueError):
 
 
 class EngineInitError(DriveError):
-    """ Impossible to initialize a Engine. """
+    """Impossible to initialize a Engine."""
 
     def __init__(self, engine: "Engine", /) -> None:
         self.engine = engine
@@ -70,13 +70,13 @@ class FolderAlreadyUsed(DriveError):
 
 
 class InvalidDriveException(DriveError):
-    """ The bound folder cannot be used on this file system. """
+    """The bound folder cannot be used on this file system."""
 
     pass
 
 
 class InvalidSSLCertificate(DriveError):
-    """ The SSL certificate is not official. """
+    """The SSL certificate is not official."""
 
     def __repr__(self) -> str:
         return "Invalid SSL certificate. Use 'ca-bundle' (or 'ssl-no-verify') option to tune SSL behavior."
@@ -86,7 +86,7 @@ class InvalidSSLCertificate(DriveError):
 
 
 class MissingClientSSLCertificate(DriveError):
-    """ The server needs a client SSL certificate. """
+    """The server needs a client SSL certificate."""
 
     def __repr__(self) -> str:
         return "No client-side SSL certificate. Use 'cert-file' and 'cert-key-file'."
@@ -96,7 +96,7 @@ class MissingClientSSLCertificate(DriveError):
 
 
 class EncryptedSSLCertificateKey(DriveError):
-    """ The client SSl certificate is encrypted. """
+    """The client SSl certificate is encrypted."""
 
     def __repr__(self) -> str:
         return "Client-side SSL certificate key is encrypted. Please use an unencrypted key with 'cert-key-file'."
@@ -115,7 +115,7 @@ class NotFound(OSError):
 
 
 class ParentNotSynced(ValueError):
-    """ Fired when the parent folder of a document is not yet synchronized. """
+    """Fired when the parent folder of a document is not yet synchronized."""
 
     def __init__(self, local_path: str, local_parent_path: str, /) -> None:
         self.local_path = local_path
@@ -132,13 +132,13 @@ class ParentNotSynced(ValueError):
 
 
 class PairInterrupt(DriveError):
-    """ There was an error while processing a document pair. """
+    """There was an error while processing a document pair."""
 
     pass
 
 
 class RootAlreadyBindWithDifferentAccount(DriveError):
-    """ The bound folder is already used by another account. """
+    """The bound folder is already used by another account."""
 
     def __init__(self, username: str, url: str, /) -> None:
         self.username = username
@@ -146,7 +146,7 @@ class RootAlreadyBindWithDifferentAccount(DriveError):
 
 
 class ScrollDescendantsError(DriveError):
-    """ Raised when NuxeoDrive.ScrollDescendants returns something we cannot work with. """
+    """Raised when NuxeoDrive.ScrollDescendants returns something we cannot work with."""
 
     def __init__(self, response: Any, /) -> None:
         self.response = response
@@ -159,45 +159,45 @@ class ScrollDescendantsError(DriveError):
 
 
 class StartupPageConnectionError(DriveError):
-    """ The web login page is not available. """
+    """The web login page is not available."""
 
     pass
 
 
 class TransferCancelled(DriveError):
-    """ A transfer has been cancelled, the file's processing should stop. """
+    """A transfer has been cancelled, the file's processing should stop."""
 
     def __init__(self, transfer_id: int, /) -> None:
         self.transfer_id = transfer_id
 
 
 class TransferPaused(DriveError):
-    """ A transfer has been paused, the file's processing should stop. """
+    """A transfer has been paused, the file's processing should stop."""
 
     def __init__(self, transfer_id: int, /) -> None:
         self.transfer_id = transfer_id
 
 
 class DownloadPaused(TransferPaused):
-    """ A download has been paused, the file's processing should stop. """
+    """A download has been paused, the file's processing should stop."""
 
     pass
 
 
 class UploadPaused(TransferPaused):
-    """ An upload has been paused, the file's processing should stop. """
+    """An upload has been paused, the file's processing should stop."""
 
     pass
 
 
 class UploadCancelled(TransferCancelled):
-    """ An upload has been cancelled, the file's processing should stop. """
+    """An upload has been cancelled, the file's processing should stop."""
 
     pass
 
 
 class UnknownDigest(ValueError):
-    """ The digest doesn't fit any known algorithms. """
+    """The digest doesn't fit any known algorithms."""
 
     def __init__(self, digest: str, /) -> None:
         self.digest = digest
@@ -210,7 +210,7 @@ class UnknownDigest(ValueError):
 
 
 class UnknownPairState(ValueError):
-    """ The local and remote state don't fit any pair state. """
+    """The local and remote state don't fit any pair state."""
 
     def __init__(self, local_state: str, remote_state: str, /) -> None:
         self.local_state = local_state
@@ -224,6 +224,6 @@ class UnknownPairState(ValueError):
 
 
 class ThreadInterrupt(DriveError):
-    """ The worker has been ordered to stop and quit."""
+    """The worker has been ordered to stop and quit."""
 
     pass

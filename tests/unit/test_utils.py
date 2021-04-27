@@ -41,7 +41,7 @@ class MockedPath(Path):
     _flavour = _windows_flavour if WINDOWS else _posix_flavour
 
     def resolve(self, *_, **__):
-        """ Raise a PermissionError. """
+        """Raise a PermissionError."""
         raise PermissionError("Boom!")
 
 

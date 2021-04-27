@@ -14,7 +14,7 @@ log = getLogger(__name__)
 
 
 class Updater(BaseUpdater):
-    """ GNU/Linux updater. """
+    """GNU/Linux updater."""
 
     ext = "appimage"
     release_file = "nuxeo-drive-{version}-x86_64.AppImage"

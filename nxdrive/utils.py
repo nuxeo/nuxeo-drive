@@ -281,7 +281,7 @@ def get_tree_list(path: Path, /) -> Generator[Tuple[Path, int], None, None]:
 
 @lru_cache(maxsize=32)
 def get_value(value: str, /) -> Union[bool, float, str, Tuple[str, ...]]:
-    """ Get parsed value for commandline/registry input. """
+    """Get parsed value for commandline/registry input."""
 
     if value.lower() in ("true", "1", "on", "yes", "oui"):
         return True
@@ -521,7 +521,7 @@ def safe_rename(src: Path, dst: Path, /) -> None:
 
 @lru_cache(maxsize=16)
 def find_resource(folder: str, /, *, file: str = "") -> Path:
-    """ Find the FS path of a directory in various OS binary packages. """
+    """Find the FS path of a directory in various OS binary packages."""
     return normalized_path(Options.res_dir) / folder / file
 
 
@@ -605,7 +605,7 @@ def get_certificate_details(
 def encrypt(
     plaintext: Union[bytes, str], secret: Union[bytes, str], /, *, lazy: bool = True
 ) -> bytes:
-    """ Symmetric encryption using AES. """
+    """Symmetric encryption using AES."""
 
     import base64
 
@@ -624,7 +624,7 @@ def encrypt(
 def decrypt(
     ciphertext: Union[bytes, str], secret: Union[bytes, str], /, *, lazy: bool = True
 ) -> Optional[bytes]:
-    """ Symmetric decryption using AES. """
+    """Symmetric decryption using AES."""
 
     import base64
 
@@ -662,7 +662,7 @@ def _lazysecret(
 
 @lru_cache(maxsize=4)
 def simplify_url(url: str, /) -> str:
-    """ Simplify port if possible and trim trailing slashes. """
+    """Simplify port if possible and trim trailing slashes."""
 
     parts = urlsplit(url)
     new_parts = [parts.scheme, parts.netloc, parts.path, parts.query, parts.fragment]
@@ -870,7 +870,7 @@ def short_name(name: Union[bytes, str], /) -> str:
 
 
 class PidLockFile:
-    """ This class handle the pid lock file"""
+    """This class handle the pid lock file"""
 
     def __init__(self, folder: Path, key: str, /) -> None:
         self.key = key
@@ -1108,7 +1108,7 @@ def today_is_special() -> bool:
 
 
 def get_current_locale() -> str:
-    """ Detect and return the OS default language. """
+    """Detect and return the OS default language."""
 
     # Guess the encoding
     if MAC:

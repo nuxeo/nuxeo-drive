@@ -104,7 +104,7 @@ def get_compatible_versions(
 
 
 def get_latest_version(versions: Versions, channel: str, /) -> str:
-    """ Get the most recent version of a given channel. """
+    """Get the most recent version of a given channel."""
     versions_list = [
         version
         for version, info in versions.items()

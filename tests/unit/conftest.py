@@ -11,7 +11,7 @@ from nxdrive.utils import normalized_path
 
 
 class MockEngineDAO(EngineDAO):
-    """ Convenient class with auto-cleanup at exit. """
+    """Convenient class with auto-cleanup at exit."""
 
     tmp = None
 

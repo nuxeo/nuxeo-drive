@@ -38,7 +38,7 @@ class Runner(QRunnable):
 
 
 class Worker(QObject):
-    """" Utility class that handle one thread. """
+    """ " Utility class that handle one thread."""
 
     def __init__(self, name: str, /) -> None:
         super().__init__()
@@ -101,7 +101,7 @@ class Worker(QObject):
             self.thread.terminate()
 
     def resume(self) -> None:
-        """ Resume the thread. """
+        """Resume the thread."""
 
         self._pause = False
 
@@ -114,7 +114,7 @@ class Worker(QObject):
         self._pause = True
 
     def quit(self) -> None:
-        """ Order the stop of the thread. Return before thread is stopped. """
+        """Order the stop of the thread. Return before thread is stopped."""
 
         self._continue = False
         self.thread.quit()
@@ -239,7 +239,7 @@ class EngineWorker(Worker):
         self.engine.queue_manager.push_error(doc_pair, exception=exception)
 
     def remove_void_transfers(self, doc_pair: DocPair, /) -> None:
-        """ Remove uploads and downloads on the target doc pair. """
+        """Remove uploads and downloads on the target doc pair."""
         if doc_pair.folderish:
             # Folderish documents don't use transfers
             return

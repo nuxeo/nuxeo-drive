@@ -30,7 +30,7 @@ class TestSynchronizationSuspend(OneUserTest):
         assert self.engine_1.queue_manager.is_paused()
 
     def test_synchronization_local_watcher_paused_when_offline(self):
-        """ NXDRIVE-680: fix unwanted local upload when offline. """
+        """NXDRIVE-680: fix unwanted local upload when offline."""
 
         local = self.local_1
         remote = self.remote_document_client_1
@@ -72,7 +72,7 @@ class TestSynchronizationSuspend(OneUserTest):
         assert not engine.queue_manager.is_paused()
 
     def test_synchronization_end_with_children_ignore_parent(self):
-        """ NXDRIVE-655: children of ignored folder are not ignored. """
+        """NXDRIVE-655: children of ignored folder are not ignored."""
 
         local = self.local_1
         remote = self.remote_document_client_1

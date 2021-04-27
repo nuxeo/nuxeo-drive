@@ -26,7 +26,7 @@ def test_ignored_option():
 
 @Options.mock()
 def test_batch_update_from_argparse():
-    """ Simulate CLI args. """
+    """Simulate CLI args."""
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--debug", default=True, action="store_true")
     parser.add_argument("--delay", default=0, type=int)
@@ -39,7 +39,7 @@ def test_batch_update_from_argparse():
 
 @Options.mock()
 def test_batch_update_from_dict():
-    """ Simulate local and server conf files. """
+    """Simulate local and server conf files."""
     options = {"debug": True, "locale": "fr"}
 
     Options.update(options, setter="local")
@@ -212,7 +212,7 @@ def test_repr():
 
 @Options.mock()
 def test_setters():
-    """ Check setters level. """
+    """Check setters level."""
 
     Options.set("delay", 1)
     assert Options.delay == 1
