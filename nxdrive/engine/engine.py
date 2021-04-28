@@ -913,9 +913,9 @@ class Engine(QObject):
         return res
 
     def _save_token(self, token: Token) -> None:
-        """Store the token into the database.
-        Prevent saving a Nuxeo token in a JSON formatted form to no break downgrades.
-        """
+        """Store the token into the database."""
+        if not token:
+            return
         stored_token = json.dumps(token) if isinstance(token, dict) else token
         key = f"{self.remote_user}{self.server_url}"
         secure_token = encrypt(stored_token, key)
