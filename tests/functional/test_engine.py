@@ -166,3 +166,29 @@ def test_temporary_csv_cleanup(tmp, user_factory, nuxeo_url):
             start_engine=False,
         )
         assert not session_csv.output_tmp.is_file()
+
+
+def test_token_management(manager_factory):
+    manager, engine = manager_factory()
+    with manager:
+        # The default token is a Nuxeo one (string)
+        assert isinstance(engine._load_token(), str)
+
+        # Ensure it works with empty tokens, preventing:
+        #     TypeError: object of type 'NoneType' has no len()
+        engine._save_token(None)
+
+        # Save an OAuth2 token
+        token = {
+            "access_token": "...",
+            "refresh_token": "...",
+            "token_type": "bearer",
+            "expires_in": 3599,
+            "expires_at": 1618242664,
+        }
+        engine._save_token(token)
+        assert engine._load_token() == token
+
+        # Alter the stored token and check the loading will not fail
+        engine.dao.update_config("remote_token", "blablabla")
+        assert not engine._load_token()
