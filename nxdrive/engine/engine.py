@@ -45,8 +45,11 @@ from ..state import State
 from ..utils import (
     client_certificate,
     current_thread_id,
+    decrypt,
+    encrypt,
     find_icon,
     find_suitable_tmp_dir,
+    force_decode,
     grouper,
     if_frozen,
     safe_filename,
@@ -889,13 +892,24 @@ class Engine(QObject):
 
     def _load_token(self) -> Token:
         """Retrieve the token from the database."""
-        token = self.dao.get_config("remote_token")
+        stored_token = self.dao.get_config("remote_token")
+        key = f"{self.remote_user}{self.server_url}"
+        try:
+            clear_token = force_decode(decrypt(stored_token, key))
+        except UnicodeDecodeError:
+            clear_token = stored_token
         try:
             # OAuth2 token
-            res: Token = json.loads(token)
+            res: Token = json.loads(clear_token)
         except (TypeError, json.JSONDecodeError):
             # Nuxeo token
-            res = token
+            res = clear_token
+
+        # Ensure the token is saved chiphered
+        if stored_token == clear_token:
+            log.info("Removing clear token from the database")
+            self._save_token(clear_token)
+
         return res
 
     def _save_token(self, token: Token) -> None:
@@ -903,7 +917,9 @@ class Engine(QObject):
         Prevent saving a Nuxeo token in a JSON formatted form to no break downgrades.
         """
         stored_token = json.dumps(token) if isinstance(token, dict) else token
-        self.dao.update_config("remote_token", stored_token)
+        key = f"{self.remote_user}{self.server_url}"
+        secure_token = encrypt(stored_token, key)
+        self.dao.update_config("remote_token", secure_token)
 
     def _load_configuration(self) -> None:
         self._web_authentication = self.dao.get_bool("web_authentication")
