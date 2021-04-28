@@ -142,11 +142,17 @@ class TwoUsersTest(TestCase):
         self._caplog = caplog
 
     def setup_method(
-        self, test_method, register_roots=True, user_2=True, server_profile=None
+        self,
+        test_method,
+        register_roots=True,
+        user_2=True,
+        server_profile=None,
+        sync_enabled=True,
     ):
         """Setup method that will be invoked for every test method of a class."""
 
         log.info("TEST master setup start")
+        Options.feature_synchronization = sync_enabled
 
         # To be replaced with fixtures when migrating to 100% pytest
         self.nuxeo_url = nuxeo_url()  # fixture name: nuxeo_url
@@ -743,7 +749,6 @@ class OneUserTest(TwoUsersTest):
 
     def setup_method(self, *args, **kwargs):
         kwargs["user_2"] = False
-        Options.feature_synchronization = True
         super().setup_method(*args, **kwargs)
 
     def wait_sync(
@@ -839,5 +844,5 @@ class OneUserNoSync(OneUserTest):
     """Tests requiring only one user with synchronization features disabled."""
 
     def setup_method(self, *args, **kwargs):
-        Options.feature_synchronization = False
+        kwargs["sync_enabled"] = False
         super().setup_method(*args, **kwargs)
