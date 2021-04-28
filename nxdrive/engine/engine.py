@@ -173,7 +173,14 @@ class Engine(QObject):
         self._remote_password: str = ""
 
         if binder:
-            self.bind(binder)
+            try:
+                self.bind(binder)
+            except Exception:
+                # Unlock the database for its removal from the Manager
+                # (especially blocker on Windows which forbids the deletion)
+                self.dispose_db()
+                raise
+
         self._load_configuration()
 
         self.download_dir = self._set_download_dir()
@@ -838,6 +845,7 @@ class Engine(QObject):
         self.manager.osi.unwatch_folder(self.local_folder)
         self.manager.osi.unregister_folder_link(self.local_folder)
         self.dispose_db()
+        self.manager.remove_engine_dbs(self.uid)
 
         try:
             shutil.rmtree(self.download_dir)
@@ -846,17 +854,6 @@ class Engine(QObject):
             pass
         except OSError:
             log.warning("Download folder removal error", exc_info=True)
-
-        main_db = self._get_db_file()
-        for file in (
-            main_db,
-            main_db.with_suffix(".db-shm"),
-            main_db.with_suffix(".db-wal"),
-        ):
-            try:
-                file.unlink(missing_ok=True)
-            except OSError:
-                log.warning("Database removal error", exc_info=True)
 
         if self.remote:
             self.remote.revoke_token()
@@ -941,7 +938,7 @@ class Engine(QObject):
             )
 
     def _get_db_file(self) -> Path:
-        return self.manager.home / f"ndrive_{self.uid}.db"
+        return self.manager.get_engine_db(self.uid)
 
     def get_binder(self) -> "ServerBindingSettings":
         return ServerBindingSettings(
