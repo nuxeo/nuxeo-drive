@@ -806,10 +806,9 @@ class Manager(QObject):
             # that happened only while testing the application a lot.
             raise FolderAlreadyUsed()
 
+        cls: Type[Engine] = self._engine_types[engine_type]
         try:
-            self.engines[uid] = self._engine_types[engine_type](
-                self, engine_def, binder=binder
-            )
+            self.engines[uid] = cls(self, engine_def, binder=binder)
         except Exception as exc:
             skipped_errors = (
                 AddonNotInstalledError,
@@ -818,9 +817,10 @@ class Manager(QObject):
             )
             if not isinstance(exc, skipped_errors):
                 log.exception("Engine error")
+
             self.engines.pop(uid, None)
             self.dao.delete_engine(uid)
-            # TODO Remove the DB?
+            self.remove_engine_dbs(uid)
             raise exc
 
         self._engine_definitions.append(engine_def)
@@ -876,6 +876,25 @@ class Manager(QObject):
         # Backup the database
         if self.db_backup_worker:
             self.db_backup_worker.force_poll()
+
+    def get_engine_db(self, uid: str) -> Path:
+        """Return the full path to the Engine database file.
+        Note: It is defined here to be able to delete databases on failed account addition.
+        """
+        return self.home / f"ndrive_{uid}.db"
+
+    def remove_engine_dbs(self, uid: str) -> None:
+        """Remove all databases files related to the Engine *uid*."""
+        main_db = self.get_engine_db(uid)
+        for file in (
+            main_db,
+            main_db.with_suffix(".db-shm"),
+            main_db.with_suffix(".db-wal"),
+        ):
+            try:
+                file.unlink(missing_ok=True)
+            except OSError:
+                log.warning("Database removal error", exc_info=True)
 
     def dispose_db(self) -> None:
         if self.dao:
