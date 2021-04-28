@@ -1159,6 +1159,10 @@ class Application(QApplication):
             partial(self.refresh_completed_sessions_items, engine.dao)
         )
 
+        engine.started.connect(
+            partial(self.add_engines, list(self.manager.engines.values()))
+        )
+
         # Refresh completed Sessions items on each database update
         engine.dao.sessionUpdated.connect(
             partial(self.refresh_completed_sessions_items, engine.dao)
