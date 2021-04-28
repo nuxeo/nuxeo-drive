@@ -625,12 +625,12 @@ def decrypt(secure_data: Union[bytes, str], key: Union[bytes, str]) -> Optional[
     """Dechiper AES *secure_data* with the given *key*."""
     import base64
 
-    key = _pad_secret(force_encode(key))
-    data = base64.b64decode(force_encode(secure_data))
-    iv = data[:16]
-    ciphertext = data[16:]
-    decryptor = _cryptor(key, iv).decryptor()  # type: ignore
     try:
+        key = _pad_secret(force_encode(key))
+        data = base64.b64decode(force_encode(secure_data))
+        iv = data[:16]
+        ciphertext = data[16:]
+        decryptor = _cryptor(key, iv).decryptor()  # type: ignore
         res: bytes = decryptor.update(ciphertext) + decryptor.finalize()
         return res
     except Exception:
