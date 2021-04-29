@@ -443,6 +443,10 @@ class MetaOptions(type):
         if new_value == old_value and setter not in ("local", "manual"):
             return
 
+        # Cast path-like options to Path
+        if isinstance(old_value, Path):
+            new_value = Path(new_value)
+
         # We allow to set something when the default is None
         if not isinstance(new_value, type_orig) and not isinstance(
             old_value, type(None)
