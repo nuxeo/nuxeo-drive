@@ -21,6 +21,7 @@ env = {env}
 [PROD]
 log-level_console = DEBUG
 debug = False
+nxdrive_home = {str(Options.nxdrive_home / "drive_home")}
 
 [DEV]
 log_level-console = ERROR
@@ -139,6 +140,7 @@ def test_default_override(cmd, config):
     options = cmd.parse_cli([])
     assert options.log_level_console == "DEBUG"
     assert not options.debug
+    assert options.nxdrive_home == str(Options.nxdrive_home / "drive_home")
 
     # config.ini override, but arg specified
     options = cmd.parse_cli(argv)
