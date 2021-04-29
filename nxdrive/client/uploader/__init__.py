@@ -140,7 +140,7 @@ class BaseUploader:
             if Options.use_idempotent_requests and command in _IDEMPOTENT_CMDS:
                 transfer.request_uid = str(uuid4())
 
-            log.debug(f"Instantiated transfer {transfer}")
+            log.info(f"Instantiated transfer {transfer}")
             if transfer.is_direct_transfer:
                 self.dao.save_dt_upload(transfer)
             else:

@@ -316,7 +316,9 @@ class Processor(EngineWorker):
             doc_pair = self._get_next_doc_pair(item)
             if not doc_pair:
                 log.debug(f"Did not acquire state, dropping {item!r}")
+                self._current_doc_pair = None
                 continue
+            self._current_doc_pair = doc_pair
 
             handler_name = f"_synchronize_{doc_pair.pair_state}"
             sync_handler = getattr(self, handler_name, None)
@@ -332,7 +334,6 @@ class Processor(EngineWorker):
                     self.increase_error(doc_pair, "ILLEGAL_STATE")
                     continue
 
-                self._current_doc_pair = doc_pair
                 self._current_metrics = {
                     "handler": doc_pair.pair_state,
                     "start_ns": monotonic_ns(),

@@ -2751,10 +2751,10 @@ class EngineDAO(ConfigurationDAO):
         value: Any
         if uid:
             key, value = "uid", uid
-        elif path:
-            key, value = "path", path
         elif doc_pair:
             key, value = "doc_pair", doc_pair
+        elif path:
+            key, value = "path", path
         else:
             return None
 
