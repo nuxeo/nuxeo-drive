@@ -159,7 +159,12 @@ class FileAction(Action):
 
     def finish(self) -> None:
         super().finish()
-        self.done.emit(self)
+        try:
+            self.done.emit(self)
+        except RuntimeError:
+            # RuntimeError: wrapped C/C++ object of type LinkingAction has been deleted
+            # Happens on Windows when running old functional tests
+            pass
 
     def export(self) -> Dict[str, Any]:
         return {
