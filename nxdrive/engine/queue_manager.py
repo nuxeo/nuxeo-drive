@@ -274,7 +274,12 @@ class QueueManager(QObject):
         if emit_sig:
             with self._error_lock:
                 self._on_error_queue[doc_pair.id] = doc_pair
-                self.newError.emit(doc_pair.id)
+                try:
+                    self.newError.emit(doc_pair.id)
+                except RuntimeError:
+                    # RuntimeError: wrapped C/C++ object of type QueueManager has been deleted
+                    # Happens on Windows when running old functional tests
+                    pass
 
     def _get_local_folder(self) -> Optional[DocPair]:
         if self._local_folder_queue.empty():
