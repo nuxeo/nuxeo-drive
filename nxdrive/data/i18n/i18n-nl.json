@@ -75,6 +75,7 @@
     "DIRECT_EDIT_CORRUPTED_DOWNLOAD_FAILURE": "Direct Edit is mislukt vanwege beschadigde inhoud, neem contact op met uw beheerder.",
     "DIRECT_EDIT_CORRUPTED_DOWNLOAD_RETRY": "Dossiercorruptie ontdekt, opnieuw proberen...",
     "DIRECT_EDIT_AUTH_EXPIRED": "Ongeldige aanmeldgegevens voor de gebruiker <b>%1</b> op de server <a href=\"%2\">%2</a>.<br><br>Ga naar Instellingen en voer geldige gegevens in.",
+    "DIRECT_EDIT_DOC_NOT_FOUND": "You are trying to perform a Direct Edit on existing remote document \"%1\", but its attached binary was not found on the server.",
     "DIRECT_EDIT_FORBIDDEN_MSG": "Toegang tot document \"%1\" op %2 is verboden voor gebruiker %3.",
     "DIRECT_EDIT_FORBIDDEN_TITLE": "Verboden Direct Edit",
     "DIRECT_EDIT_LOCKED_FILE": "Kan \"%1\" niet bewerken omdat het door %2 op %3 is vergrendeld",

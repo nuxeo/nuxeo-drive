@@ -75,6 +75,7 @@
     "DIRECT_EDIT_CORRUPTED_DOWNLOAD_FAILURE": "Edizio zuzenak huts egin du edukia edukia kaltetua dagoelako, jarri harremanetan administratzailearekin",
     "DIRECT_EDIT_CORRUPTED_DOWNLOAD_RETRY": "Kaltetutako fitxategia antzeman da, berriz saiatzen…",
     "DIRECT_EDIT_AUTH_EXPIRED": "<b>%1</b> erabiltzailearen <a href=\"%2\">%2</a> zerbitzariko autentifikazioa iraungi da.<br><br>Ireki sistemaren erretiluko menua edo ezarpenak eta hasi saioa berriro.",
+    "DIRECT_EDIT_DOC_NOT_FOUND": "You are trying to perform a Direct Edit on existing remote document \"%1\", but its attached binary was not found on the server.",
     "DIRECT_EDIT_FORBIDDEN_MSG": "%2(e)ko \"%1\" dokumentura sarbidea debekatua du %3 erabiltzaileak.",
     "DIRECT_EDIT_FORBIDDEN_TITLE": "Edizio zuzena debekatua",
     "DIRECT_EDIT_LOCKED_FILE": "Ezin izan da \"%1\" editatu, %2(e)k blokeatu baitzuen %3(e)an",

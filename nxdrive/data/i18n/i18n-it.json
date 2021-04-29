@@ -75,6 +75,7 @@
     "DIRECT_EDIT_CORRUPTED_DOWNLOAD_FAILURE": "Direct Edit non riuscita a causa di contenuti danneggiati, si prega di contattare l'amministratore",
     "DIRECT_EDIT_CORRUPTED_DOWNLOAD_RETRY": "File corrotto rilevato, riprovo…",
     "DIRECT_EDIT_AUTH_EXPIRED": "Credenziali non valide per l’utente <b>%1</b> sul server <a href=\"%2\">%2</a>.<br><br>Passare a Impostazioni e immettere informazioni valide.",
+    "DIRECT_EDIT_DOC_NOT_FOUND": "You are trying to perform a Direct Edit on existing remote document \"%1\", but its attached binary was not found on the server.",
     "DIRECT_EDIT_FORBIDDEN_MSG": "L'accesso al documento \"%1\" su %2 è vietato per l'utente %3.",
     "DIRECT_EDIT_FORBIDDEN_TITLE": "Direct Edit Proibito",
     "DIRECT_EDIT_LOCKED_FILE": "Impossibile modificare \"%1\" perché è stato bloccato da %2 il %3",

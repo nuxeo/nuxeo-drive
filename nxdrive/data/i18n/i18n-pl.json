@@ -75,6 +75,7 @@
     "DIRECT_EDIT_CORRUPTED_DOWNLOAD_FAILURE": "Bezpośrednia edycja nie powiodła się z powodu uszkodzonej zawartości, skontaktuj się z administratorem",
     "DIRECT_EDIT_CORRUPTED_DOWNLOAD_RETRY": "Wykryto uszkodzenie pliku, ponawiam próbę…",
     "DIRECT_EDIT_AUTH_EXPIRED": "Uwierzytelnienie wygasło dla użytkownika <b>%1</b> na serwerze <a href=\"%2\">%2</a>.<br><br>Otwórz menu zasobnika systemu lub ustawienia, aby zalogować się ponownie.",
+    "DIRECT_EDIT_DOC_NOT_FOUND": "You are trying to perform a Direct Edit on existing remote document \"%1\", but its attached binary was not found on the server.",
     "DIRECT_EDIT_FORBIDDEN_MSG": "Dostęp do dokumentu \"%1\" na %2 jest zabroniony dla użytkownika %3.",
     "DIRECT_EDIT_FORBIDDEN_TITLE": "Zabroniona bezpośrednia edycja",
     "DIRECT_EDIT_LOCKED_FILE": "Nie można edytować \"%1\", ponieważ został zablokowany przez %2 na %3",

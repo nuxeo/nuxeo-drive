@@ -75,6 +75,7 @@
     "DIRECT_EDIT_CORRUPTED_DOWNLOAD_FAILURE": "Direct Edit misslyckades på grund av skadat innehåll, kontakta administratören",
     "DIRECT_EDIT_CORRUPTED_DOWNLOAD_RETRY": "Filkorruption upptäckt, försöker…",
     "DIRECT_EDIT_AUTH_EXPIRED": "Ogiltiga inloggningsuppgifter för användaren <b>%1</b> på servern <a href=\"%2\">%2</a>.<br><br>Gå till Inställningar och ange giltiga uppgifter.",
+    "DIRECT_EDIT_DOC_NOT_FOUND": "You are trying to perform a Direct Edit on existing remote document \"%1\", but its attached binary was not found on the server.",
     "DIRECT_EDIT_FORBIDDEN_MSG": "Åtkomst till dokumentet  \"%1\" på %2 är förbjudet för användare %3.",
     "DIRECT_EDIT_FORBIDDEN_TITLE": "Förbjuden Direct Edit",
     "DIRECT_EDIT_LOCKED_FILE": "Kan inte redigera \"%1\" eftersom det har låsts av %2 den %3",

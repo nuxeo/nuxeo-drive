@@ -75,6 +75,7 @@
     "DIRECT_EDIT_CORRUPTED_DOWNLOAD_FAILURE": "Direct Edit failed because of corrupted content, please contact your administrator",
     "DIRECT_EDIT_CORRUPTED_DOWNLOAD_RETRY": "File corruption detected, retrying…",
     "DIRECT_EDIT_AUTH_EXPIRED": "Kredensial tidak sah untuk pengguna <b>%1</b> di server <a href=\"%2\">%2</a>.<br><br>Silakan masuk ke Pengaturan dan masukkan informasi yang benar.",
+    "DIRECT_EDIT_DOC_NOT_FOUND": "You are trying to perform a Direct Edit on existing remote document \"%1\", but its attached binary was not found on the server.",
     "DIRECT_EDIT_FORBIDDEN_MSG": "Access to the document \"%1\" on %2 is forbidden for user %3.",
     "DIRECT_EDIT_FORBIDDEN_TITLE": "Forbidden Direct Edit",
     "DIRECT_EDIT_LOCKED_FILE": "Cannot edit \"%1\" as it was locked by %2 on %3",
