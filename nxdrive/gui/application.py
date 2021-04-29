@@ -201,7 +201,12 @@ class Application(QApplication):
 
         # Direct Edit
         self.manager.direct_edit.directEditConflict.connect(self._direct_edit_conflict)
-        self.manager.direct_edit.directEditError.connect(self._direct_edit_error)
+        self.manager.direct_edit.directEditError[str, list].connect(
+            self._direct_edit_error
+        )
+        self.manager.direct_edit.directEditError[str, list, str].connect(
+            self._direct_edit_error
+        )
 
         # Check if actions is required, separate method so it can be overridden
         self.init_checks()
@@ -555,6 +560,7 @@ class Application(QApplication):
         title: str = APP_NAME,
         header: str = "",
         message: str = "",
+        details: str = "",
         execute: bool = True,
     ) -> QMessageBox:
         """Display a message box."""
@@ -567,6 +573,8 @@ class Application(QApplication):
             msg.setText(header)
         if message:
             msg.setInformativeText(message)
+        if details:
+            msg.setDetailedText(details)
         if execute:
             msg.exec_()
         return msg
@@ -584,13 +592,18 @@ class Application(QApplication):
         values: List[str],
         /,
         *,
+        details: str = "",
         execute: bool = True,
     ) -> QMessageBox:
         """Display a warning message box."""
         msg_text = self.translate(message, values=values)
-        log.warning(f"{msg_text} (values={values})")
+        log.warning(f"{msg_text} ({values=}, {details=})")
         return self._msgbox(
-            icon=qt.Warning, title=title, message=msg_text, execute=execute
+            icon=qt.Warning,
+            title=title,
+            message=msg_text,
+            details=details,
+            execute=execute,
         )
 
     def question(
@@ -631,9 +644,14 @@ class Application(QApplication):
             )
 
     @pyqtSlot(str, list)
-    def _direct_edit_error(self, message: str, values: List[str], /) -> None:
+    @pyqtSlot(str, list, str)
+    def _direct_edit_error(
+        self, message: str, values: List[str], details: str = ""
+    ) -> None:
         """Display a simple Direct Edit error message."""
-        self.display_warning(f"Direct Edit - {APP_NAME}", message, values)
+        self.display_warning(
+            f"Direct Edit - {APP_NAME}", message, values, details=details
+        )
 
     @pyqtSlot()
     def _root_deleted(self) -> None:

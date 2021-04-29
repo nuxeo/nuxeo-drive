@@ -6,7 +6,9 @@ from uuid import uuid4
 
 import pytest
 from faker import Faker
+from nuxeo.client import Nuxeo
 from nuxeo.documents import Document
+from nuxeo.models import Blob, FileBlob
 from nuxeo.users import User
 
 from nxdrive.manager import Manager
@@ -105,7 +107,7 @@ def user_factory(request, server, faker):
 
 
 @pytest.fixture()
-def obj_factory(request, server):
+def obj_factory(request, server, tmp_path):
     """File/Folder/Workspace creation factory with automatic clean-up."""
 
     def _make(
@@ -113,12 +115,28 @@ def obj_factory(request, server):
         nature: str = "Folder",
         parent: str = env.WS_DIR,
         enable_sync: bool = False,
+        user: str = "",
+        content: bytes = b"",
     ):
         title = title or str(uuid4())
         new = Document(name=title, type=nature, properties={"dc:title": title})
-        obj = server.documents.create(new, parent_path=env.WS_DIR)
+        obj = server.documents.create(new, parent_path=parent)
         request.addfinalizer(obj.delete)
         log.info(f"[FIXTURE] Created {obj}")
+
+        if content:
+            file = tmp_path / f"{uuid4()}.odt"
+            file.write_bytes(content)
+            attach_blob(server, obj, file)
+
+        if user:
+            server.operations.execute(
+                command="Document.SetACE",
+                input_obj=obj.path,
+                user=user,
+                permission="ReadWrite",
+                grant=True,
+            )
 
         if enable_sync:
             operation = server.operations.new("NuxeoDrive.SetSynchronization")
@@ -129,3 +147,17 @@ def obj_factory(request, server):
         return obj
 
     yield _make
+
+
+def attach_blob(nuxeo: Nuxeo, doc: Document, file: Path) -> Blob:
+    # Upload the file
+    batch = nuxeo.uploads.batch()
+    blob = FileBlob(str(file))
+    uploaded = batch.upload(blob, chunked=True)
+
+    # Attach it to the file
+    return nuxeo.operations.execute(
+        command="Blob.AttachOnDocument",
+        params={"document": doc.path},
+        input_obj=uploaded,
+    )

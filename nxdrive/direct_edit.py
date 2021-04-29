@@ -72,7 +72,7 @@ class DirectEdit(Worker):
     editDocument = pyqtSignal(str, int)
     directEditLockError = pyqtSignal(str, str, str)
     directEditConflict = pyqtSignal(str, Path, str)
-    directEditError = pyqtSignal(str, list)
+    directEditError = pyqtSignal([str, list], [str, list, str])
     directEditForbidden = pyqtSignal(str, str, str)
     directEditReadonly = pyqtSignal(str)
     directEditStarting = pyqtSignal(str, str)
@@ -538,6 +538,13 @@ class DirectEdit(Worker):
         except CONNECTION_ERROR:
             log.warning("Unable to perform Direct Edit", exc_info=True)
             return None
+        except HTTPError as exc:
+            if exc.status == 404:
+                self.directEditError[str, list, str].emit(
+                    "DIRECT_EDIT_DOC_NOT_FOUND", [info.name], str(exc.message)
+                )
+                return None
+            raise exc
 
         # Set the remote_id
         dir_path = self.local.get_path(dir_path)
