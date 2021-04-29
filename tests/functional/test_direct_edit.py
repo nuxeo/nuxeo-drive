@@ -5,7 +5,7 @@ from typing import List
 from unittest.mock import Mock, patch
 
 import pytest
-from nuxeo.exceptions import CorruptedFile
+from nuxeo.exceptions import CorruptedFile, HTTPError
 
 from nxdrive.constants import ROOT
 from nxdrive.engine.engine import Engine, ServerBindingSettings
@@ -297,6 +297,39 @@ def test_document_not_found(manager_factory):
         direct_edit.directEditError.connect(error_signal)
 
         direct_edit._prepare_edit(engine.server_url, doc_uid)
+        assert received
+
+
+def test_download_http_error_404(manager_factory, obj_factory):
+    """Trying to Direct Edit'ing an existent document with a lost blob should display a warning."""
+
+    manager, engine = manager_factory()
+    Translator(find_resource("i18n"), lang="en")
+
+    def error_signal(label: str, values: List, details: str) -> None:
+        nonlocal received
+        assert label == "DIRECT_EDIT_DOC_NOT_FOUND"
+        assert values == [doc.title]
+        assert details == "Mock'ed exception"
+        received = True
+
+    def download(self, *args, **kwargs):
+        raise HTTPError(status=404, message="Mock'ed exception")
+
+    with manager:
+        direct_edit = manager.direct_edit
+        direct_edit._folder.mkdir()
+        direct_edit.directEditError[str, list, str].connect(error_signal)
+        doc = obj_factory(
+            title="test 404.odt",
+            nature="File",
+            user=engine.remote.user_id,
+            content=b"data",
+        )
+
+        received = False
+        with patch.object(direct_edit, "_download", new=download):
+            direct_edit._prepare_edit(engine.server_url, doc.uid)
         assert received
 
 
