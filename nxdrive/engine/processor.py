@@ -392,7 +392,7 @@ class Processor(EngineWorker):
                     with suppress(FileNotFoundError):
                         shutil.rmtree(tmp_folder)
                     self._postpone_pair(doc_pair, "Requested Range Not Satisfiable")
-                elif exc.status == 500:
+                elif exc.status in (408, 500):
                     self.increase_error(doc_pair, "SERVER_ERROR", exception=exc)
                 elif exc.status in (502, 503, 504):
                     log.warning("Server is unavailable", exc_info=True)
