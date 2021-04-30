@@ -23,14 +23,12 @@ Rectangle {
             GridLayout {
                 columns: 2
                 columnSpacing: 50
-                rowSpacing: 20
+                rowSpacing: 10
                 anchors.fill: parent
-                anchors.leftMargin: 14
-                anchors.bottomMargin: 10
-                anchors.topMargin: 8
+                anchors.margins: 14
 
                 // Server URL and Username
-                ScaledText { text: remote_user; color: interactiveLink }
+                ScaledText { text: remote_user; color: label; font.bold: true }
                 Link {
                     text: server_url
                     onClicked: api.open_remote_server(uid)
@@ -94,7 +92,7 @@ Rectangle {
                 ColumnLayout {
                     ScaledText {
                         text: qsTr("SELECTIVE_SYNC_DESCR") + tl.tr
-                        Layout.maximumWidth: 400
+                        Layout.fillWidth: true
                         wrapMode: Text.WordWrap
                         color: secondaryText
                     }

@@ -18,22 +18,11 @@ Rectangle {
             topMargin: 30
         }
         ScaledText { text: qsTr("DELETION_BEHAVIOR") + ': ' + tl.tr; color: label }
-        GridLayout {
-            columns: 2
-            ScaledText {
-                id: deletionPopupLink
-                text: qsTr(api.get_deletion_behavior().toUpperCase()) + tl.tr
-                color: interactiveLink
-            }
-            IconLabel {
-                z: 20
-                icon: MdiFont.Icon.pencil
-                iconColor: secondaryIcon
-                onClicked: deletionPopup.open()
-                tooltip: qsTr("EDIT") + tl.tr
-            }
+        Link {
+            id: deletionPopupLink
+            text: qsTr(api.get_deletion_behavior().toUpperCase()) + tl.tr
+            onClicked: deletionPopup.open()
         }
-
     }
 
     // The EngineModel list
