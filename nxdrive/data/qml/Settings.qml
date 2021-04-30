@@ -25,6 +25,7 @@ Item {
 
         anchors.top: parent.top
 
+        // Note: Keep synced with Application.show_settings()
         SettingsTab {
             text: qsTr("SECTION_GENERAL") + tl.tr
             barIndex: bar.currentIndex; index: 0

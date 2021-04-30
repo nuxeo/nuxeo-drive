@@ -865,7 +865,14 @@ class Application(QApplication):
 
     @pyqtSlot(str)
     def show_settings(self, section: str, /) -> None:
-        sections = {"General": 0, "Features": 1, "Accounts": 2, "About": 3}
+        # Note: Keep synced with the Settings.qml file
+        sections = {
+            "General": 0,
+            "Features": 1,
+            "Sync": 2,
+            "Accounts": 3,
+            "About": 4,
+        }
         self._window_root(self.settings_window).setSection.emit(sections[section])
         self._center_on_screen(self.settings_window)
 
