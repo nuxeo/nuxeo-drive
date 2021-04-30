@@ -1166,6 +1166,7 @@ class Application(QApplication):
             partial(self.refresh_completed_sessions_items, engine.dao)
         )
 
+        # Set the list of Engines items at startup
         engine.started.connect(
             partial(self.add_engines, list(self.manager.engines.values()))
         )

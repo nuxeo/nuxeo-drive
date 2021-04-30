@@ -1,7 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-import "icon-font/Icon.js" as MdiFont
 
 Rectangle {
     id: control
@@ -17,7 +16,7 @@ Rectangle {
             leftMargin: 30
             topMargin: 30
         }
-        ScaledText { text: qsTr("DELETION_BEHAVIOR") + ': ' + tl.tr; color: label }
+        ScaledText { text: qsTr("DELETION_BEHAVIOR_LABEL") + tl.tr; color: label }
         Link {
             id: deletionPopupLink
             text: qsTr(api.get_deletion_behavior().toUpperCase()) + tl.tr
