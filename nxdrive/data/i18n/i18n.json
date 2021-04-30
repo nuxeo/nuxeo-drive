@@ -62,7 +62,7 @@
     "DELETE_READONLY_DOCUMENT": "Mark \"%1\" filtered as it is in read-only mode",
     "DELETE_SERVER": "Delete from server",
     "DELETION_BEHAVIOR": "Deletion behavior",
-    "DELETION_BEHAVIOR_LABEL": "Deletion behavior: ",
+    "DELETION_BEHAVIOR_LABEL": "Deletion behavior:",
     "DELETION_BEHAVIOR_CHANGE_SETTINGS_DESCR": "Define what is happening on the server when you delete documents locally (If you choose to delete on the server, you can find the document in the server trash).",
     "DELETION_BEHAVIOR_CONFIRM_DELETE": "Do you really want to delete <b>%1</b> for all users?",
     "DELETION_BEHAVIOR_CONFIRM_UNSYNC": "Do you really want to remove <b>%1</b>?<br>It will be unsynchronized from your device, but other members will still have access.<br>You can change the deletion behavior in the settings. To synchronize it again, you need to check it in the filters window by clicking on <b>%2</b> in the settings.",
