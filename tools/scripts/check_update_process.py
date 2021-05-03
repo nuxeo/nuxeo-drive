@@ -50,7 +50,7 @@ Server = http.server.SimpleHTTPRequestHandler
 
 
 def create_versions(dst, version):
-    """ Create the versions.yml file. """
+    """Create the versions.yml file."""
 
     ext = "-x86_64.AppImage" if EXT == "appimage" else f".{EXT}"
     name = f"nuxeo-drive-{version}{ext}"
@@ -85,7 +85,7 @@ def create_versions(dst, version):
 
 
 def download_last_ga_release(output_dir, version):
-    """ Download the latest GA release from the update website. """
+    """Download the latest GA release from the update website."""
 
     file = f"nuxeo-drive-{version}"
     file += "-x86_64.AppImage" if EXT == "appimage" else f".{EXT}"
@@ -104,7 +104,7 @@ def download_last_ga_release(output_dir, version):
 
 
 def gen_exe():
-    """ Generate an executable to install. """
+    """Generate an executable to install."""
 
     cmd = []
 
@@ -123,7 +123,7 @@ def gen_exe():
 
 
 def get_last_version_number():
-    """ Get the latest GA release version from the update website. """
+    """Get the latest GA release version from the update website."""
 
     from nxdrive.updater.utils import get_latest_version
 
@@ -138,7 +138,7 @@ def get_last_version_number():
 
 
 def get_version():
-    """ Get the current version from the auto-generated VERSION file. """
+    """Get the current version from the auto-generated VERSION file."""
 
     if EXT == "exe":
         file = expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
@@ -150,7 +150,7 @@ def get_version():
 
 
 def install_drive(installer):
-    """ Install Drive onto the system to simulate a real case. """
+    """Install Drive onto the system to simulate a real case."""
 
     if EXT == "appimage":
         # Nothing to install on GNU/Linux
@@ -180,7 +180,7 @@ def install_drive(installer):
 
 
 def launch_drive(executable, args=None):
-    """ Launch Drive and wait for auto-update. """
+    """Launch Drive and wait for auto-update."""
 
     # Be patient, especially on Windows ...
     time.sleep(5)
@@ -225,7 +225,7 @@ def cat_log():
 
 
 def set_options():
-    """ Set given options into the config file. """
+    """Set given options into the config file."""
 
     if EXT == "exe":
         home = expandvars("C:\\Users\\%username%\\.nuxeo-drive")
@@ -263,7 +263,7 @@ def set_options():
 
 
 def tests():
-    """ Simple tests before doing anything. """
+    """Simple tests before doing anything."""
 
     version_checker = distutils.version.StrictVersion
     assert version_decrement("1.0.0") == "0.9.9"
@@ -280,7 +280,7 @@ def tests():
 
 
 def uninstall_drive():
-    """ Remove Drive from the computer. """
+    """Remove Drive from the computer."""
 
     if EXT == "appimage":
         # Nothing to uninstall on GNU/Linux"
@@ -310,7 +310,7 @@ def uninstall_drive():
 
 
 def version_decrement(version):
-    """ Guess the lower version of the one given. """
+    """Guess the lower version of the one given."""
 
     major, minor, patch, *dev = map(int, version.split("."))
 
@@ -353,7 +353,7 @@ def version_find():
 
 
 def version_update(version, lineno):
-    """ Update Drive version. """
+    """Update Drive version."""
 
     path = os.path.join("nxdrive", "__init__.py")
 
@@ -367,7 +367,7 @@ def version_update(version, lineno):
 
 
 def webserver(folder, port=8000):
-    """ Start a local web server. """
+    """Start a local web server."""
 
     def stop(server):
         """Stop the server after 60 seconds."""
@@ -440,7 +440,7 @@ def check_against_last_release(root):
 
 
 def generate_installer(root, version, move=False):
-    """ Generate the installer for a given version and copy/move it to the web server root. """
+    """Generate the installer for a given version and copy/move it to the web server root."""
 
     # Generate the installer
     gen_exe()
@@ -526,7 +526,7 @@ def job(root, version, executable, previous_version, name):
 
 
 def setup():
-    """ Setup and cleanup. """
+    """Setup and cleanup."""
 
     # Cleanup
     if os.path.isdir("dist"):
@@ -544,7 +544,7 @@ def setup():
 
 
 def main():
-    """ Main logic. """
+    """Main logic."""
 
     root = setup()
 

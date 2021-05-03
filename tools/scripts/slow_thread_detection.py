@@ -60,7 +60,7 @@ def timer(fname, delay=None):
 
 
 def main():
-    """ Arguments traitment. """
+    """Arguments traitment."""
 
     try:
         fname = argv[1]

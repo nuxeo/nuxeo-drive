@@ -19,7 +19,7 @@ def set_environment():
 
 
 def run_tests_from_source():
-    """ Launch the tests suite. """
+    """Launch the tests suite."""
 
     osi = sys.platform
 

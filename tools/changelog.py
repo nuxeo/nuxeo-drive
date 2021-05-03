@@ -36,14 +36,14 @@ FORMAT_ISSUE = {
 
 
 def backtick(cmd):
-    """ Get command output as stripped string. """
+    """Get command output as stripped string."""
 
     output = subprocess.check_output(cmd)
     return output.decode("utf-8").strip()
 
 
 def changelog(issues, formatter="txt", func=None):
-    """ Generate the changelog. """
+    """Generate the changelog."""
 
     fmt = FORMAT_ISSUE[formatter]
 
@@ -63,13 +63,13 @@ def changelog(issues, formatter="txt", func=None):
 
 
 def debug(*args, **kwargs):
-    """ Print a line to STDERR to no pollute generated changelog. """
+    """Print a line to STDERR to no pollute generated changelog."""
 
     print(*args, file=sys.stderr, **kwargs)
 
 
 def examples():
-    """ Print several examples. """
+    """Print several examples."""
 
     print(
         """
@@ -121,7 +121,7 @@ Example {}: changelog.py -- --since=2017-03-16 --until=2017-03-28 --author="Mick
 
 
 def get_latest_tag():
-    """ Retrieve the latest release tag. """
+    """Retrieve the latest release tag."""
 
     debug(">>> Retrieving latest created tag")
     # Retrieve 32 IDs as there may be at least 21 alpha. Taking large.
@@ -136,7 +136,7 @@ def get_latest_tag():
 
 
 def get_issues(args):
-    """ Get issues from commits message. """
+    """Get issues from commits message."""
 
     if not args.GIT_OPTIONS:
         # No commit ID, so we just need to find commits after the latest tag
@@ -171,7 +171,7 @@ def get_issues(args):
 
 
 def get_issue_infos(issue, raw=False):
-    """ Retrieve issue information. """
+    """Retrieve issue information."""
 
     debug(">>> Fetching information of {}".format(issue))
     base_url = "https://jira.nuxeo.com"
@@ -229,7 +229,7 @@ def get_issue_infos(issue, raw=False):
 
 
 def get_version():
-    """ Find the current version. """
+    """Find the current version."""
 
     init_file = "nxdrive/__init__.py"
     with codecs.open(init_file, encoding="utf-8") as handler:
@@ -239,7 +239,7 @@ def get_version():
 
 
 def report_categorized(issues_list, fmt):
-    """ A report using primary components. """
+    """A report using primary components."""
 
     components = {
         "Core": [],
@@ -273,7 +273,7 @@ def report_categorized(issues_list, fmt):
 
 
 def main():
-    """ Main logic. """
+    """Main logic."""
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--version", action="version", version=__version__)

@@ -17,21 +17,21 @@ __all__ = ("create", "delete", "merge", "promote")
 
 
 def _load():
-    """ Get initial versions. """
+    """Get initial versions."""
 
     with open("versions.yml") as yml:
         return yaml.safe_load(yml.read()) or {}
 
 
 def _dump(versions):
-    """ Write back the updated versions details. """
+    """Write back the updated versions details."""
 
     with open("versions.yml", "w") as yml:
         yaml.safe_dump(versions or "", yml, indent=4, default_flow_style=False)
 
 
 def wrap(func):
-    """ Decorator to ease versions.yml management. """
+    """Decorator to ease versions.yml management."""
 
     def func_wrapper(*args, **kwargs):
         """
@@ -47,14 +47,14 @@ def wrap(func):
 
 @wrap
 def check(versions):
-    """ Check versions file integrity.. """
+    """Check versions file integrity.."""
 
     assert isinstance(versions, dict) and versions, versions
 
 
 def create(version, category):
     # type: (str, str) -> None
-    """ Create a version file with default values. """
+    """Create a version file with default values."""
 
     # Compute installers checksum
     checksum_appimage = checksum_dmg = checksum_exe = checksum_exe_admin = None
@@ -119,7 +119,7 @@ def create(version, category):
 
 @wrap
 def delete(versions, version):
-    """ Delete a given version. """
+    """Delete a given version."""
 
     versions.pop(version, None)
     try:
@@ -130,7 +130,7 @@ def delete(versions, version):
 
 @wrap
 def merge(versions):
-    """ Merge any single version file into versions.yml. """
+    """Merge any single version file into versions.yml."""
 
     for filename in glob.glob("*.yml"):
         if filename == "versions.yml":
@@ -144,13 +144,13 @@ def merge(versions):
 
 @wrap
 def promote(versions, version, category):
-    """ Promote a given version to the given category. """
+    """Promote a given version to the given category."""
 
     versions[version]["type"] = category
 
 
 def main():
-    """ Main logic. """
+    """Main logic."""
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--add", help="add a new version")
