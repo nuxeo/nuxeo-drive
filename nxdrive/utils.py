@@ -1007,15 +1007,19 @@ def config_paths() -> Tuple[Tuple[Path, ...], Path]:
     return paths, paths[1]
 
 
-def save_config(config_dump: Dict[str, Any], /) -> Path:
-    """Update the configuration file with passed config dump."""
-    #  Check if config file already exist, if not then use nxdrive home folder
+def get_config_path() -> Path:
+    """Return the configuration file path."""
     paths, default_path = config_paths()
     res = [conf_file for conf_file in paths if conf_file.is_file()]
-    conf_path = res[0] if res else default_path
+    return res[0] if res else default_path
 
+
+def save_config(config_dump: Dict[str, Any], /) -> Path:
+    """Update the configuration file with passed config dump."""
+    conf_path = get_config_path()
     config = ConfigParser()
 
+    #  Check if config file already exist, if not then use nxdrive home folder
     if not conf_path.is_file():
         # Craft a new config file
         config["DEFAULT"] = {"env": "features"}  # Set saved section as DEFAULT env

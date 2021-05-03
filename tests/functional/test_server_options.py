@@ -1,3 +1,4 @@
+from configparser import ConfigParser
 from time import sleep
 from unittest.mock import patch
 
@@ -7,6 +8,7 @@ from nxdrive.behavior import Behavior
 from nxdrive.feature import Feature
 from nxdrive.options import Options
 from nxdrive.poll_workers import ServerOptionsUpdater
+from nxdrive.utils import get_config_path
 
 
 def test_behavior(manager_factory):
@@ -88,6 +90,11 @@ def test_features(feature, feat_name, default, manager_factory, tmp_path):
     updater = ServerOptionsUpdater(manager)
     opt_name = f"feature_{feat_name}"
 
+    conf_path = get_config_path()
+    config = ConfigParser()
+
+    assert not conf_path.is_file()
+
     def enabled():
         return {"feature": {feature: default}}
 
@@ -103,6 +110,13 @@ def test_features(feature, feat_name, default, manager_factory, tmp_path):
         updater._poll()
         assert getattr(Feature, feat_name) is not default
         assert getattr(Options, opt_name) is not default
+
+        # All the features states should be saved to the config when one is changed
+        assert conf_path.is_file()
+        config.read(conf_path)
+        assert "features" in config._sections
+
+        assert len(config._sections["features"]) == len(Feature.__dict__)
 
     # Mimic the IT team restoring back the feature's state
     with patch.object(engine.remote, "get_server_configuration", new=enabled):
