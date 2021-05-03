@@ -522,7 +522,10 @@ class Manager(QObject):
     ) -> None:
         """Set the value of the feature in Options and save changes in config file."""
         Options.set(f"feature_{name}", value, setter=setter)
-        save_config({f"feature_{name}": value})
+        new_config = {
+            f"feature_{key}": value for key, value in Feature.__dict__.items()
+        }
+        save_config(new_config)
         self.featureUpdate.emit(name, value)
 
     @pyqtSlot(result=bool)  # from GeneralTab.qml
