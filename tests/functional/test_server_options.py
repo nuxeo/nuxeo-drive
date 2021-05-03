@@ -8,7 +8,7 @@ from nxdrive.behavior import Behavior
 from nxdrive.feature import Feature
 from nxdrive.options import Options
 from nxdrive.poll_workers import ServerOptionsUpdater
-from nxdrive.utils import config_paths
+from nxdrive.utils import get_config_path
 
 
 def test_behavior(manager_factory):
@@ -90,9 +90,7 @@ def test_features(feature, feat_name, default, manager_factory, tmp_path):
     updater = ServerOptionsUpdater(manager)
     opt_name = f"feature_{feat_name}"
 
-    paths, default_path = config_paths()
-    res = [conf_file for conf_file in paths if conf_file.is_file()]
-    conf_path = res[0] if res else default_path
+    conf_path = get_config_path()
     config = ConfigParser()
 
     assert not conf_path.is_file()
