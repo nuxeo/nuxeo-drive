@@ -18,7 +18,7 @@ ShadowRectangle {
         SystrayMenuItem {
             text: qsTr("SETTINGS") + tl.tr
             onClicked: {
-                api.show_settings("General")
+                api.show_settings("Advanced")
                 control.visible = false
             }
         }

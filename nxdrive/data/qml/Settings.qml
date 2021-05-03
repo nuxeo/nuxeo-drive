@@ -27,12 +27,12 @@ Item {
 
         // Note: Keep synced with Application.show_settings()
         SettingsTab {
-            text: qsTr("SECTION_GENERAL") + tl.tr
+            text: qsTr("SECTION_FEATURES") + tl.tr
             barIndex: bar.currentIndex; index: 0
             anchors.top: parent.top
         }
         SettingsTab {
-            text: qsTr("SECTION_FEATURES") + tl.tr
+            text: qsTr("SECTION_ACCOUNTS") + tl.tr
             barIndex: bar.currentIndex; index: 1
             anchors.top: parent.top
         }
@@ -43,7 +43,7 @@ Item {
             enabled: feat_synchronization.enabled && EngineModel.count > 0
         }
         SettingsTab {
-            text: qsTr("SECTION_ACCOUNTS") + tl.tr
+            text: qsTr("SECTION_ADVANCED") + tl.tr
             barIndex: bar.currentIndex; index: 3
             anchors.top: parent.top
         }
@@ -59,13 +59,13 @@ Item {
         width: parent.width; height: parent.height - bar.height - 2
         anchors.bottom: parent.bottom
 
-        GeneralTab {
-            id: generalTab
+        FeaturesTab {
+            id: featuresTab
             Layout.fillWidth: true
             Layout.fillHeight: true
         }
-        FeaturesTab {
-            id: featuresTab
+        AccountsTab {
+            id: accountsTab
             Layout.fillWidth: true
             Layout.fillHeight: true
         }
@@ -74,8 +74,8 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
         }
-        AccountsTab {
-            id: accountsTab
+        GeneralTab {
+            id: generalTab
             Layout.fillWidth: true
             Layout.fillHeight: true
         }
