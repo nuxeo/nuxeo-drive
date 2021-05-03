@@ -484,10 +484,20 @@ class QMLDriveApi(QObject):
                 self._manager.updater.force_downgrade()
                 return
 
-            url = self._get_authentication_url(engine.server_url)
-            if Options.is_frozen:
+            # The good authentication class is chosen following the type of the token
+            crafted_token: Token = (
+                {} if isinstance(engine.remote.auth, OAuthentication) else ""
+            )
+            auth = get_auth(
+                url,
+                crafted_token,
+                dao=self._manager.dao,
+                device_id=self._manager.device_id,
+            )
+            url = auth.connect_url()
+            if Options.is_frozen and crafted_token == "":  # Only for Nuxeo token
                 url = f"{url}&{params}"
-            callback_params = {"engine": uid}
+            callback_params = {"engine": uid, "server_url": engine.server_url}
             log.info(f"Opening login window for token update with URL {url}")
             self.application.open_authentication_dialog(url, callback_params)
         except Exception:
@@ -890,7 +900,10 @@ class QMLDriveApi(QObject):
             error = "CONNECTION_UNKNOWN"
         else:
             username = auth.get_username()
-            error = self.create_account(token, username)
+            if "engine" in self.callback_params:
+                error = self.update_token(token, username)
+            else:
+                error = self.create_account(token, username)
         finally:
             # Clean-up
             manager.dao.delete_config("tmp_oauth2_url")
@@ -956,9 +969,8 @@ class QMLDriveApi(QObject):
             self.application.set_icon_state("idle")
             self.application.show_settings("Accounts")
             self.setMessage.emit("CONNECTION_SUCCESS", "success")
-
         except CONNECTION_ERROR as e:
-            log.exception("HTTP Error")
+            log.warning("HTTP Error", exc_info=True)
             if getattr(e, "errno") == 61:
                 error = "CONNECTION_REFUSED"
             else:
