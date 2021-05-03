@@ -52,7 +52,7 @@ class DriveSystrayIcon(QSystemTrayIcon):
 
     def _open_settings(self) -> None:
         """Open the settings window."""
-        self.application.show_settings("General")
+        self.application.show_settings("Advanced")
 
     def get_context_menu(self) -> QMenu:
         """

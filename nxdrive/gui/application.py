@@ -867,10 +867,10 @@ class Application(QApplication):
     def show_settings(self, section: str, /) -> None:
         # Note: Keep synced with the Settings.qml file
         sections = {
-            "General": 0,
-            "Features": 1,
+            "Features": 0,
+            "Accounts": 1,
             "Sync": 2,
-            "Accounts": 3,
+            "Advanced": 3,
             "About": 4,
         }
         self._window_root(self.settings_window).setSection.emit(sections[section])
