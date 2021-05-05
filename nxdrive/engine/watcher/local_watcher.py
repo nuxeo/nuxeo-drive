@@ -86,7 +86,6 @@ class LocalWatcher(EngineWorker):
 
         self._event_handler: Optional[DriveFSEventHandler] = None
         self._observer: Optional[Observer] = None
-        self._root_observer: Optional[Observer] = None
         self._delete_events: Dict[str, Tuple[int, DocPair]] = {}
         self._folder_scan_events: Dict[Path, Tuple[float, DocPair]] = {}
 
@@ -629,20 +628,12 @@ class LocalWatcher(EngineWorker):
         # Filter out all ignored suffixes. It will handle custom ones too.
         ignore_patterns = [f"*{suffix}" for suffix in Options.ignored_suffixes]
 
-        # The root local folder watcher
-        self._root_observer = Observer()
-        self._root_event_handler = DriveFSRootEventHandler(
-            self, base.name, ignore_patterns=ignore_patterns
-        )
-        self._root_observer.schedule(self._root_event_handler, str(base.parent))
-
-        # The contents of the root local folder
+        # The contents of the local folder
         self._observer = Observer()
         self._event_handler = DriveFSEventHandler(self, ignore_patterns=ignore_patterns)
-        self._observer.schedule(self._event_handler, str(base), recursive=True)
+        self._observer.schedule(self._event_handler, base, recursive=True)
 
         if Feature.synchronization:
-            self._root_observer.start()
             self._observer.start()
 
     def _stop_watchdog(self) -> None:
@@ -660,18 +651,6 @@ class LocalWatcher(EngineWorker):
                 del self._observer
         else:
             log.info("No existing FS observer reference")
-
-        if self._root_observer:
-            log.info("Stopping the FS root Observer thread")
-            try:
-                self._root_observer.stop()
-                self._root_observer.join()
-            except Exception:
-                log.warning("Cannot stop the FS root observer")
-            finally:
-                del self._root_observer
-        else:
-            log.info("No existing FS root observer reference")
 
     def _handle_watchdog_delete(self, doc_pair: DocPair, /) -> None:
         self.remove_void_transfers(doc_pair)
@@ -1349,36 +1328,3 @@ class DriveFSEventHandler(PatternMatchingEventHandler):
         self.counter += 1
         log.debug(f"Queueing watchdog: {event!r}")
         self.watcher.watchdog_queue.put(event)
-
-
-class DriveFSRootEventHandler(PatternMatchingEventHandler):
-    def __init__(
-        self, watcher: Worker, name: str, /, *, ignore_patterns: List[str] = None
-    ) -> None:
-        super().__init__(ignore_patterns=ignore_patterns)
-        self.name = name
-        self.counter = 0
-        self.watcher = watcher
-
-    def __repr__(self) -> str:
-        return (
-            f"<{type(self).__name__}"
-            f" patterns={self.patterns!r},"
-            f" ignore_patterns={self.ignore_patterns!r},"
-            f" ignore_directories={self.ignore_directories},"
-            f" case_sensitive={self.case_sensitive}"
-            ">"
-        )
-
-    def on_any_event(self, event: FileSystemEvent, /) -> None:
-        if basename(event.src_path) != self.name:
-            return
-
-        try:
-            self.watcher.handle_watchdog_root_event(event)
-        except Exception:
-            # Workaround to forward unhandled exceptions to sys.excepthook between all Qthreads
-            sys.excepthook(*sys.exc_info())
-            log.exception("Watchdog ROOT exception")
-        else:
-            self.counter += 1
