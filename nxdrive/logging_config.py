@@ -143,6 +143,11 @@ def configure(
 
     # Add memory logger to allow instant report
     memory_handler = get_handler("memory")
+    if memory_handler and force_configure:
+        memory_handler.flush()
+        memory_handler.close()
+        root_logger.removeHandler(memory_handler)
+        memory_handler = None
     if not memory_handler:
         memory_handler = CustomMemoryHandler()
         memory_handler.name = "memory"
@@ -153,19 +158,27 @@ def configure(
     # Define a Handler which writes messages to sys.stderr
     console_level = get_level(console_level, DEFAULT_LOG_LEVEL_CONSOLE)
     console_handler = get_handler("nxdrive_console")
+    if console_handler and force_configure:
+        console_handler.flush()
+        console_handler.close()
+        root_logger.removeHandler(console_handler)
+        console_handler = None
     if not console_handler:
         console_handler = logging.StreamHandler()
         console_handler.name = "nxdrive_console"
         console_handler.setFormatter(formatter)
-        console_handler.setLevel(console_level)
         root_logger.addHandler(console_handler)
-    else:
-        console_handler.setLevel(console_level)
+    console_handler.setLevel(console_level)
 
     # Define a handler for file based log with rotation if needed
     file_level = get_level(file_level, DEFAULT_LOG_LEVEL_FILE)
     file_handler = get_handler("nxdrive_file")
-    if log_filename:
+    if file_handler and force_configure:
+        file_handler.flush()
+        file_handler.close()
+        root_logger.removeHandler(file_handler)
+        file_handler = None
+    if not file_handler and log_filename:
         file_handler = TimedCompressedRotatingFileHandler(log_filename, "midnight", 30)
         file_handler.name = "nxdrive_file"
         file_handler.setFormatter(formatter)

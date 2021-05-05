@@ -1,7 +1,7 @@
 import logging
 
 from nxdrive.constants import MAX_LOG_DISPLAYED
-from nxdrive.logging_config import CustomMemoryHandler
+from nxdrive.logging_config import CustomMemoryHandler, configure
 
 
 def test_custom_memory_handler():
@@ -44,3 +44,21 @@ def test_custom_memory_handler():
     assert len(buffer) == 42
     assert buffer[0].message == "Line n° 99,958"
     assert buffer[-1].message == "Line n° 99,999"
+
+
+def test_force_configure(tmp_path):
+    """Check that logging handlers are well freed when forcing configuration."""
+    log_file1 = tmp_path / "log1.log"
+    log_file2 = tmp_path / "log2.log"
+
+    configure(log_filename=log_file1)  # For coverage ...
+    configure(log_filename=log_file1, force_configure=True)
+    logging.warning("a line")
+    assert log_file1.is_file()
+    assert not log_file2.is_file()
+
+    log1_size = log_file1.stat().st_size
+    configure(log_filename=log_file2, force_configure=True)
+    logging.warning("another line")
+    assert log_file1.stat().st_size == log1_size
+    assert log_file2.is_file()
