@@ -2,7 +2,7 @@ fail_fast: true
 
 repos:
 -   repo: https://github.com/ambv/black
-    rev: 21.4b2
+    rev: 21.5b0
     hooks:
     - id: black
 - repo: https://gitlab.com/pycqa/flake8
