@@ -3,25 +3,31 @@ from unittest.mock import patch
 
 import pytest
 
-from nxdrive.commandline import CliHandler
+from nxdrive.commandline import DEFAULTSECT, CliHandler
 from nxdrive.options import Options
 from nxdrive.utils import normalized_path
 
 from ..markers import mac_only, windows_only
 
 
-def create_ini(env: str = "PROD", encoding: str = "utf-8") -> Path:
+def create_ini(
+    default_section: str = DEFAULTSECT, env: str = "PROD", encoding: str = "utf-8"
+) -> Path:
     path = Options.nxdrive_home / "config.ini"
     with open(path, "w", encoding=encoding) as f:
         f.writelines(
             f"""
-[DEFAULT]
+[{default_section}]
 env = {env}
 
 [PROD]
 log-level_console = DEBUG
 debug = False
+empty-value=
+
+[Inception]
 nxdrive_home = {str(Options.nxdrive_home / "drive_home")}
+force-locale = en
 
 [DEV]
 log_level-console = ERROR
@@ -35,6 +41,24 @@ log-level-console = DEBUG
 delay = 3
 """
         )
+
+    if env != "Inception":
+        return path
+
+    # Also add a config file in the new nxdrive_home to ensure it will be parsed as expected
+    path = Options.nxdrive_home / "drive_home" / "config.ini"
+    path.parent.mkdir(exist_ok=True)
+    with open(path, "w", encoding=encoding) as f:
+        f.writelines(
+            """
+[DEFAULT]
+env = français
+
+[français]
+force-locale = fr
+"""
+        )
+
     return path
 
 
@@ -42,7 +66,7 @@ delay = 3
 def cmd(tmp):
     path = tmp() / "config"
     path.mkdir(parents=True, exist_ok=True)
-    Options.nxdrive_home = normalized_path(path)
+    Options.set("nxdrive_home", normalized_path(path), setter="local")
 
     yield CliHandler()
 
@@ -140,7 +164,6 @@ def test_default_override(cmd, config):
     options = cmd.parse_cli([])
     assert options.log_level_console == "DEBUG"
     assert not options.debug
-    assert options.nxdrive_home == str(Options.nxdrive_home / "drive_home")
 
     # config.ini override, but arg specified
     options = cmd.parse_cli(argv)
@@ -154,6 +177,21 @@ def test_default_override(cmd, config):
     assert options.debug
     assert options.delay == 3
     assert options.tmp_file_limit == 0.0105
+
+
+@Options.mock()
+def test_default_override_from_alternate_nxdrive_home(cmd, config):
+    expected_nxdrive_home = str(Options.nxdrive_home / "drive_home")
+    config(env="Inception")
+    args = cmd.load_config()
+    assert args["nxdrive_home"] == expected_nxdrive_home
+    assert args["force_locale"] == "fr"
+
+
+def test_confg_file_no_default_section(cmd, config):
+    config(default_section="default")
+    args = cmd.load_config()
+    assert not args
 
 
 @Options.mock()
