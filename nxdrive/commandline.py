@@ -8,7 +8,9 @@ from configparser import DEFAULTSECT, ConfigParser
 from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
-from typing import TYPE_CHECKING, Any, List, Optional, Union
+from pathlib import Path
+from types import SimpleNamespace
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 from . import __version__
 from .constants import APP_NAME, BUNDLE_IDENTIFIER, DEFAULT_CHANNEL, LINUX
@@ -385,7 +387,9 @@ class CliHandler:
         parser = self.make_cli_parser(add_subparsers=has_command)
 
         # Change default value according to config.ini
-        self.load_config(parser)
+        args = self.load_config()
+        if args:
+            parser.set_defaults(**args)
         options = parser.parse_args(filtered_args)
 
         if options.debug:
@@ -426,7 +430,49 @@ class CliHandler:
 
         return options
 
-    def load_config(self, parser: ArgumentParser, /) -> None:
+    def _load_local_config(
+        self, sources: Tuple[Path, ...], args: Dict[str, Any]
+    ) -> None:
+        """
+        Load local configuration from different *sources*.
+        Each configuration file is independent and can define its own `env` section.
+        """
+        for conf_file in sources:
+            if not conf_file.is_file():
+                continue
+
+            config = ConfigParser()
+            log.info(f"Reading local configuration file {str(conf_file)!r} ...")
+            with conf_file.open(encoding="utf-8") as fh:
+                try:
+                    config.read_file(fh)
+                except Exception:
+                    log.warning("Skipped malformed file", exc_info=True)
+                    continue
+
+            if not config.has_option(DEFAULTSECT, "env"):
+                log.warning(
+                    f"The [{DEFAULTSECT}] section is not present, skipping the file"
+                )
+                continue
+
+            env = config.get(DEFAULTSECT, "env")
+            conf_args = {}
+
+            for name, value in config.items(env):
+                if name == "env" or value == "":
+                    continue
+
+                # Normalize the key
+                name = name.replace("-", "_").replace(".", "_").lower()
+                conf_args[name] = get_value(value)
+
+            if conf_args:
+                file = os.path.abspath(conf_file)
+                Options.update(conf_args, setter="local", file=file, section=env)
+                args.update(**conf_args)
+
+    def load_config(self) -> Dict[str, Any]:
         """
         Load local configuration from different sources:
             - the registry on Windows
@@ -440,40 +486,19 @@ class CliHandler:
             # This is the case on Windows only, values from the registry
             Options.update(args, setter="local", file="the Registry")
 
+        # Load local configs
         paths, _ = config_paths()
-        for conf_file in paths:
-            if not conf_file.is_file():
-                continue
+        current_nxdrive_home = Options.nxdrive_home
+        self._load_local_config(paths, args)
 
-            config = ConfigParser()
-            with conf_file.open(encoding="utf-8") as fh:
-                try:
-                    config.read_file(fh)
-                except Exception:
-                    log.warning(
-                        f"Skipped malformed config file {conf_file!r}", exc_info=True
-                    )
-                    continue
+        # To ensure options are well respected, as nxdrive_home were updated in the
+        # original config file, we need to rescan for config files into the new folder.
+        # See NXDRIVE-2631 for more details.
+        if current_nxdrive_home != Options.nxdrive_home:
+            _, path = config_paths()
+            self._load_local_config((path,), args)
 
-            if config.has_option(DEFAULTSECT, "env"):
-                env = config.get(DEFAULTSECT, "env")
-                conf_args = {}
-
-                for name, value in config.items(env):
-                    if name == "env" or value == "":
-                        continue
-
-                    # Normalize the key
-                    name = name.replace("-", "_").replace(".", "_").lower()
-                    conf_args[name] = get_value(value)
-
-                if conf_args:
-                    file = os.path.abspath(conf_file)
-                    Options.update(conf_args, setter="local", file=file, section=env)
-                    args.update(**conf_args)
-
-        if args:
-            parser.set_defaults(**args)
+        return args
 
     def _configure_logger(self, command: str, options: Namespace, /) -> None:
         """Configure the logging framework from the provided options."""
