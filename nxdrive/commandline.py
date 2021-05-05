@@ -9,7 +9,6 @@ from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
 from pathlib import Path
-from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 from . import __version__
@@ -526,7 +525,13 @@ class CliHandler:
         """Parse options, setup logs and manager and dispatch execution."""
 
         # Pre-configure the logging to catch early errors
-        configure(console_level="DEBUG", command_name="early")
+        early_options = Namespace(
+            log_filename="",
+            log_level_console="INFO",
+            log_level_file="DEBUG",
+            nxdrive_home=Options.nxdrive_home,
+        )
+        self._configure_logger("early", early_options)
 
         options = self.parse_cli(argv)
 
