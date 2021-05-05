@@ -490,7 +490,9 @@ def safe_long_path(path: Path, /) -> Path:
         https://bugs.python.org/issue18199#msg260122
     """
     if WINDOWS:
-        if path.parts[0].startswith("\\\\?\\"):
+        if path.parts[0].startswith("\\\\"):
+            # Only checking for "\\" to cover UNC paths and already long-path-protected paths
+            # because UNC paths must no have the long-path prefix.
             path = normalized_path(path)
         else:
             path = Path(f"\\\\?\\{normalized_path(path)}")
