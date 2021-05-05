@@ -117,9 +117,6 @@ jmespath==0.10.0 \
 nuxeo[oauth2,s3]==5.1.0 \
     --hash=sha256:71c382148a613518e03226279ec7bbba1933a19b5d8e12553a1135dc58390f24 \
     --hash=sha256:be11f1b2f3f34aac31a108070e61c1090ab30a1f87c9ba55e8a07d716ae5ec27
-pathtools==0.1.2 \
-    --hash=sha256:7c35c5421a39bb82e58018febd90e3b6e5db34c5443aaaf742b3f33d4655f1c0
-    # via watchdog
 psutil==5.8.0 \
     --hash=sha256:0066a82f7b1b37d334e68697faba68e5ad5e858279fd6351c8ca6024e8d6ba64 \
     --hash=sha256:0ae6f386d8d297177fd288be6e8d1afc05966878704dad9847719650e44fc49c \
