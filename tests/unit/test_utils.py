@@ -448,6 +448,23 @@ def test_get_tree_list_root_is_in_ignored_patterns(fs):
     assert not list(nxdrive.utils.get_tree_list(Path("/.fake")))
 
 
+def test_get_tree_list_avoid_symlinks(fs):
+    # "fs" is the reference to the fake file system
+    fs.create_file("/folder/fichier.txt")  # 1
+    fs.create_symlink(
+        "/folder/fichier-sym.txt",
+        "/folder/fichier.txt",
+    )
+    fs.create_dir("/folder/sub-folder")  # 2
+    fs.create_file("/folder/sub-folder/file.txt")  # 3
+    fs.create_symlink(
+        "/folder/sub-folder-sym",
+        "/folder/sub-folder",
+    )
+    assert len(list(nxdrive.utils.get_tree_list(Path("/folder")))) == 4  # 3 + root
+    assert not list(nxdrive.utils.get_tree_list(Path("/folder/sub-folder-sym")))
+
+
 def test_get_tree_list_ignored_patterns(fs):
     # "fs" is the reference to the fake file system
     fs.create_file("/fake/.azerty.txt")

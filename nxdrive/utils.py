@@ -254,6 +254,10 @@ def get_tree_list(path: Path, /) -> Generator[Tuple[Path, int], None, None]:
         log.debug(f"Ignored path for Direct Transfer: {str(path)!r}")
         return
 
+    if path.is_symlink():
+        log.debug(f"Ignored symlink path for Direct Transfer: {str(path)!r}")
+        return
+
     # First, yield the folder itself
     yield path, 0
 
@@ -272,6 +276,10 @@ def get_tree_list(path: Path, /) -> Generator[Tuple[Path, int], None, None]:
                 is_dir = entry.is_dir()
             except OSError:
                 log.warning(f"Error calling is_dir() on {entry.path!r}", exc_info=True)
+                continue
+
+            if entry.is_symlink():
+                log.debug(f"Ignored symlink path for Direct Transfer: {entry.path!r}")
                 continue
 
             if is_dir:
