@@ -429,6 +429,28 @@ OAuth2 client secret.
 
 * * *
 
+#### `oauth2-redirect-uri`
+
+The redirect URI configured on the OAuth2 consumer.
+It is a mandatory parameter when using ADFS, for instance.
+
+- Default value (str): `nxdrive://authorize`
+- Version added: 5.2.0
+
+* * *
+
+#### `oauth2-openid-configuration-url`
+
+The URL of the [OpenID Provider Configuration](https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig) for OAuth2.
+When specified, [oauth2-authorization-endpoint](#oauth2-authorization-endpoint) and [oauth2-token-endpoint](#oauth2-token-endpoint) parameters will be set according to values found in that document, even if they are already defined.
+
+The awaited value must be of the form `https://server.com/.well-known/openid-configuration`.
+
+- Default value (str): None
+- Version added: 5.2.0
+
+* * *
+
 #### `oauth2-token-endpoint`
 
 The URL of the token endpoint for OAuth2.

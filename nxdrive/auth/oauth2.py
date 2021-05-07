@@ -25,6 +25,8 @@ class OAuthentication(Authentication):
             client_id=Options.oauth2_client_id,
             client_secret=Options.oauth2_client_secret,
             authorization_endpoint=Options.oauth2_authorization_endpoint,
+            openid_configuration_url=Options.oauth2_openid_configuration_url,
+            redirect_uri=Options.oauth2_redirect_uri,
             token_endpoint=Options.oauth2_token_endpoint,
             token=self.token,
         )
