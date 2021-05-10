@@ -15,7 +15,7 @@ Rectangle {
                 right: parent.right
                 top: parent.top
                 topMargin: 15
-                rightMargin: 20
+                rightMargin: 25
             }
 
             NuxeoButton {
@@ -59,9 +59,19 @@ Rectangle {
 
                 // Empty list
                 ColumnLayout {
+                    id: noAccountPanel
                     visible: EngineModel.count == 0
+
                     anchors.fill: parent
                     anchors.rightMargin: 60
+
+                    IconLabel {
+                        icon: MdiFont.Icon.accountPlus
+                        size: 128;
+                        Layout.alignment: Qt.AlignHCenter
+                        enabled: false
+                    }
+
                     ScaledText {
                         text: qsTr("NO_ACCOUNT") + tl.tr
                         font{

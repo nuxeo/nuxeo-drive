@@ -5,7 +5,7 @@ import "icon-font/Icon.js" as MdiFont
 Rectangle {
     id: control
     width: parent ? parent.width : 0
-    height: authenticated ? 120 : 140
+    height: authenticated ? 100 : 125
     property bool authenticated: !api.has_invalid_credentials(uid)
     property string forceUi: force_ui || wui
     property bool sync_enabled: feat_synchronization.enabled
@@ -93,12 +93,10 @@ Rectangle {
 
                 // Conflicts/Errors
                 ScaledText {
-                    visible: sync_enabled
                     text: qsTr("CONFLICTS_AND_ERRORS") + tl.tr
                     color: label
                 }
                 Link {
-                    visible: sync_enabled
                     text: qsTr("OPEN_WINDOW") + tl.tr
                     onClicked: api.show_conflicts_resolution(uid)
                 }
