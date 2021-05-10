@@ -192,6 +192,8 @@ install_pyenv() {
 
     echo ">>> [pyenv] Initializing"
     eval "$(pyenv init -)"
+    # Ensure pyenv shims are added to PATH, see https://github.com/pyenv/pyenv/issues/1906
+    eval "$(pyenv init --path)"
     eval "$(pyenv virtualenv-init -)"
 }
 
