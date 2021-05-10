@@ -871,8 +871,8 @@ class QMLDriveApi(QObject):
 
     # Authentication section
 
-    @pyqtSlot(str, str)
-    def continue_oauth2_flow(self, code: str, state: str, /) -> None:
+    @pyqtSlot(dict)
+    def continue_oauth2_flow(self, query: Dict[str, str], /) -> None:
         """Handle a OAuth2 flow to create an account."""
         manager = self._manager
         stored_url = manager.get_config("tmp_oauth2_url")
@@ -883,7 +883,9 @@ class QMLDriveApi(QObject):
         error = ""
         if not stored_url:
             error = "OAUTH2_MISSING_URL"
-        elif state != stored_state:
+        elif "state" not in query or "code" not in query:
+            error = "CONNECTION_REFUSED"
+        elif query["state"] != stored_state:
             error = "OAUTH2_STATE_MISMATCH"
         if error:
             self.setMessage.emit(error, "error")
@@ -893,7 +895,9 @@ class QMLDriveApi(QObject):
         try:
             auth = OAuthentication(stored_url, dao=self._manager.dao)
             token = auth.get_token(
-                code_verifier=stored_code_verifier, code=code, state=state
+                code_verifier=stored_code_verifier,
+                code=query["code"],
+                state=query["state"],
             )
         except OAuth2Error:
             log.warning("Unexpected error while trying to get a token", exc_info=True)

@@ -29,7 +29,7 @@ from typing import (
     Tuple,
     Union,
 )
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import parse_qsl, urlparse, urlsplit, urlunsplit
 
 from nuxeo.utils import get_digest_algorithm, get_digest_hash
 
@@ -711,7 +711,8 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
         ),
         # Event to continue the OAuth2 login flow
         # authorize?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
-        r"nxdrive://(?P<cmd>authorize)\?code=(?P<code>[^&]+)&state=(?P<state>.*)",
+        # authorize/?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
+        r"nxdrive://(?P<cmd>authorize)/?\?(?P<query>.+)",
     )
 
     match_res = None
@@ -734,11 +735,11 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
             "username": parsed_url["username"],
         }
     elif cmd == "authorize":
-        return {
-            "command": cmd,
-            "code": parsed_url["code"],
-            "state": parsed_url["state"],
-        }
+        # Details are passed as URL params (?param=value&param2=value2),
+        # let's convert to a simple dict
+        full_query = urlparse(parsed_url["query"]).path
+        query = dict(parse_qsl(full_query))
+        return {"command": cmd, **query}
     return {"command": cmd, "filepath": parsed_url["path"]}
 
 
