@@ -777,26 +777,27 @@ class QMLDriveApi(QObject):
             return
 
         # Detect if the server can use the appropriate login webpage
-        try:
-            login_type = self._manager.get_server_login_type(server_url)
-        except StartupPageConnectionError:
-            self.setMessage.emit("CONNECTION_ERROR", "error")
-            return
-        else:
-            if login_type is Login.OLD:
-                # Startup page is not available
-                log.info(
-                    f"Web authentication not available on server {server_url}, "
-                    "falling back on basic authentication"
-                )
-                if Options.is_frozen:
-                    # We might have to downgrade because the
-                    # browser login is not available.
-                    self._manager.updater.force_downgrade()
-                    return
+        if use_legacy_auth:
+            try:
+                login_type = self._manager.get_server_login_type(server_url)
+            except StartupPageConnectionError:
+                self.setMessage.emit("CONNECTION_ERROR", "error")
+                return
             else:
-                # Page should exists, let's open authentication dialog
-                log.info(f"Web authentication is available on server {server_url}")
+                if login_type is Login.OLD:
+                    # Startup page is not available
+                    log.info(
+                        f"Web authentication not available on server {server_url}, "
+                        "falling back on basic authentication"
+                    )
+                    if Options.is_frozen:
+                        # We might have to downgrade because the
+                        # browser login is not available.
+                        self._manager.updater.force_downgrade()
+                        return
+                else:
+                    # Page should exists, let's open authentication dialog
+                    log.info(f"Web authentication is available on server {server_url}")
 
         # Connect to the authentication page
         try:
@@ -805,7 +806,7 @@ class QMLDriveApi(QObject):
                 "server_url": server_url,
                 "engine_type": urlsplit(server_url).fragment or DEFAULT_SERVER_TYPE,
             }
-            # The good authentication class is chosen following the type of the token
+            # The good authentication class is chosen based on the token type
             crafted_token: Token = "" if use_legacy_auth else {}
             auth = get_auth(
                 server_url,

@@ -712,9 +712,9 @@ def test_parse_protocol_url_oauth2_token():
 
 def test_parse_protocol_url_oauth2_token_error():
     url = (
-        "nxdrive://authorize?error=access_denied&error_description=MSIS9605%3a+The+client+is+not+allowed+to+acces"
-        "s+the+requested+resource.&state=pRe1JitkAPJAXqR6WuQjbT944lCv9G&client-request-id=80f15800-e242-4022-fe39"
-        "-0080000000ed"
+        "nxdrive://authorize?error=access_denied&error_description=MSIS9605%3a+The+client+is+not+allowed+to+access"
+        "+the+requested+resource.&state=pRe1JitkAPJAXqR6WuQjbT944lCv9G&client-request-id=80f15800-e242-4022-fe39-"
+        "0080000000ed"
     )
     info = nxdrive.utils.parse_protocol_url(url)
     assert isinstance(info, dict)
