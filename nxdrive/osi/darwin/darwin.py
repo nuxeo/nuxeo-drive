@@ -7,6 +7,7 @@ from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from urllib.parse import quote
 
 import xattr
 from CoreServices import (
@@ -24,7 +25,6 @@ from CoreServices import (
     kLSSharedFileListFavoriteItems,
     kLSSharedFileListItemBeforeFirst,
 )
-from nuxeo.compat import quote
 
 from ...constants import BUNDLE_IDENTIFIER, NXDRIVE_SCHEME
 from ...objects import DocPair
