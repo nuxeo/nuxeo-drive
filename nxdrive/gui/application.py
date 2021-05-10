@@ -1637,7 +1637,7 @@ class Application(QApplication):
             )
         elif cmd == "authorize":
             func = self.api.continue_oauth2_flow
-            args = (info["code"], info["state"])
+            args = ({k: v for k, v in info.items() if k != "command"},)
         elif cmd == "token":
             func = self.api.handle_token
             args = (info["token"], info["username"])
