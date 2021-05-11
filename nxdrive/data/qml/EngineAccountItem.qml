@@ -56,7 +56,7 @@ Rectangle {
                 RowLayout {
                     id: uiSelect
                     spacing: 5
-                    property string suffix: " (" + qsTr("SERVER_DEFAULT") + ")"
+                    property string suffix: qsTr("SERVER_DEFAULT") + tl.tr
 
                     Connections {
                         target: EngineModel

@@ -6,31 +6,31 @@ import "icon-font/Icon.js" as MdiFont
 Rectangle {
     id: control
 
-        GridLayout {
-            id: accountCreation
-            columns: 2
-            columnSpacing: 15
+    GridLayout {
+        id: accountCreation
+        columns: 2
+        columnSpacing: 15
 
-            anchors {
-                right: parent.right
-                top: parent.top
-                topMargin: 15
-                rightMargin: 25
-            }
-
-            NuxeoButton {
-                // Add a new account
-                Layout.alignment: Qt.AlignRight
-                text: qsTr("NEW_ENGINE") + tl.tr
-                onClicked: newAccountPopup.open()
-            }
+        anchors {
+            right: parent.right
+            top: parent.top
+            topMargin: 15
+            rightMargin: 25
         }
+
+        // Add a new account
+        NuxeoButton {
+            Layout.alignment: Qt.AlignRight
+            text: qsTr("NEW_ENGINE") + tl.tr
+            onClicked: newAccountPopup.open()
+        }
+    }
 
     // The EngineModel list
     Rectangle {
-        Layout.fillWidth: true;
+        Layout.fillWidth: true
         Layout.fillHeight: true
-        height: parent.height
+        height: parent.height - accountCreation.height
         width: parent.width
         anchors {
             top: accountCreation.bottom
@@ -53,43 +53,44 @@ Rectangle {
                 width: parent.width;
                 height: contentHeight
                 spacing: 20
+                interactive: false
 
                 model: EngineModel
                 delegate: EngineAccountItem {}
+            }
 
-                // Empty list
-                ColumnLayout {
-                    id: noAccountPanel
-                    visible: EngineModel.count == 0
+            // Empty list
+            ColumnLayout {
+                id: noAccountPanel
+                visible: EngineModel.count == 0
 
-                    anchors.fill: parent
-                    anchors.rightMargin: 60
+                anchors.fill: parent
+                anchors.rightMargin: 60
 
-                    IconLabel {
-                        icon: MdiFont.Icon.accountPlus
-                        size: 128;
-                        Layout.alignment: Qt.AlignHCenter
-                        enabled: false
+                IconLabel {
+                    icon: MdiFont.Icon.accountPlus
+                    size: 128;
+                    Layout.alignment: Qt.AlignHCenter
+                    enabled: false
+                }
+
+                ScaledText {
+                    text: qsTr("NO_ACCOUNT") + tl.tr
+                    font{
+                        pointSize: point_size * 1.2
+                        weight: Font.Bold
                     }
+                    Layout.alignment: Qt.AlignHCenter
+                    wrapMode: Text.WordWrap
+                }
 
-                    ScaledText {
-                        text: qsTr("NO_ACCOUNT") + tl.tr
-                        font{
-                            pointSize: point_size * 1.2
-                            weight: Font.Bold
-                        }
-                        Layout.alignment: Qt.AlignHCenter
-                        wrapMode: Text.WordWrap
-                    }
-
-                    ScaledText {
-                        text: qsTr("NO_ACCOUNT_DESCR").arg(qsTr("NEW_ENGINE")) + tl.tr
-                        color: mediumGray
-                        Layout.maximumWidth: parent.width
-                        Layout.alignment: Qt.AlignHCenter
-                        horizontalAlignment: Text.AlignHCenter
-                        wrapMode: Text.WordWrap
-                    }
+                ScaledText {
+                    text: qsTr("NO_ACCOUNT_DESCR").arg(qsTr("NEW_ENGINE")) + tl.tr
+                    color: mediumGray
+                    Layout.maximumWidth: parent.width
+                    Layout.alignment: Qt.AlignHCenter
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
                 }
             }
         }
