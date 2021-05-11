@@ -79,7 +79,7 @@ Rectangle {
                         id: webUiButton
                         property bool defaultUi: (wui == "web")
 
-                        text: "Web UI" + (defaultUi ? uiSelect.suffix : "")
+                        text: "Web UI " + (defaultUi ? uiSelect.suffix : "")
                         onClicked: api.set_server_ui(uid, "web")
                         checked: (forceUi == "web")
                     }
@@ -87,7 +87,7 @@ Rectangle {
                         id: jsfUiButton
                         property bool defaultUi: (wui == "jsf")
 
-                        text: "JSF UI" + (defaultUi ? uiSelect.suffix : "")
+                        text: "JSF UI " + (defaultUi ? uiSelect.suffix : "")
                         onClicked: api.set_server_ui(uid, "jsf")
                         checked: (forceUi == "jsf")
                     }
