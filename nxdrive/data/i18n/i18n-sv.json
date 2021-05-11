@@ -319,7 +319,7 @@
     "SELECTIVE_SYNC_DESCR": "Välj vilken mapp du vill se på den här datorn. Alla mappar som du avmarkerar kommer inte att visas på den här datorn, men du kan fortfarande komma åt dem online.",
     "SELECT_SYNC_FOLDERS": "Välj mappar för synkronisering",
     "SELECT_SYNC_FOLDERS_DESCRIPTION": "Gör det möjligt att välja vilka mappar som ska synkroniseras lokalt. För detta krävs att motorn är online.",
-    "SERVER_DEFAULT": "Standardversion av servern",
+    "SERVER_DEFAULT": "(Server default)",
     "SERVER_INCOMPATIBLE": "Vi rekommenderar att du nedgraderar din %1-klient till version %2 eller att du kontaktar din administratör för att uppgradera din Nuxeo-instans.",
     "SERVER_INCOMPATIBLE_HEADER": "Din serverversion är inte kompatibel med %1 %2.",
     "SERVER_UI": "Användargränssnitt för servern",
