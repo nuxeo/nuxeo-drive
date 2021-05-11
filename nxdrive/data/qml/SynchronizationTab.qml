@@ -51,6 +51,7 @@ Rectangle {
                 width: parent.width;
                 height: contentHeight
                 spacing: 20
+                interactive: false
 
                 model: EngineModel
                 delegate: EngineSyncItem {}
