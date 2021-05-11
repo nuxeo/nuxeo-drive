@@ -36,8 +36,8 @@ Rectangle {
 
             GridLayout {
                 columns: 2
-                columnSpacing: 50
                 rowSpacing: 10
+                columnSpacing: 50
                 anchors.fill: parent
                 anchors.margins: 14
 
@@ -46,6 +46,7 @@ Rectangle {
                 Link {
                     text: server_url
                     onClicked: api.open_remote_server(uid)
+                    Layout.fillWidth: true
                 }
 
                 // Server UI (Web-UI or JSF)
@@ -57,6 +58,7 @@ Rectangle {
                     id: uiSelect
                     spacing: 5
                     property string suffix: qsTr("SERVER_DEFAULT") + tl.tr
+                    Layout.fillWidth: true
 
                     Connections {
                         target: EngineModel
@@ -99,6 +101,7 @@ Rectangle {
                 Link {
                     text: qsTr("OPEN_WINDOW") + tl.tr
                     onClicked: api.show_conflicts_resolution(uid)
+                    Layout.fillWidth: true
                 }
 
                 // Bad or outdated credentials
@@ -112,6 +115,7 @@ Rectangle {
                     text: qsTr("AUTH_UPDATE_ACTION") + tl.tr
                     color: errorContent
                     onClicked: api.web_update_token(uid)
+                    Layout.fillWidth: true
                 }
             }
         }
