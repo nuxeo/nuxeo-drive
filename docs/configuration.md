@@ -438,12 +438,12 @@ OAuth2 client secret.
 
 * * *
 
-#### `oauth2-redirect-uri`
+#### `oauth2-scope`
 
-The redirect URI configured on the OAuth2 consumer.
+OAuth2 scope.
 It is a mandatory parameter when using ADFS, for instance.
 
-- Default value (str): `nxdrive://authorize`
+- Default value (str): None
 - Version added: 5.2.0
 
 * * *
