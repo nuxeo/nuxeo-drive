@@ -232,33 +232,41 @@ class FoldersOnly:
 
         return Doc(personal_space)
 
-    def get_top_documents(self) -> Iterator["Documents"]:
-        """Fetch all documents at the root."""
-        # Get the personal space
-        # Use a try...except block to prevent loading error on the root,
-        # else it will also show a loading error for root folder
+    def _get_personal_space(self) -> "Document":
+        """Get the personal space.
+        Use a try...except block to prevent loading error on the root,
+        else it will also show a loading error for root folder.
+        """
         try:
-            yield self.get_personal_space()
+            return self.get_personal_space()
         except Exception:
             path = f"/default-domain/UserWorkspaces/{self.remote.user_id}"
             log.warning(f"Error while retrieving documents on {path!r}", exc_info=True)
-            yield Doc(
+            return Doc(
                 Document(
                     title=Translator.get("PERSONAL_SPACE"),
                     contextParameters={"permissions": []},
                 )
             )
 
-        # Get root folders
-        # Use a try...except block to prevent loading error on the root,
-        # else it will also show a loading error for the personal space.
+    def _get_root_folders(self) -> List["Documents"]:
+        """Get root folders.
+        Use a try...except block to prevent loading error on the root,
+        else it will also show a loading error for the personal space.
+        """
         try:
-            for doc in self.children(path="/"):
-                if "Folderish" in doc.facets:
-                    yield Doc(doc)
+            return [
+                Doc(doc) for doc in self.children(path="/") if "Folderish" in doc.facets
+            ]
         except Exception:
             log.warning("Error while retrieving documents on '/'", exc_info=True)
-            yield Doc(Document(title="/", contextParameters={"permissions": []}))
+            return [Doc(Document(title="/", contextParameters={"permissions": []}))]
+
+    def get_top_documents(self) -> Iterator["Documents"]:
+        """Fetch all documents at the root."""
+        if not Options.dt_hide_personal_space:
+            yield self._get_personal_space()
+        yield from self._get_root_folders()
 
     def get_children(self, parent: "Documents", /) -> Iterator["Documents"]:
         """Fetch children of a given *parent*."""

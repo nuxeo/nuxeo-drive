@@ -242,6 +242,7 @@ class MetaOptions(type):
         "deletion_behavior": ("unsync", "default"),
         "disabled_file_integrity_check": (False, "default"),
         "disallowed_types_for_dt": (__doctypes_no_dt, "default"),
+        "dt_hide_personal_space": (False, "default"),
         "exec_profile": (_DEFAULT_EXEC_PROFILE, "default"),
         "findersync_batch_size": (50, "default"),
         "force_locale": (None, "default"),

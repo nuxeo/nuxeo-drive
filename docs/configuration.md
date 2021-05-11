@@ -234,6 +234,15 @@ List of document types where Direct Transfer is not allowed.
 
 * * *
 
+#### `dt-hide-personal-space`
+
+Allow to hide the "Personal Space" remote folder in the Direct Transfer window.
+
+- Default value (bool): `False`
+- Version added: 5.2.0
+
+* * *
+
 #### `exec-profile`
 
 Define the execution profile for the application in metrics.
