@@ -27,8 +27,8 @@ __all__ = ("DirectTransferModel", "EngineModel", "FileModel", "LanguageModel")
 class EngineModel(QAbstractListModel):
     engineChanged = pyqtSignal()
     statusChanged = pyqtSignal(object)
-    uiChanged = pyqtSignal()
-    authChanged = pyqtSignal()
+    uiChanged = pyqtSignal(str)
+    authChanged = pyqtSignal(str)
 
     UID_ROLE = qt.UserRole + 1
     TYPE_ROLE = qt.UserRole + 2
