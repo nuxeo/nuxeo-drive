@@ -319,7 +319,7 @@
     "SELECTIVE_SYNC_DESCR": "Wybierz folder, który chcesz zobaczyć na tym komputerze. Foldery, które odznaczysz nie będą wyświetlane na tym komputerze, ale nadal możesz uzyskać do nich dostęp online.",
     "SELECT_SYNC_FOLDERS": "Wybierz foldery do synchronizacji",
     "SELECT_SYNC_FOLDERS_DESCRIPTION": "Pozwala wybrać foldery, które chcesz synchronizować lokalnie. Wymaga to, aby silnik był online.",
-    "SERVER_DEFAULT": "Domyślny serwer",
+    "SERVER_DEFAULT": "(Server default)",
     "SERVER_INCOMPATIBLE": "We advise you to downgrade your %1 client to the %2 version or to contact your administrator to upgrade your Nuxeo instance.",
     "SERVER_INCOMPATIBLE_HEADER": "Your server version is not compatible with %1 %2.",
     "SERVER_UI": "Interfejs serwera",

@@ -319,7 +319,7 @@
     "SELECTIVE_SYNC_DESCR": "Selecteer welke map u wilt bekijken op deze computer. Niet-geselecteerde mappen worden niet weergegeven op deze computer, maar blijven online toegankelijk.",
     "SELECT_SYNC_FOLDERS": "Synchronisatie mappen selecteren",
     "SELECT_SYNC_FOLDERS_DESCRIPTION": "Hiermee kunt u bepalen welke mappen lokaal moeten worden gesynchroniseerd. Hiervoor dient de engine online te zijn.",
-    "SERVER_DEFAULT": "Serverstandaard",
+    "SERVER_DEFAULT": "(Server default)",
     "SERVER_INCOMPATIBLE": "Wij raden u aan om uw %1-client te downgraden naar versie %2 of om contact op te nemen met uw beheerder om uw Nuxeo-instantie te upgraden.",
     "SERVER_INCOMPATIBLE_HEADER": "Uw serverversie is niet compatibel met %1 %2.",
     "SERVER_UI": "Servergebruikersinterface",
