@@ -264,6 +264,7 @@ class MetaOptions(type):
         "oauth2_client_id": ("nuxeo-drive", "default"),
         "oauth2_client_secret": (None, "default"),
         "oauth2_openid_configuration_url": (None, "default"),
+        "oauth2_scope": (None, "default"),
         "oauth2_redirect_uri": ("nxdrive://authorize", "default"),
         "oauth2_token_endpoint": (None, "default"),
         "protocol_url": (None, "default"),

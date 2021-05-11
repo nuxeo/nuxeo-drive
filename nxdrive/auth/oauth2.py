@@ -32,11 +32,9 @@ class OAuthentication(Authentication):
         )
 
     def connect_url(self) -> str:
-        (
-            uri,
-            state,
-            code_verifier,
-        ) = self.auth.create_authorization_url()  # type: Tuple[str, str, str]
+        kw = {"scope": Options.oauth2_scope} if Options.oauth2_scope else {}
+        auth_details: Tuple[str, str, str] = self.auth.create_authorization_url(**kw)
+        uri, state, code_verifier = auth_details
 
         # Save them for later
         if self._dao:
