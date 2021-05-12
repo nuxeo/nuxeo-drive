@@ -449,7 +449,10 @@ class MetaOptions(type):
 
         # Cast path-like options to Path
         if isinstance(old_value, Path):
-            new_value = Path(new_value)
+            # Lazy import to break circular import
+            from .utils import normalize_and_expand_path
+
+            new_value = normalize_and_expand_path(new_value)
 
         # We allow to set something when the default is None
         if not isinstance(new_value, type_orig) and not isinstance(
