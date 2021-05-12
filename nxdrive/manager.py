@@ -135,6 +135,10 @@ class Manager(QObject):
         # Force language
         if Options.force_locale is not None:
             self.set_config("locale", Options.force_locale)
+        else:
+            user_locale = self.get_config("locale")
+            if user_locale is not None:
+                Options.locale = user_locale
 
         # Backward-compatibility: handle synchronization state early
         if version_le(__version__, "5.1.2"):
