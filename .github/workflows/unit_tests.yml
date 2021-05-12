@@ -21,7 +21,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v2.2.2
       with:
         python-version: 3.9  # XXX_PYTHON
     - uses: actions/cache@v2.1.5
@@ -51,7 +51,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v2.2.2
       with:
         python-version: 3.9  # XXX_PYTHON
     - uses: actions/cache@v2.1.5
@@ -81,7 +81,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v2.2.2
       with:
         python-version: 3.9  # XXX_PYTHON
         architecture: 'x86'
