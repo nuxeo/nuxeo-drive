@@ -57,7 +57,6 @@ Rectangle {
                 RowLayout {
                     id: uiSelect
                     spacing: 5
-                    property string suffix: qsTr("SERVER_DEFAULT") + tl.tr
                     Layout.fillWidth: true
 
                     Connections {
@@ -79,14 +78,14 @@ Rectangle {
                     NuxeoRadioButton {
                         id: webUiButton
 
-                        text: "Web UI "
+                        text: "Web UI"
                         onClicked: api.set_server_ui(uid, "web")
                         checked: (forceUi == "web")
                     }
                     NuxeoRadioButton {
                         id: jsfUiButton
 
-                        text: "JSF UI "
+                        text: "JSF UI"
                         onClicked: api.set_server_ui(uid, "jsf")
                         checked: (forceUi == "jsf")
                     }
