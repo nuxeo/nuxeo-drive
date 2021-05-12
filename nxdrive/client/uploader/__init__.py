@@ -257,6 +257,31 @@ class BaseUploader:
         ):
             raise UploadPaused(transfer.uid or -1)
 
+    def _ping_batch_id(self, transfer: Upload, last_ping: int) -> int:
+        """Ping the batchId on a regular basis to prevent its deletions from the transient store.
+        Return the last time the ping was done when it was in less than 55 minutes, else the current time,
+        to allow the caller to update its *last_ping* value.
+        """
+        if not transfer.batch_obj.provider:
+            # The upload is going through Nuxeo directly, no need to ping.
+            return last_ping
+
+        _55_min_in_ns = 55 * 60 * 1000 * 1000 * 1000
+        current_ping = monotonic_ns()
+        if current_ping - last_ping < _55_min_in_ns:
+            # < 55 minutes, no need to ping
+            return last_ping
+
+        log.debug(
+            f"Pinging the batchId {transfer.batch_obj.uid!r} to prevent its purgation from the transient store"
+        )
+        # No file_idx when going outside Nuxeo because there is no blob attached yet
+        file_idx = None
+        # Simple GET to update the batchID TTL in the transient store
+        transfer.batch_obj.get(file_idx)
+
+        return current_ping
+
     def upload_chunks(self, transfer: Upload, blob: FileBlob, chunked: bool, /) -> None:
         """Upload a blob by chunks or in one go."""
 
@@ -294,6 +319,10 @@ class BaseUploader:
                 action.chunk_size = uploader.chunk_size
                 action.chunk_transfer_start_time_ns = monotonic_ns()
 
+                # To prevent the batchId to be purged from the transient store, we need to "ping" it
+                # on a regular basis, see ._ping_batch_id()
+                last_ping = action.chunk_transfer_start_time_ns
+
                 if transfer.batch_obj.is_s3():
                     # Save the multipart upload ID
                     transfer.batch = transfer.batch_obj.as_dict()
@@ -301,6 +330,9 @@ class BaseUploader:
 
                 # If there is an UploadError, we catch it from the processor
                 for _ in uploader.iter_upload():
+                    # Ensure the batchId will not be purged while uploading the content
+                    last_ping = self._ping_batch_id(transfer, last_ping)
+
                     action.progress = action.chunk_size * len(
                         uploader.blob.uploadedChunkIds
                     )
