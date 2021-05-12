@@ -95,8 +95,8 @@ class Engine(QObject):
     rootMoved = pyqtSignal(Path)
     docDeleted = pyqtSignal(Path)
     fileAlreadyExists = pyqtSignal(Path, Path)
-    uiChanged = pyqtSignal()
-    authChanged = pyqtSignal()
+    uiChanged = pyqtSignal(str)
+    authChanged = pyqtSignal(str)
     noSpaceLeftOnDevice = pyqtSignal()
     invalidAuthentication = pyqtSignal()
     newConflict = pyqtSignal(object)
@@ -375,7 +375,7 @@ class Engine(QObject):
         self.dao.update_config(key_name, value)
         setattr(self, name, value)
         log.info(f"{name} preferences set to {value}")
-        self.uiChanged.emit()
+        self.uiChanged.emit(self.uid)
 
     def release_folder_lock(self) -> None:
         log.info("Local Folder unlocking")
@@ -963,7 +963,7 @@ class Engine(QObject):
                 msg += f", reason is: {reason}"
             log.warning(msg)
             self.invalidAuthentication.emit()
-        self.authChanged.emit()
+        self.authChanged.emit(self.uid)
 
     def has_invalid_credentials(self) -> bool:
         return self._invalid_credentials

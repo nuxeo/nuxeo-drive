@@ -46,7 +46,7 @@ Rectangle {
                 Link {
                     text: server_url
                     onClicked: api.open_remote_server(uid)
-                    Layout.fillWidth: true
+                    width: parent.width
                 }
 
                 // Server UI (Web-UI or JSF)
@@ -57,37 +57,35 @@ Rectangle {
                 RowLayout {
                     id: uiSelect
                     spacing: 5
-                    property string suffix: qsTr("SERVER_DEFAULT") + tl.tr
                     Layout.fillWidth: true
 
                     Connections {
                         target: EngineModel
 
-                        function onUiChanged() {
-                            webUiButton.defaultUi = (wui == "web")
-                            jsfUiButton.defaultUi = (wui == "jsf")
+                        function onUiChanged(engineUid) {
+                            if (engineUid != uid) return
+                            control.forceUi = force_ui || wui
                             webUiButton.checked = (forceUi == "web")
                             jsfUiButton.checked = (forceUi == "jsf")
                         }
 
-                        function onAuthChanged() {
+                        function onAuthChanged(engineUid) {
+                            if (engineUid != uid) return
                             authenticated = !api.has_invalid_credentials(uid)
                         }
                     }
 
                     NuxeoRadioButton {
                         id: webUiButton
-                        property bool defaultUi: (wui == "web")
 
-                        text: "Web UI " + (defaultUi ? uiSelect.suffix : "")
+                        text: "Web UI"
                         onClicked: api.set_server_ui(uid, "web")
                         checked: (forceUi == "web")
                     }
                     NuxeoRadioButton {
                         id: jsfUiButton
-                        property bool defaultUi: (wui == "jsf")
 
-                        text: "JSF UI " + (defaultUi ? uiSelect.suffix : "")
+                        text: "JSF UI"
                         onClicked: api.set_server_ui(uid, "jsf")
                         checked: (forceUi == "jsf")
                     }

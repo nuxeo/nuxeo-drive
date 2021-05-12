@@ -4,7 +4,7 @@ import QtQuick.Layouts 1.15
 Rectangle {
     id: control
     width: parent ? parent.width : 0
-    height: 180
+    height: 140
 
     RowLayout {
         anchors.fill: parent
@@ -86,17 +86,9 @@ Rectangle {
                     color: label
                     Layout.alignment: Qt.AlignTop
                 }
-                ColumnLayout {
-                    ScaledText {
-                        text: qsTr("SELECTIVE_SYNC_DESCR") + tl.tr
-                        Layout.fillWidth: true
-                        wrapMode: Text.WordWrap
-                        color: secondaryText
-                    }
-                    Link {
-                        text: qsTr("SELECT_SYNC_FOLDERS") + tl.tr
-                        onClicked: api.filters_dialog(uid)
-                    }
+                Link {
+                    text: qsTr("SELECT_SYNC_FOLDERS") + tl.tr
+                    onClicked: api.filters_dialog(uid)
                 }
             }
         }
