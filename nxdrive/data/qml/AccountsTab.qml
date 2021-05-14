@@ -71,7 +71,7 @@ Rectangle {
                     icon: MdiFont.Icon.accountPlus
                     size: 128;
                     Layout.alignment: Qt.AlignHCenter
-                    enabled: false
+                    onClicked: newAccountPopup.open()
                 }
 
                 ScaledText {
