@@ -15,8 +15,8 @@ ScaledText {
     MouseArea {
         id: linkArea
         enabled: parent.enabled
-        width: parent.width * 3/2
-        height: parent.height * 3/2
+        width: parent.width
+        height: parent.height
         anchors.centerIn: parent
         onClicked: control.clicked()
         cursorShape: Qt.PointingHandCursor
