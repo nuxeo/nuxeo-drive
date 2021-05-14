@@ -441,11 +441,14 @@ class TwoUsersTest(TestCase):
 
         self.app.aboutToQuit.connect(manager.stop)
         engine.syncCompleted.connect(self.app.sync_completed)
-        engine._remote_watcher.remoteScanFinished.connect(
-            self.app.remote_scan_completed
-        )
-        engine._remote_watcher.changesFound.connect(self.app.remote_changes_found)
-        engine._remote_watcher.noChangesFound.connect(self.app.no_remote_changes_found)
+        if hasattr(engine, "_remote_watcher"):  # Sync is disabled
+            engine._remote_watcher.remoteScanFinished.connect(
+                self.app.remote_scan_completed
+            )
+            engine._remote_watcher.changesFound.connect(self.app.remote_changes_found)
+            engine._remote_watcher.noChangesFound.connect(
+                self.app.no_remote_changes_found
+            )
 
         engine_uid = engine.uid
         self._wait_sync[engine_uid] = True

@@ -149,6 +149,8 @@ def test_features(feature, feat_name, default, manager_factory, tmp_path):
 @Options.mock()
 def test_delay_remote_watcher(app, manager_factory):
     """Check that the delay, when set from the server config, is taken into account in the RemoteWatcher."""
+    Options.feature_synchronization = True
+
     manager, engine = manager_factory()
     updater = ServerOptionsUpdater(manager)
 
@@ -202,10 +204,12 @@ def test_delay_remote_watcher(app, manager_factory):
 @Options.mock()
 def test_synchronization_enabled(manager_factory):
     """Check that synchronization_enabled also disables feature_synchronization."""
+    Options.feature_synchronization = False
+
     manager, engine = manager_factory()
     updater = ServerOptionsUpdater(manager)
 
-    def disabled():
+    def enabled():
         return {"synchronization_enabled": True}
 
     # Default values are False
@@ -213,8 +217,8 @@ def test_synchronization_enabled(manager_factory):
     assert Options.feature_synchronization is False
     assert Feature.synchronization is False
 
-    # Mimic the IT team disabling the option
-    with patch.object(engine.remote, "get_server_configuration", new=disabled):
+    # Mimic the IT team enabling the option
+    with patch.object(engine.remote, "get_server_configuration", new=enabled):
         updater._poll()
         assert Options.synchronization_enabled is True
         assert Options.feature_synchronization is True
