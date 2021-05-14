@@ -3,6 +3,7 @@ import os
 import pytest
 
 from nxdrive.exceptions import FolderAlreadyUsed
+from nxdrive.options import Options
 
 from .. import ensure_no_exception
 from ..markers import not_windows
@@ -42,7 +43,9 @@ def test_crash_no_engine_database(manager_factory):
         assert manager.engines
 
 
-def test_crash_engine_no_local_folder(manager_factory):
+@pytest.mark.parametrize("sync_enabled", [True, False])
+@Options.mock()
+def test_crash_engine_no_local_folder(manager_factory, sync_enabled):
     """
         Drive should not crash when the engine local folder is removed.  Traceback:
 
@@ -59,10 +62,13 @@ def test_crash_engine_no_local_folder(manager_factory):
     """
     import shutil
 
+    Options.feature_synchronization = sync_enabled
+
     manager, engine = manager_factory()
 
     engine.local.unset_readonly(engine.local_folder)
-    shutil.rmtree(engine.local_folder)
+    if sync_enabled:
+        shutil.rmtree(engine.local_folder)
     assert not engine.local_folder.is_dir()
 
     with manager:

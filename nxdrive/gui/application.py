@@ -661,7 +661,7 @@ class Application(QApplication):
         msg = self.question(
             Translator.get("DRIVE_ROOT_DELETED_HEADER"),
             Translator.get(
-                "DRIVE_ROOT_DELETED", values=["engine.local_folder", APP_NAME]
+                "DRIVE_ROOT_DELETED", values=[engine.local_folder, APP_NAME]
             ),
             icon=qt.Critical,
         )

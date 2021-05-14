@@ -187,14 +187,16 @@ class Engine(QObject):
         self.csv_dir = self._set_csv_dir_or_cleanup()
 
         if not binder:
+            self._setup_local_folder()
             if not self.server_url:
                 raise EngineInitError(self)
             self._check_https()
             self.remote = self.init_remote()
 
         self._create_queue_manager()
-        self._create_remote_watcher()
-        self._create_local_watcher()
+        if Feature.synchronization:
+            self._create_remote_watcher()
+            self._create_local_watcher()
 
         # Connect for sync start
         self.newQueueItem.connect(self._check_sync_start)
@@ -259,6 +261,10 @@ class Engine(QObject):
         self.queue_manager.newItem.connect(self.newQueueItem)
         self.queue_manager.newErrorGiveUp.connect(self.newError)
 
+        if not Feature.synchronization:
+            # Launch queue processors when the Engine started
+            self.started.connect(self.queue_manager.init_processors)
+
     def _create_local_watcher(self) -> None:
         self._local_watcher = LocalWatcher(self, self.dao)
         self.create_thread(self._local_watcher, "LocalWatcher")
@@ -303,8 +309,9 @@ class Engine(QObject):
         started = not self._stopped
         if started:
             self.stop()
-        self.dao.reinit_states()
-        self._check_root()
+        if Feature.synchronization:
+            self.dao.reinit_states()
+            self._check_root()
         self.download_dir = self._set_download_dir()
         if started:
             self.start()
@@ -1070,8 +1077,9 @@ class Engine(QObject):
 
     def _thread_finished(self) -> None:
         for thread in self._threads:
-            if thread in (self._local_watcher.thread, self._remote_watcher.thread):
-                continue
+            with suppress(AttributeError):
+                if thread in (self._local_watcher.thread, self._remote_watcher.thread):
+                    continue
             if thread.isFinished():
                 thread.quit()
                 self._threads.remove(thread)
@@ -1081,9 +1089,6 @@ class Engine(QObject):
 
     def start(self) -> None:
         log.info(f"Engine {self.uid} is starting")
-
-        if not self.check_fs_marker():
-            raise FsMarkerException()
 
         # Checking root in case of failed migration
         self._check_root()
@@ -1260,6 +1265,25 @@ class Engine(QObject):
         }
         return self.remote_cls(*args, **kwargs)
 
+    def _setup_local_folder(self) -> None:
+        if not Feature.synchronization:
+            return
+
+        new_folder = not self.local_folder.is_dir()
+        if new_folder:
+            self.local_folder.mkdir(parents=True)
+        try:
+            self._check_fs(self.local_folder)
+        except InvalidDriveException:
+            if new_folder:
+                with suppress(OSError):
+                    self.local.unset_readonly(self.local_folder)
+                    self.local_folder.rmdir()
+            raise
+
+        if not self.check_fs_marker():
+            raise FsMarkerException()
+
     def bind(self, binder: Binder, /) -> None:
         check_credentials = not binder.no_check
         check_fs = not (Options.nofscheck or binder.no_fscheck)
@@ -1272,17 +1296,7 @@ class Engine(QObject):
 
         # Check first if the folder is on a supported FS
         if check_fs:
-            new_folder = not self.local_folder.is_dir()
-            if new_folder:
-                self.local_folder.mkdir(parents=True)
-            try:
-                self._check_fs(self.local_folder)
-            except InvalidDriveException as exc:
-                if new_folder:
-                    with suppress(OSError):
-                        self.local.unset_readonly(self.local_folder)
-                        self.local_folder.rmdir()
-                raise exc
+            self._setup_local_folder()
 
         # Persist the user preference about the SSL behavior.
         # It can be tweaked via ca-bundle or ssl-no-verify options. But also
@@ -1348,6 +1362,9 @@ class Engine(QObject):
             self.send_metric("server", "protocol", "http->https")
 
     def _check_root(self) -> None:
+        if not Feature.synchronization:
+            return
+
         root = self.dao.get_state_from_local(ROOT)
         if root is None:
             if self.local_folder.is_dir():
