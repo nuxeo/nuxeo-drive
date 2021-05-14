@@ -1,5 +1,7 @@
 import pytest
 
+from nxdrive.options import Options
+
 
 def test_ctx_menu_entry_inexistent_file(manager_factory):
     manager, engine = manager_factory()
@@ -8,7 +10,10 @@ def test_ctx_menu_entry_inexistent_file(manager_factory):
             manager.get_metadata_infos("/an inexistent folder/a file.bin")
 
 
+@Options.mock()
 def test_ctx_menu_entries(manager_factory):
+    Options.feature_synchronization = True
+
     manager, engine = manager_factory()
     with manager:
         local = engine.local

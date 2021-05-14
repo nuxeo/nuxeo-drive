@@ -916,37 +916,6 @@ class MixinTests(DirectEditSetup):
 
         self._direct_edit_update(doc_id, filename, b"Test", url=url)
 
-    def test_multiple_editions_on_unsynced_document(self):
-        """Direct Edit'ing a file that is not synced must work every time.
-        Before NXDRIVE-1824, only the 1st time was working, then any try
-        to Direct Edit the document was failing.
-        """
-
-        filename = "multiplication des pains.txt"
-        doc_id = self.remote.make_file_with_blob("/", filename, b"Plein de pains.")
-        scheme, host = self.nuxeo_url.split("://")
-        url = (
-            f"nxdrive://edit/{scheme}/{host}"
-            f"/user/{self.user_1}"
-            "/repo/default"
-            f"/nxdocid/{doc_id}"
-            f"/filename/{filename}"
-            f"/downloadUrl/nxfile/default/{doc_id}"
-            f"/file:content/{filename}"
-        )
-
-        # Filter the root to remove local data
-        ws_path = f"/{self.engine_1.dao.get_state_from_local(Path('/')).remote_ref}"
-        self.engine_1.add_filter(ws_path)
-        self.wait_sync()
-        assert not self.local.get_children_info("/")
-
-        # Edit several times the document, it must work
-        self._direct_edit_update(doc_id, filename, b"Pain 1", url=url)
-        self._direct_edit_update(doc_id, filename, b"Pain 2", url=url)
-        self._direct_edit_update(doc_id, filename, b"Pain 3")
-        self._direct_edit_update(doc_id, filename, b"Pain 4")
-
     def test_double_lock_same_user(self):
         filename = "Mode opératoire¹.txt"
         doc_id = self.remote.make_file_with_blob("/", filename, b"Some content.")
@@ -1010,6 +979,37 @@ class TestDirectEdit(OneUserTest, MixinTests):
             assert isinstance(path, Path)
 
             self._direct_edit_update(doc_id, filename, b"Test different partitions")
+
+    def test_multiple_editions_on_unsynced_document(self):
+        """Direct Edit'ing a file that is not synced must work every time.
+        Before NXDRIVE-1824, only the 1st time was working, then any try
+        to Direct Edit the document was failing.
+        """
+
+        filename = "multiplication des pains.txt"
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Plein de pains.")
+        scheme, host = self.nuxeo_url.split("://")
+        url = (
+            f"nxdrive://edit/{scheme}/{host}"
+            f"/user/{self.user_1}"
+            "/repo/default"
+            f"/nxdocid/{doc_id}"
+            f"/filename/{filename}"
+            f"/downloadUrl/nxfile/default/{doc_id}"
+            f"/file:content/{filename}"
+        )
+
+        # Filter the root to remove local data
+        ws_path = f"/{self.engine_1.dao.get_state_from_local(Path('/')).remote_ref}"
+        self.engine_1.add_filter(ws_path)
+        self.wait_sync()
+        assert not self.local.get_children_info("/")
+
+        # Edit several times the document, it must work
+        self._direct_edit_update(doc_id, filename, b"Pain 1", url=url)
+        self._direct_edit_update(doc_id, filename, b"Pain 2", url=url)
+        self._direct_edit_update(doc_id, filename, b"Pain 3")
+        self._direct_edit_update(doc_id, filename, b"Pain 4")
 
 
 class TestDirectEditNoSync(OneUserNoSync, MixinTests):

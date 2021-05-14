@@ -1359,7 +1359,7 @@ class EngineDAO(ConfigurationDAO):
 
             # This will be needed later
             sql = "SELECT max(ROWID) FROM States"
-            current_max_row_id = c.execute(sql).fetchone()[0]
+            current_max_row_id = c.execute(sql).fetchone()[0] or 0
 
             # Insert data in one shot
             query = (

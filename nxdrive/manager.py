@@ -879,6 +879,8 @@ class Manager(QObject):
             engine.local.unset_readonly(engine.local_folder)
             try:
                 shutil.rmtree(engine.local_folder)
+            except FileNotFoundError:
+                pass
             except OSError:
                 log.warning("Cannot purge local files", exc_info=True)
 
