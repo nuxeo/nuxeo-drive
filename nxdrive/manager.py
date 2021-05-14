@@ -141,7 +141,7 @@ class Manager(QObject):
                 Options.locale = user_locale
 
         # Backward-compatibility: handle synchronization state early
-        if version_le(__version__, "5.1.2"):
+        if version_le(__version__, "5.2.0"):
             sync_enabled = self.dao.get_config("synchronization_enabled")
             if sync_enabled is not None:
                 # Note: no need to handle the case where the sync is disabled because it is the default behavior

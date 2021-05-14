@@ -527,9 +527,9 @@ If set to `False`, nothing will be downloaded/uploaded/synchronized but Direct E
 
 - Default value (bool): `False`
 - Version added: 4.4.0
-- Version changed: 5.1.2, changed from `True` to `False`
+- Version changed: 5.2.0, changed from `True` to `False`
 
-The option is deprecated since 5.1.2 and will be removed in a future release. Use `feature.synchronization` instead.
+The option is deprecated since 5.2.0 and will be removed in a future release. Use `feature.synchronization` instead.
 
 * * *
 
@@ -638,7 +638,7 @@ Available features:
 | `auto_updates` | true | 4.4.2 | Allow or disallow auto-updates.
 | `direct_edit` | true | 4.4.2 | Allow or disallow Direct Edit.
 | `direct_transfer` | true | 4.4.2 | Allow or disallow Direct Transfer.
-| `synchronization` | false | 5.1.2 | Enable or disable the synchronization features.
+| `synchronization` | false | 5.2.0 | Enable or disable the synchronization features.
 | `s3` | true | 4.4.2 | Allow or disallow using Amazon S3 direct uploads.
 
 Here is how to tweak features via the local configuration file:
