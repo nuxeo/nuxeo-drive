@@ -13,8 +13,8 @@ macholib==1.14 ; sys_platform == "darwin" \
     --hash=sha256:c500f02867515e6c60a27875b408920d18332ddf96b4035ef03beddd782d4281 \
     --hash=sha256:0c436bc847e7b1d9bda0560351bf76d7caf930fb585a828d13608839ef42c432
     # via pyinstaller
-pefile==2019.4.18 ; sys_platform == "win32" \
-    --hash=sha256:a5d6e8305c6b210849b47a6174ddf9c452b2888340b8177874b862ba6c207645
+pefile==2021.5.13 ; sys_platform == "win32" \
+    --hash=sha256:2aae0c135d4d37e81ff120e825af18b5e4884a97b9290aee811afd6317618f52
     # via pyinstaller
 pyinstaller==4.3 \
     --hash=sha256:5ecf8bbc230d7298a796e52bb745b95eee12878d141f1645612c99246ecd23f2
