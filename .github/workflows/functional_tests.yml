@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-python@v1
+    - uses: actions/setup-python@v2.2.2
       with:
         python-version: 3.9  # XXX_PYTHON
     - uses: actions/cache@v2.1.5
@@ -57,7 +57,7 @@ jobs:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-python@v1
+    - uses: actions/setup-python@v2.2.2
       with:
         python-version: 3.9  # XXX_PYTHON
     - uses: actions/cache@v2.1.5
@@ -86,7 +86,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-python@v1
+    - uses: actions/setup-python@v2.2.2
       with:
         python-version: 3.9  # XXX_PYTHON
     - uses: actions/cache@v2.1.5
@@ -118,7 +118,7 @@ jobs:
     needs: [ft_linux, ft_macos, ft_windows]
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-python@v1
+    - uses: actions/setup-python@v2.2.2
       with:
         python-version: 3.9  # XXX_PYTHON
     - uses: actions/cache@v2.1.5
