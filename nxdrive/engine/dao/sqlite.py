@@ -268,7 +268,10 @@ class ConfigurationDAO(QObject):
         return 1
 
     def get_schema_version(self, cursor: Cursor, db_exists: bool) -> int:
-
+        """
+        Get the schema version stored in the database.
+        Will fetch the information from a PRAGMA or the old storage variable.
+        """
         res = cursor.execute("PRAGMA user_version").fetchone()
         version = int(res[0]) if res else 0
 
@@ -287,6 +290,9 @@ class ConfigurationDAO(QObject):
         return version
 
     def set_schema_version(self, cursor: Cursor, version: int) -> None:
+        """
+        Set the schema *version* in the *user_version* PRAGMA.
+        """
         cursor.execute(f"PRAGMA user_version = {version}")
 
     def _migrate_table(self, cursor: Cursor, name: str, /) -> None:
