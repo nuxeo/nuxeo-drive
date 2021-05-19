@@ -192,7 +192,7 @@ class ConfigurationDAO(QObject):
                 if not exists:
                     self.db.unlink(missing_ok=True)
 
-        self.schema_version = self.get_schema_version()
+        self.schema_version = self.current_schema_version()
         self._engine_uid = self.db.stem.replace("ndrive_", "")
         self.in_tx = None
         self._tx_lock = RLock()
@@ -204,17 +204,11 @@ class ConfigurationDAO(QObject):
         c = self.conn.cursor()
         self._init_db(c)
         if exists:
-            res = c.execute(
-                "SELECT value FROM Configuration WHERE name = ?", (SCHEMA_VERSION,)
-            ).fetchone()
-            schema = int(res[0]) if res else 0
+            schema = self.get_schema_version(c, exists)
             if schema != self.schema_version:
                 self._migrate_db(c, schema)
         else:
-            c.execute(
-                "INSERT INTO Configuration (name, value) VALUES (?, ?)",
-                (SCHEMA_VERSION, self.schema_version),
-            )
+            self.set_schema_version(c, self.schema_version)
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__} db={self.db!r}, exists={self.db.exists()}>"
@@ -270,8 +264,36 @@ class ConfigurationDAO(QObject):
             sys.excepthook(*sys.exc_info())
         return False
 
-    def get_schema_version(self) -> int:
+    def current_schema_version(self) -> int:
         return 1
+
+    def get_schema_version(self, cursor: Cursor, db_exists: bool) -> int:
+        """
+        Get the schema version stored in the database.
+        Will fetch the information from a PRAGMA or the old storage variable.
+        """
+        res = cursor.execute("PRAGMA user_version").fetchone()
+        version = int(res[0]) if res else 0
+
+        if version == 0 and db_exists:
+            # Backward  compatibility
+            res = cursor.execute(
+                "SELECT value FROM Configuration WHERE name = ?", (SCHEMA_VERSION,)
+            ).fetchone()
+            version = int(res[0]) if res else 0
+
+            # Set the pragma for next time and remove old column
+            self.set_schema_version(cursor, version)
+            cursor.execute(
+                "DELETE FROM Configuration WHERE name = ?", (SCHEMA_VERSION,)
+            )
+        return version
+
+    def set_schema_version(self, cursor: Cursor, version: int) -> None:
+        """
+        Set the schema *version* in the *user_version* PRAGMA.
+        """
+        cursor.execute(f"PRAGMA user_version = {version}")
 
     def _migrate_table(self, cursor: Cursor, name: str, /) -> None:
         # Add the last_transfer
@@ -303,7 +325,7 @@ class ConfigurationDAO(QObject):
 
     def _migrate_db(self, cursor: Cursor, version: int, /) -> None:
         if version < 1:
-            self.store_int(SCHEMA_VERSION, 1)
+            self.set_schema_version(cursor, 1)
 
     def _init_db(self, cursor: Cursor, /) -> None:
         cursor.execute(f"PRAGMA journal_mode = {self._journal_mode}")
@@ -444,7 +466,7 @@ class ManagerDAO(ConfigurationDAO):
     # WAL not needed as we write less often and it may have issues on GNU/Linux (NXDRIVE-2524)
     _journal_mode: str = "DELETE"
 
-    def get_schema_version(self) -> int:
+    def current_schema_version(self) -> int:
         return 2
 
     def _init_db(self, cursor: Cursor, /) -> None:
@@ -588,7 +610,7 @@ class ManagerDAO(ConfigurationDAO):
                 "    PRIMARY KEY (uid)"
                 ")"
             )
-            self.store_int(SCHEMA_VERSION, 2)
+            self.set_schema_version(cursor, 2)
         if version < 3:
             cursor.execute(
                 "CREATE TABLE if not exists AutoLock ("
@@ -598,7 +620,7 @@ class ManagerDAO(ConfigurationDAO):
                 "    PRIMARY KEY (path)"
                 ")"
             )
-            self.store_int(SCHEMA_VERSION, 3)
+            self.set_schema_version(cursor, 3)
 
     def get_engines(self) -> List[EngineDef]:
         c = self._get_read_connection().cursor()
@@ -643,7 +665,7 @@ class EngineDAO(ConfigurationDAO):
         self._filters = self.get_filters()
         self.reinit_processors()
 
-    def get_schema_version(self) -> int:
+    def current_schema_version(self) -> int:
         return 20
 
     def _migrate_state(self, cursor: Cursor, /) -> None:
@@ -669,7 +691,7 @@ class EngineDAO(ConfigurationDAO):
                 " WHERE last_local_updated > last_remote_updated"
                 "   AND folderish = 0"
             )
-            self.store_int(SCHEMA_VERSION, 1)
+            self.set_schema_version(cursor, 1)
         if version < 2:
             cursor.execute(
                 "CREATE TABLE if not exists ToRemoteScan ("
@@ -677,24 +699,24 @@ class EngineDAO(ConfigurationDAO):
                 "    PRIMARY KEY (path)"
                 ")"
             )
-            self.store_int(SCHEMA_VERSION, 2)
+            self.set_schema_version(cursor, 2)
         if version < 3:
             self._migrate_state(cursor)
-            self.store_int(SCHEMA_VERSION, 3)
+            self.set_schema_version(cursor, 3)
         if version < 4:
             self._migrate_state(cursor)
             cursor.execute("UPDATE States SET creation_date = last_remote_updated")
-            self.store_int(SCHEMA_VERSION, 4)
+            self.set_schema_version(cursor, 4)
         if version < 5:
             self._create_transfer_tables(cursor)
-            self.store_int(SCHEMA_VERSION, 5)
+            self.set_schema_version(cursor, 5)
         if version < 6:
             # Add the *filesize* field to the Downloads table,
             # used to display download metrics in the systray menu.
             self._append_to_table(
                 cursor, "Downloads", ("filesize", "INTEGER", "DEFAULT", "0")
             )
-            self.store_int(SCHEMA_VERSION, 6)
+            self.set_schema_version(cursor, 6)
         if version < 7:
             # Remove the no-more-used *idx* field of Uploads.
             # SQLite does not support column deletion, we need to recreate
@@ -720,7 +742,7 @@ class EngineDAO(ConfigurationDAO):
             # Delete the table
             cursor.execute("DROP TABLE Uploads_backup;")
 
-            self.store_int(SCHEMA_VERSION, 7)
+            self.set_schema_version(cursor, 7)
         if version < 8:
             if WINDOWS:
                 # Update the tmpname column to add the long path prefix on Windows
@@ -729,7 +751,7 @@ class EngineDAO(ConfigurationDAO):
                     "   SET tmpname = '//?/' || tmpname"
                     " WHERE tmpname NOT LIKE '//?/%'"
                 )
-            self.store_int(SCHEMA_VERSION, 8)
+            self.set_schema_version(cursor, 8)
 
         if version < 9:
             # Change Downloads.path and Uploads.path database field types.
@@ -811,7 +833,7 @@ class EngineDAO(ConfigurationDAO):
             cursor.execute("DROP TABLE Uploads_backup;")
             cursor.execute("DROP TABLE Downloads_backup;")
 
-            self.store_int(SCHEMA_VERSION, 9)
+            self.set_schema_version(cursor, 9)
 
         if version < 10:
             # Remove States with bad digests.
@@ -837,7 +859,7 @@ class EngineDAO(ConfigurationDAO):
                         f"Deleted unsyncable state {id}, remote_ref={remote_ref!r}, remote_digest={digest!r}"
                     )
 
-            self.store_int(SCHEMA_VERSION, 10)
+            self.set_schema_version(cursor, 10)
 
         if version < 11:
             # Add the *is_direct_transfer* field to the Uploads table,
@@ -845,7 +867,7 @@ class EngineDAO(ConfigurationDAO):
             self._append_to_table(
                 cursor, "Uploads", ("is_direct_transfer", "INTEGER", "DEFAULT", "0")
             )
-            self.store_int(SCHEMA_VERSION, 11)
+            self.set_schema_version(cursor, 11)
 
         if version < 12:
             # Add *remote_parent_path* and *remote_parent_ref* fields to the Uploads table,
@@ -856,7 +878,7 @@ class EngineDAO(ConfigurationDAO):
             self._append_to_table(
                 cursor, "Uploads", ("remote_parent_ref", "VARCHAR", "DEFAULT", "NULL")
             )
-            self.store_int(SCHEMA_VERSION, 12)
+            self.set_schema_version(cursor, 12)
 
         if version < 13:
             # Add the *filesize* field to the Uploads table,
@@ -864,7 +886,7 @@ class EngineDAO(ConfigurationDAO):
             self._append_to_table(
                 cursor, "Uploads", ("filesize", "INTEGER", "DEFAULT", "0")
             )
-            self.store_int(SCHEMA_VERSION, 13)
+            self.set_schema_version(cursor, 13)
 
         if version < 14:
             # Add the *duplicate_behavior* field to the States table,
@@ -874,7 +896,7 @@ class EngineDAO(ConfigurationDAO):
                 "States",
                 ("duplicate_behavior", "VARCHAR", "DEFAULT", "'create'"),
             )
-            self.store_int(SCHEMA_VERSION, 14)
+            self.set_schema_version(cursor, 14)
 
         if version < 15:
             # Add the *session* field to the States table.
@@ -895,7 +917,7 @@ class EngineDAO(ConfigurationDAO):
             cursor.execute(
                 f"UPDATE States SET session = {cursor.lastrowid} WHERE local_state = 'direct'"
             )
-            self.store_int(SCHEMA_VERSION, 15)
+            self.set_schema_version(cursor, 15)
 
         if version < 16:
             # Add the *engine* field to the Sessions table
@@ -933,7 +955,7 @@ class EngineDAO(ConfigurationDAO):
             cursor.execute(
                 "UPDATE Sessions SET created_on = CURRENT_TIMESTAMP, planned_items = total"
             )
-            self.store_int(SCHEMA_VERSION, 16)
+            self.set_schema_version(cursor, 16)
 
         if version < 17:
             # Remove the UNIQUE constraint on paths for Uploads table.
@@ -994,7 +1016,7 @@ class EngineDAO(ConfigurationDAO):
             cursor.execute("DROP TABLE Uploads_backup;")
             cursor.execute("DROP TABLE Downloads_backup;")
 
-            self.store_int(SCHEMA_VERSION, 17)
+            self.set_schema_version(cursor, 17)
 
         if version < 18:
             # Replace all backslashes from local paths in States.
@@ -1004,20 +1026,20 @@ class EngineDAO(ConfigurationDAO):
                     " local_parent_path = REPLACE(local_parent_path, '\\', '/')"
                 )
 
-            self.store_int(SCHEMA_VERSION, 18)
+            self.set_schema_version(cursor, 18)
 
         if version < 19:
             # Create the SessionItems table.
 
             self._create_session_items_table(cursor)
-            self.store_int(SCHEMA_VERSION, 19)
+            self.set_schema_version(cursor, 19)
 
         if version < 20:
             # Add the *request_uid* field to the Uploads table
             self._append_to_table(
                 cursor, "Uploads", ("request_uid", "VARCHAR", "DEFAULT", "NULL")
             )
-            self.store_int(SCHEMA_VERSION, 20)
+            self.set_schema_version(cursor, 20)
 
     def _create_table(
         self, cursor: Cursor, name: str, /, *, force: bool = False
