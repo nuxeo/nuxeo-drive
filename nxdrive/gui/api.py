@@ -658,8 +658,14 @@ class QMLDriveApi(QObject):
         )
         log.info(f"Binder is {binder.url}/{binder.username}")
 
+        # We _don't_ want the Engine to be started right now when the sync is enabled
+        # to let the user choose what documents to sync (cf NXDRIVE-1069).
+        # But we _do_ want to start it when the sync is disabled. Not doing that
+        # leads to the impossibility to use Direct Transfer right after the account
+        # addition (cf NXDRIVE-2643).
+        starts = not Feature.synchronization
         engine = self._manager.bind_engine(
-            DEFAULT_SERVER_TYPE, local_folder, name, binder, starts=False
+            DEFAULT_SERVER_TYPE, local_folder, name, binder, starts=starts
         )
 
         # Flag to close the settings window when the filters dialog is closed
