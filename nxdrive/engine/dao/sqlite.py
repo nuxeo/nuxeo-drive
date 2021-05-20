@@ -329,6 +329,7 @@ class ConfigurationDAO(QObject):
 
     def _init_db(self, cursor: Cursor, /) -> None:
         cursor.execute(f"PRAGMA journal_mode = {self._journal_mode}")
+        cursor.execute("PRAGMA temp_store = MEMORY")
         self._create_configuration_table(cursor)
 
     def _create_configuration_table(self, cursor: Cursor, /) -> None:
