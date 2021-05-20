@@ -379,6 +379,10 @@ class BaseUploader:
             log.warning(
                 "Either the upload ID does not exist or the it was already completed."
             )
+        except JSONDecodeError as exc:
+            err = "Cannot parse the server response: invalid data from the server"
+            log.warning(err)
+            raise HTTPError(status=500, message=err) from exc
         finally:
             action.finish_action()
 
