@@ -22,6 +22,7 @@ from ..constants import (
 )
 from ..engine.dao.sqlite import EngineDAO
 from ..exceptions import (
+    AddonForbiddenError,
     AddonNotInstalledError,
     EncryptedSSLCertificateKey,
     FolderAlreadyUsed,
@@ -740,6 +741,8 @@ class QMLDriveApi(QObject):
             error = "INVALID_PARTITION"
         except MissingXattrSupport:
             error = "INVALID_LOCAL_FOLDER"
+        except AddonForbiddenError:
+            error = "ADDON_FORBIDDEN"
         except AddonNotInstalledError:
             error = "ADDON_NOT_INSTALLED"
         except Unauthorized:

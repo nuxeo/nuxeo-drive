@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type
 from urllib.parse import urlsplit
 
 import requests
-from nuxeo.exceptions import HTTPError
+from nuxeo.exceptions import Forbidden, HTTPError
 from nuxeo.handlers.default import Uploader
 
 from ..auth import Token
@@ -23,6 +23,7 @@ from ..client.local.base import LocalClientMixin
 from ..client.remote_client import Remote
 from ..constants import LINUX, MAC, ROOT, SYNC_ROOT, WINDOWS, DelAction, TransferStatus
 from ..exceptions import (
+    AddonForbiddenError,
     AddonNotInstalledError,
     EngineInitError,
     InvalidDriveException,
@@ -1395,8 +1396,15 @@ class Engine(QObject):
         if not self.remote:
             return
 
-        if not self.remote.can_use("NuxeoDrive.GetTopLevelFolder"):
-            raise AddonNotInstalledError()
+        try:
+            if not self.remote.can_use("NuxeoDrive.GetTopLevelFolder"):
+                raise AddonNotInstalledError()
+        except Forbidden:
+            log.warning(
+                "Current user was not allowed to access 'NuxeoDrive.*' operations",
+                exc_info=True,
+            )
+            raise AddonForbiddenError()
 
         local_info = self.local.get_info(ROOT)
         self.dao.insert_local_state(local_info, None)

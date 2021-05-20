@@ -34,6 +34,7 @@ from .engine.engine import Engine
 from .engine.tracker import Tracker
 from .engine.workers import Runner
 from .exceptions import (
+    AddonForbiddenError,
     AddonNotInstalledError,
     EngineInitError,
     EngineTypeMissing,
@@ -821,6 +822,7 @@ class Manager(QObject):
             self.engines[uid] = cls(self, engine_def, binder=binder)
         except Exception as exc:
             skipped_errors = (
+                AddonForbiddenError,
                 AddonNotInstalledError,
                 MissingXattrSupport,
                 InvalidDriveException,

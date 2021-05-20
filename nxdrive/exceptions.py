@@ -11,6 +11,12 @@ class DriveError(Exception):
     pass
 
 
+class AddonForbiddenError(DriveError):
+    """The nuxeo-drive addon access is not allowed to the current user."""
+
+    pass
+
+
 class AddonNotInstalledError(DriveError):
     """The nuxeo-drive addon is not installed on the server."""
 
