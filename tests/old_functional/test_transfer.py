@@ -657,6 +657,40 @@ class TestUpload(OneUserTest):
         assert not list(dao.get_uploads())
         assert self.remote_1.exists("/test.bin")
 
+    def test_server_error_upload_invalid_chunk_response(self):
+        """Test a server error happening when uploading a chunk."""
+        remote = self.remote_1
+        dao = self.engine_1.dao
+        # Locally create a file that will be uploaded remotely
+        self.local_1.make_file("/", "test.bin", content=b"0" * FILE_BUFFER_SIZE * 2)
+
+        # There is no upload, right now
+        assert not list(dao.get_uploads())
+
+        # Alter the first request done to get a batchId
+        with responses.RequestsMock() as rsps, ensure_no_exception():
+            # Other requests should not be altered
+            url = remote.client.host + remote.uploads.endpoint + "/"
+            rsps.add_passthru(re.compile(fr"^(?!{url}).*"))
+
+            html = "<!DOCTYPE html><html><head><title>The page is temporarily unavailable</title></head></html>"
+            chunk_url = re.compile(fr"{url}batchId-[0-9a-f-]+/0")
+            rsps.add(responses.POST, chunk_url, body=html)
+            self.wait_sync(timeout=2)
+
+        assert not self.remote_1.exists("/test.bin")
+        assert len(dao.get_errors(limit=0)) == 1
+
+        # Reset the error
+        for state in dao.get_errors():
+            dao.reset_error(state)
+
+        # Resync and check the file exist
+        with ensure_no_exception():
+            self.wait_sync()
+        assert not list(dao.get_uploads())
+        assert self.remote_1.exists("/test.bin")
+
     def test_chunk_upload_error(self):
         """Test a server error happening while uploading chunks."""
 
