@@ -192,6 +192,7 @@
     "IGNORE_REASON_UNKNOWN": "このファイルは理由不明で無視されています",
     "INSTALL_ADDONS": "アドオンのインストール（アイコンオーバーレイなど）[管理者権限が必要]",
     "INVALID_CREDENTIALS": "無効のクレデンシャル情報",
+    "INVALID_LOCAL_FOLDER": "This partition does not support extended attributes.",
     "INVALID_PARTITION": "このタイプのパーティションはサポートされていません",
     "JUST_UNSYNC": "同期を解除します",
     "LANGUAGE": "日本語",

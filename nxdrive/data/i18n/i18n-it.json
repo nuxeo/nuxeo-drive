@@ -192,6 +192,7 @@
     "IGNORE_REASON_UNKNOWN": "File ignorato per ragioni sconosciute",
     "INSTALL_ADDONS": "Installa Addons (come icone overlays) [richiede diritti amministrativi]",
     "INVALID_CREDENTIALS": "Credenziali non valide",
+    "INVALID_LOCAL_FOLDER": "This partition does not support extended attributes.",
     "INVALID_PARTITION": "Tipo di partizione non supportato",
     "JUST_UNSYNC": "Non sincronizzare",
     "LANGUAGE": "Italiano",
