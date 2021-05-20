@@ -5,6 +5,7 @@
     "ADD_FILES": "Gehitu fitxategiak",
     "ADD_FOLDER": "Gehitu karpeta",
     "ADDON_NOT_INSTALLED": "Zerbitzariko modulua falta da",
+    "ADDON_FORBIDDEN": "Server denied access to Nuxeo Drive operations",
     "ADDONS_INSTALLED": "Gehigarriak instalatuta ✓",
     "ADVANCED_SETTINGS": "Ezarpen aurreratuak",
     "APPLY": "Aplikatu",

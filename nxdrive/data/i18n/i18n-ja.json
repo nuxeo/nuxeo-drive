@@ -5,6 +5,7 @@
     "ADD_FILES": "ファイルを追加",
     "ADD_FOLDER": "新規フォルダ",
     "ADDON_NOT_INSTALLED": "サーバモジュールがありません",
+    "ADDON_FORBIDDEN": "Server denied access to Nuxeo Drive operations",
     "ADDONS_INSTALLED": "インストールされたアドオン✓",
     "ADVANCED_SETTINGS": "詳細設定",
     "APPLY": "適用",

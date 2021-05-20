@@ -5,6 +5,7 @@
     "ADD_FILES": "Ajouter des fichiers",
     "ADD_FOLDER": "Ajouter un dossier",
     "ADDON_NOT_INSTALLED": "Module serveur manquant",
+    "ADDON_FORBIDDEN": "Server denied access to Nuxeo Drive operations",
     "ADDONS_INSTALLED": "Addons installées ✓",
     "ADVANCED_SETTINGS": "Paramètres avancés",
     "APPLY": "Appliquer",

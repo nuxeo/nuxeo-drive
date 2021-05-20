@@ -5,6 +5,7 @@
     "ADD_FILES": "Lägg till filer",
     "ADD_FOLDER": "Lägg till mapp",
     "ADDON_NOT_INSTALLED": "Servermodul saknas",
+    "ADDON_FORBIDDEN": "Server denied access to Nuxeo Drive operations",
     "ADDONS_INSTALLED": "Tillägg installerade ✓",
     "ADVANCED_SETTINGS": "Avancerade inställningar",
     "APPLY": "Tillämpa",
