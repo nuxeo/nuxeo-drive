@@ -28,6 +28,7 @@ from ..exceptions import (
     InvalidDriveException,
     InvalidSSLCertificate,
     MissingClientSSLCertificate,
+    MissingXattrSupport,
     NotFound,
     RootAlreadyBindWithDifferentAccount,
     StartupPageConnectionError,
@@ -737,6 +738,8 @@ class QMLDriveApi(QObject):
             error = "FOLDER_DOES_NOT_EXISTS"
         except InvalidDriveException:
             error = "INVALID_PARTITION"
+        except MissingXattrSupport:
+            error = "INVALID_LOCAL_FOLDER"
         except AddonNotInstalledError:
             error = "ADDON_NOT_INSTALLED"
         except Unauthorized:
