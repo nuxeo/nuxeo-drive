@@ -17,6 +17,10 @@ from nxdrive.options import Options
 from ..markers import mac_only, windows_only
 
 
+class CustomDAO(ConfigurationDAO):
+    schema_version = 0
+
+
 @pytest.fixture(scope="module")
 def js():
     return """
@@ -33,7 +37,7 @@ def js():
 @pytest.fixture
 def config_dao(tmp_path):
     db = tmp_path / "tmp.db"
-    dao = ConfigurationDAO(db)
+    dao = CustomDAO(db)
     try:
         yield dao
     finally:

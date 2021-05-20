@@ -192,7 +192,6 @@ class ConfigurationDAO(QObject):
                 if not exists:
                     self.db.unlink(missing_ok=True)
 
-        self.schema_version = self.current_schema_version()
         self._engine_uid = self.db.stem.replace("ndrive_", "")
         self.in_tx = None
         self._tx_lock = RLock()
@@ -264,9 +263,6 @@ class ConfigurationDAO(QObject):
             sys.excepthook(*sys.exc_info())
         return False
 
-    def current_schema_version(self) -> int:
-        return 1
-
     def get_schema_version(self, cursor: Cursor, db_exists: bool) -> int:
         """
         Get the schema version stored in the database.
@@ -276,17 +272,12 @@ class ConfigurationDAO(QObject):
         version = int(res[0]) if res else 0
 
         if version == 0 and db_exists:
-            # Backward  compatibility
+            # Backward compatibility
             res = cursor.execute(
                 "SELECT value FROM Configuration WHERE name = ?", (SCHEMA_VERSION,)
             ).fetchone()
             version = int(res[0]) if res else 0
 
-            # Set the pragma for next time and remove old column
-            self.set_schema_version(cursor, version)
-            cursor.execute(
-                "DELETE FROM Configuration WHERE name = ?", (SCHEMA_VERSION,)
-            )
         return version
 
     def set_schema_version(self, cursor: Cursor, version: int) -> None:
@@ -322,10 +313,6 @@ class ConfigurationDAO(QObject):
             col.name
             for col in cursor.execute(f"PRAGMA table_info('{table}')").fetchall()
         ]
-
-    def _migrate_db(self, cursor: Cursor, version: int, /) -> None:
-        if version < 1:
-            self.set_schema_version(cursor, 1)
 
     def _init_db(self, cursor: Cursor, /) -> None:
         cursor.execute(f"PRAGMA journal_mode = {self._journal_mode}")
@@ -462,13 +449,11 @@ class ConfigurationDAO(QObject):
 
 class ManagerDAO(ConfigurationDAO):
 
+    schema_version = 4
     _state_factory = EngineDef
 
     # WAL not needed as we write less often and it may have issues on GNU/Linux (NXDRIVE-2524)
     _journal_mode: str = "DELETE"
-
-    def current_schema_version(self) -> int:
-        return 2
 
     def _init_db(self, cursor: Cursor, /) -> None:
         super()._init_db(cursor)
@@ -622,6 +607,9 @@ class ManagerDAO(ConfigurationDAO):
                 ")"
             )
             self.set_schema_version(cursor, 3)
+        if version < 4:
+            self.store_int(SCHEMA_VERSION, 4)
+            self.set_schema_version(cursor, 4)
 
     def get_engines(self) -> List[EngineDef]:
         c = self._get_read_connection().cursor()
@@ -652,6 +640,7 @@ class ManagerDAO(ConfigurationDAO):
 
 class EngineDAO(ConfigurationDAO):
 
+    schema_version = 21
     newConflict = pyqtSignal(object)
     transferUpdated = pyqtSignal()
     directTransferUpdated = pyqtSignal()
@@ -665,9 +654,6 @@ class EngineDAO(ConfigurationDAO):
         self.get_syncing_count()
         self._filters = self.get_filters()
         self.reinit_processors()
-
-    def current_schema_version(self) -> int:
-        return 20
 
     def _migrate_state(self, cursor: Cursor, /) -> None:
         try:
@@ -1041,6 +1027,10 @@ class EngineDAO(ConfigurationDAO):
                 cursor, "Uploads", ("request_uid", "VARCHAR", "DEFAULT", "NULL")
             )
             self.set_schema_version(cursor, 20)
+
+        if version < 21:
+            self.store_int(SCHEMA_VERSION, 21)
+            self.set_schema_version(cursor, 21)
 
     def _create_table(
         self, cursor: Cursor, name: str, /, *, force: bool = False
