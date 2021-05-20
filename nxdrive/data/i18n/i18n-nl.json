@@ -5,6 +5,7 @@
     "ADD_FILES": "Documenten toevoegen",
     "ADD_FOLDER": "Een map toevoegen",
     "ADDON_NOT_INSTALLED": "Servermodule ontbreekt",
+    "ADDON_FORBIDDEN": "Server denied access to Nuxeo Drive operations",
     "ADDONS_INSTALLED": "Geïnstalleerde addons ✓",
     "ADVANCED_SETTINGS": "Geavanceerde instellingen",
     "APPLY": "Toepassen",
