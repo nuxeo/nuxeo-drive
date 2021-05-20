@@ -192,6 +192,7 @@
     "IGNORE_REASON_UNKNOWN": "Berkas ini diabaikan untuk alasan yang tidak diketahui",
     "INSTALL_ADDONS": "Install Addons (like icon overlays) [requires administrative rights]",
     "INVALID_CREDENTIALS": "Kredensial tidak sah",
+    "INVALID_LOCAL_FOLDER": "This partition does not support extended attributes.",
     "INVALID_PARTITION": "Jenis partisi ini tidak didukung",
     "JUST_UNSYNC": "Just unsynchronize",
     "LANGUAGE": "Bahasa Indonesia",

@@ -192,6 +192,7 @@
     "IGNORE_REASON_UNKNOWN": "Ten plik jest ignorowany z nieznanego powodu",
     "INSTALL_ADDONS": "Zainstaluj dodatki (np. nakładki ikon) [wymaga uprawnień administracyjnych]",
     "INVALID_CREDENTIALS": "Nieprawidłowe dane logowania",
+    "INVALID_LOCAL_FOLDER": "This partition does not support extended attributes.",
     "INVALID_PARTITION": "Ten typ partycji nie jest obsługiwany",
     "JUST_UNSYNC": "Po prostu wyłącz synchronizację",
     "LANGUAGE": "Polski",

@@ -192,6 +192,7 @@
     "IGNORE_REASON_UNKNOWN": "Den här filen ignoreras av okänd orsak",
     "INSTALL_ADDONS": "Installera Addons (som ikonöverlag) [kräver administrativa rättigheter]",
     "INVALID_CREDENTIALS": "Ogiltiga inloggningsuppgifter",
+    "INVALID_LOCAL_FOLDER": "This partition does not support extended attributes.",
     "INVALID_PARTITION": "Den här typen av partition stöds inte",
     "JUST_UNSYNC": "Bara avsynkronisera",
     "LANGUAGE": "Svenska",
