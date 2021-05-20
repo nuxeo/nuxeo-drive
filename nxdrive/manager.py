@@ -39,6 +39,7 @@ from .exceptions import (
     EngineTypeMissing,
     FolderAlreadyUsed,
     InvalidDriveException,
+    MissingXattrSupport,
     RootAlreadyBindWithDifferentAccount,
     StartupPageConnectionError,
 )
@@ -415,6 +416,8 @@ class Manager(QObject):
 
             try:
                 engine.start()
+            except MissingXattrSupport as exc:
+                log.warning(f"Could not start {engine}: {exc}")
             except Exception:
                 log.exception(f"Could not start {engine}")
 
@@ -819,6 +822,7 @@ class Manager(QObject):
         except Exception as exc:
             skipped_errors = (
                 AddonNotInstalledError,
+                MissingXattrSupport,
                 InvalidDriveException,
                 RootAlreadyBindWithDifferentAccount,
             )

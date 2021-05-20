@@ -26,6 +26,7 @@ from ..exceptions import (
     AddonNotInstalledError,
     EngineInitError,
     InvalidDriveException,
+    MissingXattrSupport,
     PairInterrupt,
     RootAlreadyBindWithDifferentAccount,
     ThreadInterrupt,
@@ -71,10 +72,6 @@ if TYPE_CHECKING:
 __all__ = ("Engine", "ServerBindingSettings")
 
 log = getLogger(__name__)
-
-
-class FsMarkerException(Exception):
-    pass
 
 
 class Engine(QObject):
@@ -1083,7 +1080,7 @@ class Engine(QObject):
         log.info(f"Engine {self.uid} is starting")
 
         if not self.check_fs_marker():
-            raise FsMarkerException()
+            raise MissingXattrSupport(self.local_folder)
 
         # Checking root in case of failed migration
         self._check_root()
@@ -1322,6 +1319,9 @@ class Engine(QObject):
                 server_url, user, *_ = root_id.split("|")
                 if (self.server_url, self.remote_user) != (server_url, user):
                     raise RootAlreadyBindWithDifferentAccount(user, server_url)
+
+        if not self.check_fs_marker():
+            raise MissingXattrSupport(path)
 
     @if_frozen
     def _check_https(self) -> None:

@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -90,6 +91,22 @@ class MissingClientSSLCertificate(DriveError):
 
     def __repr__(self) -> str:
         return "No client-side SSL certificate. Use 'cert-file' and 'cert-key-file'."
+
+    def __str__(self) -> str:
+        return repr(self)
+
+
+class MissingXattrSupport(DriveError):
+    """
+    The desired folder to store documents is located on a filesystem
+    that does not support extended attributes.
+    """
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+
+    def __repr__(self) -> str:
+        return f"{str(self.path)!r} is located on a filesystem that does not support extended attributes."
 
     def __str__(self) -> str:
         return repr(self)
