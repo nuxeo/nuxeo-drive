@@ -1199,8 +1199,12 @@ class EngineDAO(ConfigurationDAO):
         raise OperationalError("Cannot acquire")
 
     def release_state(self, thread_id: Optional[int], /) -> None:
-        if thread_id is not None:
+        if thread_id is None:
+            return
+        try:
             self.release_processor(thread_id)
+        except OperationalError:
+            log.warning(f"Cannot release processor {thread_id}", exc_info=True)
 
     def release_processor(self, processor_id: int, /) -> bool:
         with self.lock:
