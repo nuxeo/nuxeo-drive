@@ -76,12 +76,6 @@ class FolderAlreadyUsed(DriveError):
     pass
 
 
-class InvalidDriveException(DriveError):
-    """The bound folder cannot be used on this file system."""
-
-    pass
-
-
 class InvalidSSLCertificate(DriveError):
     """The SSL certificate is not official."""
 

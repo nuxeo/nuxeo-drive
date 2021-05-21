@@ -26,7 +26,6 @@ from ..exceptions import (
     AddonNotInstalledError,
     EncryptedSSLCertificateKey,
     FolderAlreadyUsed,
-    InvalidDriveException,
     InvalidSSLCertificate,
     MissingClientSSLCertificate,
     MissingXattrSupport,
@@ -737,8 +736,6 @@ class QMLDriveApi(QObject):
             return
         except NotFound:
             error = "FOLDER_DOES_NOT_EXISTS"
-        except InvalidDriveException:
-            error = "INVALID_PARTITION"
         except MissingXattrSupport:
             error = "INVALID_LOCAL_FOLDER"
         except AddonForbiddenError:

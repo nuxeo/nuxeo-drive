@@ -43,10 +43,6 @@ class AbstractOSIntegration(QObject):
     def unregister_startup(self) -> None:
         pass
 
-    @staticmethod
-    def is_partition_supported(folder: Path, /) -> bool:
-        return True
-
     @pyqtSlot(result=bool)
     def addons_installed(self) -> bool:
         return False

@@ -26,7 +26,6 @@ from ..exceptions import (
     AddonForbiddenError,
     AddonNotInstalledError,
     EngineInitError,
-    InvalidDriveException,
     MissingXattrSupport,
     PairInterrupt,
     RootAlreadyBindWithDifferentAccount,
@@ -864,13 +863,13 @@ class Engine(QObject):
             self.remote.revoke_token()
 
     def check_fs_marker(self) -> bool:
-        tag, tag_value = "drive-fs-test", b"NXDRIVE_VERIFICATION"
+        tag, tag_value = "drive-fs-test", "NXDRIVE_VERIFICATION"
         if not self.local_folder.is_dir():
             self.rootDeleted.emit()
             return False
 
         self.local.set_remote_id(ROOT, tag_value, name=tag)
-        if self.local.get_remote_id(ROOT, name=tag) != tag_value.decode("utf-8"):
+        if self.local.get_remote_id(ROOT, name=tag) != tag_value:
             return False
 
         self.local.remove_remote_id(ROOT, name=tag)
@@ -1272,15 +1271,12 @@ class Engine(QObject):
             self.local_folder.mkdir(parents=True)
         try:
             self._check_fs(self.local_folder)
-        except InvalidDriveException:
+        except MissingXattrSupport as exc:
             if new_folder:
                 with suppress(OSError):
                     self.local.unset_readonly(self.local_folder)
                     self.local_folder.rmdir()
-            raise
-
-        if not self.check_fs_marker():
-            raise MissingXattrSupport(self.local_folder)
+            raise exc
 
     def bind(self, binder: Binder, /) -> None:
         check_credentials = not binder.no_check
@@ -1324,8 +1320,8 @@ class Engine(QObject):
         self._check_root()
 
     def _check_fs(self, path: Path, /) -> None:
-        if not self.manager.osi.is_partition_supported(path):
-            raise InvalidDriveException()
+        if not self.check_fs_marker():
+            raise MissingXattrSupport(path)
 
         if path.is_dir():
             root_id = self.local.get_root_id()
@@ -1334,9 +1330,6 @@ class Engine(QObject):
                 server_url, user, *_ = root_id.split("|")
                 if (self.server_url, self.remote_user) != (server_url, user):
                     raise RootAlreadyBindWithDifferentAccount(user, server_url)
-
-        if not self.check_fs_marker():
-            raise MissingXattrSupport(path)
 
     @if_frozen
     def _check_https(self) -> None:

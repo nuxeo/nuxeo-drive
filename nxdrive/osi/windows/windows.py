@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any, Dict
 
 import win32api
-import win32file
 from win32com.client import Dispatch
 from win32com.shell import shell, shellcon
 
@@ -98,20 +97,6 @@ class WindowsIntegration(AbstractOSIntegration):
         else:
             return bool(self.addons_installed())
         return False
-
-    @staticmethod
-    def is_partition_supported(path: Path, /) -> bool:
-        """
-        Only NTFS is supported on Windows.
-        FAT and FAT32 do not support extended attributes.
-        """
-        folder = str(path)
-        if folder[-1] != os.path.sep:
-            folder += os.path.sep
-        if win32file.GetDriveType(folder) != win32file.DRIVE_FIXED:
-            return False
-        volume = win32file.GetVolumePathName(folder)
-        return bool(win32api.GetVolumeInformation(volume)[-1] == "NTFS")
 
     def get_system_configuration(self) -> Dict[str, Any]:
         if not registry.exists(CONFIG_REGISTRY_KEY):

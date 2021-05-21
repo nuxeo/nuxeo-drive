@@ -1,15 +1,12 @@
 import os
 import re
-import stat
 import subprocess
 import sys
-from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.parse import quote
 
-import xattr
 from CoreServices import (
     CFURLCreateWithString,
     LSSetDefaultHandlerForURLScheme,
@@ -194,35 +191,6 @@ class DarwinIntegration(AbstractOSIntegration):
             return
         LSSetDefaultHandlerForURLScheme(NXDRIVE_SCHEME, bundle_id)
         log.info(f"Registered bundle {bundle_id!r} for URL scheme {NXDRIVE_SCHEME!r}")
-
-    @staticmethod
-    def is_partition_supported(folder: Path, /) -> bool:
-        if folder is None:
-            return False
-        result = False
-        to_delete = not folder.exists()
-        try:
-            if to_delete:
-                folder.mkdir()
-            if not os.access(folder, os.W_OK):
-                folder.chmod(
-                    stat.S_IXUSR
-                    | stat.S_IRGRP
-                    | stat.S_IXGRP
-                    | stat.S_IRUSR
-                    | stat.S_IWGRP
-                    | stat.S_IWUSR
-                )
-            key, value = "drive-test", b"drive-test"
-            xattr.setxattr(folder, key, value)
-            if xattr.getxattr(folder, key) == value:
-                result = True
-            xattr.removexattr(folder, key)
-        finally:
-            if to_delete:
-                with suppress(OSError):
-                    folder.rmdir()
-        return result
 
     def _send_notification(self, name: str, content: Dict[str, Any], /) -> None:
         """

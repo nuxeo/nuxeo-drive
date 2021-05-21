@@ -39,7 +39,6 @@ from .exceptions import (
     EngineInitError,
     EngineTypeMissing,
     FolderAlreadyUsed,
-    InvalidDriveException,
     MissingXattrSupport,
     RootAlreadyBindWithDifferentAccount,
     StartupPageConnectionError,
@@ -825,7 +824,6 @@ class Manager(QObject):
                 AddonForbiddenError,
                 AddonNotInstalledError,
                 MissingXattrSupport,
-                InvalidDriveException,
                 RootAlreadyBindWithDifferentAccount,
             )
             if not isinstance(exc, skipped_errors):
