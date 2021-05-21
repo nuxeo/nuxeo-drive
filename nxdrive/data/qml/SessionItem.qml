@@ -90,14 +90,12 @@ Rectangle {
                             RowLayout {
                                 id: csvRow
                                 visible: !active && !csvFileLink.text && uploaded > 0
+                                width: csvCreationLink.width
                                 IconLabel {
+                                    id: csvCreationLink
                                     icon: MdiFont.Icon.csv;
                                     size: 15
                                     tooltip: qsTr("EXPORT_CSV") + tl.tr
-                                }
-                                Link {
-                                    id: csvCreationLink
-                                    Layout.fillWidth: true
                                     onClicked: {
                                         csvCreationLink.enabled = false
                                         try {
@@ -110,7 +108,6 @@ Rectangle {
                                         } finally {
                                             csvCreationLink.enabled = true
                                         }
-
                                     }
                                 }
                             }
