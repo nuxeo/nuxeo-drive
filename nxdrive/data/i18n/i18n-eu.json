@@ -194,7 +194,6 @@
     "INSTALL_ADDONS": "Instalatu gehigarriak (esaterako ikono gainjarriak) [administrazio-baimenak behar dira]",
     "INVALID_CREDENTIALS": "Kredentzial baliogabeak",
     "INVALID_LOCAL_FOLDER": "This partition does not support extended attributes.",
-    "INVALID_PARTITION": "Ez da partizio mota hau onartzen",
     "JUST_UNSYNC": "Desinkronizatu soilik",
     "LANGUAGE": "Euskara",
     "LANGUAGE_SELECT": "Hizkuntza",
