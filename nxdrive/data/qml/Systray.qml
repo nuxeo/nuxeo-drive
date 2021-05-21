@@ -164,8 +164,10 @@ Rectangle {
                 IconLabel {
                     icon: MdiFont.Icon.folder
                     iconColor: secondaryIcon
-                    onClicked: api.open_local(accountSelect.getRole("uid"), "/")
+                    onClicked: feat_synchronization.enabled ? api.open_local(accountSelect.getRole("uid"), "/") : null
                     tooltip: qsTr("OPEN_ROOT_FOLDER").arg(APP_NAME) + tl.tr
+                    enabled: feat_synchronization.enabled
+                    opacity: feat_synchronization.enabled ? 1.0 : 0.5
                 }
 
                 // Icon 4: open the Direct Transfer window
