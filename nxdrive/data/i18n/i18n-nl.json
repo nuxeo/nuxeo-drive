@@ -194,7 +194,6 @@
     "INSTALL_ADDONS": "Installeer Addons (zoals pictogramoverlays) [vereist administratieve rechten]",
     "INVALID_CREDENTIALS": "Ongeldige aanmeldgegevens",
     "INVALID_LOCAL_FOLDER": "This partition does not support extended attributes.",
-    "INVALID_PARTITION": "Dit type partitie wordt niet ondersteund",
     "JUST_UNSYNC": "Gewoon niet-synchroniseren",
     "LANGUAGE": "Nederlands",
     "LANGUAGE_SELECT": "Taal",

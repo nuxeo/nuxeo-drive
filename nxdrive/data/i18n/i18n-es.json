@@ -194,7 +194,6 @@
     "INSTALL_ADDONS": "Instalar complementos (como superposiciones de iconos) [requiere derechos administrativos]",
     "INVALID_CREDENTIALS": "Credenciales no válidas",
     "INVALID_LOCAL_FOLDER": "This partition does not support extended attributes.",
-    "INVALID_PARTITION": "Este tipo de partición no es compatible",
     "JUST_UNSYNC": "Dessincronizar",
     "LANGUAGE": "Español",
     "LANGUAGE_SELECT": "Idioma",

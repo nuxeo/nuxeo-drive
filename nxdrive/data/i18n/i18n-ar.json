@@ -194,7 +194,6 @@
     "INSTALL_ADDONS": "Install Addons (like icon overlays) [requires administrative rights]",
     "INVALID_CREDENTIALS": "Invalid credentials",
     "INVALID_LOCAL_FOLDER": "This partition does not support extended attributes.",
-    "INVALID_PARTITION": "This type of partition is not supported",
     "JUST_UNSYNC": "Just unsynchronize",
     "LANGUAGE": "English",
     "LANGUAGE_SELECT": "Language",
