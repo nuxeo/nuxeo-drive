@@ -19,6 +19,6 @@ ScaledText {
         height: parent.height
         anchors.centerIn: parent
         onClicked: control.clicked()
-        cursorShape: Qt.PointingHandCursor
+        cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
     }
 }
