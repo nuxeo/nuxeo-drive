@@ -103,8 +103,6 @@ def test_callback():
     Options.cert_file = __file__
     Options.deletion_behavior = "unsync"
     Options.deletion_behavior = "unknown"
-    Options.exec_profile = "private"
-    Options.exec_profile = "unknown"
     Options.use_sentry = False
     Options.is_frozen = True
     Options.use_sentry = False

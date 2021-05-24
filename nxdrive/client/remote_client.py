@@ -42,7 +42,6 @@ from ..engine.activity import Action, DownloadAction, UploadAction, Verification
 from ..exceptions import DownloadPaused, NotFound, ScrollDescendantsError, UploadPaused
 from ..metrics.constants import (
     EXEC_LOCALE,
-    EXEC_PROFILE,
     EXEC_SESSION_UID,
     GLOBAL_METRICS,
     INSTALLATION_TYPE,
@@ -126,7 +125,6 @@ class Remote(Nuxeo):
 
         nx_metrics = {
             INSTALLATION_TYPE: installation_type,
-            EXEC_PROFILE: Options.exec_profile,
             EXEC_SESSION_UID: Options.session_uid,
             METRICS_CUSTOM: int(Options.custom_metrics),
             METRICS_GA: int(Options.use_analytics),
