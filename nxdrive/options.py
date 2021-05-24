@@ -68,9 +68,6 @@ _IS_FROZEN = hasattr(sys, "frozen")
 DEFAULT_LOG_LEVEL_CONSOLE = "WARNING"
 DEFAULT_LOG_LEVEL_FILE = "DEBUG" if _IS_ALPHA or not _IS_FROZEN else "INFO"
 
-# Used to differentiate between QA/dev and prod
-_DEFAULT_EXEC_PROFILE = "public" if _IS_FROZEN else "private"
-
 
 def _get_home() -> Path:
     """
@@ -243,7 +240,6 @@ class MetaOptions(type):
         "disabled_file_integrity_check": (False, "default"),
         "disallowed_types_for_dt": (__doctypes_no_dt, "default"),
         "dt_hide_personal_space": (False, "default"),
-        "exec_profile": (_DEFAULT_EXEC_PROFILE, "default"),
         "findersync_batch_size": (50, "default"),
         "force_locale": (None, "default"),
         "handshake_timeout": (60, "default"),
@@ -613,12 +609,6 @@ def validate_tmp_file_limit(value: Union[int, float], /) -> float:
     raise ValueError("Temporary file limit must be above 0")
 
 
-def _validate_exec_profile(value: str, /) -> str:
-    if value in ("public", "private"):
-        return value
-    raise ValueError("Can only be 'public' or 'private'.")
-
-
 def _callback_synchronization_enabled(new_value: bool) -> None:
     log.warning(
         "The option is deprecated since 5.2.0 and will be removed in a future release."
@@ -645,4 +635,3 @@ Options.checkers["use_sentry"] = validate_use_sentry
 Options.checkers["tmp_file_limit"] = validate_tmp_file_limit
 Options.checkers["cert_file"] = validate_cert_path
 Options.checkers["cert_key_file"] = validate_cert_path
-Options.checkers["exec_profile"] = _validate_exec_profile

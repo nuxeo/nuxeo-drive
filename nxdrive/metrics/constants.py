@@ -7,7 +7,6 @@ ENDPOINT = "/site/api/v1/me"
 
 # General
 INSTALLATION_TYPE = "installation.type"
-EXEC_PROFILE = "execution.profile"
 EXEC_SESSION_UID = "execution.session.uid"
 METRICS_CUSTOM = "metrics.custom"
 METRICS_GA = "metrics.ga"
