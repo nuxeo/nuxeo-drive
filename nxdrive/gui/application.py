@@ -23,7 +23,7 @@ from ..constants import (
     DelAction,
 )
 from ..engine.activity import Action
-from ..engine.dao.sqlite import EngineDAO
+from ..engine.dao.engine import EngineDAO
 from ..engine.engine import Engine
 from ..feature import Beta, DisabledFeatures, Feature
 from ..gui.folders_dialog import DialogMixin, DocumentsDialog, FoldersDialog

@@ -4,7 +4,7 @@ from sqlite3 import DatabaseError
 from time import sleep
 
 import nxdrive.engine.dao.utils
-from nxdrive.engine.dao.sqlite import ConfigurationDAO
+from nxdrive.engine.dao.base import BaseDAO
 
 from .. import ensure_no_exception
 
@@ -51,7 +51,7 @@ def test_create_backup(manager_factory, tmp, nuxeo_url, user_factory, monkeypatc
         return nxdrive.engine.dao.utils.restore_backup(self.db)
 
     restored = False
-    monkeypatch.setattr(ConfigurationDAO, "restore_backup", restore_db)
+    monkeypatch.setattr(BaseDAO, "restore_backup", restore_db)
 
     with manager_factory(home=home, with_engine=False) as manager:
         assert (home / "manager.db").exists()

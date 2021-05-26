@@ -10,7 +10,7 @@ from ..options import Options
 from ..utils import client_certificate, decrypt, encrypt, force_decode
 
 if TYPE_CHECKING:
-    from ..engine.dao.sqlite import EngineDAO  # noqa
+    from ..engine.dao.engine import EngineDAO  # noqa
 
 __all__ = (
     "AutomaticProxy",

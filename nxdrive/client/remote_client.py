@@ -70,7 +70,7 @@ from .uploader import BaseUploader
 from .uploader.sync import SyncUploader
 
 if TYPE_CHECKING:
-    from ..engine.dao.sqlite import EngineDAO  # noqa
+    from ..engine.dao.engine import EngineDAO  # noqa
 
 __all__ = ("Remote",)
 

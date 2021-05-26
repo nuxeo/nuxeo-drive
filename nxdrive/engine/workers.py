@@ -11,7 +11,7 @@ from ..utils import current_thread_id
 from .activity import Action, IdleAction
 
 if TYPE_CHECKING:
-    from .dao.sqlite import EngineDAO  # noqa
+    from .dao.engine import EngineDAO  # noqa
     from .engine import Engine  # noqa
 
 __all__ = ("EngineWorker", "PollWorker", "Worker")
