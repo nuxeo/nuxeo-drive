@@ -184,7 +184,7 @@ class Engine(QObject):
         self.csv_dir = self._set_csv_dir_or_cleanup()
 
         if not binder:
-            self._setup_local_folder()
+            self._setup_local_folder(not Options.nofscheck)
             if not self.server_url:
                 raise EngineInitError(self)
             self._check_https()
@@ -1262,8 +1262,8 @@ class Engine(QObject):
         }
         return self.remote_cls(*args, **kwargs)
 
-    def _setup_local_folder(self) -> None:
-        if not Feature.synchronization:
+    def _setup_local_folder(self, check_fs: bool) -> None:
+        if not Feature.synchronization or not check_fs:
             return
 
         new_folder = not self.local_folder.is_dir()
@@ -1290,7 +1290,7 @@ class Engine(QObject):
 
         # Check first if the folder is on a supported FS
         if check_fs:
-            self._setup_local_folder()
+            self._setup_local_folder(check_fs)
 
         # Persist the user preference about the SSL behavior.
         # It can be tweaked via ca-bundle or ssl-no-verify options. But also
