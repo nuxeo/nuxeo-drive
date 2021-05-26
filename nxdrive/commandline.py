@@ -5,7 +5,6 @@ import os
 import sys
 from argparse import ArgumentParser, Namespace
 from configparser import DEFAULTSECT, ConfigParser
-from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
 from pathlib import Path
@@ -761,23 +760,31 @@ class HealthCheck:
     File handling and clean-up are automatic.
     """
 
-    def __init__(self) -> None:
-        self.crash_file = Options.nxdrive_home / "crash.state"
+    def __init__(self, folder: Optional[Path] = None) -> None:
+        """Allow to pass a custom *folder* to ease testing."""
+        # Note1: do not rely on Options.nxdrive_home as it may be changed in options.
+        # Note2: keep that code synced with fatal_error.py::`show_critical_error()`.
+        folder = folder or Path.home() / ".nuxeo-drive"
+        folder.mkdir(parents=True, exist_ok=True)
+        self.crash_file = folder / "crash.state"
 
     def __enter__(self) -> "HealthCheck":
         """Get or create the crash file to know the current application's state."""
         # Be careful for any error, so using a broad try/catch block.
         try:
-            if self.crash_file.is_file():
-                log.warning("It seems the application crashed at the previous run 😮")
-                State.has_crashed = True
-                with suppress(OSError):
-                    State.crash_details = self.crash_file.read_text().strip()
-            else:
+            try:
+                State.crash_details = self.crash_file.read_text(
+                    encoding="utf-8", errors="ignore"
+                )
+            except FileNotFoundError:
                 # Create the file for the next run
                 self.crash_file.touch()
+            else:
+                log.warning("It seems the application crashed at the previous run 😮")
+                log.warning(f"Crash trace:\n{State.crash_details}")
+                State.has_crashed = True
         except Exception:
-            log.warning("Cannot get or create the crash file", exc_info=True)
+            log.exception("Cannot get or create the crash file")
 
         return self
 
@@ -789,6 +796,6 @@ class HealthCheck:
         """
         # Be careful for any error, so using a broad try/catch block.
         try:
-            self.crash_file.unlink()
+            self.crash_file.unlink(missing_ok=True)
         except Exception:
-            log.warning("Cannot clean-up the crash file", exc_info=True)
+            log.exception("Cannot clean-up the crash file")

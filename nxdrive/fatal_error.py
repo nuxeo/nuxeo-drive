@@ -265,8 +265,11 @@ def show_critical_error() -> None:
     full_error = "".join(traceback.format_exception(*sys.exc_info()))
 
     with suppress(Exception):
-        crash_file = Options.nxdrive_home / "crash.state"
-        crash_file.write_text(full_error)
+        # Note1: do not rely on Options.nxdrive_home as it may be changed in options.
+        # Note2: keep that code synced with commandline.py::`HealthCheck.__init__()`.
+        crash_file = Path.home() / ".nuxeo-drive" / "crash.state"
+        crash_file.parent.mkdir(parents=True, exist_ok=True)
+        crash_file.write_text(full_error, encoding="utf-8", errors="replace")
 
     try:
         fatal_error_qt(full_error)
