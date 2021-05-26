@@ -669,7 +669,7 @@ class EngineDAO(BaseDAO):
                 "UPDATE States  SET processor = 0 WHERE processor = ?", (processor_id,)
             )
             log.debug(f"Released processor {processor_id}")
-            return c.rowcount > 0
+            return bool(c.rowcount > 0)
 
     def acquire_processor(self, thread_id: int, row_id: int, /) -> bool:
         with self.lock:
@@ -681,7 +681,7 @@ class EngineDAO(BaseDAO):
                 "   AND processor IN (0, ?)",
                 (thread_id, row_id, thread_id),
             )
-            return c.rowcount == 1
+            return bool(c.rowcount == 1)
 
     def _reinit_states(self, cursor: Cursor, /) -> None:
         cursor.execute("DROP TABLE States")
@@ -791,7 +791,7 @@ class EngineDAO(BaseDAO):
                     pair_state,
                 ),
             )
-            row_id = c.lastrowid
+            row_id: int = c.lastrowid
             parent = (
                 c.execute(
                     "SELECT * FROM States WHERE local_path = ?", (parent_path,)
@@ -976,7 +976,7 @@ class EngineDAO(BaseDAO):
         self, name: str, parent: str, row_id: int, /
     ) -> Optional[DocPair]:
         c = self._get_read_connection().cursor()
-        return c.execute(
+        doc_pair: Optional[DocPair] = c.execute(
             "SELECT *"
             "  FROM States"
             " WHERE id != ?"
@@ -984,6 +984,7 @@ class EngineDAO(BaseDAO):
             "   AND remote_parent_ref = ?",
             (row_id, name, parent),
         ).fetchone()
+        return doc_pair
 
     def update_local_state(
         self,
@@ -1053,7 +1054,7 @@ class EngineDAO(BaseDAO):
     def get_valid_duplicate_file(self, digest: str, /) -> Optional[DocPair]:
         """Find a file already synced with the same digest as the given *digest*."""
         c = self._get_read_connection().cursor()
-        return c.execute(
+        doc_pair: Optional[DocPair] = c.execute(
             "SELECT *"
             "  FROM States"
             " WHERE local_digest = ?"
@@ -1061,6 +1062,7 @@ class EngineDAO(BaseDAO):
             "   AND pair_state = 'synchronized'",
             (digest, digest),
         ).fetchone()
+        return doc_pair
 
     def get_remote_descendants(self, path: str, /) -> DocPairs:
         c = self._get_read_connection().cursor()
@@ -1127,7 +1129,7 @@ class EngineDAO(BaseDAO):
         if condition:
             query = f"{query} WHERE {condition}"
         c = self._get_read_connection().cursor()
-        return c.execute(query).fetchone().count
+        return int(c.execute(query).fetchone().count)
 
     def get_global_size(self) -> int:
         c = self._get_read_connection().cursor()
@@ -1185,7 +1187,7 @@ class EngineDAO(BaseDAO):
 
     def get_first_state_from_partial_remote(self, ref: str, /) -> Optional[DocPair]:
         c = self._get_read_connection().cursor()
-        return c.execute(
+        doc_pair: DocPair = c.execute(
             "SELECT *"
             "  FROM States"
             " WHERE remote_ref LIKE ? "
@@ -1193,6 +1195,7 @@ class EngineDAO(BaseDAO):
             " LIMIT 1",
             (f"%{ref}",),
         ).fetchone()
+        return doc_pair
 
     def get_normal_state_from_remote(self, ref: str, /) -> Optional[DocPair]:
         # TODO Select the only states that is not a collection
@@ -1205,13 +1208,14 @@ class EngineDAO(BaseDAO):
         # remote_path root is empty, should refactor this
         path = "" if path == "/" else path
         c = self._get_read_connection().cursor()
-        return c.execute(
+        doc_pair: Optional[DocPair] = c.execute(
             "SELECT *"
             "  FROM States"
             " WHERE remote_ref = ?"
             "   AND remote_parent_path = ?",
             (ref, path),
         ).fetchone()
+        return doc_pair
 
     def get_states_from_remote(self, ref: str, /) -> DocPairs:
         c = self._get_read_connection().cursor()
@@ -1227,7 +1231,10 @@ class EngineDAO(BaseDAO):
             c = self._get_read_connection().cursor()
 
         try:
-            return c.execute("SELECT * FROM States WHERE id = ?", (row_id,)).fetchone()
+            doc_pair: Optional[DocPair] = c.execute(
+                "SELECT * FROM States WHERE id = ?", (row_id,)
+            ).fetchone()
+            return doc_pair
         finally:
             if from_write:
                 self.lock.release()
@@ -1393,9 +1400,10 @@ class EngineDAO(BaseDAO):
 
     def get_state_from_local(self, path: Path, /) -> Optional[DocPair]:
         c = self._get_read_connection().cursor()
-        return c.execute(
+        doc_pair: Optional[DocPair] = c.execute(
             "SELECT * FROM States WHERE local_path = ?", (path,)
         ).fetchone()
+        return doc_pair
 
     def insert_remote_state(
         self,
@@ -1440,7 +1448,7 @@ class EngineDAO(BaseDAO):
                     info.creation_time,
                 ),
             )
-            row_id = c.lastrowid
+            row_id: int = c.lastrowid
 
             # Check if parent is not in creation
             parent = c.execute(
@@ -1634,7 +1642,7 @@ class EngineDAO(BaseDAO):
                     version,
                 ),
             )
-            result = c.rowcount == 1
+            result = bool(c.rowcount == 1)
 
             # Retry without version for folder
             if not result and row.folderish:
@@ -1665,7 +1673,7 @@ class EngineDAO(BaseDAO):
                         row.remote_parent_ref,
                     ),
                 )
-            result = c.rowcount == 1
+            result = bool(c.rowcount == 1)
 
             if not result:
                 log.debug(f"Was not able to synchronize state: {row!r}")
@@ -1840,7 +1848,7 @@ class EngineDAO(BaseDAO):
         row = c.execute(
             "SELECT COUNT(path) FROM RemoteScan WHERE path = ? LIMIT 1", (path,)
         ).fetchone()
-        return row[0] > 0
+        return bool(row[0] > 0)
 
     def is_filter(self, path: str, /) -> bool:
         path = self._clean_filter_path(path)
@@ -2084,7 +2092,7 @@ class EngineDAO(BaseDAO):
                 ),
             )
             self.sessionUpdated.emit(False)
-            return c.lastrowid
+            return int(c.lastrowid)
 
     def update_session(self, uid: int, /) -> Optional[Session]:
         """

@@ -1,8 +1,7 @@
 from pathlib import PosixPath, WindowsPath
 from sqlite3 import register_adapter
 
-from nxdrive.constants import WINDOWS
-
+from ...constants import WINDOWS
 from .adapters import adapt_path
 
 SCHEMA_VERSION = "schema_version"

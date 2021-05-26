@@ -36,7 +36,7 @@ def test_create_backup(manager_factory, tmp, nuxeo_url, user_factory, monkeypatc
             database.unlink()
             raise DatabaseError("Mock")
 
-    monkeypatch.setattr("nxdrive.engine.dao.sqlite.fix_db", buggy_db)
+    monkeypatch.setattr("nxdrive.engine.dao.base.fix_db", buggy_db)
 
     # Before NXDRIVE-1574, there was an error when restoring the DB:
     #    AttributeError: 'ManagerDAO' object has no attribute '_lock'

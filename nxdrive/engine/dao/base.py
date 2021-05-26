@@ -253,7 +253,7 @@ class BaseDAO(QObject):
             )
             self._conns.conn.row_factory = self._state_factory
 
-        return self._conns.conn
+        return self._conns.conn  # type: ignore
 
     def _delete_config(self, cursor: Cursor, name: str, /) -> None:
         cursor.execute("DELETE FROM Configuration WHERE name = ?", (name,))
