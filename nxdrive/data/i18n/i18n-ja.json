@@ -77,6 +77,7 @@
     "DIRECT_EDIT_CORRUPTED_DOWNLOAD_FAILURE": "コンテンツが破損しているため、直接編集に失敗しました。",
     "DIRECT_EDIT_CORRUPTED_DOWNLOAD_RETRY": "ファイルの破損が検出されました。",
     "DIRECT_EDIT_AUTH_EXPIRED": "ユーザ<b>%1</b>の無効なクレデンシャル情報がサーバ<a href=\"%2\">%2</a>にあります。<br><br>［設定］に移動して、有効な情報を入力してください。",
+    "DIRECT_EDIT_BAD_RESPONSE": "Access to the document \"%1\" on %2 is not possible right now. Please retry later.",
     "DIRECT_EDIT_DOC_NOT_FOUND": "You are trying to perform a Direct Edit on existing remote document \"%1\", but its attached binary was not found on the server.",
     "DIRECT_EDIT_FORBIDDEN_MSG": "%2のドキュメント\"%1\"へのアクセスは、ユーザー%3に対して禁止されています。\n",
     "DIRECT_EDIT_FORBIDDEN_TITLE": "禁止されているDirectEdit",
