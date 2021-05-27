@@ -17,9 +17,15 @@ def is_healthy(database: Path, /) -> bool:
     """
 
     log.info(f"Checking database integrity: {database!r}")
-    with sqlite3.connect(str(database)) as con:
-        status = con.cursor().execute("PRAGMA integrity_check(1)").fetchone()
+    con = sqlite3.connect(str(database))
+    try:
+        status = con.execute("PRAGMA integrity_check(1)").fetchone()
         return bool(status[0] == "ok")
+    finally:
+        # According to the documentation:
+        #   Connection object used as context manager only commits or rollbacks
+        #   transactions, so the connection object should be closed manually.
+        con.close()
 
 
 def dump(database: Path, dump_file: Path, /) -> None:
