@@ -29,7 +29,7 @@ from .constants import (
     DelAction,
 )
 from .direct_edit import DirectEdit
-from .engine.dao.sqlite import ManagerDAO
+from .engine.dao.manager import ManagerDAO
 from .engine.engine import Engine
 from .engine.tracker import Tracker
 from .engine.workers import Runner

@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pytest
 from nuxeo.exceptions import HTTPError
 
-from nxdrive.engine.dao.sqlite import EngineDAO
+from nxdrive.engine.dao.engine import EngineDAO
 
 from .. import ensure_no_exception, env
 from . import DocRemote, LocalTest

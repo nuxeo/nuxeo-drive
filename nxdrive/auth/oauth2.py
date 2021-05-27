@@ -7,16 +7,14 @@ from ..options import Options
 from .base import Authentication
 
 if TYPE_CHECKING:
-    from ..engine.dao.sqlite import ConfigurationDAO
+    from ..engine.dao.base import BaseDAO
     from . import Token
 
 
 class OAuthentication(Authentication):
     """Use the OAuth2 mechanism."""
 
-    def __init__(
-        self, *args: Any, dao: "ConfigurationDAO" = None, **kwargs: Any
-    ) -> None:
+    def __init__(self, *args: Any, dao: "BaseDAO" = None, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         self._dao = dao

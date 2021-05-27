@@ -4,23 +4,12 @@ Query formatting in this file is based on http://www.sqlstyle.guide/
 import json
 import os
 import shutil
-import sys
 from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
 from os.path import basename
-from pathlib import Path, PosixPath, WindowsPath
-from sqlite3 import (
-    Connection,
-    Cursor,
-    DatabaseError,
-    IntegrityError,
-    OperationalError,
-    Row,
-    connect,
-    register_adapter,
-)
-from threading import RLock, local
+from pathlib import Path
+from sqlite3 import Cursor, IntegrityError, OperationalError
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -30,45 +19,33 @@ from typing import (
     List,
     Optional,
     Tuple,
-    Type,
     Union,
 )
 
 from nuxeo.utils import get_digest_algorithm
 
 from ...client.local import FileInfo
-from ...constants import (
-    NO_SPACE_ERRORS,
-    ROOT,
-    UNACCESSIBLE_HASH,
-    WINDOWS,
-    TransferStatus,
-)
+from ...constants import ROOT, UNACCESSIBLE_HASH, WINDOWS, TransferStatus
 from ...exceptions import UnknownPairState
-from ...notification import Notification
 from ...objects import (
     DocPair,
     DocPairs,
     Download,
-    EngineDef,
     Filters,
     RemoteFileInfo,
     Session,
     Upload,
 )
 from ...options import Options
-from ...qt.imports import QObject, pyqtSignal
-from ...utils import current_thread_id
-from .utils import fix_db, restore_backup, save_backup
+from ...qt.imports import pyqtSignal
+from . import SCHEMA_VERSION
+from .adapters import adapt_path
+from .base import BaseDAO
 
 if TYPE_CHECKING:
     from ..queue_manager import QueueManager  # noqa
 
-__all__ = ("ConfigurationDAO", "EngineDAO", "ManagerDAO")
-
 log = getLogger(__name__)
-
-SCHEMA_VERSION = "schema_version"
 
 # Summary status from last known pair of states
 # (local_state, remote_state)
@@ -125,520 +102,7 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
 }
 
 
-def _adapt_path(path: Path, /) -> str:
-    """
-    Return the string needed to work with data from the database from a given *path*.
-    It is used across the whole file and also in the SQLite adapter to convert
-    a Path object to str before insertion into database.
-
-    Note: The starting forward-slash will be automatically added if not present
-          and if the *path* is not absolute (Direct Transfer paths for instance).
-    """
-    posix_path = path.as_posix()
-    # Note: ROOT.as_posix(), Path.path().as_posix(), Path.path("").as_posix() and Path(".").as_posix() will return "."
-    if posix_path == ".":
-        return "/"
-    if posix_path[0] != "/" and not path.is_absolute():
-        return f"/{posix_path}"
-    return posix_path
-
-
-register_adapter(WindowsPath if WINDOWS else PosixPath, _adapt_path)
-
-
-class AutoRetryCursor(Cursor):
-    def execute(self, *args: str, **kwargs: Any) -> Cursor:
-        count = 1
-        while True:
-            count += 1
-            try:
-                return super().execute(*args, **kwargs)
-            except OperationalError as exc:
-                log.info(
-                    f"Retry locked database #{count}, args={args!r}, kwargs={kwargs!r}",
-                    exc_info=True,
-                )
-                if count > 5:
-                    raise exc
-
-
-class AutoRetryConnection(Connection):
-    def cursor(self, factory: Type[Cursor] = None) -> Cursor:
-        factory = factory or AutoRetryCursor
-        return super().cursor(factory)
-
-
-class ConfigurationDAO(QObject):
-
-    _state_factory: Type[Row] = DocPair
-    _journal_mode: str = "WAL"
-
-    def __init__(self, db: Path, /) -> None:
-        super().__init__()
-
-        self.db = db
-        self.lock = RLock()
-
-        log.info(f"Create {type(self).__name__} on {self.db!r}")
-
-        exists = self.db.is_file()
-        if exists:
-            # Fix potential file corruption
-            try:
-                fix_db(self.db)
-            except DatabaseError:
-                # The file is too damaged, we'll try and restore a backup.
-                exists = self.restore_backup()
-                if not exists:
-                    self.db.unlink(missing_ok=True)
-
-        self._engine_uid = self.db.stem.replace("ndrive_", "")
-        self.in_tx = None
-        self._tx_lock = RLock()
-        self.conn: Optional[Connection] = None
-        self._conns = local()
-        self._create_main_conn()
-        if not self.conn:
-            raise RuntimeError("Unable to connect to database.")
-        c = self.conn.cursor()
-        self._init_db(c)
-        if exists:
-            schema = self.get_schema_version(c, exists)
-            if schema != self.schema_version:
-                self._migrate_db(c, schema)
-        else:
-            self.set_schema_version(c, self.schema_version)
-
-    def __repr__(self) -> str:
-        return f"<{type(self).__name__} db={self.db!r}, exists={self.db.exists()}>"
-
-    def __str__(self) -> str:
-        return repr(self)
-
-    def force_commit(self) -> None:
-        """
-        Since the journal is WAL, database changes are saved only every 1,000 page changes.
-        (cf https://www.sqlite.org/compile.html#default_wal_autocheckpoint
-        and https://www.sqlite.org/c3ref/wal_checkpoint_v2.html)
-        This method can be used to force committing changes to the main database. To use wisely.
-        """
-        if self._journal_mode != "WAL":
-            return
-
-        log.debug(f"Forcing WAL checkpoint on {self.db!r}")
-        with self.lock:
-            c = self._get_write_connection().cursor()
-            c.execute("PRAGMA wal_checkpoint(PASSIVE)")
-
-    def restore_backup(self) -> bool:
-        try:
-            with self.lock:
-                return restore_backup(self.db)
-        except OSError as exc:
-            if exc.errno in NO_SPACE_ERRORS:
-                # We cannot do anything without more disk space!
-                log.warning(f"[OS] Unable to restore {self.db}", exc_info=True)
-                raise
-            log.exception(f"[OS] Unable to restore {self.db}")
-            sys.excepthook(*sys.exc_info())
-        except Exception:
-            log.exception(f"Unable to restore {self.db}")
-            sys.excepthook(*sys.exc_info())
-        return False
-
-    def save_backup(self) -> bool:
-        try:
-            with self.lock:
-                return save_backup(self.db)
-        except OSError as exc:
-            if exc.errno in NO_SPACE_ERRORS:
-                # Not being able to create a backup is critical,
-                # but we should not make the application to stop either
-                log.warning(f"[OS] Unable to backup {self.db}", exc_info=True)
-            else:
-                log.exception(f"[OS] Unable to backup {self.db}")
-                sys.excepthook(*sys.exc_info())
-        except Exception:
-            log.exception(f"Unable to backup {self.db}")
-            sys.excepthook(*sys.exc_info())
-        return False
-
-    def get_schema_version(self, cursor: Cursor, db_exists: bool) -> int:
-        """
-        Get the schema version stored in the database.
-        Will fetch the information from a PRAGMA or the old storage variable.
-        """
-        res = cursor.execute("PRAGMA user_version").fetchone()
-        version = int(res[0]) if res else 0
-
-        if version == 0 and db_exists:
-            # Backward compatibility
-            res = cursor.execute(
-                "SELECT value FROM Configuration WHERE name = ?", (SCHEMA_VERSION,)
-            ).fetchone()
-            version = int(res[0]) if res else 0
-
-        return version
-
-    def set_schema_version(self, cursor: Cursor, version: int) -> None:
-        """
-        Set the schema *version* in the *user_version* PRAGMA.
-        """
-        cursor.execute(f"PRAGMA user_version = {version}")
-
-    def _migrate_table(self, cursor: Cursor, name: str, /) -> None:
-        # Add the last_transfer
-        tmpname = f"{name}Migration"
-
-        # In case of a bad/unfinished migration
-        cursor.execute(f"DROP TABLE IF EXISTS {tmpname}")
-
-        cursor.execute(f"ALTER TABLE {name} RENAME TO {tmpname}")
-        # Because Windows don't release the table, force the creation
-        self._create_table(cursor, name, force=True)
-        target_cols = self._get_columns(cursor, name)
-        source_cols = self._get_columns(cursor, tmpname)
-        cols = ", ".join(set(target_cols).intersection(source_cols))
-        cursor.execute(f"INSERT INTO {name} ({cols}) SELECT {cols} FROM {tmpname}")
-        cursor.execute(f"DROP TABLE {tmpname}")
-
-    def _create_table(
-        self, cursor: Cursor, name: str, /, *, force: bool = False
-    ) -> None:
-        if name == "Configuration":
-            self._create_configuration_table(cursor)
-
-    def _get_columns(self, cursor: Cursor, table: str, /) -> List[Any]:
-        return [
-            col.name
-            for col in cursor.execute(f"PRAGMA table_info('{table}')").fetchall()
-        ]
-
-    def _init_db(self, cursor: Cursor, /) -> None:
-        cursor.execute(f"PRAGMA journal_mode = {self._journal_mode}")
-        cursor.execute("PRAGMA temp_store = MEMORY")
-        self._create_configuration_table(cursor)
-
-    def _create_configuration_table(self, cursor: Cursor, /) -> None:
-        cursor.execute(
-            "CREATE TABLE if not exists Configuration ("
-            "    name    VARCHAR NOT NULL,"
-            "    value   VARCHAR,"
-            "    PRIMARY KEY (name)"
-            ")"
-        )
-
-    def _create_main_conn(self) -> None:
-        log.info(
-            f"Create main connection on {self.db!r} "
-            f"(dir_exists={self.db.parent.exists()}, "
-            f"file_exists={self.db.exists()})"
-        )
-        self.conn = connect(
-            str(self.db),
-            check_same_thread=False,  # Don't check same thread for closing purpose
-            factory=AutoRetryConnection,
-            isolation_level=None,  # Autocommit mode
-            timeout=10,
-        )
-        self.conn.row_factory = self._state_factory
-
-    def dispose(self) -> None:
-        log.info(f"Disposing SQLite database {self.db!r}")
-        if hasattr(self._conns, "conn"):
-            self._conns.conn.close()
-            del self._conns.conn
-        if self.conn:
-            self.conn.close()
-
-    def _get_write_connection(self) -> Connection:
-        if self.in_tx:
-            if self.conn is None:
-                self._create_main_conn()
-            return self.conn
-        return self._get_read_connection()
-
-    def _get_read_connection(self) -> Connection:
-        # If in transaction
-        if self.in_tx is not None:
-            if current_thread_id() == self.in_tx:
-                # Return the write connection
-                return self.conn
-
-            log.debug("In transaction wait for read connection")
-            # Wait for the thread in transaction to finished
-            with self._tx_lock:
-                pass
-
-        if not hasattr(self._conns, "conn"):
-            self._conns.conn = connect(
-                str(self.db),
-                check_same_thread=False,  # Don't check same thread for closing purpose
-                factory=AutoRetryConnection,
-                isolation_level=None,  # Autocommit mode
-                timeout=10,
-            )
-            self._conns.conn.row_factory = self._state_factory
-
-        return self._conns.conn
-
-    def _delete_config(self, cursor: Cursor, name: str, /) -> None:
-        cursor.execute("DELETE FROM Configuration WHERE name = ?", (name,))
-
-    def delete_config(self, name: str, /) -> None:
-        with self.lock:
-            c = self._get_write_connection().cursor()
-            self._delete_config(c, name)
-
-    def update_config(self, name: str, value: Any, /) -> None:
-        # We cannot use this anymore because it will end on a DatabaseError.
-        # Will re-activate with NXDRIVE-1205
-        # if self.get_config(name) == value:
-        #     return
-
-        with self.lock:
-            c = self._get_write_connection().cursor()
-            c.execute(
-                "UPDATE OR IGNORE Configuration"
-                "             SET value = ?"
-                "           WHERE name = ?",
-                (value, name),
-            )
-            c.execute(
-                "INSERT OR IGNORE INTO Configuration (value, name) VALUES (?, ?)",
-                (value, name),
-            )
-
-    def store_bool(self, name: str, value: bool, /) -> None:
-        """Store a boolean parameter."""
-
-        self.update_config(name, bool(value))
-
-    def store_int(self, name: str, value: int, /) -> None:
-        """Store an integer parameter."""
-
-        self.update_config(name, int(value))
-
-    def get_config(self, name: str, /, *, default: Any = None) -> Any:
-        c = self._get_read_connection().cursor()
-        obj = c.execute(
-            "SELECT value FROM Configuration WHERE name = ?", (name,)
-        ).fetchone()
-        if not (obj and obj.value):
-            return default
-        return obj.value
-
-    def get_bool(self, name: str, /, *, default: bool = False) -> bool:
-        """Retrieve a parameter of boolean type."""
-
-        with suppress(Exception):
-            val = self.get_config(name, default=default)
-            return bool(int(val))
-
-        return default if isinstance(default, bool) else False
-
-    def get_int(self, name: str, /, *, default: int = 0) -> int:
-        """Retrieve a parameter of integer type."""
-
-        with suppress(Exception):
-            val = self.get_config(name, default=default)
-            return int(val)
-
-        return default if isinstance(default, int) else 0
-
-
-class ManagerDAO(ConfigurationDAO):
-
-    schema_version = 4
-    _state_factory = EngineDef
-
-    # WAL not needed as we write less often and it may have issues on GNU/Linux (NXDRIVE-2524)
-    _journal_mode: str = "DELETE"
-
-    def _init_db(self, cursor: Cursor, /) -> None:
-        super()._init_db(cursor)
-        cursor.execute(
-            "CREATE TABLE if not exists Engines ("
-            "    uid          VARCHAR,"
-            "    engine       VARCHAR NOT NULL,"
-            "    name         VARCHAR,"
-            "    local_folder VARCHAR NOT NULL UNIQUE,"
-            "    PRIMARY KEY (uid)"
-            ")"
-        )
-        cursor.execute(
-            "CREATE TABLE if not exists Notifications ("
-            "    uid         VARCHAR UNIQUE,"
-            "    engine      VARCHAR,"
-            "    level       VARCHAR,"
-            "    title       VARCHAR,"
-            "    description VARCHAR,"
-            "    action      VARCHAR,"
-            "    flags       INT,"
-            "    PRIMARY KEY (uid)"
-            ")"
-        )
-        cursor.execute(
-            "CREATE TABLE if not exists AutoLock ("
-            "    path      VARCHAR,"
-            "    remote_id VARCHAR,"
-            "    process   INT,"
-            "    PRIMARY KEY(path)"
-            ")"
-        )
-
-    def insert_notification(self, notification: Notification, /) -> None:
-        with self.lock:
-            c = self._get_write_connection().cursor()
-            c.execute(
-                "INSERT INTO Notifications "
-                "(uid, engine, level, title, description, action, flags) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (
-                    notification.uid,
-                    notification.engine_uid,
-                    notification.level,
-                    notification.title,
-                    notification.description,
-                    notification.action,
-                    notification.flags,
-                ),
-            )
-
-    def unlock_path(self, path: Path, /) -> None:
-        with self.lock:
-            c = self._get_write_connection().cursor()
-            c.execute("DELETE FROM AutoLock WHERE path = ?", (path,))
-
-    def get_locks(self) -> List[Row]:
-        c = self._get_read_connection().cursor()
-        return c.execute("SELECT * FROM AutoLock").fetchall()
-
-    def get_locked_paths(self) -> List[Path]:
-        return [Path(lock["path"]) for lock in self.get_locks()]
-
-    def lock_path(self, path: Path, process: int, doc_id: str, /) -> None:
-        with self.lock:
-            c = self._get_write_connection().cursor()
-            try:
-                c.execute(
-                    "INSERT INTO AutoLock (path, process, remote_id) "
-                    "VALUES (?, ?, ?)",
-                    (path, process, doc_id),
-                )
-            except IntegrityError:
-                # Already there just update the process
-                c.execute(
-                    "UPDATE AutoLock"
-                    "   SET process = ?,"
-                    "       remote_id = ?"
-                    " WHERE path = ?",
-                    (process, doc_id, path),
-                )
-
-    def update_notification(self, notification: Notification, /) -> None:
-        with self.lock:
-            c = self._get_write_connection().cursor()
-            c.execute(
-                "UPDATE Notifications"
-                "   SET level = ?,"
-                "       title = ?,"
-                "       description = ?"
-                " WHERE uid = ?",
-                (
-                    notification.level,
-                    notification.title,
-                    notification.description,
-                    notification.uid,
-                ),
-            )
-
-    def get_notifications(self, *, discarded: bool = True) -> List[Row]:
-        # Flags used:
-        #    1 = Notification.FLAG_DISCARD
-        c = self._get_read_connection().cursor()
-        req = "SELECT * FROM Notifications WHERE (flags & 1) = 0"
-        if discarded:
-            req = "SELECT * FROM Notifications"
-
-        return c.execute(req).fetchall()
-
-    def discard_notification(self, uid: str, /) -> None:
-        # Flags used:
-        #    1 = Notification.FLAG_DISCARD
-        #    4 = Notification.FLAG_DISCARDABLE
-        with self.lock:
-            c = self._get_write_connection().cursor()
-            c.execute(
-                "UPDATE Notifications"
-                "   SET flags = (flags | 1)"
-                " WHERE uid = ?"
-                "   AND (flags & 4) = 4",
-                (uid,),
-            )
-
-    def remove_notification(self, uid: str, /) -> None:
-        with self.lock:
-            c = self._get_write_connection().cursor()
-            c.execute("DELETE FROM Notifications WHERE uid = ?", (uid,))
-
-    def _migrate_db(self, cursor: Cursor, version: int, /) -> None:
-        if version < 2:
-            cursor.execute(
-                "CREATE TABLE if not exists Notifications ("
-                "    uid         VARCHAR,"
-                "    engine      VARCHAR,"
-                "    level       VARCHAR,"
-                "    title       VARCHAR,"
-                "    description VARCHAR,"
-                "    action      VARCHAR,"
-                "    flags       INT,"
-                "    PRIMARY KEY (uid)"
-                ")"
-            )
-            self.set_schema_version(cursor, 2)
-        if version < 3:
-            cursor.execute(
-                "CREATE TABLE if not exists AutoLock ("
-                "    path      VARCHAR,"
-                "    remote_id VARCHAR,"
-                "    process   INT,"
-                "    PRIMARY KEY (path)"
-                ")"
-            )
-            self.set_schema_version(cursor, 3)
-        if version < 4:
-            self.store_int(SCHEMA_VERSION, 4)
-            self.set_schema_version(cursor, 4)
-
-    def get_engines(self) -> List[EngineDef]:
-        c = self._get_read_connection().cursor()
-        return c.execute("SELECT * FROM Engines").fetchall()
-
-    def update_engine_path(self, engine: str, path: Path, /) -> None:
-        with self.lock:
-            c = self._get_write_connection().cursor()
-            c.execute(
-                "UPDATE Engines SET local_folder = ? WHERE uid = ?", (path, engine)
-            )
-
-    def add_engine(self, engine: str, path: Path, key: str, name: str, /) -> EngineDef:
-        with self.lock:
-            c = self._get_write_connection().cursor()
-            c.execute(
-                "INSERT INTO Engines (local_folder, engine, uid, name) "
-                "VALUES (?, ?, ?, ?)",
-                (path, engine, key, name),
-            )
-            return c.execute("SELECT * FROM Engines WHERE uid = ?", (key,)).fetchone()
-
-    def delete_engine(self, uid: str, /) -> None:
-        with self.lock:
-            c = self._get_write_connection().cursor()
-            c.execute("DELETE FROM Engines WHERE uid = ?", (uid,))
-
-
-class EngineDAO(ConfigurationDAO):
+class EngineDAO(BaseDAO):
 
     schema_version = 21
     newConflict = pyqtSignal(object)
@@ -1205,7 +669,7 @@ class EngineDAO(ConfigurationDAO):
                 "UPDATE States  SET processor = 0 WHERE processor = ?", (processor_id,)
             )
             log.debug(f"Released processor {processor_id}")
-            return c.rowcount > 0
+            return bool(c.rowcount > 0)
 
     def acquire_processor(self, thread_id: int, row_id: int, /) -> bool:
         with self.lock:
@@ -1217,7 +681,7 @@ class EngineDAO(ConfigurationDAO):
                 "   AND processor IN (0, ?)",
                 (thread_id, row_id, thread_id),
             )
-            return c.rowcount == 1
+            return bool(c.rowcount == 1)
 
     def _reinit_states(self, cursor: Cursor, /) -> None:
         cursor.execute("DROP TABLE States")
@@ -1327,7 +791,7 @@ class EngineDAO(ConfigurationDAO):
                     pair_state,
                 ),
             )
-            row_id = c.lastrowid
+            row_id: int = c.lastrowid
             parent = (
                 c.execute(
                     "SELECT * FROM States WHERE local_path = ?", (parent_path,)
@@ -1512,7 +976,7 @@ class EngineDAO(ConfigurationDAO):
         self, name: str, parent: str, row_id: int, /
     ) -> Optional[DocPair]:
         c = self._get_read_connection().cursor()
-        return c.execute(
+        doc_pair: Optional[DocPair] = c.execute(
             "SELECT *"
             "  FROM States"
             " WHERE id != ?"
@@ -1520,6 +984,7 @@ class EngineDAO(ConfigurationDAO):
             "   AND remote_parent_ref = ?",
             (row_id, name, parent),
         ).fetchone()
+        return doc_pair
 
     def update_local_state(
         self,
@@ -1589,7 +1054,7 @@ class EngineDAO(ConfigurationDAO):
     def get_valid_duplicate_file(self, digest: str, /) -> Optional[DocPair]:
         """Find a file already synced with the same digest as the given *digest*."""
         c = self._get_read_connection().cursor()
-        return c.execute(
+        doc_pair: Optional[DocPair] = c.execute(
             "SELECT *"
             "  FROM States"
             " WHERE local_digest = ?"
@@ -1597,6 +1062,7 @@ class EngineDAO(ConfigurationDAO):
             "   AND pair_state = 'synchronized'",
             (digest, digest),
         ).fetchone()
+        return doc_pair
 
     def get_remote_descendants(self, path: str, /) -> DocPairs:
         c = self._get_read_connection().cursor()
@@ -1663,7 +1129,7 @@ class EngineDAO(ConfigurationDAO):
         if condition:
             query = f"{query} WHERE {condition}"
         c = self._get_read_connection().cursor()
-        return c.execute(query).fetchone().count
+        return int(c.execute(query).fetchone().count)
 
     def get_global_size(self) -> int:
         c = self._get_read_connection().cursor()
@@ -1710,7 +1176,7 @@ class EngineDAO(ConfigurationDAO):
     ) -> DocPairs:
         c = self._get_read_connection().cursor()
 
-        local_path = _adapt_path(path)
+        local_path = adapt_path(path)
         if local_path[-1] != "/" and strict:
             local_path += "/"
         local_path += "%"
@@ -1721,7 +1187,7 @@ class EngineDAO(ConfigurationDAO):
 
     def get_first_state_from_partial_remote(self, ref: str, /) -> Optional[DocPair]:
         c = self._get_read_connection().cursor()
-        return c.execute(
+        doc_pair: DocPair = c.execute(
             "SELECT *"
             "  FROM States"
             " WHERE remote_ref LIKE ? "
@@ -1729,6 +1195,7 @@ class EngineDAO(ConfigurationDAO):
             " LIMIT 1",
             (f"%{ref}",),
         ).fetchone()
+        return doc_pair
 
     def get_normal_state_from_remote(self, ref: str, /) -> Optional[DocPair]:
         # TODO Select the only states that is not a collection
@@ -1741,13 +1208,14 @@ class EngineDAO(ConfigurationDAO):
         # remote_path root is empty, should refactor this
         path = "" if path == "/" else path
         c = self._get_read_connection().cursor()
-        return c.execute(
+        doc_pair: Optional[DocPair] = c.execute(
             "SELECT *"
             "  FROM States"
             " WHERE remote_ref = ?"
             "   AND remote_parent_path = ?",
             (ref, path),
         ).fetchone()
+        return doc_pair
 
     def get_states_from_remote(self, ref: str, /) -> DocPairs:
         c = self._get_read_connection().cursor()
@@ -1763,13 +1231,16 @@ class EngineDAO(ConfigurationDAO):
             c = self._get_read_connection().cursor()
 
         try:
-            return c.execute("SELECT * FROM States WHERE id = ?", (row_id,)).fetchone()
+            doc_pair: Optional[DocPair] = c.execute(
+                "SELECT * FROM States WHERE id = ?", (row_id,)
+            ).fetchone()
+            return doc_pair
         finally:
             if from_write:
                 self.lock.release()
 
     def _get_recursive_condition(self, doc_pair: DocPair, /) -> str:
-        path = self._escape(_adapt_path(doc_pair.local_path))
+        path = self._escape(adapt_path(doc_pair.local_path))
         res = (
             f" WHERE (local_parent_path LIKE '{path}/%'"
             f"        OR local_parent_path = '{path}')"
@@ -1793,8 +1264,8 @@ class EngineDAO(ConfigurationDAO):
         (including starting and ending slashes).
         """
 
-        old = f"{_adapt_path(old_path)}/"
-        new = f"{_adapt_path(new_path)}/"
+        old = f"{adapt_path(old_path)}/"
+        new = f"{adapt_path(new_path)}/"
         log.debug(f"Updating all local paths from {old!r} to {new!r}")
 
         with self.lock:
@@ -1835,8 +1306,8 @@ class EngineDAO(ConfigurationDAO):
         with self.lock:
             c = self._get_write_connection().cursor()
             if doc_pair.folderish:
-                path = self._escape(_adapt_path(new_path / new_name))
-                count = len(self._escape(_adapt_path(doc_pair.local_path)))
+                path = self._escape(adapt_path(new_path / new_name))
+                count = len(self._escape(adapt_path(doc_pair.local_path)))
                 query = (
                     "UPDATE States"
                     f"  SET local_parent_path = '{path}'"
@@ -1929,9 +1400,10 @@ class EngineDAO(ConfigurationDAO):
 
     def get_state_from_local(self, path: Path, /) -> Optional[DocPair]:
         c = self._get_read_connection().cursor()
-        return c.execute(
+        doc_pair: Optional[DocPair] = c.execute(
             "SELECT * FROM States WHERE local_path = ?", (path,)
         ).fetchone()
+        return doc_pair
 
     def insert_remote_state(
         self,
@@ -1976,7 +1448,7 @@ class EngineDAO(ConfigurationDAO):
                     info.creation_time,
                 ),
             )
-            row_id = c.lastrowid
+            row_id: int = c.lastrowid
 
             # Check if parent is not in creation
             parent = c.execute(
@@ -2124,7 +1596,7 @@ class EngineDAO(ConfigurationDAO):
                     row.remote_state,
                     row.pair_state,
                     datetime.utcnow(),
-                    f"{_adapt_path(row.local_path)}%",
+                    f"{adapt_path(row.local_path)}%",
                 ),
             )
 
@@ -2170,7 +1642,7 @@ class EngineDAO(ConfigurationDAO):
                     version,
                 ),
             )
-            result = c.rowcount == 1
+            result = bool(c.rowcount == 1)
 
             # Retry without version for folder
             if not result and row.folderish:
@@ -2201,7 +1673,7 @@ class EngineDAO(ConfigurationDAO):
                         row.remote_parent_ref,
                     ),
                 )
-            result = c.rowcount == 1
+            result = bool(c.rowcount == 1)
 
             if not result:
                 log.debug(f"Was not able to synchronize state: {row!r}")
@@ -2376,7 +1848,7 @@ class EngineDAO(ConfigurationDAO):
         row = c.execute(
             "SELECT COUNT(path) FROM RemoteScan WHERE path = ? LIMIT 1", (path,)
         ).fetchone()
-        return row[0] > 0
+        return bool(row[0] > 0)
 
     def is_filter(self, path: str, /) -> bool:
         path = self._clean_filter_path(path)
@@ -2620,7 +2092,7 @@ class EngineDAO(ConfigurationDAO):
                 ),
             )
             self.sessionUpdated.emit(False)
-            return c.lastrowid
+            return int(c.lastrowid)
 
     def update_session(self, uid: int, /) -> Optional[Session]:
         """

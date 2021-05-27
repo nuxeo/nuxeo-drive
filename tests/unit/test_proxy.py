@@ -10,14 +10,14 @@ from nxdrive.client.proxy import (
     save_proxy,
 )
 from nxdrive.constants import WINDOWS
-from nxdrive.engine.dao.sqlite import ConfigurationDAO
+from nxdrive.engine.dao.base import BaseDAO
 from nxdrive.manager import Manager
 from nxdrive.options import Options
 
 from ..markers import mac_only, windows_only
 
 
-class CustomDAO(ConfigurationDAO):
+class CustomDAO(BaseDAO):
     schema_version = 0
 
 

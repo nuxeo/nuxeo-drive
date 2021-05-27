@@ -59,7 +59,7 @@ from ..utils import (
     unset_path_readonly,
 )
 from .activity import Action, FileAction
-from .dao.sqlite import EngineDAO
+from .dao.engine import EngineDAO
 from .processor import Processor
 from .queue_manager import QueueManager
 from .watcher.local_watcher import LocalWatcher
