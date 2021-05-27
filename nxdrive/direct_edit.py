@@ -410,6 +410,13 @@ class DirectEdit(Worker):
             self.directEditError.emit("DIRECT_EDIT_NOT_FOUND", values)
             return None
 
+        if not isinstance(doc, dict):
+            err = "Cannot parse the server response: invalid data from the server"
+            log.warning(err)
+            values = [doc_id, engine.hostname]
+            self.directEditError.emit("DIRECT_EDIT_BAD_RESPONSE", values)
+            return None
+
         doc.update(
             {
                 "root": engine.remote.base_folder_ref,
