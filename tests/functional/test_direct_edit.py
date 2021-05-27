@@ -333,6 +333,40 @@ def test_download_http_error_404(manager_factory, obj_factory):
         assert received
 
 
+def test_get_info_bad_response(manager_factory, obj_factory):
+    """
+    Trying to Direct Edit'ing an existent document when the server return invalid
+    response data should display a warning.
+    """
+    manager, engine = manager_factory()
+    Translator(find_resource("i18n"), lang="en")
+
+    def error_signal(label: str, values: List) -> None:
+        nonlocal received
+        assert label == "DIRECT_EDIT_BAD_RESPONSE"
+        assert values == [doc.uid, engine.hostname]
+        received = True
+
+    def fetch(*args, **kwargs):
+        return b"bad data"
+
+    with manager:
+        direct_edit = manager.direct_edit
+        direct_edit._folder.mkdir()
+        direct_edit.directEditError[str, list].connect(error_signal)
+        doc = obj_factory(
+            title="test_bad_response.odt",
+            nature="File",
+            user=engine.remote.user_id,
+            content=b"data",
+        )
+
+        received = False
+        with patch.object(engine.remote, "fetch", new=fetch):
+            direct_edit._prepare_edit(engine.server_url, doc.uid)
+        assert received
+
+
 def test_invalid_credentials(manager_factory):
     """Opening a document without being authenticated is not allowed."""
 
