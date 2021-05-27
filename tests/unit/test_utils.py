@@ -646,6 +646,12 @@ def test_parse_protocol_url_cmd_unknown():
         nxdrive.utils.parse_protocol_url(url)
 
 
+def test_parse_protocol_url_cmd_outdated():
+    """Parse an outdated command, it must not fail."""
+    url = "nxdrive://trigger-watch"
+    assert not nxdrive.utils.parse_protocol_url(url)
+
+
 def test_parse_protocol_url_edit():
     """It will also test parse_edit_protocol()."""
     url = (

@@ -685,6 +685,12 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
     if not url_string.startswith("nxdrive://"):
         return None
 
+    if url_string == "nxdrive://trigger-watch":
+        log.warning(
+            f"Outdated FinderSync extension is running. Skipping {url_string!r}."
+        )
+        return None
+
     # Commands that need a path to work with
     path_cmds = ("access-online", "copy-share-link", "direct-transfer", "edit-metadata")
 
