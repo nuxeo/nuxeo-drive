@@ -469,7 +469,7 @@ class MetaOptions(type):
 
         MetaOptions.options[item] = new_value, setter
         log.info(f"Option {item!r} updated: {old_value!r} -> {new_value!r} [{setter}]")
-        log.debug(str(Options))
+        log.info(str(Options))
 
         # Callback for that option
         callback = MetaOptions.callbacks.get(item)
