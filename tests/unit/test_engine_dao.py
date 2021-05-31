@@ -1,8 +1,12 @@
 import os
+import sqlite3
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import patch
+from uuid import uuid4
 
 from nxdrive.constants import TransferStatus
+from nxdrive.engine.dao.migrations.migration import MigrationInterface
 
 from ..markers import windows_only
 
@@ -261,12 +265,48 @@ def test_reinit_processors(engine_dao):
         assert not state.processor
 
 
-def test_init_db(engine_dao):
+def test_manager_init_db(engine_dao):
     with engine_dao("manager_migration.db") as dao:
         assert not dao.get_filters()
         assert not dao.get_conflicts()
         assert dao.get_config("remote_user") is None
         assert not dao.is_path_scanned("/")
+
+
+def test_manager_db_init_at_v04(tmp_path, engine_dao):
+    """
+    Cover the new migration object code.
+    Check that the downgrade remove all new tables.
+    """
+    with sqlite3.connect(":memory:") as conn:
+        cursor = conn.cursor()
+
+        # The database is empty
+        default_state = cursor.execute(
+            "select name from sqlite_master where type = 'table'"
+        ).fetchall()
+        assert not default_state
+
+        # We import the engine_migrations dictionary
+        from nxdrive.engine.dao.migrations.manager import manager_migrations
+
+        # New migration 04 should be the first one
+        migration = list(manager_migrations.values())[0]
+
+        # We upgrade the database, check the version
+        migration.upgrade(cursor)
+        assert cursor.execute("PRAGMA user_version").fetchone()[0] == migration.version
+
+        # We downgrade and check that everything has been reverted
+        migration.downgrade(cursor)
+        downgrade_state = cursor.execute(
+            "select name from sqlite_master where type = 'table'"
+        ).fetchall()
+        assert (
+            cursor.execute("PRAGMA user_version").fetchone()[0]
+            == migration.previous_version
+        )
+        assert downgrade_state == default_state
 
 
 def test_last_sync(engine_dao):
@@ -450,3 +490,68 @@ def test_migration_db_v20(engine_dao):
         for row in rows:
             # The request_uid default value is None
             assert not row[0]
+
+
+def test_db_init_at_v21(tmp_path, engine_dao):
+    """
+    Cover the new migration object code.
+    Compare the new init migration with the old system.
+    """
+    tmp_database = Path(tmp_path / str(uuid4()))
+    with sqlite3.connect(tmp_database) as conn:
+        cursor = conn.cursor()
+
+        assert tmp_database.exists()
+
+        # The database file is empty
+        default_state = cursor.execute(
+            "select name from sqlite_master where type = 'table'"
+        ).fetchall()
+        assert not default_state
+
+        # We import the engine_migrations dictionary
+        from nxdrive.engine.dao.migrations.engine import engine_migrations
+
+        # New migration 21 should be the first one
+        migration = list(engine_migrations.values())[0]
+
+        # We upgrade the database, check the version then stock the result
+        migration.upgrade(cursor)
+        upgrade_state = cursor.execute(
+            "select name from sqlite_master where type = 'table'"
+        ).fetchall()
+        assert cursor.execute("PRAGMA user_version").fetchone()[0] == migration.version
+
+        # We downgrade and check that everything has been reverted
+        migration.downgrade(cursor)
+        downgrade_state = cursor.execute(
+            "select name from sqlite_master where type = 'table'"
+        ).fetchall()
+        assert (
+            cursor.execute("PRAGMA user_version").fetchone()[0]
+            == migration.previous_version
+        )
+        assert downgrade_state == default_state
+
+    # We check that the new init migration create the same tables than the old system.
+    with engine_dao(tmp_database) as dao:
+        dao._get_read_connection().row_factory = None
+        cursor = dao._get_read_connection().cursor()
+        old_migration_state = cursor.execute(
+            "select name from sqlite_master where type = 'table'"
+        ).fetchall()
+        assert sorted(old_migration_state) == sorted(upgrade_state)
+
+
+def test_migration_interface():
+    """Test done for code coverage of the abstract class."""
+    with patch.object(
+        MigrationInterface, "__abstractmethods__", set()
+    ), sqlite3.connect(":memory:") as conn:
+        interface = MigrationInterface()
+        cursor = conn.cursor()
+
+        assert not interface.upgrade(cursor)
+        assert not interface.downgrade(cursor)
+        assert not interface.previous_version
+        assert not interface.version
