@@ -22,6 +22,7 @@ from ...utils import (
     compute_digest,
     force_decode,
     lock_path,
+    path_is_unc_name,
     safe_filename,
     safe_long_path,
     safe_rename,
@@ -122,6 +123,7 @@ class LocalClientMixin:
         self.download_dir = download_dir
 
         self._case_sensitive: Optional[bool] = None
+        self._local_folder_is_unc_name = path_is_unc_name(self.base_folder)
 
     def __repr__(self) -> str:
         return (
@@ -130,6 +132,12 @@ class LocalClientMixin:
             f" is_case_sensitive={self._case_sensitive!r}"
             ">"
         )
+
+    def can_use_trash(self) -> bool:
+        """Allow to use the local trash mechanisms."""
+        # On GNU/Linux and macOS, we do want to use the trash.
+        # On Windows, it is only possible with non-UNC names (\\Server\shared-folder).
+        return not self._local_folder_is_unc_name
 
     def is_case_sensitive(self) -> bool:
         if self._case_sensitive is None:

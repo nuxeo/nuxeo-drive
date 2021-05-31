@@ -1224,9 +1224,9 @@ class Engine(QObject):
         Processor.soft_locks = {}
         log.debug(f"Engine {self.uid} stopped")
 
-    @staticmethod
-    def use_trash() -> bool:
-        return True
+    def use_trash(self) -> bool:
+        """Use the local trash mechanisms."""
+        return self.local.can_use_trash()
 
     def update_token(self, token: Token, username: str, /) -> None:
         self._load_configuration()

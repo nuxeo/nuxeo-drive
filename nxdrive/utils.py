@@ -383,6 +383,27 @@ def is_generated_tmp_file(name: str, /) -> Tuple[bool, Optional[bool]]:
     return do_not_ignore, no_delay_effect
 
 
+def path_is_unc_name(path: Path) -> bool:
+    """Return True whenever the given *path* is a UNC name.
+    It is a Windows specificity.
+    """
+    if not WINDOWS:
+        return False
+
+    path_str = str(path)
+
+    # Fast path: it is a usual path
+    if not path_str.startswith("\\\\"):
+        return False
+
+    # Pay attention to:
+    #     - \\?\C:\Users\Alice\folder   (long-path prefixed usual path)
+    #     - \\?\UNC\Server\Alice\folder (long-path prefixed UNC name)
+    #     - \\Server\Alice\folder       (UNC name)
+    # They all start with "\\" but we only want to be sure to target UNC names.
+    return path_str.startswith("\\\\?\\UNC\\") or (path_str[2] != "?")
+
+
 def normalized_path(path: Union[bytes, str, Path], /) -> Path:
     """Return absolute, normalized file path.
 

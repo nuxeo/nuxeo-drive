@@ -192,3 +192,9 @@ def test_token_management(manager_factory):
         # Alter the stored token and check the loading will not fail
         engine.dao.update_config("remote_token", "blablabla")
         assert not engine._load_token()
+
+
+def test_can_use_trash(manager_factory):
+    manager, engine = manager_factory()
+    with manager:
+        assert engine.use_trash()
