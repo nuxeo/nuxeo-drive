@@ -761,6 +761,28 @@ def test_parse_protocol_url_bad_http_scheme():
         nxdrive.utils.parse_protocol_url(url)
 
 
+@windows_only
+@pytest.mark.parametrize(
+    "path, result",
+    [
+        (Path("C:\\Users\\Alice"), False),
+        (Path("C:/Users/Alice"), False),
+        (Path("\\\\?\\C:\\Users\\Alice"), False),
+        (Path("//?/C:/Users/Alice"), False),
+        (Path("\\\\Shared\\Alice"), True),
+        (Path("//Shared/Alice"), True),
+        (Path("//?/UNC/Shared/Alice"), True),
+    ],
+)
+def test_path_is_unc_name(path, result):
+    assert nxdrive.utils.path_is_unc_name(path) is result
+
+
+@not_windows(reason="Non-Windows test.")
+def test_path_is_unc_name_unix():
+    assert not nxdrive.utils.path_is_unc_name(Path.home())
+
+
 @pytest.mark.parametrize(
     "url, result",
     [
