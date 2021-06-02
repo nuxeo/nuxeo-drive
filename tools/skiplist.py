@@ -27,6 +27,7 @@ Download.transfer_type  # Used in QML
 Engine.folder  # Used in QML
 EngineDAO.get_downloads_with_status()  # Used dynamically in Engine
 EngineDAO.get_uploads_with_status()  # Used dynamically in Engine
+engine_migrations  # Used in tests
 exc.trash_issue  # LocalClient.delete()
 FileInfo.is_hidden  # Used in QML
 FolderTreeview.resizeEvent  # Internal use of PyQt
@@ -38,7 +39,10 @@ Manager.set_auto_start  # Used in QML
 Manager.set_feature_state  # Used in QML
 Manager.set_log_level  # Used in QML
 Manager.set_light_icons  # Used in QML
+manager_migrations  # Used in tests
 MetaOptions.mock  # Used in tests
+MigrationInitial.downgrade  # Used in tests
+MigrationInitial.upgrade  # Used in tests
 NotificationDelegator.userNotificationCenter_didActivateNotification_
 NotificationDelegator.userNotificationCenter_shouldPresentNotification_
 nuxeo.constants.CHECK_PARAMS  # CliHandler.parse_cli()
