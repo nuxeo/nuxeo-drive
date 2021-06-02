@@ -592,16 +592,23 @@ class Manager(QObject):
 
     @pyqtSlot(result=bool)  # from GeneralTab.qml
     def get_auto_start(self) -> bool:
-        return self.osi.startup_enabled()
+        try:
+            return self.osi.startup_enabled()
+        except OSError:
+            log.warning("Cannot get auto-start state", exc_info=True)
+            return False
 
     @pyqtSlot(bool)  # from GeneralTab.qml
     def set_auto_start(self, value: bool, /) -> None:
         """Change the auto start state."""
         log.debug(f"Changed auto start state to {value}")
-        if value:
-            self.osi.register_startup()
-        else:
-            self.osi.unregister_startup()
+        try:
+            if value:
+                self.osi.register_startup()
+            else:
+                self.osi.unregister_startup()
+        except OSError:
+            log.warning("Cannot set auto-start state", exc_info=True)
 
     @pyqtSlot(result=bool)  # from GeneralTab.qml
     def use_light_icons(self) -> bool:
