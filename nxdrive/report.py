@@ -10,7 +10,7 @@ from .logging_config import get_handler
 from .utils import force_encode
 
 if TYPE_CHECKING:
-    from .engine.dao.engine import EngineDAO  # noqa
+    from .dao.engine import EngineDAO  # noqa
     from .manager import Manager  # noqa
 
 __all__ = ("Report",)

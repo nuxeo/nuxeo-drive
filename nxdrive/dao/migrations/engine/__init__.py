@@ -11,7 +11,7 @@ def import_migrations() -> Dict[str, Any]:
     for migration_name in __migrations_list:
         module = getattr(
             importlib.import_module(
-                f".{migration_name}", package="nxdrive.engine.dao.migrations.engine"
+                f".{migration_name}", package="nxdrive.dao.migrations.engine"
             ),
             "migration",
         )

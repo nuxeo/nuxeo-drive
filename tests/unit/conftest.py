@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import pytest
 
-from nxdrive.engine.dao.engine import EngineDAO
+from nxdrive.dao.engine import EngineDAO
 from nxdrive.objects import DocPair
 from nxdrive.utils import normalized_path
 

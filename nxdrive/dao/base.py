@@ -9,10 +9,10 @@ from sqlite3 import Connection, Cursor, DatabaseError, OperationalError, Row, co
 from threading import RLock, local
 from typing import Any, List, Optional, Type
 
-from ...constants import NO_SPACE_ERRORS
-from ...objects import DocPair
-from ...qt.imports import QObject
-from ...utils import current_thread_id
+from ..constants import NO_SPACE_ERRORS
+from ..objects import DocPair
+from ..qt.imports import QObject
+from ..utils import current_thread_id
 from . import SCHEMA_VERSION
 from .utils import fix_db, restore_backup, save_backup
 

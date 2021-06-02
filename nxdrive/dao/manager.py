@@ -6,8 +6,8 @@ from pathlib import Path
 from sqlite3 import Cursor, IntegrityError, Row
 from typing import List
 
-from ...notification import Notification
-from ...objects import EngineDef
+from ..notification import Notification
+from ..objects import EngineDef
 from . import SCHEMA_VERSION
 from .base import BaseDAO
 

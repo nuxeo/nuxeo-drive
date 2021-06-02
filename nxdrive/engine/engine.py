@@ -22,6 +22,7 @@ from ..client.local import LocalClient
 from ..client.local.base import LocalClientMixin
 from ..client.remote_client import Remote
 from ..constants import LINUX, MAC, ROOT, SYNC_ROOT, WINDOWS, DelAction, TransferStatus
+from ..dao.engine import EngineDAO
 from ..exceptions import (
     AddonForbiddenError,
     AddonNotInstalledError,
@@ -59,7 +60,6 @@ from ..utils import (
     unset_path_readonly,
 )
 from .activity import Action, FileAction
-from .dao.engine import EngineDAO
 from .processor import Processor
 from .queue_manager import QueueManager
 from .watcher.local_watcher import LocalWatcher

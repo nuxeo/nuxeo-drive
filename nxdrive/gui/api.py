@@ -20,7 +20,7 @@ from ..constants import (
     DT_MONITORING_MAX_ITEMS,
     TransferStatus,
 )
-from ..engine.dao.engine import EngineDAO
+from ..dao.engine import EngineDAO
 from ..exceptions import (
     AddonForbiddenError,
     AddonNotInstalledError,

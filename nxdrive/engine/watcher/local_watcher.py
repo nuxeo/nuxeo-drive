@@ -36,7 +36,7 @@ if WINDOWS:
     ob.winapi.BUFFER_SIZE = 8192
 
 if TYPE_CHECKING:
-    from ..dao.engine import EngineDAO  # noqa
+    from ...dao.engine import EngineDAO  # noqa
     from ..engine import Engine  # noqa
 
 __all__ = ("DriveFSEventHandler", "LocalWatcher", "WIN_MOVE_RESOLUTION_PERIOD")

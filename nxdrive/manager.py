@@ -28,8 +28,8 @@ from .constants import (
     STARTUP_PAGE_CONNECTION_TIMEOUT,
     DelAction,
 )
+from .dao.manager import ManagerDAO
 from .direct_edit import DirectEdit
-from .engine.dao.manager import ManagerDAO
 from .engine.engine import Engine
 from .engine.tracker import Tracker
 from .engine.workers import Runner
