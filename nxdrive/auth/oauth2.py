@@ -7,7 +7,7 @@ from ..options import Options
 from .base import Authentication
 
 if TYPE_CHECKING:
-    from ..engine.dao.base import BaseDAO
+    from ..dao.base import BaseDAO
     from . import Token
 
 
