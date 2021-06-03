@@ -22,8 +22,8 @@ from ..constants import (
     WINDOWS,
     DelAction,
 )
+from ..dao.engine import EngineDAO
 from ..engine.activity import Action
-from ..engine.dao.engine import EngineDAO
 from ..engine.engine import Engine
 from ..feature import Beta, DisabledFeatures, Feature
 from ..gui.folders_dialog import DialogMixin, DocumentsDialog, FoldersDialog

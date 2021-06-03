@@ -26,7 +26,7 @@ from .constants import (
 )
 
 if TYPE_CHECKING:
-    from ..dao.engine import EngineDAO  # noqa
+    from ...dao.engine import EngineDAO  # noqa
     from ..engine import Engine  # noqa
 
 __all__ = ("RemoteWatcher",)

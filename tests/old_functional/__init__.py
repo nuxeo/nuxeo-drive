@@ -22,11 +22,11 @@ def patch_nxdrive_objects():
     """Some feature are not needed or are better disabled when testing."""
 
     # Need to do this one first because importing Manager will already import
-    # nxdrive.engine.dao.utils and so changing the behavior of save_backup()
+    # nxdrive.dao.utils and so changing the behavior of save_backup()
     # will not work.
-    import nxdrive.engine.dao.utils
+    import nxdrive.dao.utils
 
-    nxdrive.engine.dao.utils.save_backup = lambda *args: True
+    nxdrive.dao.utils.save_backup = lambda *args: True
 
     from nxdrive.poll_workers import ServerOptionsUpdater
 

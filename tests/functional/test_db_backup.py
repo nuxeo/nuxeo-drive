@@ -3,8 +3,8 @@ from logging import getLogger
 from sqlite3 import DatabaseError
 from time import sleep
 
-import nxdrive.engine.dao.utils
-from nxdrive.engine.dao.base import BaseDAO
+import nxdrive.dao.utils
+from nxdrive.dao.base import BaseDAO
 
 from .. import ensure_no_exception
 
@@ -36,7 +36,7 @@ def test_create_backup(manager_factory, tmp, nuxeo_url, user_factory, monkeypatc
             database.unlink()
             raise DatabaseError("Mock")
 
-    monkeypatch.setattr("nxdrive.engine.dao.base.fix_db", buggy_db)
+    monkeypatch.setattr("nxdrive.dao.base.fix_db", buggy_db)
 
     # Before NXDRIVE-1574, there was an error when restoring the DB:
     #    AttributeError: 'ManagerDAO' object has no attribute '_lock'
@@ -48,7 +48,7 @@ def test_create_backup(manager_factory, tmp, nuxeo_url, user_factory, monkeypatc
     def restore_db(self):
         nonlocal restored
         restored = True
-        return nxdrive.engine.dao.utils.restore_backup(self.db)
+        return nxdrive.dao.utils.restore_backup(self.db)
 
     restored = False
     monkeypatch.setattr(BaseDAO, "restore_backup", restore_db)
@@ -76,7 +76,7 @@ def test_delete_old_backups(tmp):
         (backups / f"manager.db_{yesterday - i * 1000}").touch()
 
     sleep(1)
-    nxdrive.engine.dao.utils.save_backup(db)
+    nxdrive.dao.utils.save_backup(db)
 
     remaining_backups = sorted(backups.glob("manager.db_*"))
 

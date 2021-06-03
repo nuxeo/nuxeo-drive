@@ -10,7 +10,7 @@ from nxdrive.client.proxy import (
     save_proxy,
 )
 from nxdrive.constants import WINDOWS
-from nxdrive.engine.dao.base import BaseDAO
+from nxdrive.dao.base import BaseDAO
 from nxdrive.manager import Manager
 from nxdrive.options import Options
 

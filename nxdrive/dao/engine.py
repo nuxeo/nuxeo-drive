@@ -24,10 +24,10 @@ from typing import (
 
 from nuxeo.utils import get_digest_algorithm
 
-from ...client.local import FileInfo
-from ...constants import ROOT, UNACCESSIBLE_HASH, WINDOWS, TransferStatus
-from ...exceptions import UnknownPairState
-from ...objects import (
+from ..client.local import FileInfo
+from ..constants import ROOT, UNACCESSIBLE_HASH, WINDOWS, TransferStatus
+from ..exceptions import UnknownPairState
+from ..objects import (
     DocPair,
     DocPairs,
     Download,
@@ -36,8 +36,8 @@ from ...objects import (
     Session,
     Upload,
 )
-from ...options import Options
-from ...qt.imports import pyqtSignal
+from ..options import Options
+from ..qt.imports import pyqtSignal
 from . import SCHEMA_VERSION
 from .adapters import adapt_path
 from .base import BaseDAO
