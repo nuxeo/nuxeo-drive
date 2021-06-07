@@ -1,8 +1,8 @@
 """
 Uploader used by the Remote client for all upload stuff.
 """
+import json
 from abc import abstractmethod
-from json import JSONDecodeError
 from logging import getLogger
 from pathlib import Path
 from time import monotonic_ns
@@ -20,6 +20,7 @@ from ...constants import TX_TIMEOUT, TransferStatus
 from ...engine.activity import LinkingAction, UploadAction
 from ...exceptions import UploadCancelled, UploadPaused
 from ...feature import Feature
+from ...metrics.constants import REQUEST_METRICS, UPLOAD_PROVIDER
 from ...objects import Upload
 from ...options import Options
 from ...qt.imports import QApplication
@@ -104,9 +105,16 @@ class BaseUploader:
             handler = UP_AMAZON_S3 if Feature.s3 and uploads.has_s3() else ""
 
             # Create a new batch
+            metrics = {
+                REQUEST_METRICS: json.dumps(
+                    {
+                        UPLOAD_PROVIDER: handler or "nuxeo",
+                    }
+                )
+            }
             try:
-                batch = uploads.batch(handler=handler)
-            except JSONDecodeError as exc:
+                batch = uploads.batch(handler=handler, headers=metrics)
+            except json.JSONDecodeError as exc:
                 err = "Cannot parse the batch response: invalid data from the server"
                 log.warning(err)
                 raise HTTPError(status=500, message=err) from exc
@@ -379,7 +387,7 @@ class BaseUploader:
             log.warning(
                 "Either the upload ID does not exist or the it was already completed."
             )
-        except JSONDecodeError as exc:
+        except json.JSONDecodeError as exc:
             err = "Cannot parse the server response: invalid data from the server"
             log.warning(err)
             raise HTTPError(status=500, message=err) from exc
