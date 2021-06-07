@@ -266,9 +266,21 @@ class Remote(Nuxeo):
                 raise NotFound()
             raise e
 
-    def _escape(self, path: str, /) -> str:
-        """Escape any single quote with an antislash to further use in a NXQL query."""
-        return path.replace("'", r"\'")
+    @staticmethod
+    def escape(path: str, /) -> str:
+        """Escape any problematic character for a NXQL query.
+        Inspired and expanded from NXQL.escapeStringInner()
+            -> https://github.com/nuxeo/nuxeo/blob/83481e2/modules/core/nuxeo-core-query/src/main/java/org/nuxeo/ecm/core/query/sql/NXQL.java#L267-L272
+        """  # noqa
+        return (
+            path
+            # quote -> backslash quote
+            .replace("'", r"\'")
+            # line feed -> backslash n
+            .replace("\n", r"\\n")
+            # carriage return -> backslash r
+            .replace("\r", r"\\r")
+        )
 
     def exists(self, ref: str, /, *, use_trash: bool = True) -> bool:
         """
@@ -278,7 +290,7 @@ class Remote(Nuxeo):
         :param use_trash: Filter documents inside the trash.
         :rtype: bool
         """
-        ref = self._escape(self.check_ref(ref))
+        ref = self.escape(self.check_ref(ref))
         id_prop = "ecm:path" if ref.startswith("/") else "ecm:uuid"
         trash = self._get_trash_condition() if use_trash else ""
 
@@ -290,7 +302,7 @@ class Remote(Nuxeo):
         Fetch a document based on its parent's UID and document's name.
         Return True if such document exists.
         """
-        name = self._escape(name)
+        name = self.escape(name)
         mixin_type = f"ecm:mixinType {'=' if folderish else '<>'} 'Folderish'"
         query = (
             "SELECT * FROM Document"

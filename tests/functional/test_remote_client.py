@@ -30,3 +30,20 @@ def test_personal_space(manager_factory, tmp, nuxeo_url, user_factory, username)
 
         folder = engine.remote.personal_space()
         assert isinstance(folder, Document)
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "My \r file",
+        "ndt-bob@bar.com",
+        "ndt-éléonor",
+        "ndt-東京スカイツリー",
+    ],
+)
+def test_exists_in_parent(name, manager_factory):
+    manager, engine = manager_factory()
+    with manager:
+        method = engine.remote.exists_in_parent
+        assert not method("/", name, False)
+        assert not method("/", name, True)
