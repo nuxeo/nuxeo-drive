@@ -46,7 +46,7 @@ def test_without_errors(my_remote):
 
 
 def test_with_some_errors(my_remote):
-    """A few exceptions are thrown, some metrics are pushed back in the queue."""
+    """A few exceptions are thrown, ensure metrics are _not_ pushed back in the queue."""
 
     called_count = 0
 
@@ -63,8 +63,7 @@ def test_with_some_errors(my_remote):
             metrics.send({"test": "data"})
         assert metrics._poll()
         assert called_count == 12
-        assert not metrics._metrics_queue.empty()
-        assert metrics._metrics_queue.qsize() == 6
+        assert metrics._metrics_queue.empty()
 
 
 def test_thread_interrupt(my_remote):
