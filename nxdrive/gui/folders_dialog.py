@@ -300,7 +300,7 @@ class FoldersDialog(DialogMixin):
 
     def _add_group_options(self) -> QGroupBox:
         """Group box for options."""
-        groupbox = QGroupBox(Translator.get("OPTIONS"))
+        groupbox = QGroupBox(Translator.get("ADVANCED"))
         layout = QVBoxLayout()
         groupbox.setLayout(layout)
 
