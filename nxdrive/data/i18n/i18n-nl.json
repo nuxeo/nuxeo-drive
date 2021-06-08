@@ -77,7 +77,7 @@
     "DIRECT_EDIT_CORRUPTED_DOWNLOAD_FAILURE": "Direct Edit is mislukt vanwege beschadigde inhoud, neem contact op met uw beheerder.",
     "DIRECT_EDIT_CORRUPTED_DOWNLOAD_RETRY": "Dossiercorruptie ontdekt, opnieuw proberen...",
     "DIRECT_EDIT_AUTH_EXPIRED": "Ongeldige aanmeldgegevens voor de gebruiker <b>%1</b> op de server <a href=\"%2\">%2</a>.<br><br>Ga naar Instellingen en voer geldige gegevens in.",
-    "DIRECT_EDIT_BAD_RESPONSE": "Access to the document \"%1\" on %2 is not possible right now. Please retry later.",
+    "DIRECT_EDIT_BAD_RESPONSE": "Toegang tot document%1\" op %2 is momenteel niet mogelijk. Probeer het later opnieuw.",
     "DIRECT_EDIT_DOC_NOT_FOUND": "U probeert een Direct Edit uit te voeren op bestaande externe document \"%1\", maar het bijgevoegde binary is niet gevonden op de server.",
     "DIRECT_EDIT_FORBIDDEN_MSG": "Toegang tot document \"%1\" op %2 is verboden voor gebruiker %3.",
     "DIRECT_EDIT_FORBIDDEN_TITLE": "Verboden Direct Edit",
