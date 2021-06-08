@@ -25,6 +25,9 @@ DE_SAVE_COUNT = "directEdit.save.count"
 # Direct Transfer
 DT_SESSION_NUMBER = "directTransfer.session.number"
 DT_DUPLICATE_BEHAVIOR = "directTransfer.duplicate.file.behavior"
+DT_FILE_EXTENSION = "directTransfer.file.extension"
+DT_FILE_MIMETYPE = "directTransfer.file.mimetype"
+DT_FILE_SIZE = "directTransfer.file.size"
 DT_NEW_FOLDER = "directTransfer.option.newFolder"
 DT_SESSION_STATUS = "directTransfer.session.status"
 
