@@ -10,49 +10,18 @@ from ..notification import Notification
 from ..objects import EngineDef
 from . import SCHEMA_VERSION
 from .base import BaseDAO
+from .migrations.migration_engine import MigrationEngine
 
 log = getLogger(__name__)
 
 
 class ManagerDAO(BaseDAO):
 
-    schema_version = 4
+    old_migrations_max_schema_version = 4
     _state_factory = EngineDef
 
     # WAL not needed as we write less often and it may have issues on GNU/Linux (NXDRIVE-2524)
     _journal_mode: str = "DELETE"
-
-    def _init_db(self, cursor: Cursor, /) -> None:
-        super()._init_db(cursor)
-        cursor.execute(
-            "CREATE TABLE if not exists Engines ("
-            "    uid          VARCHAR,"
-            "    engine       VARCHAR NOT NULL,"
-            "    name         VARCHAR,"
-            "    local_folder VARCHAR NOT NULL UNIQUE,"
-            "    PRIMARY KEY (uid)"
-            ")"
-        )
-        cursor.execute(
-            "CREATE TABLE if not exists Notifications ("
-            "    uid         VARCHAR UNIQUE,"
-            "    engine      VARCHAR,"
-            "    level       VARCHAR,"
-            "    title       VARCHAR,"
-            "    description VARCHAR,"
-            "    action      VARCHAR,"
-            "    flags       INT,"
-            "    PRIMARY KEY (uid)"
-            ")"
-        )
-        cursor.execute(
-            "CREATE TABLE if not exists AutoLock ("
-            "    path      VARCHAR,"
-            "    remote_id VARCHAR,"
-            "    process   INT,"
-            "    PRIMARY KEY(path)"
-            ")"
-        )
 
     def insert_notification(self, notification: Notification, /) -> None:
         with self.lock:
@@ -149,7 +118,15 @@ class ManagerDAO(BaseDAO):
             c = self._get_write_connection().cursor()
             c.execute("DELETE FROM Notifications WHERE uid = ?", (uid,))
 
-    def _migrate_db(self, cursor: Cursor, version: int, /) -> None:
+    def _migrate_db(self, version: int, /) -> None:
+        from .migrations.manager import manager_migrations
+
+        migration_engine = MigrationEngine(self.conn, version, manager_migrations)
+        migration_engine.execute_database_upgrade(
+            self.old_migrations_max_schema_version, self._migrate_db_old
+        )
+
+    def _migrate_db_old(self, cursor: Cursor, version: int, /) -> None:
         if version < 2:
             cursor.execute(
                 "CREATE TABLE if not exists Notifications ("

@@ -265,11 +265,11 @@ def test_reinit_processors(engine_dao):
         assert not state.processor
 
 
-def test_manager_init_db(engine_dao):
-    with engine_dao("manager_migration.db") as dao:
-        assert not dao.get_filters()
-        assert not dao.get_conflicts()
-        assert dao.get_config("remote_user") is None
+def test_engine_init_db(engine_dao):
+    with engine_dao("engine_migration.db") as dao:
+        assert len(dao.get_filters()) == 2  # There is 2 default filters existing
+        assert len(dao.get_conflicts()) == 3
+        assert dao.get_config("remote_user") == "Administrator"
         assert not dao.is_path_scanned("/")
 
 

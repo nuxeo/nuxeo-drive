@@ -38,9 +38,11 @@ from ..objects import (
 )
 from ..options import Options
 from ..qt.imports import pyqtSignal
+from ..utils import current_thread_id
 from . import SCHEMA_VERSION
 from .adapters import adapt_path
 from .base import BaseDAO
+from .migrations.migration_engine import MigrationEngine
 
 if TYPE_CHECKING:
     from ..queue_manager import QueueManager  # noqa
@@ -104,7 +106,7 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
 
 class EngineDAO(BaseDAO):
 
-    schema_version = 21
+    old_migrations_max_schema_version = 21
     newConflict = pyqtSignal(object)
     transferUpdated = pyqtSignal()
     directTransferUpdated = pyqtSignal()
@@ -127,7 +129,17 @@ class EngineDAO(BaseDAO):
             cursor.execute("DROP TABLE if exists StatesMigration")
             self._reinit_states(cursor)
 
-    def _migrate_db(self, cursor: Cursor, version: int, /) -> None:
+    def _migrate_db(self, version: int, /) -> None:
+        from .migrations.engine import engine_migrations
+
+        migration_engine = MigrationEngine(self.conn, version, engine_migrations)
+        self.in_tx = current_thread_id()
+        migration_engine.execute_database_upgrade(
+            self.old_migrations_max_schema_version, self._migrate_db_old
+        )
+        self.in_tx = None
+
+    def _migrate_db_old(self, cursor: Cursor, version: int, /) -> None:
         if version < 1:
             self._migrate_state(cursor)
             cursor.execute(
@@ -626,20 +638,6 @@ class EngineDAO(BaseDAO):
 
         # Add the missing field
         cursor.execute(f"ALTER TABLE {table} ADD COLUMN {' '.join(field_data)};")
-
-    def _init_db(self, cursor: Cursor) -> None:
-        super()._init_db(cursor)
-        for table in {"Filters", "RemoteScan", "ToRemoteScan"}:
-            cursor.execute(
-                f"CREATE TABLE if not exists {table} ("
-                "   path STRING NOT NULL,"
-                "   PRIMARY KEY (path)"
-                ")"
-            )
-        self._create_state_table(cursor)
-        self._create_transfer_tables(cursor)
-        self._create_sessions_table(cursor)
-        self._create_session_items_table(cursor)
 
     def acquire_state(
         self, thread_id: Optional[int], row_id: int, /

@@ -75,12 +75,13 @@ class BaseDAO(QObject):
             raise RuntimeError("Unable to connect to database.")
         c = self.conn.cursor()
         self._init_db(c)
+
+        schema_version = 0
         if exists:
-            schema = self.get_schema_version(c, exists)
-            if schema != self.schema_version:
-                self._migrate_db(c, schema)
+            schema_version = self.get_schema_version(c, exists)
         else:
-            self.set_schema_version(c, self.schema_version)
+            self.set_schema_version(c, schema_version)
+        self._migrate_db(schema_version)
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__} db={self.db!r}, exists={self.db.exists()}>"
@@ -146,10 +147,18 @@ class BaseDAO(QObject):
 
         if version == 0 and db_exists:
             # Backward compatibility
+            tables = [
+                res[0]
+                for res in cursor.execute(
+                    "select name from sqlite_master where type = 'table'"
+                ).fetchall()
+            ]
+            if "Configuration" not in tables:
+                return 0
             res = cursor.execute(
                 "SELECT value FROM Configuration WHERE name = ?", (SCHEMA_VERSION,)
             ).fetchone()
-            version = int(res[0]) if res else 0
+            version = int(res[0]) if res else -1
 
         return version
 
@@ -190,7 +199,6 @@ class BaseDAO(QObject):
     def _init_db(self, cursor: Cursor, /) -> None:
         cursor.execute(f"PRAGMA journal_mode = {self._journal_mode}")
         cursor.execute("PRAGMA temp_store = MEMORY")
-        self._create_configuration_table(cursor)
 
     def _create_configuration_table(self, cursor: Cursor, /) -> None:
         cursor.execute(
