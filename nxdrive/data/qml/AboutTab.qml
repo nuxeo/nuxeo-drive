@@ -35,7 +35,10 @@ Rectangle {
                         weight: Font.Bold
                     }
                 }
-                ScaledText { text: modulesVersionText; color: secondaryText }
+                SelectableText {
+                    text: modulesVersionText
+                    color: secondaryText
+                }
             }
         }
 
