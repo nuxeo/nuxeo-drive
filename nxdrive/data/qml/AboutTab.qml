@@ -22,8 +22,8 @@ Rectangle {
             Image {
                 source: "../icons/app_icon.svg"
                 fillMode: Image.PreserveAspectFit
-                sourceSize.width: 60
-                sourceSize.height: 60
+                sourceSize.width: 80
+                sourceSize.height: 80
             }
 
             ColumnLayout {
