@@ -77,7 +77,7 @@
     "DIRECT_EDIT_CORRUPTED_DOWNLOAD_FAILURE": "Direct Edit ist wegen beschädigter Inhalte fehlgeschlagen, bitte kontaktieren Sie Ihren Administrator",
     "DIRECT_EDIT_CORRUPTED_DOWNLOAD_RETRY": "Dateibeschädigung entdeckt, erneuter Versuch...",
     "DIRECT_EDIT_AUTH_EXPIRED": "Falsche Anmeldeinformationen für den Benutzer <b>%1</b> auf dem Server <a href=\"%2\">%2</a>.<br><br>Geben Sie unter den Einstellungen gültige Daten ein.",
-    "DIRECT_EDIT_BAD_RESPONSE": "Access to the document \"%1\" on %2 is not possible right now. Please retry later.",
+    "DIRECT_EDIT_BAD_RESPONSE": "Der Zugriff auf das Dokument \"%1\" auf %2 ist derzeit nicht möglich. Bitte versuchen Sie es später erneut.",
     "DIRECT_EDIT_DOC_NOT_FOUND": "Sie versuchen eine Direct Edit auf vorhandenem fernen Dokument \"%1\" durchzuführen, aber die angehängte Binärdatei wurde nicht auf dem Server gefunden.",
     "DIRECT_EDIT_FORBIDDEN_MSG": "Der Zugriff auf das Dokument \"%1\" auf %2 ist für Benutzer %3 untersagt.",
     "DIRECT_EDIT_FORBIDDEN_TITLE": "Unzulässige Direct Edit",

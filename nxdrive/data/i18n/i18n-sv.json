@@ -77,7 +77,7 @@
     "DIRECT_EDIT_CORRUPTED_DOWNLOAD_FAILURE": "Direct Edit misslyckades på grund av skadat innehåll, kontakta administratören",
     "DIRECT_EDIT_CORRUPTED_DOWNLOAD_RETRY": "Filkorruption upptäckt, försöker…",
     "DIRECT_EDIT_AUTH_EXPIRED": "Ogiltiga inloggningsuppgifter för användaren <b>%1</b> på servern <a href=\"%2\">%2</a>.<br><br>Gå till Inställningar och ange giltiga uppgifter.",
-    "DIRECT_EDIT_BAD_RESPONSE": "Access to the document \"%1\" on %2 is not possible right now. Please retry later.",
+    "DIRECT_EDIT_BAD_RESPONSE": "Åtkomst till dokumentet \"%1\" på %2 är inte möjligt just nu. Försök igen senare.",
     "DIRECT_EDIT_DOC_NOT_FOUND": "Du försöker utföra en Direct Edit på befintliga fjärrdokument \"%1\", men dess bifogade binära hittades inte på servern.",
     "DIRECT_EDIT_FORBIDDEN_MSG": "Åtkomst till dokumentet  \"%1\" på %2 är förbjudet för användare %3.",
     "DIRECT_EDIT_FORBIDDEN_TITLE": "Förbjuden Direct Edit",
