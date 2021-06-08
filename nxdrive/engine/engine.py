@@ -36,6 +36,9 @@ from ..exceptions import (
 from ..feature import Feature
 from ..metrics.constants import (
     DT_NEW_FOLDER,
+    DT_SESSION_FILE_COUNT,
+    DT_SESSION_FOLDER_COUNT,
+    DT_SESSION_ITEM_COUNT,
     DT_SESSION_NUMBER,
     DT_SESSION_STATUS,
     SYNC_ROOT_COUNT,
@@ -569,7 +572,18 @@ class Engine(QObject):
         self.directTransferSessionFinished.emit(
             self.uid, session.remote_ref, session.remote_path
         )
-        self.remote.metrics.send({DT_SESSION_STATUS: "done"})
+        session_folder_count = sum(
+            "Folderish" in doc["facets"]
+            for doc in self.dao.get_session_items(session.uid)
+        )
+        self.remote.metrics.send(
+            {
+                DT_SESSION_FILE_COUNT: session.total_items - session_folder_count,
+                DT_SESSION_FOLDER_COUNT: session_folder_count,
+                DT_SESSION_ITEM_COUNT: session.total_items,
+                DT_SESSION_STATUS: "done",
+            }
+        )
         self.send_metric("direct_transfer", "session_items", str(session.total_items))
         # Read https://jira.nuxeo.com/secure/EditComment!default.jspa?id=152399&commentId=503487
         # for why we can't have metrics about dupes creation on uploads.
@@ -824,7 +838,19 @@ class Engine(QObject):
         """Cancel all transfers for given session."""
         self.dao.change_session_status(uid, TransferStatus.CANCELLED)
         self.dao.cancel_session(uid)
-        self.remote.metrics.send({DT_SESSION_STATUS: "cancelled"})
+
+        docs = self.dao.get_session_items(uid)
+        session_item_count = len(docs)
+        session_folder_count = sum("Folderish" in doc["facets"] for doc in docs)
+        self.remote.metrics.send(
+            {
+                DT_SESSION_FILE_COUNT: session_item_count - session_folder_count,
+                DT_SESSION_FOLDER_COUNT: session_folder_count,
+                DT_SESSION_ITEM_COUNT: session_item_count,
+                DT_SESSION_STATUS: "cancelled",
+            }
+        )
+
         # We could cancel all batches, but in reality it would freeze the GUI.
         # Cancelling a session with a lot of items is worthless the use of a specific thread
         # to do the clean-up ourselves. Let the server doing it for us. We will be able to
