@@ -6,9 +6,14 @@ from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from nuxeo.utils import guess_mimetype
+
 from ...engine.activity import LinkingAction, UploadAction
 from ...metrics.constants import (
     DT_DUPLICATE_BEHAVIOR,
+    DT_FILE_EXTENSION,
+    DT_FILE_MIMETYPE,
+    DT_FILE_SIZE,
     DT_SESSION_NUMBER,
     REQUEST_METRICS,
 )
@@ -96,6 +101,9 @@ class DirectTransferUploader(BaseUploader):
                 headers={
                     REQUEST_METRICS: json.dumps(
                         {
+                            DT_FILE_EXTENSION: file_path.suffix,
+                            DT_FILE_MIMETYPE: guess_mimetype(file_path),
+                            DT_FILE_SIZE: str(doc_pair.size),
                             DT_DUPLICATE_BEHAVIOR: doc_pair.duplicate_behavior,
                             DT_SESSION_NUMBER: doc_pair.session,
                         }
