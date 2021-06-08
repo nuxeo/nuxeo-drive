@@ -101,7 +101,7 @@ class DirectTransferUploader(BaseUploader):
                 headers={
                     REQUEST_METRICS: json.dumps(
                         {
-                            DT_FILE_EXTENSION: file_path.suffix,
+                            DT_FILE_EXTENSION: file_path.suffix or "None",
                             DT_FILE_MIMETYPE: guess_mimetype(file_path),
                             DT_FILE_SIZE: str(doc_pair.size),
                             DT_DUPLICATE_BEHAVIOR: doc_pair.duplicate_behavior,
