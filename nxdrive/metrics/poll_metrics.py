@@ -33,7 +33,6 @@ class CustomPollMetrics(PollWorker):
         return state
 
     def _poll(self) -> bool:
-        errors = []  # Errors are stored and re-injected on exception
         dumps = json.dumps
         try:
             while True:
@@ -49,15 +48,10 @@ class CustomPollMetrics(PollWorker):
                 except ThreadInterrupt:
                     raise
                 except Exception:
-                    log.warning(
-                        "Could not send metrics. Pushing to queue.", exc_info=True
-                    )
-                    errors.append(metrics)
+                    # NXDRIVE-2676: do not send again metrics on error to not pollute logs.
+                    log.warning("Could not send metrics", exc_info=True)
         except ThreadInterrupt:
             raise
-        finally:
-            for elem in errors:
-                self.send(elem)
         return True
 
     def force_poll(self) -> None:
