@@ -41,7 +41,7 @@ jobs:
           # Add the SSH private key
           echo ${{ secrets.SSH_PRIV_KEY }} | base64 --decode > private.key
           chmod 0600 private.key
-          eval "$(ssh-agent -s)"
+          eval "$(ssh-agent -s)" || (powershell Set-Service ssh-agent -StartupType Manual && eval "$(ssh-agent -s)")
           ssh-add private.key
           rm private.key
 
