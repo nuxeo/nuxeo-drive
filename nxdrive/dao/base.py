@@ -66,7 +66,7 @@ class BaseDAO(QObject):
                     self.db.unlink(missing_ok=True)
 
         self._engine_uid = self.db.stem.replace("ndrive_", "")
-        self.in_tx = None
+        self.in_tx: Optional[int] = None
         self._tx_lock = RLock()
         self.conn: Optional[Connection] = None
         self._conns = local()

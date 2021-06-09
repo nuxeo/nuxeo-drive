@@ -21,7 +21,7 @@ class MigrationEngine:
         self,
         old_migrations_schema_version: int,
         old_migrations_callback: Callable = None,
-    ):
+    ) -> None:
         """
         Execute all the database migrations upgrades up to the last version.
         Will run the old migrations if necessary before switching to the new system.
@@ -39,7 +39,7 @@ class MigrationEngine:
                     or self.starting_schema_version == -1
                 ):
                     old_migrations_callback(cursor, self.starting_schema_version)
-                    # Old migrations have been applied succesfully, we update the starting_schema_version
+                    # Old migrations have been applied successfully, we update the starting_schema_version
                     self.starting_schema_version = old_migrations_schema_version
 
                 # Let's execute the new migrations
@@ -49,7 +49,7 @@ class MigrationEngine:
                     log.debug(f"Running migration {name}.")
                     migration.upgrade(cursor)
                     log.debug(
-                        f"Migration {name} applied succesfully. Schema is now at version {migration.version}."
+                        f"Migration {name} applied successfully. Schema is now at version {migration.version}."
                     )
         except sqlite3.Error:
             log.exception("Database upgrade failed.")
@@ -72,8 +72,14 @@ class MigrationEngine:
                 conn.execute("BEGIN")
                 cursor = conn.cursor()
 
+                # Let's reverse the migrations order
+                reversed_keys = list(self.migrations.keys().__reversed__())
+                reversed_migrations: Dict[str, Any] = {
+                    key: self.migrations[key] for key in reversed_keys
+                }
+
                 # Let's execute all the migrations downgrade, starting from the last one.
-                for name, migration in self.migrations.__reversed__.items():
+                for name, migration in reversed_migrations.items():
                     if (
                         migration.version > old_migrations_schema_version
                         and migration.version >= targeted_schema_version
@@ -81,7 +87,7 @@ class MigrationEngine:
                         log.debug(f"Running migration {name}.")
                         migration.downgrade(cursor)
                         log.debug(
-                            f"Migration {name} applied succesfully. Schema is now at version {migration.version}."
+                            f"Migration {name} applied successfully. Schema is now at version {migration.version}."
                         )
                     else:
                         break

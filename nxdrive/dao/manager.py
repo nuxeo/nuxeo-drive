@@ -8,6 +8,7 @@ from typing import List
 
 from ..notification import Notification
 from ..objects import EngineDef
+from ..utils import current_thread_id
 from . import SCHEMA_VERSION
 from .base import BaseDAO
 from .migrations.migration_engine import MigrationEngine
@@ -121,10 +122,18 @@ class ManagerDAO(BaseDAO):
     def _migrate_db(self, version: int, /) -> None:
         from .migrations.manager import manager_migrations
 
+        if not self.conn:
+            raise RuntimeError("Unable to connect to database.")
+
         migration_engine = MigrationEngine(self.conn, version, manager_migrations)
-        migration_engine.execute_database_upgrade(
-            self.old_migrations_max_schema_version, self._migrate_db_old
-        )
+
+        try:
+            self.in_tx = current_thread_id()
+            migration_engine.execute_database_upgrade(
+                self.old_migrations_max_schema_version, self._migrate_db_old
+            )
+        finally:
+            self.in_tx = None
 
     def _migrate_db_old(self, cursor: Cursor, version: int, /) -> None:
         if version < 2:
