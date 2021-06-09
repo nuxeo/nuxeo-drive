@@ -73,7 +73,7 @@ RUN git clone $GIT_URL sources && \
             yum erase -y git-core && \
             yum clean all
 
-# Create the travis user (the same one as on Travis-CI)
+# Create the travis user (the same one as on GitHub-CI)
 RUN useradd -m -d /home/travis -u 1001 -s /bin/bash travis
 
 # Adapt rights

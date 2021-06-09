@@ -81,8 +81,8 @@ function build_installer {
 	# Build the installer
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""
 
-	# Build DDLs only on Travis-CI, no need to loose time on the local dev machine
-	if ($Env:TRAVIS_BUILD_DIR) {
+	# Build DDLs only on GitHub-CI, no need to loose time on the local dev machine
+	if ($Env:GITHUB_WORKSPACE) {
 		build_overlays
 	}
 
@@ -126,11 +126,11 @@ function build_overlays {
 	$util_dll = "NuxeoDriveUtil"
 	$overlay_dll = "NuxeoDriveOverlays"
 
-	# Remove old DLLS on Travis-CI to prevent sucj errors:
+	# Remove old DLLS on GitHub-CI to prevent such errors:
 	#	Rename-Item : Cannot create a file when that file already exists.
-	if ($Env:TRAVIS_BUILD_DIR) {
-		Get-ChildItem -Path $folder -Recurse -File -Include *.dll | Foreach ($_) {Remove-Item $_.Fullname}
-	}
+	# if ($Env:GITHUB_WORKSPACE) {
+	# 	Get-ChildItem -Path $folder -Recurse -File -Include *.dll | Foreach ($_) {Remove-Item $_.Fullname}
+	# }
 
 	# List of DLLs to build
 	$overlays = @(
@@ -215,10 +215,7 @@ function check_vars {
 		$Env:PYTHON_DRIVE_VERSION = '3.9.5'  # XXX_PYTHON
 	}
 	if (-Not ($Env:WORKSPACE)) {
-		if ($Env:TRAVIS_BUILD_DIR) {
-			# Running from Travis-CI
-			$Env:WORKSPACE = (Get-Item $Env:TRAVIS_BUILD_DIR).parent.FullName
-		} elseif ($Env:GITHUB_WORKSPACE) {
+		if ($Env:GITHUB_WORKSPACE) {
 			# Running from GitHub Actions
 			$Env:WORKSPACE = (Get-Item $Env:GITHUB_WORKSPACE).parent.FullName
 		} else {
@@ -282,7 +279,7 @@ function download($url, $output) {
 		Write-Output ">>> [$try/5] Downloading $url"
 		Write-Output "                   to $output"
 		Try {
-			if ($Env:TRAVIS_BUILD_DIR) {
+			if ($Env:GITHUB_WORKSPACE) {
 				$client = New-Object System.Net.WebClient
 				$client.DownloadFile($url, $output)
 			} else {
@@ -362,7 +359,7 @@ function install_python {
 		return
 	}
 
-	# Python needs to be downloaded and installed on Travis-CI
+	# Python needs to be downloaded and installed on GitHub-CI
 	$filename = "python-$Env:PYTHON_DRIVE_VERSION.exe"
 	$url = "https://www.python.org/ftp/python/$Env:PYTHON_DRIVE_VERSION/$filename"
 	$output = "$Env:WORKSPACE\$filename"
@@ -512,7 +509,7 @@ function sign($file) {
 		Write-Output ">>> APP_NAME is not set, using '$Env:APP_NAME'"
 	}
 
-	if ($Env:TRAVIS_BUILD_DIR) {
+	if ($Env:GITHUB_WORKSPACE) {
 		$cert = "certificate.pfx"
 		if (Test-Path $cert) {
 			Write-Output ">>> Importing the code signing certificate"

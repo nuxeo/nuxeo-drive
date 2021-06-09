@@ -3,17 +3,17 @@
 # Delete old alpha releases.
 #
 
+. "tools/env.sh"
+
 purge() {
     # $1: the version to remove
     local version
-    local path
 
     version="$1"
-    path="/var/www/community.nuxeo.com/static/drive-updates"
 
     echo " - ${version}"
     python3 tools/versions.py --delete "${version}"
-    ssh -o StrictHostKeyChecking=no -T nuxeo@lethe.nuxeo.com "rm -vf ${path}/alpha/*${version}.* ${path}/alpha/*${version}-*" || true
+    ssh -o StrictHostKeyChecking=no -T nuxeo@lethe.nuxeo.com "rm -vf ${REMOTE_PATH_PROD}/alpha/*${version}.* ${REMOTE_PATH_PROD}/alpha/*${version}-*" || true
     git tag --delete "alpha-${version}" || true
     git push --delete origin "wip-alpha-${version}" || true  # branch
     git push --delete origin "alpha-${version}" || true  # tag
@@ -23,19 +23,16 @@ main() {
     # $1 is an optional version to delete
     local current_date
     local days
-    local path
     local release
     local release_date
     local version
-
-    path="/var/www/community.nuxeo.com/static/drive-updates"
 
     echo ">>> Installing requirements"
     python3 -m pip install --user -U setuptools wheel
     python3 -m pip install --user pyyaml==5.3.1
 
     echo ">>> Retrieving versions.yml"
-    rsync -e "ssh -o StrictHostKeyChecking=no" -vz nuxeo@lethe.nuxeo.com:"${path}/versions.yml" .
+    rsync -e "ssh -o StrictHostKeyChecking=no" -vz nuxeo@lethe.nuxeo.com:"${REMOTE_PATH_PROD}/versions.yml" .
 
     echo ">>> Checking versions.yml integrity"
     python3 tools/versions.py --check || exit 1
@@ -71,7 +68,7 @@ main() {
     python3 tools/versions.py --check || exit 1
 
     echo ">>> Uploading versions.yml"
-    rsync -e "ssh -o StrictHostKeyChecking=no" -vz versions.yml nuxeo@lethe.nuxeo.com:"${path}/"
+    rsync -e "ssh -o StrictHostKeyChecking=no" -vz versions.yml nuxeo@lethe.nuxeo.com:"${REMOTE_PATH_PROD}/"
 }
 
 main "$@"

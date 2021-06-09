@@ -4,7 +4,7 @@
 #     - creating a new alpha or beta (seen as "release");
 #     - deploying artifacts to the server;
 #
-# Warning: do not execute this script manually but from Travis-CI.
+# Warning: do not execute this script manually but from GitHub-CI.
 #
 
 set -e
@@ -14,7 +14,7 @@ set -e
 cancel() {
     local artifacts
 
-    artifacts="/var/www/community.nuxeo.com/static/drive-staging/${TRAVIS_BUILD_NUMBER}"
+    artifacts="${REMOTE_PATH_STAGING}/${GITHUB_RUN_NUMBER}"
 
     echo ">>> [Deploy] Removing uploaded artifacts"
     ssh -o "StrictHostKeyChecking=no" nuxeo@lethe.nuxeo.com rm -rfv "${artifacts}"
@@ -39,7 +39,7 @@ publish() {
     local drive_version
     local release_type
 
-    artifacts="/var/www/community.nuxeo.com/static/drive-staging/${TRAVIS_BUILD_NUMBER}"
+    artifacts="${REMOTE_PATH_STAGING}/${GITHUB_RUN_NUMBER}"
     drive_version="$(grep __version__ nxdrive/__init__.py | cut -d'"' -f2)"
     release_type="$1"
 

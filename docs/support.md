@@ -38,7 +38,7 @@ We recommend using recent versions of Firefox or Chrome for the best experience.
 
 ### Python
 
-Nuxeo Drive is not a module but a whole package containing its own Python version and all dependencies.
+Nuxeo Drive is not a module, but a whole package containing its own Python version and all dependencies.
 If you want to use the module version as a basic module for your own software, please keep in mind that we do not offer support for dropped Python versions.
 
 It may evolve quickly without notification as we are following the Python development cycle.

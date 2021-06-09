@@ -98,7 +98,7 @@ create_package() {
     mkdir "${pkg_path}/Contents/PlugIns"
     mv -fv "${WORKSPACE_DRIVE}/NuxeoFinderSync.appex" "${pkg_path}/Contents/PlugIns/"
 
-    if [ "${TRAVIS_BUILD_DIR:-unset}" != "unset" ]; then
+    if [ "${GITHUB_WORKSPACE:-unset}" != "unset" ]; then
         prepare_signing_from_scratch
     else
         prepare_signing

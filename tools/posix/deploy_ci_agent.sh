@@ -102,11 +102,7 @@ check_vars() {
         export PYTHON_DRIVE_VERSION="3.9.5"  # XXX_PYTHON
     fi
     if [ "${WORKSPACE:-unset}" = "unset" ]; then
-        if [ "${TRAVIS_BUILD_DIR:-unset}" != "unset" ]; then
-            # Running from Travis-CI
-            WORKSPACE="$(dirname "${TRAVIS_BUILD_DIR}")"
-            export WORKSPACE
-        elif [ "${GITHUB_WORKSPACE:-unset}" != "unset" ]; then
+        if [ "${GITHUB_WORKSPACE:-unset}" != "unset" ]; then
             # Running from GitHub Actions
             WORKSPACE="$(dirname "${GITHUB_WORKSPACE}")"
             export WORKSPACE
