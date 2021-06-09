@@ -1,6 +1,4 @@
-#!/bin/bash
-
-set -e
+#!/bin/bash -e
 
 # PowerShell unlocking
 powershell Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
