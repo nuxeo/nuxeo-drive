@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 #
 # Create a new release, it means:
 #     - creating a new alpha or beta (seen as "release");
@@ -6,8 +6,6 @@
 #
 # Warning: do not execute this script manually but from GitHub-CI.
 #
-
-set -e
 
 . "tools/env.sh"
 

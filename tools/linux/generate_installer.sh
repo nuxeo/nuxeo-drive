@@ -1,6 +1,4 @@
-#!/bin/bash
-
-set -e
+#!/bin/bash -e
 
 # For the volume to copy artifacts
 mkdir build && chmod -R 777 build
