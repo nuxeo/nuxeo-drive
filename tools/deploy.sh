@@ -3,7 +3,7 @@
 # Deploy a release: it means moving artifacts from the staging site to the production's one and
 # converting GitHub pre-release to release.
 #
-# Warning: do not execute this script manually but from Jenkins.
+# Warning: do not execute this script manually but from GitHub-CI.
 #
 
 . "tools/env.sh"

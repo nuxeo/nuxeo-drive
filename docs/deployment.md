@@ -4,8 +4,6 @@ We are using scripts to automate the isolated environment creation. With only on
 
 You could modify these scripts, but we will not be able to do support, these are the official way to manage the Drive ecosystem.
 
-Finally, scripts names are referring to Jenkins, but you can always execute them on your personal computer or outside a Jenkins job.
-
 ## GNU/Linux, macOS
 
 ### Usage

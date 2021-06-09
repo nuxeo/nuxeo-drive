@@ -2,11 +2,6 @@
 
 set -e
 
-# Certificates
-wget https://www.apple.com/appleca/AppleIncRootCertificate.cer
-echo "${CERT_APP_MACOS}" | base64 --decode > developerID_application.cer
-echo "${PRIV_APP_MACOS}" | base64 --decode > nuxeo-drive.priv
-
 # Install required stuff
 bash tools/osx/deploy_ci_agent.sh --install-release
 

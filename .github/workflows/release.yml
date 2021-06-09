@@ -1,0 +1,139 @@
+# Generate a new release (alpha or beta)
+name: Release
+
+on:
+  # Check for updates every day
+  schedule:
+    - cron:  '10 0 * * *'
+
+  workflow_dispatch:
+    inputs:
+      releaseType:
+        description: 'Set to "release" for a beta release.'
+        required: false
+        default: 'alpha'
+
+env:
+  # Globals
+  MAKEFLAGS: '-j 2'
+  NXDRIVE_TEST_NUXEO_URL: 'https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo'
+
+  # GNU/Linux specific
+  REGISTRY: 'docker-private.packages.nuxeo.com'
+  REPOSITORY: 'nuxeo-drive-build'
+
+jobs:
+  release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: SSH and git setups
+        run: |
+          # Add the SSH private key
+          echo ${{ secrets.SSH_PRIV_KEY }} | base64 --decode > private.key
+          chmod 0600 private.key
+          eval "$(ssh-agent -s)"
+          ssh-add private.key
+          rm private.key
+
+          # Configure git user and fetch all tags
+          git config user.email "maintainers-python+github@nuxeo.com"
+          git config user.name "GitHub-CI bot"
+          git fetch --unshallow --tags
+          bash tools/bump-alpha-version.sh || exit 1
+
+      - name: Docker setup
+        if: ${{ matrix.os }} == 'ubuntu-latest'
+        uses: docker/setup-buildx-action@v1.3.0
+        with:
+          driver: docker
+
+      - name: Login to the registry
+        if: ${{ matrix.os }} == 'ubuntu-latest'
+        uses: docker/login-action@v1.9.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: GNU/Linux [.AppImage]
+        if: ${{ matrix.os }} == 'ubuntu-latest'
+        run: bash tools/linux/generate_installer.sh
+
+      - name: macOS [.dmg]
+        if: ${{ matrix.os }} == 'macos-latest'
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '10.13'
+          KEYCHAIN_PATH: '~/Library/Keychains/drive.keychain-db'
+          SIGNING_ID: 'NUXEO CORP'
+        run: |
+          # Retrieve certificates
+          wget https://www.apple.com/appleca/AppleIncRootCertificate.cer
+          echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.cer
+          echo "${{ secrets.PRIV_APP_MACOS }}" | base64 --decode > nuxeo-drive.priv
+
+          # And build the installer
+          bash tools/osx/generate_installer.sh
+
+      - name: Windows [.exe]
+        if: ${{ matrix.os }} == 'windows-latest'
+        env:
+          INNO_SETUP_VERSION: '6.1.2'  # XXX_INNO_SETUP
+          # MSBUILD_PATH: 'C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin'
+          SIGNING_ID: 'Nuxeo'
+          # SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\x86'
+        run: |
+          # Retrieve the certificate
+          echo ${{ secrets.CERT_APP_WINDOWS }}" | base64 --decode > certificate.pfx
+
+          # And build the installer
+          bash tools/windows/generate_installer.sh
+
+      - name: Cancel the release
+        if: ${{ failure() }} || ${{ cancelled() }}
+        run: bash tools/release.sh --cancel
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [release]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Deploy
+        if: ${{ github.event.inputs.branch }} == 'master'
+        run: |
+          # Add the deployment SSH private key
+          echo ${{ secrets.SSH_DEPLOY_KEY }} | base64 --decode > private.key
+          chmod 0600 private.key
+          eval "$(ssh-agent -s)"
+          ssh-add private.key
+          rm private.key
+
+          # Configure git user and fetch all tags
+          git config user.email "maintainers-python+github@nuxeo.com"
+          git config user.name "GitHub-CI bot"
+          git fetch --unshallow --tags
+
+          # Tel git to use the SSH access rather than HTTPS
+          git remote set-url origin git@github.com:nuxeo/nuxeo-drive.git
+
+          # Do the release
+          bash tools/release.sh --publish "${{ github.event.inputs.releaseType }}" || exit 1
+          bash tools/release.sh --create "${{ github.event.inputs.releaseType }}" || exit 1
+
+      - name: Cancel the release
+        if: ${{ failure() }} || ${{ cancelled() }}
+        run: bash tools/release.sh --cancel

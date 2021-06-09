@@ -2,7 +2,7 @@
 #
 # Launch several QA tests. Sync with SonarCloud.
 #
-# Warning: do not execute this script manually but from Jenkins.
+# Warning: do not execute this script manually but from GitHub-CI.
 #
 
 code_coverage() {

@@ -2,9 +2,6 @@
 
 set -e
 
-# The certificate
-echo "${CERT_APP_WINDOWS}" | base64 --decode > certificate.pfx
-
 # PowerShell unlocking
 powershell Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
 
