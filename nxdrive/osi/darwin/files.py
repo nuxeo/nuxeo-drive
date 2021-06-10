@@ -48,7 +48,7 @@ def _get_opened_files_adobe_cc(identifier: str, /) -> Iterator[Item]:
 
     try:
         documents = list(app.documents())
-    except AttributeError:
+    except (AttributeError, IndexError):
         return
     if not documents:
         return
