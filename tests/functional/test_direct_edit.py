@@ -9,6 +9,7 @@ from nuxeo.exceptions import CorruptedFile, HTTPError
 
 from nxdrive.constants import ROOT
 from nxdrive.engine.engine import Engine, ServerBindingSettings
+from nxdrive.exceptions import NoAssociatedSoftware
 from nxdrive.objects import DirectEditDetails
 from nxdrive.translator import Translator
 from nxdrive.utils import find_resource
@@ -94,10 +95,10 @@ def test_corrupted_download(app, manager_factory, tmp_path):
         nonlocal received_corrupted
         nonlocal received_failure
 
-        assert label in [
+        assert label in {
             "DIRECT_EDIT_CORRUPTED_DOWNLOAD_FAILURE",
             "DIRECT_EDIT_CORRUPTED_DOWNLOAD_RETRY",
-        ]
+        }
         assert values == []
         if label == "DIRECT_EDIT_CORRUPTED_DOWNLOAD_FAILURE":
             received_failure = True
@@ -297,6 +298,36 @@ def test_document_not_found(manager_factory):
         direct_edit.directEditError.connect(error_signal)
 
         direct_edit._prepare_edit(engine.server_url, doc_uid)
+        assert received
+
+
+def test_document_without_assiciated_software(manager_factory):
+    """Trying to Direct Edit'ing a document that has no associated software should display a notification."""
+
+    manager, engine = manager_factory()
+    doc_uid = "0000"
+
+    def prepare_edit(*_, **__):
+        return "File.azerty"
+
+    def open_local_file(_):
+        raise NoAssociatedSoftware(Path("File.azerty"))
+
+    def error_signal(label: str, values: List) -> None:
+        nonlocal received
+        assert label == "DIRECT_EDIT_NO_ASSOCIATED_SOFTWARE"
+        assert values == ["File.azerty", "application/octet-stream"]
+        received = True
+
+    with manager:
+        direct_edit = manager.direct_edit
+        received = False
+        direct_edit.directEditError.connect(error_signal)
+
+        with patch.object(direct_edit, "_prepare_edit", prepare_edit), patch.object(
+            direct_edit._manager, "open_local_file", open_local_file
+        ):
+            direct_edit.edit(engine.server_url, doc_uid, None, None)
         assert received
 
 
