@@ -7,7 +7,7 @@ from logging import getLogger
 from pathlib import Path
 from sqlite3 import Connection, Cursor, DatabaseError, OperationalError, Row, connect
 from threading import RLock, local
-from typing import Any, List, Optional, Type
+from typing import Any, Iterable, List, Optional, Type
 
 from ..constants import NO_SPACE_ERRORS
 from ..objects import DocPair
@@ -20,15 +20,15 @@ log = getLogger(__name__)
 
 
 class AutoRetryCursor(Cursor):
-    def execute(self, *args: str, **kwargs: Any) -> Cursor:
+    def execute(self, sql: str, parameters: Iterable[Any] = ()) -> Cursor:
         count = 1
         while True:
             count += 1
             try:
-                return super().execute(*args, **kwargs)
+                return super().execute(sql, parameters)
             except OperationalError as exc:
                 log.info(
-                    f"Retry locked database #{count}, args={args!r}, kwargs={kwargs!r}",
+                    f"Retry locked database #{count}, {sql=}, {parameters=}",
                     exc_info=True,
                 )
                 if count > 5:
