@@ -527,7 +527,7 @@ class MixinTests(DirectEditSetup):
         ), ensure_no_exception():
             self.direct_edit._handle_lock_queue()
 
-        # The unlock queue should not be empty after now
+        # The unlock queue should not be empty as the file is in error
         assert not self.direct_edit._lock_queue.empty()
 
         # Ensure there zere no handled exception
