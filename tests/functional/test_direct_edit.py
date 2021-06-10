@@ -95,10 +95,11 @@ def test_corrupted_download(app, manager_factory, tmp_path):
         nonlocal received_corrupted
         nonlocal received_failure
 
-        assert label in [
+        assert label in {
             "DIRECT_EDIT_CORRUPTED_DOWNLOAD_FAILURE",
             "DIRECT_EDIT_CORRUPTED_DOWNLOAD_RETRY",
-        ]
+        }
+
         assert values == []
         if label == "DIRECT_EDIT_CORRUPTED_DOWNLOAD_FAILURE":
             received_failure = True
