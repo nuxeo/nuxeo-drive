@@ -85,6 +85,7 @@
     "DIRECT_EDIT_LOCKED_FILE": "\"%1\" kann nicht bearbeitet werden, da von %2 am %3 gesperrt",
     "DIRECT_EDIT_LOCK_ERROR": "Problem mit dem Sperren",
     "DIRECT_EDIT_LOCK_ERROR_DESCRIPTION": "Das Dokument \"%1\" wurde nicht gesperrt",
+    "DIRECT_EDIT_NO_ASSOCIATED_SOFTWARE": "There is currently no associated software to open the file \"%1\". Please install an appropriate software that can handle files with the mimetype \"%2\" and retry.",
     "DIRECT_EDIT_NOT_FOUND": "Dokument \"%1\" nicht gefunden auf %2",
     "DIRECT_EDIT_NOT_ENABLED": "Die Funktion Direktbearbeitung ist nicht aktiviert.",
     "DIRECT_EDIT_NOT_POSSIBLE": "Die Funktion Direct Edit ist momentan nicht verfügbar.<br>Bitte versuchen Sie es später erneut.",

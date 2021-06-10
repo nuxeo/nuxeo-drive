@@ -85,6 +85,7 @@
     "DIRECT_EDIT_LOCKED_FILE": "No se puede editar \"%1\", ya que %2 lo ha bloqueado en %3",
     "DIRECT_EDIT_LOCK_ERROR": "Problema de bloqueo",
     "DIRECT_EDIT_LOCK_ERROR_DESCRIPTION": "El documento \"%1\" no se ha bloqueado",
+    "DIRECT_EDIT_NO_ASSOCIATED_SOFTWARE": "There is currently no associated software to open the file \"%1\". Please install an appropriate software that can handle files with the mimetype \"%2\" and retry.",
     "DIRECT_EDIT_NOT_FOUND": "Documento \"%1\" no encontrado en %2",
     "DIRECT_EDIT_NOT_ENABLED": "La función de Direct Edit no está habilitada.",
     "DIRECT_EDIT_NOT_POSSIBLE": "La función de Direct Edit no se puede utilizar en este momento.<br>Inténtalo de nuevo más tarde.",
