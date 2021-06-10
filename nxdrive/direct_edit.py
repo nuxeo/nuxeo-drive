@@ -25,7 +25,12 @@ from .engine.activity import tooltip
 from .engine.blocklist_queue import BlocklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
 from .engine.workers import Worker
-from .exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt
+from .exceptions import (
+    DocumentAlreadyLocked,
+    NoAssociatedSoftware,
+    NotFound,
+    ThreadInterrupt,
+)
 from .feature import Feature
 from .metrics.constants import (
     DE_CONFLICT_HIT,
@@ -604,6 +609,11 @@ class DirectEdit(Worker):
             # Launch it
             if file_path:
                 self._manager.open_local_file(file_path)
+        except NoAssociatedSoftware as exc:
+            self.directEditError.emit(
+                "DIRECT_EDIT_NO_ASSOCIATED_SOFTWARE",
+                [exc.filename, exc.mimetype],
+            )
         except OSError as e:
             if e.errno == errno.EACCES:
                 # Open file anyway

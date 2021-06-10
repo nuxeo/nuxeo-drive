@@ -26,6 +26,7 @@ from .constants import (
     DEFAULT_SERVER_TYPE,
     NO_SPACE_ERRORS,
     STARTUP_PAGE_CONNECTION_TIMEOUT,
+    WINDOWS,
     DelAction,
 )
 from .dao.manager import ManagerDAO
@@ -40,6 +41,7 @@ from .exceptions import (
     EngineTypeMissing,
     FolderAlreadyUsed,
     MissingXattrSupport,
+    NoAssociatedSoftware,
     RootAlreadyBindWithDifferentAccount,
     StartupPageConnectionError,
 )
@@ -481,6 +483,10 @@ class Manager(QObject):
             if exc.errno in NO_SPACE_ERRORS:
                 log.warning("Cannot open local file, disk space needed", exc_info=True)
                 raise
+            if WINDOWS and exc.winerror == 1155:
+                error = NoAssociatedSoftware(file_path)
+                log.warning(str(error))
+                raise error
             log.exception(f"[OS] Failed to find an editor for {file_path!r}")
         except Exception:
             # Log the exception now, will see later if we need to adapt

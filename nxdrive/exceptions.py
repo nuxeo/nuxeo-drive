@@ -122,6 +122,28 @@ class EncryptedSSLCertificateKey(DriveError):
         return repr(self)
 
 
+class NoAssociatedSoftware(OSError):
+    """
+    The local file cannot be opened as there is no associated software installed.
+    """
+
+    def __init__(self, file_path: Path) -> None:
+        from nuxeo.utils import guess_mimetype
+
+        self.filename = file_path.name
+        self.mimetype = guess_mimetype(file_path)
+
+    def __repr__(self) -> str:
+        return (
+            f"There is currently no associated software to open the file {self.filename}. "
+            "Please install an appropriate software that can handle files with the mimetype "
+            f"{self.mimetype!r} and retry."
+        )
+
+    def __str__(self) -> str:
+        return repr(self)
+
+
 class NotFound(OSError):
     """
     A remote document is not found on the server
