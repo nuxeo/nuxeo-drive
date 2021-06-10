@@ -504,6 +504,42 @@ class MixinTests(DirectEditSetup):
         # Ensure there zere no handled exception
         assert not any(log.levelno >= ERROR for log in self._caplog.records)
 
+    def test_unlock_in_lock_queue_error_503(self):
+        filename = "file.txt"
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Initial content.")
+        local_path = Path(f"{doc_id}_file-content/{filename}")
+
+        def unlock(*args, **kwargs):
+            msg = "(Mock'ed) <html><body><b>Http/1.1 Service Unavailable</b></body> </html>"
+            raise HTTPError(status=503, message=msg)
+
+        self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
+
+        # Ensure that lock queue is filled with an lock item
+        assert self.direct_edit._lock_queue.empty()
+        self.direct_edit._lock_queue.put((local_path, "unlock"))
+        assert not self.direct_edit._lock_queue.empty()
+
+        with patch.object(
+            self.manager_1, "open_local_file", new=open_local_file
+        ), patch.object(
+            self.engine_1.remote, "unlock", new=unlock
+        ), ensure_no_exception():
+            self.direct_edit._handle_lock_queue()
+
+        # The unlock queue should not be empty as the file is in error
+        assert not self.direct_edit._lock_queue.empty()
+
+        # Ensure there zere no handled exception
+        assert not any(log.levelno >= ERROR for log in self._caplog.records)
+
+        # Retry the unlock
+        with ensure_no_exception():
+            self.direct_edit._handle_lock_queue()
+
+        # The unlock queue should be empty after now
+        assert self.direct_edit._lock_queue.empty()
+
     def test_direct_edit_version(self):
         from nuxeo.models import BufferBlob
 

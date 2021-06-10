@@ -756,6 +756,15 @@ class DirectEdit(Worker):
                     exc_info=True,
                 )
                 errors.append(item)
+            except HTTPError as exc:
+                if exc.status not in (502, 503, 504):
+                    raise
+                # Try again in 30s
+                log.warning(
+                    f"Server error while trying to {action} document {ref!r}",
+                    exc_info=True,
+                )
+                errors.append(item)
             except Exception:
                 log.exception(f"Cannot {action} document {ref!r}")
                 self.directEditLockError.emit(action, ref.name, uid)
