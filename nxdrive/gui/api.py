@@ -930,12 +930,17 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, str)
     def handle_token(self, token: str, username: str, /) -> None:
         """Handle a Nuxeo token to create an account."""
+        error = ""
         if not token:
             error = "CONNECTION_REFUSED"
         elif "engine" in self.callback_params:
             error = self.update_token(token, username)
-        else:
+        elif "local_folder" in self.callback_params:
             error = self.create_account(token, username)
+        else:
+            log.warning(
+                f"Cannot handle connection token, invalid callback parameters {self.callback_params!r}"
+            )
         if error:
             self.setMessage.emit(error, "error")
 
