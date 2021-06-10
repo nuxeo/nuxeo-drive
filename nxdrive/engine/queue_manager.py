@@ -251,7 +251,7 @@ class QueueManager(QObject):
         if (
             WINDOWS
             and isinstance(exception, OSError)
-            and exception.winerror == err_code  # type: ignore
+            and exception.winerror == err_code
         ):
             log.info(
                 "The file is locked by the OS, won't increase next try interval"
