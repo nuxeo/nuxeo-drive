@@ -130,21 +130,23 @@ class EngineDAO(BaseDAO):
             self._reinit_states(cursor)
 
     def _migrate_db(self, version: int, /) -> None:
+        """Instantiate and run the migration engine."""
         from .migrations.engine import engine_migrations
 
         if not self.conn:
             raise RuntimeError("Unable to connect to database.")
 
-        migration_engine = MigrationEngine(self.conn, version, engine_migrations)
+        migration_engine = MigrationEngine(self.conn, engine_migrations)
         try:
             self.in_tx = current_thread_id()
             migration_engine.execute_database_upgrade(
-                self.old_migrations_max_schema_version, self._migrate_db_old
+                version, self.old_migrations_max_schema_version, self._migrate_db_old
             )
         finally:
             self.in_tx = None
 
     def _migrate_db_old(self, cursor: Cursor, version: int, /) -> None:
+        """Run the old migrations."""
         if version < 1:
             self._migrate_state(cursor)
             cursor.execute(

@@ -120,22 +120,24 @@ class ManagerDAO(BaseDAO):
             c.execute("DELETE FROM Notifications WHERE uid = ?", (uid,))
 
     def _migrate_db(self, version: int, /) -> None:
+        """Instantiate and run the migration engine."""
         from .migrations.manager import manager_migrations
 
         if not self.conn:
             raise RuntimeError("Unable to connect to database.")
 
-        migration_engine = MigrationEngine(self.conn, version, manager_migrations)
+        migration_engine = MigrationEngine(self.conn, manager_migrations)
 
         try:
             self.in_tx = current_thread_id()
             migration_engine.execute_database_upgrade(
-                self.old_migrations_max_schema_version, self._migrate_db_old
+                version, self.old_migrations_max_schema_version, self._migrate_db_old
             )
         finally:
             self.in_tx = None
 
     def _migrate_db_old(self, cursor: Cursor, version: int, /) -> None:
+        """Run the old migrations."""
         if version < 2:
             cursor.execute(
                 "CREATE TABLE if not exists Notifications ("

@@ -10,17 +10,16 @@ class MigrationEngine:
     def __init__(
         self,
         connection: Connection,
-        schema_version: int,
         migrations: Dict[str, Any],
     ) -> None:
         self.connection = connection
-        self.starting_schema_version = schema_version
         self.migrations = migrations
 
     def execute_database_upgrade(
         self,
+        starting_schema_version: int,
         old_migrations_schema_version: int,
-        old_migrations_callback: Callable = None,
+        old_migrations_callback: Callable,
     ) -> None:
         """
         Execute all the database migrations upgrades up to the last version.
@@ -32,24 +31,21 @@ class MigrationEngine:
                 cursor.execute("BEGIN")
                 # Let's execute old migrations if they haven't been run yet
                 if (
-                    old_migrations_callback
-                    and (
-                        0 < self.starting_schema_version < old_migrations_schema_version
-                    )
-                    or self.starting_schema_version == -1
+                    0 < starting_schema_version < old_migrations_schema_version
+                    or starting_schema_version == -1
                 ):
-                    old_migrations_callback(cursor, self.starting_schema_version)
+                    old_migrations_callback(cursor, starting_schema_version)
                     # Old migrations have been applied successfully, we update the starting_schema_version
-                    self.starting_schema_version = old_migrations_schema_version
+                    starting_schema_version = old_migrations_schema_version
 
                 # Let's execute the new migrations
                 for name, migration in self.migrations.items():
-                    if migration.version <= self.starting_schema_version:
+                    if migration.version <= starting_schema_version:
                         continue
                     log.debug(f"Running migration {name}.")
                     migration.upgrade(cursor)
                     log.debug(
-                        f"Migration {name} applied successfully. Schema is now at version {migration.version}."
+                        f"Migration {name} upgrade applied successfully. Schema is now at version {migration.version}."
                     )
         except sqlite3.Error:
             log.exception("Database upgrade failed.")
@@ -57,6 +53,7 @@ class MigrationEngine:
 
     def execute_database_donwgrade(
         self,
+        starting_schema_version: int,
         targeted_schema_version: int,
         old_migrations_schema_version: int,
     ) -> None:
@@ -64,9 +61,6 @@ class MigrationEngine:
         Execute all the database migrations downgrades down to the *targeted_schema_version*.
         Will not downgrade under the *old_migrations_schema_version* as it is the old system.
         """
-        if targeted_schema_version >= self.starting_schema_version:
-            return
-
         try:
             with self.connection as conn:
                 conn.execute("BEGIN")
@@ -80,18 +74,24 @@ class MigrationEngine:
 
                 # Let's execute all the migrations downgrade, starting from the last one.
                 for name, migration in reversed_migrations.items():
+                    if migration.version > starting_schema_version:
+                        continue
                     if (
-                        migration.version > old_migrations_schema_version
-                        and migration.version >= targeted_schema_version
+                        migration.version <= targeted_schema_version
+                        or migration.version <= old_migrations_schema_version
                     ):
-                        log.debug(f"Running migration {name}.")
-                        migration.downgrade(cursor)
-                        log.debug(
-                            f"Migration {name} applied successfully. Schema is now at version {migration.version}."
-                        )
-                    else:
+                        break
+                    log.debug(f"Running migration {name}.")
+                    migration.downgrade(cursor)
+                    log.debug(
+                        f"Migration {name} downgrade applied successfully."
+                        f"Schema is now at version {migration.previous_version}."
+                    )
+                    if migration.previous_version == targeted_schema_version:
+                        break
+                    if migration.previous_version == old_migrations_schema_version:
                         break
 
         except sqlite3.Error:
-            log.exception("Database upgrade failed.")
+            log.exception("Database downgrade failed.")
             raise

@@ -70,7 +70,7 @@ class BaseDAO(QObject):
         self._tx_lock = RLock()
         self.conn: Optional[Connection] = None
         self._conns = local()
-        self._create_main_conn()
+        self.conn = self._create_main_conn()
         if not self.conn:
             raise RuntimeError("Unable to connect to database.")
         c = self.conn.cursor()
@@ -209,20 +209,21 @@ class BaseDAO(QObject):
             ")"
         )
 
-    def _create_main_conn(self) -> None:
+    def _create_main_conn(self) -> Connection:
         log.info(
             f"Create main connection on {self.db!r} "
             f"(dir_exists={self.db.parent.exists()}, "
             f"file_exists={self.db.exists()})"
         )
-        self.conn = connect(
+        conn = connect(
             str(self.db),
             check_same_thread=False,  # Don't check same thread for closing purpose
             factory=AutoRetryConnection,
             isolation_level=None,  # Autocommit mode
             timeout=10,
         )
-        self.conn.row_factory = self._state_factory
+        conn.row_factory = self._state_factory
+        return conn
 
     def dispose(self) -> None:
         log.info(f"Disposing SQLite database {self.db!r}")
@@ -235,7 +236,7 @@ class BaseDAO(QObject):
     def _get_write_connection(self) -> Connection:
         if self.in_tx:
             if self.conn is None:
-                self._create_main_conn()
+                self.conn = self._create_main_conn()
             return self.conn
         return self._get_read_connection()
 
@@ -243,8 +244,12 @@ class BaseDAO(QObject):
         # If in transaction
         if self.in_tx is not None:
             if current_thread_id() == self.in_tx:
-                # Return the write connection
-                return self.conn
+                if self.conn:
+                    # Return the write connection
+                    return self.conn
+                elif self.conn is None:
+                    self.conn = self._create_main_conn()
+                    return self.conn
 
             log.debug("In transaction wait for read connection")
             # Wait for the thread in transaction to finished

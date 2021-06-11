@@ -42,6 +42,7 @@ Manager.set_light_icons  # Used in QML
 Manager.set_sentry  # Used in QML
 manager_migrations  # Used in tests
 MetaOptions.mock  # Used in tests
+MigrationEngine.execute_database_donwgrade  # Used in tests
 MigrationInitial.downgrade  # Used in tests
 MigrationInitial.upgrade  # Used in tests
 NotificationDelegator.userNotificationCenter_didActivateNotification_
