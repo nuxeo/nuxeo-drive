@@ -63,6 +63,10 @@ jobs:
           mkdir build && chmod -R 777 build
           mkdir dist && chmod -R 777 dist
 
+      - name: "[GNU/Linux] Install appstreamcli"
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt install --yes appstream
+
       - name: "[GNU/Linux] Generate the .AppImage"
         if: matrix.os == 'ubuntu-latest'
         env:
