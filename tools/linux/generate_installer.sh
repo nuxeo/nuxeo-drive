@@ -1,8 +1,5 @@
 #!/bin/bash -e
 
-# docker login
-echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin "${REGISTRY}"
-
 # For the volume to copy artifacts
 mkdir build && chmod -R 777 build
 mkdir dist && chmod -R 777 dist
@@ -11,14 +8,9 @@ mkdir dist && chmod -R 777 dist
 # But this is not a big deal as the auto-update process on GNU/Linux is really a simple copy.
 
 # Build the app
-docker run -it --name testwait -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.9.5"  # XXX_PYTHON
-# Wait for the previous command to complete
-docker container wait testwait
+# Note: the "-it" argument cannot be used on GitHub-CI (https://stackoverflow.com/a/43099210/1117028)
+#       and is not needed anyway.
+docker run --rm -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.9.5" || exit 1  # XXX_PYTHON
 
 # Ensure the AppImage is correct
-bash tools/linux/deploy_ci_agent.sh --check
-
-# Upload artifacts
-for f in dist/*.AppImage; do
-    bash tools/upload.sh staging "${f}"
-done
+bash tools/linux/deploy_ci_agent.sh --check || exit 1

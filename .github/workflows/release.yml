@@ -24,7 +24,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # os: [ubuntu-latest, windows-latest, macos-latest]
+        # ubuntu-latest: OK!
+        # windows-latest: ONGOING
+        # macos-latest: BAD (keysotre seems locked, waiting for user input ... )
+        os: [ubuntu-latest, windows-latest]
 
     steps:
       - name: Checkout
@@ -32,15 +36,11 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch }}
 
-      - name: Setup SSH
-        env:
-            SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-        run: |
-          echo "${{ secrets.SSH_PRIV_KEY }}" | base64 --decode > private.key
-          chmod 0600 private.key
-          ssh-agent -a $SSH_AUTH_SOCK
-          ssh-add private.key
-          rm private.key
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIV_KEY }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOST_DEPLOY }}
 
       - name: Setup git
         if: github.event.inputs.releaseType == 'alpha'
@@ -50,56 +50,83 @@ jobs:
 
       - name: Bump the version number
         if: github.event.inputs.releaseType == 'alpha'
-        run:  |
+        run: |
           git fetch --unshallow --tags
           bash tools/bump-alpha-version.sh || exit 1
 
-      - name: GNU/Linux [.AppImage]
+      - name: '[GNU/Linux] Login to the docker registry'
+        if: matrix.os == 'ubuntu-latest'
+        uses: docker/login-action@v1.9.0
+        with:
+          registry: 'docker-private.packages.nuxeo.com'
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: '[GNU/Linux] Generate the .AppImage'
         if: matrix.os == 'ubuntu-latest'
         env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
           REGISTRY: 'docker-private.packages.nuxeo.com'
           REPOSITORY: 'nuxeo-drive-build'
         run: bash tools/linux/generate_installer.sh
 
-      - name: macOS [.dmg]
+      - name: '[GNU/Linux] Upload artefacts'
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          for f in dist/*.AppImage; do
+            bash tools/upload.sh staging "${f}"
+          done
+
+      - name: '[macOS] Setup certificates'
+        if: matrix.os == 'macos-latest'
+        run: |
+          wget https://www.apple.com/appleca/AppleIncRootCertificate.cer
+          echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.cer
+          echo "${{ secrets.PRIV_APP_MACOS }}" | base64 --decode > nuxeo-drive.priv
+
+      - name: '[macOS] Generate the .dmg'
         if: matrix.os == 'macos-latest'
         env:
           MACOSX_DEPLOYMENT_TARGET: '10.13'
           KEYCHAIN_PATH: '~/Library/Keychains/drive.keychain-db'
           SIGNING_ID: 'NUXEO CORP'
+        run: bash tools/osx/generate_installer.sh
+
+      - name: '[macOS] Upload artefacts'
+        if: matrix.os == 'macos-latest'
         run: |
-          # Retrieve certificates
-          wget https://www.apple.com/appleca/AppleIncRootCertificate.cer
-          echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.cer
-          echo "${{ secrets.PRIV_APP_MACOS }}" | base64 --decode > nuxeo-drive.priv
+          for f in dist/*.dmg; do
+            bash tools/upload.sh staging "${f}"
+          done
 
-          # And build the installer
-          bash tools/osx/generate_installer.sh
+      - name: '[Windows] Setup certificate'
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo "${{ secrets.CERT_APP_WINDOWS }}" > certificate.b64
+          certutil -decode certificate.b64 certificate.pfx
 
-      - name: Windows [.exe]
+      - name: '[Windows] Generate the .exe'
         if: matrix.os == 'windows-latest'
         env:
           INNO_SETUP_VERSION: '6.1.2'  # XXX_INNO_SETUP
-          # MSBUILD_PATH: 'C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin'
           SIGNING_ID: 'Nuxeo'
           # SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\x86'
-        run: |
-          # Retrieve the certificate
-          echo ${{ secrets.CERT_APP_WINDOWS }}" | base64 --decode > certificate.pfx
+        run: bash tools/windows/generate_installer.sh
 
-          # And build the installer
-          bash tools/windows/generate_installer.sh
+      - name: '[Windows] Upload artefacts'
+        if: matrix.os == 'windows-latest'
+        run: |
+          for f in dist/*.exe; do
+            bash tools/upload.sh staging "${f}"
+          done
 
       - name: Cancel the release
-        if: ${{ failure() }} || ${{ cancelled() }}
+        if: failure() || cancelled()
         run: bash tools/release.sh --cancel
 
   deploy:
     runs-on: ubuntu-latest
     needs: [release]
-    if: ${{ github.event.inputs.branch }} == 'master'
+    if: github.event.inputs.branch == 'master'
 
     steps:
       - name: Checkout
@@ -107,15 +134,11 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch }}
 
-      - name: Setup SSH
-        env:
-            SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-        run: |
-          echo "${{ secrets.SSH_PRIV_KEY }}" | base64 --decode > private.key
-          chmod 0600 private.key
-          ssh-agent -a $SSH_AUTH_SOCK
-          ssh-add private.key
-          rm private.key
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIV_KEY }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOST_DEPLOY }}
 
       - name: Setup git
         run: |
@@ -125,12 +148,10 @@ jobs:
           git remote set-url origin git@github.com:nuxeo/nuxeo-drive.git
 
       - name: Do the release
-        env:
-            SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
           bash tools/release.sh --publish "${{ github.event.inputs.releaseType }}" || exit 1
           bash tools/release.sh --create "${{ github.event.inputs.releaseType }}" || exit 1
 
       - name: Cancel the release
-        if: ${{ failure() }} || ${{ cancelled() }}
+        if: failure() || cancelled()
         run: bash tools/release.sh --cancel

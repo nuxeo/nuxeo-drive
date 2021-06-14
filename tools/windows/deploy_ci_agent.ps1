@@ -72,9 +72,9 @@ function build($app_version, $script) {
 	}
 }
 
-function build_dll($project, $platform) {
+function build_dll($msbuild_exe, $project, $platform) {
 	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\NuxeoDriveShellExtensions"
-	& $Env:MSBUILD_PATH\MSBuild.exe $folder\NuxeoDriveShellExtensions.sln /t:$project /p:Configuration=Release /p:Platform=$platform
+	& $msbuild_exe $folder\NuxeoDriveShellExtensions.sln /t:$project /p:Configuration=Release /p:Platform=$platform
 }
 
 function build_installer {
@@ -126,11 +126,11 @@ function build_overlays {
 	$util_dll = "NuxeoDriveUtil"
 	$overlay_dll = "NuxeoDriveOverlays"
 
-	# Remove old DLLS on GitHub-CI to prevent such errors:
+	# Remove old DLLs on GitHub-CI to prevent such errors:
 	#	Rename-Item : Cannot create a file when that file already exists.
-	# if ($Env:GITHUB_WORKSPACE) {
-	# 	Get-ChildItem -Path $folder -Recurse -File -Include *.dll | Foreach ($_) {Remove-Item $_.Fullname}
-	# }
+	if ($Env:GITHUB_WORKSPACE) {
+		Get-ChildItem -Path $folder -Recurse -File -Include *.dll | Foreach ($_) {Remove-Item $_.Fullname}
+	}
 
 	# List of DLLs to build
 	$overlays = @(
@@ -145,10 +145,9 @@ function build_overlays {
 	$x64Path = "%name%_x64.dll"
 	$Win32Path = "%name%_x86.dll"
 
-	if (-Not ($Env:MSBUILD_PATH)) {
-		$Env:MSBUILD_PATH = "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin"
-	}
-	if (-Not (Test-Path -Path $Env:MSBUILD_PATH)) {
+	# Find MSBuild.exe (https://github.com/Microsoft/vswhere/wiki/Find-MSBuild)
+	$msbuild_exe = vswhere -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | select-object -first 1
+	if (-Not ($msbuild_exe)) {
 		Write-Output ">>> No MSBuild.exe accessible"
 		ExitWithCode $lastExitCode
 	}
@@ -160,8 +159,8 @@ function build_overlays {
 
 	# Start build chain
 	Write-Output ">>> Building $util_dll DLL"
-	build_dll $util_dll "x64"
-	build_dll $util_dll "Win32"
+	build_dll $msbuild_exe $util_dll "x64"
+	build_dll $msbuild_exe $util_dll "Win32"
 
 	foreach ($overlay in $overlays) {
 		$id = $overlay["Id"]
@@ -174,8 +173,8 @@ function build_overlays {
 		(Get-Content $ResourcesOriginal).replace('[$overlay.icon$]', $icon) | Set-Content $Resources
 
 		# Compile for x64 and Win32 and rename to the right status
-		build_dll $overlay_dll "x64"
-		build_dll $overlay_dll "Win32"
+		build_dll $msbuild_exe $overlay_dll "x64"
+		build_dll $msbuild_exe $overlay_dll "Win32"
 
 		$Oldx64Name = $x64Path.replace('%name%', $overlay_dll)
 		$Newx64Name = $x64Path.replace('%name%', $name)
