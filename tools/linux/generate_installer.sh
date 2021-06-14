@@ -1,5 +1,8 @@
 #!/bin/bash -e
 
+# docker login
+echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin "${REGISTRY}"
+
 # For the volume to copy artifacts
 mkdir build && chmod -R 777 build
 mkdir dist && chmod -R 777 dist
