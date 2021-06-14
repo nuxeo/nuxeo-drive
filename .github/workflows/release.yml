@@ -32,18 +32,25 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch }}
 
-      - name: SSH and git setups
+      - name: Setup SSH
+        env:
+            SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
-          # Add the SSH private key
-          echo ${{ secrets.SSH_PRIV_KEY }} | base64 --decode > private.key
+          echo "${{ secrets.SSH_PRIV_KEY }}" | base64 --decode > private.key
           chmod 0600 private.key
-          eval "$(ssh-agent -s)" || (powershell Set-Service ssh-agent -StartupType Manual && eval "$(ssh-agent -s)")
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           ssh-add private.key
           rm private.key
 
-          # Configure git user and fetch all tags
+      - name: Setup git
+        if: github.event.inputs.releaseType == 'alpha'
+        run: |
           git config user.email "maintainers-python+github@nuxeo.com"
-          git config user.name "GitHub-CI bot"
+          git config user.name "GitHub-CI action (Release)"
+
+      - name: Bump the version number
+        if: github.event.inputs.releaseType == 'alpha'
+        run:  |
           git fetch --unshallow --tags
           bash tools/bump-alpha-version.sh || exit 1
 
@@ -92,6 +99,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: [release]
+    if: ${{ github.event.inputs.branch }} == 'master'
 
     steps:
       - name: Checkout
@@ -99,25 +107,27 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch }}
 
-      - name: Deploy
-        if: ${{ github.event.inputs.branch }} == 'master'
+      - name: Setup SSH
+        env:
+            SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
-          # Add the deployment SSH private key
-          echo ${{ secrets.SSH_DEPLOY_KEY }} | base64 --decode > private.key
+          echo "${{ secrets.SSH_PRIV_KEY }}" | base64 --decode > private.key
           chmod 0600 private.key
-          eval "$(ssh-agent -s)"
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           ssh-add private.key
           rm private.key
 
-          # Configure git user and fetch all tags
+      - name: Setup git
+        run: |
           git config user.email "maintainers-python+github@nuxeo.com"
-          git config user.name "GitHub-CI bot"
+          git config user.name "GitHub-CI action (Release)"
           git fetch --unshallow --tags
-
-          # Tel git to use the SSH access rather than HTTPS
           git remote set-url origin git@github.com:nuxeo/nuxeo-drive.git
 
-          # Do the release
+      - name: Do the release
+        env:
+            SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
           bash tools/release.sh --publish "${{ github.event.inputs.releaseType }}" || exit 1
           bash tools/release.sh --create "${{ github.event.inputs.releaseType }}" || exit 1
 
