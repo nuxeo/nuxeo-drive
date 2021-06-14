@@ -234,6 +234,9 @@ function check_vars {
 	if (-Not ($Env:ISCC_PATH)) {
 		$Env:ISCC_PATH = "C:\Program Files (x86)\Inno Setup 6"  # XXX_INNO_SETUP
 	}
+	if (-Not ($Env:INNO_SETUP_VERSION)) {
+		$Env:INNO_SETUP_VERSION = "6.1.2"  # XXX_INNO_SETUP
+	}
 	if (-Not ($Env:PYTHON_DIR)) {
 		$version = $Env:PYTHON_DRIVE_VERSION -replace '\.', ""
 		$Env:PYTHON_DIR = "C:\Python$version-32"
