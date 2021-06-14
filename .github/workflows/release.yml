@@ -31,6 +31,10 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch }}
 
+      #
+      # Global
+      #
+
       - name: Install SSH key
         uses: shimataro/ssh-key-action@v2
         with:
@@ -49,6 +53,14 @@ jobs:
           git fetch --unshallow --tags
           bash tools/bump-alpha-version.sh || exit 1
 
+      #
+      # GNU/Linux
+      #
+
+      - name: "[GNU/Linux] Install AppImage checkers"
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt install --yes appstream desktop-file-utils
+
       - name: "[GNU/Linux] Login to the docker registry"
         if: matrix.os == 'ubuntu-latest'
         uses: docker/login-action@v1.9.0
@@ -62,10 +74,6 @@ jobs:
         run: |
           mkdir build && chmod -R 777 build
           mkdir dist && chmod -R 777 dist
-
-      - name: "[GNU/Linux] Install appstreamcli"
-        if: matrix.os == 'ubuntu-latest'
-        run: sudo apt install --yes appstream
 
       - name: "[GNU/Linux] Generate the .AppImage"
         if: matrix.os == 'ubuntu-latest'
@@ -84,6 +92,10 @@ jobs:
           for f in dist/*.AppImage; do
             bash tools/upload.sh staging "${f}"
           done
+
+      #
+      # macOS
+      #
 
       - name: "[macOS] Setup certificates"
         if: matrix.os == 'macos-latest'
@@ -123,6 +135,10 @@ jobs:
             bash tools/upload.sh staging "${f}"
           done
 
+      #
+      # Windows
+      #
+
       - name: "[Windows] Setup certificate"
         if: matrix.os == 'windows-latest'
         run: |
@@ -152,6 +168,10 @@ jobs:
           for f in dist/*.exe; do
             bash tools/upload.sh staging "${f}"
           done
+
+      #
+      # Global
+      #
 
       - name: Cancel the release
         if: failure() || cancelled()
