@@ -291,8 +291,8 @@ typing-extensions==3.10.0.0 \
 types-python-dateutil==0.1.2 \
     --hash=sha256:498492e71dfb983ecc47924fb4f0987d205901ebd1d59f9a1c6603f3f970a62b
     # via mypy
-types-PyYAML==0.1.6 \
-    --hash=sha256:8620045462a0ae1ecff7e97041905abdedc7afdff7ea66cac31df29fb1af6fa3
+types-PyYAML==0.1.8 \
+    --hash=sha256:8db1c8ceed4f6e86d54484e40709ad5f684a2f780308ba7a5e3850be9fb5961a
     # via mypy
 types-requests==0.1.9 \
     --hash=sha256:24a51b692d36101e5b81f08733d74b944ccae3e90589fb712e4dfc6f36965c35
