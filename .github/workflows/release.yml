@@ -57,12 +57,22 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: "[GNU/Linux] Set appropriate volume rights"
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          mkdir build && chmod -R 777 build
+          mkdir dist && chmod -R 777 dist
+
       - name: "[GNU/Linux] Generate the .AppImage"
         if: matrix.os == 'ubuntu-latest'
         env:
           REGISTRY: "docker-private.packages.nuxeo.com"
           REPOSITORY: "nuxeo-drive-build"
-        run: bash tools/linux/generate_installer.sh
+        run: docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.9.5" # XXX_PYTHON
+
+      - name: "[GNU/Linux] Ensure the AppImage is correct"
+        if: matrix.os == 'ubuntu-latest'
+        run: bash tools/linux/deploy_ci_agent.sh --check
 
       - name: "[GNU/Linux] Upload artifacts"
         if: matrix.os == 'ubuntu-latest'
@@ -87,6 +97,21 @@ jobs:
           SIGNING_ID: "NUXEO CORP"
         run: bash tools/osx/generate_installer.sh
 
+      - name: "[macOS] Setup the environment"
+        if: matrix.os == 'macos-latest'
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "10.13"
+        run: bash tools/osx/deploy_ci_agent.sh --install-release
+
+      - name: "[macOS] Generate the .dmg"
+        if: matrix.os == 'macos-latest'
+        env:
+          NXDRIVE_TEST_NUXEO_URL: "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
+          MACOSX_DEPLOYMENT_TARGET: "10.13"
+          KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
+          SIGNING_ID: "NUXEO CORP"
+        run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
+
       - name: "[macOS] Upload artifacts"
         if: matrix.os == 'macos-latest'
         run: |
@@ -100,13 +125,21 @@ jobs:
           echo "${{ secrets.CERT_APP_WINDOWS }}" > certificate.b64
           certutil -decode certificate.b64 certificate.pfx
 
+      - name: "[Windows] Unlock PowerShell"
+        if: matrix.os == 'windows-latest'
+        run: powershell Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
+
+      - name: "[Windows] Setup the environment"
+        if: matrix.os == 'windows-latest'
+        run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
+
       - name: "[Windows] Generate the .exe"
         if: matrix.os == 'windows-latest'
         env:
           NXDRIVE_TEST_NUXEO_URL: "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
           SIGNING_ID: "Nuxeo"
           SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\x86'
-        run: bash tools/windows/generate_installer.sh
+        run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade
 
       - name: "[Windows] Upload artifacts"
         if: matrix.os == 'windows-latest'
