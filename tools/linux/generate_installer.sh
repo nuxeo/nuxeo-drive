@@ -14,8 +14,3 @@ docker run --rm -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.9.5" ||
 
 # Ensure the AppImage is correct
 bash tools/linux/deploy_ci_agent.sh --check || exit 1
-
-# Upload artifacts
-for f in dist/*.AppImage; do
-    bash tools/upload.sh staging "${f}"
-done
