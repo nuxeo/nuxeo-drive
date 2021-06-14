@@ -85,7 +85,6 @@ jobs:
         if: matrix.os == 'windows-latest'
         env:
           INNO_SETUP_VERSION: '6.1.2'  # XXX_INNO_SETUP
-          MSBUILD_PATH: 'C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin'
           SIGNING_ID: 'Nuxeo'
           # SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\x86'
         run: bash tools/windows/generate_installer.sh
