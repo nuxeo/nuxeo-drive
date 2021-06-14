@@ -83,7 +83,8 @@ jobs:
           # SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\x86'
         run: |
           # Retrieve the certificate
-          echo ${{ secrets.CERT_APP_WINDOWS }}" | base64 --decode > certificate.pfx
+          echo "${{ secrets.CERT_APP_WINDOWS }}" > certificate.b64
+          certutil -decode certificate.b64 certificate.pfx
 
           # And build the installer
           bash tools/windows/generate_installer.sh
