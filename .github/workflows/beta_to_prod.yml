@@ -15,10 +15,12 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+
+    - name: Install SSH key
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.SSH_PRIV_KEY }}
+        known_hosts: ${{ secrets.SSH_KNOWN_HOST_DEPLOY }}
+
     - name: Ready for promotion
-      run: |
-        echo ${{ secrets.SSH_PRIV_KEY }} | base64 --decode > private.key
-        chmod 0600 private.key
-        eval "$(ssh-agent -s)"
-        ssh-add private.key
-        bash tools/deploy.sh ${{ github.event.inputs.betaVersion }}
+      run: bash tools/deploy.sh ${{ github.event.inputs.betaVersion }}
