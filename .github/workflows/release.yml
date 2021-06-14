@@ -38,7 +38,7 @@ jobs:
         run: |
           echo "${{ secrets.SSH_PRIV_KEY }}" | base64 --decode > private.key
           chmod 0600 private.key
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ssh-agent -a $SSH_AUTH_SOCK
           ssh-add private.key
           rm private.key
 
@@ -113,7 +113,7 @@ jobs:
         run: |
           echo "${{ secrets.SSH_PRIV_KEY }}" | base64 --decode > private.key
           chmod 0600 private.key
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ssh-agent -a $SSH_AUTH_SOCK
           ssh-add private.key
           rm private.key
 
