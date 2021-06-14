@@ -24,7 +24,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest]
 
     steps:
       - name: Checkout
@@ -59,35 +60,35 @@ jobs:
           REPOSITORY: 'nuxeo-drive-build'
         run: bash tools/linux/generate_installer.sh
 
+      - name: Setup macOS certificates
+        if: matrix.os == 'macos-latest'
+        run: |
+          wget https://www.apple.com/appleca/AppleIncRootCertificate.cer
+          echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.cer
+          echo "${{ secrets.PRIV_APP_MACOS }}" | base64 --decode > nuxeo-drive.priv
+
       - name: macOS [.dmg]
         if: matrix.os == 'macos-latest'
         env:
           MACOSX_DEPLOYMENT_TARGET: '10.13'
           KEYCHAIN_PATH: '~/Library/Keychains/drive.keychain-db'
           SIGNING_ID: 'NUXEO CORP'
-        run: |
-          # Retrieve certificates
-          wget https://www.apple.com/appleca/AppleIncRootCertificate.cer
-          echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.cer
-          echo "${{ secrets.PRIV_APP_MACOS }}" | base64 --decode > nuxeo-drive.priv
+        run: bash tools/osx/generate_installer.sh
 
-          # And build the installer
-          bash tools/osx/generate_installer.sh
+      - name: Setup Windows certificate
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo "${{ secrets.CERT_APP_WINDOWS }}" > certificate.b64
+          certutil -decode certificate.b64 certificate.pfx
 
       - name: Windows [.exe]
         if: matrix.os == 'windows-latest'
         env:
           INNO_SETUP_VERSION: '6.1.2'  # XXX_INNO_SETUP
-          # MSBUILD_PATH: 'C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin'
+          MSBUILD_PATH: 'C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin'
           SIGNING_ID: 'Nuxeo'
           # SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\x86'
-        run: |
-          # Retrieve the certificate
-          echo "${{ secrets.CERT_APP_WINDOWS }}" > certificate.b64
-          certutil -decode certificate.b64 certificate.pfx
-
-          # And build the installer
-          bash tools/windows/generate_installer.sh
+        run: bash tools/windows/generate_installer.sh
 
       - name: Cancel the release
         if: ${{ failure() }} || ${{ cancelled() }}

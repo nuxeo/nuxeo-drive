@@ -11,10 +11,10 @@ mkdir dist && chmod -R 777 dist
 # But this is not a big deal as the auto-update process on GNU/Linux is really a simple copy.
 
 # Build the app
-docker run -it --rm -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.9.5"  # XXX_PYTHON
+docker run -it --rm -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.9.5" || exit 1  # XXX_PYTHON
 
 # Ensure the AppImage is correct
-bash tools/linux/deploy_ci_agent.sh --check
+bash tools/linux/deploy_ci_agent.sh --check || exit 1
 
 # Upload artifacts
 for f in dist/*.AppImage; do
