@@ -32,15 +32,11 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch }}
 
-      - name: Setup SSH
-        env:
-            SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-        run: |
-          echo "${{ secrets.SSH_PRIV_KEY }}" | base64 --decode > private.key
-          chmod 0600 private.key
-          ssh-agent -a $SSH_AUTH_SOCK
-          ssh-add private.key
-          rm private.key
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIV_KEY_RAW }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOST_DEPLOY }}
 
       - name: Setup git
         if: github.event.inputs.releaseType == 'alpha'
@@ -107,15 +103,11 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch }}
 
-      - name: Setup SSH
-        env:
-            SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-        run: |
-          echo "${{ secrets.SSH_PRIV_KEY }}" | base64 --decode > private.key
-          chmod 0600 private.key
-          ssh-agent -a $SSH_AUTH_SOCK
-          ssh-add private.key
-          rm private.key
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIV_KEY_RAW }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOST_DEPLOY }}
 
       - name: Setup git
         run: |
@@ -125,8 +117,6 @@ jobs:
           git remote set-url origin git@github.com:nuxeo/nuxeo-drive.git
 
       - name: Do the release
-        env:
-            SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
           bash tools/release.sh --publish "${{ github.event.inputs.releaseType }}" || exit 1
           bash tools/release.sh --create "${{ github.event.inputs.releaseType }}" || exit 1
