@@ -50,11 +50,11 @@ jobs:
 
       - name: Bump the version number
         if: github.event.inputs.releaseType == 'alpha'
-        run:  |
+        run: |
           git fetch --unshallow --tags
           bash tools/bump-alpha-version.sh || exit 1
 
-      - name: [GNU/Linux] Login to the docker registry
+      - name: '[GNU/Linux] Login to the docker registry'
         if: matrix.os == 'ubuntu-latest'
         uses: docker/login-action@v1.9.0
         with:
@@ -62,28 +62,28 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: [GNU/Linux] Generate the .AppImage
+      - name: '[GNU/Linux] Generate the .AppImage'
         if: matrix.os == 'ubuntu-latest'
         env:
           REGISTRY: 'docker-private.packages.nuxeo.com'
           REPOSITORY: 'nuxeo-drive-build'
         run: bash tools/linux/generate_installer.sh
 
-      - name: [GNU/Linux] Upload artefacts
+      - name: '[GNU/Linux] Upload artefacts'
         if: matrix.os == 'ubuntu-latest'
         run: |
           for f in dist/*.AppImage; do
             bash tools/upload.sh staging "${f}"
           done
 
-      - name: [macOS] Setup certificates
+      - name: '[macOS] Setup certificates'
         if: matrix.os == 'macos-latest'
         run: |
           wget https://www.apple.com/appleca/AppleIncRootCertificate.cer
           echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.cer
           echo "${{ secrets.PRIV_APP_MACOS }}" | base64 --decode > nuxeo-drive.priv
 
-      - name: [macOS] Generate the .dmg
+      - name: '[macOS] Generate the .dmg'
         if: matrix.os == 'macos-latest'
         env:
           MACOSX_DEPLOYMENT_TARGET: '10.13'
@@ -91,20 +91,20 @@ jobs:
           SIGNING_ID: 'NUXEO CORP'
         run: bash tools/osx/generate_installer.sh
 
-      - name: [macOS] Upload artefacts
+      - name: '[macOS] Upload artefacts'
         if: matrix.os == 'macos-latest'
         run: |
           for f in dist/*.dmg; do
             bash tools/upload.sh staging "${f}"
           done
 
-      - name: [Windows] Setup certificate
+      - name: '[Windows] Setup certificate'
         if: matrix.os == 'windows-latest'
         run: |
           echo "${{ secrets.CERT_APP_WINDOWS }}" > certificate.b64
           certutil -decode certificate.b64 certificate.pfx
 
-      - name: [Windows] Generate the .exe
+      - name: '[Windows] Generate the .exe'
         if: matrix.os == 'windows-latest'
         env:
           INNO_SETUP_VERSION: '6.1.2'  # XXX_INNO_SETUP
@@ -112,7 +112,7 @@ jobs:
           # SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\x86'
         run: bash tools/windows/generate_installer.sh
 
-        - name: [Windows] Upload artefacts
+      - name: '[Windows] Upload artefacts'
         if: matrix.os == 'windows-latest'
         run: |
           for f in dist/*.exe; do
