@@ -87,10 +87,6 @@ class MigrationEngine:
                         f"Migration {name} downgrade applied successfully."
                         f"Schema is now at version {migration.previous_version}."
                     )
-                    if migration.previous_version == targeted_schema_version:
-                        break
-                    if migration.previous_version == old_migrations_schema_version:
-                        break
 
         except sqlite3.Error:
             log.exception("Database downgrade failed.")

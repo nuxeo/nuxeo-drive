@@ -244,13 +244,10 @@ class BaseDAO(QObject):
         # If in transaction
         if self.in_tx is not None:
             if current_thread_id() == self.in_tx:
-                if self.conn:
-                    # Return the write connection
-                    return self.conn
-                elif self.conn is None:
+                if not self.conn:
                     self.conn = self._create_main_conn()
-                    return self.conn
-
+                # Return the write connection
+                return self.conn
             log.debug("In transaction wait for read connection")
             # Wait for the thread in transaction to finished
             with self._tx_lock:

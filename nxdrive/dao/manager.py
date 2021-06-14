@@ -11,7 +11,6 @@ from ..objects import EngineDef
 from ..utils import current_thread_id
 from . import SCHEMA_VERSION
 from .base import BaseDAO
-from .migrations.migration_engine import MigrationEngine
 
 log = getLogger(__name__)
 
@@ -122,6 +121,7 @@ class ManagerDAO(BaseDAO):
     def _migrate_db(self, version: int, /) -> None:
         """Instantiate and run the migration engine."""
         from .migrations.manager import manager_migrations
+        from .migrations.migration_engine import MigrationEngine
 
         if not self.conn:
             raise RuntimeError("Unable to connect to database.")

@@ -42,7 +42,6 @@ from ..utils import current_thread_id
 from . import SCHEMA_VERSION
 from .adapters import adapt_path
 from .base import BaseDAO
-from .migrations.migration_engine import MigrationEngine
 
 if TYPE_CHECKING:
     from ..queue_manager import QueueManager  # noqa
@@ -132,6 +131,7 @@ class EngineDAO(BaseDAO):
     def _migrate_db(self, version: int, /) -> None:
         """Instantiate and run the migration engine."""
         from .migrations.engine import engine_migrations
+        from .migrations.migration_engine import MigrationEngine
 
         if not self.conn:
             raise RuntimeError("Unable to connect to database.")
