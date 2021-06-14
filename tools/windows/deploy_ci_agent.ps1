@@ -126,11 +126,11 @@ function build_overlays {
 	$util_dll = "NuxeoDriveUtil"
 	$overlay_dll = "NuxeoDriveOverlays"
 
-	# Remove old DLLS on GitHub-CI to prevent such errors:
+	# Remove old DLLs on GitHub-CI to prevent such errors:
 	#	Rename-Item : Cannot create a file when that file already exists.
-	# if ($Env:GITHUB_WORKSPACE) {
-	# 	Get-ChildItem -Path $folder -Recurse -File -Include *.dll | Foreach ($_) {Remove-Item $_.Fullname}
-	# }
+	if ($Env:GITHUB_WORKSPACE) {
+		Get-ChildItem -Path $folder -Recurse -File -Include *.dll | Foreach ($_) {Remove-Item $_.Fullname}
+	}
 
 	# List of DLLs to build
 	$overlays = @(

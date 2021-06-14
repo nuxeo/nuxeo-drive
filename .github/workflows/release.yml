@@ -28,7 +28,7 @@ jobs:
         # ubuntu-latest: OK!
         # windows-latest: ONGOING
         # macos-latest: BAD (keysotre seems locked, waiting for user input ... )
-        os: [windows-latest]
+        os: [ubuntu-latest, windows-latest]
 
     steps:
       - name: Checkout
