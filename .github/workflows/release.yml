@@ -22,7 +22,7 @@ jobs:
         # os: [ubuntu-latest, windows-latest, macos-latest]
         # ubuntu-latest: OK!
         # windows-latest: ONGOING
-        # macos-latest: BAD (keysotre seems locked, waiting for user input ... )
+        # macos-latest: BAD (keystore seems locked, waiting for user input ... )
         os: [ubuntu-latest]
 
     steps:
@@ -88,10 +88,10 @@ jobs:
 
       - name: "[GNU/Linux] Upload artifacts"
         if: matrix.os == 'ubuntu-latest'
-        run: |
-          for f in dist/*.AppImage; do
-            bash tools/upload.sh staging "${f}"
-          done
+        uses: actions/upload-artifact@v2
+        with:
+          name: package-distributions
+          path: ./dist/*.AppImage
 
       #
       # macOS
@@ -130,10 +130,10 @@ jobs:
 
       - name: "[macOS] Upload artifacts"
         if: matrix.os == 'macos-latest'
-        run: |
-          for f in dist/*.dmg; do
-            bash tools/upload.sh staging "${f}"
-          done
+        uses: actions/upload-artifact@v2
+        with:
+          name: package-distributions
+          path: ./dist/*.dmg
 
       #
       # Windows
@@ -164,18 +164,10 @@ jobs:
 
       - name: "[Windows] Upload artifacts"
         if: matrix.os == 'windows-latest'
-        run: |
-          for f in dist/*.exe; do
-            bash tools/upload.sh staging "${f}"
-          done
-
-      #
-      # Global
-      #
-
-      - name: Cancel the release
-        if: failure() || cancelled()
-        run: bash tools/release.sh --cancel
+        uses: actions/upload-artifact@v2
+        with:
+          name: package-distributions
+          path: ./dist/*.exe
 
   deploy:
     runs-on: ubuntu-latest
@@ -200,6 +192,18 @@ jobs:
           git config user.name "GitHub-CI action (Release)"
           git fetch --unshallow --tags
           git remote set-url origin git@github.com:nuxeo/nuxeo-drive.git
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: package-distributions
+          path: dist/
+
+      - name: Upload artifacts to the staging server
+        run: |
+          for f in dist/*; do
+            bash tools/upload.sh staging "${f}"
+          done
 
       - name: Do the release
         run: |
