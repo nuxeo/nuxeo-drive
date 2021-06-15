@@ -92,6 +92,7 @@ jobs:
         with:
           name: package-distributions
           path: ./dist/*.AppImage
+          if-no-files-found: error
 
       #
       # macOS
@@ -134,6 +135,7 @@ jobs:
         with:
           name: package-distributions
           path: ./dist/*.dmg
+          if-no-files-found: error
 
       #
       # Windows
@@ -168,6 +170,7 @@ jobs:
         with:
           name: package-distributions
           path: ./dist/*.exe
+          if-no-files-found: error
 
   deploy:
     runs-on: ubuntu-latest
