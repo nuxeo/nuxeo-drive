@@ -23,7 +23,7 @@ jobs:
         # ubuntu-latest: OK!
         # windows-latest: ONGOING
         # macos-latest: BAD (keystore seems locked, waiting for user input ... )
-        os: [ubuntu-latest]
+        os: [windows-latest]
 
     steps:
       - name: Checkout
@@ -122,6 +122,7 @@ jobs:
 
       - name: "[macOS] Generate the .dmg"
         if: matrix.os == 'macos-latest'
+        timeout-minutes: 20
         env:
           NXDRIVE_TEST_NUXEO_URL: "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
           MACOSX_DEPLOYMENT_TARGET: "10.13"
@@ -156,6 +157,7 @@ jobs:
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
 
       - name: "[Windows] Generate the .exe"
+        timeout-minutes: 20
         if: matrix.os == 'windows-latest'
         env:
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
