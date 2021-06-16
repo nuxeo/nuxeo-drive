@@ -1,5 +1,8 @@
 .git  # Obviously!
 
+# No way to bypass "macOS Big Sur" false positive, so skipping the file entirely
+docs/changes/4.5.0.md
+
 # No need to check foreign languages
 nxdrive/data/i18n/i18n-*
 
@@ -14,3 +17,4 @@ tools/windows/unofficial_i18n
 
 # Hm, this seems weird but we also need to skip our own allow list ...
 tools/spell.allowlist
+tools/spell.skip

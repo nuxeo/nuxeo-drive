@@ -1,14 +1,15 @@
-# tools/windows/NuxeoDriveShellExtensions/NuxeoDriveUtil/jsoncpp.cpp:465
-alse
-
 # PyInstaller specific, we have no power on that part
 datas
 
 # We made that mistake long ago and the value is used in the database ("DEDUP")
 dedup
 
-# cleanup_application_tree.py (boto3/data/iam)
-iam
-
 # client/uploader/direct_transfer.py:143 (waiting for NXP-29286)
 overwite
+
+# tools/cleanup_application_tree.py (boto3/data/iam)
+iam
+
+# tools/windows/NuxeoDriveShellExtensions/NuxeoDriveUtil/jsoncpp.cpp:465
+alse
+unknwn
