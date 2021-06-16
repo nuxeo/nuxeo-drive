@@ -22,8 +22,6 @@ class MigrationInitial(MigrationInterface):
         self._create_sessions_table(cursor)
         self._create_session_items_table(cursor)
 
-        cursor.execute(f"PRAGMA user_version = {self.version}")
-
     def downgrade(self, cursor: Cursor) -> None:
         """
         Drop all the created tables.
@@ -41,8 +39,6 @@ class MigrationInitial(MigrationInterface):
             "SessionItems",
         ]:
             cursor.execute(f"DROP TABLE {table}")
-
-        cursor.execute(f"PRAGMA user_version = {self.previous_version}")
 
     @property
     def version(self) -> int:

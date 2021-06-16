@@ -44,6 +44,7 @@ class MigrationEngine:
                         continue
                     log.debug(f"Running migration {name}.")
                     migration.upgrade(cursor)
+                    cursor.execute(f"PRAGMA user_version = {migration.version}")
                     log.debug(
                         f"Migration {name} upgrade applied successfully. Schema is now at version {migration.version}."
                     )
@@ -83,6 +84,9 @@ class MigrationEngine:
                         break
                     log.debug(f"Running migration {name}.")
                     migration.downgrade(cursor)
+                    cursor.execute(
+                        f"PRAGMA user_version = {migration.previous_version}"
+                    )
                     log.debug(
                         f"Migration {name} downgrade applied successfully."
                         f"Schema is now at version {migration.previous_version}."
