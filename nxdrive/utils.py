@@ -642,7 +642,7 @@ def _cryptor(key: bytes, iv: bytes) -> "Cipher":
 
 
 def encrypt(plaintext: Union[bytes, str], key: Union[bytes, str]) -> bytes:
-    """Chiper *plaintext* using AES with the given *key*."""
+    """Cipher *plaintext* using AES with the given *key*."""
     import base64
 
     plaintext = force_encode(plaintext)
