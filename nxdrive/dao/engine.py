@@ -38,7 +38,6 @@ from ..objects import (
 )
 from ..options import Options
 from ..qt.imports import pyqtSignal
-from ..utils import current_thread_id
 from . import SCHEMA_VERSION
 from .adapters import adapt_path
 from .base import BaseDAO
@@ -130,6 +129,7 @@ class EngineDAO(BaseDAO):
 
     def _migrate_db(self, version: int, /) -> None:
         """Instantiate and run the migration engine."""
+        from ..utils import current_thread_id
         from .migrations.engine import engine_migrations
         from .migrations.migration_engine import MigrationEngine
 

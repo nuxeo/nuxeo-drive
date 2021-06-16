@@ -48,6 +48,8 @@ class MigrationEngine:
                     log.debug(
                         f"Migration {name} upgrade applied successfully. Schema is now at version {migration.version}."
                     )
+                cursor.execute("COMMIT")
+
         except sqlite3.Error:
             log.exception("Database upgrade failed.")
             raise
@@ -91,6 +93,7 @@ class MigrationEngine:
                         f"Migration {name} downgrade applied successfully."
                         f"Schema is now at version {migration.previous_version}."
                     )
+                cursor.execute("COMMIT")
 
         except sqlite3.Error:
             log.exception("Database downgrade failed.")

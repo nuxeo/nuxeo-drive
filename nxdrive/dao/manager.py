@@ -8,7 +8,6 @@ from typing import List
 
 from ..notification import Notification
 from ..objects import EngineDef
-from ..utils import current_thread_id
 from . import SCHEMA_VERSION
 from .base import BaseDAO
 
@@ -120,6 +119,7 @@ class ManagerDAO(BaseDAO):
 
     def _migrate_db(self, version: int, /) -> None:
         """Instantiate and run the migration engine."""
+        from ..utils import current_thread_id
         from .migrations.manager import manager_migrations
         from .migrations.migration_engine import MigrationEngine
 
