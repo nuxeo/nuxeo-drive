@@ -2,6 +2,8 @@ from unittest.mock import patch
 
 import pytest
 
+from nxdrive.options import Options
+
 
 @pytest.fixture
 def get_changes():
@@ -50,6 +52,7 @@ def test_changes_without_active_roots(get_changes, manager_factory):
 
 
 @pytest.mark.parametrize("bad_data", ["not a dict", {"wrong": "dict"}])
+@Options.mock()
 def test_wrong_server_reply(bad_data, manager_factory):
     """
     A response that is not a dictionary or that does not contain
@@ -61,6 +64,7 @@ def test_wrong_server_reply(bad_data, manager_factory):
     def bad_get_changes(*args, **kwargs):
         return bad_data
 
+    Options.feature_synchronization = True
     manager, engine = manager_factory()
     sync_date = engine._remote_watcher._last_sync_date
     with manager:
