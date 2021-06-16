@@ -164,7 +164,7 @@ install_deps() {
     ${PIP} -r tools/deps/requirements-dev.txt
     if [ "${INSTALL_RELEASE_ARG:-0}" != "1" ]; then
         ${PIP} -r tools/deps/requirements-tests.txt
-        pre-commit install
+        ./venv/bin/pre-commit install
     fi
 }
 
@@ -197,6 +197,7 @@ install_pyenv() {
 
     echo ">>> [pyenv] Initializing"
     # Ensure pyenv shims are added to PATH, see https://github.com/pyenv/pyenv/issues/1906
+    eval "$(pyenv init -)"
     eval "$(pyenv init --path)"
     eval "$(pyenv virtualenv-init -)"
 }
@@ -357,8 +358,9 @@ verify_python() {
 
     cur_version=$(${PYTHON_VENV} --version 2>&1 | head -n 1 | awk '{print $2}')
     if [ "${cur_version}" != "${version}" ]; then
-        echo ">>> Python version '${cur_version}'"
-        echo ">>> Drive requires '${version}'"
+        echo ">>> Drive requires Python '${version}'."
+        echo ">>> Current Python version ('\$ ${PYTHON_VENV} --version'):"
+        ${PYTHON_VENV} --version
         exit 1
     fi
 
@@ -394,13 +396,13 @@ main() {
         esac
     fi
 
-    # Ensure we are not running from within a virtual environment
-    deactivate 2> /dev/null || true
+    # If running from a virtual environment, let's use it
+    if ! command -v deactivate > /dev/null; then
+        install_pyenv
+        install_python "${PYTHON_DRIVE_VERSION}"
+        create_venv
+    fi
 
-    # Launch operations
-    install_pyenv
-    install_python "${PYTHON_DRIVE_VERSION}"
-    create_venv
     verify_python "${PYTHON_DRIVE_VERSION}"
 
     if [ $# -eq 1 ]; then

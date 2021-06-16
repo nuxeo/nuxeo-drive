@@ -43,7 +43,7 @@ import yaml
 # Alter the lookup path to be able to find Nuxeo Drive sources
 sys.path.insert(0, os.getcwd())
 
-__version__ = "4.0.0"
+__version__ = "4.0.1"
 
 EXT = {"darwin": "dmg", "linux": "appimage", "win32": "exe"}[sys.platform]
 Server = http.server.SimpleHTTPRequestHandler
@@ -138,13 +138,22 @@ def get_last_version_number():
 
 
 def get_version():
-    """Get the current version from the auto-generated VERSION file."""
+    """Get the current version."""
 
-    if EXT == "exe":
-        file = expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
-    else:
-        file = expanduser("~/.nuxeo-drive/VERSION")
+    if EXT == "dmg":
+        cmd = [
+            "open",
+            f"{Path.home()}/Applications/Nuxeo Drive.app",
+            "--args",
+            "--version",
+        ]
+        return subprocess.check_output(cmd).decode("utf-8").strip()
 
+    file = (
+        expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
+        if EXT == "exe"
+        else expanduser("~/.nuxeo-drive/VERSION")
+    )
     with open(file) as f:
         return f.read().strip()
 
