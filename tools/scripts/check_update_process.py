@@ -143,8 +143,7 @@ def get_version():
     if EXT == "dmg":
         cmd = [
             "open",
-            f"{Path.home()}/Applications/Nuxeo Drive.app",
-            "--args",
+            f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
             "--version",
         ]
         return subprocess.check_output(cmd).decode("utf-8").strip()
