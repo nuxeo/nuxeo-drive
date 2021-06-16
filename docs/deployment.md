@@ -15,9 +15,9 @@ Where `$OSI` is one of: `linux`, `osx`.
 Possible `ARG`:
 
     --build: freeze the client into self-hosted binary package
+    --check: check AppImage conformity (GNU/Linux only)
     --check-upgrade: check the auto-update works
     --install: install a complete development environment
-    --check: check AppImage conformity (GNU/Linux only)
     --install-python: install only Python
     --install-release: install a complete environment for a release (without tests requirements)
     --start: start Nuxeo Drive

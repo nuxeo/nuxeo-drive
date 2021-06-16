@@ -5,6 +5,7 @@
 #
 # Possible ARG:
 #     --build: build the package
+#     --check: check AppImage conformity (GNU/Linux only)
 #     --check-upgrade: check the auto-update works
 #     --install: install all dependencies
 #     --install-python: install only Python
@@ -26,20 +27,21 @@ set -e
 
 # Global variables
 PYTHON="python -Xutf8 -E -s"
-PYTHON_OPT="${PYTHON} -OO"
+PYTHON_VENV="./venv/bin/python -Xutf8 -E -s"
+PYTHON_OPT="${PYTHON_VENV} -OO"
 PIP="${PYTHON_OPT} -m pip install --no-cache-dir --upgrade --upgrade-strategy=only-if-needed --progress-bar=off"
 
 build_installer() {
     local version
 
     echo ">>> Building the release package"
-    ${PYTHON} -m PyInstaller ndrive.spec --clean --noconfirm
+    ${PYTHON_VENV} -m PyInstaller ndrive.spec --clean --noconfirm
 
     # Check for freezer regressions
     ensure_correctness dist/ndrive
 
     # Do some clean-up
-    ${PYTHON} tools/cleanup_application_tree.py dist/ndrive
+    ${PYTHON_VENV} tools/cleanup_application_tree.py dist/ndrive
 
     # Remove compiled QML files
     find dist -depth -type f -name "*.qmlc" -delete
@@ -48,11 +50,11 @@ build_installer() {
     find dist -depth -type d -empty -delete
 
     if [ "${OSI}" = "osx" ]; then
-        ${PYTHON} tools/cleanup_application_tree.py dist/*.app/Contents/Resources
-        ${PYTHON} tools/cleanup_application_tree.py dist/*.app/Contents/MacOS
+        ${PYTHON_VENV} tools/cleanup_application_tree.py dist/*.app/Contents/Resources
+        ${PYTHON_VENV} tools/cleanup_application_tree.py dist/*.app/Contents/MacOS
 
         # Move problematic folders out of Contents/MacOS
-        ${PYTHON} tools/osx/fix_app_qt_folder_names_for_codesign.py dist/*.app
+        ${PYTHON_VENV} tools/osx/fix_app_qt_folder_names_for_codesign.py dist/*.app
 
         # Remove broken symlinks pointing to an inexistent target
         find dist/*.app/Contents/MacOS -type l -exec sh -c 'for x; do [ -e "$x" ] || rm -v "$x"; done' _ {} +
@@ -83,7 +85,7 @@ check_import() {
     local ret=0
 
     /bin/echo -n ">>> Checking Python code: ${import} ... "
-    ${PYTHON} -c "${import}" 2>/dev/null || ret=1
+    ${PYTHON_VENV} -c "${import}" 2>/dev/null || ret=1
     if [ ${ret} -ne 0 ]; then
         echo "Failed."
         return 1
@@ -93,7 +95,7 @@ check_import() {
 
 check_upgrade() {
     # Ensure a new version can be released by checking the auto-update process.
-    ${PYTHON} tools/scripts/check_update_process.py
+    ${PYTHON_VENV} tools/scripts/check_update_process.py
 }
 
 check_vars() {
@@ -148,6 +150,13 @@ check_vars() {
     fi
 }
 
+create_venv() {
+    # Create the isolated virtual environment
+    # No-op if the folder already exists.
+    # Note: the Python version will be checked later in the process to prevent any issues.
+    ${PYTHON} -m venv --copies venv
+}
+
 install_deps() {
     echo ">>> Installing requirements"
     ${PIP} -r tools/deps/requirements-pip.txt
@@ -155,7 +164,7 @@ install_deps() {
     ${PIP} -r tools/deps/requirements-dev.txt
     if [ "${INSTALL_RELEASE_ARG:-0}" != "1" ]; then
         ${PIP} -r tools/deps/requirements-tests.txt
-        pyenv rehash
+        pre-commit install
     fi
 }
 
@@ -187,7 +196,6 @@ install_pyenv() {
     fi
 
     echo ">>> [pyenv] Initializing"
-    eval "$(pyenv init -)"
     # Ensure pyenv shims are added to PATH, see https://github.com/pyenv/pyenv/issues/1906
     eval "$(pyenv init --path)"
     eval "$(pyenv virtualenv-init -)"
@@ -221,7 +229,7 @@ junit_arg() {
 
 launch_test() {
     # Launch tests on a specific path. On failure, retry failed tests.
-    local cmd="${PYTHON} -bb -Wall -m pytest"
+    local cmd="${PYTHON_VENV} -bb -Wall -m pytest"
     local path="${1}"
     local pytest_args="${2:-}"
 
@@ -229,7 +237,7 @@ launch_test() {
 
     if should_run "rerun"; then
         # Will return 0 if rerun is needed else 1
-        ${PYTHON} tools/check_pytest_lastfailed.py || return
+        ${PYTHON_VENV} tools/check_pytest_lastfailed.py || return
 
         # Do not fail on error as all failures will be re-run another time at the end
         ${cmd} -n0 --last-failed --last-failed-no-failures none `junit_arg ${path} 2`  || true
@@ -264,12 +272,12 @@ launch_tests() {
         if should_run "rerun"; then
             echo ">>> Re-rerun failed tests"
 
-            ${PYTHON} -m pytest --cache-show
+            ${PYTHON_VENV} -m pytest --cache-show
 
             set +e
             # Will return 0 if rerun is needed else 1
-            ${PYTHON} tools/check_pytest_lastfailed.py && \
-                ${PYTHON} -bb -Wall -m pytest -n0 --last-failed --last-failed-no-failures none `junit_arg "final"`
+            ${PYTHON_VENV} tools/check_pytest_lastfailed.py && \
+                ${PYTHON_VENV} -bb -Wall -m pytest -n0 --last-failed --last-failed-no-failures none `junit_arg "final"`
             # The above command will exit with error code 5 if there is no failure to rerun
             ret=$?
             set -e
@@ -347,10 +355,10 @@ verify_python() {
 
     echo ">>> Verifying Python version in use"
 
-    cur_version=$(${PYTHON} --version 2>&1 | head -n 1 | awk '{print $2}')
+    cur_version=$(${PYTHON_VENV} --version 2>&1 | head -n 1 | awk '{print $2}')
     if [ "${cur_version}" != "${version}" ]; then
-        echo ">>> Python version ${cur_version}"
-        echo ">>> Drive requires ${version}"
+        echo ">>> Python version '${cur_version}'"
+        echo ">>> Drive requires '${version}'"
         exit 1
     fi
 
@@ -386,9 +394,13 @@ main() {
         esac
     fi
 
+    # Ensure we are not running from within a virtual environment
+    deactivate 2> /dev/null || true
+
     # Launch operations
     install_pyenv
     install_python "${PYTHON_DRIVE_VERSION}"
+    create_venv
     verify_python "${PYTHON_DRIVE_VERSION}"
 
     if [ $# -eq 1 ]; then
