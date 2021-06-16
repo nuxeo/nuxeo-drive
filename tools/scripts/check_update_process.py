@@ -19,7 +19,6 @@ Notes:
 It __must__ be launched before any new release to validate the update process.
 """
 
-import distutils.dir_util
 import distutils.version
 import hashlib
 import http.server
@@ -43,7 +42,7 @@ import yaml
 # Alter the lookup path to be able to find Nuxeo Drive sources
 sys.path.insert(0, os.getcwd())
 
-__version__ = "4.0.1"
+__version__ = "5.0.0"
 
 EXT = {"darwin": "dmg", "linux": "appimage", "win32": "exe"}[sys.platform]
 Server = http.server.SimpleHTTPRequestHandler
@@ -142,11 +141,10 @@ def get_version():
 
     if EXT == "dmg":
         cmd = [
-            "open",
             f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
             "--version",
         ]
-        return subprocess.check_output(cmd).decode("utf-8").strip()
+        return subprocess.check_output(cmd, text=True).strip()
 
     file = (
         expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
@@ -167,7 +165,7 @@ def install_drive(installer):
         # Simulate what nxdrive.updater.darwin.install() does
         cmd = ["hdiutil", "mount", installer]
         print(">>> Command:", cmd, flush=True)
-        mount_info = subprocess.check_output(cmd).decode("utf-8").strip()
+        mount_info = subprocess.check_output(cmd, text=True).strip()
         mount_dir = mount_info.splitlines()[-1].split("\t")[-1]
 
         src = "{}/Nuxeo Drive.app".format(mount_dir)
