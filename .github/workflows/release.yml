@@ -116,6 +116,8 @@ jobs:
           MACOSX_DEPLOYMENT_TARGET: "10.13"
           KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
+          NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
           SIGNING_ID: "NUXEO CORP"
         run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
 
