@@ -23,7 +23,7 @@ jobs:
         # ubuntu-latest: OK!
         # windows-latest: ONGOING
         # macos-latest: BAD (keystore seems locked, waiting for user input ... )
-        os: [windows-latest]
+        os: [macos-latest, windows-latest]
 
     steps:
       - name: Checkout
