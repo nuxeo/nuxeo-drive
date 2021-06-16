@@ -21,9 +21,9 @@ jobs:
       matrix:
         # os: [ubuntu-latest, windows-latest, macos-latest]
         # ubuntu-latest: OK!
-        # windows-latest: ONGOING
+        # windows-latest: OK!
         # macos-latest: BAD (keystore seems locked, waiting for user input ... )
-        os: [macos-latest, windows-latest]
+        os: [macos-latest]
 
     steps:
       - name: Checkout
@@ -113,11 +113,12 @@ jobs:
 
       - name: "[macOS] Generate the .dmg"
         if: matrix.os == 'macos-latest'
-        timeout-minutes: 20
+        timeout-minutes: 30
         env:
           NXDRIVE_TEST_NUXEO_URL: "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
           MACOSX_DEPLOYMENT_TARGET: "10.13"
           KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
           SIGNING_ID: "NUXEO CORP"
         run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
 
@@ -148,7 +149,7 @@ jobs:
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
 
       - name: "[Windows] Generate the .exe"
-        timeout-minutes: 20
+        timeout-minutes: 15
         if: matrix.os == 'windows-latest'
         env:
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
