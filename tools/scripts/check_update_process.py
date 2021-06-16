@@ -239,7 +239,6 @@ def set_options():
     options = [
         "channel = alpha",
         "log-level-file = DEBUG",
-        "exec-profile = private",
         "synchronization-enabled = False",
         "sync-and-quit = True",
         "update-check-delay = 8",
