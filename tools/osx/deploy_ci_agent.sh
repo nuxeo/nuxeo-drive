@@ -177,7 +177,7 @@ create_package() {
 
     if [ "${SIGNING_ID:-unset}" != "unset" ]; then
         ${CODESIGN} "${SIGNING_ID}" --verbose "dist/nuxeo-drive-${app_version}.dmg"
-        ${PYTHON_ENV} tools/osx/notarize.py "dist/nuxeo-drive-${app_version}.dmg"
+        ${PYTHON_VENV} tools/osx/notarize.py "dist/nuxeo-drive-${app_version}.dmg"
     fi
 }
 

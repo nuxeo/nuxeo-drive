@@ -2,7 +2,7 @@
 name: Release
 
 on:
-  # Check for updates every day
+  # Generate an alpha every day
   schedule:
     - cron: "10 0 * * *"
 
@@ -20,9 +20,6 @@ jobs:
       fail-fast: false
       matrix:
         # os: [ubuntu-latest, windows-latest, macos-latest]
-        # ubuntu-latest: OK!
-        # windows-latest: OK!
-        # macos-latest: BAD (keystore seems locked, waiting for user input ... )
         os: [macos-latest]
 
     steps:
