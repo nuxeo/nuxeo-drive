@@ -34,8 +34,7 @@ check() {
     ./dist/squashfs-root/AppRun --version
 
     echo ">>> [AppImage] Checking the AppImage conformity"
-    # TODO: remove "|| true" and find why this does not work
-    ./tools/linux/appimage/appdir-lint.sh "$(pwd)/tools/linux/appimage" "$(pwd)/dist/squashfs-root" || true
+    ./tools/linux/appimage/appdir-lint.sh "$(pwd)/tools/linux/appimage" "$(pwd)/dist/squashfs-root"
 
     echo ">>> [AppImage] Clean-up"
     rm -rf dist/squashfs-root

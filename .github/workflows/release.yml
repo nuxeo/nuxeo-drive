@@ -4,19 +4,14 @@ name: Release
 on:
   # Check for updates every day
   schedule:
-    - cron:  '10 0 * * *'
+    - cron: "10 0 * * *"
 
   workflow_dispatch:
     inputs:
       releaseType:
         description: 'Set to "release" for a beta release.'
         required: false
-        default: 'alpha'
-
-env:
-  # Globals
-  MAKEFLAGS: '-j 2'
-  NXDRIVE_TEST_NUXEO_URL: 'https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo'
+        default: "alpha"
 
 jobs:
   release:
@@ -27,14 +22,18 @@ jobs:
         # os: [ubuntu-latest, windows-latest, macos-latest]
         # ubuntu-latest: OK!
         # windows-latest: ONGOING
-        # macos-latest: BAD (keysotre seems locked, waiting for user input ... )
-        os: [ubuntu-latest, windows-latest]
+        # macos-latest: BAD (keystore seems locked, waiting for user input ... )
+        os: [macos-latest, windows-latest]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v2
         with:
           ref: ${{ github.event.inputs.branch }}
+
+      #
+      # Global
+      #
 
       - name: Install SSH key
         uses: shimataro/ssh-key-action@v2
@@ -54,79 +53,121 @@ jobs:
           git fetch --unshallow --tags
           bash tools/bump-alpha-version.sh || exit 1
 
-      - name: '[GNU/Linux] Login to the docker registry'
+      #
+      # GNU/Linux
+      #
+
+      - name: "[GNU/Linux] Install AppImage checkers"
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt install --yes appstream desktop-file-utils
+
+      - name: "[GNU/Linux] Login to the docker registry"
         if: matrix.os == 'ubuntu-latest'
         uses: docker/login-action@v1.9.0
         with:
-          registry: 'docker-private.packages.nuxeo.com'
+          registry: "docker-private.packages.nuxeo.com"
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: '[GNU/Linux] Generate the .AppImage'
-        if: matrix.os == 'ubuntu-latest'
-        env:
-          REGISTRY: 'docker-private.packages.nuxeo.com'
-          REPOSITORY: 'nuxeo-drive-build'
-        run: bash tools/linux/generate_installer.sh
-
-      - name: '[GNU/Linux] Upload artefacts'
+      - name: "[GNU/Linux] Set appropriate volume rights"
         if: matrix.os == 'ubuntu-latest'
         run: |
-          for f in dist/*.AppImage; do
-            bash tools/upload.sh staging "${f}"
-          done
+          mkdir build && chmod -R 777 build
+          mkdir dist && chmod -R 777 dist
 
-      - name: '[macOS] Setup certificates'
+      - name: "[GNU/Linux] Generate the .AppImage"
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          REGISTRY: "docker-private.packages.nuxeo.com"
+          REPOSITORY: "nuxeo-drive-build"
+        run: docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.9.5" # XXX_PYTHON
+
+      - name: "[GNU/Linux] Ensure the AppImage is correct"
+        if: matrix.os == 'ubuntu-latest'
+        run: bash tools/linux/deploy_ci_agent.sh --check
+
+      - name: "[GNU/Linux] Upload artifacts"
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v2
+        with:
+          name: package-distributions
+          path: ./dist/*.AppImage
+          if-no-files-found: error
+
+      #
+      # macOS
+      #
+
+      - name: "[macOS] Setup certificates"
         if: matrix.os == 'macos-latest'
         run: |
           wget https://www.apple.com/appleca/AppleIncRootCertificate.cer
           echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.cer
           echo "${{ secrets.PRIV_APP_MACOS }}" | base64 --decode > nuxeo-drive.priv
 
-      - name: '[macOS] Generate the .dmg'
+      - name: "[macOS] Setup the environment"
         if: matrix.os == 'macos-latest'
         env:
-          MACOSX_DEPLOYMENT_TARGET: '10.13'
-          KEYCHAIN_PATH: '~/Library/Keychains/drive.keychain-db'
-          SIGNING_ID: 'NUXEO CORP'
-        run: bash tools/osx/generate_installer.sh
+          MACOSX_DEPLOYMENT_TARGET: "10.13"
+        run: bash tools/osx/deploy_ci_agent.sh --install-release
 
-      - name: '[macOS] Upload artefacts'
+      - name: "[macOS] Generate the .dmg"
         if: matrix.os == 'macos-latest'
-        run: |
-          for f in dist/*.dmg; do
-            bash tools/upload.sh staging "${f}"
-          done
+        timeout-minutes: 20
+        env:
+          NXDRIVE_TEST_NUXEO_URL: "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
+          MACOSX_DEPLOYMENT_TARGET: "10.13"
+          KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
+          SIGNING_ID: "NUXEO CORP"
+        run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
 
-      - name: '[Windows] Setup certificate'
+      - name: "[macOS] Upload artifacts"
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v2
+        with:
+          name: package-distributions
+          path: ./dist/*.dmg
+          if-no-files-found: error
+
+      #
+      # Windows
+      #
+
+      - name: "[Windows] Setup certificate"
         if: matrix.os == 'windows-latest'
         run: |
           echo "${{ secrets.CERT_APP_WINDOWS }}" > certificate.b64
           certutil -decode certificate.b64 certificate.pfx
 
-      - name: '[Windows] Generate the .exe'
+      - name: "[Windows] Unlock PowerShell"
+        if: matrix.os == 'windows-latest'
+        run: powershell Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
+
+      - name: "[Windows] Setup the environment"
+        if: matrix.os == 'windows-latest'
+        run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
+
+      - name: "[Windows] Generate the .exe"
+        timeout-minutes: 20
         if: matrix.os == 'windows-latest'
         env:
-          INNO_SETUP_VERSION: '6.1.2'  # XXX_INNO_SETUP
-          SIGNING_ID: 'Nuxeo'
-          # SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\x86'
-        run: bash tools/windows/generate_installer.sh
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          NXDRIVE_TEST_NUXEO_URL: "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
+          SIGNING_ID: "Nuxeo"
+          SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\x86'
+        run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade
 
-      - name: '[Windows] Upload artefacts'
+      - name: "[Windows] Upload artifacts"
         if: matrix.os == 'windows-latest'
-        run: |
-          for f in dist/*.exe; do
-            bash tools/upload.sh staging "${f}"
-          done
-
-      - name: Cancel the release
-        if: failure() || cancelled()
-        run: bash tools/release.sh --cancel
+        uses: actions/upload-artifact@v2
+        with:
+          name: package-distributions
+          path: ./dist/*.exe
+          if-no-files-found: error
 
   deploy:
     runs-on: ubuntu-latest
     needs: [release]
-    if: github.event.inputs.branch == 'master'
 
     steps:
       - name: Checkout
@@ -147,7 +188,20 @@ jobs:
           git fetch --unshallow --tags
           git remote set-url origin git@github.com:nuxeo/nuxeo-drive.git
 
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: package-distributions
+          path: dist/
+
+      - name: Upload artifacts to the staging server
+        run: |
+          for f in dist/*; do
+            bash tools/upload.sh staging "${f}"
+          done
+
       - name: Do the release
+        if: github.event.inputs.branch == 'master'
         run: |
           bash tools/release.sh --publish "${{ github.event.inputs.releaseType }}" || exit 1
           bash tools/release.sh --create "${{ github.event.inputs.releaseType }}" || exit 1
