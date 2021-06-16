@@ -238,8 +238,8 @@ def set_options():
 
     options = [
         "channel = alpha",
+        "feature-synchronization = False",
         "log-level-file = DEBUG",
-        "synchronization-enabled = False",
         "sync-and-quit = True",
         "update-check-delay = 8",
         "update-site-url = http://localhost:8000",
