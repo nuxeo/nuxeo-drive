@@ -109,7 +109,7 @@ jobs:
 
       - name: "[macOS] Generate the .dmg"
         if: matrix.os == 'macos-latest'
-        timeout-minutes: 15
+        timeout-minutes: 20
         env:
           NXDRIVE_TEST_NUXEO_URL: "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
           MACOSX_DEPLOYMENT_TARGET: "10.13"
