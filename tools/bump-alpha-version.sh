@@ -23,8 +23,6 @@ bump() {
     git commit -m "Bump version to ${drive_version}.${alpha_version}"
 }
 
-if [ "${RELEASE_TYPE:-unset}" = "alpha" ]; then
-    bump
-fi
+bump
 
 exit 0
