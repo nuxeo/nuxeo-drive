@@ -1,5 +1,7 @@
 # Nuxeo Drive
 
+[![Release](https://github.com/nuxeo/nuxeo-drive/actions/workflows/release.yml/badge.svg)](https://github.com/nuxeo/nuxeo-drive/actions/workflows/release.yml)
+
 **Desktop Synchronization Client for Nuxeo**
 
 This is an ongoing development project for desktop synchronization of local folders with remote Nuxeo workspaces.
