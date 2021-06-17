@@ -1,5 +1,6 @@
 # Nuxeo Drive
 
+[![Version](https://badgen.net/github/release/nuxeo/nuxeo-drive)](https://doc.nuxeo.com/client-apps/nuxeo-drive-release-notes/)
 [![Release](https://github.com/nuxeo/nuxeo-drive/actions/workflows/release.yml/badge.svg)](https://github.com/nuxeo/nuxeo-drive/actions/workflows/release.yml)
 
 **Desktop Synchronization Client for Nuxeo**
