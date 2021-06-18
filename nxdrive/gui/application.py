@@ -376,6 +376,7 @@ class Application(QApplication):
         if not feature:
             return
         feature.enabled = value
+        self.manager.reload_client_global_headers()
 
         if feature.restart_needed:
             self.manager.restartNeeded.emit()

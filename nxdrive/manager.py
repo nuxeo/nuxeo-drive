@@ -465,6 +465,13 @@ class Manager(QObject):
         if self.engines:
             self.tracker.send_metric("account", "count", str(len(self.engines)))
 
+    def reload_client_global_headers(self) -> None:
+        """Reinject up-to-date custom global headers into all registered clients.
+        It is called when a feature state is modified.
+        """
+        for engine in self.engines.values():
+            engine.remote.reload_global_headers()
+
     def _get_engine_db_file(self, uid: str, /) -> Path:
         return self.home / f"ndrive_{uid}.db"
 

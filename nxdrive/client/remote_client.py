@@ -40,6 +40,7 @@ from ..constants import (
 )
 from ..engine.activity import Action, DownloadAction, UploadAction, VerificationAction
 from ..exceptions import DownloadPaused, NotFound, ScrollDescendantsError, UploadPaused
+from ..feature import Feature
 from ..metrics.constants import (
     EXEC_LOCALE,
     EXEC_SESSION_UID,
@@ -55,7 +56,7 @@ from ..metrics.constants import (
 )
 from ..metrics.poll_metrics import CustomPollMetrics
 from ..metrics.utils import current_os, user_agent
-from ..objects import Download, NuxeoDocumentInfo, RemoteFileInfo
+from ..objects import Download, Metrics, NuxeoDocumentInfo, RemoteFileInfo
 from ..options import Options
 from ..qt.imports import QApplication
 from ..utils import (
@@ -121,29 +122,15 @@ class Remote(Nuxeo):
             cert=cert,
         )
 
-        installation_type = "system" if Options.system_wide else "user"
-
-        nx_metrics = {
-            INSTALLATION_TYPE: installation_type,
-            EXEC_SESSION_UID: Options.session_uid,
-            METRICS_CUSTOM: int(Options.custom_metrics),
-            METRICS_GA: int(Options.use_analytics),
-            METRICS_SENTRY: int(Options.use_sentry),
-            UPDATER_CHANNEL: Options.channel,
-            EXEC_LOCALE: Options.locale,
-            OS_MACHINE: machine(),
-            OS_LOCALE: get_current_locale(),
-        }
-
         self.client.headers.update(
             {
                 "X-User-Id": user_id,
                 "X-Device-Id": device_id,
                 "Cache-Control": "no-cache",
                 "User-Agent": user_agent(),
-                GLOBAL_METRICS: json.dumps(nx_metrics),
             }
         )
+        self.reload_global_headers()
 
         self.set_proxy(proxy)
 
@@ -192,6 +179,35 @@ class Remote(Nuxeo):
             for attr in sorted(self.__init__.__code__.co_varnames[1:])  # type: ignore
         )
         return f"<{type(self).__name__} {attrs}>"
+
+    @property
+    def custom_global_metrics(self) -> Metrics:
+        """Get up-to-date custom global metrics.
+        It is necessary to be able to get feature states changes.
+        """
+        metrics = {
+            INSTALLATION_TYPE: "system" if Options.system_wide else "user",
+            EXEC_SESSION_UID: Options.session_uid,
+            METRICS_CUSTOM: int(Options.custom_metrics),
+            METRICS_GA: int(Options.use_analytics),
+            METRICS_SENTRY: int(Options.use_sentry),
+            UPDATER_CHANNEL: Options.channel,
+            EXEC_LOCALE: Options.locale,
+            OS_MACHINE: machine(),
+            OS_LOCALE: get_current_locale(),
+        }
+        metrics.update(
+            {
+                f"feature.{feature}": int(state)
+                for feature, state in vars(Feature).items()
+            }
+        )
+        return metrics
+
+    def reload_global_headers(self) -> None:
+        """Inject custom global metrics in the client headers."""
+        metrics = json.dumps(self.custom_global_metrics)
+        self.client.headers.update({GLOBAL_METRICS: metrics})
 
     def transfer_start_callback(self, uploader: Uploader, /) -> None:
         """Callback for each chunked (down|up)loads.
