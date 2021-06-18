@@ -4,31 +4,31 @@ name: Alpha clean-up
 on:
   # Check for updates every day
   schedule:
-    - cron:  '0 0 * * *'
+    - cron: "0 0 * * *"
 
   # Allow to clean-up a specific version
   workflow_dispatch:
     inputs:
       appVersion:
-        description: 'The version to purge.'
+        description: "The version to purge."
         required: true
-        default: ''
+        default: ""
 
 jobs:
-  job:
+  alpha-cleanup:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-      with:
-        fetch-depth: '0'
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: "0"
 
-    - name: Install SSH key
-      uses: shimataro/ssh-key-action@v2
-      with:
-        key: ${{ secrets.SSH_PRIV_KEY }}
-        known_hosts: ${{ secrets.SSH_KNOWN_HOST_DEPLOY }}
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIV_KEY }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOST_DEPLOY }}
 
-    - name: Clean-up old versions
-      run: bash tools/cleanup.sh ${{ github.event.inputs.appVersion }}
+      - name: Clean-up old versions
+        run: bash tools/cleanup.sh ${{ github.event.inputs.appVersion }}

@@ -5,41 +5,41 @@ on:
   workflow_dispatch:
     inputs:
       pythonVersion:
-        description: 'The Python version in-use for the current Nuxeo Drive version.'
+        description: "The Python version in-use for the current Nuxeo Drive version."
         required: true
-        default: 'x.y.z'
+        default: "x.y.z"
       buildVersion:
-        description: 'Image build number.'
+        description: "Image build number."
         required: true
-        default: '0'
+        default: "0"
 
 env:
   REGISTRY: docker-private.packages.nuxeo.com
   REPOSITORY: nuxeo-drive-build
 
 jobs:
-  job:
+  docker-linux:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - uses: docker/setup-buildx-action@v1.3.0
-      with:
-        driver: docker
-    - name: Login to the registry
-      uses: docker/login-action@v1.9.0
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-    - name: Build the image
-      uses: docker/build-push-action@v2.5.0
-      with:
-        context: .
-        file: tools/linux/Dockerfile
-        build-args: |
-          VERSION=${{ github.event.inputs.buildVersion }}
-          SCM_REF=${{ env.GITHUB_SHA }}
-        tags: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:py-${{ github.event.inputs.pythonVersion }}
-    - name: Push the image
-      run: docker push ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:py-${{ github.event.inputs.pythonVersion }}
+      - uses: actions/checkout@v2
+      - uses: docker/setup-buildx-action@v1.3.0
+        with:
+          driver: docker
+      - name: Login to the registry
+        uses: docker/login-action@v1.9.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build the image
+        uses: docker/build-push-action@v2.5.0
+        with:
+          context: .
+          file: tools/linux/Dockerfile
+          build-args: |
+            VERSION=${{ github.event.inputs.buildVersion }}
+            SCM_REF=${{ env.GITHUB_SHA }}
+          tags: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:py-${{ github.event.inputs.pythonVersion }}
+      - name: Push the image
+        run: docker push ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:py-${{ github.event.inputs.pythonVersion }}
