@@ -8,6 +8,8 @@ on:
 
   workflow_dispatch:
     inputs:
+      # Note: `releaseType` will be set to an empty string when automatically run without human action (via the cronjob).
+      #       In that case, it means we want to generate an alpha.
       releaseType:
         description: 'Set to "release" for a beta release.'
         required: false
@@ -38,13 +40,13 @@ jobs:
           known_hosts: ${{ secrets.SSH_KNOWN_HOST_DEPLOY }}
 
       - name: Setup git
-        if: github.event.inputs.releaseType == 'alpha'
+        if: github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == ''
         run: |
           git config user.email "maintainers-python+github@nuxeo.com"
           git config user.name "GitHub-CI action (Release)"
 
       - name: Bump the version number
-        if: github.event.inputs.releaseType == 'alpha'
+        if: github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == ''
         run: |
           git fetch --unshallow --tags
           bash tools/bump-alpha-version.sh || exit 1
@@ -207,8 +209,12 @@ jobs:
       - name: Do the release
         if: steps.extract_branch.outputs.branch == 'master'
         run: |
-          bash tools/release.sh --publish "${{ github.event.inputs.releaseType }}" || exit 1
-          bash tools/release.sh --create "${{ github.event.inputs.releaseType }}" || exit 1
+          local release_type="${{ github.event.inputs.releaseType }}"
+          if [ "${release_type}" = "" ]; then
+              release_type="alpha"
+          fi
+          bash tools/release.sh --publish "${release_type}" || exit 1
+          bash tools/release.sh --create "${release_type}" || exit 1
 
       - name: Cancel the release
         if: failure() || cancelled()
