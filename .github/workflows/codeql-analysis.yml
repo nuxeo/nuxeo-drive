@@ -7,10 +7,10 @@ on:
     # The branches below must be a subset of the branches above
     branches: [master]
   schedule:
-    - cron: '28 11 * * 5'
+    - cron: "28 11 * * 5"
 
 jobs:
-  analyze:
+  security:
     name: Analyze
     runs-on: ubuntu-latest
     strategy:
@@ -18,13 +18,13 @@ jobs:
         language: [python]
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v1
-      with:
-        languages: ${{ matrix.language }}
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v1
+        with:
+          languages: ${{ matrix.language }}
 
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v1
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v1

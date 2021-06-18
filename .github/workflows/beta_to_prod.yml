@@ -4,23 +4,23 @@ on:
   workflow_dispatch:
     inputs:
       betaVersion:
-        description: 'The beta version to promote as official release.'
+        description: "The beta version to promote as official release."
         required: true
-        default: 'x.y.z'
+        default: "x.y.z"
 
 jobs:
-  job:
+  beta-to-prod:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
 
-    - name: Install SSH key
-      uses: shimataro/ssh-key-action@v2
-      with:
-        key: ${{ secrets.SSH_PRIV_KEY }}
-        known_hosts: ${{ secrets.SSH_KNOWN_HOST_DEPLOY }}
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIV_KEY }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOST_DEPLOY }}
 
-    - name: Ready for promotion
-      run: bash tools/deploy.sh ${{ github.event.inputs.betaVersion }}
+      - name: Ready for promotion
+        run: bash tools/deploy.sh ${{ github.event.inputs.betaVersion }}
