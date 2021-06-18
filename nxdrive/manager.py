@@ -143,15 +143,7 @@ class Manager(QObject):
             if user_locale is not None:
                 Options.locale = user_locale
 
-        # Backward-compatibility: handle synchronization state early
-        if version_le(__version__, "5.2.0"):
-            sync_enabled = self.dao.get_config("synchronization_enabled")
-            if sync_enabled is not None:
-                # Note: no need to handle the case where the sync is disabled because it is the default behavior
-                if sync_enabled != "0":
-                    self.set_feature_state("synchronization", True)
-                self.dao.delete_config("synchronization_enabled")
-
+        self._guess_synchronization_state()
         self.old_version = None
 
         if Options.is_frozen:
@@ -249,6 +241,23 @@ class Manager(QObject):
             pass
         finally:
             Manager._instances.pop(self.home, None)
+
+    def _guess_synchronization_state(self) -> None:
+        """Handle the synchronization feature state."""
+
+        # Backward-compatibility with the old option
+        sync_enabled = self.get_config("synchronization_enabled")
+        if sync_enabled is not None:
+            # Note: no need to handle the case where the sync is disabled because it is the default behavior
+            if sync_enabled != "0":
+                self.set_feature_state("synchronization", True)
+            self.dao.delete_config("synchronization_enabled")
+            return
+
+        # Backward-compatibility after an upgrade
+        old_version = self.get_config("client_version")
+        if old_version is not None and version_le(old_version, "5.2.1"):
+            self.set_feature_state("synchronization", True)
 
     def get_metrics(self) -> Metrics:
         return {
