@@ -3,6 +3,7 @@ import os
 import pytest
 
 from nxdrive.exceptions import FolderAlreadyUsed
+from nxdrive.feature import Feature
 from nxdrive.options import Options
 
 from .. import ensure_no_exception
@@ -109,3 +110,34 @@ def test_manager_account_addition_same_folder_used(tmp, manager_factory):
         #     sqlite3.IntegrityError: UNIQUE constraint failed: Engines.local_folder
         with pytest.raises(FolderAlreadyUsed):
             manager2, engine2 = manager_factory(home=home)
+
+
+@Options.mock()
+def test_feature_synchronization(tmp, manager_factory):
+    """NXDRIVE-2686: Ensure the management of the synchronization feature is well handled."""
+
+    with manager_factory(with_engine=False) as manager:
+        # No synchronization_enabled in the database
+        Feature.synchronization = False
+        manager._guess_synchronization_state()
+        assert not Feature.synchronization
+
+        # Set synchronization_enabled
+        Feature.synchronization = False
+        manager.set_config("synchronization_enabled", "1")
+        manager._guess_synchronization_state()
+        assert Feature.synchronization
+        assert manager.get_config("synchronization_enabled") is None
+
+        # Set client version, meaning this is an upgrade and we should
+        # allow the synchronization to not alter the original behavior
+        Feature.synchronization = False
+        manager.set_config("client_version", "5.2.1")
+        manager._guess_synchronization_state()
+        assert Feature.synchronization
+
+        # Ensure future upgrades will not take into account the client_version check
+        Feature.synchronization = False
+        manager.set_config("client_version", "5.2.2")
+        manager._guess_synchronization_state()
+        assert not Feature.synchronization

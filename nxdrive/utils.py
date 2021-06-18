@@ -1078,6 +1078,7 @@ def save_config(config_dump: Dict[str, Any], /) -> Path:
                 config[section][key] = str(value)
 
     # Save back the modified config file and return its path
+    conf_path.parent.mkdir(exist_ok=True, parents=True)
     with open(conf_path, "w") as output:
         config.write(output)
     return conf_path

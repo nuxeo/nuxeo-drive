@@ -70,3 +70,5 @@ def test_custom_metrics_global_headers(manager_factory):
         metrics = remote.custom_global_metrics
         assert metrics["feature.direct_edit"] == 0
         assert '"feature.direct_edit": 0' in headers[GLOBAL_METRICS]
+
+    Options.feature_direct_edit = True
