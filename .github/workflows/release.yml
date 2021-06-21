@@ -209,7 +209,7 @@ jobs:
       - name: Do the release
         if: steps.extract_branch.outputs.branch == 'master'
         run: |
-          local release_type="${{ github.event.inputs.releaseType }}"
+          release_type="${{ github.event.inputs.releaseType }}"
           if [ "${release_type}" = "" ]; then
               release_type="alpha"
           fi
