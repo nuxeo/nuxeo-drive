@@ -308,9 +308,9 @@ types-PyYAML==5.4.3 \
     --hash=sha256:bca83cbfc0be48600a8abf1e3d87fb762a91e6d35d724029a3321dd2dce2ceb1 \
     --hash=sha256:2e7b81b2b7af751634425107b986086c6ba7cb61270a43a5c290c58be8cdbc3a
     # via mypy
-types-requests==0.1.12 \
-    --hash=sha256:59b218da05de6eb58e0ab9d096af5e258359365cdf52cf3a1206a8ea87244301 \
-    --hash=sha256:08323ce2be816c4c107ef605e66369cb26dfda99d278dd502ee32bbf37f9a285
+types-requests==0.1.13 \
+    --hash=sha256:f7e611082208358045fdeac6edb5d20422ce8cfc935d57dbbef6a6b3a59bfae2 \
+    --hash=sha256:917d6d0a8d8fe2d084ab6dc28d379ec4e6fa34738e905908680bbfa0ce2d8485
     # via mypy
 vulture==2.3 \
     --hash=sha256:f39de5e6f1df1f70c3b50da54f1c8d494159e9ca3d01a9b89eac929600591703 \
