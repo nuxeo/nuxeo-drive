@@ -54,6 +54,14 @@ Rectangle {
             Layout.leftMargin: -5
         }
 
+        NuxeoSwitch {
+            text: qsTr("USE_SENTRY") + tl.tr
+            checked: manager.use_sentry()
+            onClicked: manager.set_sentry(checked)
+            Layout.leftMargin: -5
+            enabled: isFrozen && !isAlpha
+        }
+
         RowLayout {
             id: languageContainer
 

@@ -39,6 +39,7 @@ Manager.set_auto_start  # Used in QML
 Manager.set_feature_state  # Used in QML
 Manager.set_log_level  # Used in QML
 Manager.set_light_icons  # Used in QML
+Manager.set_sentry  # Used in QML
 manager_migrations  # Used in tests
 MetaOptions.mock  # Used in tests
 MigrationInitial.downgrade  # Used in tests

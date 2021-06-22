@@ -642,6 +642,15 @@ class Manager(QObject):
         self.set_config("light_icons", value)
         self.reloadIconsSet.emit(value)
 
+    @pyqtSlot(result=bool)  # from GeneralTab.qml
+    def use_sentry(self) -> bool:
+        """Return True if the *use_sentry* option is enabled."""
+        return self.dao.get_bool("use_sentry", default=Options.use_sentry)
+
+    @pyqtSlot(bool)  # from GeneralTab.qml
+    def set_sentry(self, value: bool, /) -> None:
+        self.set_config("use_sentry", value)
+
     @pyqtSlot(result=str)  # from ChannelPopup.qml and Systray.qml
     def get_update_channel(self) -> str:
         return (
