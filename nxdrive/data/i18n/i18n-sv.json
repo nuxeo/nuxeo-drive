@@ -175,7 +175,7 @@
     "FOLDER_DUPLICATES_MSG": "Följande mappar finns redan under <a href=\"%1\">%2</a>:<ul>%3</ul>Vänligen döpa om dem eller bearbeta till flera överföringar i dessa mappar.",
     "FOLDER_PERMISSION_ERROR": "Inte tillräckligt med rättigheter för att använda den lokala mappen",
     "FOLDER_USED": "Mappen används redan av ett annat Nuxeo Drive-konto",
-    "FREE_DISK_SPACE": "Ledigt diskutrymme",
+    "FREE_DISK_SPACE": "(Ledigt diskutrymme: %1)",
     "GENERATING": "Genererar...",
     "HELP": "Hjälp",
     "HISTORY": "Historik",

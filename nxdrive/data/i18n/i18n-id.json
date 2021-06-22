@@ -175,7 +175,7 @@
     "FOLDER_DUPLICATES_MSG": "The following folder(s) already exist under <a href=\"%1\">%2</a>:<ul>%3</ul>Please rename them or process to several transfers within those folders.",
     "FOLDER_PERMISSION_ERROR": "No enough rights to use the local folder",
     "FOLDER_USED": "Folder sudah digunakan oleh akun yang lain",
-    "FREE_DISK_SPACE": "Free disk space",
+    "FREE_DISK_SPACE": "(Free disk space: %1)",
     "GENERATING": "Generating…",
     "HELP": "Bantuan",
     "HISTORY": "History",

@@ -175,7 +175,7 @@
     "FOLDER_DUPLICATES_MSG": "The following folder(s) already exist under <a href=\"%1\">%2</a>:<ul>%3</ul>Please rename them or process to several transfers within those folders.",
     "FOLDER_PERMISSION_ERROR": "Brak wystarczających uprawnień do korzystania z lokalnego folderu",
     "FOLDER_USED": "Folder jest już używany przez inne konto",
-    "FREE_DISK_SPACE": "Wolne miejsce na dysku",
+    "FREE_DISK_SPACE": "(Wolne miejsce na dysku: %1)",
     "GENERATING": "Generating…",
     "HELP": "Pomoc",
     "HISTORY": "History",

@@ -175,7 +175,7 @@
     "FOLDER_DUPLICATES_MSG": "Las siguientes carpetas ya existen en <a href=\"%1\">%2</a>:<ul>%3</ul>Por favor, renombrarlas o procesarlas a varias transferencias dentro de esas carpetas.",
     "FOLDER_PERMISSION_ERROR": "No hay suficientes permisos para usar la carpeta local",
     "FOLDER_USED": "Otra cuenta de Nuxeo Drive ya ha utilizado la carpeta",
-    "FREE_DISK_SPACE": "Espacio libre en disco",
+    "FREE_DISK_SPACE": "(Espacio libre en disco: %1)",
     "GENERATING": "Generando...",
     "HELP": "Ayuda",
     "HISTORY": "Historial",

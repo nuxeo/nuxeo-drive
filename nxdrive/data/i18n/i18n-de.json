@@ -175,7 +175,7 @@
     "FOLDER_DUPLICATES_MSG": "Die folgenden Ordner(e) sind bereits unter <a href=\"%1\">%2</a>vorhanden:<ul>%3</ul>Bitte benennen Sie sie um oder verarbeiten Sie mehrere Überweisungen innerhalb dieser Ordner.",
     "FOLDER_PERMISSION_ERROR": "Keine ausreichenden Rechte um den lokalen Ordner zu verwenden",
     "FOLDER_USED": "Ordner wird schon von einem anderen Nuxeo Drive-Konto verwendet",
-    "FREE_DISK_SPACE": "Freier Festplattenspeicher",
+    "FREE_DISK_SPACE": "(Freier Festplattenspeicher: %1)",
     "GENERATING": "Wird erstellt …",
     "HELP": "Hilfe",
     "HISTORY": "Verlauf",
