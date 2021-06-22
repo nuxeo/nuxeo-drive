@@ -54,6 +54,16 @@ Rectangle {
             Layout.leftMargin: -5
         }
 
+        NuxeoSwitch {
+            text: qsTr("USE_LIGHT_ICONS") + tl.tr
+            checked: manager.use_sentry()
+            onClicked: {
+                manager.set_sentry(checked)
+                checked = manager.use_sentry()
+            }
+            Layout.leftMargin: -5
+        }
+
         RowLayout {
             id: languageContainer
 
