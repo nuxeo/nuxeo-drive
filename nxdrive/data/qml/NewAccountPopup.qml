@@ -6,8 +6,8 @@ import "icon-font/Icon.js" as MdiFont
 
 NuxeoPopup {
     id: control
-    width: 450
-    height: 250
+    width: 480
+    height: 180 + server_url.height + local_folder.height
     padding: 20
 
     title: qsTr("NEW_ENGINE") + tl.tr
@@ -18,72 +18,92 @@ NuxeoPopup {
     }
 
     contentItem: ColumnLayout {
-        GridLayout {
-            Layout.topMargin: 30  // NXDRIVE-2349: should be 20 here
-            columns: 2
-            rowSpacing: 20
-            columnSpacing: 10
+        spacing: 20
 
+        ColumnLayout {
+            Layout.topMargin: 30  // NXDRIVE-2349: should be 20 here
+            spacing: 20
             Keys.onReturnPressed: connectButton.clicked()
             Keys.onEnterPressed: connectButton.clicked()
 
             // Server URL
-            ScaledText { text: qsTr("URL") + tl.tr; color: mediumGray }
-            NuxeoInput {
-                id: urlInput
+            ColumnLayout {
+                id: server_url
                 Layout.fillWidth: true
-                lineColor: acceptableInput ? focusedUnderline : errorContent
-                inputMethodHints: Qt.ImhUrlCharactersOnly
-                KeyNavigation.tab: folderInput
-                placeholderText: "https://server.com/nuxeo"
-                text: api.default_server_url_value()
-                font.family: "Courier"
-                validator: RegExpValidator { regExp: /^https?:\/\/[^\s<"\/]+\/[^\s<"]+$/ }
+                spacing: 10
+
+                ScaledText { text: qsTr("URL") + tl.tr; color: secondaryText }
+                NuxeoInput {
+                    id: urlInput
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 25
+                    lineColor: acceptableInput ? focusedUnderline : errorContent
+                    inputMethodHints: Qt.ImhUrlCharactersOnly
+                    KeyNavigation.tab: folderInput
+                    placeholderText: "https://server.com/nuxeo"
+                    text: api.default_server_url_value()
+                    font.family: "Courier"
+                    validator: RegExpValidator { regExp: /^https?:\/\/[^\s<"\/]+\/[^\s<"]+$/ }
+                }
             }
 
             // Local folder
-            ScaledText {
-                text: qsTr("ENGINE_FOLDER") + tl.tr
-                wrapMode: Text.WordWrap
-                Layout.maximumWidth: control.width / 3
-                Layout.preferredWidth: contentWidth
-                color: mediumGray
-            }
-
-            // Free disk space based on the selected local folder
-            RowLayout {
+            ColumnLayout {
+                id: local_folder
                 Layout.fillWidth: true
-                NuxeoInput {
-                    id: folderInput
-                    Layout.fillWidth: true
-                    lineColor: focusedUnderline
-                    onTextChanged: freeSpace.text = api.get_free_disk_space(folderInput.text)
-                }
+                spacing: 10
 
-                IconLabel {
-                    Layout.alignment: Qt.AlignRight
-                    icon: MdiFont.Icon.folderOutline
-                    onClicked: fileDialog.visible = true
+                RowLayout {
+                    spacing: 10
+
+                    ScaledText {
+                        text: qsTr("ENGINE_FOLDER") + tl.tr
+                        wrapMode: Text.WordWrap
+                        Layout.maximumWidth: control.width / 3
+                        Layout.preferredWidth: contentWidth
+                        color: secondaryText
+                    }
+                    IconLabel {
+                        Layout.alignment: Qt.AlignRight
+                        icon: MdiFont.Icon.folderOutline
+                        onClicked: fileDialog.visible = true
+                    }
                 }
-            }
-            ScaledText {
-                text: qsTr("FREE_DISK_SPACE") + tl.tr;
-                color: mediumGray
-            }
-            ScaledText {
-                id: freeSpace
-                visible: folderInput.text
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 25
+                    spacing: 20
+
+                    NuxeoInput {
+                        id: folderInput
+                        Layout.fillWidth: true
+                        lineColor: focusedUnderline
+                        onTextChanged: {
+                            var disk_space = api.get_free_disk_space(folderInput.text)
+                            freeSpace.text = qsTr("FREE_DISK_SPACE").arg(disk_space) + tl.tr
+                        }
+                    }
+                    ScaledText {
+                        id: freeSpace
+                        visible: folderInput.text
+                        color: secondaryText
+                    }
+                }
             }
 
             // Authentication method
-            ScaledText {
-                text: qsTr("USE_LEGACY_AUTH") + tl.tr;
-                color: mediumGray
-            }
-            NuxeoCheckBox {
-                id: useLegacyAuth
-                checked: true
-                leftPadding: 0
+            RowLayout {
+                spacing: 10
+
+                ScaledText {
+                    text: qsTr("USE_LEGACY_AUTH") + tl.tr;
+                    color: mediumGray
+                }
+                NuxeoCheckBox {
+                    id: useLegacyAuth
+                    checked: true
+                    leftPadding: 0
+                }
             }
         }
 
