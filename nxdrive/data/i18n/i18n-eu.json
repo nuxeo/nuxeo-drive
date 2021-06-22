@@ -175,7 +175,7 @@
     "FOLDER_DUPLICATES_MSG": "Ondorengo karpeta(k) dagoeneko existitzen dira <a href=\"%1\">%2</a> azpian: <ul>%3</ul>Berrizenda itzazu edo prozesa itzazu karpeta horien barruan hainbat transferentzia eginez.",
     "FOLDER_PERMISSION_ERROR": "Ez duzu karpeta lokala erabiltzeko beharrezko baimenik",
     "FOLDER_USED": "Karpeta dagoeneko beste kontu batek darabil",
-    "FREE_DISK_SPACE": "Diskoko leku librea",
+    "FREE_DISK_SPACE": "(Diskoko leku librea: %1)",
     "GENERATING": "Sortzen…",
     "HELP": "Laguntza",
     "HISTORY": "Historia",

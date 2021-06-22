@@ -175,7 +175,7 @@
     "FOLDER_DUPLICATES_MSG": "Le seguenti cartelle esistono già sotto <a href=\"%1\">%2</a>:<ul>%3</ul>Si prega di rinominarle o processare in diversi trasferimenti all'interno di tali cartelle.",
     "FOLDER_PERMISSION_ERROR": "Non ci sono abbastanza diritti per utilizzare la cartella locale",
     "FOLDER_USED": "Cartella già utilizzata da un altro account Nuxeo Drive",
-    "FREE_DISK_SPACE": "Spazio libero su disco",
+    "FREE_DISK_SPACE": "(Spazio libero su disco: %1)",
     "GENERATING": "Creazione…",
     "HELP": "Guida",
     "HISTORY": "Cronologia",
