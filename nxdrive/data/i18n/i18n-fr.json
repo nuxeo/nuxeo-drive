@@ -175,7 +175,7 @@
     "FOLDER_DUPLICATES_MSG": "Le ou les dossiers suivants existent déjà sous <a href=\"%1\">%2</a>:<ul>%3</ul>Veuillez les renommer ou effectuer plusieurs transferts vers ces dossiers.",
     "FOLDER_PERMISSION_ERROR": "Droits insuffisants pour utiliser ce dossier local",
     "FOLDER_USED": "Ce dossier est déjà utilisé par un autre compte",
-    "FREE_DISK_SPACE": "Espace disque disponible",
+    "FREE_DISK_SPACE": "(Free disk space: %1)",
     "GENERATING": "Génération en cours…",
     "HELP": "Aide",
     "HISTORY": "Historique",

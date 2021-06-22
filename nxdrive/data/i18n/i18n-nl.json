@@ -175,7 +175,7 @@
     "FOLDER_DUPLICATES_MSG": "De volgende mappen bestaan al onder <a href=\"%1\">%2</a>:<ul>%3</ul>Hernoemen of verwerken in verschillende overdrachten binnen deze mappen.",
     "FOLDER_PERMISSION_ERROR": "Onvoldoende rechten om de lokale map te gebruiken",
     "FOLDER_USED": "De map wordt al gebruikt door een ander Nuxeo Drive-account",
-    "FREE_DISK_SPACE": "Vrije schijfruimte",
+    "FREE_DISK_SPACE": "(Free disk space: %1)",
     "GENERATING": "Genereren…",
     "HELP": "Help",
     "HISTORY": "Geschiedenis",
