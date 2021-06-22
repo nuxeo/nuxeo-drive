@@ -371,6 +371,7 @@
     "USE_CHANNEL": "Use channel %1",
     "USE_LEGACY_AUTH": "Use legacy authentication",
     "USE_LIGHT_ICONS": "Use the light icons set",
+    "USE_SENTRY": "Enable error reporting",
     "USERNAME": "Username",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Web Authentication",
     "WELCOME_MESSAGE": "Set your account and synchronize your files with the Nuxeo Platform.",

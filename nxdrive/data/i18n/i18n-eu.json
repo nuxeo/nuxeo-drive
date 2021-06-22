@@ -371,6 +371,7 @@
     "USE_CHANNEL": "Erabili %1 kanala",
     "USE_LEGACY_AUTH": "Use legacy authentication",
     "USE_LIGHT_ICONS": "Erabili ikono-sorta argia",
+    "USE_SENTRY": "Enable error reporting",
     "USERNAME": "Erabiltzaile-izena",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Web autentifikazioa",
     "WELCOME_MESSAGE": "Konfiguratu zure kontua eta sinkronizatu fitxategiak Nuxeo plataformarekin.",

@@ -371,6 +371,7 @@
     "USE_CHANNEL": "Gebruik kanaal %1",
     "USE_LEGACY_AUTH": "Gebruik verouderde authenticatie",
     "USE_LIGHT_ICONS": "Gebruik de ingestelde lichtpictogrammen",
+    "USE_SENTRY": "Enable error reporting",
     "USERNAME": "Gebruikersnaam",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Nuxeo Drive - Webverificatie",
     "WELCOME_MESSAGE": "Stel uw account in en synchroniseer uw bestanden met het Nuxeo-platform.",

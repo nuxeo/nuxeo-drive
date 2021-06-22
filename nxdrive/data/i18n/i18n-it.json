@@ -371,6 +371,7 @@
     "USE_CHANNEL": "Usa il canale %1",
     "USE_LEGACY_AUTH": "Usa autenticazione legacy",
     "USE_LIGHT_ICONS": "Utilizza il set di icone chiare",
+    "USE_SENTRY": "Enable error reporting",
     "USERNAME": "Nome utente",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Nuxeo Drive - Autenticazione Web",
     "WELCOME_MESSAGE": "Impostare l’account e sincronizzare i file con Nuxeo Platform.",
