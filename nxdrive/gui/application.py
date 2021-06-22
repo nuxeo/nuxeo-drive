@@ -451,6 +451,7 @@ class Application(QApplication):
         context.setContextProperty("updater", self.manager.updater)
         context.setContextProperty("point_size", self.point_size)
         context.setContextProperty("update_check_delay", Options.update_check_delay)
+        context.setContextProperty("isAlpha", Options.is_alpha)
         context.setContextProperty("isFrozen", Options.is_frozen)
         context.setContextProperty("APP_NAME", APP_NAME)
         context.setContextProperty("LINUX", LINUX)
