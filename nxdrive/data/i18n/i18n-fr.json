@@ -371,6 +371,7 @@
     "USE_CHANNEL": "Utiliser le canal %1",
     "USE_LEGACY_AUTH": "Utiliser l'authentification héritée",
     "USE_LIGHT_ICONS": "Utiliser des icônes claires",
+    "USE_SENTRY": "Enable error reporting",
     "USERNAME": "Utilisateur",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Authentification web",
     "WELCOME_MESSAGE": "Connectez-vous et synchronisez vos fichiers avec Nuxeo.",

@@ -371,6 +371,7 @@
     "USE_CHANNEL": "Använd kanal %1",
     "USE_LEGACY_AUTH": "Använd äldre autentisering",
     "USE_LIGHT_ICONS": "Använd uppsättningen ljusikoner",
+    "USE_SENTRY": "Enable error reporting",
     "USERNAME": "Användarnamn",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Nuxeo Drive – webbautentisering",
     "WELCOME_MESSAGE": "Ange konto och synkronisera dina filer med Nuxeo Platform.",
