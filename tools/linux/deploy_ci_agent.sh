@@ -34,7 +34,7 @@ check() {
     ./dist/squashfs-root/AppRun --version
 
     echo ">>> [AppImage] Checking the AppImage conformity"
-    ./tools/linux/appimage/appdir-lint.sh "$(pwd)/tools/linux/appimage" "$(pwd)/dist/squashfs-root"
+    ./tools/linux/appimage/appdir-lint.sh "$(pwd)/dist/squashfs-root"
 
     echo ">>> [AppImage] Clean-up"
     rm -rf dist/squashfs-root

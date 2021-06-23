@@ -17,7 +17,7 @@ libm.so.6
 libmvec.so.1
 # libnsl.so.1 # Not part of glibc anymore as of Fedora 28. See https://github.com/RPCS3/rpcs3/issues/5224#issuecomment-434930594
 libnss_compat.so.2
-libnss_db.so.2
+# libnss_db.so.2 # Not part of neon-useredition-20190321-0530-amd64.iso
 libnss_dns.so.2
 libnss_files.so.2
 libnss_hesiod.so.2
@@ -46,6 +46,11 @@ libGLdispatch.so.0
 libGLX.so.0
 # reported to be superfluent and conflicting system libraries (graphics driver)
 # see https://github.com/linuxdeploy/linuxdeploy/issues/89
+
+libOpenGL.so.0
+# Qt installed via install-qt.sh apparently links to this library
+# part of OpenGL like libGL/libEGL, so excluding it should not cause any problems
+# https://github.com/linuxdeploy/linuxdeploy/issues/152
 
 libdrm.so.2
 # Workaround for:
@@ -89,8 +94,9 @@ libasound.so.2
 # Workaround for:
 # No sound, e.g., in VLC.AppImage (does not find sound cards)
 
-libgdk_pixbuf-2.0.so.0
-# Workaround for:
+# https://github.com/AppImage/pkg2appimage/issues/475
+# libgdk_pixbuf-2.0.so.0
+# Was: Workaround for:
 # On Ubuntu, get (inkscape:25621): GdkPixbuf-WARNING **: Error loading XPM image loader: Image type 'xpm' is not supported
 
 libfontconfig.so.1
@@ -108,16 +114,18 @@ libthai.so.0
 libfreetype.so.6
 libharfbuzz.so.0
 
-# Note, after discussion we do not exclude this, but we can use a placeholder library that just does nothing
+# Note, after discussion we do not exclude this, but we can use a dummy library that just does nothing
 # libselinux.so.1
 # Workaround for:
 # sed: error while loading shared libraries: libpcre.so.3: cannot open shared object file: No such file or directory
 # Some distributions, such as Arch Linux, do not come with libselinux.so.1 by default.
-# The solution is to bundle a placeholder mock library:
+# The solution is to bundle a dummy mock library:
 # echo "extern int is_selinux_enabled(void){return 0;}" >> selinux-mock.c
 # gcc -s -shared -o libselinux.so.1 -Wl,-soname,libselinux.so.1 selinux-mock.c
 # strip libselinux.so.1
 # More information: https://github.com/AppImage/AppImages/issues/83
+# and https://github.com/AppImage/AppImageKit/issues/775#issuecomment-614954821
+# https://gitlab.com/sulinos/devel/libselinux-dummy
 
 # The following are assumed to be part of the base system
 # Removing these has worked e.g., for Krita. Feel free to report if
@@ -174,6 +182,8 @@ libgpg-error.so.0
 libjack.so.0
 # it must match the ABI of the JACK server which is installed in the base system
 # rncbc confirmed this
+# However, this library is missing on Fedora-WS-Live-31-1-9
+# which means that we should avoid using JACK altogether if possible
 
 # Unsolved issue:
 # https://github.com/probonopd/linuxdeployqt/issues/35

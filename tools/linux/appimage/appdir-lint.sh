@@ -3,8 +3,10 @@
 # Checks AppDir for maximum compatibility with AppImage best practices.
 # This might evolve into a more formal specification one day.
 
-HERE="$1"
-APPDIR="$2"
+set -e
+
+HERE="$(dirname "$(readlink -f "${0}")")"
+APPDIR="${1}"
 
 fatal () {
   echo "FATAL: $1"
@@ -14,6 +16,11 @@ fatal () {
 warn () {
   echo "WARNING: $1"
 }
+
+which desktop-file-validate >/dev/null
+if [ ! $? -eq 0 ] ; then
+  fatal "desktop-file-validate is missing, please install it"
+fi
 
 if [ ! -e "${HERE}/excludelist" ] ; then
   fatal "excludelist missing, please install it"
@@ -31,7 +38,7 @@ if [ ! -e "${APPDIR}/.DirIcon" ] ; then
   fatal ".DirIcon is missing in ${APPDIR}"
 fi
 
-DIR_ICON_MIME=$(file --mime-type $(readlink -f ${APPDIR}/.DirIcon) | awk '{print $2}')
+DIR_ICON_MIME=$(mimetype $(readlink -f ${APPDIR}/.DirIcon) | awk '{print $2}')
 
 if [[  ! "$DIR_ICON_MIME" = "image/png"  ]] ; then
   warn "Icon is not in PNG format. It should be so that it can be used as a thumbnail"
@@ -73,6 +80,11 @@ num_keys_fatal () {
     fatal "Key $1 is not in .desktop file exactly once in section $raw_section"
   fi
 }
+
+desktop-file-validate "${APPDIR}"/*.desktop
+if [ ! $? -eq 0 ] ; then
+  fatal "desktop-file-validate did not exit cleanly on the .desktop file"
+fi
 
 num_keys_warn () {
   while IFS='=' read key val
@@ -118,24 +130,20 @@ fi
 if [ -z "$APPDATA" ] ; then
   warn 'No appdata file present. Please provide one in the AppImage as per the instructions on https://www.freedesktop.org/software/appstream/docs/chap-Quickstart.html#sect-Quickstart-DesktopApps'
 else
-  appstreamcli validate-tree "${APPDIR}"
-  if [ ! $? -eq 0 ] ; then
-    warn "Skipping AppStream validation since appstreamcli is not on the \$PATH"
+  if [ ! -z $(which appstreamcli) ] ; then
+    appstreamcli validate-tree "${APPDIR}"
+  else
+    echo "Skipping AppStream validation since appstreamcli is not on the \$PATH"
   fi
 fi
 
 
-EXCLUDED_FILES=$(cat "${HERE}/excludelist" | sed '/^\s*$/d ; /^#.*$/d ; s/\s*#.*$//')
-for FILE in $EXCLUDED_FILES ; do
+BLACKLISTED_FILES=$(cat "${HERE}/excludelist" | sed '/^\s*$/d ; /^#.*$/d ; s/\s*#.*$//')
+for FILE in $BLACKLISTED_FILES ; do
   if [ ! -z $(find "${APPDIR}" -name $FILE) ] ; then
-    warn "Excluded file $FILE found"
+    warn "Blacklisted file $FILE found"
   fi
 done
-
-desktop-file-validate "${APPDIR}"/*.desktop
-if [ ! $? -eq 0 ] ; then
-  fatal "desktop-file-validate did not exit cleanly on the .desktop file"
-fi
 
 echo "Lint found no fatal issues"
 exit 0

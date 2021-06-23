@@ -8,9 +8,10 @@
 # Those files are used when crafting and checking the AppImage file.
 #
 # Created: 2019-10-18
+# Updated: 2021-06-23
 #
 
-COMMIT_REF="9db3779700474cb87cff32f1d6470047a9786936"
+COMMIT_REF="729de442a663f5ccf44e5174b91a75e57f1d6d1d"
 
 # Files list to remove from the AppImage
 [ -f excludelist ] && rm -fv excludelist
@@ -23,5 +24,5 @@ wget "https://raw.githubusercontent.com/AppImage/pkg2appimage/${COMMIT_REF}/appd
 
 # The tool to actually create the AppImage
 [ -f "appimagetool-x86_64.AppImage" ] && rm -f "appimagetool-x86_64.AppImage"
-wget "https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage"
+wget "https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage"
 chmod -v a+x "appimagetool-x86_64.AppImage"
