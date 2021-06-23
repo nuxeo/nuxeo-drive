@@ -96,7 +96,7 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
             desktop_file.parent.mkdir(parents=True, exist_ok=True)
 
             # Create the .desktop file
-            with open(desktop_file, "w") as f:
+            with open(desktop_file, "w", encoding="utf-8") as f:
                 f.write(desktop_content)
 
             # Register the application with the MIME type

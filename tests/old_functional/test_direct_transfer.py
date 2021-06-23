@@ -773,7 +773,7 @@ class DirectTransferFolder:
             created.append(sub_folder.as_posix())
             for _ in range(2):
                 sub_file = sub_folder / f"file_{str(uuid4())[:4]}"
-                sub_file.write_text("test", encoding="utf8")
+                sub_file.write_text("test", encoding="utf-8")
                 created.append(sub_file.as_posix())
 
         with ensure_no_exception():
@@ -799,14 +799,14 @@ class DirectTransferFolder:
         folder_a.mkdir()
         created.append(folder_a.as_posix())
         sub_file = folder_a / "file_1.txt"
-        sub_file.write_text("test", encoding="utf8")
+        sub_file.write_text("test", encoding="utf-8")
         created.append(sub_file.as_posix())
 
         folder_b = root_folder / "folder_b"
         folder_b.mkdir()
         created.append(folder_b.as_posix())
         sub_file = folder_b / "file_1.txt"
-        sub_file.write_text("test", encoding="utf8")
+        sub_file.write_text("test", encoding="utf-8")
         created.append(sub_file.as_posix())
 
         # Sub-folder
@@ -814,7 +814,7 @@ class DirectTransferFolder:
         folder_a.mkdir()
         created.append(folder_a.as_posix())
         sub_file = folder_a / "file_1.txt"
-        sub_file.write_text("test", encoding="utf8")
+        sub_file.write_text("test", encoding="utf-8")
         created.append(sub_file.as_posix())
 
         with ensure_no_exception():
@@ -845,11 +845,11 @@ class DirectTransferFolder:
             created.append(root_folder)
 
             sub_file = root_folder / f"file_{str(uuid4())[:4]}"
-            sub_file.write_text("test", encoding="utf8")
+            sub_file.write_text("test", encoding="utf-8")
             created.append(sub_file)
 
             sub_file = root_folder / f"file_{str(uuid4())[:4]}"
-            sub_file.write_text("test", encoding="utf8")
+            sub_file.write_text("test", encoding="utf-8")
             created.append(sub_file)
 
             with ensure_no_exception():
@@ -923,7 +923,7 @@ class DirectTransferFolder:
         created.append(root_folder)
 
         sub_file = root_folder / f"file_{str(uuid4())[:4]}"
-        sub_file.write_text("Some content." * 1024 * 1024 * 2, encoding="utf8")
+        sub_file.write_text("Some content." * 1024 * 1024 * 2, encoding="utf-8")
         created.append(sub_file)
 
         with patch.object(engine.remote, "upload_callback", new=callback):
@@ -992,7 +992,7 @@ class DirectTransferFolder:
         created.append(root_folder)
 
         sub_file = root_folder / f"file_{str(uuid4())[:4]}"
-        sub_file.write_text("Some content." * 1024 * 1024 * 2, encoding="utf8")
+        sub_file.write_text("Some content." * 1024 * 1024 * 2, encoding="utf-8")
         created.append(sub_file)
 
         with patch.object(engine.remote, "upload_callback", new=callback):
@@ -1070,7 +1070,7 @@ class DirectTransferFolder:
         created.append(root_folder)
 
         sub_file = root_folder / f"file_{str(uuid4())[:4]}"
-        sub_file.write_text("Some content.", encoding="utf8")
+        sub_file.write_text("Some content.", encoding="utf-8")
         created.append(sub_file)
 
         with patch.object(engine.dao, "get_upload", new=get_upload):
@@ -1116,7 +1116,7 @@ class DirectTransferFolder:
         created.append(root_folder.as_posix())
         for _ in range(5):
             sub_file = root_folder / f"file_{str(uuid4())[:4]}"
-            sub_file.write_text("test", encoding="utf8")
+            sub_file.write_text("test", encoding="utf-8")
             created.append(sub_file.as_posix())
 
         with ensure_no_exception():
@@ -1157,7 +1157,7 @@ class DirectTransferFolder:
             created.append(root_folder)
 
             sub_file = root_folder / "file_test_duplicate.txt"
-            sub_file.write_text("Some content." * 1024 * 1024 * 2, encoding="utf8")
+            sub_file.write_text("Some content." * 1024 * 1024 * 2, encoding="utf-8")
             created.append(sub_file)
 
             with patch.object(engine.remote, "upload_callback", new=callback):

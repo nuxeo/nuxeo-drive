@@ -29,7 +29,7 @@ def test_conflict_resolver(manager_factory, tmp, caplog):
         path = tmp()
         file = path / name
         file.parent.mkdir()
-        file.write_text("azerty")
+        file.write_text("azerty", encoding="utf-8")
 
         finfo = FileInfo(path, file, False, datetime.now())
         rowid = dao.insert_local_state(finfo, None)

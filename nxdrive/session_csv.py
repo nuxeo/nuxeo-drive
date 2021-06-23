@@ -37,7 +37,7 @@ class SessionCsv:
         if self.output_tmp.is_file():
             return
 
-        with open(self.output_tmp, "w", newline="") as csv_file:
+        with open(self.output_tmp, "w", newline="", encoding="utf-8") as csv_file:
             writer = csv.writer(
                 csv_file,
                 delimiter=DELIMITER,
@@ -51,7 +51,7 @@ class SessionCsv:
         if not self.output_tmp.is_file():
             return
 
-        with open(self.output_tmp, "a", newline="") as csv_file:
+        with open(self.output_tmp, "a", newline="", encoding="utf-8") as csv_file:
             writer = csv.writer(
                 csv_file,
                 delimiter=DELIMITER,

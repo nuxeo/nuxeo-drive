@@ -967,7 +967,7 @@ def test_save_config(default_config, config_dump, tmp_path):
         config_writer = configparser.ConfigParser()
         for key, value in default_config.items():
             config_writer[key] = value
-        with open(Options.nxdrive_home / conf_name, "w") as test_file:
+        with open(Options.nxdrive_home / conf_name, "w", encoding="utf-8") as test_file:
             config_writer.write(test_file)
 
     conf_path = nxdrive.utils.save_config(config_dump)
