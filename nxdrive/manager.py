@@ -1063,7 +1063,7 @@ class Manager(QObject):
         This is for information purpose and used by the auto-update checker script."""
         file = Options.nxdrive_home / "VERSION"
         try:
-            file.write_text(f"{self.version}\n")
+            file.write_text(f"{self.version}\n", encoding="utf-8")
         except FileNotFoundError:
             # Likely testing a feature and the parent folder does not exist
             log.warning(

@@ -74,7 +74,7 @@ def test_xattr_error_invalid_start_byte(tmp_path):
     """
     local = LocalClient(tmp_path)
     file = tmp_path / "test-xattr.txt"
-    file.write_text("bla" * 3)
+    file.write_text("bla" * 3, encoding="utf-8")
 
     raw_value, result_needed = b"fdrpMACS\x80", "fdrpMACS"
     local.set_path_remote_id(file, raw_value)

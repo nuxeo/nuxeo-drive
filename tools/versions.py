@@ -19,14 +19,14 @@ __all__ = ("create", "delete", "merge", "promote")
 def _load():
     """Get initial versions."""
 
-    with open("versions.yml") as yml:
+    with open("versions.yml", encoding="utf-8") as yml:
         return yaml.safe_load(yml.read()) or {}
 
 
 def _dump(versions):
     """Write back the updated versions details."""
 
-    with open("versions.yml", "w") as yml:
+    with open("versions.yml", "w", encoding="utf-8") as yml:
         yaml.safe_dump(versions or "", yml, indent=4, default_flow_style=False)
 
 
@@ -113,7 +113,7 @@ def create(version, category):
         yml[version]["checksum"]["exe"] = checksum_exe
     if checksum_exe_admin:
         yml[version]["checksum"]["exe-admin"] = checksum_exe_admin
-    with open(output, "w") as versions:
+    with open(output, "w", encoding="utf-8") as versions:
         versions.write(yaml.dump(yml))
 
 
@@ -137,7 +137,7 @@ def merge(versions):
             continue
 
         version = filename[:-4]
-        with open(filename) as yml:
+        with open(filename, encoding="utf-8") as yml:
             info = yaml.safe_load(yml.read())
             versions[version] = info[version]
 

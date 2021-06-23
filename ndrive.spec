@@ -57,7 +57,7 @@ if sys.platform == "win32":
 
     version_tuple = tuple(map(int, version.split(".") + [0] * (3 - version.count("."))))
 
-    with open(properties_tpl) as tpl, open(properties_rc, "w") as out:
+    with open(properties_tpl, encoding="utf-8") as tpl, open(properties_rc, "w", encoding="utf-8") as out:
         content = tpl.read().format(version=version, version_tuple=version_tuple)
         print(content)
         out.write(content)

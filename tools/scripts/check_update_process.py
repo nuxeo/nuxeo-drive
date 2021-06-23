@@ -79,7 +79,7 @@ def create_versions(dst, version):
         exe: {checksum}
     """
     print(">>> Crafting versions.yml:", yml, flush=True)
-    with open(os.path.join(dst, "versions.yml"), "a") as versions:
+    with open(os.path.join(dst, "versions.yml"), "a", encoding="utf-8") as versions:
         versions.write(yml)
 
 
@@ -151,7 +151,7 @@ def get_version():
         if EXT == "exe"
         else expanduser("~/.nuxeo-drive/VERSION")
     )
-    with open(file) as f:
+    with open(file, encoding="utf-8") as f:
         return f.read().strip()
 
 
@@ -255,11 +255,11 @@ def set_options():
         os.mkdir(home)
 
     print(">>> Setting metrics: sentry", flush=True)
-    with open(metrics, "w") as f:
+    with open(metrics, "w", encoding="utf-8") as f:
         f.write("sentry\n")
 
     print(">>> Setting options:", options, flush=True)
-    with open(file, "w") as f:
+    with open(file, "w", encoding="utf-8") as f:
         f.write("[DEFAULT]\n")
         f.write("env = automatic\n")
         f.write("[automatic]\n")

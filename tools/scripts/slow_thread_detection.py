@@ -23,7 +23,7 @@ def timer(fname, delay=None):
 
     delay = delay or 2
 
-    with open(fname) as handler:
+    with open(fname, encoding="utf-8") as handler:
         lines = handler.readlines()
 
     # First, sort log lines by thread

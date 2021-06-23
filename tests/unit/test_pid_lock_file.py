@@ -123,14 +123,14 @@ def test_check_running(mocked_unlink, tmp):
     lock.lock()
 
     # Set false PID number
-    lock_file.write_text("999999999")
+    lock_file.write_text("999999999", encoding="utf-8")
 
     # Test another OSerror
     mocked_unlink.side_effect = PermissionError("Boom !")
     assert lock.check_running() == 999_999_999
 
     # Set PID data not int
-    lock_file.write_text("999-999,999")
+    lock_file.write_text("999-999,999", encoding="utf-8")
     assert lock.check_running() is None
 
 

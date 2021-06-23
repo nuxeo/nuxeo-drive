@@ -113,7 +113,7 @@ class AutomaticProxy(Proxy):
         if pac_url:
             # Load the PAC file as PyPAC won't do it for us
             if pac_url.startswith("file:"):
-                with open(pac_url.replace("file://", "")) as pac:
+                with open(pac_url.replace("file://", ""), encoding="utf-8") as pac:
                     args["js"] = pac.read()
             else:
                 args["url"] = pac_url

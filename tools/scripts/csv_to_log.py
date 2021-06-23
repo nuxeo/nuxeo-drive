@@ -11,7 +11,9 @@ from typing import List
 def convert(file: Path) -> Path:
     """Convert a given CVS *file* to a simple log file."""
     output = file.with_suffix(".log")
-    with file.open() as csvfile, output.open("w") as fout:
+    with file.open(encoding="utf-8") as csvfile, output.open(
+        "w", encoding="utf-8"
+    ) as fout:
         reader = csv.DictReader(csvfile)
         for row in reader:
             # date,host,message

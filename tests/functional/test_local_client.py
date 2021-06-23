@@ -29,7 +29,9 @@ def test_rename_with_different_partitions(manager_factory):
             local.unset_readonly(engine.local_folder)
 
             # Create a file
-            (engine.local_folder / "file Lower.txt").write_text("azerty")
+            (engine.local_folder / "file Lower.txt").write_text(
+                "azerty", encoding="utf-8"
+            )
 
             # Change the case
             local.rename(pathlib.Path("file Lower.txt"), "File LOWER.txt")

@@ -31,7 +31,7 @@ def test_crash(caplog, tmp_path):
     assert file.is_file()
     th.join(timeout=1)
     assert file.is_file()
-    file.write_text("Some\n\ntraceback\ninside")
+    file.write_text("Some\n\ntraceback\ninside", encoding="utf-8")
 
     # Mimic app restart and check logs
     with caplog.at_level(logging.WARNING):

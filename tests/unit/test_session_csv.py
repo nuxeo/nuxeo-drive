@@ -39,3 +39,19 @@ def test_csv_generation(tmp):
         )
         assert not session_csv.output_tmp.is_file()
         assert session_csv.output_file.is_file()
+
+
+def test_csv_generation_with_unicode_items(tmp_path, engine_dao):
+    """NXDRIVE-2698: ensure no more unicode problems with unicode data."""
+
+    class ManagerMocked:
+        home = tmp_path
+
+    with engine_dao("ndrive_with_unicode_session_item.db") as dao:
+        session = dao.get_session(2)
+        session_items = dao.get_session_items(session.uid)
+        session_csv = SessionCsv(ManagerMocked(), session)
+        session_csv.create_tmp()
+        assert not session_csv.output_file.is_file()
+        session_csv.store_data(session_items)
+        assert session_csv.output_file.is_file()
