@@ -27,7 +27,11 @@ Rectangle {
                 // Server URL and Username
                 ScaledText { text: remote_user; color: label; font.bold: true }
                 Link {
+                    id: server_url_link
                     text: server_url
+                    Layout.fillWidth: true
+                    elide: Text.ElideMiddle
+                    tooltip : server_url_link.truncated ? text : ""
                     onClicked: api.open_remote_server(uid)
                 }
 
@@ -37,7 +41,11 @@ Rectangle {
                     color: label
                 }
                 Link {
+                    id: local_folder_link
                     text: folder
+                    Layout.fillWidth: true
+                    elide: Text.ElideMiddle
+                    tooltip : local_folder_link.truncated ? text : ""
                     onClicked: api.open_local(uid, "/")
                 }
 
