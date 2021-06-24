@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Dict
 from unittest.mock import patch
 from urllib.error import URLError
+from urllib.parse import quote
 from uuid import uuid4
 
 import pytest
@@ -951,6 +952,25 @@ class MixinTests(DirectEditSetup):
         )
 
         self._direct_edit_update(doc_id, filename, b"Test", url=url)
+
+    def test_filename_with_forbidden_chars(self):
+        """NXDRIVE-2142: Ensure that it works with forbidden chars."""
+        scheme, host = self.nuxeo_url.split("://")
+        filename = "My file from 24\\06.txt"
+        quoted_filename = quote(filename)
+        doc_id = self.remote.make_file_with_blob("/", filename, b"Some content.")
+
+        url = (
+            f"nxdrive://edit/{scheme}/{host}"
+            f"/user/{self.user_1}"
+            "/repo/default"
+            f"/nxdocid/{doc_id}"
+            f"/filename/{quoted_filename}"
+            f"/downloadUrl/nxfile/default/{doc_id}"
+            f"/file:content/{quoted_filename}"
+        )
+
+        self._direct_edit_update(doc_id, safe_filename(filename), b"Test", url=url)
 
     def test_double_lock_same_user(self):
         filename = "Mode opératoire¹.txt"
