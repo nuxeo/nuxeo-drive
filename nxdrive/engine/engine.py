@@ -945,7 +945,7 @@ class Engine(QObject):
             return
         stored_token = json.dumps(token) if isinstance(token, dict) else token
         key = f"{self.remote_user}{self.server_url}"
-        secure_token = encrypt(stored_token, key)
+        secure_token = force_decode(encrypt(stored_token, key))
         self.dao.update_config("remote_token", secure_token)
 
     def _load_configuration(self) -> None:
