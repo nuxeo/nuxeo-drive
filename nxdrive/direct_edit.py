@@ -529,6 +529,10 @@ class DirectEdit(Worker):
         dir_path.mkdir(exist_ok=True)
 
         log.info(f"Editing {filename!r}")
+        if filename != safe_filename(filename):
+            filename = safe_filename(filename)
+            log.info(f"Filename sanitized to {filename!r}")
+
         file_path = dir_path / filename
         file_out = self._get_tmp_file(doc_id, filename)
 
