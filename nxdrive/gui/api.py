@@ -825,8 +825,9 @@ class QMLDriveApi(QObject):
             )
             self.openAuthenticationDialog.emit(auth.connect_url(), callback_params)
         except Exception:
-            log.exception(
-                "Unexpected error while trying to open web authentication window"
+            log.warning(
+                "Unexpected error while trying to open web authentication window",
+                exc_info=True,
             )
             self.setMessage.emit("CONNECTION_UNKNOWN", "error")
 
