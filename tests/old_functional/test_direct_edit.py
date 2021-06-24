@@ -954,7 +954,7 @@ class MixinTests(DirectEditSetup):
         self._direct_edit_update(doc_id, filename, b"Test", url=url)
 
     def test_filename_with_forbidden_chars(self):
-        """NXDRIVE-2142: Ensure that direct edit works with forbidden chars."""
+        """NXDRIVE-2142: Ensure that it works with forbidden chars."""
         scheme, host = self.nuxeo_url.split("://")
         filename = "My file from 24\\06.txt"
         quoted_filename = quote(filename)
