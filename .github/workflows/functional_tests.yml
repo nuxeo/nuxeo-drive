@@ -5,11 +5,14 @@ on:
     paths:
       - ".github/workflows/functional_tests.yml"
       - "nxdrive/**/*.py"
+      - "tests/*.py"
       - "tests/functional/*.py"
+      - "tools/deps/*.txt"
   push:
     branches: [master]
     paths:
       - "nxdrive/**/*.py"
+      - "tests/*.py"
       - "tests/functional/*.py"
 
 env:
