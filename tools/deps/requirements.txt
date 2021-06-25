@@ -256,9 +256,9 @@ pywin32==301; sys_platform == "win32" \
 requests==2.25.1 \
     --hash=sha256:c210084e36a42ae6b9219e00e48287def368a26d03a048ddad7bfee44f75871e \
     --hash=sha256:27973dd4a904a4f13b263a19c866c13b92a39ed1c964655f025f3f8d3d75b804
-send2trash==1.5.0; sys_platform != "darwin" \
-    --hash=sha256:60001cc07d707fe247c94f74ca6ac0d3255aabcb930529690897ca2a39db28b2 \
-    --hash=sha256:f1691922577b6fa12821234aeb57599d887c4900b9ca537948d2dac34aea888b
+send2trash==1.7.1; sys_platform != "darwin" \
+    --hash=sha256:c20fee8c09378231b3907df9c215ec9766a84ee20053d99fbad854fe8bd42159 \
+    --hash=sha256:17730aa0a33ab82ed6ca76be3bb25f0433d0014f1ccf63c979bab13a5b9db2b2
 s3transfer==0.3.7 \
     --hash=sha256:efa5bd92a897b6a8d5c1383828dca3d52d0790e0756d49740563a3fb6ed03246 \
     --hash=sha256:35627b86af8ff97e7ac27975fe0a98a312814b46c6333d8a6b889627bcd80994
