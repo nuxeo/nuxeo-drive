@@ -31,7 +31,6 @@ def generate_migration(
                     "   PRIMARY KEY (path)"
                     ")"
                 )
-                cursor.execute(f"PRAGMA user_version = {self.version}")
             else:
                 raise sqlite3.Error("Mocked error")
 
@@ -39,7 +38,6 @@ def generate_migration(
             """Drop the created table or generate an exception."""
             if not should_raise:
                 cursor.execute(f"DROP TABLE {self.table_name}")
-                cursor.execute(f"PRAGMA user_version = {self.previous_version}")
             else:
                 raise sqlite3.Error("Mocked error")
 
