@@ -18,7 +18,14 @@ from ..markers import mac_only, windows_only
 
 
 class CustomDAO(BaseDAO):
-    schema_version = 0
+    old_migrations_max_schema_version = 0
+
+    def _migrate_db(self, version: int, /) -> None:
+        self._create_main_conn()
+        if not self.conn:
+            raise RuntimeError("Unable to connect to database.")
+        c = self.conn.cursor()
+        self._create_configuration_table(c)
 
 
 @pytest.fixture(scope="module")

@@ -9,9 +9,6 @@ class MigrationInitial(MigrationInterface):
         Create all the basics table.
         Setup the *journal_mode* and *temp_store*.
         """
-        cursor.execute("PRAGMA journal_mode = DELETE")
-        cursor.execute("PRAGMA temp_store = MEMORY")
-
         self._create_configuration_table(cursor)
         cursor.execute(
             "CREATE TABLE Engines ("

@@ -9,9 +9,6 @@ class MigrationInitial(MigrationInterface):
         Create all the basics table.
         Setup the *journal_mode* and *temp_store*.
         """
-        cursor.execute("PRAGMA journal_mode = WAL")
-        cursor.execute("PRAGMA temp_store = MEMORY")
-
         self._create_configuration_table(cursor)
         for table in ["Filters", "RemoteScan", "ToRemoteScan"]:
             cursor.execute(
@@ -24,8 +21,6 @@ class MigrationInitial(MigrationInterface):
         self._create_transfer_tables(cursor)
         self._create_sessions_table(cursor)
         self._create_session_items_table(cursor)
-
-        cursor.execute(f"PRAGMA user_version = {self.version}")
 
     def downgrade(self, cursor: Cursor) -> None:
         """
@@ -44,8 +39,6 @@ class MigrationInitial(MigrationInterface):
             "SessionItems",
         ]:
             cursor.execute(f"DROP TABLE {table}")
-
-        cursor.execute(f"PRAGMA user_version = {self.previous_version}")
 
     @property
     def version(self) -> int:

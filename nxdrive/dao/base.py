@@ -66,21 +66,22 @@ class BaseDAO(QObject):
                     self.db.unlink(missing_ok=True)
 
         self._engine_uid = self.db.stem.replace("ndrive_", "")
-        self.in_tx = None
+        self.in_tx: Optional[int] = None
         self._tx_lock = RLock()
         self.conn: Optional[Connection] = None
         self._conns = local()
-        self._create_main_conn()
+        self.conn = self._create_main_conn()
         if not self.conn:
             raise RuntimeError("Unable to connect to database.")
         c = self.conn.cursor()
         self._init_db(c)
+
+        schema_version = 0
         if exists:
-            schema = self.get_schema_version(c, exists)
-            if schema != self.schema_version:
-                self._migrate_db(c, schema)
+            schema_version = self.get_schema_version(c, exists)
         else:
-            self.set_schema_version(c, self.schema_version)
+            self.set_schema_version(c, schema_version)
+        self._migrate_db(schema_version)
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__} db={self.db!r}, exists={self.db.exists()}>"
@@ -146,10 +147,18 @@ class BaseDAO(QObject):
 
         if version == 0 and db_exists:
             # Backward compatibility
+            tables = [
+                res[0]
+                for res in cursor.execute(
+                    "select name from sqlite_master where type = 'table'"
+                ).fetchall()
+            ]
+            if "Configuration" not in tables:
+                return 0
             res = cursor.execute(
                 "SELECT value FROM Configuration WHERE name = ?", (SCHEMA_VERSION,)
             ).fetchone()
-            version = int(res[0]) if res else 0
+            version = int(res[0]) if res else -1
 
         return version
 
@@ -190,7 +199,6 @@ class BaseDAO(QObject):
     def _init_db(self, cursor: Cursor, /) -> None:
         cursor.execute(f"PRAGMA journal_mode = {self._journal_mode}")
         cursor.execute("PRAGMA temp_store = MEMORY")
-        self._create_configuration_table(cursor)
 
     def _create_configuration_table(self, cursor: Cursor, /) -> None:
         cursor.execute(
@@ -201,20 +209,21 @@ class BaseDAO(QObject):
             ")"
         )
 
-    def _create_main_conn(self) -> None:
+    def _create_main_conn(self) -> Connection:
         log.info(
             f"Create main connection on {self.db!r} "
             f"(dir_exists={self.db.parent.exists()}, "
             f"file_exists={self.db.exists()})"
         )
-        self.conn = connect(
+        conn = connect(
             str(self.db),
             check_same_thread=False,  # Don't check same thread for closing purpose
             factory=AutoRetryConnection,
             isolation_level=None,  # Autocommit mode
             timeout=10,
         )
-        self.conn.row_factory = self._state_factory
+        conn.row_factory = self._state_factory
+        return conn
 
     def dispose(self) -> None:
         log.info(f"Disposing SQLite database {self.db!r}")
@@ -227,7 +236,7 @@ class BaseDAO(QObject):
     def _get_write_connection(self) -> Connection:
         if self.in_tx:
             if self.conn is None:
-                self._create_main_conn()
+                self.conn = self._create_main_conn()
             return self.conn
         return self._get_read_connection()
 
@@ -235,9 +244,10 @@ class BaseDAO(QObject):
         # If in transaction
         if self.in_tx is not None:
             if current_thread_id() == self.in_tx:
+                if not self.conn:
+                    self.conn = self._create_main_conn()
                 # Return the write connection
                 return self.conn
-
             log.debug("In transaction wait for read connection")
             # Wait for the thread in transaction to finished
             with self._tx_lock:

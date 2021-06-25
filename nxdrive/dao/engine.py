@@ -104,7 +104,7 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
 
 class EngineDAO(BaseDAO):
 
-    schema_version = 21
+    old_migrations_max_schema_version = 21
     newConflict = pyqtSignal(object)
     transferUpdated = pyqtSignal()
     directTransferUpdated = pyqtSignal()
@@ -127,7 +127,26 @@ class EngineDAO(BaseDAO):
             cursor.execute("DROP TABLE if exists StatesMigration")
             self._reinit_states(cursor)
 
-    def _migrate_db(self, cursor: Cursor, version: int, /) -> None:
+    def _migrate_db(self, version: int, /) -> None:
+        """Instantiate and run the migration engine."""
+        from ..utils import current_thread_id
+        from .migrations.engine import engine_migrations
+        from .migrations.migration_engine import MigrationEngine
+
+        if not self.conn:
+            raise RuntimeError("Unable to connect to database.")
+
+        migration_engine = MigrationEngine(self.conn, engine_migrations)
+        try:
+            self.in_tx = current_thread_id()
+            migration_engine.execute_database_upgrade(
+                version, self.old_migrations_max_schema_version, self._migrate_db_old
+            )
+        finally:
+            self.in_tx = None
+
+    def _migrate_db_old(self, cursor: Cursor, version: int, /) -> None:
+        """Run the old migrations."""
         if version < 1:
             self._migrate_state(cursor)
             cursor.execute(
@@ -626,20 +645,6 @@ class EngineDAO(BaseDAO):
 
         # Add the missing field
         cursor.execute(f"ALTER TABLE {table} ADD COLUMN {' '.join(field_data)};")
-
-    def _init_db(self, cursor: Cursor) -> None:
-        super()._init_db(cursor)
-        for table in {"Filters", "RemoteScan", "ToRemoteScan"}:
-            cursor.execute(
-                f"CREATE TABLE if not exists {table} ("
-                "   path STRING NOT NULL,"
-                "   PRIMARY KEY (path)"
-                ")"
-            )
-        self._create_state_table(cursor)
-        self._create_transfer_tables(cursor)
-        self._create_sessions_table(cursor)
-        self._create_session_items_table(cursor)
 
     def acquire_state(
         self, thread_id: Optional[int], row_id: int, /

@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 
 from nxdrive.dao.engine import EngineDAO
+from nxdrive.dao.manager import ManagerDAO
 from nxdrive.objects import DocPair
 from nxdrive.utils import normalized_path
 
@@ -85,8 +86,36 @@ class MockEngineDAO(EngineDAO):
         return self._get_adjacent_sync_file(ref, "<", "DESC", sync_mode)
 
 
+class MockManagerDAO(ManagerDAO):
+    """Convenient class with auto-cleanup at exit."""
+
+    tmp = None
+
+    def __init__(self, fname):
+        root = normalized_path(__file__).parent.parent
+        src = root / "resources" / "databases" / fname
+        dst = self.tmp / src.with_name(f"{uuid4()}.db").name
+        shutil.copy(src, dst)
+        time.sleep(1)
+        super().__init__(dst)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.dispose()
+        self.db.unlink()
+
+
 @pytest.fixture()
 def engine_dao(tmp_path):
     dao = MockEngineDAO
+    dao.tmp = tmp_path
+    return dao
+
+
+@pytest.fixture()
+def manager_dao(tmp_path):
+    dao = MockManagerDAO
     dao.tmp = tmp_path
     return dao

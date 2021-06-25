@@ -265,11 +265,11 @@ def test_reinit_processors(engine_dao):
         assert not state.processor
 
 
-def test_manager_init_db(engine_dao):
-    with engine_dao("manager_migration.db") as dao:
-        assert not dao.get_filters()
-        assert not dao.get_conflicts()
-        assert dao.get_config("remote_user") is None
+def test_engine_init_db(engine_dao):
+    with engine_dao("engine_migration.db") as dao:
+        assert len(dao.get_filters()) == 2  # There are 2 default filters existing
+        assert len(dao.get_conflicts()) == 3
+        assert dao.get_config("remote_user") == "Administrator"
         assert not dao.is_path_scanned("/")
 
 
@@ -520,17 +520,13 @@ def test_db_init_at_v21(tmp_path, engine_dao):
         upgrade_state = cursor.execute(
             "select name from sqlite_master where type = 'table'"
         ).fetchall()
-        assert cursor.execute("PRAGMA user_version").fetchone()[0] == migration.version
 
         # We downgrade and check that everything has been reverted
         migration.downgrade(cursor)
         downgrade_state = cursor.execute(
             "select name from sqlite_master where type = 'table'"
         ).fetchall()
-        assert (
-            cursor.execute("PRAGMA user_version").fetchone()[0]
-            == migration.previous_version
-        )
+
         assert downgrade_state == default_state
 
     # We check that the new init migration create the same tables than the old system.
