@@ -17,7 +17,7 @@ updates:
     schedule:
       interval: daily
     assignees:
-      - BoboTiG
+      - rom1win
     labels:
       - dependencies
     open-pull-requests-limit: 42
