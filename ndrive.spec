@@ -2,12 +2,13 @@
 import io
 import os
 import os.path
+from pathlib import Path
 import re
 import sys
 
 
 def get_version(init_file):
-    """ Find the current version. """
+    """Find the current version."""
 
     with io.open(init_file, encoding="utf-8") as handler:
         for line in handler.readlines():
@@ -19,13 +20,13 @@ cwd = os.getcwd()
 tools = os.path.join(cwd, "tools")
 nxdrive = os.path.join(cwd, "nxdrive")
 data = os.path.join(nxdrive, "data")
+
 icon = {
     "darwin": os.path.join(tools, "osx", "app_icon.icns"),
     "linux": os.path.join(tools, "linux", "app_icon.png"),
     "win32": os.path.join(tools, "windows", "app_icon.ico"),
 }[sys.platform]
 
-hiddenimports = []
 excludes = [
     # https://github.com/pyinstaller/pyinstaller/wiki/Recipe-remove-tkinter-tcl
     "FixTk",
@@ -45,6 +46,12 @@ excludes = [
 ]
 
 data = [(data, "data")]
+migrations = Path(nxdrive, "dao", "migrations")
+hiddenimports = [
+    migration.relative_to(cwd).with_suffix("").as_posix().replace("/", ".")
+    for migration in migrations.glob("**/[0-9]*.py")
+]
+
 version = get_version(os.path.join(nxdrive, "__init__.py"))
 properties_rc = None
 
@@ -57,7 +64,9 @@ if sys.platform == "win32":
 
     version_tuple = tuple(map(int, version.split(".") + [0] * (3 - version.count("."))))
 
-    with open(properties_tpl, encoding="utf-8") as tpl, open(properties_rc, "w", encoding="utf-8") as out:
+    with open(properties_tpl, encoding="utf-8") as tpl, open(
+        properties_rc, "w", encoding="utf-8"
+    ) as out:
         content = tpl.read().format(version=version, version_tuple=version_tuple)
         print(content)
         out.write(content)
