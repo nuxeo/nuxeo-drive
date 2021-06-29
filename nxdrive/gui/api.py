@@ -47,6 +47,7 @@ from ..utils import (
     get_date_from_sqlite,
     get_default_local_folder,
     normalized_path,
+    save_config,
     sizeof_fmt,
     test_url,
 )
@@ -519,6 +520,12 @@ class QMLDriveApi(QObject):
             if self.application.accept_unofficial_ssl_cert(hostname):
                 Options.ca_bundle = None
                 Options.ssl_no_verify = True
+                save_config(
+                    {
+                        "ca_bundle": Options.ca_bundle,
+                        "ssl_no_verify": Options.ssl_no_verify,
+                    }
+                )
                 return self._get_ssl_error(server_url)
         except MissingClientSSLCertificate as exc:
             log.warning(exc)

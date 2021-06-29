@@ -57,6 +57,7 @@ from ..utils import (
     force_decode,
     grouper,
     if_frozen,
+    requests_verify,
     safe_filename,
     safe_long_path,
     set_path_readonly,
@@ -956,11 +957,6 @@ class Engine(QObject):
         self.force_ui = self.dao.get_config("force_ui")
         self.remote_user = self.dao.get_config("remote_user")
         self._remote_token = self._load_token()
-        self._ssl_verify = self.dao.get_bool("ssl_verify", default=True)
-        if Options.ssl_no_verify:
-            self._ssl_verify = False
-        self._ca_bundle = Options.ca_bundle or self.dao.get_config("ca_bundle")
-        self._client_certificate = client_certificate()
 
         if not self._remote_token:
             self.set_invalid_credentials(
@@ -1271,10 +1267,6 @@ class Engine(QObject):
         # Used for FS synchronization operations
         args = (self.server_url, self.remote_user, self.manager.device_id, self.version)
 
-        verify = self._ca_bundle
-        if not (verify and self._ssl_verify):
-            verify = self._ssl_verify
-
         kwargs = {
             "password": self._remote_password,
             "timeout": self.timeout,
@@ -1283,8 +1275,8 @@ class Engine(QObject):
             "upload_callback": self.suspend_client,
             "dao": self.dao,
             "proxy": self.manager.proxy,
-            "verify": verify,
-            "cert": self._client_certificate,
+            "verify": requests_verify(),
+            "cert": client_certificate(),
         }
         return self.remote_cls(*args, **kwargs)
 
@@ -1318,13 +1310,6 @@ class Engine(QObject):
         if check_fs:
             self._setup_local_folder(check_fs)
 
-        # Persist the user preference about the SSL behavior.
-        # It can be tweaked via ca-bundle or ssl-no-verify options. But also
-        # from the ponctual bypass-ssl window prompted at the account creation.
-        self._ssl_verify = not Options.ssl_no_verify
-        self._ca_bundle = Options.ca_bundle
-        self._client_certificate = client_certificate()
-
         if check_credentials:
             self.remote = self.init_remote()
             if not self._remote_token:
@@ -1337,8 +1322,6 @@ class Engine(QObject):
         self.dao.update_config("server_url", self.server_url)
         self.dao.update_config("remote_user", self.remote_user)
         self._save_token(self._remote_token)
-        self.dao.store_bool("ssl_verify", self._ssl_verify)
-        self.dao.update_config("ca_bundle", self._ca_bundle)
 
         # Check for the root
         # If the top level state for the server binding doesn't exist,

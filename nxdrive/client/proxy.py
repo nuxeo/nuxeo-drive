@@ -6,8 +6,7 @@ from pypac import get_pac
 from pypac.resolver import ProxyResolver
 
 from ..metrics.utils import user_agent
-from ..options import Options
-from ..utils import client_certificate, decrypt, encrypt, force_decode
+from ..utils import client_certificate, decrypt, encrypt, force_decode, requests_verify
 
 if TYPE_CHECKING:
     from ..dao.engine import EngineDAO  # noqa
@@ -184,14 +183,13 @@ def save_proxy(proxy: Proxy, dao: "EngineDAO", *, token: str = None) -> None:
 
 
 def validate_proxy(proxy: Proxy, url: str, /) -> bool:
-    verify = Options.ca_bundle or not Options.ssl_no_verify
     headers = {"User-Agent": user_agent()}
     try:
         with requests.get(
             url,
             headers=headers,
             proxies=proxy.settings(url=url),
-            verify=verify,
+            verify=requests_verify(),
             cert=client_certificate(),
         ):
             return True

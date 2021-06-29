@@ -653,6 +653,11 @@ def get_certificate_details(
     return defaults
 
 
+def requests_verify() -> Any:
+    """Return the appropriate value for the *verify* keyword argument of *requests* calls."""
+    return Options.ca_bundle or not Options.ssl_no_verify
+
+
 def _cryptor(key: bytes, iv: bytes) -> "Cipher":
     """Instantiate a new AES (de|en)cryptor."""
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -1118,7 +1123,7 @@ def test_url(
 
     kwargs: Dict[str, Any] = {
         "timeout": timeout,
-        "verify": Options.ca_bundle or not Options.ssl_no_verify,
+        "verify": requests_verify(),
         "cert": client_certificate(),
         "headers": {"User-Agent": user_agent()},
     }
