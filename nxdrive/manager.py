@@ -723,7 +723,7 @@ class Manager(QObject):
                 headers=headers,
                 proxies=self.proxy.settings(url=url),
                 timeout=STARTUP_PAGE_CONNECTION_TIMEOUT,
-                verify=requests_verify(),
+                verify=requests_verify(Options.ca_bundle, Options.ssl_no_verify),
                 cert=client_certificate(),
             ) as resp:
                 status = resp.status_code

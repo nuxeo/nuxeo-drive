@@ -6,6 +6,7 @@ from pypac import get_pac
 from pypac.resolver import ProxyResolver
 
 from ..metrics.utils import user_agent
+from ..options import Options
 from ..utils import client_certificate, decrypt, encrypt, force_decode, requests_verify
 
 if TYPE_CHECKING:
@@ -189,7 +190,7 @@ def validate_proxy(proxy: Proxy, url: str, /) -> bool:
             url,
             headers=headers,
             proxies=proxy.settings(url=url),
-            verify=requests_verify(),
+            verify=requests_verify(Options.ca_bundle, Options.ssl_no_verify),
             cert=client_certificate(),
         ):
             return True

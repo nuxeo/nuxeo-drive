@@ -1275,7 +1275,7 @@ class Engine(QObject):
             "upload_callback": self.suspend_client,
             "dao": self.dao,
             "proxy": self.manager.proxy,
-            "verify": requests_verify(),
+            "verify": requests_verify(Options.ca_bundle, Options.ssl_no_verify),
             "cert": client_certificate(),
         }
         return self.remote_cls(*args, **kwargs)

@@ -1100,7 +1100,7 @@ class Application(QApplication):
                 host=url,
                 auth=(user, pwd),
                 proxies=self.manager.proxy.settings(url=url),
-                verify=requests_verify(),
+                verify=requests_verify(Options.ca_bundle, Options.ssl_no_verify),
                 cert=client_certificate(),
             )
             try:

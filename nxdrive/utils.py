@@ -653,9 +653,85 @@ def get_certificate_details(
     return defaults
 
 
-def requests_verify() -> Any:
+def concat_all_certificates(files: List[Path]) -> Optional[Path]:
+    """Craft a all-in-one certificate with ones from cacert and custom ones."""
+    from hashlib import md5
+
+    import certifi
+
+    cert_files = [Path(certifi.where())]
+    certificates = cert_files[0].read_bytes()
+    for count, file in enumerate(sorted(files)):
+        if not file.is_file():
+            continue
+
+        if not is_valid_ssl_certificate(file):
+            log.info(f"Skipped invalid certificate {file}")
+            continue
+
+        certificate = file.read_bytes()
+
+        if len(certificates) + len(certificate) > 5 * 1024 * 1024:  # 5 MiB
+            # Way too big for simple text files, stop now
+            log.warning(
+                "No all certificate where processed due to the maximum file size (5 MiB). "
+                f"{len(cert_files) - 1} files were processed, {len(files) - count} were left."
+            )
+            break
+
+        certificates += certificate
+        cert_files.append(file)
+
+    if len(cert_files) == 1:
+        log.warning("No valid certificate found.")
+        return None
+
+    name = md5(certificates).hexdigest()
+    folder = Options.nxdrive_home
+    final_file: Path = folder / f"{name}.pem"
+
+    if not final_file.is_file():
+        # Either the certificate does not exist yet, either it is obsolete.
+        # Let's clean-up all of them.
+        for obsolete_file in folder.glob("[0-9]*.pem"):
+            log.info(f"Removed obsolete certificate {obsolete_file}")
+            obsolete_file.unlink()
+
+        log.info(f"Saved the final certificate to {final_file}, including:")
+        for cert_file in cert_files:
+            log.info(f" >>> {cert_file}")
+        final_file.write_bytes(certificates)
+    else:
+        log.info(f"Will use the final certificate from {final_file}")
+
+    return final_file
+
+
+def get_final_certificate(file: Path) -> Optional[Path]:
+    """Return the all-in-one certificate if the provided *file* is a certificate
+    else *file* without modifications.
+    """
+    return concat_all_certificates([file])
+
+
+def get_final_certificate_from_folder(folder: Path) -> Optional[Path]:
+    """Return the all-in-one certificate if the provided *folder* contains
+    valid certificate(s) else *folder* without modifications.
+    """
+    return concat_all_certificates(list(folder.glob("*")))
+
+
+def requests_verify(ca_bundle: Optional[Path], ssl_no_verify: bool) -> Any:
     """Return the appropriate value for the *verify* keyword argument of *requests* calls."""
-    return Options.ca_bundle or not Options.ssl_no_verify
+    if ca_bundle:
+        path = ca_bundle
+        if path.is_file():
+            path = get_final_certificate(path) or path
+        elif path.is_dir():
+            path = get_final_certificate_from_folder(path) or path
+        return path
+
+    return not ssl_no_verify
 
 
 def _cryptor(key: bytes, iv: bytes) -> "Cipher":
@@ -1123,7 +1199,7 @@ def test_url(
 
     kwargs: Dict[str, Any] = {
         "timeout": timeout,
-        "verify": requests_verify(),
+        "verify": requests_verify(Options.ca_bundle, Options.ssl_no_verify),
         "cert": client_certificate(),
         "headers": {"User-Agent": user_agent()},
     }

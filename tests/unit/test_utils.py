@@ -390,6 +390,178 @@ def test_is_valid_ssl_certificate_not_such_file(tmp_path):
     assert not nxdrive.utils.is_valid_ssl_certificate(file)
 
 
+@pytest.mark.parametrize(
+    "ca_bundle, ssl_no_verify, expected",
+    [
+        (None, True, False),
+        (None, False, True),
+    ],
+)
+def test_request_verify_no_ca_bundle(ca_bundle, ssl_no_verify, expected):
+    assert nxdrive.utils.requests_verify(ca_bundle, ssl_no_verify) == expected
+
+
+@Options.mock()
+def test_request_verify_ca_bundle_file(caplog, tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
+    Options.nxdrive_home = home
+
+    ca_bundle = tmp_path / "custom-cert.crt"
+    ca_bundle.write_bytes(CERT_DATA.encode("utf-8"))
+
+    # Save the certificate for the first time
+    caplog.clear()
+    final_certificate = nxdrive.utils.requests_verify(ca_bundle, False)
+    records = [line.message for line in caplog.records]
+    assert len(records) == 3
+    assert "Saved the final certificate to" in records[0]
+    assert final_certificate.name in records[0]
+    assert "cacert.pem" in records[1]
+    assert "custom-cert.crt" in records[2]
+
+    # Save the certificate for the second time, it should not be regenerated
+    caplog.clear()
+    final_certificate = nxdrive.utils.requests_verify(ca_bundle, False)
+    records = [line.message for line in caplog.records]
+    assert len(records) == 1
+    assert "Will use the final certificate from" in records[0]
+    assert final_certificate.name in records[0]
+
+
+def test_request_verify_ca_bundle_file_is_not_a_certificate(caplog, tmp_path):
+    ca_bundle = tmp_path / "false.crt"
+    ca_bundle.write_bytes(b"foo")
+
+    caplog.clear()
+    assert nxdrive.utils.requests_verify(ca_bundle, False) is ca_bundle
+    records = [line.message for line in caplog.records]
+    assert len(records) == 3
+    assert "Error while decoding the SSL certificate" in records[0]
+    assert "Skipped invalid certificate" in records[1]
+    assert ca_bundle.name in records[1]
+    assert "No valid certificate found" in records[2]
+
+
+@Options.mock()
+def test_request_verify_ca_bundle_obsolete_certificate_removal(caplog, tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
+    Options.nxdrive_home = home
+
+    (home / f"{'0'  * 32}.pem").touch()
+    (home / "obsolete-but-not-removed.pem").touch()
+    ca_bundle = tmp_path / "custom-cert.crt"
+    ca_bundle.write_bytes(CERT_DATA.encode("utf-8"))
+
+    caplog.clear()
+    final_certificate = nxdrive.utils.requests_verify(ca_bundle, False)
+    records = [line.message for line in caplog.records]
+    assert len(records) == 4
+    assert "Removed obsolete certificate" in records[0]
+    assert "Saved the final certificate to" in records[1]
+    assert final_certificate.name in records[1]
+    assert "cacert.pem" in records[2]
+    assert "custom-cert.crt" in records[3]
+
+
+@Options.mock()
+def test_request_verify_ca_bundle_folder(caplog, tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
+    Options.nxdrive_home = home
+
+    # Craft several certificates
+    ca_bundles = tmp_path / "certs"
+    ca_bundles.mkdir()
+    for n in range(5):
+        (ca_bundles / f"{n}.crt").write_bytes(CERT_DATA.encode("utf-8"))
+
+    # Save the certificate for the first time
+    caplog.clear()
+    final_certificate = nxdrive.utils.requests_verify(ca_bundles, False)
+    records = [line.message for line in caplog.records]
+    assert len(records) == 7
+    assert "Saved the final certificate to" in records[0]
+    assert final_certificate.name in records[0]
+    assert "cacert.pem" in records[1]
+    assert "0.crt" in records[2]
+    assert "1.crt" in records[3]
+    assert "2.crt" in records[4]
+    assert "3.crt" in records[5]
+    assert "4.crt" in records[6]
+
+    # Save the certificate for the second time, it should not be regenerated
+    caplog.clear()
+    final_certificate = nxdrive.utils.requests_verify(ca_bundles, False)
+    records = [line.message for line in caplog.records]
+    assert len(records) == 1
+    assert "Will use the final certificate from" in records[0]
+    assert final_certificate.name in records[0]
+
+
+@Options.mock()
+def test_request_verify_ca_bundle_folder_contains_subfolder(caplog, tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
+    Options.nxdrive_home = home
+
+    # Craft several certificates
+    ca_bundles = tmp_path / "certs"
+    ca_bundles.mkdir()
+
+    # Add a folder
+    (ca_bundles / "subfolder").mkdir()
+
+    caplog.clear()
+    assert nxdrive.utils.requests_verify(ca_bundles, False) is ca_bundles
+    records = [line.message for line in caplog.records]
+    assert len(records) == 1
+    assert "No valid certificate found" in records[0]
+
+
+@Options.mock()
+def test_request_verify_ca_bundle_folder_contains_big_file(caplog, tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
+    Options.nxdrive_home = home
+
+    # Craft several certificates
+    cert_data = CERT_DATA.encode("utf-8")
+    ca_bundles = tmp_path / "certs"
+    ca_bundles.mkdir()
+    for n in range(5):
+        (ca_bundles / f"{n}.crt").write_bytes(cert_data)
+
+    # Make 3.crt a "big" file
+    big_file = ca_bundles / "3.crt"
+    big_file.write_bytes(cert_data * 1024 * 2)
+
+    # Save the certificate for the first time
+    caplog.clear()
+    final_certificate = nxdrive.utils.requests_verify(ca_bundles, False)
+    records = [line.message for line in caplog.records]
+    assert len(records) == 6
+    assert "No all certificate where processed" in records[0]
+    assert "3 files were processed, 2 were left" in records[0]
+    assert "Saved the final certificate to" in records[1]
+    assert final_certificate.name in records[1]
+    assert "cacert.pem" in records[2]
+    assert "0.crt" in records[3]
+    assert "1.crt" in records[4]
+    assert "2.crt" in records[5]
+
+    # Save the certificate for the second time, it should not be regenerated
+    caplog.clear()
+    final_certificate = nxdrive.utils.requests_verify(ca_bundles, False)
+    records = [line.message for line in caplog.records]
+    assert len(records) == 2
+    assert "No all certificate where processed" in records[0]
+    assert "3 files were processed, 2 were left" in records[0]
+    assert "Will use the final certificate from" in records[1]
+    assert final_certificate.name in records[1]
+
+
 def test_current_milli_time():
     func = nxdrive.utils.current_milli_time
 
