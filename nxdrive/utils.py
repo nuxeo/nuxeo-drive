@@ -666,7 +666,7 @@ def concat_all_certificates(files: List[Path]) -> Optional[Path]:
             continue
 
         if not is_valid_ssl_certificate(file):
-            log.info(f"Skipped invalid certificate {file}")
+            log.info(f"Skipped invalid certificate {str(file)!r}")
             continue
 
         certificate = file.read_bytes()
@@ -693,16 +693,16 @@ def concat_all_certificates(files: List[Path]) -> Optional[Path]:
     if not final_file.is_file():
         # Either the certificate does not exist yet, either it is obsolete.
         # Let's clean-up all of them.
-        for obsolete_file in folder.glob("ndrive_[0-9]*.pem"):
-            log.info(f"Removed obsolete certificate {obsolete_file}")
+        for obsolete_file in folder.glob("ndrive_*.pem"):
+            log.info(f"Removed obsolete certificate {str(obsolete_file)!r}")
             obsolete_file.unlink()
 
-        log.info(f"Saved the final certificate to {final_file}, including:")
+        log.info(f"Saved the final certificate to {str(final_file)!r}, including:")
         for cert_file in cert_files:
-            log.info(f" >>> {cert_file}")
+            log.info(f" >>> {str(cert_file)!r}")
         final_file.write_bytes(certificates)
     else:
-        log.info(f"Will use the final certificate from {final_file}")
+        log.info(f"Will use the final certificate from {str(final_file)!r}")
 
     return final_file
 

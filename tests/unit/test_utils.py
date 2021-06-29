@@ -429,6 +429,43 @@ def test_request_verify_ca_bundle_file(caplog, tmp_path):
     assert final_certificate.name in records[0]
 
 
+@Options.mock()
+def test_request_verify_ca_bundle_file_mimic_updates(caplog, tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
+    Options.nxdrive_home = home
+
+    ca_bundle = tmp_path / "custom-cert.crt"
+    ca_bundle.write_bytes(CERT_DATA.encode("utf-8"))
+
+    # Save the certificate for the first time
+    caplog.clear()
+    final_certificate_1 = nxdrive.utils.requests_verify(ca_bundle, False)
+    records = [line.message for line in caplog.records]
+    assert len(records) == 3
+    assert "Saved the final certificate to" in records[0]
+    assert final_certificate_1.name in records[0]
+    assert "cacert.pem" in records[1]
+    assert "custom-cert.crt" in records[2]
+
+    # Mimic that situation:
+    #   - the certificate as changed
+    #   - certifi upgrade
+    ca_bundle.write_bytes(CERT_DATA.encode("utf-8") * 2)
+
+    # Save the certificate for the second time, it should be regenerated
+    caplog.clear()
+    final_certificate_2 = nxdrive.utils.requests_verify(ca_bundle, False)
+    records = [line.message for line in caplog.records]
+    assert len(records) == 4
+    assert "Removed obsolete certificate" in records[0]
+    assert final_certificate_1.name in records[0]
+    assert "Saved the final certificate to" in records[1]
+    assert final_certificate_2.name in records[1]
+    assert "cacert.pem" in records[2]
+    assert "custom-cert.crt" in records[3]
+
+
 def test_request_verify_ca_bundle_file_is_not_a_certificate(caplog, tmp_path):
     ca_bundle = tmp_path / "false.crt"
     ca_bundle.write_bytes(b"foo")
