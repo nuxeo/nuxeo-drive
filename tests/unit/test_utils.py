@@ -481,28 +481,6 @@ def test_request_verify_ca_bundle_file_is_not_a_certificate(caplog, tmp_path):
 
 
 @Options.mock()
-def test_request_verify_ca_bundle_obsolete_certificate_removal(caplog, tmp_path):
-    home = tmp_path / "home"
-    home.mkdir()
-    Options.nxdrive_home = home
-
-    (home / f"ndrive_{'0'  * 32}.pem").touch()
-    (home / "obsolete-but-not-removed.pem").touch()
-    ca_bundle = tmp_path / "custom-cert.crt"
-    ca_bundle.write_bytes(CERT_DATA.encode("utf-8"))
-
-    caplog.clear()
-    final_certificate = nxdrive.utils.requests_verify(ca_bundle, False)
-    records = [line.message for line in caplog.records]
-    assert len(records) == 4
-    assert "Removed obsolete certificate" in records[0]
-    assert "Saved the final certificate to" in records[1]
-    assert final_certificate.name in records[1]
-    assert "cacert.pem" in records[2]
-    assert "custom-cert.crt" in records[3]
-
-
-@Options.mock()
 def test_request_verify_ca_bundle_folder(caplog, tmp_path):
     home = tmp_path / "home"
     home.mkdir()
