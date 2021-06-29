@@ -688,12 +688,12 @@ def concat_all_certificates(files: List[Path]) -> Optional[Path]:
 
     name = md5(certificates).hexdigest()
     folder = Options.nxdrive_home
-    final_file: Path = folder / f"{name}.pem"
+    final_file: Path = folder / f"ndrive_{name}.pem"
 
     if not final_file.is_file():
         # Either the certificate does not exist yet, either it is obsolete.
         # Let's clean-up all of them.
-        for obsolete_file in folder.glob("[0-9]*.pem"):
+        for obsolete_file in folder.glob("ndrive_[0-9]*.pem"):
             log.info(f"Removed obsolete certificate {obsolete_file}")
             obsolete_file.unlink()
 

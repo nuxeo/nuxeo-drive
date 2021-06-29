@@ -449,7 +449,7 @@ def test_request_verify_ca_bundle_obsolete_certificate_removal(caplog, tmp_path)
     home.mkdir()
     Options.nxdrive_home = home
 
-    (home / f"{'0'  * 32}.pem").touch()
+    (home / f"ndrive_{'0'  * 32}.pem").touch()
     (home / "obsolete-but-not-removed.pem").touch()
     ca_bundle = tmp_path / "custom-cert.crt"
     ca_bundle.write_bytes(CERT_DATA.encode("utf-8"))
