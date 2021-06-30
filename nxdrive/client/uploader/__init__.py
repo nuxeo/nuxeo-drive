@@ -24,6 +24,7 @@ from ...metrics.constants import REQUEST_METRICS, UPLOAD_PROVIDER
 from ...objects import Upload
 from ...options import Options
 from ...qt.imports import QApplication
+from ...utils import is_large_file
 
 if TYPE_CHECKING:
     from ..remote_client import Remote  # noqa
@@ -144,8 +145,12 @@ class BaseUploader:
                 doc_pair=kwargs.pop("doc_pair", None),
             )
 
-            # Inject the request UID, if allowed and required
-            if Options.use_idempotent_requests and command in _IDEMPOTENT_CMDS:
+            # Inject the request UID
+            # TODO: if idempotent requests are considered safe to use at the performance level,
+            #       that condition should be reduced to `if command in _IDEMPOTENT_CMDS:`.
+            if (
+                Options.use_idempotent_requests or is_large_file(blob.size)
+            ) and command in _IDEMPOTENT_CMDS:
                 transfer.request_uid = str(uuid4())
 
             log.info(f"Instantiated transfer {transfer}")
