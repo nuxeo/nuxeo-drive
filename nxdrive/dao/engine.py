@@ -36,14 +36,14 @@ from ..objects import (
     Session,
     Upload,
 )
-from ..options import Options
 from ..qt.imports import pyqtSignal
+from ..utils import is_large_file
 from . import SCHEMA_VERSION
 from .adapters import adapt_path
 from .base import BaseDAO
 
 if TYPE_CHECKING:
-    from ..queue_manager import QueueManager  # noqa
+    from ..engine.queue_manager import QueueManager  # noqa
 
 log = getLogger(__name__)
 
@@ -765,7 +765,7 @@ class EngineDAO(BaseDAO):
     ) -> int:
         digest = None
         if not info.folderish:
-            if info.size >= Options.big_file * 1024 * 1024:
+            if is_large_file(info.size):
                 # We can't compute the digest of big files now as it will
                 # be done later when the entire file is fully copied.
                 # For instance, on my machine (32GB RAM, 8 cores, Intel NUC)
