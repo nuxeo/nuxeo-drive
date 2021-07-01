@@ -975,7 +975,7 @@ class Manager(QObject):
     def ctx_access_online(self, path: Path, /) -> None:
         """Open the user's browser to a remote document."""
 
-        log.info(f"Opening metadata window for {path!r}")
+        log.info(f"Opening browser window for {path!r}")
         try:
             url = self.get_metadata_infos(path)
         except ValueError:
@@ -989,10 +989,16 @@ class Manager(QObject):
     def ctx_copy_share_link(self, path: Path, /) -> str:
         """Copy the document's share-link to the clipboard."""
 
-        url = self.get_metadata_infos(path)
-        self.osi.cb_set(url)
-        log.info(f"Copied {url!r}")
-        return url
+        log.info(f"Guessing the copy-share link for {path!r}")
+        try:
+            url = self.get_metadata_infos(path)
+        except ValueError as exc:
+            log.warning(str(exc))
+            return ""
+        else:
+            self.osi.cb_set(url)
+            log.info(f"Copied {url!r}")
+            return url
 
     def ctx_edit_metadata(self, path: Path, /) -> None:
         """Open the user's browser to a remote document's metadata."""
