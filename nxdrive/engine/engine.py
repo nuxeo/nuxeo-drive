@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type
 from urllib.parse import urlsplit
 
 import requests
-from nuxeo.exceptions import Forbidden, HTTPError
+from nuxeo.exceptions import Forbidden, HTTPError, Unauthorized
 from nuxeo.handlers.default import Uploader
 
 from ..auth import Token
@@ -1391,10 +1391,14 @@ class Engine(QObject):
                 unset_path_readonly(self.local_folder)
             else:
                 self.local_folder.mkdir(parents=True)
-            self._add_top_level_state()
-            self._set_root_icon()
-            self.manager.osi.register_folder_link(self.local_folder)
-            set_path_readonly(self.local_folder)
+            try:
+                self._add_top_level_state()
+            except Unauthorized:
+                self.set_invalid_credentials()
+            else:
+                self._set_root_icon()
+                self.manager.osi.register_folder_link(self.local_folder)
+                set_path_readonly(self.local_folder)
 
     def cancel_action_on(self, pair_id: int, /) -> None:
         for thread in self._threads:
