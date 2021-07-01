@@ -430,6 +430,19 @@ def test_request_verify_ca_bundle_file(caplog, tmp_path):
 
 
 @Options.mock()
+def test_request_verify_ca_bundle_file_is_already_all_in_one_certificate(tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
+    Options.nxdrive_home = home
+
+    ca_bundle = tmp_path / f"ndrive_{'1' * 32}.pem"
+    ca_bundle.write_bytes(CERT_DATA.encode("utf-8"))
+
+    # The final certificate does not change
+    assert nxdrive.utils.requests_verify(ca_bundle, False) == ca_bundle
+
+
+@Options.mock()
 def test_request_verify_ca_bundle_file_mimic_updates(caplog, tmp_path):
     home = tmp_path / "home"
     home.mkdir()

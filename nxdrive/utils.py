@@ -710,7 +710,12 @@ def concat_all_certificates(files: List[Path]) -> Optional[Path]:
 def get_final_certificate(file: Path) -> Optional[Path]:
     """Return the all-in-one certificate if the provided *file* is a certificate
     else *file* without modifications.
+
+    If the *file* is already a all-in-one certificate, then return it without changes.
+    It will ease testing customer's files.
     """
+    if file.stem.startswith("ndrive_") and file.suffix == ".pem":
+        return file
     return concat_all_certificates([file])
 
 
