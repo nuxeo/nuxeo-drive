@@ -271,15 +271,17 @@ class QueueManager(QObject):
         doc_pair.error_next_try = interval + int(time.time())
 
         log.info(f"Temporary ignore pair for {interval}s: {doc_pair!r}")
-        if emit_sig:
-            with self._error_lock:
-                self._on_error_queue[doc_pair.id] = doc_pair
-                try:
-                    self.newError.emit(doc_pair.id)
-                except RuntimeError:
-                    # RuntimeError: wrapped C/C++ object of type QueueManager has been deleted
-                    # Happens on Windows when running old functional tests
-                    pass
+        if not emit_sig:
+            return
+
+        with self._error_lock:
+            self._on_error_queue[doc_pair.id] = doc_pair
+            try:
+                self.newError.emit(doc_pair.id)
+            except RuntimeError:
+                # RuntimeError: wrapped C/C++ object of type QueueManager has been deleted
+                # Happens on Windows when running old functional tests
+                pass
 
     def _get_local_folder(self) -> Optional[DocPair]:
         if self._local_folder_queue.empty():

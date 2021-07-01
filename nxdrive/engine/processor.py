@@ -767,7 +767,6 @@ class Processor(EngineWorker):
         self.engine.queue_manager.push_error(
             doc_pair, exception=exception, interval=interval
         )
-        self.engine.send_metric("sync", "error", reason)
 
     def _synchronize_locally_resolved(self, doc_pair: DocPair, /) -> None:
         """NXDRIVE-766: processes a locally resolved conflict."""
