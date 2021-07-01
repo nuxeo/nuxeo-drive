@@ -291,14 +291,13 @@ class LocalWatcher(EngineWorker):
             self._suspend_queue()
 
         info = self.local.try_get_info(local_path)
-        if not info:
-            log.info(f"Skip folder scan event as folder doesn't exist: {local_path!r}")
+        if info:
+            self._scan_recursive(info, recursive=False)
+            self._scan_handle_deleted_files()
+        else:
+            log.info(f"Skip inexistent folder scan event for {local_path!r}")
             if WINDOWS:
                 self._folder_scan_events.pop(local_path, None)
-            return
-
-        self._scan_recursive(info, recursive=False)
-        self._scan_handle_deleted_files()
 
         if to_pause:
             self.engine.queue_manager.resume()
