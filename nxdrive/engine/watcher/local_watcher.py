@@ -213,29 +213,11 @@ class LocalWatcher(EngineWorker):
             events = self._folder_scan_events.copy().items()
             for local_path, (evt_time, evt_pair) in events:
                 delay = current_milli_time() - evt_time
-
                 if delay < self._windows_folder_scan_delay:
                     log.info(
                         "Win: ignoring folder to scan as waiting for folder scan "
                         f"delay expiration: {local_path!r}"
                     )
-                    continue
-
-                if not self.local.exists(local_path):
-                    log.info(
-                        "Win: dequeuing folder scan event as folder "
-                        f"doesn't exist: {local_path!r}"
-                    )
-                    self._folder_scan_events.pop(local_path, None)
-                    continue
-
-                local_info = self.local.try_get_info(local_path)
-                if not local_info:
-                    log.debug(
-                        "Win: dequeuing folder scan event as folder "
-                        f"doesn't exist: {local_path!r}"
-                    )
-                    self._folder_scan_events.pop(local_path, None)
                     continue
 
                 log.info(f"Win: handling folder to scan: {local_path!r}")
@@ -308,7 +290,13 @@ class LocalWatcher(EngineWorker):
         if to_pause:
             self._suspend_queue()
 
-        info = self.local.get_info(local_path)
+        info = self.local.try_get_info(local_path)
+        if not info:
+            log.info(f"Skip folder scan event as folder doesn't exist: {local_path!r}")
+            if WINDOWS:
+                self._folder_scan_events.pop(local_path, None)
+            return
+
         self._scan_recursive(info, recursive=False)
         self._scan_handle_deleted_files()
 
