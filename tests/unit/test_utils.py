@@ -745,6 +745,14 @@ def test_if_frozen_decorator():
     assert checkpoint
 
 
+@pytest.mark.parametrize(
+    "filesize, large",
+    [(-42, False), (0, False), (1024 * 1024 * 300, True), (1024 * 14024 * 1024, True)],
+)
+def test_is_large_file(filesize, large):
+    assert nxdrive.utils.is_large_file(filesize) is large
+
+
 def test_normalize_and_expand_path():
     if WINDOWS:
         path = "%userprofile%/foo"

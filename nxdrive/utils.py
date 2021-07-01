@@ -385,6 +385,11 @@ def is_generated_tmp_file(name: str, /) -> Tuple[bool, Optional[bool]]:
     return do_not_ignore, no_delay_effect
 
 
+def is_large_file(filesize: int) -> bool:
+    """Return True if the given *filesize* is big enough to consider the file large."""
+    return bool(filesize >= Options.big_file * 1024 * 1024)
+
+
 def path_is_unc_name(path: Path) -> bool:
     """Return True whenever the given *path* is a UNC name.
     It is a Windows specificity.

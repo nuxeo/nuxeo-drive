@@ -20,7 +20,12 @@ from ...feature import Feature
 from ...objects import DocPair, Metrics
 from ...options import Options
 from ...qt.imports import pyqtSignal
-from ...utils import current_milli_time, force_decode, is_generated_tmp_file
+from ...utils import (
+    current_milli_time,
+    force_decode,
+    is_generated_tmp_file,
+    is_large_file,
+)
 from ...utils import normalize_event_filename as normalize
 from ..activity import tooltip
 from ..workers import EngineWorker, Worker
@@ -882,10 +887,7 @@ class LocalWatcher(EngineWorker):
         # because computing their digest will explode everything.
         # This code is taken _a lot_ when copying big files, so it
         # makes sens to bypass this check.
-        if (
-            local_info.size < Options.big_file * 1024 * 1024
-            and doc_pair.pair_state == "synchronized"
-        ):
+        if not is_large_file(local_info.size) and doc_pair.pair_state == "synchronized":
             digest = local_info.get_digest()
             # Unchanged digest, can be the case if only the last
             # modification time or file permissions have been updated
