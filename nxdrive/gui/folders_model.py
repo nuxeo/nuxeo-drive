@@ -1,4 +1,3 @@
-from functools import partial
 from logging import getLogger
 from typing import Iterator, List, Union
 
@@ -212,9 +211,6 @@ class FoldersOnly:
 
     def __init__(self, remote: Remote, /) -> None:
         self.remote = remote
-        self.children = partial(
-            self.remote.documents.get_children, enrichers=["permissions"]
-        )
 
     def get_personal_space(self) -> "Documents":
         """Retrieve the "Personal space" special folder."""
@@ -255,9 +251,10 @@ class FoldersOnly:
         else it will also show a loading error for the personal space.
         """
         try:
-            return [
-                Doc(doc) for doc in self.children(path="/") if "Folderish" in doc.facets
-            ]
+            docs = self.remote.documents.get_children(
+                path="/", enrichers=["permissions"]
+            )
+            return [Doc(doc) for doc in docs if "Folderish" in doc.facets]
         except Exception:
             log.warning("Error while retrieving documents on '/'", exc_info=True)
             return [Doc(Document(title="/", contextParameters={"permissions": []}))]
@@ -270,9 +267,17 @@ class FoldersOnly:
 
     def get_children(self, parent: "Documents", /) -> Iterator["Documents"]:
         """Fetch children of a given *parent*."""
-        for doc in self.children(uid=parent.get_id()):
-            if "Folderish" in doc.facets:
-                yield Doc(doc, parent=parent)
+        page_provider_args = {
+            "pageProvider": "tree_children",
+            "pageSize": -1,
+            "currentPageIndex": 0,
+            "queryParams": parent.get_id(),
+        }
+        docs = self.remote.documents.query(
+            opts=page_provider_args, enrichers=["permissions"]
+        )
+        for doc in docs["entries"]:
+            yield Doc(doc, parent=parent)
 
 
 Documents = Union[Doc, FilteredDoc]
