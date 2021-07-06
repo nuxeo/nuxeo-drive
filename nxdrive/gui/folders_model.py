@@ -274,17 +274,25 @@ class FoldersOnly:
             yield Doc(doc, parent=parent)
 
     def _get_children(self, parent_uid: str) -> List[Document]:
-        """Fetch children of a given *parent*."""
+        """Fetch all children of a given *parent*."""
         page_provider_args = {
             "pageProvider": "tree_children",
             "pageSize": -1,
-            "currentPageIndex": 0,
             "queryParams": parent_uid,
         }
-        docs = self.remote.documents.query(
-            opts=page_provider_args, enrichers=["permissions", "hasFolderishChild"]
-        )
-        return docs["entries"]
+        docs = []
+        page = 0
+        while "there are children":
+            page_provider_args["currentPageIndex"] = page
+            new_docs = self.remote.documents.query(
+                opts=page_provider_args,
+                enrichers=["permissions", "hasFolderishChild"],
+            )
+            docs.extend(new_docs["entries"])
+            if not new_docs["isNextPageAvailable"]:
+                break
+            page += 1
+        return docs
 
 
 Documents = Union[Doc, FilteredDoc]
