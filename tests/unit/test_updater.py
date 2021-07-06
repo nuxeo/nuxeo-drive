@@ -183,3 +183,30 @@ def test_get_update_status_versions_is_none():
     action, version = get_update_status(current, None, channel, server, Login.NONE)
     assert action == action_required
     assert version == new
+
+
+@Options.mock()
+def test_get_update_release_broken_update():
+    """Test the returned *version* when the broken update is the last version available."""
+    Options.client_version = "5.2.2"
+
+    available_versions = VERSIONS.copy()
+    available_versions.update(
+        {
+            "5.2.2": {"type": "release", "min": "10.10"},
+            "5.2.3": {"type": "release", "min": "10.10"},
+        }
+    )
+
+    action, version = get_update_status(
+        "5.2.2", available_versions, "release", "10.15", Login.NEW
+    )
+    assert action == UPDATE_STATUS_UPDATE_AVAILABLE
+    assert version == "5.2.3"
+
+    Options.xxx_broken_update = "5.2.3"
+    action, version = get_update_status(
+        "5.2.2", available_versions, "release", "10.15", Login.NEW
+    )
+    assert action == UPDATE_STATUS_UP_TO_DATE
+    assert version == ""

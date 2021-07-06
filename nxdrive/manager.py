@@ -115,6 +115,29 @@ class Manager(QObject):
 
         self._create_dao()
 
+        # Get the old version number in case of migration failure
+        self.old_version = self.get_config("client_version")
+
+        # [this worker will control next workers, so keep it first]
+        # Create the server's configuration getter verification thread
+        self.server_config_updater: ServerOptionsUpdater = (
+            self._create_server_config_updater()
+        )
+
+        # Create the application update verification thread
+        self.updater: "Updater" = self._create_updater()
+
+        # Handle failed ManagerDAO migrations
+        if not self.dao.migration_success:
+            self.set_config("xxx_broken_update", __version__)
+            self.set_feature_state("auto_update", False)
+
+            # Raise a SystemExit exception to gracefully exit the application
+            raise SystemExit(0)
+
+        # Used by the updater to ignore a boken version
+        Options.xxx_broken_update = self.get_config("xxx_broken_update")
+
         self.notification_service = DefaultNotificationService(self)
         self.osi = AbstractOSIntegration.get(self)
         log.info(f"OS integration type: {self.osi.nature}")
@@ -167,8 +190,7 @@ class Manager(QObject):
             if not self.get_config("original_version"):
                 self.set_config("original_version", self.version)
 
-            # Store the old version to be able to show release notes
-            self.old_version = self.get_config("client_version")
+            # Store the new version to be able to show release notes
             if self.old_version != self.version:
                 self.dao.update_config("client_version", self.version)
             self._write_version_file()
@@ -212,18 +234,9 @@ class Manager(QObject):
         # Connect all Qt signals
         self.load()
 
-        # [this worker will control next workers, so keep it first]
-        # Create the server's configuration getter verification thread
-        self.server_config_updater: ServerOptionsUpdater = (
-            self._create_server_config_updater()
-        )
-
         # Create Direct Edit
         self.autolock_service = self._create_autolock_service()
         self.direct_edit = self._create_direct_edit()
-
-        # Create the application update verification thread
-        self.updater: "Updater" = self._create_updater()
 
     def __enter__(self) -> "Manager":
         return self

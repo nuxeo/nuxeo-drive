@@ -285,6 +285,7 @@ class MetaOptions(type):
         "use_analytics": (False, "default"),
         "use_idempotent_requests": (True, "default"),
         "use_sentry": (True, "default"),
+        "xxx_broken_update": (None, "default"),
     }
 
     # Add dynamic options from Features

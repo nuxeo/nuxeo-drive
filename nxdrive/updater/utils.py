@@ -109,6 +109,7 @@ def get_latest_version(versions: Versions, channel: str, /) -> str:
         version
         for version, info in versions.items()
         if info.get("type", "").lower() in (channel, "release")
+        and version != Options.xxx_broken_update
     ]
 
     if not versions_list:
