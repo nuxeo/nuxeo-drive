@@ -116,8 +116,12 @@ class Doc(FileInfo):
         return self.doc.path
 
     def selectable(self) -> bool:
-        """Allow to fetch its children only if the user has at least the "Read" privilege."""
-        return "Read" in self.doc.contextParameters["permissions"]
+        """Allow to fetch its children only if the user has at least the "Read" permission
+        and if it contains at least one subfolder.
+        """
+        has_read_right = "Read" in self.doc.contextParameters["permissions"]
+        has_folderish_child = self.doc.contextParameters.get("hasFolderishChild", True)
+        return has_read_right and has_folderish_child
 
 
 class FilteredDoc(FileInfo):
@@ -255,7 +259,8 @@ class FoldersOnly:
             return [Doc(doc) for doc in self._get_children(root.uid)]
         except Exception:
             log.warning("Error while retrieving documents on '/'", exc_info=True)
-            return [Doc(Document(title="/", contextParameters={"permissions": []}))]
+            context = {"permissions": [], "hasFolderishChild": False}
+            return [Doc(Document(title="/", contextParameters=context))]
 
     def get_top_documents(self) -> Iterator["Documents"]:
         """Fetch all documents at the root."""
@@ -277,7 +282,7 @@ class FoldersOnly:
             "queryParams": parent_uid,
         }
         docs = self.remote.documents.query(
-            opts=page_provider_args, enrichers=["permissions"]
+            opts=page_provider_args, enrichers=["permissions", "hasFolderishChild"]
         )
         return docs["entries"]
 

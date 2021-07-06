@@ -2,7 +2,6 @@ from typing import TYPE_CHECKING, List, Union
 
 from ..qt import constants as qt
 from ..qt.imports import (
-    QItemSelection,
     QModelIndex,
     QObject,
     QStandardItemModel,
@@ -168,30 +167,14 @@ class FolderTreeView(TreeViewMixin):
     def __init__(self, parent: "FoldersDialog", client: FoldersOnly, /) -> None:
         super().__init__(parent, client)
 
-        # Actions to do when a folder is (de)selected
-        self.selectionModel().selectionChanged.connect(self.on_selection_changed)
+        # Actions to do when a folder is selected
+        self.selectionModel().currentChanged.connect(self.on_selection_changed)
 
-    def on_selection_changed(self, new: QItemSelection, /) -> None:
-        """Actions to do when a folder is (de)selected."""
-        try:
-            # Get the index of the current selection
-            index = new.indexes()[0]
-        except IndexError:
-            # The selection has been cleared
-            path = ""
-            path_ref = ""
-            title = ""
-        else:
-            # Get the selected folder's path
-            item = self.model().itemFromIndex(index).data(qt.UserRole)
-            path = item.get_path()
-            path_ref = item.get_id()
-            title = item.get_label()
+    def on_selection_changed(self, current: QModelIndex, _: QModelIndex, /) -> None:
+        """Actions to do when a folder is selected."""
+        item = self.model().itemFromIndex(current).data(qt.UserRole)
+        self.parent.remote_folder.setText(item.get_path())
+        self.parent.remote_folder_ref = item.get_id()
+        self.parent.remote_folder_title = item.get_label()
 
-        # Set the remote folder according to the selected folder
-        self.parent.remote_folder.setText(path)
-        self.parent.remote_folder_ref = path_ref
-        self.parent.remote_folder_title = title
-
-        # Set the OK button state depending of the current selection
         self.parent.button_ok_state()
