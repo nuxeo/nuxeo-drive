@@ -546,9 +546,6 @@ class TestUpload(OneUserTest):
         # There is no upload, right now
         assert not list(dao.get_uploads())
 
-        # Enable idempotent requests
-        Options.use_idempotent_requests = True
-
         with patch.object(engine.remote, "upload", new=upload), patch.object(
             engine.queue_manager, "_error_interval", new=3
         ), ensure_no_exception():
