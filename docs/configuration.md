@@ -584,8 +584,9 @@ Share anonymous usage analytics to help the developers build the best experience
 
 Control whenever specific HTTP calls should be made idempotent or not.
 
-- Default value (bool): `False`
+- Default value (bool): `True`
 - Version added: 5.1.1
+- Version changed: 5.2.3, defaulting to `True`
 
 It requires [NXP-29978](https://jira.nuxeo.com/browse/NXP-29978) on the server.
 
