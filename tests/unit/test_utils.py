@@ -29,6 +29,48 @@ BAD_HOSTNAMES = [
     "client-cert-missing.badssl.com",
     "invalid-expected-sct.badssl.com",
 ]
+CERT_DATA = """
+-----BEGIN CERTIFICATE-----
+MIIG8DCCBdigAwIBAgIQD0AZ0ebFLvmjqSm21WE4FjANBgkqhkiG9w0BAQsFADBk
+MQswCQYDVQQGEwJOTDEWMBQGA1UECBMNTm9vcmQtSG9sbGFuZDESMBAGA1UEBxMJ
+QW1zdGVyZGFtMQ8wDQYDVQQKEwZURVJFTkExGDAWBgNVBAMTD1RFUkVOQSBTU0wg
+Q0EgMzAeFw0xODA3MjAwMDAwMDBaFw0yMDA3MjQxMjAwMDBaMIGZMQswCQYDVQQG
+EwJGUjEWMBQGA1UECBMNSWxlLWRlLUZyYW5jZTEaMBgGA1UEBxMRU2FpbnQgRGVu
+aXMgQ2VkZXgxHDAaBgNVBAoME1VuaXZlcnNpdMOpIFBhcmlzIDgxGTAXBgNVBAsT
+EERTSSBQb2xlIFdFQi1FTlQxHTAbBgNVBAMTFG51eGVvLnVuaXYtcGFyaXM4LmZy
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAosA++LzWOIa8cSaH2Cmk
+C4nir+Vmv2XQuMVp8AollXJKeiWTeulttfYU2txC7qDsjpXsSqfkvDQbCfUB25Ty
+Y3ze9eh8pXzK5qwYFXIeDZIlVTquEZAA/F5bRnZ6HsaTBI0Gjq/BXiOlykvExVdP
+1JK1E7j8pkUD4hygyhKPx95IVgQS5EgXWuCJnHJs/T6VRfYFaOix4yfJG9MOgb4D
+3pkWh13WOcwJUQ1M5469e2JweW7jZsW6Oe1cfBR1VgvlRD7fSJDRwCj7MRqOfK5k
+LC9so8o+9zUXHcWLk6WuBiKxX4xtr1waqViJxfn2/BUedg0J0juzoE87fZR52hJI
+TwIDAQABo4IDZjCCA2IwHwYDVR0jBBgwFoAUZ/2IIBQnmMcJ0iUZu+lREWN1UGIw
+HQYDVR0OBBYEFN4UHBjiYDWj5091Qd/fgITrtwGgMDYGA1UdEQQvMC2CFG51eGVv
+LnVuaXYtcGFyaXM4LmZyghVtb29kbGUudW5pdi1wYXJpczguZnIwDgYDVR0PAQH/
+BAQDAgWgMB0GA1UdJQQWMBQGCCsGAQUFBwMBBggrBgEFBQcDAjBrBgNVHR8EZDBi
+MC+gLaArhilodHRwOi8vY3JsMy5kaWdpY2VydC5jb20vVEVSRU5BU1NMQ0EzLmNy
+bDAvoC2gK4YpaHR0cDovL2NybDQuZGlnaWNlcnQuY29tL1RFUkVOQVNTTENBMy5j
+cmwwTAYDVR0gBEUwQzA3BglghkgBhv1sAQEwKjAoBggrBgEFBQcCARYcaHR0cHM6
+Ly93d3cuZGlnaWNlcnQuY29tL0NQUzAIBgZngQwBAgIwbgYIKwYBBQUHAQEEYjBg
+MCQGCCsGAQUFBzABhhhodHRwOi8vb2NzcC5kaWdpY2VydC5jb20wOAYIKwYBBQUH
+MAKGLGh0dHA6Ly9jYWNlcnRzLmRpZ2ljZXJ0LmNvbS9URVJFTkFTU0xDQTMuY3J0
+MAwGA1UdEwEB/wQCMAAwggF+BgorBgEEAdZ5AgQCBIIBbgSCAWoBaAB2AKS5CZC0
+GFgUh7sTosxncAo8NZgE+RvfuON3zQ7IDdwQAAABZLh+KWMAAAQDAEcwRQIgPrGk
+CO4wULGkZOaipluKHKgVX231md0r65CLxvgKGHoCIQD2oxZfAb7XDqTK9jgs42fo
+UQra7C3P9QFjRncCwk3LrQB2AId1v+dZfPiMQ5lfvfNu/1aNR1Y2/0q1YMG06v9e
+oIMPAAABZLh+KjQAAAQDAEcwRQIgSrjUujzDVEnVdxenp1ucQpJH6ofa4t+jVfYB
+mmDjf6ICIQCsv+Gg67zSdNqcGCPSgLfI88bgYNDK0eZK55uk01E40wB2ALvZ37wf
+inG1k5Qjl6qSe0c4V5UKq1LoGpCWZDaOHtGFAAABZLh+KYgAAAQDAEcwRQIgE0Fa
+/7qoHixhfjjIN2ZsU8Y0AZFAkOuS0cGGGkKp9xkCIQDIGYAdx5qAdTBOFIL5NAr6
+Y7TIycq4avd3Fu1E86HpFTANBgkqhkiG9w0BAQsFAAOCAQEAllmQTDhGDhN8d/uX
+E7oOkZknAogXttMXkksDjB7rN0BATV1ufWDbjShGQuoIYmtQYVddf77p5kNk48vT
+BuM90iblou8PbFEdTIqLTHLs/+Df8a6wTEFDma3icvNKqeZWfylNLJUErtWILaWN
+LBkdHkz68Cr7lhTW91XEbDGK9/IYu6YdWqoAS4bXks/vKJOEaQr2NN+QNDjzR9wG
+sIOkgLQ2Kt4lWCaF7xEaOP2e/if3Ebm0alNx1lwUxn00LEm1VyKBlepV+XmsDivB
+JROlHjdA3/jyqD4WuFzzXzWwF6zta0l/hqF9BtGmQRR9qXC2+fsQ4mhUK8C9vhCH
+7fV0vw==
+-----END CERTIFICATE-----
+"""
 
 Stat = namedtuple("Stat", "st_size")
 
@@ -277,48 +319,6 @@ def test_generated_tempory_file(name, state):
 
 
 def test_get_certificate_details_from_file():
-    cert_data = """
------BEGIN CERTIFICATE-----
-MIIG8DCCBdigAwIBAgIQD0AZ0ebFLvmjqSm21WE4FjANBgkqhkiG9w0BAQsFADBk
-MQswCQYDVQQGEwJOTDEWMBQGA1UECBMNTm9vcmQtSG9sbGFuZDESMBAGA1UEBxMJ
-QW1zdGVyZGFtMQ8wDQYDVQQKEwZURVJFTkExGDAWBgNVBAMTD1RFUkVOQSBTU0wg
-Q0EgMzAeFw0xODA3MjAwMDAwMDBaFw0yMDA3MjQxMjAwMDBaMIGZMQswCQYDVQQG
-EwJGUjEWMBQGA1UECBMNSWxlLWRlLUZyYW5jZTEaMBgGA1UEBxMRU2FpbnQgRGVu
-aXMgQ2VkZXgxHDAaBgNVBAoME1VuaXZlcnNpdMOpIFBhcmlzIDgxGTAXBgNVBAsT
-EERTSSBQb2xlIFdFQi1FTlQxHTAbBgNVBAMTFG51eGVvLnVuaXYtcGFyaXM4LmZy
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAosA++LzWOIa8cSaH2Cmk
-C4nir+Vmv2XQuMVp8AollXJKeiWTeulttfYU2txC7qDsjpXsSqfkvDQbCfUB25Ty
-Y3ze9eh8pXzK5qwYFXIeDZIlVTquEZAA/F5bRnZ6HsaTBI0Gjq/BXiOlykvExVdP
-1JK1E7j8pkUD4hygyhKPx95IVgQS5EgXWuCJnHJs/T6VRfYFaOix4yfJG9MOgb4D
-3pkWh13WOcwJUQ1M5469e2JweW7jZsW6Oe1cfBR1VgvlRD7fSJDRwCj7MRqOfK5k
-LC9so8o+9zUXHcWLk6WuBiKxX4xtr1waqViJxfn2/BUedg0J0juzoE87fZR52hJI
-TwIDAQABo4IDZjCCA2IwHwYDVR0jBBgwFoAUZ/2IIBQnmMcJ0iUZu+lREWN1UGIw
-HQYDVR0OBBYEFN4UHBjiYDWj5091Qd/fgITrtwGgMDYGA1UdEQQvMC2CFG51eGVv
-LnVuaXYtcGFyaXM4LmZyghVtb29kbGUudW5pdi1wYXJpczguZnIwDgYDVR0PAQH/
-BAQDAgWgMB0GA1UdJQQWMBQGCCsGAQUFBwMBBggrBgEFBQcDAjBrBgNVHR8EZDBi
-MC+gLaArhilodHRwOi8vY3JsMy5kaWdpY2VydC5jb20vVEVSRU5BU1NMQ0EzLmNy
-bDAvoC2gK4YpaHR0cDovL2NybDQuZGlnaWNlcnQuY29tL1RFUkVOQVNTTENBMy5j
-cmwwTAYDVR0gBEUwQzA3BglghkgBhv1sAQEwKjAoBggrBgEFBQcCARYcaHR0cHM6
-Ly93d3cuZGlnaWNlcnQuY29tL0NQUzAIBgZngQwBAgIwbgYIKwYBBQUHAQEEYjBg
-MCQGCCsGAQUFBzABhhhodHRwOi8vb2NzcC5kaWdpY2VydC5jb20wOAYIKwYBBQUH
-MAKGLGh0dHA6Ly9jYWNlcnRzLmRpZ2ljZXJ0LmNvbS9URVJFTkFTU0xDQTMuY3J0
-MAwGA1UdEwEB/wQCMAAwggF+BgorBgEEAdZ5AgQCBIIBbgSCAWoBaAB2AKS5CZC0
-GFgUh7sTosxncAo8NZgE+RvfuON3zQ7IDdwQAAABZLh+KWMAAAQDAEcwRQIgPrGk
-CO4wULGkZOaipluKHKgVX231md0r65CLxvgKGHoCIQD2oxZfAb7XDqTK9jgs42fo
-UQra7C3P9QFjRncCwk3LrQB2AId1v+dZfPiMQ5lfvfNu/1aNR1Y2/0q1YMG06v9e
-oIMPAAABZLh+KjQAAAQDAEcwRQIgSrjUujzDVEnVdxenp1ucQpJH6ofa4t+jVfYB
-mmDjf6ICIQCsv+Gg67zSdNqcGCPSgLfI88bgYNDK0eZK55uk01E40wB2ALvZ37wf
-inG1k5Qjl6qSe0c4V5UKq1LoGpCWZDaOHtGFAAABZLh+KYgAAAQDAEcwRQIgE0Fa
-/7qoHixhfjjIN2ZsU8Y0AZFAkOuS0cGGGkKp9xkCIQDIGYAdx5qAdTBOFIL5NAr6
-Y7TIycq4avd3Fu1E86HpFTANBgkqhkiG9w0BAQsFAAOCAQEAllmQTDhGDhN8d/uX
-E7oOkZknAogXttMXkksDjB7rN0BATV1ufWDbjShGQuoIYmtQYVddf77p5kNk48vT
-BuM90iblou8PbFEdTIqLTHLs/+Df8a6wTEFDma3icvNKqeZWfylNLJUErtWILaWN
-LBkdHkz68Cr7lhTW91XEbDGK9/IYu6YdWqoAS4bXks/vKJOEaQr2NN+QNDjzR9wG
-sIOkgLQ2Kt4lWCaF7xEaOP2e/if3Ebm0alNx1lwUxn00LEm1VyKBlepV+XmsDivB
-JROlHjdA3/jyqD4WuFzzXzWwF6zta0l/hqF9BtGmQRR9qXC2+fsQ4mhUK8C9vhCH
-7fV0vw==
------END CERTIFICATE-----
-"""
     cert_details_expected = {
         "subject": (
             (("countryName", "FR"),),
@@ -350,7 +350,7 @@ JROlHjdA3/jyqD4WuFzzXzWwF6zta0l/hqF9BtGmQRR9qXC2+fsQ4mhUK8C9vhCH
             "http://crl4.digicert.com/TERENASSLCA3.crl",
         ),
     }
-    cert_details = nxdrive.utils.get_certificate_details(cert_data=cert_data)
+    cert_details = nxdrive.utils.get_certificate_details(cert_data=CERT_DATA)
     assert cert_details == cert_details_expected
 
 
@@ -371,6 +371,223 @@ def test_get_certificate_details_from_hostname(hostname):
 def test_get_certificate_details_error():
     cert_details = nxdrive.utils.get_certificate_details(cert_data="qsd351qds")
     assert cert_details == nxdrive.utils.DEFAULTS_CERT_DETAILS
+
+
+def test_is_valid_ssl_certificate(tmp_path):
+    file = tmp_path / "certificate.crt"
+    file.write_text(CERT_DATA, encoding="utf-8")
+    assert nxdrive.utils.is_valid_ssl_certificate(file)
+
+
+def test_is_valid_ssl_certificate_not_certificate(tmp_path):
+    file = tmp_path / "flase-certificate.crt"
+    file.write_bytes(b"\x65binaryContent")
+    assert not nxdrive.utils.is_valid_ssl_certificate(file)
+
+
+def test_is_valid_ssl_certificate_not_such_file(tmp_path):
+    file = tmp_path / "inexistent.crt"
+    assert not nxdrive.utils.is_valid_ssl_certificate(file)
+
+
+@pytest.mark.parametrize(
+    "ca_bundle, ssl_no_verify, expected",
+    [
+        (None, True, False),
+        (None, False, True),
+    ],
+)
+def test_request_verify_no_ca_bundle(ca_bundle, ssl_no_verify, expected):
+    assert nxdrive.utils.requests_verify(ca_bundle, ssl_no_verify) == expected
+
+
+@Options.mock()
+def test_request_verify_ca_bundle_file(caplog, tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
+    Options.nxdrive_home = home
+
+    ca_bundle = tmp_path / "custom-cert.crt"
+    ca_bundle.write_bytes(CERT_DATA.encode("utf-8"))
+
+    # Save the certificate for the first time
+    caplog.clear()
+    final_certificate = nxdrive.utils.requests_verify(ca_bundle, False)
+    records = [line.message for line in caplog.records]
+    assert len(records) == 3
+    assert "Saved the final certificate to" in records[0]
+    assert final_certificate.name in records[0]
+    assert "cacert.pem" in records[1]
+    assert "custom-cert.crt" in records[2]
+
+    # Save the certificate for the second time, it should not be regenerated
+    caplog.clear()
+    final_certificate = nxdrive.utils.requests_verify(ca_bundle, False)
+    records = [line.message for line in caplog.records]
+    assert len(records) == 1
+    assert "Will use the final certificate from" in records[0]
+    assert final_certificate.name in records[0]
+
+
+@Options.mock()
+def test_request_verify_ca_bundle_file_is_already_all_in_one_certificate(tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
+    Options.nxdrive_home = home
+
+    ca_bundle = tmp_path / f"ndrive_{'1' * 32}.pem"
+    ca_bundle.write_bytes(CERT_DATA.encode("utf-8"))
+
+    # The final certificate does not change
+    assert nxdrive.utils.requests_verify(ca_bundle, False) == ca_bundle
+
+
+@Options.mock()
+def test_request_verify_ca_bundle_file_mimic_updates(caplog, tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
+    Options.nxdrive_home = home
+
+    ca_bundle = tmp_path / "custom-cert.crt"
+    ca_bundle.write_bytes(CERT_DATA.encode("utf-8"))
+
+    # Save the certificate for the first time
+    caplog.clear()
+    final_certificate_1 = nxdrive.utils.requests_verify(ca_bundle, False)
+    records = [line.message for line in caplog.records]
+    assert len(records) == 3
+    assert "Saved the final certificate to" in records[0]
+    assert final_certificate_1.name in records[0]
+    assert "cacert.pem" in records[1]
+    assert "custom-cert.crt" in records[2]
+
+    # Mimic that situation:
+    #   - the certificate as changed
+    #   - certifi upgrade
+    ca_bundle.write_bytes(CERT_DATA.encode("utf-8") * 2)
+
+    # Save the certificate for the second time, it should be regenerated
+    caplog.clear()
+    final_certificate_2 = nxdrive.utils.requests_verify(ca_bundle, False)
+    records = [line.message for line in caplog.records]
+    assert len(records) == 4
+    assert "Removed obsolete certificate" in records[0]
+    assert final_certificate_1.name in records[0]
+    assert "Saved the final certificate to" in records[1]
+    assert final_certificate_2.name in records[1]
+    assert "cacert.pem" in records[2]
+    assert "custom-cert.crt" in records[3]
+
+
+def test_request_verify_ca_bundle_file_is_not_a_certificate(caplog, tmp_path):
+    ca_bundle = tmp_path / "false.crt"
+    ca_bundle.write_bytes(b"foo")
+
+    caplog.clear()
+    assert nxdrive.utils.requests_verify(ca_bundle, False) is ca_bundle
+    records = [line.message for line in caplog.records]
+    assert len(records) == 3
+    assert "Error while decoding the SSL certificate" in records[0]
+    assert "Skipped invalid certificate" in records[1]
+    assert ca_bundle.name in records[1]
+    assert "No valid certificate found" in records[2]
+
+
+@Options.mock()
+def test_request_verify_ca_bundle_folder(caplog, tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
+    Options.nxdrive_home = home
+
+    # Craft several certificates
+    ca_bundles = tmp_path / "certs"
+    ca_bundles.mkdir()
+    for n in range(5):
+        (ca_bundles / f"{n}.crt").write_bytes(CERT_DATA.encode("utf-8"))
+
+    # Save the certificate for the first time
+    caplog.clear()
+    final_certificate = nxdrive.utils.requests_verify(ca_bundles, False)
+    records = [line.message for line in caplog.records]
+    assert len(records) == 7
+    assert "Saved the final certificate to" in records[0]
+    assert final_certificate.name in records[0]
+    assert "cacert.pem" in records[1]
+    assert "0.crt" in records[2]
+    assert "1.crt" in records[3]
+    assert "2.crt" in records[4]
+    assert "3.crt" in records[5]
+    assert "4.crt" in records[6]
+
+    # Save the certificate for the second time, it should not be regenerated
+    caplog.clear()
+    final_certificate = nxdrive.utils.requests_verify(ca_bundles, False)
+    records = [line.message for line in caplog.records]
+    assert len(records) == 1
+    assert "Will use the final certificate from" in records[0]
+    assert final_certificate.name in records[0]
+
+
+@Options.mock()
+def test_request_verify_ca_bundle_folder_contains_subfolder(caplog, tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
+    Options.nxdrive_home = home
+
+    # Craft several certificates
+    ca_bundles = tmp_path / "certs"
+    ca_bundles.mkdir()
+
+    # Add a folder
+    (ca_bundles / "subfolder").mkdir()
+
+    caplog.clear()
+    assert nxdrive.utils.requests_verify(ca_bundles, False) is ca_bundles
+    records = [line.message for line in caplog.records]
+    assert len(records) == 1
+    assert "No valid certificate found" in records[0]
+
+
+@Options.mock()
+def test_request_verify_ca_bundle_folder_contains_big_file(caplog, tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
+    Options.nxdrive_home = home
+
+    # Craft several certificates
+    cert_data = CERT_DATA.encode("utf-8")
+    ca_bundles = tmp_path / "certs"
+    ca_bundles.mkdir()
+    for n in range(5):
+        (ca_bundles / f"{n}.crt").write_bytes(cert_data)
+
+    # Make 3.crt a "big" file
+    big_file = ca_bundles / "3.crt"
+    big_file.write_bytes(cert_data * 1024 * 2)
+
+    # Save the certificate for the first time
+    caplog.clear()
+    final_certificate = nxdrive.utils.requests_verify(ca_bundles, False)
+    records = [line.message for line in caplog.records]
+    assert len(records) == 6
+    assert "No all certificate where processed" in records[0]
+    assert "3 files were processed, 2 were left" in records[0]
+    assert "Saved the final certificate to" in records[1]
+    assert final_certificate.name in records[1]
+    assert "cacert.pem" in records[2]
+    assert "0.crt" in records[3]
+    assert "1.crt" in records[4]
+    assert "2.crt" in records[5]
+
+    # Save the certificate for the second time, it should not be regenerated
+    caplog.clear()
+    final_certificate = nxdrive.utils.requests_verify(ca_bundles, False)
+    records = [line.message for line in caplog.records]
+    assert len(records) == 2
+    assert "No all certificate where processed" in records[0]
+    assert "3 files were processed, 2 were left" in records[0]
+    assert "Will use the final certificate from" in records[1]
+    assert final_certificate.name in records[1]
 
 
 def test_current_milli_time():

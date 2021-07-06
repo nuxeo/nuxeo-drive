@@ -79,6 +79,7 @@ from ..utils import (
     normalize_event_filename,
     normalized_path,
     parse_protocol_url,
+    requests_verify,
     short_name,
     sizeof_fmt,
     today_is_special,
@@ -1099,7 +1100,7 @@ class Application(QApplication):
                 host=url,
                 auth=(user, pwd),
                 proxies=self.manager.proxy.settings(url=url),
-                verify=Options.ca_bundle or not Options.ssl_no_verify,
+                verify=requests_verify(Options.ca_bundle, Options.ssl_no_verify),
                 cert=client_certificate(),
             )
             try:

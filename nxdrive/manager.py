@@ -61,6 +61,7 @@ from .utils import (
     get_default_local_folder,
     if_frozen,
     normalized_path,
+    requests_verify,
     save_config,
 )
 
@@ -722,7 +723,7 @@ class Manager(QObject):
                 headers=headers,
                 proxies=self.proxy.settings(url=url),
                 timeout=STARTUP_PAGE_CONNECTION_TIMEOUT,
-                verify=Options.ca_bundle or not Options.ssl_no_verify,
+                verify=requests_verify(Options.ca_bundle, Options.ssl_no_verify),
                 cert=client_certificate(),
             ) as resp:
                 status = resp.status_code

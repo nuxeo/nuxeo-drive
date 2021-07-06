@@ -17,6 +17,7 @@ from functools import lru_cache
 from itertools import islice
 from logging import getLogger
 from pathlib import Path
+from tempfile import gettempdir
 from threading import get_native_id
 from typing import (
     TYPE_CHECKING,
@@ -30,6 +31,7 @@ from typing import (
     Union,
 )
 from urllib.parse import parse_qsl, urlparse, urlsplit, urlunsplit
+from uuid import uuid4
 
 from nuxeo.utils import get_digest_algorithm, get_digest_hash
 
@@ -594,6 +596,12 @@ def retrieve_ssl_certificate(hostname: str, /, *, port: int = 443) -> str:
             return ssl.DER_cert_to_PEM_cert(cert_data)
 
 
+def is_valid_ssl_certificate(file: Path) -> bool:
+    """Check weither the given *file* is a valid SSL certificate."""
+    details = get_certificate_details(cert_file=file)
+    return bool(details["subject"])
+
+
 def client_certificate() -> Optional[Tuple[str, str]]:
     """
     Fetch the paths to the certification file and it's key from the option.
@@ -607,7 +615,7 @@ def client_certificate() -> Optional[Tuple[str, str]]:
 
 @lru_cache(maxsize=4)
 def get_certificate_details(
-    *, hostname: str = "", cert_data: str = ""
+    *, hostname: str = "", cert_data: str = "", cert_file: Path = None
 ) -> Dict[str, Any]:
     """
     Get SSL certificate details from a given certificate content or hostname.
@@ -615,28 +623,125 @@ def get_certificate_details(
     Note: This function uses a undocumented method of the _ssl module.
           It is continuously tested in our CI to ensure it still
           available after any Python upgrade.
-          Certified working as of Python 3.8.6.
+          Certified working as of Python 3.9.5.
     """
 
     import ssl
 
     defaults = deepcopy(DEFAULTS_CERT_DETAILS)
-    cert_file = Path("c.crt")
+
+    if cert_file:
+        certificate = cert_file
+        cleanup = False
+    else:
+        try:
+            data = cert_data or retrieve_ssl_certificate(hostname)
+        except Exception:
+            log.warning("Error while retrieving the SSL certificate", exc_info=True)
+            return defaults
+
+        certificate = Path(gettempdir()) / f"cert-{uuid4()}.crt"
+        certificate.write_text(data, encoding="utf-8")
+        cleanup = True
 
     try:
-        certificate = cert_data or retrieve_ssl_certificate(hostname)
-        cert_file.write_text(certificate, encoding="utf-8")
-        try:
-            # Taken from https://stackoverflow.com/a/50072461/1117028
-            # pylint: disable=protected-access
-            details = ssl._ssl._test_decode_cert(cert_file)  # type: ignore
-            defaults.update(details)
-        finally:
-            cert_file.unlink()
+        # Taken from https://stackoverflow.com/a/50072461/1117028
+        # pylint: disable=protected-access
+        details = ssl._ssl._test_decode_cert(certificate)  # type: ignore
+        defaults.update(details)
     except Exception:
-        log.warning("Error while retrieving the SSL certificate", exc_info=True)
+        log.warning("Error while decoding the SSL certificate", exc_info=True)
+    finally:
+        if cleanup:
+            certificate.unlink()
 
     return defaults
+
+
+def concat_all_certificates(files: List[Path]) -> Optional[Path]:
+    """Craft a all-in-one certificate with ones from cacert and custom ones."""
+    from hashlib import md5
+
+    import certifi
+
+    cert_files = [Path(certifi.where())]
+    certificates = cert_files[0].read_bytes()
+    for count, file in enumerate(sorted(files)):
+        if not file.is_file():
+            continue
+
+        if not is_valid_ssl_certificate(file):
+            log.info(f"Skipped invalid certificate {str(file)!r}")
+            continue
+
+        certificate = file.read_bytes()
+
+        if len(certificates) + len(certificate) > 5 * 1024 * 1024:  # 5 MiB
+            # Way too big for simple text files, stop now
+            log.warning(
+                "No all certificate where processed due to the maximum file size (5 MiB). "
+                f"{len(cert_files) - 1} files were processed, {len(files) - count} were left."
+            )
+            break
+
+        certificates += certificate
+        cert_files.append(file)
+
+    if len(cert_files) == 1:
+        log.warning("No valid certificate found.")
+        return None
+
+    name = md5(certificates).hexdigest()
+    folder = Options.nxdrive_home
+    final_file: Path = folder / f"ndrive_{name}.pem"
+
+    if not final_file.is_file():
+        # Either the certificate does not exist yet, either it is obsolete.
+        # Let's clean-up all of them.
+        for obsolete_file in folder.glob("ndrive_*.pem"):
+            log.info(f"Removed obsolete certificate {str(obsolete_file)!r}")
+            obsolete_file.unlink()
+
+        log.info(f"Saved the final certificate to {str(final_file)!r}, including:")
+        for cert_file in cert_files:
+            log.info(f" >>> {str(cert_file)!r}")
+        final_file.write_bytes(certificates)
+    else:
+        log.info(f"Will use the final certificate from {str(final_file)!r}")
+
+    return final_file
+
+
+def get_final_certificate(file: Path) -> Optional[Path]:
+    """Return the all-in-one certificate if the provided *file* is a certificate
+    else *file* without modifications.
+
+    If the *file* is already a all-in-one certificate, then return it without changes.
+    It will ease testing customer's files.
+    """
+    if file.stem.startswith("ndrive_") and file.suffix == ".pem":
+        return file
+    return concat_all_certificates([file])
+
+
+def get_final_certificate_from_folder(folder: Path) -> Optional[Path]:
+    """Return the all-in-one certificate if the provided *folder* contains
+    valid certificate(s) else *folder* without modifications.
+    """
+    return concat_all_certificates(list(folder.glob("*")))
+
+
+def requests_verify(ca_bundle: Optional[Path], ssl_no_verify: bool) -> Any:
+    """Return the appropriate value for the *verify* keyword argument of *requests* calls."""
+    if ca_bundle:
+        path = ca_bundle
+        if path.is_file():
+            path = get_final_certificate(path) or path
+        elif path.is_dir():
+            path = get_final_certificate_from_folder(path) or path
+        return path
+
+    return not ssl_no_verify
 
 
 def _cryptor(key: bytes, iv: bytes) -> "Cipher":
@@ -1104,7 +1209,7 @@ def test_url(
 
     kwargs: Dict[str, Any] = {
         "timeout": timeout,
-        "verify": Options.ca_bundle or not Options.ssl_no_verify,
+        "verify": requests_verify(Options.ca_bundle, Options.ssl_no_verify),
         "cert": client_certificate(),
         "headers": {"User-Agent": user_agent()},
     }
