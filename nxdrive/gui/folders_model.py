@@ -251,10 +251,8 @@ class FoldersOnly:
         else it will also show a loading error for the personal space.
         """
         try:
-            docs = self.remote.documents.get_children(
-                path="/", enrichers=["permissions"]
-            )
-            return [Doc(doc) for doc in docs if "Folderish" in doc.facets]
+            root = self.remote.documents.get(path="/")
+            return [Doc(doc) for doc in self._get_children(root.uid)]
         except Exception:
             log.warning("Error while retrieving documents on '/'", exc_info=True)
             return [Doc(Document(title="/", contextParameters={"permissions": []}))]
@@ -267,17 +265,21 @@ class FoldersOnly:
 
     def get_children(self, parent: "Documents", /) -> Iterator["Documents"]:
         """Fetch children of a given *parent*."""
+        for doc in self._get_children(parent.get_id()):
+            yield Doc(doc, parent=parent)
+
+    def _get_children(self, parent_uid: str) -> List[Document]:
+        """Fetch children of a given *parent*."""
         page_provider_args = {
             "pageProvider": "tree_children",
             "pageSize": -1,
             "currentPageIndex": 0,
-            "queryParams": parent.get_id(),
+            "queryParams": parent_uid,
         }
         docs = self.remote.documents.query(
             opts=page_provider_args, enrichers=["permissions"]
         )
-        for doc in docs["entries"]:
-            yield Doc(doc, parent=parent)
+        return docs["entries"]
 
 
 Documents = Union[Doc, FilteredDoc]
