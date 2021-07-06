@@ -209,8 +209,8 @@ jobs:
       - name: Bump the version number
         if: github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == ''
         run: |
-          git fetch --unshallow --tags
-          bash tools/bump-alpha-version.sh || exit 1
+          # It will fail on the git stuff, but it is not important here
+          bash tools/bump-alpha-version.sh || true
 
       - name: Do the release
         if: steps.extract_branch.outputs.branch == 'master'
