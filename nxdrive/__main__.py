@@ -41,7 +41,11 @@ def main() -> int:
             raise RuntimeError(f"{APP_NAME} requires Python 3.9.1+")
 
         # NXDRIVE-2230: Ensure the OS locale will be respected through the application
-        locale.setlocale(locale.LC_TIME, "")
+        try:
+            locale.setlocale(locale.LC_TIME, "")
+        except locale.Error as exc:
+            # NXDRIVE-2714: Not a big deal, let's not make the app crashing
+            print('[ERROR] locale.setlocale(locale.LC_TIME, ""):', exc)
 
         if not (check_executable_path() and check_os_version()):
             return 1
