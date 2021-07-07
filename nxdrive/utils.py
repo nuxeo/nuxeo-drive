@@ -739,7 +739,8 @@ def requests_verify(ca_bundle: Optional[Path], ssl_no_verify: bool) -> Any:
             path = get_final_certificate(path) or path
         elif path.is_dir():
             path = get_final_certificate_from_folder(path) or path
-        return path
+        # `requests` needs a string, not a path-like object
+        return str(path)
 
     return not ssl_no_verify
 

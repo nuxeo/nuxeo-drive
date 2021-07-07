@@ -445,10 +445,7 @@ class MetaOptions(type):
 
         # Cast path-like options to Path
         if isinstance(old_value, Path):
-            # Lazy import to break circular import
-            from .utils import normalize_and_expand_path
-
-            new_value = normalize_and_expand_path(new_value)
+            new_value = _normalize_path(new_value)
 
         # We allow to set something when the default is None
         if not isinstance(new_value, type_orig) and not isinstance(
@@ -556,6 +553,13 @@ class Options(metaclass=MetaOptions):
 #
 
 
+def _normalize_path(path: str) -> Path:
+    # Lazy import to break circular import
+    from .utils import normalize_and_expand_path
+
+    return normalize_and_expand_path(path)
+
+
 def validate_chunk_limit(value: int, /) -> int:
     if value > 0:
         return value
@@ -598,9 +602,17 @@ def _validate_deletion_behavior(value: str, /) -> str:
 
 
 def validate_cert_path(cert_path: str, /) -> str:
-    if not Path(cert_path).is_file():
+    path = _normalize_path(cert_path)
+    if not path.is_file():
         raise ValueError(f"The file {cert_path!r} does not exist")
-    return cert_path
+    return str(path)
+
+
+def validate_ca_bundle_path(cert_path: str, /) -> Path:
+    path = _normalize_path(cert_path)
+    if not path.exists():
+        raise ValueError(f"{cert_path!r} does not exist")
+    return path
 
 
 def validate_tmp_file_limit(value: Union[int, float], /) -> float:
@@ -633,5 +645,6 @@ Options.checkers["client_version"] = validate_client_version
 Options.checkers["deletion_behavior"] = _validate_deletion_behavior
 Options.checkers["use_sentry"] = validate_use_sentry
 Options.checkers["tmp_file_limit"] = validate_tmp_file_limit
+Options.checkers["ca_bundle"] = validate_ca_bundle_path
 Options.checkers["cert_file"] = validate_cert_path
 Options.checkers["cert_key_file"] = validate_cert_path
