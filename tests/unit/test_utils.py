@@ -412,7 +412,7 @@ def test_request_verify_ca_bundle_file(caplog, tmp_path):
 
     # Save the certificate for the first time
     caplog.clear()
-    final_certificate = nxdrive.utils.requests_verify(ca_bundle, False)
+    final_certificate = Path(nxdrive.utils.requests_verify(ca_bundle, False))
     records = [line.message for line in caplog.records]
     assert len(records) == 3
     assert "Saved the final certificate to" in records[0]
@@ -422,7 +422,37 @@ def test_request_verify_ca_bundle_file(caplog, tmp_path):
 
     # Save the certificate for the second time, it should not be regenerated
     caplog.clear()
-    final_certificate = nxdrive.utils.requests_verify(ca_bundle, False)
+    final_certificate = Path(nxdrive.utils.requests_verify(ca_bundle, False))
+    records = [line.message for line in caplog.records]
+    assert len(records) == 1
+    assert "Will use the final certificate from" in records[0]
+    assert final_certificate.name in records[0]
+
+
+@Options.mock()
+def test_request_verify_ca_bundle_file_is_str(caplog, tmp_path):
+    """Regression test for NXRIVE-2719."""
+    home = tmp_path / "home"
+    home.mkdir()
+    Options.nxdrive_home = home
+
+    ca_bundle = tmp_path / "custom-cert.crt"
+    ca_bundle.write_bytes(CERT_DATA.encode("utf-8"))
+    Options.ca_bundle = str(ca_bundle)
+
+    # Save the certificate for the first time
+    caplog.clear()
+    final_certificate = Path(nxdrive.utils.requests_verify(Options.ca_bundle, False))
+    records = [line.message for line in caplog.records]
+    assert len(records) == 3
+    assert "Saved the final certificate to" in records[0]
+    assert final_certificate.name in records[0]
+    assert "cacert.pem" in records[1]
+    assert "custom-cert.crt" in records[2]
+
+    # Save the certificate for the second time, it should not be regenerated
+    caplog.clear()
+    final_certificate = Path(nxdrive.utils.requests_verify(Options.ca_bundle, False))
     records = [line.message for line in caplog.records]
     assert len(records) == 1
     assert "Will use the final certificate from" in records[0]
@@ -439,7 +469,7 @@ def test_request_verify_ca_bundle_file_is_already_all_in_one_certificate(tmp_pat
     ca_bundle.write_bytes(CERT_DATA.encode("utf-8"))
 
     # The final certificate does not change
-    assert nxdrive.utils.requests_verify(ca_bundle, False) == ca_bundle
+    assert Path(nxdrive.utils.requests_verify(ca_bundle, False)) == ca_bundle
 
 
 @Options.mock()
@@ -453,7 +483,7 @@ def test_request_verify_ca_bundle_file_mimic_updates(caplog, tmp_path):
 
     # Save the certificate for the first time
     caplog.clear()
-    final_certificate_1 = nxdrive.utils.requests_verify(ca_bundle, False)
+    final_certificate_1 = Path(nxdrive.utils.requests_verify(ca_bundle, False))
     records = [line.message for line in caplog.records]
     assert len(records) == 3
     assert "Saved the final certificate to" in records[0]
@@ -468,7 +498,7 @@ def test_request_verify_ca_bundle_file_mimic_updates(caplog, tmp_path):
 
     # Save the certificate for the second time, it should be regenerated
     caplog.clear()
-    final_certificate_2 = nxdrive.utils.requests_verify(ca_bundle, False)
+    final_certificate_2 = Path(nxdrive.utils.requests_verify(ca_bundle, False))
     records = [line.message for line in caplog.records]
     assert len(records) == 4
     assert "Removed obsolete certificate" in records[0]
@@ -484,7 +514,7 @@ def test_request_verify_ca_bundle_file_is_not_a_certificate(caplog, tmp_path):
     ca_bundle.write_bytes(b"foo")
 
     caplog.clear()
-    assert nxdrive.utils.requests_verify(ca_bundle, False) is ca_bundle
+    assert Path(nxdrive.utils.requests_verify(ca_bundle, False)) == ca_bundle
     records = [line.message for line in caplog.records]
     assert len(records) == 3
     assert "Error while decoding the SSL certificate" in records[0]
@@ -507,7 +537,7 @@ def test_request_verify_ca_bundle_folder(caplog, tmp_path):
 
     # Save the certificate for the first time
     caplog.clear()
-    final_certificate = nxdrive.utils.requests_verify(ca_bundles, False)
+    final_certificate = Path(nxdrive.utils.requests_verify(ca_bundles, False))
     records = [line.message for line in caplog.records]
     assert len(records) == 7
     assert "Saved the final certificate to" in records[0]
@@ -521,7 +551,7 @@ def test_request_verify_ca_bundle_folder(caplog, tmp_path):
 
     # Save the certificate for the second time, it should not be regenerated
     caplog.clear()
-    final_certificate = nxdrive.utils.requests_verify(ca_bundles, False)
+    final_certificate = Path(nxdrive.utils.requests_verify(ca_bundles, False))
     records = [line.message for line in caplog.records]
     assert len(records) == 1
     assert "Will use the final certificate from" in records[0]
@@ -542,7 +572,7 @@ def test_request_verify_ca_bundle_folder_contains_subfolder(caplog, tmp_path):
     (ca_bundles / "subfolder").mkdir()
 
     caplog.clear()
-    assert nxdrive.utils.requests_verify(ca_bundles, False) is ca_bundles
+    assert Path(nxdrive.utils.requests_verify(ca_bundles, False)) == ca_bundles
     records = [line.message for line in caplog.records]
     assert len(records) == 1
     assert "No valid certificate found" in records[0]
@@ -567,7 +597,7 @@ def test_request_verify_ca_bundle_folder_contains_big_file(caplog, tmp_path):
 
     # Save the certificate for the first time
     caplog.clear()
-    final_certificate = nxdrive.utils.requests_verify(ca_bundles, False)
+    final_certificate = Path(nxdrive.utils.requests_verify(ca_bundles, False))
     records = [line.message for line in caplog.records]
     assert len(records) == 6
     assert "No all certificate where processed" in records[0]
@@ -581,7 +611,7 @@ def test_request_verify_ca_bundle_folder_contains_big_file(caplog, tmp_path):
 
     # Save the certificate for the second time, it should not be regenerated
     caplog.clear()
-    final_certificate = nxdrive.utils.requests_verify(ca_bundles, False)
+    final_certificate = Path(nxdrive.utils.requests_verify(ca_bundles, False))
     records = [line.message for line in caplog.records]
     assert len(records) == 2
     assert "No all certificate where processed" in records[0]
