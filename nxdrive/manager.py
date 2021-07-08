@@ -57,6 +57,7 @@ from .updater import updater
 from .updater.constants import Login
 from .utils import (
     client_certificate,
+    find_suitable_direct_edit_dir,
     force_decode,
     get_default_local_folder,
     if_frozen,
@@ -118,7 +119,7 @@ class Manager(QObject):
         self.osi = AbstractOSIntegration.get(self)
         log.info(f"OS integration type: {self.osi.nature}")
 
-        self.direct_edit_folder = self.home / "edit"
+        self.direct_edit_folder = find_suitable_direct_edit_dir(self.home / "edit")
 
         self._engine_definitions: List[EngineDef] = []
 
