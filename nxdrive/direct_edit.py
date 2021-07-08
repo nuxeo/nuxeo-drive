@@ -92,7 +92,6 @@ class DirectEdit(Worker):
         self.lock = Lock()
 
         self.autolock = self._manager.autolock_service
-        self.use_autolock = self._manager.get_direct_edit_auto_lock()
         self._event_handler: Optional[DriveFSEventHandler] = None
         self._metrics = {"edit_files": 0}
         self._observer: Observer = None
@@ -129,6 +128,11 @@ class DirectEdit(Worker):
             self._manager.notification_service._directEditUpdated
         )
         self._file_metrics: Dict[Path, Any] = {}
+
+    @property
+    def use_autolock(self) -> bool:
+        """Return True if document locking mechanism should be use on the server."""
+        return bool(self._manager.get_direct_edit_auto_lock())
 
     @pyqtSlot(object)
     def _autolock_orphans(self, locks: List[Path], /) -> None:
@@ -730,11 +734,12 @@ class DirectEdit(Worker):
                 uid = details.uid
                 remote = details.engine.remote
                 if action == "lock":
-                    self._lock(remote, uid)
                     self.local.set_remote_id(ref.parent, b"1", name="nxdirecteditlock")
-                    # Emit the lock signal only when the lock is really set
-                    self._send_lock_status(ref)
-                    self.autolock.documentLocked.emit(ref.name)
+                    if self.use_autolock:
+                        self._lock(remote, uid)
+                        # Emit the lock signal only when the lock is really set
+                        self._send_lock_status(ref)
+                        self.autolock.documentLocked.emit(ref.name)
                     continue
 
                 purge = self._unlock(remote, uid, ref)
@@ -1059,7 +1064,7 @@ class DirectEdit(Worker):
 
         if force_decode(name) != src_path.name:
             if _is_lock_file(src_path.name):
-                if evt.event_type == "created" and self.use_autolock and not editing:
+                if not editing and evt.event_type == "created" and self.use_autolock:
                     """
                     [Windows 10] The original file is not modified until
                     we specifically click on the save button. Instead, it
@@ -1077,7 +1082,7 @@ class DirectEdit(Worker):
                     self.local.remove_remote_id(dir_path, name="nxdirecteditlock")
             return
 
-        if self.use_autolock and not editing:
+        if not editing and self.use_autolock:
             self.autolock.set_autolock(src_path, self)
 
         if evt.event_type != "deleted":

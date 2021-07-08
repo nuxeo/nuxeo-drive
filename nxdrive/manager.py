@@ -533,8 +533,8 @@ class Manager(QObject):
 
     @pyqtSlot(result=bool)  # from GeneralTab.qml
     def get_direct_edit_auto_lock(self) -> bool:
-        # Enabled by default, if app is frozen
-        return self.dao.get_bool("direct_edit_auto_lock", default=Options.is_frozen)
+        # Enabled by default
+        return self.dao.get_bool("direct_edit_auto_lock", default=True)
 
     @pyqtSlot(bool)  # from GeneralTab.qml
     def set_direct_edit_auto_lock(self, value: bool, /) -> None:
