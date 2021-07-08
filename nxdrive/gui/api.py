@@ -911,7 +911,18 @@ class QMLDriveApi(QObject):
 
         # Get required data and add the account
         try:
-            auth = OAuthentication(stored_url, dao=self._manager.dao)
+            # A proxy may be needed to fetch the OpenID configuration URL
+            subclient_kwargs = {}
+            if Options.oauth2_openid_configuration_url:
+                subclient_kwargs["proxies"] = self._manager.proxy.settings(
+                    url=Options.oauth2_openid_configuration_url
+                )
+
+            auth = OAuthentication(
+                stored_url,
+                dao=self._manager.dao,
+                subclient_kwargs=subclient_kwargs,
+            )
             token = auth.get_token(
                 code_verifier=stored_code_verifier,
                 code=query["code"],

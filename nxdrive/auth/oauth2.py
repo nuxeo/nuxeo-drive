@@ -27,6 +27,7 @@ class OAuthentication(Authentication):
             redirect_uri=Options.oauth2_redirect_uri,
             token_endpoint=Options.oauth2_token_endpoint,
             token=self.token,
+            subclient_kwargs=kwargs.get("subclient_kwargs"),
         )
 
     def connect_url(self) -> str:
