@@ -250,7 +250,7 @@ class QueueManager(QObject):
 
         if (
             WINDOWS
-            and isinstance(exception, OSError)
+            and isinstance(exception, PermissionError)
             and exception.winerror == err_code
         ):
             log.info(
