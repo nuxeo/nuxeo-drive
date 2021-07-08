@@ -119,6 +119,25 @@ def disk_space(a_folder: str, /) -> Tuple[int, int]:
     return used, free
 
 
+def find_suitable_direct_edit_dir(predefined: Path, /) -> Path:
+    """Find a suitable folder for the Direct Edit downloaded temporary files.
+
+    It _must_ be on a partition supporting extended attributes.
+
+    Note: this function cannot be decorated with lru_cache().
+    """
+    if not path_is_unc_name(predefined):
+        # Let's use the given folder as it works fine for years
+        return predefined
+
+    # Here we are obviously on Windows with *predefined* being a UNC name.
+    # We cannot use it because extended attributes are not supported
+    # and Direct Edit heavily uses them.
+    # Let's find a folder on another partition, preferably the default one (like C:).
+    # The temporary folder is generally located on such partition.
+    return Path(gettempdir()) / f"direct-edit-{uuid4()}"
+
+
 def find_suitable_tmp_dir(sync_folder: Path, home_folder: Path, /) -> Path:
     """Find a suitable folder for the downloaded temporary files.
 
