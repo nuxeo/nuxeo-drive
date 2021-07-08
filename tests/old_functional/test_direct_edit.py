@@ -495,7 +495,6 @@ class MixinTests(DirectEditSetup):
         with patch.object(
             self.manager_1, "open_local_file", new=open_local_file
         ), patch.object(self.engine_1.remote, "lock", new=lock), ensure_no_exception():
-            # self.direct_edit.use_autolock = True
             self.direct_edit._handle_lock_queue()
             assert received
 
