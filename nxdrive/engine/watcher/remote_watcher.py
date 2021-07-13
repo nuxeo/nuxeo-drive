@@ -1047,12 +1047,10 @@ class RemoteWatcher(EngineWorker):
         sorted_deleted = sorted(delete_queue, key=attrgetter("local_path"))
         delete_processed: DocPairs = []
         for delete_pair in sorted_deleted:
-            # Mark as deleted
-            skip = False
-            for processed_pair in delete_processed:
-                if processed_pair.local_path in delete_pair.local_path.parents:
-                    skip = True
-                    break
+            skip = any(
+                processed_pair.local_path in delete_pair.local_path.parents
+                for processed_pair in delete_processed
+            )
 
             if skip:
                 continue
