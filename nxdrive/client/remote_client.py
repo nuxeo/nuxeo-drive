@@ -1,6 +1,7 @@
 import json
 import os
 import socket
+import unicodedata
 from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
@@ -33,6 +34,7 @@ from ..constants import (
     APP_NAME,
     BATCH_SIZE,
     FILE_BUFFER_SIZE,
+    SYNC_ROOT,
     TIMEOUT,
     TOKEN_PERMISSION,
     TX_TIMEOUT,
@@ -63,6 +65,7 @@ from ..utils import (
     compute_digest,
     get_current_locale,
     lock_path,
+    shortify,
     sizeof_fmt,
     unlock_path,
 )
@@ -554,13 +557,59 @@ class Remote(Nuxeo):
         with suppress(Exception):
             batch.cancel()
 
+    def is_sync_root(self, item: RemoteFileInfo) -> bool:
+        """Return True when the given *item* is a sync root."""
+        return item.parent_uid == SYNC_ROOT[1:]
+
+    def expand_sync_root_name(self, sync_root: RemoteFileInfo) -> RemoteFileInfo:
+        """Given a *sync_root* object, expand its *name* with its parents' names.
+        See NXDRIVE-2694 for details.
+        """
+        glue = " - "
+        level = 0
+        limit = 50 - len(glue)
+        uid = sync_root.uid.split("#")[-1]
+
+        # Be sure the current name is shortened
+        sync_root.name = shortify(sync_root.name, limit=limit)
+
+        myself = True
+        while "can level up":
+            if level >= Options.sync_root_max_level:
+                break
+
+            try:
+                doc = self.documents.get(uid=uid)
+                name = unicodedata.normalize("NFC", doc.properties["dc:title"])
+                uid = doc.parentRef
+            except Exception:
+                break
+
+            if myself:
+                myself = False
+                continue
+
+            # Adapt the sync root name (used to create the local folder)
+            name = shortify(name, limit=limit)
+            sync_root.name = f"{name}{glue}{sync_root.name}"
+            level += 1
+
+        return sync_root
+
     def get_fs_info(
         self, fs_item_id: str, /, *, parent_fs_item_id: str = None
     ) -> RemoteFileInfo:
         fs_item = self.get_fs_item(fs_item_id, parent_fs_item_id=parent_fs_item_id)
         if fs_item is None:
             raise NotFound(f"Could not find {fs_item_id!r} on {self.client.host!r}")
-        return RemoteFileInfo.from_dict(fs_item)
+
+        remote_item = RemoteFileInfo.from_dict(fs_item)
+
+        # Special handling of sync roots
+        if self.is_sync_root(remote_item):
+            remote_item = self.expand_sync_root_name(remote_item)
+
+        return remote_item
 
     def get_filesystem_root_info(self) -> RemoteFileInfo:
         toplevel_folder = self.execute(command="NuxeoDrive.GetTopLevelFolder")

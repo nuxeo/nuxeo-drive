@@ -520,6 +520,35 @@ Launch the synchronization and then exit the application.
 
 * * *
 
+#### `sync-root-max-level`
+
+Fetch up to `N` sync root parents' names to generate the local folder name to prevent duplicates errors when multiple sync roots have the same name.
+Where `N` must be between `0` and `4` (inclusive).
+
+Example with that hierarchy:
+
+- Project A
+    - Project's documents
+        - Specifications
+        - Mockups
+        - Screenshots  <--- sync root enabled
+ - Project B
+    - Project's documents
+        - Specifications
+        - Mockups
+        - Screenshots  <--- sync root enabled
+
+When Drive will synchronize them, it will create those folders:
+
+- Nuxeo Drive
+    - `Project A - Project's documents - Screenshots`
+    - `Project B - Project's documents - Screenshots`
+
+- Default value (int): `2`
+- Version added: 5.2.5
+
+* * *
+
 #### `synchronization-enabled`
 
 Synchronization features are enabled.

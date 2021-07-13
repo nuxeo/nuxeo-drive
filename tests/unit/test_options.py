@@ -327,3 +327,21 @@ def test_disabled_features(caplog):
     record = caplog.records[0]
     assert record.levelname == "WARNING"
     assert record.message == "'feature_auto_update' cannot be changed."
+
+
+@Options.mock()
+@pytest.mark.parametrize(
+    "value_set, final_value",
+    [
+        (-1, 2),
+        (0, 0),
+        (1, 1),
+        (2, 2),
+        (3, 3),
+        (4, 4),
+        (5, 2),
+    ],
+)
+def test_sync_root_max_level_validator_good(value_set, final_value):
+    Options.sync_root_max_level = value_set
+    assert Options.sync_root_max_level == final_value

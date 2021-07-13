@@ -1262,3 +1262,19 @@ def test_url_bad_ssl():
 
     with pytest.raises(InvalidSSLCertificate):
         nxdrive.utils.test_url(f"https://{BAD_HOSTNAMES[2]}/nuxeo")
+
+
+@pytest.mark.parametrize(
+    "text, shortened",
+    [
+        ["a" * 49, False],
+        ["a" * 50, False],
+        ["a" * 51, True],
+        ["a" * 52, True],
+    ],
+)
+def test_shortify(text, shortened):
+    new_text = nxdrive.utils.shortify(text)
+    if shortened:
+        assert "…" in new_text
+        assert len(new_text) == 50

@@ -2,7 +2,11 @@ import pytest
 from nuxeo.models import Document
 
 from nxdrive.metrics.constants import GLOBAL_METRICS
+from nxdrive.objects import RemoteFileInfo
 from nxdrive.options import Options
+from nxdrive.utils import shortify
+
+from .. import env
 
 
 @pytest.mark.parametrize(
@@ -72,3 +76,89 @@ def test_custom_metrics_global_headers(manager_factory):
         assert '"feature.direct_edit": 0' in headers[GLOBAL_METRICS]
 
     Options.feature_direct_edit = True
+
+
+@Options.mock()
+@pytest.mark.parametrize("option", list(range(7)))
+def test_expand_sync_root_name_levels(option, manager_factory, obj_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+
+    with manager:
+        # Create (sub)folders
+        parent = env.WS_DIR
+        potential_names = []
+        for num in range(option + 1):
+            title = f"folder {num}"
+            potential_names.append(shortify(title))
+            doc = obj_factory(title=title, parent=parent, user=remote.user_id)
+            parent = doc.path
+
+        # *doc* is the latest created folder, craft the awaited object for next steps
+        sync_root = RemoteFileInfo.from_dict(
+            {
+                "id": doc.uid,
+                "name": doc.title,
+                "parentId": doc.parentRef,
+                "path": doc.path,
+                "folderish": True,
+            }
+        )
+
+        # Finally, let's guess its final name
+        Options.sync_root_max_level = option
+        sync_root = remote.expand_sync_root_name(sync_root)
+
+        if option != Options.sync_root_max_level:
+            # Typically the option was outside bounds, here it is "7".
+            # We shrink the posibble folder names to ease code for checking the final
+            # name
+            potential_names = potential_names[option - Options.sync_root_max_level :]
+
+        # Check
+        final_name = " - ".join(potential_names[: Options.sync_root_max_level + 1])
+        assert sync_root.name == final_name
+
+
+@Options.mock()
+@pytest.mark.parametrize("option", list(range(7)))
+def test_expand_sync_root_name_length(option, manager_factory, obj_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+
+    with manager:
+        # Create (sub)folders
+        parent = env.WS_DIR
+        potential_names = []
+        for num in range(option + 1):
+            title = "folder" + "r" * 50 + f" {num}"  # > 50 chars
+            potential_names.append(shortify(title, limit=47))
+            doc = obj_factory(title=title, parent=parent, user=remote.user_id)
+            parent = doc.path
+
+        # *doc* is the latest created folder, craft the awaited object for next steps
+        sync_root = RemoteFileInfo.from_dict(
+            {
+                "id": doc.uid,
+                "name": doc.title,
+                "parentId": doc.parentRef,
+                "path": doc.path,
+                "folderish": True,
+            }
+        )
+
+        # Finally, let's guess its final name
+        Options.sync_root_max_level = option
+        sync_root = remote.expand_sync_root_name(sync_root)
+
+        if option != Options.sync_root_max_level:
+            # Typically the option was outside bounds, here it is "7".
+            # We shrink the posibble folder names to ease code for checking the final
+            # name
+            potential_names = potential_names[option - Options.sync_root_max_level :]
+
+        # Check
+        final_name = " - ".join(potential_names[: Options.sync_root_max_level + 1])
+        assert sync_root.name == final_name
+        assert sync_root.name.count("…") == Options.sync_root_max_level or 1
+        assert len(sync_root.name) <= 250

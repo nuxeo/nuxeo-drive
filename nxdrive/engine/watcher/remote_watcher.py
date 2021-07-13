@@ -908,6 +908,10 @@ class RemoteWatcher(EngineWorker):
                         # Perform a regular document update on a document
                         # that has been updated, renamed or moved
 
+                        # Keep the sync root name format as expected
+                        if self.engine.remote.is_sync_root(new_info):
+                            self.engine.remote.expand_sync_root_name(new_info)
+
                         if doc_pair.remote_state != "created" and any(
                             (
                                 new_info.digest != doc_pair.remote_digest,
@@ -1043,12 +1047,10 @@ class RemoteWatcher(EngineWorker):
         sorted_deleted = sorted(delete_queue, key=attrgetter("local_path"))
         delete_processed: DocPairs = []
         for delete_pair in sorted_deleted:
-            # Mark as deleted
-            skip = False
-            for processed_pair in delete_processed:
-                if processed_pair.local_path in delete_pair.local_path.parents:
-                    skip = True
-                    break
+            skip = any(
+                processed_pair.local_path in delete_pair.local_path.parents
+                for processed_pair in delete_processed
+            )
 
             if skip:
                 continue
