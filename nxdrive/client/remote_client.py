@@ -606,7 +606,7 @@ class Remote(Nuxeo):
         remote_item = RemoteFileInfo.from_dict(fs_item)
 
         # Special handling of sync roots
-        if self.is_sync_root(remote_item.parent_uid):
+        if self.is_sync_root(remote_item):
             remote_item = self.expand_sync_root_name(remote_item)
 
         return remote_item

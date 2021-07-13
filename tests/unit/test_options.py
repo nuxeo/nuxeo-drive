@@ -339,8 +339,7 @@ def test_disabled_features(caplog):
         (2, 2),
         (3, 3),
         (4, 4),
-        (5, 5),
-        (6, 2),
+        (5, 2),
     ],
 )
 def test_sync_root_max_level_validator_good(value_set, final_value):
