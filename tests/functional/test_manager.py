@@ -36,7 +36,7 @@ def test_open_local_file_no_soft(manager_factory, monkeypatch):
 @Options.mock()
 def test_manager_init_failed_migrations(tmp_path, monkeypatch):
     """
-    Ensure that when the migrations fails, the xxx_broken_update option is saved.
+    Ensure that when the migrations fail, the xxx_broken_update option is saved.
     """
     from nxdrive.dao.migrations.manager import manager_migrations as orignal_migrations
 
