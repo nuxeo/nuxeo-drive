@@ -908,6 +908,10 @@ class RemoteWatcher(EngineWorker):
                         # Perform a regular document update on a document
                         # that has been updated, renamed or moved
 
+                        # Keep the sync root name format as expected
+                        if self.engine.remote.is_sync_root(new_info):
+                            self.engine.remote.expand_sync_root_name(new_info)
+
                         if doc_pair.remote_state != "created" and any(
                             (
                                 new_info.digest != doc_pair.remote_digest,

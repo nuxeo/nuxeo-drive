@@ -271,6 +271,7 @@ class MetaOptions(type):
         "ssl_no_verify": (False, "default"),
         "startup_page": ("drive_login.jsp", "default"),
         "sync_and_quit": (False, "default"),
+        "sync_root_max_level": (2, "default"),
         "synchronization_enabled": (False, "default"),
         "system_wide": (_is_system_wide(), "default"),
         "theme": ("ui5", "default"),
@@ -621,6 +622,12 @@ def validate_tmp_file_limit(value: Union[int, float], /) -> float:
     raise ValueError("Temporary file limit must be above 0")
 
 
+def validate_sync_root_max_level_limits(value: int, /) -> int:
+    if 0 <= value <= 4:
+        return int(value)
+    raise ValueError("'sync_root_max_level' must be between 0 and 4 (inclusive).")
+
+
 def _callback_synchronization_enabled(new_value: bool) -> None:
     log.warning(
         "The option is deprecated since 5.2.0 and will be removed in a future release."
@@ -644,6 +651,7 @@ Options.checkers["chunk_size"] = validate_chunk_size
 Options.checkers["client_version"] = validate_client_version
 Options.checkers["deletion_behavior"] = _validate_deletion_behavior
 Options.checkers["use_sentry"] = validate_use_sentry
+Options.checkers["sync_root_max_level"] = validate_sync_root_max_level_limits
 Options.checkers["tmp_file_limit"] = validate_tmp_file_limit
 Options.checkers["ca_bundle"] = validate_ca_bundle_path
 Options.checkers["cert_file"] = validate_cert_path

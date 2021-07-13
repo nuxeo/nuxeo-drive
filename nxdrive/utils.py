@@ -1021,8 +1021,17 @@ def short_name(name: Union[bytes, str], /) -> str:
     """
     name = force_decode(name)
     if len(name) > 70:
-        name = f"{name[:30]}…{name[-40:]}"
+        name = shortify(name, limit=70)
     return name
+
+
+def shortify(text: str, /, *, limit: int = 50) -> str:
+    """Shorten a given `text` to fit in exactly or less `limit` characters.
+    Ellipsis are included in the middle when the text was altered.
+    """
+    if len(text) > limit:
+        text = f"{text[:limit // 2 - 1]}…{text[-limit // 2:]}"
+    return text
 
 
 class PidLockFile:
