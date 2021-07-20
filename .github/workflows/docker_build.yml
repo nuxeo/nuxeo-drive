@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - uses: docker/setup-buildx-action@v1.3.0
+      - uses: docker/setup-buildx-action@v1.5.1
         with:
           driver: docker
       - name: Login to the registry
