@@ -428,6 +428,12 @@ def test_request_verify_ca_bundle_file(caplog, tmp_path):
     assert "Will use the final certificate from" in records[0]
     assert final_certificate.name in records[0]
 
+    # Test ssl_no_verify is True
+    assert not nxdrive.utils.requests_verify(ca_bundle, True)
+
+    # Test ca_bundle is None
+    assert nxdrive.utils.requests_verify(None, False)
+
 
 @Options.mock()
 def test_request_verify_ca_bundle_file_is_str(caplog, tmp_path):
@@ -514,7 +520,9 @@ def test_request_verify_ca_bundle_file_is_not_a_certificate(caplog, tmp_path):
     ca_bundle.write_bytes(b"foo")
 
     caplog.clear()
-    assert Path(nxdrive.utils.requests_verify(ca_bundle, False)) == ca_bundle
+    assert nxdrive.utils.requests_verify(
+        ca_bundle, False
+    )  # No valid cert so should return True
     records = [line.message for line in caplog.records]
     assert len(records) == 3
     assert "Error while decoding the SSL certificate" in records[0]
@@ -572,7 +580,9 @@ def test_request_verify_ca_bundle_folder_contains_subfolder(caplog, tmp_path):
     (ca_bundles / "subfolder").mkdir()
 
     caplog.clear()
-    assert Path(nxdrive.utils.requests_verify(ca_bundles, False)) == ca_bundles
+    assert nxdrive.utils.requests_verify(
+        ca_bundles, False
+    )  # No valid cert so should return True
     records = [line.message for line in caplog.records]
     assert len(records) == 1
     assert "No valid certificate found" in records[0]

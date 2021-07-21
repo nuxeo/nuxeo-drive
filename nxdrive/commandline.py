@@ -563,7 +563,6 @@ class CliHandler:
                     raise RuntimeError("No SSL support, packaging must have failed.")
 
                 log.warning("No SSL support! HTTPS validation will be skipped.")
-                options.ca_bundle = None
                 options.cert_file = None
                 options.cert_key_file = None
                 options.ssl_no_verify = True
