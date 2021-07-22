@@ -518,14 +518,13 @@ class QMLDriveApi(QObject):
             parts = urlsplit(server_url)
             hostname = parts.netloc or parts.path
             if self.application.accept_unofficial_ssl_cert(hostname):
-                Options.ca_bundle = None
                 Options.ssl_no_verify = True
-                save_config(
-                    {
-                        "ca_bundle": Options.ca_bundle,
-                        "ssl_no_verify": Options.ssl_no_verify,
-                    }
-                )
+                saved_conf = {
+                    "ssl_no_verify": Options.ssl_no_verify,
+                }
+                if Options.ca_bundle:
+                    saved_conf["ca_bundle"] = Options.ca_bundle
+                save_config(saved_conf)
                 return self._get_ssl_error(server_url)
         except MissingClientSSLCertificate as exc:
             log.warning(exc)

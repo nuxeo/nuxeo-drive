@@ -752,16 +752,22 @@ def get_final_certificate_from_folder(folder: Path) -> Optional[Path]:
 
 def requests_verify(ca_bundle: Optional[Path], ssl_no_verify: bool) -> Any:
     """Return the appropriate value for the *verify* keyword argument of *requests* calls."""
-    if ca_bundle:
-        path = ca_bundle
-        if path.is_file():
-            path = get_final_certificate(path) or path
-        elif path.is_dir():
-            path = get_final_certificate_from_folder(path) or path
-        # `requests` needs a string, not a path-like object
-        return str(path)
+    if ssl_no_verify:
+        return False  # We do not want to verify ssl
 
-    return not ssl_no_verify
+    if ca_bundle is None:
+        return True  # Verification enabled but no certificates provided
+
+    path = ca_bundle
+    if path.is_file():
+        final_path = get_final_certificate(path)
+    elif path.is_dir():
+        final_path = get_final_certificate_from_folder(path)
+
+    if final_path is None:
+        return True
+    # `requests` needs a string, not a path-like object
+    return str(final_path)
 
 
 def _cryptor(key: bytes, iv: bytes) -> "Cipher":
