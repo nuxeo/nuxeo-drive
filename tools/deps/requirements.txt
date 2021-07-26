@@ -10,9 +10,9 @@ boto3==1.17.0 \
     --hash=sha256:b4860f56bc585d3d1fde90d288da5eb4d1198401d72201dc3e25de8887b080e2 \
     --hash=sha256:2a39bd5e5f2d50ce9267d682cc92750f8771399665021f47e80f9c8d2fb812a6
     # via nuxeo[s3]
-botocore==1.20.0 \
-    --hash=sha256:634b39ab0d55477cfbffb0e5dff31b7ab4bb171b04a0c69f8bcf65135f26ba94 \
-    --hash=sha256:a608d6d644b852f3c154fc433eaae52febbebc7c474fa8f4d666797d0931770a
+botocore==1.21.6 \
+    --hash=sha256:c92dc2b69aec36b7482e5b05ac0a00d65ac972d745a74546942f09c95e68d335 \
+    --hash=sha256:cabff036f702411f47c6dae09134315e0b524c8eda6bb1de99ee75fc1ee07f7f
     # via boto3
 certifi==2021.5.30 \
     --hash=sha256:50b1e4f8446b06f41be7dd6338db18e0990601dce795c2b1686458aa7e8fa7d8 \
