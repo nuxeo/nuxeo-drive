@@ -112,7 +112,7 @@ create_package() {
         # arbitrary order. When the `codesign` runs, it will look at some
         # dependencies of the current binary and see that they are not signed
         # yet. But the find command will eventually reach it and sign it later.
-        find "${pkg_path}/Contents/MacOS" -type f -exec ${CODESIGN} "${SIGNING_ID}" {} \;
+        find "${pkg_path}/Contents/MacOS" -type f -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
 
         # QML libraries need to be signed too for the notarization
         find "${pkg_path}/Contents/Resources" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" {} \;
