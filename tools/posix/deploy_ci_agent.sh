@@ -211,10 +211,17 @@ install_python() {
     # Source: https://github.com/pyenv/pyenv/wiki#how-to-build-cpython-with---enable-shared
     export PYTHON_CONFIGURE_OPTS="--enable-shared"
 
-    pyenv install --skip-existing "${version}"
+    # We need to override the default python used by pyenv as we installed it manually
+    # See ticket: https://jira.nuxeo.com/browse/NXDRIVE-2724
+    if [ "${MACOSX_DEPLOYMENT_TARGET:-unset}" != "unset" ]; then
+        ln -sf $(which python3) $(which python)
+    else
+        pyenv install --skip-existing "${version}"
+        pyenv global "${version}"
+    fi
 
     echo ">>> [pyenv] Using Python ${version}"
-    pyenv global "${version}"
+
 }
 
 junit_arg() {
