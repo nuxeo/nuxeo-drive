@@ -486,8 +486,10 @@ class Application(QApplication):
         if self.today_is_special:
             emoticon = choice("🎅 🤶 🎄 ⛄ ❄️ 🎁".split())
             versions += f" {emoticon}"
-        versions += f"\nDevice ID: {self.manager.device_id}"
+        device_id = f"Device ID: {self.manager.device_id}"
+
         context.setContextProperty("modulesVersionText", versions)
+        context.setContextProperty("deviceIdText", device_id)
 
         colors = {
             "mediumGray": "#7F8284",

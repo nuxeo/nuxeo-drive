@@ -39,6 +39,10 @@ Rectangle {
                     text: modulesVersionText
                     color: secondaryText
                 }
+                SelectableText {
+                    text: deviceIdText
+                    color: secondaryText
+                }
             }
         }
 
