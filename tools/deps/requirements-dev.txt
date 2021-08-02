@@ -16,8 +16,13 @@ macholib==1.14 ; sys_platform == "darwin" \
 pefile==2021.5.24 ; sys_platform == "win32" \
     --hash=sha256:ed79b2353daa58421459abf4d685953bde0adf9f6e188944f97ba9795f100246
     # via pyinstaller
-pyinstaller==4.3 \
-    --hash=sha256:5ecf8bbc230d7298a796e52bb745b95eee12878d141f1645612c99246ecd23f2
+pyinstaller==4.5 \
+    --hash=sha256:0129e5ea77c5eb6b2e0de8b1f7ec006238991ac712e3c0e877b995a289e4d8ea \
+    --hash=sha256:3228e1c7d823c5e786ee41194171e19fc985c4d6074610e4876479697a97b60f \
+    --hash=sha256:8b22656d2eaf5141c20afa3b98422cce17bf05ff9ef4fa8b232b47853b18e4b9 \
+    --hash=sha256:9d78452652a27a20a7126fdb93fe7abe731b82dc2a6c163a67fd98bd2a9c44f5 \
+    --hash=sha256:df294f6579443924774e7c987deccca47a5f6386137972c8f3f31983db37a43e \
+    --hash=sha256:86f694faec78a08c3893aacef84b1a49cb53d4e2880559c6124beefd196a3a74
 pyinstaller-hooks-contrib==2021.2 \
     --hash=sha256:57964f93eb69255c49159ffdf052aae893feed223b0f69773dfd010ca6c569d9 \
     --hash=sha256:7f5d0689b30da3092149fc536a835a94045ac8c9f0e6dfb23ac171890f5ea8f2
