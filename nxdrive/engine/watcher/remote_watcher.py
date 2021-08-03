@@ -22,6 +22,7 @@ from .constants import (
     DOCUMENT_LOCKED,
     DOCUMENT_MOVED,
     DOCUMENT_UNLOCKED,
+    ROOT_REGISTERED,
     SECURITY_UPDATED_EVENT,
 )
 
@@ -908,10 +909,6 @@ class RemoteWatcher(EngineWorker):
                         # Perform a regular document update on a document
                         # that has been updated, renamed or moved
 
-                        # Keep the sync root name format as expected
-                        if self.engine.remote.is_sync_root(new_info):
-                            self.engine.remote.expand_sync_root_name(new_info)
-
                         if doc_pair.remote_state != "created" and any(
                             (
                                 new_info.digest != doc_pair.remote_digest,
@@ -1009,6 +1006,14 @@ class RemoteWatcher(EngineWorker):
             if new_info and not updated:
                 # Handle new document creations
                 created = False
+
+                # Keep the sync root name format as expected
+                if (
+                    self.engine.remote.is_sync_root(new_info)
+                    and event_id == ROOT_REGISTERED
+                ):
+                    self.engine.remote.expand_sync_root_name(new_info)
+
                 parent_pairs = self.dao.get_states_from_remote(new_info.parent_uid)
                 for parent_pair in parent_pairs:
                     match_pair = self._find_remote_child_match_or_create(

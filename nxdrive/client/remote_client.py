@@ -567,7 +567,7 @@ class Remote(Nuxeo):
         """
         glue = " - "
         level = 0
-        limit = 50 - len(glue)
+        limit = 49 - len(glue)
         uid = sync_root.uid.split("#")[-1]
 
         # Be sure the current name is shortened
@@ -594,6 +594,14 @@ class Remote(Nuxeo):
             sync_root.name = f"{name}{glue}{sync_root.name}"
             level += 1
 
+        local_roots = self.dao.get_local_roots_names()
+        if sync_root.name not in local_roots:
+            return sync_root
+        for n in range(1, 100):
+            if f"{sync_root.name}_{n}" not in local_roots:
+                sync_root.name = f"{sync_root.name}_{n}"
+                return sync_root
+        sync_root.name = f"{sync_root.name}_{n}"
         return sync_root
 
     def get_fs_info(
