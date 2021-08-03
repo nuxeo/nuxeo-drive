@@ -132,7 +132,7 @@ def test_expand_sync_root_name_length(option, manager_factory, obj_factory):
         potential_names = []
         for num in range(option + 1):
             title = "folder" + "r" * 50 + f" {num}"  # > 50 chars
-            potential_names.append(shortify(title, limit=47))
+            potential_names.append(shortify(title, limit=46))
             doc = obj_factory(title=title, parent=parent, user=remote.user_id)
             parent = doc.path
 
