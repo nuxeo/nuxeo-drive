@@ -765,16 +765,7 @@ class EngineDAO(BaseDAO):
     ) -> int:
         digest = None
         if not info.folderish:
-            if is_large_file(info.size):
-                # We can't compute the digest of big files now as it will
-                # be done later when the entire file is fully copied.
-                # For instance, on my machine (32GB RAM, 8 cores, Intel NUC)
-                # it takes 23 minutes for 100 GB and 7 minute for 50 GB.
-                # This is way too much effort to compute it several times.
-                digest = UNACCESSIBLE_HASH
-            else:
-                digest = info.get_digest()
-
+            digest = UNACCESSIBLE_HASH if is_large_file(info.size) else info.get_digest()
         with self.lock:
             c = self._get_write_connection().cursor()
             pair_state = PAIR_STATES[("created", "unknown")]
