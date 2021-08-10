@@ -42,6 +42,7 @@ Invalid = QValidator.State.Invalid
 ItemIsEditable = Qt.ItemFlag.ItemIsEditable
 ItemIsEnabled = Qt.ItemFlag.ItemIsEnabled
 ItemIsSelectable = Qt.ItemFlag.ItemIsSelectable
+Key_Escape = Qt.Key_Escape
 LeftToRight = Qt.LayoutDirection.LeftToRight
 MiddleClick = QSystemTrayIcon.ActivationReason.MiddleClick
 MouseButtonPress = QEvent.Type.MouseButtonPress

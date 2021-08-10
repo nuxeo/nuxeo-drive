@@ -4,10 +4,11 @@
 import QtQuick 2.15
 import QtQuick.Window 2.15
 import SystrayWindow 1.0
+import CustomWindow 1.0
 
 QtObject {
 
-    property var settingsWindow: Window {
+    property var settingsWindow: CustomWindow {
         id: settingsWindow
         minimumWidth: 640
         minimumHeight: 540
@@ -48,7 +49,7 @@ QtObject {
         }
     }
 
-    property var conflictsWindow: Window {
+    property var conflictsWindow: CustomWindow {
         id: conflictsWindow
         objectName: "conflictsWindow"
         minimumWidth: 550
@@ -66,7 +67,7 @@ QtObject {
         }
     }
 
-    property var directTransferWindow: Window {
+    property var directTransferWindow: CustomWindow {
         id: directTransferWindow
         minimumWidth: 600
         minimumHeight: 480

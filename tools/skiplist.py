@@ -20,6 +20,7 @@ CliHandler.ctx_direct_transfer  # Used by the arguments parser
 CliHandler.download_edit  # Used by the arguments parser
 CliHandler.unbind_root  # Used by the arguments parser
 CliHandler.unbind_server  # Used by the arguments parser
+CustomWindow.keyPressEvent  # Called by base class
 _.close_settings_too  # Used by Appiclation.show_filters()
 DirectTransferModel.destination_link  # Used in QML
 DocPair.last_sync_error_date  # Check NXDRIVE-1804
