@@ -440,7 +440,7 @@ class CliHandler:
                 continue
 
             config = ConfigParser()
-            log.info(f"Reading local configuration file {str(conf_file)!r} ...")
+            log.info(f'Reading local configuration file {conf_file!r} ...')
             with conf_file.open(encoding="utf-8") as fh:
                 try:
                     config.read_file(fh)
