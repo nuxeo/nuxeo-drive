@@ -50,7 +50,6 @@ from ..qt.imports import (
     QQmlApplicationEngine,
     QQmlContext,
     QQuickView,
-    QQuickWindow,
     QRect,
     QSizePolicy,
     QSpacerItem,
@@ -85,6 +84,7 @@ from ..utils import (
     today_is_special,
 )
 from .api import QMLDriveApi
+from .custom_window import CustomWindow
 from .systray import DriveSystrayIcon, SystrayWindow
 from .view import (
     ActiveSessionModel,
@@ -290,7 +290,7 @@ class Application(QApplication):
 
         if WINDOWS:
             # Conflicts
-            self.conflicts_window = QQuickView()
+            self.conflicts_window = CustomWindow()
             self.conflicts_window.setMinimumWidth(550)
             self.conflicts_window.setMinimumHeight(600)
             self._fill_qml_context(self.conflicts_window.rootContext())
@@ -299,7 +299,7 @@ class Application(QApplication):
             )
 
             # Settings
-            self.settings_window = QQuickView()
+            self.settings_window = CustomWindow()
             self.settings_window.setMinimumWidth(640)
             self.settings_window.setMinimumHeight(580)
             self._fill_qml_context(self.settings_window.rootContext())
@@ -318,7 +318,7 @@ class Application(QApplication):
             )
 
             # Direct Transfer
-            self.direct_transfer_window = QQuickView()
+            self.direct_transfer_window = CustomWindow()
             self.direct_transfer_window.setMinimumWidth(600)
             self.direct_transfer_window.setMinimumHeight(480)
             self._fill_qml_context(self.direct_transfer_window.rootContext())
@@ -334,11 +334,11 @@ class Application(QApplication):
                 QUrl.fromLocalFile(str(find_resource("qml", file="Main.qml")))
             )
             root = self.app_engine.rootObjects()[0]
-            self.conflicts_window = root.findChild(QQuickWindow, "conflictsWindow")
-            self.settings_window = root.findChild(QQuickWindow, "settingsWindow")
+            self.conflicts_window = root.findChild(CustomWindow, "conflictsWindow")
+            self.settings_window = root.findChild(CustomWindow, "settingsWindow")
             self.systray_window = root.findChild(SystrayWindow, "systrayWindow")
             self.direct_transfer_window = root.findChild(
-                QQuickWindow, "directTransferWindow"
+                CustomWindow, "directTransferWindow"
             )
 
             if LINUX:

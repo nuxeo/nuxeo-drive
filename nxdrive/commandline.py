@@ -586,10 +586,12 @@ class CliHandler:
             from .console import ConsoleApplication as Application  # noqa
         else:
             from .gui.application import Application  # noqa
+            from .gui.custom_window import CustomWindow
             from .gui.systray import SystrayWindow
             from .qt.imports import qmlRegisterType
 
             qmlRegisterType(SystrayWindow, "SystrayWindow", 1, 0, "SystrayWindow")
+            qmlRegisterType(CustomWindow, "CustomWindow", 1, 0, "CustomWindow")
         return Application(self.manager)
 
     def launch(self, options: Optional[Namespace], /, *, console: bool = False) -> int:
