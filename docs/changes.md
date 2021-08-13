@@ -31,7 +31,8 @@
 - [5.2.3](changes/5.2.3.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.2.2...release-5.2.3))
 - [5.2.4](changes/5.2.4.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.2.3...release-5.2.4))
 - [5.2.5](changes/5.2.5.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.2.4...release-5.2.5))
-- [5.2.6](changes/5.2.6.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.2.5...master))
+- [5.2.6](changes/5.2.6.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.2.5...release-5.2.6))
+- [5.2.7](changes/5.2.7.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.2.6...master))
 
 ## 3.x
 
