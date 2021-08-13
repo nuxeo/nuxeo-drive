@@ -88,7 +88,7 @@ class DialogMixin(QDialog):
 
 
 class DocumentsDialog(DialogMixin):
-    """The dialog window for synced documents. Used bu the filters feature."""
+    """The dialog window for synced documents. Used by the filters feature."""
 
     # The windows's title
     title_label = "FILTERS_WINDOW_TITLE"
@@ -215,7 +215,7 @@ class DocumentsDialog(DialogMixin):
 
 
 class FoldersDialog(DialogMixin):
-    """The dialog window for folderish documents. Used bu the Direct Transfer feature."""
+    """The dialog window for folderish documents. Used by the Direct Transfer feature."""
 
     # The windows's title
     title_label = "DIRECT_TRANSFER_WINDOW_TITLE"
@@ -237,6 +237,7 @@ class FoldersDialog(DialogMixin):
         """*path* is None when the dialog window is opened from a click on the systray menu icon."""
 
         super().__init__(application, engine)
+        self.setWindowFlags(self.windowFlags() & ~qt.WindowStaysOnTopHint)
 
         self.path: Optional[Path] = None
         self.paths: Dict[Path, int] = {}
