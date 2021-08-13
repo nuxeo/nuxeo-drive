@@ -16,6 +16,8 @@ class CustomWindow(inherited_base_class):  # type: ignore
         # Did the user press the Escape key?
         if event.key() == qt.Key_Escape:
             self.showNormal()
+        else:
+            super().keyPressEvent(event)
 
     def _handle_visibility_change(self, visibility: QWindow.Visibility) -> None:
         if visibility == QWindow.Visibility.FullScreen:
