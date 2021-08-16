@@ -106,9 +106,9 @@ identify==2.2.10 \
     --hash=sha256:18d0c531ee3dbc112fa6181f34faa179de3f57ea57ae2899754f16a7e0ff6421 \
     --hash=sha256:5b41f71471bc738e7b586308c3fca172f78940195cb3bf6734c1e66fdac49306
     # via pre-commit
-importlib-metadata==4.6.1 \
-    --hash=sha256:9f55f560e116f8643ecf2922d9cd3e1c7e8d52e683178fecd9d08f6aa357e11e \
-    --hash=sha256:079ada16b7fc30dfbb5d13399a5113110dab1aa7c2bc62f66af75f0b717c8cac
+importlib-metadata==4.6.4 \
+    --hash=sha256:ed5157fef23a4bc4594615a0dd8eba94b2bb36bf2a343fa3d8bb2fa0a62a99d5 \
+    --hash=sha256:7b30a78db2922d78a6f47fb30683156a14f3c6aa5cc23f77cc8967e9ab2d002f
     # via flake8
 iniconfig==1.1.1 \
     --hash=sha256:bc3af051d7d14b2ee5ef9969666def0cd1a000e121eaea580d4a313df4b37f32
