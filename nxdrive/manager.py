@@ -138,8 +138,10 @@ class Manager(QObject):
         # Used by the updater to ignore a boken version
         Options.xxx_broken_update = self.get_config("xxx_broken_update")
 
-        self.notification_service = DefaultNotificationService(self)
-        self.osi = AbstractOSIntegration.get(self)
+        self.notification_service: DefaultNotificationService = (
+            DefaultNotificationService(self)
+        )
+        self.osi: AbstractOSIntegration = AbstractOSIntegration.get(self)
         log.info(f"OS integration type: {self.osi.nature}")
 
         self.direct_edit_folder = find_suitable_direct_edit_dir(self.home / "edit")
@@ -150,11 +152,7 @@ class Manager(QObject):
         self.engines: Dict[str, Engine] = {}
         self.db_backup_worker: Optional[DatabaseBackupWorker] = None
 
-        if Options.proxy_server is not None:
-            self.proxy = get_proxy("Manual", url=Options.proxy_server)
-            save_proxy(self.proxy, self.dao, token=self.device_id)
-        else:
-            self.proxy = load_proxy(self.dao)
+        self.proxy: Proxy = self._save_or_load_proxy()
         log.info(f"Proxy configuration is {self.proxy!r}")
 
         # Set the logs levels option
@@ -237,6 +235,14 @@ class Manager(QObject):
         # Create Direct Edit
         self.autolock_service = self._create_autolock_service()
         self.direct_edit = self._create_direct_edit()
+
+    def _save_or_load_proxy(self) -> "Proxy":
+        if Options.proxy_server is not None:
+            proxy = get_proxy("Manual", url=Options.proxy_server)
+            save_proxy(proxy, self.dao, token=self.device_id)
+        else:
+            proxy = load_proxy(self.dao)
+        return proxy
 
     def __enter__(self) -> "Manager":
         return self

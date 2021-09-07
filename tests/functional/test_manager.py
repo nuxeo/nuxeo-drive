@@ -5,7 +5,6 @@ import pytest
 
 from nxdrive import __version__
 from nxdrive.exceptions import NoAssociatedSoftware
-from nxdrive.manager import Manager
 from nxdrive.options import Options
 
 from ..markers import windows_only
@@ -34,7 +33,7 @@ def test_open_local_file_no_soft(manager_factory, monkeypatch):
 
 
 @Options.mock()
-def test_manager_init_failed_migrations(tmp_path, monkeypatch):
+def test_manager_init_failed_migrations(manager_factory, tmp_path, monkeypatch):
     """
     Ensure that when the migrations fail, the xxx_broken_update option is saved.
     """
@@ -50,7 +49,7 @@ def test_manager_init_failed_migrations(tmp_path, monkeypatch):
             raise sqlite3.Error("Mocked exception")
 
     # Init the database with the initial migration
-    with Manager(tmp_path):
+    with manager_factory(home=tmp_path, with_engine=False) as _:
         pass
 
     new_migrations = orignal_migrations.copy()
@@ -64,7 +63,7 @@ def test_manager_init_failed_migrations(tmp_path, monkeypatch):
 
         try:
             # Run the new failing migration
-            with Manager(tmp_path):
+            with manager_factory(home=tmp_path, with_engine=False) as _:
                 pass
         finally:
             monkeypatch.undo()
