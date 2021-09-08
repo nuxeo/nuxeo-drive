@@ -116,8 +116,7 @@ def get_latest_version(versions: Versions, channel: str, /) -> str:
         log.debug(f"No version found in {channel} channel.")
         return ""
 
-    highest = str(max(map(LooseVersion, versions_list)))
-    return highest  # ᕦ(ò_óˇ)ᕤ
+    return str(max(map(LooseVersion, versions_list)))
 
 
 def get_update_status(

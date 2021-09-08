@@ -598,7 +598,7 @@ def validate_use_sentry(value: bool, /) -> bool:
 
 
 def _validate_deletion_behavior(value: str, /) -> str:
-    if value in ("unsync", "delete_server"):
+    if value in {"unsync", "delete_server"}:
         return value
     raise ValueError(f"Unknown deletion behavior {value!r}")
 
