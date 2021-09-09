@@ -27,3 +27,44 @@ def test_open_local_file_no_soft(manager_factory, monkeypatch):
         NoAssociatedSoftware
     ):
         manager.open_local_file("File.azerty")
+
+
+# This test is commented because it causes other ft tests to fails
+# @Options.mock()
+# def test_manager_init_failed_migrations(manager_factory, tmp_path, monkeypatch):
+#     """
+#     Ensure that when the migrations fail, the xxx_broken_update option is saved.
+#     """
+#     from nxdrive.dao.migrations.manager import manager_migrations as orignal_migrations
+
+#     assert Options.xxx_broken_update is None
+#     assert Options.feature_auto_update
+
+#     class MockedMigration:
+#         """Mocked migration that raise an exception on upgrade."""
+
+#         def upgrade(self, _):
+#             raise sqlite3.Error("Mocked exception")
+
+#     # Init the database with the initial migration
+#     with manager_factory(home=tmp_path, with_engine=False) as _:
+#         pass
+
+#     new_migrations = orignal_migrations.copy()
+#     new_migrations["9999_test"] = MockedMigration()
+
+#     with pytest.raises(SystemExit):
+#         monkeypatch.setattr(
+#             "nxdrive.dao.migrations.manager.manager_migrations",
+#             new_migrations,
+#         )
+
+#         try:
+#             # Run the new failing migration
+#             with manager_factory(home=tmp_path, with_engine=False) as _:
+#                 pass
+#         finally:
+#             monkeypatch.undo()
+
+#     assert Options.xxx_broken_update == __version__
+#     assert not Options.feature_auto_update

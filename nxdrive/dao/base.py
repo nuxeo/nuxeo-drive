@@ -81,7 +81,12 @@ class BaseDAO(QObject):
             schema_version = self.get_schema_version(c, exists)
         else:
             self.set_schema_version(c, schema_version)
-        self._migrate_db(schema_version)
+        try:
+            self._migrate_db(schema_version)
+        except Exception:
+            self.migration_success = False
+        else:
+            self.migration_success = True
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__} db={self.db!r}, exists={self.db.exists()}>"
