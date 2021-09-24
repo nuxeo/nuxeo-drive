@@ -2,8 +2,11 @@ from typing import TYPE_CHECKING, List, Union
 
 from ..qt import constants as qt
 from ..qt.imports import (
+    QItemSelectionModel,
     QModelIndex,
     QObject,
+    QPoint,
+    QStandardItem,
     QStandardItemModel,
     QThreadPool,
     QTreeView,
@@ -46,7 +49,9 @@ class TreeViewMixin(QTreeView):
         item = self.model().itemFromIndex(index)
         self.load_children(item=item)
 
-    def load_children(self, *, item: QStandardItemModel = None) -> None:
+    def load_children(
+        self, *, item: QStandardItemModel = None, force_refresh: bool = False
+    ) -> None:
         """Load children of a given *item*."""
         if not self.client:
             # May happen when the user has invalid credentials
@@ -54,7 +59,7 @@ class TreeViewMixin(QTreeView):
             return
 
         self.set_loading_cursor(True)
-        loader = self.loader(self, item=item)
+        loader = self.loader(self, item=item, force_refresh=force_refresh)
         QThreadPool.globalInstance().start(loader)
 
     def set_loading_cursor(self, busy: bool, /) -> None:
@@ -163,6 +168,8 @@ class FolderTreeView(TreeViewMixin):
 
     # The content's loader for folderish documents
     loader = FolderContentLoader
+    update = pyqtSignal()
+    filled = pyqtSignal()
 
     def __init__(self, parent: "FoldersDialog", client: FoldersOnly, /) -> None:
         super().__init__(parent, client)
@@ -170,11 +177,75 @@ class FolderTreeView(TreeViewMixin):
         # Actions to do when a folder is selected
         self.selectionModel().currentChanged.connect(self.on_selection_changed)
 
+        self.update.connect(self.refresh_selected)
+        self.current = self.selectionModel().currentIndex()
+
+        self.filled.connect(self._find_current_and_select_it)
+
     def on_selection_changed(self, current: QModelIndex, _: QModelIndex, /) -> None:
         """Actions to do when a folder is selected."""
         item = self.model().itemFromIndex(current).data(qt.UserRole)
         self.parent.remote_folder.setText(item.get_path())
         self.parent.remote_folder_ref = item.get_id()
         self.parent.remote_folder_title = item.get_label()
-
+        self.current = current
         self.parent.button_ok_state()
+
+    def refresh_selected(self) -> None:
+        """Force reload the the current selected index."""
+        item = self.model().itemFromIndex(self.current)
+        self.load_children(item=item, force_refresh=True)
+
+    def _find_current_and_select_it(self) -> None:
+        """Expand the tree view and select the current index."""
+        item = self.model().itemFromIndex(self.current)
+        if not item:
+            item = self.model().invisibleRootItem()
+        longest_parent = None
+        for idx in range(item.rowCount()):
+            child = item.child(idx)
+            data = child.data(qt.UserRole)
+            if data and data.get_path() == self.parent.remote_folder.text():
+                self.selectionModel().select(
+                    child.index(),
+                    QItemSelectionModel.ClearAndSelect,
+                )
+                self.selectionModel().currentChanged.emit(child.index(), self.current)
+                return
+            elif data and data.get_path() in self.parent.remote_folder.text():
+                if not longest_parent:
+                    longest_parent = child
+                elif len(longest_parent.data(qt.UserRole).get_path()) < len(
+                    data.get_path()
+                ):
+                    longest_parent = child
+
+        if longest_parent:
+            self.current = longest_parent.index()
+            self.setExpanded(longest_parent.index(), True)
+
+    def expand_current_selected(self) -> None:
+        """Expand the current index in the tree view."""
+        if not self.isExpanded(self.current):
+            self.setExpanded(self.current, True)
+        self.expand_item(self.current)
+
+    def select_item_from_path(self, new_remote_path: str) -> None:
+        """Find and select an itme in the tree view based in the *new_remote_path*."""
+        item = self.model().itemFromIndex(self.current)
+        for idx in range(item.rowCount()):
+            child = item.child(idx)
+            data = child.data(qt.UserRole)
+            if data and data.get_path() == new_remote_path:
+                self.parent.remote_folder.setText(new_remote_path)
+                return
+
+    def get_item_from_position(self, position: QPoint) -> QStandardItem:
+        """Get the item ath the current *position*."""
+        index = self.indexAt(position)
+        return self.model().itemFromIndex(index)
+
+    def is_item_enabled(self, item: QStandardItem) -> bool:
+        """Check if the provided *item* is enabled."""
+        data = item.data(qt.UserRole)
+        return data.enable()

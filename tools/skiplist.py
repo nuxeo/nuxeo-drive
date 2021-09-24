@@ -46,6 +46,7 @@ MetaOptions.mock  # Used in tests
 MigrationEngine.execute_database_donwgrade  # Used in tests
 MigrationInitial.downgrade  # Used in tests
 MigrationInitial.upgrade  # Used in tests
+NewFolderDialog.closeEvent  # Triggered by parent class
 NotificationDelegator.userNotificationCenter_didActivateNotification_
 NotificationDelegator.userNotificationCenter_shouldPresentNotification_
 nuxeo.constants.CHECK_PARAMS  # CliHandler.parse_cli()
