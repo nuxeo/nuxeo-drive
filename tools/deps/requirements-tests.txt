@@ -304,9 +304,9 @@ typing-extensions==3.10.0.0 \
     --hash=sha256:779383f6086d90c99ae41cf0ff39aac8a7937a9283ce0a414e5dd782f4c94a84 \
     --hash=sha256:50b6f157849174217d0656f99dc82fe932884fb250826c18350e159ec6cdf342
     # via mypy
-types-python-dateutil==0.1.4 \
-    --hash=sha256:39bfe0bde61fc673b8fa28167bd78622d976210f791971b9f3e10877cbf119a4 \
-    --hash=sha256:e6486ca27b6dde73e0ec079a9e1b03e208766e6bc7f1e08964a7e9104a5c7d7a
+types-python-dateutil==2.8.1 \
+    --hash=sha256:dec1be9d9ea3caea7677d52d95ed9ee6b6334ea325afe1ef462a8af8e7522f83 \
+    --hash=sha256:abbdaba0635d4f5fed764c2844c449bb095ed82abbdf47fcdbd035e3bf708ea1
     # via mypy
 types-PyYAML==5.4.3 \
     --hash=sha256:bca83cbfc0be48600a8abf1e3d87fb762a91e6d35d724029a3321dd2dce2ceb1 \
