@@ -308,9 +308,9 @@ types-python-dateutil==0.1.4 \
     --hash=sha256:39bfe0bde61fc673b8fa28167bd78622d976210f791971b9f3e10877cbf119a4 \
     --hash=sha256:e6486ca27b6dde73e0ec079a9e1b03e208766e6bc7f1e08964a7e9104a5c7d7a
     # via mypy
-types-PyYAML==5.4.3 \
-    --hash=sha256:bca83cbfc0be48600a8abf1e3d87fb762a91e6d35d724029a3321dd2dce2ceb1 \
-    --hash=sha256:2e7b81b2b7af751634425107b986086c6ba7cb61270a43a5c290c58be8cdbc3a
+types-PyYAML==5.4.12 \
+    --hash=sha256:e06083f85375a5678e4c19452ed6467ce2167b71db222313e1792cb8fc76859a \
+    --hash=sha256:3f4daa754357491625ae8c3a39c9e1b0d7cd5632bc4e1c35e7a7f75a64aa124b
     # via mypy
 types-requests==2.25.0 \
     --hash=sha256:fa5c1e5e832ff6193507d8da7e1159281383908ee193a2f4b37bc08140b51844 \
