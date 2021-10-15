@@ -1799,7 +1799,10 @@ class Application(QApplication):
             )
             return
 
-        self.show_server_folders(engine, path)
+        if self.filters_dlg and type(self.filters_dlg).__name__ == "FoldersDialog":
+            self.filters_dlg.newCtxTransfer.emit([str(path)] if path else [])
+        else:
+            self.show_server_folders(engine, path)
 
     def update_status(self, engine: Engine, /) -> None:
         """

@@ -23,6 +23,7 @@ from ..qt.imports import (
     QSize,
     Qt,
     QVBoxLayout,
+    pyqtSignal,
 )
 from ..translator import Translator
 from ..utils import find_icon, get_tree_list, sizeof_fmt
@@ -231,6 +232,8 @@ class FoldersDialog(DialogMixin):
         "QToolTip { padding: 10px; color: #000; background-color: #F4F4F4 }"
     )
 
+    newCtxTransfer = pyqtSignal(list)
+
     def __init__(
         self, application: "Application", engine: Engine, path: Optional[Path], /
     ) -> None:
@@ -265,6 +268,9 @@ class FoldersDialog(DialogMixin):
 
         # Compute overall size and count, and check the button state
         self._process_additionnal_local_paths([str(path)] if path else [])
+
+        # Handle paths added from the context menu
+        self.newCtxTransfer.connect(self._process_additionnal_local_paths)
 
     @property
     def overall_count(self) -> int:
