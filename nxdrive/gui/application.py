@@ -1620,7 +1620,7 @@ class Application(QApplication):
             "copy-share-link": manager.ctx_copy_share_link,
             "direct-transfer": self.ctx_direct_transfer,
             "edit-metadata": manager.ctx_edit_metadata,
-        }.get(cmd, None)
+        }.get(cmd)
         if func:
             args: Tuple[Any, ...] = (path,)
         elif "edit" in cmd:
