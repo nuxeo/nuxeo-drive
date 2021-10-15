@@ -11,12 +11,16 @@ from ..qt.imports import (
     QComboBox,
     QDialog,
     QDialogButtonBox,
+    QEvent,
     QFileDialog,
+    QFrame,
     QGroupBox,
     QHBoxLayout,
     QIcon,
     QLabel,
     QLineEdit,
+    QMenu,
+    QPoint,
     QPushButton,
     QRegExp,
     QRegExpValidator,
@@ -221,10 +225,6 @@ class FoldersDialog(DialogMixin):
     # The windows's title
     title_label = "DIRECT_TRANSFER_WINDOW_TITLE"
 
-    # CSS for the new folder input field
-    CSS = "* { border: 1px solid rgba(128, 128, 128, 50); border-radius: 5px; padding: 2px }"
-    CSS_DISABLED = CSS + "* { background-color: rgba(0, 0, 0, 0) }"
-
     # CSS for tooltips
     _TOOLTIP_CSS = (
         # Hack to show the entire icon
@@ -272,6 +272,9 @@ class FoldersDialog(DialogMixin):
         # Handle paths added from the context menu
         self.newCtxTransfer.connect(self._process_additionnal_local_paths)
 
+        self.tree_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tree_view.customContextMenuRequested.connect(self.open_menu)
+
     @property
     def overall_count(self) -> int:
         """Compute total number of files and folders."""
@@ -282,11 +285,25 @@ class FoldersDialog(DialogMixin):
         """Compute all local paths contents size."""
         return sum(self.paths.values())
 
+    def open_menu(self, position: QPoint) -> None:
+        """Open a context menu at the provided *position*."""
+        menu = QMenu()
+
+        action = menu.addAction(
+            self.tr("NEW_REMOTE_FOLDER"), self._new_folder_button_action
+        )
+
+        pointed_item = self.tree_view.get_item_from_position(position)
+        action.setEnabled(self.tree_view.is_item_enabled(pointed_item))
+        menu.exec_(self.tree_view.viewport().mapToGlobal(position))
+
     def _add_group_local(self) -> QGroupBox:
         """Group box for source files."""
         groupbox = QGroupBox(Translator.get("SOURCE_FILES"))
         layout = QHBoxLayout()
         groupbox.setLayout(layout)
+
+        layout.setContentsMargins(10, 10, 10, 10)
 
         self.local_paths_size_lbl = QLabel(sizeof_fmt(self.overall_size))
         self.local_path = QLineEdit()
@@ -312,17 +329,13 @@ class FoldersDialog(DialogMixin):
         groupbox.setLayout(layout)
 
         duplicate_sublayout = QHBoxLayout()
-        new_folder_sublayout = QHBoxLayout()
         layout.addLayout(duplicate_sublayout)
-        layout.addLayout(new_folder_sublayout)
 
         self._add_subgroup_duplicate_behavior(duplicate_sublayout)
-        self._add_subgroup_new_folder(new_folder_sublayout)
 
         # Adjust spacing
         layout.setSpacing(0)
         duplicate_sublayout.setSpacing(2)
-        new_folder_sublayout.setSpacing(2)
 
         return groupbox
 
@@ -334,6 +347,7 @@ class FoldersDialog(DialogMixin):
 
         # The remote browser
         layout.addWidget(self.tree_view)
+        layout.setSpacing(15)
 
         sublayout = QHBoxLayout()
         layout.addLayout(sublayout)
@@ -344,6 +358,16 @@ class FoldersDialog(DialogMixin):
         self.remote_folder.setFrame(False)
         sublayout.addWidget(label)
         sublayout.addWidget(self.remote_folder)
+
+        self.new_folder_button = QPushButton(Translator.get("NEW_REMOTE_FOLDER"))
+        self.new_folder_button.setToolTip(Translator.get("NEW_REMOTE_FOLDER_TOOLTIP"))
+        self.new_folder_button.setSizePolicy(qt.Fixed, qt.Fixed)
+        self.new_folder_button.clicked.connect(self._new_folder_button_action)
+
+        if not self.engine.have_folder_upload:
+            self.new_folder_button.setHidden(True)
+
+        sublayout.addWidget(self.new_folder_button)
 
         # Populate the remote folder with the previously selected, if any
         self.remote_folder.setText(self.last_remote_location)
@@ -393,76 +417,24 @@ class FoldersDialog(DialogMixin):
 
     def _new_folder_button_action(self) -> None:
         """Show a dialog allowing to edit the value of *new_folder*."""
-        dialog = QDialog(parent=self)
-        dialog.setWindowTitle(Translator.get("NEW_REMOTE_FOLDER"))
-        dialog.resize(250, 100)
-
-        layout = QVBoxLayout()
-
-        remote_name = QLineEdit(self.new_folder.text(), parent=dialog)
-        remote_name.setMaxLength(64)
-        remote_name.setValidator(regexp_validator())
-        remote_name.setClearButtonEnabled(True)
-        layout.addWidget(remote_name)
-
-        buttons = QDialogButtonBox()
-        buttons.setStandardButtons(qt.Ok)
-
-        def save_new_remote_name() -> None:
-            """Copy data from *remote_name* into *new_folder*."""
-            name = remote_name.text()
-            self.new_folder.setText(name.strip())
-            self.button_ok_state()
-            dialog.close()
-
-        buttons.accepted.connect(save_new_remote_name)
-        layout.addWidget(buttons)
-
-        dialog.setLayout(layout)
+        dialog = NewFolderDialog(self)
         dialog.exec_()
-
-    def _add_subgroup_new_folder(self, layout: QHBoxLayout, /) -> None:
-        """Add a sub-group for the new folder option."""
-        self.new_folder = QLineEdit()
-        self.new_folder.setStyleSheet(self.CSS_DISABLED)
-        self.new_folder.setReadOnly(True)
-        self.new_folder.setFrame(False)
-
-        self.new_folder_button = QPushButton(Translator.get("SET"), self)
-        self.new_folder_button.clicked.connect(self._new_folder_button_action)
-
-        if not self.engine.have_folder_upload:
-            self.new_folder_button.setHidden(True)
-            return
-
-        layout.addWidget(QLabel(Translator.get("NEW_REMOTE_FOLDER")))
-        layout.addWidget(self._add_info_icon("NEW_REMOTE_FOLDER_TOOLTIP"))
-        layout.addWidget(self.new_folder)
-        layout.addWidget(self.new_folder_button)
-
-        # Prevent previous objects to take the whole width, that does not render well for human eyes
-        layout.addStretch(0)
 
     def _find_folders_duplicates(self) -> List[str]:
         """Return a list of duplicate folder(s) found on the remote path."""
         parent = self.remote_folder_ref
-        folders = []
+        folders: List[str] = []
 
-        new_folder = self.new_folder.text()
-        if bool(new_folder):
-            if self.engine.remote.exists_in_parent(parent, new_folder, True):
-                folders.append(new_folder)
-        else:
-            all_paths = self.paths.keys()
-            folders.extend(
-                path.name
-                for path in all_paths
-                if (
-                    path.parent not in all_paths
-                    and path.is_dir()
-                    and self.engine.remote.exists_in_parent(parent, path.name, True)
-                )
+        all_paths = self.paths.keys()
+        folders.extend(
+            path.name
+            for path in all_paths
+            if (
+                path.parent not in all_paths
+                and path.is_dir()
+                and self.engine.remote.exists_in_parent(parent, path.name, True)
             )
+        )
 
         if folders:
             self.engine.send_metric("direct_transfer", "dupe_folder", "1")
@@ -490,7 +462,6 @@ class FoldersDialog(DialogMixin):
             self.remote_folder_title,
             duplicate_behavior=self.cb.currentData(),
             last_local_selected_location=self.last_local_selected_location,
-            new_folder=self.new_folder.text(),
         )
 
     def button_ok_state(self) -> None:
@@ -499,12 +470,9 @@ class FoldersDialog(DialogMixin):
         # Required criteria:
         #   - at least 1 local path or a new folder to create
         #   - a selected remote path
-        self.button_box.button(qt.Ok).setEnabled(
-            (
-                bool(self.paths)
-                or (bool(self.new_folder.text()) and self.new_folder.isReadOnly())
-            )
-            and bool(self.remote_folder.text())
+        self.button_box.button(qt.Ok).setEnabled(bool(self.paths))
+        self.new_folder_button.setEnabled(
+            bool(self.remote_folder_ref) and bool(self.tree_view.current)
         )
 
     def get_tree_view(self) -> FolderTreeView:
@@ -580,3 +548,161 @@ class FoldersDialog(DialogMixin):
             str(self.last_local_selected_location),
         )
         self._process_additionnal_local_paths([path])
+
+
+class NewFolderDialog(QDialog):
+    """The class for the new folder creation window."""
+
+    def __init__(self, parent: FoldersDialog, /) -> None:
+        super().__init__(parent=parent)
+
+        self.setWindowTitle(Translator.get("NEW_REMOTE_FOLDER"))
+        self.resize(320, 200)
+        self.parent = parent
+
+        layout = QVBoxLayout()
+
+        self.folder_creation_frame = QFrame()
+        self.operation_result_frame = QFrame()
+
+        self._add_folder_creation_layout()
+        self._add_operation_result_layout()
+
+        layout.addWidget(self.folder_creation_frame)
+        layout.addWidget(self.operation_result_frame)
+
+        self.operation_result_frame.hide()
+        self.setLayout(layout)
+
+        self.parent.engine.directTransferNewFolderSuccess.connect(
+            self.handle_creation_success
+        )
+        self.parent.engine.directTransferNewFolderError.connect(
+            self.handle_creation_failure
+        )
+
+        self.created_remote_path = ""
+
+    def closeEvent(self, _: QEvent) -> None:
+        """Triggered when the QDialog is closed."""
+        if self.created_remote_path:
+            self.close_success()
+
+    def _add_operation_result_layout(self) -> None:
+        """Add the layout that will be displayed when the operation is fineshed."""
+
+        layout = QVBoxLayout()
+
+        self.operation_result_status = QLabel()
+        self.operation_result_message = QLabel()
+
+        self.operation_result_message.setWordWrap(True)
+
+        buttons_box = QDialogButtonBox()
+        close_button = QPushButton(Translator.get("CLOSE"), self)
+
+        buttons_box.addButton(close_button, QDialogButtonBox.ButtonRole.RejectRole)
+        buttons_box.rejected.connect(self.close_success)
+        buttons_box.setContentsMargins(0, 10, 0, 5)
+        layout.addWidget(self.operation_result_status)
+        layout.addWidget(self.operation_result_message)
+        layout.addWidget(buttons_box)
+
+        self.operation_result_frame.setLayout(layout)
+
+    def _add_folder_creation_layout(self) -> None:
+        """Add the layout containing the new folder inputs."""
+
+        layout = QVBoxLayout()
+
+        self.new_folder_name = QLineEdit(parent=self)
+        self.new_folder_name.setMaxLength(64)
+        self.new_folder_name.setValidator(regexp_validator())
+        self.new_folder_name.setClearButtonEnabled(True)
+        self.new_folder_name.textChanged.connect(self._button_ok_state)
+
+        self.cb = QComboBox()
+        self.cb.addItem("Automatic", "create")
+
+        folder_label = QLabel(Translator.get("FOLDER_NAME"))
+        type_label = QLabel(Translator.get("FOLDER_TYPE"))
+
+        layout.addWidget(type_label)
+        layout.addWidget(self.cb)
+        layout.addWidget(folder_label)
+        layout.addWidget(self.new_folder_name)
+
+        self.buttons_box = QDialogButtonBox()
+        self.buttons_box.setStandardButtons(qt.Cancel)
+        self.buttons_box.setContentsMargins(0, 15, 0, 5)
+
+        self.create_button = QPushButton(Translator.get("CREATE"), self)
+        self.create_button.setDisabled(True)
+        self.buttons_box.addButton(
+            self.create_button, QDialogButtonBox.ButtonRole.AcceptRole
+        )
+        self.buttons_box.accepted.connect(self.accept)
+        self.buttons_box.rejected.connect(self.close)
+
+        layout.addWidget(self.buttons_box)
+        self.folder_creation_frame.setLayout(layout)
+
+    def accept(self) -> None:
+        """Start the asynchronous Direct Transfer if there is no duplicate."""
+
+        new_folder = self.new_folder_name.text()
+        if bool(new_folder) and self.parent.engine.remote.exists_in_parent(
+            self.parent.remote_folder_ref, new_folder, True
+        ):
+            return self._show_result_message(
+                Translator.get("NEW_REMOTE_FOLDER_DUPLICATE"),
+                Translator.get("ERROR"),
+            )
+
+        self.parent.engine.direct_transfer_async(
+            {},
+            self.parent.remote_folder.text(),
+            self.parent.remote_folder_ref,
+            self.parent.remote_folder_title,
+            duplicate_behavior=self.parent.cb.currentData(),
+            last_local_selected_location=self.parent.last_local_selected_location,
+            new_folder=self.new_folder_name.text(),
+        )
+
+    def close_success(self) -> None:
+        """Select the created item in the tree view."""
+
+        self.parent.tree_view.expand_current_selected()
+        self.parent.tree_view.select_item_from_path(self.created_remote_path)
+        self.parent.tree_view.expand_current_selected()
+        self.close()
+
+    def _show_result_message(self, message: str, status: str) -> None:
+        """Hide the creation layout and show the result message."""
+
+        self.operation_result_message.setText(message)
+        self.operation_result_status.setText(status)
+        self.folder_creation_frame.hide()
+        self.operation_result_frame.show()
+        self.resize(320, 160)
+
+    def _button_ok_state(self, _: str) -> None:
+        """CHeck if the folder name input is not empty."""
+        if bool(self.new_folder_name.text()):
+            self.create_button.setDisabled(False)
+
+    def handle_creation_success(self, new_remote_path: str) -> None:
+        """Update the tree view and show the operation success result message."""
+
+        self.created_remote_path = new_remote_path
+        self.parent.tree_view.update.emit()
+        return self._show_result_message(
+            Translator.get("NEW_REMOTE_FOLDER_SUCCESS"), Translator.get("SUCCESS")
+        )
+
+    def handle_creation_failure(self) -> None:
+        """Show the operation failure result message."""
+
+        return self._show_result_message(
+            Translator.get("NEW_REMOTE_FOLDER_FAILURE"), Translator.get("ERROR")
+        )

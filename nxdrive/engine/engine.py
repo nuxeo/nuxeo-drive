@@ -7,7 +7,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from functools import partial
 from logging import getLogger
-from pathlib import Path, PurePath
+from pathlib import Path
 from threading import Thread
 from time import sleep
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type
@@ -113,6 +113,8 @@ class Engine(QObject):
 
     # Direct Transfer
     directTranferError = pyqtSignal(Path)
+    directTransferNewFolderError = pyqtSignal()
+    directTransferNewFolderSuccess = pyqtSignal(str)
     directTransferSessionFinished = pyqtSignal(str, str, str)
 
     type = "NXDRIVE"
@@ -475,17 +477,19 @@ class Engine(QObject):
         self, remote_parent_path: str, new_folder: str, session_id: int, /
     ) -> Dict[str, Any]:
         try:
-            return self.remote.upload_folder(
+            res = self.remote.upload_folder(
                 remote_parent_path,
                 {"title": new_folder},
                 headers={DT_NEW_FOLDER: 1, DT_SESSION_NUMBER: session_id},
             )
+            self.directTransferNewFolderSuccess.emit(res["path"])
+            return res
         except Exception:
             log.warning(
                 f"Could not create the {new_folder!r} folder in the {remote_parent_path!r} remote folder",
                 exc_info=True,
             )
-            self.directTranferError.emit(PurePath(remote_parent_path, new_folder))
+            self.directTransferNewFolderError.emit()
             return {}
 
     def _direct_transfer(

@@ -18,12 +18,18 @@ class ContentLoaderMixin(QRunnable):
     """The base class for content loading of the tree view."""
 
     def __init__(
-        self, tree: "TreeViewMixin", /, *, item: QStandardItemModel = None
+        self,
+        tree: "TreeViewMixin",
+        /,
+        *,
+        item: QStandardItemModel = None,
+        force_refresh: bool = False,
     ) -> None:
         super().__init__()
         self.tree = tree
         self.item = item or self.tree.model().invisibleRootItem()
         self.info: Optional[Documents] = None
+        self.force_refresh = force_refresh
         if item:
             self.info = self.item.data(qt.UserRole)
 
@@ -31,11 +37,12 @@ class ContentLoaderMixin(QRunnable):
         """Fetch children of a given item."""
         item, info = self.item, self.info
         if info:
-            if info.get_id() in self.tree.cache:
+            if info.get_id() in self.tree.cache and not self.force_refresh:
                 self.tree.set_loading_cursor(False)
+                self.handle_already_cached()
                 return
-
-            self.tree.cache.append(info.get_id())
+            elif info.get_id() not in self.tree.cache:
+                self.tree.cache.append(info.get_id())
 
         try:
             if info:
@@ -68,6 +75,10 @@ class ContentLoaderMixin(QRunnable):
     def new_subitem(self, child: QStandardItem) -> QStandardItem:
         """A new child of an item is available. To be implemented by specific classes."""
         raise NotImplementedError()
+
+    def handle_already_cached(self) -> None:
+        """The item is already present in the cache and won't be loaded. To be implemented by specific classes."""
+        pass
 
     def sort_children(self, children: List[Documents], /) -> List[Documents]:
         """Sort child alphabetically (NXDRIVE-12).
@@ -119,3 +130,12 @@ class FolderContentLoader(ContentLoaderMixin):
         subitem.setEditable(False)
         subitem.setData(QVariant(child), qt.UserRole)
         return subitem
+
+    def fill_tree(self, children: List[Documents], /) -> None:
+        """Fill the tree then emit the *filled* event."""
+        super().fill_tree(children)
+        self.tree.filled.emit()
+
+    def handle_already_cached(self) -> None:
+        """Emit the *filled* event."""
+        self.tree.filled.emit()

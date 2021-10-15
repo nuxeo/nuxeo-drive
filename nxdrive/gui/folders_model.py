@@ -119,9 +119,7 @@ class Doc(FileInfo):
         """Allow to fetch its children only if the user has at least the "Read" permission
         and if it contains at least one subfolder.
         """
-        has_read_right = "Read" in self.doc.contextParameters["permissions"]
-        has_folderish_child = self.doc.contextParameters.get("hasFolderishChild", True)
-        return has_read_right and has_folderish_child
+        return "Read" in self.doc.contextParameters["permissions"]
 
 
 class FilteredDoc(FileInfo):
