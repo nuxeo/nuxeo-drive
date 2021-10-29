@@ -1,5 +1,20 @@
 # Changelog
 
+## 5.x
+
+- [5.0.0](changes/5.0.0.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-4.5.1...release-5.0.0))
+- [5.1.0](changes/5.1.0.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.0.0...release-5.1.0))
+- [5.1.1](changes/5.1.1.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.1.0...release-5.1.1))
+- [5.2.0](changes/5.2.0.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.1.1...release-5.2.0))
+- [5.2.1](changes/5.2.1.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.2.0...release-5.2.1))
+- [5.2.2](changes/5.2.2.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.2.1...release-5.2.2))
+- [5.2.3](changes/5.2.3.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.2.2...release-5.2.3))
+- [5.2.4](changes/5.2.4.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.2.3...release-5.2.4))
+- [5.2.5](changes/5.2.5.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.2.4...release-5.2.5))
+- [5.2.6](changes/5.2.6.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.2.5...release-5.2.6))
+- [5.2.7](changes/5.2.7.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.2.6...release-5.2.7))
+- [5.3.0](changes/5.3.0.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.2.7...master))
+
 ## 4.x
 
 - [4.0.0](changes/4.0.0.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-3.1.2...release-4.0.0))
@@ -22,17 +37,6 @@
 - [4.4.5](changes/4.4.5.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-4.4.4...release-4.4.5))
 - [4.5.0](changes/4.5.0.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-4.4.5...release-4.5.0))
 - [4.5.1](changes/4.5.1.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-4.5.0...release-4.5.1))
-- [5.0.0](changes/5.0.0.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-4.5.1...release-5.0.0))
-- [5.1.0](changes/5.1.0.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.0.0...release-5.1.0))
-- [5.1.1](changes/5.1.1.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.1.0...release-5.1.1))
-- [5.2.0](changes/5.2.0.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.1.1...release-5.2.0))
-- [5.2.1](changes/5.2.1.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.2.0...release-5.2.1))
-- [5.2.2](changes/5.2.2.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.2.1...release-5.2.2))
-- [5.2.3](changes/5.2.3.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.2.2...release-5.2.3))
-- [5.2.4](changes/5.2.4.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.2.3...release-5.2.4))
-- [5.2.5](changes/5.2.5.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.2.4...release-5.2.5))
-- [5.2.6](changes/5.2.6.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.2.5...release-5.2.6))
-- [5.2.7](changes/5.2.7.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.2.6...master))
 
 ## 3.x
 
