@@ -98,7 +98,6 @@ def test_update_site_url(cmd):
 
     # Normal arg
     options = cmd.parse_cli(argv)
-    assert 0
     assert options.update_site_url == "DEBUG_TEST"
 
 
