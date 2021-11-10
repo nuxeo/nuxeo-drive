@@ -375,6 +375,7 @@ class CliHandler:
 
         filtered_args = []
         for arg in argv:
+            print(arg)
             if arg.startswith("nxdrive://"):
                 Options.set("protocol_url", arg, setter="cli")
                 continue
@@ -388,6 +389,7 @@ class CliHandler:
         args = self.load_config()
         if args:
             parser.set_defaults(**args)
+        print(filtered_args)
         options = parser.parse_args(filtered_args)
 
         if options.debug:
