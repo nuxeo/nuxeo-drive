@@ -22,7 +22,7 @@ BAD_HOSTNAMES = [
     "untrusted-root.badssl.com",
     "revoked.badssl.com",
     "pinning-test.badssl.com",
-    "no-common-name.badssl.com",
+    # "no-common-name.badssl.com", Connection error, so commenting this hostname
     "no-subject.badssl.com",
     "incomplete-chain.badssl.com",
     "sha1-intermediate.badssl.com",
