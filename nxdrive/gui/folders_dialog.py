@@ -277,9 +277,7 @@ class FoldersDialog(DialogMixin):
         self.tree_view.customContextMenuRequested.connect(self.open_menu)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
-        """Direct Transfer Handle Esc key on Max state(NXDRIVE-2737).
-        On Esc keypress event, restoring the maximized window to normal state
-        """
+        """On Esc keypress event, restore the maximized window, see NXDRIVE-2737 for details."""
 
         # Did the user press the Escape key?
         if event.key() == qt.Key_Escape:
