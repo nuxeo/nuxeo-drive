@@ -17,6 +17,7 @@ from ..qt.imports import (
     QGroupBox,
     QHBoxLayout,
     QIcon,
+    QKeyEvent,
     QLabel,
     QLineEdit,
     QMenu,
@@ -274,6 +275,14 @@ class FoldersDialog(DialogMixin):
 
         self.tree_view.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tree_view.customContextMenuRequested.connect(self.open_menu)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+
+        # On user Esc keypress event, restore the maximized window. See NXDRIVE-2737 for details.
+        if event.key() == qt.Key_Escape:
+            self.showNormal()
+        else:
+            super().keyPressEvent(event)
 
     @property
     def overall_count(self) -> int:
