@@ -510,7 +510,7 @@ class FoldersDialog(DialogMixin):
             if path.name.startswith(Options.ignored_prefixes) or path.name.endswith(
                 Options.ignored_suffixes
             ):
-                log.debug(f"Ignored path for Direct Transfer: {str(path)!r}")
+                log.debug(f'Ignored path for Direct Transfer: {path!r}')
                 continue
 
             # Prevent to upload twice the same file
