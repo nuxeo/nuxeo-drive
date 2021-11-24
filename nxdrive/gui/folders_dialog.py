@@ -277,9 +277,9 @@ class FoldersDialog(DialogMixin):
         self.tree_view.customContextMenuRequested.connect(self.open_menu)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
-        """On Esc keypress event, restore the maximized window, see NXDRIVE-2737 for details."""
+   
 
-        # Did the user press the Escape key?
+        # On user Esc keypress event, restore the maximized window. See NXDRIVE-2737 for details.
         if event.key() == qt.Key_Escape:
             self.showNormal()
         else:
