@@ -523,7 +523,7 @@ def safe_filename(name: str, /, *, replacement: str = "-") -> str:
     """
     return (
         # Windows doesn't allow whitespace at the end of filenames
-        (name.rstrip() if WINDOWS else name)
+        (name.rstrip().rstrip(".") if WINDOWS else name)
         .replace("/", replacement)
         .replace(":", replacement)
         .replace('"', replacement)
