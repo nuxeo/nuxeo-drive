@@ -522,7 +522,7 @@ def safe_filename(name: str, /, *, replacement: str = "-") -> str:
     See benchmarks/test_safe_filename.py for the best implementation.
     """
     return (
-        # Windows doesn't allow whitespace at the end of filenames
+        # Windows doesn't allow whitespace or dots at the end of filenames
         (
             name.rstrip(" .") if WINDOWS else name
         )
