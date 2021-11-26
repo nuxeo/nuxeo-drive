@@ -13,6 +13,7 @@ Contributors:
     Mickaël Schoentgen
     Léa Klein
     Romain Grasland <rgrasland@nuxeo.com>
+    Shekhar Gupta <shekhar.gupta@hyland.com>
     and https://github.com/nuxeo/nuxeo-drive/graphs/contributors
 
 Versioning
@@ -26,7 +27,7 @@ To declare a beta, use this schema:
 """
 
 __author__ = "Nuxeo"
-__version__ = "5.3.0"
+__version__ = "5.2.8"
 __copyright__ = """
     Copyright Nuxeo (https://www.nuxeo.com) and others.
 
