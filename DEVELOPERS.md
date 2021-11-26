@@ -138,3 +138,8 @@ QT is heavily used in the new client. Here is a diagram of the signals/slots con
 RemoteWatcher logic schemas: [https://www.lucidchart.com/documents/view/3081771a-786b-486e-bfaa-ee7ae77a3807](https://www.lucidchart.com/documents/view/3081771a-786b-486e-bfaa-ee7ae77a3807)
 
 LocalWatcher logic schemas: [https://www.lucidchart.com/documents/view/21ec315b-3917-44aa-b9bd-5ccedfcfb02f](https://www.lucidchart.com/documents/view/21ec315b-3917-44aa-b9bd-5ccedfcfb02f)
+
+**GUI**
+
+Here is the diagram of the GUI section
+![gui_class](./docs/design/Drive-GUI.drawio.png)
