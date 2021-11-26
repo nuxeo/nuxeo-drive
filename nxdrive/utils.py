@@ -523,7 +523,9 @@ def safe_filename(name: str, /, *, replacement: str = "-") -> str:
     """
     return (
         # Windows doesn't allow whitespace at the end of filenames
-        (name.rstrip().rstrip(".") if WINDOWS else name)
+        (
+            name.rstrip(" .") if WINDOWS else name
+        )  # Sanitize the doc name to remove dot at the end. See NXDRIVE-2751 for details.
         .replace("/", replacement)
         .replace(":", replacement)
         .replace('"', replacement)

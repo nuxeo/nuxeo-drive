@@ -36,10 +36,6 @@ class LocalClient(LocalClientMixin):
 
     def change_created_time(self, filepath: Path, d_ctime: datetime, /) -> None:
         """Change the created time of a given file."""
-        log.info(f"Editing {filepath!r}")
-        if filepath != safe_filename(filepath):
-            filepath = safe_filename(filepath)
-            log.info(f"filepath sanitized to {filepath!r}")
         winfile = win32file.CreateFileW(
             str(filepath),
             win32con.GENERIC_WRITE,
