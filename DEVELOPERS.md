@@ -140,5 +140,6 @@ RemoteWatcher logic schemas: [https://www.lucidchart.com/documents/view/3081771a
 LocalWatcher logic schemas: [https://www.lucidchart.com/documents/view/21ec315b-3917-44aa-b9bd-5ccedfcfb02f](https://www.lucidchart.com/documents/view/21ec315b-3917-44aa-b9bd-5ccedfcfb02f)
 
 **GUI**
+
 Here is the diagram of the GUI section
 ![gui_class](./docs/design/Drive-GUI.drawio.png)
