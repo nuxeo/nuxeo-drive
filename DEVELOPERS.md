@@ -141,8 +141,4 @@ LocalWatcher logic schemas: [https://www.lucidchart.com/documents/view/21ec315b-
 
 **GUI**
 Here is the diagram of the GUI section
-<object data="./docs/design/Drive-GUI.drawio.pdf" type="application/pdf" width="700px" height="700px">
-    <embed src="./docs/design/Drive-GUI.drawio.pdf">
-        <p>This browser does not support PDFs. Please download the PDF to view it: <a href="./docs/design/Drive-GUI.drawio.pdf">Download PDF</a>.</p>
-    </embed>
-</object>
+![gui_class](./docs/design/Drive-GUI.drawio.png)
