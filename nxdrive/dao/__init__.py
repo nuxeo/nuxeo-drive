@@ -8,3 +8,8 @@ SCHEMA_VERSION = "schema_version"
 
 
 register_adapter(WindowsPath if WINDOWS else PosixPath, adapt_path)
+
+# To check and update on each beta release !!!
+versions_history = {
+    "5.2.8": 21,
+}

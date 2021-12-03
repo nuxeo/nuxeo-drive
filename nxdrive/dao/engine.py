@@ -24,6 +24,7 @@ from typing import (
 
 from nuxeo.utils import get_digest_algorithm
 
+from .. import __version__
 from ..client.local import FileInfo
 from ..constants import ROOT, SYNC_ROOT, UNACCESSIBLE_HASH, WINDOWS, TransferStatus
 from ..exceptions import UnknownPairState
@@ -38,7 +39,7 @@ from ..objects import (
 )
 from ..qt.imports import pyqtSignal
 from ..utils import is_large_file
-from . import SCHEMA_VERSION
+from . import SCHEMA_VERSION, versions_history
 from .adapters import adapt_path
 from .base import BaseDAO
 
@@ -139,9 +140,22 @@ class EngineDAO(BaseDAO):
         migration_engine = MigrationEngine(self.conn, engine_migrations)
         try:
             self.in_tx = current_thread_id()
-            migration_engine.execute_database_upgrade(
-                version, self.old_migrations_max_schema_version, self._migrate_db_old
-            )
+
+            if (
+                __version__ in versions_history
+                and version > versions_history[__version__]
+            ):
+                migration_engine.execute_database_donwgrade(
+                    version,
+                    versions_history[__version__],
+                    self.old_migrations_max_schema_version,
+                )
+            else:
+                migration_engine.execute_database_upgrade(
+                    version,
+                    self.old_migrations_max_schema_version,
+                    self._migrate_db_old,
+                )
         finally:
             self.in_tx = None
 
