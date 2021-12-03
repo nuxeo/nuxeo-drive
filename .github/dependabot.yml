@@ -6,7 +6,7 @@ updates:
     schedule:
       interval: daily
     assignees:
-      - rom1win
+      - mr-shekhar
     labels:
       - dependencies
       - QA/CI
@@ -17,7 +17,7 @@ updates:
     schedule:
       interval: daily
     assignees:
-      - rom1win
+      - mr-shekhar
     labels:
       - dependencies
     open-pull-requests-limit: 42
