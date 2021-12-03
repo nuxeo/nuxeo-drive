@@ -779,16 +779,7 @@ class EngineDAO(BaseDAO):
     ) -> int:
         digest = None
         if not info.folderish:
-            if is_large_file(info.size):
-                # We can't compute the digest of big files now as it will
-                # be done later when the entire file is fully copied.
-                # For instance, on my machine (32GB RAM, 8 cores, Intel NUC)
-                # it takes 23 minutes for 100 GB and 7 minute for 50 GB.
-                # This is way too much effort to compute it several times.
-                digest = UNACCESSIBLE_HASH
-            else:
-                digest = info.get_digest()
-
+            digest = UNACCESSIBLE_HASH if is_large_file(info.size) else info.get_digest()
         with self.lock:
             c = self._get_write_connection().cursor()
             pair_state = PAIR_STATES[("created", "unknown")]
@@ -995,7 +986,7 @@ class EngineDAO(BaseDAO):
         self, name: str, parent: str, row_id: int, /
     ) -> Optional[DocPair]:
         c = self._get_read_connection().cursor()
-        doc_pair: Optional[DocPair] = c.execute(
+        return c.execute(
             "SELECT *"
             "  FROM States"
             " WHERE id != ?"
@@ -1003,7 +994,6 @@ class EngineDAO(BaseDAO):
             "   AND remote_parent_ref = ?",
             (row_id, name, parent),
         ).fetchone()
-        return doc_pair
 
     def update_local_state(
         self,
@@ -1073,7 +1063,7 @@ class EngineDAO(BaseDAO):
     def get_valid_duplicate_file(self, digest: str, /) -> Optional[DocPair]:
         """Find a file already synced with the same digest as the given *digest*."""
         c = self._get_read_connection().cursor()
-        doc_pair: Optional[DocPair] = c.execute(
+        return c.execute(
             "SELECT *"
             "  FROM States"
             " WHERE local_digest = ?"
@@ -1081,7 +1071,6 @@ class EngineDAO(BaseDAO):
             "   AND pair_state = 'synchronized'",
             (digest, digest),
         ).fetchone()
-        return doc_pair
 
     def get_remote_descendants(self, path: str, /) -> DocPairs:
         c = self._get_read_connection().cursor()
@@ -1213,7 +1202,7 @@ class EngineDAO(BaseDAO):
 
     def get_first_state_from_partial_remote(self, ref: str, /) -> Optional[DocPair]:
         c = self._get_read_connection().cursor()
-        doc_pair: DocPair = c.execute(
+        return c.execute(
             "SELECT *"
             "  FROM States"
             " WHERE remote_ref LIKE ? "
@@ -1221,7 +1210,6 @@ class EngineDAO(BaseDAO):
             " LIMIT 1",
             (f"%{ref}",),
         ).fetchone()
-        return doc_pair
 
     def get_normal_state_from_remote(self, ref: str, /) -> Optional[DocPair]:
         # TODO Select the only states that is not a collection
@@ -1234,14 +1222,13 @@ class EngineDAO(BaseDAO):
         # remote_path root is empty, should refactor this
         path = "" if path == "/" else path
         c = self._get_read_connection().cursor()
-        doc_pair: Optional[DocPair] = c.execute(
+        return c.execute(
             "SELECT *"
             "  FROM States"
             " WHERE remote_ref = ?"
             "   AND remote_parent_path = ?",
             (ref, path),
         ).fetchone()
-        return doc_pair
 
     def get_states_from_remote(self, ref: str, /) -> DocPairs:
         c = self._get_read_connection().cursor()
@@ -1257,10 +1244,9 @@ class EngineDAO(BaseDAO):
             c = self._get_read_connection().cursor()
 
         try:
-            doc_pair: Optional[DocPair] = c.execute(
+            return c.execute(
                 "SELECT * FROM States WHERE id = ?", (row_id,)
             ).fetchone()
-            return doc_pair
         finally:
             if from_write:
                 self.lock.release()
@@ -1426,10 +1412,9 @@ class EngineDAO(BaseDAO):
 
     def get_state_from_local(self, path: Path, /) -> Optional[DocPair]:
         c = self._get_read_connection().cursor()
-        doc_pair: Optional[DocPair] = c.execute(
+        return c.execute(
             "SELECT * FROM States WHERE local_path = ?", (path,)
         ).fetchone()
-        return doc_pair
 
     def insert_remote_state(
         self,

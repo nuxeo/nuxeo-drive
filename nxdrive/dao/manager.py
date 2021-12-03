@@ -198,10 +198,9 @@ class ManagerDAO(BaseDAO):
                 "VALUES (?, ?, ?, ?)",
                 (path, engine, key, name),
             )
-            engine_def: EngineDef = c.execute(
+            return c.execute(
                 "SELECT * FROM Engines WHERE uid = ?", (key,)
             ).fetchone()
-            return engine_def
 
     def delete_engine(self, uid: str, /) -> None:
         with self.lock:

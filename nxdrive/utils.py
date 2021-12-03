@@ -276,7 +276,7 @@ def get_tree_list(path: Path, /) -> Generator[Tuple[Path, int], None, None]:
         return
 
     if path.is_symlink():
-        log.debug(f"Ignored symlink path for Direct Transfer: {str(path)!r}")
+        log.debug(f'Ignored symlink path for Direct Transfer: {path!r}')
         return
 
     # First, yield the folder itself
@@ -690,7 +690,7 @@ def concat_all_certificates(files: List[Path]) -> Optional[Path]:
             continue
 
         if not is_valid_ssl_certificate(file):
-            log.info(f"Skipped invalid certificate {str(file)!r}")
+            log.info(f'Skipped invalid certificate {file!r}')
             continue
 
         certificate = file.read_bytes()
@@ -718,15 +718,15 @@ def concat_all_certificates(files: List[Path]) -> Optional[Path]:
         # Either the certificate does not exist yet, either it is obsolete.
         # Let's clean-up all of them.
         for obsolete_file in folder.glob("ndrive_*.pem"):
-            log.info(f"Removed obsolete certificate {str(obsolete_file)!r}")
+            log.info(f'Removed obsolete certificate {obsolete_file!r}')
             obsolete_file.unlink()
 
-        log.info(f"Saved the final certificate to {str(final_file)!r}, including:")
+        log.info(f'Saved the final certificate to {final_file!r}, including:')
         for cert_file in cert_files:
-            log.info(f" >>> {str(cert_file)!r}")
+            log.info(f' >>> {cert_file!r}')
         final_file.write_bytes(certificates)
     else:
-        log.info(f"Will use the final certificate from {str(final_file)!r}")
+        log.info(f'Will use the final certificate from {final_file!r}')
 
     return final_file
 
@@ -798,8 +798,7 @@ def decrypt(secure_data: Union[bytes, str], key: Union[bytes, str]) -> Optional[
         iv = data[:16]
         ciphertext = data[16:]
         decryptor = _cryptor(key, iv).decryptor()  # type: ignore
-        res: bytes = decryptor.update(ciphertext) + decryptor.finalize()
-        return res
+        return decryptor.update(ciphertext) + decryptor.finalize()
     except Exception:
         return None
 
