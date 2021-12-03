@@ -6,9 +6,10 @@ from pathlib import Path
 from sqlite3 import Cursor, IntegrityError, Row
 from typing import List
 
+from .. import __version__
 from ..notification import Notification
 from ..objects import EngineDef
-from . import SCHEMA_VERSION
+from . import SCHEMA_VERSION, versions_history
 from .base import BaseDAO
 
 log = getLogger(__name__)
@@ -130,9 +131,21 @@ class ManagerDAO(BaseDAO):
 
         try:
             self.in_tx = current_thread_id()
-            migration_engine.execute_database_upgrade(
-                version, self.old_migrations_max_schema_version, self._migrate_db_old
-            )
+            if (
+                __version__ in versions_history
+                and version > versions_history[__version__]
+            ):
+                migration_engine.execute_database_donwgrade(
+                    version,
+                    versions_history[__version__],
+                    self.old_migrations_max_schema_version,
+                )
+            else:
+                migration_engine.execute_database_upgrade(
+                    version,
+                    self.old_migrations_max_schema_version,
+                    self._migrate_db_old,
+                )
         finally:
             self.in_tx = None
 
