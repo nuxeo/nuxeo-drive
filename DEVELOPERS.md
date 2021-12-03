@@ -143,3 +143,13 @@ LocalWatcher logic schemas: [https://www.lucidchart.com/documents/view/21ec315b-
 
 Here is the diagram of the GUI section
 ![gui_class](./docs/design/Drive-GUI.drawio.png)
+
+**DirectEdit**
+
+Here is the diagram of the DirectEdit section
+![gui_class](./docs/design/DirectEdit.drawio.png)
+
+**DirectTransfer**
+
+Here is the diagram of the DirectTransfer section
+![gui_class](./docs/design/DirectTransfer.drawio.png)
