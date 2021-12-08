@@ -17,6 +17,8 @@ def _get_current_os_details() -> Tuple[str, str, str]:
     """
     if MAC:
         name = "macOS"
+        print("MACOS VERSION")
+        print(platform.mac_ver())
         ver_full = platform.mac_ver()[0]  # 10.15.3
     elif WINDOWS:
         name = "Windows"
