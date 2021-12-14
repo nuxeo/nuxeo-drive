@@ -33,7 +33,7 @@ from ..exceptions import (
     RootAlreadyBindWithDifferentAccount,
     StartupPageConnectionError,
 )
-from ..feature import Feature
+from ..feature import Feature, FeatureList
 from ..notification import Notification
 from ..objects import Binder, DocPair
 from ..options import Options
@@ -335,7 +335,7 @@ class QMLDriveApi(QObject):
         """Return the list of declared features with their value, title and translation key."""
         result = []
         for feature in vars(Feature).keys():
-            title = feature.replace("_", " ").title()
+            title = FeatureList[feature]
             translation_key = f"FEATURE_{feature.upper()}"
             result.append([title, feature, translation_key])
         return result
