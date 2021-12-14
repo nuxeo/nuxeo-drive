@@ -26,12 +26,20 @@ from types import SimpleNamespace
 from typing import List
 
 Feature = SimpleNamespace(
-    auto_update=True,
+    auto_update=False,
     synchronization=False,
     direct_edit=True,
     direct_transfer=True,
     s3=False,
 )
+
+FeatureList = {
+    "auto_update": "Notify when new update is available",
+    "synchronization": "Synchronization",
+    "direct_edit": "Direct Edit",
+    "direct_transfer": "Direct Transfer",
+    "s3": "S3",
+}
 
 Beta: List[str] = ["s3"]
 
