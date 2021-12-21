@@ -307,10 +307,9 @@ types-certifi==0.1.4 \
     --hash=sha256:afe4d94726491d843f10e5746797689ea5dcbd78454a653be47d72a8c8ce3bed \
     --hash=sha256:7c134d978f15e4aa2d2b1a85b2a92241ed6b256c3452511b7783b6a28b304b71
     # via mypy
-typing-extensions==3.10.0.0 \
-    --hash=sha256:0ac0f89795dd19de6b97debb0c6af1c70987fd80a2d62d1958f7e56fcc31b497 \
-    --hash=sha256:779383f6086d90c99ae41cf0ff39aac8a7937a9283ce0a414e5dd782f4c94a84 \
-    --hash=sha256:50b6f157849174217d0656f99dc82fe932884fb250826c18350e159ec6cdf342
+typing-extensions==4.0.1 \
+    --hash=sha256:7f001e5ac290a0c0401508864c7ec868be4e701886d5b573a9528ed3973d9d3b \
+    --hash=sha256:4ca091dea149f945ec56afb48dae714f21e8692ef22a395223bcd328961b6a0e
     # via mypy
 types-python-dateutil==0.1.4 \
     --hash=sha256:39bfe0bde61fc673b8fa28167bd78622d976210f791971b9f3e10877cbf119a4 \
