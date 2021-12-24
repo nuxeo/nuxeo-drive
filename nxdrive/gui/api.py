@@ -335,7 +335,10 @@ class QMLDriveApi(QObject):
         """Return the list of declared features with their value, title and translation key."""
         result = []
         for feature in vars(Feature).keys():
-            title = FeatureList[feature]
+            title = (
+                lambda: feature.replace("_", " ").title(),
+                lambda: FeatureList[feature],
+            )[feature in FeatureList.keys()]()
             translation_key = f"FEATURE_{feature.upper()}"
             result.append([title, feature, translation_key])
         return result

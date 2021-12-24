@@ -33,13 +33,7 @@ Feature = SimpleNamespace(
     s3=False,
 )
 
-FeatureList = {
-    "auto_update": "Notify when new update is available",
-    "synchronization": "Synchronization",
-    "direct_edit": "Direct Edit",
-    "direct_transfer": "Direct Transfer",
-    "s3": "S3",
-}
+FeatureList = {"auto_update": "Notify when new update is available"}
 
 Beta: List[str] = ["s3"]
 

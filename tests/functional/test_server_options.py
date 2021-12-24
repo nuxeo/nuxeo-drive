@@ -77,7 +77,7 @@ def test_behavior_not_good(caplog, manager_factory):
 @pytest.mark.parametrize(
     "feature, feat_name, default",
     [
-        ("auto-update", "auto_update", True),
+        ("auto-update", "auto_update", False),
         ("Direct-Edit", "direct_edit", True),
         ("direct_transfer", "direct_transfer", True),
         ("s3", "s3", False),
