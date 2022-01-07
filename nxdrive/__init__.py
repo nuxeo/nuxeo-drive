@@ -13,6 +13,7 @@ Contributors:
     Mickaël Schoentgen
     Léa Klein
     Romain Grasland <rgrasland@nuxeo.com>
+    Shekhar Gupta <shekhar.gupta@hyland.com>
     and https://github.com/nuxeo/nuxeo-drive/graphs/contributors
 
 Versioning
