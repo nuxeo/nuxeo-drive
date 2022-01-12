@@ -129,8 +129,6 @@ def test_current_os_full():
         expected = r"^Windows \d{1,2}\.\d{1,2}\.\d+$"
     else:
         expected = r"^\w+ \d{1,2}\.\d{1,2}\.\d{1,2}$"
-    print("expected: ", expected)
-    print("currentOS: ", current_os(full=True))
     assert re.fullmatch(expected, current_os(full=True))
 
 
