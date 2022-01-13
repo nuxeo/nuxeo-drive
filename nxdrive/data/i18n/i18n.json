@@ -15,7 +15,7 @@
     "AUTH_UPDATE_ACTION": "Click here to log back in",
     "AUTOMATIC": "Use Automatic Configuration Script",
     "AUTOSTART": "Start on boot",
-    "AUTOUPDATE": "Auto Install New Updates",
+    "AUTOUPDATE": "Auto install new updates",
     "AUTOUPDATE_DOWNGRADE": "Version not compatible with the server, a downgrade to %1 is needed. Synchronization won't start until then.",
     "AUTOUPDATE_UPGRADE": "A new version %1 is available.",
     "AVAILABLE": "Available",
