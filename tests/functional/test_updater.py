@@ -246,7 +246,7 @@ def test_feature_auto_update(manager_factory, tmp_path):
     """The application is frozen and auto-update enabled, then disabled via the server config."""
     Options.is_frozen = True
     Options.nxdrive_home = tmp_path
-    # assert not Feature.auto_update
+    assert Feature.auto_update
     assert not Options.feature_auto_update
 
     def disabled():
