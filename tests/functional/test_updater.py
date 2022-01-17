@@ -246,20 +246,28 @@ def test_feature_auto_update(manager_factory, tmp_path):
     """The application is frozen and auto-update enabled, then disabled via the server config."""
     Options.is_frozen = True
     Options.nxdrive_home = tmp_path
-    assert Feature.auto_update
-    assert not Options.feature_auto_update
+    Options.feature_auto_update = True
+
+    manager, engine = manager_factory()
+
+    def enabled():
+        return {"feature": {"auto-update": True}}
+
+    with patch.object(engine.remote, "get_server_configuration", new=enabled):
+        assert Feature.auto_update is Options.feature_auto_update
+        assert Options.feature_auto_update
 
     def disabled():
         return {"feature": {"auto-update": False}}
 
-    manager, engine = manager_factory()
     with manager:
+        Options.feature_auto_update = False
         updater = Updater(manager)
         server_updater = ServerOptionsUpdater(manager)
 
         manager.server_config_updater.first_run = False
         with patch.object(engine.remote, "get_server_configuration", new=disabled):
             server_updater._poll()
-            # assert not Feature.auto_update
+            assert Feature.auto_update is Options.feature_auto_update
             assert not Options.feature_auto_update
             check_attrs(updater, False, False, "")
