@@ -128,11 +128,8 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, result=int)
     def get_last_files_count(self, uid: str, /) -> int:
         """Return the count of the last files transferred (see EngineDAO)."""
-        count = 0
         engine = self._manager.engines.get(uid)
-        if engine:
-            count = engine.dao.get_last_files_count(duration=60)
-        return count
+        return engine.dao.get_last_files_count(duration=60) if engine else 0
 
     @pyqtSlot(QUrl, result=str)
     def to_local_file(self, url: QUrl, /) -> str:
@@ -575,7 +572,7 @@ class QMLDriveApi(QObject):
     def _balance_percents(self, result: Dict[str, float], /) -> Dict[str, float]:
         """Return an altered version of the dict in which no value is under a minimum threshold."""
 
-        result = {k: v for k, v in sorted(result.items(), key=lambda item: item[1])}
+        result = dict(sorted(result.items(), key=lambda item: item[1]))
         keys = list(result)
         min_threshold = 10
         data = 0.0
@@ -1043,11 +1040,8 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, result=int)
     def get_syncing_count(self, uid: str, /) -> int:
-        count = 0
         engine = self._manager.engines.get(uid)
-        if engine:
-            count = engine.dao.get_syncing_count()
-        return count
+        return engine.dao.get_syncing_count() if engine else 0
 
     # Conflicts section
 
