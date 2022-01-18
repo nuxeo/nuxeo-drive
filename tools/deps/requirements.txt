@@ -173,10 +173,11 @@ pyobjc-framework-CoreServices==7.3 ; sys_platform == "darwin" \
     --hash=sha256:08cac5b662640772e02c8bc62e4a1e21a39794a21826ffe257b48cfe587083f7 \
     --hash=sha256:148cc460d9f94ad200d22151c35bf985422790b0cbf1f147f9c1127c5fea23e0 \
     --hash=sha256:68240e0314e144e8cccef52c5db112bc4098cb0841c36e747b2f35eeee739e96
-pyobjc-framework-FSEvents==7.3 ; sys_platform == "darwin" \
-    --hash=sha256:65d2fed30225c9de9678f68cf41e56f0e1afaaac6e3ae82075e874e93e42a823 \
-    --hash=sha256:dc9e2b8ed3dc2f6acffacd52681ece8141711acd5e02d23638f6a48af9bcfc5a \
-    --hash=sha256:3d12df35cc0b18c3f7c677d6bc870a7ea13a5d1c2f16456c1f445e0b894ddb55
+pyobjc-framework-FSEvents==8.1 ; sys_platform == "darwin" \
+    --hash=sha256:f07a7a017bdc0e75b1ee8313d427ef260e816243f5fd23ec33ae514c3c4c4b03 \
+    --hash=sha256:3a57718a4282ba2ba7619f9e8f3c21b43cc6ace6637ccc54d276cade7dc3c557 \
+    --hash=sha256:08d738e435d184e837e70c468d6aaf281da1de345be2667474060b7a608c51b1 \
+    --hash=sha256:27df69a10c6ffd7f42d5b95a350d01fd3c31a70fb819d502db8def673cf8a2a7
     # via watchdog
 pyobjc-framework-ScriptingBridge==7.3 ; sys_platform == "darwin" \
     --hash=sha256:903d70ed128709e3be06c033cc6c421b26658f67dc628b92e6190b1fd1150e59 \
