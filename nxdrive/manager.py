@@ -189,6 +189,7 @@ class Manager(QObject):
                 self.set_config("original_version", self.version)
 
             # Store the new version to be able to show release notes
+            self.old_version = self.get_config("client_version")
             if self.old_version != self.version:
                 self.dao.update_config("client_version", self.version)
             self._write_version_file()
