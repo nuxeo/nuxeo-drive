@@ -310,7 +310,7 @@ def test_validator(option, a_bad_value, a_good_value):
 @Options.mock()
 def test_disabled_features(caplog):
     """Simple test for disabled features."""
-    assert Options.feature_auto_update is True
+    assert Options.feature_auto_update is False
     assert Options.feature_s3 is False
 
     with patch("nxdrive.options.DisabledFeatures", new=["auto_update"]):
@@ -318,7 +318,7 @@ def test_disabled_features(caplog):
         Options.update(options, setter="manual")
 
     # feature_auto_update has been ignored as it is in DisabledFeatures
-    assert Options.feature_auto_update is True
+    assert Options.feature_auto_update is False
 
     # feature_s3 has been modified as expected
     assert Options.feature_s3 is True

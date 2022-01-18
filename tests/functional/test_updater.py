@@ -116,15 +116,24 @@ def test_frozen(manager_factory, monkey_requests):
     """The application is frozen."""
     Options.is_frozen = True
 
-    with manager_factory(with_engine=False) as manager:
+    def enabled():
+        return {"feature": {"auto-update": True}}
+
+    manager, engine = manager_factory()
+
+    with manager:
         updater = Updater(manager)
 
         # The server config has not been fetched yet, no update possible then
-        check_attrs(updater, True, False, "")
+        check_attrs(updater, False, False, "")
 
         # The server config has been fetched, the update can be done
-        manager.server_config_updater.first_run = False
-        check_attrs(updater, True, True, NEXT_VER)
+        server_updater = ServerOptionsUpdater(manager)
+
+        with patch.object(engine.remote, "get_server_configuration", new=enabled):
+            server_updater._poll()
+            manager.server_config_updater.first_run = False
+            check_attrs(updater, True, True, NEXT_VER)
 
 
 @Options.mock()
@@ -189,18 +198,25 @@ def test_frozen_updates_disabled_centralized_client_version(
     Options.is_frozen = True
     Options.update_check_delay = 0
 
-    with manager_factory(with_engine=False) as manager:
+    def enabled():
+        return {"feature": {"auto-update": True}}
+
+    manager, engine = manager_factory()
+    with manager:
         updater = Updater(manager)
+        server_updater = ServerOptionsUpdater(manager)
 
-        # The server config has not been fetched yet, no update possible then
-        check_attrs(updater, True, False, "")
+        with patch.object(engine.remote, "get_server_configuration", new=enabled):
+            server_updater._poll()
 
-        # The interval is modified, checks its value
-        assert updater._check_interval == 3600
+            # The server config has not been fetched yet, no update possible then
+            check_attrs(updater, True, False, "")
+            # The interval is modified, checks its value
+            assert updater._check_interval == 3600
 
-        # The server config has been fetched, the update can be done
-        manager.server_config_updater.first_run = False
-        check_attrs(updater, True, True, "4.4.0")
+            # The server config has been fetched, the update can be done
+            manager.server_config_updater.first_run = False
+            check_attrs(updater, True, True, "4.4.0")
 
 
 @Options.mock()
@@ -209,12 +225,20 @@ def test_installer_integrity_failure(manager_factory, monkey_requests):
     Options.is_frozen = True
     Options.client_version = "4.5.0"
 
-    with manager_factory(with_engine=False) as manager:
+    def enabled():
+        return {"feature": {"auto-update": True}}
+
+    manager, engine = manager_factory()
+
+    with manager:
         updater = Updater(manager)
+        server_updater = ServerOptionsUpdater(manager)
 
         # The server config has been fetched, the update can be done
         manager.server_config_updater.first_run = False
-        check_attrs(updater, True, False, "4.5.0")
+        with patch.object(engine.remote, "get_server_configuration", new=enabled):
+            server_updater._poll()
+            check_attrs(updater, True, False, "4.5.0")
 
 
 @Options.mock()
@@ -222,20 +246,28 @@ def test_feature_auto_update(manager_factory, tmp_path):
     """The application is frozen and auto-update enabled, then disabled via the server config."""
     Options.is_frozen = True
     Options.nxdrive_home = tmp_path
-    assert Feature.auto_update
-    assert Options.feature_auto_update
+    Options.feature_auto_update = True
+
+    manager, engine = manager_factory()
+
+    def enabled():
+        return {"feature": {"auto-update": True}}
+
+    with patch.object(engine.remote, "get_server_configuration", new=enabled):
+        assert Feature.auto_update is Options.feature_auto_update
+        assert Options.feature_auto_update
 
     def disabled():
         return {"feature": {"auto-update": False}}
 
-    manager, engine = manager_factory()
     with manager:
+        Options.feature_auto_update = False
         updater = Updater(manager)
         server_updater = ServerOptionsUpdater(manager)
 
         manager.server_config_updater.first_run = False
         with patch.object(engine.remote, "get_server_configuration", new=disabled):
             server_updater._poll()
-            assert not Feature.auto_update
+            assert Feature.auto_update is Options.feature_auto_update
             assert not Options.feature_auto_update
             check_attrs(updater, False, False, "")
