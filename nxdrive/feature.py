@@ -33,8 +33,6 @@ Feature = SimpleNamespace(
     s3=False,
 )
 
-FeatureList = {"auto_update": "Notify when new update is available"}
-
 Beta: List[str] = ["s3"]
 
 DisabledFeatures: List[str] = []
