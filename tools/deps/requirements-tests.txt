@@ -93,9 +93,9 @@ execnet==1.9.0 \
     --hash=sha256:a295f7cc774947aac58dde7fdc85f4aa00c42adf5d8f5468fc630c1acf30a142 \
     --hash=sha256:8f694f3ba9cc92cab508b152dcfe322153975c29bda272e2fd7f3f00f36e47c5
     # via pytest-xdist
-faker==8.3.0 \
-    --hash=sha256:61fcc4634cb1352437acc15667df1a4564f1b6312fe9dbcf1aed958b5de0531a \
-    --hash=sha256:53ac8eded46d890c0fcc6f5b43f8f569ad0f9da3b2e5d779cab63d5c0851f00b
+faker==11.3.0 \
+    --hash=sha256:61f97034cea252b8426d81810afab2f3c27b584f2b4313400a0cc83a9b013ded \
+    --hash=sha256:adbe567e64da6a1097feacab699000e1ad16e17a6592a8f0ae1ee0b7fbf19887
 flake8==3.9.2 \
     --hash=sha256:bf8fd333346d844f616e8d47905ef3a3384edae6b4e9beb0c5101e25e3110907 \
     --hash=sha256:07528381786f2a6237b061f6e96610a4167b226cb926e2aa2b6b1d78057c576b
@@ -180,9 +180,9 @@ pycodestyle==2.7.0 \
 pyflakes==2.3.1 \
     --hash=sha256:7893783d01b8a89811dd72d7dfd4d84ff098e5eed95cfa8905b22bbffe52efc3 \
     --hash=sha256:f5bc8ecabc05bb9d291eb5203d6810b49040f6ff446a756326104746cc00c1db
-pyfakefs==4.5.0 \
-    --hash=sha256:46234fa2dbce8ffb693ec906638449342afe83e45fa832932351d5050048159b \
-    --hash=sha256:58b017b3437bbe97803a23755876c6d6aeb5aea37e52cec15e5d86b59c4c7295
+pyfakefs==4.5.3 \
+    --hash=sha256:501d784c6ad57ce7ab727249166d58043d199ebbb67b404ecab67bcb1a9bb696 \
+    --hash=sha256:f49db689c1d5db6172131479ca77bd474ba2cb886c869b9867fb89cdab2df397
     # via flake8
 pyparsing==2.4.7 \
     --hash=sha256:c203ec8783bf771a155b207279b9bccb8dea02d8f0c9e5f8ead507bc3246ecc1 \
@@ -195,9 +195,9 @@ pytest-forked==1.3.0 \
     --hash=sha256:dc4147784048e70ef5d437951728825a131b81714b398d5d52f17c7c144d8815 \
     --hash=sha256:6aa9ac7e00ad1a539c41bec6d21011332de671e938c7637378ec9710204e37ca
     # via pytest-xdist
-pytest-timeout==1.4.2 \
-    --hash=sha256:541d7aa19b9a6b4e475c759fd6073ef43d7cdc9a92d95644c260076eb257a063 \
-    --hash=sha256:20b3113cf6e4e80ce2d403b6fb56e9e1b871b510259206d40ff8d609f48bda76
+pytest-timeout==2.0.2 \
+    --hash=sha256:fe9c3d5006c053bb9e062d60f641e6a76d6707aedb645350af9593e376fcc717 \
+    --hash=sha256:e6f98b54dafde8d70e4088467ff621260b641eb64895c4195b6e5c8f45638112
 pytest-xdist==2.3.0 \
     --hash=sha256:ed3d7da961070fce2a01818b51f6888327fb88df4379edeb6b9d990e789d9c8d \
     --hash=sha256:e8ecde2f85d88fbcadb7d28cb33da0fa29bca5cf7d5967fa89fc0e97e5299ea5
