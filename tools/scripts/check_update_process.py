@@ -144,9 +144,6 @@ def get_version():
             f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
             "--version",
         ]
-        print("get_version() ", cmd)
-        print(subprocess.check_output(cmd, text=True))
-
         return subprocess.check_output(cmd, text=True).strip()
 
     file = (
@@ -154,9 +151,7 @@ def get_version():
         if EXT == "exe"
         else expanduser("~/.nuxeo-drive/VERSION")
     )
-    print("file: ", file)
     with open(file, encoding="utf-8") as f:
-        print(f.read())
         return f.read().strip()
 
 
@@ -357,7 +352,6 @@ def version_find():
     with open(path, encoding="utf-8") as handler:
         for lineno, line in enumerate(handler.readlines()):
             if line.startswith("__version__"):
-                print(re.findall(r'"(.+)"', line))
                 version = re.findall(r'"(.+)"', line)[0]
                 print(">>> Current version is", version, "at line", lineno, flush=True)
                 return version, lineno
