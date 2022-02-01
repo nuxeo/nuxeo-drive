@@ -102,9 +102,9 @@ flake8==3.9.2 \
 future==0.18.2 \
     --hash=sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d
     # via junitparser
-identify==2.3.4 \
-    --hash=sha256:4de55a93e0ba72bf917c840b3794eb1055a67272a1732351c557c88ec42011b1 \
-    --hash=sha256:595283a1c3a078ac5774ad4dc4d1bdd0c1602f60bcf11ae673b64cb2b1945762
+identify==2.4.7 \
+    --hash=sha256:8408f01e0be25492017346d7dffe7e7711b762b23375c775d24d3bc38618fabc \
+    --hash=sha256:e64210654dfbca6ced33230eb1b137591a0981425e1a60b4c6c36309f787bbd5
     # via pre-commit
 importlib-metadata==4.8.2 \
     --hash=sha256:53ccfd5c134223e497627b9815d5030edf77d2ed573922f7a0b8f8bb81a1c100 \
