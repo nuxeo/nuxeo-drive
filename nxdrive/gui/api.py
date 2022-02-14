@@ -177,6 +177,11 @@ class QMLDriveApi(QObject):
         """Return the version of the update, if one is available."""
         return self._manager.updater.version
 
+    @pyqtSlot(result=str)
+    def get_available_version(self) -> str:
+        """Return the version of the update, if one is available."""
+        return self._manager.updater.available_version
+
     @pyqtSlot(str)
     def app_update(self, version: str, /) -> None:
         """Start the update to the specified version."""

@@ -344,7 +344,7 @@ Rectangle {
                     name: "update_available"
                     PropertyChanges {
                         target: updatePopup
-                        version: api.get_update_version()
+                        version: api.get_available_version()
                         channel: manager.get_update_channel()
                     }
                     PropertyChanges {

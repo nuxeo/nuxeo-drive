@@ -67,6 +67,7 @@ class BaseUpdater(PollWorker):
 
         self.status = UPDATE_STATUS_UP_TO_DATE
         self.version: str = ""
+        self.available_version: str = ""
         self.progress = 0.0
         self.update_site = Options.update_site_url.rstrip("/")
 
@@ -274,6 +275,7 @@ class BaseUpdater(PollWorker):
 
         # Check the digest is available for that version on that OS
         if version:
+            self.available_version = version
             info = self.versions.get(version, {})
             checksums = info.get("checksum", {})
             checksum = checksums.get(self.ext, "").lower()
