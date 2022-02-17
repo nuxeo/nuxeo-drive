@@ -1238,7 +1238,9 @@ class Application(QApplication):
     @pyqtSlot()
     def _server_incompatible(self) -> None:
         version = self.manager.version
-        downgrade_version = self.manager.updater.version or ""
+        downgrade_version = (
+            self.manager.updater.version or self.manager.updater.available_version or ""
+        )
 
         msg = self.question(
             Translator.get("SERVER_INCOMPATIBLE_HEADER", values=[APP_NAME, version]),
@@ -1271,7 +1273,9 @@ class Application(QApplication):
         self.manager.prompted_wrong_channel = True
 
         version = self.manager.version
-        downgrade_version = self.manager.updater.version or ""
+        downgrade_version = (
+            self.manager.updater.version or self.manager.updater.available_version or ""
+        )
         version_channel = self.manager.updater.get_version_channel(version)
         current_channel = self.manager.get_update_channel()
         msg = self.question(
