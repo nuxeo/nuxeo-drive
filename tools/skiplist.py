@@ -88,6 +88,7 @@ QMLDriveApi.get_proxy_settings  # Used in QML
 QMLDriveApi.get_update_status  # Used in QML
 QMLDriveApi.get_update_url  # Used in QML
 QMLDriveApi.get_update_version  # Used in QML
+QMLDriveApi.get_available_version  # Used in QML
 QMLDriveApi.open_direct_transfer  # Used in QML
 QMLDriveApi.open_document  # Used in QML
 QMLDriveApi.open_in_explorer  # Used in QML
