@@ -78,10 +78,8 @@ class BaseUpdater(PollWorker):
         """That attribute is dynamic as it may change over the application runtime."""
         state = auto_updates_state()
 
-        if state is AutoUpdateState.FORCED:
-            # We need to update that attribute to prevent checking for updates every seconds
-            if self._check_interval <= 0:
-                self._check_interval = 3600
+        if state is AutoUpdateState.FORCED and self._check_interval <= 0:
+            self._check_interval = 3600
 
         return state is not AutoUpdateState.DISABLED
 
@@ -123,10 +121,14 @@ class BaseUpdater(PollWorker):
         `None` if no bound engine.
         """
 
-        for engine in self.manager.engines.copy().values():
-            if engine.remote:
-                return engine.remote.client.server_version  # type: ignore
-        return None
+        return next(
+            (
+                engine.remote.client.server_version
+                for engine in self.manager.engines.copy().values()
+                if engine.remote
+            ),
+            None,
+        )
 
     #
     # Public methods that can be overridden
@@ -156,11 +158,10 @@ class BaseUpdater(PollWorker):
             self._install(version, self._download(version))
         except OSError as exc:
             self._set_status(UPDATE_STATUS_UPDATE_AVAILABLE, version=version)
-            if exc.errno in NO_SPACE_ERRORS:
-                log.warning("Update failed, disk space needed", exc_info=True)
-                self.noSpaceLeftOnDevice.emit()
-            else:
+            if exc.errno not in NO_SPACE_ERRORS:
                 raise
+            log.warning("Update failed, disk space needed", exc_info=True)
+            self.noSpaceLeftOnDevice.emit()
         except CONNECTION_ERROR:
             log.warning("Error during update request", exc_info=True)
         except UpdateIntegrityError as exc:
@@ -178,7 +179,7 @@ class BaseUpdater(PollWorker):
 
         name = self.release_file.format(version=version)
         url = "/".join([self.update_site, self.versions[version]["type"], name])
-        path = os.path.join(gettempdir(), uuid.uuid4().hex + "_" + name)
+        path = os.path.join(gettempdir(), f'{uuid.uuid4().hex}_{name}')
         headers = {"User-Agent": user_agent()}
 
         log.info(f"Fetching {APP_NAME} {version} from {url!r} into {path!r}")
@@ -298,14 +299,13 @@ class BaseUpdater(PollWorker):
         except UpdateError:
             self._set_status(UPDATE_STATUS_UNAVAILABLE_SITE)
         else:
-            versions = {
+            if versions := {
                 version: info
                 for version, info in self.versions.items()
                 if info.get("type", "").lower()
                 in (self.manager.get_update_channel(), "release")
                 and version_lt(version, "4")
-            }
-            if versions:
+            }:
                 version = max(versions.keys())
                 self._set_status(UPDATE_STATUS_INCOMPATIBLE_SERVER, version=version)
         self.serverIncompatible.emit()
@@ -362,8 +362,7 @@ class BaseUpdater(PollWorker):
         self._set_progress(progress)
 
     def get_version_channel(self, version: str, /) -> str:
-        info = self.versions.get(version)
-        if info:
+        if info := self.versions.get(version):
             return info.get("type", None) or ""
 
         log.debug(f"No version {version} in record.")

@@ -128,11 +128,11 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, result=int)
     def get_last_files_count(self, uid: str, /) -> int:
         """Return the count of the last files transferred (see EngineDAO)."""
-        count = 0
-        engine = self._manager.engines.get(uid)
-        if engine:
-            count = engine.dao.get_last_files_count(duration=60)
-        return count
+        return (
+            engine.dao.get_last_files_count(duration=60)
+            if (engine := self._manager.engines.get(uid))
+            else 0
+        )
 
     @pyqtSlot(QUrl, result=str)
     def to_local_file(self, url: QUrl, /) -> str:
@@ -218,8 +218,7 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, result=int)
     def get_active_sessions_count(self, uid: str, /) -> int:
         """Return the count of active sessions items."""
-        engine = self._manager.engines.get(uid)
-        if engine:
+        if engine := self._manager.engines.get(uid):
             return engine.dao.get_count(
                 f"status IN ({TransferStatus.ONGOING.value}, {TransferStatus.PAUSED.value})",
                 table="Sessions",
@@ -229,8 +228,7 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, result=int)
     def get_completed_sessions_count(self, uid: str, /) -> int:
         """Return the count of completed sessions items."""
-        engine = self._manager.engines.get(uid)
-        if engine:
+        if engine := self._manager.engines.get(uid):
             return engine.dao.get_count(
                 f"status IN ({TransferStatus.CANCELLED.value}, {TransferStatus.DONE.value})",
                 table="Sessions",
@@ -303,43 +301,48 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, str)
     def show_metadata(self, uid: str, ref: str, /) -> None:
         self.application.hide_systray()
-        engine = self._manager.engines.get(uid)
-        if engine:
+        if engine := self._manager.engines.get(uid):
             path = engine.local.abspath(Path(ref))
             self.application.show_metadata(path)
 
     @pyqtSlot(str, result=list)
     def get_unsynchronizeds(self, uid: str, /) -> List[Dict[str, Any]]:
         result = []
-        engine = self._manager.engines.get(uid)
-        if engine:
-            for conflict in engine.dao.get_unsynchronizeds():
-                result.append(self._export_formatted_state(uid, state=conflict))
+        if engine := self._manager.engines.get(uid):
+            result.extend(
+                self._export_formatted_state(uid, state=conflict)
+                for conflict in engine.dao.get_unsynchronizeds()
+            )
+
         return result
 
     @pyqtSlot(str, result=list)
     def get_conflicts(self, uid: str, /) -> List[Dict[str, Any]]:
         result = []
-        engine = self._manager.engines.get(uid)
-        if engine:
-            for conflict in engine.get_conflicts():
-                result.append(self._export_formatted_state(uid, state=conflict))
+        if engine := self._manager.engines.get(uid):
+            result.extend(
+                self._export_formatted_state(uid, state=conflict)
+                for conflict in engine.get_conflicts()
+            )
+
         return result
 
     @pyqtSlot(str, result=list)
     def get_errors(self, uid: str, /) -> List[Dict[str, Any]]:
         result = []
-        engine = self._manager.engines.get(uid)
-        if engine:
-            for error in engine.dao.get_errors():
-                result.append(self._export_formatted_state(uid, state=error))
+        if engine := self._manager.engines.get(uid):
+            result.extend(
+                self._export_formatted_state(uid, state=error)
+                for error in engine.dao.get_errors()
+            )
+
         return result
 
     @pyqtSlot(result=list)
     def get_features_list(self) -> List[List[str]]:
         """Return the list of declared features with their value, title and translation key."""
         result = []
-        for feature in vars(Feature).keys():
+        for feature in vars(Feature):
             title = feature.replace("_", " ").title()
             translation_key = f"FEATURE_{feature.upper()}"
             result.append([title, feature, translation_key])
@@ -351,7 +354,7 @@ class QMLDriveApi(QObject):
             return str(self._manager.generate_report())
         except Exception as e:
             log.exception("Report error")
-            return "[ERROR] " + str(e)
+            return f'[ERROR] {str(e)}'
 
     @pyqtSlot(str, str, result=bool)
     def generate_csv(self, session_id: str, engine_uid: str) -> bool:
@@ -398,8 +401,7 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str)
     def open_remote_server(self, uid: str, /) -> None:
         self.application.hide_systray()
-        engine = self._manager.engines.get(uid)
-        if engine:
+        if engine := self._manager.engines.get(uid):
             engine.open_remote()
 
     @pyqtSlot(str)
@@ -416,11 +418,9 @@ class QMLDriveApi(QObject):
         filepath = Path(force_decode(path).lstrip("/"))
         if not uid:
             self._manager.open_local_file(filepath)
-        else:
-            engine = self._manager.engines.get(uid)
-            if engine:
-                filepath = engine.local.abspath(filepath)
-                self._manager.open_local_file(filepath)
+        elif engine := self._manager.engines.get(uid):
+            filepath = engine.local.abspath(filepath)
+            self._manager.open_local_file(filepath)
 
     @pyqtSlot()
     def open_help(self) -> None:
@@ -449,8 +449,7 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str)
     def show_conflicts_resolution(self, uid: str, /) -> None:
         self.application.hide_systray()
-        engine = self._manager.engines.get(uid)
-        if engine:
+        if engine := self._manager.engines.get(uid):
             self.application.show_conflicts_resolution(engine)
 
     @pyqtSlot(str)
@@ -577,7 +576,7 @@ class QMLDriveApi(QObject):
     def _balance_percents(self, result: Dict[str, float], /) -> Dict[str, float]:
         """Return an altered version of the dict in which no value is under a minimum threshold."""
 
-        result = {k: v for k, v in sorted(result.items(), key=lambda item: item[1])}
+        result = dict(sorted(result.items(), key=lambda item: item[1]))
         keys = list(result)
         min_threshold = 10
         data = 0.0
@@ -639,8 +638,7 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str)
     def filters_dialog(self, uid: str, /) -> None:
-        engine = self._manager.engines.get(uid)
-        if engine:
+        if engine := self._manager.engines.get(uid):
             self.application.show_filters(engine)
 
     def _bind_server(
@@ -870,8 +868,7 @@ class QMLDriveApi(QObject):
             self.setMessage.emit("PROXY_NO_PAC_FILE", "error")
             return False
 
-        error = self._manager.set_proxy(proxy)
-        if error:
+        if error := self._manager.set_proxy(proxy):
             self.setMessage.emit(error, "error")
             return False
 
@@ -1045,44 +1042,39 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, result=int)
     def get_syncing_count(self, uid: str, /) -> int:
-        count = 0
-        engine = self._manager.engines.get(uid)
-        if engine:
-            count = engine.dao.get_syncing_count()
-        return count
+        return (
+            engine.dao.get_syncing_count()
+            if (engine := self._manager.engines.get(uid))
+            else 0
+        )
 
     # Conflicts section
 
     @pyqtSlot(str, int)
     def resolve_with_local(self, uid: str, state_id: int, /) -> None:
-        engine = self._manager.engines.get(uid)
-        if engine:
+        if engine := self._manager.engines.get(uid):
             engine.resolve_with_local(state_id)
 
     @pyqtSlot(str, int)
     def resolve_with_remote(self, uid: str, state_id: int, /) -> None:
-        engine = self._manager.engines.get(uid)
-        if engine:
+        if engine := self._manager.engines.get(uid):
             engine.resolve_with_remote(state_id)
 
     @pyqtSlot(str, int)
     def retry_pair(self, uid: str, state_id: int, /) -> None:
-        engine = self._manager.engines.get(uid)
-        if engine:
+        if engine := self._manager.engines.get(uid):
             engine.retry_pair(state_id)
 
     @pyqtSlot(str, int, str)
     def ignore_pair(self, uid: str, state_id: int, reason: str, /) -> None:
-        engine = self._manager.engines.get(uid)
-        if engine:
+        if engine := self._manager.engines.get(uid):
             engine.ignore_pair(state_id, reason)
 
     @pyqtSlot(str, str, str)
     def open_remote(self, uid: str, remote_ref: str, remote_name: str, /) -> None:
         log.info(f"Should open {remote_name!r} ({remote_ref!r})")
         try:
-            engine = self._manager.engines.get(uid)
-            if engine:
+            if engine := self._manager.engines.get(uid):
                 engine.open_edit(remote_ref, remote_name)
         except OSError:
             log.exception("Remote open error")
@@ -1093,8 +1085,7 @@ class QMLDriveApi(QObject):
     ) -> None:
         log.info(f"Should open remote document {remote_path!r} ({remote_ref!r})")
         try:
-            engine = self._manager.engines.get(uid)
-            if engine:
+            if engine := self._manager.engines.get(uid):
                 url = engine.get_metadata_url(remote_ref)
                 engine.open_remote(url=url)
         except OSError:
