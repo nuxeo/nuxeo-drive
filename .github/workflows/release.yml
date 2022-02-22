@@ -163,7 +163,7 @@ jobs:
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
           NXDRIVE_TEST_NUXEO_URL: "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
           SIGNING_ID: "Nuxeo"
-          SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\x86'
+          SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade
 
       - name: "[Windows] Upload artifacts"
