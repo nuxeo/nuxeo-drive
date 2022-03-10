@@ -507,3 +507,43 @@ class Session:
     completed_on: str
     description: str
     planned_items: int
+
+
+# Subtype Enricher Object for doctype info on the Remote Nuxeo repository
+@dataclass
+class SubTypeEnricher:
+    uid: str  # ref of the document that serves as sync root
+    path: str  # title of the document (not guaranteed to be locally unique)
+    type: str  # ref of the document
+    title: str  # ref of the parent document
+    facets: List[str]  # subTypes facet
+    properties: Dict[str, Any]  # properties
+
+    @staticmethod
+    def from_dict(
+        enricher: Dict[str, Any], /, *, parent_uid: str = None
+    ) -> "SubTypeEnricher":
+        """Convert Subtype Document enricher to SubTypeEnricher"""
+        try:
+            uid = enricher["uid"]
+            path = enricher["path"]
+            props = enricher["properties"]
+            subTypes = enricher["contextParameters"]["subtypes"]
+            facets = []
+            for iter in subTypes:
+                folderish = "Folderish" in iter["facets"]
+                hiddenInCreation = "HiddenInCreation" in iter["facets"]
+                if folderish and not hiddenInCreation:
+                    facets.append(iter["type"])
+
+            # name = unicodedata.normalize("NFC", props["dc:title"])
+            # folderish = "Folderish" in enricher["facets"]
+            # folderish = "Folderish" in facets
+            # modified = enricher["lastModified"]
+
+        except (KeyError, TypeError):
+            raise DriveError(
+                f"This Doctype is missing mandatory information: {enricher}"
+            )
+
+        return SubTypeEnricher(uid, type, parent_uid, path, facets, props)
