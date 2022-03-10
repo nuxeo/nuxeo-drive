@@ -58,7 +58,13 @@ from ..metrics.constants import (
 )
 from ..metrics.poll_metrics import CustomPollMetrics
 from ..metrics.utils import current_os, user_agent
-from ..objects import Download, Metrics, NuxeoDocumentInfo, RemoteFileInfo
+from ..objects import (
+    Download,
+    Metrics,
+    NuxeoDocumentInfo,
+    RemoteFileInfo,
+    SubTypeEnricher,
+)
 from ..options import Options
 from ..qt.imports import QApplication
 from ..utils import (
@@ -551,6 +557,22 @@ class Remote(Nuxeo):
         res: Dict[str, Any] = self.execute(**kwargs)
         return res
 
+    def upload_folder_type(
+        self, parent: str, params: Dict[str, str], /, *, headers: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        """Create a folder using the FileManager."""
+        """
+        kwargs: Dict[str, Any] = {
+            "command": "FileManager.CreateFolder",
+            "input_obj": parent,
+            "params": params,
+        }
+        """
+        resp = self.client.request(
+            "POST", f"{self.client.api_path}/path{parent}", headers=headers, data=params
+        )
+        return resp
+
     def cancel_batch(self, batch_details: Dict[str, Any], /) -> None:
         """Cancel an uploaded Batch."""
         batch = Batch(service=self.uploads, **batch_details)
@@ -954,3 +976,14 @@ class Remote(Nuxeo):
         if version_lt(self.client.server_version, "10.2"):
             return "AND ecm:currentLifeCycleState != 'deleted'"
         return "AND ecm:isTrashed = 0"
+
+    def get_doc_enricher(self, parent, enricherType="subtypes") -> List:
+
+        headers: Dict[str, str] = {}
+        headers = {"enrichers.document": enricherType}
+
+        enricherList = SubTypeEnricher.from_dict(
+            self.fetch(parent, headers=headers, enrichers=[enricherType])
+        )
+
+        return enricherList
