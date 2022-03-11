@@ -344,7 +344,7 @@ Rectangle {
                     name: "update_available"
                     PropertyChanges {
                         target: updatePopup
-                        version: api.get_update_version()
+                        version: api.get_available_version()
                         channel: manager.get_update_channel()
                     }
                     PropertyChanges {
@@ -364,13 +364,13 @@ Rectangle {
                     name: "incompatible_server"
                     PropertyChanges {
                         target: updatePopup
-                        version: api.get_update_version()
+                        version: api.get_available_version()
                         channel: manager.get_update_channel()
                     }
                     PropertyChanges {
                         target: updateState
                         color: errorContent
-                        text: qsTr("NOTIF_UPDATE_DOWNGRADE").arg(api.get_update_version()) + tl.tr
+                        text: qsTr("NOTIF_UPDATE_DOWNGRADE").arg(api.get_available_version()) + tl.tr
                         onClicked: updatePopup.open()
                     }
                 }
