@@ -970,7 +970,9 @@ class Remote(Nuxeo):
             return "AND ecm:currentLifeCycleState != 'deleted'"
         return "AND ecm:isTrashed = 0"
 
-    def get_doc_enricher(self, parent, enricherType="subtypes") -> List:
+    def get_doc_enricher(
+        self, parent: str, enricherType: str = "subtypes"
+    ) -> SubTypeEnricher:
 
         headers: Dict[str, str] = {}
         headers = {"enrichers.document": enricherType}

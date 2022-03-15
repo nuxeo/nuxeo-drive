@@ -513,8 +513,7 @@ class Session:
 @dataclass
 class SubTypeEnricher:
     uid: str  # ref of the document that serves as sync root
-    path: str  # title of the document (not guaranteed to be locally unique)
-    type: str  # ref of the document
+    path: Optional[str]  # title of the document (not guaranteed to be locally unique)
     title: str  # ref of the parent document
     facets: List[str]  # subTypes facet
     properties: Dict[str, Any]  # properties
@@ -541,4 +540,4 @@ class SubTypeEnricher:
                 f"This Doctype is missing mandatory information: {enricher!r}"
             )
 
-        return SubTypeEnricher(uid, type, parent_uid, path, facets, props)
+        return SubTypeEnricher(uid, parent_uid, path, facets, props)
