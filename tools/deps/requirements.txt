@@ -2,9 +2,9 @@
 # Modules needed by the application.
 # This file is used to build fresh binaries.
 #
-authlib==0.15.4 \
-    --hash=sha256:d9fe5edb59801b16583faa86f88d798d99d952979b9616d5c735b9170b41ae2c \
-    --hash=sha256:37df3a2554bc6fe0da3cc6848c44fac2ae40634a7f8fc72543947f4330b26464
+authlib==1.0.0 \
+    --hash=sha256:2b13b4ba6465bdc46b89b1a07b2707c85b3434502d5a5fe202f5bdef8ebd5ac9 \
+    --hash=sha256:e8d589a886b5bcde64ebf961157bf619d613666ef6703822c06254c5b108b3e6
     # via nuxeo[oauth2]
 boto3==1.20.19 \
     --hash=sha256:d917b4d2c47e02398e2815c31de8c667fb6bc840f28f1f3f54b1bb3ba4f617b2 \
