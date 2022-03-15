@@ -560,14 +560,7 @@ class Remote(Nuxeo):
     def upload_folder_type(
         self, parent: str, params: Dict[str, str], /, *, headers: Dict[str, Any] = None
     ) -> Dict[str, Any]:
-        """Create a folder using the FileManager."""
-        """
-        kwargs: Dict[str, Any] = {
-            "command": "FileManager.CreateFolder",
-            "input_obj": parent,
-            "params": params,
-        }
-        """
+        """Create a folder using REST api."""
         resp = self.client.request(
             "POST", f"{self.client.api_path}/path{parent}", headers=headers, data=params
         )

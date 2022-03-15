@@ -536,14 +536,9 @@ class SubTypeEnricher:
                 if folderish and not hiddenInCreation:
                     facets.append(iter["type"])
 
-            # name = unicodedata.normalize("NFC", props["dc:title"])
-            # folderish = "Folderish" in enricher["facets"]
-            # folderish = "Folderish" in facets
-            # modified = enricher["lastModified"]
-
         except (KeyError, TypeError):
             raise DriveError(
-                f"This Doctype is missing mandatory information: {enricher}"
+                f"This Doctype is missing mandatory information: {enricher!r}"
             )
 
         return SubTypeEnricher(uid, type, parent_uid, path, facets, props)

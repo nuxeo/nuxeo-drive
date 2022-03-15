@@ -513,7 +513,7 @@ class Engine(QObject):
             return res
         except Exception:
             log.warning(
-                f"Could not create the {new_folder!r} folder in the {remote_parent_path!r} remote folder",
+                f"Couldnt create the {new_folder!r} folder with type {new_folder_type!r} in the {remote_parent_path!r}",
                 exc_info=True,
             )
             self.directTransferNewFolderError.emit()
