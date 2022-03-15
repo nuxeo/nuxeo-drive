@@ -275,64 +275,16 @@ def test_remote_doc_raise_drive_error(remote_doc_dict):
 
 def test_subtype_enricher(enricher):
     enricher["uid"] = "MTYxMTIyODA1ODUzNA"
-    enricher["contextParameters"]["subtypes"] = [
-        {
-            "type": "OrderedFolder",
-            "facets": ["Folderish", "HiddenInCreation", "NXTag", "Orderable"],
-        },
-        {
-            "type": "Picture",
-            "facets": [
-                "Versionable",
-                "NXTag",
-                "Publishable",
-                "Picture",
-                "Commentable",
-                "HasRelatedText",
-            ],
-        },
-        {
-            "type": "Video",
-            "facets": [
-                "Versionable",
-                "NXTag",
-                "Publishable",
-                "Video",
-                "HasStoryboard",
-                "Commentable",
-                "HasVideoPreview",
-            ],
-        },
-        {
-            "type": "Note",
-            "facets": [
-                "Versionable",
-                "NXTag",
-                "Publishable",
-                "Commentable",
-                "HasRelatedText",
-            ],
-        },
-        {"type": "Folder", "facets": ["Folderish", "NXTag"]},
-        {
-            "type": "Audio",
-            "facets": ["Versionable", "NXTag", "Publishable", "Commentable", "Audio"],
-        },
-        {
-            "type": "File",
-            "facets": [
-                "Versionable",
-                "NXTag",
-                "Publishable",
-                "Commentable",
-                "HasRelatedText",
-                "Downloadable",
-            ],
-        },
-    ]
-
     enricherList = SubTypeEnricher.from_dict(enricher)
     assert enricherList.facets is not None
-    print(enricherList.facets)
-    print("++++++++++++++++++++++++++++++")
     assert any("Folder" in s for s in enricherList.facets)
+
+
+def test_without_subtype_enricher(enricher):
+    with pytest.raises(DriveError) as exec_info:
+        enricher["contextParameters"] = None
+        enricherList = SubTypeEnricher.from_dict(enricher)
+        assert str(exec_info.value.args[0]).startswith(
+            "nxdrive.exceptions.DriveError: This Doctype is missing mandatory information:"
+        )
+        assert enricherList.facets is None
