@@ -508,7 +508,7 @@ class Engine(QObject):
                 "properties{'dc:title'}": new_folder,
             }
             res = self.remote.upload_folder_type(remote_parent_path, payload)
-            new_path = remote_parent_path + "/" + new_folder
+            new_path = f'{remote_parent_path}/{new_folder}'
             self.directTransferNewFolderSuccess.emit(new_path)
             return res
         except Exception:
@@ -776,8 +776,7 @@ class Engine(QObject):
 
             resume(nature, transfer.uid, is_direct_transfer=is_direct_transfer)
 
-            doc_pair = get_state(transfer.doc_pair)
-            if doc_pair:
+            if doc_pair := get_state(transfer.doc_pair):
                 self.queue_manager.push(doc_pair)
 
     def resume_transfer(
@@ -952,7 +951,7 @@ class Engine(QObject):
         if not url:
             raise ValueError(f"Invalid url: {url!r}")
         if not url.endswith("/"):
-            return url + "/"
+            return f'{url}/'
         return url
 
     def _send_roots_metrics(self) -> None:
@@ -1054,9 +1053,7 @@ class Engine(QObject):
         :param force: Force the return value to be the one of `force`.
         """
 
-        if isinstance(force, bool):
-            return force
-        return False
+        return force if isinstance(force, bool) else False
 
     def create_thread(
         self, worker: Worker, name: str, /, *, start_connect: bool = True
@@ -1090,13 +1087,11 @@ class Engine(QObject):
         self.dao.reset_error(state, last_error=reason)
 
     def resolve_with_local(self, row_id: int, /) -> None:
-        row = self.dao.get_state_from_id(row_id)
-        if row:
+        if row := self.dao.get_state_from_id(row_id):
             self.dao.force_local(row)
 
     def resolve_with_remote(self, row_id: int, /) -> None:
-        row = self.dao.get_state_from_id(row_id)
-        if row:
+        if row := self.dao.get_state_from_id(row_id):
             self.dao.force_remote(row)
 
     @pyqtSlot()
@@ -1377,8 +1372,7 @@ class Engine(QObject):
             raise MissingXattrSupport(path)
 
         if path.is_dir():
-            root_id = self.local.get_root_id()
-            if root_id:
+            if root_id := self.local.get_root_id():
                 # server_url|user|device_id|uid
                 server_url, user, *_ = root_id.split("|")
                 if (self.server_url, self.remote_user) != (server_url, user):
