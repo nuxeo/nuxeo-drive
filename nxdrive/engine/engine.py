@@ -492,6 +492,33 @@ class Engine(QObject):
             self.directTransferNewFolderError.emit()
             return {}
 
+    def _create_remote_folder_with_enricher(
+        self,
+        remote_parent_path: str,
+        new_folder: str,
+        new_folder_type: str,
+        session_id: int,
+        /,
+    ) -> Dict[str, Any]:
+        try:
+            payload = {
+                "entity-type": "document",
+                "name": new_folder,
+                "type": new_folder_type,
+                "properties{'dc:title'}": new_folder,
+            }
+            res = self.remote.upload_folder_type(remote_parent_path, payload)
+            new_path = remote_parent_path + "/" + new_folder
+            self.directTransferNewFolderSuccess.emit(new_path)
+            return res
+        except Exception:
+            log.warning(
+                f"Could not create the {new_folder!r} folder with type {new_folder_type!r} in {remote_parent_path!r}",
+                exc_info=True,
+            )
+            self.directTransferNewFolderError.emit()
+            return {}
+
     def _direct_transfer(
         self,
         local_paths: Dict[Path, int],
@@ -503,6 +530,7 @@ class Engine(QObject):
         duplicate_behavior: str = "create",
         last_local_selected_location: Optional[Path] = None,
         new_folder: Optional[str] = None,
+        new_folder_type: Optional[str] = None,
     ) -> None:
         """Plan the Direct Transfer."""
 
@@ -517,9 +545,17 @@ class Engine(QObject):
         if new_folder:
             self.send_metric("direct_transfer", "new_folder", "1")
             expected_session_uid = self.dao.get_count("uid != 0", table="Sessions") + 1
-            item = self._create_remote_folder(
-                remote_parent_path, new_folder, expected_session_uid
-            )
+            if not new_folder_type or new_folder_type == "Automatic":
+                item = self._create_remote_folder(
+                    remote_parent_path, new_folder, expected_session_uid
+                )
+            else:
+                item = self._create_remote_folder_with_enricher(
+                    remote_parent_path,
+                    new_folder,
+                    new_folder_type,
+                    expected_session_uid,
+                )
             if not item:
                 return
             remote_parent_path = item["path"]
@@ -604,6 +640,7 @@ class Engine(QObject):
         duplicate_behavior: str = "create",
         last_local_selected_location: Optional[Path] = None,
         new_folder: Optional[str] = None,
+        new_folder_type: Optional[str] = None,
     ) -> None:
         """Plan the Direct Transfer."""
         self._direct_transfer(
@@ -614,6 +651,7 @@ class Engine(QObject):
             duplicate_behavior=duplicate_behavior,
             last_local_selected_location=last_local_selected_location,
             new_folder=new_folder,
+            new_folder_type=new_folder_type,
         )
 
     def direct_transfer_async(
@@ -627,6 +665,7 @@ class Engine(QObject):
         duplicate_behavior: str = "create",
         last_local_selected_location: Optional[Path] = None,
         new_folder: Optional[str] = None,
+        new_folder_type: Optional[str] = None,
     ) -> None:
         """Plan the Direct Transfer. Async to not freeze the GUI."""
         from .workers import Runner
@@ -640,6 +679,7 @@ class Engine(QObject):
             duplicate_behavior=duplicate_behavior,
             last_local_selected_location=last_local_selected_location,
             new_folder=new_folder,
+            new_folder_type=new_folder_type,
         )
         self._threadpool.start(runner)
 
