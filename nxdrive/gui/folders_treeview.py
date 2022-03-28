@@ -190,6 +190,7 @@ class FolderTreeView(TreeViewMixin):
         self.parent.remote_folder_title = item.get_label()
         self.current = current
         self.parent.button_ok_state()
+        self.parent.update_file_group()
 
     def refresh_selected(self) -> None:
         """Force reload the the current selected index."""

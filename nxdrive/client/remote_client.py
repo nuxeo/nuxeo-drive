@@ -965,20 +965,49 @@ class Remote(Nuxeo):
             log.warning(f"Error getting server configuration: {exc}")
             return {}
 
+    def get_config_types(self) -> Dict[str, Any]:
+        try:
+            resp = self.client.request(
+                "GET", f"{self.client.api_path}/config/types"
+            ).json()
+
+            return json.loads(json.dumps(resp))
+
+        except Exception as exc:
+            log.warning(f"Error getting server configuration: {exc}")
+            return {}
+
     def _get_trash_condition(self) -> str:
         if version_lt(self.client.server_version, "10.2"):
             return "AND ecm:currentLifeCycleState != 'deleted'"
         return "AND ecm:isTrashed = 0"
 
     def get_doc_enricher(
-        self, parent: str, enricherType: str = "subtypes"
+        self, parent: str, enricherType: str = "subtypes", isFolderish: bool = True
     ) -> SubTypeEnricher:
 
         headers: Dict[str, str] = {}
         headers = {"enrichers.document": enricherType}
 
         enricherList = SubTypeEnricher.from_dict(
-            self.fetch(parent, headers=headers, enrichers=[enricherType])
+            self.fetch(parent, headers=headers, enrichers=[enricherType]),
+            isFolderish=isFolderish,
         )
 
-        return enricherList
+        docTypeFiletList = self.filter_schema(enricherList)
+        if isFolderish:
+            return enricherList.facets
+        else:
+            return [x for x in enricherList.facets if x in docTypeFiletList]
+
+    def filter_schema(self, enricherList: SubTypeEnricher) -> SubTypeEnricher:
+
+        configTypes = self.get_config_types()
+        docTypeList = []
+        for docType in configTypes["doctypes"]:
+            if "file" in configTypes["doctypes"][docType]["schemas"]:
+                print(docType)
+                print(docType.rstrip())
+                docTypeList.append(str(docType))
+
+        return docTypeList

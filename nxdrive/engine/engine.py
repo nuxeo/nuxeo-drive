@@ -461,6 +461,7 @@ class Engine(QObject):
         remote_title: str,
         duplicate_behavior: str,
         last_local_selected_location: Optional[Path],
+        last_local_selected_doc_type: Optional[str],
         /,
     ) -> None:
         """Store last dt session infos into the database for later runs."""
@@ -471,6 +472,10 @@ class Engine(QObject):
         if last_local_selected_location:
             self.dao.update_config(
                 "dt_last_local_selected_location", last_local_selected_location
+            )
+        if last_local_selected_doc_type:
+            self.dao.update_config(
+                "dt_last_local_selected_doc_type", last_local_selected_doc_type
             )
 
     def _create_remote_folder(
@@ -507,6 +512,18 @@ class Engine(QObject):
                 "type": new_folder_type,
                 "properties{'dc:title'}": new_folder,
             }
+            """
+            {
+                    "entity-type": "document",
+                    "name": transfer.name,
+                    "type": doc_type,
+                    "properties":{
+                        "dc:title": new_folder
+                    }
+                }
+            """
+            print("REMOTE FOLER PAYLOAD: ")
+            print(payload)
             res = self.remote.upload_folder_type(remote_parent_path, payload)
             new_path = remote_parent_path + "/" + new_folder
             self.directTransferNewFolderSuccess.emit(new_path)
@@ -527,8 +544,11 @@ class Engine(QObject):
         remote_parent_title: str,
         /,
         *,
+        document_type: str = "create",
+        container_type: str = "create",
         duplicate_behavior: str = "create",
         last_local_selected_location: Optional[Path] = None,
+        last_local_selected_doc_type: Optional[str] = None,
         new_folder: Optional[str] = None,
         new_folder_type: Optional[str] = None,
     ) -> None:
@@ -541,6 +561,7 @@ class Engine(QObject):
             remote_parent_title,
             duplicate_behavior,
             last_local_selected_location,
+            last_local_selected_doc_type,
         )
         if new_folder:
             self.send_metric("direct_transfer", "new_folder", "1")
@@ -575,6 +596,7 @@ class Engine(QObject):
                 size,
                 remote_parent_path,
                 remote_parent_ref,
+                document_type,
                 duplicate_behavior,
                 "todo" if path.parent in all_paths else "unknown",
             )
@@ -613,6 +635,7 @@ class Engine(QObject):
         self.directTransferSessionFinished.emit(
             self.uid, session.remote_ref, session.remote_path
         )
+        print("doc['facets']")
         session_folder_count = sum(
             "Folderish" in doc["facets"]
             for doc in self.dao.get_session_items(session.uid)
@@ -639,6 +662,7 @@ class Engine(QObject):
         *,
         duplicate_behavior: str = "create",
         last_local_selected_location: Optional[Path] = None,
+        last_local_selected_doc_type: Optional[Path] = None,
         new_folder: Optional[str] = None,
         new_folder_type: Optional[str] = None,
     ) -> None:
@@ -650,6 +674,7 @@ class Engine(QObject):
             remote_parent_title,
             duplicate_behavior=duplicate_behavior,
             last_local_selected_location=last_local_selected_location,
+            last_local_selected_doc_type=last_local_selected_doc_type,
             new_folder=new_folder,
             new_folder_type=new_folder_type,
         )
@@ -662,8 +687,11 @@ class Engine(QObject):
         remote_parent_title: str,
         /,
         *,
+        document_type: str = "create",
+        container_type: str = "create",
         duplicate_behavior: str = "create",
         last_local_selected_location: Optional[Path] = None,
+        last_local_selected_doc_type: Optional[str] = None,
         new_folder: Optional[str] = None,
         new_folder_type: Optional[str] = None,
     ) -> None:
@@ -676,8 +704,11 @@ class Engine(QObject):
             remote_parent_path,
             remote_parent_ref,
             remote_parent_title,
+            document_type=document_type,
+            container_type=container_type,
             duplicate_behavior=duplicate_behavior,
             last_local_selected_location=last_local_selected_location,
+            last_local_selected_doc_type=last_local_selected_doc_type,
             new_folder=new_folder,
             new_folder_type=new_folder_type,
         )

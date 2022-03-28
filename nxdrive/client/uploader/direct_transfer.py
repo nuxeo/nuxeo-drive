@@ -64,6 +64,8 @@ class DirectTransferUploader(BaseUploader):
             - create a new operation `Document.GetOrCreate` that ensures atomicity.
         """
         doc_pair: DocPair = kwargs.pop("doc_pair")
+        print("DirctTransfrUploader.upload")
+        print(doc_pair)
 
         log.info(
             f"Direct Transfer of {file_path!r} into {doc_pair.remote_parent_path!r} ({doc_pair.remote_parent_ref!r})"
@@ -98,6 +100,7 @@ class DirectTransferUploader(BaseUploader):
                 remote_parent_path=doc_pair.remote_parent_path,
                 remote_parent_ref=doc_pair.remote_parent_ref,
                 doc_pair=doc_pair.id,
+                doc_type=doc_pair.doc_type,
                 headers={
                     REQUEST_METRICS: json.dumps(
                         {

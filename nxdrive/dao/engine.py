@@ -623,6 +623,7 @@ class EngineDAO(BaseDAO):
             "    remote_parent_path      VARCHAR,"
             "    local_name              VARCHAR,"
             "    remote_name             VARCHAR,"
+            "    doc_type                VARCHAR,"
             "    size                    INTEGER    DEFAULT (0),"
             "    folderish               INTEGER,"
             "    local_state             VARCHAR    DEFAULT('unknown'),"
@@ -848,9 +849,9 @@ class EngineDAO(BaseDAO):
             query = (
                 "INSERT INTO States "
                 "(local_path, local_parent_path, local_name, folderish, size, "
-                "remote_parent_path, remote_parent_ref, duplicate_behavior, "
+                "remote_parent_path, remote_parent_ref, doc_type, duplicate_behavior, "
                 "local_state, remote_state, pair_state, session)"
-                f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'direct', ?, 'direct_transfer', {session})"
+                f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'direct', ?, 'direct_transfer', {session})"
             )
             c.executemany(query, items)
             return current_max_row_id

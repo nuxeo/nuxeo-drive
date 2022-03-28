@@ -201,12 +201,15 @@ class BaseUploader:
         self._handle_transfer_status(transfer)
 
         # Step 0.75: delete superfluous arguments that would raise a BadQuery error later
+        print("kwargs INITITALLY====00")
+        print(kwargs)
         kwargs.pop("doc_pair", None),
         kwargs.pop("engine_uid", None)
         kwargs.pop("is_direct_edit", None)
         kwargs.pop("is_direct_transfer", None)
         kwargs.pop("remote_parent_path", None)
         kwargs.pop("remote_parent_ref", None)
+        # kwargs.pop("doc_type", None)
 
         # For the upload to be chunked, the Options.chunk_upload must be True
         # and the blob must be bigger than Options.chunk_limit, which by default
@@ -448,13 +451,50 @@ class BaseUploader:
         else:
             kwargs["headers"] = headers
         try:
-            res: Dict[str, Any] = self.remote.execute(
-                command=command,
-                input_obj=blob,
-                timeout=kwargs.pop("timeout", TX_TIMEOUT),
-                **kwargs,
-            )
+            if transfer.is_direct_transfer:
+                doc_type = kwargs.get("doc_type", "")
+                content = {
+                    "entity-type": "document",
+                    "name": transfer.name,
+                    "type": doc_type,
+                    "properties": {
+                        "dc:title": transfer.name,
+                        "file:content": {
+                            "upload-batch": transfer.batch_obj.uid,
+                            "upload-fileId": "0",
+                        },
+                    },
+                }
+                print("Content is")
+                print(content)
+                print(
+                    f"path is {self.remote.client.api_path}/path{transfer.remote_parent_path}"
+                )
+                print(headers)
+                print("kwargs===")
+                print(kwargs)
+
+                self.remote.client.request(
+                    "POST",
+                    f"{self.remote.client.api_path}/path{transfer.remote_parent_path}",
+                    headers=headers,
+                    data=content,
+                )
+                res = self.remote.fetch(
+                    f"{self.remote.client.api_path}/path{transfer.remote_parent_path}",
+                    headers=headers,
+                )
+            else:
+                res: Dict[str, Any] = self.remote.execute(
+                    command=command,
+                    input_obj=blob,
+                    timeout=kwargs.pop("timeout", TX_TIMEOUT),
+                    **kwargs,
+                )
+
             return res
+        except Exception as e:
+            print(str(e))
         finally:
             action.finish_action()
 
