@@ -77,6 +77,10 @@ def no_warnings(recwarn):
             # Cannot understand if this is from our code or a pytest plugin,
             # let's wait for when it will fail :)
             continue
+        elif "distutils Version classes are deprecated" in message:
+            # Cannot understand if this is from our code or a pytest plugin,
+            # let's wait for when it will fail :)
+            continue
         elif "(rm_rf) error removing" in message:
             # First appeared with pytest 5.4.1
             continue
