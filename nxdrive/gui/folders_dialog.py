@@ -518,8 +518,11 @@ class FoldersDialog(DialogMixin):
         """Action to do when the OK button is clicked."""
         super().accept()
 
-        self.last_local_selected_doc_type = self.cbDocType.currentText()
-
+        self.last_local_selected_doc_type = (
+            self.cbDocType.currentData()
+            if self.cbDocType.currentIndex() == 0
+            else self.cbDocType.currentText()
+        )
         folder_duplicates = self._find_folders_duplicates()
 
         if folder_duplicates:
@@ -530,13 +533,20 @@ class FoldersDialog(DialogMixin):
             )
             return
 
+        if self.cbContainerType.currentIndex() > 0:
+            cont_type = self.cbContainerType.currentText()
+        else:
+            cont_type = None
+        doc_type = (
+            self.cbDocType.currentText() if self.cbDocType.currentIndex() != 0 else None
+        )
         self.engine.direct_transfer_async(
             self.paths,
             self.remote_folder.text(),
             self.remote_folder_ref,
             self.remote_folder_title,
-            document_type=self.cbDocType.currentText(),
-            container_type=self.cbContainerType.currentText(),
+            document_type=doc_type,
+            container_type=cont_type,
             duplicate_behavior=self.cb.currentData(),
             last_local_selected_location=self.last_local_selected_location,
             last_local_selected_doc_type=self.last_local_selected_doc_type,
@@ -554,7 +564,11 @@ class FoldersDialog(DialogMixin):
         )
         self.cbDocType.setEnabled(bool(self.paths) and bool(self.tree_view.current))
         # Select the last run's choice
-        index = self.cbDocType.findText(self.last_local_selected_doc_type)
+        index = (
+            self.cbDocType.findText(self.last_local_selected_doc_type)
+            if self.last_local_selected_doc_type != "create"
+            else 0
+        )
         if index != -1:
             self.cbDocType.setCurrentIndex(index)
 

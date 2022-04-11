@@ -510,20 +510,9 @@ class Engine(QObject):
                 "entity-type": "document",
                 "name": new_folder,
                 "type": new_folder_type,
-                "properties{'dc:title'}": new_folder,
+                "properties": {"dc:title": new_folder},
             }
-            """
-            {
-                    "entity-type": "document",
-                    "name": transfer.name,
-                    "type": doc_type,
-                    "properties":{
-                        "dc:title": new_folder
-                    }
-                }
-            """
-            print("REMOTE FOLER PAYLOAD: ")
-            print(payload)
+
             res = self.remote.upload_folder_type(remote_parent_path, payload)
             new_path = remote_parent_path + "/" + new_folder
             self.directTransferNewFolderSuccess.emit(new_path)
@@ -587,6 +576,17 @@ class Engine(QObject):
             return
 
         all_paths = local_paths.keys()
+        doc_type = None
+        if document_type == "Automatic":
+            doc_type = None
+        else:
+            doc_type = document_type
+
+        cont_type = None
+        if container_type == "Automatic":
+            cont_type = None
+        else:
+            cont_type = container_type
         items = [
             (
                 path.as_posix(),
@@ -596,7 +596,7 @@ class Engine(QObject):
                 size,
                 remote_parent_path,
                 remote_parent_ref,
-                document_type,
+                doc_type if not path.is_dir() else cont_type,
                 duplicate_behavior,
                 "todo" if path.parent in all_paths else "unknown",
             )
@@ -635,7 +635,6 @@ class Engine(QObject):
         self.directTransferSessionFinished.emit(
             self.uid, session.remote_ref, session.remote_path
         )
-        print("doc['facets']")
         session_folder_count = sum(
             "Folderish" in doc["facets"]
             for doc in self.dao.get_session_items(session.uid)
@@ -687,8 +686,8 @@ class Engine(QObject):
         remote_parent_title: str,
         /,
         *,
-        document_type: str = "create",
-        container_type: str = "create",
+        document_type: str,
+        container_type: str,
         duplicate_behavior: str = "create",
         last_local_selected_location: Optional[Path] = None,
         last_local_selected_doc_type: Optional[str] = None,
@@ -713,6 +712,21 @@ class Engine(QObject):
             new_folder_type=new_folder_type,
         )
         self._threadpool.start(runner)
+        """
+        self._direct_transfer(
+            local_paths,
+            remote_parent_path,
+            remote_parent_ref,
+            remote_parent_title,
+            document_type=document_type,
+            container_type=container_type,
+            duplicate_behavior=duplicate_behavior,
+            last_local_selected_location=last_local_selected_location,
+            last_local_selected_doc_type=last_local_selected_doc_type,
+            new_folder=new_folder,
+            new_folder_type=new_folder_type,
+        )
+        """
 
     def rollback_delete(self, path: Path, /) -> None:
         """Re-synchronize a document when a deletion is cancelled."""

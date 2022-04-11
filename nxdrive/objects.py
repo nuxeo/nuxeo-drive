@@ -365,6 +365,7 @@ class DocPair(Row):
     def __repr__(self) -> str:
         return (
             f"<{type(self).__name__}[{self.id!r}]"
+            f" doc_type={self.doc_type!r},"
             f" local_path={self.local_path!r},"
             f" local_parent_path={self.local_parent_path!r},"
             f" remote_ref={self.remote_ref!r},"
@@ -393,6 +394,7 @@ class DocPair(Row):
             "local_path": str(self.local_path),
             "local_parent_path": str(self.local_parent_path),
             "remote_ref": self.remote_ref,
+            "doc_type": self.doc_type,
             "folderish": self.folderish,
             "id": self.id,
             "size": self.size,

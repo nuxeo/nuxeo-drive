@@ -2199,6 +2199,8 @@ class EngineDAO(BaseDAO):
     def save_session_item(self, session_id: int, item: Dict[str, Any]) -> None:
         """Save the session uploaded item data into the SessionItems table."""
 
+        print("SAVING SESSION ITEms")
+        print(json.dumps(item))
         with self.lock:
             c = self._get_write_connection().cursor()
             c.execute(

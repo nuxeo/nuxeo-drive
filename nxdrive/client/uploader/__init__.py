@@ -201,8 +201,6 @@ class BaseUploader:
         self._handle_transfer_status(transfer)
 
         # Step 0.75: delete superfluous arguments that would raise a BadQuery error later
-        print("kwargs INITITALLY====00")
-        print(kwargs)
         kwargs.pop("doc_pair", None),
         kwargs.pop("engine_uid", None)
         kwargs.pop("is_direct_edit", None)
@@ -451,8 +449,8 @@ class BaseUploader:
         else:
             kwargs["headers"] = headers
         try:
-            if transfer.is_direct_transfer:
-                doc_type = kwargs.get("doc_type", "")
+            doc_type = kwargs.get("doc_type", "")
+            if transfer.is_direct_transfer and doc_type and doc_type != "":
                 content = {
                     "entity-type": "document",
                     "name": transfer.name,
@@ -465,14 +463,6 @@ class BaseUploader:
                         },
                     },
                 }
-                print("Content is")
-                print(content)
-                print(
-                    f"path is {self.remote.client.api_path}/path{transfer.remote_parent_path}"
-                )
-                print(headers)
-                print("kwargs===")
-                print(kwargs)
 
                 self.remote.client.request(
                     "POST",
@@ -494,6 +484,7 @@ class BaseUploader:
 
             return res
         except Exception as e:
+            print("ERROR IN FILE LINK")
             print(str(e))
         finally:
             action.finish_action()
