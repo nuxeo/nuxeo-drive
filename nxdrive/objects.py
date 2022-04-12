@@ -537,11 +537,6 @@ class SubTypeEnricher:
                     if isFolderish
                     else "Folderish" not in iter["facets"]
                 )
-                folderish = False
-                if isFolderish:
-                    folderish = "Folderish" in iter["facets"]
-                else:
-                    folderish = "Folderish" not in iter["facets"]
                 hiddenInCreation = "HiddenInCreation" in iter["facets"]
                 if folderish and not hiddenInCreation:
                     facets.append(iter["type"])
