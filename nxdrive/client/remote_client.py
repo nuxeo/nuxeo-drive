@@ -1006,8 +1006,6 @@ class Remote(Nuxeo):
         docTypeList = []
         for docType in configTypes["doctypes"]:
             if "file" in configTypes["doctypes"][docType]["schemas"]:
-                print(docType)
-                print(docType.rstrip())
                 docTypeList.append(str(docType))
 
         return docTypeList

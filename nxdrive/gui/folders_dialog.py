@@ -344,8 +344,8 @@ class FoldersDialog(DialogMixin):
         duplicate_sublayout = QVBoxLayout()
         layout.addLayout(duplicate_sublayout)
 
-        self._add_subgroup_doc_type(layout)
         self._add_subgroup_container_type(layout)
+        self._add_subgroup_doc_type(layout)
         self._add_subgroup_duplicate_behavior(duplicate_sublayout)
         self.update_file_group()
 

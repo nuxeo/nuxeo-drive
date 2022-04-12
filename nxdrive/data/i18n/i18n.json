@@ -47,7 +47,7 @@
     "CONNECTION_REFUSED": "Connection refused",
     "CONNECTION_SUCCESS": "Server successfully connected",
     "CONNECTION_UNKNOWN": "Unknown error occurred while trying to connect",
-    "CONTAINER_TYPE": "Container Type",
+    "CONTAINER_TYPE": "Folder Type",
     "CONTEXT_MENU_1": "Access online",
     "CONTEXT_MENU_2": "Copy share-link",
     "CONTEXT_MENU_3": "Edit metadata",

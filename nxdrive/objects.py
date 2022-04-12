@@ -365,7 +365,6 @@ class DocPair(Row):
     def __repr__(self) -> str:
         return (
             f"<{type(self).__name__}[{self.id!r}]"
-            f" doc_type={self.doc_type!r},"
             f" local_path={self.local_path!r},"
             f" local_parent_path={self.local_parent_path!r},"
             f" remote_ref={self.remote_ref!r},"
@@ -533,6 +532,11 @@ class SubTypeEnricher:
             subTypes = enricher["contextParameters"]["subtypes"]
             facets = []
             for iter in subTypes:
+                folderish = (
+                    "Folderish" in iter["facets"]
+                    if isFolderish
+                    else "Folderish" not in iter["facets"]
+                )
                 folderish = False
                 if isFolderish:
                     folderish = "Folderish" in iter["facets"]
@@ -541,10 +545,6 @@ class SubTypeEnricher:
                 hiddenInCreation = "HiddenInCreation" in iter["facets"]
                 if folderish and not hiddenInCreation:
                     facets.append(iter["type"])
-
-            print("====================PRinting SUBtYPES======================")
-            print(isFolderish)
-            print(facets)
 
         except (KeyError, TypeError):
             raise DriveError(
