@@ -764,6 +764,8 @@ class NewFolderDialog(QDialog):
             self.parent.remote_folder.text(),
             self.parent.remote_folder_ref,
             self.parent.remote_folder_title,
+            document_type=None,
+            container_type=None,
             duplicate_behavior=self.parent.cb.currentData(),
             last_local_selected_location=self.parent.last_local_selected_location,
             new_folder=self.new_folder_name.text(),
