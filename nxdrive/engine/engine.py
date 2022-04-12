@@ -533,8 +533,8 @@ class Engine(QObject):
         remote_parent_title: str,
         /,
         *,
-        document_type: str = "create",
-        container_type: str = "create",
+        document_type: str = "",
+        container_type: str = "",
         duplicate_behavior: str = "create",
         last_local_selected_location: Optional[Path] = None,
         last_local_selected_doc_type: Optional[str] = None,
@@ -712,21 +712,6 @@ class Engine(QObject):
             new_folder_type=new_folder_type,
         )
         self._threadpool.start(runner)
-        """
-        self._direct_transfer(
-            local_paths,
-            remote_parent_path,
-            remote_parent_ref,
-            remote_parent_title,
-            document_type=document_type,
-            container_type=container_type,
-            duplicate_behavior=duplicate_behavior,
-            last_local_selected_location=last_local_selected_location,
-            last_local_selected_doc_type=last_local_selected_doc_type,
-            new_folder=new_folder,
-            new_folder_type=new_folder_type,
-        )
-        """
 
     def rollback_delete(self, path: Path, /) -> None:
         """Re-synchronize a document when a deletion is cancelled."""

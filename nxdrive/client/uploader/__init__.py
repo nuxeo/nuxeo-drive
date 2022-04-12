@@ -207,7 +207,6 @@ class BaseUploader:
         kwargs.pop("is_direct_transfer", None)
         kwargs.pop("remote_parent_path", None)
         kwargs.pop("remote_parent_ref", None)
-        # kwargs.pop("doc_type", None)
 
         # For the upload to be chunked, the Options.chunk_upload must be True
         # and the blob must be bigger than Options.chunk_limit, which by default
@@ -483,9 +482,9 @@ class BaseUploader:
                 )
 
             return res
-        except Exception as e:
-            print("ERROR IN FILE LINK")
-            print(str(e))
+        except Exception as exc:
+            err = f"Error while linking blob to doc: {exc!r}"
+            log.warning(err)
         finally:
             action.finish_action()
 

@@ -260,7 +260,7 @@ class FoldersDialog(DialogMixin):
         )
 
         self.last_local_selected_doc_type = self.engine.dao.get_config(
-            "dt_last_local_selected_doc_type", default="create"
+            "dt_last_local_selected_doc_type", default=""
         )
         self.duplicates_behavior = self.engine.dao.get_config(
             "dt_last_duplicates_behavior", default="create"
@@ -414,19 +414,12 @@ class FoldersDialog(DialogMixin):
             )
 
             self.cbDocType.addItems(self.docTypeList)
-
-            print("PRINTIG Document TYPE LIST")
-            print(self.docTypeList)
-
         self.cbContainerType.clear()
         self.cbContainerType.addItem("Automatic", "create")
         if self.remote_folder_ref:
             self.containerTypeList = self.engine.remote.get_doc_enricher(
                 self.remote_folder_ref, "subtypes", True
             )
-            print("PRINTIG Container TYPE LIST")
-            print(self.containerTypeList)
-
             self.cbContainerType.addItems(self.containerTypeList)
 
     def _add_subgroup_doc_type(self, layout: QVBoxLayout, /) -> None:
@@ -566,7 +559,8 @@ class FoldersDialog(DialogMixin):
         # Select the last run's choice
         index = (
             self.cbDocType.findText(self.last_local_selected_doc_type)
-            if self.last_local_selected_doc_type != "create"
+            if self.last_local_selected_doc_type
+            and self.last_local_selected_doc_type != ""
             else 0
         )
         if index != -1:
