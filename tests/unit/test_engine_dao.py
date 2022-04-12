@@ -370,7 +370,7 @@ def test_migration_db_v1(engine_dao):
         c = dao._get_read_connection().cursor()
 
         cols = c.execute("PRAGMA table_info('States')").fetchall()
-        assert len(cols) == 34
+        assert len(cols) == 33
 
         cols = c.execute("SELECT * FROM States").fetchall()
         assert len(cols) == 63
@@ -384,7 +384,7 @@ def test_migration_db_v1_with_duplicates(engine_dao):
         assert not rows
 
         cols = c.execute("PRAGMA table_info('States')").fetchall()
-        assert len(cols) == 34
+        assert len(cols) == 33
         assert dao.get_config("remote_last_event_log_id") is None
         assert dao.get_config("remote_last_full_scan") is None
 
