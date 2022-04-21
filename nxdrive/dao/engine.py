@@ -528,6 +528,12 @@ class EngineDAO(BaseDAO):
         if version < 21:
             self.store_int(SCHEMA_VERSION, 21)
             self.set_schema_version(cursor, 21)
+        if version < 22:
+            # Add the *doc_type* field to the States table
+            self._append_to_table(
+                cursor, "States", ("doc_type", "VARCHAR", "DEFAULT", "NULL")
+            )
+            self.set_schema_version(cursor, 22)
 
     def _create_table(
         self, cursor: Cursor, name: str, /, *, force: bool = False
