@@ -9,9 +9,9 @@ altgraph==0.17 \
 future==0.18.2; sys_platform == "win32" \
     --hash=sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d
     # via pefile
-macholib==1.14 ; sys_platform == "darwin" \
-    --hash=sha256:c500f02867515e6c60a27875b408920d18332ddf96b4035ef03beddd782d4281 \
-    --hash=sha256:0c436bc847e7b1d9bda0560351bf76d7caf930fb585a828d13608839ef42c432
+macholib==1.16 ; sys_platform == "darwin" \
+    --hash=sha256:001bf281279b986a66d7821790d734e61150d52f40c080899df8fefae056e9f7 \
+    --hash=sha256:5a0742b587e6e57bfade1ab90651d4877185bf66fd4a176a488116de36878229
     # via pyinstaller
 pefile==2021.5.24 ; sys_platform == "win32" \
     --hash=sha256:ed79b2353daa58421459abf4d685953bde0adf9f6e188944f97ba9795f100246
