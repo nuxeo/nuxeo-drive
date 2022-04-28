@@ -303,9 +303,9 @@ typed-ast==1.4.3 \
     --hash=sha256:9c6d1a54552b5330bc657b7ef0eae25d00ba7ffe85d9ea8ae6540d2197a3788c \
     --hash=sha256:fb1bbeac803adea29cedd70781399c99138358c26d05fcbd23c13016b7f5ec65
     # via black
-types-certifi==0.1.4 \
-    --hash=sha256:afe4d94726491d843f10e5746797689ea5dcbd78454a653be47d72a8c8ce3bed \
-    --hash=sha256:7c134d978f15e4aa2d2b1a85b2a92241ed6b256c3452511b7783b6a28b304b71
+types-certifi==2021.10.8.2 \
+    --hash=sha256:a36dc1cb4aeeea8c97430297db10b4c0481ba612ed443e48e3e8aa091f359440 \
+    --hash=sha256:d8d61752071a10747f441c169967e31d43c1875d851973f4f9851c1cb8c5ed9d
     # via mypy
 typing-extensions==4.0.1 \
     --hash=sha256:7f001e5ac290a0c0401508864c7ec868be4e701886d5b573a9528ed3973d9d3b \
