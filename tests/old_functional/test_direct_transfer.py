@@ -726,7 +726,7 @@ class DirectTransferFolder:
         assert not self.engine_1.dao.get_errors(limit=0)
 
     def direct_transfer(self, folder, duplicate_behavior: str = "create") -> None:
-        paths = {path: size for path, size in get_tree_list(folder)}
+        paths = dict(get_tree_list(folder))
         self.engine_1.direct_transfer(
             paths,
             self.ws.path,
@@ -762,12 +762,10 @@ class DirectTransferFolder:
         # There is no upload, right now
         assert not list(self.engine_1.dao.get_dt_uploads())
 
-        created = []
-
         root_folder = self.tmpdir / str(uuid4())[:6]
         root_folder.mkdir()
 
-        created.append(root_folder.as_posix())
+        created = [root_folder.as_posix()]
         for _ in range(3):
             sub_folder = root_folder / f"folder_{str(uuid4())[:4]}"
             sub_folder.mkdir()
@@ -789,13 +787,10 @@ class DirectTransferFolder:
         # There is no upload, right now
         assert not list(self.engine_1.dao.get_dt_uploads())
 
-        created = []
-
         root_folder = self.tmpdir / str(uuid4())[:6]
         root_folder.mkdir()
 
-        created.append(root_folder.as_posix())
-
+        created = [root_folder.as_posix()]
         folder_a = root_folder / "folder_a"
         folder_a.mkdir()
         created.append(folder_a.as_posix())
@@ -840,11 +835,9 @@ class DirectTransferFolder:
         )
 
         for x in range(4):
-            created = []
             root_folder = self.tmpdir / str(uuid4())[:6]
             root_folder.mkdir()
-            created.append(root_folder)
-
+            created = [root_folder]
             sub_file = root_folder / f"file_{str(uuid4())[:4]}"
             sub_file.write_text("test", encoding="utf-8")
             created.append(sub_file)
@@ -1109,12 +1102,10 @@ class DirectTransferFolder:
         # There is no upload, right now
         assert not list(self.engine_1.dao.get_dt_uploads())
 
-        created = []
-
         root_folder = self.tmpdir / str(uuid4())[:6]
         root_folder.mkdir()
 
-        created.append(root_folder.as_posix())
+        created = [root_folder.as_posix()]
         for _ in range(5):
             sub_file = root_folder / f"file_{str(uuid4())[:4]}"
             sub_file.write_text("test", encoding="utf-8")
