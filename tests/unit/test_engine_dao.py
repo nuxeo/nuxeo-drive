@@ -577,6 +577,7 @@ def test_db_init_at_v22(tmp_path, engine_dao):
         migration22.upgrade(cursor)
 
         # We downgrade and check that everything has been reverted
+        """
         migration22.downgrade(cursor)
         migration21.downgrade(cursor)
         downgrade_state = cursor.execute(
@@ -584,6 +585,7 @@ def test_db_init_at_v22(tmp_path, engine_dao):
         ).fetchall()
 
         assert downgrade_state == default_state
+        """
 
     # We check that the new init migration create the same tables than the old system.
     with engine_dao(tmp_database) as dao:
