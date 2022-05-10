@@ -13,7 +13,7 @@ class MigrationInitial(MigrationInterface):
     def downgrade(self, cursor: Cursor) -> None:
         """Update the States table."""
         # Drop Column doc_type to States table
-        cursor.execute("ALTER TABLE States " "   DROP COLUMN doc_type")
+        cursor.execute("ALTER TABLE States DROP COLUMN doc_type")
 
     @property
     def version(self) -> int:
@@ -21,13 +21,12 @@ class MigrationInitial(MigrationInterface):
 
     @property
     def previous_version(self) -> int:
-        return 0
+        return 21
 
     @staticmethod
     def _update_state_table(cursor: Cursor) -> None:
         """Update the States table."""
-        # Add Column doc_type to States table
-        cursor.execute("ALTER TABLE States " "   ADD doc_type VARCHAR")
+        cursor.execute("ALTER TABLE States ADD doc_type VARCHAR")
 
 
 migration = MigrationInitial()
