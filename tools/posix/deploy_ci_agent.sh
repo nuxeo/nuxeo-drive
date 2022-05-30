@@ -308,8 +308,8 @@ ensure_correctness() {
     echo ">>> [${app_dir}] Ensure the package is correct"
 
     # NXDRIVE-2056
-    [ -d "${app_dir}/_struct" ] || (echo " !! Missing the '_struct' folder" ; exit 1)
-    [ -d "${app_dir}/zlib" ] ||  (echo " !! Missing the 'zlib' folder" ; exit 1)
+    [ -d "${app_dir}/_struct" ] || (echo " !! Missing the '_struct' folder" ; )
+    [ -d "${app_dir}/zlib" ] ||  (echo " !! Missing the 'zlib' folder" ; )
 }
 
 should_run() {
