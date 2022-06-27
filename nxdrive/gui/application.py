@@ -359,6 +359,8 @@ class Application(QApplication):
             current_uid = self.engine_model.engines_uid[0]
             engine = self.manager.engines[current_uid]
             self.get_last_files(current_uid)
+            log.debug("###### 362- last files:"+str(self.get_last_files(current_uid)))
+            log.info("###### 362- last files:"+str(self.get_last_files(current_uid)))
             self.refresh_transfers(engine.dao)
             self.update_status(engine)
 
@@ -1923,6 +1925,8 @@ class Application(QApplication):
     @pyqtSlot(str)
     def get_last_files(self, uid: str, /) -> None:
         files = self.api.get_last_files(uid, 10)
+        log.debug("############## 1928- files: "+str(files))
+        log.info("############## 1928- files: "+str(files))
         if files != self.file_model.files:
             self.file_model.add_files(files)
 
