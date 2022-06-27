@@ -121,6 +121,10 @@ class QMLDriveApi(QObject):
     def get_last_files(self, uid: str, number: int, /) -> List[Dict[str, Any]]:
         """Return the last files transferred (see EngineDAO)."""
         engine = self._manager.engines.get(uid)
+        log.debug("############# engine: "+str(engine)+"  ### number: "+str(number))
+        log.info("############# engine: "+str(engine)+"  ### number: "+str(number))
+
+        log.debug("############# get last files: "+str(engine.dao.get_last_files(number)))
         if not engine:
             return []
         return [s.export() for s in engine.dao.get_last_files(number)]

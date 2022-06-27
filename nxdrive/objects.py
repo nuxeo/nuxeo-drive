@@ -1,3 +1,4 @@
+from logging import getLogger
 import hashlib
 import unicodedata
 from collections import namedtuple
@@ -19,6 +20,7 @@ from .exceptions import DriveError
 from .translator import Translator
 from .utils import get_date_from_sqlite, get_timestamp_from_date
 
+log = getLogger(__name__)
 
 class Binder(NamedTuple):
     """Settings passed to Manager.bind_server()."""
@@ -279,6 +281,8 @@ class NuxeoDocumentInfo:
         props = self.properties
 
         # Note is a special case
+        log.debug("##### doc_type: "+str(self.doc_type))
+        log.info("##### doc_type: "+str(self.doc_type))
         if xpath == "note:note" and self.doc_type == "Note":
             note = props.get("note:note")
             if not note:

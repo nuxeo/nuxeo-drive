@@ -895,7 +895,8 @@ class EngineDAO(BaseDAO):
             if duration
             else ""
         )
-        return c.execute(
+
+        a = c.execute(
             "SELECT *"
             "  FROM States"
             " WHERE pair_state = 'synchronized'"
@@ -903,6 +904,9 @@ class EngineDAO(BaseDAO):
             " ORDER BY last_sync_date DESC "
             f"LIMIT {number}"
         ).fetchall()
+
+        log.debug("############### 895: "+str(a))
+        return a
 
     def get_last_files_count(self, *, direction: str = "", duration: int = None) -> int:
         """
