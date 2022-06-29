@@ -281,8 +281,6 @@ class NuxeoDocumentInfo:
         props = self.properties
 
         # Note is a special case
-        log.debug("##### doc_type: "+str(self.doc_type))
-        log.info("##### doc_type: "+str(self.doc_type))
         if xpath == "note:note" and self.doc_type == "Note":
             note = props.get("note:note")
             if not note:

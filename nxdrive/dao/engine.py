@@ -905,7 +905,6 @@ class EngineDAO(BaseDAO):
             f"LIMIT {number}"
         ).fetchall()
 
-        log.debug("############### 895: "+str(a))
         return a
 
     def get_last_files_count(self, *, direction: str = "", duration: int = None) -> int:

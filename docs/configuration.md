@@ -678,6 +678,7 @@ feature.auto-update     = true
 feature.direct-edit     = true
 feature.direct-transfer = true
 feature.synchronization = true
+feature.document_type_selection = true
 feature.s3              = true
 ```
 
