@@ -35,8 +35,7 @@ class DirectTransferUploader(BaseUploader):
         self, *, path: Optional[Path], doc_pair: Optional[int]
     ) -> Optional[Upload]:
         """Retrieve the eventual transfer associated to the given *doc_pair*."""
-        ret: Optional[Upload] = self.dao.get_dt_upload(doc_pair=doc_pair)
-        return ret
+        return self.dao.get_dt_upload(doc_pair=doc_pair)
 
     def upload(
         self,
@@ -103,7 +102,6 @@ class DirectTransferUploader(BaseUploader):
                     raise NotFound(
                         f"Could not find {filepath!r} on {self.remote.client.host}"
                     )
-                    return None
             self.dao.update_remote_parent_path_dt(file_path, item["path"], item["uid"])
         else:
             # Only replace the document if the user wants to

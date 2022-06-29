@@ -125,10 +125,8 @@ class RemoteFileInfo:
             can_create_child = False
             can_scroll_descendants = False
 
-        # Lock info
-        lock_info = fs_item.get("lockInfo")
         lock_owner = lock_created = None
-        if lock_info:
+        if lock_info := fs_item.get("lockInfo"):
             lock_owner = lock_info.get("owner")
             lock_created = lock_info.get("created")
             if lock_created:
@@ -378,7 +376,7 @@ class DocPair(Row):
         )
 
     def __getattr__(self, name: str, /) -> Optional[Union[str, Path]]:
-        if name in ("local_path", "local_parent_path"):
+        if name in {"local_path", "local_parent_path"}:
             return Path((self[name] or "").lstrip("/"))
         if name == "remote_ref":
             return self[name] or ""
@@ -412,9 +410,7 @@ class DocPair(Row):
         result["last_sync"] = current_time - sync_time
 
         if date_time:
-            # As date_time is in UTC
-            offset = tzlocal().utcoffset(date_time)
-            if offset:
+            if offset := tzlocal().utcoffset(date_time):
                 result["last_sync_date"] = Translator.format_datetime(
                     date_time + offset
                 )
@@ -443,9 +439,7 @@ class EngineDef(Row):
     name: str
 
     def __getattr__(self, name: str, /) -> Optional[Union[str, Path]]:
-        if name == "local_folder":
-            return Path(self[name])
-        return self[name]  # type: ignore
+        return Path(self[name]) if name == "local_folder" else self[name]
 
     def __repr__(self) -> str:
         return (
