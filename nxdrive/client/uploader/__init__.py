@@ -194,7 +194,7 @@ class BaseUploader:
         # Step 0: tweak the blob
         blob = FileBlob(str(file_path))
         if filename:
-            blob.name = self.remote.escape(filename)
+            blob.name = self.remote.escapeCarriageReturn(filename)
 
         # Step 0.5: retrieve or instantiate a new transfer
         transfer = self._get_transfer(file_path, blob, command, **kwargs)
