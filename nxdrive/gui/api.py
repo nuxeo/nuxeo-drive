@@ -936,7 +936,10 @@ class QMLDriveApi(QObject):
             log.warning("Unexpected error while trying to get a token", exc_info=True)
             error = "CONNECTION_UNKNOWN"
         else:
-            username = auth.get_username()
+            if Options.ssl_no_verify == True:
+                username = auth.get_username(ssl_verify=False)
+            else:
+                username = auth.get_username()
             if "engine" in self.callback_params:
                 error = self.update_token(token, username)
             else:

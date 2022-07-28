@@ -44,16 +44,28 @@ class OAuthentication(Authentication):
         return uri
 
     def get_token(self, **kwargs: Any) -> "Token":
-        token: str = self.auth.request_token(
+        if Options.ssl_no_verify == True:
+            token: str = self.auth.request_token(
             code_verifier=kwargs["code_verifier"],
             code=kwargs["code"],
             state=kwargs["state"],
-        )
+            verify=False,
+            )
+        else:
+            token: str = self.auth.request_token(
+            code_verifier=kwargs["code_verifier"],
+            code=kwargs["code"],
+            state=kwargs["state"],
+            )
+        
         self.token = token
         return token
 
-    def get_username(self) -> str:
-        client = Nuxeo(host=self.url, auth=self.auth)
-        user = client.users.current_user()
-        username: str = user.uid
-        return username
+    def get_username(self, ssl_verify = None) -> str:
+            client = Nuxeo(host=self.url, auth=self.auth)
+            if ssl_verify == False:
+                user = client.users.current_user(False)
+            else:
+                user = client.users.current_user()
+            username: str = user.uid
+            return username

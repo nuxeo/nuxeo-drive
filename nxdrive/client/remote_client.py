@@ -958,9 +958,14 @@ class Remote(Nuxeo):
 
     def get_server_configuration(self) -> Dict[str, Any]:
         try:
-            return self.client.request(
-                "GET", f"{self.client.api_path}/drive/configuration"
-            ).json()
+            if Options.ssl_no_verify == True:
+                return self.client.request(
+                    "GET", f"{self.client.api_path}/drive/configuration", ssl_verify = False
+                ).json()
+            else:
+                return self.client.request(
+                    "GET", f"{self.client.api_path}/drive/configuration"
+                ).json()
         except Exception as exc:
             log.warning(f"Error getting server configuration: {exc}")
             return {}
