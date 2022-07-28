@@ -10,7 +10,7 @@ export OSI="osx"
 
 # Global variables
 CODESIGN="codesign                              \
-    --dvvv                                      \
+    --dvv                                      \
     --options runtime                           \
     --timestamp                                 \
     --entitlements tools/osx/entitlements.plist \
