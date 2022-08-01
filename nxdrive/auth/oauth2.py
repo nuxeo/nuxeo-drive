@@ -57,15 +57,14 @@ class OAuthentication(Authentication):
             code=kwargs["code"],
             state=kwargs["state"],
             )
-        
+
         self.token = token
         return token
 
     def get_username(self, ssl_verify = None) -> str:
-            client = Nuxeo(host=self.url, auth=self.auth)
-            if ssl_verify == False:
-                user = client.users.current_user(False)
-            else:
-                user = client.users.current_user()
-            username: str = user.uid
-            return username
+        client = Nuxeo(host=self.url, auth=self.auth)
+        if ssl_verify == False:
+            user = client.users.current_user(False)
+        else:
+            user = client.users.current_user()
+        return user.uid
