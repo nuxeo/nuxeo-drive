@@ -370,7 +370,7 @@ def test_migration_db_v1(engine_dao):
         c = dao._get_read_connection().cursor()
 
         cols = c.execute("PRAGMA table_info('States')").fetchall()
-        assert len(cols) == 33
+        assert len(cols) == 34
 
         cols = c.execute("SELECT * FROM States").fetchall()
         assert len(cols) == 63
@@ -384,7 +384,7 @@ def test_migration_db_v1_with_duplicates(engine_dao):
         assert not rows
 
         cols = c.execute("PRAGMA table_info('States')").fetchall()
-        assert len(cols) == 33
+        assert len(cols) == 34
         assert dao.get_config("remote_last_event_log_id") is None
         assert dao.get_config("remote_last_full_scan") is None
 
@@ -528,6 +528,64 @@ def test_db_init_at_v21(tmp_path, engine_dao):
         ).fetchall()
 
         assert downgrade_state == default_state
+
+    # We check that the new init migration create the same tables than the old system.
+    with engine_dao(tmp_database) as dao:
+        dao._get_read_connection().row_factory = None
+        cursor = dao._get_read_connection().cursor()
+        old_migration_state = cursor.execute(
+            "select name from sqlite_master where type = 'table'"
+        ).fetchall()
+        assert sorted(old_migration_state) == sorted(upgrade_state)
+
+
+def test_db_init_at_v22(tmp_path, engine_dao):
+    """
+    Cover the new migration object code.
+    Compare the new init migration with the old system.
+    """
+    tmp_database = Path(tmp_path / str(uuid4()))
+    print("THE DATABASE PATH IS ")
+    print(tmp_database)
+    with sqlite3.connect(tmp_database) as conn:
+        cursor = conn.cursor()
+
+        assert tmp_database.exists()
+
+        # The database file is empty
+        default_state = cursor.execute(
+            "select name from sqlite_master where type = 'table'"
+        ).fetchall()
+        assert not default_state
+
+        # We import the engine_migrations dictionary
+        from nxdrive.dao.migrations.engine import engine_migrations
+
+        # Existing migration 21 should be the first one
+        migration21 = list(engine_migrations.values())[0]
+
+        # We upgrade the database, check the version then stock the result
+        migration21.upgrade(cursor)
+        upgrade_state = cursor.execute(
+            "select name from sqlite_master where type = 'table'"
+        ).fetchall()
+
+        # New migration 22 should be the first one
+        migration22 = list(engine_migrations.values())[1]
+
+        # We upgrade the database, check the version then stock the result
+        migration22.upgrade(cursor)
+
+        # We downgrade and check that everything has been reverted
+        """
+        migration22.downgrade(cursor)
+        migration21.downgrade(cursor)
+        downgrade_state = cursor.execute(
+            "select name from sqlite_master where type = 'table'"
+        ).fetchall()
+
+        assert downgrade_state == default_state
+        """
 
     # We check that the new init migration create the same tables than the old system.
     with engine_dao(tmp_database) as dao:
