@@ -461,6 +461,7 @@ class Engine(QObject):
         remote_title: str,
         duplicate_behavior: str,
         last_local_selected_location: Optional[Path],
+        last_local_selected_doc_type: Optional[str],
         /,
     ) -> None:
         """Store last dt session infos into the database for later runs."""
@@ -471,6 +472,10 @@ class Engine(QObject):
         if last_local_selected_location:
             self.dao.update_config(
                 "dt_last_local_selected_location", last_local_selected_location
+            )
+        if last_local_selected_doc_type:
+            self.dao.update_config(
+                "dt_last_local_selected_doc_type", last_local_selected_doc_type
             )
 
     def _create_remote_folder(
@@ -492,6 +497,34 @@ class Engine(QObject):
             self.directTransferNewFolderError.emit()
             return {}
 
+    def _create_remote_folder_with_enricher(
+        self,
+        remote_parent_path: str,
+        new_folder: str,
+        new_folder_type: str,
+        session_id: int,
+        /,
+    ) -> Dict[str, Any]:
+        try:
+            payload = {
+                "entity-type": "document",
+                "name": new_folder,
+                "type": new_folder_type,
+                "properties": {"dc:title": new_folder},
+            }
+
+            res = self.remote.upload_folder_type(remote_parent_path, payload)
+            new_path = remote_parent_path + "/" + new_folder
+            self.directTransferNewFolderSuccess.emit(new_path)
+            return res
+        except Exception:
+            log.warning(
+                f"Could not create the {new_folder!r} folder with type {new_folder_type!r} in {remote_parent_path!r}",
+                exc_info=True,
+            )
+            self.directTransferNewFolderError.emit()
+            return {}
+
     def _direct_transfer(
         self,
         local_paths: Dict[Path, int],
@@ -500,8 +533,11 @@ class Engine(QObject):
         remote_parent_title: str,
         /,
         *,
+        document_type: str = "",
+        container_type: str = "",
         duplicate_behavior: str = "create",
         last_local_selected_location: Optional[Path] = None,
+        last_local_selected_doc_type: Optional[str] = None,
         new_folder: Optional[str] = None,
     ) -> None:
         """Plan the Direct Transfer."""
@@ -513,6 +549,7 @@ class Engine(QObject):
             remote_parent_title,
             duplicate_behavior,
             last_local_selected_location,
+            last_local_selected_doc_type,
         )
         if new_folder:
             self.send_metric("direct_transfer", "new_folder", "1")
@@ -530,6 +567,17 @@ class Engine(QObject):
             return
 
         all_paths = local_paths.keys()
+        doc_type = None
+        if document_type == "Automatic":
+            doc_type = None
+        else:
+            doc_type = document_type
+
+        cont_type = None
+        if container_type == "Automatic":
+            cont_type = None
+        else:
+            cont_type = container_type
         items = [
             (
                 path.as_posix(),
@@ -539,6 +587,7 @@ class Engine(QObject):
                 size,
                 remote_parent_path,
                 remote_parent_ref,
+                doc_type if not path.is_dir() else cont_type,
                 duplicate_behavior,
                 "todo" if path.parent in all_paths else "unknown",
             )
@@ -603,6 +652,7 @@ class Engine(QObject):
         *,
         duplicate_behavior: str = "create",
         last_local_selected_location: Optional[Path] = None,
+        last_local_selected_doc_type: Optional[Path] = None,
         new_folder: Optional[str] = None,
     ) -> None:
         """Plan the Direct Transfer."""
@@ -613,6 +663,7 @@ class Engine(QObject):
             remote_parent_title,
             duplicate_behavior=duplicate_behavior,
             last_local_selected_location=last_local_selected_location,
+            last_local_selected_doc_type=last_local_selected_doc_type,
             new_folder=new_folder,
         )
 
@@ -624,8 +675,11 @@ class Engine(QObject):
         remote_parent_title: str,
         /,
         *,
+        document_type: str,
+        container_type: str,
         duplicate_behavior: str = "create",
         last_local_selected_location: Optional[Path] = None,
+        last_local_selected_doc_type: Optional[str] = None,
         new_folder: Optional[str] = None,
     ) -> None:
         """Plan the Direct Transfer. Async to not freeze the GUI."""
@@ -637,8 +691,11 @@ class Engine(QObject):
             remote_parent_path,
             remote_parent_ref,
             remote_parent_title,
+            document_type=document_type,
+            container_type=container_type,
             duplicate_behavior=duplicate_behavior,
             last_local_selected_location=last_local_selected_location,
+            last_local_selected_doc_type=last_local_selected_doc_type,
             new_folder=new_folder,
         )
         self._threadpool.start(runner)

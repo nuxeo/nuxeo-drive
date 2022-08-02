@@ -258,6 +258,10 @@ class FoldersDialog(DialogMixin):
         self.last_local_selected_location = self.engine.dao.get_config(
             "dt_last_local_selected_location"
         )
+
+        self.last_local_selected_doc_type = self.engine.dao.get_config(
+            "dt_last_local_selected_doc_type", default=""
+        )
         self.duplicates_behavior = self.engine.dao.get_config(
             "dt_last_duplicates_behavior", default="create"
         )
@@ -337,13 +341,16 @@ class FoldersDialog(DialogMixin):
         layout = QVBoxLayout()
         groupbox.setLayout(layout)
 
-        duplicate_sublayout = QHBoxLayout()
+        duplicate_sublayout = QVBoxLayout()
         layout.addLayout(duplicate_sublayout)
 
+        self._add_subgroup_container_type(layout)
+        self._add_subgroup_doc_type(layout)
         self._add_subgroup_duplicate_behavior(duplicate_sublayout)
+        self.update_file_group()
 
         # Adjust spacing
-        layout.setSpacing(0)
+        layout.setSpacing(2)
         duplicate_sublayout.setSpacing(2)
 
         return groupbox
@@ -398,23 +405,72 @@ class FoldersDialog(DialogMixin):
         """Open the duplicates management documentation in a browser tab."""
         webbrowser.open_new_tab(DOC_URL)
 
-    def _add_subgroup_duplicate_behavior(self, layout: QHBoxLayout, /) -> None:
+    def update_file_group(self, /) -> None:
+        self.cbDocType.clear()
+        self.cbDocType.addItem("Automatic", "create")
+        if self.remote_folder_ref:
+            self.docTypeList = self.engine.remote.get_doc_enricher(
+                self.remote_folder_ref, "subtypes", False
+            )
+
+            self.cbDocType.addItems(self.docTypeList)
+        self.cbContainerType.clear()
+        self.cbContainerType.addItem("Automatic", "create")
+        if self.remote_folder_ref:
+            self.containerTypeList = self.engine.remote.get_doc_enricher(
+                self.remote_folder_ref, "subtypes", True
+            )
+            self.cbContainerType.addItems(self.containerTypeList)
+
+    def _add_subgroup_doc_type(self, layout: QVBoxLayout, /) -> None:
+        """Add a Document type option."""
+        docTypelayout = QHBoxLayout()
+        labelDocType = QLabel(Translator.get("DOCUMENT_TYPE"))
+        labelDocType.setTextFormat(qt.RichText)
+        labelDocType.setOpenExternalLinks(True)
+        docTypelayout.addWidget(labelDocType)
+        docTypelayout.addSpacing(5)
+
+        self.cbDocType = QComboBox()
+        self.cbDocType.setEnabled(False)
+        docTypelayout.addWidget(self.cbDocType)
+        docTypelayout.addStretch(0)
+        layout.addLayout(docTypelayout)
+
+    def _add_subgroup_container_type(self, layout: QVBoxLayout, /) -> None:
+        """Add a Container Type option."""
+        contTypelayout = QHBoxLayout()
+        labelContainerType = QLabel(Translator.get("CONTAINER_TYPE"))
+        labelContainerType.setTextFormat(qt.RichText)
+        labelContainerType.setOpenExternalLinks(True)
+        contTypelayout.addWidget(labelContainerType)
+        contTypelayout.addSpacing(5)
+
+        self.cbContainerType = QComboBox()
+        self.cbContainerType.setEnabled(False)
+        contTypelayout.addWidget(self.cbContainerType)
+
+        contTypelayout.addStretch(0)
+        layout.addLayout(contTypelayout)
+
+    def _add_subgroup_duplicate_behavior(self, layout: QVBoxLayout, /) -> None:
+        duplayout = QHBoxLayout()
         """Add a sub-group for the duplicates behavior option."""
         label = QLabel(Translator.get("DUPLICATE_BEHAVIOR"))
         label.setTextFormat(qt.RichText)
         label.setOpenExternalLinks(True)
-        layout.addWidget(label)
+        duplayout.addWidget(label)
 
         info_icon = self._add_info_icon("DUPLICATE_BEHAVIOR_TOOLTIP")
         info_icon.clicked.connect(self._open_duplicates_doc)
         info_icon.setCursor(qt.PointingHandCursor)
-        layout.addWidget(info_icon)
+        duplayout.addWidget(info_icon)
 
         self.cb = QComboBox()
         self.cb.addItem(Translator.get("DUPLICATE_BEHAVIOR_CREATE"), "create")
         self.cb.addItem(Translator.get("DUPLICATE_BEHAVIOR_IGNORE"), "ignore")
         self.cb.addItem(Translator.get("DUPLICATE_BEHAVIOR_OVERRIDE"), "override")
-        layout.addWidget(self.cb)
+        duplayout.addWidget(self.cb)
 
         # Select the last run's choice
         index = self.cb.findData(self.duplicates_behavior)
@@ -422,7 +478,8 @@ class FoldersDialog(DialogMixin):
             self.cb.setCurrentIndex(index)
 
         # Prevent previous objects to take the whole width, that does not render well for human eyes
-        layout.addStretch(0)
+        duplayout.addStretch(0)
+        layout.addLayout(duplayout)
 
     def _new_folder_button_action(self) -> None:
         """Show a dialog allowing to edit the value of *new_folder*."""
@@ -454,6 +511,11 @@ class FoldersDialog(DialogMixin):
         """Action to do when the OK button is clicked."""
         super().accept()
 
+        self.last_local_selected_doc_type = (
+            self.cbDocType.currentData()
+            if self.cbDocType.currentIndex() == 0
+            else self.cbDocType.currentText()
+        )
         folder_duplicates = self._find_folders_duplicates()
 
         if folder_duplicates:
@@ -464,13 +526,23 @@ class FoldersDialog(DialogMixin):
             )
             return
 
+        if self.cbContainerType.currentIndex() > 0:
+            cont_type = self.cbContainerType.currentText()
+        else:
+            cont_type = None
+        doc_type = (
+            self.cbDocType.currentText() if self.cbDocType.currentIndex() != 0 else None
+        )
         self.engine.direct_transfer_async(
             self.paths,
             self.remote_folder.text(),
             self.remote_folder_ref,
             self.remote_folder_title,
+            document_type=doc_type,
+            container_type=cont_type,
             duplicate_behavior=self.cb.currentData(),
             last_local_selected_location=self.last_local_selected_location,
+            last_local_selected_doc_type=self.last_local_selected_doc_type,
         )
 
     def button_ok_state(self) -> None:
@@ -482,6 +554,20 @@ class FoldersDialog(DialogMixin):
         self.button_box.button(qt.Ok).setEnabled(bool(self.paths))
         self.new_folder_button.setEnabled(
             bool(self.remote_folder_ref) and bool(self.tree_view.current)
+        )
+        self.cbDocType.setEnabled(bool(self.paths) and bool(self.tree_view.current))
+        # Select the last run's choice
+        index = (
+            self.cbDocType.findText(self.last_local_selected_doc_type)
+            if self.last_local_selected_doc_type
+            and self.last_local_selected_doc_type != ""
+            else 0
+        )
+        if index != -1:
+            self.cbDocType.setCurrentIndex(index)
+
+        self.cbContainerType.setEnabled(
+            bool(self.path) and bool(self.tree_view.current)
         )
 
     def get_tree_view(self) -> FolderTreeView:
@@ -632,6 +718,7 @@ class NewFolderDialog(QDialog):
 
         self.cb = QComboBox()
         self.cb.addItem("Automatic", "create")
+        self.cb.addItems(self.facetList)
 
         folder_label = QLabel(Translator.get("FOLDER_NAME"))
         type_label = QLabel(Translator.get("FOLDER_TYPE"))
@@ -673,6 +760,8 @@ class NewFolderDialog(QDialog):
             self.parent.remote_folder.text(),
             self.parent.remote_folder_ref,
             self.parent.remote_folder_title,
+            document_type=None,
+            container_type=None,
             duplicate_behavior=self.parent.cb.currentData(),
             last_local_selected_location=self.parent.last_local_selected_location,
             new_folder=self.new_folder_name.text(),
