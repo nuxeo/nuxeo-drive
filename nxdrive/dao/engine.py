@@ -848,9 +848,9 @@ class EngineDAO(BaseDAO):
             query = (
                 "INSERT INTO States "
                 "(local_path, local_parent_path, local_name, folderish, size, "
-                "remote_parent_path, remote_parent_ref, duplicate_behavior, "
+                "remote_parent_path, remote_parent_ref, doc_type, duplicate_behavior, "
                 "local_state, remote_state, pair_state, session)"
-                f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'direct', ?, 'direct_transfer', {session})"
+                f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'direct', ?, 'direct_transfer', {session})"
             )
             c.executemany(query, items)
             return current_max_row_id
@@ -2197,7 +2197,6 @@ class EngineDAO(BaseDAO):
 
     def save_session_item(self, session_id: int, item: Dict[str, Any]) -> None:
         """Save the session uploaded item data into the SessionItems table."""
-
         with self.lock:
             c = self._get_write_connection().cursor()
             c.execute(

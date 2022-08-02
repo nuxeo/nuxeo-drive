@@ -338,6 +338,7 @@ class DocPair(Row):
     remote_parent_path: str
     local_name: str
     remote_name: str
+    doc_type: str
     size: int
     folderish: bool
     local_state: str
@@ -392,6 +393,7 @@ class DocPair(Row):
             "local_path": str(self.local_path),
             "local_parent_path": str(self.local_parent_path),
             "remote_ref": self.remote_ref,
+            "doc_type": self.doc_type,
             "folderish": self.folderish,
             "id": self.id,
             "size": self.size,
@@ -520,7 +522,7 @@ class SubTypeEnricher:
 
     @staticmethod
     def from_dict(
-        enricher: Dict[str, Any], /, *, parent_uid: str = None
+        enricher: Dict[str, Any], /, *, parent_uid: str = None, isFolderish: bool = True
     ) -> "SubTypeEnricher":
         """Convert Subtype Document enricher to SubTypeEnricher"""
         try:
@@ -530,7 +532,11 @@ class SubTypeEnricher:
             subTypes = enricher["contextParameters"]["subtypes"]
             facets = []
             for iter in subTypes:
-                folderish = "Folderish" in iter["facets"]
+                folderish = (
+                    "Folderish" in iter["facets"]
+                    if isFolderish
+                    else "Folderish" not in iter["facets"]
+                )
                 hiddenInCreation = "HiddenInCreation" in iter["facets"]
                 if folderish and not hiddenInCreation:
                     facets.append(iter["type"])

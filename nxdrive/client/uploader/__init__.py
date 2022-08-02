@@ -448,15 +448,54 @@ class BaseUploader:
         else:
             kwargs["headers"] = headers
         try:
-            res: Dict[str, Any] = self.remote.execute(
-                command=command,
-                input_obj=blob,
-                timeout=kwargs.pop("timeout", TX_TIMEOUT),
-                **kwargs,
-            )
+            doc_type = kwargs.get("doc_type", "")
+            if transfer.is_direct_transfer and doc_type and doc_type != "":
+                res = self._transfer_docType_file(transfer, headers, doc_type)
+            else:
+                res = self._transfer_autoType_file(command, blob, kwargs)
+
             return res
+        except Exception as exc:
+            err = f"Error while linking blob to doc: {exc!r}"
+            log.warning(err)
         finally:
             action.finish_action()
+
+    def _transfer_autoType_file(self, command, blob, kwargs):
+        res: Dict[str, Any] = self.remote.execute(
+            command=command,
+            input_obj=blob,
+            timeout=kwargs.pop("timeout", TX_TIMEOUT),
+            **kwargs,
+        )
+
+        return res
+
+    def _transfer_docType_file(self, transfer, headers, doc_type):
+        content = {
+            "entity-type": "document",
+            "name": transfer.name,
+            "type": doc_type,
+            "properties": {
+                "dc:title": transfer.name,
+                "file:content": {
+                    "upload-batch": transfer.batch_obj.uid,
+                    "upload-fileId": "0",
+                },
+            },
+        }
+
+        self.remote.client.request(
+            "POST",
+            f"{self.remote.client.api_path}/path{transfer.remote_parent_path}",
+            headers=headers,
+            data=content,
+        )
+        res = self.remote.fetch(
+            f"{self.remote.client.api_path}/path{transfer.remote_parent_path}",
+            headers=headers,
+        )
+        return res
 
     @staticmethod
     def _complete_upload(transfer: Upload, blob: FileBlob, /) -> None:
