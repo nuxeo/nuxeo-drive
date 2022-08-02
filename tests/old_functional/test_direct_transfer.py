@@ -559,6 +559,7 @@ class DirectTransfer:
             def link_blob_to_doc(self, *args, **kwargs):
                 """End the upload and simulate a network loss."""
                 # Call the original method to effectively end the upload process
+                kwargs["doc_type"] = "aaa"
                 super().link_blob_to_doc(*args, **kwargs)
 
                 # And throw an error
