@@ -48,8 +48,6 @@ jobs:
 
   unit-tests-macos:
     runs-on: "macos-latest"
-    env:  
-      SYSTEM_VERSION_COMPAT: 0
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
@@ -71,8 +69,6 @@ jobs:
       - name: Display Current MacOS-Version
         run: python -c "import platform; print(platform.mac_ver())"
       - name: Unit tests
-        env:
-          SYSTEM_VERSION_COMPAT: 0
         run: tox -e unit
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}

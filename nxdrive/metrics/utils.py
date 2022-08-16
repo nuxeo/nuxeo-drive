@@ -1,4 +1,5 @@
 import platform
+import os
 from functools import lru_cache
 from typing import Tuple
 
@@ -17,6 +18,7 @@ def _get_current_os_details() -> Tuple[str, str, str]:
     """
     if MAC:
         name = "macOS"
+        os.environ["SYSTEM_VERSION_COMPAT"] = "0"
         ver_full = platform.mac_ver()[0]  # 10.15.3
     elif WINDOWS:
         name = "Windows"
