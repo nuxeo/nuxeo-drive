@@ -69,7 +69,7 @@ jobs:
       - name: Display Current MacOS-Version
         env:
           SYSTEM_VERSION_COMPAT: 0
-        run: python -c "import platform; print("MAC Version- " + str(platform.mac_ver())+"\n");  print("Platform - " + str(platform.platform())+"\n"); print("Uname- " + str(platform.uname())+"\n"); print(open("/System/Library/CoreServices/SystemVersion.plist").read() + "\n")"
+        run: python -c "import platform; print(platform.mac_ver()); print(platform.platform()); print(platform.uname()); print(open('/System/Library/CoreServices/SystemVersion.plist').read())"
       - name: Unit tests
         env:
           SYSTEM_VERSION_COMPAT: 0
