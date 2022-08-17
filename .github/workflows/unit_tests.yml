@@ -67,7 +67,7 @@ jobs:
       - name: Install tox
         run: python -m pip install -r tools/deps/requirements-tox.txt
       - name: Display Current MacOS-Version
-        run: python -c "import platform; import os; print(os.listdir('/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs')); print(platform.mac_ver()); print(platform.platform()); print(platform.uname()); print(open('/System/Library/CoreServices/SystemVersion.plist').read())"
+        run: python -c "import platform; import os; import subprocess; print(subprocess.Popen("sw_vers", stdout=subprocess.PIPE).communicate()[0]); print(os.listdir('/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs')); print(platform.mac_ver()); print(platform.platform()); print(platform.uname()); print(open('/System/Library/CoreServices/SystemVersion.plist').read())"
       - name: Unit tests
         run: tox -e unit
       - name: Upload coverage to Codecov
