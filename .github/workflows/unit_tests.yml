@@ -69,6 +69,8 @@ jobs:
       - name: Display Current MacOS-Version
         run: python -c "import platform; import os; print(os.listdir('/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs')); print(platform.mac_ver()); print(platform.platform()); print(platform.uname()); print(open('/System/Library/CoreServices/SystemVersion.plist').read())"
       - name: Unit tests
+        env:
+          SYSTEM_VERSION_COMPAT: 0
         run: tox -e unit
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
