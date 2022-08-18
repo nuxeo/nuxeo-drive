@@ -39,9 +39,7 @@ def current_os(*, full: bool = False) -> str:
     If *full* is true, the full version will be used instead of the x.y simplified one.
     """
     name, version_full, version_simplified = _get_current_os_details()
-    if full:
-        return f"{name} {version_full}"
-    return f"{name} {version_simplified}"
+    return f"{name} {version_full}" if full else f"{name} {version_simplified}"
 
 
 @lru_cache(maxsize=1)
