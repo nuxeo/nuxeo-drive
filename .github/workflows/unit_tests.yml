@@ -14,6 +14,8 @@ on:
       - "nxdrive/**/*.py"
       - "tests/*.py"
       - "tests/unit/*.py"
+env:
+  SYSTEM_VERSION_COMPAT: 0
 
 jobs:
   unit-tests-linux:
