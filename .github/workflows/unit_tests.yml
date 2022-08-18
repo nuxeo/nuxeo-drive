@@ -14,8 +14,6 @@ on:
       - "nxdrive/**/*.py"
       - "tests/*.py"
       - "tests/unit/*.py"
-env:
-  SYSTEM_VERSION_COMPAT: 0
 
 jobs:
   unit-tests-linux:
@@ -50,6 +48,8 @@ jobs:
 
   unit-tests-macos:
     runs-on: "macos-latest"
+    env:
+      SYSTEM_VERSION_COMPAT: 0
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
@@ -68,11 +68,7 @@ jobs:
           restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
       - name: Install tox
         run: python -m pip install -r tools/deps/requirements-tox.txt
-      - name: Display Current MacOS-Version
-        run: python -c "import platform; import os; print(os.listdir('/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs')); print(platform.mac_ver()); print(platform.platform()); print(platform.uname()); print(open('/System/Library/CoreServices/SystemVersion.plist').read())"
       - name: Unit tests
-        env:
-          SYSTEM_VERSION_COMPAT: 0
         run: tox -e unit
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
