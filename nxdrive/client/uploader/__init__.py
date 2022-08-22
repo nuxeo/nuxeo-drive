@@ -355,11 +355,9 @@ class BaseUploader:
                         self.dao.update_upload(transfer)
                         transfer.is_dirty = False
 
-                    # Handle status changes every time a chunk is sent
-                    _transfer = self.get_upload(
+                    if _transfer := self.get_upload(
                         doc_pair=transfer.doc_pair, path=transfer.path
-                    )
-                    if _transfer:
+                    ):
                         self._handle_transfer_status(_transfer)
             else:
                 uploader.upload()
@@ -448,13 +446,13 @@ class BaseUploader:
         else:
             kwargs["headers"] = headers
         try:
-            res: Dict[str, Any] = self.remote.execute(
+            return self.remote.execute(
                 command=command,
                 input_obj=blob,
                 timeout=kwargs.pop("timeout", TX_TIMEOUT),
                 **kwargs,
             )
-            return res
+
         finally:
             action.finish_action()
 
