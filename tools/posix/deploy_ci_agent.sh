@@ -56,6 +56,9 @@ build_installer() {
         # Move problematic folders out of Contents/MacOS
         ${PYTHON_VENV} tools/osx/fix_app_qt_folder_names_for_codesign.py dist/*.app
 
+        ${PYTHON_VENV} tools/cleanup_application_tree.py dist/*.app/Contents/Resources
+        ${PYTHON_VENV} tools/cleanup_application_tree.py dist/*.app/Contents/MacOS
+
         # Remove broken symlinks pointing to an inexistent target
         find dist/*.app/Contents/MacOS -type l -exec sh -c 'for x; do [ -e "$x" ] || rm -v "$x"; done' _ {} +
     elif [ "${OSI}" = "linux" ]; then
