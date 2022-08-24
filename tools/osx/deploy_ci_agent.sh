@@ -9,6 +9,7 @@ export OSI="osx"
 
 
 # Global variables
+PYTHON_VENV="./venv/bin/python -Xutf8 -E -s"
 CODESIGN="codesign                              \
     -vvv                                        \
     --options runtime                           \
@@ -103,6 +104,21 @@ create_package() {
         prepare_signing_from_scratch
     else
         prepare_signing
+    fi
+
+    echo ">>> Cleanup after keychain setup"
+    if [ "${OSI}" = "osx" ]; then
+        ${PYTHON_VENV} tools/cleanup_application_tree.py dist/*.app/Contents/Resources
+        ${PYTHON_VENV} tools/cleanup_application_tree.py dist/*.app/Contents/MacOS
+
+        # Move problematic folders out of Contents/MacOS
+        echo ">>> fix_app_qt_folder_names_for_codesign osx file"
+        ${PYTHON_VENV} tools/osx/fix_app_qt_folder_names_for_codesign.py dist/*.app
+
+        # Remove broken symlinks pointing to an inexistent target
+        echo ">>> Remove broken symlinks pointing to an inexistent target"
+        find dist/*.app/Contents/MacOS -type l -exec sh -c 'for x; do [ -e "$x" ] || rm -v "$x"; done' _ {} +
+
     fi
 
     if [ "${SIGNING_ID:-unset}" != "unset" ]; then
