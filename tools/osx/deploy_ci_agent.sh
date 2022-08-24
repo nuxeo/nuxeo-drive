@@ -106,21 +106,6 @@ create_package() {
         prepare_signing
     fi
 
-    echo ">>> Cleanup after keychain setup"
-    if [ "${OSI}" = "osx" ]; then
-        ${PYTHON_VENV} tools/cleanup_application_tree.py dist/*.app/Contents/Resources
-        ${PYTHON_VENV} tools/cleanup_application_tree.py dist/*.app/Contents/MacOS
-
-        # Move problematic folders out of Contents/MacOS
-        echo ">>> fix_app_qt_folder_names_for_codesign osx file"
-        ${PYTHON_VENV} tools/osx/fix_app_qt_folder_names_for_codesign.py dist/*.app
-
-        # Remove broken symlinks pointing to an inexistent target
-        echo ">>> Remove broken symlinks pointing to an inexistent target"
-        find dist/*.app/Contents/MacOS -type l -exec sh -c 'for x; do [ -e "$x" ] || rm -v "$x"; done' _ {} +
-
-    fi
-
     if [ "${SIGNING_ID:-unset}" != "unset" ]; then
         echo ">>> [sign] Signing the app and its extension"
         # We recursively sign all the files
@@ -130,6 +115,12 @@ create_package() {
         # dependencies of the current binary and see that they are not signed
         # yet. But the find command will eventually reach it and sign it later.
         find "${pkg_path}/Contents/MacOS" -type f -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+
+        echo ">>> [package] sign all files and folder in MACOS"
+        find "${pkg_path}/Contents/MacOS" -type f -exec ${CODESIGN} "${SIGNING_ID}" {} \;
+
+        echo ">>> [package] sign all files and folder in Resources"
+        find "${pkg_path}/Contents/Resources" -type f -exec ${CODESIGN} "${SIGNING_ID}" {} \;
 
         # QML libraries need to be signed too for the notarization
         echo ">>> [package] QML libraries need to be signed too for the notarization"
