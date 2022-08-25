@@ -14,6 +14,8 @@ CODESIGN="codesign                              \
     -vvv                                        \
     --options runtime                           \
     --timestamp                                 \
+    --deep                                 \
+    --strict                                 \
     --entitlements tools/osx/entitlements.plist \
     --sign"
 
@@ -115,12 +117,6 @@ create_package() {
         # dependencies of the current binary and see that they are not signed
         # yet. But the find command will eventually reach it and sign it later.
         find "${pkg_path}/Contents/MacOS" -type f -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
-
-        echo ">>> [package] sign all files and folder in MACOS"
-        find "${pkg_path}/Contents/MacOS" -type f -exec ${CODESIGN} "${SIGNING_ID}" {} \;
-
-        echo ">>> [package] sign all files and folder in Resources"
-        find "${pkg_path}/Contents/Resources" -type f -exec ${CODESIGN} "${SIGNING_ID}" {} \;
 
         # QML libraries need to be signed too for the notarization
         echo ">>> [package] QML libraries need to be signed too for the notarization"

@@ -46,6 +46,7 @@ def fix_dll(dll: Path) -> None:
 
     # Resources/PyQt5/Qt/qml/QtQuick/Controls.2/Fusion
     root = str(dll.parent).partition("Contents")[2][1:]
+
     # /../../../../../../..
     backward = "/.." * (root.count("/") + 1)
     # /../../../../../../../MacOS
