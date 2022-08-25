@@ -18,7 +18,7 @@ def create_symlink(folder: Path) -> None:
     # ../../../../
     backward = "../" * (root.count("/") + 1)
     # ../../../../Resources/PyQt5/Qt/qml/QtQml/Models.2
-    good_path = f"{backward}Resources/{root}"
+    good_path = f"{backward}Resources2/{root}"
 
     folder.symlink_to(good_path)
 
@@ -85,7 +85,7 @@ def move_contents_to_resources(folder: Path) -> Generator[Path, None, None]:
         if path.is_dir():
             yield from move_contents_to_resources(path)
         else:
-            sibling = Path(str(path).replace("MacOS", "Resources"))
+            sibling = Path(str(path).replace("MacOS", "Resources2"))
 
             # Create the parent if it does not exist yet
             sibling.parent.mkdir(parents=True, exist_ok=True)
