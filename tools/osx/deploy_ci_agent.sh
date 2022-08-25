@@ -131,16 +131,17 @@ create_package() {
         ${CODESIGN} "${SIGNING_ID}"                  \
                     --force                          \
                     --deep                           \
+                    --timestamp                      \
                     --entitlements "${entitlements}" \
                     "${pkg_path}/Contents/PlugIns/NuxeoFinderSync.appex"
 
         # And we shallow sign the .app
         echo ">>> [package] shallow sign the .app"
-        ${CODESIGN} "${SIGNING_ID}" "${pkg_path}" --force
+        ${CODESIGN} "${SIGNING_ID}" "${pkg_path}" --force --timestamp
 
         echo ">>> [sign] Verifying code signature"
-        codesign --display --verbose "${pkg_path}"
-        codesign --verbose=4 --deep --strict "${pkg_path}"
+        codesign --timestamp --display --verbose "${pkg_path}"
+        codesign --timestamp --verbose=4 --deep --strict "${pkg_path}"
         spctl --assess --verbose "${pkg_path}"
     fi
 
@@ -187,7 +188,7 @@ create_package() {
     rm -rf "${src_folder_tmp}" "${dmg_tmp}" "${pkg_path}"
 
     if [ "${SIGNING_ID:-unset}" != "unset" ]; then
-        ${CODESIGN} "${SIGNING_ID}" --verbose "dist/nuxeo-drive-${app_version}.dmg"
+        ${CODESIGN} "${SIGNING_ID}" --timestamp --verbose "dist/nuxeo-drive-${app_version}.dmg"
         ${PYTHON_VENV} tools/osx/notarize.py "dist/nuxeo-drive-${app_version}.dmg"
     fi
 }
