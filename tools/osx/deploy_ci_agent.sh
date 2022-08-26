@@ -14,8 +14,8 @@ CODESIGN="codesign                              \
     -vvv                                        \
     --options runtime                           \
     --timestamp                                 \
-    --deep                                 \
-    --strict                                 \
+    --deep                                      \
+    --strict                                    \
     --entitlements tools/osx/entitlements.plist \
     --sign"
 
@@ -139,11 +139,6 @@ create_package() {
         codesign --timestamp --display --verbose "${pkg_path}"
         codesign --timestamp --verbose=4 --deep --strict "${pkg_path}"
         spctl --assess --verbose "${pkg_path}"
-    fi
-
-    if [ "${OSI}" = "osx" ]; then
-        ${PYTHON_VENV} tools/cleanup_application_tree.py dist/*.app/Contents/Resources
-        ${PYTHON_VENV} tools/cleanup_application_tree.py dist/*.app/Contents/MacOS
     fi
 
     echo ">>> [package] Creating the DMG file"

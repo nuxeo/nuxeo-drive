@@ -46,7 +46,6 @@ def fix_dll(dll: Path) -> None:
 
     # Resources/PyQt5/Qt/qml/QtQuick/Controls.2/Fusion
     root = str(dll.parent).partition("Contents")[2][1:]
-
     # /../../../../../../..
     backward = "/.." * (root.count("/") + 1)
     # /../../../../../../../MacOS
@@ -55,7 +54,6 @@ def fix_dll(dll: Path) -> None:
     # Rewrite Mach headers with corrected @loader_path
     dll = MachO(dll)
     dll.rewriteLoadCommands(match_func)
-    print(f">>> dll  rewriteLoadCommands is {dll}")
     with open(dll.filename, "rb+") as f:
         for header in dll.headers:
             f.seek(0)

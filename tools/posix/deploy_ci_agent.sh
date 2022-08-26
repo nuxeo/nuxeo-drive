@@ -38,19 +38,15 @@ build_installer() {
     ${PYTHON_VENV} -m PyInstaller ndrive.spec --clean --noconfirm
 
     # Check for freezer regressions
-    echo ">>> ensure_correctness"
     ensure_correctness dist/ndrive
 
     # Do some clean-up
-    echo ">>> cleanup_application_tree"
     ${PYTHON_VENV} tools/cleanup_application_tree.py dist/ndrive
 
     # Remove compiled QML files
-    echo ">>> Delete qmlc"
     find dist -depth -type f -name "*.qmlc" -delete
 
     # Remove empty folders
-    echo ">>> cleanup_application_tree again"
     find dist -depth -type d -empty -delete
 
     if [ "${OSI}" = "osx" ]; then
@@ -58,11 +54,9 @@ build_installer() {
         ${PYTHON_VENV} tools/cleanup_application_tree.py dist/*.app/Contents/MacOS
 
         # Move problematic folders out of Contents/MacOS
-        echo ">>> fix_app_qt_folder_names_for_codesign"
         ${PYTHON_VENV} tools/osx/fix_app_qt_folder_names_for_codesign.py dist/*.app
 
         # Remove broken symlinks pointing to an inexistent target
-        echo ">>> Remove broken symlinks pointing to an inexistent target"
         find dist/*.app/Contents/MacOS -type l -exec sh -c 'for x; do [ -e "$x" ] || rm -v "$x"; done' _ {} +
     elif [ "${OSI}" = "linux" ]; then
         remove_excluded_files dist/ndrive
