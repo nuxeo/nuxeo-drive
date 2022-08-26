@@ -40,9 +40,11 @@ def fix_dll(dll: Path) -> None:
         in the MacOS folder.
         """
         basename = os.path.basename(pth)
-        if not basename.startswith("Qt"):
-            return None
-        return f"@loader_path{good_path}/{basename}"
+        return (
+            f"@loader_path{good_path}/{basename}"
+            if basename.startswith("Qt")
+            else None
+        )
 
     # Resources/PyQt5/Qt/qml/QtQuick/Controls.2/Fusion
     root = str(dll.parent).partition("Contents")[2][1:]
@@ -70,7 +72,7 @@ def find_problematic_folders(folder: Path) -> Generator[Path, None, None]:
         if not path.is_dir() or path.is_symlink():
             # Skip simlinks as they are allowed (even with a dot)
             continue
-        if "qml" == path.name:
+        if path.name == "qml":
             yield path
         else:
             yield from find_problematic_folders(path)
