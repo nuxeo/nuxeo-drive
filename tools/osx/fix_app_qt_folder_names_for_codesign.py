@@ -18,7 +18,7 @@ def create_symlink(folder: Path) -> None:
     # ../../../../
     backward = "../" * (root.count("/") + 1)
     # ../../../../Resources/PyQt5/Qt/qml/QtQml/Models.2
-    good_path = f"{backward}Resources2/{root}"
+    good_path = f"{backward}Resources/{root}"
 
     folder.symlink_to(good_path)
 
@@ -55,6 +55,7 @@ def fix_dll(dll: Path) -> None:
     # Rewrite Mach headers with corrected @loader_path
     dll = MachO(dll)
     dll.rewriteLoadCommands(match_func)
+    print(f">>> dll  rewriteLoadCommands is {dll}")
     with open(dll.filename, "rb+") as f:
         for header in dll.headers:
             f.seek(0)
@@ -85,7 +86,7 @@ def move_contents_to_resources(folder: Path) -> Generator[Path, None, None]:
         if path.is_dir():
             yield from move_contents_to_resources(path)
         else:
-            sibling = Path(str(path).replace("MacOS", "Resources2"))
+            sibling = Path(str(path).replace("MacOS", "Resources"))
 
             # Create the parent if it does not exist yet
             sibling.parent.mkdir(parents=True, exist_ok=True)

@@ -120,7 +120,7 @@ create_package() {
 
         # QML libraries need to be signed too for the notarization
         echo ">>> [package] QML libraries need to be signed too for the notarization"
-        find "${pkg_path}/Contents/Resources2" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" {} \;
+        find "${pkg_path}/Contents/Resources" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
 
         # Then we sign the extension
         echo ">>> [package] sign the extension......"
@@ -139,6 +139,11 @@ create_package() {
         codesign --timestamp --display --verbose "${pkg_path}"
         codesign --timestamp --verbose=4 --deep --strict "${pkg_path}"
         spctl --assess --verbose "${pkg_path}"
+    fi
+
+    if [ "${OSI}" = "osx" ]; then
+        ${PYTHON_VENV} tools/cleanup_application_tree.py dist/*.app/Contents/Resources
+        ${PYTHON_VENV} tools/cleanup_application_tree.py dist/*.app/Contents/MacOS
     fi
 
     echo ">>> [package] Creating the DMG file"

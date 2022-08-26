@@ -54,7 +54,7 @@ build_installer() {
     find dist -depth -type d -empty -delete
 
     if [ "${OSI}" = "osx" ]; then
-        ${PYTHON_VENV} tools/cleanup_application_tree.py dist/*.app/Contents/Resources2
+        ${PYTHON_VENV} tools/cleanup_application_tree.py dist/*.app/Contents/Resources
         ${PYTHON_VENV} tools/cleanup_application_tree.py dist/*.app/Contents/MacOS
 
         # Move problematic folders out of Contents/MacOS
