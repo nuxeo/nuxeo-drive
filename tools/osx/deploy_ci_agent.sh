@@ -120,7 +120,7 @@ create_package() {
 
         # QML libraries need to be signed too for the notarization
         echo ">>> [package] QML libraries need to be signed too for the notarization"
-        find "${pkg_path}/Contents/Resources" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Resources" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" --force --timestamp {} \;
 
         # Then we sign the extension
         echo ">>> [package] sign the extension......"
