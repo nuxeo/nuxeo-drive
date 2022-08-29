@@ -115,12 +115,13 @@ create_package() {
         find "${pkg_path}/Contents/MacOS" -type f -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
 
         # QML libraries need to be signed too for the notarization
-        find "${pkg_path}/Contents/Resources" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Resources" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" --force --timestamp {} \;
 
         # Then we sign the extension
         ${CODESIGN} "${SIGNING_ID}"                  \
                     --force                          \
-                    --deep                           \
+                    --deep
+                    --timestamp                           \
                     --entitlements "${entitlements}" \
                     "${pkg_path}/Contents/PlugIns/NuxeoFinderSync.appex"
 
@@ -128,8 +129,8 @@ create_package() {
         ${CODESIGN} "${SIGNING_ID}" "${pkg_path}"
 
         echo ">>> [sign] Verifying code signature"
-        codesign --display --verbose "${pkg_path}"
-        codesign --verbose=4 --deep --strict "${pkg_path}"
+        codesign --display --timestamp --verbose "${pkg_path}"
+        codesign --verbose=4 --timestamp --deep --strict "${pkg_path}"
         spctl --assess --verbose "${pkg_path}"
     fi
 
@@ -176,7 +177,7 @@ create_package() {
     rm -rf "${src_folder_tmp}" "${dmg_tmp}" "${pkg_path}"
 
     if [ "${SIGNING_ID:-unset}" != "unset" ]; then
-        ${CODESIGN} "${SIGNING_ID}" --verbose "dist/nuxeo-drive-${app_version}.dmg"
+        ${CODESIGN} "${SIGNING_ID}" --timestamp --verbose "dist/nuxeo-drive-${app_version}.dmg"
         ${PYTHON_VENV} tools/osx/notarize.py "dist/nuxeo-drive-${app_version}.dmg"
     fi
 }
