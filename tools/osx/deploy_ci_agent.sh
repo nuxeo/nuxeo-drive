@@ -118,12 +118,9 @@ create_package() {
         find "${pkg_path}/Contents/MacOS" -type f -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
 
         # QML libraries need to be signed too for the notarization
-        echo ">>> Signing Dll file in Resources"
         find "${pkg_path}/Contents/Resources" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" --force --timestamp {} \;
 
         # Then we sign the extension
-
-        echo ">>> Signing extensions"
         ${CODESIGN} "${SIGNING_ID}"                  \
                     --force                          \
                     --deep                           \
@@ -132,8 +129,6 @@ create_package() {
                     "${pkg_path}/Contents/PlugIns/NuxeoFinderSync.appex"
 
         # And we shallow sign the .app
-
-        echo ">>> Signing .app"
         ${CODESIGN} "${SIGNING_ID}" "${pkg_path}" --force
 
         echo ">>> [sign] Verifying code signature"
