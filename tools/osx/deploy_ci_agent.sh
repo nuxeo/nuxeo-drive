@@ -134,7 +134,7 @@ create_package() {
         # And we shallow sign the .app
 
         echo ">>> Signing .app"
-        ${CODESIGN} "${SIGNING_ID}" --timestamp "${pkg_path}"
+        ${CODESIGN} "${SIGNING_ID}" "${pkg_path}" --force
 
         echo ">>> [sign] Verifying code signature"
         codesign --display --timestamp --verbose "${pkg_path}"
