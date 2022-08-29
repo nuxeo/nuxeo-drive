@@ -115,7 +115,7 @@ create_package() {
         find "${pkg_path}/Contents/MacOS" -type f -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
 
         # QML libraries need to be signed too for the notarization
-        find "${pkg_path}/Contents/Resources" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" {} \;
+        find "${pkg_path}/Contents/Resources" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
 
         # Then we sign the extension
         ${CODESIGN} "${SIGNING_ID}"                  \
