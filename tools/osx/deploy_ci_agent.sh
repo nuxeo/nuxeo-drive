@@ -10,7 +10,7 @@ export OSI="osx"
 
 # Global variables
 CODESIGN="codesign                              \
-    --vvv                                       \
+    -vvv                                        \
     --options runtime                           \
     --timestamp                                 \
     --deep                                      \
@@ -123,8 +123,8 @@ create_package() {
         # Then we sign the extension
         ${CODESIGN} "${SIGNING_ID}"                  \
                     --force                          \
-                    --deep
-                    --timestamp                           \
+                    --deep                           \
+                    --timestamp                      \
                     --entitlements "${entitlements}" \
                     "${pkg_path}/Contents/PlugIns/NuxeoFinderSync.appex"
 
