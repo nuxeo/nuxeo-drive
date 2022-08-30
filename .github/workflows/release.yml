@@ -114,7 +114,7 @@ jobs:
       - name: "[macOS] Setup the environment"
         if: matrix.os == 'macos-latest'
         env:
-          macos-latestMACOSX_DEPLOYMENT_TARGET: "11.3"
+          MACOSX_DEPLOYMENT_TARGET: "11.3"
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --install-release
 
@@ -123,7 +123,7 @@ jobs:
         timeout-minutes: 20
         env:
           NXDRIVE_TEST_NUXEO_URL: "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
-          macos-latestMACOSX_DEPLOYMENT_TARGET: "11.3"
+          MACOSX_DEPLOYMENT_TARGET: "11.3"
           KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
           NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
