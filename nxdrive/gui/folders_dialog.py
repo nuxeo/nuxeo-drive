@@ -34,6 +34,7 @@ from ..translator import Translator
 from ..utils import find_icon, get_tree_list, sizeof_fmt
 from .folders_model import FilteredDocuments, FoldersOnly
 from .folders_treeview import DocumentTreeView, FolderTreeView
+from ..feature import Feature
 
 if TYPE_CHECKING:
     from .application import Application  # noqa
@@ -555,7 +556,7 @@ class FoldersDialog(DialogMixin):
         self.new_folder_button.setEnabled(
             bool(self.remote_folder_ref) and bool(self.tree_view.current)
         )
-        self.cbDocType.setEnabled(bool(self.paths) and bool(self.tree_view.current))
+        self.cbDocType.setEnabled(bool(self.paths) and bool(self.tree_view.current) and bool(Feature.document_type_selection))
         # Select the last run's choice
         index = (
             self.cbDocType.findText(self.last_local_selected_doc_type)
@@ -567,7 +568,7 @@ class FoldersDialog(DialogMixin):
             self.cbDocType.setCurrentIndex(index)
 
         self.cbContainerType.setEnabled(
-            bool(self.path) and bool(self.tree_view.current)
+            bool(self.path) and bool(self.tree_view.current) and bool(Feature.document_type_selection)
         )
 
     def get_tree_view(self) -> FolderTreeView:
