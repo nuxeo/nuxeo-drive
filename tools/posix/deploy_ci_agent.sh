@@ -37,9 +37,6 @@ build_installer() {
     echo ">>> Building the release package"
     ${PYTHON_VENV} -m PyInstaller ndrive.spec --clean --noconfirm
 
-    # Check for freezer regressions
-    ensure_correctness dist/ndrive
-
     # Do some clean-up
     ${PYTHON_VENV} tools/cleanup_application_tree.py dist/ndrive
 
@@ -299,17 +296,6 @@ launch_tests() {
             exit 1
         fi
     fi
-}
-
-ensure_correctness() {
-    # Ensure some vital files are present in the frozen directory.
-    local app_dir="$1"
-
-    echo ">>> [${app_dir}] Ensure the package is correct"
-
-    # NXDRIVE-2056
-    [ -d "${app_dir}/_struct" ] || (echo " !! Missing the '_struct' folder" ; )
-    [ -d "${app_dir}/zlib" ] ||  (echo " !! Missing the 'zlib' folder" ; )
 }
 
 should_run() {

@@ -164,6 +164,7 @@ def download_report(uuid: str, url: str) -> str:
     """Download a notarization report."""
     output = f"report-{uuid}.json"
     print(f">>> Downloading the report to {output}", flush=True)
+    print(f">>> Report downloading from {url}", flush=True)
 
     with requests.get(url) as req:
         with open(output, "w", encoding="utf-8") as ofile:
