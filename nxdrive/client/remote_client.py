@@ -74,6 +74,7 @@ from ..utils import (
     shortify,
     sizeof_fmt,
     unlock_path,
+    get_verify,
 )
 from .proxy import Proxy
 from .uploader import BaseUploader
@@ -121,13 +122,15 @@ class Remote(Nuxeo):
             self.auth = BasicAuth(user_id, password)
             auth = self.auth
 
+        self.verification_needed = get_verify()
+        
         super().__init__(
             auth=auth,
             host=url,
             app_name=APP_NAME,
             version=version,
             repository=repository,
-            verify=verify,
+            verify=self.verification_needed,
             cert=cert,
         )
 
@@ -177,7 +180,7 @@ class Remote(Nuxeo):
             self.base_folder_ref, self._base_folder_path = None, None
 
         # Cache the result for future uploads
-        self.uploads.has_s3()
+        self.uploads.has_s3(self.verification_needed)
 
         self.metrics = CustomPollMetrics(self)
         self.metrics.start()
@@ -346,6 +349,7 @@ class Remote(Nuxeo):
                 TOKEN_PERMISSION,
                 app_name=APP_NAME,
                 device=current_os(full=True),
+                ssl_verify=self.verification_needed,
             )
             self.auth = self.client.auth
         else:
@@ -388,7 +392,7 @@ class Remote(Nuxeo):
                 headers = {"Range": f"bytes={downloaded}-"}
 
         resp = self.client.request(
-            "GET", url.replace(self.client.host, ""), headers=headers
+            "GET", url.replace(self.client.host, ""), headers=headers, ssl_verify=self.verification_needed,
         )
 
         if not file_out:
@@ -562,7 +566,7 @@ class Remote(Nuxeo):
     ) -> Dict[str, Any]:
         """Create a folder using REST api."""
         resp = self.client.request(
-            "POST", f"{self.client.api_path}/path{parent}", headers=headers, data=params
+            "POST", f"{self.client.api_path}/path{parent}", headers=headers, data=params, ssl_verify=self.verification_needed,
         )
         return resp
 
@@ -958,14 +962,9 @@ class Remote(Nuxeo):
 
     def get_server_configuration(self) -> Dict[str, Any]:
         try:
-            if Options.ssl_no_verify == True:
-                return self.client.request(
-                    "GET", f"{self.client.api_path}/drive/configuration", ssl_verify = False
-                ).json()
-            else:
-                return self.client.request(
-                    "GET", f"{self.client.api_path}/drive/configuration"
-                ).json()
+            return self.client.request(
+                "GET", f"{self.client.api_path}/drive/configuration", ssl_verify = get_verify()
+            ).json()
         except Exception as exc:
             log.warning(f"Error getting server configuration: {exc}")
             return {}

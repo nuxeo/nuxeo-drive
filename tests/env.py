@@ -2,6 +2,7 @@ from os import getenv
 
 # The server URL against to run tests
 NXDRIVE_TEST_NUXEO_URL = getenv("NXDRIVE_TEST_NUXEO_URL", "http://localhost:8080/nuxeo")
+# NXDRIVE_TEST_NUXEO_URL = getenv("NXDRIVE_TEST_NUXEO_URL", "https://localhost:8443/nuxeo")
 
 # The user having administrator rights
 NXDRIVE_TEST_USERNAME = getenv("NXDRIVE_TEST_USERNAME", "Administrator")

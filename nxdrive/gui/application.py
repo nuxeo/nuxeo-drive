@@ -78,7 +78,7 @@ from ..utils import (
     normalize_event_filename,
     normalized_path,
     parse_protocol_url,
-    requests_verify,
+    get_verify,
     short_name,
     sizeof_fmt,
     today_is_special,
@@ -1098,13 +1098,15 @@ class Application(QApplication):
             user = str(username.text())
             pwd = str(password.text())
 
+            verification_needed = get_verify()
+
             nuxeo = Nuxeo(
-                host=url,
-                auth=(user, pwd),
-                proxies=self.manager.proxy.settings(url=url),
-                verify=requests_verify(Options.ca_bundle, Options.ssl_no_verify),
-                cert=client_certificate(),
-            )
+                    host=url,
+                    auth=(user, pwd),
+                    proxies=self.manager.proxy.settings(url=url),
+                    verify=verification_needed,
+                    cert=client_certificate(),
+                )
             try:
                 token = nuxeo.client.request_auth_token(
                     self.manager.device_id,
