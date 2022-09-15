@@ -70,7 +70,7 @@ def test_bind_server_missing_arguments(exe, args):
 
 
 @pytest.mark.parametrize(
-    "folder", ["%temp%\\Léa$", "%temp%\\this folder is good enough こん ツリ ^^"]
+    "folder", ["%temp%\\Lea$", "%temp%\\this folder is good enough"]
 )
 def test_unbind_server(nuxeo_url, exe, folder):
     """Will also test clean-folder."""
