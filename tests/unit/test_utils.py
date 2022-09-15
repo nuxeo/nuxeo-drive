@@ -155,7 +155,7 @@ def test_compute_digest_error(tmp):
         (b"/Users/Bob/Documents/Sans%20titre-1.psd", 1_868_982_964),
         ("C:\\Users\\Alice\\tests\\test.psd", 3_523_690_320),
         (r"C:\Users\Alice\tests\test.psd", 3_523_690_320),
-        (br"C:\Users\Alice\tests\test.psd", 3_523_690_320),
+        (rb"C:\Users\Alice\tests\test.psd", 3_523_690_320),
         ("", 0),
         (b"", 0),
     ],
