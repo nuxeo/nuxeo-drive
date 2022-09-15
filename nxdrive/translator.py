@@ -16,7 +16,7 @@ _CACHE: Dict[str, str] = {}
 class Translator(QTranslator):
 
     languageChanged = pyqtSignal()
-    singleton = None # type: ignore
+    singleton = None
     current_language: str = ""
 
     def __init__(self, path: Path, /, *, lang: str = None) -> None:
