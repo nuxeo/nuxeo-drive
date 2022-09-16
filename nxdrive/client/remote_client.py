@@ -194,7 +194,7 @@ class Remote(Nuxeo):
         """Get up-to-date custom global metrics.
         It is necessary to be able to get feature states changes.
         """
-        metrics = {
+        return {
             INSTALLATION_TYPE: "system" if Options.system_wide else "user",
             EXEC_SESSION_UID: Options.session_uid,
             METRICS_CUSTOM: int(Options.custom_metrics),
@@ -204,14 +204,10 @@ class Remote(Nuxeo):
             EXEC_LOCALE: Options.locale,
             OS_MACHINE: machine(),
             OS_LOCALE: get_current_locale(),
+        } | {
+            f"feature.{feature}": int(state)
+            for feature, state in vars(Feature).items()
         }
-        metrics.update(
-            {
-                f"feature.{feature}": int(state)
-                for feature, state in vars(Feature).items()
-            }
-        )
-        return metrics
 
     def reload_global_headers(self) -> None:
         """Inject custom global metrics in the client headers."""
@@ -222,8 +218,7 @@ class Remote(Nuxeo):
         """Callback for each chunked (down|up)loads.
         Called first to set the end time of the current (down|up)loaded chunk.
         """
-        action = Action.get_current_action()
-        if action:
+        if action := Action.get_current_action():
             action.chunk_transfer_end_time_ns = monotonic_ns()
 
     def transfer_end_callback(self, uploader: Uploader, /) -> None:
@@ -252,9 +247,7 @@ class Remote(Nuxeo):
 
         # Handle transfer pause
         if isinstance(action, DownloadAction):
-            # Get the current download and check if it is still ongoing
-            download = self.dao.get_download(path=action.filepath)
-            if download:
+            if download := self.dao.get_download(path=action.filepath):
                 # Save the progression
                 download.progress = action.get_percent()
                 self.dao.set_transfer_progress("download", download)
@@ -568,17 +561,18 @@ class Remote(Nuxeo):
         }
         if headers:
             kwargs["headers"] = {REQUEST_METRICS: json.dumps(headers)}
-        res: Dict[str, Any] = self.execute(**kwargs)
-        return res
+        return self.execute(**kwargs)
 
     def upload_folder_type(
         self, parent: str, params: Dict[str, str], /, *, headers: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """Create a folder using REST api."""
-        resp = self.client.request(
-            "POST", f"{self.client.api_path}/path{parent}", headers=headers, data=params
+        return self.client.request(
+            "POST",
+            f"{self.client.api_path}/path{parent}",
+            headers=headers,
+            data=params,
         )
-        return resp
 
     def cancel_batch(self, batch_details: Dict[str, Any], /) -> None:
         """Cancel an uploaded Batch."""
@@ -603,10 +597,7 @@ class Remote(Nuxeo):
         sync_root.name = shortify(sync_root.name, limit=limit)
 
         myself = True
-        while "can level up":
-            if level >= Options.sync_root_max_level:
-                break
-
+        while "can level up" and level < Options.sync_root_max_level:
             try:
                 doc = self.documents.get(uid=uid)
                 name = unicodedata.normalize("NFC", doc.properties["dc:title"])
@@ -729,9 +720,7 @@ class Remote(Nuxeo):
         }
 
     def is_filtered(self, path: str, /, *, filtered: bool = True) -> bool:
-        if filtered:
-            return self.dao.is_filter(path)
-        return False
+        return self.dao.is_filter(path) if filtered else False
 
     def make_folder(
         self, parent_id: str, name: str, /, *, overwrite: bool = False
@@ -896,8 +885,7 @@ class Remote(Nuxeo):
     def get_note(self, ref: str, /, *, file_out: Path = None) -> bytes:
         """Download the text associated to a Note document."""
         doc = self.fetch(ref)
-        note = doc["properties"].get("note:note")
-        if note:
+        if note := doc["properties"].get("note:note"):
             content = unquote(note).encode("utf-8")
             if file_out:
                 file_out.write_bytes(content)
@@ -919,14 +907,13 @@ class Remote(Nuxeo):
         else:
             doc_id = ref
 
-        blob: bytes = self.execute(
+        return self.execute(
             command="Blob.Get",
             input_obj=f"doc:{doc_id}",
             json=False,
             file_out=file_out,
             **kwargs,
         )
-        return blob
 
     def lock(self, ref: str, /) -> None:
         self.execute(command="Document.Lock", input_obj=f"doc:{self.check_ref(ref)}")
@@ -991,8 +978,6 @@ class Remote(Nuxeo):
         headers: Dict[str, str] = {}
         headers = {"enrichers.document": enricherType}
 
-        enricherList = SubTypeEnricher.from_dict(
+        return SubTypeEnricher.from_dict(
             self.fetch(parent, headers=headers, enrichers=[enricherType])
         )
-
-        return enricherList
