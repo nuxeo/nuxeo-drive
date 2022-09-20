@@ -1,3 +1,4 @@
+import os
 import platform
 from functools import lru_cache
 from typing import Tuple
@@ -17,7 +18,8 @@ def _get_current_os_details() -> Tuple[str, str, str]:
     """
     if MAC:
         name = "macOS"
-        ver_full = platform.mac_ver()[0]  # 10.15.3
+        build_number = os.popen('sw_vers -buildVersion').read().strip()
+        ver_full = platform.mac_ver()[0] + "." + build_number # 10.15.3
     elif WINDOWS:
         name = "Windows"
         ver_full = platform.win32_ver()[1]  # 10.0.19041
