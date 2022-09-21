@@ -454,9 +454,7 @@ class FoldersDialog(DialogMixin):
         """Action to do when the OK button is clicked."""
         super().accept()
 
-        folder_duplicates = self._find_folders_duplicates()
-
-        if folder_duplicates:
+        if folder_duplicates := self._find_folders_duplicates():
             self.application.folder_duplicate_warning(
                 folder_duplicates,
                 self.remote_folder_title,
