@@ -4,7 +4,7 @@ from typing import Any, Dict
 import pytest
 
 from nxdrive.exceptions import DriveError
-from nxdrive.objects import Blob, NuxeoDocumentInfo, RemoteFileInfo, SubTypeEnricher
+from nxdrive.objects import Blob, NuxeoDocumentInfo, RemoteFileInfo
 
 
 @pytest.fixture(scope="session")
@@ -116,84 +116,6 @@ def remote_doc_dict() -> Dict[str, Any]:
     }
 
 
-@pytest.fixture(scope="function")
-def enricher() -> Dict[str, Any]:
-    now = datetime.now()
-    return {
-        "uid": "fake_id",
-        "parentId": "fake_id",
-        "path": "fake/path",
-        "properties": {"dc:title": "fake"},
-        "name": "Testing",
-        "lastModificationDate": "string",
-        "creationDate": now,
-        "lockInfo": {"owner": "jdoe", "created": datetime.timestamp(now)},
-        "contextParameters": {
-            "subtypes": [
-                {
-                    "type": "OrderedFolder",
-                    "facets": ["Folderish", "NXTag", "Orderable"],
-                },
-                {
-                    "type": "Picture",
-                    "facets": [
-                        "Versionable",
-                        "NXTag",
-                        "Publishable",
-                        "Picture",
-                        "Commentable",
-                        "HasRelatedText",
-                    ],
-                },
-                {
-                    "type": "Video",
-                    "facets": [
-                        "Versionable",
-                        "NXTag",
-                        "Publishable",
-                        "Video",
-                        "HasStoryboard",
-                        "Commentable",
-                        "HasVideoPreview",
-                    ],
-                },
-                {
-                    "type": "Note",
-                    "facets": [
-                        "Versionable",
-                        "NXTag",
-                        "Publishable",
-                        "Commentable",
-                        "HasRelatedText",
-                    ],
-                },
-                {"type": "Folder", "facets": ["Folderish", "NXTag"]},
-                {
-                    "type": "Audio",
-                    "facets": [
-                        "Versionable",
-                        "NXTag",
-                        "Publishable",
-                        "Commentable",
-                        "Audio",
-                    ],
-                },
-                {
-                    "type": "File",
-                    "facets": [
-                        "Versionable",
-                        "NXTag",
-                        "Publishable",
-                        "Commentable",
-                        "HasRelatedText",
-                        "Downloadable",
-                    ],
-                },
-            ]
-        },
-    }
-
-
 @pytest.mark.parametrize(
     "xpath",
     [
@@ -271,20 +193,3 @@ def test_remote_doc_raise_drive_error(remote_doc_dict):
     del remote_doc_dict["id"]
     with pytest.raises(DriveError):
         RemoteFileInfo.from_dict(remote_doc_dict)
-
-
-def test_subtype_enricher(enricher):
-    enricher["uid"] = "MTYxMTIyODA1ODUzNA"
-    enricherList = SubTypeEnricher.from_dict(enricher)
-    assert enricherList.facets is not None
-    assert any("Folder" in s for s in enricherList.facets)
-
-
-def test_without_subtype_enricher(enricher):
-    with pytest.raises(DriveError) as exec_info:
-        enricher["contextParameters"] = None
-        enricherList = SubTypeEnricher.from_dict(enricher)
-        assert str(exec_info.value.args[0]).startswith(
-            "nxdrive.exceptions.DriveError: This Doctype is missing mandatory information:"
-        )
-        assert enricherList.facets is None
