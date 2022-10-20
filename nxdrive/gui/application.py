@@ -1960,6 +1960,7 @@ class Application(QApplication):
         em_analytics = QCheckBox(tr("SHARE_METRICS_ERROR_REPORTING"))
         em_analytics.setChecked(True)
         em_analytics.stateChanged.connect(errors_choice)
+        em_analytics.setChecked(False)
         layout.addWidget(em_analytics)
 
         cb_analytics = QCheckBox(tr("SHARE_METRICS_ANALYTICS"))

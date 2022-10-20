@@ -58,13 +58,7 @@ from ..metrics.constants import (
 )
 from ..metrics.poll_metrics import CustomPollMetrics
 from ..metrics.utils import current_os, user_agent
-from ..objects import (
-    Download,
-    Metrics,
-    NuxeoDocumentInfo,
-    RemoteFileInfo,
-    SubTypeEnricher,
-)
+from ..objects import Download, Metrics, NuxeoDocumentInfo, RemoteFileInfo
 from ..options import Options
 from ..qt.imports import QApplication
 from ..utils import (
@@ -304,6 +298,20 @@ class Remote(Nuxeo):
             path
             # quote -> backslash quote
             .replace("'", r"\'")
+            # line feed -> backslash n
+            .replace("\n", r"\\n")
+            # carriage return -> backslash r
+            .replace("\r", r"\\r")
+        )
+
+    @staticmethod
+    def escapeCarriageReturn(path: str, /) -> str:
+        """Escape any problematic character for a NXQL query.
+        Inspired and expanded from NXQL.escapeStringInner()
+            -> https://github.com/nuxeo/nuxeo/blob/83481e2/modules/core/nuxeo-core-query/src/main/java/org/nuxeo/ecm/core/query/sql/NXQL.java#L267-L272
+        """  # noqa
+        return (
+            path
             # line feed -> backslash n
             .replace("\n", r"\\n")
             # carriage return -> backslash r
@@ -973,16 +981,3 @@ class Remote(Nuxeo):
         if version_lt(self.client.server_version, "10.2"):
             return "AND ecm:currentLifeCycleState != 'deleted'"
         return "AND ecm:isTrashed = 0"
-
-    def get_doc_enricher(
-        self, parent: str, enricherType: str = "subtypes"
-    ) -> SubTypeEnricher:
-
-        headers: Dict[str, str] = {}
-        headers = {"enrichers.document": enricherType}
-
-        enricherList = SubTypeEnricher.from_dict(
-            self.fetch(parent, headers=headers, enrichers=[enricherType])
-        )
-
-        return enricherList

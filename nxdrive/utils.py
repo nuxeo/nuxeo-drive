@@ -876,7 +876,7 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
         # Event to acquire the login token from the server
         (
             r"nxdrive://(?P<cmd>token)/"
-            fr"(?P<token>{DOC_UID_REG})/"
+            rf"(?P<token>{DOC_UID_REG})/"
             r"user/(?P<username>.*)"
         ),
         # Event to continue the OAuth2 login flow

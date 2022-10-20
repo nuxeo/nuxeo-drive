@@ -629,7 +629,7 @@ class TestUpload(OneUserTest):
         url = remote.client.host + remote.uploads.endpoint
         with ensure_no_exception(), responses.RequestsMock() as rsps:
             # Other requests should not be altered
-            rsps.add_passthru(re.compile(fr"^(?!{url}).*"))
+            rsps.add_passthru(re.compile(rf"^(?!{url}).*"))
 
             html = (
                 '<!DOCTYPE html PUBLIC -//W3C//DTD XHTML 1.1//EN http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">'
@@ -667,11 +667,11 @@ class TestUpload(OneUserTest):
         with responses.RequestsMock() as rsps, ensure_no_exception():
             # All requests should be allowed ...
             url = remote.client.host + remote.uploads.endpoint + "/"
-            rsps.add_passthru(re.compile(fr"^(?!{url}).*"))
+            rsps.add_passthru(re.compile(rf"^(?!{url}).*"))
 
             # ... but not the first request to upload a chunk
             html = "<!DOCTYPE html><html><head><title>The page is temporarily unavailable</title></head></html>"
-            chunk_url = re.compile(fr"{url}batchId-[0-9a-f-]+/0")
+            chunk_url = re.compile(rf"{url}batchId-[0-9a-f-]+/0")
             rsps.add(responses.POST, chunk_url, body=html)
             self.wait_sync(timeout=2)
 
