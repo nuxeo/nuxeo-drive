@@ -64,11 +64,11 @@ from ..qt.imports import QApplication
 from ..utils import (
     compute_digest,
     get_current_locale,
+    get_verify,
     lock_path,
     shortify,
     sizeof_fmt,
     unlock_path,
-    get_verify,
 )
 from .proxy import Proxy
 from .uploader import BaseUploader
@@ -117,7 +117,7 @@ class Remote(Nuxeo):
             auth = self.auth
 
         self.verification_needed = get_verify()
-        
+
         super().__init__(
             auth=auth,
             host=url,
@@ -282,7 +282,7 @@ class Remote(Nuxeo):
         """
         # Unauthorized and Forbidden exceptions are handled by the Python client.
         try:
-            return self.operations.execute(**kwargs)
+            return self.operations.execute(ssl_verify=Options.ssl_no_verify, **kwargs)
         except HTTPError as e:
             if e.status == requests.codes.not_found:
                 raise NotFound()
@@ -400,7 +400,10 @@ class Remote(Nuxeo):
                 headers = {"Range": f"bytes={downloaded}-"}
 
         resp = self.client.request(
-            "GET", url.replace(self.client.host, ""), headers=headers, ssl_verify=self.verification_needed,
+            "GET",
+            url.replace(self.client.host, ""),
+            headers=headers,
+            ssl_verify=self.verification_needed,
         )
 
         if not file_out:
@@ -574,7 +577,11 @@ class Remote(Nuxeo):
     ) -> Dict[str, Any]:
         """Create a folder using REST api."""
         resp = self.client.request(
-            "POST", f"{self.client.api_path}/path{parent}", headers=headers, data=params, ssl_verify=self.verification_needed,
+            "POST",
+            f"{self.client.api_path}/path{parent}",
+            headers=headers,
+            data=params,
+            ssl_verify=self.verification_needed,
         )
         return resp
 
@@ -971,7 +978,9 @@ class Remote(Nuxeo):
     def get_server_configuration(self) -> Dict[str, Any]:
         try:
             return self.client.request(
-                "GET", f"{self.client.api_path}/drive/configuration", ssl_verify = get_verify()
+                "GET",
+                f"{self.client.api_path}/drive/configuration",
+                ssl_verify=get_verify(),
             ).json()
         except Exception as exc:
             log.warning(f"Error getting server configuration: {exc}")

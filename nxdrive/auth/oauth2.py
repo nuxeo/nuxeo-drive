@@ -4,9 +4,8 @@ from nuxeo.auth import OAuth2
 from nuxeo.client import Nuxeo
 
 from ..options import Options
-from .base import Authentication
-
 from ..utils import get_verify
+from .base import Authentication
 
 if TYPE_CHECKING:
     from ..dao.base import BaseDAO
@@ -46,14 +45,14 @@ class OAuthentication(Authentication):
         return uri
 
     def get_token(self, **kwargs: Any) -> "Token":
-        
+
         token: str = self.auth.request_token(
-        code_verifier=kwargs["code_verifier"],
-        code=kwargs["code"],
-        state=kwargs["state"],
-        verify=get_verify(),
+            code_verifier=kwargs["code_verifier"],
+            code=kwargs["code"],
+            state=kwargs["state"],
+            verify=get_verify(),
         )
-        
+
         self.token = token
         return token
 

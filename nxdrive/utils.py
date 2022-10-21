@@ -626,7 +626,7 @@ def client_certificate() -> Optional[Tuple[str, str]]:
     Fetch the paths to the certification file and it's key from the option.
     Return None if one of them is missing.
     """
-    if Options.ssl_no_verify == True:
+    if Options.ssl_no_verify is True:
         return None
 
     client_certificate = (Options.cert_file, Options.cert_key_file)
@@ -756,7 +756,7 @@ def get_final_certificate_from_folder(folder: Path) -> Optional[Path]:
 def requests_verify(ca_bundle: Optional[Path], ssl_no_verify: bool) -> Any:
     """Return the appropriate value for the *verify* keyword argument of *requests* calls."""
 
-    if Options.ssl_no_verify == True:
+    if Options.ssl_no_verify is True:
         return False
 
     if ssl_no_verify:
@@ -1326,8 +1326,10 @@ def get_verify():
     if Options.ssl_no_verify is True:
         ssl_verification_needed = False
     else:
-        ssl_verification_needed = requests_verify(Options.ca_bundle, Options.ssl_no_verify)
-    
+        ssl_verification_needed = requests_verify(
+            Options.ca_bundle, Options.ssl_no_verify
+        )
+
     if ssl_verification_needed is not False:
         try:
             conf_file_path = get_config_path()
