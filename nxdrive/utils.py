@@ -756,10 +756,12 @@ def get_final_certificate_from_folder(folder: Path) -> Optional[Path]:
 def requests_verify(ca_bundle: Optional[Path], ssl_no_verify: bool) -> Any:
     """Return the appropriate value for the *verify* keyword argument of *requests* calls."""
 
-    if Options.ssl_no_verify is True:
+    """
+    if (Options.ssl_no_verify or ssl_no_verify) and not ca_bundle:
         return False
+    """
 
-    if ssl_no_verify:
+    if Options.ssl_no_verify or ssl_no_verify:
         return False  # We do not want to verify ssl
 
     if ca_bundle is None:
