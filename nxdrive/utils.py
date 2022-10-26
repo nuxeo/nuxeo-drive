@@ -757,8 +757,8 @@ def requests_verify(ca_bundle: Optional[Path], ssl_no_verify: bool) -> Any:
     """Return the appropriate value for the *verify* keyword argument of *requests* calls."""
 
     """
-    if (Options.ssl_no_verify or ssl_no_verify) and not ca_bundle:
-        return False
+    if ssl_no_verify is False and ca_bundle is None:
+        return True
     """
 
     if Options.ssl_no_verify or ssl_no_verify:
