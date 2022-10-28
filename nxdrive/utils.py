@@ -764,7 +764,7 @@ def requests_verify(ca_bundle: Optional[Path], ssl_no_verify: bool) -> Any:
     print(
         f">>>>>>Options.ssl_no_verify: {Options.ssl_no_verify}, ssl_no_verify: {ssl_no_verify}"
     )
-    if Options.ssl_no_verify or ssl_no_verify:
+    if ssl_no_verify:
         return False  # We do not want to verify ssl
 
     if ca_bundle is None:
