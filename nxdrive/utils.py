@@ -761,12 +761,16 @@ def requests_verify(ca_bundle: Optional[Path], ssl_no_verify: bool) -> Any:
         return True
     """
 
+    print(
+        f">>>>>>Options.ssl_no_verify: {Options.ssl_no_verify}, ssl_no_verify: {ssl_no_verify}"
+    )
     if Options.ssl_no_verify or ssl_no_verify:
         return False  # We do not want to verify ssl
 
     if ca_bundle is None:
         return True  # Verification enabled but no certificates provided
 
+    print("time to check ca_bundle")
     path = ca_bundle
     if path.is_file():
         final_path = get_final_certificate(path)
@@ -774,6 +778,7 @@ def requests_verify(ca_bundle: Optional[Path], ssl_no_verify: bool) -> Any:
         final_path = get_final_certificate_from_folder(path)
 
     if final_path is None:
+        print(f">>> final_path: {final_path}")
         return True
     # `requests` needs a string, not a path-like object
     return str(final_path)
