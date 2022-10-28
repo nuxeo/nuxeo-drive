@@ -61,5 +61,4 @@ class OAuthentication(Authentication):
         verification_needed = get_verify()
         client = Nuxeo(host=self.url, auth=self.auth, verify=verification_needed)
         user = client.users.current_user(verification_needed)
-        username: str = user.uid
-        return username
+        return user.uid
