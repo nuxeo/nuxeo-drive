@@ -355,11 +355,9 @@ class BaseUploader:
                         self.dao.update_upload(transfer)
                         transfer.is_dirty = False
 
-                    # Handle status changes every time a chunk is sent
-                    _transfer = self.get_upload(
+                    if _transfer := self.get_upload(
                         doc_pair=transfer.doc_pair, path=transfer.path
-                    )
-                    if _transfer:
+                    ):
                         self._handle_transfer_status(_transfer)
             else:
                 uploader.upload()

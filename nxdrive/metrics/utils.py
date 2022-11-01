@@ -22,7 +22,7 @@ def _get_current_os_details() -> Tuple[str, str, str]:
         if re.fullmatch(r"\d{2}\.\d{1,2}\.\d{1,2}$", mac_ver):
             ver_full = mac_ver  # 10.15.3
         else:
-            ver_full = mac_ver + ".0"
+            ver_full = f"{mac_ver}.0"
     elif WINDOWS:
         name = "Windows"
         ver_full = platform.win32_ver()[1]  # 10.0.19041
@@ -42,9 +42,7 @@ def current_os(*, full: bool = False) -> str:
     If *full* is true, the full version will be used instead of the x.y simplified one.
     """
     name, version_full, version_simplified = _get_current_os_details()
-    if full:
-        return f"{name} {version_full}"
-    return f"{name} {version_simplified}"
+    return f"{name} {version_full}" if full else f"{name} {version_simplified}"
 
 
 @lru_cache(maxsize=1)
