@@ -571,6 +571,10 @@ class NewFolderDialog(QDialog):
 
         layout = QVBoxLayout()
 
+        self.facetList = self.parent.engine.remote.get_doc_enricher(
+            self.parent.remote_folder_ref, "subtypes"
+        )
+
         self.folder_creation_frame = QFrame()
         self.operation_result_frame = QFrame()
 
@@ -632,6 +636,7 @@ class NewFolderDialog(QDialog):
 
         self.cb = QComboBox()
         self.cb.addItem("Automatic", "create")
+        self.cb.addItems(self.facetList.facets)
 
         folder_label = QLabel(Translator.get("FOLDER_NAME"))
         type_label = QLabel(Translator.get("FOLDER_TYPE"))
@@ -676,6 +681,7 @@ class NewFolderDialog(QDialog):
             duplicate_behavior=self.parent.cb.currentData(),
             last_local_selected_location=self.parent.last_local_selected_location,
             new_folder=self.new_folder_name.text(),
+            new_folder_type=self.cb.currentText(),
         )
 
     def close_success(self) -> None:
