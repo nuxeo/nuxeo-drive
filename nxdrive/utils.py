@@ -1342,7 +1342,7 @@ def get_verify():
                 if key == "ssl_no_verify":
                     ssl_verification_needed = False if get_value(value) else True
         except Exception as exc:
-            print("Exception when trying to read config file: ", exc)
+            log.info(f"Exception when trying to read config file: {exc!r}")
             if "No such file or directory" and "-gw" in str(exc):
                 ssl_verification_needed = False
     return ssl_verification_needed

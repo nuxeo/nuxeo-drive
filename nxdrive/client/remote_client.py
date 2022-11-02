@@ -575,11 +575,10 @@ class Remote(Nuxeo):
         res: Dict[str, Any] = self.execute(**kwargs)
         return res
 
-    """
     def upload_folder_type(
         self, parent: str, params: Dict[str, str], /, *, headers: Dict[str, Any] = None
     ) -> Dict[str, Any]:
-        ""Create a folder using REST api.""
+        """Create a folder using REST api."""
         resp = self.client.request(
             "POST",
             f"{self.client.api_path}/path{parent}",
@@ -588,7 +587,6 @@ class Remote(Nuxeo):
             ssl_verify=self.verification_needed,
         )
         return resp
-    """
 
     def cancel_batch(self, batch_details: Dict[str, Any], /) -> None:
         """Cancel an uploaded Batch."""
