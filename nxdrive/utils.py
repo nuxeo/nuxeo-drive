@@ -10,7 +10,7 @@ import os.path
 import re
 import stat
 import sys
-from configparser import ConfigParser
+from configparser import DEFAULTSECT, ConfigParser
 from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
@@ -316,7 +316,7 @@ def get_value(value: str, /) -> Union[bool, float, str, Tuple[str, ...]]:
 
     if value.lower() in ("true", "1", "on", "yes", "oui"):
         return True
-    elif value.lower() in ("false", "0", "off", "no", "non"):
+    elif value.lower() in ("false", "0", "off", "no", "non", "none"):
         return False
     elif "\n" in value:
         return tuple(sorted(value.split()))
@@ -626,6 +626,9 @@ def client_certificate() -> Optional[Tuple[str, str]]:
     Fetch the paths to the certification file and it's key from the option.
     Return None if one of them is missing.
     """
+    if Options.ssl_no_verify is True:
+        return None
+
     client_certificate = (Options.cert_file, Options.cert_key_file)
     if not all(client_certificate):
         return None
@@ -752,6 +755,10 @@ def get_final_certificate_from_folder(folder: Path) -> Optional[Path]:
 
 def requests_verify(ca_bundle: Optional[Path], ssl_no_verify: bool) -> Any:
     """Return the appropriate value for the *verify* keyword argument of *requests* calls."""
+
+    if Options.ssl_no_verify and ssl_no_verify:
+        return False  # We do not want to verify ssl
+
     if ssl_no_verify:
         return False  # We do not want to verify ssl
 
@@ -1310,3 +1317,32 @@ def get_current_locale() -> str:
         l10n = locale.getdefaultlocale()[0] or ""
 
     return ".".join([l10n, encoding])
+
+
+def get_verify():
+    # type: () -> bool
+    """Detects if SSL verification is required or not"""
+    ssl_verification_needed = True
+    if Options.ssl_no_verify is True:
+        ssl_verification_needed = False
+    else:
+        ssl_verification_needed = requests_verify(
+            Options.ca_bundle, Options.ssl_no_verify
+        )
+
+    if ssl_verification_needed is not False:
+        try:
+            conf_file_path = get_config_path()
+            config = ConfigParser()
+            with conf_file_path.open(encoding="utf-8") as fh:
+                config.read_file(fh)
+            env = config.get(DEFAULTSECT, "env")
+            for key, value in config.items(env):
+                key = key.replace("-", "_").replace(".", "_").lower()
+                if key == "ssl_no_verify":
+                    ssl_verification_needed = False if get_value(value) else True
+        except Exception as exc:
+            print("Exception when trying to read config file: ", exc)
+            if "No such file or directory" and "-gw" in str(exc):
+                ssl_verification_needed = False
+    return ssl_verification_needed

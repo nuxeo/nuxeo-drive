@@ -64,6 +64,7 @@ from ..qt.imports import QApplication
 from ..utils import (
     compute_digest,
     get_current_locale,
+    get_verify,
     lock_path,
     shortify,
     sizeof_fmt,
@@ -115,13 +116,18 @@ class Remote(Nuxeo):
             self.auth = BasicAuth(user_id, password)
             auth = self.auth
 
+        self.verification_needed = get_verify()
+        log.info(
+            f"SSL verify: {verify}-> will be changed to {self.verification_needed}"
+        )
+
         super().__init__(
             auth=auth,
             host=url,
             app_name=APP_NAME,
             version=version,
             repository=repository,
-            verify=verify,
+            verify=self.verification_needed,
             cert=cert,
         )
 
@@ -171,7 +177,7 @@ class Remote(Nuxeo):
             self.base_folder_ref, self._base_folder_path = None, None
 
         # Cache the result for future uploads
-        self.uploads.has_s3()
+        self.uploads.has_s3(self.verification_needed)
 
         self.metrics = CustomPollMetrics(self)
         self.metrics.start()
@@ -279,7 +285,7 @@ class Remote(Nuxeo):
         """
         # Unauthorized and Forbidden exceptions are handled by the Python client.
         try:
-            return self.operations.execute(**kwargs)
+            return self.operations.execute(ssl_verify=Options.ssl_no_verify, **kwargs)
         except HTTPError as e:
             if e.status == requests.codes.not_found:
                 raise NotFound()
@@ -354,6 +360,7 @@ class Remote(Nuxeo):
                 TOKEN_PERMISSION,
                 app_name=APP_NAME,
                 device=current_os(full=True),
+                ssl_verify=self.verification_needed,
             )
             self.auth = self.client.auth
         else:
@@ -396,7 +403,10 @@ class Remote(Nuxeo):
                 headers = {"Range": f"bytes={downloaded}-"}
 
         resp = self.client.request(
-            "GET", url.replace(self.client.host, ""), headers=headers
+            "GET",
+            url.replace(self.client.host, ""),
+            headers=headers,
+            ssl_verify=self.verification_needed,
         )
 
         if not file_out:
@@ -564,6 +574,21 @@ class Remote(Nuxeo):
             kwargs["headers"] = {REQUEST_METRICS: json.dumps(headers)}
         res: Dict[str, Any] = self.execute(**kwargs)
         return res
+
+    """
+    def upload_folder_type(
+        self, parent: str, params: Dict[str, str], /, *, headers: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        ""Create a folder using REST api.""
+        resp = self.client.request(
+            "POST",
+            f"{self.client.api_path}/path{parent}",
+            headers=headers,
+            data=params,
+            ssl_verify=self.verification_needed,
+        )
+        return resp
+    """
 
     def cancel_batch(self, batch_details: Dict[str, Any], /) -> None:
         """Cancel an uploaded Batch."""
@@ -958,7 +983,9 @@ class Remote(Nuxeo):
     def get_server_configuration(self) -> Dict[str, Any]:
         try:
             return self.client.request(
-                "GET", f"{self.client.api_path}/drive/configuration"
+                "GET",
+                f"{self.client.api_path}/drive/configuration",
+                ssl_verify=get_verify(),
             ).json()
         except Exception as exc:
             log.warning(f"Error getting server configuration: {exc}")

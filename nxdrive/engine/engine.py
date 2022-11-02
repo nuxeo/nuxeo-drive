@@ -57,7 +57,7 @@ from ..utils import (
     force_decode,
     grouper,
     if_frozen,
-    requests_verify,
+    get_verify,
     safe_filename,
     safe_long_path,
     set_path_readonly,
@@ -1279,7 +1279,7 @@ class Engine(QObject):
             "upload_callback": self.suspend_client,
             "dao": self.dao,
             "proxy": self.manager.proxy,
-            "verify": requests_verify(Options.ca_bundle, Options.ssl_no_verify),
+            "verify": get_verify(),
             "cert": client_certificate(),
         }
         return self.remote_cls(*args, **kwargs)
