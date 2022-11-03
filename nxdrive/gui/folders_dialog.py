@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 from ..constants import APP_NAME, INVALID_CHARS
 from ..engine.engine import Engine
+from ..feature import Feature
 from ..options import Options
 from ..qt import constants as qt
 from ..qt.imports import (
@@ -34,7 +35,6 @@ from ..translator import Translator
 from ..utils import find_icon, get_tree_list, sizeof_fmt
 from .folders_model import FilteredDocuments, FoldersOnly
 from .folders_treeview import DocumentTreeView, FolderTreeView
-from ..feature import Feature
 
 if TYPE_CHECKING:
     from .application import Application  # noqa
@@ -557,8 +557,8 @@ class FoldersDialog(DialogMixin):
             bool(self.remote_folder_ref) and bool(self.tree_view.current)
         )
         self.cbDocType.setEnabled(
-            bool(self.paths) 
-            and bool(self.tree_view.current) 
+            bool(self.paths)
+            and bool(self.tree_view.current)
             and bool(Feature.document_type_selection)
         )
         # Select the last run's choice
@@ -572,8 +572,8 @@ class FoldersDialog(DialogMixin):
             self.cbDocType.setCurrentIndex(index)
 
         self.cbContainerType.setEnabled(
-            bool(self.path) 
-            and bool(self.tree_view.current) 
+            bool(self.path)
+            and bool(self.tree_view.current)
             and bool(Feature.document_type_selection)
         )
 
