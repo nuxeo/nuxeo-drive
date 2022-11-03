@@ -497,7 +497,6 @@ class Engine(QObject):
             self.directTransferNewFolderError.emit()
             return {}
 
-
     def _create_remote_folder_with_enricher(
         self,
         remote_parent_path: str,
@@ -515,7 +514,7 @@ class Engine(QObject):
             }
 
             res = self.remote.upload_folder_type(remote_parent_path, payload)
-            new_path = remote_parent_path + "/" + new_folder
+            new_path = f"{remote_parent_path}/{new_folder}"
             self.directTransferNewFolderSuccess.emit(new_path)
             return res
         except Exception:
@@ -525,7 +524,6 @@ class Engine(QObject):
             )
             self.directTransferNewFolderError.emit()
             return {}
-
 
     def _direct_transfer(
         self,

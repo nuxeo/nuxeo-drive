@@ -1023,4 +1023,3 @@ class Remote(Nuxeo):
                 docTypeList.append(str(docType))
 
         return docTypeList
-

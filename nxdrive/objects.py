@@ -547,4 +547,3 @@ class SubTypeEnricher:
             )
 
         return SubTypeEnricher(uid, parent_uid, path, facets, props)
-

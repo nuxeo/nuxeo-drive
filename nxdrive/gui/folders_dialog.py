@@ -556,7 +556,11 @@ class FoldersDialog(DialogMixin):
         self.new_folder_button.setEnabled(
             bool(self.remote_folder_ref) and bool(self.tree_view.current)
         )
-        self.cbDocType.setEnabled(bool(self.paths) and bool(self.tree_view.current) and bool(Feature.document_type_selection))
+        self.cbDocType.setEnabled(
+            bool(self.paths) 
+            and bool(self.tree_view.current) 
+            and bool(Feature.document_type_selection)
+        )
         # Select the last run's choice
         index = (
             self.cbDocType.findText(self.last_local_selected_doc_type)
@@ -568,7 +572,9 @@ class FoldersDialog(DialogMixin):
             self.cbDocType.setCurrentIndex(index)
 
         self.cbContainerType.setEnabled(
-            bool(self.path) and bool(self.tree_view.current) and bool(Feature.document_type_selection)
+            bool(self.path) 
+            and bool(self.tree_view.current) 
+            and bool(Feature.document_type_selection)
         )
 
     def get_tree_view(self) -> FolderTreeView:
@@ -723,10 +729,7 @@ class NewFolderDialog(QDialog):
 
         self.cb = QComboBox()
         self.cb.addItem("Automatic", "create")
-        self.cb.addItems(self.facetList.facets)
-
         self.cb.addItems(self.facetList)
-
 
         folder_label = QLabel(Translator.get("FOLDER_NAME"))
         type_label = QLabel(Translator.get("FOLDER_TYPE"))
