@@ -514,7 +514,7 @@ class Engine(QObject):
             }
 
             res = self.remote.upload_folder_type(remote_parent_path, payload)
-            new_path = remote_parent_path + "/" + new_folder
+            new_path = f"{remote_parent_path}/{new_folder}"
             self.directTransferNewFolderSuccess.emit(new_path)
             return res
         except Exception:

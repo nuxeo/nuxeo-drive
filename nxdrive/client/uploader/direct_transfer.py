@@ -103,7 +103,6 @@ class DirectTransferUploader(BaseUploader):
                     raise NotFound(
                         f"Could not find {filepath!r} on {self.remote.client.host}"
                     )
-                    return None
             self.dao.update_remote_parent_path_dt(file_path, item["path"], item["uid"])
         else:
             # Only replace the document if the user wants to
