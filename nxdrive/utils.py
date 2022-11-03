@@ -126,16 +126,11 @@ def find_suitable_direct_edit_dir(predefined: Path, /) -> Path:
 
     Note: this function cannot be decorated with lru_cache().
     """
-    if not path_is_unc_name(predefined):
-        # Let's use the given folder as it works fine for years
-        return predefined
-
-    # Here we are obviously on Windows with *predefined* being a UNC name.
-    # We cannot use it because extended attributes are not supported
-    # and Direct Edit heavily uses them.
-    # Let's find a folder on another partition, preferably the default one (like C:).
-    # The temporary folder is generally located on such partition.
-    return Path(gettempdir()) / f"direct-edit-{uuid4()}"
+    return (
+        Path(gettempdir()) / f"direct-edit-{uuid4()}"
+        if path_is_unc_name(predefined)
+        else predefined
+    )
 
 
 def find_suitable_tmp_dir(sync_folder: Path, home_folder: Path, /) -> Path:
@@ -314,9 +309,9 @@ def get_tree_list(path: Path, /) -> Generator[Tuple[Path, int], None, None]:
 def get_value(value: str, /) -> Union[bool, float, str, Tuple[str, ...]]:
     """Get parsed value for commandline/registry input."""
 
-    if value.lower() in ("true", "1", "on", "yes", "oui"):
+    if value.lower() in {"true", "1", "on", "yes", "oui"}:
         return True
-    elif value.lower() in ("false", "0", "off", "no", "non", "none"):
+    elif value.lower() in {"false", "0", "off", "no", "non", "none"}:
         return False
     elif "\n" in value:
         return tuple(sorted(value.split()))
@@ -333,10 +328,10 @@ def grouper(
     """grouper("ABCDEFG", 3) --> ('ABC') ('DEF') ('G',)."""
     it = iter(iterable)
     while "there are items":
-        chunk = tuple(islice(it, count))
-        if not chunk:
+        if chunk := tuple(islice(it, count)):
+            yield chunk
+        else:
             return
-        yield chunk
 
 
 def increment_local_folder(basefolder: Path, name: str, /) -> Path:
@@ -347,9 +342,7 @@ def increment_local_folder(basefolder: Path, name: str, /) -> Path:
     """
     folder = basefolder / name
     num = 2
-    while "checking":
-        if not folder.is_dir():
-            break
+    while "checking" and folder.is_dir():
         folder = basefolder / f"{name} {num}"
         num += 1
     return folder
@@ -397,7 +390,7 @@ def is_generated_tmp_file(name: str, /) -> Tuple[bool, Optional[bool]]:
         return ignore, do_not_delay
 
     # See https://stackoverflow.com/a/10591106/1117028 for benchmark
-    reg = re.compile(r"|".join("(?:%s)" % p for p in Options.ignored_files))
+    reg = re.compile(r"|".join(f"(?:{p})" for p in Options.ignored_files))
     if reg.match(name.lower()):
         return ignore, do_not_delay
 
@@ -406,7 +399,7 @@ def is_generated_tmp_file(name: str, /) -> Tuple[bool, Optional[bool]]:
 
 def is_large_file(filesize: int) -> bool:
     """Return True if the given *filesize* is big enough to consider the file large."""
-    return bool(filesize >= Options.big_file * 1024 * 1024)
+    return filesize >= Options.big_file * 1024 * 1024
 
 
 def path_is_unc_name(path: Path) -> bool:
@@ -419,15 +412,11 @@ def path_is_unc_name(path: Path) -> bool:
     path_str = str(path)
 
     # Fast path: it is a usual path
-    if not path_str.startswith("\\\\"):
-        return False
-
-    # Pay attention to:
-    #     - \\?\C:\Users\Alice\folder   (long-path prefixed usual path)
-    #     - \\?\UNC\Server\Alice\folder (long-path prefixed UNC name)
-    #     - \\Server\Alice\folder       (UNC name)
-    # They all start with "\\" but we only want to be sure to target UNC names.
-    return path_str.startswith("\\\\?\\UNC\\") or (path_str[2] != "?")
+    return (
+        path_str.startswith("\\\\?\\UNC\\") or (path_str[2] != "?")
+        if path_str.startswith("\\\\")
+        else False
+    )
 
 
 def normalized_path(path: Union[bytes, str, Path], /) -> Path:
@@ -498,7 +487,7 @@ def normalize_event_filename(
     return normalized
 
 
-def if_frozen(func, /) -> Callable:  # type: ignore
+def if_frozen(func, /) -> Callable:    # type: ignore
     """
     Decorator to enable the call of a function/method
     only if the application is frozen.
@@ -509,9 +498,7 @@ def if_frozen(func, /) -> Callable:  # type: ignore
     def wrapper(*args: Any, **kwargs: Any) -> Union[bool, Callable]:
         """Inner function to do the check and abort the call
         if the application not frozen."""
-        if not Options.is_frozen:
-            return False
-        return func(*args, **kwargs)  # type: ignore
+        return func(*args, **kwargs) if Options.is_frozen else False
 
     return wrapper
 
@@ -630,9 +617,7 @@ def client_certificate() -> Optional[Tuple[str, str]]:
         return None
 
     client_certificate = (Options.cert_file, Options.cert_key_file)
-    if not all(client_certificate):
-        return None
-    return client_certificate
+    return client_certificate if all(client_certificate) else None
 
 
 @lru_cache(maxsize=4)
@@ -771,10 +756,7 @@ def requests_verify(ca_bundle: Optional[Path], ssl_no_verify: bool) -> Any:
     elif path.is_dir():
         final_path = get_final_certificate_from_folder(path)
 
-    if final_path is None:
-        return True
-    # `requests` needs a string, not a path-like object
-    return str(final_path)
+    return True if final_path is None else str(final_path)
 
 
 def _cryptor(key: bytes, iv: bytes) -> "Cipher":
@@ -817,9 +799,7 @@ def _pad_secret(key: bytes) -> bytes:
     if length == 32:
         return key
     size = 32 - length
-    if length > 32:
-        return key[:size]
-    return key + bytes([size]) * size
+    return key[:size] if length > 32 else key + bytes([size]) * size
 
 
 @lru_cache(maxsize=4)
@@ -859,31 +839,15 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
     path_cmds = ("access-online", "copy-share-link", "direct-transfer", "edit-metadata")
 
     protocol_regex = (
-        # Direct Edit stuff
-        (
-            r"nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/(?P<server>.*)/"
-            r"user/(?P<username>.*)/repo/(?P<repo>.*)/"
-            r"nxdocid/(?P<docid>[0-9a-fA-F\-]*)/filename/(?P<filename>[^/]*)"
-            r"/downloadUrl/(?P<download>.*)"
-        ),
-        # Events from context menu:
-        #     - Access online
-        #     - Copy share-link
-        #     - Edit metadata
-        #     - Direct Transfer
-        # And event from macOS to sync the document status (FinderSync)
-        r"nxdrive://(?P<cmd>({}))/(?P<path>.*)".format("|".join(path_cmds)),
-        # Event to acquire the login token from the server
-        (
-            r"nxdrive://(?P<cmd>token)/"
-            rf"(?P<token>{DOC_UID_REG})/"
-            r"user/(?P<username>.*)"
-        ),
-        # Event to continue the OAuth2 login flow
-        # authorize?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
-        # authorize/?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
+        r"nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/(?P<server>.*)/"
+        r"user/(?P<username>.*)/repo/(?P<repo>.*)/"
+        r"nxdocid/(?P<docid>[0-9a-fA-F\-]*)/filename/(?P<filename>[^/]*)"
+        r"/downloadUrl/(?P<download>.*)",
+        f'nxdrive://(?P<cmd>({"|".join(path_cmds)}))/(?P<path>.*)',
+        f"nxdrive://(?P<cmd>token)/(?P<token>{DOC_UID_REG})/user/(?P<username>.*)",
         r"nxdrive://(?P<cmd>authorize)/?\?(?P<query>.+)",
     )
+
 
     match_res = None
     for regex in protocol_regex:
@@ -1157,10 +1121,10 @@ def compute_digest(
             while "computing":
                 if callable(callback):
                     callback(path)
-                buf = f.read(FILE_BUFFER_SIZE)
-                if not buf:
+                if buf := f.read(FILE_BUFFER_SIZE):
+                    h.update(buf)
+                else:
                     break
-                h.update(buf)
     except (OSError, MemoryError):
         # MemoryError happens randomly, dunno why but this is
         # not an issue as the hash will be recomputed later
@@ -1340,9 +1304,9 @@ def get_verify():
             for key, value in config.items(env):
                 key = key.replace("-", "_").replace(".", "_").lower()
                 if key == "ssl_no_verify":
-                    ssl_verification_needed = False if get_value(value) else True
+                    ssl_verification_needed = not get_value(value)
         except Exception as exc:
             log.info(f"Exception when trying to read config file: {exc!r}")
-            if "No such file or directory" and "-gw" in str(exc):
+            if "-gw" in str(exc):
                 ssl_verification_needed = False
     return ssl_verification_needed
