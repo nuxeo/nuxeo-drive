@@ -541,6 +541,7 @@ class Engine(QObject):
         last_local_selected_location: Optional[Path] = None,
         last_local_selected_doc_type: Optional[str] = None,
         new_folder: Optional[str] = None,
+        new_folder_type: Optional[str] = None,
     ) -> None:
         """Plan the Direct Transfer."""
 
@@ -556,9 +557,17 @@ class Engine(QObject):
         if new_folder:
             self.send_metric("direct_transfer", "new_folder", "1")
             expected_session_uid = self.dao.get_count("uid != 0", table="Sessions") + 1
-            item = self._create_remote_folder(
-                remote_parent_path, new_folder, expected_session_uid
-            )
+            if not new_folder_type or new_folder_type == "Automatic":
+                item = self._create_remote_folder(
+                    remote_parent_path, new_folder, expected_session_uid
+                )
+            else:
+                item = self._create_remote_folder_with_enricher(
+                    remote_parent_path,
+                    new_folder,
+                    new_folder_type,
+                    expected_session_uid,
+                )
             if not item:
                 return
             remote_parent_path = item["path"]
@@ -656,6 +665,7 @@ class Engine(QObject):
         last_local_selected_location: Optional[Path] = None,
         last_local_selected_doc_type: Optional[Path] = None,
         new_folder: Optional[str] = None,
+        new_folder_type: Optional[str] = None,
     ) -> None:
         """Plan the Direct Transfer."""
         self._direct_transfer(
@@ -667,6 +677,7 @@ class Engine(QObject):
             last_local_selected_location=last_local_selected_location,
             last_local_selected_doc_type=last_local_selected_doc_type,
             new_folder=new_folder,
+            new_folder_type=new_folder_type,
         )
 
     def direct_transfer_async(
@@ -683,6 +694,7 @@ class Engine(QObject):
         last_local_selected_location: Optional[Path] = None,
         last_local_selected_doc_type: Optional[str] = None,
         new_folder: Optional[str] = None,
+        new_folder_type: Optional[str] = None,
     ) -> None:
         """Plan the Direct Transfer. Async to not freeze the GUI."""
         from .workers import Runner
@@ -699,6 +711,7 @@ class Engine(QObject):
             last_local_selected_location=last_local_selected_location,
             last_local_selected_doc_type=last_local_selected_doc_type,
             new_folder=new_folder,
+            new_folder_type=new_folder_type,
         )
         self._threadpool.start(runner)
 
