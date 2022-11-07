@@ -577,16 +577,9 @@ class Engine(QObject):
 
         all_paths = local_paths.keys()
         doc_type = None
-        if document_type == "Automatic":
-            doc_type = None
-        else:
-            doc_type = document_type
-
+        doc_type = None if document_type == "Automatic" else document_type
         cont_type = None
-        if container_type == "Automatic":
-            cont_type = None
-        else:
-            cont_type = container_type
+        cont_type = None if container_type == "Automatic" else container_type
         items = [
             (
                 path.as_posix(),
@@ -596,12 +589,13 @@ class Engine(QObject):
                 size,
                 remote_parent_path,
                 remote_parent_ref,
-                doc_type if not path.is_dir() else cont_type,
+                cont_type if path.is_dir() else doc_type,
                 duplicate_behavior,
                 "todo" if path.parent in all_paths else "unknown",
             )
             for path, size in sorted(local_paths.items())
         ]
+
 
         # Add all paths into the database to plan the upload, by batch
         bsize = Options.database_batch_size
@@ -806,8 +800,7 @@ class Engine(QObject):
 
             resume(nature, transfer.uid, is_direct_transfer=is_direct_transfer)
 
-            doc_pair = get_state(transfer.doc_pair)
-            if doc_pair:
+            if doc_pair := get_state(transfer.doc_pair):
                 self.queue_manager.push(doc_pair)
 
     def resume_transfer(
@@ -981,9 +974,7 @@ class Engine(QObject):
         """Ensure that user provided url always has a trailing '/'"""
         if not url:
             raise ValueError(f"Invalid url: {url!r}")
-        if not url.endswith("/"):
-            return url + "/"
-        return url
+        return url if url.endswith("/") else f"{url}/"
 
     def _send_roots_metrics(self) -> None:
         """Send a metric about the number of locally enabled sync roots."""
@@ -1084,9 +1075,7 @@ class Engine(QObject):
         :param force: Force the return value to be the one of `force`.
         """
 
-        if isinstance(force, bool):
-            return force
-        return False
+        return force if isinstance(force, bool) else False
 
     def create_thread(
         self, worker: Worker, name: str, /, *, start_connect: bool = True
@@ -1120,13 +1109,11 @@ class Engine(QObject):
         self.dao.reset_error(state, last_error=reason)
 
     def resolve_with_local(self, row_id: int, /) -> None:
-        row = self.dao.get_state_from_id(row_id)
-        if row:
+        if row := self.dao.get_state_from_id(row_id):
             self.dao.force_local(row)
 
     def resolve_with_remote(self, row_id: int, /) -> None:
-        row = self.dao.get_state_from_id(row_id)
-        if row:
+        if row := self.dao.get_state_from_id(row_id):
             self.dao.force_remote(row)
 
     @pyqtSlot()
@@ -1407,8 +1394,7 @@ class Engine(QObject):
             raise MissingXattrSupport(path)
 
         if path.is_dir():
-            root_id = self.local.get_root_id()
-            if root_id:
+            if root_id := self.local.get_root_id():
                 # server_url|user|device_id|uid
                 server_url, user, *_ = root_id.split("|")
                 if (self.server_url, self.remote_user) != (server_url, user):
