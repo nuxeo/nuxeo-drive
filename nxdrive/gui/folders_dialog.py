@@ -655,17 +655,17 @@ class FoldersDialog(DialogMixin):
 class NewFolderDialog(QDialog):
     """The class for the new folder creation window."""
 
-    def __init__(self, parent: FoldersDialog, /) -> None:
-        super().__init__(parent=parent)
+    def __init__(self, folder_dialog: FoldersDialog, /) -> None:
+        super().__init__(folder_dialog)
 
         self.setWindowTitle(Translator.get("NEW_REMOTE_FOLDER"))
         self.resize(320, 200)
-        self.parent = parent
+        self.folder_dialog = folder_dialog
 
         layout = QVBoxLayout()
 
-        self.facetList = self.parent.engine.remote.get_doc_enricher(
-            self.parent.remote_folder_ref, "subtypes"
+        self.facetList = self.folder_dialog.engine.remote.get_doc_enricher(
+            self.folder_dialog.remote_folder_ref, "subtypes"
         )
 
         self.folder_creation_frame = QFrame()
@@ -680,10 +680,10 @@ class NewFolderDialog(QDialog):
         self.operation_result_frame.hide()
         self.setLayout(layout)
 
-        self.parent.engine.directTransferNewFolderSuccess.connect(
+        self.folder_dialog.engine.directTransferNewFolderSuccess.connect(
             self.handle_creation_success
         )
-        self.parent.engine.directTransferNewFolderError.connect(
+        self.folder_dialog.engine.directTransferNewFolderError.connect(
             self.handle_creation_failure
         )
 
@@ -758,23 +758,23 @@ class NewFolderDialog(QDialog):
         """Start the asynchronous Direct Transfer if there is no duplicate."""
 
         new_folder = self.new_folder_name.text()
-        if bool(new_folder) and self.parent.engine.remote.exists_in_parent(
-            self.parent.remote_folder_ref, new_folder, True
+        if bool(new_folder) and self.folder_dialog.engine.remote.exists_in_parent(
+            self.folder_dialog.remote_folder_ref, new_folder, True
         ):
             return self._show_result_message(
                 Translator.get("NEW_REMOTE_FOLDER_DUPLICATE"),
                 Translator.get("ERROR"),
             )
 
-        self.parent.engine.direct_transfer_async(
+        self.folder_dialog.engine.direct_transfer_async(
             {},
-            self.parent.remote_folder.text(),
-            self.parent.remote_folder_ref,
-            self.parent.remote_folder_title,
+            self.folder_dialog.remote_folder.text(),
+            self.folder_dialog.remote_folder_ref,
+            self.folder_dialog.remote_folder_title,
             document_type=None,
             container_type=None,
-            duplicate_behavior=self.parent.cb.currentData(),
-            last_local_selected_location=self.parent.last_local_selected_location,
+            duplicate_behavior=self.folder_dialog.cb.currentData(),
+            last_local_selected_location=self.folder_dialog.last_local_selected_location,
             new_folder=self.new_folder_name.text(),
             new_folder_type=self.cb.currentText(),
         )
@@ -782,9 +782,9 @@ class NewFolderDialog(QDialog):
     def close_success(self) -> None:
         """Select the created item in the tree view."""
 
-        self.parent.tree_view.expand_current_selected()
-        self.parent.tree_view.select_item_from_path(self.created_remote_path)
-        self.parent.tree_view.expand_current_selected()
+        self.folder_dialog.tree_view.expand_current_selected()
+        self.folder_dialog.tree_view.select_item_from_path(self.created_remote_path)
+        self.folder_dialog.tree_view.expand_current_selected()
         self.close()
 
     def _show_result_message(self, message: str, status: str) -> None:
@@ -805,7 +805,7 @@ class NewFolderDialog(QDialog):
         """Update the tree view and show the operation success result message."""
 
         self.created_remote_path = new_remote_path
-        self.parent.tree_view.update.emit()
+        self.folder_dialog.tree_view.update.emit()
         return self._show_result_message(
             Translator.get("NEW_REMOTE_FOLDER_SUCCESS"), Translator.get("SUCCESS")
         )
