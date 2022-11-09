@@ -5,6 +5,8 @@ import nuxeo.client
 import nuxeo.operations
 import pytest
 from nuxeo.client import Nuxeo
+from nxdrive.options import Options
+from nxdrive.utils import get_verify
 
 from . import env
 
@@ -38,6 +40,10 @@ def pytest_runtest_makereport():
 @pytest.fixture()
 def tmp(tmp_path):
     """Use the original *tmp_path* fixture with automatic clean-up."""
+
+    ssl_verify = get_verify()
+    if Options.ssl_no_verify != ssl_verify:
+        Options.ssl_no_verify = ssl_verify
 
     created_folders = []
     n = 0
@@ -83,6 +89,8 @@ def no_warnings(recwarn):
             continue
         elif "(rm_rf) error removing" in message:
             # First appeared with pytest 5.4.1
+            continue
+        elif "Unverified HTTPS request is being made to host" in message:
             continue
 
         warn = f"{warning.filename}:{warning.lineno} {message}"
@@ -141,8 +149,9 @@ def server(nuxeo_url):
     For now, we do not allow to use another than Administrator:Administrator
     to prevent unexpected actions on critical servers.
     """
+    verification_needed = get_verify()
     auth = (env.NXDRIVE_TEST_USERNAME, env.NXDRIVE_TEST_PASSWORD)
-    server = Nuxeo(host=nuxeo_url, auth=auth)
+    server = Nuxeo(auth=auth, host=nuxeo_url, verify=verification_needed)
     server.client.set(schemas=["dublincore"])
 
     # Save bandwidth by caching operations details
@@ -152,7 +161,7 @@ def server(nuxeo_url):
         nuxeo.operations.API.ops = OPS_CACHE
     global SERVER_INFO
     if not SERVER_INFO:
-        SERVER_INFO = server.client.server_info()
+        SERVER_INFO = server.client.server_info(ssl_verify=verification_needed)
         nuxeo.client.NuxeoClient._server_info = SERVER_INFO
 
     return server

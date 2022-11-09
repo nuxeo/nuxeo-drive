@@ -74,11 +74,11 @@ from ..utils import (
     find_icon,
     find_resource,
     force_decode,
+    get_verify,
     if_frozen,
     normalize_event_filename,
     normalized_path,
     parse_protocol_url,
-    requests_verify,
     short_name,
     sizeof_fmt,
     today_is_special,
@@ -1098,11 +1098,13 @@ class Application(QApplication):
             user = str(username.text())
             pwd = str(password.text())
 
+            verification_needed = get_verify()
+
             nuxeo = Nuxeo(
                 host=url,
                 auth=(user, pwd),
                 proxies=self.manager.proxy.settings(url=url),
-                verify=requests_verify(Options.ca_bundle, Options.ssl_no_verify),
+                verify=verification_needed,
                 cert=client_certificate(),
             )
             try:
