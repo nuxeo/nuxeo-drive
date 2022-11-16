@@ -586,7 +586,11 @@ class Remote(Nuxeo):
     ) -> Dict[str, Any]:
         """Create a folder using REST api."""
         resp = self.client.request(
-            "POST", f"{self.client.api_path}/path{parent}", headers=headers, data=params
+            "POST",
+            f"{self.client.api_path}/path{parent}",
+            headers=headers,
+            data=params,
+            ssl_verify=self.verification_needed,
         )
         return resp
 
@@ -994,7 +998,9 @@ class Remote(Nuxeo):
     def get_config_types(self) -> Dict[str, Any]:
         try:
             resp = self.client.request(
-                "GET", f"{self.client.api_path}/config/types"
+                "GET",
+                f"{self.client.api_path}/config/types",
+                ssl_verify=self.verification_needed,
             ).json()
 
             return json.loads(json.dumps(resp))

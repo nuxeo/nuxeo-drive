@@ -24,6 +24,7 @@ from ...metrics.constants import REQUEST_METRICS, UPLOAD_PROVIDER
 from ...objects import Upload
 from ...options import Options
 from ...qt.imports import QApplication
+from ...utils import get_verify
 
 if TYPE_CHECKING:
     from ..remote_client import Remote  # noqa
@@ -43,6 +44,7 @@ class BaseUploader:
     def __init__(self, remote: "Remote", /) -> None:
         self.remote = remote
         self.dao = remote.dao
+        self.verification_needed = get_verify()
 
     @abstractmethod
     def get_upload(
@@ -490,6 +492,7 @@ class BaseUploader:
             f"{self.remote.client.api_path}/path{transfer.remote_parent_path}",
             headers=headers,
             data=content,
+            ssl_verify=self.verification_needed,
         )
         res = self.remote.fetch(
             f"{self.remote.client.api_path}/path{transfer.remote_parent_path}",
