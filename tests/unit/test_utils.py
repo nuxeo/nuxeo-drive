@@ -1295,3 +1295,19 @@ def test_shortify(text, shortened):
     if shortened:
         assert "…" in new_text
         assert len(new_text) == 50
+
+
+@pytest.mark.parametrize(
+    "raw_value, expected_value",
+    [
+        (False, True),
+        (True, False),
+    ],
+)
+# @Options.mock()
+def test_get_verify(raw_value, expected_value):
+    old_ssl_no_verify = Options.ssl_no_verify
+    Options.ssl_no_verify = raw_value
+    verify = nxdrive.utils.get_verify()
+    assert verify is expected_value
+    Options.ssl_no_verify = old_ssl_no_verify
