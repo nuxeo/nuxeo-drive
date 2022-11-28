@@ -55,9 +55,9 @@ from ..utils import (
     find_icon,
     find_suitable_tmp_dir,
     force_decode,
+    get_verify,
     grouper,
     if_frozen,
-    get_verify,
     safe_filename,
     safe_long_path,
     set_path_readonly,
@@ -142,6 +142,8 @@ class Engine(QObject):
         self.remote_cls = remote_cls
         self.local_cls = local_cls
         self.download_dir: Path = ROOT
+
+        self.doc_container_type = "Automatic"
 
         # Initialize those attributes first to be sure .stop()
         # can be called without missing ones
@@ -555,7 +557,7 @@ class Engine(QObject):
         if new_folder:
             self.send_metric("direct_transfer", "new_folder", "1")
             expected_session_uid = self.dao.get_count("uid != 0", table="Sessions") + 1
-            if not new_folder_type or new_folder_type == "Automatic":
+            if not new_folder_type or new_folder_type == self.doc_container_type:
                 item = self._create_remote_folder(
                     remote_parent_path, new_folder, expected_session_uid
                 )
@@ -577,13 +579,13 @@ class Engine(QObject):
 
         all_paths = local_paths.keys()
         doc_type = None
-        if document_type == "Automatic":
+        if document_type == self.doc_container_type:
             doc_type = None
         else:
             doc_type = document_type
 
         cont_type = None
-        if container_type == "Automatic":
+        if container_type == self.doc_container_type:
             cont_type = None
         else:
             cont_type = container_type

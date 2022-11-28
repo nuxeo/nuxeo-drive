@@ -410,7 +410,7 @@ class FoldersDialog(DialogMixin):
         self.cbDocType.clear()
         self.cbDocType.addItem("Automatic", "create")
         if self.remote_folder_ref:
-            self.docTypeList = self.engine.remote.get_doc_enricher(
+            self.docTypeList = self.engine.remote.get_doc_enricher_list(
                 self.remote_folder_ref, "subtypes", False
             )
 
@@ -418,7 +418,7 @@ class FoldersDialog(DialogMixin):
         self.cbContainerType.clear()
         self.cbContainerType.addItem("Automatic", "create")
         if self.remote_folder_ref:
-            self.containerTypeList = self.engine.remote.get_doc_enricher(
+            self.containerTypeList = self.engine.remote.get_doc_enricher_list(
                 self.remote_folder_ref, "subtypes", True
             )
             self.cbContainerType.addItems(self.containerTypeList)
@@ -530,9 +530,9 @@ class FoldersDialog(DialogMixin):
         if self.cbContainerType.currentIndex() > 0:
             cont_type = self.cbContainerType.currentText()
         else:
-            cont_type = None
+            cont_type = ""
         doc_type = (
-            self.cbDocType.currentText() if self.cbDocType.currentIndex() != 0 else None
+            self.cbDocType.currentText() if self.cbDocType.currentIndex() != 0 else ""
         )
         self.engine.direct_transfer_async(
             self.paths,
@@ -664,7 +664,7 @@ class NewFolderDialog(QDialog):
 
         layout = QVBoxLayout()
 
-        self.facetList = self.folder_dialog.engine.remote.get_doc_enricher(
+        self.facetList = self.folder_dialog.engine.remote.get_doc_enricher_list(
             self.folder_dialog.remote_folder_ref, "subtypes"
         )
 
@@ -771,8 +771,8 @@ class NewFolderDialog(QDialog):
             self.folder_dialog.remote_folder.text(),
             self.folder_dialog.remote_folder_ref,
             self.folder_dialog.remote_folder_title,
-            document_type=None,
-            container_type=None,
+            document_type="",
+            container_type="",
             duplicate_behavior=self.folder_dialog.cb.currentData(),
             last_local_selected_location=self.folder_dialog.last_local_selected_location,
             new_folder=self.new_folder_name.text(),

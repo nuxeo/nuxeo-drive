@@ -294,7 +294,7 @@ class Remote(Nuxeo):
             return self.operations.execute(ssl_verify=Options.ssl_no_verify, **kwargs)
         except HTTPError as e:
             if e.status == requests.codes.not_found:
-                raise NotFound()
+                raise NotFound("Response code not found")
             raise e
 
     @staticmethod
@@ -1031,6 +1031,13 @@ class Remote(Nuxeo):
             return enricherList.facets
         else:
             return [x for x in enricherList.facets if x in docTypeFiletList]
+
+    def get_doc_enricher_list(
+        self, parent: str, enricherType: str = "subtypes", isFolderish: bool = True
+    ) -> List[str]:
+
+        doc_enricher = self.get_doc_enricher(parent, enricherType, isFolderish)
+        return doc_enricher
 
     def filter_schema(self, enricherList: SubTypeEnricher) -> SubTypeEnricher:
 
