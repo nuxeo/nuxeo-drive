@@ -502,7 +502,7 @@ class MixinTests(DirectEditSetup):
         assert self.direct_edit._lock_queue.empty()
 
         # Ensure there zere no handled exception
-        assert not any(log.levelno >= ERROR for log in self._caplog.records)
+        assert all(log.levelno < ERROR for log in self._caplog.records)
 
     def test_unlock_in_lock_queue_error_503(self):
         filename = "file.txt"
@@ -531,7 +531,7 @@ class MixinTests(DirectEditSetup):
         assert not self.direct_edit._lock_queue.empty()
 
         # Ensure there zere no handled exception
-        assert not any(log.levelno >= ERROR for log in self._caplog.records)
+        assert all(log.levelno < ERROR for log in self._caplog.records)
 
         # Retry the unlock
         with ensure_no_exception():

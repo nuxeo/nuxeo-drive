@@ -357,11 +357,9 @@ class BaseUploader:
                         self.dao.update_upload(transfer)
                         transfer.is_dirty = False
 
-                    # Handle status changes every time a chunk is sent
-                    _transfer = self.get_upload(
+                    if _transfer := self.get_upload(
                         doc_pair=transfer.doc_pair, path=transfer.path
-                    )
-                    if _transfer:
+                    ):
                         self._handle_transfer_status(_transfer)
             else:
                 uploader.upload()
@@ -451,12 +449,12 @@ class BaseUploader:
             kwargs["headers"] = headers
         try:
             doc_type = kwargs.get("doc_type", "")
-            if transfer.is_direct_transfer and doc_type and doc_type != "":
-                res = self._transfer_docType_file(transfer, headers, doc_type)
-            else:
-                res = self._transfer_autoType_file(command, blob, kwargs)
+            return (
+                self._transfer_docType_file(transfer, headers, doc_type)
+                if transfer.is_direct_transfer and doc_type and doc_type != ""
+                else self._transfer_autoType_file(command, blob, kwargs)
+            )
 
-            return res
         except Exception as exc:
             err = f"Error while linking blob to doc: {exc!r}"
             log.warning(err)
@@ -494,11 +492,10 @@ class BaseUploader:
             data=content,
             ssl_verify=self.verification_needed,
         )
-        res = self.remote.fetch(
+        return self.remote.fetch(
             f"{self.remote.client.api_path}/path{transfer.remote_parent_path}",
             headers=headers,
         )
-        return res
 
     @staticmethod
     def _complete_upload(transfer: Upload, blob: FileBlob, /) -> None:
