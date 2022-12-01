@@ -167,9 +167,9 @@ nuxeo[oauth2,s3]==6.1.0 \
     --hash=sha256:ac69d1bb69c479bb6fe7e705bb2112d6b3b51d3a44a8e148061d6e391bc60d91 \
     --hash=sha256:b84eacb004100771c006def0904c82e1c7c13fcba4a9cc5b070833e38aad6716
     # via -r requirements.txt
-packaging==21.0 \
-    --hash=sha256:c86254f9220d55e31cc94d69bade760f0847da8000def4dfe1c6b872fd14ff14 \
-    --hash=sha256:7dc96269f53a4ccec5c0670940a4281106dd0bb343f47b7471f779df49c2fbe7
+packaging==21.3 \
+    --hash=sha256:dd47c42927d89ab911e606518907cc2d3a1f38bbd026385970643f9c5b8ecfeb \
+    --hash=sha256:ef103e05f519cdc783ae24ea4e2e0f508a9c99b2d4969652eed6a2e1ea5bd522
 psutil==5.8.0 \
     --hash=sha256:0066a82f7b1b37d334e68697faba68e5ad5e858279fd6351c8ca6024e8d6ba64 \
     --hash=sha256:0ae6f386d8d297177fd288be6e8d1afc05966878704dad9847719650e44fc49c \
