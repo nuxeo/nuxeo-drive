@@ -172,10 +172,7 @@ class DirectEdit(Worker):
         Example: 19bf2a19-e95b-4cfb-8fd7-b45e1d7d022f_file-content
         """
         # Prevent TypeError when the given name is None
-        if not name:
-            return False
-
-        return bool(pattern.match(name))
+        return bool(pattern.match(name)) if name else False
 
     @tooltip("Clean up folder")
     def _cleanup(self) -> None:
@@ -499,12 +496,11 @@ class DirectEdit(Worker):
         if download_url:
             import re
 
-            urlmatch = re.match(
+            if urlmatch := re.match(
                 r"([^\/]+\/){3}(?P<xpath>.+)\/(?P<filename>[^\?]*).*",
                 download_url,
                 re.I,
-            )
-            if urlmatch:
+            ):
                 url_info = urlmatch.groupdict()
 
             url = server_url
@@ -623,12 +619,11 @@ class DirectEdit(Worker):
                 [exc.filename, exc.mimetype],
             )
         except OSError as e:
-            if e.errno == errno.EACCES:
-                # Open file anyway
-                if e.filename is not None:
-                    self._manager.open_local_file(e.filename)
-            else:
+            if e.errno != errno.EACCES:
                 raise e
+            # Open file anyway
+            if e.filename is not None:
+                self._manager.open_local_file(e.filename)
 
     def _extract_edit_info(self, ref: Path, /) -> DirectEditDetails:
         dir_path = ref.parent
@@ -686,9 +681,7 @@ class DirectEdit(Worker):
             remote.lock(uid)
         except HTTPError as exc:
             if exc.status in (codes.CONFLICT, codes.INTERNAL_SERVER_ERROR):
-                # INTERNAL_SERVER_ERROR on old servers (<11.1, <2021.0) [missing NXP-24359]
-                user = self._guess_user_from_http_error(exc.message)
-                if user:
+                if user := self._guess_user_from_http_error(exc.message):
                     if user != remote.user_id:
                         raise DocumentAlreadyLocked(user)
                     log.debug("You already locked that document!")
@@ -706,9 +699,7 @@ class DirectEdit(Worker):
             return True
         except HTTPError as exc:
             if exc.status in (codes.CONFLICT, codes.INTERNAL_SERVER_ERROR):
-                # INTERNAL_SERVER_ERROR on old servers (< 7.10)
-                user = self._guess_user_from_http_error(exc.message)
-                if user:
+                if user := self._guess_user_from_http_error(exc.message):
                     log.warning(f"Skipping document unlock as it's locked by {user!r}")
                     return True
             raise exc
@@ -796,8 +787,7 @@ class DirectEdit(Worker):
         manager = self._manager
         for engine in manager.engines.copy().values():
             dao = engine.dao
-            state = dao.get_normal_state_from_remote(ref)
-            if state:
+            if state := dao.get_normal_state_from_remote(ref):
                 path = engine.local_folder / state.local_path
                 manager.osi.send_sync_status(state, path)
 
