@@ -634,16 +634,16 @@ class DirectEdit(Worker):
         dir_path = ref.parent
         server_url = self.local.get_remote_id(dir_path, name="nxdirectedit")
         if not server_url:
-            raise NotFound()
+            raise NotFound(f"Could not find server url: {server_url}")
 
         user = self.local.get_remote_id(dir_path, name="nxdirectedituser")
         engine = self._get_engine(server_url, user=user)
         if not engine:
-            raise NotFound()
+            raise NotFound(f"Could not find engine: {engine}")
 
         uid = self.local.get_remote_id(dir_path)
         if not uid:
-            raise NotFound()
+            raise NotFound(f"Could not find uid: {uid}")
 
         digest_algorithm = self.local.get_remote_id(
             dir_path, name="nxdirecteditdigestalgorithm"

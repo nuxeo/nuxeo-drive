@@ -271,6 +271,9 @@ class Application(QApplication):
         self.direct_edit_feature_model = FeatureModel(Feature.direct_edit)
         self.direct_transfer_model = DirectTransferModel(self.translate)
         self.direct_transfer_feature_model = FeatureModel(Feature.direct_transfer)
+        self.document_type_selection_feature_model = FeatureModel(
+            Feature.document_type_selection
+        )
         self.conflicts_model = FileModel(self.translate)
         self.errors_model = FileModel(self.translate)
         self.engine_model = EngineModel(self)
@@ -465,6 +468,9 @@ class Application(QApplication):
         context.setContextProperty("feat_direct_edit", self.direct_edit_feature_model)
         context.setContextProperty(
             "feat_direct_transfer", self.direct_transfer_feature_model
+        )
+        context.setContextProperty(
+            "feat_document_type_selection", self.document_type_selection_feature_model
         )
         context.setContextProperty(
             "feat_synchronization", self.synchronization_feature_model

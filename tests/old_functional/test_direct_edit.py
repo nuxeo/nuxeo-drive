@@ -201,7 +201,7 @@ class MixinTests(DirectEditSetup):
         """If a file does not exist on the server, it should be deleted locally."""
 
         def extract_edit_info(ref: Path):
-            raise NotFound()
+            raise NotFound(f"Could not find Path: {ref}")
 
         filename = "Mode op\xe9ratoire.txt"
         doc_id = self.remote.make_file_with_blob("/", filename, b"Some content.")

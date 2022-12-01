@@ -8,6 +8,8 @@ from typing import Any, Dict, Optional
 
 from nuxeo.utils import guess_mimetype
 
+from nxdrive.exceptions import NotFound
+
 from ...engine.activity import LinkingAction, UploadAction
 from ...metrics.constants import (
     DT_DUPLICATE_BEHAVIOR,
@@ -64,7 +66,6 @@ class DirectTransferUploader(BaseUploader):
             - create a new operation `Document.GetOrCreate` that ensures atomicity.
         """
         doc_pair: DocPair = kwargs.pop("doc_pair")
-
         log.info(
             f"Direct Transfer of {file_path!r} into {doc_pair.remote_parent_path!r} ({doc_pair.remote_parent_ref!r})"
         )
@@ -77,11 +78,31 @@ class DirectTransferUploader(BaseUploader):
             return {}
 
         if doc_pair.folderish:
-            item = self.remote.upload_folder(
-                doc_pair.remote_parent_path,
-                {"title": doc_pair.local_name},
-                headers={DT_SESSION_NUMBER: doc_pair.session},
-            )
+            if not doc_pair.doc_type:
+                item = self.remote.upload_folder(
+                    doc_pair.remote_parent_path,
+                    {"title": doc_pair.local_name},
+                    headers={DT_SESSION_NUMBER: str(doc_pair.session)},
+                )
+            else:
+                try:
+                    payload = {
+                        "entity-type": "document",
+                        "name": doc_pair.local_name,
+                        "type": doc_pair.doc_type,
+                        "properties{'dc:title'}": doc_pair.local_name,
+                    }
+                    item = self.remote.upload_folder_type(
+                        doc_pair.remote_parent_path,
+                        payload,
+                        headers={DT_SESSION_NUMBER: str(doc_pair.session)},
+                    )
+                    filepath = f"{doc_pair.remote_parent_path}/{doc_pair.local_name}"
+                    item = self.remote.fetch(filepath)
+                except NotFound:
+                    raise NotFound(
+                        f"Could not find {filepath!r} on {self.remote.client.host}"
+                    )
             self.dao.update_remote_parent_path_dt(file_path, item["path"], item["uid"])
         else:
             # Only replace the document if the user wants to
@@ -98,6 +119,7 @@ class DirectTransferUploader(BaseUploader):
                 remote_parent_path=doc_pair.remote_parent_path,
                 remote_parent_ref=doc_pair.remote_parent_ref,
                 doc_pair=doc_pair.id,
+                doc_type=doc_pair.doc_type,
                 headers={
                     REQUEST_METRICS: json.dumps(
                         {

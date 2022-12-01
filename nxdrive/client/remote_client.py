@@ -58,7 +58,13 @@ from ..metrics.constants import (
 )
 from ..metrics.poll_metrics import CustomPollMetrics
 from ..metrics.utils import current_os, user_agent
-from ..objects import Download, Metrics, NuxeoDocumentInfo, RemoteFileInfo
+from ..objects import (
+    Download,
+    Metrics,
+    NuxeoDocumentInfo,
+    RemoteFileInfo,
+    SubTypeEnricher,
+)
 from ..options import Options
 from ..qt.imports import QApplication
 from ..utils import (
@@ -288,7 +294,7 @@ class Remote(Nuxeo):
             return self.operations.execute(ssl_verify=Options.ssl_no_verify, **kwargs)
         except HTTPError as e:
             if e.status == requests.codes.not_found:
-                raise NotFound()
+                raise NotFound("Response code not found")
             raise e
 
     @staticmethod
@@ -574,6 +580,19 @@ class Remote(Nuxeo):
             kwargs["headers"] = {REQUEST_METRICS: json.dumps(headers)}
         res: Dict[str, Any] = self.execute(**kwargs)
         return res
+
+    def upload_folder_type(
+        self, parent: str, params: Dict[str, str], /, *, headers: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        """Create a folder using REST api."""
+        resp = self.client.request(
+            "POST",
+            f"{self.client.api_path}/path{parent}",
+            headers=headers,
+            data=params,
+            ssl_verify=self.verification_needed,
+        )
+        return resp
 
     def cancel_batch(self, batch_details: Dict[str, Any], /) -> None:
         """Cancel an uploaded Batch."""
@@ -976,7 +995,56 @@ class Remote(Nuxeo):
             log.warning(f"Error getting server configuration: {exc}")
             return {}
 
+    def get_config_types(self) -> Dict[str, Any]:
+        try:
+            resp = self.client.request(
+                "GET",
+                f"{self.client.api_path}/config/types",
+                ssl_verify=self.verification_needed,
+            ).json()
+
+            return json.loads(json.dumps(resp))
+
+        except Exception as exc:
+            log.warning(f"Error getting server configuration: {exc}")
+            return {}
+
     def _get_trash_condition(self) -> str:
         if version_lt(self.client.server_version, "10.2"):
             return "AND ecm:currentLifeCycleState != 'deleted'"
         return "AND ecm:isTrashed = 0"
+
+    def get_doc_enricher(
+        self, parent: str, enricherType: str = "subtypes", isFolderish: bool = True
+    ) -> SubTypeEnricher:
+
+        headers: Dict[str, str] = {}
+        headers = {"enrichers.document": enricherType}
+
+        enricherList = SubTypeEnricher.from_dict(
+            self.fetch(parent, headers=headers, enrichers=[enricherType]),
+            isFolderish=isFolderish,
+        )
+
+        docTypeFiletList = self.filter_schema(enricherList)
+        if isFolderish:
+            return enricherList.facets
+        else:
+            return [x for x in enricherList.facets if x in docTypeFiletList]
+
+    def get_doc_enricher_list(
+        self, parent: str, enricherType: str = "subtypes", isFolderish: bool = True
+    ) -> List[str]:
+
+        doc_enricher = self.get_doc_enricher(parent, enricherType, isFolderish)
+        return doc_enricher
+
+    def filter_schema(self, enricherList: SubTypeEnricher) -> SubTypeEnricher:
+
+        configTypes = self.get_config_types()
+        docTypeList = []
+        for docType in configTypes["doctypes"]:
+            if "file" in configTypes["doctypes"][docType]["schemas"]:
+                docTypeList.append(str(docType))
+
+        return docTypeList
