@@ -24,9 +24,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-
-      - name: Get Crowdin Projects ID
-        run: echo ${{ secrets.CROWDIN_PERSONAL_TOKEN }} | sed 's/./& /g'
+        
       - name: Crowdin Action
         uses: crowdin/github-action@1.2.0
         with:
