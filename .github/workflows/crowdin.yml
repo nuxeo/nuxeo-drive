@@ -20,6 +20,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Get Crowdin Projects ID
+        run: echo $CROWDIN_PROJECT_ID
       - name: Crowdin Action
         uses: crowdin/github-action@1.2.0
         with:
