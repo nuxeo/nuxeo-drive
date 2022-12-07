@@ -32,7 +32,7 @@ jobs:
         with:
           # Tokens
           project_id: ${{ secrets.CROWDIN_PROJECT_ID }}
-          token: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
+          token_api: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
 
           source: nxdrive/data/i18n/i18n.json
           # https://support.crowdin.com/configuration-file/#placeholders
