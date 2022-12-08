@@ -25,6 +25,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         
+      - name: Update Git user config
+        run: git config --global --add safe.directory /github/workspace
+        
       - name: Crowdin Action
         uses: crowdin/github-action@1.2.0
         with:
