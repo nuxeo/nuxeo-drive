@@ -416,7 +416,7 @@ class BaseUploader:
                 self._set_transfer_status(transfer, TransferStatus.ONGOING)
             raise exc
 
-    def link_blob_to_doc(
+    def link_blob_to_doc(  # type: ignore[return]
         self,
         command: str,
         transfer: Upload,
@@ -463,7 +463,9 @@ class BaseUploader:
         finally:
             action.finish_action()
 
-    def _transfer_autoType_file(self, command, blob, kwargs):
+    def _transfer_autoType_file(
+        self, command: str, blob: FileBlob, kwargs: dict[str, Any]
+    ) -> Dict[str, Any]:
         res: Dict[str, Any] = self.remote.execute(
             command=command,
             input_obj=blob,
@@ -473,7 +475,9 @@ class BaseUploader:
 
         return res
 
-    def _transfer_docType_file(self, transfer, headers, doc_type):
+    def _transfer_docType_file(
+        self, transfer: Upload, headers: dict[str, str], doc_type: str
+    ) -> Dict[str, Any]:
         content = {
             "entity-type": "document",
             "name": transfer.name,

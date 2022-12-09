@@ -61,6 +61,8 @@ class DialogMixin(QDialog):
     def __init__(self, application: "Application", engine: Engine, /) -> None:
         super().__init__(None)
 
+        self.title_label = ""
+
         # Customize the window
         self.setAttribute(qt.WA_DeleteOnClose)
         self.setWindowIcon(application.icon)

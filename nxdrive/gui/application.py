@@ -568,7 +568,7 @@ class Application(QApplication):
     def _msgbox(
         self,
         *,
-        icon: QIcon = qt.Information,
+        icon: QMessageBox.Icon = qt.Information,
         title: str = APP_NAME,
         header: str = "",
         message: str = "",
@@ -619,7 +619,7 @@ class Application(QApplication):
         )
 
     def question(
-        self, header: str, message: str, /, *, icon: QIcon = qt.Question
+        self, header: str, message: str, /, *, icon: QMessageBox.Icon = qt.Question
     ) -> QMessageBox:
         """Display a question message box."""
         log.debug(f"Question: {message}")
