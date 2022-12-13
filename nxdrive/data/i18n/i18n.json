@@ -115,7 +115,7 @@
     "DIRECT_TRANSFER_WINDOW_TITLE": "Direct Transfer - %1",
     "DISCONNECT": "Remove account",
     "DISCONNECTING": "Disconnecting …",
-    "DOCUMENT_TYPE": "Document Type",
+    "DOCUMENT_TYPE": "File Type",
     "DRIVE_ROOT_DELETED": "The synchronization folder \"%1\" of %2 has been deleted. Would you like to disconnect from the server or do you want to recreate it?",
     "DRIVE_ROOT_DELETED_HEADER": "Deletion of the synchronization folder detected.",
     "DRIVE_ROOT_DISCONNECT": "Disconnect",
