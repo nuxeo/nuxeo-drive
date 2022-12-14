@@ -115,7 +115,7 @@
     "DIRECT_TRANSFER_WINDOW_TITLE": "Direkt överföring - %1",
     "DISCONNECT": "Ta bort konto",
     "DISCONNECTING": "Kopplar från",
-    "DOCUMENT_TYPE": "File Type",
+    "DOCUMENT_TYPE": "Filtyp",
     "DRIVE_ROOT_DELETED": "Synkroniseringsmappen \"%1\" för %2 har tagits bort. Vill du koppla från servern eller vill du återskapa den?",
     "DRIVE_ROOT_DELETED_HEADER": "Radering av synkroniseringsmappen upptäckt.",
     "DRIVE_ROOT_DISCONNECT": "Koppla från",

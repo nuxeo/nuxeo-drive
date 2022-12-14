@@ -115,7 +115,7 @@
     "DIRECT_TRANSFER_WINDOW_TITLE": "Trasferimento diretto - %1",
     "DISCONNECT": "Elimina account",
     "DISCONNECTING": "Disconnessione...",
-    "DOCUMENT_TYPE": "File Type",
+    "DOCUMENT_TYPE": "Tipo Di File",
     "DRIVE_ROOT_DELETED": "La cartella di sincronizzazione \"%1\" di %2 è stata eliminata. Si desidera disconnettersi dal server o ricrearla?",
     "DRIVE_ROOT_DELETED_HEADER": "Rilevata l'eliminazione della cartella di sincronizzazione.",
     "DRIVE_ROOT_DISCONNECT": "Disconnetti",

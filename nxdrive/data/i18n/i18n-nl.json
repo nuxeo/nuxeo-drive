@@ -115,7 +115,7 @@
     "DIRECT_TRANSFER_WINDOW_TITLE": "Directe overdracht - %1",
     "DISCONNECT": "Account verwijderen",
     "DISCONNECTING": "Verbinding verbreken …",
-    "DOCUMENT_TYPE": "File Type",
+    "DOCUMENT_TYPE": "Bestandstype",
     "DRIVE_ROOT_DELETED": "De synchronisatiemap \"%1\" van %2 is verwijderd. Wilt u de verbinding met de server verbreken of wilt u deze opnieuw aanmaken?",
     "DRIVE_ROOT_DELETED_HEADER": "Verwijdering van de synchronisatiemap gedetecteerd.",
     "DRIVE_ROOT_DISCONNECT": "Verbinding verbreken",

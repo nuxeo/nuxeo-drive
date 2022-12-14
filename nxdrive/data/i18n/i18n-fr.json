@@ -115,7 +115,7 @@
     "DIRECT_TRANSFER_WINDOW_TITLE": "Direct Transfer - %1",
     "DISCONNECT": "Supprimer le compte",
     "DISCONNECTING": "Déconnexion...",
-    "DOCUMENT_TYPE": "File Type",
+    "DOCUMENT_TYPE": "Type de fichier",
     "DRIVE_ROOT_DELETED": "Le dossier de synchronisation \"%1\" de %2 a été supprimé. Souhaitez-vous vous déconnecter ou le recréer ?",
     "DRIVE_ROOT_DELETED_HEADER": "Suppression du dossier de synchronisation détectée.",
     "DRIVE_ROOT_DISCONNECT": "Se déconnecter",

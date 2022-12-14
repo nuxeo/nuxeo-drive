@@ -115,7 +115,7 @@
     "DIRECT_TRANSFER_WINDOW_TITLE": "直接転送 - %1",
     "DISCONNECT": "アカウントを削除",
     "DISCONNECTING": "接続を切断中...",
-    "DOCUMENT_TYPE": "File Type",
+    "DOCUMENT_TYPE": "ファイルタイプ",
     "DRIVE_ROOT_DELETED": "%2の同期化フォルダ「\"%1\"」が削除されました。サーバから切断しますか？それとも再作成しますか？",
     "DRIVE_ROOT_DELETED_HEADER": "同期フォルダの削除が検出されました。",
     "DRIVE_ROOT_DISCONNECT": "接続を切断",

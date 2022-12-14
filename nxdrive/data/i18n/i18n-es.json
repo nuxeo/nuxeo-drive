@@ -115,7 +115,7 @@
     "DIRECT_TRANSFER_WINDOW_TITLE": "Transferencia directa - %1",
     "DISCONNECT": "Eliminar cuenta",
     "DISCONNECTING": "Desconectando...",
-    "DOCUMENT_TYPE": "File Type",
+    "DOCUMENT_TYPE": "Tipo de archivo",
     "DRIVE_ROOT_DELETED": "La carpeta de sincronización \"%1\" de %2 se ha eliminado. ¿Desea desconectarse del servidor o volver a crear la carpeta?",
     "DRIVE_ROOT_DELETED_HEADER": "Eliminación de la carpeta de sincronización detectada.",
     "DRIVE_ROOT_DISCONNECT": "Desconectar",

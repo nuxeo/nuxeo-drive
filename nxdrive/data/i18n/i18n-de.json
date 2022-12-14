@@ -115,7 +115,7 @@
     "DIRECT_TRANSFER_WINDOW_TITLE": "Direkte Übertragung - %1",
     "DISCONNECT": "Konto löschen",
     "DISCONNECTING": "Trennen ...",
-    "DOCUMENT_TYPE": "File Type",
+    "DOCUMENT_TYPE": "Dateityp",
     "DRIVE_ROOT_DELETED": "Der Synchronisationsordner \"%1\" von %2 wurde gelöscht. Möchten Sie die Verbindung mit dem Server trennen oder möchten Sie sie wiederherstellen?",
     "DRIVE_ROOT_DELETED_HEADER": "Löschung von Synchronisationsordner wurde erkannt.",
     "DRIVE_ROOT_DISCONNECT": "Verbindung trennen",
