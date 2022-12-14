@@ -1,16 +1,21 @@
 name: Crowdin
 
-on:
+#on:
   # Check for updates every day
-  schedule:
-    - cron: "0 0 * * *"
+ # schedule:
+#    - cron: "0 0 * * *"
 
   # Sync when a commit is done on master
-  push:
-    branches:
-      - master
+  #push:
+  #  branches:
+  #    - master
+  #  paths:
+   #   - "nxdrive/data/i18n/i18n.json"
+
+on:
+  pull_request:
     paths:
-      - "nxdrive/data/i18n/i18n.json"
+      - "nxdrive/data/i18n/*.json"
 
 jobs:
   crowdin:
