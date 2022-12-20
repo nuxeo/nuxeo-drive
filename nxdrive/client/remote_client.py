@@ -1032,13 +1032,6 @@ class Remote(Nuxeo):
         else:
             return [x for x in enricherList.facets if x in docTypeFiletList]
 
-    def get_doc_enricher_list(
-        self, parent: str, enricherType: str = "subtypes", isFolderish: bool = True
-    ) -> List[str]:
-
-        doc_enricher = self.get_doc_enricher(parent, enricherType, isFolderish)
-        return doc_enricher
-
     def filter_schema(self, enricherList: SubTypeEnricher) -> SubTypeEnricher:
 
         configTypes = self.get_config_types()
