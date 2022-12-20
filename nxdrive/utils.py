@@ -791,7 +791,7 @@ def encrypt(plaintext: Union[bytes, str], key: Union[bytes, str]) -> bytes:
     plaintext = force_encode(plaintext)
     key = _pad_secret(force_encode(key))
     iv = os.urandom(16)
-    encryptor = _cryptor(key, iv).encryptor()  # type: ignore
+    encryptor = _cryptor(key, iv).encryptor()
     return base64.b64encode(iv + encryptor.update(plaintext) + encryptor.finalize())
 
 
@@ -804,7 +804,7 @@ def decrypt(secure_data: Union[bytes, str], key: Union[bytes, str]) -> Optional[
         data = base64.b64decode(force_encode(secure_data))
         iv = data[:16]
         ciphertext = data[16:]
-        decryptor = _cryptor(key, iv).decryptor()  # type: ignore
+        decryptor = _cryptor(key, iv).decryptor()
         res: bytes = decryptor.update(ciphertext) + decryptor.finalize()
         return res
     except Exception:

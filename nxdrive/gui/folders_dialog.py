@@ -61,6 +61,8 @@ class DialogMixin(QDialog):
     def __init__(self, application: "Application", engine: Engine, /) -> None:
         super().__init__(None)
 
+        self.title_label = ""
+
         # Customize the window
         self.setAttribute(qt.WA_DeleteOnClose)
         self.setWindowIcon(application.icon)
@@ -410,7 +412,7 @@ class FoldersDialog(DialogMixin):
         self.cbDocType.clear()
         self.cbDocType.addItem("Automatic", "create")
         if self.remote_folder_ref:
-            self.docTypeList = self.engine.remote.get_doc_enricher_list(
+            self.docTypeList = self.engine.remote.get_doc_enricher(
                 self.remote_folder_ref, "subtypes", False
             )
 
@@ -418,7 +420,7 @@ class FoldersDialog(DialogMixin):
         self.cbContainerType.clear()
         self.cbContainerType.addItem("Automatic", "create")
         if self.remote_folder_ref:
-            self.containerTypeList = self.engine.remote.get_doc_enricher_list(
+            self.containerTypeList = self.engine.remote.get_doc_enricher(
                 self.remote_folder_ref, "subtypes", True
             )
             self.cbContainerType.addItems(self.containerTypeList)
@@ -664,7 +666,7 @@ class NewFolderDialog(QDialog):
 
         layout = QVBoxLayout()
 
-        self.facetList = self.folder_dialog.engine.remote.get_doc_enricher_list(
+        self.facetList = self.folder_dialog.engine.remote.get_doc_enricher(
             self.folder_dialog.remote_folder_ref, "subtypes"
         )
 
