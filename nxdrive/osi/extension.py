@@ -124,8 +124,7 @@ class ExtensionListener(QTcpServer):
             except Exception:
                 log.info(f"Unable to decode payload: {payload!r}")
             else:
-                response = self._handle_content(content)
-                if response:
+                if response := self._handle_content(content):
                     con.write(self._format_response(response))
 
         con.disconnectFromHost()
@@ -161,10 +160,14 @@ class ExtensionListener(QTcpServer):
         return json.dumps(response)
 
     def get_engine(self, path: Path, /) -> Optional[Engine]:
-        for engine in self.manager.engines.copy().values():
-            if engine.local_folder in path.parents:
-                return engine
-        return None
+        return next(
+            (
+                engine
+                for engine in self.manager.engines.copy().values()
+                if engine.local_folder in path.parents
+            ),
+            None,
+        )
 
 
 def get_formatted_status(state: DocPair, path: Path, /) -> Optional[Dict[str, str]]:
