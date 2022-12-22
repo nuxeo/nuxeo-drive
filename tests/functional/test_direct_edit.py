@@ -288,6 +288,8 @@ def test_document_not_found(manager_factory):
 
     def error_signal(label: str, values: List) -> None:
         nonlocal received
+        print(f"++++++++++++++++ label: {label!r}")
+        print(f"++++++++++++++++ values: {values!r}")
         assert label == "DIRECT_EDIT_NOT_FOUND"
         assert values == [doc_uid, engine.hostname]
         received = True
@@ -377,13 +379,15 @@ def test_get_info_bad_response(manager_factory, obj_factory):
         assert label == "DIRECT_EDIT_BAD_RESPONSE"
         assert values == [doc.uid, engine.hostname]
         received = True
+        print("------------------ received ", received)
 
-    def fetch(*args, **kwargs):
+    def execute(*args, **kwargs):
         return b"bad data"
 
     with manager:
         direct_edit = manager.direct_edit
         direct_edit._folder.mkdir()
+        print("------------------ connect(error_signal) ")
         direct_edit.directEditError[str, list].connect(error_signal)
         doc = obj_factory(
             title="test_bad_response.odt",
@@ -393,8 +397,9 @@ def test_get_info_bad_response(manager_factory, obj_factory):
         )
 
         received = False
-        with patch.object(engine.remote, "fetch", new=fetch):
+        with patch.object(engine.remote, "execute", new=execute):
             direct_edit._prepare_edit(engine.server_url, doc.uid)
+        print("------------------ received 2 ", received)
         assert received
 
 

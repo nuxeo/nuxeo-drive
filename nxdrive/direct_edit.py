@@ -399,9 +399,11 @@ class DirectEdit(Worker):
     def _get_info(
         self, engine: "Engine", doc_id: str, /
     ) -> Optional[NuxeoDocumentInfo]:
+
         try:
-            doc = engine.remote.fetch(
-                doc_id, headers={"fetch-document": "lock"}, enrichers=["permissions"]
+            doc = engine.remote.execute(
+                command="Document.Lock",
+                input_obj=f"doc:{engine.remote.check_ref(doc_id)}",
             )
         except Forbidden:
             msg = (
@@ -425,44 +427,6 @@ class DirectEdit(Worker):
             values = [doc_id, engine.hostname]
             self.directEditError.emit("DIRECT_EDIT_BAD_RESPONSE", values)
             return None
-
-        doc.update(
-            {
-                "root": engine.remote.base_folder_ref,
-                "repository": engine.remote.client.repository,
-            }
-        )
-        info = NuxeoDocumentInfo.from_dict(doc)
-
-        if info.is_version:
-            self.directEditError.emit(
-                "DIRECT_EDIT_VERSION", [info.version, info.name, info.uid]
-            )
-            return None
-        if info.is_proxy:
-            self.directEditError.emit("DIRECT_EDIT_PROXY", [info.name])
-            return None
-
-        if info.lock_owner and info.lock_owner != engine.remote_user:
-            # Retrieve the user full name, will be cached
-            owner = engine.get_user_full_name(info.lock_owner)
-
-            log.info(
-                f"Doc {info.name!r} was locked by {owner} ({info.lock_owner}) "
-                f"on {info.lock_created}, edit not allowed"
-            )
-            self.directEditLocked.emit(info.name, owner, info.lock_created)
-            return None
-        elif info.permissions and "Write" not in info.permissions:
-            log.info(f"Doc {info.name!r} is readonly for you, edit not allowed")
-            self.directEditReadonly.emit(info.name)
-            return None
-
-        return info
-
-    def _get_info_without_fetching(
-        self, engine: "Engine", doc: dict, /
-    ) -> Optional[NuxeoDocumentInfo]:
 
         doc.update(
             {
@@ -526,11 +490,7 @@ class DirectEdit(Worker):
                 "Server-side document locking is disabled: you are not protected against concurrent updates."
             )
 
-        document = engine.remote.execute(
-            command="Document.Lock", input_obj=f"doc:{engine.remote.check_ref(doc_id)}"
-        )
-
-        info = self._get_info_without_fetching(engine, document)
+        info = self._get_info(engine, doc_id)
 
         if not info:
             return None
