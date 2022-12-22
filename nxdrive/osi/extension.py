@@ -70,7 +70,7 @@ class ExtensionListener(QTcpServer):
         self.newConnection.connect(self._handle_connection)
 
     @staticmethod
-    def host_to_addr(host: str, /) -> QHostAddress:
+    def host_to_addr(host: str, /) -> QHostAddress:  # type: ignore[return]
         """Get the IPv4 address of a given hostname.
         It is required to use this method in order to get the actual IP
         as it turns out that QHostAddress(host) does not do any DNS lookup.
@@ -122,7 +122,7 @@ class ExtensionListener(QTcpServer):
             try:
                 content = self._parse_payload(payload.data())
             except Exception:
-                log.info(f"Unable to decode payload: {payload}")
+                log.info(f"Unable to decode payload: {payload!r}")
             else:
                 response = self._handle_content(content)
                 if response:
