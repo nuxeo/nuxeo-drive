@@ -460,6 +460,44 @@ class DirectEdit(Worker):
 
         return info
 
+    def _get_info_without_fetching(
+        self, engine: "Engine", doc: dict, /
+    ) -> Optional[NuxeoDocumentInfo]:
+
+        doc.update(
+            {
+                "root": engine.remote.base_folder_ref,
+                "repository": engine.remote.client.repository,
+            }
+        )
+        info = NuxeoDocumentInfo.from_dict(doc)
+
+        if info.is_version:
+            self.directEditError.emit(
+                "DIRECT_EDIT_VERSION", [info.version, info.name, info.uid]
+            )
+            return None
+        if info.is_proxy:
+            self.directEditError.emit("DIRECT_EDIT_PROXY", [info.name])
+            return None
+
+        if info.lock_owner and info.lock_owner != engine.remote_user:
+            # Retrieve the user full name, will be cached
+            owner = engine.get_user_full_name(info.lock_owner)
+
+            log.info(
+                f"Doc {info.name!r} was locked by {owner} ({info.lock_owner}) "
+                f"on {info.lock_created}, edit not allowed"
+            )
+            self.directEditLocked.emit(info.name, owner, info.lock_created)
+            return None
+        elif info.permissions and "Write" not in info.permissions:
+            log.info(f"Doc {info.name!r} is readonly for you, edit not allowed")
+            self.directEditReadonly.emit(info.name)
+            return None
+
+        return info
+
     def _get_tmp_file(self, doc_id: str, filename: str, /) -> Path:
         """Return the temporary file that will be used to download contents.
         Using a method to help testing.
@@ -483,16 +521,19 @@ class DirectEdit(Worker):
         if not engine:
             return None
 
-        # Avoid any link with the engine, remote_doc are not cached so we
-        # can do that
-        info = self._get_info(engine, doc_id)
-        if not info:
-            return None
-
         if not self.use_autolock:
             log.warning(
                 "Server-side document locking is disabled: you are not protected against concurrent updates."
             )
+
+        document = engine.remote.execute(
+            command="Document.Lock", input_obj=f"doc:{engine.remote.check_ref(doc_id)}"
+        )
+
+        info = self._get_info_without_fetching(engine, document)
+
+        if not info:
+            return None
 
         url = None
         url_info: Dict[str, str] = {}
@@ -517,6 +558,7 @@ class DirectEdit(Worker):
             xpath = "note:note"
         elif not xpath or xpath == "blobholder:0":
             xpath = "file:content"
+
         blob = info.get_blob(xpath)
         if not blob:
             log.warning(
