@@ -92,11 +92,13 @@ class DirectEdit(Worker):
         self.lock = Lock()
 
         self.autolock = self._manager.autolock_service
+
         self._event_handler: Optional[DriveFSEventHandler] = None
         self._metrics = {"edit_files": 0}
         self._observer: Observer = None
         self.local = LocalClient(self._folder)
         self._upload_queue: Queue = Queue()
+        self.is_already_locked = False
         self._upload_errors: Dict[Path, int] = defaultdict(int)
         self._lock_queue: Queue = Queue()
         self._error_queue = BlocklistQueue(delay=Options.delay)
@@ -405,6 +407,7 @@ class DirectEdit(Worker):
                 command="Document.Lock",
                 input_obj=f"doc:{engine.remote.check_ref(doc_id)}",
             )
+            self.is_already_locked = True
         except Forbidden:
             msg = (
                 f" Access to the document {doc_id!r} on server {engine.hostname!r}"
@@ -420,6 +423,8 @@ class DirectEdit(Worker):
             values = [doc_id, engine.hostname]
             self.directEditError.emit("DIRECT_EDIT_NOT_FOUND", values)
             return None
+        except Exception as e:
+            log.info(f"Exception: {e!r}")
 
         if not isinstance(doc, dict):
             err = "Cannot parse the server response: invalid data from the server"
@@ -435,7 +440,6 @@ class DirectEdit(Worker):
             }
         )
         info = NuxeoDocumentInfo.from_dict(doc)
-
         if info.is_version:
             self.directEditError.emit(
                 "DIRECT_EDIT_VERSION", [info.version, info.name, info.uid]
@@ -448,7 +452,6 @@ class DirectEdit(Worker):
         if info.lock_owner and info.lock_owner != engine.remote_user:
             # Retrieve the user full name, will be cached
             owner = engine.get_user_full_name(info.lock_owner)
-
             log.info(
                 f"Doc {info.name!r} was locked by {owner} ({info.lock_owner}) "
                 f"on {info.lock_created}, edit not allowed"
@@ -459,7 +462,6 @@ class DirectEdit(Worker):
             log.info(f"Doc {info.name!r} is readonly for you, edit not allowed")
             self.directEditReadonly.emit(info.name)
             return None
-
         return info
 
     def _get_tmp_file(self, doc_id: str, filename: str, /) -> Path:
@@ -484,7 +486,6 @@ class DirectEdit(Worker):
         engine = self._get_engine(server_url, doc_id=doc_id, user=user)
         if not engine:
             return None
-
         if not self.use_autolock:
             log.warning(
                 "Server-side document locking is disabled: you are not protected against concurrent updates."
@@ -685,7 +686,11 @@ class DirectEdit(Worker):
     def _lock(self, remote: Remote, uid: str, /) -> bool:
         """Lock a document."""
         try:
-            remote.lock(uid)
+
+            if self.is_already_locked:
+                self.is_already_locked = False
+            else:
+                remote.lock(uid)
         except HTTPError as exc:
             if exc.status in (codes.CONFLICT, codes.INTERNAL_SERVER_ERROR):
                 # INTERNAL_SERVER_ERROR on old servers (<11.1, <2021.0) [missing NXP-24359]
