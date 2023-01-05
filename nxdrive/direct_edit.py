@@ -423,8 +423,18 @@ class DirectEdit(Worker):
             values = [doc_id, engine.hostname]
             self.directEditError.emit("DIRECT_EDIT_NOT_FOUND", values)
             return None
-        except Exception as e:
-            log.info(f"Exception: {e!r}")
+        except HTTPError as exc:
+            if exc.status in (codes.CONFLICT, codes.INTERNAL_SERVER_ERROR):
+                # INTERNAL_SERVER_ERROR on old servers (<11.1, <2021.0) [missing NXP-24359]
+                user = self._guess_user_from_http_error(exc.message)
+                if user:
+                    if user != engine.remote.user_id:
+                        log.debug(f"Document already locked by {user!r}")
+                        raise DocumentAlreadyLocked(user)
+                    log.debug("You already locked that document!")
+                    return None
+            log.debug(f"Exception (HTTPError): {exc!r}")
+            raise exc
 
         if not isinstance(doc, dict):
             err = "Cannot parse the server response: invalid data from the server"
