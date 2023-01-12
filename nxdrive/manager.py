@@ -1,5 +1,6 @@
 import os
 import platform
+import re
 import shutil
 import sqlite3
 import uuid
@@ -1055,7 +1056,7 @@ class Manager(QObject):
         for engine in self.engines.copy().values():
             # Only send status if we picked the right
             # engine and if we're not targeting the root
-            if engine.local_folder not in path.parents:
+            if not re.search(str(engine.local_folder) + "/", str(path) + "/"):
                 continue
 
             r_path = path.relative_to(engine.local_folder)
