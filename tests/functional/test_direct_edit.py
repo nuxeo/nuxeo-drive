@@ -429,6 +429,7 @@ def test_is_valid_folder_name(direct_edit):
     func = direct_edit._is_valid_folder_name
 
     # Valid
+    assert func("37b1502b-26ff-430f-9f20-4bd0d803191e.dl")
     assert func("37b1502b-26ff-430f-9f20-4bd0d803191e_")
     assert func("37b1502b-26ff-430f-9f20-4bd0d803191e_file-")
     assert func("37b1502b-26ff-430f-9f20-4bd0d803191e_file-content")
