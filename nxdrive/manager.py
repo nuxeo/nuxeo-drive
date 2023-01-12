@@ -990,9 +990,7 @@ class Manager(QObject):
         if not ref:
             parent = path.parent
             # We can't find in any parent
-            if parent == path or parent is None:
-                return ""
-            return self.get_root_id(parent)
+            return "" if parent == path or parent is None else self.get_root_id(parent)
         return ref
 
     def ctx_access_online(self, path: Path, /) -> None:
@@ -1056,7 +1054,7 @@ class Manager(QObject):
         for engine in self.engines.copy().values():
             # Only send status if we picked the right
             # engine and if we're not targeting the root
-            if not re.search(str(engine.local_folder) + "/", str(path) + "/"):
+            if not re.search(f"{str(engine.local_folder)}/", f"{str(path)}/"):
                 continue
 
             r_path = path.relative_to(engine.local_folder)
