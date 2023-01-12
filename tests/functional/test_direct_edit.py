@@ -433,9 +433,9 @@ def test_is_valid_folder_name(direct_edit):
     assert func("37b1502b-26ff-430f-9f20-4bd0d803191e_")
     assert func("37b1502b-26ff-430f-9f20-4bd0d803191e_file-")
     assert func("37b1502b-26ff-430f-9f20-4bd0d803191e_file-content")
+    assert func("37b1502b-26ff-430f-9f20-4bd0d803191e")
 
     # Invalid
-    assert not func("37b1502b-26ff-430f-9f20-4bd0d803191e")  # missing xpath
     assert not func("37b1502b-26ff-430f-9f20-4bd0d803191z")  # z is not hexadecimal
     assert not func("37b1502b-26ff-430f-9f20-4bd0d803191ee")  # 1 extra char (not _)
     assert not func("is this a real file name.jpeg")
