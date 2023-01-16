@@ -163,19 +163,24 @@ class DirectEdit(Worker):
         if self._stop:
             raise ThreadInterrupt()
 
-    def _is_valid_folder_name(
-        self, name: str, pattern: Pattern = re.compile(f"^{DOC_UID_REG}")
-    ) -> bool:
+    def _is_valid_folder_name(self, name: str) -> bool:
         """
         Return True if the given *name* is a valid document UID followed by the xpath.
         As we cannot guess the xpath used, we just check the name starts with "UID_".
         Example: 19bf2a19-e95b-4cfb-8fd7-b45e1d7d022f_file-content
         """
         # Prevent TypeError when the given name is None
+
+        pattern: Pattern = re.compile(f"^{DOC_UID_REG}_")
+        dl_files_pattern: Pattern = re.compile(f"^{DOC_UID_REG}.dl")
+
         if not name:
             return False
 
-        return bool(pattern.match(name))
+        if name.endswith(".dl"):
+            return bool(dl_files_pattern.match(name))
+        else:
+            return bool(pattern.match(name))
 
     @tooltip("Clean up folder")
     def _cleanup(self) -> None:
@@ -204,8 +209,7 @@ class DirectEdit(Worker):
                 continue
 
             # We also need a valid folder name
-            is_valid_folder_name = self._is_valid_folder_name(child.name)
-            if not is_valid_folder_name:
+            if not self._is_valid_folder_name(child.name):
                 log.debug(f"Skipping clean-up of {child.path!r} (invalid folder name)")
                 continue
 
