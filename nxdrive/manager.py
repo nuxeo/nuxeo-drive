@@ -199,9 +199,7 @@ class Manager(QObject):
             if self.dao.get_config("direct_edit_auto_lock") is None:
                 self.dao.store_bool("direct_edit_auto_lock", True)
 
-        # Set default deletion behavior
-        del_action = self.get_config("deletion_behavior")
-        if del_action:
+        if del_action := self.get_config("deletion_behavior"):
             Options.deletion_behavior = del_action
         else:
             self.set_config("deletion_behavior", "unsync")
