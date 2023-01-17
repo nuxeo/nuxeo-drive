@@ -408,11 +408,20 @@ class DirectEdit(Worker):
     ) -> Optional[NuxeoDocumentInfo]:
 
         try:
+
+            # doc = self._lock_queue.put((doc_path, "lock"))
+
+            """
             doc = engine.remote.execute(
                 command="Document.Lock",
                 input_obj=f"doc:{engine.remote.check_ref(doc_id)}",
             )
+            """
+
+            # doc = engine.remote.lock(doc_id)
+            doc = self._lock(engine.remote, doc_id)
             self.is_already_locked = True
+
         except Forbidden:
             msg = (
                 f" Access to the document {doc_id!r} on server {engine.hostname!r}"
@@ -428,6 +437,7 @@ class DirectEdit(Worker):
             values = [doc_id, engine.hostname]
             self.directEditError.emit("DIRECT_EDIT_NOT_FOUND", values)
             return None
+        """
         except HTTPError as exc:
             if exc.status in (codes.CONFLICT, codes.INTERNAL_SERVER_ERROR):
                 # INTERNAL_SERVER_ERROR on old servers (<11.1, <2021.0) [missing NXP-24359]
@@ -439,6 +449,7 @@ class DirectEdit(Worker):
                     return None
             log.debug(f"Exception (HTTPError): {exc!r}")
             raise exc
+        """
 
         if not isinstance(doc, dict):
             err = "Cannot parse the server response: invalid data from the server"
@@ -695,14 +706,13 @@ class DirectEdit(Worker):
         user: str = matches[0] if matches else ""
         return user
 
-    def _lock(self, remote: Remote, uid: str, /) -> bool:
+    def _lock(self, remote: Remote, uid: str, /) -> Any:
         """Lock a document."""
         try:
-
             if self.is_already_locked:
                 self.is_already_locked = False
             else:
-                remote.lock(uid)
+                data = remote.lock(uid)
         except HTTPError as exc:
             if exc.status in (codes.CONFLICT, codes.INTERNAL_SERVER_ERROR):
                 # INTERNAL_SERVER_ERROR on old servers (<11.1, <2021.0) [missing NXP-24359]
@@ -710,11 +720,11 @@ class DirectEdit(Worker):
                     if user != remote.user_id:
                         raise DocumentAlreadyLocked(user)
                     log.debug("You already locked that document!")
-                    return False
+                    return
             raise exc
 
         # Document locked!
-        return True
+        return data
 
     def _unlock(self, remote: Remote, uid: str, ref: Path, /) -> bool:
         """Unlock a document. Return True if purge is needed."""

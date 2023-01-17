@@ -942,8 +942,10 @@ class Remote(Nuxeo):
         )
         return blob
 
-    def lock(self, ref: str, /) -> None:
-        self.execute(command="Document.Lock", input_obj=f"doc:{self.check_ref(ref)}")
+    def lock(self, ref: str, /) -> Dict:
+        return self.execute(
+            command="Document.Lock", input_obj=f"doc:{self.check_ref(ref)}"
+        )
 
     def unlock(self, ref: str, /, *, headers: Dict[str, Any] = None) -> None:
         kwargs: Dict[str, Any] = {
