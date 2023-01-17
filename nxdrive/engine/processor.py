@@ -1463,6 +1463,9 @@ class Processor(EngineWorker):
         self._unlock_readonly(local_parent_path)
         try:
             if doc_pair.folderish:
+                if "Workspaces - " in name:
+                    partitioned_name = name.partition("Workspaces - ")
+                    name = partitioned_name[2]
                 log.info(
                     f"Creating local folder {name!r} "
                     f"in {self.local.abspath(local_parent_path)!r}"
