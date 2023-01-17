@@ -431,8 +431,7 @@ class DirectEdit(Worker):
         except HTTPError as exc:
             if exc.status in (codes.CONFLICT, codes.INTERNAL_SERVER_ERROR):
                 # INTERNAL_SERVER_ERROR on old servers (<11.1, <2021.0) [missing NXP-24359]
-                user = self._guess_user_from_http_error(exc.message)
-                if user:
+                if user := self._guess_user_from_http_error(exc.message):
                     if user != engine.remote.user_id:
                         log.debug(f"Document already locked by {user!r}")
                         raise DocumentAlreadyLocked(user)
