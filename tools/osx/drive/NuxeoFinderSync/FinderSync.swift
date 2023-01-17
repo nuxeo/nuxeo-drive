@@ -24,7 +24,7 @@ class FinderSync: FIFinderSync {
     var title1 = "Access online"
     var title2 = "Copy share-link"
     var title3 = "Edit metadata"
-    var title4 = "Upload content"
+    var title4 = "Nuxeo Drive Upload Content"
 
     let fileStatus = FileStatus()
     let addr = "127.0.0.1"
