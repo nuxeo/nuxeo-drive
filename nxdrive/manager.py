@@ -1,5 +1,6 @@
 import os
 import platform
+import re
 import shutil
 import sqlite3
 import uuid
@@ -199,8 +200,7 @@ class Manager(QObject):
                 self.dao.store_bool("direct_edit_auto_lock", True)
 
         # Set default deletion behavior
-        del_action = self.get_config("deletion_behavior")
-        if del_action:
+        if del_action := self.get_config("deletion_behavior"):
             Options.deletion_behavior = del_action
         else:
             self.set_config("deletion_behavior", "unsync")
@@ -989,9 +989,7 @@ class Manager(QObject):
         if not ref:
             parent = path.parent
             # We can't find in any parent
-            if parent == path or parent is None:
-                return ""
-            return self.get_root_id(parent)
+            return "" if parent == path or parent is None else self.get_root_id(parent)
         return ref
 
     def ctx_access_online(self, path: Path, /) -> None:
@@ -1055,7 +1053,7 @@ class Manager(QObject):
         for engine in self.engines.copy().values():
             # Only send status if we picked the right
             # engine and if we're not targeting the root
-            if engine.local_folder not in path.parents:
+            if not re.search(f"{str(engine.local_folder)}/", f"{str(path)}/"):
                 continue
 
             r_path = path.relative_to(engine.local_folder)
