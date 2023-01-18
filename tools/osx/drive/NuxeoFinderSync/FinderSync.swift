@@ -25,6 +25,7 @@ class FinderSync: FIFinderSync {
     var title2 = "Copy share-link"
     var title3 = "Edit metadata"
     var title4 = "Nuxeo Drive Upload Content"
+    let app_name = "Nuxeo Drive "
 
     let fileStatus = FileStatus()
     let addr = "127.0.0.1"
@@ -118,7 +119,7 @@ class FinderSync: FIFinderSync {
             self.title1 = entries[0]
             self.title2 = entries[1]
             self.title3 = entries[2]
-            self.title4 = entries[3]
+            self.title4 = app_name + entries[3]
         }
     }
 
