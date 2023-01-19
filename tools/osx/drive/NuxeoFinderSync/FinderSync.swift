@@ -20,12 +20,13 @@ class FinderSync: FIFinderSync {
     let triggerWatchNotif = NSNotification.Name("org.nuxeo.drive.triggerWatch")
     let syncStatusNotif = NSNotification.Name("org.nuxeo.drive.syncStatus")
     let setConfigNotif = NSNotification.Name("org.nuxeo.drive.setConfig")
-
+    
+    let app_name = "Nuxeo Drive "
+    
     var title1 = "Access online"
     var title2 = "Copy share-link"
     var title3 = "Edit metadata"
-    var title4 = "Nuxeo Drive Upload content"
-    let app_name = "Nuxeo Drive "
+    var title4 = app_name + "Upload content"
 
     let fileStatus = FileStatus()
     let addr = "127.0.0.1"
