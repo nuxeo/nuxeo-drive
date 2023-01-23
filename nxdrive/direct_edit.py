@@ -408,19 +408,28 @@ class DirectEdit(Worker):
     ) -> Optional[NuxeoDocumentInfo]:
 
         try:
+            if not self.use_autolock:
+                log.warning(
+                    "Server-side document locking is disabled: you are not protected against concurrent updates."
+                )
+                doc = engine.remote.fetch(
+                    doc_id,
+                    headers={"fetch-document": "lock"},
+                    enrichers=["permissions"],
+                )
+            else:
+                # doc = self._lock_queue.put((doc_path, "lock"))
 
-            # doc = self._lock_queue.put((doc_path, "lock"))
+                """
+                doc = engine.remote.execute(
+                    command="Document.Lock",
+                    input_obj=f"doc:{engine.remote.check_ref(doc_id)}",
+                )
+                """
 
-            """
-            doc = engine.remote.execute(
-                command="Document.Lock",
-                input_obj=f"doc:{engine.remote.check_ref(doc_id)}",
-            )
-            """
-
-            # doc = engine.remote.lock(doc_id)
-            doc = self._lock(engine.remote, doc_id)
-            self.is_already_locked = True
+                # doc = engine.remote.lock(doc_id)
+                # doc = self.start_locking(ref, doc_id, engine.remote)
+                self.is_already_locked = True
 
         except Forbidden:
             msg = (
@@ -511,10 +520,6 @@ class DirectEdit(Worker):
         engine = self._get_engine(server_url, doc_id=doc_id, user=user)
         if not engine:
             return None
-        if not self.use_autolock:
-            log.warning(
-                "Server-side document locking is disabled: you are not protected against concurrent updates."
-            )
 
         info = self._get_info(engine, doc_id)
 
@@ -764,9 +769,7 @@ class DirectEdit(Worker):
                     self.local.set_remote_id(ref.parent, b"1", name="nxdirecteditlock")
                     if self.use_autolock:
                         self._lock(remote, uid)
-                        # Emit the lock signal only when the lock is really set
-                        self._send_lock_status(ref)
-                        self.autolock.documentLocked.emit(ref.name)
+                        self.send_notific(ref, uid, remote)
                     continue
 
                 purge = self._unlock(remote, uid, ref)
@@ -818,6 +821,11 @@ class DirectEdit(Worker):
         # Requeue errors
         for item in errors:
             self._lock_queue.put(item)
+
+    def send_notific(self, ref, uid, remote):
+        # Emit the lock signal only when the lock is really set
+        self._send_lock_status(ref)
+        self.autolock.documentLocked.emit(ref.name)
 
     def _send_lock_status(self, ref: str, /) -> None:
         manager = self._manager
