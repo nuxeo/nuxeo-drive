@@ -26,7 +26,7 @@ class FinderSync: FIFinderSync {
     var title1 = "Access online"
     var title2 = "Copy share-link"
     var title3 = "Edit metadata"
-    var title4 = app_name + "Upload content"
+    var title4 = "Upload content"
 
     let fileStatus = FileStatus()
     let addr = "127.0.0.1"
@@ -46,6 +46,8 @@ class FinderSync: FIFinderSync {
     override init() {
         //NSLog("FinderSync() launched from \(Bundle.main.bundlePath)")
         super.init()
+        
+        self.title4 = self.app_name + "Upload content"
 
         // Upon startup, we are watching the root only to be able to display a context menu
         // on all files and folders. Then, when sync roots are added, they will also have
@@ -120,7 +122,7 @@ class FinderSync: FIFinderSync {
             self.title1 = entries[0]
             self.title2 = entries[1]
             self.title3 = entries[2]
-            self.title4 = app_name + entries[3]
+            self.title4 = self.app_name + entries[3]
         }
     }
 
