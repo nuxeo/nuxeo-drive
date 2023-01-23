@@ -26,6 +26,7 @@ def test_changes_without_active_roots(get_changes, manager_factory):
     manager, engine = manager_factory()
     with manager:
         summary, last_root_definitions, last_event_log_id = get_changes(engine)
+        print(f">>>>>> summary: {summary}")
         assert not summary["hasTooManyChanges"]
         assert "fileSystemChanges" in summary
         assert "activeSynchronizationRootDefinitions" in summary
