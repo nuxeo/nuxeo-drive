@@ -21,7 +21,7 @@ class FinderSync: FIFinderSync {
     let syncStatusNotif = NSNotification.Name("org.nuxeo.drive.syncStatus")
     let setConfigNotif = NSNotification.Name("org.nuxeo.drive.setConfig")
     
-    let app_name = "Nuxeo Drive "
+    let app_name = "Nuxeo Drive - "
     
     var title1 = "Access online"
     var title2 = "Copy share-link"
