@@ -381,6 +381,12 @@ def test_get_info_bad_response(manager_factory, obj_factory):
     def execute(*args, **kwargs):
         return b"bad data"
 
+    def fetch(*args, **kwargs):
+        return b"bad data"
+
+    def get_direct_edit_auto_lock(*args, **kwargs):
+        return False
+
     with manager:
         direct_edit = manager.direct_edit
         direct_edit._folder.mkdir()
@@ -395,6 +401,17 @@ def test_get_info_bad_response(manager_factory, obj_factory):
         received = False
         with patch.object(engine.remote, "execute", new=execute):
             direct_edit._prepare_edit(engine.server_url, doc.uid)
+        assert received
+
+        received = False
+        with patch.object(
+            direct_edit._manager,
+            "get_direct_edit_auto_lock",
+            new=get_direct_edit_auto_lock,
+        ):
+            with patch.object(engine.remote, "fetch", new=fetch):
+                # assert direct_edit.use_autolock
+                direct_edit._prepare_edit(engine.server_url, doc.uid)
         assert received
 
 
