@@ -22,7 +22,7 @@ jobs:
 
       - name: Extract branch name- New Way
         shell: bash
-        run: echo "branch1 = $(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_OUTPUT
+        run: echo "branch1 = ${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
         id: extract_branch_new
 
       - name: Print extract branch
