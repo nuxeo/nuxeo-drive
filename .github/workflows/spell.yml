@@ -13,13 +13,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-
+        with:
+          ref: ${{ github.event.inputs.branch }}
       - name: Extract branch name
         shell: bash
         run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
         id: extract_branch
-
-      -name: Print extract_branch
+      -name: Print extract branch
         run: echo "${{ steps.extract_branch.outputs.branch }} "
       - name: Set up Python
         uses: actions/setup-python@v4
