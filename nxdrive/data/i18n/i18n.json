@@ -392,5 +392,4 @@
     "WRONG_CHANNEL": "You are running version %1 which is from the \"%2\" channel, but your current channel is \"%3\". Do you want to downgrade to the latest version of your current channel, or switch channels?",
     "WRONG_CHANNEL_HEADER": "Wrong channel detected.",
     "YES": "Yes"
-
 }
