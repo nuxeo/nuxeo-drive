@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Set up github environment variables
+        run: echo "all_dependencies = hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt')" >> $GITHUB_ENV
       - name: Set up Python
         uses: actions/setup-python@v3
         with:
@@ -17,13 +19,13 @@ jobs:
       - uses: actions/cache@v2.1.6
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
-          restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+          key: ${{ runner.os }}-pip-${{ env.all_dependencies }}
+          restore-keys: ${{ runner.os }}-pip-${{ env.all_dependencies }}
       - uses: actions/cache@v2.1.6
         with:
           path: .tox
-          key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
-          restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+          key: ${{ runner.os }}-tox-${{ env.all_dependencies }}
+          restore-keys: ${{ runner.os }}-tox-${{ env.all_dependencies }}
       - name: Install dependencies
         run: python -m pip install -r tools/deps/requirements-tox.txt
       - name: Code style check
