@@ -19,7 +19,7 @@ jobs:
         shell: bash
         run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
         id: extract_branch
-      -name: Print extract branch
+      - name: Print extract branch
         run: echo "${{ steps.extract_branch.outputs.branch }} "
       - name: Set up Python
         uses: actions/setup-python@v4
