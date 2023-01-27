@@ -13,22 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.inputs.branch }}
-
-      - name: Extract branch name- New Way
-        shell: bash
-        run: echo "branch1=$(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_OUTPUT
-        id: extract_branch_new
-
-      - name: Extract branch name
-        shell: bash
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
-        id: extract_branch
-
-      - name: Print extract branch
-        run: echo " old - ${{ steps.extract_branch.outputs.branch }} new- ${{ steps.extract_branch_new.outputs.branch1 }} "
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
