@@ -14,9 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Set up github envs spell_details
-        run: echo "spell_details = ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}" >> $GITHUB_ENV
-      - name: Set up github envs spell_tox_depen
-        run: echo "spell_tox_depen = ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}" >> $GITHUB_ENV
+        run: echo "spell_details = hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt')" >> $GITHUB_ENV
       - name: Set up Python
         uses: actions/setup-python@v3
         with:
@@ -24,13 +22,13 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ env.spell_details }}
-          restore-keys: ${{ env.spell_details }}
+          key: ${{ runner.os }}-pip-${{ env.spell_details }}
+          restore-keys: ${{ runner.os }}-pip-${{ env.spell_details }}
       - uses: actions/cache@v3
         with:
           path: .tox
-          key: ${{ env.spell_tox_depen }}
-          restore-keys: ${{ env.spell_tox_depen }}
+          key: ${{ runner.os }}-tox-${{ env.spell_details }}
+          restore-keys: ${{ runner.os }}-tox-${{ env.spell_details }}
       - name: Install dependencies
         run: python -m pip install -r tools/deps/requirements-tox.txt
       - name: Spell check
