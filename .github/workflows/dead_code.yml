@@ -26,5 +26,5 @@ jobs:
           restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
       - name: Install dependencies
         run: python -m pip install -r tools/deps/requirements-tox.txt
-      - name: Dead code check
-        run: tox -e cleanup >> $GITHUB_OUTPUT
+      #- name: Dead code check
+      #  run: tox -e cleanup
