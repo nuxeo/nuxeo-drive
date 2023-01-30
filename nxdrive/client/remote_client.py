@@ -859,7 +859,7 @@ class Remote(Nuxeo):
             lastSyncActiveRootDefinitions=last_root_definitions,
         )
 
-        log.info(f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!   data: {data!r}")
+        log.info(f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   data: {data!r}")
         print(f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!   data: {data!r}")
 
         return data
