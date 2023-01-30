@@ -853,11 +853,16 @@ class Remote(Nuxeo):
     def get_changes(
         self, last_root_definitions: str, /, *, log_id: int = 0
     ) -> Dict[str, Any]:
-        return self.execute(
+        data = self.execute(
             command="NuxeoDrive.GetChangeSummary",
             lowerBound=log_id,
             lastSyncActiveRootDefinitions=last_root_definitions,
         )
+
+        log.info(f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!   data: {data!r}")
+        print(f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!   data: {data!r}")
+
+        return data
 
     def fetch(
         self,
