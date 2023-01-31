@@ -766,7 +766,8 @@ class DirectEdit(Worker):
 
                 self.local.remove_remote_id(ref.parent, name="nxdirecteditlock")
                 # Emit the signal only when the unlock is done
-                self.send_notification(ref)
+                self._send_lock_status(ref)
+                self.autolock.documentUnlocked.emit(ref.name)
             except ThreadInterrupt:
                 raise
             except NotFound:
