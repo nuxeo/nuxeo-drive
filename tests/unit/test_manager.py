@@ -3,10 +3,10 @@ from pathlib import Path
 from unittest.mock import Mock
 from uuid import uuid4
 
-# from ..markers import mac_only
+from ..markers import mac_only
 
 
-# @mac_only
+@mac_only
 def test_send_sync_status(manager, tmp_path, engine):
 
     """This method is to test weather drive need to send sync status
