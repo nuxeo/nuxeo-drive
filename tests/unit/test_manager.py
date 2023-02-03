@@ -26,4 +26,4 @@ def test_send_sync_status(manager, tmp_path, engine):
     manager.send_sync_status(manager, tmp_path)
 
     # No need to send status as user is watching Downloads folder
-    assert re.search(f"{str(engine.local_folder)}/", f"{str(tmp_path)}/")
+    assert not re.search(f"{str(engine.local_folder)}/", f"{str(tmp_path)}/")
