@@ -22,7 +22,7 @@ def test_send_sync_status(manager, tmp_path, engine):
     # Need to send sync status, user is watching synchronization folder
     assert re.search(f"{str(engine.local_folder)}/", f"{str(tmp_path)}/")"""
 
-    tmp_path = Path("/User/Downloads")
+    tmp_path = Path("User", "Downloads")
     manager.send_sync_status(manager, tmp_path)
 
     # No need to send status as user is watching Downloads folder
