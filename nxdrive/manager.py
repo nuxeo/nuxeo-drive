@@ -1054,6 +1054,7 @@ class Manager(QObject):
             # Only send status if we picked  the right
             # engine and if we're not targeting the root
             if not re.search(f"{str(engine.local_folder)}/", f"{str(path)}/"):
+                print(">>>>>>> path not same")
                 continue
 
             r_path = path.relative_to(engine.local_folder)
