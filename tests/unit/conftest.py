@@ -1,3 +1,4 @@
+import os
 import shutil
 import time
 from typing import Optional
@@ -139,9 +140,9 @@ def manager_dao(tmp_path):
 
 
 @pytest.fixture()
-def engine(tmp_path, engine_dao):
+def engine(engine_dao):
     engine = MockEngine
-    engine.local_folder = tmp_path
+    engine.local_folder = os.path.expandvars("C:\\test\\%username%\\Documents")
     engine.dao = engine_dao
     return engine
 
