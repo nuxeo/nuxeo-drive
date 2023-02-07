@@ -142,7 +142,7 @@ def manager_dao(tmp_path):
 @pytest.fixture()
 def engine(engine_dao):
     engine = MockEngine
-    engine.local_folder = os.path.expandvars("C:\\test\\%username%\\Documents")
+    engine.local_folder = os.path.expandvars("C:\\test\\%username%\\Drive")
     engine.dao = engine_dao
     return engine
 
