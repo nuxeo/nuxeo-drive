@@ -1051,7 +1051,7 @@ class Manager(QObject):
 
     def send_sync_status(self, path: Path, /) -> None:
         for engine in self.engines.copy().values():
-            # Only send status if we picked  the right
+            # Only send status if we picked the right
             # engine and if we're not targeting the root
             if not re.search(f"{str(engine.local_folder)}/", f"{str(path)}/"):
                 continue
