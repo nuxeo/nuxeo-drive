@@ -109,7 +109,7 @@ class Manager(QObject):
             Manager._instances[self.home] = proxy(self)
 
         # Used to tell other components they cannot do their work
-        # if this attribute is set  to True (like Direct Edit or resuming engines)
+        # if this attribute is set   to True (like Direct Edit or resuming engines)
         self.restart_needed = False
         self.restartNeeded.connect(self.suspend)
         self.restartNeeded.connect(self._restart_needed)
