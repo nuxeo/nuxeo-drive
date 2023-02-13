@@ -32,6 +32,10 @@ def ask_for_notarization_uid(file: str) -> str:
     """
     print(f">>> [notarization] Uploading {file!r}", flush=True)
     print("    (it may take a while)", flush=True)
+    print(f"    (it may take a while) {NOTARIZATION_USERNAME!r}", flush=True)
+    print(f"    (it may take a while) {BUNDLE_IDENTIFIER!r}", flush=True)
+    print(f"    (it may take a while) {NOTARIZATION_USERNAME!r}", flush=True)
+
 
     cmd = [
         "xcrun",
