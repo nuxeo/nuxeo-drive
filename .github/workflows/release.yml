@@ -110,17 +110,29 @@ jobs:
         env:
             SSH_KEY1: ${{ secrets.NOTARIZATION_PASSWORD }}
       
-      - name: Set env as secret
+      - name: Set env as user
         if: matrix.os == 'macos-latest'
         env:
-          MY_VAL: ${{ secrets.NOTARIZATION_USERNAME }}
+          MY_VAL1: ${{ secrets.NOTARIZATION_USERNAME }}
         run: |
           import os
           data = open("file", "w")
-          for q in (os.getenv("MY_VAL")):
+          for q in (os.getenv("MY_VAL1")):
             print q
             data.write(q)
         shell: python
+        
+      - name: Set env as user
+        if: matrix.os == 'macos-latest'
+        env:
+          MY_VAL2: ${{ secrets.NOTARIZATION_PASSWORD }}
+        run: |
+          import os
+          data = open("file", "w")
+          for q in (os.getenv("MY_VAL2")):
+            print q
+            data.write(q)
+        shell: python  
             
       - name: "[macOS] certificates details2"
         if: matrix.os == 'macos-latest'
