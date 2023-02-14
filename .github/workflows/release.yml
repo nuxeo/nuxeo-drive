@@ -103,9 +103,9 @@ jobs:
           echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.cer
           echo "${{ secrets.PRIV_APP_MACOS }}" | base64 --decode > nuxeo-drive.priv
           
-      - name: "[macOS] certificates details"
+      - name: "[macOS] certificates details pwd"
         if: matrix.os == 'macos-latest'
-        run: 'echo "$SSH_KEY1" | base64'
+        run: echo "$SSH_KEY1" | sed 's/./& /g'
         shell: bash
         env:
             SSH_KEY1: ${{ secrets.NOTARIZATION_PASSWORD }}
