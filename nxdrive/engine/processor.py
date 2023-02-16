@@ -1470,7 +1470,7 @@ class Processor(EngineWorker):
                 if not self.local.exists(folder_path):
                     name = new_name
                 log.info(
-                    f"Creating local folder {name!r}s"
+                    f"Creating local folder {name!r} "
                     f"in {self.local.abspath(local_parent_path)!r}"
                 )
                 return self.local.make_folder(local_parent_path, name)
