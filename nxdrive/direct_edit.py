@@ -543,9 +543,6 @@ class DirectEdit(Worker):
         dir_path = self._folder / folder_name
         dir_path.mkdir(exist_ok=True)
 
-        if self.is_already_locked:
-            self.send_notification(ref, filename)
-
         log.info(f"Editing {filename!r}")
         if filename != safe_filename(filename):
             filename = safe_filename(filename)
