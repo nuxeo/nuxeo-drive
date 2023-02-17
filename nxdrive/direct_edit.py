@@ -542,8 +542,8 @@ class DirectEdit(Worker):
         ref = path.join(folder_name, filename)
         dir_path = self._folder / folder_name
         dir_path.mkdir(exist_ok=True)
+        log.info(f"Editing file at {ref}")
 
-        log.info(f"Editing {filename!r}")
         if filename != safe_filename(filename):
             filename = safe_filename(filename)
             log.info(f"Filename sanitized to {filename!r}")
