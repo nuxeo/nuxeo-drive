@@ -542,7 +542,9 @@ class DirectEdit(Worker):
         ref = path.join(folder_name, filename)
         dir_path = self._folder / folder_name
         dir_path.mkdir(exist_ok=True)
-        log.info(f"Editing file at {ref}")
+        log.debug(f"Editing file at {ref!r}")
+        if self.is_already_locked:
+            self.send_notification(ref, filename)
 
         if filename != safe_filename(filename):
             filename = safe_filename(filename)
@@ -690,7 +692,7 @@ class DirectEdit(Worker):
         user: str = matches[0] if matches else ""
         return user
 
-    def _lock(self, remote: Remote, uid: str, /) -> Any:
+    def _lock(self, remote: Remote, uid: str, ref: Any = None, /) -> Any:
         """Lock a document."""
         data = None
         try:
@@ -698,6 +700,8 @@ class DirectEdit(Worker):
                 self.is_already_locked = False
             else:
                 data = remote.lock(uid)
+                if ref:
+                    self.send_notification(ref)
         except HTTPError as exc:
             if exc.status in (codes.CONFLICT, codes.INTERNAL_SERVER_ERROR):
                 # INTERNAL_SERVER_ERROR on old servers (<11.1, <2021.0) [missing NXP-24359]
@@ -748,8 +752,7 @@ class DirectEdit(Worker):
                 if action == "lock":
                     self.local.set_remote_id(ref.parent, b"1", name="nxdirecteditlock")
                     if self.use_autolock:
-                        self._lock(remote, uid)
-                        self.send_notification(ref)
+                        self._lock(remote, uid, ref)
                     continue
 
                 purge = self._unlock(remote, uid, ref)
