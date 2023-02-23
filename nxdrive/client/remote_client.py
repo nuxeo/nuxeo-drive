@@ -228,8 +228,7 @@ class Remote(Nuxeo):
         """Callback for each chunked (down|up)loads.
         Called first to set the end time of the current (down|up)loaded chunk.
         """
-        action = Action.get_current_action()
-        if action:
+        if action := Action.get_current_action():
             action.chunk_transfer_end_time_ns = monotonic_ns()
 
     def transfer_end_callback(self, uploader: Uploader, /) -> None:
@@ -259,8 +258,7 @@ class Remote(Nuxeo):
         # Handle transfer pause
         if isinstance(action, DownloadAction):
             # Get the current download and check if it is still ongoing
-            download = self.dao.get_download(path=action.filepath)
-            if download:
+            if download := self.dao.get_download(path=action.filepath):
                 # Save the progression
                 download.progress = action.get_percent()
                 self.dao.set_transfer_progress("download", download)
@@ -585,14 +583,14 @@ class Remote(Nuxeo):
         self, parent: str, params: Dict[str, str], /, *, headers: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """Create a folder using REST api."""
-        resp = self.client.request(
+
+        return self.client.request(
             "POST",
             f"{self.client.api_path}/path{parent}",
             headers=headers,
             data=params,
             ssl_verify=self.verification_needed,
         )
-        return resp
 
     def cancel_batch(self, batch_details: Dict[str, Any], /) -> None:
         """Cancel an uploaded Batch."""
@@ -617,9 +615,7 @@ class Remote(Nuxeo):
         sync_root.name = shortify(sync_root.name, limit=limit)
 
         myself = True
-        while "can level up":
-            if level >= Options.sync_root_max_level:
-                break
+        while "can level up" and level < Options.sync_root_max_level:
 
             try:
                 doc = self.documents.get(uid=uid)
@@ -743,9 +739,7 @@ class Remote(Nuxeo):
         }
 
     def is_filtered(self, path: str, /, *, filtered: bool = True) -> bool:
-        if filtered:
-            return self.dao.is_filter(path)
-        return False
+        return self.dao.is_filter(path) if filtered else False
 
     def make_folder(
         self, parent_id: str, name: str, /, *, overwrite: bool = False
@@ -910,8 +904,7 @@ class Remote(Nuxeo):
     def get_note(self, ref: str, /, *, file_out: Path = None) -> bytes:
         """Download the text associated to a Note document."""
         doc = self.fetch(ref)
-        note = doc["properties"].get("note:note")
-        if note:
+        if note := doc["properties"].get("note:note"):
             content = unquote(note).encode("utf-8")
             if file_out:
                 file_out.write_bytes(content)
@@ -942,8 +935,10 @@ class Remote(Nuxeo):
         )
         return blob
 
-    def lock(self, ref: str, /) -> None:
-        self.execute(command="Document.Lock", input_obj=f"doc:{self.check_ref(ref)}")
+    def lock(self, ref: str, /) -> Dict:
+        return self.execute(
+            command="Document.Lock", input_obj=f"doc:{self.check_ref(ref)}"
+        )
 
     def unlock(self, ref: str, /, *, headers: Dict[str, Any] = None) -> None:
         kwargs: Dict[str, Any] = {
@@ -1035,9 +1030,9 @@ class Remote(Nuxeo):
     def filter_schema(self, enricherList: SubTypeEnricher) -> SubTypeEnricher:
 
         configTypes = self.get_config_types()
-        docTypeList = []
-        for docType in configTypes["doctypes"]:
-            if "file" in configTypes["doctypes"][docType]["schemas"]:
-                docTypeList.append(str(docType))
 
-        return docTypeList
+        return [
+            str(docType)
+            for docType in configTypes["doctypes"]
+            if "file" in configTypes["doctypes"][docType]["schemas"]
+        ]
