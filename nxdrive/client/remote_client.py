@@ -936,7 +936,6 @@ class Remote(Nuxeo):
         return blob
 
     def lock(self, ref: str, /) -> Dict:
-        log.info(f"locking document: {ref}")
         return self.execute(
             command="Document.Lock", input_obj=f"doc:{self.check_ref(ref)}"
         )
