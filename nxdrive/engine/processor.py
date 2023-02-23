@@ -1,4 +1,5 @@
 import errno
+import os
 import shutil
 import sqlite3
 import sys
@@ -1462,7 +1463,12 @@ class Processor(EngineWorker):
         local_parent_path = parent_pair.local_path
         self._unlock_readonly(local_parent_path)
         try:
-            if doc_pair.folderish:
+            if "Workspaces - " in name:
+                partitioned_name = name.partition("Workspaces - ")
+                new_name = partitioned_name[2]
+                folder_path = os.path.join(local_parent_path, new_name)
+                if not self.local.exists(folder_path):
+                    name = new_name
                 log.info(
                     f"Creating local folder {name!r} "
                     f"in {self.local.abspath(local_parent_path)!r}"
