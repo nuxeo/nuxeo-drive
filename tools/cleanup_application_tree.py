@@ -97,11 +97,15 @@ FILES: Tuple[str] = (
     "boto3/data/[0-9a-rt-z]*",
     "boto3/data/s[0-24-9a-z]*",  # Keep s3*
     "boto3/examples",
-    # Botocore has a lot of useless files (only S3 and endpoints.json are interesting)
-    "botocore/data/[0-9a-df-rt-z]*",
+    # Botocore has a lot of useless files
+    # (only S3, endpoints.json, sdk-default-configuration.json and partitions.json are required)
+    "botocore/data/[0-9a-df-oq-rt-z]*",
     "botocore/data/e[a-mo-z]*",  # Keep en*
     "botocore/data/en[a-c-e-z]*",  # Keep only end*
-    "botocore/data/s[0-24-9a-z]*",  # Keep s3*
+    "botocore/data/s[0-24-9a-ce-z]*",  # Keep s3*
+    "botocore/data/sd[a-jl-z]*",
+    "botocore/data/p[b-z]*",
+    "botocore/data/pa[a-qs-z]*",
 )
 
 
