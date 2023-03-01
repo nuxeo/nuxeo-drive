@@ -28,7 +28,7 @@ jobs:
       matrix:
         lts_environment:
           - "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
-          #- "https://drive-2023.beta.nuxeocloud.com/nuxeo"
+          - "https://drive-2023.beta.nuxeocloud.com/nuxeo"
 
     #services:
     #  lts_environment:
@@ -78,10 +78,8 @@ jobs:
           - "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
           #- "https://drive-2023.beta.nuxeocloud.com/nuxeo"
 
-    services:
-      lts_environment:
-        env:
-          NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment }}
+    env:
+      NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment }}
 
     steps:
       - uses: actions/checkout@v2
@@ -120,10 +118,8 @@ jobs:
           - "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
           #- "https://drive-2023.beta.nuxeocloud.com/nuxeo"
 
-    services:
-      lts_environment:
-        env:
-          NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment }}
+    env:
+      NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment }}
 
     steps:
       - uses: actions/checkout@v2
