@@ -16,12 +16,25 @@ on:
       - "tests/functional/*.py"
 
 env:
-  NXDRIVE_TEST_NUXEO_URL: https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo
+  #NXDRIVE_TEST_NUXEO_URL: https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo
   NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_TEST_PASSWORD }}
 
 jobs:
   functional-tests-linux:
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        lts_environment:
+          - "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
+          - "https://drive-2023.beta.nuxeocloud.com/nuxeo"
+
+    services:
+      lts_environment:
+        env:
+          NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment }}
+
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v3
@@ -57,6 +70,19 @@ jobs:
 
   functional-tests-macos:
     runs-on: "macos-latest"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        lts_environment:
+          - "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
+          - "https://drive-2023.beta.nuxeocloud.com/nuxeo"
+
+    services:
+      lts_environment:
+        env:
+          NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment }}
+
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v3
@@ -86,6 +112,19 @@ jobs:
 
   functional-tests-windows:
     runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        lts_environment:
+          - "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
+          - "https://drive-2023.beta.nuxeocloud.com/nuxeo"
+
+    services:
+      lts_environment:
+        env:
+          NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment }}
+
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v3
