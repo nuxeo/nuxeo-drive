@@ -1463,12 +1463,29 @@ class Processor(EngineWorker):
         local_parent_path = parent_pair.local_path
         self._unlock_readonly(local_parent_path)
         try:
-            if "Workspaces - " in name:
+            if (
+                "Workspaces - " in name
+                and "defaultSyncRoot" in doc_pair.remote_ref
+                and doc_pair.folderish
+            ):
                 partitioned_name = name.partition("Workspaces - ")
                 new_name = partitioned_name[2]
                 folder_path = os.path.join(local_parent_path, new_name)
                 if not self.local.exists(folder_path):
                     name = new_name
+                log.info(
+                    f"Creating local folder {name!r} "
+                    f"in {self.local.abspath(local_parent_path)!r}"
+                )
+                return self.local.make_folder(local_parent_path, name)
+            elif doc_pair.folderish:
+                folder_path = os.path.join(local_parent_path, name)
+                count = 1
+                while self.local.exists(folder_path):
+                    name = name + "_" + str(count)
+                    folder_path = os.path.join(local_parent_path, name)
+                    count += 1
+
                 log.info(
                     f"Creating local folder {name!r} "
                     f"in {self.local.abspath(local_parent_path)!r}"
