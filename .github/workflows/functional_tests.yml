@@ -30,7 +30,7 @@ jobs:
 
     env:
       NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment.url }}
-      
+
     name: functional-tests-linux(LTS ${{ matrix.lts_environment.name }})
 
     steps:
@@ -151,7 +151,7 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     needs:
-      #- functional-tests-linux
+      - functional-tests-linux
       - functional-tests-macos
       - functional-tests-windows
     steps:
