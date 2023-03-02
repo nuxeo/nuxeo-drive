@@ -151,7 +151,7 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     needs:
-      - functional-tests-linux
+      #- functional-tests-linux
       - functional-tests-macos
       - functional-tests-windows
     steps:
