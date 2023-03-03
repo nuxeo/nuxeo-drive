@@ -21,8 +21,3 @@ def test_create_folder(manager_factory, tmp_path):
     assert str(
         path.join(tmp_path, "default - domain1 - Workspaces - Administrator")
     ) == str(full_path)
-
-    dp.remote_ref = "defaultFileSystemItemFactory"
-
-    full_path = create_rem(dp, dp, "Administrator")
-    assert str(path.join(tmp_path, "Administrator_1")) == str(full_path)

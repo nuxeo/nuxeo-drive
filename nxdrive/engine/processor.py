@@ -1479,12 +1479,6 @@ class Processor(EngineWorker):
                 )
                 return self.local.make_folder(local_parent_path, name)
             elif doc_pair.folderish:
-                folder_path = os.path.join(local_parent_path, name)
-                count = 1
-                while self.local.exists(folder_path):
-                    name = name + "_" + str(count)
-                    folder_path = os.path.join(local_parent_path, name)
-                    count += 1
 
                 log.info(
                     f"Creating local folder {name!r} "
