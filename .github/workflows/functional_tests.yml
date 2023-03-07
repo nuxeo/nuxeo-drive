@@ -72,12 +72,12 @@ jobs:
       strategy:
         fail-fast: false
         matrix:
-          lts_environment:
-            - "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
-            #- "https://drive-2023.beta.nuxeocloud.com/nuxeo"
+          lts_environment: [ {"url": "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo", "name": "2021"}, {"url": "https://drive-2023.beta.nuxeocloud.com/nuxeo", "name": "2023" } ]
 
       env:
-        NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment }}
+        NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment.url }}
+
+      name: functional-tests-macos(LTS ${{ matrix.lts_environment.name }})
 
       steps:
         - uses: actions/checkout@v2
@@ -114,12 +114,12 @@ jobs:
       strategy:
         fail-fast: false
         matrix:
-          lts_environment:
-            - "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
-            #- "https://drive-2023.beta.nuxeocloud.com/nuxeo"
+          lts_environment: [ {"url": "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo", "name": "2021"}, {"url": "https://drive-2023.beta.nuxeocloud.com/nuxeo", "name": "2023" } ]
 
       env:
-        NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment }}
+        NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment.url }}
+
+      name: functional-tests-windows(LTS ${{ matrix.lts_environment.name }})
 
       steps:
         - uses: actions/checkout@v2
@@ -151,6 +151,15 @@ jobs:
 
   cleanup:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        lts_environment: [ {"url": "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo", "name": "2021"}, {"url": "https://drive-2023.beta.nuxeocloud.com/nuxeo", "name": "2023" } ]
+
+      env:
+        NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment.url }}
+
+      name: cleanup(LTS ${{ matrix.lts_environment.name }})
     if: always()
     needs:
       - functional-tests-linux
