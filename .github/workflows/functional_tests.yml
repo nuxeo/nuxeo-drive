@@ -156,10 +156,10 @@ jobs:
       matrix:
         lts_environment: [ {"url": "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo", "name": "2021"}, {"url": "https://drive-2023.beta.nuxeocloud.com/nuxeo", "name": "2023" } ]
 
-      env:
-        NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment.url }}
+    env:
+      NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment.url }}
 
-      name: cleanup(LTS ${{ matrix.lts_environment.name }})
+    name: cleanup(LTS ${{ matrix.lts_environment.name }})
     if: always()
     needs:
       - functional-tests-linux
