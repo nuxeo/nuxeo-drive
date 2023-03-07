@@ -15,12 +15,21 @@ on:
 
 env:
   FREEZE_ONLY: 1
-  NXDRIVE_TEST_NUXEO_URL: https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo
   NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_TEST_PASSWORD }}
 
 jobs:
   integration-tests-windows:
     runs-on: windows-latest
+    strategy:
+        fail-fast: false
+        matrix:
+          lts_environment: [ {"url": "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo", "name": "2021"}, {"url": "https://drive-2023.beta.nuxeocloud.com/nuxeo", "name": "2023" } ]
+
+    env:
+      NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment.url }}
+
+    name: integration-tests-windows(LTS ${{ matrix.lts_environment.name }})
+
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
