@@ -22,7 +22,7 @@ jobs:
     runs-on: windows-latest
     strategy:
         fail-fast: false
-        matrix: lts_environment: [ {"url": "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo",  "name": "2021"},  {"url": "https://drive-2023.beta.nuxeocloud.com/nuxeo", "name": "2023"}  ]
+        matrix: lts_environment:  [ {"url": "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo", "name": "2021"},  {"url": "https://drive-2023.beta.nuxeocloud.com/nuxeo", "name": "2023"} ]
 
     env:
       NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment.url }}
