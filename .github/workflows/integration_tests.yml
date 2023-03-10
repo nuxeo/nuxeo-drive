@@ -26,13 +26,13 @@ jobs:
             {
               "url": "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo",
               "name": "2021",
-              "username": ${{ secrets.NXDRIVE_TEST_USERNAME }}
+              "username": ${{ secrets.NXDRIVE_TEST_USERNAME }},
               "password": ${{ secrets.NXDRIVE_TEST_PASSWORD }}
             },
             {
               "url": "https://drive-2023.beta.nuxeocloud.com/nuxeo",
               "name": "2023",
-              "username": ${{ secrets.NXDRIVE_2023_TEST_USERNAME }}
+              "username": ${{ secrets.NXDRIVE_2023_TEST_USERNAME }},
               "password": ${{ secrets.NXDRIVE_2023_TEST_PASSWORD }}
             }
           ]
