@@ -15,13 +15,14 @@ on:
 
 env:
   FREEZE_ONLY: 1
+  #NXDRIVE_TEST_PASSWORD:  ${{ secrets.NXDRIVE_TEST_USERNAME }}
 
 jobs:
   integration-tests-windows:
     runs-on: windows-latest
     strategy:
         fail-fast: false
-        matrix: lts_environment: [ {"url": "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo",  "name": "2021", "username": "${{ secrets.NXDRIVE_TEST_USERNAME }}", "password": "${{ secrets.NXDRIVE_TEST_PASSWORD }}"},  {"url": "https://drive-2023.beta.nuxeocloud.com/nuxeo", "name": "2023", "username": ${{ secrets.NXDRIVE_2023_TEST_USERNAME }},  "password": ${{ secrets.NXDRIVE_2023_TEST_PASSWORD }}}  ]
+        matrix: lts_environment: [ {"url": "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo",  "name": "2021", "username": "${{ secrets.NXDRIVE_TEST_USERNAME }}", "password": "${{ secrets.NXDRIVE_TEST_PASSWORD }}"},  {"url": "https://drive-2023.beta.nuxeocloud.com/nuxeo", "name": "2023", "username": "${{ secrets.NXDRIVE_2023_TEST_USERNAME }}",  "password": "${{ secrets.NXDRIVE_2023_TEST_PASSWORD }}"}  ]
 
     env:
       NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment.url }}
