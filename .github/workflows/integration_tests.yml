@@ -21,8 +21,7 @@ jobs:
     runs-on: windows-latest
     strategy:
         fail-fast: false
-        matrix: lts_environment: [
-            {"url": "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo",
+        matrix: lts_environment: [ {"url": "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo",
               "name": "2021",
               "username": ${{ secrets.NXDRIVE_TEST_USERNAME }},
               "password": ${{ secrets.NXDRIVE_TEST_PASSWORD }}},
