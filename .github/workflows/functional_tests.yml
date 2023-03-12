@@ -22,27 +22,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        lts_environment: [
-          {
-            "url": "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo",
-            "name": "2021",
-            "username": ${{ secrets.NXDRIVE_TEST_USERNAME }},
-            "password": ${{ secrets.NXDRIVE_TEST_PASSWORD }}
-          },
-          {
-            "url": "https://drive-2023.beta.nuxeocloud.com/nuxeo",
-            "name": "2023",
-            "username": ${{ secrets.NXDRIVE_2023_TEST_USERNAME }},
-            "password": ${{ secrets.NXDRIVE_2023_TEST_PASSWORD }}
-          }
-        ]
+        lts_environment:  [ ["https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo",  "2021", "NXDRIVE_TEST_USERNAME",  "NXDRIVE_TEST_PASSWORD"],  ["https://drive-2023.beta.nuxeocloud.com/nuxeo",  "2023",  "NXDRIVE_2023_TEST_USERNAME", "NXDRIVE_2023_TEST_PASSWORD"] ]
 
     env:
-      NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment.url }}
-      NXDRIVE_TEST_USERNAME: ${{ matrix.lts_environment.username }}
-      NXDRIVE_TEST_PASSWORD: ${{ matrix.lts_environment.password }}
+      NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment[0] }}
+      NXDRIVE_TEST_USERNAME: ${{ secrets[matrix.lts_environment[2]] }}
+      NXDRIVE_TEST_PASSWORD: ${{ secrets[matrix.lts_environment[3]] }}
 
-    name: functional-tests-linux(LTS ${{ matrix.lts_environment.name }})
+    name: functional-tests-linux(LTS ${{ matrix.lts_environment[1] }})
 
     steps:
       - uses: actions/checkout@v2
@@ -83,27 +70,14 @@ jobs:
       strategy:
         fail-fast: false
         matrix:
-          lts_environment: [
-            {
-              "url": "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo",
-              "name": "2021",
-              "username": ${{ secrets.NXDRIVE_TEST_USERNAME }},
-              "password": ${{ secrets.NXDRIVE_TEST_PASSWORD }}
-            },
-            {
-              "url": "https://drive-2023.beta.nuxeocloud.com/nuxeo",
-              "name": "2023",
-              "username": ${{ secrets.NXDRIVE_2023_TEST_USERNAME }},
-              "password": ${{ secrets.NXDRIVE_2023_TEST_PASSWORD }}
-            }
-          ]
+          lts_environment:  [ ["https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo",  "2021", "NXDRIVE_TEST_USERNAME",  "NXDRIVE_TEST_PASSWORD"],  ["https://drive-2023.beta.nuxeocloud.com/nuxeo",  "2023",  "NXDRIVE_2023_TEST_USERNAME", "NXDRIVE_2023_TEST_PASSWORD"] ]
 
-    env:
-      NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment.url }}
-      NXDRIVE_TEST_USERNAME: ${{ matrix.lts_environment.username }}
-      NXDRIVE_TEST_PASSWORD: ${{ matrix.lts_environment.password }}
+      env:
+        NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment[0] }}
+        NXDRIVE_TEST_USERNAME: ${{ secrets[matrix.lts_environment[2]] }}
+        NXDRIVE_TEST_PASSWORD: ${{ secrets[matrix.lts_environment[3]] }}
 
-      name: functional-tests-macos(LTS ${{ matrix.lts_environment.name }})
+      name: functional-tests-macos(LTS ${{ matrix.lts_environment[1] }})
 
       steps:
         - uses: actions/checkout@v2
@@ -140,27 +114,14 @@ jobs:
       strategy:
         fail-fast: false
         matrix:
-          lts_environment: [
-            {
-              "url": "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo",
-              "name": "2021",
-              "username": ${{ secrets.NXDRIVE_TEST_USERNAME }},
-              "password": ${{ secrets.NXDRIVE_TEST_PASSWORD }}
-            },
-            {
-              "url": "https://drive-2023.beta.nuxeocloud.com/nuxeo",
-              "name": "2023",
-              "username": ${{ secrets.NXDRIVE_2023_TEST_USERNAME }},
-              "password": ${{ secrets.NXDRIVE_2023_TEST_PASSWORD }}
-            }
-          ]
+          lts_environment:  [ ["https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo",  "2021", "NXDRIVE_TEST_USERNAME",  "NXDRIVE_TEST_PASSWORD"],  ["https://drive-2023.beta.nuxeocloud.com/nuxeo",  "2023",  "NXDRIVE_2023_TEST_USERNAME", "NXDRIVE_2023_TEST_PASSWORD"] ]
 
-    env:
-      NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment.url }}
-      NXDRIVE_TEST_USERNAME: ${{ matrix.lts_environment.username }}
-      NXDRIVE_TEST_PASSWORD: ${{ matrix.lts_environment.password }}
+      env:
+        NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment[0] }}
+        NXDRIVE_TEST_USERNAME: ${{ secrets[matrix.lts_environment[2]] }}
+        NXDRIVE_TEST_PASSWORD: ${{ secrets[matrix.lts_environment[3]] }}
 
-      name: functional-tests-windows(LTS ${{ matrix.lts_environment.name }})
+      name: functional-tests-windows(LTS ${{ matrix.lts_environment[1] }})
 
       steps:
         - uses: actions/checkout@v2
@@ -195,27 +156,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        lts_environment: [
-          {
-            "url": "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo",
-            "name": "2021",
-            "username": ${{ secrets.NXDRIVE_TEST_USERNAME }},
-            "password": ${{ secrets.NXDRIVE_TEST_PASSWORD }}
-          },
-          {
-            "url": "https://drive-2023.beta.nuxeocloud.com/nuxeo",
-            "name": "2023",
-            "username": ${{ secrets.NXDRIVE_2023_TEST_USERNAME }},
-            "password": ${{ secrets.NXDRIVE_2023_TEST_PASSWORD }}
-          }
-        ]
+        lts_environment:  [ ["https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo",  "2021", "NXDRIVE_TEST_USERNAME",  "NXDRIVE_TEST_PASSWORD"],  ["https://drive-2023.beta.nuxeocloud.com/nuxeo",  "2023",  "NXDRIVE_2023_TEST_USERNAME", "NXDRIVE_2023_TEST_PASSWORD"] ]
 
     env:
-      NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment.url }}
-      NXDRIVE_TEST_USERNAME: ${{ matrix.lts_environment.username }}
-      NXDRIVE_TEST_PASSWORD: ${{ matrix.lts_environment.password }}
+      NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment[0] }}
+      NXDRIVE_TEST_USERNAME: ${{ secrets[matrix.lts_environment[2]] }}
+      NXDRIVE_TEST_PASSWORD: ${{ secrets[matrix.lts_environment[3]] }}
 
-    name: cleanup(LTS ${{ matrix.lts_environment.name }})
+    name: cleanup(LTS ${{ matrix.lts_environment[1] }})
     if: always()
     needs:
       - functional-tests-linux

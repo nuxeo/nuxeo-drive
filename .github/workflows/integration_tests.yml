@@ -15,7 +15,6 @@ on:
 
 env:
   FREEZE_ONLY: 1
-  #NXDRIVE_TEST_PASSWORD:  ${{ secrets.NXDRIVE_TEST_USERNAME }}
 
 jobs:
   integration-tests-windows:
