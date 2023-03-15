@@ -391,6 +391,7 @@ def test_get_info_bad_response(manager_factory, obj_factory):
     with manager:
         direct_edit = manager.direct_edit
         Feature.s3 = False
+        manager.set_config("s3", "0")
         direct_edit._folder.mkdir()
         direct_edit.directEditError[str, list].connect(error_signal)
         doc = obj_factory(
