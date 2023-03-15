@@ -105,6 +105,7 @@ class BaseUploader:
             # in case the server did not answer correctly the previous time and thus S3 would
             # be completely disabled because of a one-time server error.
             handler = UP_AMAZON_S3 if Feature.s3 and uploads.has_s3() else ""
+            print(">>>>> handler: {handler}")
 
             # Create a new batch
             metrics = {
