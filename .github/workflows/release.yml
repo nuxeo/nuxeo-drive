@@ -132,6 +132,22 @@ jobs:
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
 
+      - name: "[macOS] Generate the .dmg 2023"
+        if: matrix.os == 'macos-latest'
+        timeout-minutes: 20
+        env:
+          NXDRIVE_TEST_NUXEO_URL: "https://drive-2023.beta.nuxeocloud.com/nuxeo"
+          NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2023_TEST_USERNAME }}
+          NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2023_TEST_PASSWORD }}
+          MACOSX_DEPLOYMENT_TARGET: "11.3"
+          KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
+          NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
+          SIGNING_ID: "NUXEO CORP"
+          SYSTEM_VERSION_COMPAT: 0
+        run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
+
       - name: "[macOS] Upload artifacts"
         if: matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v2
