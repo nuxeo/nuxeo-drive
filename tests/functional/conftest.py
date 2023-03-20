@@ -156,7 +156,6 @@ def attach_blob(nuxeo: Nuxeo, doc: Document, file: Path) -> Blob:
     uploaded = batch.upload(blob, chunked=True)
 
     # Attach it to the file
-    print(">>>> Attaching blob")
     return nuxeo.operations.execute(
         command="Blob.AttachOnDocument",
         params={"document": doc.path},
