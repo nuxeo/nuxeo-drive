@@ -11,7 +11,6 @@ from nuxeo.documents import Document
 from nuxeo.models import Blob, FileBlob
 from nuxeo.users import User
 
-from nxdrive.feature import Feature
 from nxdrive.manager import Manager
 
 from .. import env
@@ -121,9 +120,7 @@ def obj_factory(request, server, tmp_path):
     ):
         title = title or str(uuid4())
         new = Document(name=title, type=nature, properties={"dc:title": title})
-        Feature.s3 = False
         obj = server.documents.create(new, parent_path=parent)
-        print(">>>> doc created")
         request.addfinalizer(obj.delete)
         log.info(f"[FIXTURE] Created {obj}")
 
@@ -131,7 +128,6 @@ def obj_factory(request, server, tmp_path):
             file = tmp_path / f"{uuid4()}.odt"
             file.write_bytes(content)
             attach_blob(server, obj, file)
-            print(">>>> Attached blob")
 
         if user:
             server.operations.execute(
@@ -141,7 +137,6 @@ def obj_factory(request, server, tmp_path):
                 permission="ReadWrite",
                 grant=True,
             )
-            print(">>>> user permission set")
 
         if enable_sync:
             operation = server.operations.new("NuxeoDrive.SetSynchronization")

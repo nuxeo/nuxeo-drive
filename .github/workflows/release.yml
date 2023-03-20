@@ -159,11 +159,18 @@ jobs:
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
 
       - name: "[Windows] Generate the .exe"
+        strategy:
+          fail-fast: false
+          matrix:
+            lts_environment:  [ ["https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo",  "2021", "NXDRIVE_TEST_USERNAME",  "NXDRIVE_TEST_PASSWORD"],  ["https://drive-2023.beta.nuxeocloud.com/nuxeo",  "2023",  "NXDRIVE_2023_TEST_USERNAME", "NXDRIVE_2023_TEST_PASSWORD"] ]
+
         timeout-minutes: 15
         if: matrix.os == 'windows-latest'
         env:
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-          NXDRIVE_TEST_NUXEO_URL: "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
+          NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment[0] }}
+          NXDRIVE_TEST_USERNAME: ${{ secrets[matrix.lts_environment[2]] }}
+          NXDRIVE_TEST_PASSWORD: ${{ secrets[matrix.lts_environment[3]] }}
           SIGNING_ID: "Nuxeo"
           SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade
