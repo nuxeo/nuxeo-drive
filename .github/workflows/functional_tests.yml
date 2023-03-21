@@ -166,12 +166,9 @@ jobs:
     name: cleanup(LTS ${{ matrix.lts_environment[1] }})
     if: always()
     needs:
-      - functional-tests-linux(LTS 2021)
-      - functional-tests-macos(LTS 2021)
-      - functional-tests-windows(LTS 2021)
-      - functional-tests-linux(LTS 2023)
-      - functional-tests-macos(LTS 2023)
-      - functional-tests-windows(LTS 2023)
+      - functional-tests-linux
+      - functional-tests-macos
+      - functional-tests-windows
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v3
