@@ -1,9 +1,9 @@
-name: Functional tests
+name: Functional tests testing
 
 on:
   pull_request:
     paths:
-      - ".github/workflows/functional_tests.yml"
+     # - ".github/workflows/functional_tests.yml"
       - "nxdrive/**/*.py"
       - "tests/*.py"
       - "tests/functional/*.py"
@@ -63,6 +63,8 @@ jobs:
           files: ./coverage.xml
           flags: functional
           env_vars: OS,PYTHON
+      - name: Clean-up tests data
+        run: tox -e clean
 
   functional-tests-macos:
       runs-on: "macos-latest"
@@ -105,8 +107,8 @@ jobs:
             files: ./coverage.xml
             flags: functional
             env_vars: OS,PYTHON
-
-
+        - name: Clean-up tests data
+          run: tox -e clean
 
   functional-tests-windows:
       runs-on: windows-latest
@@ -150,6 +152,8 @@ jobs:
             files: ./coverage.xml
             flags: functional
             env_vars: OS,PYTHON
+        - name: Clean-up tests data
+          run: tox -e clean
 
   cleanup:
     runs-on: ubuntu-latest
