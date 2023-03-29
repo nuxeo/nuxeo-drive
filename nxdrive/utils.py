@@ -524,9 +524,12 @@ def safe_filename(name: str, /, *, replacement: str = "-") -> str:
     if MAC:
         return (
             (name)
-            .replace('"', replacement)
-            .replace("<", replacement)
-            .replace(">", replacement)
+            .replace("/", replacement)
+            .replace(":", replacement)
+            .replace("|", replacement)
+            .replace("*", replacement)
+            .replace("?", replacement)
+            .replace("\\", replacement)
         )
     return (
         # Windows doesn't allow whitespace or dots at the end of filenames

@@ -1078,24 +1078,25 @@ def test_simplify_url(url, result):
 
 
 @pytest.mark.parametrize(
-    "invalid, valid",
+    "invalid, valid, mac_valid",
     [
-        ('a/b\\c*d:e<f>g?h"i|j.doc', "a-b-c-d-e-f-g-h-i-j.doc"),
-        ("/*@?<>", "--@---"),
-        ("/*?<>", "-----"),
-        ("/ * @ ? < >", "- - @ - - -"),
-        ("/ * ? < >", "- - - - -"),
-        ("/*  ?<>", "--  ---"),
+        (
+            'a/b\\c*d:e<f>g?h"i|j.doc',
+            "a-b-c-d-e-f-g-h-i-j.doc",
+            'a-b-c-d-e<f>g-h"i-j.doc',
+        ),
+        ("/*@?<>", "--@---", "--@-<>"),
+        ("/*?<>", "-----", "---<>"),
+        ("/ * @ ? < >", "- - @ - - -", "- - @ - < >"),
+        ("/ * ? < >", "- - - - -", "- - - < >"),
+        ("/*  ?<>", "--  ---", "--  -<>"),
     ],
 )
-def test_safe_filename(invalid, valid):
+def test_safe_filename(invalid, valid, mac_valid):
     if not MAC:
         assert nxdrive.utils.safe_filename(invalid) == valid
     else:
-        assert (
-            nxdrive.utils.safe_filename('a/b\\c*d:e<f>g?h"i|j.doc')
-            == 'a-b-c-d-e<f>g-h"i-j.doc'
-        )
+        assert nxdrive.utils.safe_filename(invalid) == mac_valid
 
 
 def test_safe_filename_ending_with_space():
@@ -1103,6 +1104,8 @@ def test_safe_filename_ending_with_space():
     valid = nxdrive.utils.safe_filename(invalid)
     if WINDOWS:
         assert valid == "-a-zerty.odt"
+    elif MAC:
+        assert valid == "<a>zerty.odt "
     else:
         assert valid == "-a-zerty.odt "
 
