@@ -521,6 +521,13 @@ def safe_filename(name: str, /, *, replacement: str = "-") -> str:
     """Replace forbidden characters (at the OS and Nuxeo levels) for a given *name*.
     See benchmarks/test_safe_filename.py for the best implementation.
     """
+    if MAC:
+        return (
+            (name)
+            .replace('"', replacement)
+            .replace("<", replacement)
+            .replace(">", replacement)
+        )
     return (
         # Windows doesn't allow whitespace or dots at the end of filenames
         (name.rstrip(" .") if WINDOWS else name)
