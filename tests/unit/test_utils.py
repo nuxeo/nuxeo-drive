@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pytest
 
 import nxdrive.utils
-from nxdrive.constants import APP_NAME, WINDOWS, DigestStatus
+from nxdrive.constants import APP_NAME, MAC, WINDOWS, DigestStatus
 from nxdrive.options import Options
 
 from ..markers import not_windows, windows_only
@@ -1089,7 +1089,13 @@ def test_simplify_url(url, result):
     ],
 )
 def test_safe_filename(invalid, valid):
-    assert nxdrive.utils.safe_filename(invalid) == valid
+    if not MAC:
+        assert nxdrive.utils.safe_filename(invalid) == valid
+    else:
+        assert (
+            nxdrive.utils.safe_filename('a/b\\c*d:e<f>g?h"i|j.doc')
+            == 'a-b-c-d-e<f>g-h"i-j.doc'
+        )
 
 
 def test_safe_filename_ending_with_space():
