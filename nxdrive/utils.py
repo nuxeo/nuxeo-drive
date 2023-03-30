@@ -525,9 +525,7 @@ def safe_filename(name: str, /, *, replacement: str = "-") -> str:
         name = re.sub(r"\?|\*|\/|\\|:|\|", "-", name)
     else:
         name = re.sub(
-            r'\?|\*|\/|\\|"|<|>|:|\|',
-            "-",
-            (name.rstrip(" .") if WINDOWS else name),  # noqa
+            r'\?|\*|\/|\\|"|<|>|:|\|', "-", (name.rstrip(" .") if WINDOWS else name)
         )
     return name
 
