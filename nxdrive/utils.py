@@ -522,28 +522,14 @@ def safe_filename(name: str, /, *, replacement: str = "-") -> str:
     See benchmarks/test_safe_filename.py for the best implementation.
     """
     if MAC:
-        return (
-            (name)
-            .replace("/", replacement)
-            .replace(":", replacement)
-            .replace("|", replacement)
-            .replace("*", replacement)
-            .replace("?", replacement)
-            .replace("\\", replacement)
+        name = re.sub(r"\?|\*|\/|\\|:|\|", "-", name)
+    else:
+        name = re.sub(
+            r'\?|\*|\/|\\|"|<|>|:|\|',
+            "-",
+            (name.rstrip(" .") if WINDOWS else name),  # noqa
         )
-    return (
-        # Windows doesn't allow whitespace or dots at the end of filenames
-        (name.rstrip(" .") if WINDOWS else name)
-        .replace("/", replacement)
-        .replace(":", replacement)
-        .replace('"', replacement)
-        .replace("|", replacement)
-        .replace("*", replacement)
-        .replace("<", replacement)
-        .replace(">", replacement)
-        .replace("?", replacement)
-        .replace("\\", replacement)
-    )
+    return name
 
 
 def safe_long_path(path: Path, /) -> Path:
