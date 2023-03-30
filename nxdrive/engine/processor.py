@@ -1,5 +1,5 @@
 import errno
-import os
+import re
 import shutil
 import sqlite3
 import sys
@@ -1349,6 +1349,25 @@ class Processor(EngineWorker):
                         )
                         self.dao.update_remote_parent_path(doc_pair, new_parent_path)
                     else:
+                        folder_name = str(doc_pair.local_path)
+                        added_string = re.sub(
+                            doc_pair.remote_name + "$", "", folder_name
+                        )
+                        if "Workspaces" in added_string:
+                            partitioned_name = folder_name.partition("Workspaces - ")
+                        elif "UserWorkspaces" in added_string:
+                            partitioned_name = folder_name.partition(
+                                "UserWorkspaces - "
+                            )
+                        actual_folder_name = partitioned_name[2]
+                        if (
+                            doc_pair.remote_name == actual_folder_name
+                            and doc_pair.folderish
+                        ):
+                            # Release folder lock before returning
+                            self.engine.release_folder_lock()
+                            return
+
                         log.info(
                             f"Renaming local {file_or_folder} "
                             f"{self.local.abspath(doc_pair.local_path)!r} "
@@ -1464,12 +1483,6 @@ class Processor(EngineWorker):
         self._unlock_readonly(local_parent_path)
         try:
             if doc_pair.folderish:
-                if "Workspaces - " in name and "defaultSyncRoot" in doc_pair.remote_ref:
-                    partitioned_name = name.partition("Workspaces - ")
-                    new_name = partitioned_name[2]
-                    folder_path = os.path.join(local_parent_path, new_name)
-                    if not self.local.exists(folder_path):
-                        name = new_name
                 log.info(
                     f"Creating local folder {name!r} "
                     f"in {self.local.abspath(local_parent_path)!r}"
