@@ -1349,17 +1349,21 @@ class Processor(EngineWorker):
                         )
                         self.dao.update_remote_parent_path(doc_pair, new_parent_path)
                     else:
+
                         folder_name = str(doc_pair.local_path)
                         added_string = re.sub(
                             doc_pair.remote_name + "$", "", folder_name
                         )
+                        partitioned_name = ""
                         if "Workspaces" in added_string:
                             partitioned_name = folder_name.partition("Workspaces - ")
                         elif "UserWorkspaces" in added_string:
                             partitioned_name = folder_name.partition(
                                 "UserWorkspaces - "
                             )
-                        actual_folder_name = partitioned_name[2]
+                        actual_folder_name = (
+                            partitioned_name[2] if partitioned_name else ""
+                        )
                         if (
                             doc_pair.remote_name == actual_folder_name
                             and doc_pair.folderish
