@@ -158,7 +158,6 @@ def attach_blob(nuxeo: Nuxeo, doc: Document, file: Path) -> Blob:
     # Attach it to the file
     return nuxeo.operations.execute(
         command="Blob.AttachOnDocument",
-        params={"document": doc.path, "xpath": "file:content"},
+        params={"document": doc.path},
         input_obj=uploaded,
-        headers={"X-NXVoidOperation": "true"},
     )
