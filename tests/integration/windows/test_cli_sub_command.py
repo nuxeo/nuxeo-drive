@@ -75,9 +75,9 @@ def test_bind_server_missing_arguments(exe, args):
 def test_unbind_server(nuxeo_url, exe, folder):
     """Will also test clean-folder."""
     expanded_folder = os.path.expandvars(folder)
-    local_folder = f'--local-folder="{expanded_folder}"'
-    test_password = f'--password="{env.NXDRIVE_TEST_PASSWORD}"'
-    args = f"{env.NXDRIVE_TEST_USERNAME} {nuxeo_url} {local_folder} {test_password}"
+    local_folder = f'--local-folder "{expanded_folder}"'
+    test_password = f"--password {env.NXDRIVE_TEST_PASSWORD}"
+    args = f"{test_password} {local_folder} {env.NXDRIVE_TEST_USERNAME} {nuxeo_url}"
 
     try:
         assert bind(exe, args)
