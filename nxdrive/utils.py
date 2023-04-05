@@ -522,7 +522,7 @@ def safe_filename(name: str, /, *, replacement: str = "-") -> str:
     See benchmarks/test_safe_filename.py for the best implementation.
     """
     if MAC:
-        name = re.sub(r"\?|\*|\/|\\|:|\|", replacement, name)
+        name = re.sub(r"\/|\\|:|\|", replacement, name)
     else:
         name = re.sub(
             r'\?|\*|\/|\\|"|<|>|:|\|',
