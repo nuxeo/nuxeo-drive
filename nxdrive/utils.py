@@ -523,11 +523,17 @@ def safe_filename(name: str, /, *, replacement: str = "-") -> str:
     """
     if MAC:
         name = re.sub(r"\/|\\|:|\|", replacement, name)
-    else:
+    elif WINDOWS:
         name = re.sub(
             r'\?|\*|\/|\\|"|<|>|:|\|',
             replacement,
-            (name.rstrip(" .") if WINDOWS else name),
+            name.rstrip(" ."),
+        )
+    else:
+        name = re.sub(
+            r"\/|\\|\|",
+            replacement,
+            name,
         )
     return name
 
