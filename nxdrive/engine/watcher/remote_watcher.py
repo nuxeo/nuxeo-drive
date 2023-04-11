@@ -819,7 +819,8 @@ class RemoteWatcher(EngineWorker):
                     continue
 
                 if (
-                    event_id == SECURITY_UPDATED_EVENT
+                    new_info
+                    and event_id == SECURITY_UPDATED_EVENT
                     and safe_filename(new_info.name) != doc_pair.local_name
                 ):
                     new_info.name = doc_pair.local_name
