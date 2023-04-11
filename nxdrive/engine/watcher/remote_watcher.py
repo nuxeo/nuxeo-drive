@@ -818,6 +818,12 @@ class RemoteWatcher(EngineWorker):
                 if not doc_pair:
                     continue
 
+                if (
+                    event_id == SECURITY_UPDATED_EVENT
+                    and safe_filename(new_info.name) != doc_pair.local_name
+                ):
+                    new_info.name = doc_pair.local_name
+
                 doc_pair_repr = doc_pair.local_path or doc_pair.remote_name
                 if event_id == DELETED_EVENT:
                     if fs_item is None or new_info is None:
