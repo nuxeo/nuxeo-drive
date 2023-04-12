@@ -22,6 +22,7 @@ from .constants import (
     DOCUMENT_LOCKED,
     DOCUMENT_MOVED,
     DOCUMENT_UNLOCKED,
+    ROOT_REGISTERED,
     SECURITY_UPDATED_EVENT,
     WORKSPACE_ROOT,
 )
@@ -824,13 +825,6 @@ class RemoteWatcher(EngineWorker):
                 if not doc_pair:
                     continue
 
-                if (
-                    new_info
-                    and event_id == SECURITY_UPDATED_EVENT
-                    and safe_filename(new_info.name) != doc_pair.local_name
-                ):
-                    new_info.name = doc_pair.local_name
-
                 doc_pair_repr = doc_pair.local_path or doc_pair.remote_name
                 if event_id == DELETED_EVENT:
                     if fs_item is None or new_info is None:
@@ -1019,6 +1013,12 @@ class RemoteWatcher(EngineWorker):
             if new_info and not updated:
                 # Handle new document creations
                 created = False
+
+                if (
+                    self.engine.remote.is_sync_root(new_info)
+                    and event_id == ROOT_REGISTERED
+                ):
+                    self.engine.remote.expand_sync_root_name(new_info)
 
                 # Keep the sync root name format as expected
                 parent_pairs = self.dao.get_states_from_remote(new_info.parent_uid)
