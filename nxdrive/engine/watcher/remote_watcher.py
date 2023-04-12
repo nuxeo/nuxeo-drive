@@ -1014,6 +1014,7 @@ class RemoteWatcher(EngineWorker):
                 # Handle new document creations
                 created = False
 
+                # Keep the sync root name format as expected
                 if (
                     self.engine.remote.is_sync_root(new_info)
                     and event_id == ROOT_REGISTERED
