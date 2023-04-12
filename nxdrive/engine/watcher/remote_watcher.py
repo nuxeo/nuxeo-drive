@@ -1020,7 +1020,6 @@ class RemoteWatcher(EngineWorker):
                 ):
                     self.engine.remote.expand_sync_root_name(new_info)
 
-                # Keep the sync root name format as expected
                 parent_pairs = self.dao.get_states_from_remote(new_info.parent_uid)
                 for parent_pair in parent_pairs:
                     match_pair = self._find_remote_child_match_or_create(
