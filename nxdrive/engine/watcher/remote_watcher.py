@@ -49,7 +49,6 @@ class RemoteWatcher(EngineWorker):
         super().__init__(engine, dao, "RemoteWatcher")
 
         self.empty_polls = 0
-        self.modified_name = False
         self._next_check = 0.0
         self._last_sync_date: int = self.dao.get_int("remote_last_sync_date")
         self._last_event_log_id: int = self.dao.get_int("remote_last_event_log_id")
@@ -797,15 +796,11 @@ class RemoteWatcher(EngineWorker):
                 continue
 
             new_info = RemoteFileInfo.from_dict(fs_item) if fs_item else None
-            if new_info(
+            if new_info and (
                 self.engine.remote.is_sync_root(new_info)
                 or WORKSPACE_ROOT in new_info.uid
             ):
-                if not self.modified_name:
-                    new_info = self.engine.remote.expand_sync_root_name(new_info)
-                    self.modified_name = True
-                else:
-                    self.modified_name = False
+                new_info = self.engine.remote.expand_sync_root_name(new_info)
 
             if self.filtered(new_info):
                 log.info(f"Ignoring banned file: {new_info!r}")
@@ -1024,11 +1019,7 @@ class RemoteWatcher(EngineWorker):
                     self.engine.remote.is_sync_root(new_info)
                     and event_id == ROOT_REGISTERED
                 ):
-                    if not self.modified_name:
-                        self.engine.remote.expand_sync_root_name(new_info)
-                        self.modified_name = True
-                    else:
-                        self.modified_name = False
+                    self.engine.remote.expand_sync_root_name(new_info)
 
                 parent_pairs = self.dao.get_states_from_remote(new_info.parent_uid)
                 for parent_pair in parent_pairs:
