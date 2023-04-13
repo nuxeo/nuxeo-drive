@@ -49,8 +49,9 @@ codespell==2.2.4 \
 colorama==0.4.4; sys_platform == "win32" \
     --hash=sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2
     # via pytest
-comtypes==1.1.10 ; sys_platform == "win32" \
-    --hash=sha256:a9929e4bea8f874adc7c370e58a553aa91a4c08cecd58a0fdcf7ff5238af14e5
+comtypes==1.1.14 ; sys_platform == "win32" \
+    --hash=sha256:5d7caf6d3a86d51ddfc53e4548cae2dceee1b46672f8bd59679711dd01a934f2 \
+    --hash=sha256:7cdbe2dc65fe105eea97be04dc50ee3178747bcb64d802d7c0832416d75a87bd
     # via pywinauto
 coverage==7.2.3 \
     --hash=sha256:06ddd9c0249a0546997fdda5a30fbcb40f23926df0a874a60a8a185bc3a87d93 \
