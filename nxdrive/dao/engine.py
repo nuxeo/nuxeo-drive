@@ -1764,7 +1764,7 @@ class EngineDAO(BaseDAO):
             and row.local_name != info.name
             and row.local_state != "resolved"
         ):
-            # We check the current pair_state to not interfer with conflicted
+            # We check the current pair_state to not interfere with conflicted
             # documents (a move on both sides) nor with newly remotely
             # created ones.
             row.remote_state = "modified"

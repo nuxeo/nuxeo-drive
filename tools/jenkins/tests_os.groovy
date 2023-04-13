@@ -15,7 +15,7 @@ properties([
         [$class: 'StringParameterDefinition',
             name: 'PYTEST_ADDOPTS',
             defaultValue: '-n4',
-            description: 'Extra command line options for pytest. They override any previsously set options. Examples:<ul><li>Number of cores to use: <code>-n X</code> ("auto" to enable all, default)</li><li>Useful for debugging: <code>--capture=no</code></li></ul>'],
+            description: 'Extra command line options for pytest. They override any previously set options. Examples:<ul><li>Number of cores to use: <code>-n X</code> ("auto" to enable all, default)</li><li>Useful for debugging: <code>--capture=no</code></li></ul>'],
         [$class: 'ChoiceParameterDefinition',
             name: 'RANDOM_BUG_MODE',
             choices: 'None\nRELAX\nSTRICT\nBYPASS',

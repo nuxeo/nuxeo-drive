@@ -15,4 +15,4 @@ The following is some guidelines (we are on Windows 10 with the username Alice a
 5. Then, open `test.psd` with Photoshop.
 6. Observe the console output when doing different actions.
 
-You can find valuable information in the different anaylsed behaviors in that folder.
+You can find valuable information in the different analysed behaviors in that folder.

@@ -81,7 +81,7 @@ def test_migration_engine_no_error():
         user_version = cursor.execute("PRAGMA user_version").fetchone()[0]
         assert user_version == 9
 
-        # Let's do a database downgarde to version 5
+        # Let's do a database downgrade to version 5
         migration_engine.execute_database_donwgrade(user_version, 5, 0)
         user_version = cursor.execute("PRAGMA user_version").fetchone()[0]
         assert user_version == 5
