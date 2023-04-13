@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Tuple
 from nuxeo.exceptions import BadQuery, HTTPError, Unauthorized
 
 from ...client.local import FileInfo
-from ...constants import BATCH_SIZE, CONNECTION_ERROR, ROOT, WINDOWS
+from ...constants import BATCH_SIZE, CONNECTION_ERROR, ROOT, WINDOWS, WORKSPACE_ROOT
 from ...exceptions import NotFound, ScrollDescendantsError, ThreadInterrupt
 from ...feature import Feature
 from ...objects import DocPair, DocPairs, Metrics, RemoteFileInfo
@@ -24,7 +24,6 @@ from .constants import (
     DOCUMENT_UNLOCKED,
     ROOT_REGISTERED,
     SECURITY_UPDATED_EVENT,
-    WORKSPACE_ROOT,
 )
 
 if TYPE_CHECKING:
