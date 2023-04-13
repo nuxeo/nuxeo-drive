@@ -86,7 +86,7 @@ jobs:
 
       - name: "[GNU/Linux] Upload artifacts"
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: package-distributions
           path: ./dist/*.AppImage
@@ -134,7 +134,7 @@ jobs:
 
       - name: "[macOS] Upload artifacts"
         if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: package-distributions
           path: ./dist/*.dmg
@@ -170,7 +170,7 @@ jobs:
 
       - name: "[Windows] Upload artifacts"
         if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: package-distributions
           path: ./dist/*.exe
