@@ -31,7 +31,7 @@ class SessionCsv:
 
     def create_tmp(self) -> None:
         """Create a CSV file ready to be ingested by the Nuxeo CSV importer.
-        It must be compatible with the add-on and so followes those specifications:
+        It must be compatible with the add-on and so follows those specifications:
             https://doc.nuxeo.com/nxdoc/nuxeo-csv/#csv-file-definition.
         """
         if self.output_tmp.is_file():

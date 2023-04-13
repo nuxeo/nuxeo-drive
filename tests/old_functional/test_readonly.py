@@ -56,7 +56,7 @@ class TestReadOnly(OneUserTest):
     def test_file_content_change(self):
         """
         No upload server side but possible to change the file locally
-        without error, if the OS allowes it (unlikely).
+        without error, if the OS allows it (unlikely).
         """
 
         local = self.local_1
