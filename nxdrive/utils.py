@@ -521,19 +521,13 @@ def safe_filename(name: str, /, *, replacement: str = "-") -> str:
     """Replace forbidden characters (at the OS and Nuxeo levels) for a given *name*.
     See benchmarks/test_safe_filename.py for the best implementation.
     """
-    return (
-        # Windows doesn't allow whitespace or dots at the end of filenames
-        (name.rstrip(" .") if WINDOWS else name)
-        .replace("/", replacement)
-        .replace(":", replacement)
-        .replace('"', replacement)
-        .replace("|", replacement)
-        .replace("*", replacement)
-        .replace("<", replacement)
-        .replace(">", replacement)
-        .replace("?", replacement)
-        .replace("\\", replacement)
-    )
+    if MAC:
+        name = re.sub(r"\/|\\|:|\|", replacement, name)
+    elif WINDOWS:
+        name = re.sub(r'\?|\*|\/|\\|"|<|>|:|\|', replacement, name.rstrip(" ."))
+    else:
+        name = re.sub(r"\/|\\|\|", replacement, name)
+    return name
 
 
 def safe_long_path(path: Path, /) -> Path:
