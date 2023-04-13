@@ -370,18 +370,18 @@ class TestLocalClientNative(StubLocalClient, OneUserTest):
         remote = self.remote_document_client_1
 
         # Step 1: remotely create an accentued folder
-        root = remote.make_folder(self.workspace, "Projet Hémodialyse")
+        root = remote.make_folder(self.workspace, "Project Hémodialyse")
         folder = remote.make_folder(root, "Pièces graphiques")
 
         self.wait_sync(wait_for_async=True)
-        assert local.exists("/Projet Hémodialyse")
-        assert local.exists("/Projet Hémodialyse/Pièces graphiques")
+        assert local.exists("/Project Hémodialyse")
+        assert local.exists("/Project Hémodialyse/Pièces graphiques")
 
         # Step 2: remotely change the case of the subfolder
         remote.update(folder, properties={"dc:title": "Pièces Graphiques"})
 
         self.wait_sync(wait_for_async=True)
-        children = local.get_children_info("/Projet Hémodialyse")
+        children = local.get_children_info("/Project Hémodialyse")
         assert len(children) == 1
         assert children[0].name == "Pièces Graphiques"
 

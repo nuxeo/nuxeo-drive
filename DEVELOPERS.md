@@ -7,7 +7,7 @@ The development workflow is described on that [Wiki](https://nuxeowiki.atlassian
 [![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=nuxeo/nuxeo-drive)](https://dependabot.com)
 
 Nuxeo Drive is written in Python and make heavily use of the Qt framework.
-This allowes to easily create a multi-platform desktop application using the same code base.
+This allows to easily create a multi-platform desktop application using the same code base.
 
 # Coding Style Guide
 

@@ -72,7 +72,7 @@ function download($version) {
 		Try {
 			Start-BitsTransfer -Source $url -Destination $global:INSTALLER
 
-			# Remove the confirmation due to "This came from another computer and migh
+			# Remove the confirmation due to "This came from another computer and might
 			# be blocked to help protect this computer"
 			Unblock-File "$global:INSTALLER"
 			return

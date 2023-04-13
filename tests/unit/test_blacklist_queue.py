@@ -19,7 +19,7 @@ def test_delay():
     assert not list(queue.get())
     sleep(sleep_time)
 
-    # Verfiy we get the two items now
+    # Verify we get the two items now
     item = next(queue.get())
     assert isinstance(item, BlocklistItem)
     assert item.path == Path("Item1")
