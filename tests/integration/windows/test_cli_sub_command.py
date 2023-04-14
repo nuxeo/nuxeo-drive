@@ -120,6 +120,7 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
 
     folder = tmp()
     assert not folder.is_dir()
+    os.mkdir(folder)
     local_folder = f'--local-folder="{str(folder)}"'
 
     ws = None
@@ -191,6 +192,7 @@ def test_ctx_menu_entries(nuxeo_url, exe, server, tmp):
 
     folder = tmp()
     assert not folder.is_dir()
+    os.mkdir(folder)
     local_folder = f'--local-folder="{str(folder)}"'
 
     ws = None
