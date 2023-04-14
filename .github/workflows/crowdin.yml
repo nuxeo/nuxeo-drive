@@ -2,11 +2,8 @@ name: Crowdin
 
 on:
   # Check for updates every day
-  #schedule:
-  #  - cron: "0 0 * * *"
-  pull_request:
-    paths:
-      - "nxdrive/data/i18n/*.json"
+  schedule:
+    - cron: "0 0 * * *"
 
   # Sync when a commit is done on master
   push:
