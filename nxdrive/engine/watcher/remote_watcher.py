@@ -399,6 +399,8 @@ class RemoteWatcher(EngineWorker):
                 continue
 
             log.debug(f"Scanning remote child: {child_info!r}")
+            if WORKSPACE_ROOT in child_info.uid:
+                child_info = self.engine.remote.expand_sync_root_name(child_info)
             new_pair = False
             child_pair = None
             if child_info.uid in children:
