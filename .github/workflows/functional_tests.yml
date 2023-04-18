@@ -17,6 +17,7 @@ on:
 
 env:
   NXDRIVE_TEST_NUXEO_URL: https://drive-2021.beta.nuxeocloud.com/nuxeo
+  NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_TEST_USERNAME }}
   NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_TEST_PASSWORD }}
 
 jobs:
