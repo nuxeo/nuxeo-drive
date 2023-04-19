@@ -1321,3 +1321,24 @@ def test_get_verify(raw_value, expected_value):
     verify = nxdrive.utils.get_verify()
     assert verify is expected_value
     Options.ssl_no_verify = old_ssl_no_verify
+
+
+def test_get_date():
+
+    d = datetime.strptime(
+        str("2023-04-14 09:16:51.199007".split(".")[0]), "%Y-%m-%d %H:%M:%S"
+    )
+
+    assert nxdrive.utils.get_date_from_sqlite("2023-04-14 09:16:51.199007") == d
+
+    assert nxdrive.utils.get_date_from_sqlite("2023/04/14 09:16:51.199007") is None
+
+
+def test_get_timestamp():
+    assert nxdrive.utils.get_timestamp_from_date(None) == 0
+
+    d = datetime.strptime(
+        str("2023-04-15 09:16:51.199007".split(".")[0]), "%Y-%m-%d %H:%M:%S"
+    )
+
+    assert nxdrive.utils.get_timestamp_from_date(d) == 1681550211
