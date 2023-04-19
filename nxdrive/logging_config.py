@@ -127,7 +127,6 @@ def configure(
     force_configure: bool = False,
     formatter: Formatter = None,
 ) -> None:
-
     global is_logging_configured
 
     if is_logging_configured and not force_configure:
@@ -191,7 +190,7 @@ def configure(
         # NXDRIVE-2323: log everything and enable even more network-related debugging details
         import http
 
-        http.client.HTTPConnection.debuglevel = 1  # type: ignore
+        http.client.HTTPConnection.debuglevel = 1
     else:
         # NXDRIVE-1774: filter out urllib3 logging about "Certificate did not match..."
         logging.getLogger("urllib3").setLevel(logging.CRITICAL)

@@ -30,7 +30,6 @@ log = getLogger(__name__)
 
 
 class WindowsIntegration(AbstractOSIntegration):
-
     nature = "Windows"
 
     @if_frozen
@@ -229,7 +228,6 @@ class WindowsIntegration(AbstractOSIntegration):
         )
 
     def _watch_or_ignore(self, folder: Path, action: str, /) -> None:
-
         if not self._manager:
             return
 

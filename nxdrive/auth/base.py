@@ -12,10 +12,10 @@ class Authentication:
         self.token = token
         self.url = url
 
-    def connect_url(self) -> str:
+    def connect_url(self) -> str:  # type: ignore
         """Get the URL to use to open the browser to and let the user continue the authentication."""
 
-    def get_token(self, **kwargs: Any) -> "Token":
+    def get_token(self, **kwargs: Any) -> "Token":  # type: ignore
         """Request a token."""
 
     def revoke_token(self, **kwargs: Any) -> None:
