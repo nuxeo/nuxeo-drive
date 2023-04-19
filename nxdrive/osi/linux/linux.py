@@ -123,8 +123,7 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
         :param path: full path of the file
         """
         try:
-            status = get_formatted_status(doc_pair, path)
-            if status:
+            if status := get_formatted_status(doc_pair, path):
                 log.debug(f"Setting status to {path!r}: {status}")
                 self._set_icon(status)
         except Exception:

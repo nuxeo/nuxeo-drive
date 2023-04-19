@@ -299,21 +299,19 @@ class BaseDAO(QObject):
     def store_bool(self, name: str, value: bool, /) -> None:
         """Store a boolean parameter."""
 
-        self.update_config(name, bool(value))
+        self.update_config(name, value)
 
     def store_int(self, name: str, value: int, /) -> None:
         """Store an integer parameter."""
 
-        self.update_config(name, int(value))
+        self.update_config(name, value)
 
     def get_config(self, name: str, /, *, default: Any = None) -> Any:
         c = self._get_read_connection().cursor()
         obj = c.execute(
             "SELECT value FROM Configuration WHERE name = ?", (name,)
         ).fetchone()
-        if not (obj and obj.value):
-            return default
-        return obj.value
+        return default if not obj or not obj.value else obj.value
 
     def get_bool(self, name: str, /, *, default: bool = False) -> bool:
         """Retrieve a parameter of boolean type."""

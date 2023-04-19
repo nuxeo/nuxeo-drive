@@ -200,7 +200,7 @@ class Remote(Nuxeo):
         """Get up-to-date custom global metrics.
         It is necessary to be able to get feature states changes.
         """
-        metrics = {
+        return {
             INSTALLATION_TYPE: "system" if Options.system_wide else "user",
             EXEC_SESSION_UID: Options.session_uid,
             METRICS_CUSTOM: int(Options.custom_metrics),
@@ -210,14 +210,10 @@ class Remote(Nuxeo):
             EXEC_LOCALE: Options.locale,
             OS_MACHINE: machine(),
             OS_LOCALE: get_current_locale(),
+        } | {
+            f"feature.{feature}": int(state)
+            for feature, state in vars(Feature).items()
         }
-        metrics.update(
-            {
-                f"feature.{feature}": int(state)
-                for feature, state in vars(Feature).items()
-            }
-        )
-        return metrics
 
     def reload_global_headers(self) -> None:
         """Inject custom global metrics in the client headers."""

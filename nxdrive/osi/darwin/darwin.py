@@ -41,7 +41,7 @@ def _get_app() -> str:
     """Return the path to the application, when bundled."""
     exe_path = sys.executable
     m = re.match(r"(.*\.app).*", exe_path)
-    return m.group(1) if m else exe_path
+    return m[1] if m else exe_path
 
 
 class DarwinIntegration(AbstractOSIntegration):
@@ -232,8 +232,7 @@ class DarwinIntegration(AbstractOSIntegration):
         """
         name = f"{BUNDLE_IDENTIFIER}.syncStatus"
         try:
-            status = get_formatted_status(state, path)
-            if status:
+            if status := get_formatted_status(state, path):
                 log.debug(f"Sending status to FinderSync for {path!r}: {status}")
                 self._send_notification(name, {"statuses": [status]})
         except Exception:
@@ -259,8 +258,9 @@ class DarwinIntegration(AbstractOSIntegration):
                 states_batch = states[i : i + batch_size]
                 statuses = []
                 for state in states_batch:
-                    status = get_formatted_status(state, path / state.local_name)
-                    if status:
+                    if status := get_formatted_status(
+                        state, path / state.local_name
+                    ):
                         statuses.append(status)
                 log.debug(
                     f"Sending statuses to FinderSync for children of {path!r} "
@@ -296,11 +296,15 @@ class DarwinIntegration(AbstractOSIntegration):
             log.warning(f"Could not generate valid favorite URL for: {path!r}")
             return
 
-        # Register the folder as favorite if not already there
-        item = LSSharedFileListInsertItemURL(
-            favorites, kLSSharedFileListItemBeforeFirst, path.name, None, url, {}, []
-        )
-        if item:
+        if item := LSSharedFileListInsertItemURL(
+            favorites,
+            kLSSharedFileListItemBeforeFirst,
+            path.name,
+            None,
+            url,
+            {},
+            [],
+        ):
             log.info(f"Registered new favorite in Finder for: {path!r}")
 
     @if_frozen

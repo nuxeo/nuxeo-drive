@@ -200,10 +200,14 @@ def configure(
 
 
 def get_handler(name: str, /) -> Optional[logging.Handler]:
-    for handler in logging.getLogger().handlers:
-        if handler.name == name:
-            return handler
-    return None
+    return next(
+        (
+            handler
+            for handler in logging.getLogger().handlers
+            if handler.name == name
+        ),
+        None,
+    )
 
 
 def get_level(level: str, default: str, /) -> str:

@@ -79,9 +79,9 @@ class Notification:
         self.uid = ""
         if uid:
             if engine_uid:
-                uid += "_" + engine_uid
+                uid += f"_{engine_uid}"
             if not self.is_unique():
-                uid += "_" + str(int(time.time()))
+                uid += f"_{int(time.time())}"
             self.uid = uid
         elif uuid:
             self.uid = uuid
@@ -575,18 +575,17 @@ class DefaultNotificationService(NotificationService):
         if not hasattr(engine, "dao"):
             return
 
-        doc_pair = engine.dao.get_state_from_id(row_id)
-        if not doc_pair:
+        if doc_pair := engine.dao.get_state_from_id(row_id):
+            self.send_notification(ErrorNotification(engine.uid, doc_pair))
+        else:
             return
-
-        self.send_notification(ErrorNotification(engine.uid, doc_pair))
 
     def _newConflict(self, row_id: int, /) -> None:
         engine_uid = self.sender().uid
-        doc_pair = self.sender().dao.get_state_from_id(row_id)
-        if not doc_pair:
+        if doc_pair := self.sender().dao.get_state_from_id(row_id):
+            self.send_notification(ConflictNotification(engine_uid, doc_pair))
+        else:
             return
-        self.send_notification(ConflictNotification(engine_uid, doc_pair))
 
     def _newReadonly(self, filename: str, /, *, parent: str = None) -> None:
         engine_uid = self.sender().uid
@@ -629,7 +628,7 @@ class DefaultNotificationService(NotificationService):
 
     def _validAuthentication(self) -> None:
         engine_uid = self.sender().uid
-        self.discard_notification("INVALID_CREDENTIALS_" + engine_uid)
+        self.discard_notification(f"INVALID_CREDENTIALS_{engine_uid}")
 
     def _invalidAuthentication(self) -> None:
         engine_uid = self.sender().uid

@@ -213,12 +213,12 @@ def test_synchronization_enabled(manager_factory):
 
     # Default values are False
     assert Options.synchronization_enabled is False
-    assert Options.feature_synchronization is False
+    assert not Options.feature_synchronization
     assert Feature.synchronization is False
 
     # Mimic the IT team enabling the option
     with patch.object(engine.remote, "get_server_configuration", new=enabled):
         updater._poll()
         assert Options.synchronization_enabled is True
-        assert Options.feature_synchronization is True
+        assert Options.feature_synchronization
         assert Feature.synchronization is True

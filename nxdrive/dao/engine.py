@@ -690,7 +690,7 @@ class EngineDAO(BaseDAO):
                 "UPDATE States  SET processor = 0 WHERE processor = ?", (processor_id,)
             )
             log.debug(f"Released processor {processor_id}")
-            return bool(c.rowcount > 0)
+            return c.rowcount > 0
 
     def acquire_processor(self, thread_id: int, row_id: int, /) -> bool:
         with self.lock:
@@ -702,7 +702,7 @@ class EngineDAO(BaseDAO):
                 "   AND processor IN (0, ?)",
                 (thread_id, row_id, thread_id),
             )
-            return bool(c.rowcount == 1)
+            return c.rowcount == 1
 
     def _reinit_states(self, cursor: Cursor, /) -> None:
         cursor.execute("DROP TABLE States")
@@ -748,7 +748,7 @@ class EngineDAO(BaseDAO):
             c.execute(f"{update} WHERE id = ?", ("remotely_deleted", doc_pair.id))
             if doc_pair.folderish:
                 c.execute(
-                    update + " " + self._get_recursive_remote_condition(doc_pair),
+                    f"{update} {self._get_recursive_remote_condition(doc_pair)}",
                     ("parent_remotely_deleted",),
                 )
             # Only queue parent
@@ -781,16 +781,7 @@ class EngineDAO(BaseDAO):
     ) -> int:
         digest = None
         if not info.folderish:
-            if is_large_file(info.size):
-                # We can't compute the digest of big files now as it will
-                # be done later when the entire file is fully copied.
-                # For instance, on my machine (32GB RAM, 8 cores, Intel NUC)
-                # it takes 23 minutes for 100 GB and 7 minute for 50 GB.
-                # This is way too much effort to compute it several times.
-                digest = UNACCESSIBLE_HASH
-            else:
-                digest = info.get_digest()
-
+            digest = UNACCESSIBLE_HASH if is_large_file(info.size) else info.get_digest()
         with self.lock:
             c = self._get_write_connection().cursor()
             pair_state = PAIR_STATES[("created", "unknown")]
@@ -1413,7 +1404,7 @@ class EngineDAO(BaseDAO):
                     condition = self._get_recursive_remote_condition(doc_pair)
                 else:
                     condition = self._get_recursive_condition(doc_pair)
-                c.execute("DELETE FROM States " + condition)
+                c.execute(f"DELETE FROM States {condition}")
 
     def remove_state_children(
         self, doc_pair: DocPair, /, *, remote_recursion: bool = False
@@ -1424,7 +1415,7 @@ class EngineDAO(BaseDAO):
                 condition = self._get_recursive_remote_condition(doc_pair)
             else:
                 condition = self._get_recursive_condition(doc_pair)
-            c.execute("DELETE FROM States " + condition)
+            c.execute(f"DELETE FROM States {condition}")
 
     def get_state_from_local(self, path: Path, /) -> Optional[DocPair]:
         c = self._get_read_connection().cursor()
@@ -1492,15 +1483,10 @@ class EngineDAO(BaseDAO):
     def queue_children(self, row: DocPair, /) -> None:
         with self.lock:
             c = self._get_write_connection().cursor()
-            children: List[DocPair] = c.execute(
-                "SELECT *"
-                "  FROM States"
-                " WHERE remote_parent_ref = ?"
-                "    OR local_parent_path = ?"
-                "   AND " + self._get_to_sync_condition(),
+            if children := c.execute(
+                f"SELECT *  FROM States WHERE remote_parent_ref = ?    OR local_parent_path = ?   AND {self._get_to_sync_condition()}",
                 (row.remote_ref, row.local_path),
-            ).fetchall()
-            if children:
+            ).fetchall():
                 log.info(f"Queuing {len(children)} children of {row}")
                 for child in children:
                     self._queue_pair_state(child.id, child.folderish, child.pair_state)
@@ -1670,7 +1656,7 @@ class EngineDAO(BaseDAO):
                     version,
                 ),
             )
-            result = bool(c.rowcount == 1)
+            result = c.rowcount == 1
 
             # Retry without version for folder
             if not result and row.folderish:
@@ -1701,7 +1687,7 @@ class EngineDAO(BaseDAO):
                         row.remote_parent_ref,
                     ),
                 )
-            result = bool(c.rowcount == 1)
+            result = c.rowcount == 1
 
             if not result:
                 log.debug(f"Was not able to synchronize state: {row!r}")
@@ -1876,7 +1862,7 @@ class EngineDAO(BaseDAO):
         row = c.execute(
             "SELECT COUNT(path) FROM RemoteScan WHERE path = ? LIMIT 1", (path,)
         ).fetchone()
-        return bool(row[0] > 0)
+        return row[0] > 0
 
     def is_filter(self, path: str, /) -> bool:
         path = self._clean_filter_path(path)

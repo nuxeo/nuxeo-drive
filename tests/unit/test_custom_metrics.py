@@ -59,7 +59,7 @@ def test_with_some_errors(my_remote):
 
     with patch.object(my_remote.client, "request", new=fake_client_request):
         metrics = CustomPollMetrics(my_remote)
-        for _ in range(0, 12):
+        for _ in range(12):
             metrics.send({"test": "data"})
         assert metrics._poll()
         assert called_count == 12
@@ -80,7 +80,7 @@ def test_thread_interrupt(my_remote):
 
     with patch.object(my_remote.client, "request", new=fake_client_request):
         metrics = CustomPollMetrics(my_remote)
-        for _ in range(0, 12):
+        for _ in range(12):
             metrics.send({"test": "data"})
         with pytest.raises(ThreadInterrupt, match="Mock'ed"):
             metrics._poll()
@@ -103,7 +103,7 @@ def test_disabled_metrics(my_remote):
 
     with patch.object(my_remote.client, "request", new=fake_client_request):
         metrics = CustomPollMetrics(my_remote)
-        for _ in range(0, 12):
+        for _ in range(12):
             metrics.send({"test": "data"})
         metrics._poll()
         assert called_count == 0
