@@ -4,7 +4,6 @@ from .common import FILE_CONTENT, OneUserTest
 
 
 class TestLocalCopyPaste(OneUserTest):
-
     NUMBER_OF_LOCAL_TEXT_FILES = 10
     NUMBER_OF_LOCAL_IMAGE_FILES = 10
     NUMBER_OF_LOCAL_FILES_TOTAL = (

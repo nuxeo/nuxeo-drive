@@ -45,7 +45,6 @@ class OAuthentication(Authentication):
         return uri
 
     def get_token(self, **kwargs: Any) -> "Token":
-
         token: str = self.auth.request_token(
             code_verifier=kwargs["code_verifier"],
             code=kwargs["code"],
@@ -57,7 +56,6 @@ class OAuthentication(Authentication):
         return token
 
     def get_username(self) -> str:
-
         verification_needed = get_verify()
         client = Nuxeo(host=self.url, auth=self.auth, verify=verification_needed)
         user = client.users.current_user(verification_needed)

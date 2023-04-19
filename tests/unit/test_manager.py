@@ -5,7 +5,6 @@ from uuid import uuid4
 
 
 def test_send_sync_status(manager, engine):
-
     """This method is to test weather drive need to send sync status
     or not based on which directory user is currently watching.
     Is it drive local_folder e.g "/Users/test/Nuxeo Drive" or watching

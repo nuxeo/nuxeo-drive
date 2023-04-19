@@ -14,7 +14,6 @@ _CACHE: Dict[str, str] = {}
 
 
 class Translator(QTranslator):
-
     languageChanged = pyqtSignal()
     singleton = None
     current_language: str = ""
