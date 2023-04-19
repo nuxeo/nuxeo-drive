@@ -870,6 +870,7 @@ def test_retrieve_ssl_certificate_unknown(hostname):
         ("non", False),
         ("nope", "nope"),
         ("epsilon\nalpha\ndelta\nbeta", ("alpha", "beta", "delta", "epsilon")),
+        ("0.1", 0.1),
     ],
 )
 def test_get_value(raw_value, expected_value):
