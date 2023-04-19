@@ -1324,7 +1324,6 @@ def test_get_verify(raw_value, expected_value):
 
 
 def test_get_date():
-
     d = datetime.strptime(
         str("2023-04-14 09:16:51.199007".split(".")[0]), "%Y-%m-%d %H:%M:%S"
     )

@@ -122,7 +122,6 @@ def test_current_os():
 
 
 def test_current_os_full():
-
     if MAC:
         expected = r"^macOS \d{2}\.\d{1,2}\.\d{1,2}$"
     elif WINDOWS:
