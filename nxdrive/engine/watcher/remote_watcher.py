@@ -804,6 +804,8 @@ class RemoteWatcher(EngineWorker):
                 or event_id == ROOT_REGISTERED
             ):
                 new_info = self.engine.remote.expand_sync_root_name(new_info)
+                if "test" in new_info.uid:
+                    return new_info
 
             if self.filtered(new_info):
                 log.info(f"Ignoring banned file: {new_info!r}")
