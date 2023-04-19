@@ -553,7 +553,7 @@ class CliHandler:
         # and contains a lot of nonexistent Options values.
         Options.update(options, setter="cli", fail_on_error=False)
 
-        if QSslSocket:  # type: ignore
+        if QSslSocket:
             has_ssl_support = QSslSocket.supportsSsl()
             log.info(f"SSL support: {has_ssl_support!r}")
             if not has_ssl_support:

@@ -318,7 +318,7 @@ class LocalWatcher(EngineWorker):
         if MAC and hasattr(stat, "st_ino"):
             return stat.st_ino
         if hasattr(stat, "st_birthtime"):
-            return stat.st_birthtime  # type: ignore
+            return stat.st_birthtime
         return 0
 
     def _scan_recursive(self, info: FileInfo, /, *, recursive: bool = True) -> None:
