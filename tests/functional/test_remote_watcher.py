@@ -2,6 +2,7 @@ from collections import namedtuple
 from unittest.mock import patch
 
 from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
+from nxdrive.objects import RemoteFileInfo
 
 
 def test_sync_root_name(manager_factory):
@@ -23,6 +24,9 @@ def test_sync_root_name(manager_factory):
             "",
         ),
     )
+
+    remote_path = "/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#"
+
     test_watcher = RemoteWatcher(engine, dao)
 
     def get_changes():
@@ -59,6 +63,12 @@ def test_sync_root_name(manager_factory):
                                                                                             51b7841d648-test" }'
         )
 
+    def init_scan_remote(doc_pair, remote_info):
+        return remote_path
+
+    def get_children(arg):
+        return []
+
     def get_states_from_remote_(path):
         return [docpair]
 
@@ -79,6 +89,84 @@ def test_sync_root_name(manager_factory):
         return None
 
     update_remote_states = test_watcher._update_remote_states
+
+    scan_remote = test_watcher._scan_remote_recursive
+
+    with patch.object(test_watcher, "_get_changes", new=get_changes):
+        info = update_remote_states
+
+    assert info is not None
+
+    remote_info = RemoteFileInfo.from_dict(
+        eval(
+            '{"id": "defaultSyncRootFolderItemFactory#default\
+                                                #a7e4ce2a-e4a7-432a-b5e1-62b354606929-test",\
+                                                "parentId": "org.nuxeo.drive.service.impl.\
+                                                DefaultTopLevelFolderItemFactory#",\
+                                                "name": "ROY",\
+                                                "folder": True,\
+                                                "creator": "Administrator",\
+                                                "lastContributor": "Administrator",\
+                                                "creationDate": 1681875486061,\
+                                                "lastModificationDate": 1681875528408,\
+                                                "canRename": True,\
+                                                "canDelete": True,\
+                                                "lockInfo": None,\
+                                                "path": "/org.nuxeo.drive.service.\
+                                                impl.DefaultTopLevelFolderItemFactory\
+                                                #/defaultSyncRootFolderItemFactory#default\
+                                                #a7e4ce2a-e4a7-432a-b5e1-62b354606929-test",\
+                                                "userName": "Administrator",\
+                                                 "canCreateChild": True,\
+                                                "canScrollDescendants": True\
+                                                }'
+        )
+    )
+
+    def get_fs_children_(*args):
+        return [remote_info]
+
+    def interact():
+        return
+
+    def do_scan_remote(*args, **kwargs):
+        return
+
+    def add_scanned(path):
+        assert path == remote_path
+
+    def find_remote_child_match_or_create(*args):
+        return (
+            namedtuple(
+                "DocPair",
+                "local_path, local_parent_path, remote_ref, local_state, remote_state, pair_state, last_error",
+                defaults=(
+                    ".",
+                    ".",
+                    "org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#",
+                    "synchronized",
+                    "synchronized",
+                    "synchronized",
+                    None,
+                ),
+            ),
+            True,
+        )
+
+    with patch.object(test_watcher, "_init_scan_remote", new=init_scan_remote):
+        with patch.object(test_watcher, "_interact", new=interact):
+            with patch.object(
+                test_watcher,
+                "_find_remote_child_match_or_create",
+                new=find_remote_child_match_or_create,
+            ):
+                with patch.object(test_watcher, "_do_scan_remote", new=do_scan_remote):
+                    with patch.object(dao, "add_path_scanned", new=add_scanned):
+                        with patch.object(dao, "get_remote_children", new=get_children):
+                            with patch.object(
+                                engine.remote, "get_fs_children", new=get_fs_children_
+                            ):
+                                scan_remote(docpair, remote_info)
 
     with patch.object(test_watcher, "_get_changes", new=get_changes):
         with patch.object(test_watcher, "_force_remote_scan", new=_force_remote_scan_):
