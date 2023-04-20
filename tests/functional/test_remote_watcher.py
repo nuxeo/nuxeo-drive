@@ -25,6 +25,8 @@ def test_sync_root_name(manager_factory):
             "",
         ),
     )
+    remote_path = "/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#"
+
     test_watcher = RemoteWatcher(engine, dao)
 
     def get_changes():
@@ -62,7 +64,7 @@ def test_sync_root_name(manager_factory):
         )
 
     def init_scan_remote(doc_pair, remote_info):
-        return "/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#"
+        return remote_path
 
     def get_children(arg):
         return []
@@ -113,8 +115,8 @@ def test_sync_root_name(manager_factory):
     def do_scan_remote(*args, **kwargs):
         return
 
-    def add_scanned(*args):
-        return
+    def add_scanned(path):
+        assert path == remote_path
 
     def find_remote_child_match_or_create(*args):
         return (
@@ -147,4 +149,4 @@ def test_sync_root_name(manager_factory):
                             with patch.object(
                                 engine.remote, "get_fs_children", new=get_fs_children_
                             ):
-                                assert scan_remote(docpair, remote_info) is None
+                                scan_remote(docpair, remote_info)
