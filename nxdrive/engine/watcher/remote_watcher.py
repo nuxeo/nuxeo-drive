@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Tuple
 from nuxeo.exceptions import BadQuery, HTTPError, Unauthorized
 
 from ...client.local import FileInfo
-from ...constants import BATCH_SIZE, CONNECTION_ERROR, ROOT, WINDOWS
+from ...constants import BATCH_SIZE, CONNECTION_ERROR, ROOT, WINDOWS, WORKSPACE_ROOT
 from ...exceptions import NotFound, ScrollDescendantsError, ThreadInterrupt
 from ...feature import Feature
 from ...objects import DocPair, DocPairs, Metrics, RemoteFileInfo
@@ -795,6 +795,13 @@ class RemoteWatcher(EngineWorker):
                 continue
 
             new_info = RemoteFileInfo.from_dict(fs_item) if fs_item else None
+            if new_info and (
+                self.engine.remote.is_sync_root(new_info)
+                or WORKSPACE_ROOT in new_info.uid
+                or event_id == ROOT_REGISTERED
+            ):
+                new_info = self.engine.remote.expand_sync_root_name(new_info)
+
             if self.filtered(new_info):
                 log.info(f"Ignoring banned file: {new_info!r}")
                 continue
@@ -1006,14 +1013,6 @@ class RemoteWatcher(EngineWorker):
             if new_info and not updated:
                 # Handle new document creations
                 created = False
-
-                # Keep the sync root name format as expected
-                if (
-                    self.engine.remote.is_sync_root(new_info)
-                    and event_id == ROOT_REGISTERED
-                ):
-                    self.engine.remote.expand_sync_root_name(new_info)
-
                 parent_pairs = self.dao.get_states_from_remote(new_info.parent_uid)
                 for parent_pair in parent_pairs:
                     match_pair = self._find_remote_child_match_or_create(

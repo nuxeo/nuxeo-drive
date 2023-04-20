@@ -26,7 +26,7 @@ from nuxeo.utils import get_digest_algorithm
 
 from .. import __version__
 from ..client.local import FileInfo
-from ..constants import ROOT, SYNC_ROOT, UNACCESSIBLE_HASH, WINDOWS, TransferStatus
+from ..constants import ROOT, UNACCESSIBLE_HASH, WINDOWS, TransferStatus
 from ..exceptions import UnknownPairState
 from ..objects import (
     DocPair,
@@ -1191,13 +1191,6 @@ class EngineDAO(BaseDAO):
         return c.execute(
             "SELECT * FROM States WHERE local_parent_path = ?", (path,)
         ).fetchall()
-
-    def get_local_roots_names(self) -> List[str]:
-        c = self._get_read_connection().cursor()
-        root_list = c.execute(
-            f"SELECT local_name FROM States WHERE remote_parent_path = '{SYNC_ROOT}'"
-        ).fetchall()
-        return [item[0] for item in root_list]
 
     def get_states_from_partial_local(
         self, path: Path, /, *, strict: bool = True
