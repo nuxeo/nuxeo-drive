@@ -125,18 +125,17 @@ class RemoteWatcher(EngineWorker):
 
     @pyqtSlot(str)
     def scan_pair(self, remote_path: str, /) -> None:
-        self.dao.add_path_to_scan(str(remote_path))
+        self.dao.add_path_to_scan(remote_path)
         self._next_check = 0
 
     def _scan_pair(self, remote_path: str, /) -> None:
         if remote_path is None:
             return
-        remote_path = str(remote_path)
+        remote_path = remote_path
         if self.dao.is_filter(remote_path):
             # Skip if filter
             return
-        if remote_path[-1:] == "/":
-            remote_path = remote_path[0:-1]
+        remote_path = remote_path.removesuffix("/")
         remote_ref = os.path.basename(remote_path)
         parent_path = os.path.dirname(remote_path)
         if parent_path == "/":
@@ -164,7 +163,7 @@ class RemoteWatcher(EngineWorker):
             return
         local_path = parent_pair.local_path / safe_filename(child_info.name)
         remote_parent_path = (
-            parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
+            f"{parent_pair.remote_parent_path}/{parent_pair.remote_ref}"
         )
         if os.path.dirname(child_info.path) == remote_parent_path:
             row_id = self.dao.insert_remote_state(
@@ -411,12 +410,10 @@ class RemoteWatcher(EngineWorker):
                     child_pair, child_info, remote_parent_path=remote_parent_path
                 ):
                     self.remove_void_transfers(child_pair)
-            else:
-                match_pair = self._find_remote_child_match_or_create(
-                    doc_pair, child_info
-                )
-                if match_pair:
-                    child_pair, new_pair = match_pair
+            elif match_pair := self._find_remote_child_match_or_create(
+                doc_pair, child_info
+            ):
+                child_pair, new_pair = match_pair
 
             if not child_pair:
                 log.error(
@@ -448,7 +445,7 @@ class RemoteWatcher(EngineWorker):
             )
             return None
 
-        remote_parent_path = doc_pair.remote_parent_path + "/" + remote_info.uid
+        remote_parent_path = f"{doc_pair.remote_parent_path}/{remote_info.uid}"
         if self.dao.is_path_scanned(remote_parent_path):
             log.debug(f"Skip already remote scanned: {doc_pair.local_path!r}")
             return None
@@ -478,7 +475,7 @@ class RemoteWatcher(EngineWorker):
 
         local_path = parent_pair.local_path / safe_filename(child_info.name)
         remote_parent_path = (
-            parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
+            f"{parent_pair.remote_parent_path}/{parent_pair.remote_ref}"
         )
         # Try to get the local definition if not linked
         child_pair = self.dao.get_state_from_local(local_path)
@@ -640,13 +637,10 @@ class RemoteWatcher(EngineWorker):
                 self._partial_full_scan(full_scan)
                 return False
 
-            paths = self.dao.get_paths_to_scan()
-            while paths:
+            while paths := self.dao.get_paths_to_scan():
                 remote_ref = paths[0]
                 self.dao.update_config("remote_need_full_scan", remote_ref)
                 self._partial_full_scan(remote_ref)
-                paths = self.dao.get_paths_to_scan()
-
             self._update_remote_states()
             (self.updated, self.initiate)[first_pass].emit()
         except BadQuery:
@@ -814,11 +808,9 @@ class RemoteWatcher(EngineWorker):
             # See https://jira.nuxeo.com/browse/NXDRIVE-125
             doc_pairs = self.dao.get_states_from_remote(remote_ref)
             if not doc_pairs:
-                # Relax constraint on factory name in FileSystemItem id to
-                # match 'deleted' or 'securityUpdated' events.
-                # See https://jira.nuxeo.com/browse/NXDRIVE-167
-                doc_pair = self.dao.get_first_state_from_partial_remote(remote_ref)
-                if doc_pair:
+                if doc_pair := self.dao.get_first_state_from_partial_remote(
+                    remote_ref
+                ):
                     doc_pairs = [doc_pair]
 
             updated = False
@@ -893,7 +885,7 @@ class RemoteWatcher(EngineWorker):
                                 new_info.name,
                                 new_info.uid,
                                 doc_pair.remote_parent_ref,
-                                doc_pair.remote_parent_path + "/" + remote_ref,
+                                f"{doc_pair.remote_parent_path}/{remote_ref}",
                                 new_info.folderish,
                                 new_info.last_modification_time,
                                 new_info.creation_time,
@@ -994,8 +986,9 @@ class RemoteWatcher(EngineWorker):
                             )
 
                         if lock_update:
-                            locked_pair = self.dao.get_state_from_id(doc_pair.id)
-                            if locked_pair:
+                            if locked_pair := self.dao.get_state_from_id(
+                                doc_pair.id
+                            ):
                                 try:
                                     self._handle_readonly(locked_pair)
                                 except OSError as exc:
@@ -1017,10 +1010,9 @@ class RemoteWatcher(EngineWorker):
                 created = False
                 parent_pairs = self.dao.get_states_from_remote(new_info.parent_uid)
                 for parent_pair in parent_pairs:
-                    match_pair = self._find_remote_child_match_or_create(
+                    if match_pair := self._find_remote_child_match_or_create(
                         parent_pair, new_info
-                    )
-                    if match_pair:
+                    ):
                         child_pair = match_pair[0]
                         if child_pair.folderish:
                             log.info(
