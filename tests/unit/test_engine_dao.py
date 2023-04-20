@@ -393,7 +393,6 @@ def test_migration_db_v1_with_duplicates(engine_dao):
 def test_migration_db_v8(engine_dao):
     """Verify Downloads.tmpname after migration from v7 to v8."""
     with engine_dao("engine_migration_8.db") as dao:
-
         for download in dao.get_downloads():
             assert str(download.tmpname).startswith("\\\\?\\")
 

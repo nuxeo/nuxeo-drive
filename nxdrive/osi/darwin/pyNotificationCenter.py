@@ -18,7 +18,6 @@ __all__ = ("NotificationDelegator", "notify", "setup_delegator")
 
 
 class NotificationDelegator(NSObject):
-
     manager: "Manager"
 
     def __init__(self) -> None:

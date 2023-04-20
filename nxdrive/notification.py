@@ -132,7 +132,6 @@ class Notification:
 
 
 class NotificationService(QObject):
-
     newNotification = pyqtSignal(object)
     discardNotification = pyqtSignal(object)
     triggerNotification = pyqtSignal(str, object)

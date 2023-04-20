@@ -6,7 +6,6 @@ from nxdrive.objects import RemoteFileInfo
 
 
 def test_sync_root_name(manager_factory):
-
     manager, engine = manager_factory()
     dao = engine.dao
 
@@ -25,6 +24,7 @@ def test_sync_root_name(manager_factory):
             "",
         ),
     )
+
     remote_path = "/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#"
 
     test_watcher = RemoteWatcher(engine, dao)
@@ -70,6 +70,25 @@ def test_sync_root_name(manager_factory):
         return []
 
     info = None
+
+    def get_states_from_remote_(path):
+        return [docpair]
+
+    def update_remote_state_(*args, **kwargs):
+        return False
+
+    def unset_unsychronised_(*args):
+        return
+
+    def _force_remote_scan_(*args, **kwargs):
+        return
+
+    def get_state_from_id_(*args):
+        return None
+
+    def _find_remote_child_match_or_create_(parent_pair, new_info):
+        assert "test" in new_info.id
+        return None
 
     update_remote_states = test_watcher._update_remote_states
     scan_remote = test_watcher._scan_remote_recursive
@@ -150,3 +169,23 @@ def test_sync_root_name(manager_factory):
                                 engine.remote, "get_fs_children", new=get_fs_children_
                             ):
                                 scan_remote(docpair, remote_info)
+
+        with patch.object(test_watcher, "_force_remote_scan", new=_force_remote_scan_):
+            with patch.object(
+                test_watcher,
+                "_find_remote_child_match_or_create",
+                new=_find_remote_child_match_or_create_,
+            ):
+                with patch.object(
+                    dao, "get_states_from_remote", new=get_states_from_remote_
+                ):
+                    with patch.object(
+                        dao, "update_remote_state", new=update_remote_state_
+                    ):
+                        with patch.object(
+                            dao, "unset_unsychronised", new=unset_unsychronised_
+                        ):
+                            with patch.object(
+                                dao, "get_state_from_id", new=get_state_from_id_
+                            ):
+                                update_remote_states

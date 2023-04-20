@@ -263,7 +263,6 @@ class Application(QApplication):
             del self.app_engine
 
     def init_gui(self) -> None:
-
         self.api = QMLDriveApi(self)
         self.active_session_model = ActiveSessionModel(self.translate)
         self.auto_update_feature_model = FeatureModel(Feature.auto_update)

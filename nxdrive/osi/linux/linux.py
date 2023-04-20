@@ -21,7 +21,6 @@ if TYPE_CHECKING:
 
 
 class LinuxIntegration(AbstractOSIntegration):
-
     nature = "GNU/Linux"
 
     def __init__(self, manager: Optional["Manager"], /):
