@@ -14,7 +14,6 @@ log = getLogger(__name__)
 
 
 class AbstractOSIntegration(QObject):
-
     nature = "Unknown"
 
     def __init__(self, manager: Optional["Manager"], /) -> None:

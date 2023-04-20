@@ -104,7 +104,6 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
 
 
 class EngineDAO(BaseDAO):
-
     old_migrations_max_schema_version = 21
     newConflict = pyqtSignal(object)
     transferUpdated = pyqtSignal()

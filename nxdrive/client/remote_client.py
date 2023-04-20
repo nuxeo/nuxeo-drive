@@ -616,7 +616,6 @@ class Remote(Nuxeo):
 
         myself = True
         while "can level up" and level < Options.sync_root_max_level:
-
             try:
                 doc = self.documents.get(uid=uid)
                 name = unicodedata.normalize("NFC", doc.properties["dc:title"])
@@ -1004,7 +1003,6 @@ class Remote(Nuxeo):
     def get_doc_enricher(
         self, parent: str, enricherType: str = "subtypes", isFolderish: bool = True
     ) -> SubTypeEnricher:
-
         headers: Dict[str, str] = {}
         headers = {"enrichers.document": enricherType}
 
@@ -1020,7 +1018,6 @@ class Remote(Nuxeo):
             return [x for x in enricherList.facets if x in docTypeFiletList]
 
     def filter_schema(self, enricherList: SubTypeEnricher) -> SubTypeEnricher:
-
         configTypes = self.get_config_types()
 
         return [
