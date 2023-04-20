@@ -794,7 +794,6 @@ class RemoteWatcher(EngineWorker):
                 log.debug("A more recent version was already processed")
                 continue
 
-            new_info = RemoteFileInfo.from_dict(fs_item) if fs_item else None
             log.info(f"Remote File Info: {new_info!r}")
             if new_info and (
                 self.engine.remote.is_sync_root(new_info)
