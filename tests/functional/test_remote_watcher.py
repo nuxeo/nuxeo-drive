@@ -69,8 +69,6 @@ def test_sync_root_name(manager_factory):
     def get_children(arg):
         return []
 
-    info = None
-
     def get_states_from_remote_(path):
         return [docpair]
 
@@ -91,6 +89,7 @@ def test_sync_root_name(manager_factory):
         return None
 
     update_remote_states = test_watcher._update_remote_states
+
     scan_remote = test_watcher._scan_remote_recursive
 
     with patch.object(test_watcher, "_get_changes", new=get_changes):
@@ -98,7 +97,6 @@ def test_sync_root_name(manager_factory):
 
     assert info is not None
 
-    info = None
     remote_info = RemoteFileInfo.from_dict(
         eval(
             '{"id": "defaultSyncRootFolderItemFactory#default\
@@ -170,6 +168,7 @@ def test_sync_root_name(manager_factory):
                             ):
                                 scan_remote(docpair, remote_info)
 
+    with patch.object(test_watcher, "_get_changes", new=get_changes):
         with patch.object(test_watcher, "_force_remote_scan", new=_force_remote_scan_):
             with patch.object(
                 test_watcher,
