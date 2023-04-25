@@ -368,7 +368,6 @@ class DirectTransferModel(QAbstractListModel):
                 item["engine"] != action["engine"]
                 or item["doc_pair"] != action["doc_pair"]
             ):
-
                 continue
             idx = self.createIndex(i, 0)
             self.setData(idx, action["progress"], role=self.PROGRESS)
@@ -798,7 +797,6 @@ class LanguageModel(QAbstractListModel):
 
 
 class FeatureModel(QObject):
-
     stateChanged = pyqtSignal()
 
     def __init__(self, enabled: bool, /, *, restart_needed: bool = False) -> None:
