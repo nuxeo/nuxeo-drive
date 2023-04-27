@@ -534,3 +534,40 @@ def test_url_resolver(manager_factory, nuxeo_url):
         manager.engines["0"] = MockUrlTestEngine("https://localhost/nuxeo", user)
         assert get_engine("https://localhost:443/nuxeo/", user=user)
         assert get_engine("https://localhost/nuxeo", user=user)
+
+
+def test_lock_unlock(
+    direct_edit,
+    manager_factory,
+):
+    manager, engine = manager_factory()
+
+    def lock_(id):
+        return {id: "Locked"}
+
+    def lock_error(id):
+        return {id: "Locked"}
+
+    def unlock_(*args, **kwargs):
+        return False
+
+    def send_notification_(ref):
+        return
+
+    direct_edit.is_already_locked = False
+    with patch.object(engine.remote, "lock", new=lock_):
+        with patch.object(direct_edit, "send_notification", new=send_notification_):
+            data = direct_edit._lock(engine.remote, "id", "ref")
+    assert data is not None
+
+    direct_edit.is_already_locked = True
+    # with patch.object(engine.remote, "lock", new=lock_):
+    #    with patch.object(direct_edit, "send_notification", new=send_notification_):
+    data = direct_edit._lock(engine.remote, "id", "ref")
+    assert data is None
+
+    direct_edit._file_metrics = {"ref": "MOCK"}
+    with patch.object(engine.remote, "unlock", new=unlock_):
+        data = direct_edit._unlock(engine.remote, "id", "ref")
+
+    assert not data
