@@ -356,9 +356,9 @@ types-PyYAML==5.4.3 \
     --hash=sha256:bca83cbfc0be48600a8abf1e3d87fb762a91e6d35d724029a3321dd2dce2ceb1 \
     --hash=sha256:2e7b81b2b7af751634425107b986086c6ba7cb61270a43a5c290c58be8cdbc3a
     # via mypy
-types-requests==2.26.1 \
-    --hash=sha256:853571b3accc188976c0f4feffcaebf6cdfc170082b5e43f3358aa78de61f531 \
-    --hash=sha256:0893e112e1510bbb67f537941c92192de7472e51bf7f236e0e583866f0ed933e
+types-requests==2.29.0.0 \
+    --hash=sha256:4cf6e323e856c779fbe8815bb977a5bf5d6c5034713e4c17ff2a9a20610f5b27 \
+    --hash=sha256:c86f4a955d943d2457120dbe719df24ef0924e11177164d10a0373cf311d7b4d
     # via mypy
 vulture==2.3 \
     --hash=sha256:f39de5e6f1df1f70c3b50da54f1c8d494159e9ca3d01a9b89eac929600591703 \
