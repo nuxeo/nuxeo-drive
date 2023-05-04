@@ -545,8 +545,8 @@ def test_lock_unlock(
     def lock_(id):
         return {id: "Locked"}
 
-    def lock_error(id):
-        return {id: "Locked"}
+    def lock_error(*args, **kwargs):
+        raise HTTPError(status=500, message="internal_server_error")
 
     def unlock_(*args, **kwargs):
         return False
@@ -554,15 +554,23 @@ def test_lock_unlock(
     def send_notification_(ref):
         return
 
+    def _guess_user_from_http_error_(*args, **kwargs):
+        return engine.remote.user_id
+
     direct_edit.is_already_locked = False
     with patch.object(engine.remote, "lock", new=lock_):
         with patch.object(direct_edit, "send_notification", new=send_notification_):
             data = direct_edit._lock(engine.remote, "id", "ref")
     assert data is not None
 
+    with patch.object(engine.remote, "lock", new=lock_error):
+        with patch.object(
+            direct_edit, "_guess_user_from_http_error", new=_guess_user_from_http_error_
+        ):
+            data = direct_edit._lock(engine.remote, "id", "ref")
+    assert not data
+
     direct_edit.is_already_locked = True
-    # with patch.object(engine.remote, "lock", new=lock_):
-    #    with patch.object(direct_edit, "send_notification", new=send_notification_):
     data = direct_edit._lock(engine.remote, "id", "ref")
     assert data is None
 

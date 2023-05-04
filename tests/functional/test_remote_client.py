@@ -1,8 +1,11 @@
+from unittest.mock import Mock, patch
+
 import pytest
 from nuxeo.models import Document
 
+from nxdrive.engine.activity import Action, DownloadAction
 from nxdrive.metrics.constants import GLOBAL_METRICS
-from nxdrive.objects import RemoteFileInfo
+from nxdrive.objects import RemoteFileInfo, SubTypeEnricher
 from nxdrive.options import Options
 from nxdrive.utils import shortify
 
@@ -162,3 +165,100 @@ def test_expand_sync_root_name_length(option, manager_factory, obj_factory):
         assert sync_root.name == final_name
         assert sync_root.name.count("…") == Options.sync_root_max_level or 1
         assert len(sync_root.name) <= 250
+
+
+def test_upload_folder_type(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+
+    def request_(*args, **kwargs):
+        return "mocked-value"
+
+    with manager:
+        with patch.object(remote.client, "request", new=request_):
+            folder_type = remote.upload_folder_type("string", {"key": "value"})
+        assert folder_type == "mocked-value"
+
+
+def test_cancel_batch(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+
+    return_val = None
+    with manager:
+        return_val = remote.cancel_batch({"key": "value"})
+        assert not return_val
+
+
+def test_filter_schema(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+
+    def get_config_types_(*args, **kwargs):
+        configTypes = {"doctypes": {1: {"schemas": "file"}}}
+        return configTypes
+
+    returned_val = None
+    obj_ = SubTypeEnricher("uid", "path", "title", ["str"], {"key": "val"})
+    with manager:
+        with patch.object(remote, "get_config_types", new=get_config_types_):
+            returned_val = remote.filter_schema(obj_)
+        assert returned_val == ["1"]
+
+
+def test_get_note(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+
+    def fetch_(*args, **kwargs):
+        return {"properties": {"key": "val"}}
+
+    returned_val = None
+    with manager:
+        with patch.object(remote, "fetch", new=fetch_):
+            returned_val = remote.get_note("")
+    assert returned_val == b""
+
+
+def test_is_filtered(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+
+    def is_filter_(*args, **kwargs):
+        return True
+
+    returned_val = None
+    with manager:
+        with patch.object(remote.dao, "is_filter", new=is_filter_):
+            returned_val = remote.is_filtered("")
+    assert returned_val
+
+
+def test_transfer_start_callback(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+
+    obj1_ = Mock()
+    with manager:
+        returned_val = remote.transfer_start_callback(obj1_)
+    assert not returned_val
+
+
+def test_transfer_end_callback(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+
+    def get_current_action_(*args, **kwargs):
+        obj = DownloadAction("path", 1)
+        return obj
+
+    def get_download_(*args, **kwargs):
+        return False
+
+    obj1_ = Mock()
+    returned_val = None
+    with manager:
+        with patch.object(Action, "get_current_action", new=get_current_action_):
+            with patch.object(remote.dao, "get_download", new=get_download_):
+                returned_val = remote.transfer_end_callback(obj1_)
+    assert not returned_val
