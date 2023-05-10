@@ -116,6 +116,7 @@ class Engine(QObject):
     directTransferNewFolderError = pyqtSignal()
     directTransferNewFolderSuccess = pyqtSignal(str)
     directTransferSessionFinished = pyqtSignal(str, str, str)
+    displayPendingTask = pyqtSignal(str)
 
     type = "NXDRIVE"
     # Folder locker - LocalFolder processor can prevent
@@ -628,6 +629,9 @@ class Engine(QObject):
 
         # And add new pairs to the queue
         self.dao.queue_many_direct_transfer_items(current_max_row_id)
+
+    def fetch_pending_task_list(self, task_id: str) -> None:
+        self.displayPendingTask.emit(task_id)
 
     def handle_session_status(self, session: Optional[Session], /) -> None:
         """Check the session status and send a notification if finished."""

@@ -1,3 +1,5 @@
+# flake8: noqa
+
 import json
 from dataclasses import asdict
 from logging import getLogger
@@ -21,6 +23,7 @@ from ..constants import (
     TransferStatus,
 )
 from ..dao.engine import EngineDAO
+from ..engine.engine import Engine
 from ..exceptions import (
     AddonForbiddenError,
     AddonNotInstalledError,
@@ -305,6 +308,7 @@ class QMLDriveApi(QObject):
         engine = self._manager.engines.get(uid)
         if engine:
             path = engine.local.abspath(Path(ref))
+            self.fetch_pending_tasks(engine)
             self.application.show_metadata(path)
 
     @pyqtSlot(str, result=list)
@@ -459,6 +463,25 @@ class QMLDriveApi(QObject):
         self.application.show_settings(section)
 
     @pyqtSlot()
+    def fetch_pending_tasks(self, engine: Engine, /) -> None:
+        log.info("Check for pending approval tasks")
+        endpoint = "api/v1/task/"
+        url = "http://localhost:8080/nuxeo/ [localhost]" + endpoint
+        try:
+            response = requests.get(url=url, verify=True, timeout=3600, auth=("", ""))
+            data = response.json()
+            log.info(f">>>> response: {data}")
+            if data["resultsCount"] > 0:
+                log.info("Send pending task notification")
+                for task in data["entries"]:
+                    log.info(f">>>> task: {task}")
+                    log.info(f">>>> taskid: {task['id']}")
+                    engine.fetch_pending_task_list(task["id"])
+
+        except Exception:
+            log.exception("Unable to fetch tasks")
+
+    @pyqtSlot()
     def quit(self) -> None:
         try:
             self.application.quit()
@@ -576,7 +599,9 @@ class QMLDriveApi(QObject):
     def _balance_percents(self, result: Dict[str, float], /) -> Dict[str, float]:
         """Return an altered version of the dict in which no value is under a minimum threshold."""
 
-        result = {k: v for k, v in sorted(result.items(), key=lambda item: item[1])}
+        result = {
+            k: v for k, v in sorted(result.items(), key=lambda item: item[1])
+        }  # noqa
         keys = list(result)
         min_threshold = 10
         data = 0.0

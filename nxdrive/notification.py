@@ -189,6 +189,7 @@ class NotificationService(QObject):
             return
         notification = self._notifications[uid]
         if notification.is_actionable():
+            log.info(">>>>> sending actionable notification")
             self.triggerNotification.emit(notification.action, notification.action_args)
         if notification.is_discard_on_trigger():
             self.discard_notification(uid)
@@ -520,6 +521,28 @@ class InvalidCredentialNotification(Notification):
         )
 
 
+class DisplayPendingTask(Notification):
+    """Display a notification for pending tasks"""
+
+    def __init__(self, remote_ref: str) -> None:
+        values = [remote_ref]
+        super().__init__(
+            uid="PENDING_DOCUMENT_REVIEWS",
+            title="Display Pending Task",
+            description=Translator.get("PENDING_DOCUMENT_REVIEWS", values=values),
+            level=Notification.LEVEL_INFO,
+            flags=(
+                Notification.FLAG_PERSISTENT
+                | Notification.FLAG_BUBBLE
+                | Notification.FLAG_ACTIONABLE
+                | Notification.FLAG_DISCARD_ON_TRIGGER
+                | Notification.FLAG_REMOVE_ON_DISCARD
+            ),
+            action="display_pending_task",
+            action_args=(remote_ref,),
+        )
+
+
 class DefaultNotificationService(NotificationService):
     def init_signals(self) -> None:
         self._manager.initEngine.connect(self._connect_engine)
@@ -539,6 +562,10 @@ class DefaultNotificationService(NotificationService):
         engine.directTransferSessionFinished.connect(
             self._direct_transfer_session_finshed
         )
+        engine.displayPendingTask.connect(self._display_pending_task)
+
+    def _display_pending_task(self, id: str) -> None:
+        self.send_notification(DisplayPendingTask(id))
 
     def _direct_transfer_error(self, file: Path, /) -> None:
         """Display a notification when a Direct Transfer is in error."""
