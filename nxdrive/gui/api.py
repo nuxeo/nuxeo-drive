@@ -468,7 +468,12 @@ class QMLDriveApi(QObject):
         endpoint = "api/v1/task/"
         url = "http://localhost:8080/nuxeo/ [localhost]" + endpoint
         try:
-            response = requests.get(url=url, verify=True, timeout=3600, auth=("", ""))
+            response = requests.get(
+                url=url,
+                verify=True,
+                timeout=3600,
+                auth=("Administrator", "Administrator"),
+            )
             data = response.json()
             log.info(f">>>> response: {data}")
             if data["resultsCount"] > 0:
