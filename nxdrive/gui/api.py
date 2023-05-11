@@ -462,27 +462,24 @@ class QMLDriveApi(QObject):
         log.info(f"Show settings on section {section}")
         self.application.show_settings(section)
 
-    @pyqtSlot()
+    @pyqtSlot()    
     def fetch_pending_tasks(self, engine: Engine, /) -> None:
         log.info("Check for pending approval tasks")
         endpoint = "api/v1/task/"
-        url = "http://localhost:8080/nuxeo/ [localhost]" + endpoint
+        url = "http://localhost:8080/nuxeo/" + endpoint
+        headers = {'Accept': 'application/json',    'Content-Type': 'application/json',   }
         try:
-            response = requests.get(
-                url=url,
-                verify=True,
-                timeout=3600,
-                auth=("Administrator", "Administrator"),
-            )
+            response = requests.get(url = url, verify= True, timeout= 3600, headers = headers, auth = ('Administrator', 'Administrator') )
+            log.info(f">>>>> response type: {type(response)}")
             data = response.json()
             log.info(f">>>> response: {data}")
-            if data["resultsCount"] > 0:
+            if data['resultsCount'] > 0:
                 log.info("Send pending task notification")
-                for task in data["entries"]:
-                    log.info(f">>>> task: {task}")
+                for task in data['entries']:
+                    log.info(f">>>> task: {task}")  
                     log.info(f">>>> taskid: {task['id']}")
-                    engine.fetch_pending_task_list(task["id"])
-
+                    engine.fetch_pending_task_list(task['id'])
+                
         except Exception:
             log.exception("Unable to fetch tasks")
 
