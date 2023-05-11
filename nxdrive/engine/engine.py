@@ -766,8 +766,8 @@ class Engine(QObject):
         page = ("view_documents", "view_drive_metadata")[edit]
 
         urls = {
-            "jsf": f"{self.server_url}task/{repo}/{remote_ref}/{page}",
-            "web": f"{self.server_url}ui#!/task/{remote_ref}",
+            "jsf": f"{self.server_url}tasks/{repo}/{remote_ref}/{page}",
+            "web": f"{self.server_url}ui#!/tasks/{remote_ref}",
         }
         return urls[self.force_ui or self.wui]
 
