@@ -524,7 +524,7 @@ class InvalidCredentialNotification(Notification):
 class DisplayPendingTask(Notification):
     """Display a notification for pending tasks"""
 
-    def __init__(self, remote_ref: str) -> None:
+    def __init__(self, engine_uid: str, remote_ref: str, /) -> None:
         values = [remote_ref]
         super().__init__(
             uid="PENDING_DOCUMENT_REVIEWS",
@@ -539,7 +539,10 @@ class DisplayPendingTask(Notification):
                 | Notification.FLAG_REMOVE_ON_DISCARD
             ),
             action="display_pending_task",
-            action_args=(remote_ref,),
+            action_args=(
+                engine_uid,
+                remote_ref,
+            ),
         )
 
 
@@ -564,8 +567,8 @@ class DefaultNotificationService(NotificationService):
         )
         engine.displayPendingTask.connect(self._display_pending_task)
 
-    def _display_pending_task(self, id: str) -> None:
-        self.send_notification(DisplayPendingTask(id))
+    def _display_pending_task(self, engine_uid: str, remote_ref: str, /) -> None:
+        self.send_notification(DisplayPendingTask(engine_uid, remote_ref))
 
     def _direct_transfer_error(self, file: Path, /) -> None:
         """Display a notification when a Direct Transfer is in error."""

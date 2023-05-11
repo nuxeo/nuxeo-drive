@@ -116,7 +116,7 @@ class Engine(QObject):
     directTransferNewFolderError = pyqtSignal()
     directTransferNewFolderSuccess = pyqtSignal(str)
     directTransferSessionFinished = pyqtSignal(str, str, str)
-    displayPendingTask = pyqtSignal(str)
+    displayPendingTask = pyqtSignal(str, str)
 
     type = "NXDRIVE"
     # Folder locker - LocalFolder processor can prevent
@@ -631,7 +631,7 @@ class Engine(QObject):
         self.dao.queue_many_direct_transfer_items(current_max_row_id)
 
     def fetch_pending_task_list(self, task_id: str) -> None:
-        self.displayPendingTask.emit(task_id)
+        self.displayPendingTask.emit(self.uid, task_id)
 
     def handle_session_status(self, session: Optional[Session], /) -> None:
         """Check the session status and send a notification if finished."""
@@ -748,6 +748,26 @@ class Engine(QObject):
         urls = {
             "jsf": f"{self.server_url}nxdoc/{repo}/{uid}/{page}",
             "web": f"{self.server_url}ui#!/doc/{uid}",
+        }
+        return urls[self.force_ui or self.wui]
+
+    def get_task_url(self, remote_ref: str, /, *, edit: bool = False) -> str:
+        """
+        Build the document's metadata URL based on the server's UI.
+        Default is Web-UI.  In case of unknown UI, use the default value.
+
+        :param remote_ref: The document remote reference (UID) of the
+            document we want to show metadata.
+        :param edit: Show the metadata edit page instead of the document.
+        :return: The complete URL.
+        """
+        # uid = remote_ref.split("#")[-1]
+        repo = self.remote.client.repository
+        page = ("view_documents", "view_drive_metadata")[edit]
+
+        urls = {
+            "jsf": f"{self.server_url}task/{repo}/{remote_ref}/{page}",
+            "web": f"{self.server_url}ui#!/task/{remote_ref}",
         }
         return urls[self.force_ui or self.wui]
 

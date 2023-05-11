@@ -462,24 +462,34 @@ class QMLDriveApi(QObject):
         log.info(f"Show settings on section {section}")
         self.application.show_settings(section)
 
-    @pyqtSlot()    
+    @pyqtSlot()
     def fetch_pending_tasks(self, engine: Engine, /) -> None:
         log.info("Check for pending approval tasks")
-        endpoint = "api/v1/task/"
-        url = "http://localhost:8080/nuxeo/" + endpoint
-        headers = {'Accept': 'application/json',    'Content-Type': 'application/json',   }
+        endpoint = "/api/v1/task/"
+        url = "http://localhost:8080/nuxeo" + endpoint
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
         try:
-            response = requests.get(url = url, verify= True, timeout= 3600, headers = headers, auth = ('Administrator', 'Administrator') )
+            # response = NuxeoClient.request(self,method="GET", path=endpoint, headers=headers, ssl_verify=Options.ssl_no_verify)
+            response = requests.get(
+                url=url,
+                verify=True,
+                timeout=3600,
+                headers=headers,
+                auth=("Administrator", "Administrator"),
+            )
             log.info(f">>>>> response type: {type(response)}")
             data = response.json()
             log.info(f">>>> response: {data}")
-            if data['resultsCount'] > 0:
+            if data["resultsCount"] > 0:
                 log.info("Send pending task notification")
-                for task in data['entries']:
-                    log.info(f">>>> task: {task}")  
+                for task in data["entries"]:
+                    log.info(f">>>> task: {task}")
                     log.info(f">>>> taskid: {task['id']}")
-                    engine.fetch_pending_task_list(task['id'])
-                
+                    engine.fetch_pending_task_list(task["id"])
+
         except Exception:
             log.exception("Unable to fetch tasks")
 
@@ -1122,6 +1132,18 @@ class QMLDriveApi(QObject):
             engine = self._manager.engines.get(uid)
             if engine:
                 url = engine.get_metadata_url(remote_ref)
+                engine.open_remote(url=url)
+        except OSError:
+            log.exception("Remote document cannot be opened")
+
+    @pyqtSlot(str, str, str)
+    def display_pending_task(self, uid: str, remote_ref: str, /) -> None:
+        log.info(f"Should open remote document ({remote_ref!r})")
+        try:
+            engine = self._manager.engines.get(uid)
+            if engine:
+                url = engine.get_task_url(remote_ref)
+                log.info(f">>>> doc url: {url}")
                 engine.open_remote(url=url)
         except OSError:
             log.exception("Remote document cannot be opened")
