@@ -1162,4 +1162,27 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, result=str)
     def get_title(self, uid: str, /) -> str:
-        return "<div>\n      <span class=\"label label-success\">1/1 OK </span>\n</div>\n<table class=\"dataTableNoBorder smallTable\">\n  <tr>\n    <td class=\"fortyPercent\">\n      <span class=\"user\"> \n        test1\n      </span>\n    </td>\n    <td class=\"tenPercent\">\n        <span class=\"label label-success\">OK</span>\n\n    </td>\n    <td class=\"fiftyPercent\">\n      <span class=\"detail\"></span>\n    </td>\n  </tr>\n</table>"
+       endpoint = "/api/v1/task/"
+        url = "http://localhost:8080/nuxeo" + endpoint
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
+        try:
+            response = requests.get(
+                url=url,
+                verify=True,
+                timeout=3600,
+                headers=headers,
+                auth=("Administrator", "Administrator"),
+            )
+            data = response.json()
+            html = data["entries"][0]
+            html = html["variables"]
+            html = html["review_result"]
+            return html if html else "No Results To Show"
+
+        except Exception:
+            log.exception("Unable to fetch tasks")
+            return "No Results Found"
+    
