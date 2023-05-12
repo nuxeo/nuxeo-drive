@@ -461,6 +461,12 @@ class QMLDriveApi(QObject):
         self.application.hide_systray()
         log.info(f"Show settings on section {section}")
         self.application.show_settings(section)
+        
+    @pyqtSlot(str)
+    def show_tasks(self, section: str, /) -> None:
+        self.application.hide_systray()
+        log.info(f"Show Task Manager {section}")
+        self.application.show_tasks(section)
 
     @pyqtSlot()
     def fetch_pending_tasks(self, engine: Engine, /) -> None:
@@ -1153,3 +1159,7 @@ class QMLDriveApi(QObject):
         """Return the URL to a remote document based on its reference."""
         engine = self._manager.engines.get(uid)
         return engine.get_metadata_url(remote_ref) if engine else ""
+
+    @pyqtSlot(str, result=str)
+    def get_title(self, uid: str, /) -> str:
+        return "<div>\n      <span class=\"label label-success\">1/1 OK </span>\n</div>\n<table class=\"dataTableNoBorder smallTable\">\n  <tr>\n    <td class=\"fortyPercent\">\n      <span class=\"user\"> \n        test1\n      </span>\n    </td>\n    <td class=\"tenPercent\">\n        <span class=\"label label-success\">OK</span>\n\n    </td>\n    <td class=\"fiftyPercent\">\n      <span class=\"detail\"></span>\n    </td>\n  </tr>\n</table>"
