@@ -360,6 +360,7 @@ class Application(QApplication):
         if self.manager.engines:
             current_uid = self.engine_model.engines_uid[0]
             engine = self.manager.engines[current_uid]
+            self.api.fetch_pending_tasks(engine)
             self.get_last_files(current_uid)
             self.refresh_transfers(engine.dao)
             self.update_status(engine)
