@@ -1162,7 +1162,7 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, result=str)
     def get_title(self, uid: str, /) -> str:
-       endpoint = "/api/v1/task/"
+        endpoint = "/api/v1/task/"
         url = "http://localhost:8080/nuxeo" + endpoint
         headers = {
             "Accept": "application/json",
