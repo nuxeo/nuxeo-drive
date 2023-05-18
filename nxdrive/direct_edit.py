@@ -456,7 +456,6 @@ class DirectEdit(Worker):
                 "DIRECT_EDIT_VERSION", [info.version, info.name, info.uid]
             )
             return None
-
         if info.is_proxy:
             self.directEditError.emit("DIRECT_EDIT_PROXY", [info.name])
             return None
