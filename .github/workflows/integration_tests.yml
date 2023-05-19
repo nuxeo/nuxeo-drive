@@ -15,14 +15,15 @@ on:
 
 env:
   FREEZE_ONLY: 1
-  NXDRIVE_TEST_NUXEO_URL: https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo
+  NXDRIVE_TEST_NUXEO_URL: https://drive-2021.beta.nuxeocloud.com/nuxeo
+  NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_TEST_USERNAME }}
   NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_TEST_PASSWORD }}
 
 jobs:
   integration-tests-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -50,7 +51,7 @@ jobs:
         run: tox -e integration
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
-        uses: codecov/codecov-action@v1.5.2
+        uses: codecov/codecov-action@v3.1.2
         with:
           files: ./coverage.xml
           flags: integration

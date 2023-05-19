@@ -4,6 +4,7 @@ import shutil
 from collections import defaultdict
 from datetime import datetime
 from logging import getLogger
+from os import path
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Lock
@@ -92,11 +93,13 @@ class DirectEdit(Worker):
         self.lock = Lock()
 
         self.autolock = self._manager.autolock_service
+
         self._event_handler: Optional[DriveFSEventHandler] = None
         self._metrics = {"edit_files": 0}
         self._observer: Observer = None
         self.local = LocalClient(self._folder)
         self._upload_queue: Queue = Queue()
+        self.is_already_locked = False
         self._upload_errors: Dict[Path, int] = defaultdict(int)
         self._lock_queue: Queue = Queue()
         self._error_queue = BlocklistQueue(delay=Options.delay)
@@ -405,9 +408,19 @@ class DirectEdit(Worker):
         self, engine: "Engine", doc_id: str, /
     ) -> Optional[NuxeoDocumentInfo]:
         try:
-            doc = engine.remote.fetch(
-                doc_id, headers={"fetch-document": "lock"}, enrichers=["permissions"]
-            )
+            if not self.use_autolock:
+                log.warning(
+                    "Server-side document locking is disabled: you are not protected against concurrent updates."
+                )
+                doc = engine.remote.fetch(
+                    doc_id,
+                    headers={"fetch-document": "lock"},
+                    enrichers=["permissions"],
+                )
+            else:
+                doc = engine.remote.lock(doc_id)
+                self.is_already_locked = True
+
         except Forbidden:
             msg = (
                 f" Access to the document {doc_id!r} on server {engine.hostname!r}"
@@ -438,7 +451,6 @@ class DirectEdit(Worker):
             }
         )
         info = NuxeoDocumentInfo.from_dict(doc)
-
         if info.is_version:
             self.directEditError.emit(
                 "DIRECT_EDIT_VERSION", [info.version, info.name, info.uid]
@@ -451,7 +463,6 @@ class DirectEdit(Worker):
         if info.lock_owner and info.lock_owner != engine.remote_user:
             # Retrieve the user full name, will be cached
             owner = engine.get_user_full_name(info.lock_owner)
-
             log.info(
                 f"Doc {info.name!r} was locked by {owner} ({info.lock_owner}) "
                 f"on {info.lock_created}, edit not allowed"
@@ -462,7 +473,6 @@ class DirectEdit(Worker):
             log.info(f"Doc {info.name!r} is readonly for you, edit not allowed")
             self.directEditReadonly.emit(info.name)
             return None
-
         return info
 
     def _get_tmp_file(self, doc_id: str, filename: str, /) -> Path:
@@ -488,16 +498,10 @@ class DirectEdit(Worker):
         if not engine:
             return None
 
-        # Avoid any link with the engine, remote_doc are not cached so we
-        # can do that
         info = self._get_info(engine, doc_id)
+
         if not info:
             return None
-
-        if not self.use_autolock:
-            log.warning(
-                "Server-side document locking is disabled: you are not protected against concurrent updates."
-            )
 
         url = None
         url_info: Dict[str, str] = {}
@@ -521,6 +525,7 @@ class DirectEdit(Worker):
             xpath = "note:note"
         elif not xpath or xpath == "blobholder:0":
             xpath = "file:content"
+
         blob = info.get_blob(xpath)
         if not blob:
             log.warning(
@@ -533,10 +538,13 @@ class DirectEdit(Worker):
 
         # Create local structure
         folder_name = safe_filename(f"{doc_id}_{xpath}")
+        ref = path.join(folder_name, filename)
         dir_path = self._folder / folder_name
         dir_path.mkdir(exist_ok=True)
+        log.debug(f"Editing file at {ref!r}")
+        if self.is_already_locked:
+            self.send_notification(ref, filename)
 
-        log.info(f"Editing {filename!r}")
         if filename != safe_filename(filename):
             filename = safe_filename(filename)
             log.info(f"Filename sanitized to {filename!r}")
@@ -683,10 +691,16 @@ class DirectEdit(Worker):
         user: str = matches[0] if matches else ""
         return user
 
-    def _lock(self, remote: Remote, uid: str, /) -> bool:
+    def _lock(self, remote: Remote, uid: str, ref: Any = None, /) -> Any:
         """Lock a document."""
+        data = None
         try:
-            remote.lock(uid)
+            if self.is_already_locked:
+                self.is_already_locked = False
+            else:
+                data = remote.lock(uid)
+                if ref:
+                    self.send_notification(ref)
         except HTTPError as exc:
             if exc.status in (codes.CONFLICT, codes.INTERNAL_SERVER_ERROR):
                 # INTERNAL_SERVER_ERROR on old servers (<11.1, <2021.0) [missing NXP-24359]
@@ -694,11 +708,11 @@ class DirectEdit(Worker):
                     if user != remote.user_id:
                         raise DocumentAlreadyLocked(user)
                     log.debug("You already locked that document!")
-                    return False
+                    return
             raise exc
 
         # Document locked!
-        return True
+        return data
 
     def _unlock(self, remote: Remote, uid: str, ref: Path, /) -> bool:
         """Unlock a document. Return True if purge is needed."""
@@ -737,10 +751,7 @@ class DirectEdit(Worker):
                 if action == "lock":
                     self.local.set_remote_id(ref.parent, b"1", name="nxdirecteditlock")
                     if self.use_autolock:
-                        self._lock(remote, uid)
-                        # Emit the lock signal only when the lock is really set
-                        self._send_lock_status(ref)
-                        self.autolock.documentLocked.emit(ref.name)
+                        self._lock(remote, uid, ref)
                     continue
 
                 purge = self._unlock(remote, uid, ref)
@@ -792,6 +803,13 @@ class DirectEdit(Worker):
         # Requeue errors
         for item in errors:
             self._lock_queue.put(item)
+
+    def send_notification(self, ref: Any, filename: Any = None) -> None:
+        # Emit the lock signal only when the lock is really set
+        self._send_lock_status(ref)
+        if not filename:
+            filename = ref.name
+        self.autolock.documentLocked.emit(filename)
 
     def _send_lock_status(self, ref: str, /) -> None:
         manager = self._manager

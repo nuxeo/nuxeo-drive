@@ -10,7 +10,6 @@ from .common import OneUserTest
 
 
 class TestMultipleFiles(OneUserTest):
-
     NUMBER_OF_LOCAL_FILES = 10
     SYNC_TIMEOUT = 10  # in seconds
 

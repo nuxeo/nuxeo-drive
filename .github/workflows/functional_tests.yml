@@ -16,14 +16,15 @@ on:
       - "tests/functional/*.py"
 
 env:
-  NXDRIVE_TEST_NUXEO_URL: https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo
+  NXDRIVE_TEST_NUXEO_URL: https://drive-2021.beta.nuxeocloud.com/nuxeo
+  NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_TEST_USERNAME }}
   NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_TEST_PASSWORD }}
 
 jobs:
   functional-tests-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: 3.9 # XXX_PYTHON
@@ -49,7 +50,7 @@ jobs:
           DISPLAY: ":99"
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
-        uses: codecov/codecov-action@v1.5.2
+        uses: codecov/codecov-action@v3.1.2
         with:
           files: ./coverage.xml
           flags: functional
@@ -58,7 +59,7 @@ jobs:
   functional-tests-macos:
     runs-on: "macos-latest"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: 3.9 # XXX_PYTHON
@@ -78,7 +79,7 @@ jobs:
         run: tox -e ft
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
-        uses: codecov/codecov-action@v1.5.2
+        uses: codecov/codecov-action@v3.1.2
         with:
           files: ./coverage.xml
           flags: functional
@@ -87,7 +88,7 @@ jobs:
   functional-tests-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: 3.9 # XXX_PYTHON
@@ -108,7 +109,7 @@ jobs:
         run: tox -e ft
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
-        uses: codecov/codecov-action@v1.5.2
+        uses: codecov/codecov-action@v3.1.2
         with:
           files: ./coverage.xml
           flags: functional
@@ -122,7 +123,7 @@ jobs:
       - functional-tests-macos
       - functional-tests-windows
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: 3.9 # XXX_PYTHON

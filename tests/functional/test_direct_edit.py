@@ -378,8 +378,14 @@ def test_get_info_bad_response(manager_factory, obj_factory):
         assert values == [doc.uid, engine.hostname]
         received = True
 
+    def execute(*args, **kwargs):
+        return b"bad data"
+
     def fetch(*args, **kwargs):
         return b"bad data"
+
+    def get_direct_edit_auto_lock(*args, **kwargs):
+        return False
 
     with manager:
         direct_edit = manager.direct_edit
@@ -393,8 +399,19 @@ def test_get_info_bad_response(manager_factory, obj_factory):
         )
 
         received = False
-        with patch.object(engine.remote, "fetch", new=fetch):
+        with patch.object(engine.remote, "execute", new=execute):
             direct_edit._prepare_edit(engine.server_url, doc.uid)
+        assert received
+
+        received = False
+        with patch.object(
+            direct_edit._manager,
+            "get_direct_edit_auto_lock",
+            new=get_direct_edit_auto_lock,
+        ):
+            with patch.object(engine.remote, "fetch", new=fetch):
+                # assert direct_edit.use_autolock
+                direct_edit._prepare_edit(engine.server_url, doc.uid)
         assert received
 
 
@@ -517,3 +534,48 @@ def test_url_resolver(manager_factory, nuxeo_url):
         manager.engines["0"] = MockUrlTestEngine("https://localhost/nuxeo", user)
         assert get_engine("https://localhost:443/nuxeo/", user=user)
         assert get_engine("https://localhost/nuxeo", user=user)
+
+
+def test_lock_unlock(
+    direct_edit,
+    manager_factory,
+):
+    manager, engine = manager_factory()
+
+    def lock_(id):
+        return {id: "Locked"}
+
+    def lock_error(*args, **kwargs):
+        raise HTTPError(status=500, message="internal_server_error")
+
+    def unlock_(*args, **kwargs):
+        return False
+
+    def send_notification_(ref):
+        return
+
+    def _guess_user_from_http_error_(*args, **kwargs):
+        return engine.remote.user_id
+
+    direct_edit.is_already_locked = False
+    with patch.object(engine.remote, "lock", new=lock_):
+        with patch.object(direct_edit, "send_notification", new=send_notification_):
+            data = direct_edit._lock(engine.remote, "id", "ref")
+    assert data is not None
+
+    with patch.object(engine.remote, "lock", new=lock_error):
+        with patch.object(
+            direct_edit, "_guess_user_from_http_error", new=_guess_user_from_http_error_
+        ):
+            data = direct_edit._lock(engine.remote, "id", "ref")
+    assert not data
+
+    direct_edit.is_already_locked = True
+    data = direct_edit._lock(engine.remote, "id", "ref")
+    assert data is None
+
+    direct_edit._file_metrics = {"ref": "MOCK"}
+    with patch.object(engine.remote, "unlock", new=unlock_):
+        data = direct_edit._unlock(engine.remote, "id", "ref")
+
+    assert not data

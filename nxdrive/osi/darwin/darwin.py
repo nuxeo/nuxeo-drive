@@ -45,7 +45,6 @@ def _get_app() -> str:
 
 
 class DarwinIntegration(AbstractOSIntegration):
-
     nature = "macOS"
 
     NDRIVE_AGENT_TEMPLATE = (

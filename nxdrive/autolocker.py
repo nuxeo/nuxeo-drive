@@ -30,7 +30,6 @@ log = getLogger(__name__)
 
 
 class ProcessAutoLockerWorker(PollWorker):
-
     orphanLocks = pyqtSignal(object)
     documentLocked = pyqtSignal(str)
     documentUnlocked = pyqtSignal(str)

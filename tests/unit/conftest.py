@@ -1,3 +1,4 @@
+import os
 import shutil
 import time
 from typing import Optional
@@ -7,7 +8,10 @@ import pytest
 
 from nxdrive.dao.engine import EngineDAO
 from nxdrive.dao.manager import ManagerDAO
+from nxdrive.engine.engine import Engine
+from nxdrive.manager import Manager
 from nxdrive.objects import DocPair
+from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import normalized_path
 
 
@@ -107,6 +111,20 @@ class MockManagerDAO(ManagerDAO):
         self.db.unlink()
 
 
+class MockEngine(Engine):
+    def __init__(self, tmp_path):
+        local_folder = tmp_path
+
+        super().__init__(self, local_folder)
+
+
+class MockManager(Manager):
+    def __init__(self, tmp_path):
+        home = tmp_path
+
+        super().__init__(self, home)
+
+
 @pytest.fixture()
 def engine_dao(tmp_path):
     dao = MockEngineDAO
@@ -119,3 +137,19 @@ def manager_dao(tmp_path):
     dao = MockManagerDAO
     dao.tmp = tmp_path
     return dao
+
+
+@pytest.fixture()
+def engine(engine_dao):
+    engine = MockEngine
+    engine.local_folder = os.path.expandvars("C:\\test\\%username%\\Drive")
+    engine.dao = engine_dao
+    return engine
+
+
+@pytest.fixture()
+def manager(tmp_path):
+    manager = MockManager
+    manager.osi = AbstractOSIntegration
+    manager.home = tmp_path
+    return manager
