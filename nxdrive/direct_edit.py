@@ -139,7 +139,7 @@ class DirectEdit(Worker):
 
     @pyqtSlot(object)
     def _autolock_orphans(self, locks: List[Path], /) -> None:
-        log.debug(f"Orphans lock : {locks!r}")
+        log.debug(f"Orphans lock: {locks!r}")
         for lock in locks:
             if self._folder in lock.parents:
                 log.info(f"Should unlock {lock!r}")
