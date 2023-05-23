@@ -199,7 +199,7 @@ jobs:
 
       - name: Setup git
         run: |
-          git config user.email "maintainers-python+github@nuxeo.com"
+          git config user.email "drive@hyland.com"
           git config user.name "GitHub-CI action (Release)"
           git fetch --unshallow --tags
           git remote set-url origin git@github.com:nuxeo/nuxeo-drive.git
