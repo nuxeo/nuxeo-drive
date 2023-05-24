@@ -426,7 +426,10 @@ class MetaOptions(type):
                 new_value = bool(new_value)
         elif type_orig is int:
             with suppress(ValueError, TypeError):
-                new_value = int(new_value)
+                try:
+                    new_value = int(new_value)
+                except Exception:
+                    new_value = old_value
 
         # Check the new value meets our requirements, if any
         check = MetaOptions.checkers.get(item, None)
