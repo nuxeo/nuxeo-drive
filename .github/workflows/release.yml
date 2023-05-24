@@ -42,7 +42,7 @@ jobs:
       - name: Setup git
         if: github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == ''
         run: |
-          git config user.email "maintainers-python+github@nuxeo.com"
+          git config user.email "drive@hyland.com"
           git config user.name "GitHub-CI action (Release)"
 
       - name: Bump the version number
