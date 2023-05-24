@@ -241,6 +241,7 @@ class MetaOptions(type):
         "disallowed_types_for_dt": (__doctypes_no_dt, "default"),
         "dt_hide_personal_space": (False, "default"),
         "findersync_batch_size": (50, "default"),
+        "feature_systray_history": (-1, "default"),
         "force_locale": (None, "default"),
         "handshake_timeout": (60, "default"),
         "home": (__home, "default"),
