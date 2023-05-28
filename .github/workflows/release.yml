@@ -44,6 +44,7 @@ jobs:
         run: |
           git config user.email "drive@hyland.com"
           git config user.name "GitHub-CI action (Release)"
+      # To test user account
 
       - name: Bump the version number
         if: github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == ''
