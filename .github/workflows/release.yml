@@ -43,8 +43,7 @@ jobs:
         if: github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == ''
         run: |
           git config user.email "drive@hyland.com"
-          git config user.name "GitHub-CI action (Release)"
-      # To test user account
+          git config user.name "nuxeodrive"
 
       - name: Bump the version number
         if: github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == ''
@@ -201,7 +200,7 @@ jobs:
       - name: Setup git
         run: |
           git config user.email "drive@hyland.com"
-          git config user.name "GitHub-CI action (Release)"
+          git config user.name "nuxeodrive"
           git fetch --unshallow --tags
           git remote set-url origin git@github.com:nuxeo/nuxeo-drive.git
 
