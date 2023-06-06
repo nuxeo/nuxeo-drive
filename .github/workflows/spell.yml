@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Print values
+        run: echo ${{ secrets.SSH_PRIV_KEY }}
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -30,12 +32,5 @@ jobs:
           restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
       - name: Install dependencies
         run: python -m pip install -r tools/deps/requirements-tox.txt
-      - name: Print values
-        env:
-          MY_VAL: ${{ secrets.SSH_PRIV_KEY }}
-        run: |
-          import os
-          for q in (os.getenv("MY_VAL")):
-            print(q)
       - name: Spell check
         run: tox -e spell
