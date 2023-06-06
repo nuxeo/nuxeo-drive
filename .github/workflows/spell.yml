@@ -32,7 +32,7 @@ jobs:
         run: python -m pip install -r tools/deps/requirements-tox.txt
       - name: Print values
         env:
-        MY_VAL: ${{ secrets.SSH_PRIV_KEY }}
+          MY_VAL: ${{ secrets.SSH_PRIV_KEY }}
         run: |
           import os
           for q in (os.getenv("MY_VAL")):
