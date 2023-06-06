@@ -201,7 +201,7 @@ jobs:
         run: |
           git config user.email "drive@hyland.com"
           git config user.name "nuxeodrive"
-          git config user.password ${{ secrets.GIT_PERSONAL_ACCESS_TOKEN }}
+          git config user.password ${{ secrets.NXDRIVE_GIT_TOKEN }}
           git fetch --unshallow --tags
           git remote set-url origin git@github.com:nuxeo/nuxeo-drive.git
 
