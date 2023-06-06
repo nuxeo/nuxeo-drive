@@ -7,7 +7,6 @@ on:
       - "**/*.md"
       - "**/*.py"
       - "**/*.sh"
-      - ".github/workflows/spell.yml"
 
 jobs:
   spell:
