@@ -7,15 +7,12 @@ on:
       - "**/*.md"
       - "**/*.py"
       - "**/*.sh"
-      - ".github/workflows/spell.yml"
 
 jobs:
   spell:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Print values
-        run: echo ${{ secrets.SSH_PRIV_KEY }}
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
