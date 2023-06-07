@@ -44,6 +44,7 @@ jobs:
         run: |
           git config user.email "drive@hyland.com"
           git config user.name "nuxeodrive"
+          git config user.password ${{ secrets.NXDRIVE_GIT_TOKEN }}
 
       - name: Bump the version number
         if: github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == ''
