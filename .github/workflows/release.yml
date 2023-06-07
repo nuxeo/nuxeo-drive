@@ -36,7 +36,7 @@ jobs:
       - name: Install SSH key
         uses: shimataro/ssh-key-action@v2
         with:
-          key: ${{ secrets.SSH_PRIV_KEY }}
+          key: ${{ secrets.NXDRIVE_GIT_SSH_KEY }}
           known_hosts: ${{ secrets.SSH_KNOWN_HOST_DEPLOY }}
 
       - name: Setup git
@@ -195,7 +195,7 @@ jobs:
       - name: Install SSH key
         uses: shimataro/ssh-key-action@v2
         with:
-          key: ${{ secrets.SSH_PRIV_KEY }}
+          key: ${{ secrets.NXDRIVE_GIT_SSH_KEY }}
           known_hosts: ${{ secrets.SSH_KNOWN_HOST_DEPLOY }}
 
       - name: Setup git
