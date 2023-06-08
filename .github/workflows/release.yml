@@ -232,8 +232,6 @@ jobs:
           fi
           bash tools/release.sh --publish "${release_type}" || exit 1
           bash tools/release.sh --create "${release_type}" || exit 1
-        env:
-          GIT_TOKEN: ${{ secrets.NXDRIVE_GIT_TOKEN }}
       - name: Cancel the release
         if: failure() || cancelled()
         run: bash tools/release.sh --cancel
