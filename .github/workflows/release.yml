@@ -199,12 +199,9 @@ jobs:
         with:
           key: ${{ secrets.SSH_PRIV_KEY }}
           known_hosts: ${{ secrets.SSH_KNOWN_HOST_DEPLOY }}
-      - name: Print
-        run: echo "https://${{ env.GITHUB_USERNAME }}:${{ secrets.NXDRIVE_GIT_TOKEN }}@github.com/nuxeo/nuxeo-drive.git"
       - name: Setup git
         run: |
           git config user.email ${{ env.GITHUB_EMAILID }}
-          git config user.name ${{ env.GITHUB_USERNAME }}
           git fetch --unshallow --tags
           git remote set-url origin "https://${{ env.GITHUB_USERNAME }}:${{ secrets.NXDRIVE_GIT_TOKEN }}@github.com/nuxeo/nuxeo-drive.git"
 
