@@ -29,7 +29,6 @@ create() {
     echo ">>> [${release_type} ${drive_version}] Creating the tag"
     git tag -f -a "${release_type}-${drive_version}" -m "Release ${drive_version}"
     git push -f origin "${release_type}-${drive_version}"
-    #git push "https://nuxeodrive:$GIT_TOKEN@github.com/nuxeo/nuxeo-drive.git" --tags
 }
 
 publish() {
