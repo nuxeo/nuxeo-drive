@@ -202,6 +202,7 @@ jobs:
       - name: Setup git
         run: |
           git config user.email ${{ env.GITHUB_EMAILID }}
+          git config user.name ${{ env.GITHUB_USERNAME }}
           git fetch --unshallow --tags
           git remote set-url origin "https://${{ env.GITHUB_USERNAME }}:${{ secrets.NXDRIVE_GIT_TOKEN }}@github.com/nuxeo/nuxeo-drive.git"
 
