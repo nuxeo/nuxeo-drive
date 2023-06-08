@@ -44,7 +44,6 @@ jobs:
         run: |
           git config user.email "drive@hyland.com"
           git config user.name "nuxeodrive"
-          git config user.password ${{ secrets.NXDRIVE_GIT_TOKEN }}
       - name: Bump the version number
         if: github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == ''
         run: |
@@ -201,7 +200,6 @@ jobs:
         run: |
           git config user.email "drive@hyland.com"
           git config user.name "nuxeodrive"
-          git config user.password ${{ secrets.NXDRIVE_GIT_TOKEN }}
           git fetch --unshallow --tags
           git remote set-url origin git@github.com:nuxeo/nuxeo-drive.git
 
