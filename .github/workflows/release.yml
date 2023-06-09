@@ -15,6 +15,10 @@ on:
         required: false
         default: "alpha"
 
+env:
+  GITHUB_USERNAME: "nuxeodrive"
+  GITHUB_EMAILID: "drive@hyland.com"
+
 jobs:
   release:
     runs-on: ${{ matrix.os }}
@@ -42,9 +46,8 @@ jobs:
       - name: Setup git
         if: github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == ''
         run: |
-          git config user.email "maintainers-python+github@nuxeo.com"
-          git config user.name "GitHub-CI action (Release)"
-
+          git config user.email ${{ env.GITHUB_EMAILID }}
+          git config user.name ${{ env.GITHUB_USERNAME }}
       - name: Bump the version number
         if: github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == ''
         run: |
@@ -196,13 +199,12 @@ jobs:
         with:
           key: ${{ secrets.SSH_PRIV_KEY }}
           known_hosts: ${{ secrets.SSH_KNOWN_HOST_DEPLOY }}
-
       - name: Setup git
         run: |
-          git config user.email "maintainers-python+github@nuxeo.com"
-          git config user.name "GitHub-CI action (Release)"
+          git config user.email ${{ env.GITHUB_EMAILID }}
+          git config user.name ${{ env.GITHUB_USERNAME }}
           git fetch --unshallow --tags
-          git remote set-url origin git@github.com:nuxeo/nuxeo-drive.git
+          git remote set-url origin "https://${{ env.GITHUB_USERNAME }}:${{ secrets.NXDRIVE_GIT_TOKEN }}@github.com/nuxeo/nuxeo-drive.git"
 
       - name: Download artifacts
         uses: actions/download-artifact@v3
@@ -231,7 +233,8 @@ jobs:
           fi
           bash tools/release.sh --publish "${release_type}" || exit 1
           bash tools/release.sh --create "${release_type}" || exit 1
-
+        env:
+          GIT_TOKEN: ${{ secrets.NXDRIVE_GIT_TOKEN }}
       - name: Cancel the release
         if: failure() || cancelled()
         run: bash tools/release.sh --cancel
