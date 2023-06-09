@@ -204,7 +204,7 @@ jobs:
           git config user.email ${{ env.GITHUB_EMAILID }}
           git config user.name ${{ env.GITHUB_USERNAME }}
           git fetch --unshallow --tags
-          git remote set-url origin git@github.com:nuxeo/nuxeo-drive.git
+          git remote set-url origin "https://${{ env.GITHUB_USERNAME }}:${{ secrets.NXDRIVE_GIT_TOKEN }}@github.com/nuxeo/nuxeo-drive.git"
 
       - name: Download artifacts
         uses: actions/download-artifact@v3
@@ -225,7 +225,7 @@ jobs:
           bash tools/bump-alpha-version.sh || true
 
       - name: Do the release
-        #if: steps.extract_branch.outputs.branch == 'master'
+        if: steps.extract_branch.outputs.branch == 'master'
         run: |
           release_type="${{ github.event.inputs.releaseType }}"
           if [ "${release_type}" = "" ]; then
