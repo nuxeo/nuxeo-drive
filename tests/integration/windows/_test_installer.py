@@ -16,7 +16,6 @@ log = getLogger(__name__)
 
 
 class Installer:
-
     launcher = ""
     uninstaller = ""
 

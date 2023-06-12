@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pytest
 
 import nxdrive.utils
-from nxdrive.constants import APP_NAME, WINDOWS, DigestStatus
+from nxdrive.constants import APP_NAME, MAC, WINDOWS, DigestStatus
 from nxdrive.options import Options
 
 from ..markers import not_windows, windows_only
@@ -870,6 +870,7 @@ def test_retrieve_ssl_certificate_unknown(hostname):
         ("non", False),
         ("nope", "nope"),
         ("epsilon\nalpha\ndelta\nbeta", ("alpha", "beta", "delta", "epsilon")),
+        ("0.1", 0.1),
     ],
 )
 def test_get_value(raw_value, expected_value):
@@ -1078,18 +1079,28 @@ def test_simplify_url(url, result):
 
 
 @pytest.mark.parametrize(
-    "invalid, valid",
+    "invalid, windows_valid, mac_valid, linux_valid",
     [
-        ('a/b\\c*d:e<f>g?h"i|j.doc', "a-b-c-d-e-f-g-h-i-j.doc"),
-        ("/*@?<>", "--@---"),
-        ("/*?<>", "-----"),
-        ("/ * @ ? < >", "- - @ - - -"),
-        ("/ * ? < >", "- - - - -"),
-        ("/*  ?<>", "--  ---"),
+        (
+            'a/b\\c*d:e<f>g?h"i|j.doc',
+            "a-b-c-d-e-f-g-h-i-j.doc",
+            'a-b-c*d-e<f>g?h"i-j.doc',
+            'a-b-c*d:e<f>g?h"i-j.doc',
+        ),
+        ("/*@?<>", "--@---", "-*@?<>", "-*@?<>"),
+        ("/*?<>", "-----", "-*?<>", "-*?<>"),
+        ("/ * @ ? < >", "- - @ - - -", "- * @ ? < >", "- * @ ? < >"),
+        ("/ * ? < >", "- - - - -", "- * ? < >", "- * ? < >"),
+        ("/*  ?<> :", "--  --- -", "-*  ?<> -", "-*  ?<> :"),
     ],
 )
-def test_safe_filename(invalid, valid):
-    assert nxdrive.utils.safe_filename(invalid) == valid
+def test_safe_filename(invalid, windows_valid, mac_valid, linux_valid):
+    if WINDOWS:
+        assert nxdrive.utils.safe_filename(invalid) == windows_valid
+    elif MAC:
+        assert nxdrive.utils.safe_filename(invalid) == mac_valid
+    else:
+        assert nxdrive.utils.safe_filename(invalid) == linux_valid
 
 
 def test_safe_filename_ending_with_space():
@@ -1098,7 +1109,7 @@ def test_safe_filename_ending_with_space():
     if WINDOWS:
         assert valid == "-a-zerty.odt"
     else:
-        assert valid == "-a-zerty.odt "
+        assert valid == "<a>zerty.odt "
 
 
 def test_safe_rename(tmp):
@@ -1311,3 +1322,23 @@ def test_get_verify(raw_value, expected_value):
     verify = nxdrive.utils.get_verify()
     assert verify is expected_value
     Options.ssl_no_verify = old_ssl_no_verify
+
+
+def test_get_date():
+    d = datetime.strptime(
+        str("2023-04-14 09:16:51.199007".split(".")[0]), "%Y-%m-%d %H:%M:%S"
+    )
+
+    assert nxdrive.utils.get_date_from_sqlite("2023-04-14 09:16:51.199007") == d
+
+    assert nxdrive.utils.get_date_from_sqlite("2023/04/14 09:16:51.199007") is None
+
+
+def test_get_timestamp():
+    assert nxdrive.utils.get_timestamp_from_date(None) == 0
+
+    d = datetime.strptime(
+        str("2023-04-15 09:16:51.199007".split(".")[0]), "%Y-%m-%d %H:%M:%S"
+    )
+
+    assert nxdrive.utils.get_timestamp_from_date(d) == 1681550211

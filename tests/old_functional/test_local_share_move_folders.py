@@ -9,7 +9,6 @@ from .common import TwoUsersTest
 
 
 class TestLocalShareMoveFolders(TwoUsersTest):
-
     NUMBER_OF_LOCAL_IMAGE_FILES = 10
 
     def setUp(self):

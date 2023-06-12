@@ -1,6 +1,5 @@
 def test_simple_filter(engine_dao):
     with engine_dao("engine_migration.db") as dao:
-
         # There is already 2 tests filters
         assert len(dao.get_filters()) == 2
 

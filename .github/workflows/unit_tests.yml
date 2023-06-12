@@ -19,17 +19,17 @@ jobs:
   unit-tests-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: 3.9 # XXX_PYTHON
-      - uses: actions/cache@v2.1.6
+      - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
           restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
-      - uses: actions/cache@v2.1.6
+      - uses: actions/cache@v3
         with:
           path: .tox
           key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
@@ -40,7 +40,7 @@ jobs:
         run: tox -e unit
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
-        uses: codecov/codecov-action@v1.5.2
+        uses: codecov/codecov-action@v3.1.2
         with:
           files: ./coverage.xml
           flags: unit
@@ -51,17 +51,17 @@ jobs:
     env:
       SYSTEM_VERSION_COMPAT: 0
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: 3.9 # XXX_PYTHON
-      - uses: actions/cache@v2.1.6
+      - uses: actions/cache@v3
         with:
           path: ~/Library/Caches/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
           restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
-      - uses: actions/cache@v2.1.6
+      - uses: actions/cache@v3
         with:
           path: .tox
           key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
@@ -72,7 +72,7 @@ jobs:
         run: tox -e unit
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
-        uses: codecov/codecov-action@v1.5.2
+        uses: codecov/codecov-action@v3.1.2
         with:
           files: ./coverage.xml
           flags: unit
@@ -81,19 +81,19 @@ jobs:
   unit-tests-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: 3.9 # XXX_PYTHON
           architecture: "x86"
-      - uses: actions/cache@v2.1.6
+      - uses: actions/cache@v3
         with:
           path: ~\AppData\Local\pip\Cache
           key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
           restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
       # Cannot be used for now: OSError: [WinError 193] %1 is not a valid Win32 application
-      # - uses: actions/cache@v2.1.6
+      # - uses: actions/cache@v3
       #   with:
       #     path: .tox
       #     key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
@@ -104,7 +104,7 @@ jobs:
         run: tox -e unit
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
-        uses: codecov/codecov-action@v1.5.2
+        uses: codecov/codecov-action@v3.1.2
         with:
           files: ./coverage.xml
           flags: unit

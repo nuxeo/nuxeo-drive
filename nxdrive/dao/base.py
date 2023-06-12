@@ -42,7 +42,6 @@ class AutoRetryConnection(Connection):
 
 
 class BaseDAO(QObject):
-
     _state_factory: Type[Row] = DocPair
     _journal_mode: str = "WAL"
 

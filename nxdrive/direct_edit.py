@@ -407,7 +407,6 @@ class DirectEdit(Worker):
     def _get_info(
         self, engine: "Engine", doc_id: str, /
     ) -> Optional[NuxeoDocumentInfo]:
-
         try:
             if not self.use_autolock:
                 log.warning(
