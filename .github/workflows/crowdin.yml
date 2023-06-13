@@ -18,10 +18,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Crowdin Action
-        uses: crowdin/github-action@1.4.8
+        uses: crowdin/github-action@v1.7.1
         with:
           # Tokens
           project_id: ${{ secrets.CROWDIN_PROJECT_ID }}

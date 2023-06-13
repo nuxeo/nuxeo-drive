@@ -10,7 +10,6 @@ TEST_TIMEOUT = 60
 
 
 class TestLocalPaste(OneUserTest):
-
     NUMBER_OF_LOCAL_FILES = 25
     TEMP_FOLDER = "temp_folder"
     FOLDER_A1 = Path("a1")

@@ -320,7 +320,6 @@ class RemoteBase(Remote):
 
 
 class RemoteTest(RemoteBase):
-
     _download_remote_error = None
     _upload_remote_error = None
     _server_error = None

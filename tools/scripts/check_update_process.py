@@ -398,7 +398,7 @@ def webserver(folder, port=8000):
 
 #
 # Functions used by main()
-# (or put like this: this is main() splited into smaller functions :)
+# (or put like this: this is main() split into smaller functions :)
 #
 
 

@@ -325,7 +325,6 @@ class NuxeoDocumentInfo:
 
 
 class DocPair(Row):
-
     id: int
     last_local_updated: str
     last_remote_updated: str

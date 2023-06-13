@@ -117,7 +117,7 @@ def test_argument_nxdrive_home(exe, tmp, folder):
         "--beta-channel",
         "--consider-ssl-errors",
         "--max-sync-step=42",
-        "--proxy-exceptions=unknwown",
+        "--proxy-exceptions=unknown",
         "--proxy-type=none",
     ],
 )
