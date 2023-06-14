@@ -213,7 +213,7 @@ def test_get_update_release_broken_update():
 
 
 def test_app_restart(updater):
-
+    """Test restrat drive functionality once application is updated to desired version"""
     import subprocess
     from unittest.mock import Mock
 
