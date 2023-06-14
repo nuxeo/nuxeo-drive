@@ -12,6 +12,7 @@ from nxdrive.engine.engine import Engine
 from nxdrive.manager import Manager
 from nxdrive.objects import DocPair
 from nxdrive.osi import AbstractOSIntegration
+from nxdrive.updater.darwin import Updater
 from nxdrive.utils import normalized_path
 
 
@@ -125,6 +126,12 @@ class MockManager(Manager):
         super().__init__(self, home)
 
 
+class MockUpdater(Updater):
+    def __init__(self, tmp_path):
+        final_app = tmp_path
+        super().__init__(self, final_app)
+
+
 @pytest.fixture()
 def engine_dao(tmp_path):
     dao = MockEngineDAO
@@ -153,3 +160,10 @@ def manager(tmp_path):
     manager.osi = AbstractOSIntegration
     manager.home = tmp_path
     return manager
+
+
+@pytest.fixture()
+def updater(tmp_path):
+    updater = MockUpdater
+    updater.final_app = tmp_path
+    return updater

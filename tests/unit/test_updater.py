@@ -210,3 +210,17 @@ def test_get_update_release_broken_update():
     )
     assert action == UPDATE_STATUS_UP_TO_DATE
     assert version == ""
+
+
+def test_app_restart(updater):
+
+    import subprocess
+    from unittest.mock import Mock
+
+    from nxdrive.updater.base import BaseUpdater
+    from nxdrive.updater.darwin import Updater
+
+    BaseUpdater.appUpdated = Mock()
+    subprocess.Popen = Mock()
+
+    assert Updater._restart(updater) is None
