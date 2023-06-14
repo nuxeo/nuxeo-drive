@@ -135,7 +135,7 @@ class Updater(BaseUpdater):
     def _cleanup(self, filename: str, /) -> None:
         """Remove some files."""
 
-        paths = f"{self.final_app}.old"
+        paths = (f"{self.final_app}.old", filename)
         for path in paths:
             with suppress(OSError):
                 shutil.rmtree(path)
@@ -160,11 +160,9 @@ class Updater(BaseUpdater):
         """
 
         cmd = f'sleep 5 ; open "{self.final_app}"'
-        log.info(
-            f"Launching the new {APP_NAME}, {self.final_app} version in 5 seconds ..."
-        )
+        log.info(f"Launching the new {APP_NAME} version in 5 seconds ...")
         log.debug(f"Full command line: {cmd}")
-        subprocess.Popen(cmd, shell=True, close_fds=True)
+        subprocess.Popen(cmd, shell=True, close_fds=False)
 
         # Trigger the application exit
         self.appUpdated.emit()

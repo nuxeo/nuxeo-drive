@@ -154,7 +154,6 @@ class BaseUpdater(PollWorker):
         self._set_status(UPDATE_STATUS_UPDATING, version=version, progress=10)
         try:
             self._install(version, self._download(version))
-            log.info(">>>>>> Installation done")
         except OSError as exc:
             self._set_status(UPDATE_STATUS_UPDATE_AVAILABLE, version=version)
             if exc.errno in NO_SPACE_ERRORS:
@@ -186,9 +185,7 @@ class BaseUpdater(PollWorker):
         try:
             # Note: I do not think we should pass the `verify` kwarg here
             # because updates are critical and must be stored on a secured server.
-            log.info(f">>>> url: {url}, headers: {headers}")
             req = requests.get(url, headers=headers, stream=True)
-            log.info(f">>>>>> req: {req}")
             req.raise_for_status()
             size = int(req.headers["content-length"])
 
@@ -202,14 +199,11 @@ class BaseUpdater(PollWorker):
                 # Force write of file to disk
                 tmp.flush()
                 os.fsync(tmp.fileno())
-            log.info(">>> Download completed")
         except CONNECTION_ERROR:
             raise
         except Exception as exc:
             raise UpdateError(f"Impossible to get {url!r}: {exc}")
-        log.info(f">>>> validitity check: version {version}, path {path}")
         self._check_validity(version, path)
-        log.info(">>>> validity check done")
         return path
 
     def _fetch_versions(self) -> None:
