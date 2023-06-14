@@ -203,6 +203,7 @@ class BaseUpdater(PollWorker):
             raise
         except Exception as exc:
             raise UpdateError(f"Impossible to get {url!r}: {exc}")
+
         self._check_validity(version, path)
         return path
 
