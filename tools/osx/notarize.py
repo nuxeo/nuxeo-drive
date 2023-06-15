@@ -45,7 +45,7 @@ def ask_for_notarization_uid(file: str) -> str:
         "--password",
         NOTARIZATION_PASSWORD,
         "--team-id",
-        SIGNING_ID,
+        "",
         "--wait",
     ]
 
