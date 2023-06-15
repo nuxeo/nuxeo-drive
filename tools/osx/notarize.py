@@ -19,7 +19,7 @@ BUNDLE_IDENTIFIER = os.getenv("BUNDLE_IDENTIFIER", "org.nuxeo.drive")
 NOTARIZATION_USERNAME = os.environ["NOTARIZATION_USERNAME"]
 NOTARIZATION_PASSWORD = os.environ["NOTARIZATION_PASSWORD"]
 KEYCHAIN_PATH = os.environ["KEYCHAIN_PATH"]
-KEYCHAIN_PASSWORD = os.environ["KEYCHAIN_PASSWORD"]
+SIGNING_ID = os.environ["SIGNING_ID"]
 
 
 def ask_for_notarization_uid(file: str) -> str:
@@ -44,6 +44,8 @@ def ask_for_notarization_uid(file: str) -> str:
         NOTARIZATION_USERNAME,
         "--password",
         NOTARIZATION_PASSWORD,
+        "--team-id",
+        SIGNING_ID,
         "--wait",
     ]
 
