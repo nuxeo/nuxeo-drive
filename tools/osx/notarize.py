@@ -102,7 +102,6 @@ def wait_for_notarization(uuid: str) -> Tuple[bool, str]:
     cmd = [
         "xcrun",
         "notarytool",
-        "--notarization-info",
         uuid,
         "--username",
         NOTARIZATION_USERNAME,
