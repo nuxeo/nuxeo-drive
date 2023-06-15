@@ -38,11 +38,11 @@ def ask_for_notarization_uid(file: str) -> str:
         "notarytool",
         # "--primary-bundle-id",
         # BUNDLE_IDENTIFIER,
-        "--username",
+        # "--username",
         NOTARIZATION_USERNAME,
-        "--password",
+        # "--password",
         NOTARIZATION_PASSWORD,
-        "--file",
+        # "--file",
         file,
     ]
 
@@ -102,11 +102,11 @@ def wait_for_notarization(uuid: str) -> Tuple[bool, str]:
     cmd = [
         "xcrun",
         "notarytool",
-        uuid,
-        "--username",
+        # "--username",
         NOTARIZATION_USERNAME,
-        "--passwor",
+        # "--passwor",
         NOTARIZATION_PASSWORD,
+        uuid,
     ]
     status = "in progress"
 
