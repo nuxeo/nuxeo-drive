@@ -36,7 +36,6 @@ def ask_for_notarization_uid(file: str) -> str:
     cmd = [
         "xcrun",
         "notarytool",
-        "--notarize-app",
         "--primary-bundle-id",
         BUNDLE_IDENTIFIER,
         "--username",
