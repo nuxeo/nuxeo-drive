@@ -941,7 +941,9 @@ class Application(QApplication):
         self._center_on_screen(self.settings_window)
         self._show_window(self.filters_dlg)
 
-    def show_server_folders(self, engine: Engine, path: Optional[Path], /) -> None:
+    def show_server_folders(
+        self, engine: Engine, path: Optional[Path], selected_folder=None, /
+    ) -> None:
         """Display the remote folders dialog window.
         *path* is None when the dialog window is opened from a click on the systray menu icon.
         """
@@ -949,7 +951,7 @@ class Application(QApplication):
             self.filters_dlg.close()
             self.filters_dlg = None
 
-        self.filters_dlg = FoldersDialog(self, engine, path)
+        self.filters_dlg = FoldersDialog(self, engine, path, selected_folder)
         self.filters_dlg.accepted.connect(self._show_direct_transfer_window)
         self.filters_dlg.destroyed.connect(self.destroyed_filters_dialog)
         self.filters_dlg.show()
@@ -1611,6 +1613,11 @@ class Application(QApplication):
     def _handle_nxdrive_url(self, url: str, /) -> bool:
         """Handle an nxdrive protocol URL."""
 
+        if "transfer" in url:
+            folder_path = url.split("/nuxeo")[1]
+            self.ctx_direct_transfer(None, folder_path, True)
+            return
+
         info = parse_protocol_url(url)
         if not info:
             return False
@@ -1770,7 +1777,9 @@ class Application(QApplication):
 
         return selected_engine
 
-    def ctx_direct_transfer(self, path: Path, /) -> None:
+    def ctx_direct_transfer(
+        self, path: Path, folder_path=None, from_web=False, /
+    ) -> None:
         """Direct Transfer of local files and folders to anywhere on the server."""
 
         if not self.manager.wait_for_server_config():
@@ -1787,15 +1796,16 @@ class Application(QApplication):
 
         # Direct Transfer is not allowed for synced files
         engines = list(self.manager.engines.values())
-        if any(e.local_folder in path.parents for e in engines):
-            self.display_warning(
-                f"Direct Transfer - {APP_NAME}",
-                "DIRECT_TRANSFER_NOT_ALLOWED",
-                [str(path)],
-            )
-            return
+        if not from_web:
+            if any(e.local_folder in path.parents for e in engines):
+                self.display_warning(
+                    f"Direct Transfer - {APP_NAME}",
+                    "DIRECT_TRANSFER_NOT_ALLOWED",
+                    [str(path)],
+                )
+                return
 
-        log.info(f"Direct Transfer: {path!r}")
+            log.info(f"Direct Transfer: {path!r}")
 
         # Select the good account to use
         engine: Optional[Engine] = None
@@ -1813,7 +1823,7 @@ class Application(QApplication):
         if self.filters_dlg and type(self.filters_dlg).__name__ == "FoldersDialog":
             self.filters_dlg.newCtxTransfer.emit([str(path)] if path else [])
         else:
-            self.show_server_folders(engine, path)
+            self.show_server_folders(engine, path, folder_path)
 
     def update_status(self, engine: Engine, /) -> None:
         """
