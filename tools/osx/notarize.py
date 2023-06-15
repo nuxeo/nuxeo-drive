@@ -197,7 +197,15 @@ def main(file: str, uuid: str = "") -> int:
         print(" !! No notarization UUID found.", flush=True)
         return 1
 
-    cmd = ["xcrun", "altool", "--list-providers", "-u", NOTARIZATION_USERNAME]
+    cmd = [
+        "xcrun",
+        "altool",
+        "--list-providers",
+        "-u",
+        NOTARIZATION_USERNAME,
+        "-p",
+        NOTARIZATION_PASSWORD,
+    ]
 
     details = call(cmd)
     print(f">>>>>>>> details: {details}")
