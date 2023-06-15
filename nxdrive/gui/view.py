@@ -84,10 +84,7 @@ class EngineModel(QAbstractListModel):
 
         uid = self.engines_uid[index]
         engine = self.application.manager.engines.get(uid)
-        if not engine:
-            return ""
-
-        return getattr(engine, self.names[role].decode())
+        return "" if not engine else getattr(engine, self.names[role].decode())
 
     @pyqtSlot(int, str, result=str)
     def get(self, index: int, role: str = "uid", /) -> str:
@@ -96,10 +93,7 @@ class EngineModel(QAbstractListModel):
 
         uid = self.engines_uid[index]
         engine = self.application.manager.engines.get(uid)
-        if not engine:
-            return ""
-
-        return getattr(engine, role)
+        return "" if not engine else getattr(engine, role)
 
     def removeRows(
         self, row: int, count: int, /, *, parent: QModelIndex = QModelIndex()
@@ -489,23 +483,18 @@ class ActiveSessionModel(QAbstractListModel):
         elif role == self.CREATED_ON:
             label = "STARTED"
             args = []
-            datetime = get_date_from_sqlite(row["created_on"])
-            if datetime:
+            if datetime := get_date_from_sqlite(row["created_on"]):
                 label += "_ON"
-                # As date_time is in UTC
-                offset = tzlocal().utcoffset(datetime)
-                if offset:
+                if offset := tzlocal().utcoffset(datetime):
                     datetime += offset
                 args.append(Translator.format_datetime(datetime))
             return self.tr(label, values=args)
         elif role == self.COMPLETED_ON:
             label = "COMPLETED" if row["status"].name == "DONE" else "CANCELLED"
             args = []
-            datetime = get_date_from_sqlite(row["completed_on"])
-            if datetime:
+            if datetime := get_date_from_sqlite(row["completed_on"]):
                 label += "_ON"
-                offset = tzlocal().utcoffset(datetime)
-                if offset:
+                if offset := tzlocal().utcoffset(datetime):
                     datetime += offset
                 args.append(Translator.format_datetime(datetime))
             return self.tr(label, values=args)
@@ -619,23 +608,18 @@ class CompletedSessionModel(QAbstractListModel):
         elif role == self.CREATED_ON:
             label = "STARTED"
             args = []
-            datetime = get_date_from_sqlite(row["created_on"])
-            if datetime:
+            if datetime := get_date_from_sqlite(row["created_on"]):
                 label += "_ON"
-                # As date_time is in UTC
-                offset = tzlocal().utcoffset(datetime)
-                if offset:
+                if offset := tzlocal().utcoffset(datetime):
                     datetime += offset
                 args.append(Translator.format_datetime(datetime))
             return self.tr(label, values=args)
         elif role == self.COMPLETED_ON:
             label = "COMPLETED" if row["status"].name == "DONE" else "CANCELLED"
             args = []
-            datetime = get_date_from_sqlite(row["completed_on"])
-            if datetime:
+            if datetime := get_date_from_sqlite(row["completed_on"]):
                 label += "_ON"
-                offset = tzlocal().utcoffset(datetime)
-                if offset:
+                if offset := tzlocal().utcoffset(datetime):
                     datetime += offset
                 args.append(Translator.format_datetime(datetime))
             return self.tr(label, values=args)

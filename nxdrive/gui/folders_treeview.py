@@ -209,24 +209,24 @@ class FolderTreeView(TreeViewMixin):
         longest_parent = None
         for idx in range(item.rowCount()):
             child = item.child(idx)
-            data = child.data(qt.UserRole)
-            if data and (
-                data.get_path() == self.selected_folder
-                or data.get_path() == self.parent.remote_folder.text()
-            ):
-                self.selectionModel().select(
-                    child.index(),
-                    QItemSelectionModel.ClearAndSelect,
-                )
-                self.selectionModel().currentChanged.emit(child.index(), self.current)
-                return
-            elif data and data.get_path() in self.parent.remote_folder.text():
-                if not longest_parent:
-                    longest_parent = child
-                elif len(longest_parent.data(qt.UserRole).get_path()) < len(
-                    data.get_path()
-                ):
-                    longest_parent = child
+            if data := child.data(qt.UserRole):
+                if data.get_path() in [
+                    self.selected_folder,
+                    self.parent.remote_folder.text(),
+                ]:
+                    self.selectionModel().select(
+                        child.index(),
+                        QItemSelectionModel.ClearAndSelect,
+                    )
+                    self.selectionModel().currentChanged.emit(child.index(), self.current)
+                    return
+                elif data.get_path() in self.parent.remote_folder.text():
+                    if not longest_parent:
+                        longest_parent = child
+                    elif len(longest_parent.data(qt.UserRole).get_path()) < len(
+                        data.get_path()
+                    ):
+                        longest_parent = child
 
         if longest_parent:
             self.current = longest_parent.index()
