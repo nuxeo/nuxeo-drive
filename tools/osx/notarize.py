@@ -35,7 +35,7 @@ def ask_for_notarization_uid(file: str) -> str:
 
     cmd = [
         "xcrun",
-        "altool",
+        "notarytool",
         "--notarize-app",
         "--primary-bundle-id",
         BUNDLE_IDENTIFIER,
@@ -102,7 +102,7 @@ def wait_for_notarization(uuid: str) -> Tuple[bool, str]:
 
     cmd = [
         "xcrun",
-        "altool",
+        "notarytool",
         "--notarization-info",
         uuid,
         "--username",
