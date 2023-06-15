@@ -539,9 +539,7 @@ class Application(QApplication):
             context.setContextProperty(name, value)
 
     def _window_root(self, window: QWindow, /) -> QWindow:
-        if WINDOWS:
-            return window.rootObject()
-        return window
+        return window.rootObject() if WINDOWS else window
 
     def translate(self, message: str, /, *, values: List[Any] = None) -> str:
         return Translator.get(message, values=values)
@@ -1022,10 +1020,10 @@ class Application(QApplication):
         msg.setDefaultButton(cancel)
         msg.exec_()
         if msg.clickedButton() == continued:
-            engine = self.manager.engines.get(engine_uid)
-            if not engine:
+            if engine := self.manager.engines.get(engine_uid):
+                engine.cancel_upload(transfer_uid)
+            else:
                 return
-            engine.cancel_upload(transfer_uid)
 
     @pyqtSlot(str, int, str, int, result=bool)
     def confirm_cancel_session(
@@ -1945,10 +1943,10 @@ class Application(QApplication):
 
     def current_language(self) -> Optional[str]:
         lang = Translator.locale()
-        for tag, name in self.language_model.languages:
-            if tag == lang:
-                return name
-        return None
+        return next(
+            (name for tag, name in self.language_model.languages if tag == lang),
+            None,
+        )
 
     def show_metrics_acceptance(self) -> None:
         """Display a "friendly" dialog box to ask user for metrics approval."""

@@ -599,7 +599,7 @@ def validate_use_sentry(value: bool, /) -> bool:
 
 
 def _validate_deletion_behavior(value: str, /) -> str:
-    if value in ("unsync", "delete_server"):
+    if value in {"unsync", "delete_server"}:
         return value
     raise ValueError(f"Unknown deletion behavior {value!r}")
 
@@ -626,7 +626,7 @@ def validate_tmp_file_limit(value: Union[int, float], /) -> float:
 
 def validate_sync_root_max_level_limits(value: int, /) -> int:
     if 0 <= value <= 4:
-        return int(value)
+        return value
     raise ValueError("'sync_root_max_level' must be between 0 and 4 (inclusive).")
 
 
@@ -639,7 +639,7 @@ def _callback_synchronization_enabled(new_value: bool) -> None:
 
 
 # Handler callback for each feature
-for feature in vars(Feature).keys():
+for feature in vars(Feature):
     Options.callbacks[f"feature_{feature}"] = CallableFeatureHandler(feature)
 
 Options.callbacks["deletion_behavior"] = lambda v: log.info(

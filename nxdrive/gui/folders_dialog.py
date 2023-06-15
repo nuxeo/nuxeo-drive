@@ -526,9 +526,7 @@ class FoldersDialog(DialogMixin):
             if self.cbDocType.currentIndex() == 0
             else self.cbDocType.currentText()
         )
-        folder_duplicates = self._find_folders_duplicates()
-
-        if folder_duplicates:
+        if folder_duplicates := self._find_folders_duplicates():
             self.application.folder_duplicate_warning(
                 folder_duplicates,
                 self.remote_folder_title,
