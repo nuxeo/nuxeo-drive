@@ -18,8 +18,6 @@ import requests
 BUNDLE_IDENTIFIER = os.getenv("BUNDLE_IDENTIFIER", "org.nuxeo.drive")
 NOTARIZATION_USERNAME = os.environ["NOTARIZATION_USERNAME"]
 NOTARIZATION_PASSWORD = os.environ["NOTARIZATION_PASSWORD"]
-KEYCHAIN_PATH = os.environ["KEYCHAIN_PATH"]
-SIGNING_ID = os.environ["SIGNING_ID"]
 
 
 def ask_for_notarization_uid(file: str) -> str:
@@ -49,24 +47,11 @@ def ask_for_notarization_uid(file: str) -> str:
         "--wait",
     ]
 
-    """cmd = [
-        "xcrun",
-        "altool",
-        "--notarize-app",
-        "--primary-bundle-id",
-        BUNDLE_IDENTIFIER,
-        "--username",
-        NOTARIZATION_USERNAME,
-        "--password",
-        NOTARIZATION_PASSWORD,
-        "--file",
-        file,
-    ]"""
-
     output = call(cmd)
     print(f">>>> output: {output}")
-    matches = re.findall(r"RequestUUID = (.+)", output)
-    return matches[0] if matches else ""
+    uuid = re.findall(r"id: (.+)", output)
+    status = re.findall(r"status: (.+)", output)
+    return (uuid[0] if uuid else "", status[-1] if status else "")
 
 
 def wait_for_notarization(uuid: str) -> Tuple[bool, str]:
@@ -111,8 +96,8 @@ def wait_for_notarization(uuid: str) -> Tuple[bool, str]:
         Status Message: Package Approved
 
     """
-    print(f">>> [notarization] Waiting status for {uuid!r}", flush=True)
-    print("    (it may take a while)", flush=True)
+    """print(f">>> [notarization] Waiting status for {uuid!r}", flush=True)
+    print("    (it may take a while)", flush=True)"""
 
     # Small sleep to prevent "Error: Apple Services operation failed. Could not find the RequestUUID."
     time.sleep(10)
@@ -120,13 +105,20 @@ def wait_for_notarization(uuid: str) -> Tuple[bool, str]:
     cmd = [
         "xcrun",
         "notarytool",
-        # "--username",
-        NOTARIZATION_USERNAME,
-        # "--passwor",
-        NOTARIZATION_PASSWORD,
+        "log",
         uuid,
+        "--apple-id",
+        NOTARIZATION_USERNAME,
+        "--password",
+        NOTARIZATION_PASSWORD,
+        "--team-id",
+        "WCLR6985BX",
+        "notarization_report.json",
     ]
-    status = "in progress"
+
+    output = call(cmd)
+    print(f">>>>>> notary log: {output}")
+    """status = "in progress"
 
     while "waiting":
         output = call(cmd)
@@ -138,12 +130,14 @@ def wait_for_notarization(uuid: str) -> Tuple[bool, str]:
 
         # The process may take a while
         print("    (new check in 30 seconds ... )", flush=True)
-        time.sleep(30)
+        time.sleep(30)"""
 
     # Get the URL of the JSON report
-    report_url = get_notarization_report(output)
+    """report_url = get_notarization_report(output)
 
-    return status == "success", report_url
+    return status == "success", report_url"""
+    print(1 / 0)
+    return output
 
 
 def get_notarization_report(
@@ -154,7 +148,7 @@ def get_notarization_report(
 
 
 def get_notarization_status(
-    output: str, pattern: Pattern = re.compile(r"Status: (.+)")
+    output: str, pattern: Pattern = re.compile(r"status: (.+)")
 ) -> str:
     """Get the notarization status from a given *output*."""
     return re.findall(pattern, output)[0]
@@ -193,30 +187,21 @@ def main(file: str, uuid: str = "") -> int:
 
     if not uuid:
         # This is a new DMG file to notarize
-        uuid = ask_for_notarization_uid(file)
+        uuid, status = ask_for_notarization_uid(file)
     if not uuid:
         print(" !! No notarization UUID found.", flush=True)
         return 1
 
-    """cmd = [
-        "xcrun",
-        "altool",
-        "--list-providers",
-        "-u",
-        NOTARIZATION_USERNAME,
-        "-p",
-        NOTARIZATION_PASSWORD,
-    ]
+    if not status or status != "Accepted":
+        print(" !! Notarization failed. Check the report for details.", flush=True)
+        return 2
 
-    details = call(cmd)
-    print(f">>>>>>>> details: {details}")"""
-
-    is_valid, report_url = wait_for_notarization(uuid)
+    """is_valid, report_url = wait_for_notarization(uuid)
     download_report(uuid, report_url)
 
     if not is_valid:
         print(" !! Notarization failed. Check the report for details.", flush=True)
-        return 2
+        return 2"""
 
     staple_the_notarization(file)
     return 0
