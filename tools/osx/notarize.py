@@ -64,6 +64,7 @@ def ask_for_notarization_uid(file: str) -> str:
     ]"""
 
     output = call(cmd)
+    print(f">>>> output: {output}")
     matches = re.findall(r"RequestUUID = (.+)", output)
     return matches[0] if matches else ""
 
