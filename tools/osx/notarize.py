@@ -35,7 +35,7 @@ def ask_for_notarization_uid(file: str) -> str:
     print(f">>> [notarization] Uploading {file!r}", flush=True)
     print("    (it may take a while)", flush=True)
 
-    """cmd = [
+    cmd = [
         "xcrun",
         "notarytool",
         "submit",
@@ -45,11 +45,11 @@ def ask_for_notarization_uid(file: str) -> str:
         "--password",
         NOTARIZATION_PASSWORD,
         "--team-id",
-        "",
+        "WCLR6985BX",
         "--wait",
-    ]"""
+    ]
 
-    cmd = [
+    """cmd = [
         "xcrun",
         "altool",
         "--notarize-app",
@@ -61,7 +61,7 @@ def ask_for_notarization_uid(file: str) -> str:
         NOTARIZATION_PASSWORD,
         "--file",
         file,
-    ]
+    ]"""
 
     output = call(cmd)
     matches = re.findall(r"RequestUUID = (.+)", output)
@@ -197,7 +197,7 @@ def main(file: str, uuid: str = "") -> int:
         print(" !! No notarization UUID found.", flush=True)
         return 1
 
-    cmd = [
+    """cmd = [
         "xcrun",
         "altool",
         "--list-providers",
@@ -208,7 +208,7 @@ def main(file: str, uuid: str = "") -> int:
     ]
 
     details = call(cmd)
-    print(f">>>>>>>> details: {details}")
+    print(f">>>>>>>> details: {details}")"""
 
     is_valid, report_url = wait_for_notarization(uuid)
     download_report(uuid, report_url)
