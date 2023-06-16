@@ -47,6 +47,9 @@ jobs:
           powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -build
       - name: Install tox
         run: python -m pip install -r tools/deps/requirements-tox.txt
+      - name: Print path through powershell
+        shell: pwsh
+        run: gci $GITHUB_PATH | Write-Output 
       - name: Integration tests
         run: tox -e integration
       - name: Upload coverage to Codecov
