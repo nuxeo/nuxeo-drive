@@ -136,7 +136,6 @@ def wait_for_notarization(uuid: str) -> Tuple[bool, str]:
     """report_url = get_notarization_report(output)
 
     return status == "success", report_url"""
-    print(1 / 0)
     return output
 
 
@@ -196,6 +195,8 @@ def main(file: str, uuid: str = "") -> int:
         print(" !! Notarization failed. Check the report for details.", flush=True)
         return 2
 
+    notary_report = wait_for_notarization(uuid)
+    print(f">>>> notary_report: {notary_report}")
     """is_valid, report_url = wait_for_notarization(uuid)
     download_report(uuid, report_url)
 
