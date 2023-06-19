@@ -1,4 +1,5 @@
 import os.path
+import os
 import shutil
 import stat
 from logging import getLogger
@@ -75,13 +76,15 @@ def test_bind_server_missing_arguments(exe, args):
 def test_unbind_server(nuxeo_url, exe, folder):
     """Will also test clean-folder."""
     expanded_folder = os.path.expandvars(folder)
-    os.mkdir(expanded_folder)
+    # os.mkdir(expanded_folder)
     local_folder = f'--local-folder "{expanded_folder}"'
     test_password = f"--password {env.NXDRIVE_TEST_PASSWORD}"
     args = f"{test_password} {local_folder} {env.NXDRIVE_TEST_USERNAME} {nuxeo_url}"
 
     try:
         assert bind(exe, args)
+        print(f">>>>>>>> path: {os.listdir(expanded_folder)}")
+        print(f">>>>>>>> parent path: {os.listdir(expanded_folder.parent)}")
         assert os.path.isdir(expanded_folder)
         assert unbind(exe, local_folder)
     finally:

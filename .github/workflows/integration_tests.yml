@@ -49,18 +49,6 @@ jobs:
         run: python -m pip install -r tools/deps/requirements-tox.txt
       - name: Echo home 
         run: echo $HOME 
-      - name: To validate the Windows Folder Path
-        shell: pwsh
-        run: if (Test-Path "C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0") 
-        {
-          # Folder exists - Do something here    
-	        Write-host "Folder Exists!" -f Green
-        }
-        else 
-        {
-          # Folder does not exist - Do something else here
-          Write-host "Folder Doesn't Exists!" -f Red
-        }
       - name: Integration tests
         run: tox -e integration
       - name: Upload coverage to Codecov
