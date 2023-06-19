@@ -49,6 +49,9 @@ jobs:
         run: python -m pip install -r tools/deps/requirements-tox.txt
       - name: Echo home 
         run: echo $HOME 
+      - name: To validate windows folder path
+        run: |
+          powershell if [[ ${Test-Path} =~ "C:/Users/runneradmin/AppData/Local/Temp/" ]]; then Write-host "Folder Exists!"; else Write-host "Folder Doesn't Exists!"; fi 
       - name: Integration tests
         run: tox -e integration
       - name: Upload coverage to Codecov
