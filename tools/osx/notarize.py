@@ -138,7 +138,7 @@ def wait_for_notarization(uuid: str) -> Tuple[bool, str]:
     """report_url = get_notarization_report(output)
 
     return status == "success", report_url"""
-    return location
+    return location[0]
 
 
 def get_notarization_report(
@@ -196,14 +196,13 @@ def main(file: str, uuid: str = "") -> int:
         return 2
 
     notary_logs_path = wait_for_notarization(uuid)
+
+    if not notary_logs_path:
+        print(" !! Notarization logs path not found.", flush=True)
+        return 3
+
     print(f">>>> notary_report: {notary_logs_path}")
     download_report(notary_logs_path)
-    """is_valid, report_url = wait_for_notarization(uuid)
-    download_report(uuid, report_url)
-
-    if not is_valid:
-        print(" !! Notarization failed. Check the report for details.", flush=True)
-        return 2"""
 
     staple_the_notarization(file)
     return 0
