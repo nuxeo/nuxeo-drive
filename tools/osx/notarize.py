@@ -6,6 +6,7 @@ If NOTARIZATION_UUID is given, then the noratization process will continue.
 Else a new notarization process will be started
 """
 
+import json
 import os
 import re
 import subprocess
@@ -13,7 +14,7 @@ import sys
 import time
 from typing import List, Pattern, Tuple
 
-import requests
+# import requests
 
 BUNDLE_IDENTIFIER = os.getenv("BUNDLE_IDENTIFIER", "org.nuxeo.drive")
 NOTARIZATION_USERNAME = os.environ["NOTARIZATION_USERNAME"]
@@ -117,6 +118,7 @@ def wait_for_notarization(uuid: str) -> Tuple[bool, str]:
     ]
 
     output = call(cmd)
+    location = re.findall(r"location: (.+)", output)
     print(f">>>>>> notary log: {output}")
     """status = "in progress"
 
@@ -136,7 +138,7 @@ def wait_for_notarization(uuid: str) -> Tuple[bool, str]:
     """report_url = get_notarization_report(output)
 
     return status == "success", report_url"""
-    return output
+    return location
 
 
 def get_notarization_report(
@@ -169,16 +171,14 @@ def call(cmd: List[str]) -> str:
     return output
 
 
-def download_report(uuid: str, url: str) -> str:
+def download_report(notary_logs_path: str) -> str:
     """Download a notarization report."""
-    output = f"report-{uuid}.json"
-    print(f">>> Downloading the report to {output}", flush=True)
-    print(f">>> Report downloading from {url}", flush=True)
+    print(f">>> Report downloading from {notary_logs_path}", flush=True)
 
-    with requests.get(url) as req:
-        with open(output, "w", encoding="utf-8") as ofile:
-            ofile.write(req.text)
-            return output
+    with open(file=notary_logs_path, mode="r") as log_file:
+        data = json.load(log_file)
+        formated_logs = json.dumps(data, indent=4)
+        print(formated_logs)
 
 
 def main(file: str, uuid: str = "") -> int:
@@ -195,8 +195,9 @@ def main(file: str, uuid: str = "") -> int:
         print(" !! Notarization failed. Check the report for details.", flush=True)
         return 2
 
-    notary_report = wait_for_notarization(uuid)
-    print(f">>>> notary_report: {notary_report}")
+    notary_logs_path = wait_for_notarization(uuid)
+    print(f">>>> notary_report: {notary_logs_path}")
+    download_report(notary_logs_path)
     """is_valid, report_url = wait_for_notarization(uuid)
     download_report(uuid, report_url)
 
