@@ -47,14 +47,20 @@ jobs:
           powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -build
       - name: Install tox
         run: python -m pip install -r tools/deps/requirements-tox.txt
-      - name: Print path through powershell
-        shell: pwsh
-        run: gci $GITHUB_PATH | Write-Output
       - name: Echo home 
         run: echo $HOME 
-      - name: Github Workspace
+      - name: To validate the Windows Folder Path
         shell: pwsh
-        run: gci $GITHUB_WORKSPACE | Write-Output
+        run: if (Test-Path "C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0") 
+        {
+          # Folder exists - Do something here    
+	        Write-host "Folder Exists!" -f Green
+        }
+        else 
+        {
+          # Folder does not exist - Do something else here
+          Write-host "Folder Doesn't Exists!" -f Red
+        }
       - name: Integration tests
         run: tox -e integration
       - name: Upload coverage to Codecov
