@@ -1,14 +1,14 @@
 from os import getenv
 
 # The server URL against to run tests
-NXDRIVE_TEST_NUXEO_URL = getenv("NXDRIVE_TEST_NUXEO_URL", "http://localhost:8080/nuxeo")
+NXDRIVE_TEST_NUXEO_URL = getenv("NXDRIVE_TEST_NUXEO_URL", "https://drive-2021.beta.nuxeocloud.com/nuxeo")
 # NXDRIVE_TEST_NUXEO_URL = getenv("NXDRIVE_TEST_NUXEO_URL", "https://localhost:8443/nuxeo")
 
 # The user having administrator rights
-NXDRIVE_TEST_USERNAME = getenv("NXDRIVE_TEST_USERNAME", "Administrator")
+NXDRIVE_TEST_USERNAME = getenv("NXDRIVE_TEST_USERNAME", "nco-admin")
 
 # The password associated to the username
-NXDRIVE_TEST_PASSWORD = getenv("NXDRIVE_TEST_PASSWORD", "Administrator")
+NXDRIVE_TEST_PASSWORD = getenv("NXDRIVE_TEST_PASSWORD", "FgH545455ghjdg78$!@")
 
 # The remote path where to store data. Must exist before running tests.
 WS_DIR = getenv("NXDRIVE_TEST_PATH", "/default-domain/workspaces")
