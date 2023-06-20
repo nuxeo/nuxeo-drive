@@ -84,29 +84,29 @@ def test_unbind_server(nuxeo_url, exe, folder):
     try:
         assert bind(exe, args)
         # Specify path
-        path1 = 'C:/Users/RUNNER~1/' 
+        path1 = 'C:/Users/RUNNER~1/'
         # Check whether the specified
         # path exists or not
         isExist = os.path.exists(path1)
-        print("C:/Users/RUNNER~1/" + isExist)
+        print(f"C:/Users/RUNNER~1/{isExist}")
         # Specify path
         path2 = 'C:/Users/RUNNER~1/AppData/'
         # Check whether the specified
         # path exists or not
         isExist = os.path.exists(path2)
-        print("C:/Users/RUNNER~1/AppData/" + isExist)
+        print(f"C:/Users/RUNNER~1/AppData/{isExist}")
         # Specify path
         path3 = 'C:/Users/RUNNER~1/AppData/Local/'
         # Check whether the specified
         # path exists or not
         isExist = os.path.exists(path3)
-        print("C:/Users/RUNNER~1/AppData/Local/" + isExist)
+        print(f"C:/Users/RUNNER~1/AppData/Local/{isExist}")
         # Specify path
         path4 = 'C:/Users/RUNNER~1/AppData/Local/Temp/'
         # Check whether the specified
         # path exists or not
         isExist = os.path.exists(path4)
-        print("C:/Users/RUNNER~1/AppData/Local/Temp/" + isExist)
+        print(f"C:/Users/RUNNER~1/AppData/Local/Temp/{isExist}")
         assert os.path.isdir(expanded_folder)
         assert unbind(exe, local_folder)
     finally:
