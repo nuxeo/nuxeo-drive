@@ -3,7 +3,7 @@ name: Functional tests LTS 2023
 on:
   pull_request:
     paths:
-      - ".github/workflows/functional_tests.yml"
+      - ".github/workflows/functional_tests_2023.yml"
       - "nxdrive/**/*.py"
       - "tests/*.py"
       - "tests/functional/*.py"
