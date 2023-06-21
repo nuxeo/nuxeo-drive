@@ -25,9 +25,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.9.5 # XXX_PYTHON
+          python-version: 3.9 # XXX_PYTHON
           architecture: "x86"
       - uses: actions/cache@v3
         with:

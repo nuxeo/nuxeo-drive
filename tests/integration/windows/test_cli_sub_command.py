@@ -1,7 +1,6 @@
 import os.path
 import shutil
 import stat
-import sys
 from logging import getLogger
 
 import pytest
@@ -184,10 +183,6 @@ def test_ctx_menu_edit_metadata_inexistant(nuxeo_url, exe, server, tmp):
     assert launch(exe, args)
 
 
-@pytest.mark.skipif(
-    sys.version_info[:2] == (3, 9) and sys.platform.startswith("win"),
-    reason="#9298",
-)
 def test_ctx_menu_entries(nuxeo_url, exe, server, tmp):
     """Will test:
     - access-online
