@@ -15,6 +15,10 @@ on:
         required: false
         default: "alpha"
 
+env:
+  GITHUB_USERNAME: "nuxeodrive"
+  GITHUB_EMAILID: "drive@hyland.com"
+
 jobs:
   release:
     runs-on: ${{ matrix.os }}
@@ -25,7 +29,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ github.event.inputs.branch }}
 
@@ -42,9 +46,8 @@ jobs:
       - name: Setup git
         if: github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == ''
         run: |
-          git config user.email "maintainers-python+github@nuxeo.com"
-          git config user.name "GitHub-CI action (Release)"
-
+          git config user.email ${{ env.GITHUB_EMAILID }}
+          git config user.name ${{ env.GITHUB_USERNAME }}
       - name: Bump the version number
         if: github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == ''
         run: |
@@ -61,7 +64,7 @@ jobs:
 
       - name: "[GNU/Linux] Login to the docker registry"
         if: matrix.os == 'ubuntu-latest'
-        uses: docker/login-action@v1.10.0
+        uses: docker/login-action@v2
         with:
           registry: "docker-private.packages.nuxeo.com"
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -86,7 +89,7 @@ jobs:
 
       - name: "[GNU/Linux] Upload artifacts"
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: package-distributions
           path: ./dist/*.AppImage
@@ -122,7 +125,7 @@ jobs:
         if: matrix.os == 'macos-latest'
         timeout-minutes: 20
         env:
-          NXDRIVE_TEST_NUXEO_URL: "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
+          NXDRIVE_TEST_NUXEO_URL: "https://drive-2021.beta.nuxeocloud.com/nuxeo"
           MACOSX_DEPLOYMENT_TARGET: "11.3"
           KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
@@ -150,7 +153,7 @@ jobs:
 
       - name: "[macOS] Upload artifacts"
         if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: package-distributions
           path: ./dist/*.dmg
@@ -179,7 +182,7 @@ jobs:
         if: matrix.os == 'windows-latest'
         env:
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-          NXDRIVE_TEST_NUXEO_URL: "https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo"
+          NXDRIVE_TEST_NUXEO_URL: "https://drive-2021.beta.nuxeocloud.com/nuxeo"
           SIGNING_ID: "Nuxeo"
           SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade
@@ -198,7 +201,7 @@ jobs:
 
       - name: "[Windows] Upload artifacts"
         if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: package-distributions
           path: ./dist/*.exe
@@ -210,13 +213,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ github.event.inputs.branch }}
 
       - name: Extract branch name
         shell: bash
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        run: echo "branch=$(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_OUTPUT
         id: extract_branch
 
       - name: Install SSH key
@@ -224,16 +227,15 @@ jobs:
         with:
           key: ${{ secrets.SSH_PRIV_KEY }}
           known_hosts: ${{ secrets.SSH_KNOWN_HOST_DEPLOY }}
-
       - name: Setup git
         run: |
-          git config user.email "maintainers-python+github@nuxeo.com"
-          git config user.name "GitHub-CI action (Release)"
+          git config user.email ${{ env.GITHUB_EMAILID }}
+          git config user.name ${{ env.GITHUB_USERNAME }}
           git fetch --unshallow --tags
-          git remote set-url origin git@github.com:nuxeo/nuxeo-drive.git
+          git remote set-url origin "https://${{ env.GITHUB_USERNAME }}:${{ secrets.NXDRIVE_GIT_TOKEN }}@github.com/nuxeo/nuxeo-drive.git"
 
       - name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: package-distributions
           path: dist/
@@ -259,7 +261,8 @@ jobs:
           fi
           bash tools/release.sh --publish "${release_type}" || exit 1
           bash tools/release.sh --create "${release_type}" || exit 1
-
+        env:
+          GIT_TOKEN: ${{ secrets.NXDRIVE_GIT_TOKEN }}
       - name: Cancel the release
         if: failure() || cancelled()
         run: bash tools/release.sh --cancel

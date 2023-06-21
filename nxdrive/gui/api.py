@@ -61,7 +61,6 @@ log = getLogger(__name__)
 
 
 class QMLDriveApi(QObject):
-
     openAuthenticationDialog = pyqtSignal(str, object)
     setMessage = pyqtSignal(str, str)
 

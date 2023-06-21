@@ -15,6 +15,7 @@ on:
 
 env:
   FREEZE_ONLY: 1
+  
 
 jobs:
   integration-tests-windows:
@@ -22,7 +23,7 @@ jobs:
     strategy:
         fail-fast: false
         matrix:
-          lts_environment:  [ ["https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo",  "2021", "NXDRIVE_TEST_USERNAME",  "NXDRIVE_TEST_PASSWORD"],  ["https://drive-2023.beta.nuxeocloud.com/nuxeo",  "2023",  "NXDRIVE_2023_TEST_USERNAME", "NXDRIVE_2023_TEST_PASSWORD"] ]
+          lts_environment:  [ ["https://drive-2021.beta.nuxeocloud.com/nuxeo",  "2021", "NXDRIVE_TEST_USERNAME",  "NXDRIVE_TEST_PASSWORD"],  ["https://drive-2023.beta.nuxeocloud.com/nuxeo",  "2023",  "NXDRIVE_2023_TEST_USERNAME", "NXDRIVE_2023_TEST_PASSWORD"] ]
 
     env:
       NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment[0] }}
@@ -32,19 +33,19 @@ jobs:
     name: integration-tests-windows(LTS ${{ matrix.lts_environment[1] }})
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: 3.9 # XXX_PYTHON
           architecture: "x86"
-      - uses: actions/cache@v2.1.6
+      - uses: actions/cache@v3
         with:
           path: ~\AppData\Local\pip\Cache
           key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-dev.txt', 'tools/deps/requirements-tox.txt') }}
           restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-dev.txt', 'tools/deps/requirements-tox.txt') }}
       # Cannot be used for now: OSError: [WinError 193] %1 is not a valid Win32 application
-      # - uses: actions/cache@v2.1.6
+      # - uses: actions/cache@v3
       #   with:
       #     path: .tox
       #     key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
@@ -60,7 +61,7 @@ jobs:
         run: tox -e integration
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
-        uses: codecov/codecov-action@v1.5.2
+        uses: codecov/codecov-action@v3.1.2
         with:
           files: ./coverage.xml
           flags: integration

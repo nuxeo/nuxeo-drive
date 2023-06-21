@@ -16,7 +16,6 @@ log = getLogger(__name__)
 
 
 class ManagerDAO(BaseDAO):
-
     old_migrations_max_schema_version = 4
     _state_factory = EngineDef
 

@@ -20,4 +20,4 @@ updates:
       - mr-shekhar
     labels:
       - dependencies
-    open-pull-requests-limit: 42
+    open-pull-requests-limit: 45

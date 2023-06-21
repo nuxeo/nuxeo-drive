@@ -172,7 +172,6 @@ def test_delay_remote_watcher(app, manager_factory):
     with manager:
         watcher = engine._remote_watcher
         with patch.object(watcher, "_handle_changes", new=handle_changes):
-
             # The delay is set to 5 seconds
             with patch.object(engine.remote, "get_server_configuration", new=config_5s):
                 # Fetch the new config

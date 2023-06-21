@@ -16,7 +16,8 @@ on:
       - "tests/functional/*.py"
 
 env:
-  NXDRIVE_TEST_NUXEO_URL: https://nuxeo-drive-preview.platform.dev.nuxeo.com/nuxeo
+
+  NXDRIVE_TEST_NUXEO_URL: https://drive-2021.beta.nuxeocloud.com/nuxeo
   NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_TEST_USERNAME }}
   NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_TEST_PASSWORD }}
 
@@ -24,16 +25,16 @@ jobs:
   functional-tests-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v3
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: 3.9 # XXX_PYTHON
-      - uses: actions/cache@v2.1.6
+      - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
           restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
-      - uses: actions/cache@v2.1.6
+      - uses: actions/cache@v3
         with:
           path: .tox
           key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
@@ -50,7 +51,7 @@ jobs:
           DISPLAY: ":99"
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
-        uses: codecov/codecov-action@v1.5.2
+        uses: codecov/codecov-action@v3.1.2
         with:
           files: ./coverage.xml
           flags: functional
@@ -59,16 +60,16 @@ jobs:
   functional-tests-macos:
     runs-on: "macos-latest"
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v3
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: 3.9 # XXX_PYTHON
-      - uses: actions/cache@v2.1.6
+      - uses: actions/cache@v3
         with:
           path: ~/Library/Caches/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
           restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
-      - uses: actions/cache@v2.1.6
+      - uses: actions/cache@v3
         with:
           path: .tox
           key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
@@ -79,7 +80,7 @@ jobs:
         run: tox -e ft
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
-        uses: codecov/codecov-action@v1.5.2
+        uses: codecov/codecov-action@v3.1.2
         with:
           files: ./coverage.xml
           flags: functional
@@ -88,17 +89,17 @@ jobs:
   functional-tests-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v3
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: 3.9 # XXX_PYTHON
-      - uses: actions/cache@v2.1.6
+      - uses: actions/cache@v3
         with:
           path: ~\AppData\Local\pip\Cache
           key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
           restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
       # Cannot be used for now: OSError: [WinError 193] %1 is not a valid Win32 application
-      # - uses: actions/cache@v2.1.6
+      # - uses: actions/cache@v3
       #  with:
       #    path: .tox
       #    key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
@@ -109,7 +110,7 @@ jobs:
         run: tox -e ft
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
-        uses: codecov/codecov-action@v1.5.2
+        uses: codecov/codecov-action@v3.1.2
         with:
           files: ./coverage.xml
           flags: functional
@@ -123,16 +124,16 @@ jobs:
       - functional-tests-macos
       - functional-tests-windows
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v3
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: 3.9 # XXX_PYTHON
-      - uses: actions/cache@v2.1.6
+      - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-clean.txt', 'tools/deps/requirements-tox.txt') }}
           restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-clean.txt', 'tools/deps/requirements-tox.txt') }}
-      - uses: actions/cache@v2.1.6
+      - uses: actions/cache@v3
         with:
           path: .tox
           key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-clean.txt', 'tools/deps/requirements-tox.txt') }}
