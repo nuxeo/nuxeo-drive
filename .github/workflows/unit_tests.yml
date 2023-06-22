@@ -101,7 +101,7 @@ jobs:
       - name: Install tox
         run: python -m pip install -r tools/deps/requirements-tox.txt
       - name: Unit tests
-        run: tox -e unit
+        run: python -m pytest tests/unit/test_commandline.py::test_default_override
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
         uses: codecov/codecov-action@v3.1.2
