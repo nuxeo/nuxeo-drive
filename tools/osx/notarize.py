@@ -121,13 +121,13 @@ def get_notarization_report(
 
 
 def get_notarization_status(
-    output: str, pattern: Pattern = re.findall(r"status: (.+)")
+    output: str, pattern: Pattern = re.compile(r"status: (.+)")
 ) -> str:
     """Get the notarization status from a given *output*."""
     return re.findall(pattern, output)[-1]
 
 
-def get_notarization_id(output: str, pattern: Pattern = re.findall(r"id: (.+)")) -> str:
+def get_notarization_id(output: str, pattern: Pattern = re.compile(r"id: (.+)")) -> str:
     """Get the notarization id from a given *output*."""
     return re.findall(pattern, output)[0]
 
