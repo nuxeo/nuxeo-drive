@@ -74,7 +74,7 @@ def submit_dmg_for_notarization(file: str) -> str:
     ]
 
     output = call(cmd)
-    print(f">>>> output: {output}")
+    print(f">>>> [notarization] {output}")
     uuid = get_notarization_id(output)
     status = get_notarization_status(output)
     return (uuid if uuid else "", status if status else "")
@@ -108,7 +108,7 @@ def fetch_notarization_logs(uuid: str) -> Tuple[bool, str]:
 
     output = call(cmd)
     location = get_notarization_report(output)
-    print(f">>>>>> notary log: {output}")
+    print(f">>>>>> [notarization] {output}")
 
     return location
 
