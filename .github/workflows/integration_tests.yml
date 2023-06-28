@@ -48,7 +48,7 @@ jobs:
       - name: Install tox
         run: python -m pip install -r tools/deps/requirements-tox.txt
       - name: Echo home
-        run: echo $HOME
+        run: find -name __pycache__ -delete
       - name: Integration tests
         run: tox -e integration
       - name: Upload coverage to Codecov
