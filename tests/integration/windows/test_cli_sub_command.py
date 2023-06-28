@@ -86,7 +86,7 @@ def test_unbind_server(nuxeo_url, exe, folder):
         assert bind(exe, args)
         print(f">>>> path type: {type(expanded_folder)}")
         path_str = "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp"
-        print(f">>>>>> {path_str}")
+        print(f">>>>>> {os.listdir(path_str)}")
         assert os.path.isdir(expanded_folder)
         assert unbind(exe, local_folder)
     finally:
