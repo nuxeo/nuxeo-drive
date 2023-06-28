@@ -24,18 +24,23 @@ def fatal_error_dlg(app, with_details: bool = True) -> bool:
     # Check if the fatal error dialog is prompted.
     # XXX: Keep synced with FATAL_ERROR_TITLE.
     dlg = app.window(title=f"{APP_NAME} - Fatal error")
+    print(f">>>>>> dlg: {dlg}, exists:{dlg.exists()}")
     if dlg.exists():
+        print(">>>>>>>>> fatal_error_dlg: dlg.exits")
         if with_details:
             # Copy details
             sleep(1)
             dlg.child_window(title="Copy details").wait("visible").click()
+            print(">>>>>>>>>fatal_error_dlg, with_details")
             sleep(1)
             log.warning(f"Fatal error screen detected! Details:\n{cb_get()}")
         else:
             log.warning("Fatal error screen detected!")
 
         dlg.close()
+        print(">>>>>>>>> fatal_error_dlg, dlg close")
         return True
+    print(">>>>>>>>> fatal_error_dlg, error")
     return False
 
 

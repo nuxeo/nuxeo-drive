@@ -20,8 +20,10 @@ log = getLogger(__name__)
 def launch(exe, args: str, wait: int = 0) -> None:
     try:
         with exe(args=args, wait=wait) as app:
+            print(">>>>>>>>> in try block")
             return not fatal_error_dlg(app)
     except Exception:
+        print(">>>>>>>>> in except block")
         return False
 
 
@@ -82,6 +84,8 @@ def test_unbind_server(nuxeo_url, exe, folder):
 
     try:
         assert bind(exe, args)
+        print(f">>>> path type: {type(expanded_folder)}")
+        print(f">>>>>> {os.listdir(expanded_folder.parent)}")
         assert os.path.isdir(expanded_folder)
         assert unbind(exe, local_folder)
     finally:
