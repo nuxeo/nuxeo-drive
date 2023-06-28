@@ -178,7 +178,7 @@ def main(file: str, uuid: str = "") -> int:
         print(" !! Notarization logs path not found.", flush=True)
         return 3
 
-    # Below method will display notarization logs (Useful incase issue occurs during notarization)
+    # Below method will display notarization logs (Useful in case issue occurs during notarization)
     # display_notarization_logs(notary_logs_path)
 
     staple_the_notarization(file)
