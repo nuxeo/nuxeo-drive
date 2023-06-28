@@ -42,7 +42,7 @@ def exe(final_exe, tmp):
 
         log.info(f"Starting {cmd!r} with args={args!r}")
 
-        app = Application(backend="uia").start(f"{cmd} {args}")
+        app = Application(backend="uia").start(f"{cmd}")
         try:
             yield app
             if wait > 0:
