@@ -22,8 +22,8 @@ def launch(exe, args: str, wait: int = 0) -> None:
         with exe(args=args, wait=wait) as app:
             print(">>>>>>>>> in try block")
             return not fatal_error_dlg(app)
-    except Exception:
-        print(">>>>>>>>> in except block")
+    except Exception as exc:
+        print(f">>>>>>>>> in except block, {exc}")
         return False
 
 
