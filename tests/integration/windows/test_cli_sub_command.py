@@ -84,7 +84,7 @@ def test_unbind_server(nuxeo_url, exe, folder):
 
     try:
         assert bind(exe, args)
-        print(f">>>> path type: {type(expanded_folder)}")
+        print(f">>>> path type: {type(expanded_folder)}, path: {expanded_folder}")
         path_str = "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp"
         print(f">>>>>> {os.listdir(path_str)}")
         assert os.path.isdir(expanded_folder)
@@ -125,7 +125,6 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
 
     folder = tmp()
     assert not folder.is_dir()
-    os.mkdir(folder)
     local_folder = f'--local-folder="{str(folder)}"'
 
     ws = None
@@ -134,6 +133,9 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
         # 1st, bind the server
         args = f"{env.NXDRIVE_TEST_USERNAME} {nuxeo_url} {local_folder} --password {env.NXDRIVE_TEST_PASSWORD}"
         assert bind(exe, args)
+        print(f">>>> path type: {type(folder)}, path: {folder}")
+        # path_str = "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp"
+        # print(f">>>>>> {os.listdir(path_str)}")
         assert folder.is_dir()
 
         # 2nd, create a workspace
