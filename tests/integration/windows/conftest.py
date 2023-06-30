@@ -35,9 +35,9 @@ def exe(final_exe, tmp):
     @contextmanager
     def execute(cmd: str = final_exe, args: str = "", wait: int = 0):
         if "--nxdrive-home" not in args and "--local-folder" not in args:
-            args += f' --nxdrive-home="{path}"'
+            args += f' --nxdrive-home "{path}"'
         if "--log-level-file" not in args and "--local-folder" not in args:
-            args += " --log-level-file=DEBUG"
+            args += " --log-level-file DEBUG"
         args = args.strip()
 
         log.info(f"Starting {cmd!r} with args={args!r}")
