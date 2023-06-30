@@ -1,6 +1,7 @@
 import os.path
 import shutil
 import stat
+import tempfile
 from logging import getLogger
 
 import pytest
@@ -71,12 +72,12 @@ def test_bind_server_missing_arguments(exe, args):
     assert not bind(exe, args)
 
 
-@pytest.mark.parametrize(
-    "folder", ["%temp%\\L12test", "%temp%\\this folder is good enough こん ツリ ^^"]
-)
+@pytest.mark.parametrize("folder", ["L12test", "this folder is good enough こん ツリ ^^"])
 def test_unbind_server(nuxeo_url, exe, folder):
     """Will also test clean-folder."""
-    expanded_folder = os.path.expandvars(folder)
+    root = tempfile.mkdtemp()
+    expanded_folder = os.path.join(root, folder)
+    # expanded_folder = os.path.expandvars(folder)
     # os.mkdir(expanded_folder)
     local_folder = f'--local-folder "{expanded_folder}"'
     test_password = f"--password {env.NXDRIVE_TEST_PASSWORD}"
