@@ -72,7 +72,7 @@ def test_bind_server_missing_arguments(exe, args):
     assert not bind(exe, args)
 
 
-@pytest.mark.parametrize("folder", ["L12test", "this folder is good enough こん ツリ ^^"])
+@pytest.mark.parametrize("folder", ["%temp%\L12test", "this folder is good enough こん ツリ ^^"])
 def test_unbind_server(nuxeo_url, exe, folder):
     """Will also test clean-folder."""
     root = tempfile.mkdtemp()
@@ -96,9 +96,9 @@ def test_unbind_server(nuxeo_url, exe, folder):
     finally:
         assert launch(exe, f"clean-folder {local_folder}")
 
-        os.chmod(expanded_folder, stat.S_IWUSR)
-        shutil.rmtree(expanded_folder)
-        assert not os.path.isdir(expanded_folder)
+        os.chmod(folder, stat.S_IWUSR)
+        shutil.rmtree(folder)
+        assert not os.path.isdir(folder)
 
 
 @pytest.mark.parametrize("folder", ["", "this folder does not exist こん ツリ ^^ Léa$"])
