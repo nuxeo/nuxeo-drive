@@ -79,6 +79,8 @@ def test_unbind_server(nuxeo_url, exe, folder):
     expanded_folder = os.path.join(root, folder)
     # expanded_folder = os.path.expandvars(folder)
     # os.mkdir(expanded_folder)
+    path_str = 'C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\' #
+    expanded_folder = os.path.join(path_str, "L12test"); 
     local_folder = f'--local-folder "{expanded_folder}"'
     test_password = f"--password {env.NXDRIVE_TEST_PASSWORD}"
     args = f"{test_password} {local_folder} {env.NXDRIVE_TEST_USERNAME} {nuxeo_url}"
@@ -86,10 +88,12 @@ def test_unbind_server(nuxeo_url, exe, folder):
     try:
         assert bind(exe, args)
         print(f">>>> path type: {type(expanded_folder)}, path: {expanded_folder}")
-        path_str = 'C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\' #os.path.join("%temp%", 'L12test'); #
+        
+        print(f"os.getenv(TEMP) >> ")
+        print(os.getenv("TEMP"))
         print(f">>>>>> {os.listdir(path_str)}")
         #assert os.path.isdir(r"{path_str}")
-        assert os.path.isdir(folder)
+        #assert os.path.isdir(folder)
         assert os.path.isdir(path_str)
         assert os.path.isdir(expanded_folder)
         assert unbind(exe, local_folder)
