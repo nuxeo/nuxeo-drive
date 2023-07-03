@@ -85,10 +85,10 @@ def test_unbind_server(nuxeo_url, exe, folder):
     path_str = "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\" #
     
     expanded_folder = os.path.join(path_str, "L12test"); 
-    local_folder = f'--local-folder "{expanded_folder}"'
+    local_folder = f"--local-folder {expanded_folder}"
 
-    folder = tempfile.TemporaryDirectory()
-    local_folder = f'--local-folder "{folder}"'
+    #folder = tempfile.TemporaryDirectory()
+    #local_folder = f'--local-folder "{folder}"'
     
     test_password = f"--password {env.NXDRIVE_TEST_PASSWORD}"
     args = f"{test_password} {local_folder} {env.NXDRIVE_TEST_USERNAME} {nuxeo_url}"
