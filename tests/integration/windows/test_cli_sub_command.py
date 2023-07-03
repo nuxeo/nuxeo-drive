@@ -75,7 +75,7 @@ def test_bind_server_missing_arguments(exe, args):
 def test_unbind_server(nuxeo_url, exe, folder):
     """Will also test clean-folder."""
     # root = tempfile.mkdtemp()
-    expanded_folder = folder
+    expanded_folder = os.path.join(os.getcwd(), folder)
     # expanded_folder = os.path.expandvars(folder)
     # os.mkdir(expanded_folder)
     local_folder = f'--local-folder "{expanded_folder}"'
@@ -86,7 +86,7 @@ def test_unbind_server(nuxeo_url, exe, folder):
         assert bind(exe, args)
         # print(f">>>> path type: {type(expanded_folder)}, path: {expanded_folder}")
         # path_str = "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp"
-        # print(f">>>>>> {os.listdir(root)}")
+        print(f">>>>>> {os.listdir(expanded_folder)}")
         # print(f">>>> cwd: {os.getcwd()}")
         assert os.path.isdir(expanded_folder)
         assert unbind(exe, local_folder)
