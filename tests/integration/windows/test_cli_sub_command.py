@@ -76,15 +76,15 @@ def test_bind_server_missing_arguments(exe, args):
 def test_unbind_server(nuxeo_url, exe, folder):
     """Will also test clean-folder."""
     # root = tempfile.mkdtemp()
-   
-        
+
+
     # expanded_folder = os.path.join(root, folder)
     # print(f" root path {expanded_folder}")
     # expanded_folder = os.path.expandvars(folder)
     # os.mkdir(expanded_folder)
     path_str = "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\" #
-    
-    expanded_folder = os.path.join(path_str, "L12test"); 
+
+    expanded_folder = os.path.join(path_str, "L12test");
     local_folder = f"--local-folder {expanded_folder}"
     folder= expanded_folder
 
@@ -92,27 +92,27 @@ def test_unbind_server(nuxeo_url, exe, folder):
     expanded_folder = folder.gettempdir()
     print("Temp expanded_folder is {expanded_folder}")
     local_folder = f'--local-folder "{expanded_folder}"'
-    
+
     test_password = f"--password {env.NXDRIVE_TEST_PASSWORD}"
     args = f"{test_password} {local_folder} {env.NXDRIVE_TEST_USERNAME} {nuxeo_url}"
-    
-    
+
+
 
     try:
         assert bind(exe, args)
         #print(f">>>> path type: {type(expanded_folder)}, path: {expanded_folder}")
-        
-        print(f"os.getenv(TEMP) >> ")
+
+        print("os.getenv(TEMP) >> ")
         print(os.getenv("TEMP"))
         print(f">>>>>> {os.listdir(path_str)}")
 
         print(os.path.dirname(path_str))
         print(os.path.dirname(folder))
-        
+
         #assert os.path.isdir(r"{path_str}")
         assert os.path.isdir(path_str)
         assert os.path.isdir(folder)
-        
+
         #assert os.path.isdir(expanded_folder)
         assert unbind(exe, local_folder)
     finally:
