@@ -89,7 +89,7 @@ def test_unbind_server(nuxeo_url, exe, folder):
     folder= expanded_folder
 
     folder = tempfile.TemporaryDirectory()
-    expanded_folder = os.path.dirname(folder)
+    expanded_folder = folder.gettempdir()
     print("Temp expanded_folder is {expanded_folder}")
     local_folder = f'--local-folder "{expanded_folder}"'
     
