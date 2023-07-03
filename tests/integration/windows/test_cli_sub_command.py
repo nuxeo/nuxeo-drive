@@ -89,8 +89,9 @@ def test_unbind_server(nuxeo_url, exe, folder):
     folder= expanded_folder
 
     folder = tempfile.TemporaryDirectory()
-    local_folder = f'--local-folder "{folder}"'
-    expanded_folder = folder
+    expanded_folder = os.path.dirname(folder)
+    print("Temp expanded_folder is {expanded_folder}")
+    local_folder = f'--local-folder "{expanded_folder}"'
     
     test_password = f"--password {env.NXDRIVE_TEST_PASSWORD}"
     args = f"{test_password} {local_folder} {env.NXDRIVE_TEST_USERNAME} {nuxeo_url}"
@@ -118,7 +119,7 @@ def test_unbind_server(nuxeo_url, exe, folder):
         assert launch(exe, f"clean-folder {local_folder}")
 
         os.chmod(folder, stat.S_IWUSR)
-        #shutil.rmtree(folder)
+        shutil.rmtree(folder)
         folder.cleanup()
         assert not os.path.isdir(folder)
 
