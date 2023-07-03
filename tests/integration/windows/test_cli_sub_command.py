@@ -86,6 +86,7 @@ def test_unbind_server(nuxeo_url, exe, folder):
     
     expanded_folder = os.path.join(path_str, "L12test"); 
     local_folder = f"--local-folder {expanded_folder}"
+    folder= expanded_folder
 
     #folder = tempfile.TemporaryDirectory()
     #local_folder = f'--local-folder "{folder}"'
@@ -102,9 +103,14 @@ def test_unbind_server(nuxeo_url, exe, folder):
         print(f"os.getenv(TEMP) >> ")
         print(os.getenv("TEMP"))
         print(f">>>>>> {os.listdir(path_str)}")
+
+        print(os.path.dirname(path_str))
+        print(os.path.dirname(folder))
+        
         #assert os.path.isdir(r"{path_str}")
-        assert os.path.isdir(folder)
         assert os.path.isdir(path_str)
+        assert os.path.isdir(folder)
+        
         #assert os.path.isdir(expanded_folder)
         assert unbind(exe, local_folder)
     finally:
