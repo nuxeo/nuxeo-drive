@@ -88,8 +88,9 @@ def test_unbind_server(nuxeo_url, exe, folder):
     local_folder = f"--local-folder {expanded_folder}"
     folder= expanded_folder
 
-    #folder = tempfile.TemporaryDirectory()
-    #local_folder = f'--local-folder "{folder}"'
+    folder = tempfile.TemporaryDirectory()
+    local_folder = f'--local-folder "{folder}"'
+    expanded_folder = folder
     
     test_password = f"--password {env.NXDRIVE_TEST_PASSWORD}"
     args = f"{test_password} {local_folder} {env.NXDRIVE_TEST_USERNAME} {nuxeo_url}"
