@@ -89,7 +89,8 @@ def test_unbind_server(nuxeo_url, exe, folder):
         assert launch(exe, f"clean-folder {local_folder}")
 
         os.chmod(expanded_folder, stat.S_IWUSR)
-        shutil.rmtree(folder)
+        shutil.rmtree(expanded_folder)
+        folder.cleanup()
         assert not os.path.isdir(expanded_folder)
 
 
