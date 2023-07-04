@@ -6,141 +6,127 @@ If NOTARIZATION_UUID is given, then the noratization process will continue.
 Else a new notarization process will be started
 """
 
+import json
 import os
 import re
 import subprocess
 import sys
-import time
 from typing import List, Pattern, Tuple
-
-import requests
 
 BUNDLE_IDENTIFIER = os.getenv("BUNDLE_IDENTIFIER", "org.nuxeo.drive")
 NOTARIZATION_USERNAME = os.environ["NOTARIZATION_USERNAME"]
 NOTARIZATION_PASSWORD = os.environ["NOTARIZATION_PASSWORD"]
+NOTARIZATION_TEAMID = os.environ["NOTARIZATION_TEAMID"]
 
 
-def ask_for_notarization_uid(file: str) -> str:
+def submit_dmg_for_notarization(file: str) -> str:
     """Upload the *file* and wait for its notarization UUID.
 
     The command will return something like:
 
-        2020-02-19 11:55:35.558 altool[47499:579329] No errors uploading '$file'.
-        RequestUUID = hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
+        Conducting pre-submission checks for nuxeo-drive-x.x.x.dmg and initiating
+        connection to the Apple notary service...
+        Submission ID received
+        id: hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
+        Successfully uploaded file
+        id: hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
+        path: /Users/runner/work/nuxeo-drive/nuxeo-drive/dist/nuxeo-drive-x.x.x.dmg
+        Waiting for processing to complete.
 
-    And we are interested in the value of RequestUUID.
+        Current status: In Progress...
+        Current status: In Progress....
+        Current status: In Progress.....
+        Current status: In Progress......
+        Current status: In Progress.......
+        Current status: In Progress........
+        Current status: In Progress.........
+        Current status: In Progress..........
+        Current status: In Progress...........
+        Current status: In Progress............
+        Current status: In Progress.............
+        Current status: In Progress..............
+        Current status: In Progress...............
+        Current status: In Progress................
+        Current status: In Progress.................
+        Current status: Accepted..................Processing complete
+        id: hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
+        status: Accepted
+
+    And we are interested in the value of id and status.
     """
     print(f">>> [notarization] Uploading {file!r}", flush=True)
     print("    (it may take a while)", flush=True)
 
     cmd = [
         "xcrun",
-        "altool",
-        "--notarize-app",
-        "--primary-bundle-id",
-        BUNDLE_IDENTIFIER,
-        "--username",
+        "notarytool",
+        "submit",
+        file,
+        "--apple-id",
         NOTARIZATION_USERNAME,
         "--password",
         NOTARIZATION_PASSWORD,
-        "--file",
-        file,
+        "--team-id",
+        NOTARIZATION_TEAMID,
+        "--wait",
     ]
 
     output = call(cmd)
-    matches = re.findall(r"RequestUUID = (.+)", output)
-    return matches[0] if matches else ""
+    print(f">>> [notarization] {output}")
+    uuid = get_notarization_id(output)
+    status = get_notarization_status(output)
+    return (uuid if uuid else "", status if status else "")
 
 
-def wait_for_notarization(uuid: str) -> Tuple[bool, str]:
+def fetch_notarization_logs(uuid: str) -> Tuple[bool, str]:
     """Poll at regular interval for the final notarization status of the given *uuid*.
 
     The command will return something like:
 
-        2020-02-19 12:00:03.423 altool[48572:584781] No errors getting notarization info.
-
-        (when the process in ongoing)
-
-        RequestUUID: hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
-                Date: 2020-02-19 10:55:29 +0000
-                Status: in progress
-            LogFileURL: (null)
-
-        (when the process is ongoing but failed quickly, should still wait for more information)
-
-        RequestUUID: hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
-                Date: 2020-02-19 10:55:29 +0000
-                Status: in progress
-            LogFileURL: (null)
-        Status Code: 2
-        Status Message: Package Invalid
-
-        (when the process is done, but with error)
-
-        RequestUUID: hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
-                Date: 2020-02-19 10:55:29 +0000
-                Status: invalid
-            LogFileURL: https://osxapps-ssl.itunes.apple.com/itunes-assets/Enigma113/...
-        Status Code: 2
-        Status Message: Package Invalid
-
-        (when the process is done with success)
-
-        RequestUUID: hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
-                Date: 2020-02-19 10:55:29 +0000
-                Status: success
-            LogFileURL: https://osxapps-ssl.itunes.apple.com/itunes-assets/Enigma113/...
-        Status Code: 0
-        Status Message: Package Approved
+        Successfully downloaded submission log
+        id: 5ff518fe-1581-418d-9c9b-b14ac8df3197
+        location: /Users/runner/work/nuxeo-drive/nuxeo-drive/notarization_report.json
 
     """
-    print(f">>> [notarization] Waiting status for {uuid!r}", flush=True)
-    print("    (it may take a while)", flush=True)
-
-    # Small sleep to prevent "Error: Apple Services operation failed. Could not find the RequestUUID."
-    time.sleep(10)
+    print(">>> [notarization] Waiting for notarization logs path..", flush=True)
 
     cmd = [
         "xcrun",
-        "altool",
-        "--notarization-info",
+        "notarytool",
+        "log",
         uuid,
-        "--username",
+        "--apple-id",
         NOTARIZATION_USERNAME,
-        "--passwor",
+        "--password",
         NOTARIZATION_PASSWORD,
+        "--team-id",
+        NOTARIZATION_TEAMID,
+        "notarization_report.json",
     ]
-    status = "in progress"
 
-    while "waiting":
-        output = call(cmd)
-        status = get_notarization_status(output)
+    output = call(cmd)
+    location = get_notarization_report(output)
+    print(f">>> [notarization] {output}")
 
-        if status != "in progress":
-            # This is it!
-            break
-
-        # The process may take a while
-        print("    (new check in 30 seconds ... )", flush=True)
-        time.sleep(30)
-
-    # Get the URL of the JSON report
-    report_url = get_notarization_report(output)
-
-    return status == "success", report_url
+    return location
 
 
 def get_notarization_report(
-    output: str, pattern: Pattern = re.compile(r"LogFileURL: (.+)")
+    output: str, pattern: Pattern = re.compile(r"location: (.+)")
 ) -> str:
-    """Get the notarization report URL from a given *output*."""
+    """Get the notarization report location/path from a given *output*."""
     return re.findall(pattern, output)[0]
 
 
 def get_notarization_status(
-    output: str, pattern: Pattern = re.compile(r"Status: (.+)")
+    output: str, pattern: Pattern = re.compile(r"status: (.+)")
 ) -> str:
     """Get the notarization status from a given *output*."""
+    return re.findall(pattern, output)[-1]
+
+
+def get_notarization_id(output: str, pattern: Pattern = re.compile(r"id: (.+)")) -> str:
+    """Get the notarization id from a given *output*."""
     return re.findall(pattern, output)[0]
 
 
@@ -160,16 +146,14 @@ def call(cmd: List[str]) -> str:
     return output
 
 
-def download_report(uuid: str, url: str) -> str:
-    """Download a notarization report."""
-    output = f"report-{uuid}.json"
-    print(f">>> Downloading the report to {output}", flush=True)
-    print(f">>> Report downloading from {url}", flush=True)
+def display_notarization_logs(notary_logs_path: str) -> str:
+    """Print notarization report."""
+    print(f">>> Report loading from {notary_logs_path}", flush=True)
 
-    with requests.get(url) as req:
-        with open(output, "w", encoding="utf-8") as ofile:
-            ofile.write(req.text)
-            return output
+    with open(file=notary_logs_path, mode="r") as log_file:
+        data = json.load(log_file)
+        formated_logs = json.dumps(data, indent=4)
+        print(formated_logs, flush=True)
 
 
 def main(file: str, uuid: str = "") -> int:
@@ -177,17 +161,23 @@ def main(file: str, uuid: str = "") -> int:
 
     if not uuid:
         # This is a new DMG file to notarize
-        uuid = ask_for_notarization_uid(file)
+        uuid, status = submit_dmg_for_notarization(file)
     if not uuid:
         print(" !! No notarization UUID found.", flush=True)
         return 1
 
-    is_valid, report_url = wait_for_notarization(uuid)
-    download_report(uuid, report_url)
-
-    if not is_valid:
+    if not status or status != "Accepted":
         print(" !! Notarization failed. Check the report for details.", flush=True)
         return 2
+
+    notary_logs_path = fetch_notarization_logs(uuid)
+
+    if not notary_logs_path:
+        print(" !! Notarization logs path not found.", flush=True)
+        return 3
+
+    # Below method will display notarization logs (Useful in case issue occurs during notarization)
+    # display_notarization_logs(notary_logs_path)
 
     staple_the_notarization(file)
     return 0
