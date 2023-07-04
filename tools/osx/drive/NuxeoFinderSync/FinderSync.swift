@@ -54,18 +54,18 @@ class FinderSync: FIFinderSync {
         // a context menu, but a different one.
         FIFinderSyncController.default().directoryURLs = [URL(fileURLWithPath: "/")]
 
-        for badge in self.badges {
-            FIFinderSyncController.default().setBadgeImage(
-                badge.image,
-                label: badge.label,
-                forBadgeIdentifier: badge.identifier
-            )
-        }
+        //for badge in self.badges {
+        //    FIFinderSyncController.default().setBadgeImage(
+        //        badge.image,
+        //        label: badge.label,
+        //        forBadgeIdentifier: badge.identifier
+        //    )
+        //}
 
-        //DistributedNotificationCenter.default.addObserver(self,
-        //                                                  selector: #selector(receiveSyncStatus),
-        //                                                  name: self.syncStatusNotif,
-        //                                                  object: nil)
+        DistributedNotificationCenter.default.addObserver(self,
+                                                          selector: #selector(receiveSyncStatus),
+                                                          name: self.syncStatusNotif,
+                                                          object: nil)
         // We add an observer to listen to watch notifications from the main application
         DistributedNotificationCenter.default.addObserver(self,
                                                           selector: #selector(setWatchedFolders),
