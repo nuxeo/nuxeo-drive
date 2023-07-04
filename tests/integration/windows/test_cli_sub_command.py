@@ -130,7 +130,7 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
         # 1st, bind the server
         args = f"{env.NXDRIVE_TEST_USERNAME} {nuxeo_url} {local_folder} --password {env.NXDRIVE_TEST_PASSWORD}"
         assert bind(exe, args)
-        assert expanded_folder.is_dir()
+        assert os.path.isdir(expanded_folder)
 
         # 2nd, create a workspace
         new = Document(
@@ -149,7 +149,7 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
         assert launch(exe, "console --sync-and-quit", wait=40)
 
         # Check
-        assert (expanded_folder / ws.title).is_dir()
+        assert os.path.isdir(expanded_folder / ws.title)
 
         # Unbind the root
         args = f'unbind-root "{ws.path}" {local_folder}'
