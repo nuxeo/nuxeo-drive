@@ -13,8 +13,6 @@ import subprocess
 import sys
 from typing import List, Pattern, Tuple
 
-# import requests
-
 BUNDLE_IDENTIFIER = os.getenv("BUNDLE_IDENTIFIER", "org.nuxeo.drive")
 NOTARIZATION_USERNAME = os.environ["NOTARIZATION_USERNAME"]
 NOTARIZATION_PASSWORD = os.environ["NOTARIZATION_PASSWORD"]
@@ -74,7 +72,7 @@ def submit_dmg_for_notarization(file: str) -> str:
     ]
 
     output = call(cmd)
-    print(f">>>> [notarization] {output}")
+    print(f">>> [notarization] {output}")
     uuid = get_notarization_id(output)
     status = get_notarization_status(output)
     return (uuid if uuid else "", status if status else "")
@@ -108,7 +106,7 @@ def fetch_notarization_logs(uuid: str) -> Tuple[bool, str]:
 
     output = call(cmd)
     location = get_notarization_report(output)
-    print(f">>>>>> [notarization] {output}")
+    print(f">>> [notarization] {output}")
 
     return location
 
