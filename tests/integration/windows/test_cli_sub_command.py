@@ -72,56 +72,29 @@ def test_bind_server_missing_arguments(exe, args):
     assert not bind(exe, args)
 
 
-@pytest.mark.parametrize("folder", ["%temp%\L12test", "this folder is good enough こん ツリ ^^"])
+@pytest.mark.parametrize("folder", ["L12test", "this folder is good enough こん ツリ ^^"])
 def test_unbind_server(nuxeo_url, exe, folder):
     """Will also test clean-folder."""
-    # root = tempfile.mkdtemp()
-   
-        
-    # expanded_folder = os.path.join(root, folder)
-    # print(f" root path {expanded_folder}")
-    # expanded_folder = os.path.expandvars(folder)
-    # os.mkdir(expanded_folder)
-    path_str = "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\" #
-    
-    expanded_folder = os.path.join(path_str, "L12test"); 
-    local_folder = f"--local-folder {expanded_folder}"
-    folder= expanded_folder
-
-    folder = tempfile.TemporaryDirectory()
-    expanded_folder = folder.gettempdir()
-    print("Temp expanded_folder is {expanded_folder}")
+    folder = tempfile.TemporaryDirectory(prefix=folder)
+    expanded_folder = folder.name
+    print(f"Temp expanded_folder is {expanded_folder}")
     local_folder = f'--local-folder "{expanded_folder}"'
-    
+
     test_password = f"--password {env.NXDRIVE_TEST_PASSWORD}"
     args = f"{test_password} {local_folder} {env.NXDRIVE_TEST_USERNAME} {nuxeo_url}"
-    
-    
 
     try:
         assert bind(exe, args)
-        #print(f">>>> path type: {type(expanded_folder)}, path: {expanded_folder}")
-        
-        print(f"os.getenv(TEMP) >> ")
-        print(os.getenv("TEMP"))
-        print(f">>>>>> {os.listdir(path_str)}")
-
-        print(os.path.dirname(path_str))
-        print(os.path.dirname(folder))
-        
-        #assert os.path.isdir(r"{path_str}")
-        assert os.path.isdir(path_str)
-        assert os.path.isdir(folder)
-        
-        #assert os.path.isdir(expanded_folder)
+        assert os.path.isdir(expanded_folder)
         assert unbind(exe, local_folder)
     finally:
         assert launch(exe, f"clean-folder {local_folder}")
 
-        os.chmod(folder, stat.S_IWUSR)
-        shutil.rmtree(folder)
+        os.chmod(expanded_folder, stat.S_IWUSR)
+        shutil.rmtree(expanded_folder)
         folder.cleanup()
-        assert not os.path.isdir(folder)
+        assert not os.path.isdir(expanded_folder)
+        print("ALL TEST SUCCESSFUL")
 
 
 @pytest.mark.parametrize("folder", ["", "this folder does not exist こん ツリ ^^ Léa$"])
