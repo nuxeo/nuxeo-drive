@@ -94,7 +94,7 @@ def test_unbind_server(nuxeo_url, exe, folder):
         shutil.rmtree(expanded_folder)
         folder.cleanup()
         assert not os.path.isdir(expanded_folder)
-        print("ALL TEST SUCCESSFUL")
+        print("<<<ALL TEST SUCCESSFUL>>>")
 
 
 @pytest.mark.parametrize("folder", ["", "this folder does not exist こん ツリ ^^ Léa$"])
