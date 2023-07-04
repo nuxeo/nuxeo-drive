@@ -122,7 +122,6 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
 
     folder = tempfile.TemporaryDirectory(prefix="sync_test")
     expanded_folder = folder.name
-    assert not folder.is_dir()
     local_folder = f'--local-folder="{str(expanded_folder)}"'
 
     ws = None
@@ -131,8 +130,7 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
         # 1st, bind the server
         args = f"{env.NXDRIVE_TEST_USERNAME} {nuxeo_url} {local_folder} --password {env.NXDRIVE_TEST_PASSWORD}"
         assert bind(exe, args)
-        print(f">>>> path type: {type(folder)}, path: {folder}")
-        assert folder.is_dir()
+        assert expanded_folder.is_dir()
 
         # 2nd, create a workspace
         new = Document(
@@ -143,6 +141,7 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
         ws = server.documents.create(new, parent_path=env.WS_DIR)
 
         # 3rd, bind the root (e.g.: enable the sync of the workspace)
+        print(f">>> ws.path: {ws.path}")
         args = f'bind-root "{ws.path}" {local_folder}'
         assert launch(exe, args, wait=5)
 
@@ -150,7 +149,7 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
         assert launch(exe, "console --sync-and-quit", wait=40)
 
         # Check
-        assert (folder / ws.title).is_dir()
+        assert (expanded_folder / ws.title).is_dir()
 
         # Unbind the root
         args = f'unbind-root "{ws.path}" {local_folder}'
@@ -164,9 +163,10 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
 
         assert launch(exe, f"clean-folder {local_folder}")
 
-        os.chmod(folder, stat.S_IWUSR)
-        shutil.rmtree(folder)
-        assert not os.path.isdir(folder)
+        os.chmod(expanded_folder, stat.S_IWUSR)
+        shutil.rmtree(expanded_folder)
+        folder.cleanup()
+        assert not os.path.isdir(expanded_folder)
 
 
 def test_ctx_menu_access_online_inexistant(nuxeo_url, exe, server, tmp):
