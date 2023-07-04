@@ -1,6 +1,7 @@
 import os.path
 import shutil
 import stat
+import tempfile
 from logging import getLogger
 
 import pytest
@@ -71,30 +72,24 @@ def test_bind_server_missing_arguments(exe, args):
     assert not bind(exe, args)
 
 
-@pytest.mark.parametrize("folder", ["L12test", "this folder is good enough こん ツリ ^^"])
+@pytest.mark.parametrize("folder", ["Léa$", "this folder is good enough こん ツリ ^^"])
 def test_unbind_server(nuxeo_url, exe, folder):
     """Will also test clean-folder."""
-    # root = tempfile.mkdtemp()
-    expanded_folder = os.path.join(os.getcwd(), folder)
-    # expanded_folder = os.path.expandvars(folder)
-    # os.mkdir(expanded_folder)
+    folder = tempfile.TemporaryDirectory(prefix=folder)
+    expanded_folder = folder.name
     local_folder = f'--local-folder "{expanded_folder}"'
     test_password = f"--password {env.NXDRIVE_TEST_PASSWORD}"
     args = f"{test_password} {local_folder} {env.NXDRIVE_TEST_USERNAME} {nuxeo_url}"
 
     try:
         assert bind(exe, args)
-        # print(f">>>> path type: {type(expanded_folder)}, path: {expanded_folder}")
-        # path_str = "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp"
-        print(f">>>>>> {os.listdir(os.getcwd())}")
-        # print(f">>>> cwd: {os.getcwd()}")
         assert os.path.isdir(expanded_folder)
         assert unbind(exe, local_folder)
     finally:
         assert launch(exe, f"clean-folder {local_folder}")
 
         os.chmod(expanded_folder, stat.S_IWUSR)
-        shutil.rmtree(expanded_folder)
+        shutil.rmtree(folder)
         assert not os.path.isdir(expanded_folder)
 
 
@@ -124,9 +119,10 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
     - unbind the server
     """
 
-    folder = tmp()
+    folder = tempfile.TemporaryDirectory(prefix="sync_test")
+    expanded_folder = folder.name
     assert not folder.is_dir()
-    local_folder = f'--local-folder="{str(folder)}"'
+    local_folder = f'--local-folder="{str(expanded_folder)}"'
 
     ws = None
 
