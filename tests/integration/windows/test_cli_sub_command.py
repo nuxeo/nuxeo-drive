@@ -21,7 +21,6 @@ log = getLogger(__name__)
 def launch(exe, args: str, wait: int = 0) -> None:
     try:
         with exe(args=args, wait=wait) as app:
-            print(">>>>>>>>> in try block")
             return not fatal_error_dlg(app)
     except Exception as exc:
         print(f">>>>>>>>> in except block, {exc}")
