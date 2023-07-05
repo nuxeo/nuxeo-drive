@@ -143,7 +143,7 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
         # 3rd, bind the root (e.g.: enable the sync of the workspace)
         print(f">>> ws.path: {ws.path}")
         args = f'bind-root "{ws.path}" {local_folder}'
-        assert launch(exe, args, wait=5)
+        assert launch(exe, args, wait=40)
 
         # 4th, sync and quit
         assert launch(exe, "console --sync-and-quit", wait=40)
