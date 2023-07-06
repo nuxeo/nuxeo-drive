@@ -179,7 +179,9 @@ def test_ctx_menu_access_online_inexistant(nuxeo_url, exe, server, tmp):
 
 def test_ctx_menu_copy_share_link_inexistant(nuxeo_url, exe, server, tmp):
     args = 'copy-share-link --file="bla bla bla"'
-    assert not launch(exe, args)
+    assert launch(exe, args)
+    url_copied = cb_get()
+    assert not url_copied.startswith(nuxeo_url)
 
 
 def test_ctx_menu_edit_metadata_inexistant(nuxeo_url, exe, server, tmp):
@@ -230,7 +232,7 @@ def test_ctx_menu_entries(nuxeo_url, exe, server, tmp):
 
         os.mkdir(synced_folder)
         print(f">>> folder: {os.listdir(folder)}")
-        assert (synced_folder).is_dir()
+        assert os.path.isdir(synced_folder)
 
         # Get the copy-share link
         args = f'copy-share-link --file="{str(synced_folder)}"'
