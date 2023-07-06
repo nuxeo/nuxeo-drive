@@ -62,15 +62,15 @@ class FinderSync: FIFinderSync {
         //    )
         //}
 
-        DistributedNotificationCenter.default.addObserver(self,
-                                                          selector: #selector(receiveSyncStatus),
-                                                          name: self.syncStatusNotif,
-                                                          object: nil)
-        // We add an observer to listen to watch notifications from the main application
         //DistributedNotificationCenter.default.addObserver(self,
-        //                                                  selector: #selector(setWatchedFolders),
-        //                                                  name: self.watchFolderNotif,
+        //                                                  selector: #selector(receiveSyncStatus),
+        //                                                  name: self.syncStatusNotif,
         //                                                  object: nil)
+        // We add an observer to listen to watch notifications from the main application
+        DistributedNotificationCenter.default.addObserver(self,
+                                                          selector: #selector(setWatchedFolders),
+                                                          name: self.watchFolderNotif,
+                                                          object: nil)
         DistributedNotificationCenter.default.addObserver(self,
                                                           selector: #selector(setConfig),
                                                           name: self.setConfigNotif,
