@@ -225,9 +225,11 @@ def test_ctx_menu_entries(nuxeo_url, exe, server, tmp):
 
         # Check
         print(f">>> folder: {os.listdir(folder)}")
-        synced_folder = folder / ws.title
+        synced_folder = os.path.join(folder, ws.title)
         print(f">>> cwd: {os.getcwd()}")
-        os.mkdir(folder / ws.title)
+
+        os.mkdir(synced_folder)
+        print(f">>> folder: {os.listdir(folder)}")
         assert (synced_folder).is_dir()
 
         # Get the copy-share link
