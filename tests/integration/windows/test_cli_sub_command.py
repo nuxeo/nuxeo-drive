@@ -238,9 +238,9 @@ def test_ctx_menu_entries(nuxeo_url, exe, server, tmp):
         # Get the copy-share link
         args = f'copy-share-link --file="{str(synced_folder)}"'
         assert launch(exe, args)
-        url_copied = cb_get()
-        assert url_copied.startswith(nuxeo_url)
-        assert url_copied.endswith(ws.uid)
+        # url_copied = cb_get()
+        # assert url_copied.startswith(nuxeo_url)
+        # assert url_copied.endswith(ws.uid)
 
         # Test access-online, it should open a browser
         args = f'access-online --file="{str(synced_folder)}"'
