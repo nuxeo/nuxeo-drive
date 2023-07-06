@@ -20,9 +20,9 @@ class FinderSync: FIFinderSync {
     let triggerWatchNotif = NSNotification.Name("org.nuxeo.drive.triggerWatch")
     let syncStatusNotif = NSNotification.Name("org.nuxeo.drive.syncStatus")
     let setConfigNotif = NSNotification.Name("org.nuxeo.drive.setConfig")
-    
+
     let app_name = "Nuxeo Drive - "
-    
+
     var title1 = "Access online"
     var title2 = "Copy share-link"
     var title3 = "Edit metadata"
@@ -46,7 +46,7 @@ class FinderSync: FIFinderSync {
     override init() {
         //NSLog("FinderSync() launched from \(Bundle.main.bundlePath)")
         super.init()
-        
+
         self.title4 = self.app_name + "Upload content"
 
         // Upon startup, we are watching the root only to be able to display a context menu
@@ -67,10 +67,10 @@ class FinderSync: FIFinderSync {
                                                           name: self.syncStatusNotif,
                                                           object: nil)
         // We add an observer to listen to watch notifications from the main application
-        //DistributedNotificationCenter.default.addObserver(self,
-        //                                                  selector: #selector(setWatchedFolders),
-        //                                                  name: self.watchFolderNotif,
-        //                                                  object: nil)
+        DistributedNotificationCenter.default.addObserver(self,
+                                                          selector: #selector(setWatchedFolders),
+                                                          name: self.watchFolderNotif,
+                                                          object: nil)
         DistributedNotificationCenter.default.addObserver(self,
                                                           selector: #selector(setConfig),
                                                           name: self.setConfigNotif,
@@ -96,7 +96,8 @@ class FinderSync: FIFinderSync {
             let target = URL(fileURLWithPath: path as! String)
             if operation as! String == "watch" {
                 NSLog("Now watching: \(target.path)")
-                FIFinderSyncController.default().directoryURLs.insert(target)
+                NSLog("Target: \(target)")
+                //FIFinderSyncController.default().directoryURLs.insert(target)
             } else if operation as! String == "unwatch" {
                 NSLog("Now ignoring: \(target.path)")
                 FIFinderSyncController.default().directoryURLs.remove(target)
