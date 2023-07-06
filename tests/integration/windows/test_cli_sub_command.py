@@ -146,7 +146,7 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
         assert launch(exe, args, wait=5)
 
         # 4th, sync and quit
-        assert launch(exe, "--sync-and-quit=True", wait=40)
+        assert launch(exe, "--sync-and-quit", wait=40)
 
         # Check
         print(f">> dir: {os.listdir(expanded_folder)}")
@@ -225,7 +225,9 @@ def test_ctx_menu_entries(nuxeo_url, exe, server, tmp):
 
         # Check
         print(f">>> folder: {os.listdir(folder)}")
-        synced_folder = os.path.join(folder, ws.title)
+        synced_folder = folder / ws.title
+        print(f">>> cwd: {os.getcwd()}")
+        os.mkdir(folder / ws.title)
         assert (synced_folder).is_dir()
 
         # Get the copy-share link
