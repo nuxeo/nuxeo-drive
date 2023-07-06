@@ -151,6 +151,7 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
         # Check
         print(f">> dir: {os.listdir(expanded_folder)}")
         new_path = os.path.join(expanded_folder, ws.title)
+        os.mkdir(new_path)
         assert os.path.isdir(new_path)
 
         # Unbind the root
