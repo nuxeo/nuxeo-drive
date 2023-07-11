@@ -21,10 +21,8 @@ log = getLogger(__name__)
 def launch(exe, args: str, wait: int = 0) -> None:
     try:
         with exe(args=args, wait=wait) as app:
-            print(">>>>>>>>> in try block")
             return not fatal_error_dlg(app)
-    except Exception as exc:
-        print(f">>>>>>>>> in except block, {exc}")
+    except Exception:
         return False
 
 
@@ -141,15 +139,13 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
         ws = server.documents.create(new, parent_path=env.WS_DIR)
 
         # 3rd, bind the root (e.g.: enable the sync of the workspace)
-        print(f">>> ws.path: {ws.path}")
         args = f'bind-root "{ws.path}" {local_folder}'
         assert launch(exe, args, wait=5)
 
         # 4th, sync and quit
-        assert launch(exe, "--sync-and-quit", wait=40)
+        assert launch(exe, "console --sync-and-quit", wait=40)
 
         # Check
-        print(f">> dir: {os.listdir(expanded_folder)}")
         new_path = os.path.join(expanded_folder, ws.title)
         os.mkdir(new_path)
         assert os.path.isdir(new_path)
@@ -224,15 +220,12 @@ def test_ctx_menu_entries(nuxeo_url, exe, server, tmp):
         assert launch(exe, args, wait=5)
 
         # 4th, sync and quit
-        assert launch(exe, "--sync-and-quit", wait=40)
+        assert launch(exe, "console --sync-and-quit", wait=40)
 
         # Check
-        print(f">>> folder: {os.listdir(folder)}")
         synced_folder = os.path.join(folder, ws.title)
-        print(f">>> cwd: {os.getcwd()}")
 
         os.mkdir(synced_folder)
-        print(f">>> folder: {os.listdir(folder)}")
         assert os.path.isdir(synced_folder)
 
         # Get the copy-share link
