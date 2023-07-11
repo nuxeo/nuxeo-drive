@@ -19,7 +19,6 @@ def test_start_app(exe):
 
         # There should be the main window
         main = main_window(app)
-        print(f">> window exist: {main.exists()}")
         assert main.exists()
         main.close()
 
