@@ -165,5 +165,7 @@ def manager(tmp_path):
 @pytest.fixture()
 def updater(tmp_path):
     updater = MockUpdater
+    updater.manager = MockManager
+    updater.manager.osi = AbstractOSIntegration
     updater.final_app = tmp_path
     return updater
