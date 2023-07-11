@@ -42,7 +42,7 @@ class Updater(BaseUpdater):
 
         exe_path = sys.executable
         m = re.match(r"(.*\.app).*", exe_path)
-        self.final_app = Path(m.group(1) if m else exe_path)
+        self.final_app = Path(m[1] if m else exe_path)
         self._relocate_in_home()
 
         self._fix_notarization(filename)
