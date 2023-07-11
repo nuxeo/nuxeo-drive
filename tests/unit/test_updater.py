@@ -229,18 +229,26 @@ def test_app_restart(updater):
 def test_install_updated_drive(updater, manager):
     """Install changes request by user (upgrade/downgrade drive)"""
 
-    from unittest.mock import Mock
+    from unittest.mock import Mock, patch
 
     filename = "/Applications/Nuxeo Drive.app"
     updater.manager.osi = Mock()
     updater._relocate_in_home = Mock()
     updater._fix_notarization = Mock()
     updater._mount = Mock()
-    updater._backup = Mock()
-    updater._copy = Mock()
     updater._unmount = Mock()
     updater._cleanup = Mock()
     updater._restart = Mock()
     updater._set_progress = Mock()
+    updater._backup = Mock()
+
+    with patch.object(updater, "_set_progress", Exception):
+        assert Updater.install(updater, filename) is None
+
+    updater._copy = Mock()
+
+    assert Updater.install(updater, filename) is None
+
+    updater.final_app = "/Users/test_users/test_dir"
 
     assert Updater.install(updater, filename) is None

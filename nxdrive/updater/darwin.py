@@ -68,6 +68,7 @@ class Updater(BaseUpdater):
 
         # Trigger the application exit + restart
         self._set_progress(100)
+        print(">>>>>> testing")
         self._restart()
 
     def _relocate_in_home(self) -> None:
