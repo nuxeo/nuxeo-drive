@@ -8,6 +8,7 @@ from nxdrive.updater.constants import (
     UPDATE_STATUS_WRONG_CHANNEL,
     Login,
 )
+from nxdrive.updater.darwin import Updater
 from nxdrive.updater.utils import get_update_status
 
 VERSIONS = {
@@ -210,3 +211,44 @@ def test_get_update_release_broken_update():
     )
     assert action == UPDATE_STATUS_UP_TO_DATE
     assert version == ""
+
+
+def test_app_restart(updater):
+    """Test restrat drive functionality once application is updated to desired version"""
+    import subprocess
+    from unittest.mock import Mock
+
+    from nxdrive.updater.base import BaseUpdater
+
+    BaseUpdater.appUpdated = Mock()
+    subprocess.Popen = Mock()
+
+    assert Updater._restart(updater) is None
+
+
+def test_install_updated_drive(updater, manager):
+    """Install changes request by user (upgrade/downgrade drive)"""
+
+    from unittest.mock import Mock, patch
+
+    filename = "/Applications/Nuxeo Drive.app"
+    updater.manager.osi = Mock()
+    updater._relocate_in_home = Mock()
+    updater._fix_notarization = Mock()
+    updater._mount = Mock()
+    updater._unmount = Mock()
+    updater._cleanup = Mock()
+    updater._restart = Mock()
+    updater._set_progress = Mock()
+    updater._backup = Mock()
+
+    with patch.object(updater, "_set_progress", Exception):
+        assert Updater.install(updater, filename) is None
+
+    updater._copy = Mock()
+
+    assert Updater.install(updater, filename) is None
+
+    updater.final_app = "/Users/test_users/test_dir"
+
+    assert Updater.install(updater, filename) is None
