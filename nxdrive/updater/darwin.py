@@ -42,7 +42,7 @@ class Updater(BaseUpdater):
 
         exe_path = sys.executable
         m = re.match(r"(.*\.app).*", exe_path)
-        self.final_app = Path(m.group(1) if m else exe_path)
+        self.final_app = Path(m[1] if m else exe_path)
         self._relocate_in_home()
 
         self._fix_notarization(filename)
@@ -162,7 +162,7 @@ class Updater(BaseUpdater):
         cmd = f'sleep 5 ; open "{self.final_app}"'
         log.info(f"Launching the new {APP_NAME} version in 5 seconds ...")
         log.debug(f"Full command line: {cmd}")
-        subprocess.Popen(cmd, shell=True, close_fds=True)
+        subprocess.Popen(cmd, shell=True, close_fds=False)
 
         # Trigger the application exit
         self.appUpdated.emit()
