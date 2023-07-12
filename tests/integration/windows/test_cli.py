@@ -13,13 +13,16 @@ log = getLogger(__name__)
 
 
 def test_start_app(exe):
+    import time
+
     with exe() as app:
         assert not fatal_error_dlg(app)
         assert share_metrics_dlg(app)
 
         # There should be the main window
         main = main_window(app)
-        log.info(f"Check for main window: {main.exists()}")
+        time.sleep(3)
+        # log.info(f"Check for main window: {main.exists()}")
         assert main.exists()
         main.close()
 
