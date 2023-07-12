@@ -41,6 +41,7 @@ def fatal_error_dlg(app, with_details: bool = True) -> bool:
 
 def main_window(app):
     # Return the main window.
+    app.window()
     return app.top_window()
 
 
