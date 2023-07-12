@@ -19,6 +19,7 @@ def test_start_app(exe):
 
         # There should be the main window
         main = main_window(app)
+        log.debug(f"Check for main window: {main.exists()}")
         assert main.exists()
         main.close()
 
