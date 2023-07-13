@@ -572,8 +572,9 @@ class Processor(EngineWorker):
             log.warning(
                 f"Cancelling Direct Transfer of {path!r} because it does not exist anymore"
             )
-            self._direct_transfer_cancel(doc_pair)
-            self.engine.directTranferError.emit(path)
+            # self._direct_transfer_cancel(doc_pair)
+            # self.engine.directTranferError.emit(path)
+            self.dao.pause_session(session.uid)
             return
 
         # Do the upload
