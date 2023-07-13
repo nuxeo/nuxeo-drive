@@ -156,7 +156,7 @@ class Updater(BaseUpdater):
 
     def _restart(self) -> None:
         """
-        Restart the current application to take into account the new version.
+        Restart the current  application to take into account the new version.
         """
 
         cmd = f'sleep 5 ; open "{self.final_app}"'
