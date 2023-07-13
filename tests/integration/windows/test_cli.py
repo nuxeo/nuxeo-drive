@@ -18,6 +18,7 @@ def test_start_app(exe):
         assert share_metrics_dlg(app)
 
         # There should be the main window
+        app.ContextMenu
         main = main_window(app)
         # print(f"Check for main window: {main.exists()}")
         assert main.exists()
