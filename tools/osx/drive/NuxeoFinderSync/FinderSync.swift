@@ -97,7 +97,7 @@ class FinderSync: FIFinderSync {
             if operation as! String == "watch" {
                 NSLog("Now watching: \(target.path)")
                 NSLog("Target: \(target)")
-                //FIFinderSyncController.default().directoryURLs.insert(target)
+                FIFinderSyncController.default().directoryURLs.insert(target)
             } else if operation as! String == "unwatch" {
                 NSLog("Now ignoring: \(target.path)")
                 FIFinderSyncController.default().directoryURLs.remove(target)

@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4F1A95062A5FE0F5008CDD6E /* icons.iconset in Resources */ = {isa = PBXBuildFile; fileRef = 4F1A95052A5FE0F5008CDD6E /* icons.iconset */; };
+		4F1A95072A5FE0F5008CDD6E /* icons.iconset in Resources */ = {isa = PBXBuildFile; fileRef = 4F1A95052A5FE0F5008CDD6E /* icons.iconset */; };
 		8B05679A207537FF006B1C5F /* badge_synced.png in Resources */ = {isa = PBXBuildFile; fileRef = 8B056794207537FF006B1C5F /* badge_synced.png */; };
 		8B05679B207537FF006B1C5F /* badge_syncing.png in Resources */ = {isa = PBXBuildFile; fileRef = 8B056795207537FF006B1C5F /* badge_syncing.png */; };
 		8B05679C207537FF006B1C5F /* badge_locked.png in Resources */ = {isa = PBXBuildFile; fileRef = 8B056796207537FF006B1C5F /* badge_locked.png */; };
@@ -48,6 +50,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		4F1A95052A5FE0F5008CDD6E /* icons.iconset */ = {isa = PBXFileReference; lastKnownFileType = folder.iconset; path = icons.iconset; sourceTree = "<group>"; };
 		8B056794207537FF006B1C5F /* badge_synced.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge_synced.png; sourceTree = "<group>"; };
 		8B056795207537FF006B1C5F /* badge_syncing.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge_syncing.png; sourceTree = "<group>"; };
 		8B056796207537FF006B1C5F /* badge_locked.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge_locked.png; sourceTree = "<group>"; };
@@ -118,6 +121,7 @@
 		8B6E725E2046EE5400AB5771 /* NuxeoFinderSync */ = {
 			isa = PBXGroup;
 			children = (
+				4F1A95052A5FE0F5008CDD6E /* icons.iconset */,
 				8B056797207537FF006B1C5F /* badge_conflicted.png */,
 				8B056799207537FF006B1C5F /* badge_error.png */,
 				8B056796207537FF006B1C5F /* badge_locked.png */,
@@ -197,7 +201,7 @@
 					};
 					8B6E725C2046EE5400AB5771 = {
 						CreatedOnToolsVersion = 9.2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 						SystemCapabilities = {
 							com.apple.ApplicationGroups.Mac = {
 								enabled = 1;
@@ -234,6 +238,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8B6E72512046EE3E00AB5771 /* Main.storyboard in Resources */,
+				4F1A95062A5FE0F5008CDD6E /* icons.iconset in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -243,6 +248,7 @@
 			files = (
 				8B05679D207537FF006B1C5F /* badge_conflicted.png in Resources */,
 				8B05679B207537FF006B1C5F /* badge_syncing.png in Resources */,
+				4F1A95072A5FE0F5008CDD6E /* icons.iconset in Resources */,
 				8BFDE4EE20486A5C00618B67 /* icon_64.png in Resources */,
 				8B05679F207537FF006B1C5F /* badge_error.png in Resources */,
 				8B05679A207537FF006B1C5F /* badge_synced.png in Resources */,
@@ -326,7 +332,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -385,7 +391,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
@@ -448,10 +454,10 @@
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_ENTITLEMENTS = NuxeoFinderSync/NuxeoFinderSync.entitlements;
-				CODE_SIGN_IDENTITY = "";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = R7V3R2963L;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/Frameworks",
@@ -472,10 +478,10 @@
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_ENTITLEMENTS = NuxeoFinderSync/NuxeoFinderSync.entitlements;
-				CODE_SIGN_IDENTITY = "";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = R7V3R2963L;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/Frameworks",
