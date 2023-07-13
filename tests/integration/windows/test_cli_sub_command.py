@@ -231,19 +231,14 @@ def test_ctx_menu_entries(nuxeo_url, exe, server, tmp):
         # Get the copy-share link
         args = f'copy-share-link --file="{str(synced_folder)}"'
         assert launch(exe, args)
-        # url_copied = cb_get()
-        # assert url_copied.startswith(nuxeo_url)
-        # assert url_copied.endswith(ws.uid)
 
         # Test access-online, it should open a browser
         args = f'access-online --file="{str(synced_folder)}"'
         assert launch(exe, args)
-        # assert get_opened_url() == url_copied
 
         # Test edit-metadata, it should open a browser
         args = f'edit-metadata --file="{str(synced_folder)}"'
         assert launch(exe, args)
-        # assert get_opened_url() == url_copied
     finally:
         if ws:
             ws.delete()
