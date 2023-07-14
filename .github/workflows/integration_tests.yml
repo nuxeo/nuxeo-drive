@@ -15,13 +15,23 @@ on:
 
 env:
   FREEZE_ONLY: 1
-  NXDRIVE_TEST_NUXEO_URL: https://drive-2021.beta.nuxeocloud.com/nuxeo
-  NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_TEST_USERNAME }}
-  NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_TEST_PASSWORD }}
+  
 
 jobs:
   integration-tests-windows:
     runs-on: windows-latest
+    strategy:
+        fail-fast: false
+        matrix:
+          lts_environment:  [ ["https://drive-2021.beta.nuxeocloud.com/nuxeo",  "2021", "NXDRIVE_TEST_USERNAME",  "NXDRIVE_TEST_PASSWORD"],  ["https://drive-2023.beta.nuxeocloud.com/nuxeo",  "2023",  "NXDRIVE_2023_TEST_USERNAME", "NXDRIVE_2023_TEST_PASSWORD"] ]
+
+    env:
+      NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment[0] }}
+      NXDRIVE_TEST_USERNAME: ${{ secrets[matrix.lts_environment[2]] }}
+      NXDRIVE_TEST_PASSWORD: ${{ secrets[matrix.lts_environment[3]] }}
+
+    name: integration-tests-windows(LTS ${{ matrix.lts_environment[1] }})
+
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
