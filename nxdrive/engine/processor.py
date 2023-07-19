@@ -574,7 +574,8 @@ class Processor(EngineWorker):
             )
             # self._direct_transfer_cancel(doc_pair)
             # self.engine.directTranferError.emit(path)
-            self.dao.pause_session(session.uid)
+            if session:
+                self.dao.pause_session(session.uid)
             return
 
         # Do the upload
