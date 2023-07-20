@@ -50,9 +50,9 @@ typing-extensions==4.0.1 \
     --hash=sha256:7f001e5ac290a0c0401508864c7ec868be4e701886d5b573a9528ed3973d9d3b \
     --hash=sha256:4ca091dea149f945ec56afb48dae714f21e8692ef22a395223bcd328961b6a0e
     # via importlib-metadata
-virtualenv==20.4.7 \
-    --hash=sha256:2b0126166ea7c9c3661f5b8e06773d28f83322de7a3ff7d06f0aed18c9de6a76 \
-    --hash=sha256:14fdf849f80dbb29a4eb6caa9875d476ee2a5cf76a5f5415fa2f1606010ab467
+virtualenv==20.24.1 \
+    --hash=sha256:01aacf8decd346cf9a865ae85c0cdc7f64c8caa07ff0d8b1dfc1733d10677442 \
+    --hash=sha256:2ef6a237c31629da6442b0bcaa3999748108c7166318d1f55cc9f8d7294e97bd
     # via tox
 zipp==3.5.0 \
     --hash=sha256:957cfda87797e389580cb8b9e3870841ca991e2125350677b2ca83a0e99390a3 \
