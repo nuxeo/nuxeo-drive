@@ -5,6 +5,7 @@ import nuxeo.client
 import nuxeo.operations
 import pytest
 from nuxeo.client import Nuxeo
+
 from nxdrive.options import Options
 from nxdrive.utils import get_verify
 
@@ -91,6 +92,8 @@ def no_warnings(recwarn):
             # First appeared with pytest 5.4.1
             continue
         elif "Unverified HTTPS request is being made to host" in message:
+            continue
+        elif "Cryptography will be significantly faster" in message:
             continue
 
         warn = f"{warning.filename}:{warning.lineno} {message}"
