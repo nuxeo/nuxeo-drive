@@ -4,29 +4,29 @@ from unittest.mock import patch
 
 from nxdrive.engine.processor import Processor
 
-Mocked_Session = namedtuple(
-    "session",
-    "status, uid",
-    defaults=("ok", "1"),
-)
-
-session = Mocked_Session()
-
-
-str_path = "unknownPath"
-path = Path(str_path)
-
-DocPair = namedtuple(
-    "DocPair",
-    "local_path, session",
-    defaults=(path, session),
-)
-
 
 def test__synchronize_direct_transfer(manager_factory):
     manager, engine = manager_factory()
     dao = engine.dao
     remote = engine.remote
+
+    Mocked_Session = namedtuple(
+        "session",
+        "status, uid",
+        defaults=("ok", "1"),
+    )
+
+    session = Mocked_Session()
+
+    str_path = "unknownPath"
+    path = Path(str_path)
+
+    DocPair = namedtuple(
+        "DocPair",
+        "local_path, session",
+        defaults=(path, session),
+    )
+
     doc_pair = DocPair()
 
     def mocked_get_session(*args, **kwargs):

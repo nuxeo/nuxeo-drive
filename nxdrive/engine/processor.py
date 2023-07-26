@@ -556,7 +556,6 @@ class Processor(EngineWorker):
 
     def _synchronize_direct_transfer(self, doc_pair: DocPair, /) -> None:
         """Direct Transfer of a local path."""
-        log.info(f">>>>>>>>>>>>>>>>>>>>>>      doc_pair: {doc_pair!r}")
         session = self.dao.get_session(doc_pair.session)
         if session and session.status is TransferStatus.PAUSED:
             # No need to repush the *doc_pair* into the queue, it will be handled when resuming the session
