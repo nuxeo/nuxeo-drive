@@ -556,6 +556,7 @@ class Processor(EngineWorker):
 
     def _synchronize_direct_transfer(self, doc_pair: DocPair, /) -> None:
         """Direct Transfer of a local path."""
+        log.info(f">>>>>>>>>>>>>>>>>>>>>>      doc_pair: {doc_pair!r}")
         session = self.dao.get_session(doc_pair.session)
         if session and session.status is TransferStatus.PAUSED:
             # No need to repush the *doc_pair* into the queue, it will be handled when resuming the session
@@ -569,13 +570,21 @@ class Processor(EngineWorker):
             path = Path(f"/{doc_pair.local_path}")
 
         if not path.exists():
-            log.warning(
-                f"Cancelling Direct Transfer of {path!r} because it does not exist anymore"
-            )
-            # self._direct_transfer_cancel(doc_pair)
-            # self.engine.directTranferError.emit(path)
-            if session:
+            self.engine.directTranferError.emit(path)
+            try:
+                if not session:
+                    session = self.dao.get_session(doc_pair.session)
+                log.warning(
+                    f"Pausing Direct Transfer of {path!r} because it does not exist. \
+                        Please validate the path and resume."
+                )
                 self.dao.pause_session(session.uid)
+            except Exception as e:
+                log.warning(
+                    f"Cancelling Direct Transfer of {path!r} because it does not exist."
+                )
+                log.warning(f"Error: {e!r}")
+                self._direct_transfer_cancel(doc_pair)
             return
 
         # Do the upload
