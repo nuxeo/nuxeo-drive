@@ -12,6 +12,7 @@ Mocked_Session = namedtuple(
 
 session = Mocked_Session()
 
+
 str_path = "unknownPath"
 path = Path(str_path)
 
@@ -32,7 +33,7 @@ def test__synchronize_direct_transfer(manager_factory):
         return session
 
     def mocked_get_none_session(*args, **kwargs):
-        return session
+        return None
 
     def mocked_upload(*args, **kwargs):
         return
