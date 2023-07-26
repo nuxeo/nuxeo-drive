@@ -31,6 +31,9 @@ def test__synchronize_direct_transfer(manager_factory):
     def mocked_get_session(*args, **kwargs):
         return session
 
+    def mocked_get_none_session(*args, **kwargs):
+        return session
+
     def mocked_upload(*args, **kwargs):
         return
 
@@ -44,6 +47,14 @@ def test__synchronize_direct_transfer(manager_factory):
     # sync_transfer = Processor._synchronize_direct_transfer
 
     with patch.object(dao, "get_session", new=mocked_get_session):
+        with patch.object(dao, "pause_session", new=mocked_pause_session):
+            with patch.object(remote, "upload", new=mocked_upload):
+                with patch.object(
+                    processor, "_direct_transfer_end", new=mocked_direct_transfer_end
+                ):
+                    assert processor._synchronize_direct_transfer(doc_pair) is None
+
+    with patch.object(dao, "get_session", new=mocked_get_none_session):
         with patch.object(dao, "pause_session", new=mocked_pause_session):
             with patch.object(remote, "upload", new=mocked_upload):
                 with patch.object(
