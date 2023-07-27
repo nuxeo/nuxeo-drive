@@ -157,7 +157,7 @@ def manager_dao(tmp_path):
 
 @pytest.fixture
 def remote():
-    mocked_remote = MockedRemote()
+    mocked_remote = MockedRemote
     return mocked_remote
 
 
@@ -167,7 +167,7 @@ def engine(engine_dao):
     engine.local_folder = os.path.expandvars("C:\\test\\%username%\\Drive")
     engine.dao = engine_dao
     engine.version = 1
-    engine.remote = remote()
+    engine.remote = MockedRemote
     return engine
 
 
