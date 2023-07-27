@@ -1,6 +1,6 @@
 from collections import namedtuple
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from nxdrive.engine.processor import Processor
 
@@ -18,8 +18,7 @@ def test__synchronize_direct_transfer(manager_factory):
 
     session = Mocked_Session()
 
-    str_path = "unknownPath"
-    path = Path(str_path)
+    path = Path("unknownPath")
 
     DocPair = namedtuple(
         "DocPair",
@@ -29,30 +28,12 @@ def test__synchronize_direct_transfer(manager_factory):
 
     doc_pair = DocPair()
 
-    def mocked_get_session(*args, **kwargs):
-        return session
-
-    def mocked_get_none_session(*args, **kwargs):
-        return None
-
-    def mocked_upload(*args, **kwargs):
-        return
-
-    def mocked_direct_transfer_end(*args, **kwargs):
-        return
-
-    def mocked_pause_session(*args, **kwargs):
-        return
-
     processor = Processor(engine, True)
-    # sync_transfer = Processor._synchronize_direct_transfer
 
-    with patch.object(dao, "pause_session", new=mocked_pause_session):
-        with patch.object(remote, "upload", new=mocked_upload):
-            with patch.object(
-                processor, "_direct_transfer_end", new=mocked_direct_transfer_end
-            ):
-                with patch.object(dao, "get_session", new=mocked_get_session):
+    with patch.object(dao, "pause_session", new=Mock()):
+        with patch.object(remote, "upload", new=Mock()):
+            with patch.object(processor, "_direct_transfer_end", new=Mock()):
+                with patch.object(dao, "get_session", return_value=session):
                     assert processor._synchronize_direct_transfer(doc_pair) is None
-                with patch.object(dao, "get_session", new=mocked_get_none_session):
+                with patch.object(dao, "get_session", return_value=None):
                     assert processor._synchronize_direct_transfer(doc_pair) is None
