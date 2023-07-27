@@ -5,7 +5,7 @@ from unittest.mock import patch
 from nxdrive.engine.processor import Processor
 
 
-def test__synchronize_direct_transfer(manager_factory):
+def test_synchronize_direct_transfer(manager_factory):
     manager, engine = manager_factory()
     dao = engine.dao
     remote = engine.remote
