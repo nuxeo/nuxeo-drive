@@ -132,7 +132,7 @@ class MockManager(Manager):
     def __init__(self, tmp_path):
         home = tmp_path
 
-        super().__init__(self, home)
+        super().__init__(self, home, version="1")
 
 
 class MockUpdater(Updater):
