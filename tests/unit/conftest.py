@@ -119,6 +119,15 @@ class MockEngine(Engine):
         super().__init__(self, local_folder)
 
 
+class MockedClient:
+    request = None
+
+
+class MockedRemote:
+    def __init__(self) -> None:
+        self.client = MockedClient
+
+
 class MockManager(Manager):
     def __init__(self, tmp_path):
         home = tmp_path
@@ -152,6 +161,12 @@ def engine(engine_dao):
     engine.local_folder = os.path.expandvars("C:\\test\\%username%\\Drive")
     engine.dao = engine_dao
     return engine
+
+
+@pytest.fixture
+def remote():
+    mocked_remote = MockedRemote()
+    return mocked_remote
 
 
 @pytest.fixture()

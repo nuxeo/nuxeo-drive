@@ -5,10 +5,10 @@ from unittest.mock import patch
 from nxdrive.engine.processor import Processor
 
 
-def test_synchronize_direct_transfer(manager_factory):
-    manager, engine = manager_factory()
-    dao = engine.dao
-    remote = engine.remote
+def test_synchronize_direct_transfer(engine, engine_dao, remote):
+    engine = engine()
+    dao = engine_dao()
+    remote = remote
     Mocked_Session = namedtuple(
         "session",
         "status, uid",
