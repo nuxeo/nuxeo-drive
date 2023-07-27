@@ -6,7 +6,7 @@ from nxdrive.engine.processor import Processor
 
 
 def test_synchronize_direct_transfer(engine, engine_dao, remote, tmp_path):
-    engine = engine(tmp_path, "1")
+    engine = engine(tmp_path)
     dao = engine_dao()
     remote = remote
     Mocked_Session = namedtuple(

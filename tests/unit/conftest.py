@@ -113,11 +113,10 @@ class MockManagerDAO(ManagerDAO):
 
 
 class MockEngine(Engine):
-    def __init__(self, tmp_path, version):
+    def __init__(self, tmp_path):
         local_folder = tmp_path
-        version = version
 
-        super().__init__(self, local_folder, version)
+        super().__init__(self, local_folder)
 
 
 class MockedClient:
@@ -133,7 +132,7 @@ class MockManager(Manager):
     def __init__(self, tmp_path):
         home = tmp_path
 
-        super().__init__(self, home, version="1")
+        super().__init__(self, home)
 
 
 class MockUpdater(Updater):
