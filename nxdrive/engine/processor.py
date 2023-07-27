@@ -576,12 +576,13 @@ class Processor(EngineWorker):
                         Please validate the path and resume."
                 )
                 self.dao.pause_session(session.uid)
+                return "paused"
             else:
                 log.warning(
                     f"Cancelling Direct Transfer of {path!r} because it does not exist."
                 )
                 self._direct_transfer_cancel(doc_pair)
-            return
+                return "cancelled"
 
         # Do the upload
         self.remote.upload(

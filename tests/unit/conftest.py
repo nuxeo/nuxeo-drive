@@ -114,18 +114,9 @@ class MockManagerDAO(ManagerDAO):
 
 class MockEngine(Engine):
     def __init__(self, tmp_path):
-        folder = tmp_path
+        local_folder = tmp_path
 
-        super().__init__(self, folder)
-
-
-class MockedClient:
-    request = None
-
-
-class MockedRemote:
-    def __init__(self) -> None:
-        self.client = MockedClient
+        super().__init__(self, local_folder)
 
 
 class MockManager(Manager):
@@ -155,19 +146,11 @@ def manager_dao(tmp_path):
     return dao
 
 
-@pytest.fixture
-def remote():
-    mocked_remote = MockedRemote
-    return mocked_remote
-
-
 @pytest.fixture()
 def engine(engine_dao):
     engine = MockEngine
     engine.local_folder = os.path.expandvars("C:\\test\\%username%\\Drive")
     engine.dao = engine_dao
-    engine.version = 1
-    engine.remote = MockedRemote
     return engine
 
 
