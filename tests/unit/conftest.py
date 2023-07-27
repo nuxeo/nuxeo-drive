@@ -114,9 +114,9 @@ class MockManagerDAO(ManagerDAO):
 
 class MockEngine(Engine):
     def __init__(self, tmp_path):
-        local_folder = tmp_path
+        folder = tmp_path
 
-        super().__init__(self, local_folder)
+        super().__init__(self, folder)
 
 
 class MockedClient:
