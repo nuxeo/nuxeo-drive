@@ -569,11 +569,18 @@ class Processor(EngineWorker):
             path = Path(f"/{doc_pair.local_path}")
 
         if not path.exists():
-            log.warning(
-                f"Cancelling Direct Transfer of {path!r} because it does not exist anymore"
-            )
-            self._direct_transfer_cancel(doc_pair)
             self.engine.directTranferError.emit(path)
+            if session:
+                log.warning(
+                    f"Pausing Direct Transfer of {path!r} because it does not exist. \
+                        Please validate the path and resume."
+                )
+                self.dao.pause_session(session.uid)
+            else:
+                log.warning(
+                    f"Cancelling Direct Transfer of {path!r} because it does not exist."
+                )
+                self._direct_transfer_cancel(doc_pair)
             return
 
         # Do the upload
