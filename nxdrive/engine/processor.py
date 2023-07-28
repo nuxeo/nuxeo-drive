@@ -581,6 +581,7 @@ class Processor(EngineWorker):
                     f"Cancelling Direct Transfer of {path!r} because it does not exist."
                 )
                 self._direct_transfer_cancel(doc_pair)
+
             return
 
         # Do the upload
