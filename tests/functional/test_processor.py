@@ -8,7 +8,6 @@ from nxdrive.engine.processor import Processor
 def test_synchronize_direct_transfer(manager_factory):
     manager, engine = manager_factory()
     dao = engine.dao
-    # remote = engine.remote
 
     Mocked_Session = namedtuple(
         "session",
@@ -16,7 +15,6 @@ def test_synchronize_direct_transfer(manager_factory):
         defaults=("ok", "1"),
     )
     session = Mocked_Session()
-
     str_path = "unknownPath"
     path = Path(str_path)
     DocPair = namedtuple(
