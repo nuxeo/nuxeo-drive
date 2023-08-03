@@ -291,8 +291,7 @@ class Processor(EngineWorker):
         try:
             return self.dao.acquire_state(self.thread_id, item.id)
         except sqlite3.OperationalError:
-            state = self.dao.get_state_from_id(item.id)
-            if state:
+            if state := self.dao.get_state_from_id(item.id):
                 if (
                     WINDOWS
                     and state.pair_state == "locally_moved"
@@ -460,9 +459,7 @@ class Processor(EngineWorker):
                     log.info("The document does not exist anymore locally")
                     self.dao.remove_state(doc_pair)
                 elif error in LONG_FILE_ERRORS:
-                    self.dao.remove_filter(
-                        doc_pair.remote_parent_path + "/" + doc_pair.remote_ref
-                    )
+                    self.dao.remove_filter(f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}")
                     self.engine.longPathError.emit(doc_pair)
                 elif hasattr(exc, "trash_issue"):
                     """
@@ -475,18 +472,19 @@ class Processor(EngineWorker):
                 else:
                     self._handle_pair_handler_exception(doc_pair, handler_name, exc)
             except RuntimeError as exc:
-                if "but the refreshed credentials are still expired" in str(exc):
-                    log.warning(
-                        "AWS credentials were refreshed, but the refreshed credentials are still expired"
-                    )
-                    log.info("Reinitializing the upload")
-                    self.dao.remove_transfer(
-                        "upload",
-                        doc_pair=doc_pair.id,
-                        is_direct_transfer=doc_pair.local_state == "direct",
-                    )
-                else:
+                if "but the refreshed credentials are still expired" not in str(
+                    exc
+                ):
                     raise
+                log.warning(
+                    "AWS credentials were refreshed, but the refreshed credentials are still expired"
+                )
+                log.info("Reinitializing the upload")
+                self.dao.remove_transfer(
+                    "upload",
+                    doc_pair=doc_pair.id,
+                    is_direct_transfer=doc_pair.local_state == "direct",
+                )
             except Exception as exc:
                 # Workaround to forward unhandled exceptions to sys.excepthook between all Qthreads
                 sys.excepthook(*sys.exc_info())
@@ -562,12 +560,7 @@ class Processor(EngineWorker):
             log.debug(f"The session is paused, skipping <DocPair[{doc_pair.id}]>")
             return
 
-        if WINDOWS:
-            path = doc_pair.local_path
-        else:
-            # The path retrieved from the database will have its starting slash trimmed, restore it
-            path = Path(f"/{doc_pair.local_path}")
-
+        path = doc_pair.local_path if WINDOWS else Path(f"/{doc_pair.local_path}")
         if not path.exists():
             self.engine.directTranferError.emit(path)
             if session:
@@ -616,9 +609,7 @@ class Processor(EngineWorker):
         # Clean-up
         self.dao.remove_state(doc_pair, recursive=recursive)
 
-        # Update session then handle the status
-        session = self.dao.get_session(doc_pair.session)
-        if session:
+        if session := self.dao.get_session(doc_pair.session):
             if (
                 not cancelled_transfer
                 and session.status is not TransferStatus.CANCELLED
@@ -657,8 +648,7 @@ class Processor(EngineWorker):
             remote_info.name != doc_pair.local_name
             or remote_info.digest != doc_pair.local_digest
         ):
-            modified = self.dao.get_state_from_local(doc_pair.local_path)
-            if modified:
+            if modified := self.dao.get_state_from_local(doc_pair.local_path):
                 log.info(
                     f"Forcing remotely_modified for pair={modified!r} "
                     f"with info={remote_info!r}"
