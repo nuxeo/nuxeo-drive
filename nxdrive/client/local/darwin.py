@@ -76,17 +76,21 @@ class LocalClient(LocalClientMixin):
         5. Hide the icon file (name: Icon\r)
         """
         log.debug(f"Setting the folder icon of {ref!r} using {icon!r}")
+        log.info(f"Setting the folder icon of {ref!r} using {icon!r}")
 
         target_folder = self.abspath(ref)
+        log.info(f"----------------target_folder: {target_folder!r}")
 
         # Generate the value for 'com.apple.FinderInfo'
         has_icon_xdata = bytes(bytearray(self._get_icon_xdata()))
+        log.info(f"----------------has_icon_xdata: {has_icon_xdata!r}")
 
         # Configure 'com.apple.FinderInfo' for the folder
         xattr.setxattr(str(target_folder), xattr.XATTR_FINDERINFO_NAME, has_icon_xdata)
 
         # Create the 'Icon\r' file
         meta_file = target_folder / "Icon\r"
+        log.info(f"----------------meta_file: {meta_file!r}")
         meta_file.unlink(missing_ok=True)
         meta_file.touch()
 
@@ -95,6 +99,7 @@ class LocalClient(LocalClientMixin):
 
         # Configure 'com.apple.ResourceFork' for the Icon file
         info = icon.read_bytes()
+        log.info(f"----------------info: {info!r}")
         xattr.setxattr(str(meta_file), xattr.XATTR_RESOURCEFORK_NAME, info)
         os.chflags(meta_file, stat.UF_HIDDEN)  # type: ignore
 
