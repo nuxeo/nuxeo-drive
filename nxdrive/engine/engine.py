@@ -1475,6 +1475,7 @@ class Engine(QObject):
         if LINUX:
             icon = find_icon("emblem.svg")
         elif MAC:
+            log.info("setting icon for mac --------------------- folder_mac.dat")
             icon = find_icon("folder_mac.dat")
         else:
             icon = find_icon("folder_windows.ico")
