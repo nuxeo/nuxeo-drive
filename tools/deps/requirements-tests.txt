@@ -230,9 +230,9 @@ pyfakefs==4.5.3 \
     --hash=sha256:501d784c6ad57ce7ab727249166d58043d199ebbb67b404ecab67bcb1a9bb696 \
     --hash=sha256:f49db689c1d5db6172131479ca77bd474ba2cb886c869b9867fb89cdab2df397
     # via flake8
-pyparsing==2.4.7 \
-    --hash=sha256:c203ec8783bf771a155b207279b9bccb8dea02d8f0c9e5f8ead507bc3246ecc1 \
-    --hash=sha256:ef9d7589ef3c200abe66653d3f1ab1033c3c419ae9b9bdb1240a85b024efc88b
+pyparsing==3.1.1 \
+    --hash=sha256:32c7c0b711493c72ff18a981d24f28aaf9c1fb7ed5e9667c9e84e3db623bdbfb \
+    --hash=sha256:ede28a1a32462f5a9705e07aea48001a08f7cf81a021585011deba701581a0db
     # via packaging
 pytest-cov==4.1.0 \
     --hash=sha256:3904b13dfbfec47f003b8e77fd5b589cd11904a21ddf1ab38a64f204d6a10ef6 \
