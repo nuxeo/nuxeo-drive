@@ -6,9 +6,11 @@ from uuid import uuid4
 
 import pytest
 
+from nxdrive.client.remote_client import Remote
 from nxdrive.dao.engine import EngineDAO
 from nxdrive.dao.manager import ManagerDAO
 from nxdrive.engine.engine import Engine
+from nxdrive.engine.processor import Processor
 from nxdrive.manager import Manager
 from nxdrive.objects import DocPair
 from nxdrive.osi import AbstractOSIntegration
@@ -112,6 +114,13 @@ class MockManagerDAO(ManagerDAO):
         self.db.unlink()
 
 
+class MockProcessor(Processor):
+    def __init__(self, engine, engine_dao):
+        self.engine = engine
+        self.dao = engine_dao
+        super().__init__(self, engine, engine_dao)
+
+
 class MockEngine(Engine):
     def __init__(self, tmp_path):
         local_folder = tmp_path
@@ -151,6 +160,7 @@ def engine(engine_dao):
     engine = MockEngine
     engine.local_folder = os.path.expandvars("C:\\test\\%username%\\Drive")
     engine.dao = engine_dao
+    engine.uid = f"{uuid4()}"
     return engine
 
 
@@ -169,3 +179,12 @@ def updater(tmp_path):
     updater.manager.osi = AbstractOSIntegration
     updater.final_app = tmp_path
     return updater
+
+
+@pytest.fixture()
+def processor(engine, engine_dao):
+    processor = MockProcessor
+    processor.engine = engine
+    processor.remote = Remote
+    processor.dao = engine_dao
+    return processor
