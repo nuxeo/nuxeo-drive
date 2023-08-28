@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple
 from dateutil.tz import tzlocal
 
 from ..constants import DT_ACTIVE_SESSIONS_MAX_ITEMS, DT_MONITORING_MAX_ITEMS
+from ..options import Options
 from ..qt import constants as qt
 from ..qt.imports import (
     QAbstractListModel,
@@ -710,7 +711,12 @@ class FileModel(QAbstractListModel):
         self.files.clear()
         self.endRemoveRows()
 
-        self.beginInsertRows(parent, 0, len(files) - 1)
+        total_rows = (
+            Options.feature_systray_history
+            if -1 < Options.feature_systray_history < len(files)
+            else len(files)
+        )
+        self.beginInsertRows(parent, 0, total_rows - 1)
         self.files.extend(files)
         self.endInsertRows()
         self.fileChanged.emit()

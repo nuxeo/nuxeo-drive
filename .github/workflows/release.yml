@@ -15,6 +15,10 @@ on:
         required: false
         default: "alpha"
 
+env:
+  GITHUB_USERNAME: "nuxeodrive"
+  GITHUB_EMAILID: "drive@hyland.com"
+
 jobs:
   release:
     runs-on: ${{ matrix.os }}
@@ -42,9 +46,8 @@ jobs:
       - name: Setup git
         if: github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == ''
         run: |
-          git config user.email "maintainers-python+github@nuxeo.com"
-          git config user.name "GitHub-CI action (Release)"
-
+          git config user.email ${{ env.GITHUB_EMAILID }}
+          git config user.name ${{ env.GITHUB_USERNAME }}
       - name: Bump the version number
         if: github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == ''
         run: |
@@ -61,7 +64,7 @@ jobs:
 
       - name: "[GNU/Linux] Login to the docker registry"
         if: matrix.os == 'ubuntu-latest'
-        uses: docker/login-action@v2
+        uses: docker/login-action@v2.2.0
         with:
           registry: "docker-private.packages.nuxeo.com"
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -118,7 +121,7 @@ jobs:
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --install-release
 
-      - name: "[macOS] Generate the .dmg"
+      - name: "[macOS] Generate the .dmg and validate against 2021"
         if: matrix.os == 'macos-latest'
         timeout-minutes: 20
         env:
@@ -128,6 +131,24 @@ jobs:
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
           NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
           NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
+          NOTARIZATION_TEAMID: ${{ secrets.NOTARIZATION_TEAMID }}
+          SIGNING_ID: "NUXEO CORP"
+          SYSTEM_VERSION_COMPAT: 0
+        run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
+
+      - name: "[macOS] Generate the .dmg and validate against 2023"
+        if: matrix.os == 'macos-latest'
+        timeout-minutes: 20
+        env:
+          NXDRIVE_TEST_NUXEO_URL: "https://drive-2023.beta.nuxeocloud.com/nuxeo"
+          NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2023_TEST_USERNAME }}
+          NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2023_TEST_PASSWORD }}
+          MACOSX_DEPLOYMENT_TARGET: "11.3"
+          KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
+          NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
+          NOTARIZATION_TEAMID: ${{ secrets.NOTARIZATION_TEAMID }}
           SIGNING_ID: "NUXEO CORP"
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
@@ -158,12 +179,24 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
 
-      - name: "[Windows] Generate the .exe"
+      - name: "[Windows] Generate the .exe and validate against 2021"
         timeout-minutes: 15
         if: matrix.os == 'windows-latest'
         env:
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
           NXDRIVE_TEST_NUXEO_URL: "https://drive-2021.beta.nuxeocloud.com/nuxeo"
+          SIGNING_ID: "Nuxeo"
+          SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
+        run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade
+
+      - name: "[Windows] Generate the .exe and validate against 2023"
+        timeout-minutes: 15
+        if: matrix.os == 'windows-latest'
+        env:
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          NXDRIVE_TEST_NUXEO_URL: "https://drive-2023.beta.nuxeocloud.com/nuxeo"
+          NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2023_TEST_USERNAME }}
+          NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2023_TEST_PASSWORD }}
           SIGNING_ID: "Nuxeo"
           SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade
@@ -196,13 +229,12 @@ jobs:
         with:
           key: ${{ secrets.SSH_PRIV_KEY }}
           known_hosts: ${{ secrets.SSH_KNOWN_HOST_DEPLOY }}
-
       - name: Setup git
         run: |
-          git config user.email "maintainers-python+github@nuxeo.com"
-          git config user.name "GitHub-CI action (Release)"
+          git config user.email ${{ env.GITHUB_EMAILID }}
+          git config user.name ${{ env.GITHUB_USERNAME }}
           git fetch --unshallow --tags
-          git remote set-url origin git@github.com:nuxeo/nuxeo-drive.git
+          git remote set-url origin "https://${{ env.GITHUB_USERNAME }}:${{ secrets.NXDRIVE_GIT_TOKEN }}@github.com/nuxeo/nuxeo-drive.git"
 
       - name: Download artifacts
         uses: actions/download-artifact@v3
@@ -231,7 +263,8 @@ jobs:
           fi
           bash tools/release.sh --publish "${release_type}" || exit 1
           bash tools/release.sh --create "${release_type}" || exit 1
-
+        env:
+          GIT_TOKEN: ${{ secrets.NXDRIVE_GIT_TOKEN }}
       - name: Cancel the release
         if: failure() || cancelled()
         run: bash tools/release.sh --cancel
