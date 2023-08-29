@@ -1657,7 +1657,7 @@ class Application(QApplication):
             args = ({k: v for k, v in info.items() if k != "command"},)
         elif cmd == "token":
             func = self.api.handle_token
-            args = (info["token"], info["username"])
+            args = info["username"]
         else:
             log.warning(f"Unknown event URL={url}, info={info!r}, path={path!r}")
             return False
