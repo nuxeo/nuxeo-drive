@@ -51,8 +51,9 @@ codespell==2.2.4 \
 colorama==0.4.4; sys_platform == "win32" \
     --hash=sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2
     # via pytest
-comtypes==1.1.10 ; sys_platform == "win32" \
-    --hash=sha256:a9929e4bea8f874adc7c370e58a553aa91a4c08cecd58a0fdcf7ff5238af14e5
+comtypes==1.2.0 ; sys_platform == "win32" \
+    --hash=sha256:26f261b1eed6972d5cdaa3af1fadb3fa76fc59877d0a1293835327a76573380d \
+    --hash=sha256:c8f2f0e995d73baf0bd899a948d62adeb9ab908c8270c66a67ff09dfcf4872b7
     # via pywinauto
 coverage[toml]==7.2.7 \
     --hash=sha256:06a9a2be0b5b576c3f18f1a241f0473575c4a26021b52b2a85263a00f034d51f \
@@ -131,9 +132,9 @@ execnet==1.9.0 \
     --hash=sha256:a295f7cc774947aac58dde7fdc85f4aa00c42adf5d8f5468fc630c1acf30a142 \
     --hash=sha256:8f694f3ba9cc92cab508b152dcfe322153975c29bda272e2fd7f3f00f36e47c5
     # via pytest-xdist
-faker==17.3.0 \
-    --hash=sha256:1dfffa43b4492b899a839619f2056060b585ba0bc76f329525194ca04dde0988 \
-    --hash=sha256:26b2864a5332094f2c7f3968deebabce69be39ed5db4dbf22b4fa0ba3d1acdae
+faker==19.3.1 \
+    --hash=sha256:a6624d9574623bb27dfca33fff94581cd7b23b562901db8ad59acbde9a52543e \
+    --hash=sha256:e2722fdf622cf24e974aaba15a3dee97a6f8b98d869bd827ff1af9c87695af46
 flake8==3.9.2 \
     --hash=sha256:bf8fd333346d844f616e8d47905ef3a3384edae6b4e9beb0c5101e25e3110907 \
     --hash=sha256:07528381786f2a6237b061f6e96610a4167b226cb926e2aa2b6b1d78057c576b
@@ -148,8 +149,9 @@ importlib-metadata==4.8.2 \
     --hash=sha256:53ccfd5c134223e497627b9815d5030edf77d2ed573922f7a0b8f8bb81a1c100 \
     --hash=sha256:75bdec14c397f528724c1bfd9709d660b33a4d2e77387a3358f20b848bb5e5fb
     # via flake8
-iniconfig==1.1.1 \
-    --hash=sha256:bc3af051d7d14b2ee5ef9969666def0cd1a000e121eaea580d4a313df4b37f32
+iniconfig==2.0.0 \
+    --hash=sha256:2d91e135bf72d31a410b17c16da610a82cb55f6b0477d1a902134b24a455b8b3 \
+    --hash=sha256:b6a85871a79d2e3b22d2d1b94ac2824226a63c6b741c88f7ae975f18b6778374
     # via pytest
 junitparser==2.1.1 \
     --hash=sha256:f98cb6d07aaaca6451f4f046b1d41e490758d40ecf65c14721edf52333252fe8 \
