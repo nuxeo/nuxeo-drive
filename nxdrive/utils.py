@@ -1352,6 +1352,6 @@ def hide_token(info: List[str]):
         if WINDOWS:
             z = y.partition("/")
         else:
-            z = y.partition("''")
+            z = y.partition("\\")
         return x[0] + x[1] + z[1] + "<private token>" + z[1] + z[2]
     return info
