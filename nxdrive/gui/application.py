@@ -76,7 +76,6 @@ from ..utils import (
     find_resource,
     force_decode,
     get_verify,
-    hide_token,
     if_frozen,
     normalize_event_filename,
     normalized_path,
@@ -1625,12 +1624,23 @@ class Application(QApplication):
         path = normalized_path(file)
 
         logging_info = copy.deepcopy(info)
+        logging_url = copy.deepcopy(url)
         try:
             if logging_info["token"]:
                 logging_info["token"] = "<private token>"
-                log.info(
-                    f"Event URL={hide_token(url)}, info={logging_info!r}, path={path!r}"
-                )
+                if "token" in logging_url:
+                    x = logging_url.partition("token")
+                    y = x[2][1:]
+                    if WINDOWS:
+                        z = y.partition("/")
+                    else:
+                        z = y.partition("\\")
+                    url_hiding_token = (
+                        x[0] + x[1] + z[1] + "<private token>" + z[1] + z[2]
+                    )
+            log.info(
+                f"Event URL={url_hiding_token}, info={logging_info!r}, path={path!r}"
+            )
         except Exception:
             log.info(f"Event URL={url}, info={info!r}, path={path!r}")
 
