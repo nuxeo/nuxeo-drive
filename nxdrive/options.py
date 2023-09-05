@@ -50,8 +50,6 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Set, Tuple, Union
 from uuid import uuid4
 
-from nxdrive.utils import hide_token
-
 from . import __version__
 from .feature import DisabledFeatures, Feature
 
@@ -470,9 +468,7 @@ class MetaOptions(type):
             return
 
         MetaOptions.options[item] = new_value, setter
-        log.info(
-            f"Option {hide_token(item)} updated: {old_value!r} -> {new_value!r} [{setter}]"
-        )
+        log.info(f"Option {item!r} updated: {old_value!r} -> {new_value!r} [{setter}]")
         log.info(str(Options))
 
         # Callback for that option

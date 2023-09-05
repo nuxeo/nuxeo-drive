@@ -1343,7 +1343,7 @@ def get_verify():
     return ssl_verification_needed
 
 
-def hide_token(info: List[str]):
+def hide_token(info: str):
     """To hide token from the nxdrive logs"""
     getinfo = copy.deepcopy(info)
     if "token" in getinfo:
