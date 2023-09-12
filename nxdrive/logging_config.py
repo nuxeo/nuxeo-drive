@@ -6,7 +6,7 @@ import re
 from logging import Formatter, LogRecord
 from logging.handlers import BufferingHandler, TimedRotatingFileHandler
 from pathlib import Path
-from typing import Generator, List, Optional
+from typing import Generator, List, Optional, Tuple
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from . import constants
@@ -46,18 +46,17 @@ log = logging.getLogger(__name__)
 
 
 class SensitiveDataFormatter(object):
-    def __init__(self, original_formatter, patterns):
+    def __init__(
+        self, original_formatter: Formatter, patterns: List[Tuple[str, str]], /
+    ) -> None:
         self.original_formatter = original_formatter
         self._patterns = patterns
 
-    def format(self, record):
+    def format(self, record: LogRecord) -> str:
         msg = self.original_formatter.format(record)
         for pattern in self._patterns:
             msg = re.sub(pattern[0], pattern[1], msg)
         return msg
-
-    def __getattr__(self, attr):
-        return getattr(self.original_formatter, attr)
 
 
 class CustomMemoryHandler(BufferingHandler):
