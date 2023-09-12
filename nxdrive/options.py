@@ -468,12 +468,7 @@ class MetaOptions(type):
             return
 
         MetaOptions.options[item] = new_value, setter
-
-        from .utils import hide_token
-
-        log.info(
-            f"Option {hide_token(item)} updated: {old_value!r} -> {new_value!r} [{setter}]"
-        )
+        log.info(f"Option {item!r} updated: {old_value!r} -> {new_value!r} [{setter}]")
         log.info(str(Options))
 
         # Callback for that option

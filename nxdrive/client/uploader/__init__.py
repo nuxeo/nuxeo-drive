@@ -1,7 +1,6 @@
 """
 Uploader used by the Remote client for all upload stuff.
 """
-import copy
 import json
 from abc import abstractmethod
 from logging import getLogger
@@ -151,18 +150,7 @@ class BaseUploader:
             if Options.use_idempotent_requests and command in _IDEMPOTENT_CMDS:
                 transfer.request_uid = str(uuid4())
 
-            if (
-                transfer.batch.get("extraInfo") != ""
-                and transfer.batch.get("provider") == "s3"
-            ):
-                transfer_hide_awsInfo = copy.deepcopy(transfer)
-                transfer_hide_awsInfo.batch["extraInfo"] = ""
-                log.info(
-                    f"Instantiated transfer (AWS credentials are used) {transfer_hide_awsInfo}"
-                )
-            else:
-                log.info(f"Instantiated transfer {transfer}")
-
+            log.info(f"Instantiated transfer {transfer}")
             if transfer.is_direct_transfer:
                 self.dao.save_dt_upload(transfer)
             else:

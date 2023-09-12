@@ -21,7 +21,6 @@ from .utils import (
     force_encode,
     get_default_local_folder,
     get_value,
-    hide_token,
     normalize_and_expand_path,
     normalized_path,
 )
@@ -547,7 +546,7 @@ class CliHandler:
 
         self._configure_logger(command, options)
 
-        log.info(f"Command line: argv={hide_token(argv)}, options={options!r}")
+        log.info(f"Command line: argv={argv!r}, options={options!r}")
         log.info(f"Running on version {self.get_version()}")
 
         # We cannot use fail_on_error=True because options is a namespace

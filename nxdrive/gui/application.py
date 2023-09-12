@@ -1,5 +1,4 @@
 """ Main Qt application handling OS events and system tray UI. """
-import copy
 import os
 import webbrowser
 from contextlib import suppress
@@ -76,7 +75,6 @@ from ..utils import (
     find_resource,
     force_decode,
     get_verify,
-    hide_token,
     if_frozen,
     normalize_event_filename,
     normalized_path,
@@ -1623,16 +1621,7 @@ class Application(QApplication):
             file = unquote_plus(urlparse(file).path)
 
         path = normalized_path(file)
-
-        logging_info = copy.deepcopy(info)
-        try:
-            if logging_info["token"]:
-                logging_info["token"] = "<private token>"
-            log.info(
-                f"Event URL={hide_token(url)}, info={logging_info!r}, path={path!r}"
-            )
-        except Exception:
-            log.info(f"Event URL={url}, info={info!r}, path={path!r}")
+        log.info(f"Event URL={url}, info={info!r}, path={path!r}")
 
         # Event fired by a context menu item
         cmd = info["command"]

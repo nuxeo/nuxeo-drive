@@ -5,7 +5,6 @@ to speed-up command line calls without loading everything at startup.
 Most of functions are pure enough to be decorated with a LRU cache.
 Each *maxsize* is adjusted depending of the heavy use of the decorated function.
 """
-import copy
 import os
 import os.path
 import re
@@ -1341,14 +1340,3 @@ def get_verify():
             if "No such file or directory" and "-gw" in str(exc):
                 ssl_verification_needed = False
     return ssl_verification_needed
-
-
-def hide_token(info: List[str]):
-    """To hide token from the nxdrive logs"""
-    getinfo = copy.deepcopy(info)
-    if "token" in getinfo:
-        x = getinfo.partition("token")
-        y = x[2][1:]
-        z = y.partition("/")
-        return x[0] + x[1] + z[1] + "<private token>" + z[1] + z[2]
-    return info

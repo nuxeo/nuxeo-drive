@@ -29,8 +29,9 @@ patterns = [
     ),
     (
         r"token\W:\s\W([0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12})",
-        "token': '*********",
+        r"token': '*********",
     ),
+    (r"extraInfo': {(.*?)}", r"extraInfo': {}"),
 ]
 
 # Singleton logging context for each process.
@@ -52,7 +53,6 @@ class SensitiveDataFormatter(object):
     def format(self, record):
         msg = self.original_formatter.format(record)
         for pattern in self._patterns:
-            # msg = re.sub(pattern, "**********", msg)
             msg = re.sub(pattern[0], pattern[1], msg)
         return msg
 
