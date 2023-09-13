@@ -10,6 +10,7 @@ from typing import Generator, List, Optional, Tuple
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from . import constants
+from .logging_filter_patterns import patterns
 from .options import DEFAULT_LOG_LEVEL_CONSOLE, DEFAULT_LOG_LEVEL_FILE, Options
 
 __all__ = ("configure", "get_handler")
@@ -21,18 +22,6 @@ FORMAT = Formatter(
 )
 
 LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR"}
-
-patterns = [
-    (
-        r"token\/([0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12})",
-        r"token/*********",
-    ),
-    (
-        r"token\W:\s\W([0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12})",
-        r"token': '*********",
-    ),
-    (r"extraInfo': {(.*?)}", r"extraInfo': {}"),
-]
 
 # Singleton logging context for each process.
 # Alternatively we could use the setproctitle to handle the command name
