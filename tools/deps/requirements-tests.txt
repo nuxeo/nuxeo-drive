@@ -130,9 +130,9 @@ flake8==3.9.2 \
 future==0.18.3 \
     --hash=sha256:34a17436ed1e96697a86f9de3d15a3b0be01d8bc8de9c1dffd59fb8234ed5307
     # via junitparser
-identify==2.5.27 \
-    --hash=sha256:287b75b04a0e22d727bc9a41f0d4f3c1bcada97490fa6eabb5b28f0e9097e733 \
-    --hash=sha256:fdb527b2dfe24602809b2201e033c2a113d7bdf716db3ca8e3243f735dcecaba
+identify==2.5.28 \
+    --hash=sha256:87816de144bf46d161bd5b3e8f5596b16cade3b80be537087334b26bc5c177f3 \
+    --hash=sha256:94bb59643083ebd60dc996d043497479ee554381fbc5307763915cda49b0e78f
     # via pre-commit
 importlib-metadata==6.8.0 \
     --hash=sha256:3ebb78df84a805d7698245025b975d9d67053cd94c79245ba4b3eb694abe68bb \
