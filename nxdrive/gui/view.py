@@ -1,4 +1,5 @@
 from functools import partial
+from logging import getLogger
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple
 
 from dateutil.tz import tzlocal
@@ -17,6 +18,8 @@ from ..qt.imports import (
 )
 from ..translator import Translator
 from ..utils import force_decode, get_date_from_sqlite, sizeof_fmt
+
+log = getLogger(__name__)
 
 if TYPE_CHECKING:
     from .application import Application  # noqa
@@ -358,22 +361,44 @@ class DirectTransferModel(QAbstractListModel):
     def setData(self, index: QModelIndex, value: Any, /, *, role: int = None) -> None:
         if role is None:
             return
+        log.info(
+            f"************************* inside setData: index: {index!r}, value: {value!r}, role: {role!r}"
+        )
         key = force_decode(self.roleNames()[role])
+        log.info(f"************************* inside setData: key: {key!r}")
         self.items[index.row()][key] = value
+        log.info(
+            f"************************* inside setData: self.items: {self.items!r}"
+        )
+        log.info(
+            f"************************* inside setData: self.dataChanged.emit({index!r}, {index!r}, {[role]!r})"
+        )
         self.dataChanged.emit(index, index, [role])
 
     @pyqtSlot(dict)
     def set_progress(self, action: Dict[str, Any], /) -> None:
+        log.info(f"-++++++++++++++++++++++++++++++++  {self.items}")
         for i, item in enumerate(self.items):
+            log.info(f"-------------------------- {i},-->>>> {item}")
+            log.info(f"-------------------------- {action}")
             if (
                 item["engine"] != action["engine"]
                 or item["doc_pair"] != action["doc_pair"]
             ):
+                log.info("+++++++++++++++++++++++++++++++   continue")
                 continue
             idx = self.createIndex(i, 0)
             self.setData(idx, action["progress"], role=self.PROGRESS)
             self.setData(idx, action["progress"], role=self.TRANSFERRED)
             if action["action_type"] == "Linking":
+                import datetime
+
+                current_time = datetime.datetime.now()
+                log.info("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+                log.info(
+                    f"Finalizing the Upload. Last status received from server at {current_time}"
+                )
+                log.info("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
                 self.setData(idx, True, role=self.FINALIZING)
 
     def add_item(self, parent: QModelIndex, n_item: Dict[str, Any], /) -> None:

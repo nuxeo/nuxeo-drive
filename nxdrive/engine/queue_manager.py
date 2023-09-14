@@ -215,6 +215,7 @@ class QueueManager(QObject):
 
     @pyqtSlot()
     def _on_error_timer(self) -> None:
+        log.info("++++++++ _on_error_timer")
         with self._error_lock:
             cur_time = int(time.time())
             for doc_pair in self._on_error_queue.copy().values():
@@ -244,6 +245,7 @@ class QueueManager(QObject):
     def push_error(
         self, doc_pair: DocPair, /, *, exception: Exception = None, interval: int = None
     ) -> None:
+        log.info(f"--->>> push_error({doc_pair!r}, {exception!r})")
         error_count = doc_pair.error_count
         err_code = WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE
         emit_sig = doc_pair.id not in self._on_error_queue

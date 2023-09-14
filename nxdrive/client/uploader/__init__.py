@@ -427,6 +427,8 @@ class BaseUploader:
     ) -> Dict[str, Any]:
         """Link the given uploaded *blob* to the given document."""
 
+        log.info("^^^^^^^^^^^^^^^^^   link_blob_to_doc ")
+
         headers = {"Nuxeo-Transaction-Timeout": str(TX_TIMEOUT)}
         if transfer.request_uid:
             headers[IDEMPOTENCY_KEY] = transfer.request_uid
@@ -444,17 +446,27 @@ class BaseUploader:
             engine=transfer.engine,
             doc_pair=transfer.doc_pair,
         )
+        log.info(f"^^^^^^^^^^^^^^^^^   link_blob_to_doc   action: {action!r}")
         action.is_direct_transfer = transfer.is_direct_transfer
         if "headers" in kwargs:
             kwargs["headers"].update(headers)
         else:
             kwargs["headers"] = headers
         try:
+
             doc_type = kwargs.get("doc_type", "")
             if transfer.is_direct_transfer and doc_type and doc_type != "":
+                log.info(
+                    f"&&&&&&1111 _transfer_docType_file   transfer: {transfer!r}, \
+                        headers: {headers!r}, doc_type: {doc_type!r}"
+                )
                 res = self._transfer_docType_file(transfer, headers, doc_type)
             else:
+                log.info(
+                    f"&&&&&&222  _transfer_autoType_file2   command: {command!r}, blob: {blob!r}, kwargs: {kwargs!r}"
+                )
                 res = self._transfer_autoType_file(command, blob, kwargs)
+            log.info(f"^^^^^^^^^^^^^^^^^   link_blob_to_doc   res: {res!r}")
 
             return res
         except Exception as exc:

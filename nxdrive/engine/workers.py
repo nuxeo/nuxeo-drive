@@ -233,9 +233,13 @@ class EngineWorker(Worker):
     def increase_error(
         self, doc_pair: DocPair, error: str, /, *, exception: Exception = None
     ) -> None:
+        log.info(f"increase_error -->> error: {error!r}")
         details = str(exception) if exception else None
         log.info(f"Increasing error [{error}] ({details}) for {doc_pair!r}")
         self.dao.increase_error(doc_pair, error, details=details)
+        log.info(
+            f"--->>> self.engine.queue_manager.push_error({doc_pair!r}, {exception!r})"
+        )
         self.engine.queue_manager.push_error(doc_pair, exception=exception)
 
     def remove_void_transfers(self, doc_pair: DocPair, /) -> None:

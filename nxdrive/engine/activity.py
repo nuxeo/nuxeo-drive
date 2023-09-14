@@ -55,6 +55,7 @@ class Action(QObject):
     @staticmethod
     def finish_action() -> None:
         action = Action.actions.pop(current_thread_id(), None)
+
         if action:
             action.finish()
 

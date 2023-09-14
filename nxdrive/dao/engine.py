@@ -1501,6 +1501,7 @@ class EngineDAO(BaseDAO):
     def increase_error(
         self, row: DocPair, error: str, /, *, details: str = None, incr: int = 1
     ) -> None:
+        log.info(f"increase_error DB -->> error: {error!r}")
         with self.lock:
             error_date = datetime.utcnow()
             c = self._get_write_connection().cursor()
@@ -2548,6 +2549,11 @@ class EngineDAO(BaseDAO):
             c.execute(
                 f"UPDATE {table} SET status = ? WHERE uid = ?",
                 (transfer.status.value, transfer.uid),
+            )
+            log.info(
+                f">>>>>>>>>>>>>>> updating table {table!r} \
+                    with transfer.status.value: {transfer.status.value!r} \
+                        and transfer.uid: {transfer.uid!r}"
             )
             self.directTransferUpdated.emit()
 
