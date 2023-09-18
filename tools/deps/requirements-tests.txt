@@ -142,9 +142,9 @@ iniconfig==2.0.0 \
     --hash=sha256:2d91e135bf72d31a410b17c16da610a82cb55f6b0477d1a902134b24a455b8b3 \
     --hash=sha256:b6a85871a79d2e3b22d2d1b94ac2824226a63c6b741c88f7ae975f18b6778374
     # via pytest
-junitparser==2.1.1 \
-    --hash=sha256:f98cb6d07aaaca6451f4f046b1d41e490758d40ecf65c14721edf52333252fe8 \
-    --hash=sha256:d54d0eaa2b15ee2efab0220ce0ab31448d26dcb78170d5667453d7755b9f1480
+junitparser==3.1.0 \
+    --hash=sha256:54ae88af9be07dd04d81b5caffac07c9b233aeb8b49eaf5e8ed38cc6f93507fd \
+    --hash=sha256:e69d14c61404f6193407bdb36adcae720e9a99ba3c1712ef78cccf0a21bb521d
 mccabe==0.6.1 \
     --hash=sha256:ab8a6258860da4b6677da4bd2fe5dc2c659cff31b3ee4f7f5d64e79735b80d42
     # via flake8
