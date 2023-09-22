@@ -110,7 +110,7 @@ class DirectTransferUploader(BaseUploader):
         else:
             # Only replace the document if the user wants to
             overwrite = doc_pair.duplicate_behavior == "override"
-            log.info("-----   else-->")
+            log.debug("-----   else-->")
 
             # Upload the blob and use the FileManager importer to create the document
             item = super().upload_impl(

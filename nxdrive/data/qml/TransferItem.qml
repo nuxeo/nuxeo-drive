@@ -77,5 +77,13 @@ Rectangle {
                 }
             }
         }
+
+        ScaledText {
+            text: qsTr("DIRECT_TRANSFER_FINALIZING_DETAILS").arg(transfer_status) + tl.tr
+            color: secondaryText
+            visible: finalizing && transfer_status
+            Layout.leftMargin: icon.width + 5
+            font.pointSize: point_size * 0.8
+        }
     }
 }

@@ -19,11 +19,14 @@ __all__ = (
 class Action(QObject):
     actions: Dict[int, Optional["Action"]] = {}
 
-    def __init__(self, action_type: str, /, *, progress: float = 0.0) -> None:
+    def __init__(
+        self, action_type: str, /, *, progress: float = 0.0, transfer_status: str = ""
+    ) -> None:
         super().__init__()
 
         self.type = action_type
         self._progress = progress
+        self._transfer_status = transfer_status
 
         self.size = 0
         self.uid = str(uuid.uuid4())
@@ -42,6 +45,14 @@ class Action(QObject):
 
     def get_percent(self) -> float:
         return self.progress
+
+    @property
+    def transfer_status(self) -> str:
+        return self._transfer_status
+
+    @transfer_status.setter
+    def transfer_status(self, value: str, /) -> None:
+        self._transfer_status = value
 
     @staticmethod
     def get_actions() -> Dict[int, Optional["Action"]]:
@@ -67,6 +78,7 @@ class Action(QObject):
             "uid": self.uid,
             "action_type": self.type,
             "progress": self.get_percent(),
+            "transfer_status": self.transfer_status,
         }
 
     def __repr__(self) -> str:
@@ -123,6 +135,9 @@ class FileAction(Action):
 
         # Used to know if the file is a Direct Transfer item
         self.is_direct_transfer = False
+        """a = str(datetime.datetime.now())
+        print(f">>>>>> a:: {a}")
+        self.transfer_status = a"""
 
         self._connect_reporter(reporter)
         self.started.emit(self)
@@ -148,6 +163,15 @@ class FileAction(Action):
             # Even if it *is* empty, we need this to know when the file has been uploaded
             self.uploaded = True
 
+        self.progressing.emit(self)
+
+    @property
+    def transfer_status(self) -> str:
+        return self._transfer_status
+
+    @transfer_status.setter
+    def transfer_status(self, value: str, /) -> None:
+        self._transfer_status = value
         self.progressing.emit(self)
 
     def get_percent(self) -> float:
@@ -258,6 +282,8 @@ class LinkingAction(FileAction):
             doc_pair=doc_pair,
         )
         self.progress = size
+        """import datetime
+        self.transfer_status = str(datetime.datetime.now())"""
 
 
 def tooltip(doing: str):  # type: ignore

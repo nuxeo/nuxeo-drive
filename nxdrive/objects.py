@@ -488,6 +488,7 @@ class Upload(Transfer):
     batch_obj: Batch = None
     request_uid: Optional[str] = None
     is_dirty: bool = field(init=False, default=False)
+    transfer_status: str = ""
 
     def token_callback(self, batch: Batch, _: Dict[str, Any]) -> None:
         """Callback triggered when token is refreshed."""
