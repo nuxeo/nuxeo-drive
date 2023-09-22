@@ -530,9 +530,6 @@ class EngineDAO(BaseDAO):
         if version < 22:
             self.store_int(SCHEMA_VERSION, 22)
             self.set_schema_version(cursor, 22)
-        if version < 23:
-            self.store_int(SCHEMA_VERSION, 23)
-            self.set_schema_version(cursor, 23)
 
     def _create_table(
         self, cursor: Cursor, name: str, /, *, force: bool = False
@@ -2357,15 +2354,14 @@ class EngineDAO(BaseDAO):
                 upload.remote_parent_ref,
                 upload.doc_pair,
                 upload.request_uid,
-                upload.transfer_status,
             )
             c = self._get_write_connection().cursor()
             sql = (
                 "INSERT INTO Uploads "
                 "(path, status, engine, is_direct_edit, is_direct_transfer, filesize, batch, chunk_size,"
-                " remote_parent_path, remote_parent_ref, doc_pair, request_uid, transfer_status)"
+                " remote_parent_path, remote_parent_ref, doc_pair, request_uid)"
                 " VALUES (?, IFNULL((SELECT s.status FROM States st INNER JOIN Sessions s ON st.session = s.uid "
-                "AND st.id = ?), ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                "AND st.id = ?), ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             )
             c.execute(sql, values)
 

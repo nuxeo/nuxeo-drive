@@ -1,7 +1,9 @@
 """
 Uploader used by the Remote client for all upload stuff.
 """
+import datetime
 import json
+import time
 from abc import abstractmethod
 from logging import getLogger
 from pathlib import Path
@@ -144,7 +146,6 @@ class BaseUploader:
                 remote_parent_path=kwargs.pop("remote_parent_path", ""),
                 remote_parent_ref=kwargs.pop("remote_parent_ref", ""),
                 doc_pair=kwargs.pop("doc_pair", None),
-                transfer_status="testing1",
             )
 
             # Inject the request UID
@@ -494,11 +495,11 @@ class BaseUploader:
             # condition for error case
             # self.dao.update_upload(transfer)
 
-            """for x in range(4):
+            for x in range(4):
                 time.sleep(3)
                 t = f"{datetime.datetime.now()}"
                 print(f">>>>>> time from api: {t}")
-                action.transfer_status = t"""
+                action.transfer_status = t
 
             log.info(f"^^^^^^^^^^^^^^^^^   link_blob_to_doc   res: {res!r}")
 

@@ -1,11 +1,7 @@
 import importlib
 from typing import Any, Dict
 
-__migrations_list = [
-    "0021_initial_migration",
-    "0022_initial_migration",
-    "0023_initial_migration",
-]  # Keep sorted
+__migrations_list = ["0021_initial_migration", "0022_initial_migration"]  # Keep sorted
 
 
 def import_migrations() -> Dict[str, Any]:

@@ -13,5 +13,4 @@ register_adapter(WindowsPath if WINDOWS else PosixPath, adapt_path)
 versions_history = {
     "5.2.8": 21,
     "5.3.0": 22,
-    "5.3.3": 23,
 }
