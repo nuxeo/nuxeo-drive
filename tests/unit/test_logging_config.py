@@ -62,3 +62,17 @@ def test_force_configure(tmp_path):
     logging.warning("another line")
     assert log_file1.stat().st_size == log1_size
     assert log_file2.is_file()
+
+
+def test_sensitive_data_masking(tmp_path):
+    """Test sensitive log masking for defined nxdrive.logging_filter_patterns.patterns"""
+    log_file3 = tmp_path / "log3.log"
+
+    configure(log_filename=log_file3, force_configure=True)
+    logging.info(
+        "Sensitive data: Options(protocol_url[cli]="
+        "'nxdrive://token/00000000-0000-0000-0000-000000000000/user/username')"
+    )
+    with open(f"{tmp_path}/log3.log", "r") as file:
+        data = file.read()
+        assert "token/*********" in data
