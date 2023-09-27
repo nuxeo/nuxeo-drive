@@ -2,13 +2,15 @@
 
 import logging
 import os
+import re
 from logging import Formatter, LogRecord
 from logging.handlers import BufferingHandler, TimedRotatingFileHandler
 from pathlib import Path
-from typing import Generator, List, Optional
+from typing import Generator, List, Optional, Tuple
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from . import constants
+from .logging_filter_patterns import patterns
 from .options import DEFAULT_LOG_LEVEL_CONSOLE, DEFAULT_LOG_LEVEL_FILE, Options
 
 __all__ = ("configure", "get_handler")
@@ -30,6 +32,20 @@ _logging_context = {}
 
 is_logging_configured = False
 log = logging.getLogger(__name__)
+
+
+class SensitiveDataFormatter(object):
+    def __init__(
+        self, original_formatter: Formatter, patterns: List[Tuple[str, str]], /
+    ) -> None:
+        self.original_formatter = original_formatter
+        self._patterns = patterns
+
+    def format(self, record: LogRecord) -> str:
+        msg = self.original_formatter.format(record)
+        for pattern in self._patterns:
+            msg = re.sub(pattern[0], pattern[1], msg)
+        return msg
 
 
 class CustomMemoryHandler(BufferingHandler):
@@ -150,7 +166,7 @@ def configure(
     if not memory_handler:
         memory_handler = CustomMemoryHandler()
         memory_handler.name = "memory"
-        memory_handler.setFormatter(formatter)
+        memory_handler.setFormatter(SensitiveDataFormatter(formatter, patterns))
         memory_handler.setLevel(logging.DEBUG)
         root_logger.addHandler(memory_handler)
 
@@ -165,7 +181,7 @@ def configure(
     if not console_handler:
         console_handler = logging.StreamHandler()
         console_handler.name = "nxdrive_console"
-        console_handler.setFormatter(formatter)
+        console_handler.setFormatter(SensitiveDataFormatter(formatter, patterns))
         root_logger.addHandler(console_handler)
     console_handler.setLevel(console_level)
 
@@ -180,7 +196,7 @@ def configure(
     if not file_handler and log_filename:
         file_handler = TimedCompressedRotatingFileHandler(log_filename, "midnight", 30)
         file_handler.name = "nxdrive_file"
-        file_handler.setFormatter(formatter)
+        file_handler.setFormatter(SensitiveDataFormatter(formatter, patterns))
         file_handler.setLevel(file_level)
         root_logger.addHandler(file_handler)
     elif file_handler:
