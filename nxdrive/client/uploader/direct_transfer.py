@@ -79,7 +79,6 @@ class DirectTransferUploader(BaseUploader):
 
         if doc_pair.folderish:
             if not doc_pair.doc_type:
-                log.info("------ not doc_pair.doc_type")
                 item = self.remote.upload_folder(
                     doc_pair.remote_parent_path,
                     {"title": doc_pair.local_name},
@@ -87,7 +86,6 @@ class DirectTransferUploader(BaseUploader):
                 )
             else:
                 try:
-                    log.info("------ else")
                     payload = {
                         "entity-type": "document",
                         "name": doc_pair.local_name,
@@ -102,7 +100,6 @@ class DirectTransferUploader(BaseUploader):
                     filepath = f"{doc_pair.remote_parent_path}/{doc_pair.local_name}"
                     item = self.remote.fetch(filepath)
                 except NotFound:
-                    log.info("------ inside if--> else except")
                     raise NotFound(
                         f"Could not find {filepath!r} on {self.remote.client.host}"
                     )
@@ -110,7 +107,6 @@ class DirectTransferUploader(BaseUploader):
         else:
             # Only replace the document if the user wants to
             overwrite = doc_pair.duplicate_behavior == "override"
-            log.debug("-----   else-->")
 
             # Upload the blob and use the FileManager importer to create the document
             item = super().upload_impl(
@@ -136,7 +132,5 @@ class DirectTransferUploader(BaseUploader):
                     )
                 },
             )
-            log.info("-----------calling FileManager.Import inside else")
-        log.info("-----------calling FileManager.Import")
         self.dao.save_session_item(doc_pair.session, item)
         return item

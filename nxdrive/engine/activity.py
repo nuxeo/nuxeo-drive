@@ -66,7 +66,6 @@ class Action(QObject):
     @staticmethod
     def finish_action() -> None:
         action = Action.actions.pop(current_thread_id(), None)
-
         if action:
             action.finish()
 
@@ -135,9 +134,6 @@ class FileAction(Action):
 
         # Used to know if the file is a Direct Transfer item
         self.is_direct_transfer = False
-        """a = str(datetime.datetime.now())
-        print(f">>>>>> a:: {a}")
-        self.transfer_status = a"""
 
         self._connect_reporter(reporter)
         self.started.emit(self)
@@ -282,8 +278,6 @@ class LinkingAction(FileAction):
             doc_pair=doc_pair,
         )
         self.progress = size
-        """import datetime
-        self.transfer_status = str(datetime.datetime.now())"""
 
 
 def tooltip(doing: str):  # type: ignore

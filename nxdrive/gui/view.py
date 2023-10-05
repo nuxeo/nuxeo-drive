@@ -155,7 +155,6 @@ class TransferModel(QAbstractListModel):
     IS_DIRECT_EDIT = qt.UserRole + 7
     FINALIZING = qt.UserRole + 8
     PROGRESS_METRICS = qt.UserRole + 9
-    # FINALIZING_MSG = qt.UserRole + 10
 
     def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -173,7 +172,6 @@ class TransferModel(QAbstractListModel):
             # The is the Verification step for downloads
             # and Linking step for uploads.
             self.FINALIZING: b"finalizing",
-            # self.FINALIZING_MSG: b"test_val",
         }
 
     def rowCount(self, parent: QModelIndex = QModelIndex(), /) -> int:
@@ -232,9 +230,6 @@ class TransferModel(QAbstractListModel):
             return row.get("finalizing", False)
         if role == self.PROGRESS_METRICS:
             return self.get_progress(row)
-        """if role ==  self.FINALIZING_MSG:
-            if row.get("finalizing", False) == True:
-                return str(datetime.datetime.now())"""
         return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, /, *, role: int = None) -> None:
@@ -259,11 +254,8 @@ class TransferModel(QAbstractListModel):
 
             self.setData(idx, action["progress"], role=self.PROGRESS)
             self.setData(idx, action["progress"], role=self.PROGRESS_METRICS)
-            log.info(f'>>>>>>> idx {idx}, {action["progress"]}, {self.PROGRESS}')
-            log.debug(f'>>>>>>> idx {idx}, {action["progress"]}, {self.PROGRESS}')
             if action["action_type"] in ("Linking", "Verification"):
                 self.setData(idx, True, role=self.FINALIZING)
-                # self.setData(idx, True, role=self.FINALIZING_MSG)
 
     def flags(self, index: QModelIndex, /) -> Qt.ItemFlags:
         return qt.ItemIsEditable | qt.ItemIsEnabled | qt.ItemIsSelectable
@@ -368,51 +360,28 @@ class DirectTransferModel(QAbstractListModel):
             return self.psize(row["filesize"] * row["progress"] / 100)
         if role == self.FINALIZING_MSG:
             a = row.get("transfer_status")
-            log.debug(f">>>>>>>> time: {a}")
             return a
         return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, /, *, role: int = None) -> None:
         if role is None:
             return
-        log.info(
-            f"************************* inside setData: index: {index!r}, value: {value!r}, role: {role!r}"
-        )
         key = force_decode(self.roleNames()[role])
-        log.info(f"************************* inside setData: key: {key!r}")
         self.items[index.row()][key] = value
-        log.info(
-            f"************************* inside setData: self.items: {self.items!r}"
-        )
-        log.info(
-            f"************************* inside setData: self.dataChanged.emit({index!r}, {index!r}, {[role]!r})"
-        )
         self.dataChanged.emit(index, index, [role])
 
     @pyqtSlot(dict)
     def set_progress(self, action: Dict[str, Any], /) -> None:
-        log.info(f"-++++++++++++++++++++++++++++++++  {self.items}")
         for i, item in enumerate(self.items):
-            log.info(f"-------------------------- {i},-->>>> {item}")
-            log.info(f"-------------------------- {action}")
             if (
                 item["engine"] != action["engine"]
                 or item["doc_pair"] != action["doc_pair"]
             ):
-                log.info("+++++++++++++++++++++++++++++++   continue")
                 continue
             idx = self.createIndex(i, 0)
             self.setData(idx, action["progress"], role=self.PROGRESS)
             self.setData(idx, action["progress"], role=self.TRANSFERRED)
             if action["action_type"] == "Linking":
-                import datetime
-
-                current_time = datetime.datetime.now()
-                log.info("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
-                log.info(
-                    f"Finalizing the Upload. Last status received from server at {current_time}"
-                )
-                log.info("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
                 self.setData(idx, True, role=self.FINALIZING)
                 self.setData(idx, action["transfer_status"], role=self.FINALIZING_MSG)
 

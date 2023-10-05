@@ -253,7 +253,7 @@ class Processor(EngineWorker):
 
     def _handle_doc_pair_dt(self, doc_pair: DocPair, sync_handler: Callable) -> None:
         """Actions to be done to handle a Direct Transfer item. Called by ._execute()."""
-        log.debug(f"...Calling {sync_handler.__name__}()")
+        log.debug(f"Calling {sync_handler.__name__}()")
         try:
             sync_handler(doc_pair)
         except NotFound:
@@ -360,14 +360,14 @@ class Processor(EngineWorker):
                 log.info(f"{type(exc).__name__}, wait 1s and requeue")
                 sleep(1)
                 self.engine.queue_manager.push(doc_pair)
-            except CONNECTION_ERROR as exc:
+            except CONNECTION_ERROR:
                 # TODO:
                 #  Add detection for server unavailability to stop all sync
                 #  instead of putting files in error
                 log.debug("Connection issue", exc_info=True)
-                # self._direct_transfer_cancel(doc_pair)
-                self.increase_error(doc_pair, "CONNECTION_ERROR", exception=exc)
-                # self._postpone_pair(doc_pair, "CONNECTION_ERROR")
+                # self.increase_error(doc_pair, "CONNECTION_ERROR")
+                self._postpone_pair(doc_pair, "CONNECTION_ERROR")
+                # self.increase_error(doc_pair, "CONNECTION_ERROR", exception=exc)
             except MaxRetryError:
                 log.warning("Connection retries issue", exc_info=True)
                 self._postpone_pair(doc_pair, "MAX_RETRY_ERROR")
@@ -381,14 +381,12 @@ class Processor(EngineWorker):
                 log.warning("Delaying conflicted document")
                 self._postpone_pair(doc_pair, "Conflict")
             except HTTPError as exc:
-                log.info(f"HTTP ERROR: {exc!r}")
                 if exc.status == 404:
                     # We saw it happened once a migration is done.
                     # Nuxeo kept the document reference but it does
                     # not exist physically anywhere.
                     log.info("The document does not exist anymore")
-                    # self.increase_error(doc_pair, "SERVER_ERROR", exception=exc)
-                    # self.dao.remove_state(doc_pair)
+                    self.dao.remove_state(doc_pair)
                 elif exc.status == 416:
                     log.warning("Invalid downloaded temporary file")
                     tmp_folder = (
@@ -397,11 +395,8 @@ class Processor(EngineWorker):
                     with suppress(FileNotFoundError):
                         shutil.rmtree(tmp_folder)
                     self._postpone_pair(doc_pair, "Requested Range Not Satisfiable")
-                elif exc.status in (405, 408):
+                elif exc.status in (405, 408, 500):
                     self.increase_error(doc_pair, "SERVER_ERROR", exception=exc)
-                elif exc.status == 500:
-                    log.info(f"Encountered error: {exc!r}")
-                    self._direct_transfer_cancel(doc_pair)
                 elif exc.status in (502, 503, 504):
                     log.warning("Server is unavailable", exc_info=True)
                     self._check_exists_on_the_server(doc_pair)
@@ -409,7 +404,6 @@ class Processor(EngineWorker):
                     error = f"{handler_name}_http_error_{exc.status}"
                     self._handle_pair_handler_exception(doc_pair, error, exc)
             except UploadError as exc:
-                log.info(f"Upload ERROR: {exc!r}")
                 exc_info = True
                 if "ExpiredToken" in exc.info:
                     # It happens to non-chunked uploads, it is safe to restart the upload completely
@@ -426,7 +420,6 @@ class Processor(EngineWorker):
                 )
                 self._postpone_pair(doc_pair, "Upload")
             except (DownloadPaused, UploadPaused) as exc:
-                log.info(f"DownloadPaused/ UploadPaused: {exc!r}")
                 nature = "download" if isinstance(exc, DownloadPaused) else "upload"
                 log.info(f"Pausing {nature} {exc.transfer_id!r}")
                 self.engine.dao.set_transfer_doc(

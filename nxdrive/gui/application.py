@@ -1875,7 +1875,6 @@ class Application(QApplication):
                 for transfer in transfers:
                     if transfer["doc_pair"] in pair_finalizing:
                         transfer["finalizing"] = True
-                        log.debug(f">>>>>>>> finalizing: True for {transfers}")
                 self.direct_transfer_model.update_items(transfers)
 
     @pyqtSlot(object)

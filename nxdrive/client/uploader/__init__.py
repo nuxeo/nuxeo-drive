@@ -1,9 +1,7 @@
 """
 Uploader used by the Remote client for all upload stuff.
 """
-import datetime
 import json
-import time
 from abc import abstractmethod
 from logging import getLogger
 from pathlib import Path
@@ -228,7 +226,6 @@ class BaseUploader:
             else:
                 try:
                     self.upload_chunks(transfer, blob, chunked)
-                    log.info(f"########### upload_chunk: {transfer}")
                 finally:
                     if blob.fd:
                         blob.fd.close()
@@ -345,12 +342,10 @@ class BaseUploader:
                 for _ in uploader.iter_upload():
                     # Ensure the batchId will not be purged while uploading the content
                     last_ping = self._ping_batch_id(transfer, last_ping)
-                    log.debug(f">>>>>>> upload_chunks, last_ping: {last_ping}")
 
                     action.progress = action.chunk_size * len(
                         uploader.blob.uploadedChunkIds
                     )
-                    log.debug(f">>>>>> action.progress: {action.progress}")
 
                     # Save the progression
                     transfer.progress = action.get_percent()
@@ -399,7 +394,6 @@ class BaseUploader:
             log.warning(err)
             raise HTTPError(status=500, message=err) from exc
         finally:
-            log.debug(f">>>> action: finish action {action.finish_action}")
             action.finish_action()
 
     def _link_blob_to_doc(
@@ -433,8 +427,6 @@ class BaseUploader:
     ) -> Dict[str, Any]:
         """Link the given uploaded *blob* to the given document."""
 
-        log.info("^^^^^^^^^^^^^^^^^   link_blob_to_doc ")
-
         headers = {"Nuxeo-Transaction-Timeout": str(TX_TIMEOUT)}
         if transfer.request_uid:
             headers[IDEMPOTENCY_KEY] = transfer.request_uid
@@ -452,7 +444,7 @@ class BaseUploader:
             engine=transfer.engine,
             doc_pair=transfer.doc_pair,
         )
-        log.info(f"^^^^^^^^^^^^^^^^^   link_blob_to_doc   action: {action!r}")
+        action.transfer_status = ""
         action.is_direct_transfer = transfer.is_direct_transfer
         if "headers" in kwargs:
             kwargs["headers"].update(headers)
@@ -462,55 +454,23 @@ class BaseUploader:
 
             doc_type = kwargs.get("doc_type", "")
             if transfer.is_direct_transfer and doc_type and doc_type != "":
-                log.info(
-                    f"&&&&&&1111 _transfer_docType_file   transfer: {transfer!r}, \
-                        headers: {headers!r}, doc_type: {doc_type!r}"
-                )
                 res = self._transfer_docType_file(transfer, headers, doc_type)
             else:
-                log.info(
-                    f"&&&&&&222  _transfer_autoType_file2   command: {command!r}, blob: {blob!r}, kwargs: {kwargs!r}"
-                )
                 res = self._transfer_autoType_file(command, blob, kwargs)
-
-            link_progress = True
-            while link_progress:
-                # api call
-                time.sleep(5)
-                res = self.remote.client.request(
-                    "GET",
-                    f"{self.remote.client.api_path}/upload/{transfer.batch_obj.batchId}/0",
-                    headers=headers,
-                    ssl_verify=self.verification_needed,
-                )
-                # if res.status_code == 202:
-                #   transfer.transfer_status = str(datetime.datetime.now())  # noqa
-                print(f">>>> status code: {res.status_code}")
-                if res.status_code != 404:
-                    t = f"{datetime.datetime.now()}"
-                    print(f">>>>>> time from api: {t}")
-                    action.transfer_status = str(t)
-                    continue
-                link_progress = False
-            # transfer.transfer_status = "Linking Done"
-            # condition for error case
-            # self.dao.update_upload(transfer)
-
-            """for x in range(4):
-                time.sleep(3)
-                t = f"{datetime.datetime.now()}"
-                print(f">>>>>> time from api: {t}")
-                action.transfer_status = t"""
-
-            log.info(f"^^^^^^^^^^^^^^^^^   link_blob_to_doc   res: {res!r}")
 
             return res
         except Exception as exc:
             err = f"Error while linking blob to doc: {exc!r}"
-            transfer.status = TransferStatus.SUSPENDED
-            self.dao.set_transfer_status("upload", transfer)
+            # self._set_transfer_status(transfer, TransferStatus.SUSPENDED)
+            # log.debug(f">>>> error start: {transfer}")
+            # self.dao.set_transfer_status("upload", transfer)
             action.transfer_status = "Error"
+            transfer.request_uid = str(uuid4())
+            self.dao.update_upload_requestid(transfer)
+            log.debug(f">>>> error start1: {transfer}")
             log.warning(err)
+
+            raise exc
         finally:
             action.finish_action()
 
