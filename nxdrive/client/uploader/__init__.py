@@ -461,13 +461,11 @@ class BaseUploader:
             return res
         except Exception as exc:
             err = f"Error while linking blob to doc: {exc!r}"
-            # self._set_transfer_status(transfer, TransferStatus.SUSPENDED)
-            # log.debug(f">>>> error start: {transfer}")
-            # self.dao.set_transfer_status("upload", transfer)
             action.transfer_status = "Error"
+            if "TCPKeepAliveHTTPSConnectionPool" in exc:
+                raise exc
             transfer.request_uid = str(uuid4())
             self.dao.update_upload_requestid(transfer)
-            log.debug(f">>>> error start1: {transfer}")
             log.warning(err)
 
             raise exc

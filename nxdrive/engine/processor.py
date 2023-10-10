@@ -365,9 +365,7 @@ class Processor(EngineWorker):
                 #  Add detection for server unavailability to stop all sync
                 #  instead of putting files in error
                 log.debug("Connection issue", exc_info=True)
-                # self.increase_error(doc_pair, "CONNECTION_ERROR")
                 self._postpone_pair(doc_pair, "CONNECTION_ERROR")
-                # self.increase_error(doc_pair, "CONNECTION_ERROR", exception=exc)
             except MaxRetryError:
                 log.warning("Connection retries issue", exc_info=True)
                 self._postpone_pair(doc_pair, "MAX_RETRY_ERROR")

@@ -1,5 +1,4 @@
 from functools import partial
-from logging import getLogger
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple
 
 from dateutil.tz import tzlocal
@@ -18,8 +17,6 @@ from ..qt.imports import (
 )
 from ..translator import Translator
 from ..utils import force_decode, get_date_from_sqlite, sizeof_fmt
-
-log = getLogger(__name__)
 
 if TYPE_CHECKING:
     from .application import Application  # noqa
