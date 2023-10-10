@@ -79,9 +79,9 @@ Rectangle {
         }
 
         ScaledText {
-            text: qsTr("DIRECT_TRANSFER_FINALIZING_DETAILS") + tl.tr
+            text: qsTr("DIRECT_TRANSFER_FINALIZING_ERROR") + tl.tr
             color: secondaryText
-            visible: finalizing && transfer_status
+            visible: finalizing && finalizing_status
             Layout.leftMargin: icon.width + 5
             font.pointSize: point_size * 0.8
         }

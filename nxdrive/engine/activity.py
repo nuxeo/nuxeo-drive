@@ -20,13 +20,13 @@ class Action(QObject):
     actions: Dict[int, Optional["Action"]] = {}
 
     def __init__(
-        self, action_type: str, /, *, progress: float = 0.0, transfer_status: str = ""
+        self, action_type: str, /, *, progress: float = 0.0, finalizing_status: str = ""
     ) -> None:
         super().__init__()
 
         self.type = action_type
         self._progress = progress
-        self._transfer_status = transfer_status
+        self._finalizing_status = finalizing_status
 
         self.size = 0
         self.uid = str(uuid.uuid4())
@@ -47,12 +47,12 @@ class Action(QObject):
         return self.progress
 
     @property
-    def transfer_status(self) -> str:
-        return self._transfer_status
+    def finalizing_status(self) -> str:
+        return self._finalizing_status
 
-    @transfer_status.setter
-    def transfer_status(self, value: str, /) -> None:
-        self._transfer_status = value
+    @finalizing_status.setter
+    def finalizing_status(self, value: str, /) -> None:
+        self._finalizing_status = value
 
     @staticmethod
     def get_actions() -> Dict[int, Optional["Action"]]:
@@ -77,7 +77,7 @@ class Action(QObject):
             "uid": self.uid,
             "action_type": self.type,
             "progress": self.get_percent(),
-            "transfer_status": self.transfer_status,
+            "finalizing_status": self.finalizing_status,
         }
 
     def __repr__(self) -> str:
@@ -162,12 +162,12 @@ class FileAction(Action):
         self.progressing.emit(self)
 
     @property
-    def transfer_status(self) -> str:
-        return self._transfer_status
+    def finalizing_status(self) -> str:
+        return self._finalizing_status
 
-    @transfer_status.setter
-    def transfer_status(self, value: str, /) -> None:
-        self._transfer_status = value
+    @finalizing_status.setter
+    def finalizing_status(self, value: str, /) -> None:
+        self._finalizing_status = value
         self.progressing.emit(self)
 
     def get_percent(self) -> float:

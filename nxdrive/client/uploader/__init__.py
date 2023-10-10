@@ -444,14 +444,13 @@ class BaseUploader:
             engine=transfer.engine,
             doc_pair=transfer.doc_pair,
         )
-        action.transfer_status = ""
+        action.finalizing_status = ""
         action.is_direct_transfer = transfer.is_direct_transfer
         if "headers" in kwargs:
             kwargs["headers"].update(headers)
         else:
             kwargs["headers"] = headers
         try:
-
             doc_type = kwargs.get("doc_type", "")
             if transfer.is_direct_transfer and doc_type and doc_type != "":
                 res = self._transfer_docType_file(transfer, headers, doc_type)
@@ -461,13 +460,12 @@ class BaseUploader:
             return res
         except Exception as exc:
             err = f"Error while linking blob to doc: {exc!r}"
-            action.transfer_status = "Error"
+            log.warning(err)
+            action.finalizing_status = "Error"
             if "TCPKeepAliveHTTPSConnectionPool" in exc:
                 raise exc
             transfer.request_uid = str(uuid4())
             self.dao.update_upload_requestid(transfer)
-            log.warning(err)
-
             raise exc
         finally:
             action.finish_action()
