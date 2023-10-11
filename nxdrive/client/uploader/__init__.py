@@ -416,7 +416,7 @@ class BaseUploader:
                 self._set_transfer_status(transfer, TransferStatus.ONGOING)
             raise exc
 
-    def link_blob_to_doc(  # type: ignore[return]
+    def link_blob_to_doc(
         self,
         command: str,
         transfer: Upload,
@@ -462,7 +462,7 @@ class BaseUploader:
             err = f"Error while linking blob to doc: {exc!r}"
             log.warning(err)
             action.finalizing_status = "Error"
-            if "TCPKeepAliveHTTPSConnectionPool" in exc:
+            if "TCPKeepAliveHTTPSConnectionPool" in str(exc):
                 raise exc
             transfer.request_uid = str(uuid4())
             self.dao.update_upload_requestid(transfer)
