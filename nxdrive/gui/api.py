@@ -784,6 +784,10 @@ class QMLDriveApi(QObject):
             return
 
         # Handle the server URL
+        if "?" or "%" in server_url:
+            self.setMessage.emit("CONNECTION_ERROR", "error")
+            return
+        
         error = ""
         try:
             error = self._get_ssl_error(server_url)
