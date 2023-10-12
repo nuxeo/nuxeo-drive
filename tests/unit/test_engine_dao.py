@@ -1,8 +1,9 @@
 import os
 import sqlite3
 from datetime import datetime
+from multiprocessing import RLock
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from uuid import uuid4
 
 from nxdrive.constants import TransferStatus
@@ -608,3 +609,21 @@ def test_migration_interface():
         assert not interface.downgrade(cursor)
         assert not interface.previous_version
         assert not interface.version
+
+
+def test_update_upload_requestid(engine_dao, upload):
+    """Test to save upload and update reuqest_uid of existing row"""
+    engine_dao.lock = RLock()
+    with engine_dao("engine_migration_18.db") as dao:
+        engine_dao.directTransferUpdated = Mock()
+        # Save New upload
+        engine_dao.save_upload(dao, upload)
+
+        assert upload.uid
+
+        previous_request_id = upload.request_uid
+        upload.request_uid = str(uuid4())
+        # Update request_uid of existing record
+        engine_dao.update_upload_requestid(dao, upload)
+
+        assert previous_request_id != upload.request_uid

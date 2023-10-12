@@ -2383,9 +2383,10 @@ class EngineDAO(BaseDAO):
 
     def update_upload_requestid(self, upload: Upload, /) -> None:
         """In case of error during linking, update request_uid for upload"""
-        c = self._get_write_connection().cursor()
-        sql = "UPDATE Uploads SET request_uid = ? WHERE uid = ?"
-        c.execute(sql, (upload.request_uid, upload.uid))
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            sql = "UPDATE Uploads SET request_uid = ? WHERE uid = ?"
+            c.execute(sql, (upload.request_uid, upload.uid))
 
     def pause_transfer(
         self,

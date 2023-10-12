@@ -7,12 +7,14 @@ from uuid import uuid4
 import pytest
 
 from nxdrive.client.remote_client import Remote
+from nxdrive.client.uploader import BaseUploader
+from nxdrive.constants import TransferStatus
 from nxdrive.dao.engine import EngineDAO
 from nxdrive.dao.manager import ManagerDAO
 from nxdrive.engine.engine import Engine
 from nxdrive.engine.processor import Processor
 from nxdrive.manager import Manager
-from nxdrive.objects import DocPair
+from nxdrive.objects import DocPair, Upload
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.updater.darwin import Updater
 from nxdrive.utils import normalized_path
@@ -141,6 +143,11 @@ class MockUpdater(Updater):
         super().__init__(self, final_app)
 
 
+class MockUploader(BaseUploader):
+    def __init__(self, Remote):
+        super().__init__(self, Remote)
+
+
 @pytest.fixture()
 def engine_dao(tmp_path):
     dao = MockEngineDAO
@@ -188,3 +195,27 @@ def processor(engine, engine_dao):
     processor.remote = Remote
     processor.dao = engine_dao
     return processor
+
+
+@pytest.fixture()
+def baseuploader():
+    baseuploader = MockUploader
+    return baseuploader
+
+
+@pytest.fixture()
+def upload():
+    upload = Upload
+    upload.path = "/tmp"
+    upload.status = TransferStatus.ONGOING
+    upload.engine = f"{engine}"
+    upload.is_direct_edit = False
+    upload.is_direct_transfer = True
+    upload.filesize = "23.0"
+    upload.batch = {"batchID": f"{str(uuid4())}"}
+    upload.chunk_size = "345"
+    upload.remote_parent_path = "/tmp/remote_path"
+    upload.remote_parent_ref = "/tmp/remote_path_ref"
+    upload.doc_pair = "test_file"
+    upload.request_uid = str(uuid4())
+    return upload
