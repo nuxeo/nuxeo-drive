@@ -1,6 +1,7 @@
 from unittest.mock import Mock
 
 from nxdrive.gui.view import FileModel
+from nxdrive.qt.imports import QModelIndex
 
 
 def test_foldersDialog():
@@ -25,3 +26,12 @@ def test_set_progress(direct_transfer_model):
     direct_transfer_model.createIndex = Mock(return_value=1)
     direct_transfer_model.setData = Mock()
     direct_transfer_model.set_progress(direct_transfer_model, action)
+
+
+def test_data(direct_transfer_model):
+    """Test get row data as per role"""
+    index = QModelIndex
+    index.row = Mock(return_value=0)
+    direct_transfer_model.data(
+        direct_transfer_model, index, direct_transfer_model.FINALIZING_STATUS
+    )
