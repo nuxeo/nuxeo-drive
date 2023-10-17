@@ -356,8 +356,7 @@ class DirectTransferModel(QAbstractListModel):
         if role == self.TRANSFERRED:
             return self.psize(row["filesize"] * row["progress"] / 100)
         if role == self.FINALIZING_STATUS:
-            a = row.get("finalizing_status")
-            return a
+            return row.get("finalizing_status")
         return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, /, *, role: int = None) -> None:

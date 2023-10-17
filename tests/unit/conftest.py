@@ -1,7 +1,7 @@
 import os
 import shutil
 import time
-from typing import Optional
+from typing import Any, Callable, Optional
 from uuid import uuid4
 
 import pytest
@@ -13,9 +13,12 @@ from nxdrive.dao.engine import EngineDAO
 from nxdrive.dao.manager import ManagerDAO
 from nxdrive.engine.engine import Engine
 from nxdrive.engine.processor import Processor
+from nxdrive.gui.view import DirectTransferModel
 from nxdrive.manager import Manager
 from nxdrive.objects import DocPair, Upload
 from nxdrive.osi import AbstractOSIntegration
+from nxdrive.qt import constants as qt
+from nxdrive.qt.imports import QObject
 from nxdrive.updater.darwin import Updater
 from nxdrive.utils import normalized_path
 
@@ -148,6 +151,13 @@ class MockUploader(BaseUploader):
         super().__init__(self, Remote)
 
 
+class MockDirectTransferModel(DirectTransferModel):
+    def __init__(
+        self, translate: Callable[..., Any], /, *, parent: QObject = None
+    ) -> None:
+        super().__init__(translate, parent=parent)
+
+
 @pytest.fixture()
 def engine_dao(tmp_path):
     dao = MockEngineDAO
@@ -219,3 +229,25 @@ def upload():
     upload.doc_pair = "test_file"
     upload.request_uid = str(uuid4())
     return upload
+
+
+@pytest.fixture()
+def direct_transfer_model():
+    direct_transfer_model = MockDirectTransferModel
+    direct_transfer_model.FINALIZING_STATUS = qt.UserRole + 13
+    direct_transfer_model.items = [
+        {
+            "uid": 1,
+            "name": "a.txt",
+            "filesize": 142936511610,
+            "status": "",
+            "engine": "51a2c2dc641311ee87fb...bfc0ec09fa",
+            "progress": 100.0,
+            "doc_pair": 1,
+            "remote_parent_path": "/default-domain/User...TestFolder",
+            "remote_parent_ref": "7b7886ea-5ad9-460d-8...1607ea0081",
+            "shadow": True,
+            "finalizing": True,
+        }
+    ]
+    return direct_transfer_model

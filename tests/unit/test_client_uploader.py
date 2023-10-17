@@ -5,6 +5,7 @@ from nuxeo.models import FileBlob
 
 
 def test_link_blob_to_doc(baseuploader, upload, tmp_path):
+    """Test link blob to document functionality"""
     file = tmp_path / f"{uuid4()}.txt"
     file.write_bytes(b"content")
 
