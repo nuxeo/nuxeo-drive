@@ -7,7 +7,6 @@ from uuid import uuid4
 import pytest
 
 from nxdrive.client.remote_client import Remote
-from nxdrive.client.uploader import BaseUploader
 from nxdrive.constants import TransferStatus
 from nxdrive.dao.engine import EngineDAO
 from nxdrive.dao.manager import ManagerDAO
@@ -146,11 +145,6 @@ class MockUpdater(Updater):
         super().__init__(self, final_app)
 
 
-class MockUploader(BaseUploader):
-    def __init__(self, Remote):
-        super().__init__(self, Remote)
-
-
 class MockDirectTransferModel(DirectTransferModel):
     def __init__(
         self, translate: Callable[..., Any], /, *, parent: QObject = None
@@ -205,12 +199,6 @@ def processor(engine, engine_dao):
     processor.remote = Remote
     processor.dao = engine_dao
     return processor
-
-
-@pytest.fixture()
-def baseuploader():
-    baseuploader = MockUploader
-    return baseuploader
 
 
 @pytest.fixture()
