@@ -19,14 +19,11 @@ __all__ = (
 class Action(QObject):
     actions: Dict[int, Optional["Action"]] = {}
 
-    def __init__(
-        self, action_type: str, /, *, progress: float = 0.0, finalizing_status: str = ""
-    ) -> None:
+    def __init__(self, action_type: str, /, *, progress: float = 0.0) -> None:
         super().__init__()
 
         self.type = action_type
         self._progress = progress
-        self._finalizing_status = finalizing_status
 
         self.size = 0
         self.uid = str(uuid.uuid4())
@@ -45,14 +42,6 @@ class Action(QObject):
 
     def get_percent(self) -> float:
         return self.progress
-
-    @property
-    def finalizing_status(self) -> str:
-        return self._finalizing_status
-
-    @finalizing_status.setter
-    def finalizing_status(self, value: str, /) -> None:
-        self._finalizing_status = value
 
     @staticmethod
     def get_actions() -> Dict[int, Optional["Action"]]:
@@ -77,7 +66,6 @@ class Action(QObject):
             "uid": self.uid,
             "action_type": self.type,
             "progress": self.get_percent(),
-            "finalizing_status": self.finalizing_status,
         }
 
     def __repr__(self) -> str:
@@ -278,6 +266,12 @@ class LinkingAction(FileAction):
             doc_pair=doc_pair,
         )
         self.progress = size
+
+    def export(self) -> Dict[str, Any]:
+        return {
+            **super().export(),
+            "finalizing_status": self.finalizing_status,
+        }
 
 
 def tooltip(doing: str):  # type: ignore
