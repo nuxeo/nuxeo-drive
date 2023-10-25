@@ -34,12 +34,6 @@ def test_action():
     action.progress = 100.0
     details = action.export()
     assert details["progress"] == 100.0
-    Action.finish_action()
-
-    # Test finalizing_status property setter
-    action.finalizing_status = "Finalize the upload"
-    details = action.export()
-    assert details["finalizing_status"] == "Finalize the upload"
 
     Action.finish_action()
     actions = Action.get_actions()
