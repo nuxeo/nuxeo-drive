@@ -1,12 +1,13 @@
 from logging import getLogger
 
 from nxdrive.manager import Manager
+from nxdrive.options import Options
 from nxdrive.report import Report
 
 
 def test_logs(tmp):
     log = getLogger(__name__)
-
+    print(f">>>>> {Options.update_site_url}")
     with Manager(tmp()) as manager:
         log.info("Strange encoding \xe8 \xe9")
 
