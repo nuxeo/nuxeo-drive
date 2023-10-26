@@ -266,6 +266,7 @@ class LinkingAction(FileAction):
             doc_pair=doc_pair,
         )
         self.progress = size
+        self.finalizing_status = ""
 
     def export(self) -> Dict[str, Any]:
         return {
