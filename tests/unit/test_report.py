@@ -6,6 +6,7 @@ from nxdrive.report import Report
 
 def test_logs(tmp):
     log = getLogger(__name__)
+
     with Manager(tmp()) as manager:
         log.info("Strange encoding \xe8 \xe9")
 
