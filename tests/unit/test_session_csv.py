@@ -1,7 +1,6 @@
 from nxdrive.constants import TransferStatus
 from nxdrive.manager import Manager
 from nxdrive.objects import Session
-from nxdrive.options import Options
 from nxdrive.session_csv import SessionCsv
 
 
@@ -19,7 +18,6 @@ def test_csv_generation(tmp):
         description="icons-svg (+9)",
         planned_items=10,
     )
-    print(f">>>>> {Options.update_site_url}")
     with Manager(tmp()) as manager:
         session_csv = SessionCsv(manager, session)
 
