@@ -2,7 +2,6 @@ from collections import namedtuple
 from unittest.mock import patch
 
 from nxdrive.gui.api import QMLDriveApi
-from nxdrive.gui.application import Application
 
 
 def test_web_authentication(manager_factory, nuxeo_url):
@@ -22,7 +21,6 @@ def test_web_authentication(manager_factory, nuxeo_url):
     )
     app = Mocked_App()
 
-    # app = Application(manager)
     drive_api = QMLDriveApi(app)
 
     with manager:
