@@ -31,4 +31,4 @@ def test_web_authentication(manager_factory, nuxeo_url):
                 "/dummy-path",
                 True,
             )
-            assert returned_val
+            assert not returned_val
