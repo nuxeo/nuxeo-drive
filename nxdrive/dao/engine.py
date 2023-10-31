@@ -2097,14 +2097,16 @@ class EngineDAO(BaseDAO):
         total: int,
         engine_uid: str,
         description: str,
+        scheduled_on: str,
         /,
     ) -> int:
         """Create a new session. Return the session ID."""
         with self.lock:
             c = self._get_write_connection().cursor()
             c.execute(
-                "INSERT INTO Sessions (remote_path, remote_ref, total, status, engine, description, planned_items) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO Sessions (remote_path, remote_ref, total, status, engine, description, planned_items, \
+                scheduled_on) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     remote_path,
                     remote_ref,
@@ -2113,6 +2115,7 @@ class EngineDAO(BaseDAO):
                     engine_uid,
                     description,
                     total,
+                    scheduled_on,
                 ),
             )
             self.sessionUpdated.emit(False)

@@ -613,10 +613,18 @@ class Engine(QObject):
         )
         current_max_row_id = -1
         description = os.path.basename(items[0][0])
+        scheduled_on = str(
+            datetime.datetime.now()
+        )  # pass user select scheduled value from UI
         if len(items) > 1:
             description = f"{description} (+{len(items) - 1:,})"
         session_uid = self.dao.create_session(
-            remote_parent_path, remote_parent_ref, len(items), self.uid, description
+            remote_parent_path,
+            remote_parent_ref,
+            len(items),
+            self.uid,
+            description,
+            scheduled_on,
         )
 
         for batch_items in grouper(items, bsize):
