@@ -530,6 +530,9 @@ class EngineDAO(BaseDAO):
         if version < 22:
             self.store_int(SCHEMA_VERSION, 22)
             self.set_schema_version(cursor, 22)
+        if version < 23:
+            self.store_int(SCHEMA_VERSION, 23)
+            self.set_schema_version(cursor, 23)
 
     def _create_table(
         self, cursor: Cursor, name: str, /, *, force: bool = False
