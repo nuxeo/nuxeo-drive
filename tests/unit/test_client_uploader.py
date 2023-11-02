@@ -13,8 +13,7 @@ from nxdrive.client.uploader import BaseUploader
 def baseuploader():
     remote = Remote
     remote.dao = Mock()
-    baseuploader = BaseUploader(remote)
-    return baseuploader
+    return BaseUploader(remote)
 
 
 def test_link_blob_to_doc(baseuploader, upload, tmp_path, monkeypatch):

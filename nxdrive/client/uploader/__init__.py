@@ -451,12 +451,11 @@ class BaseUploader:
             kwargs["headers"] = headers
         try:
             doc_type = kwargs.get("doc_type", "")
-            if transfer.is_direct_transfer and doc_type and doc_type != "":
-                res = self._transfer_docType_file(transfer, headers, doc_type)
-            else:
-                res = self._transfer_autoType_file(command, blob, kwargs)
-
-            return res
+            return (
+                self._transfer_docType_file(transfer, headers, doc_type)
+                if transfer.is_direct_transfer and doc_type and doc_type != ""
+                else self._transfer_autoType_file(command, blob, kwargs)
+            )
         except Exception as exc:
             err = f"Error while linking blob to doc: {exc!r}"
             log.warning(err)

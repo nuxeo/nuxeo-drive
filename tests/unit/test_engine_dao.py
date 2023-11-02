@@ -409,7 +409,7 @@ def test_migration_db_v10(engine_dao):
     """Verify Downloads after migration from v9 to v10."""
     with engine_dao("engine_migration_10.db") as dao:
         downloads = list(dao.get_downloads())
-        assert len(downloads) == 0
+        assert not downloads
 
         states = list(dao.get_states_from_partial_local(Path()))
         assert len(states) == 4
