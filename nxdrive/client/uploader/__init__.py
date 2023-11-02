@@ -357,11 +357,9 @@ class BaseUploader:
                         self.dao.update_upload(transfer)
                         transfer.is_dirty = False
 
-                    # Handle status changes every time a chunk is sent
-                    _transfer = self.get_upload(
+                    if _transfer := self.get_upload(
                         doc_pair=transfer.doc_pair, path=transfer.path
-                    )
-                    if _transfer:
+                    ):
                         self._handle_transfer_status(_transfer)
             else:
                 uploader.upload()
@@ -502,11 +500,10 @@ class BaseUploader:
             data=content,
             ssl_verify=self.verification_needed,
         )
-        res = self.remote.fetch(
+        return self.remote.fetch(
             f"{self.remote.client.api_path}/path{transfer.remote_parent_path}",
             headers=headers,
         )
-        return res
 
     @staticmethod
     def _complete_upload(transfer: Upload, blob: FileBlob, /) -> None:

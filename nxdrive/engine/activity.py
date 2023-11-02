@@ -68,9 +68,7 @@ class Action(QObject):
         }
 
     def __repr__(self) -> str:
-        if not self.progress:
-            return str(self.type)
-        return f"{self.type}({self.progress}%)"
+        return f"{self.type}({self.progress}%)" if self.progress else str(self.type)
 
 
 class IdleAction(Action):
@@ -130,8 +128,7 @@ class FileAction(Action):
             return
 
         for evt in ("started", "progressing", "done"):
-            signal = getattr(reporter, f"action_{evt}", None)
-            if signal:
+            if signal := getattr(reporter, f"action_{evt}", None):
                 getattr(self, evt).connect(signal)
 
     @property
