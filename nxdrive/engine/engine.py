@@ -542,6 +542,7 @@ class Engine(QObject):
         last_local_selected_doc_type: Optional[str] = None,
         new_folder: Optional[str] = None,
         new_folder_type: Optional[str] = None,
+        scheduled_on: Optional[str] = "",
     ) -> None:
         """Plan the Direct Transfer."""
 
@@ -613,9 +614,8 @@ class Engine(QObject):
         )
         current_max_row_id = -1
         description = os.path.basename(items[0][0])
-        scheduled_on = str(
-            datetime.datetime.now()
-        )  # pass user select scheduled value from UI
+        print("-------------  scheduled_on: ", type(scheduled_on), scheduled_on)
+        scheduled_on = scheduled_on if scheduled_on else str(datetime.datetime.now())
         if len(items) > 1:
             description = f"{description} (+{len(items) - 1:,})"
         session_uid = self.dao.create_session(
@@ -703,6 +703,7 @@ class Engine(QObject):
         last_local_selected_doc_type: Optional[str] = None,
         new_folder: Optional[str] = None,
         new_folder_type: Optional[str] = None,
+        starting_dateTime: Optional[str] = "",
     ) -> None:
         """Plan the Direct Transfer. Async to not freeze the GUI."""
         from .workers import Runner
@@ -720,6 +721,7 @@ class Engine(QObject):
             last_local_selected_doc_type=last_local_selected_doc_type,
             new_folder=new_folder,
             new_folder_type=new_folder_type,
+            scheduled_on=starting_dateTime,
         )
         self._threadpool.start(runner)
 

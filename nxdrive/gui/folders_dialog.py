@@ -10,6 +10,8 @@ from ..options import Options
 from ..qt import constants as qt
 from ..qt.imports import (
     QComboBox,
+    QDateTime,
+    QDateTimeEdit,
     QDialog,
     QDialogButtonBox,
     QEvent,
@@ -272,6 +274,7 @@ class FoldersDialog(DialogMixin):
         self.vertical_layout.addWidget(self._add_group_local())
         self.vertical_layout.addWidget(self._add_group_remote())
         self.vertical_layout.addWidget(self._add_group_options())
+        self.vertical_layout.addWidget(self._add_group_schedular())
         self.vertical_layout.addWidget(self.button_box)
 
         # Compute overall size and count, and check the button state
@@ -389,6 +392,30 @@ class FoldersDialog(DialogMixin):
 
         # Populate the remote folder with the previously selected, if any
         self.remote_folder.setText(self.last_remote_location)
+
+        return groupbox
+
+    def _add_group_schedular(self) -> QGroupBox:
+        """Group box for options."""
+        groupbox = QGroupBox(Translator.get("SCHEDULAR"))
+
+        layout = QVBoxLayout()
+        groupbox.setLayout(layout)
+
+        duplicate_sublayout = QVBoxLayout()
+        layout.addLayout(duplicate_sublayout)
+
+        start_datetime_label = QLabel(Translator.get("START_DATE_TIME"))
+        self.start_datetime = QDateTimeEdit(self)
+        dt = QDateTime(2023, 1, 31, 21, 30)
+        self.start_datetime.setDateTime(dt)
+
+        layout.addWidget(start_datetime_label)
+        layout.addWidget(self.start_datetime)
+
+        # Adjust spacing
+        layout.setSpacing(2)
+        duplicate_sublayout.setSpacing(2)
 
         return groupbox
 
@@ -513,6 +540,24 @@ class FoldersDialog(DialogMixin):
         """Action to do when the OK button is clicked."""
         super().accept()
 
+        """
+        layout.addWidget(start_date)
+        layout.addWidget(start_time)
+        layout.addWidget(end_time)
+        layout.addWidget(checkBox_latency)
+        """
+        # starting_date = self.start_date.date()
+        # starting_time = self.start_time.time()
+        # pausing_time = self.end_time.time()
+        # check_for_latency = self.checkBox_latency.checkState()
+
+        # print("starting_date", starting_date)
+        # print("pausing_date", starting_time)
+        # print("ending_time", pausing_time)
+        # print("check_for_latency", check_for_latency)
+
+        starting_dateTime = str(self.start_datetime.dateTime().toPyDateTime())
+
         self.last_local_selected_doc_type = (
             self.cbDocType.currentData()
             if self.cbDocType.currentIndex() == 0
@@ -545,6 +590,7 @@ class FoldersDialog(DialogMixin):
             duplicate_behavior=self.cb.currentData(),
             last_local_selected_location=self.last_local_selected_location,
             last_local_selected_doc_type=self.last_local_selected_doc_type,
+            starting_dateTime=starting_dateTime,
         )
 
     def button_ok_state(self) -> None:
