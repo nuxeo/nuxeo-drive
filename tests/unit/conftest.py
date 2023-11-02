@@ -1,19 +1,23 @@
 import os
 import shutil
 import time
-from typing import Optional
+from typing import Any, Callable, Optional
 from uuid import uuid4
 
 import pytest
 
 from nxdrive.client.remote_client import Remote
+from nxdrive.constants import TransferStatus
 from nxdrive.dao.engine import EngineDAO
 from nxdrive.dao.manager import ManagerDAO
 from nxdrive.engine.engine import Engine
 from nxdrive.engine.processor import Processor
+from nxdrive.gui.view import DirectTransferModel
 from nxdrive.manager import Manager
-from nxdrive.objects import DocPair
+from nxdrive.objects import DocPair, Upload
 from nxdrive.osi import AbstractOSIntegration
+from nxdrive.qt import constants as qt
+from nxdrive.qt.imports import QObject
 from nxdrive.updater.darwin import Updater
 from nxdrive.utils import normalized_path
 
@@ -141,6 +145,13 @@ class MockUpdater(Updater):
         super().__init__(self, final_app)
 
 
+class MockDirectTransferModel(DirectTransferModel):
+    def __init__(
+        self, translate: Callable[..., Any], /, *, parent: QObject = None
+    ) -> None:
+        super().__init__(translate, parent=parent)
+
+
 @pytest.fixture()
 def engine_dao(tmp_path):
     dao = MockEngineDAO
@@ -188,3 +199,43 @@ def processor(engine, engine_dao):
     processor.remote = Remote
     processor.dao = engine_dao
     return processor
+
+
+@pytest.fixture()
+def upload():
+    upload = Upload
+    upload.path = "/tmp"
+    upload.status = TransferStatus.ONGOING
+    upload.engine = f"{engine}"
+    upload.is_direct_edit = False
+    upload.is_direct_transfer = True
+    upload.filesize = "23.0"
+    upload.batch = {"batchID": f"{str(uuid4())}"}
+    upload.chunk_size = "345"
+    upload.remote_parent_path = "/tmp/remote_path"
+    upload.remote_parent_ref = "/tmp/remote_path_ref"
+    upload.doc_pair = "test_file"
+    upload.request_uid = str(uuid4())
+    return upload
+
+
+@pytest.fixture()
+def direct_transfer_model():
+    direct_transfer_model = MockDirectTransferModel
+    direct_transfer_model.FINALIZING_STATUS = qt.UserRole + 13
+    direct_transfer_model.items = [
+        {
+            "uid": 1,
+            "name": "a.txt",
+            "filesize": 142936511610,
+            "status": "",
+            "engine": "51a2c2dc641311ee87fb...bfc0ec09fa",
+            "progress": 100.0,
+            "doc_pair": 1,
+            "remote_parent_path": "/default-domain/User...TestFolder",
+            "remote_parent_ref": "7b7886ea-5ad9-460d-8...1607ea0081",
+            "shadow": True,
+            "finalizing": True,
+        }
+    ]
+    return direct_transfer_model

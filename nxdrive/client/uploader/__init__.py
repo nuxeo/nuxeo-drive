@@ -416,7 +416,7 @@ class BaseUploader:
                 self._set_transfer_status(transfer, TransferStatus.ONGOING)
             raise exc
 
-    def link_blob_to_doc(  # type: ignore[return]
+    def link_blob_to_doc(
         self,
         command: str,
         transfer: Upload,
@@ -451,15 +451,19 @@ class BaseUploader:
             kwargs["headers"] = headers
         try:
             doc_type = kwargs.get("doc_type", "")
-            if transfer.is_direct_transfer and doc_type and doc_type != "":
-                res = self._transfer_docType_file(transfer, headers, doc_type)
-            else:
-                res = self._transfer_autoType_file(command, blob, kwargs)
-
-            return res
+            return (
+                self._transfer_docType_file(transfer, headers, doc_type)
+                if transfer.is_direct_transfer and doc_type and doc_type != ""
+                else self._transfer_autoType_file(command, blob, kwargs)
+            )
         except Exception as exc:
             err = f"Error while linking blob to doc: {exc!r}"
             log.warning(err)
+            action.finalizing_status = "Error"
+            if "TCPKeepAliveHTTPSConnectionPool" not in str(exc):
+                transfer.request_uid = str(uuid4())
+                self.dao.update_upload_requestid(transfer)
+            raise exc
         finally:
             action.finish_action()
 

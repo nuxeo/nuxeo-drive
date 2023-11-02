@@ -106,6 +106,7 @@
     "DIRECT_TRANSFER_DETAILS": "[%1%] %2 of %3",
     "DIRECT_TRANSFER_END": "Transfer done: \"%1\"",
     "DIRECT_TRANSFER_ERROR": "Transfer error: \"%1\"",
+    "DIRECT_TRANSFER_FINALIZING_ERROR": "An error occurred during the transfer, it will resume shortly.",
     "DIRECT_TRANSFER_NO_ACCOUNT": "Cannot use the Direct Transfer feature with no account, aborting.",
     "DIRECT_TRANSFER_NOT_ALLOWED": "Direct Transfer of \"%1\" is not allowed for synced files.",
     "DIRECT_TRANSFER_NOT_ENABLED": "The Direct Transfer feature is not enabled.",
