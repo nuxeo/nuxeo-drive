@@ -244,6 +244,9 @@ def test_finalization_action(tmp):
 
     action = LinkingAction(filepath, filepath.stat().st_size)
     assert action.type == "Linking"
+    action.finalizing_status = "Error occurred while linking"
+    details = action.export()
+    assert details["finalizing_status"] == "Error occurred while linking"
 
     Action.finish_action()
     assert action.finished

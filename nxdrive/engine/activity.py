@@ -54,8 +54,7 @@ class Action(QObject):
 
     @staticmethod
     def finish_action() -> None:
-        action = Action.actions.pop(current_thread_id(), None)
-        if action:
+        if action := Action.actions.pop(current_thread_id(), None):
             action.finish()
 
     def finish(self) -> None:
@@ -147,6 +146,15 @@ class FileAction(Action):
             # Even if it *is* empty, we need this to know when the file has been uploaded
             self.uploaded = True
 
+        self.progressing.emit(self)
+
+    @property
+    def finalizing_status(self) -> str:
+        return self._finalizing_status
+
+    @finalizing_status.setter
+    def finalizing_status(self, value: str, /) -> None:
+        self._finalizing_status = value
         self.progressing.emit(self)
 
     def get_percent(self) -> float:
@@ -257,6 +265,13 @@ class LinkingAction(FileAction):
             doc_pair=doc_pair,
         )
         self.progress = size
+        self.finalizing_status = ""
+
+    def export(self) -> Dict[str, Any]:
+        return {
+            **super().export(),
+            "finalizing_status": self.finalizing_status,
+        }
 
 
 def tooltip(doing: str):  # type: ignore
