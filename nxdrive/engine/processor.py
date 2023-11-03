@@ -583,6 +583,12 @@ class Processor(EngineWorker):
                 self._direct_transfer_cancel(doc_pair)
             return
 
+        import speedtest
+
+        network_speed = speedtest.Speedtest()
+        if network_speed.upload() < 80000000:
+            self.dao.pause_session(session.uid)
+
         # Do the upload
         self.remote.upload(
             path,
