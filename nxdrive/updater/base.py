@@ -69,6 +69,7 @@ class BaseUpdater(PollWorker):
         self.version: str = ""
         self.available_version: str = ""
         self.progress = 0.0
+        print(f">>>>>>> update_site_url: {Options.update_site_url}")
         self.update_site = Options.update_site_url.rstrip("/")
 
         self._update_in_progress = False
