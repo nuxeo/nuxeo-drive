@@ -340,6 +340,16 @@ class Processor(EngineWorker):
                 }
 
                 if doc_pair.local_state == "direct":
+                    print(">>>>>> session")
+                    session_data = self.dao.get_scheduled_session()
+                    if session_data:
+                        print(f">>>>> res: {session_data.uid}")
+                        self.dao.resume_session(session_data.uid)
+                    else:
+                        yet_to_schedule = self.dao.get_scheduled_session_later()
+                        if yet_to_schedule:
+                            self.dao.pause_session(yet_to_schedule.uid)
+
                     self._handle_doc_pair_dt(doc_pair, sync_handler)
                 else:
                     self._handle_doc_pair_sync(doc_pair, sync_handler)

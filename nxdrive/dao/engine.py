@@ -2090,6 +2090,47 @@ class EngineDAO(BaseDAO):
             else None
         )
 
+    def get_scheduled_session(self) -> Optional[Session]:
+        """
+        Get a scheduled sessions.
+        """
+        c = self._get_read_connection().cursor()
+        # "2023-11-03 21:30:00"
+        current_datetime = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        print(f">>> current time: {current_datetime}")
+        sql = "SELECT uid, scheduled_on, completed_on FROM Sessions WHERE scheduled_on <= ? and completed_on is NULL"
+        res = c.execute(sql, (current_datetime,)).fetchone()
+        # print(res.keys())
+        if res:
+            print(res.uid, res.scheduled_on)
+            # with self.lock():
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "UPDATE Sessions SET status = ? where uid = ?",
+                (
+                    TransferStatus.ONGOING.value,
+                    res.uid,
+                ),
+            )
+            return res
+        return None
+
+    def get_scheduled_session_later(self) -> Optional[Session]:
+        """
+        Get a scheduled sessions.
+        """
+        c = self._get_read_connection().cursor()
+        # "2023-11-03 21:30:00"
+        current_datetime = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        print(f">>> current time: {current_datetime}")
+        sql = "SELECT uid, scheduled_on, completed_on FROM Sessions WHERE scheduled_on >= ? and completed_on is NULL"
+        res = c.execute(sql, (current_datetime,)).fetchone()
+        # print(res.keys())
+        if res:
+            print(res.uid, res.scheduled_on)
+            return res
+        return None
+
     def create_session(
         self,
         remote_path: str,
@@ -2098,6 +2139,7 @@ class EngineDAO(BaseDAO):
         engine_uid: str,
         description: str,
         scheduled_on: str,
+        status: int,
         /,
     ) -> int:
         """Create a new session. Return the session ID."""
@@ -2111,7 +2153,7 @@ class EngineDAO(BaseDAO):
                     remote_path,
                     remote_ref,
                     total,
-                    TransferStatus.ONGOING.value,
+                    status,
                     engine_uid,
                     description,
                     total,
@@ -2462,6 +2504,7 @@ class EngineDAO(BaseDAO):
                 " (SELECT doc_pair FROM Uploads WHERE doc_pair IN (SELECT id FROM States WHERE session = ?))",
                 (uid,),
             ).fetchall()
+            print(f">>>> row: {rows}")
 
             # Then, get not-yet-handled transfers
             rows.extend(
@@ -2476,6 +2519,7 @@ class EngineDAO(BaseDAO):
 
             # Finally, push all transfers in the queue
             for doc_pair in rows:
+                print(f">>>>> doc: {doc_pair}")
                 self.queue_manager.push(doc_pair)
             self.directTransferUpdated.emit()
 

@@ -618,6 +618,10 @@ class Engine(QObject):
         scheduled_on = scheduled_on if scheduled_on else str(datetime.datetime.now())
         if len(items) > 1:
             description = f"{description} (+{len(items) - 1:,})"
+        if scheduled_on <= str(datetime.datetime.now()):
+            status = TransferStatus.ONGOING.value
+        else:
+            status = TransferStatus.PAUSED.value
         session_uid = self.dao.create_session(
             remote_parent_path,
             remote_parent_ref,
@@ -625,6 +629,7 @@ class Engine(QObject):
             self.uid,
             description,
             scheduled_on,
+            status,
         )
 
         for batch_items in grouper(items, bsize):
