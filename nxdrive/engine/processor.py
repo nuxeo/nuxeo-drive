@@ -598,6 +598,7 @@ class Processor(EngineWorker):
         network_speed = speedtest.Speedtest()
         if network_speed.upload() < 80000000:
             self.dao.pause_session(session.uid)
+            return()
 
         # Do the upload
         self.remote.upload(
