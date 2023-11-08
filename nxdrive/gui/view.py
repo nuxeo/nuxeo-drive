@@ -273,6 +273,7 @@ class DirectTransferModel(QAbstractListModel):
     REMOTE_PARENT_REF = qt.UserRole + 10
     SHADOW = qt.UserRole + 11  # Tell the interface if the row should be visible or not
     DOC_PAIR = qt.UserRole + 12
+    FINALIZING_STATUS = qt.UserRole + 13
 
     def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -291,6 +292,7 @@ class DirectTransferModel(QAbstractListModel):
             self.REMOTE_PARENT_REF: b"remote_parent_ref",
             self.SHADOW: b"shadow",
             self.DOC_PAIR: b"doc_pair",
+            self.FINALIZING_STATUS: b"finalizing_status",
         }
         # Pretty print
         self.psize = partial(sizeof_fmt, suffix=self.tr("BYTE_ABBREV"))
@@ -353,6 +355,8 @@ class DirectTransferModel(QAbstractListModel):
             return self.psize(row["filesize"])
         if role == self.TRANSFERRED:
             return self.psize(row["filesize"] * row["progress"] / 100)
+        if role == self.FINALIZING_STATUS:
+            return row.get("finalizing_status")
         return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, /, *, role: int = None) -> None:
@@ -375,6 +379,9 @@ class DirectTransferModel(QAbstractListModel):
             self.setData(idx, action["progress"], role=self.TRANSFERRED)
             if action["action_type"] == "Linking":
                 self.setData(idx, True, role=self.FINALIZING)
+                self.setData(
+                    idx, action["finalizing_status"], role=self.FINALIZING_STATUS
+                )
 
     def add_item(self, parent: QModelIndex, n_item: Dict[str, Any], /) -> None:
         """Add an item to existing list."""
