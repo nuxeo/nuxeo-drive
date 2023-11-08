@@ -784,7 +784,7 @@ class QMLDriveApi(QObject):
             return
 
         # Handle the server URL
-        if "login" in server_url:
+        if "login.jsp" in server_url:
             self.setMessage.emit("CONNECTION_ERROR", "error")
             return
 
