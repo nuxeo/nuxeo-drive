@@ -98,7 +98,7 @@ check_upgrade() {
 check_vars() {
     # Check required variables
     if [ "${PYTHON_DRIVE_VERSION:-unset}" = "unset" ]; then
-        export PYTHON_DRIVE_VERSION="3.9.5"  # XXX_PYTHON
+        export PYTHON_DRIVE_VERSION="3.10.5"  # XXX_PYTHON
     fi
     if [ "${WORKSPACE:-unset}" = "unset" ]; then
         if [ "${GITHUB_WORKSPACE:-unset}" != "unset" ]; then
