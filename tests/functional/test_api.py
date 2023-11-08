@@ -25,7 +25,7 @@ def test_web_authentication(manager_factory, nuxeo_url):
 
     with manager:
         with patch.object(manager, "check_local_folder_available", new=func):
-            url = nuxeo_url + "/login.jsp?requestedUrl=ui%2F"
+            url = f"{nuxeo_url}/login.jsp?requestedUrl=ui%2F"
             returned_val = drive_api.web_authentication(
                 url,
                 "/dummy-path",
