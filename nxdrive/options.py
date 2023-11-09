@@ -413,7 +413,7 @@ class MetaOptions(type):
 
         if isinstance(new_value, list):
             # Need a tuple when JSON sends a simple list
-            new_value = tuple(sorted({*old_value, *new_value}))
+            new_value = tuple(sorted({*new_value}))
         elif isinstance(new_value, bytes):
             # No option needs bytes
             new_value = new_value.decode("utf-8")
