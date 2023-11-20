@@ -5,7 +5,7 @@ set -e
 
 export OSI="osx"
 
-. "$(python -c "import os.path; print(os.path.realpath('$0').replace('/osx/', '/posix/'))")"
+. "$(python3 -c "import os.path; print(os.path.realpath('$0').replace('/osx/', '/posix/'))")"
 
 
 # Global variables
