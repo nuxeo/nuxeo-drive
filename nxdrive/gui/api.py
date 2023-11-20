@@ -338,7 +338,7 @@ class QMLDriveApi(QObject):
     def get_features_list(self) -> List[List[str]]:
         """Return the list of declared features with their value, title and translation key."""
         result = []
-        for feature in vars(Feature).keys():
+        for feature in vars(Feature):
             title = feature.replace("_", " ").title()
             translation_key = f"FEATURE_{feature.upper()}"
             result.append([title, feature, translation_key])
@@ -350,7 +350,7 @@ class QMLDriveApi(QObject):
             return str(self._manager.generate_report())
         except Exception as e:
             log.exception("Report error")
-            return "[ERROR] " + str(e)
+            return f"[ERROR] {str(e)}"
 
     @pyqtSlot(str, str, result=bool)
     def generate_csv(self, session_id: str, engine_uid: str) -> bool:
@@ -571,12 +571,12 @@ class QMLDriveApi(QObject):
                 "synced": synced * width / total,
             }
         )
-        return [result["free"], result["used_without_sync"], result["synced"]]
+        result = dict(sorted(result.items(), key=lambda item: item[1]))
 
     def _balance_percents(self, result: Dict[str, float], /) -> Dict[str, float]:
         """Return an altered version of the dict in which no value is under a minimum threshold."""
 
-        result = {k: v for k, v in sorted(result.items(), key=lambda item: item[1])}
+        result = dict(sorted(result.items(), key=lambda item: item[1]))
         keys = list(result)
         min_threshold = 10
         data = 0.0
