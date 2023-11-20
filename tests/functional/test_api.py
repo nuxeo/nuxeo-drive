@@ -62,7 +62,7 @@ def test_generate_report(manager_factory):
         return
 
     def func(*args):
-        return 1 / 0
+        return "e"
 
     Mocked_App = namedtuple(
         "app",
@@ -100,5 +100,7 @@ def test_get_disk_space_info_to_width(manager_factory):
         from nxdrive import utils
 
         with patch.object(utils, "disk_space", new=func):
-            returned_val = drive_api.get_disk_space_info_to_width()
+            returned_val = drive_api.get_disk_space_info_to_width(
+                "001", "dummy_path", 100
+            )
             assert not returned_val
