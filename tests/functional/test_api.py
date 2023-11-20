@@ -97,6 +97,8 @@ def test_get_disk_space_info_to_width(manager_factory):
     drive_api = QMLDriveApi(app)
 
     with manager:
-        with patch.object(engine, "disk_space", new=func):
+        from nxdrive import utils
+
+        with patch.object(utils, "disk_space", new=func):
             returned_val = drive_api.get_disk_space_info_to_width()
             assert not returned_val
