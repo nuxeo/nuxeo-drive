@@ -338,7 +338,7 @@ class QMLDriveApi(QObject):
     def get_features_list(self) -> List[List[str]]:
         """Return the list of declared features with their value, title and translation key."""
         result = []
-        for feature in vars(Feature).keys():
+        for feature in vars(Feature):
             title = feature.replace("_", " ").title()
             translation_key = f"FEATURE_{feature.upper()}"
             result.append([title, feature, translation_key])
@@ -784,6 +784,10 @@ class QMLDriveApi(QObject):
             return
 
         # Handle the server URL
+        if "login.jsp" in server_url:
+            self.setMessage.emit("CONNECTION_ERROR", "error")
+            return
+        
         error = ""
         try:
             error = self._get_ssl_error(server_url)
