@@ -218,7 +218,6 @@
     "LOCK_NOTIFICATION_DESCRIPTION": "The document \"%1\" has been locked",
     "LOG_LEVEL": "Log level",
     "LOG_LEVEL_CHANGE_SETTINGS": "Log level",
-    "LOG_LEVEL_DEBUG_WARNING": "Setting the level to \"DEBUG\" will most certainly log sensitive data in your log file. This data can be your login token, which can be used to access and interact with your account on your Nuxeo instance.",
     "LONG_PATH_ERROR_TITLE": "Filename too long",
     "LONG_PATH_ERROR_MSG": "The document \"%1\" cannot be processed because its filename or full path is too long.",
     "MANUAL": "Manual",

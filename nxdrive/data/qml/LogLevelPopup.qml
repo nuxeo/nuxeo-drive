@@ -7,7 +7,7 @@ NuxeoPopup {
 
     title: qsTr("LOG_LEVEL_CHANGE_SETTINGS") + tl.tr
     width: 400
-    height: debugWarning.visible ? 250 : 200
+    height: 200
     topPadding: 60
     leftPadding: 50
     rightPadding: 50
@@ -36,15 +36,6 @@ NuxeoPopup {
                 }
                 highlighted: logLevel.highlightedIndex === index
             }
-        }
-
-        ScaledText {
-            id: debugWarning
-            visible: logLevel.currentText == "DEBUG"
-            Layout.columnSpan: 2
-            Layout.maximumWidth: parent.width
-            text: qsTr("LOG_LEVEL_DEBUG_WARNING") + tl.tr
-            wrapMode: Text.WordWrap
         }
 
         RowLayout {
