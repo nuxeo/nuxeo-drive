@@ -1,5 +1,5 @@
 {
-    "ABOUT": "O aplikacji",
+    "ABOUT": "About",
     "ACCOUNT_NAME": "Nazwa konta",
     "ADD": "Dodaj",
     "ADD_FILES": "Dodaj pliki",
@@ -106,6 +106,7 @@
     "DIRECT_TRANSFER_DETAILS": "[%1%] %2 z %3",
     "DIRECT_TRANSFER_END": "Transfer wykonany: \"%1\"",
     "DIRECT_TRANSFER_ERROR": "Błąd transferu: \"%1\"",
+    "DIRECT_TRANSFER_FINALIZING_ERROR": "An error occurred during the transfer, it will resume shortly.",
     "DIRECT_TRANSFER_NO_ACCOUNT": "Nie można użyć funkcji bezpośredniego transferu bez konta, przerywanie.",
     "DIRECT_TRANSFER_NOT_ALLOWED": "Bezpośredni transfer \"%1\" nie jest dozwolony dla zsynchronizowanych plików.",
     "DIRECT_TRANSFER_NOT_ENABLED": "Funkcja bezpośredniego transferu nie jest włączona.",
@@ -217,7 +218,6 @@
     "LOCK_NOTIFICATION_DESCRIPTION": "Dokument \"%1\" został zablokowany",
     "LOG_LEVEL": "Poziom logowania",
     "LOG_LEVEL_CHANGE_SETTINGS": "Log level",
-    "LOG_LEVEL_DEBUG_WARNING": "Ustawienie poziomu na \"DEBUG\" z pewnością zapisze poufne dane w pliku dziennika. Te dane to mogą zawierać\n token logowania, który może być użyty do uzyskania dostępu i interakcji z Twoim kontem w twojej instancji Nuxeo.",
     "LONG_PATH_ERROR_TITLE": "Nazwa pliku jest zbyt długa",
     "LONG_PATH_ERROR_MSG": "Dokument \"%1\" nie może zostać przetworzony, ponieważ jego nazwa lub pełna ścieżka jest zbyt długa.",
     "MANUAL": "Ręcznie",
