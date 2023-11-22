@@ -1,6 +1,6 @@
 {
     "ABOUT": "Über",
-    "ACCOUNT_NAME": "Account Name",
+    "ACCOUNT_NAME": "Kontoname",
     "ADD": "Hinzufügen",
     "ADD_FILES": "Dateien hinzufügen",
     "ADD_FOLDER": "Neuer Ordner",
@@ -106,6 +106,7 @@
     "DIRECT_TRANSFER_DETAILS": "[%1%] %2 von %3",
     "DIRECT_TRANSFER_END": "Übertragung abgeschlossen: \"%1\"",
     "DIRECT_TRANSFER_ERROR": "Übertragungsfehler: \"%1\"",
+    "DIRECT_TRANSFER_FINALIZING_ERROR": "Während der Übertragung ist ein Fehler aufgetreten, er wird in Kürze fortgesetzt.",
     "DIRECT_TRANSFER_NO_ACCOUNT": "Die Direkte Übertragung kann nicht ohne Konto verwendet werden. Abbrechen.",
     "DIRECT_TRANSFER_NOT_ALLOWED": "Direkte Übertragung von \"%1\" ist für synchronisierte Dateien nicht erlaubt.",
     "DIRECT_TRANSFER_NOT_ENABLED": "Die Funktion Direktbearbeitung ist nicht aktiviert.",
@@ -217,7 +218,6 @@
     "LOCK_NOTIFICATION_DESCRIPTION": "Das Dokument \"%1\" wurde gesperrt",
     "LOG_LEVEL": "Log-Level",
     "LOG_LEVEL_CHANGE_SETTINGS": "Log-Level",
-    "LOG_LEVEL_DEBUG_WARNING": "Das Setzen des Levels auf \"DEBUG\" protokolliert sicher sensible Daten in Ihrer Logdatei. Diese Daten können Ihr Login-Token sein, mit dem Sie auf Ihr Nuxeo Konto zugreifen und mit Ihnen interagieren können.",
     "LONG_PATH_ERROR_TITLE": "Dateiname zu lang",
     "LONG_PATH_ERROR_MSG": "Das Dokument \"%1\" kann nicht verarbeitet werden, da der Dateiname oder der vollständige Pfad zu lang ist.",
     "MANUAL": "Manuell",
