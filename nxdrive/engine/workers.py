@@ -298,4 +298,5 @@ class PollWorker(Worker):
             sleep(1)
 
     def _poll(self) -> bool:
+        # .
         return True
