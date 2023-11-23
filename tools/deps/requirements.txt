@@ -161,8 +161,8 @@ jwt==1.3.1 \
     --hash=sha256:61c9170f92e736b530655e75374681d4fcca9cfa8763ab42be57353b2b203494
     # via nuxeo
 nuxeo[oauth2,s3]==6.1.1 \
-    --hash=sha256:ac69d1bb69c479bb6fe7e705bb2112d6b3b51d3a44a8e148061d6e391bc60d91 \
-    --hash=sha256:b84eacb004100771c006def0904c82e1c7c13fcba4a9cc5b070833e38aad6716
+    --hash=sha256:31fc973c55d7fc7567860e589c6c59c386d2e3563cb8f7709276551a76902daa \
+    --hash=sha256:d7e30368fa2ca02e3981cdadee27c9f8011fddb091b5af879735543900009767
     # via -r requirements.txt
 packaging==23.1 \
     --hash=sha256:994793af429502c4ea2ebf6bf664629d07c1a9fe974af92966e4b8d2df7edc61 \
