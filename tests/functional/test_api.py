@@ -104,3 +104,30 @@ def test_get_disk_space_info_to_width(manager_factory):
                 "001", "dummy_path", 100
             )
             assert returned_val
+
+
+def test_open_local(manager_factory):
+    manager, engine = manager_factory()
+    manager.application = ""
+
+    def mocked_open_authentication_dialog():
+        return
+
+    def mocked_hide_systray(*args):
+        return
+
+    def func(*args):
+        return
+
+    Mocked_App = namedtuple(
+        "app",
+        "manager, open_authentication_dialog, hide_systray",
+        defaults=(manager, mocked_open_authentication_dialog, mocked_hide_systray),
+    )
+    app = Mocked_App()
+    drive_api = QMLDriveApi(app)
+
+    with manager:
+        with patch.object(manager, "open_local_file", new=func):
+            returned_val = drive_api.open_local(None, "dummy_path")
+            assert not returned_val
