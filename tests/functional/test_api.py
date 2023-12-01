@@ -136,15 +136,13 @@ def test_open_local(manager_factory):
 def test_open_document(manager_factory):
     manager, engine = manager_factory()
     manager.application = ""
+    engine.uid = "dummy_uid"
 
     def mocked_open_authentication_dialog():
         return
 
     def mocked_hide_systray(*args):
         return
-
-    def func(*args):
-        return True
 
     Mocked_App = namedtuple(
         "app",
@@ -155,9 +153,8 @@ def test_open_document(manager_factory):
     drive_api = QMLDriveApi(app)
 
     with manager:
-        with patch.object(manager.engines, "get", new=func):
-            returned_val = drive_api.open_document("engine_uid", 1)
-            assert not returned_val
+        returned_val = drive_api.open_document("engine_uid", 1)
+        assert not returned_val
 
 
 def test_open_remote_document(manager_factory):
