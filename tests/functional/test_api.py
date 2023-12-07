@@ -544,3 +544,150 @@ def test_restart_needed(manager_factory):
         with patch.object(engine, "open_edit", new=mocked_resolve_with_local):
             returned_val = drive_api.restart_needed()
             assert returned_val is mocked_restart_needed
+
+
+def test_has_invalid_credentials(manager_factory):
+    manager, engine = manager_factory()
+    manager.application = ""
+    engine.uid = "dummy_uid"
+
+    def mocked_open_authentication_dialog():
+        return
+
+    def mocked_hide_systray(*args):
+        return
+
+    def mocked_has_invalid_credentials(*args):
+        return
+
+    def mocked_get_metadata_url(*args):
+        return
+
+    def mocked_restart_needed(*args):
+        return
+
+    engine.get_metadata_url = mocked_get_metadata_url  # .__get__(engine)
+    manager.restart_needed = mocked_restart_needed
+
+    Mocked_App = namedtuple(
+        "app",
+        "manager, open_authentication_dialog, hide_systray",
+        defaults=(manager, mocked_open_authentication_dialog, mocked_hide_systray),
+    )
+    app = Mocked_App()
+    drive_api = QMLDriveApi(app)
+
+    with manager:
+        with patch.object(engine, "open_edit", new=mocked_has_invalid_credentials):
+            returned_val = drive_api.has_invalid_credentials("dummy_uid")
+            assert not returned_val
+
+
+def test_get_deletion_behavior(manager_factory):
+    manager, engine = manager_factory()
+    manager.application = ""
+
+    def mocked_open_authentication_dialog():
+        return
+
+    def mocked_hide_systray(*args):
+        return
+
+    def mocked_get_metadata_url(*args):
+        return
+
+    def mocked_restart_needed(*args):
+        return
+
+    engine.get_metadata_url = mocked_get_metadata_url  # .__get__(engine)
+    manager.restart_needed = mocked_restart_needed
+
+    Mocked_App = namedtuple(
+        "app",
+        "manager, open_authentication_dialog, hide_systray",
+        defaults=(manager, mocked_open_authentication_dialog, mocked_hide_systray),
+    )
+    app = Mocked_App()
+    drive_api = QMLDriveApi(app)
+
+    with manager:
+        returned_val = drive_api.get_deletion_behavior()
+        assert returned_val
+
+
+def test_set_deletion_behavior(manager_factory):
+    manager, engine = manager_factory()
+    manager.application = ""
+
+    def mocked_open_authentication_dialog():
+        return
+
+    def mocked_hide_systray(*args):
+        return
+
+    def mocked_get_metadata_url(*args):
+        return
+
+    def mocked_restart_needed(*args):
+        return
+
+    def mocked_set_config(*args):
+        return True
+
+    engine.get_metadata_url = mocked_get_metadata_url  # .__get__(engine)
+    manager.restart_needed = mocked_restart_needed
+
+    Mocked_App = namedtuple(
+        "app",
+        "manager, open_authentication_dialog, hide_systray",
+        defaults=(manager, mocked_open_authentication_dialog, mocked_hide_systray),
+    )
+    app = Mocked_App()
+    drive_api = QMLDriveApi(app)
+
+    with manager:
+        with patch.object(manager, "set_config", new=mocked_set_config):
+            returned_val = drive_api.set_deletion_behavior("deletion_behavior")
+            assert not returned_val
+
+
+def test_set_proxy_settings(manager_factory):
+    manager, engine = manager_factory()
+    manager.application = ""
+    engine.uid = "dummy_uid"
+
+    def mocked_open_authentication_dialog():
+        return
+
+    def mocked_hide_systray(*args):
+        return
+
+    def mocked_get_proxy(*args):
+        return "dummy_proxy"
+
+    def mocked_set_proxy(*args):
+        return
+
+    def mocked_get_metadata_url(*args):
+        return
+
+    def mocked_restart_needed(*args):
+        return
+
+    engine.get_metadata_url = mocked_get_metadata_url  # .__get__(engine)
+    manager.restart_needed = mocked_restart_needed
+
+    Mocked_App = namedtuple(
+        "app",
+        "manager, open_authentication_dialog, hide_systray",
+        defaults=(manager, mocked_open_authentication_dialog, mocked_hide_systray),
+    )
+    app = Mocked_App()
+    drive_api = QMLDriveApi(app)
+
+    with manager:
+        with patch.object(manager, "set_proxy", new=mocked_set_proxy):
+            returned_val = drive_api.set_proxy_settings(
+                "Manual", "dummy_url", "dummy_pac_url"
+            )
+            assert returned_val
