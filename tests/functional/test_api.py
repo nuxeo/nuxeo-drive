@@ -691,3 +691,98 @@ def test_set_proxy_settings(manager_factory):
                 "Manual", "dummy_url", "dummy_pac_url"
             )
             assert returned_val
+
+
+def test_open_direct_transfer(manager_factory):
+    manager, engine = manager_factory()
+    manager.application = ""
+    engine.uid = "dummy_uid"
+
+    def mocked_open_authentication_dialog():
+        return
+
+    def mocked_hide_systray(*args):
+        return
+
+    def mocked_get_metadata_url(*args):
+        return
+
+    def mocked_restart_needed(*args):
+        return
+
+    def mocked_refresh_direct_transfer_items(*args):
+        return
+
+    def mocked_refresh_active_sessions_items(*args):
+        return
+
+    def mocked_refresh_completed_sessions_items(*args):
+        return
+
+    def mocked_show_direct_transfer_window(*args):
+        return
+
+    engine.get_metadata_url = mocked_get_metadata_url  # .__get__(engine)
+    manager.restart_needed = mocked_restart_needed
+
+    Mocked_App = namedtuple(
+        "app",
+        "manager, open_authentication_dialog, hide_systray, refresh_direct_transfer_items, \
+            refresh_active_sessions_items, refresh_completed_sessions_items, show_direct_transfer_window,",
+        defaults=(
+            manager,
+            mocked_open_authentication_dialog,
+            mocked_hide_systray,
+            mocked_refresh_direct_transfer_items,
+            mocked_refresh_active_sessions_items,
+            mocked_refresh_completed_sessions_items,
+            mocked_show_direct_transfer_window,
+        ),
+    )
+    app = Mocked_App()
+    drive_api = QMLDriveApi(app)
+
+    with manager:
+        returned_val = drive_api.open_direct_transfer("dummy_uid")
+        assert not returned_val
+
+
+def test_open_server_folders(manager_factory):
+    manager, engine = manager_factory()
+    manager.application = ""
+    engine.uid = "dummy_uid"
+
+    def mocked_open_authentication_dialog():
+        return
+
+    def mocked_hide_systray(*args):
+        return
+
+    def mocked_get_metadata_url(*args):
+        return
+
+    def mocked_restart_needed(*args):
+        return
+
+    def mocked_show_server_folders(*args):
+        return
+
+    engine.get_metadata_url = mocked_get_metadata_url  # .__get__(engine)
+    manager.restart_needed = mocked_restart_needed
+
+    Mocked_App = namedtuple(
+        "app",
+        "manager, open_authentication_dialog, hide_systray, show_server_folders",
+        defaults=(
+            manager,
+            mocked_open_authentication_dialog,
+            mocked_hide_systray,
+            mocked_show_server_folders,
+        ),
+    )
+    app = Mocked_App()
+    drive_api = QMLDriveApi(app)
+
+    with manager:
+        returned_val = drive_api.open_server_folders("dummy_uid")
+        assert not returned_val
