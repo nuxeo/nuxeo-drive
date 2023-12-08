@@ -786,3 +786,40 @@ def test_open_server_folders(manager_factory):
     with manager:
         returned_val = drive_api.open_server_folders("dummy_uid")
         assert not returned_val
+
+
+def test_generate_csv(manager_factory):
+    manager, engine = manager_factory()
+    manager.application = ""
+    engine.uid = "dummy_uid"
+
+    def mocked_open_authentication_dialog():
+        return
+
+    def mocked_hide_systray(*args):
+        return
+
+    def mocked_get_metadata_url(*args):
+        return
+
+    def mocked_restart_needed(*args):
+        return
+
+    def mocked_generate_csv(*args):
+        return
+
+    engine.get_metadata_url = mocked_get_metadata_url  # .__get__(engine)
+    manager.restart_needed = mocked_restart_needed
+
+    Mocked_App = namedtuple(
+        "app",
+        "manager, open_authentication_dialog, hide_systray",
+        defaults=(manager, mocked_open_authentication_dialog, mocked_hide_systray),
+    )
+    app = Mocked_App()
+    drive_api = QMLDriveApi(app)
+
+    with manager:
+        with patch.object(manager, "generate_csv", new=mocked_generate_csv):
+            returned_val = drive_api.generate_csv("mocked_session_id", "dummy_uid")
+            assert not returned_val
