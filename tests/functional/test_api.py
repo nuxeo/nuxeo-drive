@@ -1038,7 +1038,7 @@ def test_default_server_url_value(manager_factory):
 
     with manager:
         returned_val = drive_api.default_server_url_value()
-        assert not returned_val
+        assert returned_val
 
 
 def test_get_update_url(manager_factory):
