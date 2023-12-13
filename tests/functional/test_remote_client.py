@@ -261,12 +261,14 @@ def test_transfer_end_callback(manager_factory):
 
     def get_download_(*args, **kwargs):
         mocked_download_obj_ = Mock()
+        mocked_download_obj_.name = "mocked-download-obj"
         mocked_download_obj_.progress = 80
         mocked_download_obj_.status = 2
         return mocked_download_obj_
 
     def get_upload_(*args, **kwargs):
         mocked_upload_obj_ = Mock()
+        mocked_upload_obj_.name = "mocked-upload-obj"
         mocked_upload_obj_.progress = 80
         mocked_upload_obj_.status = 2
         return mocked_upload_obj_
