@@ -640,6 +640,7 @@ class FoldersDialog(DialogMixin):
             self,
             Translator.get("ADD_FILES"),
             str(self.last_local_selected_location),
+            options=QFileDialog.DontUseNativeDialog,
         )
         self._process_additionnal_local_paths(paths)
 
@@ -649,6 +650,7 @@ class FoldersDialog(DialogMixin):
             self,
             Translator.get("ADD_FOLDER"),
             str(self.last_local_selected_location),
+            options=QFileDialog.DontUseNativeDialog,
         )
         self._process_additionnal_local_paths([path])
 

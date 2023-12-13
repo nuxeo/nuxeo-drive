@@ -1586,6 +1586,18 @@ class Application(QApplication):
     def event(self, event: QEvent, /) -> bool:
         """Handle URL scheme events under macOS."""
         url = getattr(event, "url", None)
+        if (
+            self.activeModalWidget()
+            and self.activeModalWidget().objectName() == "QFileDialog"
+        ):
+            if (
+                event.type() == event.Type.ApplicationDeactivated
+                or event.type() == qt.FocusOut
+                or event.type()
+                == QEvent.FocusOut | event.type()
+                == QEvent.WindowDeactivate
+            ):
+                self.activeModalWidget().close()
         if not url:
             # This is not an event for us!
             return super().event(event)
