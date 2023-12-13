@@ -274,17 +274,17 @@ def test_transfer_end_callback(manager_factory):
         return mocked_upload_obj_
 
     obj1_ = Mock()
-    returned_val = None
     with manager:
         with patch.object(Action, "get_current_action", new=get_current_action_):
             with patch.object(remote.dao, "get_download", new=get_download_):
                 with patch.object(
                     remote.dao, "set_transfer_progress", new=set_transfer_progress_
                 ):
-                    returned_val = remote.transfer_end_callback(obj1_)
                     with pytest.raises(Exception) as err:
+                        remote.transfer_end_callback(obj1_)
                         assert err
         with patch.object(Action, "get_current_action", new=get_current_action__):
-            with patch.object(remote.dao, "get_download", new=get_upload_):
-                returned_val = remote.transfer_end_callback(obj1_)
-                assert not returned_val
+            with patch.object(remote.dao, "get_upload", new=get_upload_):
+                with pytest.raises(Exception) as err:
+                    remote.transfer_end_callback(obj1_)
+                    assert err
