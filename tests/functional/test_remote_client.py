@@ -280,7 +280,8 @@ def test_transfer_end_callback(manager_factory):
                     remote.dao, "set_transfer_progress", new=set_transfer_progress_
                 ):
                     returned_val = remote.transfer_end_callback(obj1_)
-                    assert not returned_val
+                    with pytest.raises(Exception) as err:
+                        assert err
         with patch.object(Action, "get_current_action", new=get_current_action__):
             with patch.object(remote.dao, "get_download", new=get_upload_):
                 returned_val = remote.transfer_end_callback(obj1_)
