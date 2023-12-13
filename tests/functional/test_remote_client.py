@@ -12,6 +12,30 @@ from nxdrive.utils import shortify
 from .. import env
 
 
+def get_current_action_download(*args, **kwargs):
+    obj = DownloadAction("path", 1)
+    obj.transferred_chunks = 1
+    obj.chunk_transfer_end_time_ns = 300000000000
+    obj.chunk_transfer_start_time_ns = 1000000000
+    obj.chunk_size = 10
+    obj.transferred_chunks = 2
+    return obj
+
+
+def get_current_action_upload(*args, **kwargs):
+    obj = UploadAction("path", 1)
+    obj.transferred_chunks = 1
+    obj.chunk_transfer_end_time_ns = 3000000000
+    obj.chunk_transfer_start_time_ns = 1000000000
+    obj.chunk_size = 10
+    obj.transferred_chunks = 2
+    return obj
+
+
+def get_current_no_action(*args, **kwargs):
+    return None
+
+
 @pytest.mark.parametrize(
     "username",
     [
@@ -240,21 +264,16 @@ def test_transfer_start_callback(manager_factory):
 
     obj1_ = Mock()
     with manager:
-        returned_val = remote.transfer_start_callback(obj1_)
+        with patch.object(
+            Action, "get_current_action", new=get_current_action_download
+        ):
+            returned_val = remote.transfer_start_callback(obj1_)
     assert not returned_val
 
 
 def test_transfer_end_callback(manager_factory):
     manager, engine = manager_factory()
     remote = engine.remote
-
-    def get_current_action_(*args, **kwargs):
-        obj = DownloadAction("path", 1)
-        return obj
-
-    def get_current_action__(*args, **kwargs):
-        obj = UploadAction("path", 1)
-        return obj
 
     def set_transfer_progress_(*args, **kwargs):
         return
@@ -275,7 +294,9 @@ def test_transfer_end_callback(manager_factory):
 
     obj1_ = Mock()
     with manager:
-        with patch.object(Action, "get_current_action", new=get_current_action_):
+        with patch.object(
+            Action, "get_current_action", new=get_current_action_download
+        ):
             with patch.object(remote.dao, "get_download", new=get_download_):
                 with patch.object(
                     remote.dao, "set_transfer_progress", new=set_transfer_progress_
@@ -283,8 +304,11 @@ def test_transfer_end_callback(manager_factory):
                     with pytest.raises(Exception) as err:
                         remote.transfer_end_callback(obj1_)
                         assert err
-        with patch.object(Action, "get_current_action", new=get_current_action__):
+        with patch.object(Action, "get_current_action", new=get_current_action_upload):
             with patch.object(remote.dao, "get_upload", new=get_upload_):
                 with pytest.raises(Exception) as err:
                     remote.transfer_end_callback(obj1_)
                     assert err
+        with patch.object(Action, "get_current_action", new=get_current_no_action):
+            remote.transfer_end_callback(obj1_)
+            assert not remote.transfer_end_callback(obj1_)
