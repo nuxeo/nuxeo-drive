@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 import pytest
 from nuxeo.models import Document
 
-from nxdrive.engine.activity import Action, DownloadAction
+from nxdrive.engine.activity import Action, DownloadAction, UploadAction
 from nxdrive.metrics.constants import GLOBAL_METRICS
 from nxdrive.objects import RemoteFileInfo, SubTypeEnricher
 from nxdrive.options import Options
@@ -252,13 +252,36 @@ def test_transfer_end_callback(manager_factory):
         obj = DownloadAction("path", 1)
         return obj
 
+    def get_current_action__(*args, **kwargs):
+        obj = UploadAction("path", 1)
+        return obj
+
+    def set_transfer_progress_(*args, **kwargs):
+        return
+
     def get_download_(*args, **kwargs):
-        return False
+        mocked_download_obj_ = Mock()
+        mocked_download_obj_.progress = 80
+        mocked_download_obj_.status = 2
+        return mocked_download_obj_
+
+    def get_upload_(*args, **kwargs):
+        mocked_upload_obj_ = Mock()
+        mocked_upload_obj_.progress = 80
+        mocked_upload_obj_.status = 2
+        return mocked_upload_obj_
 
     obj1_ = Mock()
     returned_val = None
     with manager:
         with patch.object(Action, "get_current_action", new=get_current_action_):
             with patch.object(remote.dao, "get_download", new=get_download_):
+                with patch.object(
+                    remote.dao, "set_transfer_progress", new=set_transfer_progress_
+                ):
+                    returned_val = remote.transfer_end_callback(obj1_)
+                    assert not returned_val
+        with patch.object(Action, "get_current_action", new=get_current_action__):
+            with patch.object(remote.dao, "get_download", new=get_upload_):
                 returned_val = remote.transfer_end_callback(obj1_)
-    assert not returned_val
+                assert not returned_val
