@@ -312,3 +312,46 @@ def test_transfer_end_callback(manager_factory):
         with patch.object(Action, "get_current_action", new=get_current_no_action):
             remote.transfer_end_callback(obj1_)
             assert not remote.transfer_end_callback(obj1_)
+
+
+def test_download(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+
+    def mocked_request(*args, **kwargs):
+        obj_ = Mock()
+        obj_.content = "content"
+        obj_.headers = {"Content-Length": ((Options.tmp_file_limit * 1024 * 1024) + 1)}
+        return obj_
+
+    def stat_():
+        obj = Mock()
+        obj.st_size = 100
+        return obj
+
+    dummy_file_out = Mock()
+    dummy_file_out.stat = stat_
+    dummy_file_out.name = "dummy_file_out"
+
+    dummy_file_path = env.WS_DIR
+
+    from pathlib import Path
+
+    dummy_file_path = Path(dummy_file_path)
+    dummy_file_out = Path(dummy_file_path)
+
+    with manager:
+        with patch.object(remote.client, "request", new=mocked_request):
+            returned_val = remote.download(
+                "dummy_url", dummy_file_path, "", "dummy_digest"
+            )
+            assert returned_val == "content"
+
+        with patch.object(remote.client, "request", new=mocked_request):
+            with patch.object(remote.dao, "get_download", return_value=None):
+                with patch.object(remote.dao, "save_download", return_value=None):
+                    with patch.object(remote, "operations", return_value=None):
+                        returned_val = remote.download(
+                            "dummy_url", dummy_file_path, dummy_file_out, "dummy_digest"
+                        )
+                        assert returned_val
