@@ -89,7 +89,7 @@ jobs:
 
       - name: "[GNU/Linux] Upload artifacts"
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: package-distributions
           path: ./dist/*.AppImage
@@ -155,7 +155,7 @@ jobs:
 
       - name: "[macOS] Upload artifacts"
         if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: package-distributions
           path: ./dist/*.dmg
@@ -203,7 +203,7 @@ jobs:
 
       - name: "[Windows] Upload artifacts"
         if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: package-distributions
           path: ./dist/*.exe
@@ -237,7 +237,7 @@ jobs:
           git remote set-url origin "https://${{ env.GITHUB_USERNAME }}:${{ secrets.NXDRIVE_GIT_TOKEN }}@github.com/nuxeo/nuxeo-drive.git"
 
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: package-distributions
           path: dist/
