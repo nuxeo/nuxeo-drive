@@ -231,10 +231,11 @@ pyobjc-framework-ScriptingBridge==7.3 ; sys_platform == "darwin" \
     --hash=sha256:903d70ed128709e3be06c033cc6c421b26658f67dc628b92e6190b1fd1150e59 \
     --hash=sha256:b8f071751845253469d7a2cd8e2fae9c35ea0015789030e1ad1b958fb53dc82f \
     --hash=sha256:f09f4cad708d3c946bbcf7fdc5e623bbb512e4e0b085536fc22fe1131b517ca9
-pyobjc-framework-SystemConfiguration==7.3 ; sys_platform == "darwin" \
-    --hash=sha256:c5b5e9d852a15165507a46b8c8974e6d99aff3d1edda4d77443530b604adb520 \
-    --hash=sha256:05293ef0a358fbefd41d4470a98c7c08f70ace3d09245b7c7370228d8068b328 \
-    --hash=sha256:92cbe14d9efcf1c52328ab1ba4cc359879c22e2f390179ec4713af176bc19dc6
+pyobjc-framework-SystemConfiguration==10.1 ; sys_platform == "darwin" \
+    --hash=sha256:431c32557bde3dad18fb245bf1e5ce80963f28caa4d2691b5a82e6db2b5efc2f \
+    --hash=sha256:7e125872d4b54c8d04f15d83e7f7f706c18bd87960b3873c797e6a71b95030b0 \
+    --hash=sha256:7e8ae510b11ceca8800bc7b4b0c7735cf26de803771199d6c2d8f24fbb5467df \
+    --hash=sha256:8ab80e4272937643de8569a711e5adee8afca2bf071b6cfc6b7fc4143010d258
     # via pypac
 pypac==0.15.0 \
     --hash=sha256:558779a8f6a40d7f0f18e493b1d6386b3112a3a7874d67197aa723a46ee1744a
