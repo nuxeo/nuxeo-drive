@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
@@ -335,8 +336,6 @@ def test_download(manager_factory):
 
     dummy_file_path = env.WS_DIR
 
-    from pathlib import Path
-
     dummy_file_path = Path(dummy_file_path)
     dummy_file_out = Path(dummy_file_path)
 
@@ -355,3 +354,164 @@ def test_download(manager_factory):
                             "dummy_url", dummy_file_path, dummy_file_out, "dummy_digest"
                         )
                         assert returned_val
+
+
+def test_reload_global_headers(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+    headers = Mock()
+
+    def mocked_update(*args, **kwargs):
+        return
+
+    headers.update = mocked_update
+
+    with patch.object(headers, "update", return_value=None):
+        assert not remote.reload_global_headers()
+
+
+def test_escape(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+    assert remote.escape("/Users/user/Nuxeo'")
+
+
+def test_revoke_token(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+
+    assert not remote.revoke_token()
+
+
+def test_update_token(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+
+    assert not remote.update_token("dummy_token")
+
+
+def test_check_integrity_simple(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+
+    dummy_file_path = env.WS_DIR
+    dummy_file_path = Path(dummy_file_path)
+
+    assert not remote.check_integrity_simple("dummy_digest", dummy_file_path)
+
+
+def test_upload(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+
+    import os
+
+    local_path = Path(os.path.realpath(__file__))
+
+    with pytest.raises(Exception):
+        remote.upload(local_path)
+
+
+def test_upload_folder(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+
+    remote.operations = Mock()
+
+    def mocked_execute(*args, **kwargs):
+        return {"res": 0}
+
+    remote.operations.execute = mocked_execute
+
+    dummy_file_path = env.WS_DIR
+
+    assert remote.upload_folder(dummy_file_path, {"params": 0}, headers={})
+
+
+def test_make_folder(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+
+    with patch.object(
+        remote,
+        "execute",
+        return_value={"id": 0, "parentId": 0, "path": "/", "name": "dummy"},
+    ):
+        assert remote.make_folder("dummy_parent", "dummy_name")
+
+
+def test_delete(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+
+    with patch.object(
+        remote,
+        "execute",
+        return_value={"id": 0, "parentId": 0, "path": "/", "name": "dummy"},
+    ):
+        assert not remote.delete("dummy_fs_item_id")
+
+
+def test_rename(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+
+    with patch.object(
+        remote,
+        "execute",
+        return_value={"id": 0, "parentId": 0, "path": "/", "name": "dummy"},
+    ):
+        assert remote.rename("dummy_fs_item_id", "dummy_parent_fs_item_id")
+
+
+def test_undelete(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+
+    remote.documents = Mock()
+
+    def mocked_execute(*args, **kwargs):
+        return True
+
+    remote.documents.untrash = mocked_execute
+
+    dummy_file_path = env.WS_DIR
+
+    assert not remote.undelete(dummy_file_path)
+
+
+def test_move(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+
+    dummy_file_path = env.WS_DIR
+
+    with patch.object(
+        remote,
+        "execute",
+        return_value={"id": 0, "parentId": 0, "path": "/", "name": "dummy"},
+    ):
+        assert remote.rename(dummy_file_path, dummy_file_path)
+
+
+def test_move2(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+
+    remote.documents = Mock()
+
+    def mocked_move(*args, **kwargs):
+        return
+
+    remote.documents.move = mocked_move
+
+    dummy_file_path = env.WS_DIR
+
+    dummy_file_path = str(env.WS_DIR) + "#"
+
+    with patch.object(
+        remote,
+        "execute",
+        return_value={"id": 0, "parentId": 0, "path": "/", "name": "dummy"},
+    ):
+        assert not remote.move2(dummy_file_path, dummy_file_path, "dummy_name")
