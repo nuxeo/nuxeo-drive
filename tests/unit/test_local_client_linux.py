@@ -3,16 +3,20 @@ from unittest.mock import Mock
 
 import pytest
 
-from nxdrive.client.local.linux import LocalClient
+from ..markers import linux_only
 
 
+@linux_only
 @pytest.fixture
 def localclient(tmp_path):
+    from nxdrive.client.local.linux import LocalClient
+
     localclient = LocalClient
     localclient.shared_icons = tmp_path
     return localclient
 
 
+@linux_only
 def test_has_folder_icon(localclient, tmp_path, monkeypatch):
     file = localclient.shared_icons / "emblem-nuxeo.svg"
     file.write_bytes(b"baz\n")
