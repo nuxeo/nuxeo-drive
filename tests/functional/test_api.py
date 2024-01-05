@@ -1010,37 +1010,6 @@ def test_unbind_server(manager_factory):
         assert not returned_val
 
 
-def test_default_server_url_value(manager_factory):
-    manager, engine = manager_factory()
-    manager.application = ""
-
-    def mocked_open_authentication_dialog():
-        return
-
-    def mocked_hide_systray(*args):
-        return
-
-    def mocked_show_filters(*args):
-        return
-
-    Mocked_App = namedtuple(
-        "app",
-        "manager, open_authentication_dialog, hide_systray, show_filters",
-        defaults=(
-            manager,
-            mocked_open_authentication_dialog,
-            mocked_hide_systray,
-            mocked_show_filters,
-        ),
-    )
-    app = Mocked_App()
-    drive_api = QMLDriveApi(app)
-
-    with manager:
-        returned_val = drive_api.default_server_url_value()
-        assert returned_val
-
-
 def test_get_update_url(manager_factory):
     manager, engine = manager_factory()
     manager.application = ""

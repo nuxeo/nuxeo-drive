@@ -24,9 +24,9 @@ def patch_nxdrive_objects():
     # Need to do this one first because importing Manager will already import
     # nxdrive.dao.utils and so changing the behavior of save_backup()
     # will not work.
-    import nxdrive.dao.utils
 
-    nxdrive.dao.utils.save_backup = lambda *args: True
+    # import nxdrive.dao.utils
+    # nxdrive.dao.utils.save_backup = lambda *args: True
 
     from nxdrive.poll_workers import ServerOptionsUpdater
 
