@@ -1,7 +1,7 @@
 import sqlite3
 from datetime import datetime, timedelta
 from logging import getLogger
-from os import fsync
+from os import fsync, path
 from pathlib import Path
 from shutil import copyfile
 
@@ -62,7 +62,7 @@ def read(dump_file: Path, database: Path, /) -> None:
     log.info("Restoration done with success.")
 
 
-def fix_db(database: Path, /, *, dump_file: Path = Path("dump.sql")) -> None:
+def fix_db(database: Path, /, *, dump_file: Path = None) -> None:
     """
     Re-generate the whole database content to fix eventual FS corruptions.
     This will prevent `sqlite3.DatabaseError: database disk image is malformed`
@@ -75,6 +75,10 @@ def fix_db(database: Path, /, *, dump_file: Path = Path("dump.sql")) -> None:
 
     if is_healthy(database):
         return
+
+    if not dump_file:
+        head, tail = path.split(database)
+        dump_file = Path(path.join(head, Path("dump.sql")))
 
     log.info(f"Re-generating the whole database content of {database!r}...")
 
