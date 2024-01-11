@@ -239,8 +239,10 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: package-distributions*
+          pattern: package-distributions*
+          # name: package-distributions*
           path: dist/
+          merge-multiple: true
 
       - name: Upload artifacts to the staging server
         run: |
