@@ -87,13 +87,13 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: bash tools/linux/deploy_ci_agent.sh --check
 
-      #- name: "[GNU/Linux] Upload artifacts"
-      #  if: matrix.os == 'ubuntu-latest'
-      #  uses: actions/upload-artifact@v4
-      #  with:
-      #    name: package-distributions-${{ matrix.os }}
-      #    path: ./dist/*.AppImage
-      #    if-no-files-found: error
+      - name: "[GNU/Linux] Upload artifacts"
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-distributions-${{ matrix.os }}
+          path: ./dist/*.AppImage
+          if-no-files-found: error
 
       #
       # macOS
@@ -153,13 +153,13 @@ jobs:
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
 
-      #- name: "[macOS] Upload artifacts"
-      #  if: matrix.os == 'macos-latest'
-      #  uses: actions/upload-artifact@v4
-      # with:
-      #    name: package-distributions-${{ matrix.os }}
-      #    path: ./dist/*.dmg
-      #    if-no-files-found: error
+      - name: "[macOS] Upload artifacts"
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-distributions-${{ matrix.os }}
+          path: ./dist/*.dmg
+          if-no-files-found: error
 
       #
       # Windows
@@ -202,14 +202,11 @@ jobs:
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade
 
       - name: "[Windows] Upload artifacts"
-        #if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
-         name: package-distributions-${{ matrix.os }}
-         path: |
-            ./dist/*.AppImage
-            ./dist/*.exe
-            ./dist/*.dmg
+          name: package-distributions-${{ matrix.os }}
+          path: ./dist/*.exe
           if-no-files-found: error
 
   deploy:
@@ -243,7 +240,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: package-distributions*
-          # name: package-distributions*
           path: dist/
           merge-multiple: true
 
