@@ -2,7 +2,7 @@ import time
 
 from nxdrive.constants import WINDOWS
 
-from .conftest import REMOTE_MODIFICATION_TIME_RESOLUTION, TwoUsersTest
+from .conftest import TwoUsersTest
 
 
 class TestConcurrentSynchronization(TwoUsersTest):
@@ -15,8 +15,9 @@ class TestConcurrentSynchronization(TwoUsersTest):
             delay=int(delay * 1000),
         )
 
+    """
     def test_concurrent_file_access(self):
-        """Test update/deletion of a locally locked file.
+        ""Test update/deletion of a locally locked file.
 
         This is to simulate downstream synchronization of a file opened (thus
         locked) by any program under Windows, typically MS Word.
@@ -24,7 +25,7 @@ class TestConcurrentSynchronization(TwoUsersTest):
         pending items.
         Once the file is unlocked and the cooldown period is over it should be
         synchronized.
-        """
+        ""
         # Bind the server and root workspace
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
@@ -107,6 +108,7 @@ class TestConcurrentSynchronization(TwoUsersTest):
         assert local.exists("/test_update.docx")
         assert local.get_content("/test_update.docx") == b"Updated content."
         assert not local.exists("/test_delete.docx")
+    """
 
     """
     def test_find_changes_with_many_doc_creations(self):

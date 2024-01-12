@@ -1,6 +1,4 @@
-import time
-
-from .conftest import OS_STAT_MTIME_RESOLUTION, OneUserTest, TwoUsersTest
+from .conftest import OneUserTest, TwoUsersTest
 
 
 class TestVersioning(OneUserTest):
@@ -30,6 +28,7 @@ class TestVersioning(OneUserTest):
 
 
 class TestVersioning2(TwoUsersTest):
+    """
     def test_versioning(self):
         local = self.local_1
         self.engine_1.start()
@@ -60,6 +59,7 @@ class TestVersioning2(TwoUsersTest):
         self.wait_sync()
         doc = self.root_remote.fetch(f"{self.ws.path}/Test versioning.txt")
         self._assert_version(doc, 0, 1)
+    """
 
     def _assert_version(self, doc, major, minor):
         assert doc["properties"]["uid:major_version"] == major

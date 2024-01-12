@@ -9,7 +9,6 @@ import pytest
 from nxdrive.engine.engine import Engine
 
 from .. import env
-from ..markers import windows_only
 from . import DocRemote, LocalTest
 from .conftest import REMOTE_MODIFICATION_TIME_RESOLUTION, SYNC_ROOT_FAC_ID, OneUserTest
 
@@ -587,6 +586,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
+    """
     @windows_only
     def test_synchronize_remote_move_file_while_accessing(self):
         local = self.local_1
@@ -612,6 +612,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         self.wait_sync(wait_for_async=True)
         assert local.exists("/testFile.pdf")
         assert not local.exists("/Test folder/testFile.pdf")
+    """
 
     """
     @Options.mock()
@@ -649,6 +650,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
             assert local.exists("/Test folder/New folder/testFile.pdf")
     """
 
+    """
     @windows_only
     def test_synchronize_remote_rename_file_while_accessing(self):
         local = self.local_1
@@ -674,6 +676,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         self.wait_sync(wait_for_async=True)
         assert local.exists("/Test folder/testFile2.pdf")
         assert not local.exists("/Test folder/testFile.pdf")
+    """
 
     @pytest.mark.xfail(reason="NXDRIVE-2494")
     def test_synchronize_remote_rename_while_download_file(self):

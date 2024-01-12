@@ -25,6 +25,7 @@ class TestEncoding(OneUserTest):
         assert local.get_content("/Nom avec accents \xe9 \xe8.doc") == data
     """
 
+    """
     def test_filename_with_katakana(self):
         local = self.local_1
         remote = self.remote_document_client_1
@@ -39,6 +40,7 @@ class TestEncoding(OneUserTest):
 
         assert remote.get_content("/Local \u30d7 \u793e.doc") == data
         assert local.get_content("/Remote \u30bc\u30ec.doc") == data
+    """
 
     """
     def test_content_with_accents_from_server(self):

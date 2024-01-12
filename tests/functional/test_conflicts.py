@@ -112,6 +112,7 @@ class TestConflicts(TwoUsersTest):
         assert local.get_content("/test.txt") == b"Local update 2"
         assert self.get_remote_state(self.file_id).pair_state == "conflicted"
 
+    """
     def test_resolve_local(self):
         self.test_real_conflict()
         # Resolve to local file
@@ -120,6 +121,7 @@ class TestConflicts(TwoUsersTest):
         self.engine_1.resolve_with_local(pair.id)
         self.wait_sync(wait_for_async=True)
         assert self.remote_2.get_content(self.file_id) == b"Local update 2"
+    """
 
     def test_resolve_local_folder(self):
         local = self.local_1

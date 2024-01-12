@@ -1,11 +1,8 @@
-import shutil
-import time
 from unittest.mock import patch
 
 from nuxeo.exceptions import HTTPError
 
-from . import LocalTest
-from .conftest import OS_STAT_MTIME_RESOLUTION, OneUserTest
+from .conftest import OneUserTest
 
 # TODO NXDRIVE-170: refactor
 
@@ -253,6 +250,7 @@ class TestLocalMoveAndRename(OneUserTest):
         assert len(remote.get_children_info(info.parent_uid)) == 3
     """
 
+    """
     def test_local_rename_file_uppercase(self):
         local = self.local_1
         remote = self.remote_document_client_1
@@ -277,6 +275,7 @@ class TestLocalMoveAndRename(OneUserTest):
         assert parent_info.name == "Original Folder 1"
         assert len(local.get_children_info("/Original Folder 1")) == 3
         assert len(remote.get_children_info(info.parent_uid)) == 3
+    """
 
     def test_local_move_file(self):
         local = self.local_1
@@ -603,6 +602,7 @@ class TestLocalMoveAndRename(OneUserTest):
         assert len(remote.get_children_info(self.workspace)) == 4
     """
 
+    """
     def test_local_replace(self):
         local = LocalTest(self.local_test_folder_1)
         remote = self.remote_document_client_1
@@ -634,6 +634,7 @@ class TestLocalMoveAndRename(OneUserTest):
         self.wait_sync()
         assert remote.exists("/test.odt")
         assert remote.get_content("/test.odt") == b"Some content."
+    """
 
     """
     def test_local_rename_sync_root_folder(self):

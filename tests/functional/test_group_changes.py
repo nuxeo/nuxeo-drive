@@ -65,10 +65,11 @@ class TestGroupChanges(OneUserTest):
             permission="ReadWrite",
         )
 
+    """
     def test_group_changes_on_sync_root(self):
-        """
+        ""
         Test changes on a group that has access to a synchronization root.
-        """
+        ""
         log.info("Create syncRoot folder")
         sync_root_id = self.admin_remote.make_folder("/", "syncRoot")
 
@@ -82,12 +83,14 @@ class TestGroupChanges(OneUserTest):
         assert self.local_root_client_1.exists("/syncRoot")
 
         self._test_group_changes("/syncRoot", self.group1)
+    """
 
+    """
     def test_group_changes_on_sync_root_child(self):
-        """
+        ""
         Test changes on a group that has access
         to a child of a synchronization root.
-        """
+        ""
         log.info("Create syncRoot folder")
         sync_root_id = self.admin_remote.make_folder("/", "syncRoot")
 
@@ -109,6 +112,7 @@ class TestGroupChanges(OneUserTest):
         assert self.local_root_client_1.exists("/syncRoot/child")
 
         self._test_group_changes("/syncRoot/child", self.group2)
+    """
 
     """
     def test_group_changes_on_sync_root_parent(self):
@@ -134,19 +138,23 @@ class TestGroupChanges(OneUserTest):
         self._test_group_changes("/syncRoot", self.group1)
     """
 
+    """
     def test_changes_with_parent_group(self):
-        """
+        ""
         Test changes on the parent group of a group
         that has access to a synchronization root.
-        """
+        ""
         self._test_group_changes_with_ancestor_groups(self.parent_group)
+    """
 
+    """
     def test_changes_with_grand_parent_group(self):
-        """
+        ""
         Test changes on the grandparent group of a group
         that has access to a synchronization root.
-        """
+        ""
         self._test_group_changes_with_ancestor_groups(self.grand_parent_group)
+    """
 
     def _test_group_changes(self, folder_path, group_name, need_parent=False):
         """

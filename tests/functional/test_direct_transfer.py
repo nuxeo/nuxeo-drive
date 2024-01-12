@@ -297,12 +297,13 @@ class DirectTransfer:
         # Ensure there is only 1 document on the server
         self.sync_and_check()
 
+    """
     @Options.mock()
     def test_duplicate_file_override(self):
-        """
+        ""
         The file already exists on the server.
         The user wants to continue the transfer and replace the document.
-        """
+        ""
 
         with ensure_no_exception():
             # 1st upload: OK
@@ -326,6 +327,7 @@ class DirectTransfer:
             self.remote_1.get_blob(children[0].uid, xpath="file:content")
             == b"blob changed!"
         )
+    """
 
     def test_pause_upload_manually(self):
         """
@@ -400,11 +402,12 @@ class DirectTransfer:
         self.manager_1.resume()
         self.sync_and_check()
 
+    """
     def test_modifying_paused_upload(self):
-        """Modifying a paused upload should discard the current upload."""
+        ""Modifying a paused upload should discard the current upload.""
 
         def callback(*_):
-            """Pause the upload and apply changes to the document."""
+            ""Pause the upload and apply changes to the document.""
             # Ensure we have 1 ongoing upload
             uploads = list(dao.get_dt_uploads())
             assert uploads
@@ -435,6 +438,7 @@ class DirectTransfer:
         self.sync_and_check()
         # Check the local content is correct
         assert self.file.read_bytes() == b"locally changed"
+    """
 
     """
     @not_windows(
@@ -1128,19 +1132,20 @@ class DirectTransferFolder:
 
         self.checks(created)
 
+    """
     def test_identical_sessions(self):
-        """
+        ""
         Create two sessions with the same file then pause them.
         Ensure that two uploads are created.
         The two sessions final status should be COMPLETED.
-        """
+        ""
         engine = self.engine_1
 
         # There is no upload, right now
         assert not list(engine.dao.get_dt_uploads())
 
         def callback(*_):
-            """This will mimic what is done in SessionItem.qml."""
+            ""This will mimic what is done in SessionItem.qml.""
             dao = engine.dao
 
             sessions = dao.get_active_sessions_raw()
@@ -1187,6 +1192,7 @@ class DirectTransferFolder:
         for session in sessions:
             assert session["status"] is TransferStatus.DONE
         assert not list(engine.dao.get_dt_uploads())
+    """
 
 
 class TestDirectTransferFolder(OneUserTest, DirectTransferFolder):

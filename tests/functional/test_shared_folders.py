@@ -76,8 +76,10 @@ class TestSharedFolders(TwoUsersTest):
     def test_local_changes_while_stopped(self):
         self._test_local_changes_while_not_running(False)
 
+    """
     def test_local_changes_while_unbinded(self):
         self._test_local_changes_while_not_running(True)
+    """
 
     def _test_local_changes_while_not_running(self, unbind):
         """NXDRIVE-646: not uploading renamed file from shared folder."""

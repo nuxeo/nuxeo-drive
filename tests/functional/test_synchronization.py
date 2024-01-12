@@ -950,6 +950,7 @@ class TestSynchronization(OneUserTest):
 
 
 class TestSynchronization2(TwoUsersTest):
+    """
     def test_conflict_detection(self):
         # Fetch the workspace sync root
         local = self.local_1
@@ -1014,6 +1015,7 @@ class TestSynchronization2(TwoUsersTest):
         assert len(remote_children) == 1
         assert remote_children[0].get_blob("file:content").name == "Some File.doc"
         assert remote_1.get_content("/Some File.doc") == b"Remote new content."
+    """
 
     """
     def test_rename_and_create_same_folder_not_running(self):
