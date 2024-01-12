@@ -77,8 +77,8 @@ def fix_db(database: Path, /, *, dump_file: Path = None) -> None:
         return
 
     if not dump_file:
-        head = path.split(database)[0]
-        dump_file = Path(path.join(head, Path("dump.sql")))
+        parent_path = database.parents[0]
+        dump_file = parent_path.joinpath(Path("dump.sql"))
 
     log.info(f"Re-generating the whole database content of {database!r}...")
 
