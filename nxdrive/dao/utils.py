@@ -1,7 +1,7 @@
 import sqlite3
 from datetime import datetime, timedelta
 from logging import getLogger
-from os import fsync, path
+from os import fsync
 from pathlib import Path
 from shutil import copyfile
 
