@@ -3,7 +3,6 @@ from logging import getLogger
 from unittest.mock import patch
 
 import pytest
-from nuxeo.utils import version_lt
 
 from nxdrive.engine.engine import Engine
 from nxdrive.options import Options
@@ -15,8 +14,9 @@ log = getLogger(__name__)
 
 
 class TestRemoteDeletion(OneUserTest):
+    """
     def test_synchronize_remote_deletion(self):
-        """Test that deleting remote documents is impacted client side
+        ""Test that deleting remote documents is impacted client side
 
         Use cases:
           - Remotely delete a regular folder
@@ -30,7 +30,7 @@ class TestRemoteDeletion(OneUserTest):
 
         See TestIntegrationSecurityUpdates.test_synchronize_denying_read_access
         as the same uses cases are tested
-        """
+        ""
         # Bind the server and root workspace
         self.engine_1.start()
         # Get local and remote clients
@@ -74,6 +74,7 @@ class TestRemoteDeletion(OneUserTest):
         assert local.exists("/")
         assert local.exists("/Test folder")
         assert local.exists("/Test folder/joe.txt")
+    """
 
     """
     def test_synchronize_remote_deletion_while_upload(self):

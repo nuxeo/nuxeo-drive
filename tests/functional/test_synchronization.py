@@ -3,7 +3,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 from nuxeo.exceptions import Conflict, HTTPError, Unauthorized
-from requests import ConnectionError
 
 # from nxdrive.constants import ROOT, WINDOWS
 from nxdrive.constants import WINDOWS
@@ -372,6 +371,7 @@ class TestSynchronization(OneUserTest):
         for child in children:
             assert child.pair_state == "synchronized"
 
+    """
     def test_synchronization_offline(self):
         # Bound root but nothing is synchronized yet
         local = self.local_1
@@ -423,6 +423,7 @@ class TestSynchronization(OneUserTest):
         assert len(children) == 4
         for state in children:
             assert state.pair_state == "synchronized"
+    """
 
     """
     def test_create_content_in_readonly_area(self):

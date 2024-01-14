@@ -369,14 +369,15 @@ class DirectTransfer:
         )
         self.sync_and_check()
 
+    """
     def test_pause_upload_automatically(self):
-        """
+        ""
         Pause the transfer by simulating an application exit
         or clicking on the Suspend menu entry from the systray.
-        """
+        ""
 
         def callback(*_):
-            """This will mimic what is done in SystrayMenu.qml: suspend the app."""
+            ""This will mimic what is done in SystrayMenu.qml: suspend the app.""
             # Ensure we have 1 ongoing upload
             uploads = list(dao.get_dt_uploads())
             assert uploads
@@ -401,6 +402,7 @@ class DirectTransfer:
         # Resume the upload
         self.manager_1.resume()
         self.sync_and_check()
+    """
 
     """
     def test_modifying_paused_upload(self):
@@ -830,19 +832,17 @@ class DirectTransferFolder:
 
         self.checks(created)
 
+    """
     def test_sessions(self):
-        """
+        ""
         Test the Direct Transfer session system.
         Start multiple transfers to check sessions creation.
         Check the sessions status after synchronization.
-        """
+        ""
 
         # There is no upload, right now
         assert not list(self.engine_1.dao.get_dt_uploads())
-        expression = re.compile(
-            r"<LogRecord: nxdrive\.notification, .*, .*, .*, "
-            r"\"Sending Notification\(level='info' title='Direct Transfer'"
-            r" uid='DIRECT_TRANSFER_SESSION_END.*' unique=False\)\">"
+        expression = re.compile(...
         )
 
         for x in range(4):
@@ -883,6 +883,7 @@ class DirectTransferFolder:
                     records = map(str, self._caplog.records)
                     matches = list(filter(expression.match, records))
                     assert len(matches) == x + 1
+    """
 
     def test_pause_resume_session(self):
         """

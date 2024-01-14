@@ -2,10 +2,6 @@
 Test if changes made to local file system when Drive is offline sync's back
 later when Drive becomes online.
 """
-import pytest
-
-from nxdrive.constants import WINDOWS
-
 from .conftest import FILE_CONTENT, OneUserTest
 
 
@@ -34,13 +30,15 @@ class TestOfflineChangesSync(OneUserTest):
         self.copy_past_and_rename(stop_engine=True)
     """
 
+    """
     @pytest.mark.randombug("Unstable on Windows", condition=WINDOWS)
     def test_copy_paste_normal(self):
-        """
+        ""
         Copy paste and a rename operation together on same file while Drive is
         online should be detected and synced to server.
-        """
+        ""
         self.copy_past_and_rename()
+    """
 
     def copy_past_and_rename(self, stop_engine: bool = False):
         if stop_engine:

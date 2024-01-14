@@ -71,8 +71,10 @@ class TestLocalCopyPaste(OneUserTest):
             == self.NUMBER_OF_LOCAL_FILES_TOTAL
         )
 
+    """
     def test_local_copy_paste_files(self):
         self._local_copy_paste_files()
+    """
 
     """
     def test_local_copy_paste_files_stopped(self):

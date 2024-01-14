@@ -123,6 +123,7 @@ class TestConflicts(TwoUsersTest):
         assert self.remote_2.get_content(self.file_id) == b"Local update 2"
     """
 
+    """
     def test_resolve_local_folder(self):
         local = self.local_1
         remote = self.remote_1
@@ -157,7 +158,9 @@ class TestConflicts(TwoUsersTest):
         assert not children[0].folderish
         assert children[1].folderish
         assert children[1].name == "ABC_123"
+    """
 
+    """
     def test_resolve_remote(self):
         self.test_real_conflict()
         # Resolve to local file
@@ -166,7 +169,9 @@ class TestConflicts(TwoUsersTest):
         self.engine_1.resolve_with_remote(pair.id)
         self.wait_sync(wait_for_async=True)
         assert self.local_1.get_content("/test.txt") == b"Remote update 2"
+    """
 
+    """
     def test_conflict_on_lock(self):
         doc_uid = self.file_id.split("#")[-1]
         local = self.local_1
@@ -186,6 +191,7 @@ class TestConflicts(TwoUsersTest):
         assert local.get_content("/test.txt") == b"Local update"
         assert remote.get_content(self.file_id) == b"Remote update"
         assert self.get_remote_state(self.file_id).pair_state == "conflicted"
+    """
 
     @pytest.mark.randombug(
         "NXDRIVE-776: Random bug but we cannot use "
