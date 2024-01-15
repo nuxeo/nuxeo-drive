@@ -231,9 +231,9 @@ pytest-forked==1.6.0 \
     --hash=sha256:4dafd46a9a600f65d822b8f605133ecf5b3e1941ebb3588e943b4e3eb71a5a3f \
     --hash=sha256:810958f66a91afb1a1e2ae83089d8dc1cd2437ac96b12963042fbb9fb4d16af0
     # via pytest-xdist
-pytest-timeout==2.0.2 \
-    --hash=sha256:fe9c3d5006c053bb9e062d60f641e6a76d6707aedb645350af9593e376fcc717 \
-    --hash=sha256:e6f98b54dafde8d70e4088467ff621260b641eb64895c4195b6e5c8f45638112
+pytest-timeout==2.2.0 \
+    --hash=sha256:3b0b95dabf3cb50bac9ef5ca912fa0cfc286526af17afc806824df20c2f72c90 \
+    --hash=sha256:bde531e096466f49398a59f2dde76fa78429a09a12411466f88a07213e220de2
 pytest-xdist==3.3.1 \
     --hash=sha256:d5ee0520eb1b7bcca50a60a518ab7a7707992812c578198f8b44fdfac78e8c93 \
     --hash=sha256:ff9daa7793569e6a68544850fd3927cd257cc03a7ef76c95e86915355e82b5f2
