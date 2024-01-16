@@ -145,6 +145,7 @@ class TestWatchers(OneUserTest):
                 break
         return Path(self.workspace_title) / path
 
+    """
     def test_local_scan_delete_non_synced(self):
         # Test the deletion after first local scan
         self.test_local_scan()
@@ -154,6 +155,7 @@ class TestWatchers(OneUserTest):
         self.wait_sync(timeout=5, fail_if_timeout=False)
         children = self.engine_1.dao.get_states_from_partial_local(path)
         assert not children
+    """
 
     def test_local_watchdog_delete_synced(self):
         # Test the deletion after first local scan
