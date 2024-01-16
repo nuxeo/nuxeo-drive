@@ -29,9 +29,9 @@ pyinstaller==6.3.0 \
     --hash=sha256:b721d793a33b6d9946c7dd95d3ea7589c0424b51cf1b9fe580f03c544f1336b2 \
     --hash=sha256:de25beb176f73a944758553caacec46cc665bf3910ad8a174706d79cf6e95340 \
     --hash=sha256:e436fcc0ea87c3f132baac916d508c24c84a8f6d8a06c3154fbc753f169b76c7
-pyinstaller-hooks-contrib==2021.2 \
-    --hash=sha256:57964f93eb69255c49159ffdf052aae893feed223b0f69773dfd010ca6c569d9 \
-    --hash=sha256:7f5d0689b30da3092149fc536a835a94045ac8c9f0e6dfb23ac171890f5ea8f2
+pyinstaller-hooks-contrib==2023.12 \
+    --hash=sha256:11a9d59d903723dd693e8c10b054f3ea1ecad390623c9fa527c731d715fc5b3f \
+    --hash=sha256:6a601a0d783fa725327fc6ac712779475dc8979f639419c7fcd460dd8d0a6d2a
     # via pyinstaller
 pywin32-ctypes==0.2.0 ; sys_platform == "win32" \
     --hash=sha256:9dc2d991b3479cc2df15930958b674a48a227d5361d413827a4cfd0b5876fc98
