@@ -20,7 +20,7 @@ def is_healthy(database: Path, /) -> bool:
     con = sqlite3.connect(str(database))
     try:
         status = con.execute("PRAGMA integrity_check(1)").fetchone()
-        return bool(status[0] == "ok")
+        return status[0] == "ok"
     finally:
         # According to the documentation:
         #   Connection object used as context manager only commits or rollbacks
