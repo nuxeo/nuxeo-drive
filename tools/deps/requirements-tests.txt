@@ -42,9 +42,9 @@ click==8.0.1 \
     --hash=sha256:fba402a4a47334742d782209a7c79bc448911afe1149d07bdabdf480b3e2f4b6 \
     --hash=sha256:8c04c11192119b1ef78ea049e0a6f0463e4c48ef00a30160c704337586f3ad7a
     # via black
-codespell==2.2.4 \
-    --hash=sha256:0b4620473c257d9cde1ff8998b26b2bb209a35c2b7489f5dc3436024298ce83a \
-    --hash=sha256:7d984b8130108e6f82524b7d09f8b7bf2fb1e398c5d4b37d9e2bd310145b3e29
+codespell==2.2.6 \
+    --hash=sha256:9ee9a3e5df0990604013ac2a9f22fa8e57669c827124a2e961fe8a1da4cacc07 \
+    --hash=sha256:a8c65d8eb3faa03deabab6b3bbe798bea72e1799c7e9e955d57eca4096abcff9
 colorama==0.4.4; sys_platform == "win32" \
     --hash=sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2
     # via pytest
