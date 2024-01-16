@@ -848,7 +848,7 @@ class TwoUsersTest(TestCase):
         self.manager_1.generate_report(path=self._get_report_file())
 
     def _set_read_permission(self, user, doc_path, grant):
-        input_obj = "doc:" + doc_path
+        input_obj = f"doc:{doc_path}"
         remote = self.root_remote
         if grant:
             remote.execute(
@@ -881,7 +881,7 @@ class TwoUsersTest(TestCase):
         :param grant: Set RO if True else RW.
         """
         remote = self.root_remote
-        input_obj = "doc:" + doc_path
+        input_obj = f"doc:{doc_path}"
         if grant:
             remote.execute(
                 command="Document.SetACE",

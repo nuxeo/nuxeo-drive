@@ -193,12 +193,11 @@ class Worker(QObject):
         self.thread_id = current_thread_id()
 
         try:
-            try:
-                self._execute()
-            except ThreadInterrupt:
-                log.debug("Thread INTERRUPT")
-            except Exception:
-                log.exception("Thread EXCEPTION")
+            self._execute()
+        except ThreadInterrupt:
+            log.debug("Thread INTERRUPT")
+        except Exception:
+            log.exception("Thread EXCEPTION")
         finally:
             self.quit()
             self._running = False
