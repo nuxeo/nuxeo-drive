@@ -173,7 +173,7 @@ def get_open_files() -> Iterator[Item]:
             # But we also want to filter out errors by processor to be able to retrieve some data from others
             with suppress(Exception):
                 for handler in proc.open_files():
-                    # And so for errors happening at the processus level (typically PermissisonError's)
+                    # And so for errors happening at the processes level (typically PermissisonError's)
                     with suppress(Exception):
                         yield proc.pid, Path(handler.path)
     except Exception:

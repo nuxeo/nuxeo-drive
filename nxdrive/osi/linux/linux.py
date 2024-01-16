@@ -167,7 +167,7 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
             try:
                 identical = filecmp.cmp(icon, emblem, shallow=False)
             except OSError:
-                # Most likely the *icon* doest not exist yet
+                # Most likely the *icon* does not exist yet
                 pass
             else:
                 if identical:
