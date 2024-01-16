@@ -87,14 +87,6 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: bash tools/linux/deploy_ci_agent.sh --check
 
-      - name: "[GNU/Linux] Upload artifacts"
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: package-distributions
-          path: ./dist/*.AppImage
-          if-no-files-found: error
-
       #
       # macOS
       #
@@ -153,14 +145,6 @@ jobs:
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
 
-      - name: "[macOS] Upload artifacts"
-        if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: package-distributions
-          path: ./dist/*.dmg
-          if-no-files-found: error
-
       #
       # Windows
       #
@@ -201,12 +185,14 @@ jobs:
           SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade
 
-      - name: "[Windows] Upload artifacts"
-        if: matrix.os == 'windows-latest'
+      - name: "Upload artifacts"
         uses: actions/upload-artifact@v4
         with:
-          name: package-distributions
-          path: ./dist/*.exe
+          name: package-distributions-${{ matrix.os }}
+          path: |
+            ./dist/*.exe
+            ./dist/*.dmg
+            ./dist/*.AppImage
           if-no-files-found: error
 
   deploy:
@@ -239,8 +225,9 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: package-distributions
+          pattern: package-distributions*
           path: dist/
+          merge-multiple: true
 
       - name: Upload artifacts to the staging server
         run: |
