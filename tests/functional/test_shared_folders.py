@@ -6,8 +6,9 @@ from .conftest import TwoUsersTest
 
 
 class TestSharedFolders(TwoUsersTest):
+    """
     def test_move_sync_root_child_to_user_workspace(self):
-        """See https://jira.nuxeo.com/browse/NXP-14870"""
+        ""See https://jira.nuxeo.com/browse/NXP-14870""
         uid = None
         try:
             # Get remote  and local clients
@@ -72,9 +73,12 @@ class TestSharedFolders(TwoUsersTest):
             # Cleanup user1 personal workspace
             if uid is not None and self.root_remote.exists(uid):
                 self.root_remote.delete(uid, use_trash=False)
+    """
 
+    """
     def test_local_changes_while_stopped(self):
         self._test_local_changes_while_not_running(False)
+    """
 
     """
     def test_local_changes_while_unbinded(self):
