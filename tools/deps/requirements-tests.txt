@@ -333,9 +333,9 @@ regex==2023.8.8 \
     --hash=sha256:f2200e00b62568cfd920127782c61bc1c546062a879cdc741cfcc6976668dfcf \
     --hash=sha256:fcbdc5f2b0f1cd0f6a56cdb46fe41d2cce1e644e3b68832f3eeebc5fb0f7712e
     # via black
-responses==0.23.3 \
-    --hash=sha256:205029e1cb334c21cb4ec64fc7599be48b859a0fd381a42443cdd600bfe8b16a \
-    --hash=sha256:e6fbcf5d82172fecc0aa1860fd91e58cbfd96cee5e96da5b63fa6eb3caa10dd3
+responses==0.24.1 \
+    --hash=sha256:a2b43f4c08bfb9c9bd242568328c65a34b318741d3fab884ac843c5ceeb543f9 \
+    --hash=sha256:b127c6ca3f8df0eb9cc82fd93109a3007a86acb24871834c47b77765152ecf8c
 selenium==3.141.0 ; sys_platform == "win32" \
     --hash=sha256:2d7131d7bc5a5b99a2d9b04aaf2612c411b03b8ca1b1ee8d3de5845a9be2cb3c
 text-unidecode==1.3 \
