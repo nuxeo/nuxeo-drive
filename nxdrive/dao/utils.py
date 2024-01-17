@@ -62,24 +62,18 @@ def read(dump_file: Path, database: Path, /) -> None:
     log.info("Restoration done with success.")
 
 
-def fix_db(database: Path, /, *, dump_file: Path = None) -> None:
+def fix_db(database: Path, /, *, dump_file: Path = Path("dump.sql")) -> None:
     """
     Re-generate the whole database content to fix eventual FS corruptions.
     This will prevent `sqlite3.DatabaseError: database disk image is malformed`
     issues.  The whole operation is quick and help saving disk space.
-
         >>> fix_db('ndrive_6bba111e18ba11e89cfd180373b6442e.db')
-
     Will raise sqlite3.DatabaseError in case of unrecoverable file.
     """
-
     if is_healthy(database):
         return
 
-    if not dump_file:
-        parent_path = database.parents[0]
-        dump_file = parent_path.joinpath(Path("dump.sql"))
-
+    dump_file = database.parent.joinpath(dump_file)
     log.info(f"Re-generating the whole database content of {database!r}...")
 
     # Dump
