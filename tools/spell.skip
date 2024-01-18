@@ -21,3 +21,6 @@ tools/spell.skip
 
 # No need to check old_functional test cases, as we have the new functional test case suite
 tests/old_functional
+
+#This file is containing false positives, so skipping the file
+docs/changes/3.1.0.md
