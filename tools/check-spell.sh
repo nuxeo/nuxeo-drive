@@ -8,7 +8,7 @@ check_spell() {
     echo "* Add '--interactive=3 --write-changes' arguments to the following command to allow interactive modifications."
 
     for file in tools/spell.skip .gitignore; do
-        # Small santitization:
+        # Small sanitization:
         #   - skip empty lines and comments
         #   - strip inline comments
         excludes="$(sed '/^\s*$/d ; /^#.*$/d ; s/\s*#.*$//' "${file}")"
