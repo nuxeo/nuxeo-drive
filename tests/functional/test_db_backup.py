@@ -28,7 +28,6 @@ def test_create_backup(manager_factory, tmp, nuxeo_url, user_factory, monkeypatc
             password=user.properties["password"],
             start_engine=False,
         )
-
     # Check DB and backup exist
     assert (home / "manager.db").exists()
     assert len(list((home / "backups").glob("manager.db_*"))) == 1
@@ -37,11 +36,8 @@ def test_create_backup(manager_factory, tmp, nuxeo_url, user_factory, monkeypatc
     def buggy_db(database, *args, **kwargs):
 
         if database.name.startswith("manager"):
-            print("-&&&&&&&& inside testcase if")
             database.unlink()
             raise DatabaseError("Mock")
-        else:
-            log.info("-&&&&&&&& inside testcase else")
 
     monkeypatch.setattr("nxdrive.dao.base.fix_db", buggy_db)
 
@@ -63,7 +59,6 @@ def test_create_backup(manager_factory, tmp, nuxeo_url, user_factory, monkeypatc
     with manager_factory(home=home, with_engine=False) as manager:
         assert (home / "manager.db").exists()
         assert restored
-    assert 1 == 0
 
 
 def test_delete_old_backups(tmp):
