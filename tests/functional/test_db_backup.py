@@ -1,5 +1,8 @@
+import glob
+import os
 from datetime import datetime
 from logging import getLogger
+from pathlib import Path
 from sqlite3 import DatabaseError
 from time import sleep
 
@@ -32,9 +35,13 @@ def test_create_backup(manager_factory, tmp, nuxeo_url, user_factory, monkeypatc
 
     # Make fix_db() delete the db and raise an error to trigger a restore
     def buggy_db(database, *args, **kwargs):
+
         if database.name.startswith("manager"):
+            print("-&&&&&&&& inside testcase if")
             database.unlink()
             raise DatabaseError("Mock")
+        else:
+            log.info("-&&&&&&&& inside testcase else")
 
     monkeypatch.setattr("nxdrive.dao.base.fix_db", buggy_db)
 
@@ -56,6 +63,7 @@ def test_create_backup(manager_factory, tmp, nuxeo_url, user_factory, monkeypatc
     with manager_factory(home=home, with_engine=False) as manager:
         assert (home / "manager.db").exists()
         assert restored
+    assert 1 == 0
 
 
 def test_delete_old_backups(tmp):
@@ -86,3 +94,36 @@ def test_delete_old_backups(tmp):
     assert int(remaining_backups[0].name.split("_")[-1]) > yesterday
     # The newest should be more recent than the today timestamp
     assert int(remaining_backups[-1].name.split("_")[-1]) > today
+
+
+def test_fix_db(manager_factory, tmp, nuxeo_url, user_factory, monkeypatch):
+    home = tmp()
+    conf_folder = tmp() / "nuxeo-conf"
+    user = user_factory()
+
+    with manager_factory(home=home, with_engine=False) as manager:
+        manager.bind_server(
+            conf_folder,
+            nuxeo_url,
+            user.uid,
+            password=user.properties["password"],
+            start_engine=False,
+        )
+
+    available_databases = glob.glob(str(home) + "/*.db")
+    assert len(available_databases) == 2
+    database_path = (
+        available_databases[1]
+        if "manager" not in available_databases[1]
+        else available_databases[0]
+    )
+    database = Path(os.path.basename(database_path))
+
+    def mocked_is_healthy(*args, **kwargs):
+        return False
+
+    monkeypatch.setattr("nxdrive.dao.utils.is_healthy", mocked_is_healthy)
+    nxdrive.dao.utils.fix_db(database)
+
+    assert (Path(database_path)).exists()
+    assert not (home / "dump.sql").exists()
