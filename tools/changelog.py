@@ -217,7 +217,7 @@ def get_issue_infos(issue, raw=False):
         infos["components"].append(component["name"])
 
     try:
-        # We are not authentificated, so we cannot know the SUPNXP issue but
+        # We are not authenticated, so we cannot know the SUPNXP issue but
         # we can know that there is a related SUPNXP and set the issue as
         # high prioriy.
         if "SupCom" in data["fields"]["customfield_10080"]:
