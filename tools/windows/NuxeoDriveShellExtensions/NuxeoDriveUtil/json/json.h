@@ -984,7 +984,7 @@ public:
 
 /** \brief A linked page based hash-table implementation used internally by
  *Value.
- * \internal ValueInternalMap is a tradional bucket based hash-table, with a
+ * \internal ValueInternalMap is a traditional bucket based hash-table, with a
  *linked
  * list in each bucket to handle collision. There is an additional twist in that
  * each node of the collision linked list is a page containing a fixed amount of
