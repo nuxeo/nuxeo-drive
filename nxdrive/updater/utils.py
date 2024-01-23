@@ -2,8 +2,8 @@ import re
 from logging import getLogger
 from typing import Any, Dict, Optional, Tuple
 
-from distlib.version import LegacyVersion
 from nuxeo.utils import version_le, version_lt
+from packaging.version import parse
 
 from ..feature import Feature
 from ..options import Options
@@ -116,7 +116,7 @@ def get_latest_version(versions: Versions, channel: str, /) -> str:
         log.debug(f"No version found in {channel} channel.")
         return ""
 
-    highest = str(max(map(LegacyVersion, versions_list)))
+    highest = str(max(map(parse, versions_list)))
     return highest  # ᕦ(ò_óˇ)ᕤ
 
 
