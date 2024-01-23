@@ -831,7 +831,7 @@ class TestUpload(OneUserTest):
 
     def test_app_crash_simulation(self):
         """
-        When the app crahsed, ongoing transfers will be removed at the next run.
+        When the app crashed, ongoing transfers will be removed at the next run.
         See NXDRIVE-2186 for more information.
 
         To reproduce the issue, we suspend the transfer in the upload's callback,
