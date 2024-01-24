@@ -103,12 +103,12 @@ def test_fix_db(manager_factory, tmp, nuxeo_url, user_factory, monkeypatch):
             start_engine=False,
         )
 
-    available_databases = (home).glob("/*.db")
+    available_databases = list((home).glob("*.db"))
     assert len(available_databases) == 2
     database_path = (
         available_databases[1]
-        if "manager" not in available_databases[1]
-        else available_databases[0]
+        if "manager" not in str(available_databases[1])
+        else str(available_databases[0])
     )
     database = Path(os.path.basename(database_path))
 
