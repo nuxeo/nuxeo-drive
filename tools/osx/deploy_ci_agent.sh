@@ -114,7 +114,7 @@ create_package() {
         # yet. But the find command will eventually reach it and sign it later.
         find "${pkg_path}/Contents/MacOS" -type f -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
 
-        find "${pkg_path}/Contents/Frameworks" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks" -type f -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
 
         # QML libraries need to be signed too for the notarization
         find "${pkg_path}/Contents/Resources" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
