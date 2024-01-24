@@ -1,4 +1,3 @@
-import glob
 import os
 from datetime import datetime
 from logging import getLogger
@@ -34,7 +33,6 @@ def test_create_backup(manager_factory, tmp, nuxeo_url, user_factory, monkeypatc
 
     # Make fix_db() delete the db and raise an error to trigger a restore
     def buggy_db(database, *args, **kwargs):
-
         if database.name.startswith("manager"):
             database.unlink()
             raise DatabaseError("Mock")
@@ -105,12 +103,12 @@ def test_fix_db(manager_factory, tmp, nuxeo_url, user_factory, monkeypatch):
             start_engine=False,
         )
 
-    available_databases = glob.glob(f"{str(home)}/*.db")
+    available_databases = list((home).glob("*.db"))
     assert len(available_databases) == 2
     database_path = (
         available_databases[1]
-        if "manager" not in available_databases[1]
-        else available_databases[0]
+        if "manager" not in str(available_databases[1])
+        else str(available_databases[0])
     )
     database = Path(os.path.basename(database_path))
 

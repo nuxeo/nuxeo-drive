@@ -187,7 +187,7 @@ So, this does not work either.
 
 We could use the Photoshop Scripting API. I uses COM objects on Windows and AppleScript on macOS.
 
-I read that we can setup a `Notifer` that will call a function on specified a event.
+I read that we can setup a `Notifier` that will call a function on specified a event.
 
 This is a non working POC for Windows (requires the `pywin32` module):
 
