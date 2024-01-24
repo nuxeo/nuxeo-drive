@@ -1,4 +1,3 @@
-import glob
 import os
 from datetime import datetime
 from logging import getLogger
@@ -104,7 +103,7 @@ def test_fix_db(manager_factory, tmp, nuxeo_url, user_factory, monkeypatch):
             start_engine=False,
         )
 
-    available_databases = glob.glob(f"{str(home)}/*.db")
+    available_databases = (home).glob("/*.db")
     assert len(available_databases) == 2
     database_path = (
         available_databases[1]

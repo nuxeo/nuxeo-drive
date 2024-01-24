@@ -73,6 +73,7 @@ def fix_db(database: Path, /, *, dump_file: Path = Path("dump.sql")) -> None:
     if is_healthy(database):
         return
 
+    # setting the path of dumpfile where the databast file exists
     dump_file = database.parent.joinpath(dump_file)
     log.info(f"Re-generating the whole database content of {database!r}...")
 
