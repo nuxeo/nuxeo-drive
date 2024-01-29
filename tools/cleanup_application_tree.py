@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Generator, List, Tuple
 
 FILES: Tuple[str] = (
-    "PyQt*/Qt/lib",
     "PyQt*/Qt/lib/QtBluetooth*",
     "PyQt*/Qt/lib/QtConcurrent*",
     "PyQt*/Qt/lib/QtLocation*",
