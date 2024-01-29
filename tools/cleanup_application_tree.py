@@ -49,6 +49,7 @@ FILES: Tuple[str] = (
     "PyQt*/Qt/qml/QtQuick/Controls.2/designer",
     "PyQt*/Qt/qml/QtQuick/Extras/designer",
     "PyQt*/Qt/qml/QtQuick/Particles.2",
+    "PyQt*/Qt/qml/QtQuick/Particles__dot__2",
     "PyQt*/Qt/qml/QtQuick/Scene*",
     "PyQt*/Qt/qml/QtRemoteObjects",
     "PyQt*/Qt/qml/QtSensors",

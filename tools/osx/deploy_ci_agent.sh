@@ -132,7 +132,7 @@ create_package() {
         echo ">>> [sign] Verifying code signature"
         codesign --display --verbose "${pkg_path}"
         echo ">>> [sign] Verifying code signature1"
-        codesign --verbose=4 --deep --strict "${pkg_path}/Contents/Frameworks/QtQmlModels"
+        codesign --verbose=4 --deep --strict "${pkg_path}/Contents/Frameworks/PyQt5/Qt/qml/QtQuick/Window.2"
         echo ">>> [sign] Verifying framework sign1 done"
         codesign --verbose=4 --deep --strict "${pkg_path}"
         echo ">>> [sign] Verifying code signature2"
