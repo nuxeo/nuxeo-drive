@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Generator, List, Tuple
 
 FILES: Tuple[str] = (
+    "PyQt*/Qt/lib",
     "PyQt*/Qt/lib/QtBluetooth*",
     "PyQt*/Qt/lib/QtConcurrent*",
     "PyQt*/Qt/lib/QtLocation*",
@@ -123,7 +124,9 @@ def main(args: List[str]) -> int:
     for folder in args:
         print(f">>> [{folder}] Purging unneeded files")
         for file in find_useless_files(Path(folder)):
-            if file.is_dir():
+            if file.is_symlink():
+                os.unlink(file)
+            elif file.is_dir():
                 shutil.rmtree(file)
             else:
                 os.remove(file)
