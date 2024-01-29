@@ -97,6 +97,15 @@ def move_contents_to_resources(folder: Path) -> Generator[Path, None, None]:
                 yield sibling
 
 
+def remove_pyqt_folder_from_resource(folder: Path) -> None:
+    """Remove PyQT5 folder."""
+    for path in folder.iterdir():
+        if path.is_symlink():
+            os.unlink(path)
+        """if path.name == "PyQt5":
+            shutil.rmtree(path)"""
+
+
 def main(args: List[str]) -> int:
     """
     Fix the application to allow codesign (NXDRIVE-1301).
@@ -109,6 +118,10 @@ def main(args: List[str]) -> int:
     """
     for app in args:
         name = os.path.basename(app)
+        print(
+            f">>> Remove PyQt5 folder from resource: {Path(app) / 'Contents' / 'Resources'}"
+        )
+        remove_pyqt_folder_from_resource(Path(app) / "Contents" / "Resources")
         print(f">>> [{name}] Fixing Qt folder names")
         path = Path(app) / "Contents" / "MacOS"
         for folder in find_problematic_folders(path):
