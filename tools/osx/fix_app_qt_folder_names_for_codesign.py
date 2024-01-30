@@ -68,7 +68,7 @@ def find_problematic_folders(folder: Path) -> Generator[Path, None, None]:
         if not path.is_dir() or path.is_symlink():
             # Skip simlinks as they are allowed (even with a dot)
             continue
-        if "qml" == path.name:
+        if "qml" == path.name or "lib" == path.name:
             yield path
         else:
             yield from find_problematic_folders(path)
