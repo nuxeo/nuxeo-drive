@@ -24,12 +24,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: 3.9 # XXX_PYTHON
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
           restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: .tox
           key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
@@ -56,12 +56,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: 3.9 # XXX_PYTHON
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: ~/Library/Caches/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
           restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: .tox
           key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
@@ -87,13 +87,13 @@ jobs:
         with:
           python-version: 3.9 # XXX_PYTHON
           architecture: "x86"
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: ~\AppData\Local\pip\Cache
           key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
           restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
       # Cannot be used for now: OSError: [WinError 193] %1 is not a valid Win32 application
-      # - uses: actions/cache@v3
+      # - uses: actions/cache@v4
       #   with:
       #     path: .tox
       #     key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
