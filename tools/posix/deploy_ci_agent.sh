@@ -40,6 +40,9 @@ build_installer() {
     # Do some clean-up
     ${PYTHON_VENV} tools/cleanup_application_tree.py dist/ndrive/_internal
 
+    # Remove compiled QML symlinks
+    find dist -depth -type l  -name "*.qmlc" -delete
+
     # Remove compiled QML files
     find dist -depth -type f -name "*.qmlc" -delete
 
@@ -55,7 +58,7 @@ build_installer() {
         ${PYTHON_VENV} tools/osx/fix_app_qt_folder_names_for_codesign.py dist/*.app
 
         # Remove broken symlinks pointing to an inexistent target
-        find dist/*.app/Contents/MacOS -type l -exec sh -c 'for x; do [ -e "$x" ] || rm -v "$x"; done' _ {} +
+        find dist/*.app/Contents/Frameworks -type l -exec sh -c 'for x; do [ -e "$x" ] || rm -v "$x"; done' _ {} +
     elif [ "${OSI}" = "linux" ]; then
         remove_excluded_files dist/ndrive
     fi

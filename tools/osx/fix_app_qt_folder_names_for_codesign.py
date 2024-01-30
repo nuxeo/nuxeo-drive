@@ -11,7 +11,7 @@ def create_symlink(folder: Path) -> None:
     """Create the appropriate symlink in the MacOS folder
     pointing to the Resources folder.
     """
-    sibling = Path(str(folder).replace("MacOS", ""))
+    sibling = Path(str(folder).replace("Frameworks", ""))
 
     # PyQt5/Qt/qml/QtQml/Models.2
     root = str(sibling).partition("Contents")[2].lstrip("/")
@@ -49,7 +49,7 @@ def fix_dll(dll: Path) -> None:
     # /../../../../../../..
     backward = "/.." * (root.count("/") + 1)
     # /../../../../../../../MacOS
-    good_path = f"{backward}/MacOS"
+    good_path = f"{backward}/Frameworks"
 
     # Rewrite Mach headers with corrected @loader_path
     dll = MachO(dll)
@@ -84,7 +84,7 @@ def move_contents_to_resources(folder: Path) -> Generator[Path, None, None]:
         if path.is_dir():
             yield from move_contents_to_resources(path)
         else:
-            sibling = Path(str(path).replace("MacOS", "Resources"))
+            sibling = Path(str(path).replace("Frameworks", "Resources"))
 
             # Create the parent if it does not exist yet
             sibling.parent.mkdir(parents=True, exist_ok=True)
@@ -99,11 +99,18 @@ def move_contents_to_resources(folder: Path) -> Generator[Path, None, None]:
 
 def remove_pyqt_folder_from_resource(folder: Path) -> None:
     """Remove PyQT5 folder."""
-    for path in folder.iterdir():
+    shutil.rmtree(folder / "Contents" / "Resources" / "PyQt5")
+    shutil.rmtree(folder / "Contents" / "Frameworks" / "PyQt5")
+    shutil.copytree(
+        (folder.parent / "ndrive" / "_internal" / "PyQt5"),
+        (folder / "Contents" / "Frameworks" / "PyQt5"),
+    )
+
+    # Remove unnesecceary symlinks from Resource folder
+    # res_folder = folder / "Contents" / "Resources"
+    """for path in res_folder.iterdir():
         if path.is_symlink():
-            os.unlink(path)
-        """if path.name == "PyQt5":
-            shutil.rmtree(path)"""
+            os.unlink(path)"""
 
 
 def main(args: List[str]) -> int:
@@ -118,12 +125,9 @@ def main(args: List[str]) -> int:
     """
     for app in args:
         name = os.path.basename(app)
-        print(
-            f">>> Remove PyQt5 folder from resource: {Path(app) / 'Contents' / 'Resources'}"
-        )
-        remove_pyqt_folder_from_resource(Path(app) / "Contents" / "Resources")
+        remove_pyqt_folder_from_resource(Path(app))
         print(f">>> [{name}] Fixing Qt folder names")
-        path = Path(app) / "Contents" / "MacOS"
+        path = Path(app) / "Contents" / "Frameworks"
         for folder in find_problematic_folders(path):
             for file in move_contents_to_resources(folder):
                 fix_dll(file)
