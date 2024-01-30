@@ -168,6 +168,9 @@ def main(file: str, uuid: str = "") -> int:
 
     if not status or status != "Accepted":
         print(" !! Notarization failed. Check the report for details.", flush=True)
+        notary_logs_path = fetch_notarization_logs(uuid)
+        if notary_logs_path:
+            display_notarization_logs(notary_logs_path)
         return 2
 
     notary_logs_path = fetch_notarization_logs(uuid)
@@ -177,7 +180,7 @@ def main(file: str, uuid: str = "") -> int:
         return 3
 
     # Below method will display notarization logs (Useful in case issue occurs during notarization)
-    # display_notarization_logs(notary_logs_path)
+    display_notarization_logs(notary_logs_path)
 
     staple_the_notarization(file)
     return 0
