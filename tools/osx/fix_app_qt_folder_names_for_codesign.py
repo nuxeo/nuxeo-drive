@@ -11,7 +11,7 @@ def create_symlink(folder: Path) -> None:
     """Create the appropriate symlink in the MacOS folder
     pointing to the Resources folder.
     """
-    sibling = Path(str(folder).replace("Frameworks", ""))
+    sibling = Path(str(folder).replace("MacOS", ""))
 
     # PyQt5/Qt/qml/QtQml/Models.2
     root = str(sibling).partition("Contents")[2].lstrip("/")
@@ -49,7 +49,7 @@ def fix_dll(dll: Path) -> None:
     # /../../../../../../..
     backward = "/.." * (root.count("/") + 1)
     # /../../../../../../../MacOS
-    good_path = f"{backward}/Frameworks"
+    good_path = f"{backward}/MacOS"
 
     # Rewrite Mach headers with corrected @loader_path
     dll = MachO(dll)
@@ -68,7 +68,7 @@ def find_problematic_folders(folder: Path) -> Generator[Path, None, None]:
         if not path.is_dir() or path.is_symlink():
             # Skip simlinks as they are allowed (even with a dot)
             continue
-        if "qml" == path.name or "lib" == path.name:
+        if "qml" == path.name:  # or "lib" == path.name:
             yield path
         else:
             yield from find_problematic_folders(path)
@@ -84,7 +84,7 @@ def move_contents_to_resources(folder: Path) -> Generator[Path, None, None]:
         if path.is_dir():
             yield from move_contents_to_resources(path)
         else:
-            sibling = Path(str(path).replace("Frameworks", "Resources"))
+            sibling = Path(str(path).replace("MacOS", "Resources"))
 
             # Create the parent if it does not exist yet
             sibling.parent.mkdir(parents=True, exist_ok=True)
@@ -125,9 +125,9 @@ def main(args: List[str]) -> int:
     """
     for app in args:
         name = os.path.basename(app)
-        remove_pyqt_folder_from_resource(Path(app))
+        # remove_pyqt_folder_from_resource(Path(app))
         print(f">>> [{name}] Fixing Qt folder names")
-        path = Path(app) / "Contents" / "Frameworks"
+        path = Path(app) / "Contents" / "MacOS"
         for folder in find_problematic_folders(path):
             for file in move_contents_to_resources(folder):
                 fix_dll(file)
