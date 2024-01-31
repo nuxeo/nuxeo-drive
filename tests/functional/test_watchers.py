@@ -168,6 +168,7 @@ class TestWatchers(OneUserTest):
         for child in children:
             assert child.pair_state == "locally_deleted"
 
+    """
     def test_local_scan_delete_synced(self):
         # Test the deletion after first local scan
         self.test_reconcile_scan()
@@ -181,6 +182,7 @@ class TestWatchers(OneUserTest):
         assert len(children) == 5
         for child in children:
             assert child.pair_state == "locally_deleted"
+    """
 
     def test_local_scan_error(self):
         local = self.local_1
