@@ -20,7 +20,7 @@ def is_healthy(database: Path, /) -> bool:
     con = sqlite3.connect(str(database))
     try:
         status = con.execute("PRAGMA integrity_check(1)").fetchone()
-        return bool(status[0] == "ok")
+        return status[0] == "ok"
     finally:
         # According to the documentation:
         #   Connection object used as context manager only commits or rollbacks
@@ -62,7 +62,7 @@ def read(dump_file: Path, database: Path, /) -> None:
     log.info("Restoration done with success.")
 
 
-def fix_db(database: Path, /, *, dump_file: Path = None) -> None:
+def fix_db(database: Path, /, *, dump_file: Path = Path("dump.sql")) -> None:
     """
     Re-generate the whole database content to fix eventual FS corruptions.
     This will prevent `sqlite3.DatabaseError: database disk image is malformed`
@@ -73,9 +73,8 @@ def fix_db(database: Path, /, *, dump_file: Path = None) -> None:
     if is_healthy(database):
         return
 
-    if not dump_file:
-        parent_path = database.parents[0]
-        dump_file = parent_path.joinpath(Path("dump.sql"))
+    # setting the path of dumpfile where the databast file exists.
+    dump_file = database.parent.joinpath(dump_file)
     log.info(f"Re-generating the whole database content of {database!r}...")
 
     # Dump
