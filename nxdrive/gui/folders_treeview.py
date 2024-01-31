@@ -232,7 +232,7 @@ class FolderTreeView(TreeViewMixin):
         self.expand_item(self.current)
 
     def select_item_from_path(self, new_remote_path: str) -> None:
-        """Find and select an itme in the tree view based in the *new_remote_path*."""
+        """Find and select an item in the tree view based in the *new_remote_path*."""
         item = self.model().itemFromIndex(self.current)
         for idx in range(item.rowCount()):
             child = item.child(idx)

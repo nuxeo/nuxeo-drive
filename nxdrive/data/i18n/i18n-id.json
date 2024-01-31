@@ -1,5 +1,5 @@
 {
-    "ABOUT": "Tentang",
+    "ABOUT": "About",
     "ACCOUNT_NAME": "Account name",
     "ADD": "Add",
     "ADD_FILES": "Add files",
@@ -106,6 +106,7 @@
     "DIRECT_TRANSFER_DETAILS": "[%1%] %2 of %3",
     "DIRECT_TRANSFER_END": "Transfer done: \"%1\"",
     "DIRECT_TRANSFER_ERROR": "Transfer error: \"%1\"",
+    "DIRECT_TRANSFER_FINALIZING_ERROR": "An error occurred during the transfer, it will resume shortly.",
     "DIRECT_TRANSFER_NO_ACCOUNT": "Cannot use the Direct Transfer feature with no account, aborting.",
     "DIRECT_TRANSFER_NOT_ALLOWED": "Direct Transfer of \"%1\" is not allowed for synced files.",
     "DIRECT_TRANSFER_NOT_ENABLED": "The Direct Transfer feature is not enabled.",
@@ -217,7 +218,6 @@
     "LOCK_NOTIFICATION_DESCRIPTION": "The document \"%1\" has been locked",
     "LOG_LEVEL": "Log level",
     "LOG_LEVEL_CHANGE_SETTINGS": "Log level",
-    "LOG_LEVEL_DEBUG_WARNING": "Setting the level to \"DEBUG\" will most certainly log sensitive data in your log file. This data can be your login token, which can be used to access and interact with your account on your Nuxeo instance.",
     "LONG_PATH_ERROR_TITLE": "Filename too long",
     "LONG_PATH_ERROR_MSG": "The document \"%1\" cannot be processed because its filename or full path is too long.",
     "MANUAL": "Manual",

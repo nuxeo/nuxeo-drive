@@ -1,5 +1,5 @@
 {
-    "ABOUT": "Informazioni su",
+    "ABOUT": "Informazioni",
     "ACCOUNT_NAME": "Nome account",
     "ADD": "Aggiungi",
     "ADD_FILES": "Aggiungi files",
@@ -106,6 +106,7 @@
     "DIRECT_TRANSFER_DETAILS": "[%1%] %2 di %3",
     "DIRECT_TRANSFER_END": "Trasferimento effettuato: \"%1\"",
     "DIRECT_TRANSFER_ERROR": "Errore di trasferimento: \"%1\"",
+    "DIRECT_TRANSFER_FINALIZING_ERROR": "Si è verificato un errore durante il trasferimento, che riprenderà a breve.",
     "DIRECT_TRANSFER_NO_ACCOUNT": "Impossibile utilizzare la funzione di Direct Transfer senza account, annullamento.",
     "DIRECT_TRANSFER_NOT_ALLOWED": "Il Direct Transfer di \"%1\" non è consentito per i file sincronizzati.",
     "DIRECT_TRANSFER_NOT_ENABLED": "La funzione di Direct Transfer non è attivata.",
@@ -217,7 +218,6 @@
     "LOCK_NOTIFICATION_DESCRIPTION": "Il documento \"%1\" è stato bloccato",
     "LOG_LEVEL": "Livello di log",
     "LOG_LEVEL_CHANGE_SETTINGS": "Livello di log",
-    "LOG_LEVEL_DEBUG_WARNING": "Impostando il livello su \"DEBUG\" si registrano sicuramente i dati sensibili nel vostro file di log. Questi dati possono essere il vostro token di login, che può essere utilizzato per accedere e interagire con il vostro account sulla vostra istanza Nuxeo.",
     "LONG_PATH_ERROR_TITLE": "Nome del file troppo lungo",
     "LONG_PATH_ERROR_MSG": "Il documento \"%1\" non può essere elaborato perché il suo nome file o percorso completo è troppo lungo.",
     "MANUAL": "Manuale",

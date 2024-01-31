@@ -413,7 +413,7 @@ def test_request_verify_ca_bundle_file(caplog, tmp_path):
     # Save the certificate for the first time
     caplog.clear()
     cert = nxdrive.utils.requests_verify(ca_bundle, False)
-    path = "" if type(cert) == bool else cert
+    path = "" if isinstance(bool, type(cert)) else cert
     final_certificate = Path(path)
     records = [line.message for line in caplog.records]
     assert len(records) == 3
@@ -451,7 +451,7 @@ def test_request_verify_ca_bundle_file_is_str(caplog, tmp_path):
     # Save the certificate for the first time
     caplog.clear()
     cert = nxdrive.utils.requests_verify(ca_bundle, False)
-    path = "" if type(cert) == bool else cert
+    path = "" if isinstance(bool, type(cert)) else cert
     final_certificate = Path(path)
     records = [line.message for line in caplog.records]
     assert len(records) == 3
@@ -494,7 +494,7 @@ def test_request_verify_ca_bundle_file_mimic_updates(caplog, tmp_path):
     # Save the certificate for the first time
     caplog.clear()
     cert = nxdrive.utils.requests_verify(ca_bundle, False)
-    path = "" if type(cert) == bool else cert
+    path = "" if isinstance(bool, type(cert)) else cert
     final_certificate_1 = Path(path)
     records = [line.message for line in caplog.records]
     assert len(records) == 3
