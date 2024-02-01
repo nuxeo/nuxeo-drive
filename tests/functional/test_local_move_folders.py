@@ -98,16 +98,6 @@ class TestLocalMoveFolders(OneUserTest):
             assert len(children) == count
             assert set(children) == names
 
-    """
-    def test_local_move_folder_both_sides_while_stopped(self):
-        self._test_local_move_folder_both_sides(False)
-    """
-
-    """
-    def test_local_move_folder_both_sides_while_unbinded(self):
-        self._test_local_move_folder_both_sides(True)
-    """
-
     def _test_local_move_folder_both_sides(self, unbind):
         """
         NXDRIVE-647: sync when a folder is renamed locally and remotely.
@@ -198,23 +188,3 @@ class TestLocalMoveFolders(OneUserTest):
         child = remote.get_children_info(self.workspace)[0]
         assert child.name == name_new
         assert child.path.endswith(name_new)
-
-    """
-    def test_local_move_root_folder_with_unicode(self):
-        local = self.local_1
-
-        self.engine_1.start()
-        self.wait_sync(wait_for_async=True)
-
-        assert local.exists("/")
-
-        with ensure_no_exception():
-            # Rename the root folder
-            root_path = local.base_folder.parent
-            local.unlock_ref(root_path, is_abs=True)
-            root_path.rename(root_path.with_name("root moved, 👆!"))
-
-            self.wait_sync()
-
-        assert not local.exists("/")
-    """

@@ -145,18 +145,6 @@ class TestWatchers(OneUserTest):
                 break
         return Path(self.workspace_title) / path
 
-    """
-    def test_local_scan_delete_non_synced(self):
-        # Test the deletion after first local scan
-        self.test_local_scan()
-        self.engine_1.stop()
-        path = self._delete_folder_1()
-        self.engine_1.start()
-        self.wait_sync(timeout=5, fail_if_timeout=False)
-        children = self.engine_1.dao.get_states_from_partial_local(path)
-        assert not children
-    """
-
     def test_local_watchdog_delete_synced(self):
         # Test the deletion after first local scan
         self.test_reconcile_scan()
@@ -167,22 +155,6 @@ class TestWatchers(OneUserTest):
         assert len(children) == 5
         for child in children:
             assert child.pair_state == "locally_deleted"
-
-    """
-    def test_local_scan_delete_synced(self):
-        # Test the deletion after first local scan
-        self.test_reconcile_scan()
-        self.engine_1.stop()
-        path = self._delete_folder_1()
-        self.engine_1.start()
-        self.wait_sync(timeout=5, fail_if_timeout=False)
-        child = self.engine_1.dao.get_state_from_local(path)
-        assert child.pair_state == "locally_deleted"
-        children = self.engine_1.dao.get_states_from_partial_local(path)
-        assert len(children) == 5
-        for child in children:
-            assert child.pair_state == "locally_deleted"
-    """
 
     def test_local_scan_error(self):
         local = self.local_1

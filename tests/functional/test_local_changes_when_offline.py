@@ -20,26 +20,6 @@ class TestOfflineChangesSync(OneUserTest):
         )
         self.wait_sync(wait_for_async=True)
 
-    """
-    def test_copy_paste_when_engine_suspended(self):
-        ""
-        Copy paste and a rename operation together on same file while Drive is
-        offline should be detected and synced to server as soon as Drive comes
-        back online.
-        ""
-        self.copy_past_and_rename(stop_engine=True)
-    """
-
-    """
-    @pytest.mark.randombug("Unstable on Windows", condition=WINDOWS)
-    def test_copy_paste_normal(self):
-        ""
-        Copy paste and a rename operation together on same file while Drive is
-        online should be detected and synced to server.
-        ""
-        self.copy_past_and_rename()
-    """
-
     def copy_past_and_rename(self, stop_engine: bool = False):
         if stop_engine:
             # Make Drive offline (by suspend)

@@ -48,21 +48,6 @@ class TestLocalPaste(OneUserTest):
     def tearDown(self):
         shutil.rmtree(self.local_temp)
 
-    """
-    def test_copy_paste_empty_folder_first(self):
-        ""
-        copy 'a2' to 'Nuxeo Drive Test Workspace',
-        then 'a1' to 'Nuxeo Drive Test Workspace'
-        ""
-        # copy 'temp/a2' under 'Nuxeo Drive Test Workspace'
-        shutil.copytree(self.folder2, self.workspace_abspath / self.FOLDER_A2)
-        # copy 'temp/a1' under 'Nuxeo Drive Test Workspace'
-        shutil.copytree(self.folder1, self.workspace_abspath / self.FOLDER_A1)
-        self.wait_sync(timeout=TEST_TIMEOUT)
-
-        self._check_integrity()
-    """
-
     def test_copy_paste_empty_folder_last(self):
         """
         copy 'a1' to 'Nuxeo Drive Test Workspace',
