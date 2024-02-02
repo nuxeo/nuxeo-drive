@@ -3,11 +3,7 @@ from pathlib import Path
 from queue import Queue
 from shutil import copyfile
 from time import sleep
-from unittest.mock import patch
 
-from nxdrive.constants import ROOT
-
-from ..markers import not_windows
 from . import LocalTest
 from .common import OneUserTest
 
@@ -62,76 +58,6 @@ class TestWatchers(OneUserTest):
             result.append(dao.get_state_from_id(queue.pop().id))
         return result
 
-    def test_local_scan(self):
-        files, folders = self.make_local_tree()
-        self.queue_manager_1.suspend()
-        self.queue_manager_1._disable = True
-        self.engine_1.start()
-        self.wait_sync()
-
-        # Workspace should have been reconcile
-        res = self.engine_1.dao.get_states_from_partial_local(ROOT)
-        # With root
-        count = folders + files + 1
-        assert len(res) == count
-
-    def test_reconcile_scan(self):
-        files, folders = self.make_local_tree()
-        self.make_server_tree()
-        # Wait for ES indexing
-        self.wait()
-        manager = self.queue_manager_1
-        manager.suspend()
-        manager._disable = True
-        self.engine_1.start()
-        self.wait_sync()
-        # Depending on remote scan results order, the remote
-        # duplicated file with the same digest as the local file
-        # might come first, in which case we get an extra synchronized file,
-        # or not, in which case we get a conflicted file
-        assert self.engine_1.dao.get_sync_count() >= folders + files
-        # Verify it has been reconciled and all items in queue are synchronized
-        queue = self.get_full_queue(copy_queue(manager._local_file_queue))
-        for item in queue:
-            if item.remote_name == "Duplicated File.txt":
-                assert item.pair_state in ["synchronized", "conflicted"]
-            else:
-                assert item.pair_state == "synchronized"
-        queue = self.get_full_queue(copy_queue(manager._local_folder_queue))
-        for item in queue:
-            assert item.pair_state == "synchronized"
-
-    def test_remote_scan(self):
-        total = len(self.make_server_tree())
-        # Add the workspace folder + the root
-        total += 2
-        # Wait for ES indexing
-        self.wait()
-        self.queue_manager_1.suspend()
-        self.queue_manager_1._disable = True
-        self.engine_1.start()
-        self.wait_sync()
-        res = self.engine_1.dao.get_states_from_partial_local(ROOT)
-        assert len(res) == total
-
-    def test_local_watchdog_creation(self):
-        # Test the creation after first local scan
-        self.queue_manager_1.suspend()
-        self.queue_manager_1._disable = True
-        self.engine_1.start()
-        self.wait_sync()
-        metrics = self.queue_manager_1.get_metrics()
-        assert not metrics["local_folder_queue"]
-        assert not metrics["local_file_queue"]
-        files, folders = self.make_local_tree()
-        self.wait_sync(timeout=3, fail_if_timeout=False)
-        metrics = self.queue_manager_1.get_metrics()
-        assert metrics["local_folder_queue"]
-        assert metrics["local_file_queue"]
-        res = self.engine_1.dao.get_states_from_partial_local(ROOT)
-        # With root
-        assert len(res) == folders + files + 1
-
     def _delete_folder_1(self):
         path = Path("Folder 1")
         self.local_1.delete_final(path)
@@ -162,17 +88,6 @@ class TestWatchers(OneUserTest):
         children = self.engine_1.dao.get_states_from_partial_local(path)
         assert not children
 
-    def test_local_watchdog_delete_synced(self):
-        # Test the deletion after first local scan
-        self.test_reconcile_scan()
-        path = self._delete_folder_1()
-        child = self.engine_1.dao.get_state_from_local(path)
-        assert child.pair_state == "locally_deleted"
-        children = self.engine_1.dao.get_states_from_partial_local(path)
-        assert len(children) == 5
-        for child in children:
-            assert child.pair_state == "locally_deleted"
-
     def test_local_scan_delete_synced(self):
         # Test the deletion after first local scan
         self.test_reconcile_scan()
@@ -186,28 +101,6 @@ class TestWatchers(OneUserTest):
         assert len(children) == 5
         for child in children:
             assert child.pair_state == "locally_deleted"
-
-    def test_local_scan_error(self):
-        local = self.local_1
-        remote = self.remote_document_client_1
-        # Synchronize test workspace
-        self.engine_1.start()
-        self.wait_sync()
-        self.engine_1.stop()
-        # Create a local file and use an invalid digest function
-        # in local watcher file system client to trigger an error
-        # during local scan
-        local.make_file("/", "Test file.odt", content=b"Content")
-
-        with patch.object(self.engine_1.local, "_digest_func", return_value="invalid"):
-            self.engine_1.start()
-            self.wait_sync()
-            self.engine_1.stop()
-            assert not remote.exists("/Test file.odt")
-
-        self.engine_1.start()
-        self.wait_sync()
-        assert remote.exists("/Test file.odt")
 
     def test_local_scan_encoding(self):
         local = self.local_1
@@ -295,30 +188,6 @@ class TestWatchers(OneUserTest):
         assert not remote.exists("/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt")
         assert not remote.exists("/P\xf4le applicatif/avoir et e\u0302tre.odt")
 
-    @not_windows(reason="Windows cannot have file ending with a space.")
-    def test_watchdog_space_remover(self):
-        """
-        Test files and folders ending with space.
-        """
-
-        local = self.local_1
-        remote = self.remote_document_client_1
-
-        self.engine_1.start()
-        self.wait_sync()
-
-        local.make_file("/", "Accentue\u0301.odt ", content=b"Content")
-        self.wait_sync()
-        assert remote.exists("/Accentue\u0301.odt")
-        assert not remote.exists("/Accentue\u0301.odt ")
-
-        local.rename("/Accentu\xe9.odt", "Accentu\xe9 avec un \xea et un \xe9.odt ")
-        self.wait_sync()
-        assert (
-            remote.get_info("/Accentu\xe9 avec un \xea et un \xe9.odt").name
-            == "Accentu\xe9 avec un \xea et un \xe9.odt"
-        )
-
     def test_watchdog_encoding(self):
         local = self.local_1
         remote = self.remote_document_client_1
@@ -381,24 +250,6 @@ class TestWatchers(OneUserTest):
         assert not remote.exists("/Accentue\u0301 avec un e\u0302 et un \xe9.odt")
         assert not remote.exists("/Sub folder/avoir et e\u0302tre.odt")
         assert not remote.exists("/Sub folder/e\u0302tre ou ne pas \xeatre.odt")
-
-    def test_watcher_remote_id_setter(self):
-        local = self.local_1
-        # As some user can rewrite same file for no reason
-        # Start engine
-        self.engine_1.start()
-        # Wait for test workspace synchronization
-        self.wait_sync()
-        # Create files with Unicode combining accents,
-        # Unicode latin characters and no special characters
-        file_path = local.abspath("/Test.pdf")
-        copyfile(self.location / "resources" / "files" / "testFile.pdf", file_path)
-        # Wait for test workspace synchronization
-        self.wait_sync()
-        remote_id = local.get_remote_id("/Test.pdf")
-        copyfile(self.location / "resources" / "files" / "testFile.pdf", file_path)
-        self.wait_sync()
-        assert remote_id == local.get_remote_id("/Test.pdf")
 
     def test_watcher_remote_id_setter_stopped(self):
         # Some user can rewrite the same file for no reason

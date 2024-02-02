@@ -1,4 +1,4 @@
-from .conftest import OneUserTest, TwoUsersTest
+from .conftest import OneUserTest
 
 
 class TestVersioning(OneUserTest):
@@ -25,9 +25,3 @@ class TestVersioning(OneUserTest):
         remote.restore_version(version_uid)
         self.wait_sync(wait_for_async=True)
         assert local.get_content("/Document to restore.txt") == b"Initial content."
-
-
-class TestVersioning2(TwoUsersTest):
-    def _assert_version(self, doc, major, minor):
-        assert doc["properties"]["uid:major_version"] == major
-        assert doc["properties"]["uid:minor_version"] == minor

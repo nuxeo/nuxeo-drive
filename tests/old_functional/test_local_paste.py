@@ -61,19 +61,6 @@ class TestLocalPaste(OneUserTest):
 
         self._check_integrity()
 
-    def test_copy_paste_empty_folder_last(self):
-        """
-        copy 'a1' to 'Nuxeo Drive Test Workspace',
-        then 'a2' to 'Nuxeo Drive Test Workspace'
-        """
-        # copy 'temp/a1' under 'Nuxeo Drive Test Workspace'
-        shutil.copytree(self.folder1, self.workspace_abspath / self.FOLDER_A1)
-        # copy 'temp/a2' under 'Nuxeo Drive Test Workspace'
-        shutil.copytree(self.folder2, self.workspace_abspath / self.FOLDER_A2)
-        self.wait_sync(timeout=TEST_TIMEOUT)
-
-        self._check_integrity()
-
     def _check_integrity(self):
         local = self.local_1
         remote = self.remote_1
@@ -97,40 +84,3 @@ class TestLocalPaste(OneUserTest):
             remote_info.name for remote_info in remote.get_fs_children(remote_ref_1)
         ]
         assert len(children) == num
-
-    def test_copy_paste_same_file(self):
-        local = self.local_1
-        remote = self.remote_1
-        name = self.FILENAME_PATTERN % 1
-        workspace_abspath = local.abspath("/")
-        path = self.FOLDER_A1 / name
-        copypath = self.FOLDER_A1 / f"{name}copy"
-        # copy 'temp/a1' under 'Nuxeo Drive Test Workspace'
-        (workspace_abspath / self.FOLDER_A1).mkdir()
-        shutil.copy2(self.folder1 / name, workspace_abspath / path)
-
-        self.wait_sync(timeout=TEST_TIMEOUT)
-
-        # check that '/Nuxeo Drive Test Workspace/a1' does exist
-        assert local.exists(self.FOLDER_A1)
-        # check that '/Nuxeo Drive Test Workspace/a1/ has all the files
-        children = list((self.workspace_abspath / self.FOLDER_A1).iterdir())
-        assert len(children) == 1
-        # check that remote (DM) 'Nuxeo Drive Test Workspace/a1' exists
-        remote_ref = local.get_remote_id(self.FOLDER_A1)
-        assert remote.fs_exists(remote_ref)
-        remote_children = [
-            remote_info.name for remote_info in remote.get_fs_children(remote_ref)
-        ]
-        assert len(remote_children) == 1
-        remote_id = local.get_remote_id(path)
-
-        shutil.copy2(local.abspath(path), local.abspath(copypath))
-        local.set_remote_id(copypath, remote_id)
-        self.wait_sync(timeout=TEST_TIMEOUT)
-        remote_children = [
-            remote_info.name for remote_info in remote.get_fs_children(remote_ref)
-        ]
-        assert len(remote_children) == 2
-        children = list((self.workspace_abspath / self.FOLDER_A1).iterdir())
-        assert len(children) == 2
