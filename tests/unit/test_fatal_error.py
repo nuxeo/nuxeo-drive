@@ -5,7 +5,7 @@ from nxdrive import fatal_error
 
 
 def test_check_os_version(monkeypatch):
-    """Check the OS version compatiblity for Nuxeo Drive"""
+    """Check the OS version compatibility for Nuxeo Drive"""
     assert fatal_error.check_os_version()
 
     # Test for lower version of MacOS. It will pop-up a Fatal error screen
