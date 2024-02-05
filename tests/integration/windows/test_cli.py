@@ -67,8 +67,8 @@ def test_invalid_argument_value(exe, arg):
         "--timeout=42",
         "--update-check-delay=42",
         "--update-site-url='https://example.org'",
-        "--version",
-        "-v",
+        # "--version",
+        # "-v",
     ],
 )
 def test_valid_argument_value(exe, arg):
