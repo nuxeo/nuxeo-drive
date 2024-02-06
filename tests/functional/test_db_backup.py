@@ -1,5 +1,7 @@
+import os
 from datetime import datetime
 from logging import getLogger
+from pathlib import Path
 from sqlite3 import DatabaseError
 from time import sleep
 
@@ -25,7 +27,6 @@ def test_create_backup(manager_factory, tmp, nuxeo_url, user_factory, monkeypatc
             password=user.properties["password"],
             start_engine=False,
         )
-
     # Check DB and backup exist
     assert (home / "manager.db").exists()
     assert len(list((home / "backups").glob("manager.db_*"))) == 1
@@ -86,3 +87,36 @@ def test_delete_old_backups(tmp):
     assert int(remaining_backups[0].name.split("_")[-1]) > yesterday
     # The newest should be more recent than the today timestamp
     assert int(remaining_backups[-1].name.split("_")[-1]) > today
+
+
+def test_fix_db(manager_factory, tmp, nuxeo_url, user_factory, monkeypatch):
+    home = tmp()
+    conf_folder = tmp() / "nuxeo-conf"
+    user = user_factory()
+
+    with manager_factory(home=home, with_engine=False) as manager:
+        manager.bind_server(
+            conf_folder,
+            nuxeo_url,
+            user.uid,
+            password=user.properties["password"],
+            start_engine=False,
+        )
+
+    available_databases = list((home).glob("*.db"))
+    assert len(available_databases) == 2
+    database_path = (
+        available_databases[1]
+        if "manager" not in str(available_databases[1])
+        else str(available_databases[0])
+    )
+    database = Path(os.path.basename(database_path))
+
+    def mocked_is_healthy(*args, **kwargs):
+        return False
+
+    monkeypatch.setattr("nxdrive.dao.utils.is_healthy", mocked_is_healthy)
+    nxdrive.dao.utils.fix_db(database)
+
+    assert (Path(database_path)).exists()
+    assert not (home / "dump.sql").exists()
