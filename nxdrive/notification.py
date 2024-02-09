@@ -524,8 +524,8 @@ class InvalidCredentialNotification(Notification):
 class DisplayPendingTask(Notification):
     """Display a notification for pending tasks"""
 
-    def __init__(self, engine_uid: str, remote_ref: str, /) -> None:
-        values = [remote_ref]
+    def __init__(self, engine_uid: str, remote_ref: str, remote_path: str, /) -> None:
+        values = [remote_path]
         super().__init__(
             uid="PENDING_DOCUMENT_REVIEWS",
             title="Display Pending Task",
@@ -542,6 +542,7 @@ class DisplayPendingTask(Notification):
             action_args=(
                 engine_uid,
                 remote_ref,
+                remote_path,
             ),
         )
 
@@ -565,6 +566,7 @@ class DefaultNotificationService(NotificationService):
         engine.directTransferSessionFinished.connect(
             self._direct_transfer_session_finshed
         )
+        engine.displayPendingTask.connect(self._display_pending_task)
         engine.displayPendingTask.connect(self._display_pending_task)
 
     def _display_pending_task(self, engine_uid: str, remote_ref: str, /) -> None:
@@ -665,3 +667,8 @@ class DefaultNotificationService(NotificationService):
         engine_uid = self.sender().uid
         notif = InvalidCredentialNotification(engine_uid)
         self.send_notification(notif)
+
+    def _display_pending_task(
+        self, engine_uid: str, remote_ref: str, remote_path: str, /
+    ) -> None:
+        self.send_notification(DisplayPendingTask(engine_uid, remote_ref, remote_path))
