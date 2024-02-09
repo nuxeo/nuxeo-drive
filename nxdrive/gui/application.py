@@ -11,6 +11,8 @@ from time import monotonic
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import unquote_plus, urlparse
 
+from nxdrive.client.workflow import Tasks
+
 from ..behavior import Behavior
 from ..constants import (
     APP_NAME,
@@ -264,6 +266,7 @@ class Application(QApplication):
 
     def init_gui(self) -> None:
         self.api = QMLDriveApi(self)
+        # self.tasks = Tasks(self.engine)
         self.active_session_model = ActiveSessionModel(self.translate)
         self.auto_update_feature_model = FeatureModel(Feature.auto_update)
         self.completed_session_model = CompletedSessionModel(self.translate)
@@ -360,6 +363,8 @@ class Application(QApplication):
         if self.manager.engines:
             current_uid = self.engine_model.engines_uid[0]
             engine = self.manager.engines[current_uid]
+            self.tasks = Tasks(engine.remote)
+            self.tasks.get_pending_tasks(current_uid, engine)
             self.get_last_files(current_uid)
             self.refresh_transfers(engine.dao)
             self.update_status(engine)
