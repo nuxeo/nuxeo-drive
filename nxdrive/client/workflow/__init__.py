@@ -29,8 +29,8 @@ class Workflow:
                 "doc_path": response.path,
             }
             print(document_data)
-            engine.fetch_pending_task_list(response.uid, response.path)
-            return document_data
+            engine.send_task_notification(response.uid, response.path)
+            # return document_data
 
 
 class Tasks(Workflow):

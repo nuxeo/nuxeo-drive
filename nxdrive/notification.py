@@ -119,6 +119,7 @@ class Notification:
         return bool(self.flags & Notification.FLAG_BUBBLE)
 
     def is_actionable(self) -> bool:
+        print(">>> actionable notification")
         return bool(self.flags & Notification.FLAG_ACTIONABLE)
 
     def is_discard_on_trigger(self) -> bool:
@@ -666,4 +667,5 @@ class DefaultNotificationService(NotificationService):
     def _display_pending_task(
         self, engine_uid: str, remote_ref: str, remote_path: str, /
     ) -> None:
+        print(">>>> sending main notification")
         self.send_notification(DisplayPendingTask(engine_uid, remote_ref, remote_path))
