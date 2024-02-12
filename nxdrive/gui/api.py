@@ -1164,6 +1164,7 @@ class QMLDriveApi(QObject):
         engine = self._manager.engines.get(uid)
         return engine.get_metadata_url(remote_ref) if engine else ""
 
+<<<<<<< HEAD
     @pyqtSlot(str, result=str)
     def get_title(self, uid: str, /) -> str:
         endpoint = "/api/v1/task/"
@@ -1190,3 +1191,18 @@ class QMLDriveApi(QObject):
             log.exception("Unable to fetch tasks")
             return "No Results Found"
     
+=======
+    @pyqtSlot(str, str, str)
+    def display_pending_task(
+        self, uid: str, remote_ref: str, remote_path: str, /
+    ) -> None:
+        log.info(f"Should open remote document ({remote_ref!r})")
+        try:
+            engine = self._manager.engines.get(uid)
+            if engine:
+                url = engine.get_task_url(remote_ref)
+                log.info(f">>>> doc url: {url}")
+                engine.open_remote(url=url)
+        except OSError:
+            log.exception("Remote task cannot be opened")
+>>>>>>> 38182732e (Added display_pending_task and get_task_url method)
