@@ -1227,6 +1227,7 @@ def save_config(config_dump: Dict[str, Any], /) -> Path:
     conf_path.parent.mkdir(exist_ok=True, parents=True)
     with open(conf_path, "w", encoding="utf-8") as output:
         config.write(output)
+    # returning the path
     return conf_path
 
 
