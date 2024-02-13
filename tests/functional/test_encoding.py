@@ -19,7 +19,7 @@ class TestEncoding(OneUserTest):
         local.make_file("/", filename)
         self.wait_sync(wait_for_async=True)
 
-        assert remote.get_info("/" + filename).name == filename
+        assert remote.get_info(f"/{filename}").name == filename
 
     @not_mac(reason="Normalization does not work on macOS")
     def test_fileinfo_normalization(self):

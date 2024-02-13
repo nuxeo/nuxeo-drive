@@ -514,7 +514,7 @@ def test_move2(manager_factory):
 
     dummy_file_path = env.WS_DIR
 
-    dummy_file_path = str(env.WS_DIR) + "#"
+    dummy_file_path = f"{str(env.WS_DIR)}#"
 
     with patch.object(
         remote,
@@ -579,7 +579,7 @@ class TestRemoteFileSystemClient(OneUserTest):
         assert info.download_url is None
 
         # Check non existing file info
-        fs_item_id = FS_ITEM_ID_PREFIX + "fakeId"
+        fs_item_id = f"{FS_ITEM_ID_PREFIX}fakeId"
         with pytest.raises(NotFound):
             remote.get_fs_info(fs_item_id)
 
@@ -697,10 +697,10 @@ class TestRemoteFileSystemClient(OneUserTest):
             )
             assert isinstance(scroll_res, dict)
             scroll_id = scroll_res["scroll_id"]
-            partial_descendants = scroll_res["descendants"]
-            if not partial_descendants:
+            if partial_descendants := scroll_res["descendants"]:
+                descendants.extend(partial_descendants)
+            else:
                 break
-            descendants.extend(partial_descendants)
         descendants = sorted(descendants, key=operator.attrgetter("name"))
         assert len(descendants) == 4
 
@@ -824,7 +824,7 @@ class TestRemoteFileSystemClient(OneUserTest):
         assert remote.fs_exists(fs_item_id)
 
         # Check non existing file system item (non existing document)
-        fs_item_id = FS_ITEM_ID_PREFIX + "fakeId"
+        fs_item_id = f"{FS_ITEM_ID_PREFIX}fakeId"
         assert not remote.fs_exists(fs_item_id)
 
         # Check non existing file system item (document without content)
@@ -865,7 +865,7 @@ class TestRemoteFileSystemClient(OneUserTest):
         assert fs_item["folder"]
 
         # Check non existing file system item
-        fs_item_id = FS_ITEM_ID_PREFIX + "fakeId"
+        fs_item_id = f"{FS_ITEM_ID_PREFIX}fakeId"
         assert remote.get_fs_item(fs_item_id) is None
 
     def test_streaming_upload(self):

@@ -102,9 +102,7 @@ class TestWatchers(OneUserTest):
             assert item.pair_state == "synchronized"
 
     def test_remote_scan(self):
-        total = len(self.make_server_tree())
-        # Add the workspace folder + the root
-        total += 2
+        total = len(self.make_server_tree()) + 2
         # Wait for ES indexing
         self.wait()
         self.queue_manager_1.suspend()
