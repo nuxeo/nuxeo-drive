@@ -1,3 +1,4 @@
+import subprocess
 from logging import getLogger
 
 import pytest
@@ -67,8 +68,6 @@ def test_invalid_argument_value(exe, arg):
         "--timeout=42",
         "--update-check-delay=42",
         "--update-site-url='https://example.org'",
-        # "--version",
-        # "-v",
     ],
 )
 def test_valid_argument_value(exe, arg):
@@ -76,6 +75,20 @@ def test_valid_argument_value(exe, arg):
     with exe(args=arg) as app:
         assert not fatal_error_dlg(app)
         share_metrics_dlg(app)
+
+
+@pytest.mark.parametrize(
+    "arg",
+    ["-v", "--version"],
+)
+def test_check_drive_version(final_exe, tmp_path, version, arg):
+    """Test the Drive version"""
+    file = tmp_path / "version.txt"
+    cmd = [final_exe, arg, ">", file]
+    subprocess.run(cmd, shell=True)
+    with open(file, "r") as file:
+        version_num = file.read().strip()
+    assert version_num == version
 
 
 @pytest.mark.parametrize(
