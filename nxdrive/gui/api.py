@@ -1196,7 +1196,7 @@ class QMLDriveApi(QObject):
     def display_pending_task(
         self, uid: str, remote_ref: str, remote_path: str, /
     ) -> None:
-        log.info(f"Should open remote document ({remote_ref!r})")
+        log.info(f"Should open remote document ({remote_path!r})")
         try:
             engine = self._manager.engines.get(uid)
             if engine:
