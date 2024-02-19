@@ -218,6 +218,12 @@ class Application(QApplication):
         if MAC:
             self._setup_notification_center()
 
+        if self.manager.engines:
+            current_uid = self.engine_model.engines_uid[0]
+            engine = self.manager.engines[current_uid]
+            self.tasks = Tasks(engine.remote)
+            self.tasks.get_pending_tasks(current_uid, engine)
+
         # Application update
         self.manager.updater.appUpdated.connect(self.quit)
         self.manager.updater.serverIncompatible.connect(self._server_incompatible)
@@ -363,8 +369,6 @@ class Application(QApplication):
         if self.manager.engines:
             current_uid = self.engine_model.engines_uid[0]
             engine = self.manager.engines[current_uid]
-            self.tasks = Tasks(engine.remote)
-            self.tasks.get_pending_tasks(current_uid, engine)
             self.get_last_files(current_uid)
             self.refresh_transfers(engine.dao)
             self.update_status(engine)

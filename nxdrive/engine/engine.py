@@ -764,6 +764,8 @@ class Engine(QObject):
             "jsf": f"{self.server_url}tasks/{repo}/{remote_ref}/{page}",
             "web": f"{self.server_url}ui#!/tasks/{remote_ref}",
         }
+        print(f">>>. urls: {urls}")
+        log.info(f">>>. urls: {urls}")
         return urls[self.force_ui or self.wui]
 
     def is_syncing(self) -> bool:

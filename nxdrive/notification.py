@@ -174,6 +174,7 @@ class NotificationService(QObject):
 
     def send_notification(self, notification: Notification, /) -> None:
         log.info(f"Sending {notification!r}")
+        print(f">>>>> Sending {notification!r}")
         with self._lock:
             if notification.is_persistent():
                 if notification.uid not in self._notifications:
@@ -181,11 +182,12 @@ class NotificationService(QObject):
                 else:
                     self.dao.update_notification(notification)
             self._notifications[notification.uid] = notification
-
+        print(">>>> sending new notify")
         self.newNotification.emit(notification)
 
     def trigger_notification(self, uid: str, /) -> None:
         log.info(f"Trigger notification: {uid} = {self._notifications.get(uid)}")
+        print(f"Trigger notification: {uid} = {self._notifications.get(uid)}")
         if uid not in self._notifications:
             return
         notification = self._notifications[uid]
@@ -528,7 +530,7 @@ class DisplayPendingTask(Notification):
         values = [remote_path]
         super().__init__(
             uid="PENDING_DOCUMENT_REVIEWS",
-            title="Display Pending Task",
+            title="Review Document",
             description=Translator.get("PENDING_DOCUMENT_REVIEWS", values=values),
             level=Notification.LEVEL_INFO,
             flags=(

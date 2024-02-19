@@ -17,19 +17,23 @@ class Workflow:
         self.dao = remote.dao
         self.verification_needed = get_verify()
 
+    # @pyqtSlot()
     def fetch_document_name(self, tasks_list: Dict, engine: Engine, /):
         # doc_id = tasks_list[0].targetDocumentIds[0]["id"]
-        doc_ids = [x.targetDocumentIds[0]["id"] for x in tasks_list]
-        print(f">>> doc_id: {doc_ids}")
-        for doc_id in doc_ids:
-            response = self.remote.documents.get(doc_id)
+        data = [
+            {"doc_id": x.targetDocumentIds[0]["id"], "task_id": x.id}
+            for x in tasks_list
+        ]
+        print(f">>> doc_id: {data}")
+        for values in data:
+            response = self.remote.documents.get(values["doc_id"])
             document_data = {
                 "doc_id": response.uid,
                 "name": response.title,
                 "doc_path": response.path,
             }
             print(document_data)
-            engine.send_task_notification(response.uid, response.path)
+            engine.send_task_notification(values["task_id"], response.path)
             # return document_data
 
 

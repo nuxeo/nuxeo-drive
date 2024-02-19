@@ -576,7 +576,7 @@ class QMLDriveApi(QObject):
     def _balance_percents(self, result: Dict[str, float], /) -> Dict[str, float]:
         """Return an altered version of the dict in which no value is under a minimum threshold."""
 
-        result = {k: v for k, v in sorted(result.items(), key=lambda item: item[1])}
+        result = dict(sorted(result.items(), key=lambda item: item[1]))
         keys = list(result)
         min_threshold = 10
         data = 0.0
@@ -1113,7 +1113,7 @@ class QMLDriveApi(QObject):
     def display_pending_task(
         self, uid: str, remote_ref: str, remote_path: str, /
     ) -> None:
-        log.info(f"Should open remote document ({remote_ref!r})")
+        log.info(f"Should open remote document ({remote_path!r})")
         try:
             engine = self._manager.engines.get(uid)
             if engine:
