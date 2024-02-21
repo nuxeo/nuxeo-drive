@@ -19,6 +19,9 @@ class OAuthentication(Authentication):
         super().__init__(*args, **kwargs)
 
         self._dao = dao
+        subclient_kwargs = kwargs.get("subclient_kwargs")
+        subclient_kwargs = {} if subclient_kwargs is None else subclient_kwargs
+        subclient_kwargs["verify"] = get_verify()
         self.auth = OAuth2(
             self.url,
             client_id=Options.oauth2_client_id,
@@ -28,7 +31,7 @@ class OAuthentication(Authentication):
             redirect_uri=Options.oauth2_redirect_uri,
             token_endpoint=Options.oauth2_token_endpoint,
             token=self.token,
-            subclient_kwargs=kwargs.get("subclient_kwargs"),
+            subclient_kwargs=subclient_kwargs,
         )
 
     def connect_url(self) -> str:
@@ -49,7 +52,6 @@ class OAuthentication(Authentication):
             code_verifier=kwargs["code_verifier"],
             code=kwargs["code"],
             state=kwargs["state"],
-            verify=get_verify(),
         )
 
         self.token = token
