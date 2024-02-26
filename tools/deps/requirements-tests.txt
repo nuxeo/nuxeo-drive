@@ -238,9 +238,9 @@ pytest-timeout==2.2.0 \
 pytest-xdist==3.3.1 \
     --hash=sha256:d5ee0520eb1b7bcca50a60a518ab7a7707992812c578198f8b44fdfac78e8c93 \
     --hash=sha256:ff9daa7793569e6a68544850fd3927cd257cc03a7ef76c95e86915355e82b5f2
-pytest==7.4.4 \
-    --hash=sha256:2cf0005922c6ace4a3e2ec8b4080eb0d9753fdc93107415332f50ce9e7994280 \
-    --hash=sha256:b090cdf5ed60bf4c45261be03239c2c1c22df034fbffe691abe93cd80cea01d8
+pytest==8.0.2 \
+    --hash=sha256:d4051d623a2e0b7e51960ba963193b09ce6daeb9759a451844a21e4ddedfc1bd \
+    --hash=sha256:edfaaef32ce5172d5466b5127b42e0d6d35ebbe4453f0e3505d96afd93f6b096
     # via pytest-cov, pytest-forked, pytest-timeout, pytest-xdist
 pywinauto==0.6.8 ; sys_platform == "win32" \
     --hash=sha256:931ce622d7f402b1892ab472987a1332e4c0681bf87e106f798390d16ca95e58
