@@ -50,7 +50,7 @@ jobs:
           DISPLAY: ":99"
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
-        uses: codecov/codecov-action@v3.1.5
+        uses: codecov/codecov-action@v4.1.0
         with:
           files: ./coverage.xml
           flags: functional
@@ -79,7 +79,7 @@ jobs:
         run: tox -e ft
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
-        uses: codecov/codecov-action@v3.1.5
+        uses: codecov/codecov-action@v4.1.0
         with:
           files: ./coverage.xml
           flags: functional
@@ -109,7 +109,7 @@ jobs:
         run: tox -e ft
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
-        uses: codecov/codecov-action@v3.1.5
+        uses: codecov/codecov-action@v4.1.0
         with:
           files: ./coverage.xml
           flags: functional
