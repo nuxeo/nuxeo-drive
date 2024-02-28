@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright 2012-2021 Nuxeo. All rights reserved. -->
+<!-- Copyright 2024 Hyland Software, Inc. and its affiliates. All rights reserved. -->
 <component type="desktop-application">
 	<id>org.nuxeo.drive.desktop</id>
 	<metadata_license>MIT</metadata_license>

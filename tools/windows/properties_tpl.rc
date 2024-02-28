@@ -18,7 +18,7 @@ VSVersionInfo(
         StringStruct('FileDescription', 'Nuxeo Drive'),
         StringStruct('FileVersion', '{version}'),
         StringStruct('InternalName', 'ndrive'),
-        StringStruct('LegalCopyright', '\xa9 2012-2021 Nuxeo. All rights reserved.'),
+        StringStruct('LegalCopyright', '\xa9 2024 Hyland Software, Inc. and its affiliates. All rights reserved.'),
         StringStruct('OriginalFilename', 'ndrive.exe'),
         StringStruct('ProductName', 'Nuxeo Drive'),
         StringStruct('ProductVersion', '{version}')])

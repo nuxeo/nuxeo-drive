@@ -8,7 +8,7 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppUpdatesURL}
-AppCopyright="© {#MyAppPublisher}. All rights reserved."
+AppCopyright="© 2024 {#MyAppPublisher}, Inc. and its affiliates. All rights reserved."
 
 ; Outputs
 OutputDir=..\..\dist

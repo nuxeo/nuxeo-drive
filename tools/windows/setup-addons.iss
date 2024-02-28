@@ -2,7 +2,7 @@
 #define MyAppName "Nuxeo Drive Addons"
 #define MyAppParent "Nuxeo Drive"
 #define MyAppVersion "1.0.0"
-#define MyAppPublisher "Nuxeo"
+#define MyAppPublisher "Hyland Software"
 
 
 [Setup]
@@ -11,7 +11,7 @@ AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 VersionInfoVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-AppCopyright="© {#MyAppPublisher}. All rights reserved."
+AppCopyright="© 2024 {#MyAppPublisher}, Inc. and its affiliates. All rights reserved."
 DisableDirPage=yes
 DefaultDirName={param:targetdir|{localappdata}\{#MyAppParent}}
 

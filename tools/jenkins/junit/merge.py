@@ -1,5 +1,5 @@
 """
-(C) Copyright 2019-2021 Nuxeo (http://nuxeo.com/).
+(C) Copyright 2024 Hyland Software, Inc. and its affiliates. All rights reserved (http://nuxeo.com/).
 
 Usage: python merge.py FOLDER [FILE]
 
