@@ -18,10 +18,10 @@ class OAuthentication(Authentication):
     def __init__(self, *args: Any, dao: "BaseDAO" = None, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
+        self.verification_needed = get_verify()
         self._dao = dao
-        subclient_kwargs = kwargs.get("subclient_kwargs")
-        subclient_kwargs = {} if subclient_kwargs is None else subclient_kwargs
-        subclient_kwargs["verify"] = get_verify()
+        subclient_kwargs = kwargs.get("subclient_kwargs", {})
+        subclient_kwargs["verify"] = self.verification_needed
         self.auth = OAuth2(
             self.url,
             client_id=Options.oauth2_client_id,
