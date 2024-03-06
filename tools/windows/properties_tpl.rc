@@ -14,11 +14,11 @@ VSVersionInfo(
       [
       StringTable(
         '040904B0',
-        [StringStruct('CompanyName', 'Nuxeo'),
+        [StringStruct('CompanyName', 'Hyland Software'),
         StringStruct('FileDescription', 'Nuxeo Drive'),
         StringStruct('FileVersion', '{version}'),
         StringStruct('InternalName', 'ndrive'),
-        StringStruct('LegalCopyright', '\xa9 2024 Hyland Software, Inc. and its affiliates. All rights reserved.'),
+        StringStruct('LegalCopyright', '\xa9 2024 Hyland Software, Inc. and its affiliates. All rights reserved. All Hyland product names are registered or unregistered trademarks of Hyland Software, Inc. or its affiliates.'),
         StringStruct('OriginalFilename', 'ndrive.exe'),
         StringStruct('ProductName', 'Nuxeo Drive'),
         StringStruct('ProductVersion', '{version}')])

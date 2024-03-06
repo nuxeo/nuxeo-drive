@@ -1,6 +1,6 @@
 /**
  * Copyright (c) 2000-2013 Liferay, Inc. All rights reserved.
- * Copyright (c) 2024 Hyland Software, Inc. and its affiliates. All rights reserved.
+ * Copyright (c) 2024 Hyland Software, Inc. and its affiliates. All rights reserved. All Hyland product names are registered or unregistered trademarks of Hyland Software, Inc. or its affiliates.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free

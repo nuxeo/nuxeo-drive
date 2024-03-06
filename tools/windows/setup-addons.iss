@@ -11,7 +11,7 @@ AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 VersionInfoVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-AppCopyright="© 2024 {#MyAppPublisher}, Inc. and its affiliates. All rights reserved."
+AppCopyright="© 2024 {#MyAppPublisher}, Inc. and its affiliates. All rights reserved. All Hyland product names are registered or unregistered trademarks of Hyland Software, Inc. or its affiliates."
 DisableDirPage=yes
 DefaultDirName={param:targetdir|{localappdata}\{#MyAppParent}}
 
