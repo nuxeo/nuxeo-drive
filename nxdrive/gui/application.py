@@ -11,7 +11,7 @@ from time import monotonic
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import unquote_plus, urlparse
 
-from nxdrive.client.workflow import Tasks
+from nxdrive.client.workflow import Workflow
 
 from ..behavior import Behavior
 from ..constants import (
@@ -218,11 +218,9 @@ class Application(QApplication):
         if MAC:
             self._setup_notification_center()
 
-        if self.manager.engines:
-            current_uid = self.engine_model.engines_uid[0]
-            engine = self.manager.engines[current_uid]
-            self.tasks = Tasks(engine.remote)
-            self.tasks.get_pending_tasks(current_uid, engine)
+        # Initiate workflow when drive starts
+        self.workflow, current_uid, engine = self.init_workflow()
+        self.workflow.get_pending_tasks(current_uid, engine)
 
         # Application update
         self.manager.updater.appUpdated.connect(self.quit)
@@ -272,7 +270,6 @@ class Application(QApplication):
 
     def init_gui(self) -> None:
         self.api = QMLDriveApi(self)
-        # self.tasks = Tasks(self.engine)
         self.active_session_model = ActiveSessionModel(self.translate)
         self.auto_update_feature_model = FeatureModel(Feature.auto_update)
         self.completed_session_model = CompletedSessionModel(self.translate)
@@ -381,6 +378,13 @@ class Application(QApplication):
         )
 
         self.manager.featureUpdate.connect(self._update_feature_state)
+
+    def init_workflow(self):
+        if self.manager.engines:
+            current_uid = self.engine_model.engines_uid[0]
+            engine = self.manager.engines[current_uid]
+            self.workflow = Workflow(engine.remote)
+            return self.workflow, current_uid, engine
 
     def _update_feature_state(self, name: str, value: bool, /) -> None:
         """Check if the feature model exists from *name* then update it with *value*."""
