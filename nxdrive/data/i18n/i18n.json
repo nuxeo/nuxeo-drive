@@ -287,7 +287,7 @@
     "OTHER": "Other",
     "PASSWORD": "Password",
     "PERSONAL_SPACE": "Personal space",
-    "PENDING_DOCUMENT_REVIEWS": "Awaiting document review for \"%1\" ",
+    "PENDING_DOCUMENT_REVIEWS": "Awaiting document review %1",
     "PROXY": "Proxy",
     "PROXY_APPLIED": "Proxy settings have been updated",
     "PROXY_CHANGE_SETTINGS": "Proxy",

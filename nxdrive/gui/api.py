@@ -239,6 +239,15 @@ class QMLDriveApi(QObject):
             )
         return 0
 
+    @pyqtSlot(str, result=int)
+    def fetch_pending_tasks(self, uid: str, /) -> str:
+        """Return pending tasks count for Drive notification."""
+        """engine = self._manager.engines.get(uid)
+        if engine:
+            workflow = self.application.workflow
+            workflow.get_pending_tasks(uid, engine)"""
+        return 2
+
     @pyqtSlot(str, str, int, float, bool)
     def pause_transfer(
         self,
@@ -1201,7 +1210,6 @@ class QMLDriveApi(QObject):
             engine = self._manager.engines.get(uid)
             if engine:
                 url = engine.get_task_url(remote_ref)
-                log.info(f">>>> doc url: {url}")
                 engine.open_remote(url=url)
         except OSError:
             log.exception("Remote task cannot be opened")
