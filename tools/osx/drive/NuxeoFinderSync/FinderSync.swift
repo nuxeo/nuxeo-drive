@@ -7,7 +7,7 @@
 //  Contributors:
 //      Mickaël Schoentgen
 //
-//  Copyright © 2018-2021 Nuxeo. All rights reserved.
+//  Copyright © 2024 Hyland Software, Inc. and its affiliates. All rights reserved. All Hyland product names are registered or unregistered trademarks of Hyland Software, Inc. or its affiliates.
 //
 
 import Cocoa
@@ -20,9 +20,9 @@ class FinderSync: FIFinderSync {
     let triggerWatchNotif = NSNotification.Name("org.nuxeo.drive.triggerWatch")
     let syncStatusNotif = NSNotification.Name("org.nuxeo.drive.syncStatus")
     let setConfigNotif = NSNotification.Name("org.nuxeo.drive.setConfig")
-    
+
     let app_name = "Nuxeo Drive - "
-    
+
     var title1 = "Access online"
     var title2 = "Copy share-link"
     var title3 = "Edit metadata"
@@ -46,7 +46,7 @@ class FinderSync: FIFinderSync {
     override init() {
         //NSLog("FinderSync() launched from \(Bundle.main.bundlePath)")
         super.init()
-        
+
         self.title4 = self.app_name + "Upload content"
 
         // Upon startup, we are watching the root only to be able to display a context menu
