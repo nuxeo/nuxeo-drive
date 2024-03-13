@@ -409,7 +409,7 @@ xattr==0.9.7 ; sys_platform == "darwin" \
     --hash=sha256:e2c72a3a501bac715489180ca2b646e48a1ca3a794c1103dd6f0f987d43f570c \
     --hash=sha256:1e11ba8ab86dfe74419704c53722ea9b5915833db07416e7c10db5dfb02218bb \
     --hash=sha256:b0bbca828e04ef2d484a6522ae7b3a7ccad5e43fa1c6f54d78e24bb870f49d44
-zipp==3.5.0 \
-    --hash=sha256:957cfda87797e389580cb8b9e3870841ca991e2125350677b2ca83a0e99390a3 \
-    --hash=sha256:f5812b1e007e48cff63449a5e9f4e7ebea716b4111f9c4f9a645f91d579bf0c4
+zipp==3.17.0 \
+    --hash=sha256:0e923e726174922dce09c53c59ad483ff7bbb8e572e00c7f7c46b88556409f31 \
+    --hash=sha256:84e64a1c28cf7e91ed2078bb8cc8c259cb19b76942096c8d7b84947690cabaf0
     # via importlib-metadata
