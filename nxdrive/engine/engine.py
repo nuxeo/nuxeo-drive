@@ -753,7 +753,6 @@ class Engine(QObject):
 
     def get_task_url(self, remote_ref: str, /, *, edit: bool = False) -> str:
         """
-<<<<<<< HEAD
         Build the document's metadata URL based on the server's UI.
         Default is Web-UI.  In case of unknown UI, use the default value.
 
@@ -762,16 +761,6 @@ class Engine(QObject):
         :param edit: Show the metadata edit page instead of the document.
         :return: The complete URL.
         """
-        # uid = remote_ref.split("#")[-1]
-=======
-        Build the task's metadata URL based on the server's UI.
-        Default is Web-UI.  In case of unknown UI, use the default value.
-        :param remote_ref: The task remote reference (UID) of the
-            task we want to show metadata.
-        :param edit: Show the metadata edit page instead of the document.
-        :return: The complete URL.
-        """
->>>>>>> 38182732e (Added display_pending_task and get_task_url method)
         repo = self.remote.client.repository
         page = ("view_documents", "view_drive_metadata")[edit]
 

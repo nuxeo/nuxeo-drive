@@ -225,6 +225,10 @@ class Application(QApplication):
         self.workflow, current_uid, engine = self.init_workflow()
         self.workflow.get_pending_tasks(current_uid, engine)
 
+        # Initiate workflow when drive starts
+        self.workflow, current_uid, engine = self.init_workflow()
+        self.workflow.get_pending_tasks(current_uid, engine)
+
         # Application update
         self.manager.updater.appUpdated.connect(self.quit)
         self.manager.updater.serverIncompatible.connect(self._server_incompatible)
@@ -337,7 +341,7 @@ class Application(QApplication):
             self.direct_transfer_window.setSource(
                 QUrl.fromLocalFile(str(find_resource("qml", file="DirectTransfer.qml")))
             )
-            
+
             # Task Manager
             self.task_manager_window = CustomWindow()
             self.task_manager_window.setMinimumWidth(300)
@@ -913,13 +917,14 @@ class Application(QApplication):
         }
         self._window_root(self.settings_window).setSection.emit(sections[section])
         self._center_on_screen(self.settings_window)
-        
+
     @pyqtSlot(str)
     def show_tasks(self, section: str, /) -> None:
         # Note: Keep synced with the TaskManager.qml file
-        sections = {
-        }
-        self._window_root(self.task_manager_window) # .setSection.emit(sections[section])
+        # sections = {}
+        self._window_root(
+            self.task_manager_window
+        )  # .setSection.emit(sections[section])
         self._center_on_screen(self.task_manager_window)
 
     @pyqtSlot()

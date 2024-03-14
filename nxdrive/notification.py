@@ -570,10 +570,6 @@ class DefaultNotificationService(NotificationService):
             self._direct_transfer_session_finshed
         )
         engine.displayPendingTask.connect(self._display_pending_task)
-        engine.displayPendingTask.connect(self._display_pending_task)
-
-    def _display_pending_task(self, engine_uid: str, remote_ref: str, /) -> None:
-        self.send_notification(DisplayPendingTask(engine_uid, remote_ref))
 
     def _direct_transfer_error(self, file: Path, /) -> None:
         """Display a notification when a Direct Transfer is in error."""

@@ -239,15 +239,6 @@ class QMLDriveApi(QObject):
             )
         return 0
 
-    @pyqtSlot(str, result=int)
-    def fetch_pending_tasks(self, uid: str, /) -> str:
-        """Return pending tasks count for Drive notification."""
-        """engine = self._manager.engines.get(uid)
-        if engine:
-            workflow = self.application.workflow
-            workflow.get_pending_tasks(uid, engine)"""
-        return 2
-
     @pyqtSlot(str, str, int, float, bool)
     def pause_transfer(
         self,
@@ -470,7 +461,7 @@ class QMLDriveApi(QObject):
         self.application.hide_systray()
         log.info(f"Show settings on section {section}")
         self.application.show_settings(section)
-        
+
     @pyqtSlot(str)
     def show_tasks(self, section: str, /) -> None:
         self.application.hide_systray()
@@ -487,7 +478,6 @@ class QMLDriveApi(QObject):
             "Content-Type": "application/json",
         }
         try:
-            # response = NuxeoClient.request(self,method="GET", path=endpoint, headers=headers, ssl_verify=Options.ssl_no_verify)
             response = requests.get(
                 url=url,
                 verify=True,
@@ -1173,7 +1163,6 @@ class QMLDriveApi(QObject):
         engine = self._manager.engines.get(uid)
         return engine.get_metadata_url(remote_ref) if engine else ""
 
-<<<<<<< HEAD
     @pyqtSlot(str, result=str)
     def get_title(self, uid: str, /) -> str:
         endpoint = "/api/v1/task/"
@@ -1199,18 +1188,3 @@ class QMLDriveApi(QObject):
         except Exception:
             log.exception("Unable to fetch tasks")
             return "No Results Found"
-    
-=======
-    @pyqtSlot(str, str, str)
-    def display_pending_task(
-        self, uid: str, remote_ref: str, remote_path: str, /
-    ) -> None:
-        log.info(f"Should open remote document ({remote_path!r})")
-        try:
-            engine = self._manager.engines.get(uid)
-            if engine:
-                url = engine.get_task_url(remote_ref)
-                engine.open_remote(url=url)
-        except OSError:
-            log.exception("Remote task cannot be opened")
->>>>>>> 38182732e (Added display_pending_task and get_task_url method)
