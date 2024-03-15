@@ -200,6 +200,7 @@ class Engine(QObject):
             self.remote = self.init_remote()
 
         self._create_queue_manager()
+        
         if Feature.synchronization:
             self._create_remote_watcher()
             self._create_local_watcher()
