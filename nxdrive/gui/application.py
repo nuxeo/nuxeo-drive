@@ -344,8 +344,8 @@ class Application(QApplication):
 
             # Task Manager
             self.task_manager_window = CustomWindow()
-            self.task_manager_window.setMinimumWidth(300)
-            self.task_manager_window.setMinimumHeight(240)
+            self.task_manager_window.setMinimumWidth(600)
+            self.task_manager_window.setMinimumHeight(480)
             self._fill_qml_context(self.task_manager_window.rootContext())
             self.task_manager_window.setSource(
                 QUrl.fromLocalFile(str(find_resource("qml", file="TaskManager.qml")))
@@ -918,15 +918,6 @@ class Application(QApplication):
         self._window_root(self.settings_window).setSection.emit(sections[section])
         self._center_on_screen(self.settings_window)
 
-    @pyqtSlot(str)
-    def show_tasks(self, section: str, /) -> None:
-        # Note: Keep synced with the TaskManager.qml file
-        # sections = {}
-        self._window_root(
-            self.task_manager_window
-        )  # .setSection.emit(sections[section])
-        self._center_on_screen(self.task_manager_window)
-
     @pyqtSlot()
     def show_systray(self) -> None:
         icon = self.tray_icon.geometry()
@@ -1015,6 +1006,16 @@ class Application(QApplication):
     def close_direct_transfer_window(self) -> None:
         """Close the Direct Transfer window."""
         self.direct_transfer_window.close()
+
+    @pyqtSlot(str)
+    def show_tasks(self, data: dict, /) -> None:
+        # Note: Keep synced with the TaskManager.qml file
+        # sections = {}
+        log.info(f">>>>>> application.show_tasks data: {data!r}")
+        self._window_root(
+            self.task_manager_window
+        )  # .setSection.emit(sections[section])
+        self._center_on_screen(self.task_manager_window)
 
     def folder_duplicate_warning(
         self, duplicates: List[str], remote_path: str, remote_url: str, /

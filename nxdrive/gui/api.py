@@ -463,16 +463,24 @@ class QMLDriveApi(QObject):
         self.application.show_settings(section)
 
     @pyqtSlot(str)
-    def show_tasks(self, section: str, /) -> None:
+    def show_tasks(self, var: str = "", /) -> None:
         self.application.hide_systray()
-        log.info(f"Show Task Manager {section}")
-        self.application.show_tasks(section)
+        data = self._fetch_tasks()
+        log.info("Showing Task Manager")
+        self.application.show_tasks(data["entries"])
 
     @pyqtSlot()
     def fetch_pending_tasks(self, engine: Engine, /) -> None:
-        log.info("Check for pending approval tasks")
+        data = self._fetch_tasks()
+        if data["resultsCount"] > 0:
+            for task in data["entries"]:
+                log.info(f">>>> task: {task}")
+                log.info(f">>>> taskid: {task['id']}")
+                engine.fetch_pending_task_list(task["id"])
+
+    def _fetch_tasks(self):
         endpoint = "/api/v1/task/"
-        url = "http://localhost:8080/nuxeo" + endpoint
+        url = f"http://localhost:8080/nuxeo{endpoint}"
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
@@ -485,18 +493,11 @@ class QMLDriveApi(QObject):
                 headers=headers,
                 auth=("Administrator", "Administrator"),
             )
-            log.info(f">>>>> response type: {type(response)}")
-            data = response.json()
-            log.info(f">>>> response: {data}")
-            if data["resultsCount"] > 0:
-                log.info("Send pending task notification")
-                for task in data["entries"]:
-                    log.info(f">>>> task: {task}")
-                    log.info(f">>>> taskid: {task['id']}")
-                    engine.fetch_pending_task_list(task["id"])
-
         except Exception:
             log.exception("Unable to fetch tasks")
+            response = {}
+
+        return response.json()
 
     @pyqtSlot()
     def quit(self) -> None:
@@ -1165,26 +1166,11 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, result=str)
     def get_title(self, uid: str, /) -> str:
-        endpoint = "/api/v1/task/"
-        url = "http://localhost:8080/nuxeo" + endpoint
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-        }
-        try:
-            response = requests.get(
-                url=url,
-                verify=True,
-                timeout=3600,
-                headers=headers,
-                auth=("Administrator", "Administrator"),
-            )
-            data = response.json()
-            html = data["entries"][0]
-            html = html["variables"]
-            html = html["review_result"]
-            return html if html else "No Results To Show"
-
-        except Exception:
-            log.exception("Unable to fetch tasks")
-            return "No Results Found"
+        data = self._fetch_tasks()
+        html = "No Results To Show"
+        if data:
+            try:
+                html = data["entries"][0]["variables"]["review_result"]
+            except IndexError:
+                log.info("No Pending Tasks Present")
+        return html
