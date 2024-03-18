@@ -55,6 +55,7 @@ class Workflow:
                     log.info("No Task for processing...")
             else:
                 log.info("No Task for processing...")
+            return
         except Exception as exec:
             log.error(f"Exception occurred while Fetching Tasks: {exec}")
 

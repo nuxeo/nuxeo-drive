@@ -379,7 +379,7 @@ class Application(QApplication):
 
         self.manager.featureUpdate.connect(self._update_feature_state)
 
-    def init_workflow(self):
+    def init_workflow(self) -> None:
         if self.manager.engines:
             current_uid = self.engine_model.engines_uid[0]
             engine = self.manager.engines[current_uid]
