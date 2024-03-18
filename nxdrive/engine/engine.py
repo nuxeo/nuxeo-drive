@@ -750,11 +750,11 @@ class Engine(QObject):
 
     def get_task_url(self, remote_ref: str, /, *, edit: bool = False) -> str:
         """
-        Build the task's metadata URL based on the server's UI.
+        Build the task's URL based on the server's UI.
         Default is Web-UI.  In case of unknown UI, use the default value.
         :param remote_ref: The task remote reference (UID) of the
             task we want to show metadata.
-        :param edit: Show the metadata edit page instead of the document.
+        :param edit: Show the metadata edit page instead of the task.
         :return: The complete URL.
         """
         repo = self.remote.client.repository
@@ -764,8 +764,6 @@ class Engine(QObject):
             "jsf": f"{self.server_url}tasks/{repo}/{remote_ref}/{page}",
             "web": f"{self.server_url}ui#!/tasks/{remote_ref}",
         }
-        print(f">>>. urls: {urls}")
-        log.info(f">>>. urls: {urls}")
         return urls[self.force_ui or self.wui]
 
     def is_syncing(self) -> bool:
@@ -1603,7 +1601,6 @@ class Engine(QObject):
         return full_name
 
     def send_task_notification(self, task_id: str, remote_path: str, /) -> None:
-        print(">>> emitting notification signal")
         self.displayPendingTask.emit(self.uid, task_id, remote_path)
 
 

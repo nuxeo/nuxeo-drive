@@ -376,27 +376,6 @@ Rectangle {
                 }
             ]
         }
-
-        // Pending Tasks
-        SystrayStatus {
-            id: pendingTasks
-            state: "pending_tasks"
-            visible: (state == "pending_tasks")
-            color: progressFilledLight
-            textColor: lightTheme
-            icon: MdiFont.Icon.bell
-
-            states: [
-                State {
-                    name: "pending_tasks"
-                    PropertyChanges {
-                        target: updateState
-                        text: qsTr("PENDING_DOCUMENT_REVIEWS").arg(api.fetch_pending_tasks(accountSelect.getRole("uid"))) + tl.tr
-                        // onClicked: updatePopup.open()
-                    }
-                }
-            ]
-        }
     }
 
     // Different systray contents when there is no accounts

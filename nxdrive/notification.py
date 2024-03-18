@@ -119,7 +119,6 @@ class Notification:
         return bool(self.flags & Notification.FLAG_BUBBLE)
 
     def is_actionable(self) -> bool:
-        print(">>> actionable notification")
         return bool(self.flags & Notification.FLAG_ACTIONABLE)
 
     def is_discard_on_trigger(self) -> bool:
@@ -174,7 +173,6 @@ class NotificationService(QObject):
 
     def send_notification(self, notification: Notification, /) -> None:
         log.info(f"Sending {notification!r}")
-        print(f">>>>> Sending {notification!r}")
         with self._lock:
             if notification.is_persistent():
                 if notification.uid not in self._notifications:
@@ -182,12 +180,10 @@ class NotificationService(QObject):
                 else:
                     self.dao.update_notification(notification)
             self._notifications[notification.uid] = notification
-        print(">>>> sending new notify")
         self.newNotification.emit(notification)
 
     def trigger_notification(self, uid: str, /) -> None:
         log.info(f"Trigger notification: {uid} = {self._notifications.get(uid)}")
-        print(f"Trigger notification: {uid} = {self._notifications.get(uid)}")
         if uid not in self._notifications:
             return
         notification = self._notifications[uid]
@@ -669,5 +665,4 @@ class DefaultNotificationService(NotificationService):
     def _display_pending_task(
         self, engine_uid: str, remote_ref: str, remote_path: str, /
     ) -> None:
-        print(">>>> sending main notification")
         self.send_notification(DisplayPendingTask(engine_uid, remote_ref, remote_path))
