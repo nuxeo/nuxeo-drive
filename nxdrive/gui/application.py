@@ -219,7 +219,7 @@ class Application(QApplication):
             self._setup_notification_center()
 
         # Initiate workflow when drive starts
-        self.workflow, current_uid, engine = self.init_workflow()
+        self.workflow, current_uid, engine = self.init_workflow()  # type: ignore
         self.workflow.get_pending_tasks(current_uid, engine)
 
         # Application update
@@ -379,7 +379,7 @@ class Application(QApplication):
 
         self.manager.featureUpdate.connect(self._update_feature_state)
 
-    def init_workflow(self) -> None:
+    def init_workflow(self):  # type: ignore
         if self.manager.engines:
             current_uid = self.engine_model.engines_uid[0]
             engine = self.manager.engines[current_uid]

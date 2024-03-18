@@ -32,7 +32,7 @@ class Workflow:
         else:
             log.error("Failed to fetch document details.")
 
-    def get_pending_tasks(self, engine: Engine, initial_run: bool = True) -> List[Task]:
+    def get_pending_tasks(self, engine: Engine, initial_run: bool = True) -> List[Task]:  # type: ignore
         """Get Tasks for document review"""
         try:
             options = {"userId": self.remote.user_id}
@@ -55,7 +55,6 @@ class Workflow:
                     log.info("No Task for processing...")
             else:
                 log.info("No Task for processing...")
-            return
         except Exception as exec:
             log.error(f"Exception occurred while Fetching Tasks: {exec}")
 
