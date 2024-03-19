@@ -4,9 +4,9 @@
 -r requirements.txt
 -r requirements-tox.txt
 
-apipkg==1.5 \
-    --hash=sha256:37228cda29411948b422fae072f57e31d3396d2ee1c9783775980ee9c9990af6 \
-    --hash=sha256:58587dd4dc3daefad0487f6d9ae32b4542b185e1c36db6993290e7c41ca2b47c
+apipkg==3.0.2 \
+    --hash=sha256:a16984c39de280701f3f6406ed3af658f2a1965011fe7bb5be34fbb48423b411 \
+    --hash=sha256:c7aa61a4f82697fdaa667e70af1505acf1f7428b1c27b891d204ba7a8a3c5e0d
     # via execnet
 atomicwrites==1.4.1; sys_platform == "win32" \
     --hash=sha256:81b2c9071a49367a7f770170e5eec8cb66567cfbbc8c73d20ce5ca4a8d71cf11
