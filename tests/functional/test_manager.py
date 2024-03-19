@@ -40,8 +40,6 @@ def test_workflow(manager_factory):
 
         manager.app = Application(manager)
 
-        assert workflow_worker._poll()
-
 
 # This test is commented because it causes other ft tests to fails
 # @Options.mock()

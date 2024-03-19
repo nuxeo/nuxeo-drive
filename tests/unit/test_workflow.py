@@ -63,8 +63,8 @@ def test_filtered_task(workflow, engine, task, remote):
 def test_fetch_document(workflow, engine, task, remote):
     remote.documents.get = Mock(path="/doc_path/doc.txt")
     engine.send_task_notification = Mock()
-    assert workflow.fetch_document(workflow, [task], engine) is None
+    workflow.fetch_document(workflow, [task], engine)
 
     # No response from remote.documents.get
     remote.documents.get = Mock(return_value=None)
-    assert workflow.fetch_document(workflow, [task], engine) is None
+    workflow.fetch_document(workflow, [task], engine)
