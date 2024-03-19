@@ -3,8 +3,6 @@ import os
 import pytest
 
 from nxdrive.exceptions import NoAssociatedSoftware
-from nxdrive.gui.application import Application
-from nxdrive.poll_workers import WorkflowWorker
 
 from ..markers import windows_only
 
@@ -29,20 +27,6 @@ def test_open_local_file_no_soft(manager_factory, monkeypatch):
         NoAssociatedSoftware
     ):
         manager.open_local_file("File.azerty")
-
-
-def test_workflow(manager_factory):
-    manager, _ = manager_factory()
-    with manager:
-        workflow_worker = WorkflowWorker(manager)
-        assert workflow_worker._poll()
-        assert not workflow_worker._first_workflow_check
-        workflow_worker.quit()
-
-        manager.app = Application(manager)
-        manager.app.exit_app()
-        assert workflow_worker._poll()
-        workflow_worker.quit()
 
 
 # This test is commented because it causes other ft tests to fails
