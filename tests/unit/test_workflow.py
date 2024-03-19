@@ -44,7 +44,7 @@ def test_get_pending_task_for_multiple_doc(workflow, engine, task, remote):
     # Triggered through polling for multiple task
     remote.tasks.get = Mock(return_value=[task, task])
     engine.send_task_notification = Mock()
-    workflow.get_pending_tasks(workflow, engine, False)
+    assert workflow.get_pending_tasks(workflow, engine, False) is None
 
 
 def test_filtered_task(workflow, engine, task, remote):
@@ -53,18 +53,18 @@ def test_filtered_task(workflow, engine, task, remote):
     task.created = datetime_30_min_ago.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
     remote.tasks.get = Mock(return_value=[task])
     engine.send_task_notification = Mock()
-    workflow.get_pending_tasks(workflow, engine, False)
+    assert workflow.get_pending_tasks(workflow, engine, False) is None
 
     # raise exception
     task.created = None
-    workflow.get_pending_tasks(workflow, engine, False)
+    assert workflow.get_pending_tasks(workflow, engine, False) is None
 
 
 def test_fetch_document(workflow, engine, task, remote):
     remote.documents.get = Mock(path="/doc_path/doc.txt")
     engine.send_task_notification = Mock()
-    workflow.fetch_document(workflow, [task], engine)
+    assert workflow.fetch_document(workflow, [task], engine) is None
 
     # No response from remote.documents.get
     remote.documents.get = Mock(return_value=None)
-    workflow.fetch_document(workflow, [task], engine)
+    assert workflow.fetch_document(workflow, [task], engine) is None

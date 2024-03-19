@@ -172,7 +172,7 @@ class WorkflowWorker(PollWorker):
 
     def __init__(self, manager: "Manager", /):
         """Check every hour"""
-        super().__init__(60 * 4, "WorkflowWorker")
+        super().__init__(60 * 60, "WorkflowWorker")
         self.manager = manager
 
         self._first_workflow_check = True
@@ -193,8 +193,6 @@ class WorkflowWorker(PollWorker):
             self.workflow = self.app.workflow
             current_uid = self.app.engine_model.engines_uid[0]
             engine = self.manager.engines[current_uid]
-            self.workflow.get_pending_tasks(
-                engine.uid, engine, self._first_workflow_check
-            )
+            self.workflow.get_pending_tasks(engine, self._first_workflow_check)
 
         return True
