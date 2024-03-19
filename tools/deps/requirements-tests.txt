@@ -38,15 +38,16 @@ black==23.12.1 \
     --hash=sha256:c88b3711d12905b74206227109272673edce0cb29f27e1385f33b0163c414bba \
     --hash=sha256:dd15245c8b68fe2b6bd0f32c1556509d11bb33aec9b5d0866dd8e2ed3dba09c2 \
     --hash=sha256:e0aaf6041986767a5e0ce663c7a2f0e9eaf21e6ff87a5f95cbf3675bfd4c41d2
-click==8.0.1 \
-    --hash=sha256:fba402a4a47334742d782209a7c79bc448911afe1149d07bdabdf480b3e2f4b6 \
-    --hash=sha256:8c04c11192119b1ef78ea049e0a6f0463e4c48ef00a30160c704337586f3ad7a
+click==8.1.7 \
+    --hash=sha256:ae74fb96c20a0277a1d615f1e4d73c8414f5a98db8b799a7931d1582f3390c28 \
+    --hash=sha256:ca9853ad459e787e2192211578cc907e7594e294c7ccc834310722b41b9ca6de
     # via black
 codespell==2.2.6 \
     --hash=sha256:9ee9a3e5df0990604013ac2a9f22fa8e57669c827124a2e961fe8a1da4cacc07 \
     --hash=sha256:a8c65d8eb3faa03deabab6b3bbe798bea72e1799c7e9e955d57eca4096abcff9
-colorama==0.4.4; sys_platform == "win32" \
-    --hash=sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2
+colorama==0.4.6; sys_platform == "win32" \
+    --hash=sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44 \
+    --hash=sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6
     # via pytest
 comtypes==1.2.1 ; sys_platform == "win32" \
     --hash=sha256:7284c781ace845daa1fa0a28c5f702e51982002ac12d27a2b8862d4f21f52f8e \
@@ -186,9 +187,9 @@ nodeenv==1.8.0 \
     --hash=sha256:d51e0c37e64fbf47d017feac3145cdbb58836d7eee8c6f6d3b6880c5456227d2 \
     --hash=sha256:df865724bb3c3adc86b3876fa209771517b0cfe596beff01a92700e0e8be4cec
     # via pre-commit
-packaging==23.1 \
-    --hash=sha256:994793af429502c4ea2ebf6bf664629d07c1a9fe974af92966e4b8d2df7edc61 \
-    --hash=sha256:a392980d2b6cffa644431898be54b0045151319d1e7ec34f0cfed48767dd334f
+packaging==24.0 \
+    --hash=sha256:2ddfb553fdf02fb784c234c7ba6ccc288296ceabec964ad2eae3777778130bc5 \
+    --hash=sha256:eb82c5e3e56209074766e6885bb04b8c38a0c015d0a30036ebe7ece34c9989e9
     # via pytest
 pathspec==0.12.1 \
     --hash=sha256:a0d503e138a4c123b27490a4f7beda6a01c6f288df0e4a8b79c7eb0dc7b4cc08 \
