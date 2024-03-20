@@ -14,11 +14,11 @@ ShadowRectangle {
     ColumnLayout {
         id: menuContent
         spacing: 0
-        
+
         SystrayMenuItem {
             text: qsTr("Tasks")
             onClicked: {
-                api.show_tasks("Tasks Manager")
+                api.show_tasks()
                 control.visible = false
             }
         }

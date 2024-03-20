@@ -462,21 +462,31 @@ class QMLDriveApi(QObject):
         log.info(f"Show settings on section {section}")
         self.application.show_settings(section)
 
-    @pyqtSlot(str)
-    def show_tasks(self, var: str = "", /) -> None:
+    @pyqtSlot()
+    def show_tasks(self, /) -> None:
         self.application.hide_systray()
+        self.application.show_tasks()
+
+    @pyqtSlot(str, result=list)
+    def get_Tasks_list(self, uid: str = "", /) -> int:
         data = self._fetch_tasks()
-        log.info("Showing Task Manager")
-        self.application.show_tasks(data["entries"])
+        return data["entries"]
 
     @pyqtSlot()
     def fetch_pending_tasks(self, engine: Engine, /) -> None:
         data = self._fetch_tasks()
+        # print(f"$$$$  returning task_list: {data['entries']!r}")
         if data["resultsCount"] > 0:
             for task in data["entries"]:
                 log.info(f">>>> task: {task}")
                 log.info(f">>>> taskid: {task['id']}")
                 engine.fetch_pending_task_list(task["id"])
+
+    @pyqtSlot()
+    def get_Tasks_count(self):
+        data = self._fetch_tasks()
+        # print(f"<<<<<< ret: {data['resultsCount']!r}")
+        return data["resultsCount"] > 0
 
     def _fetch_tasks(self):
         endpoint = "/api/v1/task/"

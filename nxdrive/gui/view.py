@@ -10,6 +10,8 @@ from ..qt.imports import (
     QAbstractListModel,
     QModelIndex,
     QObject,
+    QStandardItem,
+    QStandardItemModel,
     Qt,
     pyqtProperty,
     pyqtSignal,
@@ -830,3 +832,43 @@ class FeatureModel(QObject):
     @property
     def restart_needed(self) -> bool:
         return self._restart_needed
+
+
+class TasksModel(QAbstractListModel):
+    TASK_LIST = qt.UserRole  # + 1
+
+    def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
+        super().__init__(parent)
+        self.tr = translate
+        self._model = QStandardItemModel()
+        print("##### setItemRoleNames")
+        self._model.setItemRoleNames(
+            {
+                self.TASK_LIST: b"task_list",
+            }
+        )
+        print("##### adding row Details")
+        self.add_row("Details")
+
+    def get_model(self):
+        return self._model
+
+    @pyqtSlot()
+    def loadList(self):
+        self._model.clear()
+
+        tasks_list = ["qwerty", "asdfgh"]  # get_Tasks_list()
+        for task in tasks_list:
+            print(f"///// self.add_row {task!r}")
+            self.add_row(task)
+
+    model = pyqtProperty(QObject, fget=get_model, constant=True)
+
+    def add_row(self, task):
+        item = QStandardItem()
+        item.setData(task, self.TASK_LIST)
+
+        self._model.appendRow({"task": "q"})
+
+        print(f"!!!!! _model: {self._model!r}")
+        print(f"!!!!!>>>>> _model: {self._model.__dir__()!r}")

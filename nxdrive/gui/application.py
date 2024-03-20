@@ -96,6 +96,7 @@ from .view import (
     FeatureModel,
     FileModel,
     LanguageModel,
+    TasksModel,
     TransferModel,
 )
 
@@ -297,6 +298,7 @@ class Application(QApplication):
         self.file_model = FileModel(self.translate)
         self.ignoreds_model = FileModel(self.translate)
         self.language_model = LanguageModel()
+        self.tasks_model = TasksModel(self.translate)
 
         self.add_engines(list(self.manager.engines.values()))
         self.engine_model.statusChanged.connect(self.update_status)
@@ -477,6 +479,7 @@ class Application(QApplication):
         context.setContextProperty("FileModel", self.file_model)
         context.setContextProperty("IgnoredsModel", self.ignoreds_model)
         context.setContextProperty("languageModel", self.language_model)
+        context.setContextProperty("TasksModel", self.tasks_model)
         context.setContextProperty("api", self.api)
         context.setContextProperty("application", self)
         context.setContextProperty("currentLanguage", self.current_language())
@@ -1008,13 +1011,9 @@ class Application(QApplication):
         self.direct_transfer_window.close()
 
     @pyqtSlot(str)
-    def show_tasks(self, data: dict, /) -> None:
+    def show_tasks(self, /) -> None:
         # Note: Keep synced with the TaskManager.qml file
-        # sections = {}
-        log.info(f">>>>>> application.show_tasks data: {data!r}")
-        self._window_root(
-            self.task_manager_window
-        )  # .setSection.emit(sections[section])
+        self._window_root(self.task_manager_window)
         self._center_on_screen(self.task_manager_window)
 
     def folder_duplicate_warning(
