@@ -6,6 +6,8 @@ import pytest
 from nuxeo.models import Document, Task
 
 from nxdrive.client.remote_client import Remote
+from nxdrive.gui.application import Application
+from nxdrive.poll_workers import WorkflowWorker
 
 
 @pytest.fixture()
@@ -25,6 +27,20 @@ def remote():
     remote.user_id = f"{uuid4()}"
     remote.tasks = Task
     return remote
+
+
+@pytest.fixture
+def application():
+    return Mock(spec=Application)
+
+
+@pytest.fixture
+def workflow_worker(manager, application, workflow):
+    # Create a WorkflowWorker instance with mocked dependencies
+    worker = WorkflowWorker(manager)
+    worker.app = application
+    worker.workflow = workflow
+    return worker
 
 
 def test_get_pending_task_for_no_doc(workflow, engine, task, remote):
@@ -68,3 +84,12 @@ def test_fetch_document(workflow, engine, task, remote):
     # No response from remote.documents.get
     remote.documents.get = Mock(return_value=None)
     workflow.fetch_document(workflow, [task], engine)
+
+
+def test_poll_initial_trigger(workflow_worker):
+    # Test initial trigger via workflow worker
+    workflow_worker._first_workflow_check = True
+    assert workflow_worker._poll()
+
+    workflow_worker.manager = None
+    assert not workflow_worker._poll()
