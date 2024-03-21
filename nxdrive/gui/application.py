@@ -479,7 +479,7 @@ class Application(QApplication):
         context.setContextProperty("FileModel", self.file_model)
         context.setContextProperty("IgnoredsModel", self.ignoreds_model)
         context.setContextProperty("languageModel", self.language_model)
-        context.setContextProperty("TasksModel", self.tasks_model)
+        context.setContextProperty("tasks_model", self.tasks_model)
         context.setContextProperty("api", self.api)
         context.setContextProperty("application", self)
         context.setContextProperty("currentLanguage", self.current_language())

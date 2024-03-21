@@ -834,41 +834,41 @@ class FeatureModel(QObject):
         return self._restart_needed
 
 
-class TasksModel(QAbstractListModel):
-    TASK_LIST = qt.UserRole  # + 1
+class TasksModel(QObject):
+    TASK_ROLE = qt.UserRole  # + 1
 
     def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
         super().__init__(parent)
-        self.tr = translate
-        self._model = QStandardItemModel()
-        print("##### setItemRoleNames")
-        self._model.setItemRoleNames(
+        # self.tr = translate
+        self.taskmodel = QStandardItemModel()
+        # print("##### setItemRoleNames")
+        self.taskmodel.setItemRoleNames(
             {
-                self.TASK_LIST: b"task_list",
+                self.TASK_ROLE: b"task",
             }
         )
         print("##### adding row Details")
         self.add_row("Details")
 
     def get_model(self):
-        return self._model
+        return self.taskmodel
 
     @pyqtSlot()
     def loadList(self):
-        self._model.clear()
+        self.taskmodel.clear()
 
         tasks_list = ["qwerty", "asdfgh"]  # get_Tasks_list()
         for task in tasks_list:
             print(f"///// self.add_row {task!r}")
-            self.add_row(task)
+            self.add_row(task)  # (task, self.TASK_ROLE)
 
     model = pyqtProperty(QObject, fget=get_model, constant=True)
 
     def add_row(self, task):
         item = QStandardItem()
-        item.setData(task, self.TASK_LIST)
+        item.setData(task, self.TASK_ROLE)
 
-        self._model.appendRow({"task": "q"})
+        self.taskmodel.appendRow(item)
 
-        print(f"!!!!! _model: {self._model!r}")
-        print(f"!!!!!>>>>> _model: {self._model.__dir__()!r}")
+        print(f"!!!!! _model: {self.taskmodel!r}")
+        print(f"!!!!!>>>>> _model: {self.model.__dir__()!r}")

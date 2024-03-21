@@ -115,7 +115,7 @@ Rectangle {
         ListView {
             anchors.fill: parent
             anchors.bottomMargin: 52
-            model: TasksModel.model
+            model: tasks_model.model
             /*
             model: ListModel {
                 ListElement {
@@ -139,7 +139,7 @@ Rectangle {
             y: 200
             text: qsTr("show list")
             onClicked: {
-                TasksModel.loadList();
+                tasks_model.loadList();
             }
         }
     }
