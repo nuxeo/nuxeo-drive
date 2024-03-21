@@ -289,6 +289,16 @@ class Remote(Nuxeo):
         """
         # Unauthorized and Forbidden exceptions are handled by the Python client.
         try:
+            log.info(f"******** self.token: {self.token!r}")
+            if self.token:
+                auth_token = self.auth.auth.token
+                log.info(f"******** auth.token: {auth_token!r}")
+                if self.token != auth_token:
+                    log.info(
+                        "******** Tokens are different, new token canbe stored into db"
+                    )
+                else:
+                    log.info("******** Tokens are same, no need to store into the db")
             return self.operations.execute(ssl_verify=Options.ssl_no_verify, **kwargs)
         except HTTPError as e:
             if e.status == requests.codes.not_found:
