@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Dict, List
 from nuxeo.models import Task
 
 from nxdrive.engine.engine import Engine
-from nxdrive.utils import get_verify
 
 if TYPE_CHECKING:
     from ..remote_client import Remote  # noqa
@@ -18,7 +17,6 @@ class Workflow:
 
     def __init__(self, remote: "Remote") -> None:
         self.remote = remote
-        self.verification_needed = get_verify()
 
     def fetch_document(self, tasks_list: Dict, engine: Engine) -> None:
         """Fetch document details"""
