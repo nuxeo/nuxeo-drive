@@ -280,9 +280,9 @@ pyobjc-framework-SystemConfiguration==10.1 ; sys_platform == "darwin" \
     # via pypac
 pypac==0.15.0 \
     --hash=sha256:558779a8f6a40d7f0f18e493b1d6386b3112a3a7874d67197aa723a46ee1744a
-pyparsing==2.4.7 \
-    --hash=sha256:c203ec8783bf771a155b207279b9bccb8dea02d8f0c9e5f8ead507bc3246ecc1 \
-    --hash=sha256:ef9d7589ef3c200abe66653d3f1ab1033c3c419ae9b9bdb1240a85b024efc88b
+pyparsing==3.1.2 \
+    --hash=sha256:a1bac0ce561155ecc3ed78ca94d3c9378656ad4c94c1270de543f621420f94ad \
+    --hash=sha256:f9db75911801ed778fe61bb643079ff86601aca99fcae6345aa67292038fb742
     # via packaging
 pyqt5-sip==12.8.1 \
     --hash=sha256:bb5a87b66fc1445915104ee97f7a20a69decb42f52803e3b0795fa17ff88226c \
