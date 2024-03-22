@@ -306,7 +306,12 @@ class Remote(Nuxeo):
                         remote_user = self.dao.get_config("remote_user")
                         server_url = self.dao.get_config("server_url")
                         key = f"{remote_user}{server_url}"
-                        secure_token = force_decode(encrypt(auth_token, key))
+                        stored_token = (
+                            json.dumps(auth_token)
+                            if isinstance(auth_token, dict)
+                            else auth_token
+                        )
+                        secure_token = force_decode(encrypt(stored_token, key))
                         self.dao.update_config("remote_token", secure_token)
                         log.info("Token Stored Successfully")
                     else:
