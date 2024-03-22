@@ -51,6 +51,7 @@ from ..utils import (
     get_date_from_sqlite,
     get_default_local_folder,
     normalized_path,
+    open_task,
     save_config,
     sizeof_fmt,
     test_url,
@@ -1168,5 +1169,5 @@ class QMLDriveApi(QObject):
         return html
 
     @pyqtSlot(str)
-    def on_clicked_f(self, s: str):
-        print(f">>>>>> s: {s!r}")
+    def on_clicked_open_task(self, task_id: str):
+        open_task(task_id)

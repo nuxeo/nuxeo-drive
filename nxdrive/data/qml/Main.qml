@@ -85,7 +85,7 @@ QtObject {
 
     property var taskManagerWindow: CustomWindow {
         id: taskManagerWindow
-        minimumWidth: 800
+        minimumWidth: 500
         minimumHeight: 600
         objectName: "taskManagerWindow"
         title: qsTr("TASK_MAMNAGER_WINDOW_TITLE").arg(APP_NAME) + tl.tr

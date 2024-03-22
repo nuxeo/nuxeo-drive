@@ -346,7 +346,7 @@ class Application(QApplication):
 
             # Task Manager
             self.task_manager_window = CustomWindow()
-            self.task_manager_window.setMinimumWidth(800)
+            self.task_manager_window.setMinimumWidth(500)
             self.task_manager_window.setMinimumHeight(600)
             self._fill_qml_context(self.task_manager_window.rootContext())
             self.task_manager_window.setSource(

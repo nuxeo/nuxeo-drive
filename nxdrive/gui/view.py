@@ -18,7 +18,13 @@ from ..qt.imports import (
     pyqtSlot,
 )
 from ..translator import Translator
-from ..utils import fetch_tasks, force_decode, get_date_from_sqlite, sizeof_fmt
+from ..utils import (
+    fetch_tasks,
+    force_decode,
+    get_date_from_sqlite,
+    get_document_info,
+    sizeof_fmt,
+)
 
 if TYPE_CHECKING:
     from .application import Application  # noqa
@@ -836,6 +842,7 @@ class FeatureModel(QObject):
 
 class TasksModel(QObject):
     TASK_ROLE = qt.UserRole  # + 1
+    TASK_ID = qt.UserRole + 1
 
     def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -845,9 +852,10 @@ class TasksModel(QObject):
         self.taskmodel.setItemRoleNames(
             {
                 self.TASK_ROLE: b"task",
+                self.TASK_ID: b"task_id",
             }
         )
-        self.add_row("Please Refresh to View the List")
+        self.add_row("Please Refresh to View the List", self.TASK_ROLE)
 
     def get_model(self):
         return self.taskmodel
@@ -861,16 +869,23 @@ class TasksModel(QObject):
         tasks = fetch_tasks()
         tasks_list = tasks["entries"]
         for task in tasks_list:
+            doc_info = get_document_info(task["targetDocumentIds"][0]["id"])
             data = (
-                "Review requested for: "
-                + task["name"]
-                + " by: "
+                task["workflowModelName"]
+                + " requested for: "
+                + doc_info["title"]
+                + "\n"
+                + "By: "
                 + task["workflowInitiator"]
+                + "\n"
+                + "Please review by:"
+                + task["dueDate"]
             )
-            self.add_row(data)  # (task, self.TASK_ROLE)
+            self.add_row(data, self.TASK_ROLE)  # (task, self.TASK_ROLE)
+            self.add_row(task["id"], self.TASK_ID)
 
-    def add_row(self, task):
+    def add_row(self, task, role):
         item = QStandardItem()
-        item.setData(task, self.TASK_ROLE)
+        item.setData(task, role)
 
         self.taskmodel.appendRow(item)

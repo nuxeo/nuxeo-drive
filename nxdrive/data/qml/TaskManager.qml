@@ -124,13 +124,35 @@ Rectangle {
         }
         Component {
             id: tasksDelegate
+            //width: parent.width
             Row {
-                id: r
+                id: rw
                 spacing: 50
-                Text {
+                width: parent.width
+                //border.color: "black"
+                ScaledText {
                     text: task
-                    color: r.ListView.isCurrentItem ? "white" : "black"
+                    padding: 5
+                    //height: parent.height
+                    horizontalAlignment: Text.AlignLeft
+                    verticalAlignment: Text.AlignVCenter
                 }
+                IconLabel {
+                    icon: MdiFont.Icon.folder
+                    iconColor: secondaryIcon
+                    onClicked: api.on_clicked_open_task(task_id)
+                }
+
+                /*
+                Link {
+                    //id: csvFileLink
+                    Layout.fillWidth: true
+                    elide: Text.ElideMiddle
+                    text: qsTr("Review")
+                    //visible: task_id != ''
+                    onClicked: api.on_clicked_open_task(task_id)
+                }*/
+
                 /*MouseArea {
                     anchors.fill: parent
                     hoverEnabled: true
@@ -144,13 +166,14 @@ Rectangle {
             }
         }
         ListView {
-            //id = listv
             anchors.fill: parent
             anchors.bottomMargin: 52
+            width: parent.width
+            y: 80
             anchors.topMargin: 80
             model: tasks_model.model
             delegate: tasksDelegate
-            highlight: Rectangle{color: lightGray}
+            //highlight: Rectangle{color: lightGray}
             focus: true
         }
         Button {

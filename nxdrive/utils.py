@@ -10,6 +10,7 @@ import os.path
 import re
 import stat
 import sys
+import webbrowser
 from configparser import DEFAULTSECT, ConfigParser
 from copy import deepcopy
 from datetime import datetime
@@ -1356,10 +1357,39 @@ def fetch_tasks():
             verify=True,
             timeout=3600,
             headers=headers,
-            auth=("Administrator", "Administrator"),
+            auth=("user1", "user1"),
         )
     except Exception:
         log.exception("Unable to fetch tasks")
         response = {}
 
     return response.json()
+
+
+def get_document_info(doc_id: str):
+    endpoint = "/api/v1/id/"
+    url = f"http://localhost:8080/nuxeo{endpoint}{doc_id}"
+    print(f"^^^^^^ get_document_info url: {url!r}")
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+    }
+    try:
+        response = requests.get(
+            url=url,
+            verify=True,
+            timeout=3600,
+            headers=headers,
+            auth=("user1", "user1"),
+        )
+        return response.json()
+    except Exception:
+        log.exception("Unable to get the document info")
+        return {}
+
+
+def open_task(task_id: str):
+    endpoint = "/ui/#!/tasks/"
+    url = f"http://localhost:8080/nuxeo{endpoint}{task_id}"
+    print(f"##### opening url: {url!r}")
+    webbrowser.open(url)
