@@ -30,8 +30,20 @@ def remote():
 
 
 @pytest.fixture
-def application():
-    return Mock(spec=Application)
+def application(manager):
+    application = Mock(spec=Application)
+    application.manager = manager
+    application._init_translator = Mock()
+    application.setWindowIcon = Mock()
+    application.setApplicationName = Mock()
+    application.setQuitOnLastWindowClosed = Mock()
+    application.show_metrics_acceptance = Mock()
+    application.init_checks = Mock()
+    application._setup_notification_center = Mock()
+    application.manager.preferences_metrics_chosen = True
+    application.manager.old_version = "1.0.0"
+    application.manager.version = "1.1.0"
+    return application
 
 
 @pytest.fixture
@@ -93,3 +105,9 @@ def test_poll_initial_trigger(workflow_worker):
 
     workflow_worker.manager = None
     assert not workflow_worker._poll()
+
+
+def test_init_workflow_with_app(application):
+    application.manager.engines = {"engine_uid_1": Mock(), "engine_uid_2": Mock()}
+
+    application.init_gui()
