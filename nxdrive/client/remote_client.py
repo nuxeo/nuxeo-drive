@@ -69,6 +69,8 @@ from ..options import Options
 from ..qt.imports import QApplication
 from ..utils import (
     compute_digest,
+    encrypt,
+    force_decode,
     get_current_locale,
     get_verify,
     lock_path,
@@ -126,6 +128,8 @@ class Remote(Nuxeo):
         log.info(
             f"SSL verify: {verify}-> will be changed to {self.verification_needed}"
         )
+
+        self.token = token
 
         super().__init__(
             auth=auth,
@@ -289,17 +293,28 @@ class Remote(Nuxeo):
         """
         # Unauthorized and Forbidden exceptions are handled by the Python client.
         try:
+            resp = self.operations.execute(ssl_verify=Options.ssl_no_verify, **kwargs)
             log.info(f"******** self.token: {self.token!r}")
-            if self.token:
+            if self.token and self.auth:
                 auth_token = self.auth.auth.token
                 log.info(f"******** auth.token: {auth_token!r}")
                 if self.token != auth_token:
                     log.info(
                         "******** Tokens are different, new token canbe stored into db"
                     )
+                    if self.dao:
+                        remote_user = self.dao.get_config("remote_user")
+                        server_url = self.dao.get_config("server_url")
+                        key = f"{remote_user}{server_url}"
+                        secure_token = force_decode(encrypt(auth_token, key))
+                        self.dao.update_config("remote_token", secure_token)
+                        log.info("Token Stored Successfully")
+                    else:
+                        log.info("dao is not available")
+
                 else:
                     log.info("******** Tokens are same, no need to store into the db")
-            return self.operations.execute(ssl_verify=Options.ssl_no_verify, **kwargs)
+            return resp
         except HTTPError as e:
             if e.status == requests.codes.not_found:
                 raise NotFound("Response code not found")
