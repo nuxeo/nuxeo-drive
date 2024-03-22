@@ -102,44 +102,66 @@ Rectangle {
         id: taskManager
         anchors.fill: parent
 
+        property string engineUid: ""
+        signal setEngine(string uid)
+
+        onSetEngine: {
+            engineUid = uid
+        }
+
+        TabBar {
+            id: bar
+            width: parent.width
+            height: 50
+            spacing: 0
+            anchors.top: buttonzone.bottom
+            SettingsTab {
+                text: qsTr("Pending Tasks")
+                barIndex: bar.currentIndex;
+                index: 0
+                anchors.top: parent.top
+            }
+        }
         Component {
             id: tasksDelegate
             Row {
+                id: r
                 spacing: 50
                 Text {
                     text: task
+                    color: r.ListView.isCurrentItem ? "white" : "black"
                 }
+                /*MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onEntered: {
+                        var x = parent.x
+                        var y = parent.y
+                        var index = listv.indexAt(x, y)
+                        listv.currentIndex = index
+                    }
+                }*/
             }
         }
-
         ListView {
+            //id = listv
             anchors.fill: parent
             anchors.bottomMargin: 52
+            anchors.topMargin: 80
             model: tasks_model.model
-            /*
-            model: ListModel {
-                ListElement {
-                    task: "Task 1"
-                }
-                ListElement {
-                    task: "Task 2"
-                }
-                ListElement {
-                    task: "Task 3"
-                }
-            }
-            */
             delegate: tasksDelegate
+            highlight: Rectangle{color: lightGray}
+            focus: true
         }
-
         Button {
             id: btnShowList
-
-            x: 200
-            y: 200
+            width: parent.width
+            height: 30
+            y: 50
             text: qsTr("show list")
             onClicked: {
                 tasks_model.loadList();
             }
         }
+
     }

@@ -18,7 +18,7 @@ from ..qt.imports import (
     pyqtSlot,
 )
 from ..translator import Translator
-from ..utils import force_decode, get_date_from_sqlite, sizeof_fmt
+from ..utils import fetch_tasks, force_decode, get_date_from_sqlite, sizeof_fmt
 
 if TYPE_CHECKING:
     from .application import Application  # noqa
@@ -847,28 +847,30 @@ class TasksModel(QObject):
                 self.TASK_ROLE: b"task",
             }
         )
-        print("##### adding row Details")
-        self.add_row("Details")
+        self.add_row("Please Refresh to View the List")
 
     def get_model(self):
         return self.taskmodel
+
+    model = pyqtProperty(QObject, fget=get_model, constant=True)
 
     @pyqtSlot()
     def loadList(self):
         self.taskmodel.clear()
 
-        tasks_list = ["qwerty", "asdfgh"]  # get_Tasks_list()
+        tasks = fetch_tasks()
+        tasks_list = tasks["entries"]
         for task in tasks_list:
-            print(f"///// self.add_row {task!r}")
-            self.add_row(task)  # (task, self.TASK_ROLE)
-
-    model = pyqtProperty(QObject, fget=get_model, constant=True)
+            data = (
+                "Review requested for: "
+                + task["name"]
+                + " by: "
+                + task["workflowInitiator"]
+            )
+            self.add_row(data)  # (task, self.TASK_ROLE)
 
     def add_row(self, task):
         item = QStandardItem()
         item.setData(task, self.TASK_ROLE)
 
         self.taskmodel.appendRow(item)
-
-        print(f"!!!!! _model: {self.taskmodel!r}")
-        print(f"!!!!!>>>>> _model: {self.model.__dir__()!r}")

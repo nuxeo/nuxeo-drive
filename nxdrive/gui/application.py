@@ -346,8 +346,8 @@ class Application(QApplication):
 
             # Task Manager
             self.task_manager_window = CustomWindow()
-            self.task_manager_window.setMinimumWidth(600)
-            self.task_manager_window.setMinimumHeight(480)
+            self.task_manager_window.setMinimumWidth(800)
+            self.task_manager_window.setMinimumHeight(600)
             self._fill_qml_context(self.task_manager_window.rootContext())
             self.task_manager_window.setSource(
                 QUrl.fromLocalFile(str(find_resource("qml", file="TaskManager.qml")))
@@ -1013,6 +1013,8 @@ class Application(QApplication):
     @pyqtSlot(str)
     def show_tasks(self, /) -> None:
         # Note: Keep synced with the TaskManager.qml file
+        # window = self._window_root(self.task_manager_window)
+        # window.setEngine.emit("uid_dummy")
         self._window_root(self.task_manager_window)
         self._center_on_screen(self.task_manager_window)
 

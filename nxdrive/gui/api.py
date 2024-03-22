@@ -46,6 +46,7 @@ from ..translator import Translator
 from ..updater.constants import Login
 from ..utils import (
     disk_space,
+    fetch_tasks,
     force_decode,
     get_date_from_sqlite,
     get_default_local_folder,
@@ -475,7 +476,6 @@ class QMLDriveApi(QObject):
     @pyqtSlot()
     def fetch_pending_tasks(self, engine: Engine, /) -> None:
         data = self._fetch_tasks()
-        # print(f"$$$$  returning task_list: {data['entries']!r}")
         if data["resultsCount"] > 0:
             for task in data["entries"]:
                 log.info(f">>>> task: {task}")
@@ -489,25 +489,7 @@ class QMLDriveApi(QObject):
         return data["resultsCount"] > 0
 
     def _fetch_tasks(self):
-        endpoint = "/api/v1/task/"
-        url = f"http://localhost:8080/nuxeo{endpoint}"
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-        }
-        try:
-            response = requests.get(
-                url=url,
-                verify=True,
-                timeout=3600,
-                headers=headers,
-                auth=("Administrator", "Administrator"),
-            )
-        except Exception:
-            log.exception("Unable to fetch tasks")
-            response = {}
-
-        return response.json()
+        return fetch_tasks()
 
     @pyqtSlot()
     def quit(self) -> None:
@@ -1184,3 +1166,7 @@ class QMLDriveApi(QObject):
             except IndexError:
                 log.info("No Pending Tasks Present")
         return html
+
+    @pyqtSlot(str)
+    def on_clicked_f(self, s: str):
+        print(f">>>>>> s: {s!r}")

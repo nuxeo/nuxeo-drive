@@ -82,11 +82,11 @@ QtObject {
 
         DirectTransfer { id: directTransfer }
     }
-    
+
     property var taskManagerWindow: CustomWindow {
         id: taskManagerWindow
-        minimumWidth: 600
-        minimumHeight: 480
+        minimumWidth: 800
+        minimumHeight: 600
         objectName: "taskManagerWindow"
         title: qsTr("TASK_MAMNAGER_WINDOW_TITLE").arg(APP_NAME) + tl.tr
         width: taskManager.width; height: taskManager.height
