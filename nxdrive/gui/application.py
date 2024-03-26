@@ -215,6 +215,9 @@ class Application(QApplication):
         # Setup notification center for macOS
         if MAC:
             self._setup_notification_center()
+        current_uid = self.engine_model.engines_uid[0]
+        engine = self.manager.engines[current_uid]
+        self.api.fetch_pending_tasks(engine)
 
         # Application update
         self.manager.updater.appUpdated.connect(self.quit)
@@ -259,6 +262,7 @@ class Application(QApplication):
             del self.settings_window
             del self.systray_window
             del self.direct_transfer_window
+            del self.task_manager_window
         else:
             del self.app_engine
 
@@ -327,6 +331,15 @@ class Application(QApplication):
             self.direct_transfer_window.setSource(
                 QUrl.fromLocalFile(str(find_resource("qml", file="DirectTransfer.qml")))
             )
+            
+            # Task Manager
+            self.task_manager_window = CustomWindow()
+            self.task_manager_window.setMinimumWidth(300)
+            self.task_manager_window.setMinimumHeight(240)
+            self._fill_qml_context(self.task_manager_window.rootContext())
+            self.task_manager_window.setSource(
+                QUrl.fromLocalFile(str(find_resource("qml", file="TaskManager.qml")))
+            )
 
             flags |= qt.Popup
         else:
@@ -342,6 +355,7 @@ class Application(QApplication):
             self.direct_transfer_window = root.findChild(
                 CustomWindow, "directTransferWindow"
             )
+            self.task_manager_window = root.findChild(CustomWindow, "taskManagerWindow")
 
             if LINUX:
                 flags |= qt.Drawer
@@ -360,6 +374,7 @@ class Application(QApplication):
         if self.manager.engines:
             current_uid = self.engine_model.engines_uid[0]
             engine = self.manager.engines[current_uid]
+            # self.api.fetch_pending_tasks(engine)
             self.get_last_files(current_uid)
             self.refresh_transfers(engine.dao)
             self.update_status(engine)
@@ -886,6 +901,14 @@ class Application(QApplication):
         }
         self._window_root(self.settings_window).setSection.emit(sections[section])
         self._center_on_screen(self.settings_window)
+        
+    @pyqtSlot(str)
+    def show_tasks(self, section: str, /) -> None:
+        # Note: Keep synced with the TaskManager.qml file
+        sections = {
+        }
+        self._window_root(self.task_manager_window) # .setSection.emit(sections[section])
+        self._center_on_screen(self.task_manager_window)
 
     @pyqtSlot()
     def show_systray(self) -> None:
