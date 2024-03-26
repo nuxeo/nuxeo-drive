@@ -1,7 +1,7 @@
 from shutil import copyfile
 
 from .. import ensure_no_exception
-from .common import OneUserTest
+from .conftest import OneUserTest
 
 
 class TestSpecialFiles(OneUserTest):

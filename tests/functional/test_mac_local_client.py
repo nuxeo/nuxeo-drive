@@ -1,5 +1,5 @@
 from ..markers import mac_only
-from .common import OneUserTest
+from .conftest import OneUserTest
 
 try:
     import xattr

@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from nxdrive.constants import WINDOWS
 
-from .common import OneUserTest
+from .conftest import OneUserTest
 
 # Number of chars in path "C:\...\Nuxeo..." is approx 96 chars
 FOLDER_A = "A" * 90

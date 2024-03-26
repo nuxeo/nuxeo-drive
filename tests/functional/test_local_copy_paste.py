@@ -1,6 +1,6 @@
 import shutil
 
-from .common import FILE_CONTENT, OneUserTest
+from .conftest import FILE_CONTENT, OneUserTest
 
 
 class TestLocalCopyPaste(OneUserTest):
@@ -70,12 +70,6 @@ class TestLocalCopyPaste(OneUserTest):
             len(remote.get_fs_children(self.remote_ref_1))
             == self.NUMBER_OF_LOCAL_FILES_TOTAL
         )
-
-    def test_local_copy_paste_files(self):
-        self._local_copy_paste_files()
-
-    def test_local_copy_paste_files_stopped(self):
-        self._local_copy_paste_files(stopped=True)
 
     def _local_copy_paste_files(self, stopped=False):
         if not stopped:

@@ -9,7 +9,7 @@ import pytest
 from nxdrive.constants import ROOT
 
 from ..utils import random_png
-from .common import OneUserTest
+from .conftest import OneUserTest
 
 
 def configure_logs():

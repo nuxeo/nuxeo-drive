@@ -1,9 +1,9 @@
+import shutil
 from contextlib import suppress
 from pathlib import Path
 
-from .. import ensure_no_exception
 from ..utils import random_png
-from .common import OneUserTest
+from .conftest import OneUserTest
 
 
 class TestLocalMoveFolders(OneUserTest):
@@ -60,11 +60,43 @@ class TestLocalMoveFolders(OneUserTest):
                 self.app.local_scan_finished
             )
 
-    def test_local_move_folder_both_sides_while_stopped(self):
-        self._test_local_move_folder_both_sides(False)
+    def test_local_move_folder_with_files(self):
+        count = 10
+        self._setup(count=count)
+        local = self.local_1
+        remote = self.remote_1
+        remote_doc = self.remote_document_client_1
+        src = local.abspath(self.folder_path_1)
+        dst = local.abspath(self.folder_path_2)
+        shutil.move(src, dst)
+        self.wait_sync()
+        names = {f"file{n + 1:03d}.png" for n in range(count)}
 
-    def test_local_move_folder_both_sides_while_unbinded(self):
-        self._test_local_move_folder_both_sides(True)
+        # Check that a1 doesn't exist anymore locally and remotely
+        assert not local.exists("/a1")
+        assert len(remote_doc.get_children_info(self.workspace)) == 1
+
+        # Check /a2 and /a2/a1
+        for folder in ("/a2", "/a2/a1"):
+            assert local.exists(folder)
+            children = [
+                child.name
+                for child in local.get_children_info(folder)
+                if not child.folderish
+            ]
+            assert len(children) == count
+            assert set(children) == names
+
+            uid = local.get_remote_id(folder)
+            assert uid
+            assert remote.fs_exists(uid)
+            children = [
+                child.name
+                for child in remote.get_fs_children(uid)
+                if not child.folderish
+            ]
+            assert len(children) == count
+            assert set(children) == names
 
     def _test_local_move_folder_both_sides(self, unbind):
         """
@@ -120,20 +152,39 @@ class TestLocalMoveFolders(OneUserTest):
         )
         assert folder_pair_state.pair_state == "conflicted"
 
-    def test_local_move_root_folder_with_unicode(self):
+    def test_local_move_folder(self):
+        """
+        A simple test to ensure we do not create useless URLs.
+        This is to handle cases when the user creates a new folder,
+        it has the default name set to the local system:
+            "New folder"
+            "Nouveau dossier (2)"
+            ...
+        The folder is created directly and it generates useless URLs.
+        So we move the document to get back good URLs. As the document has been
+        renamed above, the document's title is already the good one.
+        """
         local = self.local_1
+        remote = self.remote_1
 
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
-        assert local.exists("/")
+        name_orig = "Nouveau dossier (42)"
+        name_new = "C'est le vrai nom pârdi !"
 
-        with ensure_no_exception():
-            # Rename the root folder
-            root_path = local.base_folder.parent
-            local.unlock_ref(root_path, is_abs=True)
-            root_path.rename(root_path.with_name("root moved, 👆!"))
+        local.make_folder("/", name_orig)
+        self.wait_sync()
 
-            self.wait_sync()
+        child = remote.get_children_info(self.workspace)[0]
+        assert child.name == name_orig
+        assert child.path.endswith(name_orig)
 
-        assert not local.exists("/")
+        # Rename to fix the meaningfulness URL
+        local.rename(f"/{name_orig}", name_new)
+        self.wait_sync()
+
+        assert remote.exists(f"/{name_new}")
+        child = remote.get_children_info(self.workspace)[0]
+        assert child.name == name_new
+        assert child.path.endswith(name_new)

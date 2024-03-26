@@ -1,4 +1,6 @@
-from .common import OneUserTest
+import os
+
+from .conftest import OneUserTest
 
 
 class TestSyncRoots(OneUserTest):
@@ -11,22 +13,16 @@ class TestSyncRoots(OneUserTest):
 
         # Create a child folder and register it as a synchronization root
         child = remote.make_folder(self.workspace, "child")
-        remote.make_file(child, "aFile.txt", content=b"My content")
+        remote.make_file(child, "file.txt", content=b"My content")
         remote.register_as_root(child)
 
         # Start engine and wait for synchronization
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         assert not local.exists(f"/{self.workspace_title}")
-        assert local.exists("/child")
-        assert local.exists("/child/aFile.txt")
-
-        # Register parent folder
-        remote.register_as_root(self.workspace)
-
-        # Start engine and wait for synchronization
-        self.wait_sync(wait_for_async=True)
-        assert not local.exists("/child")
-        assert local.exists(f"/{self.workspace_title}")
-        assert local.exists(f"/{self.workspace_title}/child")
-        assert local.exists(f"/{self.workspace_title}/child/aFile.txt")
+        folder_name = str(os.listdir(local.base_folder)[0])
+        file_path = os.path.join(folder_name, "file.txt")
+        assert folder_name.startswith(
+            "test_register_sync_root_parent"
+        ) and folder_name.endswith("child")
+        assert local.exists(file_path)

@@ -1,4 +1,4 @@
-from .common import OneUserTest
+from .conftest import OneUserTest
 
 
 class TestCopy(OneUserTest):
