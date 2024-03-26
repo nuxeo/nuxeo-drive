@@ -294,36 +294,27 @@ class Remote(Nuxeo):
         # Unauthorized and Forbidden exceptions are handled by the Python client.
         try:
             resp = self.operations.execute(ssl_verify=Options.ssl_no_verify, **kwargs)
-            log.info(f"******** self.token: {self.token!r}")
             if self.token and self.auth:
                 auth_token = self.auth.auth.token
-                log.info(f"******** auth.token: {auth_token!r}")
-                if self.token != auth_token:
-                    log.info(
-                        "******** Tokens are different, new token canbe stored into db"
-                    )
-                    if self.dao:
-                        remote_user = self.dao.get_config("remote_user")
-                        server_url = self.dao.get_config("server_url")
-                        key = f"{remote_user}{server_url}"
-                        stored_token = (
-                            json.dumps(auth_token)
-                            if isinstance(auth_token, dict)
-                            else auth_token
-                        )
-                        secure_token = force_decode(encrypt(stored_token, key))
-                        self.dao.update_config("remote_token", secure_token)
-                        log.info("Token Stored Successfully")
-                    else:
-                        log.info("dao is not available")
-
-                else:
-                    log.info("******** Tokens are same, no need to store into the db")
+                if self.token != auth_token and self.dao:
+                    self._store_token(auth_token)
+                    self.token = auth_token
             return resp
         except HTTPError as e:
             if e.status == requests.codes.not_found:
                 raise NotFound("Response code not found")
             raise e
+
+    def _store_token(self, auth_token):
+        remote_user = self.dao.get_config("remote_user")
+        server_url = self.dao.get_config("server_url")
+        key = f"{remote_user}{server_url}"
+        stored_token = (
+            json.dumps(auth_token) if isinstance(auth_token, dict) else auth_token
+        )
+        secure_token = force_decode(encrypt(stored_token, key))
+        self.dao.update_config("remote_token", secure_token)
+        log.info("Token Stored Successfully")
 
     @staticmethod
     def escape(path: str, /) -> str:
