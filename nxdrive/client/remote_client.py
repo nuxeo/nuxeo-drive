@@ -305,7 +305,7 @@ class Remote(Nuxeo):
                 raise NotFound("Response code not found")
             raise e
 
-    def _store_token(self, auth_token):
+    def _store_token(self, auth_token: Any) -> None:
         remote_user = self.dao.get_config("remote_user")
         server_url = self.dao.get_config("server_url")
         key = f"{remote_user}{server_url}"
