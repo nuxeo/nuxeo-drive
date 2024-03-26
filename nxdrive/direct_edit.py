@@ -17,7 +17,7 @@ from nuxeo.handlers.default import Uploader
 from nuxeo.models import Blob
 from requests import codes
 from watchdog.events import FileSystemEvent
-from watchdog.observers import Observer
+from watchdog.observers import Observer, api
 
 from .client.local import LocalClient
 from .client.remote_client import Remote
@@ -96,7 +96,7 @@ class DirectEdit(Worker):
 
         self._event_handler: Optional[DriveFSEventHandler] = None
         self._metrics = {"edit_files": 0}
-        self._observer: Observer = None
+        self._observer: api.BaseObserver = None
         self.local = LocalClient(self._folder)
         self._upload_queue: Queue = Queue()
         self.is_already_locked = False

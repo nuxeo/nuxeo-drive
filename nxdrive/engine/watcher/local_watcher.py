@@ -11,7 +11,7 @@ from time import mktime, sleep
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple
 
 from watchdog.events import FileSystemEvent, PatternMatchingEventHandler
-from watchdog.observers import Observer
+from watchdog.observers import Observer, api
 
 from ...client.local import FileInfo
 from ...constants import LINUX, MAC, ROOT, UNACCESSIBLE_HASH, WINDOWS
@@ -90,7 +90,7 @@ class LocalWatcher(EngineWorker):
         }
 
         self._event_handler: Optional[DriveFSEventHandler] = None
-        self._observer: Optional[Observer] = None
+        self._observer: api.BaseObserver = None
         self._delete_events: Dict[str, Tuple[int, DocPair]] = {}
         self._folder_scan_events: Dict[Path, Tuple[float, DocPair]] = {}
 
