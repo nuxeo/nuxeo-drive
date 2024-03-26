@@ -11,6 +11,8 @@ from time import monotonic
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import unquote_plus, urlparse
 
+from nxdrive.client.workflow import Workflow
+
 from ..behavior import Behavior
 from ..constants import (
     APP_NAME,
@@ -216,6 +218,10 @@ class Application(QApplication):
         if MAC:
             self._setup_notification_center()
 
+        # Initiate workflow when drive starts
+        self.workflow, current_uid, engine = self.init_workflow()  # type: ignore
+        self.workflow.get_pending_tasks(current_uid, engine)
+
         # Application update
         self.manager.updater.appUpdated.connect(self.quit)
         self.manager.updater.serverIncompatible.connect(self._server_incompatible)
@@ -372,6 +378,13 @@ class Application(QApplication):
         )
 
         self.manager.featureUpdate.connect(self._update_feature_state)
+
+    def init_workflow(self):  # type: ignore
+        if self.manager.engines:
+            current_uid = self.engine_model.engines_uid[0]
+            engine = self.manager.engines[current_uid]
+            self.workflow = Workflow(engine.remote)
+            return self.workflow, current_uid, engine
 
     def _update_feature_state(self, name: str, value: bool, /) -> None:
         """Check if the feature model exists from *name* then update it with *value*."""

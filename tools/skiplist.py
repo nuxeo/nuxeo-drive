@@ -75,6 +75,7 @@ QAbstractListModel.nameRoles  # Internal use of QML
 QMLDriveApi.confirm_cancel_session  # Used in QML
 QMLDriveApi.default_local_folder  # Used in QML
 QMLDriveApi.default_server_url_value  # Used in QML
+QMLDriveApi.display_pending_task  # Used in QML
 QMLDriveApi.get_active_sessions_count  # Used in QML
 QMLDriveApi.get_completed_sessions_count  # Used in QML
 QMLDriveApi.get_disk_space_info_to_width  # Used in QML
