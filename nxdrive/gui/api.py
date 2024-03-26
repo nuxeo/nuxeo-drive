@@ -387,7 +387,7 @@ class QMLDriveApi(QObject):
         if not engine:
             return
 
-        self.application.show_server_folders(engine, None)
+        self.application.show_server_folders(engine, None, None)
 
     @pyqtSlot(str, result=str)
     def get_hostname_from_url(self, url: str, /) -> str:
@@ -576,7 +576,8 @@ class QMLDriveApi(QObject):
     def _balance_percents(self, result: Dict[str, float], /) -> Dict[str, float]:
         """Return an altered version of the dict in which no value is under a minimum threshold."""
 
-        result = {k: v for k, v in sorted(result.items(), key=lambda item: item[1])}
+        # result = {k: v for k, v in sorted(result.items(), key=lambda item: item[1])}
+        result = dict(sorted(result.items(), key=lambda item: item[1]))
         keys = list(result)
         min_threshold = 10
         data = 0.0
