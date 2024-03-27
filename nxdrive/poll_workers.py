@@ -165,3 +165,36 @@ class SyncAndQuitWorker(PollWorker):
             self.manager.application.quit()
 
         return True
+
+
+class WorkflowWorker(PollWorker):
+    """Class to check new Tasks for document review"""
+
+    def __init__(self, manager: "Manager", /):
+        """Check every hour"""
+        super().__init__(60 * 4, "WorkflowWorker")
+        self.manager = manager
+
+        self._first_workflow_check = True
+
+    @pyqtSlot(result=bool)
+    def _poll(self) -> bool:
+        """Start polling workflow after an hour. Initial trigger is via application"""
+
+        if not self.manager:
+            return False
+
+        if self._first_workflow_check:
+            self._first_workflow_check = False
+            return True
+
+        if self.manager.engines:
+            self.app = self.manager.application
+            self.workflow = self.app.workflow
+            current_uid = self.app.engine_model.engines_uid[0]
+            engine = self.manager.engines[current_uid]
+            self.workflow.get_pending_tasks(
+                engine.uid, engine, self._first_workflow_check
+            )
+
+        return True

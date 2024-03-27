@@ -11,6 +11,8 @@ from time import monotonic
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import unquote_plus, urlparse
 
+from nxdrive.client.workflow import Workflow
+
 from ..behavior import Behavior
 from ..constants import (
     APP_NAME,
@@ -94,6 +96,7 @@ from .view import (
     FeatureModel,
     FileModel,
     LanguageModel,
+    TasksModel,
     TransferModel,
 )
 
@@ -215,6 +218,17 @@ class Application(QApplication):
         # Setup notification center for macOS
         if MAC:
             self._setup_notification_center()
+        current_uid = self.engine_model.engines_uid[0]
+        engine = self.manager.engines[current_uid]
+        self.api.fetch_pending_tasks(engine)
+
+        # Initiate workflow when drive starts
+        self.workflow, current_uid, engine = self.init_workflow()
+        self.workflow.get_pending_tasks(current_uid, engine)
+
+        # Initiate workflow when drive starts
+        self.workflow, current_uid, engine = self.init_workflow()
+        self.workflow.get_pending_tasks(current_uid, engine)
 
         # Application update
         self.manager.updater.appUpdated.connect(self.quit)
@@ -259,6 +273,7 @@ class Application(QApplication):
             del self.settings_window
             del self.systray_window
             del self.direct_transfer_window
+            del self.task_manager_window
         else:
             del self.app_engine
 
@@ -283,6 +298,7 @@ class Application(QApplication):
         self.file_model = FileModel(self.translate)
         self.ignoreds_model = FileModel(self.translate)
         self.language_model = LanguageModel()
+        self.tasks_model = TasksModel(self.translate)
 
         self.add_engines(list(self.manager.engines.values()))
         self.engine_model.statusChanged.connect(self.update_status)
@@ -328,6 +344,15 @@ class Application(QApplication):
                 QUrl.fromLocalFile(str(find_resource("qml", file="DirectTransfer.qml")))
             )
 
+            # Task Manager
+            self.task_manager_window = CustomWindow()
+            self.task_manager_window.setMinimumWidth(500)
+            self.task_manager_window.setMinimumHeight(600)
+            self._fill_qml_context(self.task_manager_window.rootContext())
+            self.task_manager_window.setSource(
+                QUrl.fromLocalFile(str(find_resource("qml", file="TaskManager.qml")))
+            )
+
             flags |= qt.Popup
         else:
             self.app_engine = QQmlApplicationEngine()
@@ -342,6 +367,7 @@ class Application(QApplication):
             self.direct_transfer_window = root.findChild(
                 CustomWindow, "directTransferWindow"
             )
+            self.task_manager_window = root.findChild(CustomWindow, "taskManagerWindow")
 
             if LINUX:
                 flags |= qt.Drawer
@@ -372,6 +398,13 @@ class Application(QApplication):
         )
 
         self.manager.featureUpdate.connect(self._update_feature_state)
+
+    def init_workflow(self):
+        if self.manager.engines:
+            current_uid = self.engine_model.engines_uid[0]
+            engine = self.manager.engines[current_uid]
+            self.workflow = Workflow(engine.remote)
+            return self.workflow, current_uid, engine
 
     def _update_feature_state(self, name: str, value: bool, /) -> None:
         """Check if the feature model exists from *name* then update it with *value*."""
@@ -446,6 +479,7 @@ class Application(QApplication):
         context.setContextProperty("FileModel", self.file_model)
         context.setContextProperty("IgnoredsModel", self.ignoreds_model)
         context.setContextProperty("languageModel", self.language_model)
+        context.setContextProperty("tasks_model", self.tasks_model)
         context.setContextProperty("api", self.api)
         context.setContextProperty("application", self)
         context.setContextProperty("currentLanguage", self.current_language())
@@ -975,6 +1009,14 @@ class Application(QApplication):
     def close_direct_transfer_window(self) -> None:
         """Close the Direct Transfer window."""
         self.direct_transfer_window.close()
+
+    @pyqtSlot(str)
+    def show_tasks(self, /) -> None:
+        # Note: Keep synced with the TaskManager.qml file
+        # window = self._window_root(self.task_manager_window)
+        # window.setEngine.emit("uid_dummy")
+        self._window_root(self.task_manager_window)
+        self._center_on_screen(self.task_manager_window)
 
     def folder_duplicate_warning(
         self, duplicates: List[str], remote_path: str, remote_url: str, /
