@@ -870,19 +870,30 @@ class TasksModel(QObject):
         tasks_list = tasks["entries"]
         for task in tasks_list:
             doc_info = get_document_info(task["targetDocumentIds"][0]["id"])
-            data = (
-                task["workflowModelName"]
-                + " requested for: "
+            """
+            data = {
+                "task_id": task["id"],
+                "workflow_type": task["workflowModelName"],
+                "doc_name": doc_info["title"],
+                "intiated_by": task["workflowInitiator"],
+                "due_date": task["dueDate"],
+            }
+            """
+            data = {
+                "task_details": task["workflowModelName"]
+                + "\n"
                 + doc_info["title"]
                 + "\n"
-                + "By: "
+                + "Initiator: "
                 + task["workflowInitiator"]
                 + "\n"
-                + "Please review by:"
-                + task["dueDate"]
-            )
+                + "Due:"
+                + task["dueDate"],
+                "task_id": task["id"],
+            }
+
             self.add_row(data, self.TASK_ROLE)  # (task, self.TASK_ROLE)
-            self.add_row(task["id"], self.TASK_ID)
+            # self.add_row(task["id"], self.TASK_ID)
 
     def add_row(self, task, role):
         item = QStandardItem()

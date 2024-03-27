@@ -19,6 +19,7 @@ ShadowRectangle {
             text: qsTr("Tasks")
             onClicked: {
                 api.show_tasks()
+                tasks_model.loadList();
                 control.visible = false
             }
         }
