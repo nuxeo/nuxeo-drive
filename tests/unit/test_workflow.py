@@ -6,6 +6,7 @@ import pytest
 from nuxeo.models import Document, Task
 
 from nxdrive.client.remote_client import Remote
+from nxdrive.client.workflow import Workflow
 from nxdrive.gui.application import Application
 from nxdrive.gui.view import EngineModel
 from nxdrive.poll_workers import WorkflowWorker
@@ -30,7 +31,12 @@ def remote():
     return remote
 
 
-@pytest.fixture
+@pytest.fixture()
+def workflow(remote):
+    return Workflow(remote)
+
+
+@pytest.fixture()
 def application(manager, workflow):
     application = Mock(spec=Application)
     application.manager = manager
@@ -48,7 +54,7 @@ def application(manager, workflow):
     return application
 
 
-@pytest.fixture
+@pytest.fixture()
 def workflow_worker(manager, application, workflow):
     # Create a WorkflowWorker instance with mocked dependencies
     worker = WorkflowWorker(manager)
@@ -57,24 +63,24 @@ def workflow_worker(manager, application, workflow):
     return worker
 
 
-def test_get_pending_task_for_no_doc(workflow, engine, task, remote):
+def test_get_pending_task_for_no_doc(workflow, engine, remote):
     # No response from api for pending task
     remote.tasks.get = Mock(return_value=[])
-    assert workflow.get_pending_tasks(workflow, engine) is None
+    assert workflow.get_pending_tasks(engine) is None
 
 
 def test_get_pending_task_for_single_doc(workflow, engine, task, remote):
     # Triggered through polling for single task
     remote.tasks.get = Mock(return_value=[task])
     workflow.fetch_document = Mock()
-    assert workflow.get_pending_tasks(workflow, engine, False) is None
+    assert workflow.get_pending_tasks(engine, False) is None
 
 
 def test_get_pending_task_for_multiple_doc(workflow, engine, task, remote):
     # Triggered through polling for multiple task
     remote.tasks.get = Mock(return_value=[task, task])
     engine.send_task_notification = Mock()
-    assert workflow.get_pending_tasks(workflow, engine, False) is None
+    assert workflow.get_pending_tasks(engine, False) is None
 
 
 def test_filtered_task(workflow, engine, task, remote):
@@ -83,21 +89,21 @@ def test_filtered_task(workflow, engine, task, remote):
     task.created = datetime_30_min_ago.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
     remote.tasks.get = Mock(return_value=[task])
     engine.send_task_notification = Mock()
-    assert workflow.get_pending_tasks(workflow, engine, False) is None
+    assert workflow.get_pending_tasks(engine, False) is None
 
     # raise exception
     task.created = None
-    assert workflow.get_pending_tasks(workflow, engine, False) is None
+    assert workflow.get_pending_tasks(engine, False) is None
 
 
 def test_fetch_document(workflow, engine, task, remote):
     remote.documents.get = Mock(path="/doc_path/doc.txt")
     engine.send_task_notification = Mock()
-    workflow.fetch_document(workflow, [task], engine)
+    workflow.fetch_document([task], engine)
 
     # No response from remote.documents.get
     remote.documents.get = Mock(return_value=None)
-    workflow.fetch_document(workflow, [task], engine)
+    workflow.fetch_document([task], engine)
 
 
 def test_poll_initial_trigger(workflow_worker, manager, application):
