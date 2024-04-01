@@ -7,6 +7,7 @@ from nuxeo.models import Document, Task
 
 from nxdrive.client.remote_client import Remote
 from nxdrive.gui.application import Application
+from nxdrive.gui.view import EngineModel
 from nxdrive.poll_workers import WorkflowWorker
 
 
@@ -30,7 +31,7 @@ def remote():
 
 
 @pytest.fixture
-def application(manager):
+def application(manager, workflow):
     application = Mock(spec=Application)
     application.manager = manager
     application._init_translator = Mock()
@@ -43,6 +44,7 @@ def application(manager):
     application.manager.preferences_metrics_chosen = True
     application.manager.old_version = "1.0.0"
     application.manager.version = "1.1.0"
+    application.workflow = workflow
     return application
 
 
@@ -98,13 +100,24 @@ def test_fetch_document(workflow, engine, task, remote):
     workflow.fetch_document(workflow, [task], engine)
 
 
-def test_poll_initial_trigger(workflow_worker):
+def test_poll_initial_trigger(workflow_worker, manager, application):
     # Test initial trigger via workflow worker
     workflow_worker._first_workflow_check = True
     assert workflow_worker._poll()
 
+    # without manager
     workflow_worker.manager = None
     assert not workflow_worker._poll()
+
+    # with engines
+    engine_model = EngineModel(application)
+    engine_model.engines_uid = ["engine_uid"]
+    application.engine_model = engine_model
+    manager.application = application
+    manager.engines = {"engine_uid": "test_uid"}
+    workflow_worker.manager = manager
+    workflow_worker.workflow = Mock()
+    assert workflow_worker._poll()
 
 
 def test_init_workflow_with_app(application):
