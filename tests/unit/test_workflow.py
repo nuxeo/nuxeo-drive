@@ -7,6 +7,7 @@ from nuxeo.models import Document, Task
 
 from nxdrive.client.remote_client import Remote
 from nxdrive.client.workflow import Workflow
+from nxdrive.gui.api import QMLDriveApi
 from nxdrive.gui.application import Application
 from nxdrive.gui.view import EngineModel
 from nxdrive.poll_workers import WorkflowWorker
@@ -124,6 +125,29 @@ def test_poll_initial_trigger(workflow_worker, manager, application):
     workflow_worker.manager = manager
     workflow_worker.workflow = Mock()
     assert workflow_worker._poll()
+
+
+def test_api_display_pending_task_without_exec(application, manager, engine):
+    engine.get_task_url = Mock(return_value="/doc_url")
+    engine.open_remote = Mock()
+    manager.engines = {"engine_uid": engine}
+    application.manager = manager
+
+    drive_api = QMLDriveApi(application)
+    assert (
+        drive_api.display_pending_task("engine_uid", str(uuid4()), "/doc_path") is None
+    )
+
+
+def test_api_display_pending_task_with_exec(application, manager):
+    # Test exception handling
+    manager.engines = {"engine_uid": "dummy_engine"}
+    application.manager = manager
+
+    drive_api = QMLDriveApi(application)
+    assert (
+        drive_api.display_pending_task("engine_uid", str(uuid4()), "/doc_path") is None
+    )
 
 
 def test_init_workflow_with_app(application):

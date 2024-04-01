@@ -1119,5 +1119,5 @@ class QMLDriveApi(QObject):
             if engine:
                 url = engine.get_task_url(remote_ref)
                 engine.open_remote(url=url)
-        except OSError:
-            log.exception("Remote task cannot be opened")
+        except Exception as exec:
+            log.exception(f"Remote task cannot be opened: {exec}")
