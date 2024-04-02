@@ -237,13 +237,19 @@ class QMLDriveApi(QObject):
         return 0
 
     @pyqtSlot(str, result=int)
-    def fetch_pending_tasks(self, uid: str, /) -> str:
+    def tasks_remaining(self, uid: str, /) -> int:
         """Return pending tasks count for Drive notification."""
-        """engine = self._manager.engines.get(uid)
+        engine = self._manager.engines.get(uid)
         if engine:
-            workflow = self.application.workflow
-            workflow.get_pending_tasks(uid, engine)"""
-        return 2
+            tasks = self.application.fetch_pending_tasks(engine)
+            return len(tasks)
+        log.info("Engine not vailable")
+        return
+
+    @pyqtSlot(str)
+    def open_tasks_window(self, uid: str, /) -> None:
+        self.application.hide_systray()
+        print(f">>>>>> opening task window [engine_id: {uid!r}]")
 
     @pyqtSlot(str, str, int, float, bool)
     def pause_transfer(

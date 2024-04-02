@@ -1828,6 +1828,12 @@ class Application(QApplication):
         else:
             self.show_server_folders(engine, path)
 
+    def fetch_pending_tasks(self, engine: Engine, /) -> list:
+        remote = engine.remote
+        user = {"userId": remote.user_id}
+        tasks = remote.tasks.get(user)
+        return tasks
+
     def update_status(self, engine: Engine, /) -> None:
         """
         Update the systray status for synchronization,
@@ -1840,6 +1846,12 @@ class Application(QApplication):
             return
 
         update_state = self.manager.updater.status
+
+        tasks = self.fetch_pending_tasks(engine)
+        task_state = "no_tasks_available"
+        if len(tasks) > 0:
+            task_state = "tasks_available"
+        # task_state = "no_tasks_available"
 
         # Check synchronization state
         if self.manager.restart_needed:
@@ -1860,8 +1872,10 @@ class Application(QApplication):
         elif self.errors_model.count:
             error_state = "error"
 
+        print(f">>>>>> task_state{task_state!r}")
+
         self._window_root(self.systray_window).setStatus.emit(
-            sync_state, error_state, update_state
+            sync_state, error_state, update_state, task_state
         )
 
     @pyqtSlot(object)
