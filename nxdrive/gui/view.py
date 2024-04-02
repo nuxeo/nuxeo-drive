@@ -10,13 +10,21 @@ from ..qt.imports import (
     QAbstractListModel,
     QModelIndex,
     QObject,
+    QStandardItem,
+    QStandardItemModel,
     Qt,
     pyqtProperty,
     pyqtSignal,
     pyqtSlot,
 )
 from ..translator import Translator
-from ..utils import force_decode, get_date_from_sqlite, sizeof_fmt
+from ..utils import (
+    fetch_tasks,
+    force_decode,
+    get_date_from_sqlite,
+    get_document_info,
+    sizeof_fmt,
+)
 
 if TYPE_CHECKING:
     from .application import Application  # noqa
@@ -830,3 +838,65 @@ class FeatureModel(QObject):
     @property
     def restart_needed(self) -> bool:
         return self._restart_needed
+
+
+class TasksModel(QObject):
+    TASK_ROLE = qt.UserRole  # + 1
+    TASK_ID = qt.UserRole + 1
+
+    def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
+        super().__init__(parent)
+        # self.tr = translate
+        self.taskmodel = QStandardItemModel()
+        # print("##### setItemRoleNames")
+        self.taskmodel.setItemRoleNames(
+            {
+                self.TASK_ROLE: b"task",
+                self.TASK_ID: b"task_id",
+            }
+        )
+        self.add_row("Please Refresh to View the List", self.TASK_ROLE)
+
+    def get_model(self):
+        return self.taskmodel
+
+    model = pyqtProperty(QObject, fget=get_model, constant=True)
+
+    @pyqtSlot()
+    def loadList(self):
+        self.taskmodel.clear()
+
+        tasks = fetch_tasks()
+        tasks_list = tasks["entries"]
+        for task in tasks_list:
+            doc_info = get_document_info(task["targetDocumentIds"][0]["id"])
+            """
+            data = {
+                "task_id": task["id"],
+                "workflow_type": task["workflowModelName"],
+                "doc_name": doc_info["title"],
+                "intiated_by": task["workflowInitiator"],
+                "due_date": task["dueDate"],
+            }
+            """
+            data = {
+                "task_details": task["workflowModelName"]
+                + "\n"
+                + doc_info["title"]
+                + "\n"
+                + "Initiator: "
+                + task["workflowInitiator"]
+                + "\n"
+                + "Due:"
+                + task["dueDate"],
+                "task_id": task["id"],
+            }
+
+            self.add_row(data, self.TASK_ROLE)  # (task, self.TASK_ROLE)
+            # self.add_row(task["id"], self.TASK_ID)
+
+    def add_row(self, task, role):
+        item = QStandardItem()
+        item.setData(task, role)
+
+        self.taskmodel.appendRow(item)

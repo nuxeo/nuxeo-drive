@@ -16,6 +16,15 @@ ShadowRectangle {
         spacing: 0
 
         SystrayMenuItem {
+            text: qsTr("Tasks")
+            onClicked: {
+                api.show_tasks()
+                tasks_model.loadList();
+                control.visible = false
+            }
+        }
+
+        SystrayMenuItem {
             text: qsTr("SETTINGS") + tl.tr
             onClicked: {
                 api.show_settings("Advanced")

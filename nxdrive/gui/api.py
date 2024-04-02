@@ -1,3 +1,5 @@
+# flake8: noqa
+
 import json
 from dataclasses import asdict
 from logging import getLogger
@@ -21,6 +23,7 @@ from ..constants import (
     TransferStatus,
 )
 from ..dao.engine import EngineDAO
+from ..engine.engine import Engine
 from ..exceptions import (
     AddonForbiddenError,
     AddonNotInstalledError,
@@ -43,10 +46,12 @@ from ..translator import Translator
 from ..updater.constants import Login
 from ..utils import (
     disk_space,
+    fetch_tasks,
     force_decode,
     get_date_from_sqlite,
     get_default_local_folder,
     normalized_path,
+    open_task,
     save_config,
     sizeof_fmt,
     test_url,
@@ -320,6 +325,7 @@ class QMLDriveApi(QObject):
         engine = self._manager.engines.get(uid)
         if engine:
             path = engine.local.abspath(Path(ref))
+            self.fetch_pending_tasks(engine)
             self.application.show_metadata(path)
 
     @pyqtSlot(str, result=list)
@@ -474,6 +480,34 @@ class QMLDriveApi(QObject):
         self.application.show_settings(section)
 
     @pyqtSlot()
+    def show_tasks(self, /) -> None:
+        self.application.hide_systray()
+        self.application.show_tasks()
+
+    @pyqtSlot(str, result=list)
+    def get_Tasks_list(self, uid: str = "", /) -> int:
+        data = self._fetch_tasks()
+        return data["entries"]
+
+    @pyqtSlot()
+    def fetch_pending_tasks(self, engine: Engine, /) -> None:
+        data = self._fetch_tasks()
+        if data["resultsCount"] > 0:
+            for task in data["entries"]:
+                log.info(f">>>> task: {task}")
+                log.info(f">>>> taskid: {task['id']}")
+                engine.fetch_pending_task_list(task["id"])
+
+    @pyqtSlot()
+    def get_Tasks_count(self):
+        data = self._fetch_tasks()
+        # print(f"<<<<<< ret: {data['resultsCount']!r}")
+        return data["resultsCount"] > 0
+
+    def _fetch_tasks(self):
+        return fetch_tasks()
+
+    @pyqtSlot()
     def quit(self) -> None:
         try:
             self.application.quit()
@@ -591,7 +625,9 @@ class QMLDriveApi(QObject):
     def _balance_percents(self, result: Dict[str, float], /) -> Dict[str, float]:
         """Return an altered version of the dict in which no value is under a minimum threshold."""
 
-        result = dict(sorted(result.items(), key=lambda item: item[1]))
+        result = {
+            k: v for k, v in sorted(result.items(), key=lambda item: item[1])
+        }  # noqa
         keys = list(result)
         min_threshold = 10
         data = 0.0
@@ -1118,21 +1154,35 @@ class QMLDriveApi(QObject):
         except OSError:
             log.exception("Remote document cannot be opened")
 
+    @pyqtSlot(str, str, str)
+    def display_pending_task(self, uid: str, remote_ref: str, /) -> None:
+        log.info(f"Should open remote document ({remote_ref!r})")
+        try:
+            engine = self._manager.engines.get(uid)
+            if engine:
+                url = engine.get_task_url(remote_ref)
+                log.info(f">>>> doc url: {url}")
+                engine.open_remote(url=url)
+        except OSError:
+            log.exception("Remote document cannot be opened")
+
     @pyqtSlot(str, str, result=str)
     def get_remote_document_url(self, uid: str, remote_ref: str, /) -> str:
         """Return the URL to a remote document based on its reference."""
         engine = self._manager.engines.get(uid)
         return engine.get_metadata_url(remote_ref) if engine else ""
 
-    @pyqtSlot(str, str, str)
-    def display_pending_task(
-        self, uid: str, remote_ref: str, remote_path: str, /
-    ) -> None:
-        log.info(f"Should open remote document ({remote_path!r})")
-        try:
-            engine = self._manager.engines.get(uid)
-            if engine:
-                url = engine.get_task_url(remote_ref)
-                engine.open_remote(url=url)
-        except OSError:
-            log.exception("Remote task cannot be opened")
+    @pyqtSlot(str, result=str)
+    def get_title(self, uid: str, /) -> str:
+        data = self._fetch_tasks()
+        html = "No Results To Show"
+        if data:
+            try:
+                html = data["entries"][0]["variables"]["review_result"]
+            except IndexError:
+                log.info("No Pending Tasks Present")
+        return html
+
+    @pyqtSlot(str)
+    def on_clicked_open_task(self, task_id: str):
+        open_task(task_id)

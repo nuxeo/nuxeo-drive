@@ -630,6 +630,9 @@ class Engine(QObject):
         # And add new pairs to the queue
         self.dao.queue_many_direct_transfer_items(current_max_row_id)
 
+    def fetch_pending_task_list(self, task_id: str) -> None:
+        self.displayPendingTask.emit(self.uid, task_id)
+
     def handle_session_status(self, session: Optional[Session], /) -> None:
         """Check the session status and send a notification if finished."""
         if not session or session.status is not TransferStatus.DONE:
@@ -750,11 +753,12 @@ class Engine(QObject):
 
     def get_task_url(self, remote_ref: str, /, *, edit: bool = False) -> str:
         """
-        Build the task's URL based on the server's UI.
+        Build the document's metadata URL based on the server's UI.
         Default is Web-UI.  In case of unknown UI, use the default value.
-        :param remote_ref: The task remote reference (UID) of the
-            task we want to show metadata.
-        :param edit: Show the metadata edit page instead of the task.
+
+        :param remote_ref: The document remote reference (UID) of the
+            document we want to show metadata.
+        :param edit: Show the metadata edit page instead of the document.
         :return: The complete URL.
         """
         repo = self.remote.client.repository
