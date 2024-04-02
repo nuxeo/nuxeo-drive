@@ -299,6 +299,7 @@ class Remote(Nuxeo):
                 if self.token != auth_token and self.dao:
                     self._store_token(auth_token)
                     self.token = auth_token
+
             return resp
         except HTTPError as e:
             if e.status == requests.codes.not_found:

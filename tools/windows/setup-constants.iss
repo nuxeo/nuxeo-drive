@@ -1,7 +1,7 @@
 ﻿; Constants for all installers.
 
 #define MyAppName "Nuxeo Drive"
-#define MyAppPublisher "Nuxeo"
+#define MyAppPublisher "Hyland Software"
 #define MyAppURL "https://www.nuxeo.com/products/drive-desktop-sync/"
 #define MyAppUpdatesURL "https://github.com/nuxeo/nuxeo-drive/releases"
 #define MyAppExeName "ndrive.exe"

@@ -241,11 +241,12 @@ def check_os_version() -> bool:
     """Check that the current OS version is supported."""
 
     if MAC:
-        from distutils.version import StrictVersion
         from platform import mac_ver
 
+        from packaging.version import parse
+
         version = mac_ver()[0]
-        if StrictVersion(version) < StrictVersion("10.13"):
+        if parse(version) < parse("10.13"):
             fatal_error_mac(
                 f"macOS 10.13 (High Sierra) or newer is required (your version is {version})."
             )
