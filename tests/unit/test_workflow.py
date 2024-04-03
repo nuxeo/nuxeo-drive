@@ -150,7 +150,20 @@ def test_api_display_pending_task_with_exec(application, manager):
     )
 
 
-def test_init_workflow_with_app(application):
-    application.manager.engines = {"engine_uid_1": Mock(), "engine_uid_2": Mock()}
+def test_init_workflow_with_app(tmp_path):
+    from nxdrive.manager import Manager
 
-    application.init_gui()
+    manager = Manager(tmp_path)
+    manager.db_backup_worker = Mock()
+
+    manager.autolock_service = Mock()
+    manager.server_config_updater = Mock()
+    manager._create_server_config_updater = Mock()
+    manager.sync_and_quit_worker = Mock()
+    manager._create_db_backup_worker = Mock()
+    manager._create_workflow_worker = Mock()
+
+    app = Application(manager)
+
+    app.init_workflow()
+    app.exit_app()

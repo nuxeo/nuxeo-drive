@@ -219,9 +219,7 @@ class Application(QApplication):
             self._setup_notification_center()
 
         # Initiate workflow when drive starts
-        self.workflow, current_uid, engine = self.init_workflow()  # type: ignore
-        self.workflow.get_pending_tasks(current_uid, engine)
-
+        self.workflow = self.init_workflow()  # type: ignore
         # Application update
         self.manager.updater.appUpdated.connect(self.quit)
         self.manager.updater.serverIncompatible.connect(self._server_incompatible)
@@ -384,7 +382,8 @@ class Application(QApplication):
             current_uid = self.engine_model.engines_uid[0]
             engine = self.manager.engines[current_uid]
             self.workflow = Workflow(engine.remote)
-            return self.workflow, current_uid, engine
+            self.workflow.get_pending_tasks(engine)
+            return self.workflow
 
     def _update_feature_state(self, name: str, value: bool, /) -> None:
         """Check if the feature model exists from *name* then update it with *value*."""
