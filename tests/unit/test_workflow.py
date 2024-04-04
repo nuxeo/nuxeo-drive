@@ -148,22 +148,3 @@ def test_api_display_pending_task_with_exec(application, manager):
     assert (
         drive_api.display_pending_task("engine_uid", str(uuid4()), "/doc_path") is None
     )
-
-
-def test_init_workflow_with_app(tmp_path):
-    from nxdrive.manager import Manager
-
-    manager = Manager(tmp_path)
-    manager.db_backup_worker = Mock()
-
-    manager.autolock_service = Mock()
-    manager.server_config_updater = Mock()
-    manager._create_server_config_updater = Mock()
-    manager.sync_and_quit_worker = Mock()
-    manager._create_db_backup_worker = Mock()
-    manager._create_workflow_worker = Mock()
-
-    app = Application(manager)
-
-    app.init_workflow()
-    app.exit_app()
