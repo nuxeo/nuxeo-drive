@@ -24,6 +24,7 @@ Rectangle {
     function doUpdateCounts() {
         systrayContainer.syncingCount = api.get_syncing_count(accountSelect.getRole("uid"))
         systrayContainer.extraCount = api.get_last_files_count(accountSelect.getRole("uid")) - 10
+        taskState.pendingTasksCount = api.tasks_remaining(accountSelect.getRole("uid"))
     }
 
     function updateCounts(force) {
@@ -73,9 +74,12 @@ Rectangle {
         syncState.state = sync
         errorState.state = error
         updateState.state = update
+        /*
         if (tasks == "tasks_available") {
             taskState.visible = true
-        }
+        } else {
+            taskState.visible = false
+        }*/
 
         // Force the counts update at the end of the sync
         if (sync == "") {
@@ -383,8 +387,11 @@ Rectangle {
         // Pending Tasks
         SystrayStatus {
             id: taskState
+
+            property int pendingTasksCount: 0//api.tasks_remaining(accountSelect.getRole("uid"))
+
             state: "pending_tasks"
-            visible: false
+            visible: (pendingTasksCount > 0)
             color: progressFilledLight
             textColor: lightTheme
             icon: MdiFont.Icon.bell
@@ -394,8 +401,11 @@ Rectangle {
                     name: "pending_tasks"
                     PropertyChanges {
                         target: taskState
-                        text: qsTr("PENDING_DOCUMENT_REVIEWS").arg(api.tasks_remaining(accountSelect.getRole("uid"))) + tl.tr
-                        onClicked: api.open_tasks_window(accountSelect.getRole("uid"))
+                        text: qsTr("PENDING_DOCUMENT_REVIEWS").arg(pendingTasksCount) + tl.tr
+                        onClicked: {
+                            api.open_tasks_window(accountSelect.getRole("uid"))
+                            tasks_model.loadList(api.get_Tasks_list(accountSelect.getRole("uid")), accountSelect.getRole("uid"));
+                            }
                     }
                 }
             ]

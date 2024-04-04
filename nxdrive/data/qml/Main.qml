@@ -94,7 +94,7 @@ QtObject {
 
         signal setEngine(string uid)
 
-        onSetEngine: taskManagerWindow.setEngine(uid)
+        onSetEngine: taskManager.setEngine(uid)
 
         TaskManager { id: taskManager }
     }

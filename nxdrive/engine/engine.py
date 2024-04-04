@@ -631,7 +631,7 @@ class Engine(QObject):
         self.dao.queue_many_direct_transfer_items(current_max_row_id)
 
     def fetch_pending_task_list(self, task_id: str) -> None:
-        self.displayPendingTask.emit(self.uid, task_id)
+        self.displayPendingTask.emit(self.uid, task_id, "")
 
     def handle_session_status(self, session: Optional[Session], /) -> None:
         """Check the session status and send a notification if finished."""

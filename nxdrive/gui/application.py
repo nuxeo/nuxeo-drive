@@ -1011,12 +1011,21 @@ class Application(QApplication):
         self.direct_transfer_window.close()
 
     @pyqtSlot(str)
-    def show_tasks(self, /) -> None:
-        # Note: Keep synced with the TaskManager.qml file
-        # window = self._window_root(self.task_manager_window)
-        # window.setEngine.emit("uid_dummy")
-        self._window_root(self.task_manager_window)
+    def show_tasks_window(self, engine_uid: str, /) -> None:
+        """Display the Tasks window."""
+        print(f"<<<<<< engine_uid: {engine_uid!r}")
+        self._window_root(self.task_manager_window).setEngine.emit(engine_uid)
         self._center_on_screen(self.task_manager_window)
+
+    @pyqtSlot()
+    def close_tasks_window(self) -> None:
+        """Close the Tasks window."""
+        self.task_manager_window.close()
+
+    def open_task(self, engine: Engine, task_id: str):
+        endpoint = "/ui/#!/tasks/"
+        url = f"{engine.server_url}{endpoint}{task_id}"
+        webbrowser.open(url)
 
     def folder_duplicate_warning(
         self, duplicates: List[str], remote_path: str, remote_url: str, /
@@ -1860,7 +1869,11 @@ class Application(QApplication):
     def fetch_pending_tasks(self, engine: Engine, /) -> list:
         remote = engine.remote
         user = {"userId": remote.user_id}
-        tasks = remote.tasks.get(user)
+        try:
+            tasks = remote.tasks.get(user)
+        except Exception:
+            log.info("Unable to fetch tasks")
+            tasks = []
         return tasks
 
     def update_status(self, engine: Engine, /) -> None:

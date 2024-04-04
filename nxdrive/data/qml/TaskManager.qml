@@ -8,6 +8,14 @@ Rectangle {
     id: taskManager
     anchors.fill: parent
 
+    property string engineUid: "dummy"
+
+    signal setEngine(string uid)
+
+    onSetEngine: {
+        engineUid = uid
+    }
+
     TabBar {
         id: bar
         width: parent.width
@@ -26,13 +34,16 @@ Rectangle {
         id: tasksDelegate
         Row {
             spacing: 50
-            width: parent.width
+            //width: parent.width
             anchors.bottomMargin: 40
             Link {
                 Layout.fillWidth: true
                 elide: Text.ElideMiddle
                 text: qsTr("Review")
-                onClicked: api.on_clicked_open_task(task["task_id"])
+                onClicked: {
+                    api.on_clicked_open_task(engineUid, task["task_id"])
+                    api.close_tasks_window()
+                }
             }
             ScaledText {
                 text: task["task_details"]
@@ -40,11 +51,16 @@ Rectangle {
                 horizontalAlignment: Text.AlignLeft
                 verticalAlignment: Text.AlignVCenter
             }
+            /*
             IconLabel {
                 icon: MdiFont.Icon.folder
                 iconColor: secondaryIcon
-                onClicked: api.on_clicked_open_task(task["task_id"])
+                onClicked: {
+                    api.on_clicked_open_task(engineUid, task["task_id"])
+                    api.close_tasks_window()
+                }
             }
+            */
         }
     }
 

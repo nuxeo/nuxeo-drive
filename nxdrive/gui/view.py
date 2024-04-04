@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple
 
@@ -18,13 +19,7 @@ from ..qt.imports import (
     pyqtSlot,
 )
 from ..translator import Translator
-from ..utils import (
-    fetch_tasks,
-    force_decode,
-    get_date_from_sqlite,
-    get_document_info,
-    sizeof_fmt,
-)
+from ..utils import force_decode, get_date_from_sqlite, sizeof_fmt
 
 if TYPE_CHECKING:
     from .application import Application  # noqa
@@ -848,28 +843,25 @@ class TasksModel(QObject):
         super().__init__(parent)
         # self.tr = translate
         self.taskmodel = QStandardItemModel()
-        # print("##### setItemRoleNames")
         self.taskmodel.setItemRoleNames(
             {
                 self.TASK_ROLE: b"task",
                 self.TASK_ID: b"task_id",
             }
         )
-        self.add_row("Please Refresh to View the List", self.TASK_ROLE)
 
     def get_model(self):
         return self.taskmodel
 
     model = pyqtProperty(QObject, fget=get_model, constant=True)
 
-    @pyqtSlot()
-    def loadList(self):
+    @pyqtSlot(list, str)
+    def loadList(self, tasks_list: list, engine_uid: str, /) -> None:
         self.taskmodel.clear()
-
-        tasks = fetch_tasks()
-        tasks_list = tasks["entries"]
         for task in tasks_list:
-            doc_info = get_document_info(task["targetDocumentIds"][0]["id"])
+            doc_info = {
+                "title": "dummy"
+            }  # get_document_info(engine_uid, task.targetDocumentIds[0]["id"])
             """
             data = {
                 "task_id": task["id"],
@@ -879,21 +871,21 @@ class TasksModel(QObject):
                 "due_date": task["dueDate"],
             }
             """
+            now = date.today()
+            due = datetime.strptime(task.dueDate, "%Y-%m-%dT%H:%M:%S.%f%z").date()
+            diff = str((due - now).days)
             data = {
-                "task_details": task["workflowModelName"]
+                "task_details": task.workflowModelName
                 + "\n"
                 + doc_info["title"]
                 + "\n"
-                + "Initiator: "
-                + task["workflowInitiator"]
-                + "\n"
                 + "Due:"
-                + task["dueDate"],
-                "task_id": task["id"],
+                + diff
+                + " Day(s)",
+                "task_id": task.id,
             }
 
-            self.add_row(data, self.TASK_ROLE)  # (task, self.TASK_ROLE)
-            # self.add_row(task["id"], self.TASK_ID)
+            self.add_row(data, self.TASK_ROLE)
 
     def add_row(self, task, role):
         item = QStandardItem()
