@@ -856,12 +856,9 @@ class TasksModel(QObject):
     model = pyqtProperty(QObject, fget=get_model, constant=True)
 
     @pyqtSlot(list, str)
-    def loadList(self, tasks_list: list, engine_uid: str, /) -> None:
+    def loadList(self, tasks_list: list, /) -> None:
         self.taskmodel.clear()
         for task in tasks_list:
-            doc_info = {
-                "title": "dummy"
-            }  # get_document_info(engine_uid, task.targetDocumentIds[0]["id"])
             """
             data = {
                 "task_id": task["id"],
@@ -873,15 +870,23 @@ class TasksModel(QObject):
             """
             now = date.today()
             due = datetime.strptime(task.dueDate, "%Y-%m-%dT%H:%M:%S.%f%z").date()
-            diff = str((due - now).days)
+            time_remaing = " Day(s)"
+            diff = (due - now).days
+            if diff > 365:
+                diff /= 365
+                time_remaing = " Year(s)"
+            elif diff > 30:
+                diff /= 30
+                time_remaing = " Month(s)"
+            diff = f"{int(diff)}{time_remaing}"
+
             data = {
                 "task_details": task.workflowModelName
                 + "\n"
-                + doc_info["title"]
+                + task.name
                 + "\n"
-                + "Due:"
-                + diff
-                + " Day(s)",
+                + "Due: in "
+                + diff,
                 "task_id": task.id,
             }
 

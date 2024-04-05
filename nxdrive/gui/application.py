@@ -1013,7 +1013,6 @@ class Application(QApplication):
     @pyqtSlot(str)
     def show_tasks_window(self, engine_uid: str, /) -> None:
         """Display the Tasks window."""
-        print(f"<<<<<< engine_uid: {engine_uid!r}")
         self._window_root(self.task_manager_window).setEngine.emit(engine_uid)
         self._center_on_screen(self.task_manager_window)
 
@@ -1874,6 +1873,7 @@ class Application(QApplication):
         except Exception:
             log.info("Unable to fetch tasks")
             tasks = []
+        self.tasks_model.loadList(tasks)
         return tasks
 
     def update_status(self, engine: Engine, /) -> None:

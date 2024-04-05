@@ -33,7 +33,6 @@ from typing import (
 from urllib.parse import parse_qsl, urlparse, urlsplit, urlunsplit
 from uuid import uuid4
 
-import requests
 from nuxeo.utils import get_digest_algorithm, get_digest_hash
 
 from .constants import (
@@ -1341,25 +1340,3 @@ def get_verify():
             if "No such file or directory" and "-gw" in str(exc):
                 ssl_verification_needed = False
     return ssl_verification_needed
-
-
-def get_document_info(doc_id: str):
-    endpoint = "/api/v1/id/"
-    url = f"http://localhost:8080/nuxeo{endpoint}{doc_id}"
-    print(f"^^^^^^ get_document_info url: {url!r}")
-    headers = {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-    }
-    try:
-        response = requests.get(
-            url=url,
-            verify=True,
-            timeout=3600,
-            headers=headers,
-            auth=("Administrator", "Administrator"),
-        )
-        return response.json()
-    except Exception:
-        log.exception("Unable to get the document info")
-        return {}

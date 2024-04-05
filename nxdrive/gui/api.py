@@ -255,7 +255,6 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str)
     def open_tasks_window(self, uid: str, /) -> None:
         self.application.hide_systray()
-        print(f">>>>>> opening task window [engine_id: {uid!r}]")
         self.application.show_tasks_window(uid)
 
     @pyqtSlot()
@@ -488,16 +487,27 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, result=list)
     def get_Tasks_list(self, engine_uid: str, /) -> list:
         engine = self._get_engine(engine_uid)
-        return self._fetch_tasks(engine)
+        tasks_list = self._fetch_tasks(engine)
+        for task in tasks_list:
+            doc_id = task.targetDocumentIds[0]["id"]
+            doc_name = self.get_document_details(engine_uid, doc_id)
+            task.name = doc_name.title
+            type = task.directive
+            if "chooseParticipants" in type or "pleaseSelect" in type:
+                task.workflowModelName = Translator.get("CHOOSE_PARTICIPANTS")
+            elif "give_opinion" in type:
+                task.workflowModelName = Translator.get("GIVE_OPINION")
+            elif "AcceptReject" in type:
+                task.workflowModelName = Translator.get("VALIDATE_DOCUMENT")
+
+        return tasks_list
 
     @pyqtSlot(str, result=list)
     def get_document_details(self, engine_uid: str, doc_id: str, /) -> int:
         engine = self._get_engine(engine_uid)
         if not engine:
             log.info("engine not available")
-            return
-        doc_details = engine.remote.documents.get(doc_id)
-        print(f">>>>> doc_details: {doc_details!r}")
+            return []
         return engine.remote.documents.get(doc_id)
 
     @pyqtSlot(object)
@@ -505,15 +515,7 @@ class QMLDriveApi(QObject):
         data = self._fetch_tasks(engine)
         if len(data) > 0:
             for task in data:
-                engine.fetch_pending_task_list(task["id"])
-
-    """
-    @pyqtSlot(str, result=bool)
-    def get_Tasks_count(self, engine_uid: str, /) -> bool:
-        engine = self._get_engine(engine_uid)
-        data = self._fetch_tasks(engine)
-        return data["resultsCount"] > 0
-    """
+                engine.fetch_pending_task_list(task.id)
 
     def _fetch_tasks(self, engine: Engine) -> Any:
         return self.application.fetch_pending_tasks(engine)
