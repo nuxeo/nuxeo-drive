@@ -38,14 +38,6 @@ Rectangle {
     }
 
     Connections {
-        target: TasksModel
-
-        function onEngineChanged() {
-            taskState.pendingTasksCount = api.tasks_remaining(accountSelect.getRole("uid"))
-        }
-    }
-
-    Connections {
         target: EngineModel
 
         function onEngineChanged() {
@@ -411,8 +403,8 @@ Rectangle {
                         target: taskState
                         text: qsTr("PENDING_DOCUMENT_REVIEWS").arg(pendingTasksCount) + tl.tr
                         onClicked: {
+                            tasks_model.loadList(api.get_Tasks_list(accountSelect.getRole("uid")))
                             api.open_tasks_window(accountSelect.getRole("uid"))
-                            tasks_model.loadList(api.get_Tasks_list(accountSelect.getRole("uid")));
                             }
                     }
                 }

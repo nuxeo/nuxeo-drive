@@ -855,7 +855,7 @@ class TasksModel(QObject):
 
     model = pyqtProperty(QObject, fget=get_model, constant=True)
 
-    @pyqtSlot(list, str)
+    @pyqtSlot(list)
     def loadList(self, tasks_list: list, /) -> None:
         self.taskmodel.clear()
         for task in tasks_list:

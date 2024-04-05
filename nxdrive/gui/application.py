@@ -1873,7 +1873,6 @@ class Application(QApplication):
         except Exception:
             log.info("Unable to fetch tasks")
             tasks = []
-        self.tasks_model.loadList(tasks)
         return tasks
 
     def update_status(self, engine: Engine, /) -> None:

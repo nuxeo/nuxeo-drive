@@ -492,12 +492,12 @@ class QMLDriveApi(QObject):
             doc_id = task.targetDocumentIds[0]["id"]
             doc_name = self.get_document_details(engine_uid, doc_id)
             task.name = doc_name.title
-            type = task.directive
-            if "chooseParticipants" in type or "pleaseSelect" in type:
+            type_of_task = task.directive
+            if "chooseParticipants" in type_of_task or "pleaseSelect" in type_of_task:
                 task.workflowModelName = Translator.get("CHOOSE_PARTICIPANTS")
-            elif "give_opinion" in type:
+            elif "give_opinion" in type_of_task:
                 task.workflowModelName = Translator.get("GIVE_OPINION")
-            elif "AcceptReject" in type:
+            elif "AcceptReject" in type_of_task:
                 task.workflowModelName = Translator.get("VALIDATE_DOCUMENT")
 
         return tasks_list
