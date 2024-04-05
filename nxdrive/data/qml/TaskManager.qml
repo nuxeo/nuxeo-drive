@@ -36,7 +36,7 @@ Rectangle {
             spacing: 50
             //width: parent.width
             anchors.bottomMargin: 40
-            Link {
+            /*Link {
                 Layout.fillWidth: true
                 elide: Text.ElideMiddle
                 text: qsTr("Review")
@@ -44,23 +44,26 @@ Rectangle {
                     api.on_clicked_open_task(engineUid, task["task_id"])
                     api.close_tasks_window()
                 }
-            }
+            }*/
             ScaledText {
                 text: task["task_details"]
                 //padding: 5
                 horizontalAlignment: Text.AlignLeft
                 verticalAlignment: Text.AlignVCenter
             }
-            /*
+
             IconLabel {
-                icon: MdiFont.Icon.folder
+                icon: MdiFont.Icon.nuxeo
                 iconColor: secondaryIcon
                 onClicked: {
                     api.on_clicked_open_task(engineUid, task["task_id"])
                     api.close_tasks_window()
                 }
             }
-            */
+            Rectangle{
+
+            }
+
         }
     }
 

@@ -17,7 +17,7 @@ Rectangle {
 
     signal appUpdate(string version)
     signal getLastFiles(string uid)
-    signal setStatus(string sync, string error, string update, string tasks)
+    signal setStatus(string sync, string error, string update)
     signal updateAvailable()
     signal updateProgress(int progress)
 

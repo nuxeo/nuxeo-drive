@@ -1888,12 +1888,6 @@ class Application(QApplication):
 
         update_state = self.manager.updater.status
 
-        tasks = self.fetch_pending_tasks(engine)
-        task_state = "no_tasks_available"
-        if len(tasks) > 0:
-            task_state = "tasks_available"
-        # task_state = "no_tasks_available"
-
         # Check synchronization state
         if self.manager.restart_needed:
             sync_state = "restart"
@@ -1913,10 +1907,8 @@ class Application(QApplication):
         elif self.errors_model.count:
             error_state = "error"
 
-        print(f">>>>>> task_state{task_state!r}")
-
         self._window_root(self.systray_window).setStatus.emit(
-            sync_state, error_state, update_state, task_state
+            sync_state, error_state, update_state
         )
 
     @pyqtSlot(object)

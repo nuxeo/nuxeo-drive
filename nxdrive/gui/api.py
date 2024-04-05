@@ -490,8 +490,8 @@ class QMLDriveApi(QObject):
         tasks_list = self._fetch_tasks(engine)
         for task in tasks_list:
             doc_id = task.targetDocumentIds[0]["id"]
-            doc_name = self.get_document_details(engine_uid, doc_id)
-            task.name = doc_name.title
+            doc_info = self.get_document_details(engine_uid, doc_id)
+            task.name = doc_info.properties["dc:title"]
             type_of_task = task.directive
             if "chooseParticipants" in type_of_task or "pleaseSelect" in type_of_task:
                 task.workflowModelName = Translator.get("CHOOSE_PARTICIPANTS")
@@ -508,7 +508,7 @@ class QMLDriveApi(QObject):
         if not engine:
             log.info("engine not available")
             return []
-        return engine.remote.documents.get(doc_id)
+        return engine.remote.get_info(doc_id)
 
     @pyqtSlot(object)
     def fetch_pending_tasks(self, engine: Engine, /) -> None:
