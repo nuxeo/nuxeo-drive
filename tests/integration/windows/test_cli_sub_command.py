@@ -10,7 +10,7 @@ from nuxeo.documents import Document
 from nxdrive.constants import WINDOWS
 
 from ... import env
-from .utils import cb_get, fatal_error_dlg  # , get_opened_url
+from .utils import cb_get, fatal_error_dlg, share_metrics_dlg  # , get_opened_url
 
 if not WINDOWS:
     pytestmark = pytest.mark.skip("Windows only.")
@@ -161,6 +161,33 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
             ws.delete()
 
         assert launch(exe, f"clean-folder {local_folder}")
+
+        os.chmod(expanded_folder, stat.S_IWUSR)
+        shutil.rmtree(expanded_folder)
+        folder.cleanup()
+        assert not os.path.isdir(expanded_folder)
+
+
+def test_app_init_workflow(nuxeo_url, exe, server, tmp):
+
+    folder = tempfile.TemporaryDirectory(prefix="sync_test")
+    expanded_folder = folder.name
+    local_folder = f'--local-folder="{str(expanded_folder)}"'
+
+    try:
+        # 1st, bind the server
+        args = f"{env.NXDRIVE_TEST_USERNAME} {nuxeo_url} {local_folder} --password {env.NXDRIVE_TEST_PASSWORD}"
+        assert bind(exe, args)
+        assert os.path.isdir(expanded_folder)
+        with exe() as app:
+            assert not fatal_error_dlg(app)
+            assert share_metrics_dlg(app)
+
+            # There should be the main window
+            # main = main_window(app)
+            assert 1 == 0
+
+    finally:
 
         os.chmod(expanded_folder, stat.S_IWUSR)
         shutil.rmtree(expanded_folder)

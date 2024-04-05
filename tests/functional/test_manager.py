@@ -1,10 +1,8 @@
 import os
-from unittest.mock import Mock
 
 import pytest
 
 from nxdrive.exceptions import NoAssociatedSoftware
-from nxdrive.gui.application import Application
 
 from ..markers import windows_only
 
@@ -29,20 +27,6 @@ def test_open_local_file_no_soft(manager_factory, monkeypatch):
         NoAssociatedSoftware
     ):
         manager.open_local_file("File.azerty")
-
-
-def test_workflow(manager_factory):
-    manager, _ = manager_factory()
-    with manager:
-        manager.db_backup_worker = Mock()
-
-        manager.autolock_service = Mock()
-        manager.server_config_updater = Mock()
-        manager._create_server_config_updater = Mock()
-        manager.sync_and_quit_worker = Mock()
-        manager._create_db_backup_worker = Mock()
-        manager._create_workflow_worker = Mock()
-        Application(manager)
 
 
 # This test is commented because it causes other ft tests to fails
