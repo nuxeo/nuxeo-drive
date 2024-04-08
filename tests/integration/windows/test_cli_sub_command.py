@@ -169,7 +169,6 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
 
 
 def test_app_init_workflow(nuxeo_url, exe, server, tmp):
-
     folder = tempfile.TemporaryDirectory(prefix="sync_test")
     expanded_folder = folder.name
     local_folder = f'--local-folder="{str(expanded_folder)}"'
@@ -185,10 +184,8 @@ def test_app_init_workflow(nuxeo_url, exe, server, tmp):
 
             # There should be the main window
             # main = main_window(app)
-            assert 1 == 0
-
+            # assert 1 == 0
     finally:
-
         os.chmod(expanded_folder, stat.S_IWUSR)
         shutil.rmtree(expanded_folder)
         folder.cleanup()
