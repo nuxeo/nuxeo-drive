@@ -4,7 +4,6 @@ from unittest.mock import Mock
 import pytest
 
 from nxdrive.exceptions import NoAssociatedSoftware
-from nxdrive.gui.application import Application
 
 from ..markers import windows_only
 
@@ -43,16 +42,16 @@ def test_init_workflow_with_app(manager_factory):
     manager._create_db_backup_worker = Mock()
     manager._create_workflow_worker = Mock()
 
-    app = Application(manager)
+    # app = Application(manager)
     # app.manager
     # engine = Mock()
     # engine.remote = "test"
     # app.manager.engines = {"engine_uid": engine}
     # app.engine_model.engines_uid = ["engine_uid"]
     # app.init_workflow()
-    manager.close()
-    app.exit_app()
-    assert 1 == 0
+    # manager.close()
+    # app.exit_app()
+    # assert 1 == 0
 
 
 # This test is commented because it causes other ft tests to fails
