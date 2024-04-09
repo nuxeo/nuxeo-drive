@@ -253,13 +253,12 @@ def test_ctx_menu_entries(nuxeo_url, exe, server, tmp):
 def test_app_init_workflow_via_subprocess(final_exe):
     import subprocess
 
-    print(f">>>> final exe: {final_exe}")
     p = subprocess.Popen([final_exe, "console"])
     p.terminate()
     p.wait(timeout=30)
     p.kill()
     poll = p.poll()
     if poll is None:
-        print("Still running")
+        log.info("Still running")
     else:
-        print("done")
+        log.info("done")
