@@ -279,8 +279,8 @@ def test_app_init_workflow_via_subprocess(final_exe):
 
     print(f">>>> final exe: {final_exe}")
     p = subprocess.Popen([final_exe, "console"])
-    # p.terminate()
-    # p.wait(timeout=30)
+    p.terminate()
+    p.wait(timeout=30)
     p.kill()
     poll = p.poll()
     if poll is None:
