@@ -45,6 +45,16 @@ Rectangle {
                     api.close_tasks_window()
                 }
             }*/
+
+            // Rectangle{
+            //     width: parent.width
+            //     height: 50
+            //     border.color: black
+            //     border.width: 20
+            //     radius: 3
+            //     visible: true
+            // }
+
             ScaledText {
                 text: task["task_details"]
                 //padding: 5
@@ -59,9 +69,6 @@ Rectangle {
                     api.on_clicked_open_task(engineUid, task["task_id"])
                     api.close_tasks_window()
                 }
-            }
-            Rectangle{
-
             }
 
         }
