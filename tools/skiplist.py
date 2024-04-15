@@ -22,6 +22,7 @@ CliHandler.unbind_root  # Used by the arguments parser
 CliHandler.unbind_server  # Used by the arguments parser
 CustomWindow.keyPressEvent  # Called by base class
 _.close_settings_too  # Used by Appiclation.show_filters()
+context.minimum_version  # Used to set TSL minimum version
 DirectTransferModel.destination_link  # Used in QML
 DocPair.last_sync_error_date  # Check NXDRIVE-1804
 Download.transfer_type  # Used in QML
