@@ -218,8 +218,9 @@ class Application(QApplication):
         if MAC:
             self._setup_notification_center()
 
-        # Initiate workflow when drive starts
-        self.workflow = self.init_workflow()
+        # Initiate workflow when drive starts if tasks managemnt feature is enable
+        if Feature.tasks_management:
+            self.workflow = self.init_workflow()
         # Application update
         self.manager.updater.appUpdated.connect(self.quit)
         self.manager.updater.serverIncompatible.connect(self._server_incompatible)
@@ -277,6 +278,7 @@ class Application(QApplication):
         self.document_type_selection_feature_model = FeatureModel(
             Feature.document_type_selection
         )
+        self.tasks_management_feature_model = FeatureModel(Feature.tasks_management)
         self.conflicts_model = FileModel(self.translate)
         self.errors_model = FileModel(self.translate)
         self.engine_model = EngineModel(self)
@@ -483,6 +485,9 @@ class Application(QApplication):
         )
         context.setContextProperty(
             "feat_document_type_selection", self.document_type_selection_feature_model
+        )
+        context.setContextProperty(
+            "feat_tasks_management", self.tasks_management_feature_model
         )
         context.setContextProperty(
             "feat_synchronization", self.synchronization_feature_model
