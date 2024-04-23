@@ -152,7 +152,20 @@ Rectangle {
                     }
                 }
 
-                // Icon 2: open remote server's URL
+                // Icon 2: Show pending Task list
+                IconLabel {
+                    icon: MdiFont.Icon.shapeRectanglePlus
+                    //Image {
+                      //  source: "../icons/tasks.svg"
+                        //fillMode: Image.PreserveAspectFit
+                    //}
+                    iconColor: secondaryIcon
+                    enabled: feat_tasks_management.enabled
+                    opacity: feat_tasks_management.enabled ? 1.0 : 0.5
+                    // onClicked:
+                }
+
+                // Icon 3: open remote server's URL
                 IconLabel {
                     icon: MdiFont.Icon.nuxeo
                     iconColor: secondaryIcon
@@ -160,7 +173,7 @@ Rectangle {
                     tooltip: api.get_hostname_from_url(accountSelect.getRole("server_url"))
                 }
 
-                // Icon 3: open local sync root folder
+                // Icon 4: open local sync root folder
                 IconLabel {
                     icon: MdiFont.Icon.folder
                     iconColor: secondaryIcon
@@ -170,7 +183,7 @@ Rectangle {
                     opacity: feat_synchronization.enabled ? 1.0 : 0.5
                 }
 
-                // Icon 4: open the Direct Transfer window
+                // Icon 5: open the Direct Transfer window
                 IconLabel {
                     icon: MdiFont.Icon.directTransfert
                     iconColor: secondaryIcon
@@ -180,7 +193,7 @@ Rectangle {
                     opacity: feat_direct_transfer.enabled ? 1.0 : 0.5
                 }
 
-                // Icon 5: sub-menu
+                // Icon 6: sub-menu
                 IconLabel {
                     id: settingsContainer
                     icon: MdiFont.Icon.dotsVertical

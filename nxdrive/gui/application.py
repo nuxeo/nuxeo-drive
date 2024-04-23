@@ -278,7 +278,9 @@ class Application(QApplication):
         self.document_type_selection_feature_model = FeatureModel(
             Feature.document_type_selection
         )
-        self.tasks_management_feature_model = FeatureModel(Feature.tasks_management)
+        self.tasks_management_feature_model = FeatureModel(
+            Feature.tasks_management, restart_needed=True
+        )
         self.conflicts_model = FileModel(self.translate)
         self.errors_model = FileModel(self.translate)
         self.engine_model = EngineModel(self)
