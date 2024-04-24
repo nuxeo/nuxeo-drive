@@ -34,7 +34,7 @@ class DirectTransferUploader(BaseUploader):
     def get_upload(
         self, *, path: Optional[Path], doc_pair: Optional[int]
     ) -> Optional[Upload]:
-        """Retrieve the eventual transfer associated to the given *doc_pair*."""
+        """Retrieve  the eventual transfer associated to the given *doc_pair*."""
         ret: Optional[Upload] = self.dao.get_dt_upload(doc_pair=doc_pair)
         return ret
 
