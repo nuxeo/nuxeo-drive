@@ -61,7 +61,7 @@ jobs:
         run: tox -e integration
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
-        uses: codecov/codecov-action@v3.1.5
+        uses: codecov/codecov-action@v4.3.1
         with:
           files: ./coverage.xml
           flags: integration
