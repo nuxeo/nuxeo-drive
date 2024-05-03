@@ -104,7 +104,25 @@ jobs:
 
       - name: "[macOS] Install Python"
         if: matrix.os == 'macos-latest'
-        run: sudo installer -pkg python.pkg -target /
+        run: |
+          echo ">>>> Current working dir: '$(pwd)'"
+          sudo installer -pkg python.pkg -target /
+          echo "-----pwd-----"
+          pwd
+
+          echo "-----ls-----"
+          ls
+
+          echo "-----ls src/-----"
+          ls /
+
+          echo "-----ls src/-----"
+          which python3
+
+          echo "---ls-a---"
+          ls -a
+
+          echo "${{ env.PYPI_API_PACKAGE_URL }}"
 
       - name: "[macOS] Setup the environment"
         if: matrix.os == 'macos-latest'
