@@ -31,7 +31,7 @@ main() {
     python3 -m pip install --user -U setuptools wheel
     python3 -m pip install --user pyyaml==5.3.1
 
-    echo ">>> Retrieving versions.yml"
+    echo ">>> Retrieving versions.yml, yml path: ${REMOTE_PATH_PROD}/versions.yml"
     rsync -e "ssh -o StrictHostKeyChecking=no" -vz nuxeo@lethe.nuxeo.com:"${REMOTE_PATH_PROD}/versions.yml" .
 
     echo ">>> Checking versions.yml integrity"

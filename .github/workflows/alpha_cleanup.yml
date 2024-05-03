@@ -5,6 +5,9 @@ on:
   # Check for updates every day
   schedule:
     - cron: "0 0 * * *"
+  pull_request:
+    paths:
+      - "tools/cleanup.txt"
 
   # Allow to clean-up a specific version
   workflow_dispatch:

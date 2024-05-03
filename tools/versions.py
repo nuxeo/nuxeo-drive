@@ -18,6 +18,8 @@ __all__ = ("create", "delete", "merge", "promote")
 
 def _load():
     """Get initial versions."""
+    print(f">>> Pwd: {os.getcwd()}")
+    print(f">>>>> list dir: {os.listdir(os.getcwd())}")
 
     with open("versions.yml", encoding="utf-8") as yml:
         return yaml.safe_load(yml.read()) or {}
