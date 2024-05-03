@@ -129,7 +129,16 @@ jobs:
         env:
           MACOSX_DEPLOYMENT_TARGET: "11.3"
           SYSTEM_VERSION_COMPAT: 0
-        run: bash tools/osx/deploy_ci_agent.sh --install-release
+        run: |
+          bash tools/osx/deploy_ci_agent.sh --install-release
+          echo "-----python-----"
+          python3 --version
+
+          echo "---pwd---"
+          pwd
+
+          echo "---ls-a---"
+          ls -a
 
       - name: "[macOS] Generate the .dmg and validate against 2021"
         if: matrix.os == 'macos-latest'
