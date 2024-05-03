@@ -7,7 +7,8 @@ on:
     - cron: "0 0 * * *"
   pull_request:
     paths:
-      - "tools/cleanup.txt"
+      - "tools/cleanup.sh"
+      - "tools/versions.py"
 
   # Allow to clean-up a specific version
   workflow_dispatch:
