@@ -348,6 +348,11 @@ verify_python() {
     local cur_version
 
     echo ">>> Verifying Python version in use"
+    cur_version=$(${PYTHON_VENV} --version 2>&1 | head -n 1 | awk '{print $2}')
+    if [ "${cur_version}" != "${version}" ]; then
+        pyenv uninstall -f "${cur_version}"
+        install_python "${PYTHON_DRIVE_VERSION}"
+    fi
 
     cur_version=$(${PYTHON_VENV} --version 2>&1 | head -n 1 | awk '{print $2}')
     if [ "${cur_version}" != "${version}" ]; then
