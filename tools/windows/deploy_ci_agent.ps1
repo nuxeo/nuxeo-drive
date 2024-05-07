@@ -211,7 +211,7 @@ function check_upgrade {
 function check_vars {
 	# Check required variables
 	if (-Not ($Env:PYTHON_DRIVE_VERSION)) {
-		$Env:PYTHON_DRIVE_VERSION = '3.9.5'  # XXX_PYTHON
+		$Env:PYTHON_DRIVE_VERSION = '3.12.3'  # XXX_PYTHON
 	}
 	if (-Not ($Env:WORKSPACE)) {
 		if ($Env:GITHUB_WORKSPACE) {

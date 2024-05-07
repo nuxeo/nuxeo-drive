@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.9 # XXX_PYTHON
+          python-version: 3.12 # XXX_PYTHON
       - uses: actions/cache@v4
         with:
           path: ~/.cache/pip
@@ -62,7 +62,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.9 # XXX_PYTHON
+          python-version: 3.12 # XXX_PYTHON
       - uses: actions/cache@v4
         with:
           path: ~/Library/Caches/pip
@@ -91,7 +91,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.9 # XXX_PYTHON
+          python-version: 3.12 # XXX_PYTHON
       - uses: actions/cache@v4
         with:
           path: ~\AppData\Local\pip\Cache
@@ -126,7 +126,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.9 # XXX_PYTHON
+          python-version: 3.12 # XXX_PYTHON
       - uses: actions/cache@v4
         with:
           path: ~/.cache/pip
