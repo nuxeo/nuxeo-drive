@@ -151,12 +151,14 @@ create_venv() {
     # Create the isolated virtual environment
     # No-op if the folder already exists.
     # Note: the Python version will be checked later in the process to prevent any issues.
+    echo "**** [pyenv] create_venv ${version}"
+    echo "**** installing python"
+    install_python "${PYTHON_DRIVE_VERSION}"
+    echo "**** installing python"
     ${PYTHON} -m venv --copies venv
 }
 
 install_deps() {
-    # /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    brew install qt@5
     echo ">>> Installing requirements"
     ${PIP} -r tools/deps/requirements-pip.txt
     ${PIP} -r tools/deps/requirements.txt
@@ -212,14 +214,40 @@ install_python() {
 
     # We need to override the default python used by pyenv as we installed it manually
     # See ticket: https://jira.nuxeo.com/browse/NXDRIVE-2724
-    echo "**** Python Version: '$(python3 --version)'"
-    pyenv install --skip-existing "${version}"
+    #if [ "${MACOSX_DEPLOYMENT_TARGET:-unset}" != "unset" ]; then
+    #    echo "**** if"
+    #    echo "**** \"${MACOSX_DEPLOYMENT_TARGET:-unset}\""
+    #    echo "**** python3 $(which python3)"
+    #    echo "**** python $(which python)"
+    #    echo "**** python v $(python --version)"
+    #    echo "**** python3 v $(python3 --version)"
+
+
+    #    ln -sf $(which python3) $(which python)
+    #    pyenv install --skip-existing "${version}"
+    #    pyenv global "${version}"
+    #else
+    #    echo "**** else"
+    #    pyenv install --skip-existing "${version}"
+    #    pyenv global "${version}"
+    #fi
+
+    #echo ">>> [pyenv] Using Python ${version}"
+
+
+    ln -sf $(which python3) $(which python)
+
+
+
+    echo "**** pyenv versions 1: $(pyenv versions)"
+    #pyenv install --skip-existing "${version}"
+    echo "**** pyenv versions 2: $(pyenv versions)"
     echo ">>> [pyenv] Using Python ${version}"
-    pyenv global "${version}"
-    eval "$(pyenv init -)"
-    eval "$(pyenv init --path)"
-    eval "$(pyenv virtualenv-init -)"
-    echo "**** Current Python Version: '$(python3 --version)'"
+    #pyenv global "${version}"
+    echo "**** python3 $(which python3)"
+    echo "**** python $(which python)"
+    echo "**** python version $(python --version)"
+    echo "**** python3 version $(python3 --version)"
 
 }
 
@@ -350,6 +378,11 @@ verify_python() {
     local cur_version
 
     echo ">>> Verifying Python version in use"
+    cur_version=$(${PYTHON_VENV} --version 2>&1 | head -n 1 | awk '{print $2}')
+    if [ "${cur_version}" != "${version}" ]; then
+        pyenv uninstall -f "${cur_version}"
+        install_python "${PYTHON_DRIVE_VERSION}"
+    fi
 
     cur_version=$(${PYTHON_VENV} --version 2>&1 | head -n 1 | awk '{print $2}')
     if [ "${cur_version}" != "${version}" ]; then
