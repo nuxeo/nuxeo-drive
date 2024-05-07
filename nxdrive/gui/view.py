@@ -850,50 +850,74 @@ class TasksModel(QObject):
             }
         )
 
+        self.self_taskmodel = QStandardItemModel()
+        self.self_taskmodel.setItemRoleNames(
+            {
+                self.TASK_ROLE: b"task",
+                self.TASK_ID: b"task_id",
+            }
+        )
+
     def get_model(self):
         return self.taskmodel
 
-    model = pyqtProperty(QObject, fget=get_model, constant=True)
+    def get_self_model(self):
+        return self.self_taskmodel
 
-    @pyqtSlot(list)
-    def loadList(self, tasks_list: list, /) -> None:
+    model = pyqtProperty(QObject, fget=get_model, constant=True)
+    self_model = pyqtProperty(QObject, fget=get_self_model, constant=True)
+
+    @pyqtSlot(list, str)
+    def loadList(self, tasks_list: list, username: str, /) -> None:
         self.taskmodel.clear()
+        self.self_taskmodel.clear()
         for task in tasks_list:
-            """
-            data = {
-                "task_id": task["id"],
-                "workflow_type": task["workflowModelName"],
-                "doc_name": doc_info["title"],
-                "intiated_by": task["workflowInitiator"],
-                "due_date": task["dueDate"],
-            }
-            """
             now = date.today()
             due = datetime.strptime(task.dueDate, "%Y-%m-%dT%H:%M:%S.%f%z").date()
-            time_remaing = " Day(s)"
+            time_remaing = Translator.get("DAYS")
             diff = (due - now).days
-            if diff > 365:
+            if diff > 364 or diff < -364:
                 diff /= 365
-                time_remaing = " Year(s)"
-            elif diff > 30:
+                time_remaing = Translator.get("YEARS")
+            elif diff > 29 or diff < -29:
                 diff /= 30
-                time_remaing = " Month(s)"
-            diff = f"{int(diff)}{time_remaing}"
+                time_remaing = Translator.get("MONTHS")
+            ago = Translator.get("AGO")
+            translated_in = Translator.get("IN")
+            diff = int(diff)
+            diff = (
+                f"{-diff} {time_remaing} {ago}"
+                if diff < 0
+                else f"{translated_in} {diff} {time_remaing}"
+            )
+            # due = diff if ago in diff else Translator.get("IN") + diff
+            details = str(
+                {
+                    "wf_name": task.directive,
+                    "name": task.name,
+                    "due": f"Due: {diff}",
+                    "model": task.workflowModelName,
+                }
+            )
+            if task.actors[0]["id"] == username:
+                data = {
+                    "self_task_details": details,
+                    "task_ids": task.id,
+                }
+                self.add_row(data, self.TASK_ROLE, True)
+            else:
+                # due = diff if "ago" in diff else f"in {diff}"
+                data = {
+                    "task_details": details,
+                    "task_ids": task.id,
+                }
+                self.add_row(data, self.TASK_ROLE, False)
 
-            data = {
-                "task_details": task.workflowModelName
-                + "\n"
-                + task.name
-                + "\n"
-                + "Due: in "
-                + diff,
-                "task_id": task.id,
-            }
-
-            self.add_row(data, self.TASK_ROLE)
-
-    def add_row(self, task, role):
+    def add_row(self, task, role, self_task):
         item = QStandardItem()
         item.setData(task, role)
 
-        self.taskmodel.appendRow(item)
+        if self_task:
+            self.self_taskmodel.appendRow(item)
+        else:
+            self.taskmodel.appendRow(item)

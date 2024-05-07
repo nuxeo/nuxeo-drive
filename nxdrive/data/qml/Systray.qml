@@ -159,6 +159,19 @@ Rectangle {
                     }
                 }
 
+                // Icon 1.1: open Task List
+                IconLabel {
+                    icon: MdiFont.Icon.minus
+                    Image {
+                        source: "icons/tasks.svg"
+                    }
+                    onClicked: {
+                            tasks_model.loadList(api.get_Tasks_list(accountSelect.getRole("uid")), api.get_username(accountSelect.getRole("uid")))
+                            api.open_tasks_window(accountSelect.getRole("uid"))
+                            }
+                    //tooltip: api.get_hostname_from_url(accountSelect.getRole("server_url"))
+                }
+
                 // Icon 2: open remote server's URL
                 IconLabel {
                     icon: MdiFont.Icon.nuxeo
@@ -259,24 +272,14 @@ Rectangle {
         }
 
 
-        SystrayStatus {
+        SystrayStatusTasks {
             id: taskState
 
             //property int pendingTasksCount: 0//api.tasks_remaining(accountSelect.getRole("uid"))
 
             state: "pending_tasks"
-            visible: true //(pendingTasksCount > 0)
+            visible: pendingTasksCount > 0
             color: progressFilledLight
-            textColor: lightTheme
-            //icon: MdiFont.Icon.bell
-            Image {
-                Layout.alignment: Qt.AlignRight
-                //height: contentHeight
-                //anchors.centerIn: parent
-                //source: "data:image/svg+xml;utf8,<svg viewBox=\"0 0 24 24\" preserveAspectRatio=\"xMidYMid meet\" focusable=\"false\" style=\"pointer-events: none; display: block; width: 100%; height: 100%;\"><g><path d=\"M2.707,3.293l-1.293,-1.293l-1.414,1.414l2.707,2.708l4.707,-4.708l-1.414,-1.414Z\" transform=\"translate(8.293, 5.293)\"></path><path d=\"M2.707,3.293l-1.293,-1.293l-1.414,1.414l2.707,2.708l4.707,-4.708l-1.414,-1.414Z\" transform=\"translate(8.293, 12.293)\"></path><path d=\"M14,0h-12c-1.103,0 -2,0.898 -2,2v16c0,1.103 0.897,2 2,2h12c1.103,0 2,-0.897 2,-2v-16c0,-1.102 -0.897,-2 -2,-2Zm-12,18v-16h12l0.001,16h-12.001Z\" transform=\"translate(4, 2)\"></path></g></svg>"
-                source: "icons/tasks.svg"
-            }
-
             states: [
                 State {
                     name: "pending_tasks"
@@ -285,9 +288,9 @@ Rectangle {
                         //text: qsTr("PENDING_DOCUMENT_REVIEWS").arg(pendingTasksCount) + tl.tr
                         text: qsTr("PENDING_DOCUMENT_REVIEWS")
                         onClicked: {
-                            tasks_model.loadList(api.get_Tasks_list(accountSelect.getRole("uid")))
+                            tasks_model.loadList(api.get_Tasks_list(accountSelect.getRole("uid")), api.get_username(accountSelect.getRole("uid")))
                             api.open_tasks_window(accountSelect.getRole("uid"))
-                            }
+                        }
                     }
                 }
             ]

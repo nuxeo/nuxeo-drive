@@ -252,6 +252,16 @@ class QMLDriveApi(QObject):
         log.info("Engine not available")
         return 0
 
+    @pyqtSlot(str, str, result=str)
+    def get_text(self, details, ret) -> str:
+        details = details.replace("'", '"')
+        details = json.loads(details)
+        return details[ret]
+
+    @pyqtSlot(str, result=bool)
+    def text_red(self, text) -> bool:
+        return "ago" in text
+
     @pyqtSlot(str)
     def open_tasks_window(self, uid: str, /) -> None:
         self.application.hide_systray()
@@ -488,19 +498,34 @@ class QMLDriveApi(QObject):
     def get_Tasks_list(self, engine_uid: str, /) -> list:
         engine = self._get_engine(engine_uid)
         tasks_list = self._fetch_tasks(engine)
+        # print(f"tasks_list: {tasks_list!r}")
         for task in tasks_list:
-            doc_id = task.targetDocumentIds[0]["id"]
-            doc_info = self.get_document_details(engine_uid, doc_id)
-            task.name = doc_info.properties["dc:title"]
+            try:
+                doc_id = task.targetDocumentIds[0]["id"]
+                doc_info = self.get_document_details(engine_uid, doc_id)
+                task.name = doc_info.properties["dc:title"]
+            except Exception:
+                task.name = "Unknown Document"
+
             type_of_task = task.directive
             if "chooseParticipants" in type_of_task or "pleaseSelect" in type_of_task:
-                task.workflowModelName = Translator.get("CHOOSE_PARTICIPANTS")
+                task.directive = Translator.get("CHOOSE_PARTICIPANTS")
             elif "give_opinion" in type_of_task:
-                task.workflowModelName = Translator.get("GIVE_OPINION")
+                task.directive = Translator.get("GIVE_OPINION")
             elif "AcceptReject" in type_of_task:
-                task.workflowModelName = Translator.get("VALIDATE_DOCUMENT")
+                task.directive = Translator.get("VALIDATE_DOCUMENT")
+
+            wf_name = ""
+            for char in task.workflowModelName:
+                wf_name = f"{wf_name} {char}" if char.isupper() else f"{wf_name}{char}"
+            task.workflowModelName = wf_name[1:]
 
         return tasks_list
+
+    @pyqtSlot(str, result=str)
+    def get_username(self, engine_uid: str, /) -> str:
+        engine = self._get_engine(engine_uid)
+        return engine.remote_user
 
     @pyqtSlot(str, result=list)
     def get_document_details(self, engine_uid: str, doc_id: str, /) -> int:
@@ -1199,10 +1224,7 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, str)
     def on_clicked_open_task(self, engine_uid: str, task_id: str):
-        print(f">>>>>engine_uid: {engine_uid!r}")
         engine = engine = self._manager.engines.get(engine_uid)
-        print(f">>>>>engine: {engine!r}")
         if not engine:
-            print(">>>>> returning")
             return
         self.application.open_task(engine, task_id)
