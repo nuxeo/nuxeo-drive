@@ -154,15 +154,14 @@ Rectangle {
 
                 // Icon 2: Show pending Task list
                 IconLabel {
-                    icon: MdiFont.Icon.shapeRectanglePlus
-                    //Image {
-                      //  source: "../icons/tasks.svg"
-                        //fillMode: Image.PreserveAspectFit
-                    //}
+                    icon: MdiFont.Icon.minus
+                    Image {
+                        source: "../icons/tasks.svg"
+                        fillMode: Image.PreserveAspectFit
+                    }
                     iconColor: secondaryIcon
                     enabled: feat_tasks_management.enabled
                     opacity: feat_tasks_management.enabled ? 1.0 : 0.5
-                    // onClicked:
                 }
 
                 // Icon 3: open remote server's URL

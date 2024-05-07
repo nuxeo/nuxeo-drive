@@ -219,8 +219,7 @@ class Application(QApplication):
             self._setup_notification_center()
 
         # Initiate workflow when drive starts if tasks managemnt feature is enable
-        if Feature.tasks_management:
-            self.workflow = self.init_workflow()
+        self.workflow = self.init_workflow()
         # Application update
         self.manager.updater.appUpdated.connect(self.quit)
         self.manager.updater.serverIncompatible.connect(self._server_incompatible)
@@ -278,9 +277,7 @@ class Application(QApplication):
         self.document_type_selection_feature_model = FeatureModel(
             Feature.document_type_selection
         )
-        self.tasks_management_feature_model = FeatureModel(
-            Feature.tasks_management, restart_needed=True
-        )
+        self.tasks_management_feature_model = FeatureModel(Feature.tasks_management)
         self.conflicts_model = FileModel(self.translate)
         self.errors_model = FileModel(self.translate)
         self.engine_model = EngineModel(self)
@@ -387,7 +384,8 @@ class Application(QApplication):
         current_uid = self.engine_model.engines_uid[0]
         engine = self.manager.engines[current_uid]
         self.workflow = Workflow(engine.remote)
-        self.workflow.get_pending_tasks(engine)
+        if Feature.tasks_management:
+            self.workflow.get_pending_tasks(engine)
         return self.workflow
 
     def _update_feature_state(self, name: str, value: bool, /) -> None:
@@ -400,6 +398,9 @@ class Application(QApplication):
 
         if feature.restart_needed:
             self.manager.restartNeeded.emit()
+
+        if feature.enabled and feature == self.tasks_management_feature_model:
+            self.init_workflow()
 
     def _center_on_screen(self, window: QQuickView, /) -> None:
         """Display and center the window on the screen."""

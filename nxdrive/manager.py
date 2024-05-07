@@ -223,8 +223,7 @@ class Manager(QObject):
         self._create_db_backup_worker()
 
         # Create the workflow worker if workflow_managerment feature is enable
-        if Feature.tasks_management:
-            self._create_workflow_worker()
+        self._create_workflow_worker()
 
         # Setup analytics tracker
         self.tracker = self.create_tracker()
