@@ -270,7 +270,7 @@ def set_options():
 def tests():
     """Simple tests before doing anything."""
 
-    version_checker = packaging.version.parse  # distutils.version.StrictVersion
+    version_checker = packaging.version.parse
     assert version_decrement("1.0.0") == "0.9.9"
     assert version_decrement("2.5.0") == "2.4.9"
     assert version_decrement("1.2.3") == "1.2.2"

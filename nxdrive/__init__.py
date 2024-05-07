@@ -29,7 +29,9 @@ To declare a beta, use this schema:
 __author__ = "Nuxeo"
 __version__ = "5.5.0"
 __copyright__ = """
-    Copyright Nuxeo (https://www.nuxeo.com) and others.
+    Copyright © 2024 Hyland Software, Inc. and its affiliates. All rights reserved.
+    All Hyland product names are registered or unregistered trademarks of Hyland Software, Inc. or its affiliates
+    (https://www.hyland.com/products/nuxeo-platform) and others.
 
     Licensed under the GNU Lesser General Public License, version 2.1
     (the "License"); you may not use this file except in compliance
