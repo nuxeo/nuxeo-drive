@@ -157,7 +157,6 @@ Rectangle {
                     icon: MdiFont.Icon.minus
                     Image {
                         source: "../icons/tasks.svg"
-                        fillMode: Image.PreserveAspectFit
                     }
                     iconColor: secondaryIcon
                     enabled: feat_tasks_management.enabled
