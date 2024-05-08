@@ -155,8 +155,7 @@ create_venv() {
 }
 
 install_deps() {
-    # /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    brew install qt@5
+    # brew install qt@5
     echo ">>> Installing requirements"
     ${PIP} -r tools/deps/requirements-pip.txt
     ${PIP} -r tools/deps/requirements.txt
