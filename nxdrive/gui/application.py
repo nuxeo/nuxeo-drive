@@ -381,11 +381,10 @@ class Application(QApplication):
     def init_workflow(self) -> Workflow:
         if not self.manager.engines:
             return
-        current_uid = self.engine_model.engines_uid[0]
-        engine = self.manager.engines[current_uid]
-        self.workflow = Workflow(engine.remote)
-        if Feature.tasks_management:
-            self.workflow.get_pending_tasks(engine)
+        for engine in self.manager.engines.copy().values():
+            self.workflow = Workflow(engine.remote)
+            if Feature.tasks_management:
+                self.workflow.get_pending_tasks(engine)
         return self.workflow
 
     def _update_feature_state(self, name: str, value: bool, /) -> None:
