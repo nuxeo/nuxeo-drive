@@ -502,8 +502,13 @@ class QMLDriveApi(QObject):
         for task in tasks_list:
             try:
                 doc_id = task.targetDocumentIds[0]["id"]
+                print(f"**** doc_id: {doc_id!r}")
                 doc_info = self.get_document_details(engine_uid, doc_id)
-                task.name = doc_info.properties["dc:title"]
+                print(f"**** doc_info: {doc_info!r}")
+                print(f"**** doc_info: {type(doc_info)!r}")
+                print(f"**** doc_info.title: {doc_info.title!r}")
+                # task.name = doc_info.properties["dc:title"]
+                task.name = doc_info.title
             except Exception:
                 task.name = "Unknown Document"
 
@@ -514,6 +519,8 @@ class QMLDriveApi(QObject):
                 task.directive = Translator.get("GIVE_OPINION")
             elif "AcceptReject" in type_of_task:
                 task.directive = Translator.get("VALIDATE_DOCUMENT")
+            elif "consolidate" in type_of_task:
+                task.directive = Translator.get("CONSOLIDATE_REVIEW")
 
             wf_name = ""
             for char in task.workflowModelName:
@@ -1201,8 +1208,8 @@ class QMLDriveApi(QObject):
                 url = engine.get_task_url(remote_ref)
                 log.info(f">>>> doc url: {url}")
                 engine.open_remote(url=url)
-        except OSError:
-            log.exception("Remote document cannot be opened")
+        except Exception as exec:
+            log.exception(f"Remote task cannot be opened: {exec}")
 
     @pyqtSlot(str, str, result=str)
     def get_remote_document_url(self, uid: str, remote_ref: str, /) -> str:

@@ -24,7 +24,7 @@ Rectangle {
     function doUpdateCounts() {
         systrayContainer.syncingCount = api.get_syncing_count(accountSelect.getRole("uid"))
         systrayContainer.extraCount = api.get_last_files_count(accountSelect.getRole("uid")) - 10
-        //taskState.pendingTasksCount = api.tasks_remaining(accountSelect.getRole("uid"))
+        taskState.pendingTasksCount = api.tasks_remaining(accountSelect.getRole("uid"))
     }
 
     function updateCounts(force) {
@@ -67,6 +67,7 @@ Rectangle {
         function onVisibleChanged() {
             contextMenu.visible = false
             fileList.contentY = 0
+            taskState.pendingTasksCount = api.tasks_remaining(accountSelect.getRole("uid"))
         }
     }
 
@@ -275,10 +276,10 @@ Rectangle {
         SystrayStatusTasks {
             id: taskState
 
-            //property int pendingTasksCount: 0//api.tasks_remaining(accountSelect.getRole("uid"))
+            property int pendingTasksCount: api.tasks_remaining(accountSelect.getRole("uid"))
 
             state: "pending_tasks"
-            visible: pendingTasksCount > 0
+            visible:taskState.pendingTasksCount > 0
             color: progressFilledLight
             states: [
                 State {

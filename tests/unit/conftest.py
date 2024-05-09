@@ -5,10 +5,8 @@ from typing import Any, Callable, Optional
 from uuid import uuid4
 
 import pytest
-from nuxeo.models import Document, Task
 
 from nxdrive.client.remote_client import Remote
-from nxdrive.client.workflow import Workflow
 from nxdrive.constants import TransferStatus
 from nxdrive.dao.engine import EngineDAO
 from nxdrive.dao.manager import ManagerDAO
@@ -154,11 +152,6 @@ class MockDirectTransferModel(DirectTransferModel):
         super().__init__(translate, parent=parent)
 
 
-class MockWorkflow(Workflow):
-    def __init__(self, remote: Remote):
-        super().__init__(self, remote)
-
-
 @pytest.fixture()
 def engine_dao(tmp_path):
     dao = MockEngineDAO
@@ -246,13 +239,3 @@ def direct_transfer_model():
         }
     ]
     return direct_transfer_model
-
-
-@pytest.fixture()
-def workflow():
-    workflow = MockWorkflow
-    workflow.remote = Remote
-    workflow.remote.user_id = str(uuid4())
-    workflow.remote.documents = Document
-    workflow.remote.tasks = Task
-    return workflow

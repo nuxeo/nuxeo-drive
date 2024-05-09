@@ -10,7 +10,7 @@ from nuxeo.documents import Document
 from nxdrive.constants import WINDOWS
 
 from ... import env
-from .utils import cb_get, fatal_error_dlg  # , get_opened_url
+from .utils import cb_get, fatal_error_dlg  # , share_metrics_dlg  , get_opened_url
 
 if not WINDOWS:
     pytestmark = pytest.mark.skip("Windows only.")
@@ -248,3 +248,17 @@ def test_ctx_menu_entries(nuxeo_url, exe, server, tmp):
         os.chmod(folder, stat.S_IWUSR)
         shutil.rmtree(folder)
         assert not os.path.isdir(folder)
+
+
+def test_app_init_workflow_via_subprocess(final_exe):
+    import subprocess
+
+    p = subprocess.Popen([final_exe, "console"])
+    p.terminate()
+    p.wait(timeout=30)
+    p.kill()
+    poll = p.poll()
+    if poll is None:
+        log.info("Still running")
+    else:
+        log.info("done")

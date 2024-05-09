@@ -49,6 +49,7 @@
     "CONNECTION_REFUSED": "Connection refused",
     "CONNECTION_SUCCESS": "Server successfully connected",
     "CONNECTION_UNKNOWN": "Unknown error occurred while trying to connect",
+    "CONSOLIDATE_REVIEW": "Consolidate Review",
     "CONTAINER_TYPE": "Folder Type",
     "CONTEXT_MENU_1": "Access online",
     "CONTEXT_MENU_2": "Copy share-link",
