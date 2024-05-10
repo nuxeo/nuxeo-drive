@@ -29,7 +29,7 @@ set -e
 PYTHON="python3 -Xutf8 -E -s"
 PYTHON_VENV="./venv/bin/python -Xutf8 -E -s"
 PYTHON_OPT="${PYTHON_VENV} -OO"
-PIP="${PYTHON_OPT} -m pip install --no-cache-dir --upgrade --upgrade-strategy=only-if-needed --progress-bar=off"
+PIP="${PYTHON_OPT} -m pip install --no-cache-dir --upgrade --progress-bar=off"
 
 build_installer() {
     local version
