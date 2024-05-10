@@ -13,7 +13,7 @@ purge() {
 
     echo " - ${version}"
     python3 tools/versions.py --delete "${version}"
-    ssh -o StrictHostKeyChecking=no -T nuxeo@lethe.nuxeo.com "rm -vf ${REMOTE_PATH_PROD}/alpha/*${version}.* ${REMOTE_PATH_PROD}/alpha/*${version}-*" || true
+    ssh -o StrictHostKeyChecking=no -T lethe.nuxeo.com "rm -vf ${REMOTE_PATH_PROD}/alpha/*${version}.* ${REMOTE_PATH_PROD}/alpha/*${version}-*" || true
     git tag --delete "alpha-${version}" || true
     git push --delete origin "wip-alpha-${version}" || true  # branch
     git push --delete origin "alpha-${version}" || true  # tag
@@ -32,7 +32,7 @@ main() {
     python3 -m pip install --user pyyaml==5.3.1
 
     echo ">>> Retrieving versions.yml"
-    rsync -e "ssh -o StrictHostKeyChecking=no" -vz nuxeo@lethe.nuxeo.com:"${REMOTE_PATH_PROD}/versions.yml" .
+    rsync -e "ssh -o StrictHostKeyChecking=no" -vz lethe.nuxeo.com:"${REMOTE_PATH_PROD}/versions.yml" .
 
     echo ">>> Checking versions.yml integrity"
     python3 tools/versions.py --check || exit 1
@@ -68,7 +68,7 @@ main() {
     python3 tools/versions.py --check || exit 1
 
     echo ">>> Uploading versions.yml"
-    rsync -e "ssh -o StrictHostKeyChecking=no" -vz versions.yml nuxeo@lethe.nuxeo.com:"${REMOTE_PATH_PROD}/"
+    rsync -e "ssh -o StrictHostKeyChecking=no" -vz versions.yml lethe.nuxeo.com:"${REMOTE_PATH_PROD}/"
 }
 
 main "$@"

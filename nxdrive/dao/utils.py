@@ -20,7 +20,7 @@ def is_healthy(database: Path, /) -> bool:
     con = sqlite3.connect(str(database))
     try:
         status = con.execute("PRAGMA integrity_check(1)").fetchone()
-        return bool(status[0] == "ok")
+        return status[0] == "ok"
     finally:
         # According to the documentation:
         #   Connection object used as context manager only commits or rollbacks
@@ -67,15 +67,14 @@ def fix_db(database: Path, /, *, dump_file: Path = Path("dump.sql")) -> None:
     Re-generate the whole database content to fix eventual FS corruptions.
     This will prevent `sqlite3.DatabaseError: database disk image is malformed`
     issues.  The whole operation is quick and help saving disk space.
-
         >>> fix_db('ndrive_6bba111e18ba11e89cfd180373b6442e.db')
-
     Will raise sqlite3.DatabaseError in case of unrecoverable file.
     """
-
     if is_healthy(database):
         return
 
+    # setting the path of dumpfile where the databast file exists.
+    dump_file = database.parent.joinpath(dump_file)
     log.info(f"Re-generating the whole database content of {database!r}...")
 
     # Dump

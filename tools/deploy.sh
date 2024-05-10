@@ -22,7 +22,7 @@ release() {
     fi
 
     echo ">>> [${latest_release}] Deploying to the production website"
-    ssh -o "StrictHostKeyChecking=no" -T nuxeo@lethe.nuxeo.com <<EOF
+    ssh -o "StrictHostKeyChecking=no" -T lethe.nuxeo.com <<EOF
 # Move beta files into the release folder
 mv -vf ${REMOTE_PATH_PROD}/beta/*${drive_version}* ${REMOTE_PATH_PROD}/release/
 
@@ -45,9 +45,9 @@ EOF
     echo ">>> [release ${drive_version}] Generating the versions file"
     python3 -m pip install --user -U setuptools wheel
     python3 -m pip install --user pyyaml==5.3.1
-    rsync -e "ssh -o StrictHostKeyChecking=no" -vz nuxeo@lethe.nuxeo.com:"${REMOTE_PATH_PROD}/versions.yml" .
+    rsync -e "ssh -o StrictHostKeyChecking=no" -vz lethe.nuxeo.com:"${REMOTE_PATH_PROD}/versions.yml" .
     python3 tools/versions.py --promote "${drive_version}" --type "release"
-    rsync -e "ssh -o StrictHostKeyChecking=no" -vz versions.yml nuxeo@lethe.nuxeo.com:"${REMOTE_PATH_PROD}/"
+    rsync -e "ssh -o StrictHostKeyChecking=no" -vz versions.yml lethe.nuxeo.com:"${REMOTE_PATH_PROD}/"
 }
 
 release "$@"

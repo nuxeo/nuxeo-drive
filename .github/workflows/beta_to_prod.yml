@@ -16,11 +16,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install SSH key
+      - name: Install SSH key for Bastion
         uses: shimataro/ssh-key-action@v2
         with:
-          key: ${{ secrets.SSH_PRIV_KEY }}
-          known_hosts: ${{ secrets.SSH_KNOWN_HOST_DEPLOY }}
+          key: ${{ secrets.DEV_TOOLS_BASTION_PRIVATE_KEY }}
+          name: id_rsa-bastion
+          known_hosts: ${{ secrets.KNOWN_HOSTS_OF_BASTION }}
+          config: ${{ secrets.CONFIG }}
+
+      - name: Install SSH key of target
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.DEV_TOOLS_EC2_PRIVATE_KEY }}
+          name: id_rsa-target
+          known_hosts: ${{ secrets.KNOWN_HOSTS_OF_TARGET }}
+          config: ${{ secrets.CONFIG }}
 
       - name: Ready for promotion
         run: bash tools/deploy.sh ${{ github.event.inputs.betaVersion }}
