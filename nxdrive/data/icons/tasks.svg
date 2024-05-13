@@ -1,13 +1,7 @@
-<svg viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" focusable="false" style="pointer-events: none; display: block; width: 100%; height: 100%;">
+<svg viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" focusable="false" style="pointer-events: none; display: block; width: 100%; height: 100%;" fill="#3D3B3B">
         <g>
-            <path d="M2.707,3.293l-1.293,-1.293l-1.414,1.414l2.707,2.708l4.707,-4.708l-1.414,-1.414Z" transform="translate(8.293, 5.293)"></path>
-            <path d="M2.707,3.293l-1.293,-1.293l-1.414,1.414l2.707,2.708l4.707,-4.708l-1.414,-1.414Z" transform="translate(8.293, 12.293)"></path>
-            <path d="M14,0h-12c-1.103,0 -2,0.898 -2,2v16c0,1.103 0.897,2 2,2h12c1.103,0 2,-0.897 2,-2v-16c0,-1.102 -0.897,-2 -2,-2Zm-12,18v-16h12l0.001,16h-12.001Z" transform="translate(4, 2)"></path>
-        </g>
-    </svg>
-        <g>
-            <path d="M2.707,3.293l-1.293,-1.293l-1.414,1.414l2.707,2.708l4.707,-4.708l-1.414,-1.414Z" transform="translate(8.293, 5.293)"></path>
-            <path d="M2.707,3.293l-1.293,-1.293l-1.414,1.414l2.707,2.708l4.707,-4.708l-1.414,-1.414Z" transform="translate(8.293, 12.293)"></path>
-            <path d="M14,0h-12c-1.103,0 -2,0.898 -2,2v16c0,1.103 0.897,2 2,2h12c1.103,0 2,-0.897 2,-2v-16c0,-1.102 -0.897,-2 -2,-2Zm-12,18v-16h12l0.001,16h-12.001Z" transform="translate(4, 2)"></path>
+            <path d="M2.707,3.293l-1.293,-1.293l-1.414,1.414l2.707,2.708l4.707,-4.708l-1.414,-1.414Z" transform="translate(8.293, 5.293)" ></path>
+            <path d="M2.707,3.293l-1.293,-1.293l-1.414,1.414l2.707,2.708l4.707,-4.708l-1.414,-1.414Z" transform="translate(8.293, 12.293)" ></path>
+            <path d="M14,0h-12c-1.103,0 -2,0.898 -2,2v16c0,1.103 0.897,2 2,2h12c1.103,0 2,-0.897 2,-2v-16c0,-1.102 -0.897,-2 -2,-2Zm-12,18v-16h12l0.001,16h-12.001Z" transform="translate(4, 2)" ></path>
         </g>
     </svg>
