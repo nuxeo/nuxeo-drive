@@ -399,6 +399,9 @@ function install_python {
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
+    Write-Output ">>> Drive Requires ('\$ {$Env:PYTHON_DRIVE_VERSION} '):"
+	$version_ = Get-Command python | fl * # Get-Command python | fl *
+	Write-Output ">>> Current Python version $version_"
 }
 
 function junit_arg($path, $run) {
