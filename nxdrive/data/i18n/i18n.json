@@ -386,6 +386,7 @@
     "UNSELECT_ALL": "Unselect all",
     "UNSYNC": "Unsynchronize",
     "UPDATE": "Update",
+    "UPDATE_REQUESTED": "Update Document",
     "UPDATED": "Updated document",
     "UPDATES_LINK": "See updates",
     "UPDATING_VERSION": "Updating to %1",

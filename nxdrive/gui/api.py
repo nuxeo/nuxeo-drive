@@ -498,18 +498,14 @@ class QMLDriveApi(QObject):
     def get_Tasks_list(self, engine_uid: str, /) -> list:
         engine = self._get_engine(engine_uid)
         tasks_list = self._fetch_tasks(engine)
-        # print(f"tasks_list: {tasks_list!r}")
         for task in tasks_list:
             try:
                 doc_id = task.targetDocumentIds[0]["id"]
-                print(f"**** doc_id: {doc_id!r}")
                 doc_info = self.get_document_details(engine_uid, doc_id)
-                print(f"**** doc_info: {doc_info!r}")
-                print(f"**** doc_info: {type(doc_info)!r}")
-                print(f"**** doc_info.title: {doc_info.title!r}")
                 # task.name = doc_info.properties["dc:title"]
-                task.name = doc_info.title
-            except Exception:
+                task.name = doc_info.name
+            except Exception as e:
+                log.info(f"Error occured while fetching document info {e!r}")
                 task.name = "Unknown Document"
 
             type_of_task = task.directive
@@ -521,6 +517,8 @@ class QMLDriveApi(QObject):
                 task.directive = Translator.get("VALIDATE_DOCUMENT")
             elif "consolidate" in type_of_task:
                 task.directive = Translator.get("CONSOLIDATE_REVIEW")
+            elif "updateRequest" in type_of_task:
+                task.directive = Translator.get("UPDATE_REQUESTED")
 
             wf_name = ""
             for char in task.workflowModelName:
@@ -540,7 +538,7 @@ class QMLDriveApi(QObject):
         if not engine:
             log.info("engine not available")
             return []
-        return engine.remote.get_info(doc_id)
+        return engine.remote.get_info(doc_id, fetch_parent_uid=False)
 
     @pyqtSlot(object)
     def fetch_pending_tasks(self, engine: Engine, /) -> None:
