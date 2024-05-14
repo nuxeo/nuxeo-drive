@@ -155,7 +155,6 @@ create_venv() {
 }
 
 install_deps() {
-    # brew install qt@5
     echo ">>> Installing requirements"
     ${PIP} -r tools/deps/requirements-pip.txt
     ${PIP} -r tools/deps/requirements.txt
@@ -211,14 +210,14 @@ install_python() {
 
     # We need to override the default python used by pyenv as we installed it manually
     # See ticket: https://jira.nuxeo.com/browse/NXDRIVE-2724
-    echo "**** Python Version: '$(python3 --version)'"
+    echo ">>> Actual Python Version: '$(python3 --version)'"
     pyenv install --skip-existing "${version}"
-    echo ">>> [pyenv] Using Python ${version}"
     pyenv global "${version}"
     eval "$(pyenv init -)"
     eval "$(pyenv init --path)"
     eval "$(pyenv virtualenv-init -)"
-    echo "**** Current Python Version: '$(python3 --version)'"
+    echo "**** Python Version in use: '$(python3 --version)'"
+    echo ">>> [pyenv] Using Python ${version}"
 
 }
 

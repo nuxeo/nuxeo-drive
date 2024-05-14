@@ -104,33 +104,14 @@ jobs:
 
       #- name: "[macOS] Install Python"
       #  if: matrix.os == 'macos-latest'
-      #  run: |
-      #    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-      #    brew install pyenv
-      #    pyenv install 3.9.5
-      #    echo ">>>> Python Version: '$(python3 --version)'"
-      #    pyenv global 3.9.5
-      #    eval "$(pyenv init -)"
-      #    eval "$(pyenv init --path)"
-      #    eval "$(pyenv virtualenv-init -)"
-      #    echo "sudo installer -pkg python.pkg -target /"
-      #    echo ">>>> Current Python Version: '$(python3 --version)'"
+      #  run: sudo installer -pkg python.pkg -target /
 
       - name: "[macOS] Setup the environment"
         if: matrix.os == 'macos-latest'
         env:
           MACOSX_DEPLOYMENT_TARGET: "11.3"
           SYSTEM_VERSION_COMPAT: 0
-        run: |
-          bash tools/osx/deploy_ci_agent.sh --install-release
-          echo "-----python-----"
-          python3 --version
-
-          echo "---pwd---"
-          pwd
-
-          echo "---ls-a---"
-          ls -a
+        run: bash tools/osx/deploy_ci_agent.sh --install-release
 
       - name: "[macOS] Generate the .dmg and validate against 2021"
         if: matrix.os == 'macos-latest'

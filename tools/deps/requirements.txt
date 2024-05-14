@@ -324,9 +324,9 @@ pyqt5==5.15.10 \
     --hash=sha256:ff99b4f91aa8eb60510d5889faad07116d3340041916e46c07d519f7cad344e1
 PyQt5-Qt5==5.15.13 ; sys_platform == "darwin" \
     --hash=sha256:141859f2ffe04cc6c5db970e2b6ad9f98897805d886a14c52614e3799daab6d6
-PyQt5-Qt5==5.15.2 ; sys_platform == "win32" \
-    --hash=sha256:9cc7a768b1921f4b982ebc00a318ccb38578e44e45316c7a4a850e953e1dd327
-PyQt5-Qt5==5.15.2 ; sys_platform == "linux" \
+PyQt5-Qt5==5.15.2 ; sys_platform != "darwin" \
+    --hash=sha256:9cc7a768b1921f4b982ebc00a318ccb38578e44e45316c7a4a850e953e1dd327 \
+    --hash=sha256:750b78e4dba6bdf1607febedc08738e318ea09e9b10aea9ff0d73073f11f6962 \
     --hash=sha256:1988f364ec8caf87a6ee5d5a3a5210d57539988bf8e84714c7d60972692e2f4a
 pyqt5-stubs==5.15.6.0 \
     --hash=sha256:7fb8177c72489a8911f021b7bd7c33f12c87f6dba92dcef3fdcdb5d9400f0f3f \
