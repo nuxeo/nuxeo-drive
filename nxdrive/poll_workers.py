@@ -110,7 +110,6 @@ class ServerOptionsUpdater(PollWorker):
             # Features needs to be reworked to match the format in Options
             # (this is a limitation of the local config format)
             old_feature_sync = Options.feature_synchronization
-            old_feature_tasks_mgmt = Options.feature_tasks_management
             if "feature" in conf:
                 for feature, value in conf["feature"].items():
                     feature = feature.replace("-", "_").lower()
@@ -125,7 +124,6 @@ class ServerOptionsUpdater(PollWorker):
             if (
                 not self.first_run
                 and Options.feature_synchronization != old_feature_sync
-                or Options.feature_tasks_management != old_feature_tasks_mgmt
             ):
                 self.manager.restartNeeded.emit()
 
