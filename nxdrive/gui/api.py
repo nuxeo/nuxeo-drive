@@ -1115,8 +1115,7 @@ class QMLDriveApi(QObject):
     ) -> None:
         log.info(f"Should open remote document ({remote_path!r})")
         try:
-            engine = self._manager.engines.get(uid)
-            if engine:
+            if engine := self._manager.engines.get(uid):
                 url = engine.get_task_url(remote_ref)
                 engine.open_remote(url=url)
         except Exception as exec:
