@@ -156,6 +156,7 @@ Rectangle {
                         onActivated: {
                             getLastFiles(accountSelect.getRole("uid"))
                             doUpdateCounts()
+                            tasks_model.loadList(api.get_Tasks_list(accountSelect.getRole("uid")), api.get_username(accountSelect.getRole("uid")))
                         }
                     }
                 }

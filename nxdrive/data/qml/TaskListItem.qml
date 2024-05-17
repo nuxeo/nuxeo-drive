@@ -3,8 +3,10 @@ import QtQuick.Controls 2.15
 
 Button {
     id: control
-    width: 500
-    height: 100
+    width: 450
+    height: 90
+    //Layout.leftPadding: 5
+    leftPadding: 5
 
     contentItem: Rectangle{
         ScaledText {
@@ -59,7 +61,7 @@ Button {
 
     background: Rectangle {
         id: buttonBackground
-        width: 500
+        width: 450
         height: buttonText1.text ? 95 : 0
         radius: 10
 
@@ -73,7 +75,7 @@ Button {
         id: mouseArea
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
-        width: 500
+        width: 450
         onPressed: mouse.accepted = false
     }
 }

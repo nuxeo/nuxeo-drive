@@ -86,6 +86,12 @@ Rectangle {
         model: tasks_model.model
         delegate: tasksDelegate
         visible: !showSelfTasksList
+        topMargin: 5
+        bottomMargin: 10
+        leftMargin: 25
+        rightMargin: 10
+        spacing: 25
+        clip: true
     }
 
     Component {
@@ -113,6 +119,12 @@ Rectangle {
         model: tasks_model.self_model
         delegate: selftasksDelegate
         visible: showSelfTasksList
+        topMargin: 5
+        bottomMargin: 10
+        leftMargin: 25
+        rightMargin: 10
+        spacing: 25
+        clip: true
     }
 
 }
