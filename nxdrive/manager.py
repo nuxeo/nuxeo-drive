@@ -222,7 +222,7 @@ class Manager(QObject):
         # Create the server's configuration getter verification thread
         self._create_db_backup_worker()
 
-        # Create the workflow worker if workflow_managerment feature is enable
+        # Create the workflow worker if tasks_management feature is enable
         self._create_workflow_worker()
 
         # Setup analytics tracker

@@ -161,12 +161,16 @@ Rectangle {
                     }
                 }
 
-                // Icon 1.1: open Task List
+                // Icon 2: Show pending Task list
                 IconLabel {
-                    icon: MdiFont.Icon.minus
+                     icon: MdiFont.Icon.minus
                     Image {
-                        source: "icons/tasks.svg"
+                        source: "../icons/tasks.svg"
+                        anchors.fill: parent
                     }
+                    color: "#FFFFFF"
+                    enabled: feat_tasks_management.enabled
+                    opacity: feat_tasks_management.enabled ? 1.0 : 0.2
                     onClicked: {
                             tasks_model.loadList(api.get_Tasks_list(accountSelect.getRole("uid")), api.get_username(accountSelect.getRole("uid")))
                             api.open_tasks_window(accountSelect.getRole("uid"))
@@ -174,7 +178,7 @@ Rectangle {
                     //tooltip: api.get_hostname_from_url(accountSelect.getRole("server_url"))
                 }
 
-                // Icon 2: open remote server's URL
+                // Icon 3: open remote server's URL
                 IconLabel {
                     icon: MdiFont.Icon.nuxeo
                     iconColor: secondaryIcon
@@ -182,7 +186,7 @@ Rectangle {
                     tooltip: api.get_hostname_from_url(accountSelect.getRole("server_url"))
                 }
 
-                // Icon 3: open local sync root folder
+                // Icon 4: open local sync root folder
                 IconLabel {
                     icon: MdiFont.Icon.folder
                     iconColor: secondaryIcon
@@ -192,7 +196,7 @@ Rectangle {
                     opacity: feat_synchronization.enabled ? 1.0 : 0.5
                 }
 
-                // Icon 4: open the Direct Transfer window
+                // Icon 5: open the Direct Transfer window
                 IconLabel {
                     icon: MdiFont.Icon.directTransfert
                     iconColor: secondaryIcon
@@ -202,7 +206,7 @@ Rectangle {
                     opacity: feat_direct_transfer.enabled ? 1.0 : 0.5
                 }
 
-                // Icon 5: sub-menu
+                // Icon 6: sub-menu
                 IconLabel {
                     id: settingsContainer
                     icon: MdiFont.Icon.dotsVertical

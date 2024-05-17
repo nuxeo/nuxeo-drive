@@ -258,7 +258,4 @@ def test_app_init_workflow_via_subprocess(final_exe):
     p.wait(timeout=30)
     p.kill()
     poll = p.poll()
-    if poll is None:
-        log.info("Still running")
-    else:
-        log.info("done")
+    assert poll is not None
