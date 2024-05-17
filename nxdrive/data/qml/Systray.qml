@@ -284,7 +284,7 @@ Rectangle {
             property int pendingTasksCount: api.tasks_remaining(accountSelect.getRole("uid"))
 
             state: "pending_tasks"
-            visible:taskState.pendingTasksCount > 0
+            visible:taskState.pendingTasksCount > 0 && feat_tasks_management.enabled
             color: progressFilledLight
             states: [
                 State {
