@@ -52,7 +52,12 @@ from .notification import DefaultNotificationService
 from .objects import Binder, EngineDef, Metrics, Session
 from .options import DEFAULT_LOG_LEVEL_FILE, Options
 from .osi import AbstractOSIntegration
-from .poll_workers import DatabaseBackupWorker, ServerOptionsUpdater, SyncAndQuitWorker
+from .poll_workers import (
+    DatabaseBackupWorker,
+    ServerOptionsUpdater,
+    SyncAndQuitWorker,
+    WorkflowWorker,
+)
 from .qt.imports import QT_VERSION_STR, QObject, pyqtSignal, pyqtSlot
 from .updater import updater
 from .updater.constants import Login
@@ -216,6 +221,9 @@ class Manager(QObject):
 
         # Create the server's configuration getter verification thread
         self._create_db_backup_worker()
+
+        # Create the workflow worker if tasks_management feature is enable
+        self._create_workflow_worker()
 
         # Setup analytics tracker
         self.tracker = self.create_tracker()
@@ -404,6 +412,11 @@ class Manager(QObject):
         self.db_backup_worker = DatabaseBackupWorker(self)
         if self.db_backup_worker:
             self.started.connect(self.db_backup_worker.thread.start)
+
+    def _create_workflow_worker(self) -> None:
+        self.workflow_worker = WorkflowWorker(self)
+        if self.workflow_worker:
+            self.started.connect(self.workflow_worker.thread.start)
 
     @if_frozen
     def _create_extension_listener(self) -> None:

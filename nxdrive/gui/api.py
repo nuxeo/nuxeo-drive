@@ -576,7 +576,7 @@ class QMLDriveApi(QObject):
     def _balance_percents(self, result: Dict[str, float], /) -> Dict[str, float]:
         """Return an altered version of the dict in which no value is under a minimum threshold."""
 
-        result = {k: v for k, v in sorted(result.items(), key=lambda item: item[1])}
+        result = dict(sorted(result.items(), key=lambda item: item[1]))
         keys = list(result)
         min_threshold = 10
         data = 0.0
@@ -1108,3 +1108,15 @@ class QMLDriveApi(QObject):
         """Return the URL to a remote document based on its reference."""
         engine = self._manager.engines.get(uid)
         return engine.get_metadata_url(remote_ref) if engine else ""
+
+    @pyqtSlot(str, str, str)
+    def display_pending_task(
+        self, uid: str, remote_ref: str, remote_path: str, /
+    ) -> None:
+        log.info(f"Should open remote document ({remote_path!r})")
+        try:
+            if engine := self._manager.engines.get(uid):
+                url = engine.get_task_url(remote_ref)
+                engine.open_remote(url=url)
+        except Exception as exec:
+            log.exception(f"Remote task cannot be opened: {exec}")

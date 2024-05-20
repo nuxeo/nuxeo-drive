@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
+from uuid import uuid4
 
 from nxdrive.client.local import FileInfo
 from nxdrive.constants import DelAction, TransferStatus
@@ -9,6 +10,8 @@ from nxdrive.exceptions import ThreadInterrupt, UnknownDigest
 from nxdrive.manager import Manager
 from nxdrive.objects import RemoteFileInfo, Session
 from nxdrive.session_csv import SessionCsv
+from nxdrive.translator import Translator
+from nxdrive.utils import find_resource
 
 from .. import ensure_no_exception
 
@@ -198,3 +201,18 @@ def test_can_use_trash(manager_factory):
     manager, engine = manager_factory()
     with manager:
         assert engine.use_trash()
+
+
+def test_send_task_notification(manager_factory):
+    manager, engine = manager_factory()
+    Translator(find_resource("i18n"), lang="en")
+    with manager:
+        assert engine.send_task_notification(str(uuid4()), "/doc_path/test.txt") is None
+
+
+def test_get_task_url(manager_factory, nuxeo_url):
+    manager, engine = manager_factory()
+    with manager:
+        remote_ref = str(uuid4())
+        url = engine.get_task_url(remote_ref)
+        assert url == f"{nuxeo_url}/ui#!/tasks/{remote_ref}"

@@ -180,7 +180,6 @@ class NotificationService(QObject):
                 else:
                     self.dao.update_notification(notification)
             self._notifications[notification.uid] = notification
-
         self.newNotification.emit(notification)
 
     def trigger_notification(self, uid: str, /) -> None:
@@ -520,6 +519,32 @@ class InvalidCredentialNotification(Notification):
         )
 
 
+class DisplayPendingTask(Notification):
+    """Display a notification for pending tasks"""
+
+    def __init__(self, engine_uid: str, remote_ref: str, remote_path: str, /) -> None:
+        values = [remote_path]
+        super().__init__(
+            uid="PENDING_DOCUMENT_REVIEWS",
+            title="Review Document",
+            description=Translator.get("PENDING_DOCUMENT_REVIEWS", values=values),
+            level=Notification.LEVEL_INFO,
+            flags=(
+                Notification.FLAG_PERSISTENT
+                | Notification.FLAG_BUBBLE
+                | Notification.FLAG_ACTIONABLE
+                | Notification.FLAG_DISCARD_ON_TRIGGER
+                | Notification.FLAG_REMOVE_ON_DISCARD
+            ),
+            action="display_pending_task",
+            action_args=(
+                engine_uid,
+                remote_ref,
+                remote_path,
+            ),
+        )
+
+
 class DefaultNotificationService(NotificationService):
     def init_signals(self) -> None:
         self._manager.initEngine.connect(self._connect_engine)
@@ -539,6 +564,7 @@ class DefaultNotificationService(NotificationService):
         engine.directTransferSessionFinished.connect(
             self._direct_transfer_session_finshed
         )
+        engine.displayPendingTask.connect(self._display_pending_task)
 
     def _direct_transfer_error(self, file: Path, /) -> None:
         """Display a notification when a Direct Transfer is in error."""
@@ -635,3 +661,8 @@ class DefaultNotificationService(NotificationService):
         engine_uid = self.sender().uid
         notif = InvalidCredentialNotification(engine_uid)
         self.send_notification(notif)
+
+    def _display_pending_task(
+        self, engine_uid: str, remote_ref: str, remote_path: str, /
+    ) -> None:
+        self.send_notification(DisplayPendingTask(engine_uid, remote_ref, remote_path))

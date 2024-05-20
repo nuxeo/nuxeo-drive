@@ -11,6 +11,8 @@ from time import monotonic
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import unquote_plus, urlparse
 
+from nxdrive.client.workflow import Workflow
+
 from ..behavior import Behavior
 from ..constants import (
     APP_NAME,
@@ -216,6 +218,8 @@ class Application(QApplication):
         if MAC:
             self._setup_notification_center()
 
+        # Initiate workflow when drive starts if tasks managemnt feature is enable
+        self.workflow = self.init_workflow()
         # Application update
         self.manager.updater.appUpdated.connect(self.quit)
         self.manager.updater.serverIncompatible.connect(self._server_incompatible)
@@ -273,6 +277,7 @@ class Application(QApplication):
         self.document_type_selection_feature_model = FeatureModel(
             Feature.document_type_selection
         )
+        self.tasks_management_feature_model = FeatureModel(Feature.tasks_management)
         self.conflicts_model = FileModel(self.translate)
         self.errors_model = FileModel(self.translate)
         self.engine_model = EngineModel(self)
@@ -373,6 +378,15 @@ class Application(QApplication):
 
         self.manager.featureUpdate.connect(self._update_feature_state)
 
+    def init_workflow(self) -> Workflow:
+        if not self.manager.engines:
+            return
+        for engine in self.manager.engines.copy().values():
+            self.workflow = Workflow(engine.remote)
+            if Feature.tasks_management:
+                self.workflow.get_pending_tasks(engine)
+        return self.workflow
+
     def _update_feature_state(self, name: str, value: bool, /) -> None:
         """Check if the feature model exists from *name* then update it with *value*."""
         feature = getattr(self, f"{name}_feature_model", None)
@@ -383,6 +397,9 @@ class Application(QApplication):
 
         if feature.restart_needed:
             self.manager.restartNeeded.emit()
+
+        if feature.enabled and feature == self.tasks_management_feature_model:
+            self.init_workflow()
 
     def _center_on_screen(self, window: QQuickView, /) -> None:
         """Display and center the window on the screen."""
@@ -470,6 +487,9 @@ class Application(QApplication):
         )
         context.setContextProperty(
             "feat_document_type_selection", self.document_type_selection_feature_model
+        )
+        context.setContextProperty(
+            "feat_tasks_management", self.tasks_management_feature_model
         )
         context.setContextProperty(
             "feat_synchronization", self.synchronization_feature_model
