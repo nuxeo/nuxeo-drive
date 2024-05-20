@@ -676,7 +676,7 @@ def get_certificate_details(
 
 def concat_all_certificates(files: List[Path]) -> Optional[Path]:
     """Craft a all-in-one certificate with ones from cacert and custom ones."""
-    from hashlib import md5
+    from hashlib import sha256
 
     import certifi
 
@@ -707,7 +707,7 @@ def concat_all_certificates(files: List[Path]) -> Optional[Path]:
         log.warning("No valid certificate found.")
         return None
 
-    name = md5(certificates).hexdigest()
+    name = sha256(certificates).hexdigest()
     folder = Options.nxdrive_home
     final_file: Path = folder / f"ndrive_{name}.pem"
 
@@ -720,7 +720,7 @@ def concat_all_certificates(files: List[Path]) -> Optional[Path]:
 
         log.info(f"Saved the final certificate to {str(final_file)!r}, including:")
         for cert_file in cert_files:
-            log.info(f" >>> {str(cert_file)!r}")
+            log.debug(f" >>> {str(cert_file)!r}")
         final_file.write_bytes(certificates)
     else:
         log.info(f"Will use the final certificate from {str(final_file)!r}")

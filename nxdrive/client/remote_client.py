@@ -125,9 +125,6 @@ class Remote(Nuxeo):
             auth = self.auth
 
         self.verification_needed = get_verify()
-        log.info(
-            f"SSL verify: {verify}-> will be changed to {self.verification_needed}"
-        )
 
         self.token = token
 
