@@ -315,6 +315,7 @@
     "RELEASE_NOTES_MSG": "Your %1 has been correctly updated to the version <b>%2</b>, please read the <a href=\"https://doc.nuxeo.com/n/Bm2\">release notes</a> for more information.",
     "RECENTLY_UPDATED": "Recently updated",
     "REFRESH": "Refresh",
+    "REFRESH_AVAILABLE": "New tasks available. Please refresh the page.",
     "REMOTE_FOLDER": "Remote folder",
     "REPLACE": "Replace",
     "REPORT_GENERATED": "Report available:",

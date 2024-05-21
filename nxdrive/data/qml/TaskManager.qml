@@ -18,18 +18,34 @@ Rectangle {
     }
 
     Rectangle {
-        id: buttonzone
-        height: 30
+        id: refreshButton
+        objectName: "refresh"
+
+        height: 0
         width: parent.width
+        color: refreshBackground
         RowLayout {
             width: parent.width
             height: parent.height
+            ScaledText {
+                id: refreshText
+                text: qsTr("REFRESH_AVAILABLE") + tl.tr
+                font.pointSize: point_size * 1.2
+                leftPadding: 25
+                rightPadding: 5
+                topPadding: 3
+                anchors {
+                    centerIn: buttonBackground
+                }
+            }
             NuxeoButton {
                 text: qsTr("REFRESH") + tl.tr
-                Layout.alignment: Qt.AlignHCenter
+                Layout.alignment: Qt.AlignRight
                 Layout.rightMargin: 30
+                primary: false
                 onClicked: {
                             tasks_model.loadList(api.get_Tasks_list(engineUid), api.get_username(engineUid))
+                            refreshButton.height = 0
                 }
             }
         }
@@ -40,7 +56,7 @@ Rectangle {
         width: parent.width
         height: 50
         spacing: 0
-        anchors.top: buttonzone.bottom
+        anchors.top: refreshButton.bottom
         SettingsTab {
             text: qsTr("PENDING_TASKS") + tl.tr
             barIndex: bar.currentIndex;
@@ -80,9 +96,10 @@ Rectangle {
 
     ListView {
         anchors.fill: parent
+        anchors.top: bar.bottom
         anchors.bottomMargin: 52
         width: parent.width
-        anchors.topMargin: 90
+        anchors.topMargin: refreshButton.height == 0 ? 60 : 90
         model: tasks_model.model
         delegate: tasksDelegate
         visible: !showSelfTasksList
@@ -92,6 +109,9 @@ Rectangle {
         rightMargin: 10
         spacing: 25
         clip: true
+        ScrollBar.vertical: ScrollBar {
+        active: true
+        }
     }
 
     Component {
@@ -115,7 +135,7 @@ Rectangle {
         anchors.fill: parent
         anchors.bottomMargin: 52
         width: parent.width
-        anchors.topMargin: 90
+        anchors.topMargin: refreshButton.height == 0 ? 60 : 90
         model: tasks_model.self_model
         delegate: selftasksDelegate
         visible: showSelfTasksList
@@ -125,6 +145,9 @@ Rectangle {
         rightMargin: 10
         spacing: 25
         clip: true
+        ScrollBar.vertical: ScrollBar {
+        active: true
+        }
     }
 
 }

@@ -77,6 +77,7 @@ class QMLDriveApi(QObject):
         self.openAuthenticationDialog.connect(
             self.application.open_authentication_dialog
         )
+        self.last_task_list = ""
 
     def _json_default(self, obj: Any, /) -> Any:
         export = getattr(obj, "export", None)
@@ -525,6 +526,8 @@ class QMLDriveApi(QObject):
                 wf_name = f"{wf_name} {char}" if char.isupper() else f"{wf_name}{char}"
             task.workflowModelName = wf_name[1:]
 
+        if self.last_task_list == "":
+            self.last_task_list = str(tasks_list)
         return tasks_list
 
     @pyqtSlot(str, result=str)

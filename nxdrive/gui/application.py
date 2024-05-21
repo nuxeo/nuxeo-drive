@@ -393,6 +393,7 @@ class Application(QApplication):
         )
 
         self.manager.featureUpdate.connect(self._update_feature_state)
+        self.last_engine_uid = ""
 
     def init_workflow(self) -> Workflow:
         if not self.manager.engines:
@@ -573,6 +574,7 @@ class Application(QApplication):
             "warningContent": "#FF9E00",
             "lightTheme": "#FFFFFF",
             "darkShadow": "#333333",
+            "refreshBackground": "#d0d1d6",
         }
 
         for name, value in colors.items():
@@ -929,7 +931,7 @@ class Application(QApplication):
 
     @pyqtSlot()
     def show_systray(self) -> None:
-        # self.systray_window.close()
+        self.systray_window.close()
         icon = self.tray_icon.geometry()
 
         if not icon or icon.isEmpty():
@@ -1881,6 +1883,7 @@ class Application(QApplication):
         except Exception:
             log.info("Unable to fetch tasks")
             tasks = []
+        self.last_engine_uid = engine.uid
         return tasks
 
     def update_status(self, engine: Engine, /) -> None:
