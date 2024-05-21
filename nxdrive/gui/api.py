@@ -485,15 +485,28 @@ class QMLDriveApi(QObject):
         log.info(f"Show settings on section {section}")
         self.application.show_settings(section)
 
+    @pyqtSlot(str, result=int)
+    def tasks_remaining(self, uid: str, /) -> int:
+        """Return pending tasks count for Drive notification."""
+        engine = self._get_engine(uid)
+        if engine:
+            tasks = self._fetch_tasks(engine)
+            return len(tasks)
+        log.info("Engine not available")
+        return 0
+
     @pyqtSlot(str, result=list)
     def get_Tasks_list(self, engine_uid: str, /) -> list:
         engine = self._get_engine(engine_uid)
         tasks_list = self._fetch_tasks(engine)
+        print(f">>>> tasks_list: {tasks_list!r}")
         for task in tasks_list:
             try:
                 doc_id = task.targetDocumentIds[0]["id"]
                 doc_info = self.get_document_details(engine_uid, doc_id)
                 # task.name = doc_info.properties["dc:title"]
+                print(f">>>>  task.name: { task.name!r}")
+                print(f">>>> doc_info: {doc_info!r}")
                 task.name = doc_info.name
             except Exception as e:
                 log.info(f"Error occurred while fetching document info {e!r}")
@@ -1190,18 +1203,6 @@ class QMLDriveApi(QObject):
         except OSError:
             log.exception("Remote document cannot be opened")
 
-    @pyqtSlot(str, str, str)
-    def display_pending_task(
-        self, uid: str, remote_ref: str, remote_path: str, /
-    ) -> None:
-        log.info(f"Should open remote document ({remote_path!r})")
-        try:
-            if engine := self._manager.engines.get(uid):
-                url = engine.get_task_url(remote_ref)
-                engine.open_remote(url=url)
-        except Exception as exec:
-            log.exception(f"Remote task cannot be opened: {exec}")
-
     @pyqtSlot(str, str, result=str)
     def get_remote_document_url(self, uid: str, remote_ref: str, /) -> str:
         """Return the URL to a remote document based on its reference."""
@@ -1214,3 +1215,15 @@ class QMLDriveApi(QObject):
         if not engine:
             return
         self.application.open_task(engine, task_id)
+
+    @pyqtSlot(str, str, str)
+    def display_pending_task(
+        self, uid: str, remote_ref: str, remote_path: str, /
+    ) -> None:
+        log.info(f"Should open remote document ({remote_path!r})")
+        try:
+            if engine := self._manager.engines.get(uid):
+                url = engine.get_task_url(remote_ref)
+                engine.open_remote(url=url)
+        except Exception as exec:
+            log.exception(f"Remote task cannot be opened: {exec}")
