@@ -753,12 +753,11 @@ class Engine(QObject):
 
     def get_task_url(self, remote_ref: str, /, *, edit: bool = False) -> str:
         """
-        Build the document's metadata URL based on the server's UI.
+        Build the task's URL based on the server's UI.
         Default is Web-UI.  In case of unknown UI, use the default value.
-
-        :param remote_ref: The document remote reference (UID) of the
-            document we want to show metadata.
-        :param edit: Show the metadata edit page instead of the document.
+        :param remote_ref: The task remote reference (UID) of the
+            task we want to show metadata.
+        :param edit: Show the metadata edit page instead of the task.
         :return: The complete URL.
         """
         repo = self.remote.client.repository

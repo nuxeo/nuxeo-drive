@@ -1190,18 +1190,6 @@ class QMLDriveApi(QObject):
         except OSError:
             log.exception("Remote document cannot be opened")
 
-    @pyqtSlot(str, str, str)
-    def display_pending_task(
-        self, uid: str, remote_ref: str, remote_path: str, /
-    ) -> None:
-        log.info(f"Should open remote document ({remote_path!r})")
-        try:
-            if engine := self._manager.engines.get(uid):
-                url = engine.get_task_url(remote_ref)
-                engine.open_remote(url=url)
-        except Exception as exec:
-            log.exception(f"Remote task cannot be opened: {exec}")
-
     @pyqtSlot(str, str, result=str)
     def get_remote_document_url(self, uid: str, remote_ref: str, /) -> str:
         """Return the URL to a remote document based on its reference."""
@@ -1214,3 +1202,15 @@ class QMLDriveApi(QObject):
         if not engine:
             return
         self.application.open_task(engine, task_id)
+
+    @pyqtSlot(str, str, str)
+    def display_pending_task(
+        self, uid: str, remote_ref: str, remote_path: str, /
+    ) -> None:
+        log.info(f"Should open remote document ({remote_path!r})")
+        try:
+            if engine := self._manager.engines.get(uid):
+                url = engine.get_task_url(remote_ref)
+                engine.open_remote(url=url)
+        except Exception as exec:
+            log.exception(f"Remote task cannot be opened: {exec}")
