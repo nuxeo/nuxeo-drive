@@ -1031,7 +1031,7 @@ class Application(QApplication):
         """Close the Tasks window."""
         self.task_manager_window.close()
 
-    def open_task(self, engine: Engine, task_id: str):
+    def open_task(self, engine: Engine, task_id: str) -> None:
         endpoint = "/ui/#!/tasks/"
         url = f"{engine.server_url}{endpoint}{task_id}"
         webbrowser.open(url)

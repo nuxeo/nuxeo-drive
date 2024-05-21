@@ -858,10 +858,10 @@ class TasksModel(QObject):
             }
         )
 
-    def get_model(self):
+    def get_model(self) -> QStandardItemModel:
         return self.taskmodel
 
-    def get_self_model(self):
+    def get_self_model(self) -> QStandardItemModel:
         return self.self_taskmodel
 
     model = pyqtProperty(QObject, fget=get_model, constant=True)
@@ -913,7 +913,7 @@ class TasksModel(QObject):
                 }
                 self.add_row(data, self.TASK_ROLE, False)
 
-    def add_row(self, task, role, self_task):
+    def add_row(self, task: dict, role: int, self_task: bool) -> None:
         item = QStandardItem()
         item.setData(task, role)
 
