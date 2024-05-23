@@ -297,7 +297,7 @@
     "PASSWORD": "Password",
     "PENDING_TASKS": "Review Required",
     "PERSONAL_SPACE": "Personal space",
-    "PENDING_DOCUMENT_REVIEWS": "New task(s) to review",
+    "PENDING_DOCUMENT_REVIEWS": "Awaiting document review %1",
     "PENDING_TASK_REVIEWS": "New task(s) to review",
     "PROXY": "Proxy",
     "PROXY_APPLIED": "Proxy settings have been updated",
