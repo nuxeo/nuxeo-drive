@@ -3,8 +3,6 @@ from unittest.mock import Mock, patch
 
 from nxdrive.gui.api import QMLDriveApi
 
-# from nxdrive.gui.application import Application
-
 
 def test_web_authentication(manager_factory, nuxeo_url):
     manager = manager_factory(with_engine=False)
@@ -183,14 +181,22 @@ def test_get_tasks_list(manager_factory):
     dummy_task = Mock()
     dummy_task.actors = [{"id": "user:Administrator"}]
     dummy_task.created = "2024-04-04T08:31:04.366Z"
-    dummy_task.directive = ("wf.serialDocumentReview.AcceptReject",)
-    dummy_task.dueDate = ("2024-04-09T08:31:04.365Z",)
-    dummy_task.id = ("e7fc7a3a-5c39-479f-8382-65ed08e8116d",)
-    dummy_task.name = ("wf.serialDocumentReview.DocumentValidation",)
-    dummy_task.targetDocumentIds = ([{"id": "5b77e4dd-c155-410b-9d4d-e72f499638b8"}],)
-    dummy_task.workflowInstanceId = ("81133cf7-38d9-483c-9a0b-c98fc02822a0",)
+    dummy_task.directive = "wf.serialDocumentReview.AcceptReject"
+    dummy_task.dueDate = "2024-04-09T08:31:04.365Z"
+    dummy_task.id = "e7fc7a3a-5c39-479f-8382-65ed08e8116d"
+    dummy_task.name = "wf.serialDocumentReview.DocumentValidation"
+    dummy_task.targetDocumentIds = [{"id": "5b77e4dd-c155-410b-9d4d-e72f499638b8"}]
+    dummy_task.workflowInstanceId = "81133cf7-38d9-483c-9a0b-c98fc02822a0"
     dummy_task.workflowModelName = "SerialDocumentReview"
-    dummy_task_list = [dummy_task]
+    dummy_task1 = dummy_task
+    dummy_task1.directive = "wf.pleaseSelect"
+    dummy_task2 = dummy_task
+    dummy_task2.directive = "wf.give_opinion"
+    dummy_task3 = dummy_task
+    dummy_task3.directive = "wf.consolidate"
+    dummy_task4 = dummy_task
+    dummy_task4.directive = "wf.updateRequest"
+    dummy_task_list = [dummy_task, dummy_task1, dummy_task2, dummy_task3, dummy_task4]
 
     def mocked_open_authentication_dialog():
         return
