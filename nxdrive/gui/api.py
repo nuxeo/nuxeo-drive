@@ -485,6 +485,16 @@ class QMLDriveApi(QObject):
         log.info(f"Show settings on section {section}")
         self.application.show_settings(section)
 
+    @pyqtSlot(str, result=int)
+    def tasks_remaining(self, uid: str, /) -> int:
+        """Return pending tasks count for Drive notification."""
+        engine = self._get_engine(uid)
+        if engine:
+            tasks = self._fetch_tasks(engine)
+            return len(tasks)
+        log.info("Engine not available")
+        return 0
+
     @pyqtSlot(str, result=list)
     def get_Tasks_list(self, engine_uid: str, /) -> list:
         engine = self._get_engine(engine_uid)
@@ -494,6 +504,8 @@ class QMLDriveApi(QObject):
                 doc_id = task.targetDocumentIds[0]["id"]
                 doc_info = self.get_document_details(engine_uid, doc_id)
                 # task.name = doc_info.properties["dc:title"]
+                print(f">>>>  task.name: { task.name!r}")
+                print(f">>>> doc_info: {doc_info!r}")
                 task.name = doc_info.name
             except Exception as e:
                 log.info(f"Error occurred while fetching document info {e!r}")
