@@ -128,6 +128,7 @@ class Remote(Nuxeo):
         log.info(
             f"SSL verify: {verify}-> will be changed to {self.verification_needed}"
         )
+
         self.token = token
 
         super().__init__(
