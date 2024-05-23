@@ -102,6 +102,7 @@ QMLDriveApi.open_server_folders  # Used in QML
 QMLDriveApi.open_tasks_window  # Used in QML
 QMLDriveApi.set_proxy_settings  # Used in QML
 QMLDriveApi.set_server_ui  # Used in QML
+QMLDriveApi.tasks_remaining  # Used in QML
 QMLDriveApi.text_red  # Used in QML
 QMLDriveApi.to_local_file  # Used in QML
 QMLDriveApi.web_update_token  # Used in QML

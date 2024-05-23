@@ -499,7 +499,6 @@ class QMLDriveApi(QObject):
     def get_Tasks_list(self, engine_uid: str, /) -> list:
         engine = self._get_engine(engine_uid)
         tasks_list = self._fetch_tasks(engine)
-        print(f">>>> tasks_list: {tasks_list!r}")
         for task in tasks_list:
             try:
                 doc_id = task.targetDocumentIds[0]["id"]
