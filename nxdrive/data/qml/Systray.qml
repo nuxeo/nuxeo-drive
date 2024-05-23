@@ -291,8 +291,7 @@ Rectangle {
                     name: "pending_tasks"
                     PropertyChanges {
                         target: taskState
-                        //text: qsTr("PENDING_DOCUMENT_REVIEWS").arg(pendingTasksCount) + tl.tr
-                        text: qsTr("PENDING_DOCUMENT_REVIEWS")
+                        text: qsTr("PENDING_TASK_REVIEWS")
                         onClicked: {
                             tasks_model.loadList(api.get_Tasks_list(accountSelect.getRole("uid")), api.get_username(accountSelect.getRole("uid")))
                             api.open_tasks_window(accountSelect.getRole("uid"))
