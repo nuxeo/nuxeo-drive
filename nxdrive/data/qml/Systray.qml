@@ -162,6 +162,7 @@ Rectangle {
                     color: "#FFFFFF"
                     enabled: feat_tasks_management.enabled
                     opacity: feat_tasks_management.enabled ? 1.0 : 0.2
+                    tooltip: qsTr("HANDLE_TASKS") + tl.tr
                 }
 
                 // Icon 3: open remote server's URL
