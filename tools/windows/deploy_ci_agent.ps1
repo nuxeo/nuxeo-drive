@@ -82,6 +82,7 @@ function build_installer {
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""
 
 	# Build DDLs only on GitHub-CI, no need to loose time on the local dev machine
+	Write-Output "!!!!! calling build_overlays from build_inataller"
 	if ($Env:GITHUB_WORKSPACE) {
 		build_overlays
 	}
@@ -147,6 +148,7 @@ function build_overlays {
 
 	# Find MSBuild.exe (https://github.com/Microsoft/vswhere/wiki/Find-MSBuild)
 	$msbuild_exe = vswhere -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | select-object -first 1
+	Write-Output "!!!!! msbuild_exe: $msbuild_exe"
 	if (-Not ($msbuild_exe)) {
 		Write-Output ">>> No MSBuild.exe accessible"
 		ExitWithCode $lastExitCode
@@ -157,10 +159,13 @@ function build_overlays {
 	$Resources = "$folder\$overlay_dll\DriveOverlay.rc"
 	$ResourcesOriginal = "$Resources.original"
 
+	Write-Output "!!!!! 1"
 	# Start build chain
 	Write-Output ">>> Building $util_dll DLL"
-	build_dll $msbuild_exe $util_dll "x64"
 	build_dll $msbuild_exe $util_dll "Win32"
+	Write-Output "!!!!! 2"
+	build_dll $msbuild_exe $util_dll "x64"
+	Write-Output "!!!!! 3"
 
 	foreach ($overlay in $overlays) {
 		$id = $overlay["Id"]
@@ -580,6 +585,7 @@ function main {
 	if ($build) {
 		build_installer
 	} elseif ($build_dlls) {
+		Write-Output "!!!!! calling build_overlays from main"
 		build_overlays
 	} elseif ($check_upgrade) {
 		check_upgrade
