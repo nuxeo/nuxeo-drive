@@ -176,6 +176,7 @@ Rectangle {
                             api.open_tasks_window(accountSelect.getRole("uid"))
                             }
                     //tooltip: api.get_hostname_from_url(accountSelect.getRole("server_url"))
+                    tooltip: qsTr("HANDLE_TASKS") + tl.tr
                 }
 
                 // Icon 3: open remote server's URL
