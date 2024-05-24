@@ -148,7 +148,6 @@ function build_overlays {
 
 	# Find MSBuild.exe (https://github.com/Microsoft/vswhere/wiki/Find-MSBuild)
 	$msbuild_exe = vswhere -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | select-object -first 1
-	$msbuild_exe update
 
 	Write-Output "!!!!! msbuild_exe: $msbuild_exe"
 	if (-Not ($msbuild_exe)) {
