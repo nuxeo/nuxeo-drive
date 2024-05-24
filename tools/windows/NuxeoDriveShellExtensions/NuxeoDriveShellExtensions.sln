@@ -4,7 +4,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 #VisualStudioVersion = 15.0.28307.329
 Visual Studio 17
 VisualStudioVersion = 17.2.32505.173
-MinimumVisualStudioVersion = 10.0.40219.1
+MinimumVisualStudioVersion = 15.0.28307.329
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NuxeoDriveOverlays", "NuxeoDriveOverlays\NuxeoDriveOverlays.vcxproj", "{42EFEC79-5ACA-4F76-955F-15CE4340F6BC}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NuxeoDriveUtil", "NuxeoDriveUtil\NuxeoDriveUtil.vcxproj", "{E4F63E19-808D-4234-8DF0-69C5F47C9CD3}"
