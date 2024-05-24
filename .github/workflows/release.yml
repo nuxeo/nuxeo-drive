@@ -98,13 +98,13 @@ jobs:
           echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.cer
           echo "${{ secrets.PRIV_APP_MACOS }}" | base64 --decode > nuxeo-drive.priv
 
-      - name: "[macOS] Downloading Python"
-        if: matrix.os == 'macos-latest'
-        run: curl https://www.python.org/ftp/python/3.9.5/python-3.9.5-macosx10.9.pkg -o "python.pkg" # XXX_PYTHON
+      #- name: "[macOS] Downloading Python"
+      #  if: matrix.os == 'macos-latest'
+      #  run: curl https://www.python.org/ftp/python/3.9.5/python-3.9.5-macosx10.9.pkg -o "python.pkg" # XXX_PYTHON
 
-      - name: "[macOS] Install Python"
-        if: matrix.os == 'macos-latest'
-        run: sudo installer -pkg python.pkg -target /
+      #- name: "[macOS] Install Python"
+      #  if: matrix.os == 'macos-latest'
+      #  run: sudo installer -pkg python.pkg -target /
 
       - name: "[macOS] Setup the environment"
         if: matrix.os == 'macos-latest'
@@ -210,11 +210,21 @@ jobs:
         run: echo "branch=$(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_OUTPUT
         id: extract_branch
 
-      - name: Install SSH key
+      - name: Install SSH key for Bastion
         uses: shimataro/ssh-key-action@v2
         with:
-          key: ${{ secrets.SSH_PRIV_KEY }}
-          known_hosts: ${{ secrets.SSH_KNOWN_HOST_DEPLOY }}
+          key: ${{ secrets.DEV_TOOLS_BASTION_PRIVATE_KEY }}
+          name: id_rsa-bastion
+          known_hosts: ${{ secrets.KNOWN_HOSTS_OF_BASTION }}
+          config: ${{ secrets.CONFIG }}
+
+      - name: Install SSH key of target
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.DEV_TOOLS_EC2_PRIVATE_KEY }}
+          name: id_rsa-target
+          known_hosts: ${{ secrets.KNOWN_HOSTS_OF_TARGET }}
+          config: ${{ secrets.CONFIG }}
       - name: Setup git
         run: |
           git config user.email ${{ env.GITHUB_EMAILID }}
