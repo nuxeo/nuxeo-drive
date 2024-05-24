@@ -147,7 +147,6 @@ function build_overlays {
 
 	# Find MSBuild.exe (https://github.com/Microsoft/vswhere/wiki/Find-MSBuild)
 	$msbuild_exe = vswhere -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | select-object -first 1
-
 	if (-Not ($msbuild_exe)) {
 		Write-Output ">>> No MSBuild.exe accessible"
 		ExitWithCode $lastExitCode
@@ -160,8 +159,8 @@ function build_overlays {
 
 	# Start build chain
 	Write-Output ">>> Building $util_dll DLL"
-	build_dll $msbuild_exe $util_dll "Win32"
 	build_dll $msbuild_exe $util_dll "x64"
+	build_dll $msbuild_exe $util_dll "Win32"
 
 	foreach ($overlay in $overlays) {
 		$id = $overlay["Id"]
