@@ -15,8 +15,8 @@ publish_staging() {
     path="${REMOTE_PATH_STAGING}/${GITHUB_RUN_NUMBER}/"
 
     echo ">>> [Upload] Deploying to the staging server"
-    rsync -e "ssh -o StrictHostKeyChecking=no" --chmod=755 -pvz "${artifact}" nuxeo@lethe.nuxeo.com:"${path}" || \
-        rsync -e "ssh -o StrictHostKeyChecking=no" -vz "${artifact}" nuxeo@lethe.nuxeo.com:"${path}" || exit 1  # macOS does not have --chmod
+    rsync -e "ssh -o StrictHostKeyChecking=no" --chmod=755 -pvz "${artifact}" lethe.nuxeo.com:"${path}" || \
+        rsync -e "ssh -o StrictHostKeyChecking=no" -vz "${artifact}" lethe.nuxeo.com:"${path}" || exit 1  # macOS does not have --chmod
     echo "Artifacts deployed to:"
     echo " >>> ${REMOTE_PATH_STAGING}/${GITHUB_RUN_NUMBER} <<<"
 }

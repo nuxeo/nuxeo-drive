@@ -15,7 +15,7 @@ cancel() {
     artifacts="${REMOTE_PATH_STAGING}/${GITHUB_RUN_NUMBER}"
 
     echo ">>> [Deploy] Removing uploaded artifacts"
-    ssh -o "StrictHostKeyChecking=no" nuxeo@lethe.nuxeo.com rm -rfv "${artifacts}"
+    ssh -o "StrictHostKeyChecking=no" lethe.nuxeo.com rm -rfv "${artifacts}"
 }
 
 create() {
@@ -48,8 +48,8 @@ publish() {
     fi
 
     echo ">>> [${release_type} ${drive_version}] Deploying to the server"
-    scp -o "StrictHostKeyChecking=no" tools/versions.py nuxeo@lethe.nuxeo.com:"${artifacts}"
-    ssh -o "StrictHostKeyChecking=no" -T nuxeo@lethe.nuxeo.com <<EOF
+    scp -o "StrictHostKeyChecking=no" tools/versions.py lethe.nuxeo.com:"${artifacts}"
+    ssh -o "StrictHostKeyChecking=no" -T lethe.nuxeo.com <<EOF
 cd ${artifacts} || exit 1
 
 echo " >> [Deploy] Generating ${drive_version}.yml"
