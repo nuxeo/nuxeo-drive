@@ -227,3 +227,47 @@ def test_get_tasks_list(manager_factory):
             returned_val = drive_api.get_Tasks_list(engine.uid)
             assert isinstance(returned_val, list)
             assert isinstance(returned_val[0], Mock)
+
+
+def test_get_username(manager_factory):
+    manager, engine = manager_factory()
+    engine.remote_user = "dummy user"
+    manager.application = ""
+
+    def mocked_open_authentication_dialog():
+        return
+
+    Mocked_App = namedtuple(
+        "app",
+        "manager, open_authentication_dialog",
+        defaults=(manager, mocked_open_authentication_dialog),
+    )
+    app = Mocked_App()
+    drive_api = QMLDriveApi(app)
+
+    with manager:
+        returned_val = drive_api.get_username(engine.uid)
+        assert returned_val == "dummy user"
+
+
+def test_on_clicked_open_task(manager_factory):
+    manager, engine = manager_factory()
+    manager.application = ""
+
+    def mocked_open_authentication_dialog():
+        return
+
+    def mocked_open_task(*args, **kwargs):
+        return
+
+    Mocked_App = namedtuple(
+        "app",
+        "manager, open_authentication_dialog, open_task",
+        defaults=(manager, mocked_open_authentication_dialog, mocked_open_task),
+    )
+    app = Mocked_App()
+    drive_api = QMLDriveApi(app)
+
+    with manager:
+        returned_val = drive_api.on_clicked_open_task(engine.uid, "dummy_task_id")
+        assert not returned_val
