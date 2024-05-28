@@ -6,7 +6,7 @@ from logging import getLogger
 from os import getenv
 from os.path import abspath
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union, SupportsIndex, slice
 from urllib.parse import urlencode, urlparse, urlsplit, urlunsplit
 
 import requests
