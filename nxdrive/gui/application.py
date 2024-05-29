@@ -218,9 +218,6 @@ class Application(QApplication):
         # Setup notification center for macOS
         if MAC:
             self._setup_notification_center()
-        current_uid = self.engine_model.engines_uid[0]
-        engine = self.manager.engines[current_uid]
-        self.api.fetch_pending_tasks(engine)
 
         # Initiate workflow when drive starts if tasks managemnt feature is enable
         self.workflow = self.init_workflow()
