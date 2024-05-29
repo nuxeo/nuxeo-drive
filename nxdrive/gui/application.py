@@ -1,4 +1,5 @@
 """ Main Qt application handling OS events and system tray UI. """
+
 import os
 import webbrowser
 from contextlib import suppress
