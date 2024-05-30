@@ -247,7 +247,7 @@ class QMLDriveApi(QObject):
     def get_text(self, details: str, ret: str, /) -> str:
         details = details.replace("'", '"')
         details = json.loads(details)
-        return str(details[ret])
+        return details.get(ret)
 
     @pyqtSlot(str, result=bool)
     def text_red(self, text: str, /) -> bool:

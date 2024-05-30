@@ -94,7 +94,7 @@ def test_get_text(manager_factory):
     drive_api = QMLDriveApi(app)
 
     with manager:
-        returned_val = drive_api.get_text("{'id': '1', 'price': '2000'}", "price")
+        returned_val = drive_api.get_text("{'id': '1', \"price\": '2000'}", "price")
         assert returned_val == "2000"
 
 

@@ -4,6 +4,7 @@ from unittest.mock import Mock
 from nxdrive.gui.view import FileModel, TasksModel
 from nxdrive.qt.imports import QModelIndex
 from nxdrive.translator import Translator
+from nxdrive.utils import find_resource
 
 
 def test_foldersDialog():
@@ -39,8 +40,9 @@ def test_data(direct_transfer_model):
     )
 
 
-def test_tasksModel():  # manager_factory):
-    # manager, engine = manager_factory()
+def test_tasksModel():
+    Translator(find_resource("i18n"), lang="en")
+
     dummy_task = Mock()
     dummy_task.actors = [{"id": "user:Administrator"}]
     dummy_task.created = "2024-04-04T08:31:04.366Z"
