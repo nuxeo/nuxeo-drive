@@ -2,6 +2,8 @@ from collections import namedtuple
 from unittest.mock import Mock, patch
 
 from nxdrive.gui.api import QMLDriveApi
+from nxdrive.translator import Translator
+from nxdrive.utils import find_resource
 
 
 def test_web_authentication(manager_factory, nuxeo_url):
@@ -176,7 +178,9 @@ def test_close_tasks_window(manager_factory):
 
 def test_get_tasks_list(manager_factory):
     print("1")
+    # from nxdrive.translator import Translator
     manager, engine = manager_factory()
+    Translator(find_resource("i18n"), lang="en")
 
     dummy_task = Mock()
     dummy_task.actors = [{"id": "user:Administrator"}]
