@@ -62,6 +62,7 @@ def test_tasksModel():  # manager_factory):
 
     tasks_model = TasksModel(translate)
     tasks_model.loadList(dummy_task_list, "Administrator")
+
     assert isinstance(tasks_model, TasksModel)
     assert tasks_model.model
     assert tasks_model.self_model

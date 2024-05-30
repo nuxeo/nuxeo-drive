@@ -181,7 +181,4 @@ def test_refresh_list(workflow, application, engine, remote, manager):
         return [dummy_task]
 
     with patch.object(worker_.app.api, "get_Tasks_list", new=get_Tasks_list_):
-        print(f">>> worker_: {worker_!r}")
-        print(f">>> worker_.dir: {worker_.__dir__()!r}")
-        # assert 1 == 0
         assert worker_._poll()
