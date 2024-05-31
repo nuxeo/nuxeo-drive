@@ -275,3 +275,84 @@ def test_on_clicked_open_task(manager_factory):
     with manager:
         returned_val = drive_api.on_clicked_open_task(engine.uid, "dummy_task_id")
         assert not returned_val
+
+
+def test_get_last_files(manager_factory):
+    manager, engine = manager_factory()
+    manager.application = ""
+
+    def mocked_get_last_files(*args, **kwargs):
+        return []
+
+    for engine_ in manager.engines.copy().values():
+        engine_.dao = Mock()
+        engine_.dao.get_last_files = mocked_get_last_files
+
+    def mocked_open_authentication_dialog():
+        return
+
+    Mocked_App = namedtuple(
+        "app",
+        "manager, open_authentication_dialog",
+        defaults=(manager, mocked_open_authentication_dialog),
+    )
+    app = Mocked_App()
+    drive_api = QMLDriveApi(app)
+
+    with manager:
+        returned_val = drive_api.get_last_files(engine.uid, 1)
+        assert not returned_val
+
+
+def test_get_last_files_count(manager_factory):
+    manager, engine = manager_factory()
+    manager.application = ""
+
+    def mocked_get_last_files_count(*args, **kwargs):
+        return 25
+
+    for engine_ in manager.engines.copy().values():
+        engine_.dao = Mock()
+        engine_.dao.get_last_files_count = mocked_get_last_files_count
+
+    def mocked_open_authentication_dialog():
+        return
+
+    Mocked_App = namedtuple(
+        "app",
+        "manager, open_authentication_dialog",
+        defaults=(manager, mocked_open_authentication_dialog),
+    )
+    app = Mocked_App()
+    drive_api = QMLDriveApi(app)
+
+    with manager:
+        returned_val = drive_api.get_last_files_count(engine.uid)
+        assert returned_val == 25
+
+
+def test_export_formatted_state(manager_factory):
+    manager = manager_factory(with_engine=False)
+    manager.application = ""
+
+    DocPair = namedtuple(
+        "DocPair",
+        "error_count, local_state, pair_state, processor",
+        defaults=(0, "", "", 0),
+    )
+    doc_pair = DocPair()
+
+    def mocked_open_authentication_dialog():
+        return
+
+    Mocked_App = namedtuple(
+        "app",
+        "manager, open_authentication_dialog",
+        defaults=(manager, mocked_open_authentication_dialog),
+    )
+    app = Mocked_App()
+    drive_api = QMLDriveApi(app)
+
+    with manager:
+        returned_val = drive_api._export_formatted_state("dummy_uid", state=doc_pair)
+        assert not returned_val
