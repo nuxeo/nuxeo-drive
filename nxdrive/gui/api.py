@@ -503,9 +503,6 @@ class QMLDriveApi(QObject):
             try:
                 doc_id = task.targetDocumentIds[0]["id"]
                 doc_info = self.get_document_details(engine_uid, doc_id)
-                # task.name = doc_info.properties["dc:title"]
-                print(f">>>>  task.name: { task.name!r}")
-                print(f">>>> doc_info: {doc_info!r}")
                 task.name = doc_info.name
             except Exception as e:
                 log.info(f"Error occurred while fetching document info {e!r}")
@@ -656,6 +653,8 @@ class QMLDriveApi(QObject):
         - Global size of synchronized files converted to percentage of the width.
         """
         engine = self._get_engine(uid)
+        if not engine:
+            return
 
         synced = engine.dao.get_global_size() if engine else 0
         used, free = disk_space(path)
@@ -714,6 +713,8 @@ class QMLDriveApi(QObject):
     def get_drive_disk_space(self, uid: str, /) -> str:
         """Fetch the global size of synchronized files and return a formatted version."""
         engine = self._get_engine(uid)
+        if not engine:
+            return
         synced = engine.dao.get_global_size() if engine else 0
         return sizeof_fmt(synced, suffix=Translator.get("BYTE_ABBREV"))
 
@@ -727,6 +728,8 @@ class QMLDriveApi(QObject):
     def get_used_space_without_synced(self, uid: str, path: str, /) -> str:
         """Fetch the size of space used by other applications and return a formatted version."""
         engine = self._get_engine(uid)
+        if not engine:
+            return
         synced = engine.dao.get_global_size() if engine else 0
         used, _ = disk_space(path)
         return sizeof_fmt(used - synced, suffix=Translator.get("BYTE_ABBREV"))
@@ -991,6 +994,8 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, result=bool)
     def has_invalid_credentials(self, uid: str, /) -> bool:
         engine = self._get_engine(uid)
+        if not engine:
+            return
         return engine.has_invalid_credentials() if engine else False
 
     # Authentication section

@@ -1,4 +1,5 @@
 from collections import namedtuple
+from copy import deepcopy
 from unittest.mock import Mock, patch
 
 from nxdrive.gui.api import QMLDriveApi
@@ -177,8 +178,6 @@ def test_close_tasks_window(manager_factory):
 
 
 def test_get_tasks_list(manager_factory):
-    print("1")
-    # from nxdrive.translator import Translator
     manager, engine = manager_factory()
     Translator(find_resource("i18n"), lang="en")
 
@@ -192,15 +191,15 @@ def test_get_tasks_list(manager_factory):
     dummy_task.targetDocumentIds = [{"id": "5b77e4dd-c155-410b-9d4d-e72f499638b8"}]
     dummy_task.workflowInstanceId = "81133cf7-38d9-483c-9a0b-c98fc02822a0"
     dummy_task.workflowModelName = "SerialDocumentReview"
-    dummy_task1 = dummy_task
+    dummy_task1 = deepcopy(dummy_task)
     dummy_task1.directive = "wf.pleaseSelect"
-    dummy_task2 = dummy_task
+    dummy_task2 = deepcopy(dummy_task)
     dummy_task2.directive = "wf.give_opinion"
-    dummy_task3 = dummy_task
+    dummy_task3 = deepcopy(dummy_task)
     dummy_task3.directive = "wf.consolidate"
-    dummy_task4 = dummy_task
+    dummy_task4 = deepcopy(dummy_task)
     dummy_task4.directive = "wf.updateRequest"
-    dummy_task5 = dummy_task
+    dummy_task5 = deepcopy(dummy_task)
     dummy_task5.targetDocumentIds = 0
     dummy_task_list = [
         dummy_task,
@@ -221,8 +220,6 @@ def test_get_tasks_list(manager_factory):
         doc_info = Mock()
         doc_info.name = "dummy_doc_name"
         return doc_info
-
-    print("2")
 
     Mocked_App = namedtuple(
         "app",
@@ -407,7 +404,7 @@ def test_get_completed_sessions_count(manager_factory):
         assert returned_val == 0
 
 
-def test_show_metadata(manager_factory):
+def test_show_metadata(manager_factory, tmp):
     manager, engine = manager_factory()
     manager.application = ""
 
@@ -417,10 +414,21 @@ def test_show_metadata(manager_factory):
     def mocked_hide_systray():
         return
 
+    def mocked_show_metadata(*args):
+        return
+
+    def mocked_ffetch_pending_tasks(*args):
+        return
+
     Mocked_App = namedtuple(
         "app",
-        "manager, open_authentication_dialog, hide_systray",
-        defaults=(manager, mocked_open_authentication_dialog, mocked_hide_systray),
+        "manager, open_authentication_dialog, hide_systray, show_metadata",
+        defaults=(
+            manager,
+            mocked_open_authentication_dialog,
+            mocked_hide_systray,
+            mocked_show_metadata,
+        ),
     )
     app = Mocked_App()
     drive_api = QMLDriveApi(app)
@@ -428,6 +436,11 @@ def test_show_metadata(manager_factory):
     with manager:
         returned_val = drive_api.show_metadata("dummy_uid", "dummy")
         assert not returned_val
+        with patch.object(
+            drive_api, "fetch_pending_tasks", new=mocked_ffetch_pending_tasks
+        ):
+            returned_val = drive_api.show_metadata(engine.uid, str(tmp()))
+            assert not returned_val
 
 
 def test_get_unsynchronizeds(manager_factory):
@@ -501,7 +514,7 @@ def test_get_engine(manager_factory, tmp):
         assert not drive_api.handle_token(None, "dummy_user")
         drive_api.callback_params = ""
         assert not drive_api.handle_token(None, "dummy_user")
-        assert not drive_api.get_syncing_count("dummy_uid")
+        assert drive_api.get_syncing_count("dummy_uid") == 0
         assert not drive_api.resolve_with_local("dummy_uid", 0)
         assert not drive_api.resolve_with_remote("dummy_uid", 0)
         assert not drive_api.retry_pair("dummy_uid", 0)

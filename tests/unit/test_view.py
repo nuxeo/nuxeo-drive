@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Any, List
 from unittest.mock import Mock
 
@@ -53,11 +54,11 @@ def test_tasksModel():
     dummy_task.targetDocumentIds = [{"id": "5b77e4dd-c155-410b-9d4d-e72f499638b8"}]
     dummy_task.workflowInstanceId = "81133cf7-38d9-483c-9a0b-c98fc02822a0"
     dummy_task.workflowModelName = "SerialDocumentReview"
-    dummy_task1 = dummy_task
+    dummy_task1 = deepcopy(dummy_task)
     dummy_task1.dueDate = "2023-04-09T08:31:04.365Z"
-    dummy_task2 = dummy_task
+    dummy_task2 = deepcopy(dummy_task)
     dummy_task2.dueDate = "2040-04-09T08:31:04.365Z"
-    dummy_task_list = [dummy_task]
+    dummy_task_list = [dummy_task, dummy_task1, dummy_task2]
 
     def translate(message: str, /, *, values: List[Any] = None) -> str:
         return Translator.get(message, values=values)
