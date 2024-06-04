@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - Getwindows-Secret
+  workflow_dispatch:
 jobs:
   your_job:
     runs-on: ubuntu-latest
