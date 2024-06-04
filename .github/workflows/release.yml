@@ -56,16 +56,14 @@ jobs:
           git fetch --unshallow --tags
           bash tools/bump-alpha-version.sh || exit 1
 
-      - name: Setup PyPI API packages URL environment variable
-        if: (${{ matrix.os }} == 'ubuntu-latest' || ${{ matrix.os }} == 'macos-latest')
+      - name: Setup PyPI API packages URL environment variable (MacOS, Ubuntu)
+        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest' }}
         run: |
-          if [ "${{ matrix.os }}" = "ubuntu-latest" ] || [ "${{ matrix.os }}" = "macos-latest" ]; then
-            PYPI_API_PACAKAGE_URL=$(echo "${{ github.ref == 'refs/heads/master' && 'https://packages.nuxeo.com/repository/pypi-nuxeopublic/simple' || 'https://{0}:{1}@packages.nuxeo.com/repository/pypi-internal/simple' }}" | \
+            PYPI_API_PACKAGE_URL=$(echo "${{ github.ref == 'refs/heads/master' && 'https://packages.nuxeo.com/repository/pypi-nuxeopublic/simple' || 'https://{0}:{1}@packages.nuxeo.com/repository/pypi-internal/simple' }}" | \
               sed -e "s/{0}/${{ secrets.PYPI_API_NUXEO_PACKAGE_USERNAME }}/g" \
               -e "s/{1}/${{ secrets.PYPI_API_NUXEO_PACKAGE_TOKEN }}/g")
-            echo "PYPI_API_PACAKAGE_URL=$PYPI_API_PACAKAGE_URL" >> $GITHUB_ENV
-          fi
-      - name: Setup PyPI API packages URL environment variable
+            echo "PYPI_API_PACKAGE_URL=$PYPI_API_PACKAGE_URL" >> $GITHUB_ENV
+      - name: Setup PyPI API packages URL environment variable (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           if ($env:GITHUB_REF -eq "refs/heads/master") {
@@ -75,6 +73,7 @@ jobs:
           }
           Write-Host "PYPI_API_PACKAGE_URL=$env:PYPI_API_PACKAGE_URL"
           echo "PYPI_API_PACKAGE_URL=$env:PYPI_API_PACKAGE_URL" >> $env:GITHUB_ENV
+          echo "$env:GITHUB_REF"
 
       #
       # GNU/Linux
@@ -134,6 +133,7 @@ jobs:
         env:
           MACOSX_DEPLOYMENT_TARGET: "11.3"
           SYSTEM_VERSION_COMPAT: 0
+          PYPI_API_PACKAGE_URL: ${{ env.PYPI_API_PACKAGE_URL }}
         run: bash tools/osx/deploy_ci_agent.sh --install-release
 
       - name: "[macOS] Generate the .dmg and validate against 2021"
