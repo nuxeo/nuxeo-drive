@@ -325,7 +325,8 @@ function install_deps {
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -i $Env:PYPI_API_PACAKAGE_URL nuxeo
+	Write-Output ">>>>>PYPI_API_PACKAGE_URL:  $Env:PYPI_API_PACKAGE_URL"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -i $Env:PYPI_API_PACKAGE_URL nuxeo
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -333,7 +334,7 @@ function install_deps {
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	Write-Output ">>> PIP URL: $Env:PYPI_API_PACAKAGE_URL"
+	Write-Output ">>> PIP URL: $Env:PYPI_API_PACKAGE_URL"
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements-dev.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode

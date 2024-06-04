@@ -102,7 +102,7 @@ jobs:
         env:
           REGISTRY: "docker-private.packages.nuxeo.com"
           REPOSITORY: "nuxeo-drive-build"
-          PYPI_API_PACAKAGE_URL: ${{ env.PYPI_API_PACAKAGE_URL }}
+          PYPI_API_PACKAGE_URL: ${{ env.PYPI_API_PACKAGE_URL }}
         run: docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.9.5" # XXX_PYTHON
 
       - name: "[GNU/Linux] Ensure the AppImage is correct"
@@ -185,7 +185,7 @@ jobs:
       - name: "[Windows] Setup the environment"
         if: matrix.os == 'windows-latest'
         env:
-          PYPI_API_PACAKAGE_URL: ${{ env.PYPI_API_PACAKAGE_URL }}
+          PYPI_API_PACKAGE_URL: ${{ env.PYPI_API_PACKAGE_URL }}
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
 
       - name: "[Windows] Generate the .exe and validate against 2021"
