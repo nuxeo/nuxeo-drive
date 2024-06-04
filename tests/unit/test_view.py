@@ -58,6 +58,7 @@ def test_tasksModel():
     dummy_task1.dueDate = "2023-04-09T08:31:04.365Z"
     dummy_task2 = deepcopy(dummy_task)
     dummy_task2.dueDate = "2040-04-09T08:31:04.365Z"
+    dummy_task2.actors = [{"id": "Administrator"}]
     dummy_task_list = [dummy_task, dummy_task1, dummy_task2]
 
     def translate(message: str, /, *, values: List[Any] = None) -> str:

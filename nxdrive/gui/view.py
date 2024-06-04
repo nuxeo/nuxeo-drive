@@ -890,7 +890,6 @@ class TasksModel(QObject):
                 if diff < 0
                 else f"{translated_in} {diff} {time_remaing}"
             )
-            # due = diff if ago in diff else Translator.get("IN") + diff
             details = str(
                 {
                     "wf_name": task.directive,
@@ -906,7 +905,6 @@ class TasksModel(QObject):
                 }
                 self.add_row(data, self.TASK_ROLE, True)
             else:
-                # due = diff if "ago" in diff else f"in {diff}"
                 data = {
                     "task_details": details,
                     "task_ids": task.id,

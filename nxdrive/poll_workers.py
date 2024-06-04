@@ -195,16 +195,6 @@ class WorkflowWorker(PollWorker):
             self.workflow = self.app.workflow
             for engine in self.manager.engines.copy().values():
                 self.workflow.get_pending_tasks(engine, self._first_workflow_check)
-                """
-                if engine.uid == self.app.last_engine_uid:
-                    print(f">>>>> engine.uid: {engine.uid!r}")
-                    print(f">>>>> self.app.last_engine_uid: {self.app.last_engine_uid!r}")
-                    print(">>>>> calling loadlist")
-                    task_list = self.app.api.get_Tasks_list(engine.uid)
-                    username = self.app.api.get_username(engine.uid)
-                    self.app.tasks_model.loadList(task_list, username)
-                    #self.app.tasks_model.refresh_models()
-                """
                 if engine.uid == self.app.last_engine_uid:
                     task_list = str(self.app.api.get_Tasks_list(engine.uid))
                     if task_list != self.app.api.last_task_list:
@@ -215,8 +205,4 @@ class WorkflowWorker(PollWorker):
                             QObject, "refresh"
                         )
                         r_button.setProperty("height", 30)
-                        print(">>>> ")
-                    else:
-                        print("!!!! ")
-
         return True
