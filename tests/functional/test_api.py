@@ -200,7 +200,16 @@ def test_get_tasks_list(manager_factory):
     dummy_task3.directive = "wf.consolidate"
     dummy_task4 = dummy_task
     dummy_task4.directive = "wf.updateRequest"
-    dummy_task_list = [dummy_task, dummy_task1, dummy_task2, dummy_task3, dummy_task4]
+    dummy_task5 = dummy_task
+    dummy_task5.targetDocumentIds = 0
+    dummy_task_list = [
+        dummy_task,
+        dummy_task1,
+        dummy_task2,
+        dummy_task3,
+        dummy_task4,
+        dummy_task5,
+    ]
 
     def mocked_open_authentication_dialog():
         return
@@ -439,3 +448,67 @@ def test_get_unsynchronizeds(manager_factory):
     with manager:
         returned_val = drive_api.get_unsynchronizeds("dummy_uid")
         assert not returned_val
+
+
+def test_get_engine(manager_factory, tmp):
+    manager, engine = manager_factory()
+    manager.application = ""
+
+    def mocked_open_authentication_dialog():
+        return
+
+    def mocked_hide_systray():
+        return
+
+    def mocked_fetch_pending_task_list(*args, **kwargs):
+        return
+
+    def mocked__fetch_tasks(*args, **kwargs):
+        task = Mock()
+        task.id = "dummy_id"
+        return [task]
+
+    Mocked_App = namedtuple(
+        "app",
+        "manager, open_authentication_dialog, hide_systray",
+        defaults=(manager, mocked_open_authentication_dialog, mocked_hide_systray),
+    )
+    app = Mocked_App()
+    drive_api = QMLDriveApi(app)
+    engine.fetch_pending_task_list = mocked_fetch_pending_task_list
+
+    with manager:
+        assert not drive_api.get_conflicts("dummy_uid")
+        assert not drive_api.get_errors("dummy_uid")
+        assert not drive_api.open_direct_transfer("dummy_uid")
+        assert not drive_api.open_server_folders("dummy_uid")
+        assert not drive_api.open_remote_server("dummy_uid")
+        assert not drive_api.open_local("dummy_uid", str(tmp()))
+        assert not drive_api.show_conflicts_resolution("dummy_uid")
+        assert not drive_api.open_remote_server("dummy_uid")
+        assert not drive_api.tasks_remaining("dummy_uid")
+        with patch.object(drive_api, "_fetch_tasks", new=mocked__fetch_tasks):
+            assert drive_api.tasks_remaining(engine.uid) == 1
+            assert not drive_api.fetch_pending_tasks(engine)
+        assert not drive_api.get_document_details("dummy_uid", "dummy_doc_id")
+        assert not drive_api.web_update_token("dummy_uid")
+        assert not drive_api.get_disk_space_info_to_width("dummy_uid", str(tmp()), 1)
+        assert not drive_api.get_drive_disk_space("dummy_uid")
+        assert not drive_api.get_used_space_without_synced("dummy_uid", str(tmp()))
+        assert not drive_api.filters_dialog("dummy_uid")
+        assert not drive_api.set_server_ui("dummy_uid", "dummy_server_ui")
+        assert not drive_api.has_invalid_credentials("dummy_uid")
+        assert not drive_api.handle_token(None, "dummy_user")
+        drive_api.callback_params = ""
+        assert not drive_api.handle_token(None, "dummy_user")
+        assert not drive_api.get_syncing_count("dummy_uid")
+        assert not drive_api.resolve_with_local("dummy_uid", 0)
+        assert not drive_api.resolve_with_remote("dummy_uid", 0)
+        assert not drive_api.retry_pair("dummy_uid", 0)
+        assert not drive_api.ignore_pair("dummy_uid", 0, "none")
+        assert not drive_api.open_remote("dummy_uid", "remote_ref", "remote_name")
+        assert not drive_api.open_remote_document(
+            "dummy_uid", "remote_ref", "remote_path"
+        )
+        assert not drive_api.get_remote_document_url("dummy_uid", "remote_ref")
+        assert not drive_api.on_clicked_open_task("dummy_uid", "dummy_task_id")

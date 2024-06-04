@@ -1210,7 +1210,7 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, str)
     def on_clicked_open_task(self, engine_uid: str, task_id: str) -> None:
-        engine = engine = self._manager.engines.get(engine_uid)
+        engine = self._get_engine(engine_uid)
         if not engine:
             return
         self.application.open_task(engine, task_id)
