@@ -16,7 +16,6 @@ on:
 env:
   FREEZE_ONLY: 1
 
-
 jobs:
   integration-tests-windows:
     runs-on: windows-latest
