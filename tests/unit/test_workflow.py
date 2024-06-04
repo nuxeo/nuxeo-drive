@@ -7,6 +7,7 @@ from nuxeo.models import Document, Task
 
 from nxdrive.client.remote_client import Remote
 from nxdrive.client.workflow import Workflow
+from nxdrive.feature import Feature
 from nxdrive.gui.api import QMLDriveApi
 from nxdrive.gui.application import Application
 from nxdrive.gui.view import EngineModel
@@ -115,6 +116,9 @@ def test_poll_initial_trigger(workflow_worker, manager, application):
     # without manager
     workflow_worker.manager = None
     assert not workflow_worker._poll()
+
+    # Set tasks_management feature as True
+    Feature.tasks_management = True
 
     # with engines
     engine_model = EngineModel(application)
