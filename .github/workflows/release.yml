@@ -103,7 +103,7 @@ jobs:
           REGISTRY: "docker-private.packages.nuxeo.com"
           REPOSITORY: "nuxeo-drive-build"
           PYPI_API_PACKAGE_URL: ${{ env.PYPI_API_PACKAGE_URL }}
-        run: docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.9.5" # XXX_PYTHON
+        run: docker run -e PYPI_API_PACKAGE_URL=${{ env.PYPI_API_PACKAGE_URL }} -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.9.5" # XXX_PYTHON
 
       - name: "[GNU/Linux] Ensure the AppImage is correct"
         if: matrix.os == 'ubuntu-latest'

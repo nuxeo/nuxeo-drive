@@ -6,6 +6,7 @@ if [ $# -gt 0 ]; then
 else
     export WORKSPACE="/opt"
     export WORKSPACE_DRIVE="/opt/sources"
+    export PYPI_API_PACKAGE_URL="${PYPI_API_PACKAGE_URL}"
 
     cd "${WORKSPACE_DRIVE}"
     ./tools/linux/deploy_ci_agent.sh --install-release

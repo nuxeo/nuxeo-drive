@@ -19,6 +19,8 @@ env:
   NXDRIVE_TEST_NUXEO_URL: https://drive-2021.beta.nuxeocloud.com/nuxeo
   NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_TEST_USERNAME }}
   NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_TEST_PASSWORD }}
+  PYPI_API_NUXEO_PACKAGE_TOKEN: ${{ secrets.PYPI_API_NUXEO_PACKAGE_TOKEN }}
+  PYPI_API_NUXEO_PACKAGE_USERNAME: ${{ secrets.PYPI_API_NUXEO_PACKAGE_USERNAME }}
 
 jobs:
   functional-tests-linux:
@@ -99,6 +101,7 @@ jobs:
           } else {
             $env:PYPI_API_PACKAGE_URL = "https://${env:PYPI_API_NUXEO_PACKAGE_USERNAME}:${env:PYPI_API_NUXEO_PACKAGE_TOKEN}@packages.nuxeo.com/repository/pypi-internal/simple"
           }
+          echo "PYPI_API_PACKAGE_URL=$env:PYPI_API_PACKAGE_URL" >> $env:GITHUB_ENV
       - uses: actions/cache@v4
         with:
           path: ~\AppData\Local\pip\Cache
