@@ -15,7 +15,7 @@ on:
 
 env:
   FREEZE_ONLY: 1
-  
+
 
 jobs:
   integration-tests-windows:
@@ -50,7 +50,17 @@ jobs:
       #     path: .tox
       #     key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
       #     restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+      - name: Setup PyPI API packages URL environment variable
+        run: |
+          if ($env:GITHUB_REF -eq "refs/heads/master") {
+            $env:PYPI_API_PACKAGE_URL = "https://packages.nuxeo.com/repository/pypi-nuxeopublic/simple"
+          } else {
+            $env:PYPI_API_PACKAGE_URL = "https://${env:PYPI_API_NUXEO_PACKAGE_USERNAME}:${env:PYPI_API_NUXEO_PACKAGE_TOKEN}@packages.nuxeo.com/repository/pypi-internal/simple"
+          }
+
       - name: Freeze the application
+        env:
+          PYPI_API_PACKAGE_URL: ${{ env.PYPI_API_PACKAGE_URL }}
         run: |
           powershell Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
           powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release

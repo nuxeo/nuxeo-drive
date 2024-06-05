@@ -82,6 +82,13 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Setup PyPI API packages URL environment variable
+        run: |
+          if ($env:GITHUB_REF -eq "refs/heads/master") {
+            $env:PYPI_API_PACKAGE_URL = "https://packages.nuxeo.com/repository/pypi-nuxeopublic/simple"
+          } else {
+            $env:PYPI_API_PACKAGE_URL = "https://${env:PYPI_API_NUXEO_PACKAGE_USERNAME}:${env:PYPI_API_NUXEO_PACKAGE_TOKEN}@packages.nuxeo.com/repository/pypi-internal/simple"
+          }
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -101,6 +108,8 @@ jobs:
       - name: Install tox
         run: python -m pip install -r tools/deps/requirements-tox.txt
       - name: Unit tests
+        env:
+          PYPI_API_PACKAGE_URL: ${{ env.PYPI_API_PACKAGE_URL }}
         run: tox -e unit
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
