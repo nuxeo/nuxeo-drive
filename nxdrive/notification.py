@@ -188,7 +188,6 @@ class NotificationService(QObject):
             return
         notification = self._notifications[uid]
         if notification.is_actionable():
-            log.info(">>>>> sending actionable notification")
             self.triggerNotification.emit(notification.action, notification.action_args)
         if notification.is_discard_on_trigger():
             self.discard_notification(uid)

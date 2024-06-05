@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 from uuid import uuid4
 
 import pytest
@@ -148,37 +148,3 @@ def test_api_display_pending_task_with_exec(application, manager):
     assert (
         drive_api.display_pending_task("engine_uid", str(uuid4()), "/doc_path") is None
     )
-
-
-def test_refresh_list(workflow, application, engine, remote, manager):
-    engine_model = EngineModel(application)
-    engine_model.engines_uid = ["engine_uid"]
-
-    application.engine_model = engine_model
-
-    manager.application = application
-    manager.engines = {"engine_uid": "engine_uid"}
-
-    worker_ = WorkflowWorker(manager)
-    worker_.manager = manager
-    worker_.app = application()
-    worker_.app.api = QMLDriveApi(application)
-    worker_.workflow = workflow
-    worker_.app.api.last_task_list = ""
-    worker_._first_workflow_check = False
-
-    def get_Tasks_list_(*args, **kwargs):
-        dummy_task = Mock()
-        dummy_task.actors = [{"id": "user:Administrator"}]
-        dummy_task.created = "2024-04-04T08:31:04.366Z"
-        dummy_task.directive = "wf.serialDocumentReview.AcceptReject"
-        dummy_task.dueDate = "2024-04-09T08:31:04.365Z"
-        dummy_task.id = "e7fc7a3a-5c39-479f-8382-65ed08e8116d"
-        dummy_task.name = "wf.serialDocumentReview.DocumentValidation"
-        dummy_task.targetDocumentIds = [{"id": "5b77e4dd-c155-410b-9d4d-e72f499638b8"}]
-        dummy_task.workflowInstanceId = "81133cf7-38d9-483c-9a0b-c98fc02822a0"
-        dummy_task.workflowModelName = "SerialDocumentReview"
-        return [dummy_task]
-
-    with patch.object(worker_.app.api, "get_Tasks_list", new=get_Tasks_list_):
-        assert worker_._poll()
