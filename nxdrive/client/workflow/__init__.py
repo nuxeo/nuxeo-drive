@@ -1,13 +1,12 @@
 from datetime import datetime, timedelta, timezone
 from logging import getLogger
-from typing import TYPE_CHECKING, Dict, List
+from typing import Dict, List
 
 from nuxeo.models import Task
 
 from nxdrive.engine.engine import Engine
 
-if TYPE_CHECKING:
-    from ..remote_client import Remote  # noqa
+from ..remote_client import Remote  # noqa
 
 log = getLogger(__name__)
 
