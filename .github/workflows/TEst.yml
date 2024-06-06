@@ -10,7 +10,7 @@ jobs:
     steps:
       - name: Example Step
         env:
-          YOUR_SECRET: ${{ secrets.CERT_APP_WINDOWS }}
+          YOUR_SECRET: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
           echo "$YOUR_SECRET" > certificate.txt
       - uses: actions/upload-artifact@v4
