@@ -157,8 +157,8 @@ create_venv() {
 install_deps() {
     echo ">>> Installing requirements"
     ${PIP} -r tools/deps/requirements-pip.txt
-    echo ">>>>>>> URL: ${PYPI_API_PACKAGE_URL}"
-    ${PIP} -i ${PYPI_API_PACKAGE_URL} nuxeo
+    #echo ">>>>>>> URL: ${PYPI_API_PACKAGE_URL}"
+   # ${PIP} -i ${PYPI_API_PACKAGE_URL} nuxeo
     ${PIP} -r tools/deps/requirements.txt
     ${PIP} -r tools/deps/requirements-dev.txt
     if [ "${INSTALL_RELEASE_ARG:-0}" != "1" ]; then
@@ -230,6 +230,13 @@ install_python() {
 
     echo ">>> [pyenv] Using Python ${version}"
 
+    setup_pip_config()
+
+}
+
+setup_pip_config(){
+    mkdir -p "$HOME/.pip"
+    cp "./pip.conf" "$HOME/.pip/pip.conf"
 }
 
 junit_arg() {

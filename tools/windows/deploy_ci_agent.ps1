@@ -320,21 +320,32 @@ function install_deps {
 		}
 	}
 
+	New-Item -ItemType Directory -Path $env:APPDATA\pip -Force
+	#cd $env:APPDATA\pip
+	Write-Output ">>>>>APPDATA:  $Env:APPDATA"
+	#New-Item -ItemType File -Path .\pip.ini
+	Write-Output ">>>> setup pip.ini: $pwd"
+	Copy-Item -Path tools\windows\pip.ini -Destination "$env:APPDATA\pip\pip.ini"
+
+
+	#exit 0
+
+
 	Write-Output ">>> Installing requirements"
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements-pip.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	Write-Output ">>>>>PYPI_API_PACKAGE_URL:  $Env:PYPI_API_PACKAGE_URL"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -i $Env:PYPI_API_PACKAGE_URL nuxeo
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
+	# Write-Output ">>>>>PYPI_API_PACKAGE_URL:  $Env:PYPI_API_PACKAGE_URL"
+	# & $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -i $Env:PYPI_API_PACKAGE_URL nuxeo
+	# if ($lastExitCode -ne 0) {
+	# 	ExitWithCode $lastExitCode
+	# }
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	Write-Output ">>> PIP URL: $Env:PYPI_API_PACKAGE_URL"
+	#Write-Output ">>> PIP URL: $Env:PYPI_API_PACKAGE_URL"
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements-dev.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
