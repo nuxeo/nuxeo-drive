@@ -230,11 +230,11 @@ install_python() {
 
     echo ">>> [pyenv] Using Python ${version}"
 
-    setup_pip_config()
+    setup_pip_config
 
 }
 
-setup_pip_config(){
+setup_pip_config() {
     mkdir -p "$HOME/.pip"
     cp "./pip.conf" "$HOME/.pip/pip.conf"
 }
