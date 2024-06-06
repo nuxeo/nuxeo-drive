@@ -46,6 +46,7 @@ jobs:
         if: ${{ success() }} || ${{ failure() }}
         uses: codecov/codecov-action@v3.1.5
         with:
+          token: ${{secrets.CODECOV_TOKEN}}
           files: ./coverage.xml
           flags: unit
           env_vars: OS,PYTHON
@@ -78,6 +79,7 @@ jobs:
         if: ${{ success() }} || ${{ failure() }}
         uses: codecov/codecov-action@v3.1.5
         with:
+          token: ${{secrets.CODECOV_TOKEN}}
           files: ./coverage.xml
           flags: unit
           env_vars: OS,PYTHON
@@ -120,6 +122,7 @@ jobs:
         if: ${{ success() }} || ${{ failure() }}
         uses: codecov/codecov-action@v3.1.5
         with:
+          token: ${{secrets.CODECOV_TOKEN}}
           files: ./coverage.xml
           flags: unit
           env_vars: OS,PYTHON
