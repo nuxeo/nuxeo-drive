@@ -236,7 +236,7 @@ install_python() {
 
 setup_pip_config() {
     mkdir -p "$HOME/.pip"
-    cp "./pip.conf" "$HOME/.pip/pip.conf"
+    cp "tools/posix/pip.conf" "$HOME/.pip/pip.conf"
 }
 
 junit_arg() {
