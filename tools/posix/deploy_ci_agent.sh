@@ -157,8 +157,6 @@ create_venv() {
 install_deps() {
     echo ">>> Installing requirements"
     ${PIP} -r tools/deps/requirements-pip.txt
-    #echo ">>>>>>> URL: ${PYPI_API_PACKAGE_URL}"
-   # ${PIP} -i ${PYPI_API_PACKAGE_URL} nuxeo
     ${PIP} -r tools/deps/requirements.txt
     ${PIP} -r tools/deps/requirements-dev.txt
     if [ "${INSTALL_RELEASE_ARG:-0}" != "1" ]; then

@@ -208,7 +208,6 @@ jmespath==1.0.1 \
 jwt==1.3.1 \
     --hash=sha256:61c9170f92e736b530655e75374681d4fcca9cfa8763ab42be57353b2b203494
     # via nuxeo
-# -i ${PYPI_API_PACKAGE_URL}
 nuxeo==6.1.2 \
     --hash=sha256:41f4272419df615629735184ceb129c1c1886c3110f9e3cb0461f6043e95e6ab \
     --hash=sha256:549c974fe83004aab462771b86a4ab7c3bf3b5c0f899af08008523999fc7726e

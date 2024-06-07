@@ -18,8 +18,6 @@ on:
 env:
   GITHUB_USERNAME: "nuxeodrive"
   GITHUB_EMAILID: "drive@hyland.com"
-  PYPI_API_NUXEO_PACKAGE_TOKEN: ${{ secrets.PYPI_API_NUXEO_PACKAGE_TOKEN }}
-  PYPI_API_NUXEO_PACKAGE_USERNAME: ${{ secrets.PYPI_API_NUXEO_PACKAGE_USERNAME }}
 
 jobs:
   release:
@@ -56,25 +54,6 @@ jobs:
           git fetch --unshallow --tags
           bash tools/bump-alpha-version.sh || exit 1
 
-      - name: Setup PyPI API packages URL environment variable (MacOS, Ubuntu)
-        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest' }}
-        run: |
-            PYPI_API_PACKAGE_URL=$(echo "${{ github.ref == 'refs/heads/master' && 'https://packages.nuxeo.com/repository/pypi-nuxeopublic/simple' || 'https://{0}:{1}@packages.nuxeo.com/repository/pypi-internal/simple' }}" | \
-              sed -e "s/{0}/${{ secrets.PYPI_API_NUXEO_PACKAGE_USERNAME }}/g" \
-              -e "s/{1}/${{ secrets.PYPI_API_NUXEO_PACKAGE_TOKEN }}/g")
-            echo "PYPI_API_PACKAGE_URL=$PYPI_API_PACKAGE_URL" >> $GITHUB_ENV
-      - name: Setup PyPI API packages URL environment variable (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          if ($env:GITHUB_REF -eq "refs/heads/master") {
-            $env:PYPI_API_PACKAGE_URL = "https://packages.nuxeo.com/repository/pypi-nuxeopublic/simple"
-          } else {
-            $env:PYPI_API_PACKAGE_URL = "https://${env:PYPI_API_NUXEO_PACKAGE_USERNAME}:${env:PYPI_API_NUXEO_PACKAGE_TOKEN}@packages.nuxeo.com/repository/pypi-internal/simple"
-          }
-          Write-Host "PYPI_API_PACKAGE_URL=$env:PYPI_API_PACKAGE_URL"
-          echo "PYPI_API_PACKAGE_URL=$env:PYPI_API_PACKAGE_URL" >> $env:GITHUB_ENV
-          echo "$env:GITHUB_REF"
-
       #
       # GNU/Linux
       #
@@ -102,8 +81,7 @@ jobs:
         env:
           REGISTRY: "docker-private.packages.nuxeo.com"
           REPOSITORY: "nuxeo-drive-build"
-          PYPI_API_PACKAGE_URL: ${{ env.PYPI_API_PACKAGE_URL }}
-        run: docker run -e PYPI_API_PACKAGE_URL=${{ env.PYPI_API_PACKAGE_URL }} -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.9.5" # XXX_PYTHON
+        run: docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.9.5" # XXX_PYTHON
 
       - name: "[GNU/Linux] Ensure the AppImage is correct"
         if: matrix.os == 'ubuntu-latest'
@@ -133,7 +111,6 @@ jobs:
         env:
           MACOSX_DEPLOYMENT_TARGET: "11.3"
           SYSTEM_VERSION_COMPAT: 0
-          # PYPI_API_PACKAGE_URL: ${{ env.PYPI_API_PACKAGE_URL }}
         run: bash tools/osx/deploy_ci_agent.sh --install-release
 
       - name: "[macOS] Generate the .dmg and validate against 2021"
@@ -184,8 +161,6 @@ jobs:
 
       - name: "[Windows] Setup the environment"
         if: matrix.os == 'windows-latest'
-        # env:
-        #   PYPI_API_PACKAGE_URL: ${{ env.PYPI_API_PACKAGE_URL }}
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
 
       - name: "[Windows] Generate the .exe and validate against 2021"

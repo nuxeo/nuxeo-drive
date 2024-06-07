@@ -19,9 +19,3 @@ SECOND_PARTITION = getenv("SECOND_PARTITION", "Q:\\")
 # Custom document types
 DOCTYPE_FILE = getenv("DOCTYPE_FILE", "File")
 DOCTYPE_FOLDERISH = getenv("DOCTYPE_FOLDERISH", "Folder")
-
-# The proxy server url to download nuxeo
-PYPI_API_PACKAGE_URL = getenv(
-    "PYPI_API_PACKAGE_URL",
-    "https://packages.nuxeo.com/repository/pypi-nuxeopublic/simple",
-)
