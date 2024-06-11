@@ -174,7 +174,7 @@ class WorkflowWorker(PollWorker):
 
     def __init__(self, manager: "Manager", /):
         """Check every hour"""
-        super().__init__(60 * 60, "WorkflowWorker")
+        super().__init__(60 * 2, "WorkflowWorker")
         self.manager = manager
 
         self._first_workflow_check = True
