@@ -18,7 +18,7 @@ on:
 env:
   GITHUB_USERNAME: "nuxeodrive"
   GITHUB_EMAILID: "drive@hyland.com"
-  PIP_CONFIG_FILE: ${{ github.ref == 'refs/heads/master' && tools/windows/pip.ini || tools/windows/pip.ini }}
+  PIP_CONFIG_FILE: ${{ github.ref == 'refs/heads/master' && 'tools/windows/pip.ini' || 'tools/windows/pip.ini' }}
 
 jobs:
   release:
