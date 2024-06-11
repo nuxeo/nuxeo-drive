@@ -18,6 +18,7 @@ on:
 env:
   GITHUB_USERNAME: "nuxeodrive"
   GITHUB_EMAILID: "drive@hyland.com"
+  PIP_CONFIG_FILE: ${{ github.ref == 'refs/heads/master' && /tools/windows/pip.ini|| /tools/windows/pip.ini }}
 
 jobs:
   release:
@@ -53,9 +54,6 @@ jobs:
         run: |
           git fetch --unshallow --tags
           bash tools/bump-alpha-version.sh || exit 1
-      - name: Setup pip configurations
-        env:
-          PIP_CONFIG_FILE: ${{ github.ref == 'refs/heads/master' && /tools/windows/pip.ini|| /tools/windows/pip.ini }}
 
       #
       # GNU/Linux
