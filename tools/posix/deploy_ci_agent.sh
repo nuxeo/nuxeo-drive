@@ -228,7 +228,7 @@ install_python() {
 
     echo ">>> [pyenv] Using Python ${version}"
 
-    setup_pip_config
+    # setup_pip_config
 
 }
 

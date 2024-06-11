@@ -330,7 +330,7 @@ function install_deps {
 	}
 
 	# Setup pip configuration file
-	setup_pip_config
+	# setup_pip_config
 
 	Write-Output ">>> Installing requirements"
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements-pip.txt
