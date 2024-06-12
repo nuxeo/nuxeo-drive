@@ -533,7 +533,6 @@ function sign($file) {
 	Write-Output ">>> Signing $file"
 	& $Env:SIGNTOOL_PATH\signtool.exe sign `
 		/a `
-		/sm `
 		/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
 		/f "$Env:SM_CLIENT_CERT_FILE" `
 		/csp "DigiCert Signing Manager KSP" /kc "$Env:SM_KEYPAIR_ALIAS" `
