@@ -77,6 +77,7 @@ def test_refresh_list(manager_factory, workflow, application):
 
     application_.engine_model = engine_model
     application_.last_engine_uid = engine.uid
+    application_.show_hide_refresh_button = Mock()
 
     manager.application = application_
 
@@ -103,5 +104,10 @@ def test_refresh_list(manager_factory, workflow, application):
 
     Feature.tasks_management = True
 
+    with patch.object(worker_.app.api, "get_Tasks_list", new=get_Tasks_list_):
+        assert worker_._poll()
+
+    worker_.app.last_engine_uid = engine.uid
+    worker_.app.api.engine_changed = True
     with patch.object(worker_.app.api, "get_Tasks_list", new=get_Tasks_list_):
         assert worker_._poll()

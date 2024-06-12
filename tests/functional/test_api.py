@@ -234,7 +234,7 @@ def test_get_tasks_list(manager_factory):
 
     with manager:
         with patch.object(engine.remote, "get_info", new=get_info_):
-            returned_val = drive_api.get_Tasks_list(engine.uid)
+            returned_val = drive_api.get_Tasks_list(engine.uid, True, True)
             assert isinstance(returned_val, list)
             assert isinstance(returned_val[0], Mock)
 
