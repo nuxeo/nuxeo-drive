@@ -534,9 +534,9 @@ function sign($file) {
 	& $Env:SIGNTOOL_PATH\signtool.exe sign `
 		/a `
 		/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
-		/f "$Env:SM_CLIENT_CERT_FILE" `
-                /p "$Env:SM_CLIENT_CERT_PASSWORD" `
-		/csp "DigiCert Signing Manager KSP" /kc "$Env:SM_KEYPAIR_ALIAS" `
+	#	/f "$Env:SM_CLIENT_CERT_FILE" `
+    #   /p "$Env:SM_CLIENT_CERT_PASSWORD" `
+	#	/csp "DigiCert Signing Manager KSP" /kc "$Env:SM_KEYPAIR_ALIAS" `
 		/n "$Env:SIGNING_ID" `
 		/d "$Env:APP_NAME" `
 		/td SHA256 /fd sha256 `
