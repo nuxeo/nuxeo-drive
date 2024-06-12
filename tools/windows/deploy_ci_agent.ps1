@@ -527,18 +527,20 @@ function sign($file) {
     #      copy D:\a\stm-github-action-demo\stm-github-action-demo\unsigned.exe D:\a\stm-github-action-demo\stm-github-action-demo\dist\unsigned.exe
     #      signtool.exe sign /sha1 ${{ secrets.SM_CODE_SIGNING_CERT_SHA1_HASH }} /tr http://timestamp.digicert.com /td SHA256 /fd SHA256 "D:\a\stm-github-action-demo\stm-github-action-demo\dist\unsigned.exe"
     #     signtool.exe verify /v /pa "D:\a\stm-github-action-demo\stm-github-action-demo\dist\unsigned.exe"
-
+    Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"
+	Write-Output ">>> $GITHUB_ENV:SM_CODE_SIGNING_CERT_SHA1_HASH"
 	Write-Output ">>> Signing $file"
 	& $Env:SIGNTOOL_PATH\signtool.exe sign `
 		/a `
 		/sm `
-		/sha1 $Env:SM_CODE_SIGNING_CERT_SHA1_HASH`
+		/sha1 "$GITHUB_ENV:SM_CODE_SIGNING_CERT_SHA1_HASH"`
 		/n "$Env:SIGNING_ID" `
 		/d "$Env:APP_NAME" `
 		/td SHA256 /fd sha256 `
 		/tr http://timestamp.digicert.com/sha256/timestamp `
 		/v `
 		"$file"
+		
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
