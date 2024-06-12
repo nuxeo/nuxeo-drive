@@ -535,12 +535,13 @@ function sign($file) {
 		/a `
 		/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
 		/f "$Env:SM_CLIENT_CERT_FILE" `
+                /p "$Env:SM_CLIENT_CERT_PASSWORD" `
 		/csp "DigiCert Signing Manager KSP" /kc "$Env:SM_KEYPAIR_ALIAS" `
 		/n "$Env:SIGNING_ID" `
 		/d "$Env:APP_NAME" `
 		/td SHA256 /fd sha256 `
 		/tr http://timestamp.digicert.com/sha256/timestamp `
-		/v `
+		/debug /v `
 		"$file"
 		
 	if ($lastExitCode -ne 0) {
