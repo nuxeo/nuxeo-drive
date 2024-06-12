@@ -18,7 +18,7 @@ on:
 env:
   GITHUB_USERNAME: "nuxeodrive"
   GITHUB_EMAILID: "drive@hyland.com"
-  PIP_CONFIG_FILE: ${{ github.ref == 'refs/heads/master' && 'tools/windows/pip.ini' || 'tools/windows/pip.ini' }}
+  # PIP_CONFIG_FILE: ${{ github.ref == 'refs/heads/master' && 'tools/windows/pip.ini' || 'tools/windows/pip.ini' }}
 
 jobs:
   release:
@@ -82,7 +82,7 @@ jobs:
         env:
           REGISTRY: "docker-private.packages.nuxeo.com"
           REPOSITORY: "nuxeo-drive-build"
-          PIP_CONFIG_FILE: ${{ github.ref == 'refs/heads/master' && 'tools/windows/pip.conf' || 'tools/windows/pip.conf' }}
+          PIP_CONFIG_FILE: ${{ github.ref == 'refs/heads/master' && 'tools/posix/pip.conf' || 'tools/posix/pip.conf' }}
         run: docker run -e ${PIP_CONFIG_FILE} -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.9.5" # XXX_PYTHON
 
       - name: "[GNU/Linux] Ensure the AppImage is correct"
@@ -113,7 +113,7 @@ jobs:
         env:
           MACOSX_DEPLOYMENT_TARGET: "11.3"
           SYSTEM_VERSION_COMPAT: 0
-          #PIP_CONFIG_FILE: ${{ github.ref == 'refs/heads/master' && 'tools/posix/pip.conf' || 'tools/posix/pip.conf' }}
+          PIP_CONFIG_FILE: ${{ github.ref == 'refs/heads/master' && 'tools/posix/pip.conf' || 'tools/posix/pip.conf' }}
         run: bash tools/osx/deploy_ci_agent.sh --install-release
 
       - name: "[macOS] Generate the .dmg and validate against 2021"
@@ -164,8 +164,8 @@ jobs:
 
       - name: "[Windows] Setup the environment"
         if: matrix.os == 'windows-latest'
-        # env:
-        #   PIP_CONFIG_FILE: ${{ github.ref == 'refs/heads/master' && 'tools/windows/pip.ini' || 'tools/windows/pip.ini' }}
+        env:
+          PIP_CONFIG_FILE: ${{ github.ref == 'refs/heads/master' && 'tools/windows/pip.ini' || 'tools/windows/pip.ini' }}
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
 
       - name: "[Windows] Generate the .exe and validate against 2021"
