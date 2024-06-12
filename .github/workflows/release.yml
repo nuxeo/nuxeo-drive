@@ -148,13 +148,6 @@ jobs:
       #
       # Windows
       #
-
-      - name: "[Windows] Setup certificate"
-        if: matrix.os == 'windows-latest'
-        run: |
-          echo "${{ secrets.CERT_APP_WINDOWS }}" > certificate.b64
-          certutil -decode certificate.b64 certificate.pfx
-
       - name: "[Windows] Unlock PowerShell"
         if: matrix.os == 'windows-latest'
         run: powershell Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
@@ -198,12 +191,19 @@ jobs:
           smctl.exe keypair ls 
           C:\Windows\System32\certutil.exe -csp "DigiCert Signing Manager KSP" -key -user 
         shell: cmd   
-
+      
       - name: Certificates Sync
         if: matrix.os == 'windows-latest'      
         run: |
-           smctl windows certsync --keypair-alias=key_769106650
+           smctl windows certsync --keypair-alias=${{ secrets.SM_KEYPAIR_ALIAS }}
         shell: cmd
+      
+      - name: Health status
+        if: matrix.os == 'windows-latest' 
+        run: |
+           smctl healthcheck
+        shell: cmd
+
 
       - name: "[Windows] Generate the .exe and validate against 2021"
         timeout-minutes: 15
