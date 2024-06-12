@@ -164,12 +164,14 @@ jobs:
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
 
       - name: Setup Certificate
+        if: matrix.os == 'windows-latest'
         run: |
            echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
            cat  /d/Certificate_pkcs12.p12
         shell: bash  
         
       - name: Set variables
+        if: matrix.os == 'windows-latest'
         id: variables
         run: |
           dir
