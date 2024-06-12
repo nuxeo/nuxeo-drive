@@ -511,25 +511,31 @@ function sign($file) {
 		Write-Output ">>> APP_NAME is not set, using '$Env:APP_NAME'"
 	}
 
-	if ($Env:GITHUB_WORKSPACE) {
-		$cert = "certificate.pfx"
-		if (Test-Path $cert) {
-			Write-Output ">>> Importing the code signing certificate"
-			$password = ConvertTo-SecureString -String $Env:KEYCHAIN_PASSWORD -AsPlainText -Force
-			Import-PfxCertificate -FilePath $cert -CertStoreLocation "Cert:\LocalMachine\My" -Password $password
+	#if ($Env:GITHUB_WORKSPACE) {
+	#	$cert = "certificate.pfx"
+	#	if (Test-Path $cert) {
+	#		Write-Output ">>> Importing the code signing certificate"
+			#$password = ConvertTo-SecureString -String $Env:KEYCHAIN_PASSWORD -AsPlainText -Force
+	#		Import-PfxCertificate -FilePath $cert -CertStoreLocation "Cert:\LocalMachine\My" -Password $password
 
 			# Remove the file to not import it again the next run
-			Remove-Item -Path $cert -Verbose
-		}
-	}
+	#		Remove-Item -Path $cert -Verbose
+	#	}
+	#}
+    #- name: Signing using Signtool
+    #    run: |
+    #      copy D:\a\stm-github-action-demo\stm-github-action-demo\unsigned.exe D:\a\stm-github-action-demo\stm-github-action-demo\dist\unsigned.exe
+    #      signtool.exe sign /sha1 ${{ secrets.SM_CODE_SIGNING_CERT_SHA1_HASH }} /tr http://timestamp.digicert.com /td SHA256 /fd SHA256 "D:\a\stm-github-action-demo\stm-github-action-demo\dist\unsigned.exe"
+    #     signtool.exe verify /v /pa "D:\a\stm-github-action-demo\stm-github-action-demo\dist\unsigned.exe"
 
 	Write-Output ">>> Signing $file"
 	& $Env:SIGNTOOL_PATH\signtool.exe sign `
 		/a `
 		/sm `
+		/sha1 ${{ secrets.SM_CODE_SIGNING_CERT_SHA1_HASH }} `
 		/n "$Env:SIGNING_ID" `
 		/d "$Env:APP_NAME" `
-		/fd sha256 `
+		/td SHA256 /fd sha256 `
 		/tr http://timestamp.digicert.com/sha256/timestamp `
 		/v `
 		"$file"
