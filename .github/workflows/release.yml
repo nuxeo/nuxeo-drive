@@ -202,7 +202,7 @@ jobs:
       - name: Certificates Sync
         if: matrix.os == 'windows-latest'      
         run: |
-           smctl windows certsync
+           smctl windows certsync --keypair-alias=key_769106650
         shell: cmd
 
       - name: "[Windows] Generate the .exe and validate against 2021"
