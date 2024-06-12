@@ -78,6 +78,8 @@ class QMLDriveApi(QObject):
             self.application.open_authentication_dialog
         )
         self.last_task_list = ""
+        self.engine_changed = False
+        self.hide_refresh_button = True
 
     def _json_default(self, obj: Any, /) -> Any:
         export = getattr(obj, "export", None)
@@ -245,9 +247,13 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, str, result=str)
     def get_text(self, details: str, ret: str, /) -> str:
+        details = details.replace("\\", "")
         details = details.replace("'", '"')
-        details = json.loads(details)
-        return details.get(ret)
+        try:
+            details = json.loads(details)
+            return details.get(ret)
+        except Exception as e:
+            return ""
 
     @pyqtSlot(str, result=bool)
     def text_red(self, text: str, /) -> bool:
@@ -495,8 +501,10 @@ class QMLDriveApi(QObject):
         log.info("Engine not available")
         return 0
 
-    @pyqtSlot(str, result=list)
-    def get_Tasks_list(self, engine_uid: str, /) -> list:
+    @pyqtSlot(str, bool, bool, result=list)
+    def get_Tasks_list(
+        self, engine_uid: str, engine_changed: bool, hide_refresh_button: bool, /
+    ) -> list:
         engine = self._get_engine(engine_uid)
         tasks_list = self._fetch_tasks(engine)
         for task in tasks_list:
@@ -527,6 +535,11 @@ class QMLDriveApi(QObject):
 
         if self.last_task_list == "":
             self.last_task_list = str(tasks_list)
+        if engine_changed:
+            self.engine_changed = True
+        self.hide_refresh_button = hide_refresh_button
+        if hide_refresh_button:
+            self.application.show_hide_refresh_button(0)
         return tasks_list
 
     @pyqtSlot(str, result=str)

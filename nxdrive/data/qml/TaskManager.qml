@@ -34,9 +34,6 @@ Rectangle {
                 leftPadding: 25
                 rightPadding: 5
                 topPadding: 3
-                anchors {
-                    centerIn: buttonBackground
-                }
             }
             NuxeoButton {
                 text: qsTr("REFRESH") + tl.tr
@@ -44,7 +41,7 @@ Rectangle {
                 Layout.rightMargin: 30
                 primary: false
                 onClicked: {
-                            tasks_model.loadList(api.get_Tasks_list(engineUid), api.get_username(engineUid))
+                            tasks_model.loadList(api.get_Tasks_list(engineUid, false, true), api.get_username(engineUid))
                             refreshButton.height = 0
                 }
             }

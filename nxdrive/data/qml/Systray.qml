@@ -152,11 +152,11 @@ Rectangle {
                         // Width management: systray width minus the 5 icon's width
                         Layout.preferredWidth: systray.width - (accountIcon.width * 5)
 
-                        // When picking an account, refresh the file list.
+                        // When picking an account, refresh the file list and tasks list.
                         onActivated: {
                             getLastFiles(accountSelect.getRole("uid"))
                             doUpdateCounts()
-                            tasks_model.loadList(api.get_Tasks_list(accountSelect.getRole("uid")), api.get_username(accountSelect.getRole("uid")))
+                            tasks_model.loadList(api.get_Tasks_list(accountSelect.getRole("uid"), true, true), api.get_username(accountSelect.getRole("uid")))
                         }
                     }
                 }
@@ -172,7 +172,7 @@ Rectangle {
                     enabled: feat_tasks_management.enabled
                     opacity: feat_tasks_management.enabled ? 1.0 : 0.2
                     onClicked: {
-                            tasks_model.loadList(api.get_Tasks_list(accountSelect.getRole("uid")), api.get_username(accountSelect.getRole("uid")))
+                            tasks_model.loadList(api.get_Tasks_list(accountSelect.getRole("uid"), false, true), api.get_username(accountSelect.getRole("uid")))
                             api.open_tasks_window(accountSelect.getRole("uid"))
                             }
                     //tooltip: api.get_hostname_from_url(accountSelect.getRole("server_url"))
@@ -294,7 +294,7 @@ Rectangle {
                         target: taskState
                         text: qsTr("PENDING_TASK_REVIEWS")
                         onClicked: {
-                            tasks_model.loadList(api.get_Tasks_list(accountSelect.getRole("uid")), api.get_username(accountSelect.getRole("uid")))
+                            tasks_model.loadList(api.get_Tasks_list(accountSelect.getRole("uid"), false, true), api.get_username(accountSelect.getRole("uid")))
                             api.open_tasks_window(accountSelect.getRole("uid"))
                         }
                     }

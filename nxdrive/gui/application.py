@@ -49,6 +49,7 @@ from ..qt.imports import (
     QLocalServer,
     QLocalSocket,
     QMessageBox,
+    QObject,
     QQmlApplicationEngine,
     QQmlContext,
     QQuickView,
@@ -1027,6 +1028,12 @@ class Application(QApplication):
     def close_tasks_window(self) -> None:
         """Close the Tasks window."""
         self.task_manager_window.close()
+
+    @pyqtSlot(int)
+    def show_hide_refresh_button(self, height: int, /) -> None:
+        """Shows and Hides the refresh button of task window"""
+        r_button = self.task_manager_window.findChild(QObject, "refresh")
+        r_button.setProperty("height", height)
 
     def open_task(self, engine: Engine, task_id: str) -> None:
         endpoint = "/ui/#!/tasks/"

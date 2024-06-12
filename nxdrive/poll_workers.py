@@ -193,16 +193,21 @@ class WorkflowWorker(PollWorker):
         if self.manager.engines and Feature.tasks_management:
             self.app = self.manager.application
             self.workflow = self.app.workflow
-            for engine in self.manager.engines.copy().values():
-                self.workflow.get_pending_tasks(engine, self._first_workflow_check)
-                if engine.uid == self.app.last_engine_uid:
-                    task_list = str(self.app.api.get_Tasks_list(engine.uid))
-                    if task_list != self.app.api.last_task_list:
-                        self.app.api.last_task_list = task_list
-                        from .qt.imports import QObject
 
-                        r_button = self.app.task_manager_window.findChild(
-                            QObject, "refresh"
-                        )
-                        r_button.setProperty("height", 30)
+            engine_ = self.manager.engines.get(self.app.last_engine_uid)
+            self.workflow.get_pending_tasks(engine_, self._first_workflow_check)
+            hide_refresh_button = self.app.api.hide_refresh_button
+
+            task_list = str(
+                self.app.api.get_Tasks_list(engine_.uid, False, hide_refresh_button)
+            )
+
+            if task_list != self.app.api.last_task_list:
+                self.app.api.last_task_list = task_list
+                if not self.app.api.engine_changed:
+                    self.app.show_hide_refresh_button(30)
+                    self.app.api.hide_refresh_button = False
+                else:
+                    self.app.api.engine_changed = False
+
         return True
