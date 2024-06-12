@@ -188,6 +188,7 @@ jobs:
         shell: bash
       
       - name: Setup Keylocker KSP on windows 
+        if: matrix.os == 'windows-latest'
         run: | 
           curl -X GET  https://one.digicert.com/signingmanager/api-ui/v1/releases/Keylockertools-windows-x64.msi/download -H "x-api-key:%SM_API_KEY%" -o Keylockertools-windows-x64.msi 
           msiexec /i Keylockertools-windows-x64.msi /quiet /qn
@@ -199,7 +200,7 @@ jobs:
       - name: Certificates Sync       
         run: |
            smctl windows certsync
-           shell: cmd
+        shell: cmd
 
       - name: "[Windows] Generate the .exe and validate against 2021"
         timeout-minutes: 15
