@@ -532,7 +532,6 @@ function sign($file) {
 	Write-Output ">>> $Env:SM_CLIENT_CERT_FILE"		
 	Write-Output ">>> Signing $file"
 	& $Env:SIGNTOOL_PATH\signtool.exe sign `
-		/a `
 		/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
 		/n "$Env:SIGNING_ID" `
 		/d "$Env:APP_NAME" `
