@@ -528,12 +528,15 @@ function sign($file) {
     #      signtool.exe sign /sha1 ${{ secrets.SM_CODE_SIGNING_CERT_SHA1_HASH }} /tr http://timestamp.digicert.com /td SHA256 /fd SHA256 "D:\a\stm-github-action-demo\stm-github-action-demo\dist\unsigned.exe"
     #     signtool.exe verify /v /pa "D:\a\stm-github-action-demo\stm-github-action-demo\dist\unsigned.exe"
     Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"
-    Write-Output ">>> $Env:SM_HOST"	
+    Write-Output ">>> $Env:SM_HOST"
+	Write-Output ">>> $Env:SM_CLIENT_CERT_FILE"		
 	Write-Output ">>> Signing $file"
 	& $Env:SIGNTOOL_PATH\signtool.exe sign `
 		/a `
 		/sm `
 		/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
+		/f "$Env:SM_CLIENT_CERT_FILE" `
+		/kc "$Env:SM_KEYPAIR_ALIAS" `
 		/n "$Env:SIGNING_ID" `
 		/d "$Env:APP_NAME" `
 		/td SHA256 /fd sha256 `
