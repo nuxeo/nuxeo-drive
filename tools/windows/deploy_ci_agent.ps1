@@ -95,7 +95,7 @@ function build_installer {
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\cleanup_application_tree.py "dist\ndrive"
 
 	# Remove compiled QML files
-	Get-ChildItem -Path "dist\ndrive" -Recurse -File -Include *.qmlc | Foreach ($_) {Remove-Item -Verbose $_.Fullname}
+	Get-ChildItem -Path "dist\ndrive" -Recurse -File -Include *.qmlc | Foreach ($_) { Remove-Item -Verbose $_.Fullname }
 
 	add_missing_ddls
 	sign "dist\ndrive\ndrive.exe"
@@ -129,17 +129,17 @@ function build_overlays {
 	# Remove old DLLs on GitHub-CI to prevent such errors:
 	#	Rename-Item : Cannot create a file when that file already exists.
 	if ($Env:GITHUB_WORKSPACE) {
-		Get-ChildItem -Path $folder -Recurse -File -Include *.dll | Foreach ($_) {Remove-Item $_.Fullname}
+		Get-ChildItem -Path $folder -Recurse -File -Include *.dll | Foreach ($_) { Remove-Item $_.Fullname }
 	}
 
 	# List of DLLs to build
 	$overlays = @(
-		@{Name='NuxeoDriveSynced'; Id='1'; Icon='badge_synced'},
-		@{Name='NuxeoDriveSyncing'; Id='2'; Icon='badge_syncing'},
-		@{Name='NuxeoDriveConflicted'; Id='3'; Icon='badge_conflicted'},
-		@{Name='NuxeoDriveError'; Id='4'; Icon='badge_error'},
-		@{Name='NuxeoDriveLocked'; Id='5'; Icon='badge_locked'},
-		@{Name='NuxeoDriveUnsynced'; Id='6'; Icon='badge_unsynced'}
+		@{Name = 'NuxeoDriveSynced'; Id = '1'; Icon = 'badge_synced' },
+		@{Name = 'NuxeoDriveSyncing'; Id = '2'; Icon = 'badge_syncing' },
+		@{Name = 'NuxeoDriveConflicted'; Id = '3'; Icon = 'badge_conflicted' },
+		@{Name = 'NuxeoDriveError'; Id = '4'; Icon = 'badge_error' },
+		@{Name = 'NuxeoDriveLocked'; Id = '5'; Icon = 'badge_locked' },
+		@{Name = 'NuxeoDriveUnsynced'; Id = '6'; Icon = 'badge_unsynced' }
 	)
 
 	$x64Path = "%name%_x64.dll"
@@ -186,7 +186,7 @@ function build_overlays {
 	}
 
 	# Delete everything that is not a DLL
-	Get-ChildItem -Path $folder\Release -Recurse -File -Exclude *.dll | Foreach ($_) {Remove-Item $_.Fullname}
+	Get-ChildItem -Path $folder\Release -Recurse -File -Exclude *.dll | Foreach ($_) { Remove-Item $_.Fullname }
 }
 
 function check_import($import) {
@@ -202,7 +202,7 @@ function check_import($import) {
 
 function check_upgrade {
 	# Ensure a new version can be released by checking the auto-update process.
-    & $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\scripts\check_update_process.py
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\scripts\check_update_process.py
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -217,7 +217,8 @@ function check_vars {
 		if ($Env:GITHUB_WORKSPACE) {
 			# Running from GitHub Actions
 			$Env:WORKSPACE = (Get-Item $Env:GITHUB_WORKSPACE).parent.FullName
-		} else {
+		}
+		else {
 			Write-Output ">>> WORKSPACE not defined. Aborting."
 			ExitWithCode 1
 		}
@@ -225,9 +226,11 @@ function check_vars {
 	if (-Not ($Env:WORKSPACE_DRIVE)) {
 		if (Test-Path "$($Env:WORKSPACE)\sources") {
 			$Env:WORKSPACE_DRIVE = "$($Env:WORKSPACE)\sources"
-		} elseif (Test-Path "$($Env:WORKSPACE)\nuxeo-drive") {
+		}
+		elseif (Test-Path "$($Env:WORKSPACE)\nuxeo-drive") {
 			$Env:WORKSPACE_DRIVE = "$($Env:WORKSPACE)\nuxeo-drive"
-		} else {
+		}
+		else {
 			$Env:WORKSPACE_DRIVE = $Env:WORKSPACE
 		}
 	}
@@ -255,14 +258,16 @@ function check_vars {
 
 	if (-Not ($Env:SPECIFIC_TEST) -Or ($Env:SPECIFIC_TEST -eq "")) {
 		$Env:SPECIFIC_TEST = "tests"
-	} else {
+	}
+ else {
 		Write-Output "    SPECIFIC_TEST        = $Env:SPECIFIC_TEST"
 		$Env:SPECIFIC_TEST = "tests\$Env:SPECIFIC_TEST"
 	}
 
 	if (-Not ($Env:SKIP)) {
 		$Env:SKIP = ""
-	} else {
+	}
+ else {
 		Write-Output "    SKIP                 = $Env:SKIP"
 	}
 }
@@ -284,10 +289,12 @@ function download($url, $output) {
 			if ($Env:GITHUB_WORKSPACE) {
 				$client = New-Object System.Net.WebClient
 				$client.DownloadFile($url, $output)
-			} else {
+			}
+			else {
 				Start-BitsTransfer -Source $url -Destination $output
 			}
-		} Catch {}
+		}
+		Catch {}
 		$try += 1
 		Start-Sleep -s 5
 	}
@@ -407,7 +414,7 @@ function junit_arg($path, $run) {
 	if ($run) {
 		$run = ".$run"
 	}
-    return "--junitxml=$junit\$path$run.xml"
+	return "--junitxml=$junit\$path$run.xml"
 }
 
 function launch_test($path, $pytest_args) {
@@ -520,20 +527,15 @@ function sign($file) {
 	#	$cert = "certificate.pfx"
 	#	if (Test-Path $cert) {
 	#		Write-Output ">>> Importing the code signing certificate"
-			#$password = ConvertTo-SecureString -String $Env:KEYCHAIN_PASSWORD -AsPlainText -Force
+	#$password = ConvertTo-SecureString -String $Env:KEYCHAIN_PASSWORD -AsPlainText -Force
 	#		Import-PfxCertificate -FilePath $cert -CertStoreLocation "Cert:\LocalMachine\My" -Password $password
 
-			# Remove the file to not import it again the next run
+	# Remove the file to not import it again the next run
 	#		Remove-Item -Path $cert -Verbose
 	#	}
 	#}
-    #- name: Signing using Signtool
-    #    run: |
-    #      copy D:\a\stm-github-action-demo\stm-github-action-demo\unsigned.exe D:\a\stm-github-action-demo\stm-github-action-demo\dist\unsigned.exe
-    #      signtool.exe sign /sha1 ${{ secrets.SM_CODE_SIGNING_CERT_SHA1_HASH }} /tr http://timestamp.digicert.com /td SHA256 /fd SHA256 "D:\a\stm-github-action-demo\stm-github-action-demo\dist\unsigned.exe"
-    #     signtool.exe verify /v /pa "D:\a\stm-github-action-demo\stm-github-action-demo\dist\unsigned.exe"
-    Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"
-    Write-Output ">>> $Env:SM_HOST"
+	Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"
+	Write-Output ">>> $Env:SM_HOST"
 	Write-Output ">>> $Env:SM_CLIENT_CERT_FILE"		
 	Write-Output ">>> Signing $file"
 	& $Env:SIGNTOOL_PATH\signtool.exe sign `
@@ -591,19 +593,24 @@ function main {
 
 	if ($build) {
 		build_installer
-	} elseif ($build_dlls) {
+	}
+ elseif ($build_dlls) {
 		build_overlays
-	} elseif ($check_upgrade) {
+	}
+ elseif ($check_upgrade) {
 		check_upgrade
-	} elseif ($install -or $install_release) {
+	}
+ elseif ($install -or $install_release) {
 		install_deps
 		if ((check_import "import PyQt5") -ne 1) {
 			Write-Output ">>> No PyQt5. Installation failed."
 			ExitWithCode 1
 		}
-	} elseif ($start) {
+	}
+ elseif ($start) {
 		start_nxdrive
-	} elseif ($tests) {
+	}
+ elseif ($tests) {
 		launch_tests
 	}
 }
