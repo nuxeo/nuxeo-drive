@@ -50,11 +50,17 @@ def application(manager_factory, workflow):
     application.show_metrics_acceptance = Mock()
     application.init_checks = Mock()
     application._setup_notification_center = Mock()
-    application.show_hide_refresh_button = Mock()
+    # application.show_hide_refresh_button = Mock()
     # application.manager.preferences_metrics_chosen = True
     # application.manager.old_version = "1.0.0"
     # application.manager.version = "1.1.0"
     application.workflow = workflow
+
+    def show_hide_refresh_button_(*args, **kwargs):
+        return
+
+    application.show_hide_refresh_button = show_hide_refresh_button_
+
     return application
 
 
