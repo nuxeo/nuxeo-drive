@@ -93,8 +93,10 @@ QtObject {
         visible: false
 
         signal setEngine(string uid)
+        signal setSection(int index)
 
         onSetEngine: taskManager.setEngine(uid)
+        onSetSection: taskManager.setSection(index)
 
         TaskManager { id: taskManager }
     }

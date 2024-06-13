@@ -12,9 +12,19 @@ Rectangle {
     property bool showSelfTasksList: false
 
     signal setEngine(string uid)
+    signal setSection(int index)
 
     onSetEngine: {
         engineUid = uid
+    }
+    onSetSection: {
+        if (index == 0) {
+            showSelfTasksList = false
+            }
+        else{
+            showSelfTasksList = true
+        }
+        bar.currentIndex = index
     }
 
     Rectangle {

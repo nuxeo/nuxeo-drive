@@ -1022,6 +1022,7 @@ class Application(QApplication):
     def show_tasks_window(self, engine_uid: str, /) -> None:
         """Display the Tasks window."""
         self._window_root(self.task_manager_window).setEngine.emit(engine_uid)
+        self._window_root(self.task_manager_window).setSection.emit(0)
         self._center_on_screen(self.task_manager_window)
 
     @pyqtSlot()

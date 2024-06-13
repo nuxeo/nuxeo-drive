@@ -285,6 +285,7 @@
     "NO_CONFLICTS_BODY": "You have resolved all conflicts and errors",
     "NO_CONFLICTS_TITLE": "No conflicts or errors left",
     "NO_ROOTS": "There is no synchronized folder associated with your account.<br/><br/> Please browse to <a href=\"%1\">your instance</a> and pick a folder to start synchronizing content.<br/><br/> Learn more about synchronization on <a href=\"%2\">the documentation website</a>.",
+    "NO_TASKS_AVAILABLE": "You do not have any tasks to process at the moment",
     "NO_SPACE_LEFT_ON_DEVICE": "No space left on device, please free some disk space.",
     "OAUTH2_MISSING_URL": "Server URL not registered, please retry.",
     "OAUTH2_STATE_MISMATCH": "Broken authentication flow, please retry.",

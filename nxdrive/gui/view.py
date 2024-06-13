@@ -919,7 +919,7 @@ class TasksModel(QObject):
 
         dummy_details = json.dumps(
             {
-                "wf_name": "You do not have any tasks to process at the moment",
+                "wf_name": Translator.get("NO_TASKS_AVAILABLE"),
                 "name": "",
                 "due": "",
                 "model": "",
