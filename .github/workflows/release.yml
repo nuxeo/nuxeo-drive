@@ -165,7 +165,9 @@ jobs:
       - name: "[Windows] Setup the environment"
         if: matrix.os == 'windows-latest'
         env:
-          PIP_CONFIG_FILE: ${{ github.ref == 'refs/heads/master' && 'tools/windows/pip.ini' || 'tools/windows/pip.ini' }}
+          PYPI_API_NUXEO_PACKAGE_USERNAME: ${{ secrets.PYPI_API_NUXEO_PACKAGE_USERNAME }}
+          PYPI_API_NUXEO_PACKAGE_PASSWORD: ${{ secrets.PYPI_API_NUXEO_PACKAGE_PASSWORD }}
+          PIP_CONFIG_FILE: ${{ github.ref == 'refs/heads/master' && 'tools/windows/pip_public_conf/pip.ini' || 'tools/windows/pip_test_conf/pip.ini' }}
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
 
       - name: "[Windows] Generate the .exe and validate against 2021"
