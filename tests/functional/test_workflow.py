@@ -50,6 +50,7 @@ def application(manager_factory, workflow):
     application.show_metrics_acceptance = Mock()
     application.init_checks = Mock()
     application._setup_notification_center = Mock()
+    application.show_hide_refresh_button = Mock()
     # application.manager.preferences_metrics_chosen = True
     # application.manager.old_version = "1.0.0"
     # application.manager.version = "1.1.0"
@@ -77,7 +78,6 @@ def test_refresh_list(manager_factory, workflow, application):
 
     application_.engine_model = engine_model
     application_.last_engine_uid = engine.uid
-    application_.show_hide_refresh_button = Mock()
 
     manager.application = application_
 
