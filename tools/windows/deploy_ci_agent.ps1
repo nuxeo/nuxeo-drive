@@ -506,6 +506,11 @@ function sign($file) {
 		$Env:SIGNING_ID = "Nuxeo"
 		Write-Output ">>> SIGNING_ID is not set, using '$Env:SIGNING_ID'"
 	}
+        
+	if (-Not ($Env:SIGNING_ID_NEW)) {
+		$Env:SIGNING_ID_NEW = "Hyland Software, Inc."
+		Write-Output ">>> SIGNING_ID_NEW is not set, using '$Env:SIGNING_ID_NEW'"
+	}
 	if (-Not ($Env:APP_NAME)) {
 		$Env:APP_NAME = "Nuxeo Drive"
 		Write-Output ">>> APP_NAME is not set, using '$Env:APP_NAME'"
@@ -533,7 +538,7 @@ function sign($file) {
 	Write-Output ">>> Signing $file"
 	& $Env:SIGNTOOL_PATH\signtool.exe sign `
 		/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
-		/n "$Env:SIGNING_ID" `
+		/n "$Env:SIGNING_ID_NEW" `
 		/d "$Env:APP_NAME" `
 		/td SHA256 /fd sha256 `
 		/tr http://timestamp.digicert.com/sha256/timestamp `
