@@ -216,6 +216,9 @@ def test_get_tasks_list(manager_factory):
     def fetch_pending_tasks_(*args, **kwargs):
         return dummy_task_list
 
+    def show_hide_refresh_button_(*args, **kwargs):
+        return
+
     def get_info_(*args, **kwargs):
         doc_info = Mock()
         doc_info.name = "dummy_doc_name"
@@ -223,8 +226,13 @@ def test_get_tasks_list(manager_factory):
 
     Mocked_App = namedtuple(
         "app",
-        "manager, open_authentication_dialog, fetch_pending_tasks",
-        defaults=(manager, mocked_open_authentication_dialog, fetch_pending_tasks_),
+        "manager, open_authentication_dialog, fetch_pending_tasks, show_hide_refresh_button ",
+        defaults=(
+            manager,
+            mocked_open_authentication_dialog,
+            fetch_pending_tasks_,
+            show_hide_refresh_button_,
+        ),
     )
 
     app = Mocked_App()
