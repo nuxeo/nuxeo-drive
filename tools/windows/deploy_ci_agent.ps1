@@ -87,7 +87,7 @@ function build_installer {
 		build_overlays
 	}
 
-	sign_dlls
+	#sign_dlls
 
 	Write-Output ">>> [$app_version] Freezing the application"
 	freeze_pyinstaller
