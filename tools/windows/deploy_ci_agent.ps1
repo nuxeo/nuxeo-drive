@@ -21,6 +21,7 @@ param (
 	[switch]$build = $false,
 	[switch]$build_dlls = $false,
 	[switch]$check_upgrade = $false,
+	[switch]$build_installer_and_sign = $false,
 	[switch]$install = $false,
 	[switch]$install_release = $false,
 	[switch]$start = $false,
@@ -98,7 +99,7 @@ function build_installer {
 	Get-ChildItem -Path "dist\ndrive" -Recurse -File -Include *.qmlc | Foreach ($_) { Remove-Item -Verbose $_.Fullname }
 
 	add_missing_ddls
-	sign "dist\ndrive\ndrive.exe"
+	#sign "dist\ndrive\ndrive.exe"
 
 	# Stop now if we only want the application to be frozen (for integration tests)
 	if ($Env:FREEZE_ONLY) {
@@ -111,14 +112,14 @@ function build_installer {
 
 	if (-Not ($Env:SKIP_ADDONS)) {
 		build "$app_version" "tools\windows\setup-addons.iss"
-		sign "dist\nuxeo-drive-addons.exe"
+		#sign "dist\nuxeo-drive-addons.exe"
 	}
 
 	build "$app_version" "tools\windows\setup.iss"
-	sign "dist\nuxeo-drive-$app_version.exe"
+	#sign "dist\nuxeo-drive-$app_version.exe"
 
 	build "$app_version" "tools\windows\setup-admin.iss"
-	sign "dist\nuxeo-drive-$app_version-admin.exe"
+	#sign "dist\nuxeo-drive-$app_version-admin.exe"
 }
 
 function build_overlays {
@@ -522,7 +523,49 @@ function sign($file) {
 		$Env:APP_NAME = "Nuxeo Drive"
 		Write-Output ">>> APP_NAME is not set, using '$Env:APP_NAME'"
 	}
+	function build_installer_and_sign {
+		# Build the installer
+		$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""
 
+		# Build DDLs only on GitHub-CI, no need to loose time on the local dev machine
+		if ($Env:GITHUB_WORKSPACE) {
+			build_overlays
+		}
+
+		sign_dlls
+
+		Write-Output ">>> [$app_version] Freezing the application"
+		freeze_pyinstaller
+
+		# Do some clean-up
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\cleanup_application_tree.py "dist\ndrive"
+
+		# Remove compiled QML files
+		Get-ChildItem -Path "dist\ndrive" -Recurse -File -Include *.qmlc | Foreach ($_) { Remove-Item -Verbose $_.Fullname }
+
+		add_missing_ddls
+		sign "dist\ndrive\ndrive.exe"
+
+		# Stop now if we only want the application to be frozen (for integration tests)
+		if ($Env:FREEZE_ONLY) {
+			return 0
+		}
+
+		if ($Env:ZIP_NEEDED) {
+			zip_files "dist\nuxeo-drive-windows-$app_version.zip" "dist\ndrive"
+		}
+
+		if (-Not ($Env:SKIP_ADDONS)) {
+			build "$app_version" "tools\windows\setup-addons.iss"
+			sign "dist\nuxeo-drive-addons.exe"
+		}
+
+		build "$app_version" "tools\windows\setup.iss"
+		sign "dist\nuxeo-drive-$app_version.exe"
+
+		build "$app_version" "tools\windows\setup-admin.iss"
+		sign "dist\nuxeo-drive-$app_version-admin.exe"
+	}
 	#if ($Env:GITHUB_WORKSPACE) {
 	#	$cert = "certificate.pfx"
 	#	if (Test-Path $cert) {
@@ -534,18 +577,18 @@ function sign($file) {
 	#		Remove-Item -Path $cert -Verbose
 	#	}
 	#}
-	Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"
-	Write-Output ">>> $Env:SM_HOST"
-	Write-Output ">>> $Env:SM_CLIENT_CERT_FILE"		
+	#Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"
+	#Write-Output ">>> $Env:SM_HOST"
+	#Write-Output ">>> $Env:SM_CLIENT_CERT_FILE"		
 	Write-Output ">>> Signing $file"
-	& $Env:SIGNTOOL_PATH\signtool.exe sign `
-		/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
-		/n "$Env:SIGNING_ID_NEW" `
-		/d "$Env:APP_NAME" `
-		/td SHA256 /fd sha256 `
-		/tr http://timestamp.digicert.com/sha256/timestamp `
-		/debug /v `
-		"$file"
+	#& $Env:SIGNTOOL_PATH\signtool.exe sign `
+	#	/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
+	#	/n "$Env:SIGNING_ID_NEW" `
+	#	/d "$Env:APP_NAME" `
+	#	/td SHA256 /fd sha256 `
+	#	/tr http://timestamp.digicert.com/sha256/timestamp `
+	#	/debug /v `
+	#	"$file"
 		
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
@@ -596,6 +639,9 @@ function main {
 	}
  elseif ($build_dlls) {
 		build_overlays
+	}
+ elseif ($build_installer_and_sign) {
+		build_installer_and_sign
 	}
  elseif ($check_upgrade) {
 		check_upgrade
