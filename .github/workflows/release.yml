@@ -3,8 +3,8 @@ name: Release
 
 on:
   # Generate an alpha every day
-  schedule:
-    - cron: "0 0 * * *"
+  #schedule:
+  #  - cron: "0 0 * * *"
 
   workflow_dispatch:
     inputs:
@@ -14,6 +14,10 @@ on:
         description: 'Set to "release" for a beta release.'
         required: false
         default: "alpha"
+      signExe:
+        description: 'Set to "true" to generate and sign the .exe on Windows.'
+        required: false
+        default: "false"
 
 env:
   GITHUB_USERNAME: "nuxeodrive"
@@ -230,7 +234,7 @@ jobs:
       
       - name: "[Windows] Generate and sign the .exe"
         timeout-minutes: 15
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-latest' && github.event.inputs.signExe == 'true'
         env:
           KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
           SIGNING_ID_NEW: "Hyland Software, Inc."
