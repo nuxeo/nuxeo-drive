@@ -523,49 +523,7 @@ function sign($file) {
 		$Env:APP_NAME = "Nuxeo Drive"
 		Write-Output ">>> APP_NAME is not set, using '$Env:APP_NAME'"
 	}
-	function build_installer_and_sign {
-		# Build the installer
-		$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""
 
-		# Build DDLs only on GitHub-CI, no need to loose time on the local dev machine
-		if ($Env:GITHUB_WORKSPACE) {
-			build_overlays
-		}
-
-		sign_dlls
-
-		Write-Output ">>> [$app_version] Freezing the application"
-		freeze_pyinstaller
-
-		# Do some clean-up
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\cleanup_application_tree.py "dist\ndrive"
-
-		# Remove compiled QML files
-		Get-ChildItem -Path "dist\ndrive" -Recurse -File -Include *.qmlc | Foreach ($_) { Remove-Item -Verbose $_.Fullname }
-
-		add_missing_ddls
-		sign "dist\ndrive\ndrive.exe"
-
-		# Stop now if we only want the application to be frozen (for integration tests)
-		if ($Env:FREEZE_ONLY) {
-			return 0
-		}
-
-		if ($Env:ZIP_NEEDED) {
-			zip_files "dist\nuxeo-drive-windows-$app_version.zip" "dist\ndrive"
-		}
-
-		if (-Not ($Env:SKIP_ADDONS)) {
-			build "$app_version" "tools\windows\setup-addons.iss"
-			sign "dist\nuxeo-drive-addons.exe"
-		}
-
-		build "$app_version" "tools\windows\setup.iss"
-		sign "dist\nuxeo-drive-$app_version.exe"
-
-		build "$app_version" "tools\windows\setup-admin.iss"
-		sign "dist\nuxeo-drive-$app_version-admin.exe"
-	}
 	#if ($Env:GITHUB_WORKSPACE) {
 	#	$cert = "certificate.pfx"
 	#	if (Test-Path $cert) {
@@ -600,7 +558,49 @@ function sign($file) {
 		ExitWithCode $lastExitCode
 	}
 }
+function build_installer_and_sign {
+	# Build the installer
+	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""
 
+	# Build DDLs only on GitHub-CI, no need to loose time on the local dev machine
+	if ($Env:GITHUB_WORKSPACE) {
+		build_overlays
+	}
+
+	sign_dlls
+
+	Write-Output ">>> [$app_version] Freezing the application"
+	freeze_pyinstaller
+
+	# Do some clean-up
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\cleanup_application_tree.py "dist\ndrive"
+
+	# Remove compiled QML files
+	Get-ChildItem -Path "dist\ndrive" -Recurse -File -Include *.qmlc | Foreach ($_) { Remove-Item -Verbose $_.Fullname }
+
+	add_missing_ddls
+	sign "dist\ndrive\ndrive.exe"
+
+	# Stop now if we only want the application to be frozen (for integration tests)
+	if ($Env:FREEZE_ONLY) {
+		return 0
+	}
+
+	if ($Env:ZIP_NEEDED) {
+		zip_files "dist\nuxeo-drive-windows-$app_version.zip" "dist\ndrive"
+	}
+
+	if (-Not ($Env:SKIP_ADDONS)) {
+		build "$app_version" "tools\windows\setup-addons.iss"
+		sign "dist\nuxeo-drive-addons.exe"
+	}
+
+	build "$app_version" "tools\windows\setup.iss"
+	sign "dist\nuxeo-drive-$app_version.exe"
+
+	build "$app_version" "tools\windows\setup-admin.iss"
+	sign "dist\nuxeo-drive-$app_version-admin.exe"
+}
 function sign_dlls {
 	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\dll"
 	Get-ChildItem $folder -Recurse -Include *.dll | Foreach-Object {
