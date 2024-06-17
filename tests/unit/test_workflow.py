@@ -105,20 +105,39 @@ def test_get_pending_task_for_multiple_doc(workflow, engine, task, remote):
     task1.id = "taskid_1"
     task2 = task
     task2.id = "taskid_2"
-    remote.user_id = "user_a"
+    remote.user_id = "user_b"
     engine.remote = remote
     engine.remote.tasks.get = Mock(return_value=[task1, task2])
     engine.send_task_notification = Mock()
     assert workflow.get_pending_tasks(engine) is None
-    assert Workflow.user_task_list == {"user_a": ["taskid_2", "taskid_2"]}
 
     # user_task_list[a_user] have [tasks_a, tasks_b] and got tasks[tasks_a, tasks_b].
     # In this case no need to the send notification
     assert workflow.get_pending_tasks(engine) is None
-    assert Workflow.user_task_list == {"user_a": ["taskid_2", "taskid_2"]}
 
 
-def test_remove_overdue_tasks(workflow, engine, task, remote):
+def test_update_user_task_data(workflow):
+    # Add new key if it doesn't exist in user_task_list
+    workflow.update_user_task_data([Task(id="taskid_test")], "user_a")
+    assert Workflow.user_task_list == {"user_a": ["taskid_test"]}
+
+    # Add taskid_a in user_task_list[user_a] and send notification for taskid_a
+    workflow.update_user_task_data(
+        [Task(id="taskid_test"), Task(id="taskid_a")], "user_a"
+    )
+    assert Workflow.user_task_list == {"user_a": ["taskid_test", "taskid_a"]}
+
+    # Remove taskid_a in user_task_list[user_a] and no notification in this case
+    assert workflow.update_user_task_data([Task(id="taskid_test")], "user_a") == []
+    assert Workflow.user_task_list == {"user_a": ["taskid_test"]}
+
+    assert workflow.update_user_task_data([], "user_a") == []
+
+    workflow.clean_user_task_data("user_a")
+    assert not Workflow.user_task_list
+
+
+def test_remove_overdue_tasks(workflow, engine, task):
     # No new task during an hour
     datetime_1_hr_ago = datetime.now(tz=timezone.utc) - timedelta(minutes=160)
     task.dueDate = datetime_1_hr_ago.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
@@ -191,3 +210,19 @@ def test_api_display_pending_task_with_exec(application, manager):
     assert (
         drive_api.display_pending_task("engine_uid", str(uuid4()), "/doc_path") is None
     )
+
+
+def test_clean_user_data_when_unbind_engine(manager, engine):
+    Workflow.user_task_list == {"user_a": ["dummy_taskid"]}
+    engine.unbind = Mock()
+    manager.dao = Mock()
+    manager.dropEngine = Mock()
+    manager.get_engines = Mock()
+    manager.db_backup_worker = False
+    Feature.tasks_management = True
+    engine.remote = Remote
+    engine.remote.user_id = "user_a"
+    manager.engines = {"user_a": engine}
+    manager.unbind_engine(manager, "user_a")
+
+    assert not Workflow.user_task_list
