@@ -535,18 +535,16 @@ function sign($file) {
 	#		Remove-Item -Path $cert -Verbose
 	#	}
 	#}
-	#Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"
-	#Write-Output ">>> $Env:SM_HOST"
-	#Write-Output ">>> $Env:SM_CLIENT_CERT_FILE"		
+	Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"	
 	Write-Output ">>> Signing $file"
-	#& $Env:SIGNTOOL_PATH\signtool.exe sign `
-	#	/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
-	#	/n "$Env:SIGNING_ID_NEW" `
-	#	/d "$Env:APP_NAME" `
-	#	/td SHA256 /fd sha256 `
-	#	/tr http://timestamp.digicert.com/sha256/timestamp `
-	#	/debug /v `
-	#	"$file"
+	& $Env:SIGNTOOL_PATH\signtool.exe sign `
+		/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
+		/n "$Env:SIGNING_ID_NEW" `
+		/d "$Env:APP_NAME" `
+		/td SHA256 /fd sha256 `
+		/tr http://timestamp.digicert.com/sha256/timestamp `
+		/debug /v `
+		"$file"
 		
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode

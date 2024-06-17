@@ -3,8 +3,8 @@ name: Release
 
 on:
   # Generate an alpha every day
-  #schedule:
-  #  - cron: "0 0 * * *"
+  schedule:
+    - cron: "0 0 * * *"
 
   workflow_dispatch:
     inputs:
@@ -15,7 +15,7 @@ on:
         required: false
         default: "alpha"
       signExe:
-        description: 'Set to "true" to generate and sign the .exe on Windows.'
+        description: 'Set to "true" to generate sign .exe on Windows.'
         required: false
         default: "false"
 
@@ -224,7 +224,6 @@ jobs:
         timeout-minutes: 15
         if: matrix.os == 'windows-latest'
         env:
-          KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
           NXDRIVE_TEST_NUXEO_URL: "https://drive-2023.beta.nuxeocloud.com/nuxeo"
           NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2023_TEST_USERNAME }}
           NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2023_TEST_PASSWORD }}
