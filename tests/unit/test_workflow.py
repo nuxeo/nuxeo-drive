@@ -17,10 +17,11 @@ from nxdrive.poll_workers import WorkflowWorker
 @pytest.fixture()
 def task():
     task = Task
-    task.id = str(uuid4())
+    task.id = "taskid_test"
     task.targetDocumentIds = [{"id": f"{uuid4()}"}]
-    datetime_30_min_ago = datetime.now(tz=timezone.utc) - timedelta(minutes=30)
-    task.created = datetime_30_min_ago.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+    datetime_30_min_ago = datetime.now(tz=timezone.utc) + timedelta(minutes=30)
+    task.dueDate = datetime_30_min_ago.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+    task.directive = ""
     return task
 
 
@@ -36,6 +37,12 @@ def remote():
 @pytest.fixture()
 def workflow(remote):
     return Workflow(remote)
+
+
+@pytest.fixture()
+def engine(engine, remote):
+    engine.remote = remote
+    return engine
 
 
 @pytest.fixture()
@@ -66,45 +73,77 @@ def workflow_worker(manager, application, workflow):
 
 
 def test_get_pending_task_for_no_doc(workflow, engine, remote):
-    # No response from api for pending task
-    remote.tasks.get = Mock(return_value=[])
+    # No response from api for pending task for user_a
+    assert Workflow.user_task_list == {}
+
+    remote.user_id = "user_a"
+    engine.remote = remote
+    engine.remote.tasks.get = Mock(return_value=[])
     assert workflow.get_pending_tasks(engine) is None
+
+    # If no tasks assigned to user remove the ID
+    Workflow.user_task_list = {"user_a": ["taskid_1"]}
+    engine.remote.tasks.get = Mock(return_value=[])
+    assert workflow.get_pending_tasks(engine) is None
+    assert Workflow.user_task_list == {}
 
 
 def test_get_pending_task_for_single_doc(workflow, engine, task, remote):
-    # Triggered through polling for single task
-    remote.tasks.get = Mock(return_value=[task])
+    # Triggered through polling for single task,
+    # Add new key if it doesn't exist in user_task_list
+    remote.user_id = "user_a"
+    engine.remote = remote
+    engine.remote.tasks.get = Mock(return_value=[task])
     workflow.fetch_document = Mock()
     assert workflow.get_pending_tasks(engine, False) is None
+    assert Workflow.user_task_list == {"user_a": ["taskid_test"]}
 
 
 def test_get_pending_task_for_multiple_doc(workflow, engine, task, remote):
     # Triggered through polling for multiple task
-    remote.tasks.get = Mock(return_value=[task, task])
+    task1 = task
+    task1.id = "taskid_1"
+    task2 = task
+    task2.id = "taskid_2"
+    remote.user_id = "user_a"
+    engine.remote = remote
+    engine.remote.tasks.get = Mock(return_value=[task1, task2])
     engine.send_task_notification = Mock()
     assert workflow.get_pending_tasks(engine, False) is None
+    assert Workflow.user_task_list == {"user_a": ["taskid_2", "taskid_2"]}
+
+    # user_task_list[a_user] have [tasks_a, tasks_b] and got tasks[tasks_a, tasks_b].
+    # In this case no need to the send notification
+    assert workflow.get_pending_tasks(engine, False) is None
+    assert Workflow.user_task_list == {"user_a": ["taskid_2", "taskid_2"]}
 
 
-def test_filtered_task(workflow, engine, task, remote):
+def test_remove_overdue_tasks(workflow, engine, task, remote):
     # No new task during an hour
-    datetime_30_min_ago = datetime.now(tz=timezone.utc) - timedelta(minutes=160)
-    task.created = datetime_30_min_ago.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
-    remote.tasks.get = Mock(return_value=[task])
+    datetime_1_hr_ago = datetime.now(tz=timezone.utc) - timedelta(minutes=160)
+    task.dueDate = datetime_1_hr_ago.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+    engine.remote.tasks.get = Mock(return_value=[task])
     engine.send_task_notification = Mock()
     assert workflow.get_pending_tasks(engine, False) is None
 
     # raise exception
-    task.created = None
+    task.dueDate = None
     assert workflow.get_pending_tasks(engine, False) is None
 
 
-def test_fetch_document(workflow, engine, task, remote):
-    remote.documents.get = Mock(path="/doc_path/doc.txt")
+def test_fetch_document(workflow, engine, task):
+    engine.remote.documents.get = Mock(path="/doc_path/doc.txt")
     engine.send_task_notification = Mock()
     workflow.fetch_document([task], engine)
 
     # No response from remote.documents.get
-    remote.documents.get = Mock(return_value=None)
+    engine.remote.documents.get = Mock(return_value=None)
+    workflow.fetch_document([task], engine)
+
+    # send notification for directive
+    task.directive = "chooseParticipants"
+    engine.remote.documents.get = Mock(path="/doc_path/doc.txt")
+    engine.send_task_notification = Mock()
     workflow.fetch_document([task], engine)
 
 

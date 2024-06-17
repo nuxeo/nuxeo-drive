@@ -207,7 +207,18 @@ def test_send_task_notification(manager_factory):
     manager, engine = manager_factory()
     Translator(find_resource("i18n"), lang="en")
     with manager:
-        assert engine.send_task_notification(str(uuid4()), "/doc_path/test.txt") is None
+        assert (
+            engine.send_task_notification(
+                str(uuid4()), "/doc_path/test.txt", "Review Document"
+            )
+            is None
+        )
+        assert (
+            engine.send_task_notification(
+                str(uuid4()), "/doc_path/test.txt", "Choose Participants"
+            )
+            is None
+        )
 
 
 def test_get_task_url(manager_factory, nuxeo_url):
