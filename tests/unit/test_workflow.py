@@ -95,7 +95,7 @@ def test_get_pending_task_for_single_doc(workflow, engine, task, remote):
     engine.remote = remote
     engine.remote.tasks.get = Mock(return_value=[task])
     workflow.fetch_document = Mock()
-    assert workflow.get_pending_tasks(engine, False) is None
+    assert workflow.get_pending_tasks(engine) is None
     assert Workflow.user_task_list == {"user_a": ["taskid_test"]}
 
 
@@ -109,12 +109,12 @@ def test_get_pending_task_for_multiple_doc(workflow, engine, task, remote):
     engine.remote = remote
     engine.remote.tasks.get = Mock(return_value=[task1, task2])
     engine.send_task_notification = Mock()
-    assert workflow.get_pending_tasks(engine, False) is None
+    assert workflow.get_pending_tasks(engine) is None
     assert Workflow.user_task_list == {"user_a": ["taskid_2", "taskid_2"]}
 
     # user_task_list[a_user] have [tasks_a, tasks_b] and got tasks[tasks_a, tasks_b].
     # In this case no need to the send notification
-    assert workflow.get_pending_tasks(engine, False) is None
+    assert workflow.get_pending_tasks(engine) is None
     assert Workflow.user_task_list == {"user_a": ["taskid_2", "taskid_2"]}
 
 
@@ -124,11 +124,11 @@ def test_remove_overdue_tasks(workflow, engine, task, remote):
     task.dueDate = datetime_1_hr_ago.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
     engine.remote.tasks.get = Mock(return_value=[task])
     engine.send_task_notification = Mock()
-    assert workflow.get_pending_tasks(engine, False) is None
+    assert workflow.get_pending_tasks(engine) is None
 
     # raise exception
     task.dueDate = None
-    assert workflow.get_pending_tasks(engine, False) is None
+    assert workflow.get_pending_tasks(engine) is None
 
 
 def test_fetch_document(workflow, engine, task):

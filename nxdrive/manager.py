@@ -944,7 +944,7 @@ class Manager(QObject):
             return
 
         if Feature.tasks_management:
-            # Clean user tasks data incase we are unbinding the account.
+            # Clean user tasks data in case we are unbinding the account.
             self.workflow = Workflow(engine.remote)
             self.workflow.clean_user_task_data(engine.remote.user_id)
 

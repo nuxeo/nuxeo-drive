@@ -14,7 +14,7 @@ log = getLogger(__name__)
 class Workflow:
     """Workflow Management for document Review"""
 
-    user_task_list = {}
+    user_task_list: Dict[str, List[str]] = {}
 
     def __init__(self, remote: "Remote") -> None:
         self.remote = remote
