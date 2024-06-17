@@ -3,8 +3,8 @@ name: Release
 
 on:
   # Generate an alpha every day
-  schedule:
-    - cron: "0 0 * * *"
+  #schedule:
+  #  - cron: "0 0 * * *"
 
   workflow_dispatch:
     inputs:
