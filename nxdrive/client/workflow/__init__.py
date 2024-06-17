@@ -71,7 +71,7 @@ class Workflow:
         # If no new tasks added or removed
         return []
 
-    def get_pending_tasks(self, engine: Engine, initial_run: bool = True) -> List[Task]:  # type: ignore
+    def get_pending_tasks(self, engine: Engine) -> List[Task]:  # type: ignore
         """Get Tasks for document review"""
         try:
             options = {"userId": engine.remote.user_id}
