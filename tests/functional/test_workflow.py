@@ -114,6 +114,6 @@ def test_refresh_list(manager_factory, workflow, application):
         assert worker_._poll()
 
     worker_.app.last_engine_uid = engine.uid
-    worker_.app.api.engine_changed = True
+    worker_.app.api.engine_changed = False
     with patch.object(worker_.app.api, "get_Tasks_list", new=get_Tasks_list_):
         assert worker_._poll()

@@ -70,3 +70,9 @@ def test_tasksModel():
     assert isinstance(tasks_model, TasksModel)
     assert tasks_model.model
     assert tasks_model.self_model
+
+    dummy_task_list = [dummy_task, dummy_task1]
+    assert not tasks_model.loadList(dummy_task_list, "Administrator")
+
+    dummy_task_list = [dummy_task1, dummy_task2]
+    assert not tasks_model.loadList(dummy_task_list, "Administrator")
