@@ -57,12 +57,14 @@ class Workflow:
         # Determine new tasks added for the user
         new_task_ids = set(task_ids).difference(existing_task_ids)
         if new_task_ids:
+            print("add new")
             self.user_task_list[userId] = task_ids
             return [task for task in tasks if task.id in new_task_ids]
 
         # Determine old/completed tasks to be removed
         old_task_ids = existing_task_ids.difference(task_ids)
         if old_task_ids:
+            print("remove")
             self.user_task_list[userId] = [
                 id for id in existing_task_ids if id not in old_task_ids
             ]

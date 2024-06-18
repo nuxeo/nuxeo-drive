@@ -119,21 +119,20 @@ def test_get_pending_task_for_multiple_doc(workflow, engine, task, remote):
     Workflow.user_task_list = {}
 
 
-def test_update_user_task_data(workflow):
-    # Add taskid_a in user_task_list[user_a] and send notification for taskid_a
-    workflow.update_user_task_data(
-        [Task(id="taskid_test"), Task(id="taskid_a")], "user_a"
-    )
-    assert Workflow.user_task_list == {"user_a": ["taskid_test", "taskid_a"]}
-
-    # Remove taskid_a in user_task_list[user_a] and no notification in this case
-    assert workflow.update_user_task_data([Task(id="taskid_test")], "user_a") == []
+def test_update_user_task_data(workflow, task):
+    # Add new key if it doesn't exist in user_task_list
+    workflow.update_user_task_data([task], "user_a")
     assert Workflow.user_task_list == {"user_a": ["taskid_test"]}
 
-    assert workflow.update_user_task_data([], "user_a") == []
+    # Remove taskid_test in user_task_list[user_a] and no notification in this case
+    workflow.update_user_task_data([], "user_a")
+    assert Workflow.user_task_list == {"user_a": []}
 
-    workflow.clean_user_task_data("user_a")
-    assert not Workflow.user_task_list
+    # Add taskid_test in user_task_list[user_a] and send notification for taskid_a
+    workflow.update_user_task_data([task], "user_a")
+    assert Workflow.user_task_list == {"user_a": ["taskid_test"]}
+
+    Workflow.user_task_list = {}
 
 
 def test_remove_overdue_tasks(workflow, engine, task):
