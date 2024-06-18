@@ -113,7 +113,8 @@ jobs:
         env:
           MACOSX_DEPLOYMENT_TARGET: "11.3"
           SYSTEM_VERSION_COMPAT: 0
-          PIP_CONFIG_FILE: ${{ github.ref == 'refs/heads/master' && 'tools/posix/pip.conf' || 'tools/posix/pip.conf' }}
+          #PIP_CONFIG_FILE: ${{ github.ref == 'refs/heads/master' && 'tools/posix/pip.conf' || 'tools/posix/pip.conf' }}
+          PIP_INDEX_URL: ${{ github.ref == 'refs/heads/master' && 'https://packages.nuxeo.com/repository/pypi-nuxeopublic/simple' || 'https://packages.nuxeo.com/repository/pypi-nuxeopublic/simple' }}
         run: bash tools/osx/deploy_ci_agent.sh --install-release
 
       - name: "[macOS] Generate the .dmg and validate against 2021"
