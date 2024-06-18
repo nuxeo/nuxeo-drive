@@ -49,6 +49,7 @@ FILES: Tuple[str] = (
     "PyQt*/Qt/qml/QtQuick/Controls.2/designer",
     "PyQt*/Qt/qml/QtQuick/Extras/designer",
     "PyQt*/Qt/qml/QtQuick/Particles.2",
+    "PyQt*/Qt/qml/QtQuick/Particles__dot__2",
     "PyQt*/Qt/qml/QtQuick/Scene*",
     "PyQt*/Qt/qml/QtRemoteObjects",
     "PyQt*/Qt/qml/QtSensors",
@@ -123,7 +124,9 @@ def main(args: List[str]) -> int:
     for folder in args:
         print(f">>> [{folder}] Purging unneeded files")
         for file in find_useless_files(Path(folder)):
-            if file.is_dir():
+            if file.is_symlink():
+                os.unlink(file)
+            elif file.is_dir():
                 shutil.rmtree(file)
             else:
                 os.remove(file)

@@ -2,37 +2,37 @@
 # Modules needed by the application.
 # This file is used to build fresh binaries.
 #
-altgraph==0.17 \
-    --hash=sha256:c623e5f3408ca61d4016f23a681b9adb100802ca3e3da5e718915a9e4052cebe \
-    --hash=sha256:1f05a47122542f97028caf78775a095fbe6a2699b5089de8477eb583167d69aa
+altgraph==0.17.4 \
+    --hash=sha256:1b5afbb98f6c4dcadb2e2ae6ab9fa994bbb8c1d75f4fa96d340f9437ae454406 \
+    --hash=sha256:642743b4750de17e655e6711601b077bc6598dbfa3ba5fa2b2a35ce12b508dff
     # via pyinstaller
 future==0.18.3; sys_platform == "win32" \
     --hash=sha256:34a17436ed1e96697a86f9de3d15a3b0be01d8bc8de9c1dffd59fb8234ed5307
     # via pefile
-macholib==1.14 ; sys_platform == "darwin" \
-    --hash=sha256:c500f02867515e6c60a27875b408920d18332ddf96b4035ef03beddd782d4281 \
-    --hash=sha256:0c436bc847e7b1d9bda0560351bf76d7caf930fb585a828d13608839ef42c432
+macholib==1.16.3 ; sys_platform == "darwin" \
+    --hash=sha256:07ae9e15e8e4cd9a788013d81f5908b3609aa76f9b1421bae9c4d7606ec86a30 \
+    --hash=sha256:0e315d7583d38b8c77e815b1ecbdbf504a8258d8b3e17b61165c6feb60d18f2c
     # via pyinstaller
 pefile==2023.2.7 ; sys_platform == "win32" \
     --hash=sha256:82e6114004b3d6911c77c3953e3838654b04511b8b66e8583db70c65998017dc \
     --hash=sha256:da185cd2af68c08a6cd4481f7325ed600a88f6a813bad9dea07ab3ef73d8d8d6
     # via pyinstaller
-pyinstaller==5.13.2 \
-    --hash=sha256:16cbd66b59a37f4ee59373a003608d15df180a0d9eb1a29ff3bfbfae64b23d0f \
-    --hash=sha256:27cd64e7cc6b74c5b1066cbf47d75f940b71356166031deb9778a2579bb874c6 \
-    --hash=sha256:2c2fe9c52cb4577a3ac39626b84cf16cf30c2792f785502661286184f162ae0d \
-    --hash=sha256:421cd24f26144f19b66d3868b49ed673176765f92fa9f7914cd2158d25b6d17e \
-    --hash=sha256:65133ed89467edb2862036b35d7c5ebd381670412e1e4361215e289c786dd4e6 \
-    --hash=sha256:7d51734423685ab2a4324ab2981d9781b203dcae42839161a9ee98bfeaabdade \
-    --hash=sha256:8f6dd0e797ae7efdd79226f78f35eb6a4981db16c13325e962a83395c0ec7420 \
-    --hash=sha256:aadafb6f213549a5906829bb252e586e2cf72a7fbdb5731810695e6516f0ab30 \
-    --hash=sha256:b2e1c7f5cceb5e9800927ddd51acf9cc78fbaa9e79e822c48b0ee52d9ce3c892 \
-    --hash=sha256:c63ef6133eefe36c4b2f4daf4cfea3d6412ece2ca218f77aaf967e52a95ac9b8 \
-    --hash=sha256:c8e5d3489c3a7cc5f8401c2d1f48a70e588f9967e391c3b06ddac1f685f8d5d2 \
-    --hash=sha256:ddcc2b36052a70052479a9e5da1af067b4496f43686ca3cdda99f8367d0627e4
-pyinstaller-hooks-contrib==2023.8 \
-    --hash=sha256:318ccc316fb2b8c0bbdff2456b444bf1ce0e94cb3948a0f4dd48f6fc33d41c01 \
-    --hash=sha256:d091a52fbeed71cde0359aa9ad66288521a8441cfba163d9446606c5136c72a8
+pyinstaller==6.3.0 \
+    --hash=sha256:0597fb04337695e5cc5250253e0655530bf14f264b7a5b7d219cc65f6889c4bd \
+    --hash=sha256:156b32ba943e0090bcc68e40ae1cb68fd92b7f1ab6fe0bdf8faf3d3cfc4e12dd \
+    --hash=sha256:1eadbd1fae84e2e6c678d8b4ed6a232ec5c8fe3a839aea5a3071c4c0282f98cc \
+    --hash=sha256:41c937fe8f07ae02009b3b5a96ac3eb0800a4f8a97af142d4100060fe2135bb9 \
+    --hash=sha256:75a6f2a6f835a2e6e0899d10e60c10caf5defd25aced38b1dd48fbbabc89de07 \
+    --hash=sha256:886b3b995b674905a20ad5b720b47cc395897d7b391117831027a4c8c5d67a58 \
+    --hash=sha256:914d4c96cc99472e37ac552fdd82fbbe09e67bb592d0717fcffaa99ea74273df \
+    --hash=sha256:96c37a1ee5b2fd5bb25c098ef510661d6d17b6515d0b86d8fc93727dd2475ba3 \
+    --hash=sha256:abe91106a3bbccc3f3a27af4325676ecdb6f46cb842ac663625002a870fc503b \
+    --hash=sha256:b721d793a33b6d9946c7dd95d3ea7589c0424b51cf1b9fe580f03c544f1336b2 \
+    --hash=sha256:de25beb176f73a944758553caacec46cc665bf3910ad8a174706d79cf6e95340 \
+    --hash=sha256:e436fcc0ea87c3f132baac916d508c24c84a8f6d8a06c3154fbc753f169b76c7
+pyinstaller-hooks-contrib==2023.12 \
+    --hash=sha256:11a9d59d903723dd693e8c10b054f3ea1ecad390623c9fa527c731d715fc5b3f \
+    --hash=sha256:6a601a0d783fa725327fc6ac712779475dc8979f639419c7fcd460dd8d0a6d2a
     # via pyinstaller
 pywin32-ctypes==0.2.2 ; sys_platform == "win32" \
     --hash=sha256:3426e063bdd5fd4df74a14fa3cf80a0b42845a87e1d1e81f6549f9daec593a60 \

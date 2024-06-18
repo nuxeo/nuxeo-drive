@@ -241,6 +241,7 @@ def check_os_version() -> bool:
     """Check that the current OS version is supported."""
 
     if MAC:
+        # from distutils.version import StrictVersion
         from platform import mac_ver
 
         from packaging.version import parse

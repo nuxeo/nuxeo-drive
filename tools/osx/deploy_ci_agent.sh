@@ -114,6 +114,8 @@ create_package() {
         # yet. But the find command will eventually reach it and sign it later.
         find "${pkg_path}/Contents/MacOS" -type f -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
 
+        find "${pkg_path}/Contents/Frameworks" -type f -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+
         # QML libraries need to be signed too for the notarization
         find "${pkg_path}/Contents/Resources" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
 
@@ -129,8 +131,15 @@ create_package() {
 
         echo ">>> [sign] Verifying code signature"
         codesign --display --verbose "${pkg_path}"
+        echo ">>> [sign] Verifying code signature1"
+        codesign --verbose=4 --deep --strict "${pkg_path}/Contents/Frameworks/PyQt5"
+        echo ">>> [sign] Verifying framework PyQt5"
+        #codesign --verbose=4 --deep --strict "${pkg_path}/Contents/Frameworks/PyQt5/Qt/qml/QtQml"
+        #echo ">>> [sign] Verifying framework QtQml done"
         codesign --verbose=4 --deep --strict "${pkg_path}"
+        echo ">>> [sign] Verifying code signature2"
         spctl --assess --verbose "${pkg_path}"
+        echo ">>> [sign] Verifying code signature3"
     fi
 
     echo ">>> [package] Creating the DMG file"

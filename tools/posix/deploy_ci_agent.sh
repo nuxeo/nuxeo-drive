@@ -35,10 +35,16 @@ build_installer() {
     local version
 
     echo ">>> Building the release package"
-    ${PYTHON_VENV} -m PyInstaller ndrive.spec --clean --noconfirm
+    ${PYTHON_VENV} -m PyInstaller ndrive.spec --clean --noconfirm #--onedir #--log-level=DEBUG
 
-    # Do some clean-up
+    # Do some clean-up for parent directory
     ${PYTHON_VENV} tools/cleanup_application_tree.py dist/ndrive
+
+    # Do some clean-up for _internal directory
+    ${PYTHON_VENV} tools/cleanup_application_tree.py dist/ndrive/_internal
+
+    # Remove compiled QML symlinks
+    find dist -depth -type l  -name "*.qmlc" -delete
 
     # Remove compiled QML files
     find dist -depth -type f -name "*.qmlc" -delete
@@ -48,6 +54,7 @@ build_installer() {
 
     if [ "${OSI}" = "osx" ]; then
         ${PYTHON_VENV} tools/cleanup_application_tree.py dist/*.app/Contents/Resources
+        ${PYTHON_VENV} tools/cleanup_application_tree.py dist/*.app/Contents/Frameworks
         ${PYTHON_VENV} tools/cleanup_application_tree.py dist/*.app/Contents/MacOS
 
         # Move problematic folders out of Contents/MacOS

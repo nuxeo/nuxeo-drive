@@ -68,7 +68,7 @@ def find_problematic_folders(folder: Path) -> Generator[Path, None, None]:
         if not path.is_dir() or path.is_symlink():
             # Skip simlinks as they are allowed (even with a dot)
             continue
-        if "qml" == path.name:
+        if "qml" == path.name:  # or "lib" == path.name:
             yield path
         else:
             yield from find_problematic_folders(path)
@@ -97,6 +97,22 @@ def move_contents_to_resources(folder: Path) -> Generator[Path, None, None]:
                 yield sibling
 
 
+def remove_pyqt_folder_from_resource(folder: Path) -> None:
+    """Remove PyQT5 folder."""
+    shutil.rmtree(folder / "Contents" / "Resources" / "PyQt5")
+    shutil.rmtree(folder / "Contents" / "Frameworks" / "PyQt5")
+    shutil.copytree(
+        (folder.parent / "ndrive" / "_internal" / "PyQt5"),
+        (folder / "Contents" / "Frameworks" / "PyQt5"),
+    )
+
+    # Remove unnesecceary symlinks from Resource folder
+    # res_folder = folder / "Contents" / "Resources"
+    """for path in res_folder.iterdir():
+        if path.is_symlink():
+            os.unlink(path)"""
+
+
 def main(args: List[str]) -> int:
     """
     Fix the application to allow codesign (NXDRIVE-1301).
@@ -109,6 +125,7 @@ def main(args: List[str]) -> int:
     """
     for app in args:
         name = os.path.basename(app)
+        # remove_pyqt_folder_from_resource(Path(app))
         print(f">>> [{name}] Fixing Qt folder names")
         path = Path(app) / "Contents" / "MacOS"
         for folder in find_problematic_folders(path):
