@@ -543,7 +543,7 @@ function sign($file) {
 		/d "$Env:APP_NAME" `
 		/td SHA256 /fd sha256 `
 		/tr http://timestamp.digicert.com/sha256/timestamp `
-		/debug /v `
+		/v `
 		"$file"
 		
 	if ($lastExitCode -ne 0) {
