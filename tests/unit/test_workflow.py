@@ -85,7 +85,7 @@ def test_get_pending_task_for_no_doc(workflow, engine, remote):
     Workflow.user_task_list = {"user_a": ["taskid_1"]}
     engine.remote.tasks.get = Mock(return_value=[])
     assert workflow.get_pending_tasks(engine) is None
-    assert Workflow.user_task_list == {}
+    assert not Workflow.user_task_list
 
 
 def test_get_pending_task_for_single_doc(workflow, engine, task, remote):
@@ -97,6 +97,7 @@ def test_get_pending_task_for_single_doc(workflow, engine, task, remote):
     workflow.fetch_document = Mock()
     assert workflow.get_pending_tasks(engine) is None
     assert Workflow.user_task_list == {"user_a": ["taskid_test"]}
+    Workflow.user_task_list = {}
 
 
 def test_get_pending_task_for_multiple_doc(workflow, engine, task, remote):
@@ -115,12 +116,10 @@ def test_get_pending_task_for_multiple_doc(workflow, engine, task, remote):
     # In this case no need to the send notification
     assert workflow.get_pending_tasks(engine) is None
 
+    Workflow.user_task_list = {}
+
 
 def test_update_user_task_data(workflow):
-    # Add new key if it doesn't exist in user_task_list
-    workflow.update_user_task_data([Task(id="taskid_test")], "user_a")
-    assert Workflow.user_task_list == {"user_a": ["taskid_test"]}
-
     # Add taskid_a in user_task_list[user_a] and send notification for taskid_a
     workflow.update_user_task_data(
         [Task(id="taskid_test"), Task(id="taskid_a")], "user_a"
@@ -155,14 +154,12 @@ def test_fetch_document(workflow, engine, task):
     engine.send_task_notification = Mock()
     workflow.fetch_document([task], engine)
 
-    # No response from remote.documents.get
-    engine.remote.documents.get = Mock(return_value=None)
-    workflow.fetch_document([task], engine)
-
     # send notification for directive
     task.directive = "chooseParticipants"
-    engine.remote.documents.get = Mock(path="/doc_path/doc.txt")
-    engine.send_task_notification = Mock()
+    workflow.fetch_document([task], engine)
+
+    # No response from remote.documents.get
+    engine.remote.documents.get = Mock(return_value=None)
     workflow.fetch_document([task], engine)
 
 
