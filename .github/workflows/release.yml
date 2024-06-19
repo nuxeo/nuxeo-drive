@@ -1,8 +1,7 @@
-# Generate a new release (alpha or beta)
 name: Release
 
 on:
-  # Generate an alpha every day
+  # Generate an alpha every day if there are changes in the master branch
   schedule:
     - cron: "0 0 * * *"
 
@@ -15,7 +14,7 @@ on:
         required: false
         default: "alpha"
       signExe:
-        description: 'Set to "true" to generate sign .exe on Windows.'
+        description: 'Set to "true" to generate and sign .exe on Windows.'
         required: false
         default: "false"
 
@@ -34,26 +33,54 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.branch }}
+
+      - name: Fetch all history for all branches and tags
+        run: git fetch --unshallow --tags --prune --recurse-submodules=on-demand --quiet
+
+      - name: Get the latest commit SHA on master branch
+        id: latest_commit
+        run: echo "::set-output name=sha::$(git rev-parse origin/master)"
+
+      - name: Get the last successful commit SHA
+        id: last_successful_commit
+        run: |
+          last_successful_commit=$(gh run list --branch master --workflow Release --json headSha -q '.[0].headSha')
+          echo "::set-output name=sha::${last_successful_commit}"
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if [ "${{ steps.latest_commit.outputs.sha }}" == "${{ steps.last_successful_commit.outputs.sha }}" ]; then
+            echo "No changes in master branch since last successful run."
+            echo "::set-output name=changes::false"
+          else
+            echo "Changes detected in master branch."
+            echo "::set-output name=changes::true"
+          fi
+
+      - name: Proceed if there are changes
+        if: steps.check_changes.outputs.changes == 'true'
+        run: echo "Proceeding with the release job."
 
       #
       # Global
       #
 
       - name: Install SSH key
+        if: steps.check_changes.outputs.changes == 'true'
         uses: shimataro/ssh-key-action@v2
         with:
           key: ${{ secrets.SSH_PRIV_KEY }}
           known_hosts: ${{ secrets.SSH_KNOWN_HOST_DEPLOY }}
 
       - name: Setup git
-        if: github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == ''
+        if: steps.check_changes.outputs.changes == 'true' && (github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == '')
         run: |
           git config user.email ${{ env.GITHUB_EMAILID }}
           git config user.name ${{ env.GITHUB_USERNAME }}
+          
       - name: Bump the version number
-        if: github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == ''
+        if: steps.check_changes.outputs.changes == 'true' && (github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == '')
         run: |
           git fetch --unshallow --tags
           bash tools/bump-alpha-version.sh || exit 1
@@ -63,11 +90,11 @@ jobs:
       #
 
       - name: "[GNU/Linux] Install AppImage checkers"
-        if: matrix.os == 'ubuntu-latest'
+        if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'ubuntu-latest'
         run: sudo apt install --yes appstream desktop-file-utils
 
       - name: "[GNU/Linux] Login to the docker registry"
-        if: matrix.os == 'ubuntu-latest'
+        if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'ubuntu-latest'
         uses: docker/login-action@v3.0.0
         with:
           registry: "docker-private.packages.nuxeo.com"
@@ -75,20 +102,20 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: "[GNU/Linux] Set appropriate volume folders"
-        if: matrix.os == 'ubuntu-latest'
+        if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'ubuntu-latest'
         run: |
           mkdir build dist venv
           chmod 777 build dist venv
 
       - name: "[GNU/Linux] Generate the .AppImage"
-        if: matrix.os == 'ubuntu-latest'
+        if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'ubuntu-latest'
         env:
           REGISTRY: "docker-private.packages.nuxeo.com"
           REPOSITORY: "nuxeo-drive-build"
         run: docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.9.5" # XXX_PYTHON
 
       - name: "[GNU/Linux] Ensure the AppImage is correct"
-        if: matrix.os == 'ubuntu-latest'
+        if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'ubuntu-latest'
         run: bash tools/linux/deploy_ci_agent.sh --check
 
       #
@@ -96,29 +123,29 @@ jobs:
       #
 
       - name: "[macOS] Setup certificates"
-        if: matrix.os == 'macos-latest'
+        if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'macos-latest'
         run: |
           wget https://www.apple.com/appleca/AppleIncRootCertificate.cer
           echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.cer
           echo "${{ secrets.PRIV_APP_MACOS }}" | base64 --decode > nuxeo-drive.priv
 
       #- name: "[macOS] Downloading Python"
-      #  if: matrix.os == 'macos-latest'
+      #  if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'macos-latest'
       #  run: curl https://www.python.org/ftp/python/3.9.5/python-3.9.5-macosx10.9.pkg -o "python.pkg" # XXX_PYTHON
 
       #- name: "[macOS] Install Python"
-      #  if: matrix.os == 'macos-latest'
+      #  if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'macos-latest'
       #  run: sudo installer -pkg python.pkg -target /
 
       - name: "[macOS] Setup the environment"
-        if: matrix.os == 'macos-latest'
+        if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'macos-latest'
         env:
           MACOSX_DEPLOYMENT_TARGET: "11.3"
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --install-release
 
       - name: "[macOS] Generate the .dmg and validate against 2021"
-        if: matrix.os == 'macos-latest'
+        if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'macos-latest'
         timeout-minutes: 20
         env:
           NXDRIVE_TEST_NUXEO_URL: "https://drive-2021.beta.nuxeocloud.com/nuxeo"
@@ -134,7 +161,7 @@ jobs:
         run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
 
       - name: "[macOS] Generate the .dmg and validate against 2023"
-        if: matrix.os == 'macos-latest'
+        if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'macos-latest'
         timeout-minutes: 20
         env:
           NXDRIVE_TEST_NUXEO_URL: "https://drive-2023.beta.nuxeocloud.com/nuxeo"
@@ -154,22 +181,22 @@ jobs:
       # Windows
       #
       - name: "[Windows] Unlock PowerShell"
-        if: matrix.os == 'windows-latest'
+        if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'windows-latest'
         run: powershell Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
 
       - name: "[Windows] Setup the environment"
-        if: matrix.os == 'windows-latest'
+        if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'windows-latest'
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
 
       - name: Setup Certificate
-        if: matrix.os == 'windows-latest'
+        if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'windows-latest'
         run: |
            echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
            cat  /d/Certificate_pkcs12.p12
         shell: bash  
         
       - name: Set variables
-        if: matrix.os == 'windows-latest'
+        if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'windows-latest'
         id: variables
         run: |
           dir
@@ -188,7 +215,7 @@ jobs:
         shell: bash
       
       - name: Setup Keylocker KSP on windows 
-        if: matrix.os == 'windows-latest'
+        if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'windows-latest'
         run: | 
           curl -X GET  https://one.digicert.com/signingmanager/api-ui/v1/releases/Keylockertools-windows-x64.msi/download -H "x-api-key:%SM_API_KEY%" -o Keylockertools-windows-x64.msi 
           msiexec /i Keylockertools-windows-x64.msi /quiet /qn
@@ -198,13 +225,13 @@ jobs:
         shell: cmd   
       
       - name: Certificates Sync
-        if: matrix.os == 'windows-latest'      
+        if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'windows-latest'      
         run: |
            smctl windows certsync --keypair-alias=${{ secrets.SM_KEYPAIR_ALIAS }}
         shell: cmd
       
       - name: Health status
-        if: matrix.os == 'windows-latest' 
+        if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'windows-latest' 
         run: |
            smctl healthcheck
         shell: cmd
@@ -212,7 +239,7 @@ jobs:
 
       - name: "[Windows] Generate the .exe and validate against 2021"
         timeout-minutes: 15
-        if: matrix.os == 'windows-latest'
+        if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'windows-latest'
         env:
           KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
           NXDRIVE_TEST_NUXEO_URL: "https://drive-2021.beta.nuxeocloud.com/nuxeo"
@@ -222,7 +249,7 @@ jobs:
 
       - name: "[Windows] Generate the .exe and validate against 2023"
         timeout-minutes: 15
-        if: matrix.os == 'windows-latest'
+        if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'windows-latest'
         env:
           NXDRIVE_TEST_NUXEO_URL: "https://drive-2023.beta.nuxeocloud.com/nuxeo"
           NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2023_TEST_USERNAME }}
@@ -233,7 +260,7 @@ jobs:
       
       - name: "[Windows] Generate and sign the .exe"
         timeout-minutes: 15
-        if: matrix.os == 'windows-latest' && github.event.inputs.signExe == 'true'
+        if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'windows-latest' && github.event.inputs.signExe == 'true'
         env:
           KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
           SIGNING_ID_NEW: "Hyland Software, Inc."
@@ -241,6 +268,7 @@ jobs:
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -build_installer_and_sign
    
       - name: "Upload artifacts"
+        if: steps.check_changes.outputs.changes == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: package-distributions-${{ matrix.os }}
@@ -257,8 +285,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.branch }}
 
       - name: Extract branch name
         shell: bash
@@ -280,6 +306,7 @@ jobs:
           name: id_rsa-target
           known_hosts: ${{ secrets.KNOWN_HOSTS_OF_TARGET }}
           config: ${{ secrets.CONFIG }}
+          
       - name: Setup git
         run: |
           git config user.email ${{ env.GITHUB_EMAILID }}
@@ -307,7 +334,7 @@ jobs:
           bash tools/bump-alpha-version.sh || true
 
       - name: Do the release
-        if: steps.extract_branch.outputs.branch == 'master'
+        if: steps.extract_branch.outputs.branch == 'master' && steps.check_changes.outputs.changes == 'true'
         run: |
           release_type="${{ github.event.inputs.releaseType }}"
           if [ "${release_type}" = "" ]; then
