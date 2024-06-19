@@ -534,7 +534,7 @@ class DisplayPendingTask(Notification):
         description = (
             "PENDING_DOCUMENT_REVIEWS"
             if notification_title == "Review Document"
-            else "CHOOSE_PARTICIPANTS"
+            else "CHOOSE_PARTICIPANTS_SYS"
         )
         super().__init__(
             uid=description,
