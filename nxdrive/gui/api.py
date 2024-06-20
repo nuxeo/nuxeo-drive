@@ -93,9 +93,6 @@ class QMLDriveApi(QObject):
         # Avoid to fail on non serializable object
         return json.dumps(obj, default=self._json_default)
 
-    def _get_engine(self, engine_uid: str, /) -> Engine:
-        return self._manager.engines.get(engine_uid)
-
     def _export_formatted_state(
         self, uid: str, /, *, state: DocPair = None
     ) -> Dict[str, Any]:
@@ -245,29 +242,6 @@ class QMLDriveApi(QObject):
             )
         return 0
 
-    @pyqtSlot(str, str, result=str)
-    def get_text(self, details: str, ret: str, /) -> str:
-        details = details.replace("\\", "")
-        details = details.replace("'", '"')
-        try:
-            details = json.loads(details)
-            return details.get(ret)
-        except Exception as e:
-            return ""
-
-    @pyqtSlot(str, result=bool)
-    def text_red(self, text: str, /) -> bool:
-        return "ago" in text
-
-    @pyqtSlot(str)
-    def open_tasks_window(self, uid: str, /) -> None:
-        self.application.hide_systray()
-        self.application.show_tasks_window(uid)
-
-    @pyqtSlot()
-    def close_tasks_window(self, /) -> None:
-        self.application.close_tasks_window()
-
     @pyqtSlot(str, str, int, float, bool)
     def pause_transfer(
         self,
@@ -337,7 +311,6 @@ class QMLDriveApi(QObject):
         engine = self._get_engine(uid)
         if engine:
             path = engine.local.abspath(Path(ref))
-            self.fetch_pending_tasks(engine)
             self.application.show_metadata(path)
 
     @pyqtSlot(str, result=list)
@@ -491,80 +464,6 @@ class QMLDriveApi(QObject):
         log.info(f"Show settings on section {section}")
         self.application.show_settings(section)
 
-    @pyqtSlot(str, result=int)
-    def tasks_remaining(self, uid: str, /) -> int:
-        """Return pending tasks count for Drive notification."""
-        engine = self._get_engine(uid)
-        if engine:
-            tasks = self._fetch_tasks(engine)
-            return len(tasks)
-        log.info("Engine not available")
-        return 0
-
-    @pyqtSlot(str, bool, bool, result=list)
-    def get_Tasks_list(
-        self, engine_uid: str, engine_changed: bool, hide_refresh_button: bool, /
-    ) -> list:
-        engine = self._get_engine(engine_uid)
-        tasks_list = self._fetch_tasks(engine)
-        for task in tasks_list:
-            try:
-                doc_id = task.targetDocumentIds[0]["id"]
-                doc_info = self.get_document_details(engine_uid, doc_id)
-                task.name = doc_info.name
-            except Exception as e:
-                log.info(f"Error occurred while fetching document info {e!r}")
-                task.name = "Unknown Document"
-
-            type_of_task = task.directive
-            if "chooseParticipants" in type_of_task or "pleaseSelect" in type_of_task:
-                task.directive = Translator.get("CHOOSE_PARTICIPANTS")
-            elif "give_opinion" in type_of_task:
-                task.directive = Translator.get("GIVE_OPINION")
-            elif "AcceptReject" in type_of_task:
-                task.directive = Translator.get("VALIDATE_DOCUMENT")
-            elif "consolidate" in type_of_task:
-                task.directive = Translator.get("CONSOLIDATE_REVIEW")
-            elif "updateRequest" in type_of_task:
-                task.directive = Translator.get("UPDATE_REQUESTED")
-
-            wf_name = ""
-            for char in task.workflowModelName:
-                wf_name = f"{wf_name} {char}" if char.isupper() else f"{wf_name}{char}"
-            task.workflowModelName = wf_name[1:]
-
-        if self.last_task_list == "":
-            self.last_task_list = str(tasks_list)
-        if engine_changed:
-            self.engine_changed = True
-        self.hide_refresh_button = hide_refresh_button
-        if hide_refresh_button:
-            self.application.show_hide_refresh_button(0)
-        return tasks_list
-
-    @pyqtSlot(str, result=str)
-    def get_username(self, engine_uid: str, /) -> str:
-        engine = self._get_engine(engine_uid)
-        return engine.remote_user
-
-    @pyqtSlot(str, result=list)
-    def get_document_details(self, engine_uid: str, doc_id: str, /) -> int:
-        engine = self._get_engine(engine_uid)
-        if not engine:
-            log.info("engine not available")
-            return []
-        return engine.remote.get_info(doc_id, fetch_parent_uid=False)
-
-    @pyqtSlot(object)
-    def fetch_pending_tasks(self, engine: Engine, /) -> None:
-        data = self._fetch_tasks(engine)
-        if len(data) > 0:
-            for task in data:
-                engine.fetch_pending_task_list(task.id)
-
-    def _fetch_tasks(self, engine: Engine) -> Any:
-        return self.application.fetch_pending_tasks(engine)
-
     @pyqtSlot()
     def quit(self) -> None:
         try:
@@ -666,8 +565,6 @@ class QMLDriveApi(QObject):
         - Global size of synchronized files converted to percentage of the width.
         """
         engine = self._get_engine(uid)
-        if not engine:
-            return
 
         synced = engine.dao.get_global_size() if engine else 0
         used, free = disk_space(path)
@@ -685,9 +582,7 @@ class QMLDriveApi(QObject):
     def _balance_percents(self, result: Dict[str, float], /) -> Dict[str, float]:
         """Return an altered version of the dict in which no value is under a minimum threshold."""
 
-        result = {
-            k: v for k, v in sorted(result.items(), key=lambda item: item[1])
-        }  # noqa
+        result = dict(sorted(result.items(), key=lambda item: item[1]))
         keys = list(result)
         min_threshold = 10
         data = 0.0
@@ -726,8 +621,6 @@ class QMLDriveApi(QObject):
     def get_drive_disk_space(self, uid: str, /) -> str:
         """Fetch the global size of synchronized files and return a formatted version."""
         engine = self._get_engine(uid)
-        if not engine:
-            return
         synced = engine.dao.get_global_size() if engine else 0
         return sizeof_fmt(synced, suffix=Translator.get("BYTE_ABBREV"))
 
@@ -741,8 +634,6 @@ class QMLDriveApi(QObject):
     def get_used_space_without_synced(self, uid: str, path: str, /) -> str:
         """Fetch the size of space used by other applications and return a formatted version."""
         engine = self._get_engine(uid)
-        if not engine:
-            return
         synced = engine.dao.get_global_size() if engine else 0
         used, _ = disk_space(path)
         return sizeof_fmt(used - synced, suffix=Translator.get("BYTE_ABBREV"))
@@ -1007,8 +898,6 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, result=bool)
     def has_invalid_credentials(self, uid: str, /) -> bool:
         engine = self._get_engine(uid)
-        if not engine:
-            return
         return engine.has_invalid_credentials() if engine else False
 
     # Authentication section
@@ -1225,6 +1114,106 @@ class QMLDriveApi(QObject):
         """Return the URL to a remote document based on its reference."""
         engine = self._get_engine(uid)
         return engine.get_metadata_url(remote_ref) if engine else ""
+
+    def _get_engine(self, engine_uid: str, /) -> Engine:
+        return self._manager.engines.get(engine_uid)
+
+    @pyqtSlot(str, str, result=str)
+    def get_text(self, details: str, ret: str, /) -> str:
+        details = details.replace("\\", "")
+        details = details.replace("'", '"')
+        try:
+            details = json.loads(details)
+            return details.get(ret)
+        except Exception as e:
+            return ""
+
+    @pyqtSlot(str, result=bool)
+    def text_red(self, text: str, /) -> bool:
+        return "ago" in text
+
+    @pyqtSlot(str)
+    def open_tasks_window(self, uid: str, /) -> None:
+        self.application.hide_systray()
+        self.application.show_tasks_window(uid)
+
+    @pyqtSlot()
+    def close_tasks_window(self, /) -> None:
+        self.application.close_tasks_window()
+
+    @pyqtSlot(str, result=int)
+    def tasks_remaining(self, uid: str, /) -> int:
+        """Return pending tasks count for Drive notification."""
+        engine = self._get_engine(uid)
+        if engine:
+            tasks = self._fetch_tasks(engine)
+            return len(tasks)
+        log.info("Engine not available")
+        return 0
+
+    @pyqtSlot(str, bool, bool, result=list)
+    def get_Tasks_list(
+        self, engine_uid: str, engine_changed: bool, hide_refresh_button: bool, /
+    ) -> list:
+        engine = self._get_engine(engine_uid)
+        tasks_list = self._fetch_tasks(engine)
+        for task in tasks_list:
+            try:
+                doc_id = task.targetDocumentIds[0]["id"]
+                doc_info = self.get_document_details(engine_uid, doc_id)
+                task.name = doc_info.name
+            except Exception as e:
+                log.info(f"Error occurred while fetching document info {e!r}")
+                task.name = "Unknown Document"
+
+            type_of_task = task.directive
+            if "chooseParticipants" in type_of_task or "pleaseSelect" in type_of_task:
+                task.directive = Translator.get("CHOOSE_PARTICIPANTS")
+            elif "give_opinion" in type_of_task:
+                task.directive = Translator.get("GIVE_OPINION")
+            elif "AcceptReject" in type_of_task:
+                task.directive = Translator.get("VALIDATE_DOCUMENT")
+            elif "consolidate" in type_of_task:
+                task.directive = Translator.get("CONSOLIDATE_REVIEW")
+            elif "updateRequest" in type_of_task:
+                task.directive = Translator.get("UPDATE_REQUESTED")
+
+            wf_name = ""
+            for char in task.workflowModelName:
+                wf_name = f"{wf_name} {char}" if char.isupper() else f"{wf_name}{char}"
+            task.workflowModelName = wf_name[1:]
+
+        if self.last_task_list == "":
+            self.last_task_list = str(tasks_list)
+        if engine_changed:
+            self.engine_changed = True
+        self.hide_refresh_button = hide_refresh_button
+        if hide_refresh_button:
+            self.application.show_hide_refresh_button(0)
+        return tasks_list
+
+    @pyqtSlot(str, result=str)
+    def get_username(self, engine_uid: str, /) -> str:
+        engine = self._get_engine(engine_uid)
+        return engine.remote_user
+
+    @pyqtSlot(str, result=list)
+    def get_document_details(self, engine_uid: str, doc_id: str, /) -> int:
+        engine = self._get_engine(engine_uid)
+        if not engine:
+            log.info("engine not available")
+            return []
+        return engine.remote.get_info(doc_id, fetch_parent_uid=False)
+
+    @pyqtSlot(object)
+    def fetch_pending_tasks(self, engine: Engine, /) -> None:
+        data = self._fetch_tasks(engine)
+        if len(data) > 0:
+            for task in data:
+                engine.fetch_pending_task_list(task.id)
+
+    def _fetch_tasks(self, engine: Engine) -> Any:
+        return self.application.fetch_pending_tasks(engine)
 
     @pyqtSlot(str, str)
     def on_clicked_open_task(self, engine_uid: str, task_id: str) -> None:
