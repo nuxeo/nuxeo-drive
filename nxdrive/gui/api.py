@@ -565,6 +565,8 @@ class QMLDriveApi(QObject):
         - Global size of synchronized files converted to percentage of the width.
         """
         engine = self._get_engine(uid)
+        if not engine:
+            return []
 
         synced = engine.dao.get_global_size() if engine else 0
         used, free = disk_space(path)
@@ -621,6 +623,9 @@ class QMLDriveApi(QObject):
     def get_drive_disk_space(self, uid: str, /) -> str:
         """Fetch the global size of synchronized files and return a formatted version."""
         engine = self._get_engine(uid)
+        if not engine:
+            return ""
+
         synced = engine.dao.get_global_size() if engine else 0
         return sizeof_fmt(synced, suffix=Translator.get("BYTE_ABBREV"))
 
@@ -634,6 +639,9 @@ class QMLDriveApi(QObject):
     def get_used_space_without_synced(self, uid: str, path: str, /) -> str:
         """Fetch the size of space used by other applications and return a formatted version."""
         engine = self._get_engine(uid)
+        if not engine:
+            return ""
+
         synced = engine.dao.get_global_size() if engine else 0
         used, _ = disk_space(path)
         return sizeof_fmt(used - synced, suffix=Translator.get("BYTE_ABBREV"))

@@ -97,6 +97,8 @@ def test_get_text(manager_factory):
     with manager:
         returned_val = drive_api.get_text("{'id': '1', \"price\": '2000'}", "price")
         assert returned_val == "2000"
+        returned_val = drive_api.get_text("dummy_text", "dummy")
+        assert returned_val == ""
 
 
 def test_text_red(manager_factory):

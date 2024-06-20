@@ -76,3 +76,6 @@ def test_tasksModel():
 
     dummy_task_list = [dummy_task1, dummy_task2]
     assert not tasks_model.loadList(dummy_task_list, "Administrator")
+
+    dummy_task_list = [dummy_task2]
+    assert not tasks_model.loadList(dummy_task_list, "Administrator")
