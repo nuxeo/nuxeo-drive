@@ -25,8 +25,7 @@ class Workflow:
         doc_id = first_task.targetDocumentIds[0]["id"]
         task_id = first_task.id
 
-        response = self.remote.documents.get(doc_id)
-        if response:
+        if response := self.remote.documents.get(doc_id):
             # check if user have to choose participants
             if "chooseParticipants" in first_task.directive:
                 engine.send_task_notification(
@@ -77,10 +76,9 @@ class Workflow:
         """Get Tasks for document review"""
         try:
             options = {"userId": engine.remote.user_id}
-            tasks = self.remote.tasks.get(options)
-            if tasks:
-                tasks = self.remove_overdue_tasks(tasks)
-                if tasks:
+            if tasks := self.remote.tasks.get(options):
+
+                if tasks := self.remove_overdue_tasks(tasks):
                     tasks = self.update_user_task_data(tasks, options["userId"])
 
                 if tasks:
