@@ -338,7 +338,7 @@ jobs:
           bash tools/bump-alpha-version.sh || true
 
       - name: Do the release
-        if: steps.extract_branch.outputs.branch == 'master' && steps.check_changes.outputs.changes == 'true'
+        if: steps.extract_branch.outputs.branch == 'master'
         run: |
           release_type="${{ github.event.inputs.releaseType }}"
           if [ "${release_type}" = "" ]; then
