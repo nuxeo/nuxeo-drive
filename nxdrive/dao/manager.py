@@ -1,6 +1,7 @@
 """
 Query formatting in this file is based on http://www.sqlstyle.guide/
 """
+
 from logging import getLogger
 from pathlib import Path
 from sqlite3 import Cursor, IntegrityError, Row

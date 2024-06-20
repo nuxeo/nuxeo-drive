@@ -1,6 +1,7 @@
 """
 Test the Direct Transfer feature in different scenarii.
 """
+
 import logging
 import re
 from pathlib import Path
@@ -725,7 +726,7 @@ class DirectTransferFolder:
         assert not self.engine_1.dao.get_errors(limit=0)
 
     def direct_transfer(self, folder, duplicate_behavior: str = "create") -> None:
-        paths = {path: size for path, size in get_tree_list(folder)}
+        paths = dict(get_tree_list(folder))
         self.engine_1.direct_transfer(
             paths,
             self.ws.path,

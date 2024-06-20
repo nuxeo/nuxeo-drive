@@ -1,6 +1,7 @@
 """
 Query formatting in this file is based on http://www.sqlstyle.guide/
 """
+
 import json
 import os
 import shutil
