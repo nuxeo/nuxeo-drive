@@ -14,6 +14,10 @@ on:
         description: 'Set to "release" for a beta release.'
         required: false
         default: "alpha"
+      signExe:
+        description: 'Set to "true" to generate sign .exe on Windows.'
+        required: false
+        default: "false"
 
 env:
   GITHUB_USERNAME: "nuxeodrive"
@@ -125,6 +129,7 @@ jobs:
           NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
           NOTARIZATION_TEAMID: ${{ secrets.NOTARIZATION_TEAMID }}
           SIGNING_ID: "NUXEO CORP"
+          SIGNING_ID_NEW: "Hyland Software, Inc."
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
 
@@ -148,13 +153,6 @@ jobs:
       #
       # Windows
       #
-
-      - name: "[Windows] Setup certificate"
-        if: matrix.os == 'windows-latest'
-        run: |
-          echo "${{ secrets.CERT_APP_WINDOWS }}" > certificate.b64
-          certutil -decode certificate.b64 certificate.pfx
-
       - name: "[Windows] Unlock PowerShell"
         if: matrix.os == 'windows-latest'
         run: powershell Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
@@ -163,11 +161,60 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
 
+      - name: Setup Certificate
+        if: matrix.os == 'windows-latest'
+        run: |
+           echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
+           cat  /d/Certificate_pkcs12.p12
+        shell: bash  
+        
+      - name: Set variables
+        if: matrix.os == 'windows-latest'
+        id: variables
+        run: |
+          dir
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          echo "KEYPAIR_NAME=gt-standard-keypair"  >> $GITHUB_OUTPUT
+          echo "CERTIFICATE_NAME=gt-certificate"  >> $GITHUB_OUTPUT
+          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV"
+          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV"
+          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV"
+          echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "SM_KEYPAIR_ALIAS=${{ secrets.SM_KEYPAIR_ALIAS }}" >> "$GITHUB_ENV"
+          echo "SM_CODE_SIGNING_CERT_SHA1_HASH=${{ secrets.SM_CODE_SIGNING_CERT_SHA1_HASH }}" >> "$GITHUB_ENV"
+          echo "C:\Program Files (x86)\Windows Kits\10\App Certification Kit" >> $GITHUB_PATH
+          echo "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8 Tools" >> $GITHUB_PATH
+          echo "C:\Program Files\DigiCert\DigiCert Keylocker Tools" >> $GITHUB_PATH
+        shell: bash
+      
+      - name: Setup Keylocker KSP on windows 
+        if: matrix.os == 'windows-latest'
+        run: | 
+          curl -X GET  https://one.digicert.com/signingmanager/api-ui/v1/releases/Keylockertools-windows-x64.msi/download -H "x-api-key:%SM_API_KEY%" -o Keylockertools-windows-x64.msi 
+          msiexec /i Keylockertools-windows-x64.msi /quiet /qn
+          smksp_registrar.exe list 
+          smctl.exe keypair ls 
+          C:\Windows\System32\certutil.exe -csp "DigiCert Signing Manager KSP" -key -user 
+        shell: cmd   
+      
+      - name: Certificates Sync
+        if: matrix.os == 'windows-latest'      
+        run: |
+           smctl windows certsync --keypair-alias=${{ secrets.SM_KEYPAIR_ALIAS }}
+        shell: cmd
+      
+      - name: Health status
+        if: matrix.os == 'windows-latest' 
+        run: |
+           smctl healthcheck
+        shell: cmd
+
+
       - name: "[Windows] Generate the .exe and validate against 2021"
         timeout-minutes: 15
         if: matrix.os == 'windows-latest'
         env:
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
           NXDRIVE_TEST_NUXEO_URL: "https://drive-2021.beta.nuxeocloud.com/nuxeo"
           SIGNING_ID: "Nuxeo"
           SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
@@ -177,14 +224,22 @@ jobs:
         timeout-minutes: 15
         if: matrix.os == 'windows-latest'
         env:
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
           NXDRIVE_TEST_NUXEO_URL: "https://drive-2023.beta.nuxeocloud.com/nuxeo"
           NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2023_TEST_USERNAME }}
           NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2023_TEST_PASSWORD }}
           SIGNING_ID: "Nuxeo"
           SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade
-
+      
+      - name: "[Windows] Generate and sign the .exe"
+        timeout-minutes: 15
+        if: matrix.os == 'windows-latest' && github.event.inputs.signExe == 'true'
+        env:
+          KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
+          SIGNING_ID_NEW: "Hyland Software, Inc."
+          SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
+        run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -build_installer_and_sign
+   
       - name: "Upload artifacts"
         uses: actions/upload-artifact@v4
         with:
