@@ -53,6 +53,7 @@ def application(manager, workflow):
     application.manager.old_version = "1.0.0"
     application.manager.version = "1.1.0"
     application.workflow = workflow
+    application.last_engine_uid = ""
     return application
 
 
@@ -108,7 +109,7 @@ def test_fetch_document(workflow, engine, task, remote):
     workflow.fetch_document([task], engine)
 
 
-def test_poll_initial_trigger(workflow_worker, manager, application):
+def test_poll_initial_trigger(workflow_worker, manager, application, engine):
     # Test initial trigger via workflow worker
     workflow_worker._first_workflow_check = True
     assert workflow_worker._poll()
@@ -125,7 +126,7 @@ def test_poll_initial_trigger(workflow_worker, manager, application):
     engine_model.engines_uid = ["engine_uid"]
     application.engine_model = engine_model
     manager.application = application
-    manager.engines = {"engine_uid": "test_uid"}
+    manager.engines = {"engine_uid": engine}
     workflow_worker.manager = manager
     workflow_worker.workflow = Mock()
     assert workflow_worker._poll()
