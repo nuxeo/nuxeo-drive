@@ -73,7 +73,6 @@ class Workflow:
         try:
             options = {"userId": engine.remote.user_id}
             if tasks := self.remote.tasks.get(options):
-
                 if tasks := self.remove_overdue_tasks(tasks):
                     tasks = self.update_user_task_data(tasks, options["userId"])
 
