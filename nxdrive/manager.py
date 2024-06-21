@@ -21,6 +21,7 @@ from .auth import Token
 from .autolocker import ProcessAutoLockerWorker
 from .client.local import LocalClient
 from .client.proxy import get_proxy, load_proxy, save_proxy, validate_proxy
+from .client.workflow import Workflow
 from .constants import (
     APP_NAME,
     DEFAULT_CHANNEL,
@@ -941,6 +942,11 @@ class Manager(QObject):
         engine = self.engines.pop(uid, None)
         if not engine:
             return
+
+        if Feature.tasks_management:
+            # Clean user tasks data in case we are unbinding the account.
+            self.workflow = Workflow(engine.remote)
+            self.workflow.clean_user_task_data(engine.remote.user_id)
 
         engine.unbind()
         self.dao.delete_engine(uid)

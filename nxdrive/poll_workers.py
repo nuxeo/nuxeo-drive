@@ -194,7 +194,7 @@ class WorkflowWorker(PollWorker):
             self.app = self.manager.application
             self.workflow = self.app.workflow
             for engine in self.manager.engines.copy().values():
-                self.workflow.get_pending_tasks(engine, self._first_workflow_check)
+                self.workflow.get_pending_tasks(engine)
                 if engine.uid == self.app.last_engine_uid:
                     task_list = str(
                         self.app.api.get_Tasks_list(

@@ -413,8 +413,13 @@ class Application(QApplication):
         if feature.restart_needed:
             self.manager.restartNeeded.emit()
 
-        if feature.enabled and feature == self.tasks_management_feature_model:
-            self.init_workflow()
+        if feature == self.tasks_management_feature_model:
+            if feature.enabled:
+                # Check for tasks while enabling the feature
+                self.init_workflow()
+            else:
+                # clean user_task_list if we are disabling the tasks_management feature
+                Workflow.user_task_list = {}
 
     def _center_on_screen(self, window: QQuickView, /) -> None:
         """Display and center the window on the screen."""

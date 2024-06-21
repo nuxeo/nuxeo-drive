@@ -116,7 +116,7 @@ class Engine(QObject):
     directTransferNewFolderError = pyqtSignal()
     directTransferNewFolderSuccess = pyqtSignal(str)
     directTransferSessionFinished = pyqtSignal(str, str, str)
-    displayPendingTask = pyqtSignal(str, str, str)
+    displayPendingTask = pyqtSignal(str, str, str, str)
 
     type = "NXDRIVE"
     # Folder locker - LocalFolder processor can prevent
@@ -1603,8 +1603,10 @@ class Engine(QObject):
 
         return full_name
 
-    def send_task_notification(self, task_id: str, remote_path: str, /) -> None:
-        self.displayPendingTask.emit(self.uid, task_id, remote_path)
+    def send_task_notification(
+        self, task_id: str, remote_path: str, notification_title: str, /
+    ) -> None:
+        self.displayPendingTask.emit(self.uid, task_id, remote_path, notification_title)
 
 
 @dataclass
