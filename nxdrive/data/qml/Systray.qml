@@ -75,12 +75,6 @@ Rectangle {
         syncState.state = sync
         errorState.state = error
         updateState.state = update
-        /*
-        if (tasks == "tasks_available") {
-            taskState.visible = true
-        } else {
-            taskState.visible = false
-        }*/
 
         // Force the counts update at the end of the sync
         if (sync == "") {
@@ -277,7 +271,6 @@ Rectangle {
                 }
             }
         }
-
 
         SystrayStatusTasks {
             id: taskState
