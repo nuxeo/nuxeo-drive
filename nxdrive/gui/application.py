@@ -949,7 +949,6 @@ class Application(QApplication):
 
         self.systray_window.setX(int(pos_x))
         self.systray_window.setY(int(pos_y))
-        # self.systray_window.findChild()
 
         self.systray_window.show()
         self.systray_window.raise_()
@@ -1017,29 +1016,6 @@ class Application(QApplication):
     def close_direct_transfer_window(self) -> None:
         """Close the Direct Transfer window."""
         self.direct_transfer_window.close()
-
-    @pyqtSlot(str)
-    def show_tasks_window(self, engine_uid: str, /) -> None:
-        """Display the Tasks window."""
-        self._window_root(self.task_manager_window).setEngine.emit(engine_uid)
-        self._window_root(self.task_manager_window).setSection.emit(0)
-        self._center_on_screen(self.task_manager_window)
-
-    @pyqtSlot()
-    def close_tasks_window(self) -> None:
-        """Close the Tasks window."""
-        self.task_manager_window.close()
-
-    @pyqtSlot(int)
-    def show_hide_refresh_button(self, height: int, /) -> None:
-        """Shows and Hides the refresh button of task window"""
-        r_button = self.task_manager_window.findChild(QObject, "refresh")
-        r_button.setProperty("height", height)
-
-    def open_task(self, engine: Engine, task_id: str) -> None:
-        endpoint = "/ui/#!/tasks/"
-        url = f"{engine.server_url}{endpoint}{task_id}"
-        webbrowser.open(url)
 
     def folder_duplicate_warning(
         self, duplicates: List[str], remote_path: str, remote_url: str, /
@@ -1880,17 +1856,6 @@ class Application(QApplication):
         else:
             self.show_server_folders(engine, path)
 
-    def fetch_pending_tasks(self, engine: Engine, /) -> list:
-        remote = engine.remote
-        user = {"userId": remote.user_id}
-        try:
-            tasks = remote.tasks.get(user)
-        except Exception:
-            log.info("Unable to fetch tasks")
-            tasks = []
-        self.last_engine_uid = engine.uid
-        return tasks
-
     def update_status(self, engine: Engine, /) -> None:
         """
         Update the systray status for synchronization,
@@ -2067,3 +2032,37 @@ class Application(QApplication):
         (Options.nxdrive_home / "metrics.state").write_text(
             "\n".join(states), encoding="utf-8"
         )
+
+    @pyqtSlot(str)
+    def show_tasks_window(self, engine_uid: str, /) -> None:
+        """Display the Tasks window."""
+        self._window_root(self.task_manager_window).setEngine.emit(engine_uid)
+        self._window_root(self.task_manager_window).setSection.emit(0)
+        self._center_on_screen(self.task_manager_window)
+
+    @pyqtSlot()
+    def close_tasks_window(self) -> None:
+        """Close the Tasks window."""
+        self.task_manager_window.close()
+
+    @pyqtSlot(int)
+    def show_hide_refresh_button(self, height: int, /) -> None:
+        """Shows and Hides the refresh button of task window"""
+        r_button = self.task_manager_window.findChild(QObject, "refresh")
+        r_button.setProperty("height", height)
+
+    def open_task(self, engine: Engine, task_id: str) -> None:
+        endpoint = "/ui/#!/tasks/"
+        url = f"{engine.server_url}{endpoint}{task_id}"
+        webbrowser.open(url)
+
+    def fetch_pending_tasks(self, engine: Engine, /) -> list:
+        remote = engine.remote
+        user = {"userId": remote.user_id}
+        try:
+            tasks = remote.tasks.get(user)
+        except Exception:
+            log.info("Unable to fetch tasks")
+            tasks = []
+        self.last_engine_uid = engine.uid
+        return tasks
