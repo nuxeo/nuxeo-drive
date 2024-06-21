@@ -46,9 +46,8 @@ HoverRectangle {
         IconLabel {
             id: statusIcon
             Image {
-                source: "../icons/tasks.svg"
+                source: "../icons/tasks_light.svg"
             }
-            //color: statusText.color
             Layout.alignment: Qt.AlignRight
             Layout.rightMargin: 30
             Layout.topMargin: -10
