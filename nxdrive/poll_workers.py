@@ -194,6 +194,6 @@ class WorkflowWorker(PollWorker):
             self.app = self.manager.application
             self.workflow = self.app.workflow
             for engine in self.manager.engines.copy().values():
-                self.workflow.get_pending_tasks(engine, self._first_workflow_check)
+                self.workflow.get_pending_tasks(engine)
 
         return True

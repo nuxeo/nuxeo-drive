@@ -522,12 +522,24 @@ class InvalidCredentialNotification(Notification):
 class DisplayPendingTask(Notification):
     """Display a notification for pending tasks"""
 
-    def __init__(self, engine_uid: str, remote_ref: str, remote_path: str, /) -> None:
+    def __init__(
+        self,
+        engine_uid: str,
+        remote_ref: str,
+        remote_path: str,
+        notification_title: str,
+        /,
+    ) -> None:
         values = [remote_path]
+        description = (
+            "PENDING_DOCUMENT_REVIEWS"
+            if notification_title == "Review Document"
+            else "CHOOSE_PARTICIPANTS_SYS"
+        )
         super().__init__(
-            uid="PENDING_DOCUMENT_REVIEWS",
-            title="Review Document",
-            description=Translator.get("PENDING_DOCUMENT_REVIEWS", values=values),
+            uid=description,
+            title=notification_title,
+            description=Translator.get(description, values=values),
             level=Notification.LEVEL_INFO,
             flags=(
                 Notification.FLAG_PERSISTENT
@@ -663,6 +675,13 @@ class DefaultNotificationService(NotificationService):
         self.send_notification(notif)
 
     def _display_pending_task(
-        self, engine_uid: str, remote_ref: str, remote_path: str, /
+        self,
+        engine_uid: str,
+        remote_ref: str,
+        remote_path: str,
+        notification_title: str,
+        /,
     ) -> None:
-        self.send_notification(DisplayPendingTask(engine_uid, remote_ref, remote_path))
+        self.send_notification(
+            DisplayPendingTask(engine_uid, remote_ref, remote_path, notification_title)
+        )
