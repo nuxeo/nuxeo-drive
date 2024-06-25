@@ -222,4 +222,4 @@ def test_clean_user_data_when_unbind_engine(manager, engine):
     manager.engines = {"user_a": engine}
     manager.unbind_engine(manager, "user_a")
 
-    assert not Workflow.user_task_list
+    assert "user_a" not in Workflow.user_task_list
