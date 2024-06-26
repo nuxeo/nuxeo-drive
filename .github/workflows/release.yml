@@ -1,14 +1,11 @@
 name: Release
 
 on:
-  # Generate an alpha every day if there are changes in the master branch
   schedule:
     - cron: "0 0 * * *"
 
   workflow_dispatch:
     inputs:
-      # Note: `releaseType` will be set to an empty string when automatically run without human action (via the cronjob).
-      #       In that case, it means we want to generate an alpha.
       releaseType:
         description: 'Set to "release" for a beta release.'
         required: false
@@ -26,7 +23,8 @@ jobs:
   check_changes:
     runs-on: ubuntu-latest
     outputs:
-      has_changes: ${{ steps.check_changes.outputs.changes }}
+      changes: ${{ steps.check_changes.outputs.changes }}
+      changes_list: ${{ steps.list_changes.outputs.changes_list }}
 
     steps:
       - name: Checkout
@@ -35,36 +33,71 @@ jobs:
       - name: Fetch all history for all branches and tags
         run: git fetch --unshallow --tags --prune --recurse-submodules=on-demand --quiet
 
-      - name: Get the latest commit SHA on master branch
+      - name: Get the latest commit SHA and date on master branch
         id: latest_commit
-        run: echo "sha=$(git rev-parse origin/master)" >> $GITHUB_STATE
+        run: |
+          latest_sha=$(git rev-parse origin/master)
+          latest_date=$(git show -s --format=%ci $latest_sha | cut -d' ' -f1)
+          echo "latest_sha=$latest_sha" >> $GITHUB_ENV
+          echo "latest_date=$latest_date" >> $GITHUB_ENV
+          echo "Latest SHA: $latest_sha"
+          echo "Latest Date: $latest_date"
 
-      - name: Get the last successful commit SHA
+      - name: Get the last successful commit SHA and date
         id: last_successful_commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           last_successful_commit=$(gh run list --branch master --workflow Release --json headSha -q '.[0].headSha')
-          echo "last_successful_sha=${last_successful_commit}" >> $GITHUB_STATE
+          last_successful_date=$(git show -s --format=%ci $last_successful_commit | cut -d' ' -f1)
+          echo "last_successful_sha=$last_successful_commit" >> $GITHUB_ENV
+          echo "last_successful_date=$last_successful_date" >> $GITHUB_ENV
+          echo "Last Successful SHA: $last_successful_commit"
+          echo "Last Successful Date: $last_successful_date"
 
       - name: Check for changes
         id: check_changes
         run: |
-          if [ "$(cat $GITHUB_STATE | grep 'sha' | cut -d'=' -f2)" == "$(cat $GITHUB_STATE | grep 'last_successful_sha' | cut -d'=' -f2)" ]; then
+          latest_date=${{ env.latest_date }}
+          last_successful_date=${{ env.last_successful_date }}
+          if [ "$latest_date" == "$last_successful_date" ]; then
             echo "No changes in master branch since last successful run."
-            echo "changes=false" >> $GITHUB_OUTPUT
+            echo "changes=false" >> $GITHUB_ENV
           else
             echo "Changes detected in master branch."
-            echo "changes=true" >> $GITHUB_OUTPUT
+            echo "changes=true" >> $GITHUB_ENV
+          fi
+
+      - name: List changes
+        id: list_changes
+        if: steps.check_changes.outputs.changes == 'true'
+        run: |
+          last_successful_sha=${{ env.last_successful_sha }}
+          latest_sha=${{ env.latest_sha }}
+          changes=$(git log --oneline $last_successful_sha..$latest_sha)
+          echo "Changes list:"
+          echo "$changes"
+          echo "changes_list=$changes" >> $GITHUB_ENV
 
   release:
     runs-on: ${{ matrix.os }}
-    needs: check_changes
-    if: needs.check_changes.outputs.has_changes == 'true'
+    needs: [check_changes]
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, 'macos-latest']
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Proceed if there are changes
+        if: needs.check_changes.outputs.changes == 'true'
+        run: |
+          echo "Proceeding with the release job."
+          echo "Changes since last successful run:"
+          cat $GITHUB_ENV | grep "Changes list"
+
       - name: Checkout
         uses: actions/checkout@v4
 
