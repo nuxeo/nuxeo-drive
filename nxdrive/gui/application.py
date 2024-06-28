@@ -934,6 +934,7 @@ class Application(QApplication):
 
     @pyqtSlot()
     def show_systray(self) -> None:
+        self.task_manager_window.close()
         self.systray_window.close()
         icon = self.tray_icon.geometry()
 
@@ -2066,6 +2067,7 @@ class Application(QApplication):
         user = {"userId": remote.user_id}
         try:
             tasks = remote.tasks.get(user)
+            print(f">>>>> tasks: {tasks!r}")
         except Exception:
             log.info("Unable to fetch tasks")
             tasks = []
