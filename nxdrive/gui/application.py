@@ -49,6 +49,7 @@ from ..qt.imports import (
     QLocalServer,
     QLocalSocket,
     QMessageBox,
+    QObject,
     QQmlApplicationEngine,
     QQmlContext,
     QQuickView,
@@ -96,6 +97,7 @@ from .view import (
     FeatureModel,
     FileModel,
     LanguageModel,
+    TasksModel,
     TransferModel,
 )
 
@@ -263,6 +265,7 @@ class Application(QApplication):
             del self.settings_window
             del self.systray_window
             del self.direct_transfer_window
+            del self.task_manager_window
         else:
             del self.app_engine
 
@@ -288,6 +291,7 @@ class Application(QApplication):
         self.file_model = FileModel(self.translate)
         self.ignoreds_model = FileModel(self.translate)
         self.language_model = LanguageModel()
+        self.tasks_model = TasksModel(self.translate)
 
         self.add_engines(list(self.manager.engines.values()))
         self.engine_model.statusChanged.connect(self.update_status)
@@ -333,6 +337,15 @@ class Application(QApplication):
                 QUrl.fromLocalFile(str(find_resource("qml", file="DirectTransfer.qml")))
             )
 
+            # Task Manager
+            self.task_manager_window = CustomWindow()
+            self.task_manager_window.setMinimumWidth(500)
+            self.task_manager_window.setMinimumHeight(600)
+            self._fill_qml_context(self.task_manager_window.rootContext())
+            self.task_manager_window.setSource(
+                QUrl.fromLocalFile(str(find_resource("qml", file="TaskManager.qml")))
+            )
+
             flags |= qt.Popup
         else:
             self.app_engine = QQmlApplicationEngine()
@@ -347,6 +360,7 @@ class Application(QApplication):
             self.direct_transfer_window = root.findChild(
                 CustomWindow, "directTransferWindow"
             )
+            self.task_manager_window = root.findChild(CustomWindow, "taskManagerWindow")
 
             if LINUX:
                 flags |= qt.Drawer
@@ -377,6 +391,7 @@ class Application(QApplication):
         )
 
         self.manager.featureUpdate.connect(self._update_feature_state)
+        self.last_engine_uid = ""
 
     def init_workflow(self) -> Workflow:
         if not self.manager.engines:
@@ -468,6 +483,7 @@ class Application(QApplication):
         context.setContextProperty("FileModel", self.file_model)
         context.setContextProperty("IgnoredsModel", self.ignoreds_model)
         context.setContextProperty("languageModel", self.language_model)
+        context.setContextProperty("tasks_model", self.tasks_model)
         context.setContextProperty("api", self.api)
         context.setContextProperty("application", self)
         context.setContextProperty("currentLanguage", self.current_language())
@@ -533,6 +549,9 @@ class Application(QApplication):
             "secondaryBgHover": "#0052CC",
             "secondaryButtonText": "#0066FF",
             "secondaryButtonTextHover": "#FFFFFF",
+            "buttonRedText": "#de350b",
+            "buttonGreenText": "#057153",
+            "buttonGrayText": "#444747",
             "primaryIcon": "#161616",
             "secondaryIcon": "#525252",
             "disabledIcon": "#C6C6C6",
@@ -558,6 +577,7 @@ class Application(QApplication):
             "warningContent": "#FF9E00",
             "lightTheme": "#FFFFFF",
             "darkShadow": "#333333",
+            "refreshBackground": "#d0d1d6",
         }
 
         for name, value in colors.items():
@@ -914,6 +934,7 @@ class Application(QApplication):
 
     @pyqtSlot()
     def show_systray(self) -> None:
+        self.systray_window.close()
         icon = self.tray_icon.geometry()
 
         if not icon or icon.isEmpty():
@@ -2016,3 +2037,37 @@ class Application(QApplication):
         (Options.nxdrive_home / "metrics.state").write_text(
             "\n".join(states), encoding="utf-8"
         )
+
+    @pyqtSlot(str)
+    def show_tasks_window(self, engine_uid: str, /) -> None:
+        """Display the Tasks window."""
+        self._window_root(self.task_manager_window).setEngine.emit(engine_uid)
+        self._window_root(self.task_manager_window).setSection.emit(0)
+        self._center_on_screen(self.task_manager_window)
+
+    @pyqtSlot()
+    def close_tasks_window(self) -> None:
+        """Close the Tasks window."""
+        self.task_manager_window.close()
+
+    @pyqtSlot(int)
+    def show_hide_refresh_button(self, height: int, /) -> None:
+        """Shows and Hides the refresh button of task window"""
+        r_button = self.task_manager_window.findChild(QObject, "refresh")
+        r_button.setProperty("height", height)
+
+    def open_task(self, engine: Engine, task_id: str) -> None:
+        endpoint = "/ui/#!/tasks/"
+        url = f"{engine.server_url}{endpoint}{task_id}"
+        webbrowser.open(url)
+
+    def fetch_pending_tasks(self, engine: Engine, /) -> list:
+        remote = engine.remote
+        user = {"userId": remote.user_id}
+        try:
+            tasks = remote.tasks.get(user)
+        except Exception:
+            log.info("Unable to fetch tasks")
+            tasks = []
+        self.last_engine_uid = engine.uid
+        return tasks

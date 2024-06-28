@@ -24,6 +24,7 @@ Rectangle {
     function doUpdateCounts() {
         systrayContainer.syncingCount = api.get_syncing_count(accountSelect.getRole("uid"))
         systrayContainer.extraCount = api.get_last_files_count(accountSelect.getRole("uid")) - 10
+        taskState.pendingTasksCount = api.tasks_remaining(accountSelect.getRole("uid"))
     }
 
     function updateCounts(force) {
@@ -66,6 +67,7 @@ Rectangle {
         function onVisibleChanged() {
             contextMenu.visible = false
             fileList.contentY = 0
+            taskState.pendingTasksCount = api.tasks_remaining(accountSelect.getRole("uid"))
         }
     }
 
@@ -144,10 +146,11 @@ Rectangle {
                         // Width management: systray width minus the 5 icon's width
                         Layout.preferredWidth: systray.width - (accountIcon.width * 5)
 
-                        // When picking an account, refresh the file list.
+                        // When picking an account, refresh the file list and tasks list.
                         onActivated: {
                             getLastFiles(accountSelect.getRole("uid"))
                             doUpdateCounts()
+                            tasks_model.loadList(api.get_Tasks_list(accountSelect.getRole("uid"), true, true), api.get_username(accountSelect.getRole("uid")))
                         }
                     }
                 }
@@ -162,6 +165,11 @@ Rectangle {
                     color: "#FFFFFF"
                     enabled: feat_tasks_management.enabled
                     opacity: feat_tasks_management.enabled ? 1.0 : 0.2
+                    onClicked: {
+                            tasks_model.loadList(api.get_Tasks_list(accountSelect.getRole("uid"), false, true), api.get_username(accountSelect.getRole("uid")))
+                            api.open_tasks_window(accountSelect.getRole("uid"))
+                            }
+                    //tooltip: api.get_hostname_from_url(accountSelect.getRole("server_url"))
                     tooltip: qsTr("HANDLE_TASKS") + tl.tr
                 }
 
@@ -262,6 +270,29 @@ Rectangle {
                     }
                 }
             }
+        }
+
+        SystrayStatusTasks {
+            id: taskState
+
+            property int pendingTasksCount: api.tasks_remaining(accountSelect.getRole("uid"))
+
+            state: "pending_tasks"
+            visible:taskState.pendingTasksCount > 0 && feat_tasks_management.enabled
+            color: progressFilledLight
+            states: [
+                State {
+                    name: "pending_tasks"
+                    PropertyChanges {
+                        target: taskState
+                        text: qsTr("PENDING_TASK_REVIEWS")
+                        onClicked: {
+                            tasks_model.loadList(api.get_Tasks_list(accountSelect.getRole("uid"), false, true), api.get_username(accountSelect.getRole("uid")))
+                            api.open_tasks_window(accountSelect.getRole("uid"))
+                        }
+                    }
+                }
+            ]
         }
 
         // Sync status (items remaining to sync, or small text when sync is over)

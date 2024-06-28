@@ -195,5 +195,18 @@ class WorkflowWorker(PollWorker):
             self.workflow = self.app.workflow
             for engine in self.manager.engines.copy().values():
                 self.workflow.get_pending_tasks(engine)
+                if engine.uid == self.app.last_engine_uid:
+                    task_list = str(
+                        self.app.api.get_Tasks_list(
+                            engine.uid, False, self.app.api.hide_refresh_button
+                        )
+                    )
+                    if task_list != self.app.api.last_task_list:
+                        self.app.api.last_task_list = task_list
+                        if not self.app.api.engine_changed:
+                            self.app.show_hide_refresh_button(30)
+                            self.app.api.hide_refresh_button = False
+                        else:
+                            self.app.api.engine_changed = False
 
         return True

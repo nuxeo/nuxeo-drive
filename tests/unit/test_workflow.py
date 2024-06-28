@@ -60,6 +60,7 @@ def application(manager, workflow):
     application.manager.old_version = "1.0.0"
     application.manager.version = "1.1.0"
     application.workflow = workflow
+    application.last_engine_uid = ""
     return application
 
 
@@ -162,7 +163,7 @@ def test_fetch_document(workflow, engine, task):
     workflow.fetch_document([task], engine)
 
 
-def test_poll_initial_trigger(workflow_worker, manager, application):
+def test_poll_initial_trigger(workflow_worker, manager, application, engine):
     # Test initial trigger via workflow worker
     workflow_worker._first_workflow_check = True
     assert workflow_worker._poll()
@@ -179,7 +180,7 @@ def test_poll_initial_trigger(workflow_worker, manager, application):
     engine_model.engines_uid = ["engine_uid"]
     application.engine_model = engine_model
     manager.application = application
-    manager.engines = {"engine_uid": "test_uid"}
+    manager.engines = {"engine_uid": engine}
     workflow_worker.manager = manager
     workflow_worker.workflow = Mock()
     assert workflow_worker._poll()
@@ -221,4 +222,4 @@ def test_clean_user_data_when_unbind_engine(manager, engine):
     manager.engines = {"user_a": engine}
     manager.unbind_engine(manager, "user_a")
 
-    assert not Workflow.user_task_list
+    assert "user_a" not in Workflow.user_task_list

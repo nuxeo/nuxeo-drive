@@ -1,3 +1,5 @@
+import json
+from datetime import date, datetime
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple
 
@@ -10,6 +12,8 @@ from ..qt.imports import (
     QAbstractListModel,
     QModelIndex,
     QObject,
+    QStandardItem,
+    QStandardItemModel,
     Qt,
     pyqtProperty,
     pyqtSignal,
@@ -830,3 +834,114 @@ class FeatureModel(QObject):
     @property
     def restart_needed(self) -> bool:
         return self._restart_needed
+
+
+class TasksModel(QObject):
+    TASK_ROLE = qt.UserRole  # + 1
+    TASK_ID = qt.UserRole + 1
+
+    def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
+        super().__init__(parent)
+        # self.tr = translate
+        self.taskmodel = QStandardItemModel()
+        self.taskmodel.setItemRoleNames(
+            {
+                self.TASK_ROLE: b"task",
+                self.TASK_ID: b"task_id",
+            }
+        )
+
+        self.self_taskmodel = QStandardItemModel()
+        self.self_taskmodel.setItemRoleNames(
+            {
+                self.TASK_ROLE: b"task",
+                self.TASK_ID: b"task_id",
+            }
+        )
+
+    def get_model(self) -> QStandardItemModel:
+        return self.taskmodel
+
+    def get_self_model(self) -> QStandardItemModel:
+        return self.self_taskmodel
+
+    model = pyqtProperty(QObject, fget=get_model, constant=True)
+    self_model = pyqtProperty(QObject, fget=get_self_model, constant=True)
+
+    @pyqtSlot(list, str)
+    def loadList(self, tasks_list: list, username: str, /) -> None:
+        self.taskmodel.clear()
+        self.self_taskmodel.clear()
+
+        tasks_available = False
+        self_tasks_available = False
+        for task in tasks_list:
+            now = date.today()
+            due = datetime.strptime(task.dueDate, "%Y-%m-%dT%H:%M:%S.%f%z").date()
+            time_remaing = Translator.get("DAYS")
+            diff = (due - now).days
+            if diff > 364 or diff < -364:
+                diff /= 365
+                time_remaing = Translator.get("YEARS")
+            elif diff > 29 or diff < -29:
+                diff /= 30
+                time_remaing = Translator.get("MONTHS")
+            ago = Translator.get("AGO")
+            translated_in = Translator.get("IN")
+            diff = int(diff)
+            diff = (
+                f"{-diff} {time_remaing} {ago}"
+                if diff < 0
+                else f"{translated_in} {diff} {time_remaing}"
+            )
+            details = str(
+                {
+                    "wf_name": task.directive,
+                    "name": task.name,
+                    "due": f"Due: {diff}",
+                    "model": task.workflowModelName,
+                }
+            )
+            if task.actors[0]["id"] == username:
+                data = {
+                    "self_task_details": details,
+                    "task_ids": task.id,
+                }
+                self.add_row(data, self.TASK_ROLE, True)
+                self_tasks_available = True
+            else:
+                data = {
+                    "task_details": details,
+                    "task_ids": task.id,
+                }
+                self.add_row(data, self.TASK_ROLE, False)
+                tasks_available = True
+
+        dummy_details = json.dumps(
+            {
+                "wf_name": Translator.get("NO_TASKS_AVAILABLE"),
+                "name": "",
+                "due": "",
+                "model": "",
+            }
+        )
+
+        if not tasks_available:
+            dummy_data = {
+                "task_details": dummy_details,
+            }
+            self.add_row(dummy_data, self.TASK_ROLE, False)
+        if not self_tasks_available:
+            dummy_data = {
+                "self_task_details": dummy_details,
+            }
+            self.add_row(dummy_data, self.TASK_ROLE, True)
+
+    def add_row(self, task: dict, role: int, self_task: bool) -> None:
+        item = QStandardItem()
+        item.setData(task, role)
+
+        if self_task:
+            self.self_taskmodel.appendRow(item)
+        else:
+            self.taskmodel.appendRow(item)
