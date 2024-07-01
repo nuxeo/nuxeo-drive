@@ -4,7 +4,7 @@ from typing import Iterator, List, Union
 from nuxeo.models import Document
 
 from ..client.remote_client import Remote
-from ..objects import Filters, RemoteFileInfo
+from ..objects import Filters, NuxeoDocumentInfo, RemoteFileInfo
 from ..options import Options
 from ..qt import constants as qt
 from ..qt.imports import QObject, Qt
@@ -247,14 +247,19 @@ class FoldersOnly:
                 )
             )
 
+    def get_roots(self) -> List[NuxeoDocumentInfo]:
+        res = self.remote.execute(command="NuxeoDrive.GetRoots")
+        return res["entries"]
+
     def _get_root_folders(self) -> List["Documents"]:
         """Get root folders.
         Use a try...except block to prevent loading error on the root,
         else it will also show a loading error for the personal space.
         """
         try:
-            root = self.remote.documents.get(path="/")
-            return [Doc(doc) for doc in self._get_children(root.uid)]
+            roots = self.get_roots()
+            for root in roots:
+                return [Doc(doc) for doc in self._get_children(root["parentRef"])]
         except Exception:
             log.warning("Error while retrieving documents on '/'", exc_info=True)
             context = {"permissions": [], "hasFolderishChild": False}
