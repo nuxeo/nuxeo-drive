@@ -1,9 +1,12 @@
+"""Task Management to check for pending document reviews and send notifications"""
+
 from datetime import datetime, timezone
 from logging import getLogger
 from typing import Dict, List
 
 from nuxeo.models import Task
 
+from nxdrive.constants import TaskManagementNotification
 from nxdrive.engine.engine import Engine
 
 from ..remote_client import Remote  # noqa
@@ -26,13 +29,8 @@ class Workflow:
         task_id = first_task.id
 
         if response := self.remote.documents.get(doc_id):
-            # check if user have to choose participants
-            if "chooseParticipants" in first_task.directive:
-                engine.send_task_notification(
-                    task_id, response.path, "Choose Participants"
-                )
-            else:
-                engine.send_task_notification(task_id, response.path, "Review Document")
+            task_type = self.get_task_type(first_task.directive)
+            engine.send_task_notification(task_id, response.path, task_type)
         else:
             log.error("Failed to fetch document details.")
 
@@ -80,7 +78,9 @@ class Workflow:
                     if len(tasks) > 1:
                         # Send generic notification for multiple tasks
                         engine.send_task_notification(
-                            tasks[0].targetDocumentIds[0]["id"], "", "Review Document"
+                            tasks[0].targetDocumentIds[0]["id"],
+                            "",
+                            TaskManagementNotification.REVIEWDOCUMENT.value,
                         )
                     else:
                         # Fetch document data
@@ -114,3 +114,17 @@ class Workflow:
         if userId and userId in self.user_task_list.keys():
             self.user_task_list.pop(userId)
             return
+
+    def get_task_type(self, type_of_task: str) -> str:
+        """Get the task type to display notification"""
+        if "chooseParticipants" in type_of_task or "pleaseSelect" in type_of_task:
+            message = TaskManagementNotification.CHOOSEPARTICIPANTS.value
+        elif "give_opinion" in type_of_task:
+            message = TaskManagementNotification.GIVEOPINION.value
+        elif "AcceptReject" in type_of_task:
+            message = TaskManagementNotification.VALIDATEDOCUMENT.value
+        elif "consolidate" in type_of_task:
+            message = TaskManagementNotification.CONSOLIDATEREVIEW.value
+        elif "updateRequest" in type_of_task:
+            message = TaskManagementNotification.UPDATEREQUESTED.value
+        return message

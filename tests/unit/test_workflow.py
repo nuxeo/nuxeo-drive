@@ -158,6 +158,18 @@ def test_fetch_document(workflow, engine, task):
     task.directive = "chooseParticipants"
     workflow.fetch_document([task], engine)
 
+    task.directive = "give_opinion"
+    workflow.fetch_document([task], engine)
+
+    task.directive = "AcceptReject"
+    workflow.fetch_document([task], engine)
+
+    task.directive = "consolidate"
+    workflow.fetch_document([task], engine)
+
+    task.directive = "updateRequest"
+    workflow.fetch_document([task], engine)
+
     # No response from remote.documents.get
     engine.remote.documents.get = Mock(return_value=None)
     workflow.fetch_document([task], engine)

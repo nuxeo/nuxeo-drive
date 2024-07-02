@@ -1176,15 +1176,15 @@ class QMLDriveApi(QObject):
 
             type_of_task = task.directive
             if "chooseParticipants" in type_of_task or "pleaseSelect" in type_of_task:
-                task.directive = Translator.get("CHOOSE_PARTICIPANTS")
+                task.directive = Translator.get("CHOOSE_PARTICIPANTS", values=[""])
             elif "give_opinion" in type_of_task:
-                task.directive = Translator.get("GIVE_OPINION")
+                task.directive = Translator.get("GIVE_OPINION", values=[""])
             elif "AcceptReject" in type_of_task:
-                task.directive = Translator.get("VALIDATE_DOCUMENT")
+                task.directive = Translator.get("VALIDATE_DOCUMENT", values=[""])
             elif "consolidate" in type_of_task:
-                task.directive = Translator.get("CONSOLIDATE_REVIEW")
+                task.directive = Translator.get("CONSOLIDATE_REVIEW", values=[""])
             elif "updateRequest" in type_of_task:
-                task.directive = Translator.get("UPDATE_REQUESTED")
+                task.directive = Translator.get("UPDATE_REQUESTED", values=[""])
 
             wf_name = ""
             for char in task.workflowModelName:

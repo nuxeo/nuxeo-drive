@@ -134,3 +134,15 @@ class TransferStatus(Enum):
     # But a "small" mess was done with NXDRIVE-1784 and fixed later with NXDRIVE-1901.
     # So we cannot use 5 as a value. Never again.
     CANCELLED = 6
+
+
+class TaskManagementNotification(Enum):
+    """Used to represent task notification type"""
+
+    CHOOSEPARTICIPANTS = "CHOOSE_PARTICIPANTS"
+    GIVEOPINION = "GIVE_OPINION"
+    VALIDATEDOCUMENT = "VALIDATE_DOCUMENT"
+    CONSOLIDATEREVIEW = "CONSOLIDATE_REVIEW"
+    UPDATEREQUESTED = "UPDATE_REQUESTED"
+    # Generic message in case of multiple document review
+    REVIEWDOCUMENT = "REVIEW_DOCUMENT"
