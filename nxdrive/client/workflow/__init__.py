@@ -126,4 +126,6 @@ class Workflow:
             message = "CONSOLIDATE_REVIEW"
         elif "updateRequest" in type_of_task:
             message = "UPDATE_REQUESTED"
+        else:
+            message = "REVIEW_DOCUMENT"
         return message
