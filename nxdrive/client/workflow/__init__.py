@@ -6,7 +6,6 @@ from typing import Dict, List
 
 from nuxeo.models import Task
 
-from nxdrive.constants import TaskManagementNotification
 from nxdrive.engine.engine import Engine
 
 from ..remote_client import Remote  # noqa
@@ -80,7 +79,7 @@ class Workflow:
                         engine.send_task_notification(
                             tasks[0].targetDocumentIds[0]["id"],
                             "",
-                            TaskManagementNotification.REVIEWDOCUMENT.value,
+                            "REVIEW_DOCUMENT",
                         )
                     else:
                         # Fetch document data
@@ -118,13 +117,13 @@ class Workflow:
     def get_task_type(self, type_of_task: str) -> str:
         """Get the task type to display notification"""
         if "chooseParticipants" in type_of_task or "pleaseSelect" in type_of_task:
-            message = TaskManagementNotification.CHOOSEPARTICIPANTS.value
+            message = "CHOOSE_PARTICIPANTS"
         elif "give_opinion" in type_of_task:
-            message = TaskManagementNotification.GIVEOPINION.value
+            message = "GIVE_OPINION"
         elif "AcceptReject" in type_of_task:
-            message = TaskManagementNotification.VALIDATEDOCUMENT.value
+            message = "VALIDATE_DOCUMENT"
         elif "consolidate" in type_of_task:
-            message = TaskManagementNotification.CONSOLIDATEREVIEW.value
+            message = "CONSOLIDATE_REVIEW"
         elif "updateRequest" in type_of_task:
-            message = TaskManagementNotification.UPDATEREQUESTED.value
+            message = "UPDATE_REQUESTED"
         return message
