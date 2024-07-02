@@ -1,5 +1,5 @@
 {
-    "ABOUT": "About",
+    "ABOUT": "Honi buruz",
     "ACCOUNT_NAME": "Kontu-izena",
     "ADD": "Gehitu",
     "ADD_FILES": "Gehitu fitxategiak",
@@ -106,7 +106,7 @@
     "DIRECT_TRANSFER_DETAILS": "[%1%] %2 / %3",
     "DIRECT_TRANSFER_END": "Transferentzia burututa: \"%1\"",
     "DIRECT_TRANSFER_ERROR": "Errorea transferitzean: \"%1\"",
-    "DIRECT_TRANSFER_FINALIZING_ERROR": "An error occurred during the transfer, it will resume shortly.",
+    "DIRECT_TRANSFER_FINALIZING_ERROR": "Errore bat gertatu da transferentzian, laster berrekingo da.",
     "DIRECT_TRANSFER_NO_ACCOUNT": "Ezin da transferentzia zuzena erabili konturik gabe, bertan behera uzten.",
     "DIRECT_TRANSFER_NOT_ALLOWED": "\"%1\" zuzenean transferitzea ez dago baimenduta fitxategi sinkronizatuentzat.",
     "DIRECT_TRANSFER_NOT_ENABLED": "Transferentzia zuzena ez dago gaituta.",
