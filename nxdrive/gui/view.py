@@ -1,4 +1,3 @@
-import json
 from datetime import date, datetime
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple
@@ -873,8 +872,6 @@ class TasksModel(QObject):
         self.taskmodel.clear()
         self.self_taskmodel.clear()
 
-        tasks_available = False
-        self_tasks_available = False
         for task in tasks_list:
             now = date.today()
             due = datetime.strptime(task.dueDate, "%Y-%m-%dT%H:%M:%S.%f%z").date()
@@ -908,34 +905,12 @@ class TasksModel(QObject):
                     "task_ids": task.id,
                 }
                 self.add_row(data, self.TASK_ROLE, True)
-                self_tasks_available = True
             else:
                 data = {
                     "task_details": details,
                     "task_ids": task.id,
                 }
                 self.add_row(data, self.TASK_ROLE, False)
-                tasks_available = True
-
-        dummy_details = json.dumps(
-            {
-                "wf_name": Translator.get("NO_TASKS_AVAILABLE"),
-                "name": "",
-                "due": "",
-                "model": "",
-            }
-        )
-
-        if not tasks_available:
-            dummy_data = {
-                "task_details": dummy_details,
-            }
-            self.add_row(dummy_data, self.TASK_ROLE, False)
-        if not self_tasks_available:
-            dummy_data = {
-                "self_task_details": dummy_details,
-            }
-            self.add_row(dummy_data, self.TASK_ROLE, True)
 
     def add_row(self, task: dict, role: int, self_task: bool) -> None:
         item = QStandardItem()
