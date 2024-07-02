@@ -18,13 +18,25 @@ Rectangle {
         engineUid = uid
     }
     onSetSection: {
-        if (index == 0) {
-            showSelfTasksList = false
-            }
-        else{
-            showSelfTasksList = true
-        }
         bar.currentIndex = index
+        showSelfTasksList = false
+        no_tasks_available_text.visible = false
+        if (tasks_model.model.rowCount() < 1) {
+            showSelfTasks()
+        }
+        if (tasks_model.self_model.rowCount() < 1) {
+             showTasks()
+        }
+    }
+    function showTasks() {
+        showSelfTasksList = false
+        bar.currentIndex = 0
+        no_tasks_available_text.visible = ( (bar.currentIndex == 0 && tasks_model.model.rowCount() < 1)||(bar.currentIndex == 1 && tasks_model.self_model.rowCount() < 1) ) ? true : false
+    }
+    function showSelfTasks() {
+        showSelfTasksList = true
+        bar.currentIndex = 1
+        no_tasks_available_text.visible = ( (bar.currentIndex == 0 && tasks_model.model.rowCount() < 1)||(bar.currentIndex == 1 && tasks_model.self_model.rowCount() < 1) ) ? true : false
     }
 
     Rectangle {
@@ -70,7 +82,7 @@ Rectangle {
             index: 0
             anchors.top: parent.top
             onClicked: {
-                showSelfTasksList = false
+                showTasks()
             }
         }
         SettingsTab {
@@ -79,7 +91,7 @@ Rectangle {
             index: 1
             anchors.top: parent.top
             onClicked: {
-                showSelfTasksList = true
+                showSelfTasks()
             }
         }
     }
@@ -156,5 +168,12 @@ Rectangle {
         active: true
         }
     }
-
+     Text {
+        id: no_tasks_available_text
+        //visible: ( (bar.currentIndex == 0 && tasks_model.model.rowCount() < 1)||(bar.currentIndex == 1 && tasks_model.self_model.rowCount() < 1) ) ? true : false
+        text: qsTr("NO_TASKS_AVAILABLE") + tl.tr
+        font.pointSize: point_size * 1.2
+        anchors.centerIn: parent
+        width: parent.Width
+     }
 }
