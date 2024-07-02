@@ -31,6 +31,7 @@ Feature = SimpleNamespace(
     direct_edit=True,
     direct_transfer=True,
     document_type_selection=False,
+    tasks_management=False,
     s3=False,
 )
 

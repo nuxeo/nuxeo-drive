@@ -141,3 +141,15 @@ def test_feature_synchronization(tmp, manager_factory):
         manager.set_config("client_version", "5.2.2")
         manager._guess_synchronization_state()
         assert not Feature.synchronization
+
+
+@Options.mock()
+def test_feature_tasks_management(manager_factory):
+    """Ensure the tasks management feature is well handled."""
+
+    Options.feature_tasks_management = True
+    with manager_factory(with_engine=False) as manager:
+        assert manager.get_feature_state("tasks_management") is True
+        manager.set_feature_state("tasks_management", False)
+        assert manager.get_feature_state("tasks_management") is False
+        assert not Feature.tasks_management
