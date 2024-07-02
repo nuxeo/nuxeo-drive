@@ -2067,7 +2067,6 @@ class Application(QApplication):
         user = {"userId": remote.user_id}
         try:
             tasks = remote.tasks.get(user)
-            print(f">>>>> tasks: {tasks!r}")
         except Exception:
             log.info("Unable to fetch tasks")
             tasks = []
