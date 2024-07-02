@@ -531,15 +531,10 @@ class DisplayPendingTask(Notification):
         /,
     ) -> None:
         values = [remote_path]
-        description = (
-            "PENDING_DOCUMENT_REVIEWS"
-            if notification_title == "Review Document"
-            else "CHOOSE_PARTICIPANTS_SYS"
-        )
         super().__init__(
-            uid=description,
-            title=notification_title,
-            description=Translator.get(description, values=values),
+            uid=notification_title,
+            title=(" ".join(notification_title.split("_"))).title(),
+            description=Translator.get(notification_title, values=values),
             level=Notification.LEVEL_INFO,
             flags=(
                 Notification.FLAG_PERSISTENT
