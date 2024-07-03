@@ -11,7 +11,6 @@ Available parameters and introduced version:
     Allow or disallow server deletions.
 
 """
-
 from types import SimpleNamespace
 
 Behavior = SimpleNamespace(server_deletion=True)
