@@ -1,7 +1,6 @@
 """
 Test the Auto-Lock feature used heavily by Direct Edit.
 """
-
 from pathlib import Path
 from typing import List, Tuple
 from unittest.mock import Mock, patch

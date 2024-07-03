@@ -1,7 +1,6 @@
 """
 Put here all PyQt imports used across the project.
 """
-
 from PyQt5.QtCore import (
     QT_VERSION_STR,
     QAbstractListModel,

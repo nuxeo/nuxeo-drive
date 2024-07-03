@@ -2,7 +2,6 @@
 Convert a CSV "log" file to a real log file.
 Such files are ones attached to NCO tickets.
 """
-
 import csv
 import sys
 from pathlib import Path

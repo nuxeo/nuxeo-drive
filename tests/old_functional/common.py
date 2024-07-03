@@ -1,5 +1,4 @@
 """ Common test utilities. """
-
 import os
 import sys
 import tempfile

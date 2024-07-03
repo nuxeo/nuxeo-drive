@@ -5,7 +5,6 @@ to speed-up command line calls without loading everything at startup.
 Most of functions are pure enough to be decorated with a LRU cache.
 Each *maxsize* is adjusted depending of the heavy use of the decorated function.
 """
-
 import os
 import os.path
 import re

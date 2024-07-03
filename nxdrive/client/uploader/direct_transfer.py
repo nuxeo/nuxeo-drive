@@ -1,7 +1,6 @@
 """
 Uploader used by the Direct Transfer feature.
 """
-
 import json
 from logging import getLogger
 from pathlib import Path

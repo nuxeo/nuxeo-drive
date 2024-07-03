@@ -1,7 +1,6 @@
 """
 Fatal error screen management using either Qt or OS-specific dialogs.
 """
-
 import sys
 from contextlib import suppress
 from pathlib import Path

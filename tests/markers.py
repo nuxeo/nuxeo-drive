@@ -1,5 +1,4 @@
 """Collection of pytest markers to ease test filtering."""
-
 import os
 
 import pytest

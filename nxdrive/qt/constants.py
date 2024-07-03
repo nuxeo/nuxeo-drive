@@ -1,7 +1,6 @@
 """
 Put here all PyQt constants used across the project.
 """
-
 from .imports import (
     QAbstractSocket,
     QDialogButtonBox,

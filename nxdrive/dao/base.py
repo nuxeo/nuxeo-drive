@@ -1,7 +1,6 @@
 """
 Query formatting in this file is based on http://www.sqlstyle.guide/
 """
-
 import sys
 from contextlib import suppress
 from logging import getLogger

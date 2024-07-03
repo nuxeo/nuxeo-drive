@@ -11,7 +11,6 @@ Available parameters:
     This state is set at the start of the application to know if it has crashed at the previous run.
 
 """
-
 from types import SimpleNamespace
 
 State = SimpleNamespace(about_to_quit=False, crash_details="", has_crashed=False)

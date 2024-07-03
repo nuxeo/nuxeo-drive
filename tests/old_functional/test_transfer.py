@@ -1,7 +1,6 @@
 """
 Test pause/resume transfers in different scenarii.
 """
-
 import re
 from unittest.mock import patch
 

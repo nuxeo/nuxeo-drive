@@ -22,7 +22,6 @@ Available parameters and introduced version:
     Enable or disable the synchronization features.
 
 """
-
 from types import SimpleNamespace
 from typing import List
 
