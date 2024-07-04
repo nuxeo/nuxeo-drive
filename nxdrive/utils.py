@@ -726,7 +726,7 @@ def concat_all_certificates(files: List[Path]) -> Optional[Path]:
 
         log.info(f"Saved the final certificate to {str(final_file)!r}, including:")
         for cert_file in cert_files:
-            log.debug(f" >>> {str(cert_file)!r}")
+            log.debug(f"Certificate file path: {str(cert_file)!r}")
         final_file.write_bytes(certificates)
     else:
         log.info(f"Will use the final certificate from {str(final_file)!r}")
