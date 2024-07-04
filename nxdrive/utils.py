@@ -607,6 +607,7 @@ def retrieve_ssl_certificate(hostname: str, /, *, port: int = 443) -> str:
 
     with ssl.create_connection((hostname, port)) as conn:  # type: ignore
         # Declaring a minimum version to restrict the protocol
+        # For more information check NXDRIVE-2920
         context = ssl.create_default_context()
         context.minimum_version = getattr(ssl.TLSVersion, MINIMUM_TLS_VERSION)
         with context.wrap_socket(conn, server_hostname=hostname) as sock:
