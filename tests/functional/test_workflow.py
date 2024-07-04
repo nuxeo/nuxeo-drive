@@ -6,12 +6,12 @@ import pytest
 from nuxeo.models import Document, Task
 
 from nxdrive.client.remote_client import Remote
-from nxdrive.client.workflow import Workflow
 from nxdrive.feature import Feature
 from nxdrive.gui.api import QMLDriveApi
 from nxdrive.gui.application import Application
 from nxdrive.gui.view import EngineModel
-from nxdrive.poll_workers import WorkflowWorker
+from nxdrive.pollWorkers.tasks_poll_worker import WorkflowWorker
+from nxdrive.tasksManagement import Workflow
 
 
 @pytest.fixture()

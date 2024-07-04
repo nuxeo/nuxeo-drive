@@ -748,20 +748,15 @@ class Engine(QObject):
         }
         return urls[self.force_ui or self.wui]
 
-    def get_task_url(self, remote_ref: str, /, *, edit: bool = False) -> str:
+    def get_task_url(self, remote_ref: str, /) -> str:
         """
         Build the task's URL based on the server's UI.
         Default is Web-UI.  In case of unknown UI, use the default value.
         :param remote_ref: The task remote reference (UID) of the
             task we want to show metadata.
-        :param edit: Show the metadata edit page instead of the task.
-        :return: The complete URL.
         """
-        repo = self.remote.client.repository
-        page = ("view_documents", "view_drive_metadata")[edit]
 
         urls = {
-            "jsf": f"{self.server_url}tasks/{repo}/{remote_ref}/{page}",
             "web": f"{self.server_url}ui#!/tasks/{remote_ref}",
         }
         return urls[self.force_ui or self.wui]

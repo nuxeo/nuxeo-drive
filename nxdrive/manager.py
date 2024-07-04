@@ -16,12 +16,19 @@ import nuxeo
 import requests
 from nuxeo.utils import version_le
 
+from nxdrive.poll_workers import (
+    DatabaseBackupWorker,
+    ServerOptionsUpdater,
+    SyncAndQuitWorker,
+)
+from nxdrive.pollWorkers.tasks_poll_worker import WorkflowWorker
+from nxdrive.tasksManagement import Workflow
+
 from . import __version__
 from .auth import Token
 from .autolocker import ProcessAutoLockerWorker
 from .client.local import LocalClient
 from .client.proxy import get_proxy, load_proxy, save_proxy, validate_proxy
-from .client.workflow import Workflow
 from .constants import (
     APP_NAME,
     DEFAULT_CHANNEL,
@@ -53,12 +60,6 @@ from .notification import DefaultNotificationService
 from .objects import Binder, EngineDef, Metrics, Session
 from .options import DEFAULT_LOG_LEVEL_FILE, Options
 from .osi import AbstractOSIntegration
-from .poll_workers import (
-    DatabaseBackupWorker,
-    ServerOptionsUpdater,
-    SyncAndQuitWorker,
-    WorkflowWorker,
-)
 from .qt.imports import QT_VERSION_STR, QObject, pyqtSignal, pyqtSlot
 from .updater import updater
 from .updater.constants import Login

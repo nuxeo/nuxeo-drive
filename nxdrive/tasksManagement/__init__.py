@@ -2,21 +2,23 @@
 
 from datetime import datetime, timezone
 from logging import getLogger
-from typing import Dict, List
+from typing import TYPE_CHECKING, Dict, List
 
 from nuxeo.models import Task
 
 from nxdrive.engine.engine import Engine
 
-from ..remote_client import Remote  # noqa
+if TYPE_CHECKING:
+    from client.remote_client import Remote  # noqa
 
 log = getLogger(__name__)
 
 
 class Workflow:
-    """Workflow Management for document Review"""
+    """Tasks Management for document Review"""
 
     user_task_list: Dict[str, List[str]] = {}
+    current_time: datetime = datetime.now(tz=timezone.utc)
 
     def __init__(self, remote: "Remote") -> None:
         self.remote = remote
@@ -36,10 +38,10 @@ class Workflow:
     def update_user_task_data(self, tasks: List[Task], userId: str) -> List[Task]:
         """Update user_task_list for below scenarios
         1. Add new key if it doesn't exist in user_task_list
-        2. If user_task_list[a_user] have [tasks_a, tasks_b] and got tasks[tasks_a, tasks_c] then
-            a. Add tasks_c in user_task_list[a_user] and send notification.
-            b. Remove tasks_b from user_task_list[a_user] and no notification in this case
-        3. If user_task_list[a_user] have [tasks_a, tasks_b] and got tasks[tasks_a, tasks_b].
+        2. If user_task_list[a_user] have [task_a, task_b] and got tasks[task_a, task_c] then
+            a. Add task_c in user_task_list[a_user] and send notification.
+            b. Remove task_b from user_task_list[a_user] and no notification in this case
+        3. If user_task_list[a_user] have [task_a, task_b] and got tasks[task_a, task_b].
         In this case no need to the send notification
         """
         task_ids = [task.id for task in tasks]
@@ -62,7 +64,7 @@ class Workflow:
             ]
             return []
 
-        # If no new tasks added or removed
+        # If no new task added or removed
         return []
 
     def get_pending_tasks(self, engine: Engine) -> List[Task]:  # type: ignore
@@ -92,22 +94,20 @@ class Workflow:
         except Exception as exec:
             log.error(f"Exception occurred while Fetching Tasks: {exec}")
 
-    @staticmethod
-    def remove_overdue_tasks(tasks: List[Task]) -> List[Task]:
+    def remove_overdue_tasks(self, tasks: List[Task]) -> List[Task]:
         """Remove overdue tasks"""
-        current_time = datetime.now(tz=timezone.utc)
-        log.info("Remove overdue tasks")
         return [
             task
             for task in tasks
             if (
-                datetime.strptime(task.dueDate, "%Y-%m-%dT%H:%M:%S.%f%z") > current_time
+                datetime.strptime(task.dueDate, "%Y-%m-%dT%H:%M:%S.%f%z")
+                > self.current_time
             )
         ]
 
     def clean_user_task_data(self, userId: str = "", /) -> None:
         """Remove user data for below scenarios:
-        1. If no tasks assigned to user remove the ID
+        1. If no task assigned to user remove the ID
         2. If account has been removed than remove the ID if it exist
         """
         if userId and userId in self.user_task_list.keys():
