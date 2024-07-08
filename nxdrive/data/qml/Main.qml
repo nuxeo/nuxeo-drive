@@ -5,6 +5,7 @@ import QtQuick 2.15
 import QtQuick.Window 2.15
 import SystrayWindow 1.0
 import CustomWindow 1.0
+import "tasksManager"
 
 QtObject {
 

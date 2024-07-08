@@ -393,7 +393,9 @@ class Application(QApplication):
         self.task_manager_window.setMinimumHeight(600)
         self._fill_qml_context(self.task_manager_window.rootContext())
         self.task_manager_window.setSource(
-            QUrl.fromLocalFile(str(find_resource("qml", file="TaskManager.qml")))
+            QUrl.fromLocalFile(
+                str(find_resource("qml/tasksManager", file="TaskManager.qml"))
+            )
         )
 
     def init_workflow(self) -> Workflow:
