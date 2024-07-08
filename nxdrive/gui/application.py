@@ -337,14 +337,7 @@ class Application(QApplication):
                 QUrl.fromLocalFile(str(find_resource("qml", file="DirectTransfer.qml")))
             )
 
-            # Task Manager
-            self.task_manager_window = CustomWindow()
-            self.task_manager_window.setMinimumWidth(500)
-            self.task_manager_window.setMinimumHeight(600)
-            self._fill_qml_context(self.task_manager_window.rootContext())
-            self.task_manager_window.setSource(
-                QUrl.fromLocalFile(str(find_resource("qml", file="TaskManager.qml")))
-            )
+            self.create_custom_window_for_task_manager()
 
             flags |= qt.Popup
         else:
@@ -392,6 +385,16 @@ class Application(QApplication):
 
         self.manager.featureUpdate.connect(self._update_feature_state)
         self.last_engine_uid = ""
+
+    def create_custom_window_for_task_manager(self) -> None:
+        # Task Manager
+        self.task_manager_window = CustomWindow()
+        self.task_manager_window.setMinimumWidth(500)
+        self.task_manager_window.setMinimumHeight(600)
+        self._fill_qml_context(self.task_manager_window.rootContext())
+        self.task_manager_window.setSource(
+            QUrl.fromLocalFile(str(find_resource("qml", file="TaskManager.qml")))
+        )
 
     def init_workflow(self) -> Workflow:
         if not self.manager.engines:
@@ -2067,8 +2070,8 @@ class Application(QApplication):
         user = {"userId": remote.user_id}
         try:
             tasks = remote.tasks.get(user)
-        except Exception:
-            log.info("Unable to fetch tasks")
+        except Exception as e:
+            log.info(f"Unable to fetch tasks due to: {e!r}")
             tasks = []
         self.last_engine_uid = engine.uid
         return tasks
