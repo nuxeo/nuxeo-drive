@@ -939,7 +939,7 @@ class Application(QApplication):
 
     @pyqtSlot()
     def show_systray(self) -> None:
-        self.task_manager_window.close()
+        self.close_tasks_window()
         self.systray_window.close()
         icon = self.tray_icon.geometry()
 
@@ -2054,13 +2054,15 @@ class Application(QApplication):
     @pyqtSlot()
     def close_tasks_window(self) -> None:
         """Close the Tasks window."""
-        self.task_manager_window.close()
+        if self.task_manager_window:
+            self.task_manager_window.close()
 
     @pyqtSlot(int)
     def show_hide_refresh_button(self, height: int, /) -> None:
         """Shows and Hides the refresh button of task window"""
-        r_button = self.task_manager_window.findChild(QObject, "refresh")
-        r_button.setProperty("height", height)
+        if self.task_manager_window:
+            r_button = self.task_manager_window.findChild(QObject, "refresh")
+            r_button.setProperty("height", height)
 
     def open_task(self, engine: Engine, task_id: str) -> None:
         endpoint = "/ui/#!/tasks/"
