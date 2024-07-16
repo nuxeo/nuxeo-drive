@@ -1,3 +1,5 @@
+# flake8: noqa
+
 import json
 from dataclasses import asdict
 from logging import getLogger
@@ -21,6 +23,7 @@ from ..constants import (
     TransferStatus,
 )
 from ..dao.engine import EngineDAO
+from ..engine.engine import Engine
 from ..exceptions import (
     AddonForbiddenError,
     AddonNotInstalledError,
@@ -305,6 +308,7 @@ class QMLDriveApi(QObject):
         engine = self._manager.engines.get(uid)
         if engine:
             path = engine.local.abspath(Path(ref))
+            self.fetch_pending_tasks(engine)
             self.application.show_metadata(path)
 
     @pyqtSlot(str, result=list)
@@ -457,6 +461,43 @@ class QMLDriveApi(QObject):
         self.application.hide_systray()
         log.info(f"Show settings on section {section}")
         self.application.show_settings(section)
+        
+    @pyqtSlot(str)
+    def show_tasks(self, section: str, /) -> None:
+        self.application.hide_systray()
+        log.info(f"Show Task Manager {section}")
+        self.application.show_tasks(section)
+
+    @pyqtSlot()
+    def fetch_pending_tasks(self, engine: Engine, /) -> None:
+        log.info("Check for pending approval tasks")
+        endpoint = "/api/v1/task/"
+        url = "http://localhost:8080/nuxeo" + endpoint
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
+        try:
+            # response = NuxeoClient.request(self,method="GET", path=endpoint, headers=headers, ssl_verify=Options.ssl_no_verify)
+            response = requests.get(
+                url=url,
+                verify=True,
+                timeout=3600,
+                headers=headers,
+                auth=("Administrator", "Administrator"),
+            )
+            log.info(f">>>>> response type: {type(response)}")
+            data = response.json()
+            log.info(f">>>> response: {data}")
+            if data["resultsCount"] > 0:
+                log.info("Send pending task notification")
+                for task in data["entries"]:
+                    log.info(f">>>> task: {task}")
+                    log.info(f">>>> taskid: {task['id']}")
+                    engine.fetch_pending_task_list(task["id"])
+
+        except Exception:
+            log.exception("Unable to fetch tasks")
 
     @pyqtSlot()
     def quit(self) -> None:
@@ -576,7 +617,9 @@ class QMLDriveApi(QObject):
     def _balance_percents(self, result: Dict[str, float], /) -> Dict[str, float]:
         """Return an altered version of the dict in which no value is under a minimum threshold."""
 
-        result = {k: v for k, v in sorted(result.items(), key=lambda item: item[1])}
+        result = {
+            k: v for k, v in sorted(result.items(), key=lambda item: item[1])
+        }  # noqa
         keys = list(result)
         min_threshold = 10
         data = 0.0
@@ -1103,8 +1146,47 @@ class QMLDriveApi(QObject):
         except OSError:
             log.exception("Remote document cannot be opened")
 
+    @pyqtSlot(str, str, str)
+    def display_pending_task(self, uid: str, remote_ref: str, /) -> None:
+        log.info(f"Should open remote document ({remote_ref!r})")
+        try:
+            engine = self._manager.engines.get(uid)
+            if engine:
+                url = engine.get_task_url(remote_ref)
+                log.info(f">>>> doc url: {url}")
+                engine.open_remote(url=url)
+        except OSError:
+            log.exception("Remote document cannot be opened")
+
     @pyqtSlot(str, str, result=str)
     def get_remote_document_url(self, uid: str, remote_ref: str, /) -> str:
         """Return the URL to a remote document based on its reference."""
         engine = self._manager.engines.get(uid)
         return engine.get_metadata_url(remote_ref) if engine else ""
+
+    @pyqtSlot(str, result=str)
+    def get_title(self, uid: str, /) -> str:
+        endpoint = "/api/v1/task/"
+        url = "http://localhost:8080/nuxeo" + endpoint
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
+        try:
+            response = requests.get(
+                url=url,
+                verify=True,
+                timeout=3600,
+                headers=headers,
+                auth=("Administrator", "Administrator"),
+            )
+            data = response.json()
+            html = data["entries"][0]
+            html = html["variables"]
+            html = html["review_result"]
+            return html if html else "No Results To Show"
+
+        except Exception:
+            log.exception("Unable to fetch tasks")
+            return "No Results Found"
+    
