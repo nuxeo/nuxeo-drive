@@ -11,7 +11,7 @@ from time import monotonic
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import unquote_plus, urlparse
 
-from nxdrive.client.workflow import Workflow
+from nxdrive.tasksManagement import Workflow
 
 from ..behavior import Behavior
 from ..constants import (
