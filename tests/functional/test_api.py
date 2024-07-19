@@ -104,6 +104,7 @@ def test_get_text(manager_factory):
 def test_text_red(manager_factory):
     manager = manager_factory(with_engine=False)
     manager.application = ""
+    Translator(find_resource("i18n"), lang="en")
 
     def mocked_open_authentication_dialog():
         return

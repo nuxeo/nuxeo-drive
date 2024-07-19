@@ -873,29 +873,13 @@ class TasksModel(QObject):
         self.self_taskmodel.clear()
 
         for task in tasks_list:
-            now = date.today()
-            due = datetime.strptime(task.dueDate, "%Y-%m-%dT%H:%M:%S.%f%z").date()
-            time_remaing = Translator.get("DAYS")
-            diff = (due - now).days
-            if diff > 364 or diff < -364:
-                diff /= 365
-                time_remaing = Translator.get("YEARS")
-            elif diff > 29 or diff < -29:
-                diff /= 30
-                time_remaing = Translator.get("MONTHS")
-            ago = Translator.get("AGO")
-            translated_in = Translator.get("IN")
-            diff = int(diff)
-            diff = (
-                f"{-diff} {time_remaing} {ago}"
-                if diff < 0
-                else f"{translated_in} {diff} {time_remaing}"
-            )
+            diff = self.due_date_calculation(task.dueDate)
+            translated_due = Translator.get("DUE")
             details = str(
                 {
                     "wf_name": task.directive,
                     "name": task.name,
-                    "due": f"Due: {diff}",
+                    "due": f"{translated_due}: {diff}",
                     "model": task.workflowModelName,
                 }
             )
@@ -920,3 +904,23 @@ class TasksModel(QObject):
             self.self_taskmodel.appendRow(item)
         else:
             self.taskmodel.appendRow(item)
+
+    def due_date_calculation(self, dueDate: str) -> str:
+        due_date = datetime.strptime(dueDate, "%Y-%m-%dT%H:%M:%S.%f%z").date()
+        now = date.today()
+        time_remaing = Translator.get("DAYS")
+        diff = (due_date - now).days
+        if diff > 364 or diff < -364:
+            diff /= 365
+            time_remaing = Translator.get("YEARS")
+        elif diff > 29 or diff < -29:
+            diff /= 30
+            time_remaing = Translator.get("MONTHS")
+        ago = Translator.get("AGO")
+        translated_in = Translator.get("IN")
+        diff = int(diff)
+        return (
+            f"{-diff} {time_remaing} {ago}"
+            if diff < 0
+            else f"{translated_in} {diff} {time_remaing}"
+        )

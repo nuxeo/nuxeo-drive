@@ -130,6 +130,7 @@
     "DRIVE_ROOT_RECREATE": "Recreate",
     "DONT_ASK_AGAIN": "Don't ask me again",
     "DOWNGRADE_TO": "Downgrade to %1",
+    "DUE": "Due",
     "DUPLICATE_BEHAVIOR": "Files duplicates management",
     "DUPLICATE_BEHAVIOR_CREATE": "Create",
     "DUPLICATE_BEHAVIOR_IGNORE": "Ignore",

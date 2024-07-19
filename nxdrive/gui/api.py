@@ -1138,7 +1138,8 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, result=bool)
     def text_red(self, text: str, /) -> bool:
-        return "ago" in text
+        ago = Translator.get("AGO")
+        return ago in text
 
     @pyqtSlot(str)
     def open_tasks_window(self, uid: str, /) -> None:

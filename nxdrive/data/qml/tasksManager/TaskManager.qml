@@ -2,7 +2,8 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.2
 import QtQuick.Window 2.15
-import "icon-font/Icon.js" as MdiFont
+import "../icon-font/Icon.js" as MdiFont
+import "../"
 
 Rectangle {
     id: taskManager
