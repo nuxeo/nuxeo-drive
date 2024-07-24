@@ -445,9 +445,7 @@ class Application(QApplication):
                 self.init_workflow()
                 self.manager._create_workflow_worker()
             else:
-
                 # clean user_task_list if we are disabling the tasks_management feature
-
                 self.added_user_engine_list = []
                 Workflow.user_task_list = {}
                 self.manager.stop_workflow_worker()
