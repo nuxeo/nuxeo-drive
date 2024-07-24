@@ -49,6 +49,7 @@ from ..utils import (
     force_decode,
     get_date_from_sqlite,
     get_default_local_folder,
+    get_task_type,
     normalized_path,
     save_config,
     sizeof_fmt,
@@ -1175,17 +1176,7 @@ class QMLDriveApi(QObject):
                 log.info(f"Error occurred while fetching document info {e!r}")
                 task.name = "Unknown Document"
 
-            type_of_task = task.directive
-            if "chooseParticipants" in type_of_task or "pleaseSelect" in type_of_task:
-                task.directive = Translator.get("CHOOSE_PARTICIPANTS", values=[""])
-            elif "give_opinion" in type_of_task:
-                task.directive = Translator.get("GIVE_OPINION", values=[""])
-            elif "AcceptReject" in type_of_task:
-                task.directive = Translator.get("VALIDATE_DOCUMENT", values=[""])
-            elif "consolidate" in type_of_task:
-                task.directive = Translator.get("CONSOLIDATE_REVIEW", values=[""])
-            elif "updateRequest" in type_of_task:
-                task.directive = Translator.get("UPDATE_REQUESTED", values=[""])
+            task.directive = get_task_type(task.directive)
 
             wf_name = ""
             for char in task.workflowModelName:

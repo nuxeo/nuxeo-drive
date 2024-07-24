@@ -8,7 +8,8 @@ from nuxeo.models import Task
 
 from nxdrive.engine.engine import Engine
 
-from ..remote_client import Remote  # noqa
+from ...feature import Feature
+from ...utils import get_task_type
 
 log = getLogger(__name__)
 
@@ -18,18 +19,17 @@ class Workflow:
 
     user_task_list: Dict[str, List[str]] = {}
 
-    def __init__(self, remote: "Remote") -> None:
-        self.remote = remote
+    def __init__(self) -> None:
+        pass
 
     def fetch_document(self, tasks_list: Dict, engine: Engine) -> None:
         """Fetch document details"""
         first_task = tasks_list[0]
         doc_id = first_task.targetDocumentIds[0]["id"]
-        task_id = first_task.id
 
-        if response := self.remote.documents.get(doc_id):
-            task_type = self.get_task_type(first_task.directive)
-            engine.send_task_notification(task_id, response.path, task_type)
+        if response := engine.remote.get_info(doc_id, fetch_parent_uid=False):
+            task_type = get_task_type(first_task.directive)
+            engine.send_task_notification(first_task.id, response.path, task_type)
         else:
             log.error("Failed to fetch document details.")
 
@@ -69,11 +69,11 @@ class Workflow:
         """Get Tasks for document review"""
         try:
             options = {"userId": engine.remote.user_id}
-            if tasks := self.remote.tasks.get(options):
+            if tasks := engine.remote.tasks.get(options):
                 if tasks := self.remove_overdue_tasks(tasks):
                     tasks = self.update_user_task_data(tasks, options["userId"])
 
-                if tasks:
+                if tasks and Feature.tasks_management:
                     if len(tasks) > 1:
                         # Send generic notification for multiple tasks
                         engine.send_task_notification(
@@ -112,20 +112,3 @@ class Workflow:
         """
         if userId and userId in self.user_task_list.keys():
             self.user_task_list.pop(userId)
-            return
-
-    def get_task_type(self, type_of_task: str) -> str:
-        """Get the task type to display notification"""
-        if "chooseParticipants" in type_of_task or "pleaseSelect" in type_of_task:
-            message = "CHOOSE_PARTICIPANTS"
-        elif "give_opinion" in type_of_task:
-            message = "GIVE_OPINION"
-        elif "AcceptReject" in type_of_task:
-            message = "VALIDATE_DOCUMENT"
-        elif "consolidate" in type_of_task:
-            message = "CONSOLIDATE_REVIEW"
-        elif "updateRequest" in type_of_task:
-            message = "UPDATE_REQUESTED"
-        else:
-            message = "REVIEW_DOCUMENT"
-        return message

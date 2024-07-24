@@ -174,7 +174,7 @@ class WorkflowWorker(PollWorker):
 
     def __init__(self, manager: "Manager", /):
         """Check every hour"""
-        super().__init__(60 * 60, "WorkflowWorker")
+        super().__init__(5 * 1, "WorkflowWorker")
         self.manager = manager
 
         self._first_workflow_check = True
@@ -186,13 +186,19 @@ class WorkflowWorker(PollWorker):
         if not self.manager:
             return False
 
+        if not Feature.tasks_management:
+            return
+
         if self._first_workflow_check:
             self._first_workflow_check = False
             return True
 
-        if self.manager.engines and Feature.tasks_management:
+        if self.manager.engines:
             self.app = self.manager.application
             self.workflow = self.app.workflow
+            for id in self.manager.delete_users_from_tasks_cache:
+                self.workflow.clean_user_task_data(id)
+            self.manager.delete_users_from_tasks_cache = []
             for engine in self.manager.engines.copy().values():
                 self.workflow.get_pending_tasks(engine)
                 if engine.uid == self.app.last_engine_uid:

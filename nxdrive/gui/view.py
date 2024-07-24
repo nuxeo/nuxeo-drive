@@ -74,10 +74,12 @@ class EngineModel(QAbstractListModel):
         self.endInsertRows()
         self._connect_engine(self.application.manager.engines[uid])
         self.engineChanged.emit()
+        self.application.update_workflow()
 
     def removeEngine(self, uid: str, /) -> None:
         idx = self.engines_uid.index(uid)
         self.removeRows(idx, 1)
+        self.application.update_workflow_user_engine_list(True, uid)
         self.engineChanged.emit()
 
     def data(self, index: QModelIndex, role: int, /) -> str:
