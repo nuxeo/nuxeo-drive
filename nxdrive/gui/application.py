@@ -220,7 +220,7 @@ class Application(QApplication):
         if MAC:
             self._setup_notification_center()
 
-        self.added_user_engine_list = []
+        self.added_user_engine_list = [str]
         self.workflow = None
         # Initiate workflow when drive starts if tasks managemnt feature is enable
         self.init_workflow()

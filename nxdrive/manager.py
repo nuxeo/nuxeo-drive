@@ -243,7 +243,7 @@ class Manager(QObject):
         self.autolock_service = self._create_autolock_service()
         self.direct_edit = self._create_direct_edit()
 
-        self.delete_users_from_tasks_cache = []
+        self.delete_users_from_tasks_cache = [str]
 
         # Create the workflow worker if tasks_management feature is enable
         self._create_workflow_worker()
