@@ -19,9 +19,6 @@ class Workflow:
 
     user_task_list: Dict[str, List[str]] = {}
 
-    def __init__(self) -> None:
-        pass
-
     def fetch_document(self, tasks_list: Dict, engine: Engine) -> None:
         """Fetch document details"""
         first_task = tasks_list[0]
