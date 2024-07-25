@@ -1346,3 +1346,19 @@ def get_verify():
             if "No such file or directory" and "-gw" in str(exc):
                 ssl_verification_needed = False
     return ssl_verification_needed
+
+
+def get_task_type(type_of_task: str) -> str:
+    from .translator import Translator
+
+    if "chooseParticipants" in type_of_task or "pleaseSelect" in type_of_task:
+        return Translator.get("CHOOSE_PARTICIPANTS", values=[""])
+    if "give_opinion" in type_of_task:
+        return Translator.get("GIVE_OPINION", values=[""])
+    if "AcceptReject" in type_of_task:
+        return Translator.get("VALIDATE_DOCUMENT", values=[""])
+    if "consolidate" in type_of_task:
+        return Translator.get("CONSOLIDATE_REVIEW", values=[""])
+    if "updateRequest" in type_of_task:
+        return Translator.get("UPDATE_REQUESTED", values=[""])
+    return Translator.get("PENDING_TASKS", values=[""])
