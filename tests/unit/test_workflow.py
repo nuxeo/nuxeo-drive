@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from unittest.mock import Mock
 from uuid import uuid4
 
@@ -12,6 +13,7 @@ from nxdrive.gui.api import QMLDriveApi
 from nxdrive.gui.application import Application
 from nxdrive.gui.view import EngineModel
 from nxdrive.poll_workers import WorkflowWorker
+from nxdrive.translator import Translator
 
 
 @pytest.fixture()
@@ -35,8 +37,8 @@ def remote():
 
 
 @pytest.fixture()
-def workflow(remote):
-    return Workflow(remote)
+def workflow():
+    return Workflow()
 
 
 @pytest.fixture()
@@ -149,8 +151,14 @@ def test_remove_overdue_tasks(workflow, engine, task):
     assert workflow.get_pending_tasks(engine) is None
 
 
+def get_folder(folder) -> Path:
+    return Path(__file__).parent.parent / "resources" / folder
+
+
 def test_fetch_document(workflow, engine, task):
-    engine.remote.documents.get = Mock(path="/doc_path/doc.txt")
+    Translator(get_folder("i18n"))
+    assert Translator.locale() == "en"
+    engine.remote.get_info = Mock(doc_id="/doc_path/doc.txt")
     engine.send_task_notification = Mock()
     workflow.fetch_document([task], engine)
 
@@ -178,7 +186,7 @@ def test_fetch_document(workflow, engine, task):
 def test_poll_initial_trigger(workflow_worker, manager, application, engine):
     # Test initial trigger via workflow worker
     workflow_worker._first_workflow_check = True
-    assert workflow_worker._poll()
+    assert not workflow_worker._poll()
 
     # without manager
     workflow_worker.manager = None
@@ -228,6 +236,7 @@ def test_clean_user_data_when_unbind_engine(manager, engine):
     manager.dropEngine = Mock()
     manager.get_engines = Mock()
     manager.db_backup_worker = False
+    manager.delete_users_from_tasks_cache = Mock()
     Feature.tasks_management = True
     engine.remote = Remote
     engine.remote.user_id = "user_a"

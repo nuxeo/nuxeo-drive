@@ -220,8 +220,11 @@ class Application(QApplication):
         if MAC:
             self._setup_notification_center()
 
+        self.added_user_engine_list = [str]
+        self.workflow = None
         # Initiate workflow when drive starts if tasks managemnt feature is enable
-        self.workflow = self.init_workflow()
+        self.init_workflow()
+
         # Application update
         self.manager.updater.appUpdated.connect(self.quit)
         self.manager.updater.serverIncompatible.connect(self._server_incompatible)
@@ -398,14 +401,32 @@ class Application(QApplication):
             )
         )
 
-    def init_workflow(self) -> Workflow:
+    def init_workflow(self) -> None:
         if not self.manager.engines:
             return
-        for engine in self.manager.engines.copy().values():
-            self.workflow = Workflow(engine.remote)
-            if Feature.tasks_management:
-                self.workflow.get_pending_tasks(engine)
-        return self.workflow
+        if Feature.tasks_management:
+            self.workflow = Workflow()
+            self.update_workflow()
+
+    def update_workflow(self) -> None:
+        try:
+            if Feature.tasks_management and self.workflow:
+                for engine in self.manager.engines.copy().values():
+                    if engine.uid not in self.added_user_engine_list:
+                        self.update_workflow_user_engine_list(False, engine.uid)
+                        self.workflow.get_pending_tasks(engine)
+                        """
+                        if not called_from_init or engine.uid == ??:
+                            self.workflow.get_pending_tasks(engine)
+                        """
+        except AttributeError:
+            log.debug("Unalbe to fetch the TASKS")
+
+    def update_workflow_user_engine_list(self, delete: bool, uid: str, /) -> None:
+        if delete:
+            self.added_user_engine_list.remove(uid)
+        else:
+            self.added_user_engine_list.append(uid)
 
     def _update_feature_state(self, name: str, value: bool, /) -> None:
         """Check if the feature model exists from *name* then update it with *value*."""
@@ -422,9 +443,12 @@ class Application(QApplication):
             if feature.enabled:
                 # Check for tasks while enabling the feature
                 self.init_workflow()
+                self.manager._create_workflow_worker()
             else:
                 # clean user_task_list if we are disabling the tasks_management feature
+                self.added_user_engine_list = []
                 Workflow.user_task_list = {}
+                self.manager.stop_workflow_worker()
 
     def _center_on_screen(self, window: QQuickView, /) -> None:
         """Display and center the window on the screen."""

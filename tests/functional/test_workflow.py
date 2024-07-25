@@ -3,9 +3,8 @@ from unittest.mock import Mock, patch
 from uuid import uuid4
 
 import pytest
-from nuxeo.models import Document, Task
+from nuxeo.models import Task
 
-from nxdrive.client.remote_client import Remote
 from nxdrive.client.workflow import Workflow
 from nxdrive.feature import Feature
 from nxdrive.gui.api import QMLDriveApi
@@ -25,17 +24,8 @@ def task():
 
 
 @pytest.fixture()
-def remote():
-    remote = Remote
-    remote.documents = Document
-    remote.user_id = f"{uuid4()}"
-    remote.tasks = Task
-    return remote
-
-
-@pytest.fixture()
-def workflow(remote):
-    return Workflow(remote)
+def workflow():
+    return Workflow()
 
 
 @pytest.fixture()

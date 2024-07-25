@@ -21,7 +21,6 @@ from .auth import Token
 from .autolocker import ProcessAutoLockerWorker
 from .client.local import LocalClient
 from .client.proxy import get_proxy, load_proxy, save_proxy, validate_proxy
-from .client.workflow import Workflow
 from .constants import (
     APP_NAME,
     DEFAULT_CHANNEL,
@@ -223,9 +222,6 @@ class Manager(QObject):
         # Create the server's configuration getter verification thread
         self._create_db_backup_worker()
 
-        # Create the workflow worker if tasks_management feature is enable
-        self._create_workflow_worker()
-
         # Setup analytics tracker
         self.tracker = self.create_tracker()
 
@@ -245,6 +241,11 @@ class Manager(QObject):
         # Create Direct Edit
         self.autolock_service = self._create_autolock_service()
         self.direct_edit = self._create_direct_edit()
+
+        self.delete_users_from_tasks_cache = [str]
+
+        # Create the workflow worker if tasks_management feature is enable
+        self._create_workflow_worker()
 
     def _save_or_load_proxy(self) -> "Proxy":
         if Options.proxy_server is not None:
@@ -415,9 +416,16 @@ class Manager(QObject):
             self.started.connect(self.db_backup_worker.thread.start)
 
     def _create_workflow_worker(self) -> None:
-        self.workflow_worker = WorkflowWorker(self)
-        if self.workflow_worker:
-            self.started.connect(self.workflow_worker.thread.start)
+        if Feature.tasks_management:
+            self.workflow_worker = WorkflowWorker(self)
+            self.workflow_thread = self.workflow_worker.thread
+            self.started.connect(self.workflow_thread.start)
+            self.stopped.connect(self.workflow_thread.quit)
+            if not self.workflow_thread.isRunning():
+                self.workflow_worker.start()
+
+    def stop_workflow_worker(self) -> None:
+        self.workflow_worker.quit()
 
     @if_frozen
     def _create_extension_listener(self) -> None:
@@ -943,10 +951,13 @@ class Manager(QObject):
         if not engine:
             return
 
+        """
         if Feature.tasks_management:
             # Clean user tasks data in case we are unbinding the account.
             self.workflow = Workflow(engine.remote)
             self.workflow.clean_user_task_data(engine.remote.user_id)
+        """
+        self.delete_users_from_tasks_cache.append(engine.remote.user_id)
 
         engine.unbind()
         self.dao.delete_engine(uid)

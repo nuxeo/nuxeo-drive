@@ -2,7 +2,11 @@ from copy import deepcopy
 from typing import Any, List
 from unittest.mock import Mock
 
-from nxdrive.gui.view import FileModel, TasksModel
+import pytest
+
+from nxdrive.client.workflow import Workflow
+from nxdrive.gui.application import Application
+from nxdrive.gui.view import EngineModel, FileModel, TasksModel
 from nxdrive.qt.imports import QModelIndex
 from nxdrive.translator import Translator
 from nxdrive.utils import find_resource
@@ -79,3 +83,41 @@ def test_tasksModel():
 
     dummy_task_list = [dummy_task2]
     assert not tasks_model.loadList(dummy_task_list, "Administrator")
+
+
+@pytest.fixture()
+def workflow():
+    return Workflow()
+
+
+@pytest.fixture()
+def application(manager_factory, workflow):
+    manager = manager_factory()
+    application = Mock(spec=Application)
+    application.manager = manager
+    application._init_translator = Mock()
+    application.setWindowIcon = Mock()
+    application.setApplicationName = Mock()
+    application.setQuitOnLastWindowClosed = Mock()
+    application.show_metrics_acceptance = Mock()
+    application.init_checks = Mock()
+    application._setup_notification_center = Mock()
+    application.workflow = workflow
+
+    return application
+
+
+def test_engine_model():
+    application_ = application
+    application_.api = Mock()
+    application_.update_workflow = Mock()
+    application_.update_workflow_user_engine_list = Mock()
+    application_.manager = Mock()
+    application_.manager.engines = {"dummy_uid": "dummy_engine"}
+    engine_model = EngineModel(application_)
+    engine_model.beginInsertRows = Mock()
+    engine_model.endInsertRows = Mock()
+    engine_model._connect_engine = Mock()
+    engine_model.removeRows = Mock()
+    assert not engine_model.addEngine("dummy_uid")
+    assert not engine_model.removeEngine("dummy_uid")
