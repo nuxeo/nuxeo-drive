@@ -276,7 +276,7 @@ class BaseUploader:
             # The upload is going through Nuxeo directly, no need to ping.
             return last_ping
 
-        _55_min_in_ns = 560 * 600 * 1000 * 1000 * 1000
+        _55_min_in_ns = 55 * 60 * 1000 * 1000 * 1000
         current_ping = monotonic_ns()
         if current_ping - last_ping < _55_min_in_ns:
             # < 55 minutes, no need to ping

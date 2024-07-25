@@ -88,7 +88,6 @@ class Manager(QObject):
     initEngine = pyqtSignal(object)
     started = pyqtSignal()
     stopped = pyqtSignal()
-    finished = pyqtSignal()
     suspended = pyqtSignal()
     reloadIconsSet = pyqtSignal(bool)
     resumed = pyqtSignal()
