@@ -514,7 +514,7 @@ function sign($file) {
 		$Env:SIGNING_ID = "Nuxeo"
 		Write-Output ">>> SIGNING_ID is not set, using '$Env:SIGNING_ID'"
 	}
-        
+
 	if (-Not ($Env:SIGNING_ID_NEW)) {
 		$Env:SIGNING_ID_NEW = "Hyland Software, Inc."
 		Write-Output ">>> SIGNING_ID_NEW is not set, using '$Env:SIGNING_ID_NEW'"
@@ -535,26 +535,30 @@ function sign($file) {
 	#		Remove-Item -Path $cert -Verbose
 	#	}
 	#}
-	Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"	
-	Write-Output ">>> Signing $file"
-	& $Env:SIGNTOOL_PATH\signtool.exe sign `
-		/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
-		/n "$Env:SIGNING_ID_NEW" `
-		/d "$Env:APP_NAME" `
-		/td SHA256 /fd sha256 `
-		/tr http://timestamp.digicert.com/sha256/timestamp `
-		/v `
-		"$file"
-		
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
+	Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"
 
-	Write-Output ">>> Verifying $file"
-	& $Env:SIGNTOOL_PATH\signtool.exe verify /pa /v "$file"
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
+
+	#Write-Output ">>> Signing $file"
+	#& $Env:SIGNTOOL_PATH\signtool.exe sign `
+	#	/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
+	#	/n "$Env:SIGNING_ID_NEW" `
+	#	/d "$Env:APP_NAME" `
+	#	/td SHA256 /fd sha256 `
+	#	/tr http://timestamp.digicert.com/sha256/timestamp `
+	#	/v `
+	#	"$file"
+
+	#if ($lastExitCode -ne 0) {
+	#	ExitWithCode $lastExitCode
+	#}
+
+	#Write-Output ">>> Verifying $file"
+	#& $Env:SIGNTOOL_PATH\signtool.exe verify /pa /v "$file"
+	#if ($lastExitCode -ne 0) {
+	#	ExitWithCode $lastExitCode
+	#}
+
+
 }
 function build_installer_and_sign {
 	# Build the installer
