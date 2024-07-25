@@ -22,7 +22,7 @@ class DatabaseBackupWorker(PollWorker):
 
     def __init__(self, manager: "Manager", /):
         """Backup every hour."""
-        super().__init__(60 * 60, "DatabaseBackup")
+        super().__init__(60 * 3, "DatabaseBackup")
         self.manager = manager
 
     @pyqtSlot(result=bool)
@@ -49,7 +49,7 @@ class ServerOptionsUpdater(PollWorker):
     firstRunCompleted = pyqtSignal()
 
     def __init__(self, manager: "Manager", /):
-        default_delay = 60 * 60  # 1 hour
+        default_delay = 60 * 3  # 1 hour
         # The check will be done every *update_check_delay* seconds or *default_delay*
         # when the channel is centralized.
         delay = Options.update_check_delay or default_delay
@@ -174,7 +174,7 @@ class WorkflowWorker(PollWorker):
 
     def __init__(self, manager: "Manager", /):
         """Check every hour"""
-        super().__init__(5 * 1, "WorkflowWorker")
+        super().__init__(60 * 3, "WorkflowWorker")
         self.manager = manager
 
         self._first_workflow_check = True
