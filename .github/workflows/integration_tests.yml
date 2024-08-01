@@ -63,6 +63,7 @@ jobs:
         if: ${{ success() }} || ${{ failure() }}
         uses: codecov/codecov-action@v3.1.5
         with:
+          token: ${{secrets.CODECOV_TOKEN}}
           files: ./coverage.xml
           flags: integration
           env_vars: OS,PYTHON

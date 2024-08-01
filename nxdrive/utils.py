@@ -68,6 +68,8 @@ DEFAULTS_CERT_DETAILS = {
     "notBefore": "N/A",
 }
 
+MINIMUM_TLS_VERSION = "TLSv1_2"
+
 log = getLogger(__name__)
 
 
@@ -604,7 +606,11 @@ def retrieve_ssl_certificate(hostname: str, /, *, port: int = 443) -> str:
     import ssl
 
     with ssl.create_connection((hostname, port)) as conn:  # type: ignore
-        with ssl.SSLContext().wrap_socket(conn, server_hostname=hostname) as sock:
+        # Declaring a minimum version to restrict the protocol
+        # For more information check NXDRIVE-2920
+        context = ssl.create_default_context()
+        context.minimum_version = getattr(ssl.TLSVersion, MINIMUM_TLS_VERSION)
+        with context.wrap_socket(conn, server_hostname=hostname) as sock:
             cert_data: bytes = sock.getpeercert(binary_form=True)  # type: ignore
             return ssl.DER_cert_to_PEM_cert(cert_data)
 
@@ -676,7 +682,7 @@ def get_certificate_details(
 
 def concat_all_certificates(files: List[Path]) -> Optional[Path]:
     """Craft a all-in-one certificate with ones from cacert and custom ones."""
-    from hashlib import md5
+    from hashlib import sha256
 
     import certifi
 
@@ -707,7 +713,7 @@ def concat_all_certificates(files: List[Path]) -> Optional[Path]:
         log.warning("No valid certificate found.")
         return None
 
-    name = md5(certificates).hexdigest()
+    name = sha256(certificates).hexdigest()
     folder = Options.nxdrive_home
     final_file: Path = folder / f"ndrive_{name}.pem"
 
@@ -720,7 +726,7 @@ def concat_all_certificates(files: List[Path]) -> Optional[Path]:
 
         log.info(f"Saved the final certificate to {str(final_file)!r}, including:")
         for cert_file in cert_files:
-            log.info(f" >>> {str(cert_file)!r}")
+            log.debug(f"Certificate file path: {str(cert_file)!r}")
         final_file.write_bytes(certificates)
     else:
         log.info(f"Will use the final certificate from {str(final_file)!r}")
@@ -1340,3 +1346,19 @@ def get_verify():
             if "No such file or directory" and "-gw" in str(exc):
                 ssl_verification_needed = False
     return ssl_verification_needed
+
+
+def get_task_type(type_of_task: str) -> str:
+    from .translator import Translator
+
+    if "chooseParticipants" in type_of_task or "pleaseSelect" in type_of_task:
+        return Translator.get("CHOOSE_PARTICIPANTS", values=[""])
+    if "give_opinion" in type_of_task:
+        return Translator.get("GIVE_OPINION", values=[""])
+    if "AcceptReject" in type_of_task:
+        return Translator.get("VALIDATE_DOCUMENT", values=[""])
+    if "consolidate" in type_of_task:
+        return Translator.get("CONSOLIDATE_REVIEW", values=[""])
+    if "updateRequest" in type_of_task:
+        return Translator.get("UPDATE_REQUESTED", values=[""])
+    return Translator.get("PENDING_TASKS", values=[""])

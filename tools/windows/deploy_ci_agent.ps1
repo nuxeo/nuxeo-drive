@@ -21,6 +21,7 @@ param (
 	[switch]$build = $false,
 	[switch]$build_dlls = $false,
 	[switch]$check_upgrade = $false,
+	[switch]$build_installer_and_sign = $false,
 	[switch]$install = $false,
 	[switch]$install_release = $false,
 	[switch]$start = $false,
@@ -86,7 +87,7 @@ function build_installer {
 		build_overlays
 	}
 
-	sign_dlls
+	#sign_dlls
 
 	Write-Output ">>> [$app_version] Freezing the application"
 	freeze_pyinstaller
@@ -95,10 +96,10 @@ function build_installer {
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\cleanup_application_tree.py "dist\ndrive"
 
 	# Remove compiled QML files
-	Get-ChildItem -Path "dist\ndrive" -Recurse -File -Include *.qmlc | Foreach ($_) {Remove-Item -Verbose $_.Fullname}
+	Get-ChildItem -Path "dist\ndrive" -Recurse -File -Include *.qmlc | Foreach ($_) { Remove-Item -Verbose $_.Fullname }
 
 	add_missing_ddls
-	sign "dist\ndrive\ndrive.exe"
+	#sign "dist\ndrive\ndrive.exe"
 
 	# Stop now if we only want the application to be frozen (for integration tests)
 	if ($Env:FREEZE_ONLY) {
@@ -111,14 +112,14 @@ function build_installer {
 
 	if (-Not ($Env:SKIP_ADDONS)) {
 		build "$app_version" "tools\windows\setup-addons.iss"
-		sign "dist\nuxeo-drive-addons.exe"
+		#sign "dist\nuxeo-drive-addons.exe"
 	}
 
 	build "$app_version" "tools\windows\setup.iss"
-	sign "dist\nuxeo-drive-$app_version.exe"
+	#sign "dist\nuxeo-drive-$app_version.exe"
 
 	build "$app_version" "tools\windows\setup-admin.iss"
-	sign "dist\nuxeo-drive-$app_version-admin.exe"
+	#sign "dist\nuxeo-drive-$app_version-admin.exe"
 }
 
 function build_overlays {
@@ -129,17 +130,17 @@ function build_overlays {
 	# Remove old DLLs on GitHub-CI to prevent such errors:
 	#	Rename-Item : Cannot create a file when that file already exists.
 	if ($Env:GITHUB_WORKSPACE) {
-		Get-ChildItem -Path $folder -Recurse -File -Include *.dll | Foreach ($_) {Remove-Item $_.Fullname}
+		Get-ChildItem -Path $folder -Recurse -File -Include *.dll | Foreach ($_) { Remove-Item $_.Fullname }
 	}
 
 	# List of DLLs to build
 	$overlays = @(
-		@{Name='NuxeoDriveSynced'; Id='1'; Icon='badge_synced'},
-		@{Name='NuxeoDriveSyncing'; Id='2'; Icon='badge_syncing'},
-		@{Name='NuxeoDriveConflicted'; Id='3'; Icon='badge_conflicted'},
-		@{Name='NuxeoDriveError'; Id='4'; Icon='badge_error'},
-		@{Name='NuxeoDriveLocked'; Id='5'; Icon='badge_locked'},
-		@{Name='NuxeoDriveUnsynced'; Id='6'; Icon='badge_unsynced'}
+		@{Name = 'NuxeoDriveSynced'; Id = '1'; Icon = 'badge_synced' },
+		@{Name = 'NuxeoDriveSyncing'; Id = '2'; Icon = 'badge_syncing' },
+		@{Name = 'NuxeoDriveConflicted'; Id = '3'; Icon = 'badge_conflicted' },
+		@{Name = 'NuxeoDriveError'; Id = '4'; Icon = 'badge_error' },
+		@{Name = 'NuxeoDriveLocked'; Id = '5'; Icon = 'badge_locked' },
+		@{Name = 'NuxeoDriveUnsynced'; Id = '6'; Icon = 'badge_unsynced' }
 	)
 
 	$x64Path = "%name%_x64.dll"
@@ -186,7 +187,7 @@ function build_overlays {
 	}
 
 	# Delete everything that is not a DLL
-	Get-ChildItem -Path $folder\Release -Recurse -File -Exclude *.dll | Foreach ($_) {Remove-Item $_.Fullname}
+	Get-ChildItem -Path $folder\Release -Recurse -File -Exclude *.dll | Foreach ($_) { Remove-Item $_.Fullname }
 }
 
 function check_import($import) {
@@ -202,7 +203,7 @@ function check_import($import) {
 
 function check_upgrade {
 	# Ensure a new version can be released by checking the auto-update process.
-    & $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\scripts\check_update_process.py
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\scripts\check_update_process.py
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -217,7 +218,8 @@ function check_vars {
 		if ($Env:GITHUB_WORKSPACE) {
 			# Running from GitHub Actions
 			$Env:WORKSPACE = (Get-Item $Env:GITHUB_WORKSPACE).parent.FullName
-		} else {
+		}
+		else {
 			Write-Output ">>> WORKSPACE not defined. Aborting."
 			ExitWithCode 1
 		}
@@ -225,9 +227,11 @@ function check_vars {
 	if (-Not ($Env:WORKSPACE_DRIVE)) {
 		if (Test-Path "$($Env:WORKSPACE)\sources") {
 			$Env:WORKSPACE_DRIVE = "$($Env:WORKSPACE)\sources"
-		} elseif (Test-Path "$($Env:WORKSPACE)\nuxeo-drive") {
+		}
+		elseif (Test-Path "$($Env:WORKSPACE)\nuxeo-drive") {
 			$Env:WORKSPACE_DRIVE = "$($Env:WORKSPACE)\nuxeo-drive"
-		} else {
+		}
+		else {
 			$Env:WORKSPACE_DRIVE = $Env:WORKSPACE
 		}
 	}
@@ -255,14 +259,16 @@ function check_vars {
 
 	if (-Not ($Env:SPECIFIC_TEST) -Or ($Env:SPECIFIC_TEST -eq "")) {
 		$Env:SPECIFIC_TEST = "tests"
-	} else {
+	}
+ else {
 		Write-Output "    SPECIFIC_TEST        = $Env:SPECIFIC_TEST"
 		$Env:SPECIFIC_TEST = "tests\$Env:SPECIFIC_TEST"
 	}
 
 	if (-Not ($Env:SKIP)) {
 		$Env:SKIP = ""
-	} else {
+	}
+ else {
 		Write-Output "    SKIP                 = $Env:SKIP"
 	}
 }
@@ -284,10 +290,12 @@ function download($url, $output) {
 			if ($Env:GITHUB_WORKSPACE) {
 				$client = New-Object System.Net.WebClient
 				$client.DownloadFile($url, $output)
-			} else {
+			}
+			else {
 				Start-BitsTransfer -Source $url -Destination $output
 			}
-		} Catch {}
+		}
+		Catch {}
 		$try += 1
 		Start-Sleep -s 5
 	}
@@ -407,7 +415,7 @@ function junit_arg($path, $run) {
 	if ($run) {
 		$run = ".$run"
 	}
-    return "--junitxml=$junit\$path$run.xml"
+	return "--junitxml=$junit\$path$run.xml"
 }
 
 function launch_test($path, $pytest_args) {
@@ -506,33 +514,38 @@ function sign($file) {
 		$Env:SIGNING_ID = "Nuxeo"
 		Write-Output ">>> SIGNING_ID is not set, using '$Env:SIGNING_ID'"
 	}
+
+	if (-Not ($Env:SIGNING_ID_NEW)) {
+		$Env:SIGNING_ID_NEW = "Hyland Software, Inc."
+		Write-Output ">>> SIGNING_ID_NEW is not set, using '$Env:SIGNING_ID_NEW'"
+	}
 	if (-Not ($Env:APP_NAME)) {
 		$Env:APP_NAME = "Nuxeo Drive"
 		Write-Output ">>> APP_NAME is not set, using '$Env:APP_NAME'"
 	}
 
-	if ($Env:GITHUB_WORKSPACE) {
-		$cert = "certificate.pfx"
-		if (Test-Path $cert) {
-			Write-Output ">>> Importing the code signing certificate"
-			$password = ConvertTo-SecureString -String $Env:KEYCHAIN_PASSWORD -AsPlainText -Force
-			Import-PfxCertificate -FilePath $cert -CertStoreLocation "Cert:\LocalMachine\My" -Password $password
+	#if ($Env:GITHUB_WORKSPACE) {
+	#	$cert = "certificate.pfx"
+	#	if (Test-Path $cert) {
+	#		Write-Output ">>> Importing the code signing certificate"
+	#$password = ConvertTo-SecureString -String $Env:KEYCHAIN_PASSWORD -AsPlainText -Force
+	#		Import-PfxCertificate -FilePath $cert -CertStoreLocation "Cert:\LocalMachine\My" -Password $password
 
-			# Remove the file to not import it again the next run
-			Remove-Item -Path $cert -Verbose
-		}
-	}
-
+	# Remove the file to not import it again the next run
+	#		Remove-Item -Path $cert -Verbose
+	#	}
+	#}
+	Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"
 	Write-Output ">>> Signing $file"
 	& $Env:SIGNTOOL_PATH\signtool.exe sign `
-		/a `
-		/sm `
-		/n "$Env:SIGNING_ID" `
+		/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
+		/n "$Env:SIGNING_ID_NEW" `
 		/d "$Env:APP_NAME" `
-		/fd sha256 `
+		/td SHA256 /fd sha256 `
 		/tr http://timestamp.digicert.com/sha256/timestamp `
 		/v `
 		"$file"
+
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -543,7 +556,49 @@ function sign($file) {
 		ExitWithCode $lastExitCode
 	}
 }
+function build_installer_and_sign {
+	# Build the installer
+	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""
 
+	# Build DDLs only on GitHub-CI, no need to loose time on the local dev machine
+	if ($Env:GITHUB_WORKSPACE) {
+		build_overlays
+	}
+
+	sign_dlls
+
+	Write-Output ">>> [$app_version] Freezing the application"
+	freeze_pyinstaller
+
+	# Do some clean-up
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\cleanup_application_tree.py "dist\ndrive"
+
+	# Remove compiled QML files
+	Get-ChildItem -Path "dist\ndrive" -Recurse -File -Include *.qmlc | Foreach ($_) { Remove-Item -Verbose $_.Fullname }
+
+	add_missing_ddls
+	sign "dist\ndrive\ndrive.exe"
+
+	# Stop now if we only want the application to be frozen (for integration tests)
+	if ($Env:FREEZE_ONLY) {
+		return 0
+	}
+
+	if ($Env:ZIP_NEEDED) {
+		zip_files "dist\nuxeo-drive-windows-$app_version.zip" "dist\ndrive"
+	}
+
+	if (-Not ($Env:SKIP_ADDONS)) {
+		build "$app_version" "tools\windows\setup-addons.iss"
+		sign "dist\nuxeo-drive-addons.exe"
+	}
+
+	build "$app_version" "tools\windows\setup.iss"
+	sign "dist\nuxeo-drive-$app_version.exe"
+
+	build "$app_version" "tools\windows\setup-admin.iss"
+	sign "dist\nuxeo-drive-$app_version-admin.exe"
+}
 function sign_dlls {
 	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\dll"
 	Get-ChildItem $folder -Recurse -Include *.dll | Foreach-Object {
@@ -579,19 +634,27 @@ function main {
 
 	if ($build) {
 		build_installer
-	} elseif ($build_dlls) {
+	}
+ elseif ($build_dlls) {
 		build_overlays
-	} elseif ($check_upgrade) {
+	}
+ elseif ($build_installer_and_sign) {
+		build_installer_and_sign
+	}
+ elseif ($check_upgrade) {
 		check_upgrade
-	} elseif ($install -or $install_release) {
+	}
+ elseif ($install -or $install_release) {
 		install_deps
 		if ((check_import "import PyQt5") -ne 1) {
 			Write-Output ">>> No PyQt5. Installation failed."
 			ExitWithCode 1
 		}
-	} elseif ($start) {
+	}
+ elseif ($start) {
 		start_nxdrive
-	} elseif ($tests) {
+	}
+ elseif ($tests) {
 		launch_tests
 	}
 }
