@@ -407,21 +407,47 @@ class FoldersDialog(DialogMixin):
         """Open the duplicates management documentation in a browser tab."""
         webbrowser.open_new_tab(DOC_URL)
 
+    def _check_for_known_types(self, is_folder_type: bool, /) -> None:
+        if is_folder_type:
+            if "OrderedFolder" in self.containerTypeList:
+                self.containerTypeList.remove("OrderedFolder")
+                self.containerTypeList.append(Translator.get("ORDERED_FOLDER"))
+            if "Folder" in self.containerTypeList:
+                self.containerTypeList.remove("Folder")
+                self.containerTypeList.append(Translator.get("FOLDER"))
+        else:
+            if "Audio" in self.docTypeList:
+                self.docTypeList.remove("Audio")
+                self.docTypeList.append(Translator.get("AUDIO"))
+            if "File" in self.docTypeList:
+                self.docTypeList.remove("File")
+                self.docTypeList.append(Translator.get("FILE"))
+            if "Picture" in self.docTypeList:
+                self.docTypeList.remove("Picture")
+                self.docTypeList.append(Translator.get("PICTURE"))
+            if "Video" in self.docTypeList:
+                self.docTypeList.remove("Video")
+                self.docTypeList.append(Translator.get("VIDEO"))
+
     def update_file_group(self, /) -> None:
         self.cbDocType.clear()
-        self.cbDocType.addItem("Automatic", "create")
+        self.cbDocType.addItem(Translator.get("AUTOMATICS"), Translator.get("CREATE"))
         if self.remote_folder_ref:
             self.docTypeList = self.engine.remote.get_doc_enricher(
                 self.remote_folder_ref, "subtypes", False
             )
-
+            self._check_for_known_types(False)
             self.cbDocType.addItems(self.docTypeList)
+
         self.cbContainerType.clear()
-        self.cbContainerType.addItem("Automatic", "create")
+        self.cbContainerType.addItem(
+            Translator.get("AUTOMATICS"), Translator.get("CREATE")
+        )
         if self.remote_folder_ref:
             self.containerTypeList = self.engine.remote.get_doc_enricher(
                 self.remote_folder_ref, "subtypes", True
             )
+            self._check_for_known_types(True)
             self.cbContainerType.addItems(self.containerTypeList)
 
     def _add_subgroup_doc_type(self, layout: QVBoxLayout, /) -> None:
