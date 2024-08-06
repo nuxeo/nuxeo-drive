@@ -482,7 +482,6 @@ class FoldersDialog(DialogMixin):
         layout.addLayout(contTypelayout)
 
     def _add_subgroup_duplicate_behavior(self, layout: QVBoxLayout, /) -> None:
-
         duplayout = QHBoxLayout()
         """Add a sub-group for the duplicates behavior option."""
         label = QLabel(Translator.get("DUPLICATE_BEHAVIOR"))
