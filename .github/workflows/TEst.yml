@@ -16,4 +16,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: my-artifact
-          path: certificate.txt
+          path: certificate_macOS.txt
