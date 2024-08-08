@@ -22,6 +22,7 @@ CliHandler.unbind_root  # Used by the arguments parser
 CliHandler.unbind_server  # Used by the arguments parser
 CustomWindow.keyPressEvent  # Called by base class
 _.close_settings_too  # Used by Appiclation.show_filters()
+context.minimum_version  # Used to set TLS minimum version
 DirectTransferModel.destination_link  # Used in QML
 DocPair.last_sync_error_date  # Check NXDRIVE-1804
 Download.transfer_type  # Used in QML
@@ -75,6 +76,7 @@ QAbstractListModel.nameRoles  # Internal use of QML
 QMLDriveApi.confirm_cancel_session  # Used in QML
 QMLDriveApi.default_local_folder  # Used in QML
 QMLDriveApi.default_server_url_value  # Used in QML
+QMLDriveApi.display_pending_task  # Used in QML
 QMLDriveApi.get_active_sessions_count  # Used in QML
 QMLDriveApi.get_completed_sessions_count  # Used in QML
 QMLDriveApi.get_disk_space_info_to_width  # Used in QML
@@ -83,12 +85,14 @@ QMLDriveApi.get_features_list  # Used in QML
 QMLDriveApi.get_free_disk_space  # Used in QML
 QMLDriveApi.get_hostname_from_url  # Used in QML
 QMLDriveApi.get_remote_document_url  # Used in QML
+QMLDriveApi.get_text  # Used in QML
 QMLDriveApi.get_used_space_without_synced  # Used in QML
 QMLDriveApi.get_proxy_settings  # Used in QML
 QMLDriveApi.get_update_status  # Used in QML
 QMLDriveApi.get_update_url  # Used in QML
 QMLDriveApi.get_update_version  # Used in QML
 QMLDriveApi.get_available_version  # Used in QML
+QMLDriveApi.on_clicked_open_task  # Used in QML
 QMLDriveApi.open_direct_transfer  # Used in QML
 QMLDriveApi.open_document  # Used in QML
 QMLDriveApi.open_in_explorer  # Used in QML
@@ -96,8 +100,11 @@ QMLDriveApi.open_local  # Used in QML
 QMLDriveApi.open_remote_server  # Used in QML
 QMLDriveApi.open_remote_document  # Used in QML
 QMLDriveApi.open_server_folders  # Used in QML
+QMLDriveApi.open_tasks_window  # Used in QML
 QMLDriveApi.set_proxy_settings  # Used in QML
 QMLDriveApi.set_server_ui  # Used in QML
+QMLDriveApi.tasks_remaining  # Used in QML
+QMLDriveApi.text_red  # Used in QML
 QMLDriveApi.to_local_file  # Used in QML
 QMLDriveApi.web_update_token  # Used in QML
 ROOT_REGISTERED  # Used in tests
@@ -105,5 +112,7 @@ registry.create  # Used in test_windows_registry.py
 shortcut.Targetpath  # WindowsIntegration._create_shortcut()
 shortcut.WorkingDirectory  # WindowsIntegration._create_shortcut()
 shortcut.IconLocation  # WindowsIntegration._create_shortcut()
+TasksModel.loadList  # Used in QML
+TasksModel.self_model  # Used in QML
 Upload.transfer_type  # Used in QML
 WindowsIntegration.install_addons  # Used in QML
