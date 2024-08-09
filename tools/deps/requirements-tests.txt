@@ -403,9 +403,9 @@ types-python-dateutil==2.8.19.20240106 \
     --hash=sha256:1f8db221c3b98e6ca02ea83a58371b22c374f42ae5bbdf186db9c9a76581459f \
     --hash=sha256:efbbdc54590d0f16152fa103c9879c7d4a00e82078f6e2cf01769042165acaa2
     # via mypy
-types-PyYAML==6.0.12.12 \
-    --hash=sha256:334373d392fde0fdf95af5c3f1661885fa10c52167b14593eb856289e1855062 \
-    --hash=sha256:c05bc6c158facb0676674b7f11fe3960db4f389718e19e62bd2b84d6205cfd24
+types-PyYAML==6.0.12.20240808 \
+    --hash=sha256:b8f76ddbd7f65440a8bda5526a9607e4c7a322dc2f8e1a8c405644f9a6f4b9af \
+    --hash=sha256:deda34c5c655265fc517b546c902aa6eed2ef8d3e921e4765fe606fe2afe8d35
     # via mypy
 types-requests==2.26.1 \
     --hash=sha256:853571b3accc188976c0f4feffcaebf6cdfc170082b5e43f3358aa78de61f531 \
