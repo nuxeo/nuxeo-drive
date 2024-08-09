@@ -4,7 +4,7 @@ from typing import Iterator, List, Union
 from nuxeo.models import Document
 
 from ..client.remote_client import Remote
-from ..objects import Filters, RemoteFileInfo
+from ..objects import Filters, NuxeoDocumentInfo, RemoteFileInfo
 from ..options import Options
 from ..qt import constants as qt
 from ..qt.imports import QObject, Qt
@@ -213,10 +213,12 @@ class FoldersOnly:
 
     def __init__(self, remote: Remote, /) -> None:
         self.remote = remote
+        self.personal_space_uid = ""
 
     def get_personal_space(self) -> "Documents":
         """Retrieve the "Personal space" special folder."""
         personal_space = self.remote.personal_space()
+        self.personal_space_uid = personal_space.uid
 
         # Alter the title to use "Personal space" instead of "Firstname Lastname"
         personal_space.title = Translator.get("PERSONAL_SPACE")
@@ -247,14 +249,29 @@ class FoldersOnly:
                 )
             )
 
+    def get_roots(self) -> List[NuxeoDocumentInfo]:
+        from ..constants import QUERY_ENDPOINT
+
+        url = (
+            f"{QUERY_ENDPOINT}select * from Document WHERE ecm:mixinType = 'Folderish'"
+        )
+        res = self.remote.client.request("GET", url).json()
+        return res["entries"]
+
     def _get_root_folders(self) -> List["Documents"]:
         """Get root folders.
         Use a try...except block to prevent loading error on the root,
         else it will also show a loading error for the personal space.
         """
         try:
-            root = self.remote.documents.get(path="/")
-            return [Doc(doc) for doc in self._get_children(root.uid)]
+            roots = self.get_roots()
+            for root in roots:
+
+                if (
+                    root["type"] in ["Folder"]
+                    and root["parentRef"] != self.personal_space_uid
+                ):
+                    return [Doc(doc) for doc in self._get_children(root["parentRef"])]
         except Exception:
             log.warning("Error while retrieving documents on '/'", exc_info=True)
             context = {"permissions": [], "hasFolderishChild": False}
