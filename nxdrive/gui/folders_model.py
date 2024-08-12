@@ -255,33 +255,38 @@ class FoldersOnly:
         url = (
             f"{QUERY_ENDPOINT}select * from Document WHERE ecm:mixinType = 'Folderish'"
         )
-        res = self.remote.client.request("GET", url).json()
-        return res["entries"]
+        return self.remote.client.request("GET", url).json()["entries"]
 
     def _get_root_folders(self) -> List["Documents"]:
         """Get root folders.
         Use a try...except block to prevent loading error on the root,
         else it will also show a loading error for the personal space.
         """
+        root_details = []
         try:
             roots = self.get_roots()
             for root in roots:
-
                 if (
-                    root["type"] in ["Folder"]
+                    root["type"] == "Folder"
                     and root["parentRef"] != self.personal_space_uid
                 ):
-                    return [Doc(doc) for doc in self._get_children(root["parentRef"])]
+                    root_details.append(
+                        [Doc(doc) for doc in self._get_children(root["parentRef"])]
+                    )
         except Exception:
             log.warning("Error while retrieving documents on '/'", exc_info=True)
             context = {"permissions": [], "hasFolderishChild": False}
-            return [Doc(Document(title="/", contextParameters=context))]
+            root_details.append([Doc(Document(title="/", contextParameters=context))])
+        return root_details
 
     def get_top_documents(self) -> Iterator["Documents"]:
         """Fetch all documents at the root."""
         if not Options.dt_hide_personal_space:
             yield self._get_personal_space()
-        yield from self._get_root_folders()
+        for item in self._get_root_folders():
+            print(f">>>> item: {item!r}")
+            yield item
+        # yield from self._get_root_folders()
 
     def get_children(self, parent: "Documents", /) -> Iterator["Documents"]:
         """Fetch children of a given *parent*."""
