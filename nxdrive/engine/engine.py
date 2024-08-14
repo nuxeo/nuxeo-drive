@@ -841,7 +841,7 @@ class Engine(QObject):
             else self.dao.get_dt_upload
             if is_direct_transfer
             else self.dao.get_upload
-        )
+        )  # noqa
         func = partial(meth, uid=uid)  # type: ignore
         self._resume_transfers(nature, func, is_direct_transfer=is_direct_transfer)
 
