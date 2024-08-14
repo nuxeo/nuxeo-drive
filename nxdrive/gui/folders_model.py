@@ -1,10 +1,10 @@
 from logging import getLogger
-from typing import Iterator, List, Union
+from typing import Any, Iterator, List, Union
 
 from nuxeo.models import Document
 
 from ..client.remote_client import Remote
-from ..objects import Filters, NuxeoDocumentInfo, RemoteFileInfo
+from ..objects import Filters, RemoteFileInfo
 from ..options import Options
 from ..qt import constants as qt
 from ..qt.imports import QObject, Qt
@@ -249,7 +249,7 @@ class FoldersOnly:
                 )
             )
 
-    def get_roots(self) -> List[NuxeoDocumentInfo]:
+    def get_roots(self) -> List[Any]:
         from ..constants import QUERY_ENDPOINT
 
         url = (
