@@ -1,4 +1,5 @@
 """ Python integration macOS notification center. """
+
 from typing import TYPE_CHECKING, Dict
 
 from CoreServices import (
