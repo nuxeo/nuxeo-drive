@@ -33,6 +33,7 @@ from ..qt.imports import (
 )
 from ..translator import Translator
 from ..utils import find_icon, get_tree_list, sizeof_fmt
+from .constants import get_known_types_translations
 from .folders_model import FilteredDocuments, FoldersOnly
 from .folders_treeview import DocumentTreeView, FolderTreeView
 
@@ -269,6 +270,11 @@ class FoldersDialog(DialogMixin):
             "dt_last_duplicates_behavior", default="create"
         )
 
+        _types = get_known_types_translations()
+        self.KNOWN_FOLDER_TYPES = _types.get("FOLDER_TYPES", {})
+        self.KNOWN_FILE_TYPES = _types.get("FILE_TYPES", {})
+        self.DEFAULT_TYPES = _types.get("DEFAULT", {})
+
         self.vertical_layout.addWidget(self._add_group_local())
         self.vertical_layout.addWidget(self._add_group_remote())
         self.vertical_layout.addWidget(self._add_group_options())
@@ -409,29 +415,21 @@ class FoldersDialog(DialogMixin):
 
     def _check_for_known_types(self, is_folder_type: bool, /) -> None:
         if is_folder_type:
-            if "OrderedFolder" in self.containerTypeList:
-                self.containerTypeList.remove("OrderedFolder")
-                self.containerTypeList.append(Translator.get("ORDERED_FOLDER"))
-            if "Folder" in self.containerTypeList:
-                self.containerTypeList.remove("Folder")
-                self.containerTypeList.append(Translator.get("FOLDER"))
+            for key, val in self.KNOWN_FOLDER_TYPES.items():
+                if key in self.containerTypeList:
+                    self.containerTypeList.remove(key)
+                    self.containerTypeList.append(val)
         else:
-            if "Audio" in self.docTypeList:
-                self.docTypeList.remove("Audio")
-                self.docTypeList.append(Translator.get("AUDIO"))
-            if "File" in self.docTypeList:
-                self.docTypeList.remove("File")
-                self.docTypeList.append(Translator.get("FILE"))
-            if "Picture" in self.docTypeList:
-                self.docTypeList.remove("Picture")
-                self.docTypeList.append(Translator.get("PICTURE"))
-            if "Video" in self.docTypeList:
-                self.docTypeList.remove("Video")
-                self.docTypeList.append(Translator.get("VIDEO"))
+            for key, val in self.KNOWN_FILE_TYPES.items():
+                if key in self.docTypeList:
+                    self.docTypeList.remove(key)
+                    self.docTypeList.append(val)
 
     def update_file_group(self, /) -> None:
         self.cbDocType.clear()
-        self.cbDocType.addItem(Translator.get("AUTOMATICS"), Translator.get("CREATE"))
+        if values := list(self.DEFAULT_TYPES.values()):
+            self.cbContainerType.addItem(values[0], values[1])
+            self.cbDocType.addItem(values[0], values[1])
         if self.remote_folder_ref:
             self.docTypeList = self.engine.remote.get_doc_enricher(
                 self.remote_folder_ref, "subtypes", False
@@ -440,9 +438,6 @@ class FoldersDialog(DialogMixin):
             self.cbDocType.addItems(self.docTypeList)
 
         self.cbContainerType.clear()
-        self.cbContainerType.addItem(
-            Translator.get("AUTOMATICS"), Translator.get("CREATE")
-        )
         if self.remote_folder_ref:
             self.containerTypeList = self.engine.remote.get_doc_enricher(
                 self.remote_folder_ref, "subtypes", True
@@ -535,6 +530,18 @@ class FoldersDialog(DialogMixin):
 
         return folders
 
+    def get_known_type_key(self, is_folder: bool, type: str, /) -> str:
+        if type in self.DEFAULT_TYPES.values():
+            original_list = self.DEFAULT_TYPES
+        else:
+            original_list = (
+                self.KNOWN_FOLDER_TYPES if is_folder else self.KNOWN_FILE_TYPES
+            )
+        try:
+            return list(original_list.keys())[list(original_list.values()).index(type)]
+        except Exception:
+            return type
+
     def accept(self) -> None:
         """Action to do when the OK button is clicked."""
         super().accept()
@@ -544,9 +551,8 @@ class FoldersDialog(DialogMixin):
             if self.cbDocType.currentIndex() == 0
             else self.cbDocType.currentText()
         )
-        folder_duplicates = self._find_folders_duplicates()
 
-        if folder_duplicates:
+        if folder_duplicates := self._find_folders_duplicates():
             self.application.folder_duplicate_warning(
                 folder_duplicates,
                 self.remote_folder_title,
@@ -561,6 +567,8 @@ class FoldersDialog(DialogMixin):
         doc_type = (
             self.cbDocType.currentText() if self.cbDocType.currentIndex() != 0 else ""
         )
+        doc_type = self.get_known_type_key(False, doc_type)
+        cont_type = self.get_known_type_key(True, cont_type)
         self.engine.direct_transfer_async(
             self.paths,
             self.remote_folder.text(),
