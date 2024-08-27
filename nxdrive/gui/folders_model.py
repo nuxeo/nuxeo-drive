@@ -97,29 +97,48 @@ class Doc(FileInfo):
 
     def enable(self) -> bool:
         """Allow to select the folder only if the user can effectively create documents inside."""
-        return (
-            "HiddenInCreation" not in self.doc.facets
-            and self.doc.type not in Options.disallowed_types_for_dt
-            and "AddChildren" in self.doc.contextParameters["permissions"]
-        )
+        try:
+            return (
+                "HiddenInCreation" not in self.doc.facets
+                and self.doc.type not in Options.disallowed_types_for_dt
+                and "AddChildren" in self.doc.contextParameters["permissions"]
+            )
+        except Exception:
+            return (
+                "HiddenInCreation" not in self.doc["facets"]
+                and self.doc["type"] not in Options.disallowed_types_for_dt
+                and "AddChildren" in self.doc["contextParameters"]["permissions"]
+            )
 
     def get_id(self) -> str:
         """The document's UID."""
-        return self.doc.uid
+        try:
+            return self.doc.uid
+        except Exception:
+            return self.doc["uid"]
 
     def get_label(self) -> str:
         """The document's name as it is showed in the tree."""
-        return self.doc.title
+        try:
+            return self.doc.title
+        except Exception:
+            return self.doc["title"]
 
     def get_path(self) -> str:
         """Guess the document's path on the server."""
-        return self.doc.path
+        try:
+            return self.doc.path
+        except Exception:
+            return self.doc["path"]
 
     def selectable(self) -> bool:
         """Allow to fetch its children only if the user has at least the "Read" permission
         and if it contains at least one subfolder.
         """
-        return "Read" in self.doc.contextParameters["permissions"]
+        try:
+            return "Read" in self.doc.contextParameters["permissions"]
+        except Exception:
+            return "Read" in self.doc["contextParameters"]["permissions"]
 
 
 class FilteredDoc(FileInfo):
@@ -263,18 +282,24 @@ class FoldersOnly:
         else it will also show a loading error for the personal space.
         """
         root_details = []
-        returned_folders = []
         try:
             roots = self.get_roots()
             for root in roots:
                 if (
-                    root["type"] == "Workspace"
+                    root["type"] == "Folder"
                     and root["uid"] != self.personal_space_uid
+                    and root["parentRef"] != self.personal_space_uid
                 ):
-                    for doc in self._get_children(root["parentRef"]):
-                        if doc.title not in returned_folders:
-                            returned_folders.append(doc.title)
-                            yield Doc(doc)
+                    doc = self.remote.fetch(
+                        root["uid"],
+                        enrichers=["permissions"],
+                    )
+                    if (
+                        "Write" in doc["contextParameters"]["permissions"]
+                        or "ReadWrite" in doc["contextParameters"]["permissions"]
+                        or "Everything" in doc["contextParameters"]["permissions"]
+                    ):
+                        yield Doc(doc)
         except Exception:
             log.warning("Error while retrieving documents on '/'", exc_info=True)
             context = {"permissions": [], "hasFolderishChild": False}
