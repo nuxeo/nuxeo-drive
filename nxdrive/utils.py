@@ -1351,8 +1351,6 @@ def get_verify():
 def get_task_type(type_of_task: str) -> str:
     from .translator import Translator
 
-    log.info("Testing black for code style")
-
     if "chooseParticipants" in type_of_task or "pleaseSelect" in type_of_task:
         return Translator.get("CHOOSE_PARTICIPANTS", values=[""])
     if "give_opinion" in type_of_task:

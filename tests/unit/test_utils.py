@@ -1341,5 +1341,4 @@ def test_get_timestamp():
         str("2023-04-15 09:16:51.199007".split(".")[0]), "%Y-%m-%d %H:%M:%S"
     )
 
-    print("Testing black for code style")
     assert nxdrive.utils.get_timestamp_from_date(d) == 1681550211

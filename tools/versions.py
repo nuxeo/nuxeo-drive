@@ -188,5 +188,4 @@ def main():
 
 
 if __name__ == "__main__":
-    print("Testing black for code style")
     exit(main())
