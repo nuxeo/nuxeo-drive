@@ -427,6 +427,7 @@ class FoldersDialog(DialogMixin):
 
     def update_file_group(self, /) -> None:
         self.cbDocType.clear()
+        self.cbContainerType.clear()
         if values := list(self.DEFAULT_TYPES.values()):
             self.cbContainerType.addItem(values[0], values[1])
             self.cbDocType.addItem(values[0], values[1])
@@ -436,8 +437,6 @@ class FoldersDialog(DialogMixin):
             )
             self._check_for_known_types(False)
             self.cbDocType.addItems(self.docTypeList)
-
-        self.cbContainerType.clear()
         if self.remote_folder_ref:
             self.containerTypeList = self.engine.remote.get_doc_enricher(
                 self.remote_folder_ref, "subtypes", True
