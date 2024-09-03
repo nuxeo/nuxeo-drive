@@ -159,8 +159,6 @@ create_package() {
     hdiutil create                         \
             -srcfolder "${src_folder_tmp}" \
             -volname "${app_name}"         \
-            -fs HFS+                       \
-            -fsargs "-c c=64,a=16,e=16"    \
             -format UDRW                   \
             -size "${dmg_size}m"           \
             "${dmg_tmp}"
