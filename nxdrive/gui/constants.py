@@ -2,7 +2,6 @@ from ..translator import Translator
 
 
 def get_known_types_translations() -> dict:
-
     KNOWN_FOLDER_TYPES = {
         "OrderedFolder": Translator.get("ORDERED_FOLDER"),
         "Folder": Translator.get("FOLDER"),
