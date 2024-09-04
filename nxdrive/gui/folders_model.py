@@ -81,15 +81,22 @@ class FileInfo:
 class Doc(FileInfo):
     """A folderish document. Used by the Direct Transfer feature."""
 
-    def __init__(self, doc: Document, /, *, parent: FileInfo = None) -> None:
+    def __init__(
+        self, doc: Document, expandable: bool = True, /, *, parent: FileInfo = None
+    ) -> None:
         super().__init__(parent=parent)
         self.doc = doc
+        self.expandable = expandable
 
     def __repr__(self) -> str:
         return (
-            f"{type(self).__name__}<id={self.get_id()}, label={self.get_label()}, "
+            f"{type(self).__name__}<id={self.get_id()}, label={self.get_label()}, admin={self.is_expandable()!r}, "
             f"parent={self.get_path()!r}, enable={self.enable()!r}, selectable={self.selectable()!r}>"
         )
+
+    def is_expandable(self) -> bool:
+        """Returns if the current user is an Admin"""
+        return self.expandable
 
     def folderish(self) -> bool:
         """Only folders are used, so it is always True."""
@@ -281,30 +288,32 @@ class FoldersOnly:
         Use a try...except block to prevent loading error on the root,
         else it will also show a loading error for the personal space.
         """
-        root_details = []
         try:
-            roots = self.get_roots()
-            for root in roots:
-                if (
-                    root["type"] == "Folder"
-                    and root["uid"] != self.personal_space_uid
-                    and root["parentRef"] != self.personal_space_uid
-                ):
-                    doc = self.remote.fetch(
-                        root["uid"],
-                        enrichers=["permissions"],
-                    )
-                    if (
-                        "Write" in doc["contextParameters"]["permissions"]
-                        or "ReadWrite" in doc["contextParameters"]["permissions"]
-                        or "Everything" in doc["contextParameters"]["permissions"]
-                    ):
-                        yield Doc(doc)
+            root = self.remote.documents.get(path="/")
+            return [Doc(doc) for doc in self._get_children(root.uid)]
         except Exception:
-            log.warning("Error while retrieving documents on '/'", exc_info=True)
-            context = {"permissions": [], "hasFolderishChild": False}
-            root_details.append([Doc(Document(title="/", contextParameters=context))])
-        return root_details
+            if Options.direct_transfer_folder_only_view:
+                roots = self.get_roots()
+                ret_list = []
+                for root in roots:
+                    if root["type"] == "Folder" and not root["path"].startswith(
+                        "/default-domain/UserWorkspaces/"
+                    ):
+                        doc = self.remote.fetch(
+                            root["uid"],
+                            enrichers=["permissions"],
+                        )
+                        if (
+                            "Write" in doc["contextParameters"]["permissions"]
+                            or "ReadWrite" in doc["contextParameters"]["permissions"]
+                            or "Everything" in doc["contextParameters"]["permissions"]
+                        ):
+                            ret_list.append(Doc(doc, False))
+                return ret_list
+            else:
+                log.warning("Error while retrieving documents on '/'", exc_info=True)
+                context = {"permissions": [], "hasFolderishChild": False}
+                return [Doc(Document(title="/", contextParameters=context))]
 
     def get_top_documents(self) -> Iterator["Documents"]:
         """Fetch all documents at the root."""

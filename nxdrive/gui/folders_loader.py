@@ -46,7 +46,12 @@ class ContentLoaderMixin(QRunnable):
 
         try:
             if info:
-                children = list(self.tree.client.get_children(info))
+                if not info.is_expandable() and not info.get_path().startswith(
+                    "/default-domain/UserWorkspaces/"
+                ):
+                    children = []
+                else:
+                    children = list(self.tree.client.get_children(info))
             else:
                 children = list(self.tree.client.get_top_documents())
         except Exception:
