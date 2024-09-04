@@ -1,5 +1,5 @@
 from logging import getLogger
-from typing import Iterator, List, Union
+from typing import Any, Iterator, List, Union
 
 from nuxeo.models import Document
 
@@ -213,10 +213,12 @@ class FoldersOnly:
 
     def __init__(self, remote: Remote, /) -> None:
         self.remote = remote
+        self.personal_space_uid = ""
 
     def get_personal_space(self) -> "Documents":
         """Retrieve the "Personal space" special folder."""
         personal_space = self.remote.personal_space()
+        self.personal_space_uid = personal_space.uid
 
         # Alter the title to use "Personal space" instead of "Firstname Lastname"
         personal_space.title = Translator.get("PERSONAL_SPACE")
@@ -247,18 +249,37 @@ class FoldersOnly:
                 )
             )
 
+    def get_roots(self) -> List[Any]:
+        from ..constants import QUERY_ENDPOINT
+
+        url = (
+            f"{QUERY_ENDPOINT}select * from Document WHERE ecm:mixinType = 'Folderish'"
+        )
+        return self.remote.client.request("GET", url).json()["entries"]
+
     def _get_root_folders(self) -> List["Documents"]:
         """Get root folders.
         Use a try...except block to prevent loading error on the root,
         else it will also show a loading error for the personal space.
         """
+        root_details = []
+        returned_folders = []
         try:
-            root = self.remote.documents.get(path="/")
-            return [Doc(doc) for doc in self._get_children(root.uid)]
+            roots = self.get_roots()
+            for root in roots:
+                if (
+                    root["type"] == "Workspace"
+                    and root["uid"] != self.personal_space_uid
+                ):
+                    for doc in self._get_children(root["parentRef"]):
+                        if doc.title not in returned_folders:
+                            returned_folders.append(doc.title)
+                            yield Doc(doc)
         except Exception:
             log.warning("Error while retrieving documents on '/'", exc_info=True)
             context = {"permissions": [], "hasFolderishChild": False}
-            return [Doc(Document(title="/", contextParameters=context))]
+            root_details.append([Doc(Document(title="/", contextParameters=context))])
+        return root_details
 
     def get_top_documents(self) -> Iterator["Documents"]:
         """Fetch all documents at the root."""

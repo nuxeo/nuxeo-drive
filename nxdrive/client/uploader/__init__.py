@@ -1,6 +1,7 @@
 """
 Uploader used by the Remote client for all upload stuff.
 """
+
 import json
 from abc import abstractmethod
 from logging import getLogger

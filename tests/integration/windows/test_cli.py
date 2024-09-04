@@ -104,11 +104,12 @@ def test_argument_log_filename(exe, tmp, file):
     with exe(args=arg) as app:
         assert not fatal_error_dlg(app)
         share_metrics_dlg(app)
-
     assert log.is_file()
 
 
-@pytest.mark.parametrize("folder", ["azerty", "$alice", "léa", "mi Kaël", "こん ツリ ^^"])
+@pytest.mark.parametrize(
+    "folder", ["azerty", "$alice", "léa", "mi Kaël", "こん ツリ ^^"]
+)
 def test_argument_nxdrive_home(exe, tmp, folder):
     path = tmp()
     path.mkdir(parents=True, exist_ok=True)
@@ -119,7 +120,6 @@ def test_argument_nxdrive_home(exe, tmp, folder):
     with exe(args=arg) as app:
         assert not fatal_error_dlg(app)
         share_metrics_dlg(app)
-
     assert home.is_dir()
 
 
