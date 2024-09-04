@@ -43,7 +43,6 @@ class ContentLoaderMixin(QRunnable):
                 return
             elif info.get_id() not in self.tree.cache:
                 self.tree.cache.append(info.get_id())
-
         try:
             if info:
                 if not info.is_expandable() and not info.get_path().startswith(

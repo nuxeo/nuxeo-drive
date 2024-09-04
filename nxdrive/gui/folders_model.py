@@ -90,7 +90,8 @@ class Doc(FileInfo):
 
     def __repr__(self) -> str:
         return (
-            f"{type(self).__name__}<id={self.get_id()}, label={self.get_label()}, admin={self.is_expandable()!r}, "
+            f"{type(self).__name__}<id={self.get_id()}, label={self.get_label()}, "
+            f"is_expandable={self.is_expandable()!r}, "
             f"parent={self.get_path()!r}, enable={self.enable()!r}, selectable={self.selectable()!r}>"
         )
 
@@ -239,12 +240,10 @@ class FoldersOnly:
 
     def __init__(self, remote: Remote, /) -> None:
         self.remote = remote
-        self.personal_space_uid = ""
 
     def get_personal_space(self) -> "Documents":
         """Retrieve the "Personal space" special folder."""
         personal_space = self.remote.personal_space()
-        self.personal_space_uid = personal_space.uid
 
         # Alter the title to use "Personal space" instead of "Firstname Lastname"
         personal_space.title = Translator.get("PERSONAL_SPACE")
