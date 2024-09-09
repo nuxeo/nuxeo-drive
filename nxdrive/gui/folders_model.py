@@ -174,8 +174,13 @@ class FilteredDoc(FileInfo):
     def __repr__(self) -> str:
         return (
             f"{type(self).__name__}<state={self.state}, id={self.get_id()}, "
+            f"is_expandable={self.is_expandable()!r}, "
             f"label={self.get_label()}, folderish={self.folderish()!r}, parent={self.get_path()!r}>"
         )
+
+    def is_expandable(self) -> bool:
+        """Returns if the current user is an Admin"""
+        return True
 
     def get_label(self) -> str:
         """The document's name as it is showed in the tree."""
