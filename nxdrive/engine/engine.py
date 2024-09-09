@@ -1,10 +1,10 @@
-import datetime
 import json
 import os
 import os.path
 import shutil
 from contextlib import suppress
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from functools import partial
 from logging import getLogger
 from pathlib import Path
@@ -1184,7 +1184,9 @@ class Engine(QObject):
             log.debug(f"Emitting syncPartialCompleted for engine {self.uid}")
             self.syncPartialCompleted.emit()
         else:
-            self.dao.update_config("last_sync_date", datetime.datetime.utcnow())
+            self.dao.update_config(
+                "last_sync_date", datetime.datetime.now(tz=timezone.utc)
+            )
             log.debug(f"Emitting syncCompleted for engine {self.uid}")
             self._sync_started = False
             self.syncCompleted.emit()
