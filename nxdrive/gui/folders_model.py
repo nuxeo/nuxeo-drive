@@ -296,7 +296,7 @@ class FoldersOnly:
             root = self.remote.documents.get(path="/")
             return [Doc(doc) for doc in self._get_children(root.uid)]
         except Exception:
-            if Options.shared_folder_nevigation:
+            if Options.shared_folder_navigation:
                 roots = self.get_roots()
                 ret_list = []
                 for root in roots:

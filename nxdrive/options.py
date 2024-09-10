@@ -237,7 +237,7 @@ class MetaOptions(type):
         "debug_pydev": (False, "default"),
         "delay": (30, "default"),
         "deletion_behavior": ("unsync", "default"),
-        "shared_folder_nevigation": (False, "default"),
+        "shared_folder_navigation": (False, "default"),
         "disabled_file_integrity_check": (False, "default"),
         "disallowed_types_for_dt": (__doctypes_no_dt, "default"),
         "dt_hide_personal_space": (False, "default"),
