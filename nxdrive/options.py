@@ -237,7 +237,6 @@ class MetaOptions(type):
         "debug_pydev": (False, "default"),
         "delay": (30, "default"),
         "deletion_behavior": ("unsync", "default"),
-        "shared_folder_nevigation": (False, "default"),
         "direct_transfer_file_upper_limit": (0, "default"),
         "direct_transfer_folder_upper_limit": (0, "default"),
         "disabled_file_integrity_check": (False, "default"),
