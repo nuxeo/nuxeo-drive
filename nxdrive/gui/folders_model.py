@@ -282,9 +282,7 @@ class FoldersOnly:
     def get_roots(self) -> List[Any]:
         from ..constants import QUERY_ENDPOINT
 
-        url = (
-            f"{QUERY_ENDPOINT}select * from Document WHERE ecm:mixinType = 'Folderish'"
-        )
+        url = f"{QUERY_ENDPOINT}select * from Document WHERE ecm:mixinType = 'Folderish' and ecm:isTrashed = 0"
         return self.remote.client.request("GET", url).json()["entries"]
 
     def _get_root_folders(self) -> List["Documents"]:
