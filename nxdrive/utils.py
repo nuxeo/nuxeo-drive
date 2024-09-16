@@ -1300,7 +1300,7 @@ def get_current_locale() -> str:
     else:
         import locale
 
-        encoding = locale.getpreferredencoding(False) or ""
+        encoding = locale.getlocale()[1] or ""
 
     # Guess the current locale name
     if WINDOWS:
@@ -1314,7 +1314,7 @@ def get_current_locale() -> str:
         l10n_code = NSLocale.currentLocale()
         l10n = NSLocale.localeIdentifier(l10n_code)
     else:
-        l10n = locale.getpreferredencoding(False) or ""
+        l10n = locale.getlocale()[1] or ""
 
     return ".".join([l10n, encoding])
 
