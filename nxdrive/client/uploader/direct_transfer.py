@@ -90,7 +90,9 @@ class DirectTransferUploader(BaseUploader):
                         "entity-type": "document",
                         "name": doc_pair.local_name,
                         "type": doc_pair.doc_type,
-                        "properties{'dc:title'}": doc_pair.local_name,
+                        "properties": {
+                            "dc:title": doc_pair.local_name,
+                        },
                     }
                     item = self.remote.upload_folder_type(
                         doc_pair.remote_parent_path,
