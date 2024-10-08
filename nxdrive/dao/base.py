@@ -25,7 +25,24 @@ class AutoRetryCursor(Cursor):
         while True:
             count += 1
             try:
-                return super().execute(sql, parameters)
+                if parameters:
+                    import datetime
+                    import sqlite3
+                    new_param = []
+                    for param in parameters:
+                        if type(param) == datetime.datetime:
+                            def adapt_datetime_iso(val):
+                                return datetime.datetime.fromtimestamp(str(val), datetime.UTC)
+                            mtime = sqlite3.register_adapter(param, adapt_datetime_iso)
+                            new_param.append(mtime)
+                        else:
+                            new_param.append(param)
+
+                    new_param = tuple(new_param)
+                    res = super().execute(sql, new_param)
+                else:
+                    res = super().execute(sql, parameters)
+                return res
             except OperationalError as exc:
                 log.info(
                     f"Retry locked database #{count}, {sql=}, {parameters=}",
