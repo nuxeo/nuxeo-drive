@@ -40,7 +40,7 @@ jobs:
         run: tox -e unit
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
-        uses: codecov/codecov-action@v3.1.5
+        uses: codecov/codecov-action@v4.6.0
         with:
           token: ${{secrets.CODECOV_TOKEN}}
           files: ./coverage.xml
@@ -73,7 +73,7 @@ jobs:
         run: tox -e unit
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
-        uses: codecov/codecov-action@v3.1.5
+        uses: codecov/codecov-action@v4.6.0
         with:
           token: ${{secrets.CODECOV_TOKEN}}
           files: ./coverage.xml
@@ -106,7 +106,7 @@ jobs:
         run: tox -e unit
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
-        uses: codecov/codecov-action@v3.1.5
+        uses: codecov/codecov-action@v4.6.0
         with:
           token: ${{secrets.CODECOV_TOKEN}}
           files: ./coverage.xml
