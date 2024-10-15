@@ -100,6 +100,7 @@ jobs:
         run: |
           wget https://www.apple.com/appleca/AppleIncRootCertificate.cer
           echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.cer
+          cat developerID_application.cer
           echo "${{ secrets.PRIV_APP_MACOS }}" | base64 --decode > nuxeo-drive.priv
 
       #- name: "[macOS] Downloading Python"
