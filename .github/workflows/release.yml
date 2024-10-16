@@ -99,11 +99,10 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           wget https://www.apple.com/appleca/AppleIncRootCertificate.cer
-          echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.cer
+          echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.p12
           echo "${{ secrets.PRIV_APP_MACOS }}" | base64 --decode > nuxeo-drive.priv
 
-      #- name: "[macOS] Downloading Python" 
-          # echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.p12
+      #- name: "[macOS] Downloading Python"
       #  if: matrix.os == 'macos-latest'
       #  run: curl https://www.python.org/ftp/python/3.9.5/python-3.9.5-macosx10.9.pkg -o "python.pkg" # XXX_PYTHON
 
@@ -129,7 +128,7 @@ jobs:
           NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
           NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
           NOTARIZATION_TEAMID: ${{ secrets.NOTARIZATION_TEAMID }}
-          SIGNING_ID: "Developer ID Application: NUXEO CORP (WCLR6985BX)"
+          SIGNING_ID: "NUXEO CORP"
           SIGNING_ID_NEW: "Hyland Software, Inc."
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
@@ -147,7 +146,7 @@ jobs:
           NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
           NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
           NOTARIZATION_TEAMID: ${{ secrets.NOTARIZATION_TEAMID }}
-          SIGNING_ID: "Developer ID Application: NUXEO CORP (WCLR6985BX)"
+          SIGNING_ID: "NUXEO CORP"
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
 
