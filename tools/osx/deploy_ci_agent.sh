@@ -63,7 +63,7 @@ prepare_signing_from_scratch() {
 
     echo ">>> [sign] Add certificates to keychain and allow codesign to access them"
     security import ./AppleIncRootCertificate.cer -t cert -A -k "${KEYCHAIN_PATH}"
-    security import ./developerID_application.p12 -k "${KEYCHAIN_PATH}" -P 'nuxeospirit' -A -T /usr/bin/codesign
+    security import ./developerID_application.cer -k "${KEYCHAIN_PATH}" -P 'nuxeospirit' -A -T /usr/bin/codesign
     security import ./nuxeo-drive.priv -t priv -A -T /usr/bin/codesign -k "${KEYCHAIN_PATH}"
 
     prepare_signing
