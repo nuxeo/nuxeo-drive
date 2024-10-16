@@ -99,10 +99,11 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           wget https://www.apple.com/appleca/AppleIncRootCertificate.cer
-          echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.p12
+          echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.cer
           echo "${{ secrets.PRIV_APP_MACOS }}" | base64 --decode > nuxeo-drive.priv
 
-      #- name: "[macOS] Downloading Python"
+      #- name: "[macOS] Downloading Python" 
+          # echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.p12
       #  if: matrix.os == 'macos-latest'
       #  run: curl https://www.python.org/ftp/python/3.9.5/python-3.9.5-macosx10.9.pkg -o "python.pkg" # XXX_PYTHON
 
