@@ -1,21 +1,17 @@
-# Generate a new release (alpha or beta)
 name: Release
 
 on:
-  # Generate an alpha every day
   schedule:
     - cron: "0 0 * * *"
 
   workflow_dispatch:
     inputs:
-      # Note: `releaseType` will be set to an empty string when automatically run without human action (via the cronjob).
-      #       In that case, it means we want to generate an alpha.
       releaseType:
         description: 'Set to "release" for a beta release.'
         required: false
         default: "alpha"
       signExe:
-        description: 'Set to "true" to generate sign .exe on Windows.'
+        description: 'Set to "true" to generate and sign .exe on Windows.'
         required: false
         default: "false"
 
@@ -24,8 +20,68 @@ env:
   GITHUB_EMAILID: "drive@hyland.com"
 
 jobs:
+  check_changes:
+    runs-on: ubuntu-latest
+    outputs:
+      changes: ${{ steps.check_changes.outputs.changes }}
+      changes_list: ${{ steps.list_changes.outputs.changes_list }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch all history for all branches and tags
+        run: git fetch --unshallow --tags --prune --recurse-submodules=on-demand --quiet
+
+      - name: Get the latest commit SHA and date on master branch
+        id: latest_commit
+        run: |
+          latest_sha=$(git rev-parse origin/master)
+          latest_date=$(git show -s --format=%ci $latest_sha | cut -d' ' -f1)
+          echo "latest_sha=$latest_sha" >> $GITHUB_ENV
+          echo "latest_date=$latest_date" >> $GITHUB_ENV
+          echo "Latest SHA: $latest_sha"
+          echo "Latest Date: $latest_date"
+
+      - name: Get the last successful commit SHA and date
+        id: last_successful_commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          last_successful_commit=$(gh run list --branch master --workflow Release --json headSha -q '.[0].headSha')
+          last_successful_date=$(git show -s --format=%ci $last_successful_commit | cut -d' ' -f1)
+          echo "last_successful_sha=$last_successful_commit" >> $GITHUB_ENV
+          echo "last_successful_date=$last_successful_date" >> $GITHUB_ENV
+          echo "Last Successful SHA: $last_successful_commit"
+          echo "Last Successful Date: $last_successful_date"
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          latest_date=${{ env.latest_date }}
+          last_successful_date=${{ env.last_successful_date }}
+          if [ "$latest_date" == "$last_successful_date" ]; then
+            echo "No changes in master branch since last successful run."
+            echo "changes=false" >> $GITHUB_ENV
+          else
+            echo "Changes detected in master branch."
+            echo "changes=true" >> $GITHUB_ENV
+          fi
+
+      - name: List changes
+        id: list_changes
+        if: steps.check_changes.outputs.changes == 'true'
+        run: |
+          last_successful_sha=${{ env.last_successful_sha }}
+          latest_sha=${{ env.latest_sha }}
+          changes=$(git log --oneline $last_successful_sha..$latest_sha)
+          echo "Changes list:"
+          echo "$changes"
+          echo "changes_list=$changes" >> $GITHUB_ENV
+
   release:
     runs-on: ${{ matrix.os }}
+    needs: [check_changes]
     strategy:
       fail-fast: false
       matrix:
@@ -34,8 +90,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.branch }}
+
+      - name: Proceed if there are changes
+        if: needs.check_changes.outputs.changes == 'true'
+        run: |
+          echo "Proceeding with the release job."
+          echo "Changes since last successful run:"
+          cat $GITHUB_ENV | grep "Changes list"
+
+      - name: Checkout
+        uses: actions/checkout@v4
 
       #
       # Global
@@ -52,6 +116,7 @@ jobs:
         run: |
           git config user.email ${{ env.GITHUB_EMAILID }}
           git config user.name ${{ env.GITHUB_USERNAME }}
+          
       - name: Bump the version number
         if: github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == ''
         run: |
@@ -103,11 +168,11 @@ jobs:
           echo "${{ secrets.PRIV_APP_MACOS }}" | base64 --decode > nuxeo-drive.priv
 
       #- name: "[macOS] Downloading Python"
-      #  if: matrix.os == 'macos-latest'
+      #  if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'macos-latest'
       #  run: curl https://www.python.org/ftp/python/3.9.5/python-3.9.5-macosx10.9.pkg -o "python.pkg" # XXX_PYTHON
 
       #- name: "[macOS] Install Python"
-      #  if: matrix.os == 'macos-latest'
+      #  if: steps.check_changes.outputs.changes == 'true' && matrix.os == 'macos-latest'
       #  run: sudo installer -pkg python.pkg -target /
 
       - name: "[macOS] Setup the environment"
@@ -233,7 +298,7 @@ jobs:
 
       - name: "[Windows] Generate and sign the .exe"
         timeout-minutes: 15
-        if: matrix.os == 'windows-latest' && github.event.inputs.signExe == 'true'
+        if: matrix.os == 'windows-latest'
         env:
           KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
           SIGNING_ID_NEW: "Hyland Software, Inc."
@@ -257,8 +322,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.branch }}
 
       - name: Extract branch name
         shell: bash
@@ -280,6 +343,7 @@ jobs:
           name: id_rsa-target
           known_hosts: ${{ secrets.KNOWN_HOSTS_OF_TARGET }}
           config: ${{ secrets.CONFIG }}
+          
       - name: Setup git
         run: |
           git config user.email ${{ env.GITHUB_EMAILID }}
