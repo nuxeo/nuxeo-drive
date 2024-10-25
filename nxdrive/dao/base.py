@@ -31,16 +31,11 @@ class AutoRetryCursor(Cursor):
             try:
                 if not parameters:
                     return super().execute(sql, parameters)
-                new_param = []
-                for param in parameters:
-                    if type(param) == datetime.datetime:
-                        mtime = sqlite3.register_adapter(param, self.adapt_datetime_iso)
-                        new_param.append(mtime)
-                    else:
-                        new_param.append(param)
-                new_param = tuple(new_param)
+                new_param = tuple(
+                    adapt_datetime_iso(param) if isinstance(param, datetime.datetime) else param
+                    for param in parameters
+                    )
                 return super().execute(sql, new_param)
-                
             except OperationalError as exc:
                 log.info(
                     f"Retry locked database #{count}, {sql=}, {parameters=}",
