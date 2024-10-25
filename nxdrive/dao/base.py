@@ -1,6 +1,8 @@
 """
 Query formatting in this file is based on http://www.sqlstyle.guide/
 """
+import datetime
+import sqlite3
 import sys
 from contextlib import suppress
 from logging import getLogger
@@ -20,29 +22,25 @@ log = getLogger(__name__)
 
 
 class AutoRetryCursor(Cursor):
+    def adapt_datetime_iso(self, val):
+        return datetime.datetime.fromtimestamp(str(val), datetime.UTC)
     def execute(self, sql: str, parameters: Iterable[Any] = ()) -> Cursor:
         count = 1
         while True:
             count += 1
             try:
-                if parameters:
-                    import datetime
-                    import sqlite3
-                    new_param = []
-                    for param in parameters:
-                        if type(param) == datetime.datetime:
-                            def adapt_datetime_iso(val):
-                                return datetime.datetime.fromtimestamp(str(val), datetime.UTC)
-                            mtime = sqlite3.register_adapter(param, adapt_datetime_iso)
-                            new_param.append(mtime)
-                        else:
-                            new_param.append(param)
-
-                    new_param = tuple(new_param)
-                    res = super().execute(sql, new_param)
-                else:
-                    res = super().execute(sql, parameters)
-                return res
+                if not parameters:
+                    return super().execute(sql, parameters)
+                new_param = []
+                for param in parameters:
+                    if type(param) == datetime.datetime:
+                        mtime = sqlite3.register_adapter(param, self.adapt_datetime_iso)
+                        new_param.append(mtime)
+                    else:
+                        new_param.append(param)
+                new_param = tuple(new_param)
+                return super().execute(sql, new_param)
+                
             except OperationalError as exc:
                 log.info(
                     f"Retry locked database #{count}, {sql=}, {parameters=}",
