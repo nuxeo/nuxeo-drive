@@ -3,10 +3,11 @@
 import errno
 import os
 import shutil
+import sqlite3
 import unicodedata
 import uuid
 from contextlib import suppress
-from datetime import datetime
+from datetime import datetime, timezone, UTC
 from logging import getLogger
 from pathlib import Path
 from tempfile import mkdtemp
@@ -263,12 +264,18 @@ class LocalClientMixin:
         stat_info = os_path.stat()
         size = 0 if folderish else stat_info.st_size
         try:
-            mtime = datetime.utcfromtimestamp(stat_info.st_mtime)
+            def adapt_datetime_iso(val):
+                return val.isoformat()
+
+            mtime = sqlite3.register_adapter(stat_info.st_mtime, adapt_datetime_iso)
         except (ValueError, OverflowError, OSError) as e:
             log.warning(
                 f"{e} file path: {os_path}. st_mtime value: {stat_info.st_mtime}"
             )
-            mtime = datetime.utcfromtimestamp(0)
+            def adapt_datetime_iso(val):
+                return val.isoformat()
+
+            mtime = sqlite3.register_adapter(0, adapt_datetime_iso)
 
         # TODO Do we need to load it every time ?
         remote_ref = self.get_remote_id(ref)

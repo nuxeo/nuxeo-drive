@@ -1,6 +1,8 @@
 """
 Query formatting in this file is based on http://www.sqlstyle.guide/
 """
+import datetime
+import sqlite3
 import sys
 from contextlib import suppress
 from logging import getLogger
@@ -20,12 +22,20 @@ log = getLogger(__name__)
 
 
 class AutoRetryCursor(Cursor):
+    def adapt_datetime_iso(self, val):
+        return datetime.datetime.fromtimestamp(str(val), datetime.UTC)
     def execute(self, sql: str, parameters: Iterable[Any] = ()) -> Cursor:
         count = 1
         while True:
             count += 1
             try:
-                return super().execute(sql, parameters)
+                if not parameters:
+                    return super().execute(sql, parameters)
+                new_param = tuple(
+                    adapt_datetime_iso(param) if isinstance(param, datetime.datetime) else param
+                    for param in parameters
+                    )
+                return super().execute(sql, new_param)
             except OperationalError as exc:
                 log.info(
                     f"Retry locked database #{count}, {sql=}, {parameters=}",
