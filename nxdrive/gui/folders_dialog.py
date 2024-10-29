@@ -624,8 +624,8 @@ class FoldersDialog(DialogMixin):
             txt += f" (+{self.overall_count - 1:,})"
         return txt
 
-    def is_non_zero_file(self, file_path: Path) -> bool:
-        return file_path.stat().st_size == 0
+    def get_size(self, file_path: Path) -> bool:
+        return file_path.stat().st_size
 
     def _process_additionnal_local_paths(self, paths: List[str], /) -> None:
         """Append more local paths to the upload queue."""
@@ -650,12 +650,12 @@ class FoldersDialog(DialogMixin):
             # Save the path
             if path.is_dir():
                 for file_path, size in get_tree_list(path):
-                    if self.is_non_zero_file(file_path):
+                    if self.get_size(file_path) == 0:
                         continue
                     self.paths[file_path] = size
             else:
                 try:
-                    file_size = path.stat().st_size
+                    file_size = self.get_size(path)
                     if file_size == 0:
                         continue
                     self.paths[path] = file_size
