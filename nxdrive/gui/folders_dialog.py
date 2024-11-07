@@ -651,12 +651,14 @@ class FoldersDialog(DialogMixin):
             if path.is_dir():
                 for file_path, size in get_tree_list(path):
                     if self.get_size(file_path) == 0:
+                        # ignoring zero byte files [NXDRIVE-2925]
                         continue
                     self.paths[file_path] = size
             else:
                 try:
                     file_size = self.get_size(path)
                     if file_size == 0:
+                        # ignoring zero byte files [NXDRIVE-2925]
                         continue
                     self.paths[path] = file_size
                 except OSError:
