@@ -721,9 +721,9 @@ def concat_all_certificates(files: List[Path]) -> Optional[Path]:
     if not final_file.is_file():
         # Either the certificate does not exist yet, either it is obsolete.
         # Let's clean-up all of them.
+        # To test Black
         for obsolete_file in folder.glob("ndrive_*.pem"):
             log.info(f"Removed obsolete certificate {str(obsolete_file)!r}")
-            log.info("To test Black")
             obsolete_file.unlink()
 
         log.info(f"Saved the final certificate to {str(final_file)!r}, including:")
