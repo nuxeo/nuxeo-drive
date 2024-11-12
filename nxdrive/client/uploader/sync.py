@@ -1,6 +1,7 @@
 """
 Uploader used by the synchronization engine.
 """
+
 from pathlib import Path
 from typing import Any, Dict, Optional
 
