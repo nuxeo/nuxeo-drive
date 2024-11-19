@@ -22,6 +22,7 @@ Available parameters and introduced version:
     Enable or disable the synchronization features.
 
 """
+
 from types import SimpleNamespace
 from typing import List
 
@@ -31,6 +32,7 @@ Feature = SimpleNamespace(
     direct_edit=True,
     direct_transfer=True,
     document_type_selection=False,
+    tasks_management=False,
     s3=False,
 )
 

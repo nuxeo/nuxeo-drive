@@ -116,6 +116,7 @@ class Engine(QObject):
     directTransferNewFolderError = pyqtSignal()
     directTransferNewFolderSuccess = pyqtSignal(str)
     directTransferSessionFinished = pyqtSignal(str, str, str)
+    displayPendingTask = pyqtSignal(str, str, str, str)
 
     type = "NXDRIVE"
     # Folder locker - LocalFolder processor can prevent
@@ -747,6 +748,24 @@ class Engine(QObject):
         }
         return urls[self.force_ui or self.wui]
 
+    def get_task_url(self, remote_ref: str, /, *, edit: bool = False) -> str:
+        """
+        Build the task's URL based on the server's UI.
+        Default is Web-UI.  In case of unknown UI, use the default value.
+        :param remote_ref: The task remote reference (UID) of the
+            task we want to show metadata.
+        :param edit: Show the metadata edit page instead of the task.
+        :return: The complete URL.
+        """
+        repo = self.remote.client.repository
+        page = ("view_documents", "view_drive_metadata")[edit]
+
+        urls = {
+            "jsf": f"{self.server_url}tasks/{repo}/{remote_ref}/{page}",
+            "web": f"{self.server_url}ui#!/tasks/{remote_ref}",
+        }
+        return urls[self.force_ui or self.wui]
+
     def is_syncing(self) -> bool:
         return self._sync_started
 
@@ -819,9 +838,7 @@ class Engine(QObject):
         meth = (
             self.dao.get_download
             if nature == "download"
-            else self.dao.get_dt_upload
-            if is_direct_transfer
-            else self.dao.get_upload
+            else self.dao.get_dt_upload if is_direct_transfer else self.dao.get_upload
         )
         func = partial(meth, uid=uid)  # type: ignore
         self._resume_transfers(nature, func, is_direct_transfer=is_direct_transfer)
@@ -1580,6 +1597,11 @@ class Engine(QObject):
                 self._user_cache[userid] = full_name
 
         return full_name
+
+    def send_task_notification(
+        self, task_id: str, remote_path: str, notification_title: str, /
+    ) -> None:
+        self.displayPendingTask.emit(self.uid, task_id, remote_path, notification_title)
 
 
 @dataclass

@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple
 
@@ -10,6 +11,8 @@ from ..qt.imports import (
     QAbstractListModel,
     QModelIndex,
     QObject,
+    QStandardItem,
+    QStandardItemModel,
     Qt,
     pyqtProperty,
     pyqtSignal,
@@ -71,10 +74,12 @@ class EngineModel(QAbstractListModel):
         self.endInsertRows()
         self._connect_engine(self.application.manager.engines[uid])
         self.engineChanged.emit()
+        self.application.update_workflow()
 
     def removeEngine(self, uid: str, /) -> None:
         idx = self.engines_uid.index(uid)
         self.removeRows(idx, 1)
+        self.application.update_workflow_user_engine_list(True, uid)
         self.engineChanged.emit()
 
     def data(self, index: QModelIndex, role: int, /) -> str:
@@ -830,3 +835,94 @@ class FeatureModel(QObject):
     @property
     def restart_needed(self) -> bool:
         return self._restart_needed
+
+
+class TasksModel(QObject):
+    TASK_ROLE = qt.UserRole  # + 1
+    TASK_ID = qt.UserRole + 1
+
+    def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
+        super().__init__(parent)
+        # self.tr = translate
+        self.taskmodel = QStandardItemModel()
+        self.taskmodel.setItemRoleNames(
+            {
+                self.TASK_ROLE: b"task",
+                self.TASK_ID: b"task_id",
+            }
+        )
+
+        self.self_taskmodel = QStandardItemModel()
+        self.self_taskmodel.setItemRoleNames(
+            {
+                self.TASK_ROLE: b"task",
+                self.TASK_ID: b"task_id",
+            }
+        )
+
+    def get_model(self) -> QStandardItemModel:
+        return self.taskmodel
+
+    def get_self_model(self) -> QStandardItemModel:
+        return self.self_taskmodel
+
+    model = pyqtProperty(QObject, fget=get_model, constant=True)
+    self_model = pyqtProperty(QObject, fget=get_self_model, constant=True)
+
+    @pyqtSlot(list, str)
+    def loadList(self, tasks_list: list, username: str, /) -> None:
+        self.taskmodel.clear()
+        self.self_taskmodel.clear()
+
+        for task in tasks_list:
+            diff = self.due_date_calculation(task.dueDate)
+            translated_due = Translator.get("DUE")
+            details = str(
+                {
+                    "wf_name": task.directive,
+                    "name": task.name,
+                    "due": f"{translated_due}: {diff}",
+                    "model": task.workflowModelName,
+                }
+            )
+            if task.actors[0]["id"] == username:
+                data = {
+                    "self_task_details": details,
+                    "task_ids": task.id,
+                }
+                self.add_row(data, self.TASK_ROLE, True)
+            else:
+                data = {
+                    "task_details": details,
+                    "task_ids": task.id,
+                }
+                self.add_row(data, self.TASK_ROLE, False)
+
+    def add_row(self, task: dict, role: int, self_task: bool) -> None:
+        item = QStandardItem()
+        item.setData(task, role)
+
+        if self_task:
+            self.self_taskmodel.appendRow(item)
+        else:
+            self.taskmodel.appendRow(item)
+
+    def due_date_calculation(self, dueDate: str) -> str:
+        due_date = datetime.strptime(dueDate, "%Y-%m-%dT%H:%M:%S.%f%z").date()
+        now = date.today()
+        time_remaing = Translator.get("DAYS")
+        diff = (due_date - now).days
+        if diff > 364 or diff < -364:
+            diff /= 365
+            time_remaing = Translator.get("YEARS")
+        elif diff > 29 or diff < -29:
+            diff /= 30
+            time_remaing = Translator.get("MONTHS")
+        ago = Translator.get("AGO")
+        translated_in = Translator.get("IN")
+        diff = int(diff)
+        return (
+            f"{-diff} {time_remaing} {ago}"
+            if diff < 0
+            else f"{translated_in} {diff} {time_remaing}"
+        )

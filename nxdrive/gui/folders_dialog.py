@@ -33,6 +33,7 @@ from ..qt.imports import (
 )
 from ..translator import Translator
 from ..utils import find_icon, get_tree_list, sizeof_fmt
+from .constants import get_known_types_translations
 from .folders_model import FilteredDocuments, FoldersOnly
 from .folders_treeview import DocumentTreeView, FolderTreeView
 
@@ -269,6 +270,11 @@ class FoldersDialog(DialogMixin):
             "dt_last_duplicates_behavior", default="create"
         )
 
+        _types = get_known_types_translations()
+        self.KNOWN_FOLDER_TYPES = _types.get("FOLDER_TYPES", {})
+        self.KNOWN_FILE_TYPES = _types.get("FILE_TYPES", {})
+        self.DEFAULT_TYPES = _types.get("DEFAULT", {})
+
         self.vertical_layout.addWidget(self._add_group_local())
         self.vertical_layout.addWidget(self._add_group_remote())
         self.vertical_layout.addWidget(self._add_group_options())
@@ -407,21 +413,35 @@ class FoldersDialog(DialogMixin):
         """Open the duplicates management documentation in a browser tab."""
         webbrowser.open_new_tab(DOC_URL)
 
+    def _check_for_known_types(self, is_folder_type: bool, /) -> None:
+        if is_folder_type:
+            for key, val in self.KNOWN_FOLDER_TYPES.items():
+                if key in self.containerTypeList:
+                    self.containerTypeList.remove(key)
+                    self.containerTypeList.append(val)
+        else:
+            for key, val in self.KNOWN_FILE_TYPES.items():
+                if key in self.docTypeList:
+                    self.docTypeList.remove(key)
+                    self.docTypeList.append(val)
+
     def update_file_group(self, /) -> None:
         self.cbDocType.clear()
-        self.cbDocType.addItem("Automatic", "create")
+        self.cbContainerType.clear()
+        if values := list(self.DEFAULT_TYPES.values()):
+            self.cbContainerType.addItem(values[0], values[1])
+            self.cbDocType.addItem(values[0], values[1])
         if self.remote_folder_ref:
             self.docTypeList = self.engine.remote.get_doc_enricher(
                 self.remote_folder_ref, "subtypes", False
             )
-
+            self._check_for_known_types(False)
             self.cbDocType.addItems(self.docTypeList)
-        self.cbContainerType.clear()
-        self.cbContainerType.addItem("Automatic", "create")
         if self.remote_folder_ref:
             self.containerTypeList = self.engine.remote.get_doc_enricher(
                 self.remote_folder_ref, "subtypes", True
             )
+            self._check_for_known_types(True)
             self.cbContainerType.addItems(self.containerTypeList)
 
     def _add_subgroup_doc_type(self, layout: QVBoxLayout, /) -> None:
@@ -509,6 +529,18 @@ class FoldersDialog(DialogMixin):
 
         return folders
 
+    def get_known_type_key(self, is_folder: bool, type: str, /) -> str:
+        if type in self.DEFAULT_TYPES.values():
+            original_list = self.DEFAULT_TYPES
+        else:
+            original_list = (
+                self.KNOWN_FOLDER_TYPES if is_folder else self.KNOWN_FILE_TYPES
+            )
+        try:
+            return list(original_list.keys())[list(original_list.values()).index(type)]
+        except Exception:
+            return type
+
     def accept(self) -> None:
         """Action to do when the OK button is clicked."""
         super().accept()
@@ -518,9 +550,8 @@ class FoldersDialog(DialogMixin):
             if self.cbDocType.currentIndex() == 0
             else self.cbDocType.currentText()
         )
-        folder_duplicates = self._find_folders_duplicates()
 
-        if folder_duplicates:
+        if folder_duplicates := self._find_folders_duplicates():
             self.application.folder_duplicate_warning(
                 folder_duplicates,
                 self.remote_folder_title,
@@ -535,6 +566,8 @@ class FoldersDialog(DialogMixin):
         doc_type = (
             self.cbDocType.currentText() if self.cbDocType.currentIndex() != 0 else ""
         )
+        doc_type = self.get_known_type_key(False, doc_type)
+        cont_type = self.get_known_type_key(True, cont_type)
         self.engine.direct_transfer_async(
             self.paths,
             self.remote_folder.text(),
@@ -591,6 +624,9 @@ class FoldersDialog(DialogMixin):
             txt += f" (+{self.overall_count - 1:,})"
         return txt
 
+    def get_size(self, file_path: Path) -> bool:
+        return file_path.stat().st_size
+
     def _process_additionnal_local_paths(self, paths: List[str], /) -> None:
         """Append more local paths to the upload queue."""
         for local_path in paths:
@@ -614,10 +650,17 @@ class FoldersDialog(DialogMixin):
             # Save the path
             if path.is_dir():
                 for file_path, size in get_tree_list(path):
+                    if self.get_size(file_path) == 0:
+                        # ignoring zero byte files [NXDRIVE-2925]
+                        continue
                     self.paths[file_path] = size
             else:
                 try:
-                    self.paths[path] = path.stat().st_size
+                    file_size = self.get_size(path)
+                    if file_size == 0:
+                        # ignoring zero byte files [NXDRIVE-2925]
+                        continue
+                    self.paths[path] = file_size
                 except OSError:
                     log.warning(f"Error calling stat() on {path!r}", exc_info=True)
                     continue
