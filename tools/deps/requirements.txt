@@ -6,17 +6,17 @@ authlib==1.3.0 \
     --hash=sha256:959ea62a5b7b5123c5059758296122b57cd2585ae2ed1c0622c21b371ffdae06 \
     --hash=sha256:9637e4de1fb498310a56900b3e2043a206b03cb11c05422014b0302cbc814be3
     # via nuxeo
-boto3==1.34.17 \
-    --hash=sha256:1efc02be786884034d503d59c018cf7650d0cff9fcb37cd2eb49b802a6fe6111 \
-    --hash=sha256:8ca248cc84e7e859e4e276eb9c4309fa01a3e58473bf48d6c33448be870c2bb8
+boto3==1.35.63 \
+    --hash=sha256:d0f938d4f6f392b6ffc5e75fff14a42e5bbb5228675a0367c8af55398abadbec \
+    --hash=sha256:deb593d9a0fb240deb4c43e4da8e6626d7c36be7b2fd2fe28f49d44d395b7de0
     # via nuxeo
-botocore==1.34.17 \
-    --hash=sha256:7272c39032c6f1d62781e4c8445d9a1d9140c2bf52ba7ee66bf6db559c4b2427 \
-    --hash=sha256:e48a662f3a6919219276b55085e8f73c3347966675f55e9d448be30cf79678ee
+botocore==1.35.63 \
+    --hash=sha256:0ca1200694a4c0a3fa846795d8e8a08404c214e21195eb9e010c4b8a4ca78a4a \
+    --hash=sha256:2b8196bab0a997d206c3d490b52e779ef47dffb68c57c685443f77293aca1589
     # via boto3, s3transfer
-certifi==2023.7.22 \
-    --hash=sha256:539cc1d13202e33ca466e88b2807e29f4c13049d6d87031a3c110744495cb082 \
-    --hash=sha256:92d6037539857d8206b8f6ae472e8b77db8058fec5937a1ef3f54304089edbb9
+certifi==2024.8.30 \
+    --hash=sha256:922820b53db7a7257ffbda3f597266d435245903d80737e34f8a45ff3e3230d8 \
+    --hash=sha256:bec941d2aa8195e248a60b31ff9f0558284cf01a52591ceda73ea9afffd69fd9
     # via requests
 cffi==1.16.0 \
     --hash=sha256:0c9ef6ff37e974b73c25eecc13952c55bceed9112be2d9d938ded8e856138bcc \
@@ -420,9 +420,9 @@ tld==0.13 \
     --hash=sha256:93dde5e1c04bdf1844976eae440706379d21f4ab235b73c05d7483e074fb5629 \
     --hash=sha256:f75b2be080f767ed17c2338a339eaa4fab5792586319ca819119da252f9f3749
     # via pypac
-urllib3==1.26.12 \
-    --hash=sha256:3fa96cf423e6987997fc326ae8df396db2a8b7c667747d47ddd8ecba91f4a74e \
-    --hash=sha256:b930dd878d5a8afb066a637fbb35144fe7901e3b209d1cd4f524bd0e9deee997
+urllib3==2.2.3 \
+    --hash=sha256:ca899ca043dcb1bafa3e262d73aa25c465bfb49e0bd9dd5d59f1d0acba2f8fac \
+    --hash=sha256:e7d814a81dad81e6caf2ec9fdedb284ecc9c73076b62654547cc64ccdcae26e9
     # via
     #   botocore
     #   requests
