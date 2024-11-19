@@ -1,6 +1,7 @@
 """
 Query formatting in this file is based on http://www.sqlstyle.guide/
 """
+
 from datetime import datetime, timezone
 import sys
 from contextlib import suppress

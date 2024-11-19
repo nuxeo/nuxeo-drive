@@ -1,6 +1,7 @@
 """
 Test application Behavior.
 """
+
 from nxdrive.behavior import Behavior
 
 from .. import ensure_no_exception
