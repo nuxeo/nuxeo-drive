@@ -162,7 +162,7 @@ class BaseDAO(QObject):
         """
         print("====== insude get_schema_version")
         res = cursor.execute("PRAGMA user_version").fetchone()
-        print(f"====== PRAGMA user_version: {res!r}")
+        # print(f"====== PRAGMA user_version: {res!r}")
         version = int(res[0]) if res else 0
         print(f"====== version: {version!r}")
         if version == 0 and db_exists:
@@ -180,7 +180,7 @@ class BaseDAO(QObject):
             res = cursor.execute(
                 "SELECT value FROM Configuration WHERE name = ?", (SCHEMA_VERSION,)
             ).fetchone()
-            print(f"====== res: {res!r}")
+            # print(f"====== res: {res!r}")
             version = int(res[0]) if res else -1
         print(f"====== returning version: {version!r}")
         return version
