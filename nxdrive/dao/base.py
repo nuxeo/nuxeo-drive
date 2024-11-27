@@ -2,6 +2,7 @@
 Query formatting in this file is based on http://www.sqlstyle.guide/
 """
 
+from datetime import datetime, timezone
 import sys
 from contextlib import suppress
 from logging import getLogger
@@ -19,14 +20,20 @@ from .utils import fix_db, restore_backup, save_backup
 
 log = getLogger(__name__)
 
-
 class AutoRetryCursor(Cursor):
+    def adapt_datetime_iso(self, val):
+        return datetime.fromtimestamp(val.strftime('%s'), tz=timezone.utc)
     def execute(self, sql: str, parameters: Iterable[Any] = ()) -> Cursor:
         count = 1
         while True:
             count += 1
             try:
-                return super().execute(sql, parameters)
+                import sqlite3
+                # return super().execute(sql, parameters)
+                # new_param = tuple( datetime.fromtimestamp(param, tz=timezone.utc) if isinstance(param, datetime) else param for param in parameters )
+                new_param = tuple( sqlite3.register_adapter(param, self.adapt_datetime_iso) if isinstance(param, datetime) else param for param in parameters )
+
+                return super().execute(sql, new_param)
             except OperationalError as exc:
                 log.info(
                     f"Retry locked database #{count}, {sql=}, {parameters=}",
@@ -53,6 +60,7 @@ class BaseDAO(QObject):
         self.lock = RLock()
 
         log.info(f"Create {type(self).__name__} on {self.db!r}")
+        print(f"Create {type(self).__name__} on {self.db!r}")
 
         exists = self.db.is_file()
         if exists:
@@ -70,6 +78,7 @@ class BaseDAO(QObject):
         self._tx_lock = RLock()
         self.conn: Optional[Connection] = None
         self._conns = local()
+        print(">>>> creating_CONN")
         self.conn = self._create_main_conn()
         if not self.conn:
             raise RuntimeError("Unable to connect to database.")
@@ -178,16 +187,44 @@ class BaseDAO(QObject):
         tmpname = f"{name}Migration"
 
         # In case of a bad/unfinished migration
+        print(f">>>> Droping table: {tmpname!r}")
         cursor.execute(f"DROP TABLE IF EXISTS {tmpname}")
+        print(f">>>> Dropped table 1.: {tmpname!r}")
 
+        print(f">>>> Altering table: {name!r} to {tmpname!r}")
         cursor.execute(f"ALTER TABLE {name} RENAME TO {tmpname}")
+        print(f">>>> Altered table: {name!r} to {tmpname!r}")
+
         # Because Windows don't release the table, force the creation
+        print(f">>>> calling _create_table: {name!r}")
         self._create_table(cursor, name, force=True)
+        print(">>>> called _create_table")        
+        print(f">>>> Inserting into: {name!r}")
+        print("\n")
         target_cols = self._get_columns(cursor, name)
         source_cols = self._get_columns(cursor, tmpname)
+
         cols = ", ".join(set(target_cols).intersection(source_cols))
-        cursor.execute(f"INSERT INTO {name} ({cols}) SELECT {cols} FROM {tmpname}")
-        cursor.execute(f"DROP TABLE {tmpname}")
+        print(f"???? target_cols: {target_cols!r}")
+        print(f"???? source_cols: {source_cols!r}")
+        print(f"???? cols: {cols!r}")
+        try:
+            qry = f"INSERT INTO {name} ({cols}) SELECT {cols} FROM {tmpname}"
+            print(f">>>> qry: {qry!r}")
+            cursor.execute(qry)
+            print(">>>> inserteed successfully")
+        except Exception as e:
+            print(f"EXCEPTION 1: {e!r}")
+        print("\n")
+        print(f">>>> Droping table: {tmpname!r}")
+        print(">>>> issue <<<<")
+        # cursor.execute(f"DROP TABLE {tmpname}")
+        try:
+            cursor.execute(f"DROP TABLE {tmpname}")
+        except Exception as e:
+            print(f"EXCEPTION 2: {e!r}")
+        print(f">>>> Dropped table 2.: {tmpname!r}")
+        print("----END----")
 
     def _create_table(
         self, cursor: Cursor, name: str, /, *, force: bool = False
@@ -220,6 +257,11 @@ class BaseDAO(QObject):
             f"(dir_exists={self.db.parent.exists()}, "
             f"file_exists={self.db.exists()})"
         )
+        print(
+            f"Create main connection on {self.db!r} "
+            f"(dir_exists={self.db.parent.exists()}, "
+            f"file_exists={self.db.exists()})"
+        )
         conn = connect(
             str(self.db),
             check_same_thread=False,  # Don't check same thread for closing purpose
@@ -228,6 +270,7 @@ class BaseDAO(QObject):
             timeout=10,
         )
         conn.row_factory = self._state_factory
+        print(">>>> ret conn")
         return conn
 
     def dispose(self) -> None:
@@ -241,6 +284,7 @@ class BaseDAO(QObject):
     def _get_write_connection(self) -> Connection:
         if self.in_tx:
             if self.conn is None:
+                print(">>>> creating   CONN")
                 self.conn = self._create_main_conn()
             return self.conn
         return self._get_read_connection()
@@ -250,8 +294,10 @@ class BaseDAO(QObject):
         if self.in_tx is not None:
             if current_thread_id() == self.in_tx:
                 if not self.conn:
+                    print(">>>> Creating conn")
                     self.conn = self._create_main_conn()
                 # Return the write connection
+                print(">>>> returning conn")
                 return self.conn
             log.debug("In transaction wait for read connection")
             # Wait for the thread in transaction to finished
