@@ -138,6 +138,9 @@ class EngineDAO(BaseDAO):
             raise RuntimeError("Unable to connect to database.")
 
         migration_engine = MigrationEngine(self.conn, engine_migrations)
+        print(f"===>> version: {version!r}")
+        print(f"===>> __version__: {__version__!r}")
+        print(f"===>> versions_history: {versions_history!r}")
         try:
             self.in_tx = current_thread_id()
 
