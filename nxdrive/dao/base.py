@@ -155,35 +155,35 @@ class BaseDAO(QObject):
             sys.excepthook(*sys.exc_info())
         return False
 
-   def get_schema_version(self, cursor: Cursor, db_exists: bool) -> int:
-       """
-       Get the schema version stored in the database.
-       Will fetch the information from a PRAGMA or the old storage variable.
-       """
-       print("====== insude get_schema_version")
-       res = cursor.execute("PRAGMA user_version").fetchone()
-       # print(f"====== PRGMA user_version: {res!r}")
-       version = int(res[0]) if res else 0
-       print(f"====== version: {version!r}")
-       if version == 0 and db_exists:
-           # Backward compatibility
-           tables = [
-               res[0]
-               for res in cursor.execute(
-                   "select name from sqlite_master where type = 'table'"
-               ).fetchall()
-           ]
-           print(f"====== tables: {tables!r}")
-           if "Configuration" not in tables:
-               print("===== Configuration not in tables; returning version = 0")
-               return 0
-           res = cursor.execute(
-               "SELECT value FROM Configuration WHERE name = ?", (SCHEMA_VERSION,)
-           ).fetchone()
-           # print(f"====== res: {res!r}")
-           version = int(res[0]) if res else -1
-       print(f"====== returning version: {version!r}")
-       return version
+    def get_schema_version(self, cursor: Cursor, db_exists: bool) -> int:
+        """
+        Get the schema version stored in the database.
+        Will fetch the information from a PRAGMA or the old storage variable.
+        """
+        print("====== insude get_schema_version")
+        res = cursor.execute("PRAGMA user_version").fetchone()
+        # print(f"====== PRGMA user_version: {res!r}")
+        version = int(res[0]) if res else 0
+        print(f"====== version: {version!r}")
+        if version == 0 and db_exists:
+            # Backward compatibility
+            tables = [
+                res[0]
+                for res in cursor.execute(
+                    "select name from sqlite_master where type = 'table'"
+                ).fetchall()
+            ]
+            print(f"====== tables: {tables!r}")
+            if "Configuration" not in tables:
+                print("===== Configuration not in tables; returning version = 0")
+                return 0
+            res = cursor.execute(
+                "SELECT value FROM Configuration WHERE name = ?", (SCHEMA_VERSION,)
+            ).fetchone()
+            # print(f"====== res: {res!r}")
+            version = int(res[0]) if res else -1
+        print(f"====== returning version: {version!r}")
+        return version
 
     def set_schema_version(self, cursor: Cursor, version: int) -> None:
         """
