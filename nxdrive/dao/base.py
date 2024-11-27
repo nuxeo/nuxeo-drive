@@ -63,6 +63,7 @@ class BaseDAO(QObject):
         print(f"Create {type(self).__name__} on {self.db!r}")
 
         exists = self.db.is_file()
+        print(f"------ exists 1: {exists!r}")
         if exists:
             # Fix potential file corruption
             try:
@@ -70,9 +71,9 @@ class BaseDAO(QObject):
             except DatabaseError:
                 # The file is too damaged, we'll try and restore a backup.
                 exists = self.restore_backup()
+                print(f"------ exists 2: {exists!r}")
                 if not exists:
                     self.db.unlink(missing_ok=True)
-
         self._engine_uid = self.db.stem.replace("ndrive_", "")
         self.in_tx: Optional[int] = None
         self._tx_lock = RLock()
@@ -84,17 +85,20 @@ class BaseDAO(QObject):
             raise RuntimeError("Unable to connect to database.")
         c = self.conn.cursor()
         self._init_db(c)
-
         schema_version = 0
         if exists:
             schema_version = self.get_schema_version(c, exists)
+            print(f"------ schema_version 1: {schema_version!r}")
         else:
             self.set_schema_version(c, schema_version)
+            print(f"------ schema_version 2: {schema_version!r}")
         try:
             self._migrate_db(schema_version)
         except Exception:
+            print("---- migration_success = False")
             self.migration_success = False
         else:
+            print("---- migration_success = True")
             self.migration_success = True
 
     def __repr__(self) -> str:
@@ -196,7 +200,7 @@ class BaseDAO(QObject):
         print(f">>>> Altered table: {name!r} to {tmpname!r}")
 
         # Because Windows don't release the table, force the creation
-        print(f">>>> calling _create_table: {name!r}")
+        print(f">>>> calling _create_table [BASE]: {name!r}")
         self._create_table(cursor, name, force=True)
         print(">>>> called _create_table")        
         print(f">>>> Inserting into: {name!r}")
@@ -219,10 +223,13 @@ class BaseDAO(QObject):
         print(f">>>> Droping table: {tmpname!r}")
         print(">>>> issue <<<<")
         # cursor.execute(f"DROP TABLE {tmpname}")
+        cursor.execute(f"DROP TABLE {tmpname}")
+        """
         try:
             cursor.execute(f"DROP TABLE {tmpname}")
         except Exception as e:
-            print(f"EXCEPTION 2: {e!r}")
+            print(f"EXCEPTION while droping {tmpname!r} 2: {e!r}")
+        """
         print(f">>>> Dropped table 2.: {tmpname!r}")
         print("----END----")
 
