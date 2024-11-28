@@ -268,7 +268,6 @@ def test_server_and_local_config_with_default_value_forced():
 
 def test_site_update_url():
     url = f"{Options.update_site_url}/versions.yml"
-    print(f">>>>> url: {url!r}")
     with requests.get(url) as resp:
         resp.raise_for_status()
 
