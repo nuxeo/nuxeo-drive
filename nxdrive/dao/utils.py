@@ -45,6 +45,7 @@ def dump(database: Path, dump_file: Path, /) -> None:
         # Force write of file to disk
         f.flush()
         fsync(f.fileno())
+    con.close()
 
     log.info("Dump finished with success.")
 
