@@ -2,6 +2,7 @@
 In this file we cannot use a relative import here, else Drive will not start when packaged.
 See https://github.com/pyinstaller/pyinstaller/issues/2560
 """
+
 import locale
 import platform
 import signal

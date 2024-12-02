@@ -1,4 +1,5 @@
 """Cleanup old test users and workspaces."""
+
 import env
 from nuxeo.client import Nuxeo
 

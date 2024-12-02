@@ -2,6 +2,7 @@
 Remove files from the package that are not needed and too big.
 This script can be launched after PyInstaller and before installers creation.
 """
+
 import os
 import shutil
 import sys
