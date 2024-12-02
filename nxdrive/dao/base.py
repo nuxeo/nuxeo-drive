@@ -2,6 +2,7 @@
 Query formatting in this file is based on http://www.sqlstyle.guide/
 """
 
+from datetime import datetime, timezone
 import sys
 from contextlib import suppress
 from logging import getLogger
@@ -19,14 +20,20 @@ from .utils import fix_db, restore_backup, save_backup
 
 log = getLogger(__name__)
 
-
 class AutoRetryCursor(Cursor):
+    def adapt_datetime_iso(self, val):
+        return datetime.fromtimestamp(val.strftime('%s'), tz=timezone.utc)
     def execute(self, sql: str, parameters: Iterable[Any] = ()) -> Cursor:
         count = 1
         while True:
             count += 1
             try:
-                return super().execute(sql, parameters)
+                import sqlite3
+                # return super().execute(sql, parameters)
+                # new_param = tuple( datetime.fromtimestamp(param, tz=timezone.utc) if isinstance(param, datetime) else param for param in parameters )
+                new_param = tuple( sqlite3.register_adapter(param, self.adapt_datetime_iso) if isinstance(param, datetime) else param for param in parameters )
+
+                return super().execute(sql, new_param)
             except OperationalError as exc:
                 log.info(
                     f"Retry locked database #{count}, {sql=}, {parameters=}",
@@ -53,8 +60,10 @@ class BaseDAO(QObject):
         self.lock = RLock()
 
         log.info(f"Create {type(self).__name__} on {self.db!r}")
+        print(f"Create {type(self).__name__} on {self.db!r}")
 
         exists = self.db.is_file()
+        print(f"------ exists 1: {exists!r}")
         if exists:
             # Fix potential file corruption
             try:
@@ -62,30 +71,34 @@ class BaseDAO(QObject):
             except DatabaseError:
                 # The file is too damaged, we'll try and restore a backup.
                 exists = self.restore_backup()
+                print(f"------ exists 2: {exists!r}")
                 if not exists:
                     self.db.unlink(missing_ok=True)
-
         self._engine_uid = self.db.stem.replace("ndrive_", "")
         self.in_tx: Optional[int] = None
         self._tx_lock = RLock()
         self.conn: Optional[Connection] = None
         self._conns = local()
+        print(">>>> creating_CONN")
         self.conn = self._create_main_conn()
         if not self.conn:
             raise RuntimeError("Unable to connect to database.")
         c = self.conn.cursor()
         self._init_db(c)
-
         schema_version = 0
         if exists:
             schema_version = self.get_schema_version(c, exists)
+            print(f"------ schema_version 1: {schema_version!r}")
         else:
             self.set_schema_version(c, schema_version)
+            print(f"------ schema_version 2: {schema_version!r}")
         try:
             self._migrate_db(schema_version)
         except Exception:
+            print("---- migration_success = False")
             self.migration_success = False
         else:
+            print("---- migration_success = True")
             self.migration_success = True
 
     def __repr__(self) -> str:
@@ -147,9 +160,12 @@ class BaseDAO(QObject):
         Get the schema version stored in the database.
         Will fetch the information from a PRAGMA or the old storage variable.
         """
+        print("====== insude get_schema_version")
         res = cursor.execute("PRAGMA user_version").fetchone()
+        # print(f"====== PRGMA user_version: {res!r}")
+        print(f"!!!!!!!!  PRAGMA user_version: {int(res[0])!r})") if res else print("NO PRAGMA user_version")
         version = int(res[0]) if res else 0
-
+        print(f"====== version: {version!r}")
         if version == 0 and db_exists:
             # Backward compatibility
             tables = [
@@ -158,13 +174,17 @@ class BaseDAO(QObject):
                     "select name from sqlite_master where type = 'table'"
                 ).fetchall()
             ]
+            print(f"====== tables: {tables!r}")
             if "Configuration" not in tables:
+                print("===== Configuration not in tables; returning version = 0")
                 return 0
             res = cursor.execute(
                 "SELECT value FROM Configuration WHERE name = ?", (SCHEMA_VERSION,)
             ).fetchone()
+            print(f"!!!!!!!!  res: {int(res[0])!r}") if res else print("NO res")
             version = int(res[0]) if res else -1
-
+        
+        print(f"====== returning version: {version!r}")
         return version
 
     def set_schema_version(self, cursor: Cursor, version: int) -> None:
@@ -178,16 +198,47 @@ class BaseDAO(QObject):
         tmpname = f"{name}Migration"
 
         # In case of a bad/unfinished migration
+        print(f">>>> Droping table: {tmpname!r}")
         cursor.execute(f"DROP TABLE IF EXISTS {tmpname}")
+        print(f">>>> Dropped table 1.: {tmpname!r}")
 
+        print(f">>>> Altering table: {name!r} to {tmpname!r}")
         cursor.execute(f"ALTER TABLE {name} RENAME TO {tmpname}")
+        print(f">>>> Altered table: {name!r} to {tmpname!r}")
+
         # Because Windows don't release the table, force the creation
+        print(f">>>> calling _create_table [BASE]: {name!r}")
         self._create_table(cursor, name, force=True)
+        print(">>>> called _create_table")        
+        print(f">>>> Inserting into: {name!r}")
+        print("\n")
         target_cols = self._get_columns(cursor, name)
         source_cols = self._get_columns(cursor, tmpname)
+
         cols = ", ".join(set(target_cols).intersection(source_cols))
-        cursor.execute(f"INSERT INTO {name} ({cols}) SELECT {cols} FROM {tmpname}")
+        print(f"???? target_cols: {target_cols!r}")
+        print(f"???? source_cols: {source_cols!r}")
+        print(f"???? cols: {cols!r}")
+        try:
+            qry = f"INSERT INTO {name} ({cols}) SELECT {cols} FROM {tmpname}"
+            print(f">>>> qry: {qry!r}")
+            cursor.execute(qry)
+            print(">>>> inserteed successfully")
+        except Exception as e:
+            print(f"EXCEPTION 1: {e!r}")
+        print("\n")
+        print(f">>>> Droping table: {tmpname!r}")
+        print(">>>> issue <<<<")
+        # cursor.execute(f"DROP TABLE {tmpname}")
         cursor.execute(f"DROP TABLE {tmpname}")
+        """
+        try:
+            cursor.execute(f"DROP TABLE {tmpname}")
+        except Exception as e:
+            print(f"EXCEPTION while droping {tmpname!r} 2: {e!r}")
+        """
+        print(f">>>> Dropped table 2.: {tmpname!r}")
+        print("----END----")
 
     def _create_table(
         self, cursor: Cursor, name: str, /, *, force: bool = False
@@ -220,6 +271,11 @@ class BaseDAO(QObject):
             f"(dir_exists={self.db.parent.exists()}, "
             f"file_exists={self.db.exists()})"
         )
+        print(
+            f"Create main connection on {self.db!r} "
+            f"(dir_exists={self.db.parent.exists()}, "
+            f"file_exists={self.db.exists()})"
+        )
         conn = connect(
             str(self.db),
             check_same_thread=False,  # Don't check same thread for closing purpose
@@ -228,6 +284,7 @@ class BaseDAO(QObject):
             timeout=10,
         )
         conn.row_factory = self._state_factory
+        print(">>>> ret conn")
         return conn
 
     def dispose(self) -> None:
@@ -241,6 +298,7 @@ class BaseDAO(QObject):
     def _get_write_connection(self) -> Connection:
         if self.in_tx:
             if self.conn is None:
+                print(">>>> creating   CONN")
                 self.conn = self._create_main_conn()
             return self.conn
         return self._get_read_connection()
@@ -250,8 +308,10 @@ class BaseDAO(QObject):
         if self.in_tx is not None:
             if current_thread_id() == self.in_tx:
                 if not self.conn:
+                    print(">>>> Creating conn")
                     self.conn = self._create_main_conn()
                 # Return the write connection
+                print(">>>> returning conn")
                 return self.conn
             log.debug("In transaction wait for read connection")
             # Wait for the thread in transaction to finished
