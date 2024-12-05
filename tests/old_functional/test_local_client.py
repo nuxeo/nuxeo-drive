@@ -4,6 +4,7 @@ See local_client_darwin.py and local_client_windows.py for more information.
 
 See NXDRIVE-742.
 """
+
 import hashlib
 import os
 from pathlib import Path
