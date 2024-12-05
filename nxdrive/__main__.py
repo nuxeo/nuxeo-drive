@@ -21,7 +21,6 @@ def signal_handler(signum: int, _: FrameType, /) -> None:
     from nxdrive.qt.imports import QApplication
 
     signame = signal.Signals(signum).name
-
     print("\r", flush=True)
     print(f" ! Caught {signame} ({signum}), gracefully exiting {APP_NAME}", flush=True)
     QApplication.quit()
