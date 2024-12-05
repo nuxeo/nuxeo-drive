@@ -253,7 +253,6 @@ class DirectEdit(Worker):
                         "not synchronized, add to upload queue"
                     )
                     self._upload_queue.put(ref)
-
                     continue
             except Exception:
                 log.exception("Unhandled clean-up error")
