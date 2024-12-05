@@ -48,7 +48,7 @@ jobs:
           env_vars: OS,PYTHON
 
   unit-tests-macos:
-    runs-on: "macos-latest"
+    runs-on: "macos-13"
     env:
       SYSTEM_VERSION_COMPAT: 0
     steps:
