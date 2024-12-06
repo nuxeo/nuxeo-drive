@@ -167,7 +167,6 @@ class Engine(QObject):
         self.name = definition.name
         self._proc_count = processors
         self._stopped = True
-
         # Pause if in debug
         self._pause: bool = Options.debug
         self._sync_started = False
