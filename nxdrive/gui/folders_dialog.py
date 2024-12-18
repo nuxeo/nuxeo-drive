@@ -624,6 +624,9 @@ class FoldersDialog(DialogMixin):
             txt += f" (+{self.overall_count - 1:,})"
         return txt
 
+    def get_size(self, file_path: Path) -> bool:
+        return file_path.stat().st_size
+
     def _process_additionnal_local_paths(self, paths: List[str], /) -> None:
         """Append more local paths to the upload queue."""
         for local_path in paths:
@@ -647,10 +650,17 @@ class FoldersDialog(DialogMixin):
             # Save the path
             if path.is_dir():
                 for file_path, size in get_tree_list(path):
+                    if self.get_size(file_path) == 0:
+                        # ignoring zero byte files [NXDRIVE-2925]
+                        continue
                     self.paths[file_path] = size
             else:
                 try:
-                    self.paths[path] = path.stat().st_size
+                    file_size = self.get_size(path)
+                    if file_size == 0:
+                        # ignoring zero byte files [NXDRIVE-2925]
+                        continue
+                    self.paths[path] = file_size
                 except OSError:
                     log.warning(f"Error calling stat() on {path!r}", exc_info=True)
                     continue
