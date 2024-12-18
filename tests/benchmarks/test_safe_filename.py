@@ -3,6 +3,7 @@ The current implementation used in Drive is str.replace().
 If is not the most efficient for small ASCII-only filenames,
 but it is the best when there are non-ASCII characters.
 """
+
 import pytest
 
 FILENAMES = [

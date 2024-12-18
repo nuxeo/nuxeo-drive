@@ -19,6 +19,7 @@ Contributors:
     Léa Klein
     Mickaël Schoentgen <mschoentgen@nuxeo.com>
 """
+
 import os
 import sys
 from pathlib import Path

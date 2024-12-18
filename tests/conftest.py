@@ -95,10 +95,6 @@ def no_warnings(recwarn):
             continue
         elif "Cryptography will be significantly faster" in message:
             continue
-        elif "The default datetime adapter is deprecated as of Python 3.12" in message:
-            continue
-        elif "datetime.datetime" in message:
-            continue
 
         warn = f"{warning.filename}:{warning.lineno} {message}"
         print(warn, file=sys.stderr)
