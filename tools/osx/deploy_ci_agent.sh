@@ -63,7 +63,7 @@ prepare_signing_from_scratch() {
 
     echo ">>> [sign] Add certificates to keychain and allow codesign to access them"
     security import ./AppleIncRootCertificate.cer -t cert -A -k "${KEYCHAIN_PATH}"
-    security import ./developerID_application.cer -t cert -A -T /usr/bin/codesign -k "${KEYCHAIN_PATH}"
+    security import ./developerID_application.p12 -k "${KEYCHAIN_PATH}" -P "${KEYCHAIN_PASSWORD}" -A -T /usr/bin/codesign
     security import ./nuxeo-drive.priv -t priv -A -T /usr/bin/codesign -k "${KEYCHAIN_PATH}"
 
     prepare_signing
@@ -159,8 +159,6 @@ create_package() {
     hdiutil create                         \
             -srcfolder "${src_folder_tmp}" \
             -volname "${app_name}"         \
-            -fs HFS+                       \
-            -fsargs "-c c=64,a=16,e=16"    \
             -format UDRW                   \
             -size "${dmg_size}m"           \
             "${dmg_tmp}"

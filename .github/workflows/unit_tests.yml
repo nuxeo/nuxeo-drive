@@ -40,7 +40,7 @@ jobs:
         run: tox -e unit
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
-        uses: codecov/codecov-action@v3.1.5
+        uses: codecov/codecov-action@v5.1.1
         with:
           token: ${{secrets.CODECOV_TOKEN}}
           files: ./coverage.xml
@@ -48,7 +48,7 @@ jobs:
           env_vars: OS,PYTHON
 
   unit-tests-macos:
-    runs-on: "macos-latest"
+    runs-on: "macos-13"
     env:
       SYSTEM_VERSION_COMPAT: 0
     steps:
@@ -73,7 +73,7 @@ jobs:
         run: tox -e unit
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
-        uses: codecov/codecov-action@v3.1.5
+        uses: codecov/codecov-action@v5.1.1
         with:
           token: ${{secrets.CODECOV_TOKEN}}
           files: ./coverage.xml
@@ -106,7 +106,7 @@ jobs:
         run: tox -e unit
       - name: Upload coverage to Codecov
         if: ${{ success() }} || ${{ failure() }}
-        uses: codecov/codecov-action@v3.1.5
+        uses: codecov/codecov-action@v5.1.1
         with:
           token: ${{secrets.CODECOV_TOKEN}}
           files: ./coverage.xml

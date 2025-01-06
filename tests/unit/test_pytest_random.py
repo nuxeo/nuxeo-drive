@@ -2,6 +2,7 @@
 Tests for pytests_random: a pytest plugin to mitigate random failures.
 Adapted from github.com/pytest-dev/pytest-rerunfailures
 """
+
 import pytest
 
 pytest_plugins = "pytester"

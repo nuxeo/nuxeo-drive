@@ -2,6 +2,7 @@
 Test if changes made to local file system when Drive is offline sync's back
 later when Drive becomes online.
 """
+
 import pytest
 
 from nxdrive.constants import WINDOWS
