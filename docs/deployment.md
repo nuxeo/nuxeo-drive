@@ -52,7 +52,7 @@ Executing the script without argument will setup.update the isolated environment
 
 [//]: # (XXX_PYTHON, XXX_INNO_SETUP)
 
-- [Python 3.12.3](https://www.python.org/ftp/python/3.12.3/python-3.12.3.exe).
+- [Python 3.13.1](https://www.python.org/ftp/python/3.13.1/python-3.13.1.exe).
 - [Inno Setup 6.1.2](http://www.jrsoftware.org/isdl.php) to create the installer.
 
 ### Troubleshooting
