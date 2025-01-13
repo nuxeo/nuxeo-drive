@@ -28,7 +28,7 @@ sudo mount -o remount,user_xattr /dev/sda3
 
 [//]: # (XXX_PYTHON)
 
-Nuxeo Drive is officially supported on **Python 3.12.3+**.
+Nuxeo Drive is officially supported on **Python 3.13.1+**.
 
 ## Installation
 
