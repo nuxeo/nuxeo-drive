@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from logging import getLogger
 from operator import attrgetter, itemgetter
 from time import monotonic, sleep
@@ -116,7 +116,7 @@ class RemoteWatcher(EngineWorker):
 
         # Recursive update
         self._do_scan_remote(from_state, remote_info)
-        self._last_remote_full_scan = datetime.utcnow()
+        self._last_remote_full_scan = datetime.now(tz=timezone.utc)
         self.dao.update_config("remote_last_full_scan", self._last_remote_full_scan)
         self.dao.clean_scanned()
 
