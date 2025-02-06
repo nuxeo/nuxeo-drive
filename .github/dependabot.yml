@@ -10,7 +10,7 @@ updates:
     labels:
       - dependencies
       - QA/CI
-
+    target-branch: wip-NXDRIVE-2990--fix-dependabot-issue
   # Python requirements
   - package-ecosystem: pip
     directory: /tools/deps
@@ -20,4 +20,5 @@ updates:
       - mr-shekhar
     labels:
       - dependencies
+    target-branch: wip-NXDRIVE-2990--fix-dependabot-issue
     open-pull-requests-limit: 60
