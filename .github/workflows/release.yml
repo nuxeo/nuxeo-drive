@@ -116,6 +116,23 @@ jobs:
           MACOSX_DEPLOYMENT_TARGET: "11.3"
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --install-release
+      
+      - name: "[macOS] Generate the .dmg and validate against 2021"
+        if: matrix.os == 'macos-13'
+        timeout-minutes: 20
+        env:
+          NXDRIVE_TEST_NUXEO_URL: "https://drive-2021.beta.nuxeocloud.com/nuxeo"
+          NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2021_TEST_USERNAME }}
+          NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2021_TEST_PASSWORD }}
+          MACOSX_DEPLOYMENT_TARGET: "11.3"
+          KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
+          NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
+          NOTARIZATION_TEAMID: ${{ secrets.NOTARIZATION_TEAMID }}
+          SIGNING_ID: "NUXEO CORP"
+          SYSTEM_VERSION_COMPAT: 0
+        run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
 
       - name: "[macOS] Generate the .dmg and validate against 2023"
         if: matrix.os == 'macos-13'
