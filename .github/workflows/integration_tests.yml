@@ -23,7 +23,7 @@ jobs:
     strategy:
         fail-fast: false
         matrix:
-          lts_environment:  [ ["https://drive-2021.beta.nuxeocloud.com/nuxeo",  "2021",  "NXDRIVE_2021_TEST_USERNAME", "NXDRIVE_2021_TEST_PASSWORD"], ["https://drive-2023.beta.nuxeocloud.com/nuxeo",  "2023",  "NXDRIVE_2023_TEST_USERNAME", "NXDRIVE_2023_TEST_PASSWORD"], ["https://drive-2025.beta.nuxeocloud.com/nuxeo",  "2025",  "NXDRIVE_2025_TEST_USERNAME", "NXDRIVE_2025_TEST_PASSWORD"] ]
+          lts_environment:  [ ["https://drive-2021.beta.nuxeocloud.com/nuxeo",  "2021",  "NXDRIVE_TEST_USERNAME", "NXDRIVE_TEST_PASSWORD"], ["https://drive-2023.beta.nuxeocloud.com/nuxeo",  "2023",  "NXDRIVE_2023_TEST_USERNAME", "NXDRIVE_2023_TEST_PASSWORD"], ["https://drive-2025.beta.nuxeocloud.com/nuxeo",  "2025",  "NXDRIVE_2025_TEST_USERNAME", "NXDRIVE_2025_TEST_PASSWORD"] ]
 
     env:
       NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment[0] }}
