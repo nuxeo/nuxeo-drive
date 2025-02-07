@@ -192,9 +192,9 @@ dukpy==0.3.1 \
     --hash=sha256:f9500f910c0e50ec98763e7ff3c2e553f40c1f1513301e8a1b42005ccc5ac548 \
     --hash=sha256:fbeb35a6c3be2c584bfc1d330b7718be0b1d62d5e85f596e60669f126ad7e6a7
     # via pypac
-idna==3.7 \
-    --hash=sha256:028ff3aadf0609c1fd278d8ea3089299412a7a8b9bd005dd08b9f8285bcb5cfc \
-    --hash=sha256:82fee1fc78add43492d3a1898bfa6d8a904cc97d8427f683ed8e798d07761aa0
+idna==3.10 \
+    --hash=sha256:12f65c9b470abda6dc35cf8e63cc574b1c52b11df2c86030af0ac09b01b13ea9 \
+    --hash=sha256:946d195a0d259cbba61165e88e65941f16e9b36ea6ddb97f00452bae8b1287d3
     # via requests
 jmespath==1.0.1 \
     --hash=sha256:02e2e4cc71b5bcab88332eebf907519190dd9e6e82107fa7f83b1003a6252980 \
