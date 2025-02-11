@@ -122,8 +122,6 @@ jobs:
         timeout-minutes: 20
         env:
           NXDRIVE_TEST_NUXEO_URL: "https://drive-2021.beta.nuxeocloud.com/nuxeo"
-          NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2021_TEST_USERNAME }}
-          NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2021_TEST_PASSWORD }}
           MACOSX_DEPLOYMENT_TARGET: "11.3"
           KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
@@ -131,6 +129,7 @@ jobs:
           NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
           NOTARIZATION_TEAMID: ${{ secrets.NOTARIZATION_TEAMID }}
           SIGNING_ID: "NUXEO CORP"
+          SIGNING_ID_NEW: "Hyland Software, Inc."
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
 
