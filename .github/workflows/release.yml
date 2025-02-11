@@ -147,6 +147,7 @@ jobs:
           NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
           NOTARIZATION_TEAMID: ${{ secrets.NOTARIZATION_TEAMID }}
           SIGNING_ID: "NUXEO CORP"
+          SIGNING_ID_NEW: "Hyland Software, Inc."
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
 
@@ -164,6 +165,7 @@ jobs:
           NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
           NOTARIZATION_TEAMID: ${{ secrets.NOTARIZATION_TEAMID }}
           SIGNING_ID: "NUXEO CORP"
+          SIGNING_ID_NEW: "Hyland Software, Inc."
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
 
