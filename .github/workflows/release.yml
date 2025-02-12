@@ -88,7 +88,7 @@ jobs:
           sudo apt install python3.9
           sudo rm /usr/bin/python3
           sudo ln -s /usr/bin/python3.5 /usr/bin/python3
-          sudo alias python3='/usr/bin/python3.9'
+          alias python3='/usr/bin/python3.9'
         # python3.9 --version
 
 
