@@ -73,7 +73,9 @@ jobs:
           tar -xf Python-3.9.5.tar.xz
           cd Python-3.9.5
           ./configure
+          sudo make altinstall
           python3 -V
+          python3.9 -V
           which python3
           which python3.9
           sudo rm /usr/bin/python3
