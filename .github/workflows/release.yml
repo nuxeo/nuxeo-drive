@@ -71,8 +71,6 @@ jobs:
           tar -xf Python-3.9.5.tar.xz
           cd Python-3.9.5.tar.xz
           ./configure
-          make
-          sudo make install
           python3 -V
           which python3
           which python3.9
