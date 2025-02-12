@@ -222,15 +222,14 @@ install_python() {
     echo ">>> local version: ${version}"
     echo ">>> [pyenv] Using Python ${version}"
     echo ">>> Actual Python Version: '$(python3 --version)'"
+    #verify_python "${PYTHON_DRIVE_VERSION}"
     pyenv install --skip-existing "${version}"
-     echo ">>> After Python installation: '$(python3 --version)'"
+    echo ">>> After Python installation: '$(python3 --version)'"
     pyenv global "${version}"
     echo "**** Python Version in use: '$(python3 --version)'"
     eval "$(pyenv init -)"
     eval "$(pyenv init --path)"
     eval "$(pyenv virtualenv-init -)"
-    
-    
 
 }
 
