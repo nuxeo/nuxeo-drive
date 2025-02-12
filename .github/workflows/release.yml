@@ -66,8 +66,8 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt update
-          sudo apt install python3.9.5 # XXX_PYTHON
-        
+          sudo apt install python3.9 # XXX_PYTHON
+
         #run: |
         #  sudo apt install build-essential zlib1g-dev
         #  libncurses5-dev libgdbm-dev libnss3-dev
