@@ -71,7 +71,7 @@ jobs:
           libssl-dev libreadline-dev libffi-dev curl software-properties-common
           wget https://www.python.org/ftp/python/3.9.5/Python-3.9.5.tar.xz
           tar -xf Python-3.9.5.tar.xz
-          cd Python-3.9.5.tar.xz
+          cd Python-3.9.5
           ./configure
           python3 -V
           which python3
