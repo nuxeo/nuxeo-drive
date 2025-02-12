@@ -66,8 +66,9 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt update
+          sudo apt install software-properties-common
           wget https://www.python.org/ftp/python/3.9.5/Python-3.9.5.tar.xz
-          tar -xzf Python-3.9.5.tar.xz
+          tar -xf Python-3.9.5.tar.xz
           cd Python-3.9.5.tar.xz
           ./configure
           make
