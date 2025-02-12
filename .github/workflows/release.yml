@@ -64,37 +64,34 @@ jobs:
 
       - name: "[GNU/Linux] Download and Install Python"
         if: matrix.os == 'ubuntu-latest'
-        #run: |
-        #  sudo apt update
-        #  sudo apt install python3.9 # XXX_PYTHON
-
-        #run: |
-        #  sudo apt install build-essential zlib1g-dev
-        #  libncurses5-dev libgdbm-dev libnss3-dev
-        #  libssl-dev libreadline-dev libffi-dev curl software-properties-common
-        #  wget https://www.python.org/ftp/python/3.9.0/Python-3.9.5.tar.xz
-        #  tar -xf Python-3.9.5.tar.xz
-        #  cd Python-3.9.5
-        #  ./configure
-        #  rm /usr/bin/python3
-        #  ln -s /usr/bin/python3.5 /usr/bin/python3
-        #  alias python3='/usr/bin/python3.9'
-
         run: |
-          sudo apt update
-          sudo apt install software-properties-common
-          sudo add-apt-repository ppa:deadsnakes/ppa
-          sudo apt update
-          sudo apt install python3.9.5
+          sudo apt install build-essential zlib1g-dev
+          libncurses5-dev libgdbm-dev libnss3-dev
+          libssl-dev libreadline-dev libffi-dev curl software-properties-common
+          wget https://www.python.org/ftp/python/3.9.5/Python-3.9.5.tar.xz
+          tar -xf Python-3.9.5.tar.xz
+          cd Python-3.9.5
+          ./configure
           python3 -V
           which python3
           which python3.9
-          sudo rm /usr/bin/python3
-          sudo ln -s /usr/bin/python3.9 /usr/bin/python3
+          rm /usr/bin/python3
+          ln -s /usr/bin/python3.9 /usr/bin/python3
           alias python3='/usr/bin/python3.9'
           python3 -V
-        # python3.9 --version
-
+        #run: |
+        #  sudo apt update
+        #  sudo apt install software-properties-common
+        #  sudo add-apt-repository ppa:deadsnakes/ppa
+        #  sudo apt update
+        #  sudo apt install python3.9
+        #  python3 -V
+        #  which python3
+        #  which python3.9
+        #  sudo rm /usr/bin/python3
+        #  sudo ln -s /usr/bin/python3.9 /usr/bin/python3
+        #  alias python3='/usr/bin/python3.9'
+        #  python3 -V
 
       - name: "[GNU/Linux] Install AppImage checkers"
         if: matrix.os == 'ubuntu-latest'
