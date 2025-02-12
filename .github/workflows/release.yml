@@ -67,11 +67,11 @@ jobs:
         run: |
           sudo apt update
           wget https://www.python.org/ftp/python/3.9.5/Python-3.9.5.tar.xz
-          tar -xf Python-3.9.5.tar.xz
+          tar -xfv Python-3.9.5.tar.xz
           python3 -V
           which python3
-          which python3.9
-          rm /usr/bin/python3
+          which python3.9.5
+          sudo rm /usr/bin/python3
           ln -s /usr/bin/python3.9 /usr/bin/python3
           alias python3='/usr/bin/python3.9'
           python3 -V
