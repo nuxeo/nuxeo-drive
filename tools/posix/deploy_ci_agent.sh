@@ -219,17 +219,13 @@ install_python() {
     #    pyenv global "${version}"
     #fi
 
-    echo ">>> local version: ${version}"
-    echo ">>> [pyenv] Using Python ${version}"
     echo ">>> Actual Python Version: '$(python3 --version)'"
-    #verify_python "${PYTHON_DRIVE_VERSION}"
     pyenv install --skip-existing "${version}"
-    echo ">>> After Python installation: '$(python3 --version)'"
     pyenv global "${version}"
-    echo "**** Python Version in use: '$(python3 --version)'"
     eval "$(pyenv init -)"
     eval "$(pyenv init --path)"
     eval "$(pyenv virtualenv-init -)"
+    echo ">>> Python Version in use: '$(python3 --version)'"
 
 }
 
@@ -403,9 +399,9 @@ main() {
 
     # If running from a virtual environment, let's use it
     if ! command -v deactivate > /dev/null; then
-        install_python "${PYTHON_DRIVE_VERSION}"
-        install_pyenv
         #install_python "${PYTHON_DRIVE_VERSION}"
+        install_pyenv
+        install_python "${PYTHON_DRIVE_VERSION}"
         create_venv
     fi
 
