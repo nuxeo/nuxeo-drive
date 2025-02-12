@@ -62,6 +62,11 @@ jobs:
       # GNU/Linux
       #
 
+      - name: "[macOS] Download and Install Python"
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt update
+        run: sudo apt install python3.9.5 # XXX_PYTHON
+
       - name: "[GNU/Linux] Install AppImage checkers"
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt install --yes appstream desktop-file-utils
