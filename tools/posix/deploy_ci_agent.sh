@@ -212,23 +212,22 @@ install_python() {
     # We need to override the default python used by pyenv as we installed it manually
     # See ticket: https://jira.nuxeo.com/browse/NXDRIVE-2724
 
-    #if [ "${MACOSX_DEPLOYMENT_TARGET:-unset}" != "unset" ]; then
-    #    ln -sf $(which python3) $(which python)
-    #else
-    #    pyenv install --skip-existing "${version}"
-    #    pyenv global "${version}"
-    #fi
+    if [ "${MACOSX_DEPLOYMENT_TARGET:-unset}" != "unset" ]; then
+        ln -sf $(which python3) $(which python)
+    else
+        pyenv install --skip-existing "${version}"
+        pyenv global "${version}"
+    fi
 
-    echo ">>> local version: ${version}"
-    echo ">>> Actual Python Version: '$(python3 --version)'"
-    pyenv install --skip-existing "${version}"
-    pyenv global "${version}"
-    eval "$(pyenv init -)"
-    eval "$(pyenv init --path)"
-    eval "$(pyenv virtualenv-init -)"
-    echo "**** Python Version in use: '$(python3 --version)'"
-
-    echo ">>> [pyenv] Using Python ${version}"
+    #echo ">>> local version: ${version}"
+    #echo ">>> Actual Python Version: '$(python3 --version)'"
+    #pyenv install --skip-existing "${version}"
+    #pyenv global "${version}"
+    #eval "$(pyenv init -)"
+    #eval "$(pyenv init --path)"
+    #eval "$(pyenv virtualenv-init -)"
+    #echo "**** Python Version in use: '$(python3 --version)'"
+    #echo ">>> [pyenv] Using Python ${version}"
 
 }
 
