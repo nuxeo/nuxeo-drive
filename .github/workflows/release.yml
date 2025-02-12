@@ -68,17 +68,24 @@ jobs:
         #  sudo apt update
         #  sudo apt install python3.9 # XXX_PYTHON
 
+        #run: |
+        #  sudo apt install build-essential zlib1g-dev
+        #  libncurses5-dev libgdbm-dev libnss3-dev
+        #  libssl-dev libreadline-dev libffi-dev curl software-properties-common
+        #  wget https://www.python.org/ftp/python/3.9.0/Python-3.9.5.tar.xz
+        #  tar -xf Python-3.9.5.tar.xz
+        #  cd Python-3.9.5
+        #  ./configure
+        #  rm /usr/bin/python3
+        #  ln -s /usr/bin/python3.5 /usr/bin/python3
+        #  alias python3='/usr/bin/python3.9'
+
         run: |
-          sudo apt install build-essential zlib1g-dev
-          libncurses5-dev libgdbm-dev libnss3-dev
-          libssl-dev libreadline-dev libffi-dev curl software-properties-common
-          wget https://www.python.org/ftp/python/3.9.0/Python-3.9.5.tar.xz
-          tar -xf Python-3.9.5.tar.xz
-          cd Python-3.9.5
-          ./configure
-          rm /usr/bin/python3
-          ln -s /usr/bin/python3.5 /usr/bin/python3
-          alias python3='/usr/bin/python3.9'
+          sudo apt update
+          sudo apt install software-properties-common
+          sudo add-apt-repository ppa:deadsnakes/ppa
+          sudo apt update
+          sudo apt install python3.9
 
 
       - name: "[GNU/Linux] Install AppImage checkers"
