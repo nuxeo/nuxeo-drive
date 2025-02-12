@@ -193,7 +193,6 @@ install_pyenv() {
     fi
 
     echo ">>> [pyenv] Initializing"
-    echo ">>> [pyenv] initiating pyenv to ${path}"
     # Ensure pyenv shims are added to PATH, see https://github.com/pyenv/pyenv/issues/1906
     eval "$(pyenv init -)"
     eval "$(pyenv init --path)"
@@ -220,8 +219,8 @@ install_python() {
     #    pyenv global "${version}"
     #fi
 
+    echo ">>> local version: ${version}"
     echo ">>> Actual Python Version: '$(python3 --version)'"
-    echo ">>> local version: $(version)"
     pyenv install --skip-existing "${version}"
     pyenv global "${version}"
     eval "$(pyenv init -)"
