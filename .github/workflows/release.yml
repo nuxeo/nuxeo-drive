@@ -64,8 +64,19 @@ jobs:
 
       - name: "[GNU/Linux] Download and Install Python"
         if: matrix.os == 'ubuntu-latest'
-        run: sudo apt update
-        run: sudo apt install python3.9.5 # XXX_PYTHON
+        #run: sudo apt update
+        #run: sudo apt install python3.9.5 # XXX_PYTHON
+        run: sudo apt install build-essential zlib1g-dev
+        run: libncurses5-dev libgdbm-dev libnss3-dev
+        run: libssl-dev libreadline-dev libffi-dev curl software-properties-common
+        run: wget https://www.python.org/ftp/python/3.9.0/Python-3.9.5.tar.xz
+        run: tar -xf Python-3.9.5.tar.xz
+        run: cd Python-3.9.5
+        run: ./configure
+        run: rm /usr/bin/python3
+        run: ln -s /usr/bin/python3.5 /usr/bin/python3
+        run: alias python3='/usr/bin/python3.9'
+
 
       - name: "[GNU/Linux] Install AppImage checkers"
         if: matrix.os == 'ubuntu-latest'
