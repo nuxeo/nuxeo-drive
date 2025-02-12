@@ -79,8 +79,8 @@ jobs:
           which python3
           which python3.9
           sudo rm /usr/bin/python3
-          sudo ln -s /usr/bin/python3.9 /usr/bin/python3
-          alias python3='/usr/bin/python3.9'
+          sudo ln -s /usr/local/bin/python3.9 /usr/bin/python3
+          alias python3='/usr/local/bin/python3.9'
           python3 -V
         #run: |
         #  sudo apt update
