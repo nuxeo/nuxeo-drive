@@ -67,7 +67,7 @@ jobs:
         run: |
           sudo apt update
           wget https://www.python.org/ftp/python/3.9.5/Python-3.9.5.tar.xz
-          tar -xfv Python-3.9.5.tar.xz
+          tar -xf Python-3.9.5.tar.xz
           python3 -V
           which python3
           which python3.9.5
