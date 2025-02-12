@@ -223,6 +223,7 @@ install_python() {
     echo ">>> [pyenv] Using Python ${version}"
     echo ">>> Actual Python Version: '$(python3 --version)'"
     pyenv install --skip-existing "${version}"
+     echo ">>> After Python installation: '$(python3 --version)'"
     pyenv global "${version}"
     echo "**** Python Version in use: '$(python3 --version)'"
     eval "$(pyenv init -)"
