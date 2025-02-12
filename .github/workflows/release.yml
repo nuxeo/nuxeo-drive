@@ -102,13 +102,13 @@ jobs:
           echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.p12
           echo "${{ secrets.PRIV_APP_MACOS }}" | base64 --decode > nuxeo-drive.priv
 
-      #- name: "[macOS] Downloading Python"
-      #  if: matrix.os == 'macos-13'
-      #  run: curl https://www.python.org/ftp/python/3.9.5/python-3.9.5-macosx10.9.pkg -o "python.pkg" # XXX_PYTHON
+      - name: "[macOS] Downloading Python"
+        if: matrix.os == 'macos-13'
+        run: curl https://www.python.org/ftp/python/3.9.5/python-3.9.5-macosx10.9.pkg -o "python.pkg" # XXX_PYTHON
 
-      #- name: "[macOS] Install Python"
-      #  if: matrix.os == 'macos-13'
-      #  run: sudo installer -pkg python.pkg -target /
+      - name: "[macOS] Install Python"
+        if: matrix.os == 'macos-13'
+        run: sudo installer -pkg python.pkg -target /
 
       - name: "[macOS] Setup the environment"
         if: matrix.os == 'macos-13'
