@@ -208,6 +208,7 @@ def test_corrupted_database(engine_dao):
         c = dao._get_read_connection().cursor()
         cols = c.execute("SELECT * FROM States").fetchall()
         assert len(cols) == 3
+    assert 1 == 0
 
 
 def test_errors(engine_dao):
