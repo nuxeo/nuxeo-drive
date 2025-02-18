@@ -22,6 +22,7 @@ on:
 env:
   GITHUB_USERNAME: "nuxeodrive"
   GITHUB_EMAILID: "drive@hyland.com"
+  # PIP_CONFIG_FILE: ${{ github.ref == 'refs/heads/master' && 'tools/windows/pip.ini' || 'tools/windows/pip.ini' }}
 
 jobs:
   release:
@@ -85,7 +86,8 @@ jobs:
         env:
           REGISTRY: "docker-private.packages.nuxeo.com"
           REPOSITORY: "nuxeo-drive-build"
-        run: docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.9.5" # XXX_PYTHON
+          PIP_CONFIG_FILE: ${{ github.ref == 'refs/heads/master' && 'tools/posix/pip.conf' || 'tools/posix/pip.conf' }}
+        run: docker run -e PIP_CONFIG_FILE=${{ env.PIP_CONFIG_FILE }} -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.9.5" # XXX_PYTHON
 
       - name: "[GNU/Linux] Ensure the AppImage is correct"
         if: matrix.os == 'ubuntu-latest'
@@ -115,6 +117,9 @@ jobs:
         env:
           MACOSX_DEPLOYMENT_TARGET: "11.3"
           SYSTEM_VERSION_COMPAT: 0
+          #PIP_CONFIG_FILE: ${{ github.ref == 'refs/heads/master' && 'tools/posix/pip.conf' || 'tools/posix/pip.conf' }}
+          PIP_INDEX_URL: ${{ github.ref == 'refs/heads/master' && 'https://packages.nuxeo.com/repository/pypi-nuxeopublic/simple' || 'https://packages.nuxeo.com/repository/pypi-nuxeopublic/simple' }}
+          PIP_EXTRA_INDEX_URL: "https://pypi.org/simple"
         run: bash tools/osx/deploy_ci_agent.sh --install-release
 
       - name: "[macOS] Generate the .dmg and validate against 2021"
@@ -178,7 +183,13 @@ jobs:
 
       - name: "[Windows] Setup the environment"
         if: matrix.os == 'windows-latest'
-        run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
+        env:
+          PYPI_API_NUXEO_PACKAGE_USERNAME: ${{ secrets.PYPI_API_NUXEO_PACKAGE_USERNAME }}
+          PYPI_API_NUXEO_PACKAGE_PASSWORD: ${{ secrets.PYPI_API_NUXEO_PACKAGE_TOKEN }}
+          PIP_CONFIG_FILE: ${{ github.ref == 'refs/heads/master' && 'tools/windows/pip/pip_public_conf/pip.ini' || 'tools/windows/pip/pip_test_conf/pip.ini' }}
+        run: |
+          Write-Output ">>> Pip config $Env:PIP_CONFIG_FILE"
+          powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
 
       - name: Setup Certificate
         if: matrix.os == 'windows-latest'
