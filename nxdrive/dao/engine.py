@@ -6,7 +6,7 @@ import json
 import os
 import shutil
 from contextlib import suppress
-from datetime import datetime
+from datetime import datetime, timezone
 from logging import getLogger
 from os.path import basename
 from pathlib import Path
@@ -1503,7 +1503,7 @@ class EngineDAO(BaseDAO):
         self, row: DocPair, error: str, /, *, details: str = None, incr: int = 1
     ) -> None:
         with self.lock:
-            error_date = datetime.utcnow()
+            error_date = datetime.now(tz=timezone.utc)
             c = self._get_write_connection().cursor()
             c.execute(
                 "UPDATE States"
@@ -1592,7 +1592,7 @@ class EngineDAO(BaseDAO):
                 "       error_count = 0,"
                 "       last_sync_error_date = NULL"
                 " WHERE id = ?",
-                (datetime.utcnow(), last_error, row.id),
+                (datetime.now(tz=timezone.utc), last_error, row.id),
             )
 
     def unset_unsychronised(self, row: DocPair, /) -> None:
@@ -1617,7 +1617,7 @@ class EngineDAO(BaseDAO):
                     row.local_state,
                     row.remote_state,
                     row.pair_state,
-                    datetime.utcnow(),
+                    datetime.now(tz=timezone.utc),
                     f"{adapt_path(row.local_path)}%",
                 ),
             )
@@ -1659,7 +1659,7 @@ class EngineDAO(BaseDAO):
                     row.remote_state,
                     row.pair_state,
                     row.local_digest,
-                    datetime.utcnow(),
+                    datetime.now(tz=timezone.utc),
                     row.id,
                     version,
                 ),
@@ -1687,7 +1687,7 @@ class EngineDAO(BaseDAO):
                         row.local_state,
                         row.remote_state,
                         row.pair_state,
-                        datetime.utcnow(),
+                        datetime.now(tz=timezone.utc),
                         row.id,
                         row.local_path,
                         row.remote_name,
