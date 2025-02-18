@@ -68,7 +68,7 @@ jobs:
 
       - name: "[GNU/Linux] Login to the docker registry"
         if: matrix.os == 'ubuntu-latest'
-        uses: docker/login-action@v3.0.0
+        uses: docker/login-action@v3.3.0
         with:
           registry: "docker-private.packages.nuxeo.com"
           username: ${{ secrets.DOCKER_USERNAME }}
