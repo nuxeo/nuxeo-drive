@@ -21,7 +21,7 @@ from .utils import fix_db, restore_backup, save_backup
 log = getLogger(__name__)
 
 class AutoRetryCursor(Cursor):
-    def adapt_datetime_iso(self, val):
+    def adapt_datetime_iso(self, val: Any, /) -> Any:
         return datetime.fromtimestamp(val.strftime('%s'), tz=timezone.utc)
     def execute(self, sql: str, parameters: Iterable[Any] = ()) -> Cursor:
         count = 1
