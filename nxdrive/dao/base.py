@@ -23,7 +23,7 @@ log = getLogger(__name__)
 
 class AutoRetryCursor(Cursor):
     def adapt_datetime_iso(self, val: Any, /) -> Any:
-        return datetime.fromtimestamp(val.strftime('%s'), tz=timezone.utc)
+        return datetime.fromtimestamp(val.strftime("%s"), tz=timezone.utc)
 
     def execute(self, sql: str, parameters: Iterable[Any] = ()) -> Cursor:
         count = 1
