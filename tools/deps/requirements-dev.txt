@@ -18,7 +18,8 @@ pefile==2023.2.7 ; sys_platform == "win32" \
     --hash=sha256:da185cd2af68c08a6cd4481f7325ed600a88f6a813bad9dea07ab3ef73d8d8d6
     # via pyinstaller
 pyinstaller==6.11.1 \
-    --hash=sha256:2e8365276c5131c9bef98e358fbc305e4022db8bedc9df479629d6414021956a
+    --hash=sha256:2e8365276c5131c9bef98e358fbc305e4022db8bedc9df479629d6414021956a \
+    --hash=sha256:44e36172de326af6d4e7663b12f71dbd34e2e3e02233e181e457394423daaf03
 pyinstaller-hooks-contrib==2024.11 \
     --hash=sha256:2781d121a1ee961152ba7287a262c65a1078da30c9ef7621cb8c819326884fd5
     # via pyinstaller
