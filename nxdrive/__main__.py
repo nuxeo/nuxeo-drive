@@ -68,19 +68,7 @@ def main() -> int:
                 "os": {"name": current_os(full=True)},
             }
         )
-        """
-        with configure_scope() as scope:
-            # Append OS and Python versions to all events
-            # pylint: disable=protected-access
-            scope._contexts.update(
-                {
-                    "runtime": {"name": "Python", "version": platform.python_version()},
-                    "os": {"name": current_os(full=True)},
-                }
-            )
-            """
-
-            ret = CliHandler().handle(sys.argv[1:])
+        ret = CliHandler().handle(sys.argv[1:])
     except SystemExit as exc:
         if exc.code != 0:
             show_critical_error()
