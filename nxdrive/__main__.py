@@ -61,6 +61,14 @@ def main() -> int:
         # later via the "use-sentry" parameter. It will be useless if Sentry is not installed first.
         setup_sentry()
 
+        scope = get_isolation_scope()
+        scope._contexts.update(
+            {
+                "runtime": {"name": "Python", "version": platform.python_version()},
+                "os": {"name": current_os(full=True)},
+            }
+        )
+        """
         with configure_scope() as scope:
             # Append OS and Python versions to all events
             # pylint: disable=protected-access
@@ -70,6 +78,7 @@ def main() -> int:
                     "os": {"name": current_os(full=True)},
                 }
             )
+            """
 
             ret = CliHandler().handle(sys.argv[1:])
     except SystemExit as exc:
