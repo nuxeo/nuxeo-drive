@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 import requests
-from sentry_sdk import configure_scope
+from sentry_sdk import get_isolation_scope
 
 from nxdrive.options import Options
 
