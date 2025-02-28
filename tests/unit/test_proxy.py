@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import os
 import pytest
 
 from nxdrive.client.proxy import (
@@ -49,7 +50,7 @@ def config_dao(tmp_path):
         yield dao
     finally:
         dao.dispose()
-        db.unlink()
+        os.system(f'rmdir "{db}"')
 
 
 @pytest.fixture
