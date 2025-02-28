@@ -146,10 +146,17 @@ def test_error():
     with pytest.raises(RuntimeError):
         Options.set("no key", 42)
 
+    scope = get_isolation_scope()
+    scope._should_capture = False
+    Options.set("no key", 42, fail_on_error=False)
+    Options.set("update_site_url", 42, setter="manual", fail_on_error=False)
+
+    """
     with configure_scope() as scope:
         scope._should_capture = False
         Options.set("no key", 42, fail_on_error=False)
         Options.set("update_site_url", 42, setter="manual", fail_on_error=False)
+    """
 
     with pytest.raises(TypeError) as err:
         Options.set("delay", "foo")
