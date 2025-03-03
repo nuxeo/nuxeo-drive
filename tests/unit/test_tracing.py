@@ -22,6 +22,9 @@ class CustomTransport(transport.Transport):
         super().__init__()
         self._queue = None
 
+    def capture_envelope(self):
+        return
+
 
 @pytest.fixture(scope="function")
 def sentry_init_custom(monkeypatch):
