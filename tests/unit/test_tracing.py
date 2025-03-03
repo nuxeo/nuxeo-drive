@@ -1,5 +1,5 @@
 import pytest
-from sentry_sdk import Client, Transport, api, capture_exception, isolation_scope
+from sentry_sdk import Client, Scope, Transport, api, capture_exception, isolation_scope
 
 import nxdrive.tracing
 
