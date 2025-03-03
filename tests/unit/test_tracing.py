@@ -1,5 +1,5 @@
 import pytest
-from sentry_sdk import Client, Hub, Transport, capture_exception
+from sentry_sdk import Client, Transport, api, capture_exception, isolation_scope
 
 import nxdrive.tracing
 
@@ -20,10 +20,13 @@ class CustomTransport(Transport):
 @pytest.fixture(scope="function")
 def sentry_init_custom(monkeypatch):
     def inner(*a, **kw):
-        hub = Hub.current
+        scope = isolation_scope()
+        #hub = Hub.current
         client = Client(*a, **kw)
-        hub.bind_client(client)
-        monkeypatch.setattr(Hub.current.client, "transport", CustomTransport())
+        scope.set_client(client)
+        #hub.bind_client(client)
+        #monkeypatch.setattr(Hub.current.client, "transport", CustomTransport())
+        monkeypatch.setattr(api.get_client() , "transport", CustomTransport())
 
     yield inner
 
