@@ -1,5 +1,5 @@
 import pytest
-from sentry_sdk import Client, Scope, Transport, api, capture_exception, isolation_scope
+from sentry_sdk import Client, Scope, Transport, api, capture_exception, isolation_scope, transport
 
 import nxdrive.tracing
 
@@ -11,7 +11,7 @@ import nxdrive.tracing
 #
 
 
-class CustomTransport(Transport):
+class CustomTransport(transport.Transport):
     def __init__(self):
         super().__init__()
         self._queue = None
