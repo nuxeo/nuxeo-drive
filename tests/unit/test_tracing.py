@@ -4,7 +4,6 @@ from sentry_sdk import (
     Scope,
     api,
     capture_exception,
-    isolation_scope,
     transport,
 )
 
@@ -27,7 +26,7 @@ class CustomTransport(transport.Transport):
 @pytest.fixture(scope="function")
 def sentry_init_custom(monkeypatch):
     def inner(*a, **kw):
-        #scope = isolation_scope()
+        # scope = isolation_scope()
         client = Client(*a, **kw)
         Scope.set_client(client)
         monkeypatch.setattr(api.get_client(), "transport", CustomTransport())
