@@ -48,8 +48,10 @@ def before_send(event: _Event, _: _Hint, /) -> Any:
     """Alter an event before sending to the Sentry server."""
     if should_ignore(event):
         # The event will not be sent if None is returned
+        print("@@@@ return None")
         return None
 
+    print("@@@@ return event")
     return event
 
 
