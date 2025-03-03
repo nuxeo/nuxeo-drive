@@ -21,11 +21,8 @@ class CustomTransport(Transport):
 def sentry_init_custom(monkeypatch):
     def inner(*a, **kw):
         scope = isolation_scope()
-        #hub = Hub.current
         client = Client(*a, **kw)
         Scope.set_client(client)
-        #hub.bind_client(client)
-        #monkeypatch.setattr(Hub.current.client, "transport", CustomTransport())
         monkeypatch.setattr(api.get_client() , "transport", CustomTransport())
 
     yield inner
