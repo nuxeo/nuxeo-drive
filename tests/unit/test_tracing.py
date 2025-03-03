@@ -31,7 +31,7 @@ def sentry_init_custom(monkeypatch):
         scope = isolation_scope()
         client = Client(*a, **kw)
         Scope.set_client(client)
-        monkeypatch.setattr(api.get_client() , "transport", CustomTransport())
+        monkeypatch.setattr(api.get_client(), "transport", CustomTransport())
 
     yield inner
 
