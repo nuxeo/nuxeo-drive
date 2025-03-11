@@ -1,9 +1,9 @@
-name: Functional tests
+name: Functional tests LTS 2025
 
 on:
   pull_request:
     paths:
-      - ".github/workflows/functional_tests.yml"
+      - ".github/workflows/functional_tests_2025.yml"
       - "nxdrive/**/*.py"
       - "tests/*.py"
       - "tests/functional/*.py"
@@ -16,9 +16,9 @@ on:
       - "tests/functional/*.py"
 
 env:
-  NXDRIVE_TEST_NUXEO_URL: https://drive-2021.beta.nuxeocloud.com/nuxeo
-  NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_TEST_USERNAME }}
-  NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_TEST_PASSWORD }}
+  NXDRIVE_TEST_NUXEO_URL: https://drive-2025.beta.nuxeocloud.com/nuxeo
+  NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2025_TEST_USERNAME }}
+  NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2025_TEST_PASSWORD }}
 
 jobs:
   functional-tests-linux:
@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.13 # XXX_PYTHON
+          python-version: 3.9 # XXX_PYTHON
       - uses: actions/cache@v4
         with:
           path: ~/.cache/pip
@@ -63,7 +63,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.13 # XXX_PYTHON
+          python-version: 3.9 # XXX_PYTHON
       - uses: actions/cache@v4
         with:
           path: ~/Library/Caches/pip
@@ -93,18 +93,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.13 # XXX_PYTHON
+          python-version: 3.9 # XXX_PYTHON
       - uses: actions/cache@v4
         with:
           path: ~\AppData\Local\pip\Cache
           key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
           restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
-      # Cannot be used for now: OSError: [WinError 193] %1 is not a valid Win32 application
-      # - uses: actions/cache@v4
-      #  with:
-      #    path: .tox
-      #    key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
-      #    restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
       - name: Install tox
         run: python -m pip install -r tools/deps/requirements-tox.txt
       - name: Functional tests
@@ -129,7 +123,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.13 # XXX_PYTHON
+          python-version: 3.9 # XXX_PYTHON
       - uses: actions/cache@v4
         with:
           path: ~/.cache/pip

@@ -48,7 +48,10 @@ publish() {
     fi
 
     echo ">>> [${release_type} ${drive_version}] Deploying to the server"
-    scp -o "StrictHostKeyChecking=no" tools/versions.py lethe.nuxeo.com:"${artifacts}"
+    rsync -e "ssh -o StrictHostKeyChecking=no" --chmod=755 -pvz tools/versions.py lethe.nuxeo.com:"${artifacts}" || \
+        rsync -e "ssh -o StrictHostKeyChecking=no" -vz tools/versions.py lethe.nuxeo.com:"${artifacts}" || exit 1  # macOS does not have --chmod
+    echo ">>> versions.py copied"
+    # scp -o "StrictHostKeyChecking=no" tools/versions.py lethe.nuxeo.com:"${artifacts}"
     ssh -o "StrictHostKeyChecking=no" -T lethe.nuxeo.com <<EOF
 cd ${artifacts} || exit 1
 
