@@ -15,7 +15,6 @@ def should_ignore(event: _Event) -> bool:
     """Return False if the event can be sent to Sentry."""
     # Sentry may have been disabled later, via a CLI argument or GUI parameter
     if not Options.use_sentry:
-        print(">>>> not Options.use_sentry")
         return True
 
     # Compute a "fingerprint" of the stacktrace. Peusdo-code:
@@ -34,13 +33,11 @@ def should_ignore(event: _Event) -> bool:
             )
         )
     )
-    print(f">>>> fingerprint: {fingerprint!r}")
     if fingerprint in _EVENTS:
         print(">>>> Returning True")
         return True
     _EVENTS.add(fingerprint)
 
-    print(">>>> Returning False")
     return False
 
 
@@ -48,10 +45,8 @@ def before_send(event: _Event, _: _Hint, /) -> Any:
     """Alter an event before sending to the Sentry server."""
     if should_ignore(event):
         # The event will not be sent if None is returned
-        print("@@@@ return None")
         return None
 
-    print("@@@@ return event")
     return event
 
 
