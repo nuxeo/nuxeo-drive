@@ -1,7 +1,7 @@
 import pytest
 from sentry_sdk import (
     Client,
-    get_current_scope
+    get_current_scope,
     transport,
 )
 
