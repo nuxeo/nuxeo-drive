@@ -48,7 +48,7 @@ def test_flooding_prevention(sentry_init_custom):
     will not explode the Sentry quota.
     """
 
-    def whoopsy(sc):
+    def whoopsy():
         """Problematic function ..."""
         try:
             raise ValueError("Mock'ed error")
