@@ -332,9 +332,9 @@ regex==2023.12.25 \
     --hash=sha256:f7bc09bc9c29ebead055bcba136a67378f03d66bf359e87d0f7c759d6d4ffa31 \
     --hash=sha256:ff100b203092af77d1a5a7abe085b3506b7eaaf9abf65b73b7d6905b6cb76988
     # via black
-responses==0.25.3 \
-    --hash=sha256:521efcbc82081ab8daa588e08f7e8a64ce79b91c39f6e62199b19159bea7dbcb \
-    --hash=sha256:617b9247abd9ae28313d57a75880422d55ec63c29d33d629697590a034358dba
+responses==0.25.6 \
+    --hash=sha256:9cac8f21e1193bb150ec557875377e41ed56248aed94e4567ed644db564bacf1 \
+    --hash=sha256:eae7ce61a9603004e76c05691e7c389e59652d91e94b419623c12bbfb8e331d8
 selenium==3.141.0 ; sys_platform == "win32" \
     --hash=sha256:2d7131d7bc5a5b99a2d9b04aaf2612c411b03b8ca1b1ee8d3de5845a9be2cb3c
 text-unidecode==1.3 \
