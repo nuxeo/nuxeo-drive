@@ -51,7 +51,7 @@ def main() -> int:
         if not (check_executable_path() and check_os_version()):
             return 1
 
-        from sentry_sdk import configure_scope
+        from sentry_sdk import get_isolation_scope
 
         from nxdrive.commandline import CliHandler
         from nxdrive.metrics.utils import current_os
@@ -61,17 +61,14 @@ def main() -> int:
         # later via the "use-sentry" parameter. It will be useless if Sentry is not installed first.
         setup_sentry()
 
-        with configure_scope() as scope:
-            # Append OS and Python versions to all events
-            # pylint: disable=protected-access
-            scope._contexts.update(
-                {
-                    "runtime": {"name": "Python", "version": platform.python_version()},
-                    "os": {"name": current_os(full=True)},
-                }
-            )
-
-            ret = CliHandler().handle(sys.argv[1:])
+        scope = get_isolation_scope()
+        scope._contexts.update(
+            {
+                "runtime": {"name": "Python", "version": platform.python_version()},
+                "os": {"name": current_os(full=True)},
+            }
+        )
+        ret = CliHandler().handle(sys.argv[1:])
     except SystemExit as exc:
         if exc.code != 0:
             show_critical_error()
