@@ -34,7 +34,6 @@ def should_ignore(event: _Event) -> bool:
         )
     )
     if fingerprint in _EVENTS:
-        print(">>>> Returning True")
         return True
     _EVENTS.add(fingerprint)
 
