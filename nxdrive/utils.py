@@ -13,7 +13,7 @@ import stat
 import sys
 from configparser import DEFAULTSECT, ConfigParser
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import lru_cache
 from itertools import islice
 from logging import getLogger
@@ -646,7 +646,7 @@ def get_certificate_details(
     Note: This function uses a undocumented method of the _ssl module.
           It is continuously tested in our CI to ensure it still
           available after any Python upgrade.
-          Certified working as of Python 3.9.5.
+          Certified working as of Python 3.12.3.
     """
 
     import ssl
@@ -1287,7 +1287,7 @@ def today_is_special() -> bool:
     """This beautiful day is special, isn't it? As all other days, right? :)"""
     return (
         os.getenv("I_LOVE_XMAS", "0") == "1"
-        or int(datetime.utcnow().strftime("%j")) >= 354
+        or int(datetime.now(tz=timezone.utc).strftime("%j")) >= 354
     )
 
 
@@ -1301,7 +1301,7 @@ def get_current_locale() -> str:
     else:
         import locale
 
-        encoding = locale.getdefaultlocale()[1] or ""
+        encoding = locale.getlocale()[1] or ""
 
     # Guess the current locale name
     if WINDOWS:
@@ -1315,7 +1315,7 @@ def get_current_locale() -> str:
         l10n_code = NSLocale.currentLocale()
         l10n = NSLocale.localeIdentifier(l10n_code)
     else:
-        l10n = locale.getdefaultlocale()[0] or ""
+        l10n = locale.getlocale()[1] or ""
 
     return ".".join([l10n, encoding])
 
