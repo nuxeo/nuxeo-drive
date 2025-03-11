@@ -1,7 +1,7 @@
 import pytest
 from sentry_sdk import (
     Client,
-    scope,
+    get_current_scope
     transport,
 )
 
@@ -14,8 +14,6 @@ import nxdrive.tracing
 # This is OK because we need to test Event objects and not the Transport or Hub, or whatever.
 #
 
-
-sc = scope.Scope()
 
 class CustomTransport(transport.Transport):
     def __init__(self):
@@ -31,16 +29,10 @@ class CustomTransport(transport.Transport):
 @pytest.fixture(scope="function")
 def sentry_init_custom(monkeypatch):
     def inner(*a, **kw):
-        print(f">>>> a: {a!r}")
-        print(f">>>> kw: {kw!r}")
-        # sc = scope.Scope()
-        print(f">>>> sc: {sc!r}")
+        scope = get_current_scope()
         client = Client(*a, **kw)
-        # client.init()
-        print(f">>>> client: {client!r}")
-        sc.set_client(client)
-        print(f">>>> sc.get_client(): {sc.get_client()!r}")
-        monkeypatch.setattr(sc.get_client(), "transport", CustomTransport())
+        scope.set_client(client)
+        monkeypatch.setattr(scope.get_client(), "transport", CustomTransport())
 
     yield inner
 
@@ -57,20 +49,17 @@ def test_flooding_prevention(sentry_init_custom):
 
     def whoopsy(sc):
         """Problematic function ..."""
-        print(f">>>>1 sc: {sc!r}")
         try:
             raise ValueError("Mock'ed error")
         except Exception:
-            print("EXCP 1")
-            sc.capture_exception()
+            capture_exception()
 
     def whoopsy2():
         """Problematic function ..."""
         try:
             raise ValueError("Mock'ed error")
         except Exception:
-            print("EXCP 2")
-            sc.capture_exception()
+            capture_exception()
 
     sentry_init_custom(before_send=nxdrive.tracing.before_send)
 
