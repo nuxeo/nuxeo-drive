@@ -20,7 +20,6 @@ class CustomTransport(transport.Transport):
     def __init__(self):
         super().__init__()
         self._queue = None
-        print(f">>>> self._queue: {self._queue!r}")
 
     def capture_envelope(self):
         print("Returning...")
