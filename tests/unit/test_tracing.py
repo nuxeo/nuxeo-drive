@@ -22,7 +22,6 @@ class CustomTransport(transport.Transport):
         self._queue = None
 
     def capture_envelope(self):
-        print("Returning...")
         return
 
 
