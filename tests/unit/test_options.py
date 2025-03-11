@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 import requests
-from sentry_sdk import configure_scope
+from sentry_sdk import get_isolation_scope
 
 from nxdrive.options import Options
 
@@ -146,10 +146,10 @@ def test_error():
     with pytest.raises(RuntimeError):
         Options.set("no key", 42)
 
-    with configure_scope() as scope:
-        scope._should_capture = False
-        Options.set("no key", 42, fail_on_error=False)
-        Options.set("update_site_url", 42, setter="manual", fail_on_error=False)
+    scope = get_isolation_scope()
+    scope._should_capture = False
+    Options.set("no key", 42, fail_on_error=False)
+    Options.set("update_site_url", 42, setter="manual", fail_on_error=False)
 
     with pytest.raises(TypeError) as err:
         Options.set("delay", "foo")
