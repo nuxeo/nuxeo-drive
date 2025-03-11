@@ -228,6 +228,13 @@ install_python() {
 
     echo ">>> [pyenv] Using Python ${version}"
 
+    # setup_pip_config
+
+}
+
+setup_pip_config() {
+    mkdir -p "$HOME/.pip"
+    cp "tools/posix/pip.conf" "$HOME/.pip/pip.conf"
 }
 
 junit_arg() {
