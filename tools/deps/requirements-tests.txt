@@ -158,8 +158,7 @@ mccabe==0.7.0 \
     --hash=sha256:6c2d30ab6be0e4a46919781807b4f0d834ebdd6c6e3dca0bda5a15f863427b6e
     # via flake8
 more-itertools==10.6.0 \
-    --hash=sha256:037b0d3203ce90cca8ab1defbbdac29d5f993fc20131f3664dc8d6acfa872aef \
-    --hash=sha256:5482bfef7849c25dc3c6dd53a6173ae4795da2a41a80faea6700d9f5846c5da6
+    --hash=sha256:6eb054cb4b6db1473f6e15fcc676a08e4732548acd47c708f0e179c2c7c01e89
     # via pytest
 mypy==1.11.2 \
     --hash=sha256:06d26c277962f3fb50e13044674aa10553981ae514288cb7d0a738f495550b36 \
