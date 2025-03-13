@@ -133,9 +133,9 @@ class AutomaticProxy(Proxy):
 
 
 def get_proxy(category: str, /, *, url: str = "", pac_url: str = "") -> Proxy:
-    log.debug(f"Get proxy with {url = } and {pac_url = }")
+    log.debug(f"Get proxy with {url!r} and {pac_url!r}")
     proxy = _get_cls(category)(url=url, pac_url=pac_url)
-    log.debug(f"Got {proxy = }")
+    log.debug(f"Got {proxy!r}")
     return proxy
 
 
