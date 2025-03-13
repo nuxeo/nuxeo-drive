@@ -6,13 +6,13 @@ authlib==1.3.1 \
     --hash=sha256:7ae843f03c06c5c0debd63c9db91f9fda64fa62a42a77419fa15fbb7e7a58917 \
     --hash=sha256:d35800b973099bbadc49b42b256ecb80041ad56b7fe1216a362c7943c088f377
     # via nuxeo
-boto3==1.37.10 \
-    --hash=sha256:0c6eb8191b1ea4c7a139e56425399405d46e86c7e814ef497176b9af1f7ca056 \
-    --hash=sha256:fc649fb4c9521f60660fd562d6bf2034753832968b0c93ec60ad30634afb1b0f
+boto3==1.37.11 \
+    --hash=sha256:8eec08363ef5db05c2fbf58e89f0c0de6276cda2fdce01e76b3b5f423cd5c0f4 \
+    --hash=sha256:da6c22fc8a7e9bca5d7fc465a877ac3d45b6b086d776bd1a6c55bdde60523741
     # via nuxeo
-botocore==1.37.10 \
-    --hash=sha256:7515c8dfaaf5ba02604db9cf73c172615afee976136f31d8aec628629f24029f \
-    --hash=sha256:ab311982a9872eeb4e71906d3e3fcd2ba331a869d0fed16836ade7ce2e58bcea
+botocore==1.37.11 \
+    --hash=sha256:02505309b1235f9f15a6da79103ca224b3f3dc5f6a62f8630fbb2c6ed05e2da8 \
+    --hash=sha256:72eb3a9a58b064be26ba154e5e56373633b58f951941c340ace0d379590d98b5
     # via boto3, s3transfer
 certifi==2024.7.4 \
     --hash=sha256:5a1e7645bc0ec61a09e26c36f6106dd4cf40c6db3a1fb6352b0244e7fb057c7b \
