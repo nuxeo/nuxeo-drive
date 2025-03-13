@@ -32,6 +32,7 @@ class AutoRetryCursor(Cursor):
             try:
                 import sqlite3
 
+                """
                 new_param = tuple(
                     (
                         sqlite3.register_adapter(param, self.adapt_datetime_iso)
@@ -40,6 +41,15 @@ class AutoRetryCursor(Cursor):
                     )
                     for param in parameters
                 )
+                """
+
+                new_param = []
+                for param in parameters:
+                    if not isinstance(param, datetime):
+                        new_param.append(param)
+                    else:
+                        sqlite3.register_adapter(param, self.adapt_datetime_iso)
+                new_param = tuple(new_param)
 
                 return super().execute(sql, new_param)
             except OperationalError as exc:
