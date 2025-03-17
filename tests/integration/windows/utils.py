@@ -31,10 +31,8 @@ def fatal_error_dlg(app, with_details: bool = True) -> bool:
             dlg.child_window(title="Copy details").wait("visible").click()
             sleep(1)
             log.warning(f"Fatal error screen detected! Details:\n{cb_get()}")
-            print(f">>>> Fatal error screen detected! Details:\n{cb_get()}")
         else:
             log.warning("Fatal error screen detected!")
-            print(">>>> Fatal error screen detected!")
 
         dlg.close()
         return True
