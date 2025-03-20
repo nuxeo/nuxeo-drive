@@ -30,6 +30,7 @@ def fatal_error_dlg(app, with_details: bool = True) -> bool:
     dlg = app.window(title=f"{APP_NAME} - Fatal error")
     log.info(f">>>> dlg: {dlg!r}")
     print(f">>>> dlg: {dlg!r}")
+    print(f">>>> dlg.exists(): {dlg.exists()!r}")
     if dlg.exists():
         log.info(">>>> if dlg.exists")
         print(">>>> if dlg.exists")
