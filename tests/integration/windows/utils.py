@@ -25,6 +25,8 @@ def fatal_error_dlg(app, with_details: bool = True) -> bool:
     # XXX: Keep synced with FATAL_ERROR_TITLE.
     log.info("Inside Fatal Error Dlg")
     print(">>>> Inside Fatal Error Dlg")
+    print(f">>>> app: {app!r}")
+    print(f">>>> APP_NAME: {APP_NAME!r}")
     dlg = app.window(title=f"{APP_NAME} - Fatal error")
     log.info(f">>>> dlg: {dlg!r}")
     print(f">>>> dlg: {dlg!r}")
