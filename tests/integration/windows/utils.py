@@ -83,7 +83,7 @@ def share_metrics_dlg(app) -> bool:
     if dlg:
         try:
             dlg.close()
-        except:
+        except Exception:
             log.warning("Window can not be closed!")
         return True
     return False
