@@ -31,6 +31,8 @@ def fatal_error_dlg(app, with_details: bool = True) -> bool:
     log.info(f">>>> dlg: {dlg!r}")
     print(f">>>> dlg: {dlg!r}")
     print(f">>>> dlg.exists(): {dlg.exists()!r}")
+    print(f">>>> dlg.__dir__: {dlg.__dir__!r}")
+    print(f">>>> dlg.__dict__: {dlg.__dict__!r}")
     if dlg.exists():
         log.info(">>>> if dlg.exists")
         print(">>>> if dlg.exists")
