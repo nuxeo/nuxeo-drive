@@ -56,13 +56,6 @@ def fatal_error_dlg(app, with_details: bool = True) -> bool:
         print(">>>> returning true")
         return True
 
-    if dlg:
-        try:
-            dlg.close()
-        except:
-            log.warning("Window can not be closed!")
-        return True
-
     log.info(">>>> returning false")
     print(">>>> returning false")
     return False
@@ -82,8 +75,8 @@ def share_metrics_dlg(app) -> bool:
     print(f">>>> dlg.__dir__: {dlg.__dir__()!r}")
     print(f">>>> dlg.__dict__: {dlg.__dict__!r}")
     print(f">>>> dlg.exists(): {dlg.exists()!r}")
-    #if dlg.exists():
-    #    dlg.close()
+    # if dlg.exists():
+    #     dlg.close()
     if dlg:
         try:
             dlg.close()
