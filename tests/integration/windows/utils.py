@@ -55,12 +55,14 @@ def fatal_error_dlg(app, with_details: bool = True) -> bool:
         log.info(">>>> returning true")
         print(">>>> returning true")
         return True
+    """
     elif dlg:
         try:
             dlg.close()
         except:
             log.warning("Window can not be closed!")
         return True
+    """
     log.info(">>>> returning false")
     print(">>>> returning false")
     return False
