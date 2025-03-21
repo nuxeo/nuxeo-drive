@@ -36,16 +36,13 @@ def exe(final_exe, tmp):
     def execute(cmd: str = final_exe, args: str = "", wait: int = 0):
         if "--nxdrive-home" not in args:
             args += f' --nxdrive-home="{path}"'
-            print(f'!!!! Added --nxdrive-home="{path!r}"')
         if "--log-level-file" not in args:
             args += " --log-level-file=DEBUG"
-            print(f"!!!! Added  --log-level-file=DEBUG")
         args = args.strip()
 
         log.info(f"Starting {cmd!r} with args={args!r}")
 
         app = Application(backend="uia").start(f"{cmd} {args}")
-        print(f"!!!! App initiated {app!r}")
         try:
             yield app
             if wait > 0:
