@@ -48,6 +48,12 @@ def fatal_error_dlg(app, with_details: bool = True) -> bool:
         else:
             log.warning("Fatal error screen detected!")
             print("Fatal error screen detected!")
+    elif dlg:
+        try:
+            dlg.close()
+        except:
+            log.warning("Window can not be closed!")
+        return True
 
         log.info(">>>> closing dlg")
         print(">>>> closing dlg")
