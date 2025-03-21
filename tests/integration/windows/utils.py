@@ -36,7 +36,7 @@ def fatal_error_dlg(app, with_details: bool = True) -> bool:
     print(f">>>> dlg.__dict__['app']: {dlg.__dict__['app']!r}")
     print(f">>>> dlg.__dict__['app'].__dir__(): {dlg.__dict__['app'].__dir__()!r}")
     print(f">>>> dlg.__dict__['app'].__dict__: {dlg.__dict__['app'].__dict__!r}")
-    if dlg.exists() or dlg.__dict__['criteria'][0][]['title'] == f"{APP_NAME} - Fatal error":
+    if dlg.exists() or dlg.__dict__['criteria'][0]['title'] == f"{APP_NAME} - Fatal error":
         log.info(">>>> if dlg.exists")
         print(">>>> if dlg.exists")
         if with_details:
