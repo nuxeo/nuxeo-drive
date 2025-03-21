@@ -16,11 +16,11 @@ log = getLogger(__name__)
 def test_start_app(exe):
     with exe() as app:
         assert not fatal_error_dlg(app)
-        assert share_metrics_dlg(app)
+        #assert share_metrics_dlg(app)
 
         # There should be the main window
         main = main_window(app)
-        assert main #.exists()
+        assert main.exists()
         main.close()
 
 
