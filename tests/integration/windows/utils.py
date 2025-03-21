@@ -23,19 +23,44 @@ def cb_get() -> str:
 def fatal_error_dlg(app, with_details: bool = True) -> bool:
     # Check if the fatal error dialog is prompted.
     # XXX: Keep synced with FATAL_ERROR_TITLE.
+    log.info("Inside Fatal Error Dlg")
+    print(">>>> Inside Fatal Error Dlg")
+    print(f">>>> app: {app!r}")
+    print(f">>>> APP_NAME: {APP_NAME!r}")
     dlg = app.window(title=f"{APP_NAME} - Fatal error")
+    log.info(f">>>> dlg: {dlg!r}")
+    print(f">>>> dlg: {dlg!r}")
+    print(f">>>> dlg.exists(): {dlg.exists()!r}")
+    print(f">>>> dlg.__dir__: {dlg.__dir__()!r}")
+    print(f">>>> dlg.__dict__: {dlg.__dict__!r}")
+    print(f">>>> dlg.__dict__['app']: {dlg.__dict__['app']!r}")
+    print(f">>>> dlg.__dict__['app'].__dir__(): {dlg.__dict__['app'].__dir__()!r}")
+    print(f">>>> dlg.__dict__['app'].__dict__: {dlg.__dict__['app'].__dict__!r}")
     if dlg.exists():
+        log.info(">>>> if dlg.exists")
+        print(">>>> if dlg.exists")
         if with_details:
+            log.info(">>>> if with_details")
+            print(">>>> if with_details")
             # Copy details
             sleep(1)
             dlg.child_window(title="Copy details").wait("visible").click()
             sleep(1)
             log.warning(f"Fatal error screen detected! Details:\n{cb_get()}")
+            print(f"Fatal error screen detected! Details:\n{cb_get()}")
         else:
             log.warning("Fatal error screen detected!")
+            print("Fatal error screen detected!")
 
+        log.info(">>>> closing dlg")
+        print(">>>> closing dlg")
         dlg.close()
+        log.info(">>>> returning true")
+        print(">>>> returning true")
         return True
+
+    log.info(">>>> returning false")
+    print(">>>> returning false")
     return False
 
 
@@ -49,6 +74,12 @@ def share_metrics_dlg(app) -> bool:
     # Check if the pop-up to share metrics is prompted and close it.
     # XXX: Keep synced with SHARE_METRICS_TITLE.
     dlg = app.window(title=f"{APP_NAME} - Share debug info with developers")
+    print(f"$$$$ share_metrics_dlg dlg: {dlg!r}")
+    print(f">>>> dlg.__dir__: {dlg.__dir__()!r}")
+    print(f">>>> dlg.__dict__: {dlg.__dict__!r}")
+    print(f">>>> dlg.exists(): {dlg.exists()!r}")
+    # if dlg.exists():
+    #     dlg.close()
     if dlg:
         try:
             dlg.close()
