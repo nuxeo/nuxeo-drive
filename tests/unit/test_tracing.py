@@ -15,6 +15,7 @@ import nxdrive.tracing
 # This is OK because we need to test Event objects and not the Transport or Hub, or whatever.
 #
 
+
 class CustomTransport(transport.Transport):
     def __init__(self):
         super().__init__()
