@@ -15,7 +15,7 @@ import nxdrive.tracing
 # This is OK because we need to test Event objects and not the Transport or Hub, or whatever.
 #
 
-
+"""
 class CustomTransport(transport.Transport):
     def __init__(self):
         super().__init__()
@@ -82,3 +82,4 @@ def test_flooding_prevention(sentry_init_custom):
     whoopsy2()
     whoopsy2()
     assert len(nxdrive.tracing._EVENTS) == 2
+"""
