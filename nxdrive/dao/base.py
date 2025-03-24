@@ -34,7 +34,7 @@ class AutoRetryCursor(Cursor):
 
                 new_param = tuple(
                     (
-                        sqlite3.register_adapter(param, self.adapt_datetime_iso)
+                        sqlite3.register_adapter(param, self.adapt_datetime_iso) or None
                         if isinstance(param, datetime)
                         else param
                     )
