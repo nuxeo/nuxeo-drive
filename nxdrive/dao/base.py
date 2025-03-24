@@ -27,7 +27,8 @@ class AutoRetryCursor(Cursor):
         return datetime.fromtimestamp(val.strftime("%s"), tz=timezone.utc)
 
     def reg_adptr(self, param: datetime) -> Any:
-        return sqlite3.register_adapter(param, self.adapt_datetime_iso) or 0
+        sqlite3.register_adapter(param, self.adapt_datetime_iso)
+        return 0
 
     def execute(self, sql: str, parameters: Iterable[Any] = ()) -> Cursor:
         count = 1
