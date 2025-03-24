@@ -35,11 +35,7 @@ class AutoRetryCursor(Cursor):
             count += 1
             try:
                 new_param = tuple(
-                    (
-                        self.reg_adptr(param)
-                        if isinstance(param, datetime)
-                        else param
-                    )
+                    (self.reg_adptr(param) if isinstance(param, datetime) else param)
                     for param in parameters
                 )
 
