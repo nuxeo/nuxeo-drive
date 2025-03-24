@@ -42,9 +42,9 @@ def sentry_init_custom(monkeypatch):
 
 
 def test_flooding_prevention(sentry_init_custom):
-    """Ensure that an infinite synchronization due to a unhandled error
+    # """Ensure that an infinite synchronization due to a unhandled error
     will not explode the Sentry quota.
-    """
+    # """
 
     def whoopsy():
         """Problematic function ..."""
