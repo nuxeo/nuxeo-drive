@@ -3,6 +3,7 @@ Query formatting in this file is based on http://www.sqlstyle.guide/
 """
 
 from datetime import datetime, timezone
+import sqlite3
 import sys
 from contextlib import suppress
 from logging import getLogger
@@ -33,8 +34,6 @@ class AutoRetryCursor(Cursor):
         while True:
             count += 1
             try:
-                import sqlite3
-
                 new_param = tuple(
                     (
                         self.reg_adptr(param)
