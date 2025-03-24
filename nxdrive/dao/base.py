@@ -39,17 +39,6 @@ class AutoRetryCursor(Cursor):
                     (self.reg_adptr(param) if isinstance(param, datetime) else param)
                     for param in parameters
                 )
-
-                """
-                new_param = []
-                for param in parameters:
-                    if not isinstance(param, datetime):
-                        new_param.append(param)
-                    else:
-                        sqlite3.register_adapter(param, self.adapt_datetime_iso)
-                new_param = tuple(new_param)
-                """
-
                 return super().execute(sql, new_param)
             except OperationalError as exc:
                 log.info(
