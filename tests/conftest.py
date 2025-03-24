@@ -19,7 +19,7 @@ OPS_CACHE = None
 SERVER_INFO = None
 
 
-@pytest.hookimpl(trylast=True, hookwrapper=True)
+@pytest.hookimpl(trylast=True, wrapper=True)
 def pytest_runtest_makereport():
     """
     Delete captured logs if the test is not in failure.
