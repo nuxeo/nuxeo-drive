@@ -28,17 +28,14 @@ def pytest_runtest_makereport():
 
     # Execute the test
     outcome = yield
-    print(f">>>> outcome: {outcome!r}")
 
     # Get the report
-    # report = outcome.get_result()
-    # report = yield
+    report = outcome.get_result()
 
-    if outcome.passed:
+    if report.passed:
         # Remove captured logs to free memory
-        # outcome.sections = []
-        # outcome.force_result(outcome)
-        return outcome
+        report.sections = []
+        outcome.force_result(report)
 
 
 @pytest.fixture()
