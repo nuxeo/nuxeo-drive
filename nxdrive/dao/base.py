@@ -37,7 +37,7 @@ class AutoRetryCursor(Cursor):
 
                 new_param = tuple(
                     (
-                        reg_adptr(param)
+                        self.reg_adptr(param)
                         if isinstance(param, datetime)
                         else param
                     )
