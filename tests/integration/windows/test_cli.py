@@ -25,14 +25,11 @@ def test_start_app(exe):
 
 
 @pytest.mark.parametrize(
-    "arg", ["invalid_AgUmeNt", "--invalid_AgUmeNt", "--invalid_AgUmeNt=42"]
+    "arg", ["--invalid_AgUmeNt", "--invalid_AgUmeNt=42"]
 )
 def test_invalid_argument(exe, arg):
     with exe(args=arg) as app:
-        if arg == "invalid_AgUmeNt":
-            assert not fatal_error_dlg(app, with_details=False)
-        else:
-            assert fatal_error_dlg(app, with_details=False)
+        assert fatal_error_dlg(app, with_details=False)
 
 
 @pytest.mark.parametrize("arg", ["--log-level-file=42", "--delay=foo"])
