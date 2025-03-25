@@ -24,7 +24,9 @@ def test_start_app(exe):
         main.close()
 
 
-@pytest.mark.parametrize("arg", ["--invalid_AgUmeNt", "--invalid_AgUmeNt=42"])
+@pytest.mark.parametrize(
+    "arg", ["invalid_AgUmeNt", "--invalid_AgUmeNt", "--invalid_AgUmeNt=42"]
+)
 def test_invalid_argument(exe, arg):
     with exe(args=arg) as app:
         assert fatal_error_dlg(app, with_details=False)
