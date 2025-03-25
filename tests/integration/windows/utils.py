@@ -25,6 +25,7 @@ def fatal_error_dlg(app, with_details: bool = True) -> bool:
     # XXX: Keep synced with FATAL_ERROR_TITLE.
     dlg = app.window(title=f"{APP_NAME} - Fatal error")
     log.info(f"Error Window exists: {dlg.exists()!r}")
+        
     if dlg.exists():
         if with_details:
             # Copy details
@@ -32,11 +33,12 @@ def fatal_error_dlg(app, with_details: bool = True) -> bool:
             dlg.child_window(title="Copy details").wait("visible").click()
             sleep(1)
             log.warning(f"Fatal error screen detected! Details:\n{cb_get()}")
-            print(f"Fatal error screen detected! Details:\n{cb_get()}")
         else:
             log.warning("Fatal error screen detected!")
 
         dlg.close()
+        return True
+    if dlg and with_details:
         return True
 
     return False
