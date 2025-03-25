@@ -24,6 +24,7 @@ def fatal_error_dlg(app, with_details: bool = True) -> bool:
     # Check if the fatal error dialog is prompted.
     # XXX: Keep synced with FATAL_ERROR_TITLE.
     dlg = app.window(title=f"{APP_NAME} - Fatal error")
+    log.info(f"Error Window exists: {dlg.exists()!r}")
     if dlg.exists():
         if with_details:
             # Copy details
