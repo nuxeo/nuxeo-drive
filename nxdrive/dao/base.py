@@ -35,8 +35,6 @@ class AutoRetryCursor(Cursor):
         while True:
             count += 1
             try:
-                import sqlite3
-
                 new_param = tuple(
                     (self.reg_adptr(param) if isinstance(param, datetime) else param)
                     for param in parameters
