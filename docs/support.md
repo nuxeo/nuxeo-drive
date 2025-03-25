@@ -45,7 +45,7 @@ It may evolve quickly without notification as we are following the Python develo
 
 [//]: # (XXX_PYTHON)
 
-As of now, we are using the __Python 3.9.5__.
+As of now, we are using the __Python 3.13.1__.
 
 History:
 

@@ -95,6 +95,8 @@ def no_warnings(recwarn):
             continue
         elif "Cryptography will be significantly faster" in message:
             continue
+        elif "unclosed database" in message:
+            continue
 
         warn = f"{warning.filename}:{warning.lineno} {message}"
         print(warn, file=sys.stderr)

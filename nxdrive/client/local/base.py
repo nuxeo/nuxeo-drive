@@ -6,7 +6,7 @@ import shutil
 import unicodedata
 import uuid
 from contextlib import suppress
-from datetime import datetime
+from datetime import datetime, timezone
 from logging import getLogger
 from pathlib import Path
 from tempfile import mkdtemp
@@ -263,12 +263,12 @@ class LocalClientMixin:
         stat_info = os_path.stat()
         size = 0 if folderish else stat_info.st_size
         try:
-            mtime = datetime.utcfromtimestamp(stat_info.st_mtime)
+            mtime = datetime.fromtimestamp(stat_info.st_mtime, tz=timezone.utc)
         except (ValueError, OverflowError, OSError) as e:
             log.warning(
                 f"{e} file path: {os_path}. st_mtime value: {stat_info.st_mtime}"
             )
-            mtime = datetime.utcfromtimestamp(0)
+            mtime = datetime.fromtimestamp(0, tz=timezone.utc)
 
         # TODO Do we need to load it every time ?
         remote_ref = self.get_remote_id(ref)

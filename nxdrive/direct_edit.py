@@ -1111,4 +1111,5 @@ class DirectEdit(Worker):
         ref = self.local.get_path(src_path)
         if ref not in self._file_metrics:
             self._file_metrics[ref] = defaultdict(int)
+        # testing
         return ref

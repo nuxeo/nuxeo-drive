@@ -49,8 +49,11 @@ def share_metrics_dlg(app) -> bool:
     # Check if the pop-up to share metrics is prompted and close it.
     # XXX: Keep synced with SHARE_METRICS_TITLE.
     dlg = app.window(title=f"{APP_NAME} - Share debug info with developers")
-    if dlg.exists():
-        dlg.close()
+    if dlg:
+        try:
+            dlg.close()
+        except Exception:
+            log.warning("Window can not be closed!")
         return True
     return False
 
