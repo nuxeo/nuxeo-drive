@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from collections import namedtuple
 from datetime import datetime
 from multiprocessing import RLock
 from pathlib import Path
@@ -10,6 +11,13 @@ from nxdrive.constants import TransferStatus
 from nxdrive.dao.migrations.migration import MigrationInterface
 
 from ..markers import windows_only
+
+
+DocPair = namedtuple(
+    "DocPair",
+    "error_count, local_state, pair_state, processor",
+    defaults=(0, "", "", 0),
+)
 
 
 def test_acquire_processors(engine_dao):
@@ -364,6 +372,19 @@ def test_dao_register_adapter(engine_dao):
         assert row
         assert "\\" not in row[0]
         assert "\\" not in row[1]
+
+
+def test_dao_increase_error(engine_dao):
+    with engine_dao("engine_increase_error_testing.db") as dao:
+        # dao._get_write_connection().row_factory = None
+        c = dao._get_write_connection().cursor()
+        dao.increase_error(DocPair(), "Test Error", "Detailed error", 2)
+
+        row = c.execute(
+            "SELECT details FROM States WHERE error = ?", ("Test Error",)
+        ).fetchone()
+
+        assert row
 
 
 def test_migration_db_v1(engine_dao):
