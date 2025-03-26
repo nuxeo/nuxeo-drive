@@ -15,8 +15,8 @@ from ..markers import windows_only
 
 DocPair = namedtuple(
     "DocPair",
-    "error_count, local_state, pair_state, processor, id",
-    defaults=(0, "", "", 0, 1),
+    "error_count, local_state, pair_state, processor, id, last_error, error_count",
+    defaults=(0, "", "", 0, 1, "", 0),
 )
 
 
