@@ -38,7 +38,6 @@ def fatal_error_dlg(app, with_details: bool = True) -> bool:
 
         dlg.close()
         return True
-
     return False
 
 
