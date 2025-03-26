@@ -1335,10 +1335,10 @@ def test_get_timestamp():
 
 def test_dump_db(tmp_path):
     file_path = os.path.join(tmp_path, "test-db-backup.txt")
-    with open(file_path, 'w'):
+    with open(file_path, "w"):
         pass
     db_path = os.path.join(tmp_path, "test_dump.db")
-    with open(db_path, 'w'):
+    with open(db_path, "w"):
         pass
 
     dump(Path(db_path), Path(file_path))
