@@ -188,3 +188,10 @@ def test_sync_root_name(manager_factory):
                                 dao, "get_state_from_id", new=get_state_from_id_
                             ):
                                 update_remote_states
+
+
+def test_scan_remote(manager_factory):
+    manager, engine = manager_factory()
+    dao = engine.dao
+    test_watcher = RemoteWatcher(engine, dao)
+    assert not test_watcher.scan_remote()
