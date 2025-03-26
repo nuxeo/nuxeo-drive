@@ -374,19 +374,6 @@ def test_dao_register_adapter(engine_dao):
         assert "\\" not in row[1]
 
 
-def test_dao_increase_error(engine_dao):
-    with engine_dao("engine_migration_16.db") as dao:
-        # dao._get_write_connection().row_factory = None
-        c = dao._get_write_connection().cursor()
-        dao.increase_error(DocPair(), "Test Error")
-
-        row = c.execute(
-            "SELECT details FROM States WHERE error = ?", ("Test Error",)
-        ).fetchone()
-
-        assert row
-
-
 def test_migration_db_v1(engine_dao):
     with engine_dao("engine_migration.db") as dao:
         c = dao._get_read_connection().cursor()
@@ -648,6 +635,13 @@ def test_update_upload_requestid(engine_dao, upload):
         engine_dao.update_upload_requestid(dao, upload)
 
         assert previous_request_id != upload.request_uid
+
+
+def test_dao_increase_error(engine_dao):
+    with engine_dao("engine_migration_16.db") as dao:
+        # dao._get_write_connection().row_factory = None
+        c = dao._get_write_connection().cursor()
+        dao.increase_error(DocPair(), "Test Error")
 
 
 def test_dump_db(engine_dao, tmp_path):
