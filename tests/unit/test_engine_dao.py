@@ -648,3 +648,13 @@ def test_update_upload_requestid(engine_dao, upload):
         engine_dao.update_upload_requestid(dao, upload)
 
         assert previous_request_id != upload.request_uid
+
+
+def test_dump_db(engine_dao, tmp_path):
+    file = tmp_path / "test-db-backup.txt"
+    file.write_text("DB Backup", encoding="utf-8")
+    file_path = os.path.join(tmp_path, "test-db-backup.txt")
+    db_path = os.path.join(tmp_path, "engine_migration_16.db")
+
+    with engine_dao("engine_migration_16.db") as dao:
+        dao.dump(db_path, file_path)
