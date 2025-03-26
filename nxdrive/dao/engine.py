@@ -1502,6 +1502,7 @@ class EngineDAO(BaseDAO):
     def increase_error(
         self, row: DocPair, error: str, /, *, details: str = None, incr: int = 1
     ) -> None:
+        print(f">>>> row.id: {row.id!r}")
         with self.lock:
             error_date = datetime.now(tz=timezone.utc)
             c = self._get_write_connection().cursor()
