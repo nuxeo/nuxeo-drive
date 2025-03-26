@@ -191,10 +191,9 @@ def test_sync_root_name(manager_factory):
 
 
 def test_scan_remote(manager_factory):
+    import platform
+    if platform.system() == "Darwin":
     manager, engine = manager_factory()
     dao = engine.dao
     test_watcher = RemoteWatcher(engine, dao)
-    try:
-        test_watcher.scan_remote()
-    except Exception as msg:
-        print(msg)
+    test_watcher.scan_remote()
