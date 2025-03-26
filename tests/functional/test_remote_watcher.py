@@ -192,6 +192,7 @@ def test_sync_root_name(manager_factory):
 
 def test_scan_remote(manager_factory):
     import platform
+
     if platform.system() == "Darwin":
         manager, engine = manager_factory()
         dao = engine.dao
