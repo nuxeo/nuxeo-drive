@@ -12,6 +12,7 @@ import pytest
 import nxdrive.utils
 from nxdrive.constants import APP_NAME, MAC, WINDOWS, DigestStatus
 from nxdrive.options import Options
+from nxdrive.dao.utils import dump
 
 from ..markers import not_windows, windows_only
 
@@ -1330,3 +1331,14 @@ def test_get_timestamp():
     )
 
     assert nxdrive.utils.get_timestamp_from_date(d) == 1681550211
+
+
+def test_dump_db(tmp_path):
+    file_path = os.path.join(tmp_path, "test-db-backup.txt")
+    with open(file_path, 'w') as fp:
+        pass
+    db_path = os.path.join(tmp_path, "test_dump.db")
+    with open(db_path, 'w') as fp:
+        pass
+
+    dump(Path(db_path), Path(file_path))
