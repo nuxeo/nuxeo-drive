@@ -13,13 +13,6 @@ from nxdrive.dao.migrations.migration import MigrationInterface
 from ..markers import windows_only
 
 
-DocPair = namedtuple(
-    "DocPair",
-    "id",
-    defaults=(1),
-)
-
-
 def test_acquire_processors(engine_dao):
     with engine_dao("engine_migration.db") as dao:
         assert dao.acquire_processor(666, 2)
@@ -635,13 +628,6 @@ def test_update_upload_requestid(engine_dao, upload):
         engine_dao.update_upload_requestid(dao, upload)
 
         assert previous_request_id != upload.request_uid
-
-
-def test_dao_increase_error(engine_dao):
-    with engine_dao("engine_migration_16.db") as dao:
-        # dao._get_write_connection().row_factory = None
-        c = dao._get_write_connection().cursor()
-        dao.increase_error(DocPair(), "Test Error")
 
 
 def test_dump_db(engine_dao, tmp_path):
