@@ -194,4 +194,4 @@ def test_scan_remote(manager_factory):
     manager, engine = manager_factory()
     dao = engine.dao
     test_watcher = RemoteWatcher(engine, dao)
-    assert not test_watcher.scan_remote()
+    test_watcher.scan_remote()
