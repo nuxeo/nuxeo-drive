@@ -378,7 +378,7 @@ def test_dao_increase_error(engine_dao):
     with engine_dao("engine_migration_16.db") as dao:
         # dao._get_write_connection().row_factory = None
         c = dao._get_write_connection().cursor()
-        dao.increase_error(DocPair(), "Test Error", "Detailed error", 2)
+        dao.increase_error(DocPair(), "Test Error")
 
         row = c.execute(
             "SELECT details FROM States WHERE error = ?", ("Test Error",)
