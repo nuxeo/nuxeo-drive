@@ -1,6 +1,5 @@
 import os
 import sqlite3
-from collections import namedtuple
 from datetime import datetime
 from multiprocessing import RLock
 from pathlib import Path
