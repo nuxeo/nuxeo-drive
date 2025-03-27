@@ -2,6 +2,8 @@
 Query formatting in this file is based on http://www.sqlstyle.guide/
 """
 
+from datetime import datetime, timezone
+import sqlite3
 import sys
 from contextlib import suppress
 from logging import getLogger
@@ -21,12 +23,23 @@ log = getLogger(__name__)
 
 
 class AutoRetryCursor(Cursor):
+    def adapt_datetime_iso(self, val: Any, /) -> Any:
+        return datetime.fromtimestamp(val.strftime("%s"), tz=timezone.utc)
+
+    def reg_adptr(self, param: datetime) -> Any:
+        sqlite3.register_adapter(param, self.adapt_datetime_iso)
+        return 0
+
     def execute(self, sql: str, parameters: Iterable[Any] = ()) -> Cursor:
         count = 1
         while True:
             count += 1
             try:
-                return super().execute(sql, parameters)
+                new_param = tuple(
+                    (self.reg_adptr(param) if isinstance(param, datetime) else param)
+                    for param in parameters
+                )
+                return super().execute(sql, new_param)
             except OperationalError as exc:
                 log.info(
                     f"Retry locked database #{count}, {sql=}, {parameters=}",
