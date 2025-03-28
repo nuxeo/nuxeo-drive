@@ -30,7 +30,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, 'macos-13']
-        python-version: ["3.13"]
+        # python-version: ["3.13"]
 
     steps:
       - name: Checkout
@@ -80,6 +80,15 @@ jobs:
         run: |
           mkdir build dist venv
           chmod 777 build dist venv
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13.1'
+          architecture: 'x86'
+
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
 
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
