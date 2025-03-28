@@ -94,7 +94,7 @@ jobs:
           sudo apt install software-properties-common
           sudo add-apt-repository ppa:deadsnakes/ppa
           sudo apt update
-          sudo apt install python3.13
+          sudo apt install python3.13.2
 
       - name: Display Python version
         if: matrix.os == 'ubuntu-latest'
@@ -105,7 +105,7 @@ jobs:
         env:
           REGISTRY: "docker-private.packages.nuxeo.com"
           REPOSITORY: "nuxeo-drive-build"
-        run: docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.13" # XXX_PYTHON
+        run: docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.13.2" # XXX_PYTHON
 
       - name: "[GNU/Linux] Ensure the AppImage is correct"
         if: matrix.os == 'ubuntu-latest'
