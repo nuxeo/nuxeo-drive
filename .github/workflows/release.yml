@@ -30,6 +30,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, 'macos-13']
+        python-version: ["3.13"]
 
     steps:
       - name: Checkout
@@ -85,7 +86,7 @@ jobs:
         env:
           REGISTRY: "docker-private.packages.nuxeo.com"
           REPOSITORY: "nuxeo-drive-build"
-        run: docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.13.2" # XXX_PYTHON
+        run: docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.13" # XXX_PYTHON
 
       - name: "[GNU/Linux] Ensure the AppImage is correct"
         if: matrix.os == 'ubuntu-latest'
