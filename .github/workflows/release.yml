@@ -81,11 +81,18 @@ jobs:
           mkdir build dist venv
           chmod 777 build dist venv
 
+      #- name: Set up Python
+      #  uses: actions/setup-python@v5
+      #  with:
+      #    python-version: '3.13.1'
+      #    architecture: 'x86'
+
       - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13.1'
-          architecture: 'x86'
+        run: sudo apt update
+             sudo apt install software-properties-common
+             sudo add-apt-repository ppa:deadsnakes/ppa
+             sudo apt update
+             sudo apt install python3.13.1
 
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
