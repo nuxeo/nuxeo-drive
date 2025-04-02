@@ -23,12 +23,11 @@ log = getLogger(__name__)
 
 
 class AutoRetryCursor(Cursor):
-    def adapt_datetime_iso(self, val: Any, /) -> Any:
-        return datetime.fromtimestamp(val.strftime("%s"), tz=timezone.utc)
+    def adapt_datetime_iso(self, val: datetime, /) -> Any:
+        return datetime.fromtimestamp(int(val.strftime("%s")), tz=timezone.utc)
 
     def reg_adptr(self, param: datetime) -> Any:
-        sqlite3.register_adapter(param, self.adapt_datetime_iso)
-        return 0
+        return sqlite3.register_adapter(param, self.adapt_datetime_iso)
 
     def execute(self, sql: str, parameters: Iterable[Any] = ()) -> Cursor:
         count = 1
@@ -36,7 +35,7 @@ class AutoRetryCursor(Cursor):
             count += 1
             try:
                 new_param = tuple(
-                    (self.reg_adptr(param) if isinstance(param, datetime) else param)
+                    (self.adapt_datetime_iso(param) if isinstance(param, datetime) else param)
                     for param in parameters
                 )
                 return super().execute(sql, new_param)
