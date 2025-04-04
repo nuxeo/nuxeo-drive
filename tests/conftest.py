@@ -4,6 +4,8 @@ import sys
 import nuxeo.client
 import nuxeo.operations
 import pytest
+import sqlite3
+from datetime import datetime
 from nuxeo.client import Nuxeo
 
 from nxdrive.options import Options
@@ -17,6 +19,8 @@ pytest_plugins = "tests.pytest_random"
 # Operations cache
 OPS_CACHE = None
 SERVER_INFO = None
+
+sqlite3.register_adapter(datetime, adapt_datetime_iso)
 
 
 @pytest.hookimpl(trylast=True, hookwrapper=True)
