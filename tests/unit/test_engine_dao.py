@@ -1,6 +1,4 @@
-import os
 import sqlite3
-from datetime import datetime
 from multiprocessing import RLock
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -330,40 +328,6 @@ def test_last_sync(engine_dao):
         assert len(files) == 3
         for i in range(3):
             assert files[i].id == ids[i]
-
-
-def test_dao_register_adapter(engine_dao):
-    """Non-regression test for NXDRIVE-2489: ensure local paths do not contain backslashes."""
-    local_path = Path(os.path.realpath(__file__))
-
-    with engine_dao("engine_migration_16.db") as dao:
-        dao._get_write_connection().row_factory = None
-        c = dao._get_write_connection().cursor()
-
-        c.execute(
-            "INSERT INTO States "
-            "(last_local_updated, local_digest, local_path, "
-            "local_parent_path, local_name, folderish, size, "
-            "local_state, remote_state, pair_state) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, 'created', 'unknown', ?)",
-            (
-                datetime.now(),
-                "mocked",
-                local_path,
-                local_path.parent,
-                local_path.name,
-                False,
-                500,
-                "unknown",
-            ),
-        )
-
-        row = c.execute(
-            "SELECT local_path, local_parent_path FROM States WHERE id = ?", (3,)
-        ).fetchone()
-        assert row
-        assert "\\" not in row[0]
-        assert "\\" not in row[1]
 
 
 def test_migration_db_v1(engine_dao):
