@@ -2,8 +2,6 @@
 Query formatting in this file is based on http://www.sqlstyle.guide/
 """
 
-from datetime import datetime, timezone
-import sqlite3
 import sys
 from contextlib import suppress
 from logging import getLogger
@@ -15,7 +13,7 @@ from typing import Any, Iterable, List, Optional, Type
 from ..constants import NO_SPACE_ERRORS
 from ..objects import DocPair
 from ..qt.imports import QObject
-from ..utils import adapt_datetime_iso, current_thread_id
+from ..utils import current_thread_id
 from . import SCHEMA_VERSION
 from .utils import fix_db, restore_backup, save_backup
 
