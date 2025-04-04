@@ -9,7 +9,7 @@ from datetime import datetime
 from nuxeo.client import Nuxeo
 
 from nxdrive.options import Options
-from nxdrive.utils import get_verify
+from nxdrive.utils import adapt_datetime_iso, get_verify
 
 from . import env
 
