@@ -1183,7 +1183,7 @@ class Engine(QObject):
             self.syncPartialCompleted.emit()
         else:
             self.dao.update_config(
-                "last_sync_date", datetime.datetime.now(tz=timezone.utc)
+                "last_sync_date", datetime.now(tz=timezone.utc)
             )
             log.debug(f"Emitting syncCompleted for engine {self.uid}")
             self._sync_started = False
