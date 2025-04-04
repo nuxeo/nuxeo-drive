@@ -1,6 +1,4 @@
-import os
 import sqlite3
-from datetime import datetime
 from multiprocessing import RLock
 from pathlib import Path
 from unittest.mock import Mock, patch
