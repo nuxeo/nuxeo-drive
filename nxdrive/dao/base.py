@@ -15,7 +15,7 @@ from typing import Any, Iterable, List, Optional, Type
 from ..constants import NO_SPACE_ERRORS
 from ..objects import DocPair
 from ..qt.imports import QObject
-from ..utils import current_thread_id
+from ..utils import adapt_datetime_iso, current_thread_id
 from . import SCHEMA_VERSION
 from .utils import fix_db, restore_backup, save_backup
 
@@ -23,23 +23,12 @@ log = getLogger(__name__)
 
 
 class AutoRetryCursor(Cursor):
-    def adapt_datetime_iso(self, val: datetime, /) -> Any:
-        return datetime.fromtimestamp(int(val.strftime("%s")), tz=timezone.utc)
-
-    def reg_adptr(self, param: datetime) -> Any:
-        sqlite3.register_adapter(param, self.adapt_datetime_iso)
-        return self.adapt_datetime_iso(param)
-
     def execute(self, sql: str, parameters: Iterable[Any] = ()) -> Cursor:
         count = 1
         while True:
             count += 1
             try:
-                new_param = tuple(
-                    (self.reg_adptr(param) if isinstance(param, datetime) else param)
-                    for param in parameters
-                )
-                return super().execute(sql, new_param)
+                return super().execute(sql, parameters)
             except OperationalError as exc:
                 log.info(
                     f"Retry locked database #{count}, {sql=}, {parameters=}",
