@@ -101,8 +101,6 @@ def no_warnings(recwarn):
             continue
         elif "unclosed database" in message:
             continue
-        elif "Unverified" in message:
-            continue
 
         warn = f"{warning.filename}:{warning.lineno} {message}"
         print(warn, file=sys.stderr)

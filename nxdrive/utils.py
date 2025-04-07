@@ -8,6 +8,7 @@ Each *maxsize* is adjusted depending of the heavy use of the decorated function.
 
 import os
 import os.path
+import platform
 import re
 import stat
 import sys
@@ -1366,5 +1367,10 @@ def get_task_type(type_of_task: str) -> str:
 
 
 def adapt_datetime_iso(val: datetime, /) -> Any:
-    datetime_object = datetime.fromtimestamp(int(val.strftime("%s")), tz=timezone.utc)
+    if platform.system() == "Windows":
+        datetime_object = datetime.fromtimestamp(int(val.timestamp()), tz=timezone.utc)
+    else:
+        datetime_object = datetime.fromtimestamp(
+            int(val.strftime("%s")), tz=timezone.utc
+        )
     return datetime_object.strftime("%Y-%m-%d %H:%M:%S")
