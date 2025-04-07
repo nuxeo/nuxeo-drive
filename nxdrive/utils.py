@@ -8,6 +8,7 @@ Each *maxsize* is adjusted depending of the heavy use of the decorated function.
 
 import os
 import os.path
+import platform
 import re
 import stat
 import sys
