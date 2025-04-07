@@ -19,35 +19,29 @@ ENV PIP_NO_CACHE_DIR "off"
 
 WORKDIR /opt
 
-# Install requirements
-RUN rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 && \
+# Fix the outdated yum repo URLs by pointing to vault.centos.org
+RUN sed -i 's|^mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/CentOS-Base.repo && \
+    sed -i 's|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-Base.repo && \
+    yum clean all && \
+    yum makecache && \
     yum install -y deltarpm && \
     yum install -y --setopt=tsflags=noscripts \
-        # General
-            file \
-            gcc \
-            git-core \
-            make \
-            wget \
-            zip \
-        # AppImage validity requirements
-            desktop-file-utils \
-        # pyenv requirements
-        # https://github.com/pyenv/pyenv/wiki/Common-build-problems#prerequisites
-            bzip2-devel \
-            libffi-devel \
-            openssl-devel \
-            readline-devel \
-            sqlite-devel \
-            xz-devel \
-            zlib-devel \
-        # QtQuick requirements: OpenGL
-        # https://access.redhat.com/solutions/56301
-            mesa-libGL \
-        # Qt requirements
-            dbus \
-        && \
-    # Clean-up
+        file \
+        gcc \
+        git-core \
+        make \
+        wget \
+        zip \
+        desktop-file-utils \
+        bzip2-devel \
+        libffi-devel \
+        openssl-devel \
+        readline-devel \
+        sqlite-devel \
+        xz-devel \
+        zlib-devel \
+        mesa-libGL \
+        dbus && \
     yum clean all
 
 # Install the Python version needed by Nuxeo Drive
