@@ -26,47 +26,47 @@ RUN sed -i 's|^mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/CentOS-Base.repo && 
     yum makecache && \
     yum install -y deltarpm && \
     yum install -y --setopt=tsflags=noscripts \
-        file \
-        gcc \
-        git-core \
-        make \
-        wget \
-        zip \
-        desktop-file-utils \
-        bzip2-devel \
-        libffi-devel \
-        openssl-devel \
-        readline-devel \
-        sqlite-devel \
-        xz-devel \
-        zlib-devel \
-        mesa-libGL \
-        dbus  \
-        patch && \
+    file \
+    gcc \
+    git-core \
+    make \
+    wget \
+    zip \
+    desktop-file-utils \
+    bzip2-devel \
+    libffi-devel \
+    openssl-devel \
+    readline-devel \
+    sqlite-devel \
+    xz-devel \
+    zlib-devel \
+    mesa-libGL \
+    dbus  \
+    patch && \
     yum clean all
 
 # Install the Python version needed by Nuxeo Drive
-RUN git clone $GIT_URL sources && \
+RUN git clone -b wip-NXDRIVE-2929-upgrade-python-from-3.9.5-to-3.13.1 $GIT_URL sources && \
     cd sources && \
     git reset --hard ${SCM_REF} && \
     # Install Python
-        WORKSPACE=/opt ./tools/linux/deploy_ci_agent.sh --install-python && \
+    WORKSPACE=/opt ./tools/linux/deploy_ci_agent.sh --install-python && \
     # Copy the entry point script
-        cp tools/linux/entrypoint.sh / && \
+    cp tools/linux/entrypoint.sh / && \
     # Clean-up
-        cd /opt && \
-        # Delete the repository
-            rm -rf /opt/sources && \
-        # CPython-specific test files
-            rm -rf /opt/deploy-dir/.pyenv/versions/*/lib/python*/test && \
-        # Unused locales
-            build-locale-archive && \
-            localedef --list-archive | grep -v 'en_US.utf8' | xargs localedef --delete-from-archive && \
-            /bin/cp -f /usr/lib/locale/locale-archive /usr/lib/locale/locale-archive.tmpl && \
-            build-locale-archive && \
-        # Not more needed requirements
-            yum erase -y git-core && \
-            yum clean all
+    cd /opt && \
+    # Delete the repository
+    rm -rf /opt/sources && \
+    # CPython-specific test files
+    rm -rf /opt/deploy-dir/.pyenv/versions/*/lib/python*/test && \
+    # Unused locales
+    build-locale-archive && \
+    localedef --list-archive | grep -v 'en_US.utf8' | xargs localedef --delete-from-archive && \
+    /bin/cp -f /usr/lib/locale/locale-archive /usr/lib/locale/locale-archive.tmpl && \
+    build-locale-archive && \
+    # Not more needed requirements
+    yum erase -y git-core && \
+    yum clean all
 
 # Create the travis user (the same one as on GitHub-CI)
 RUN useradd -m -d /home/travis -u 1001 -s /bin/bash travis
