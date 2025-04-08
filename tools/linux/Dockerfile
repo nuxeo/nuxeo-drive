@@ -48,7 +48,7 @@ RUN sed -i 's|^mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/CentOS-Base.repo && 
 # Install the Python version needed by Nuxeo Drive
 RUN git clone -b wip-NXDRIVE-2929-upgrade-python-from-3.9.5-to-3.13.1 $GIT_URL sources && \
     cd sources && \
-    git reset --hard ${SCM_REF} && \
+    #git reset --hard ${SCM_REF} && \
     # Install Python
     WORKSPACE=/opt ./tools/linux/deploy_ci_agent.sh --install-python && \
     # Copy the entry point script
