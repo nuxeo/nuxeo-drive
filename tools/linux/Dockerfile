@@ -41,7 +41,8 @@ RUN sed -i 's|^mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/CentOS-Base.repo && 
         xz-devel \
         zlib-devel \
         mesa-libGL \
-        dbus && \
+        dbus  \
+        patch && \
     yum clean all
 
 # Install the Python version needed by Nuxeo Drive
