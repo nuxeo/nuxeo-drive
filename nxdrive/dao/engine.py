@@ -1438,6 +1438,7 @@ class EngineDAO(BaseDAO):
         with self.lock:
             c = self._get_write_connection().cursor()
             pair_state = PAIR_STATES[("unknown", "created")]
+            print(f">>>> insert_remote_state info.last_modification_time: {info.last_modification_time!r}")
             c.execute(
                 "INSERT INTO States "
                 "(remote_ref, remote_parent_ref, remote_parent_path, "
@@ -1797,6 +1798,7 @@ class EngineDAO(BaseDAO):
                 log.debug(f"Increasing version to {row.version + 1} for pair {row!r}")
 
             query += " WHERE id = ?"
+            print(f">>>> update_remote_state info.last_modification_time: {info.last_modification_time!r}")
             c.execute(
                 query,
                 (
