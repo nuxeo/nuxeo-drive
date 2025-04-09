@@ -1367,11 +1367,4 @@ def get_task_type(type_of_task: str) -> str:
 
 def adapt_datetime_iso(val: datetime, /) -> Any:
     # adapter for sqlite3
-    """
-    if val == datetime(1970, 1, 1, 0, 0):
-        return val.strftime("%Y-%m-%d %H:%M:%S")
-    datetime_object = val.astimezone(tz=timezone.utc)
-    ret = datetime_object.strftime("%Y-%m-%d %H:%M:%S")
-    return ret
-    """
     return val.strftime("%Y-%m-%d %H:%M:%S")
