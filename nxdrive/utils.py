@@ -1367,10 +1367,5 @@ def get_task_type(type_of_task: str) -> str:
 
 
 def adapt_datetime_iso(val: datetime, /) -> Any:
-    if platform.system() == "Windows":
-        datetime_object = datetime.fromtimestamp(int(val.timestamp()), tz=timezone.utc)
-    else:
-        datetime_object = datetime.fromtimestamp(
-            int(val.strftime("%s")), tz=timezone.utc
-        )
+    datetime_object = datetime.fromtimestamp(int(val.timestamp()), tz=timezone.utc)
     return datetime_object.strftime("%Y-%m-%d %H:%M:%S")
