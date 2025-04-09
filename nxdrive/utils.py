@@ -1366,7 +1366,7 @@ def get_task_type(type_of_task: str) -> str:
 
 
 def adapt_datetime_iso(val: datetime, /) -> Any:
-    # datetime adapter for sqlite3
+    # adapter for sqlite3
     print("==========================================")
     print(f">>>>>>>> val: {val!r}")
     if val == datetime(1970, 1, 1, 0, 0):
