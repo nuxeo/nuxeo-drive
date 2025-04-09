@@ -1369,7 +1369,7 @@ def adapt_datetime_iso(val: datetime, /) -> Any:
     # datetime adapter for sqlite3
     print("==========================================")
     print(f">>>>>>>> val: {val!r}")
-    if val == datetime.datetime(1970, 1, 1, 0, 0):
+    if val == datetime(1970, 1, 1, 0, 0):
         return val.strftime("%Y-%m-%d %H:%M:%S")
     datetime_object = val.astimezone(tz=timezone.utc)
     print(f">>>>>>>> datetime_object: {datetime_object!r}")
