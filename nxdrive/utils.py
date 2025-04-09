@@ -1368,12 +1368,8 @@ def get_task_type(type_of_task: str) -> str:
 def adapt_datetime_iso(val: datetime, /) -> Any:
     # datetime adapter for sqlite3
     print("==========================================")
-    try:
-        print(f">>>>>>>> val: {val!r}")
-        print(f">>>>>>>> val.timestamp(): {val.timestamp()!r}")
-        datetime_object = datetime.fromtimestamp(val.timestamp(), tz=timezone.utc)
-    except OSError:
-        datetime_object = datetime.fromtimestamp((val.timestamp()/1000), tz=timezone.utc)
+    print(f">>>>>>>> val: {val!r}")
+    datetime_object = val.astimezone(tz=timezone.utc)
     print(f">>>>>>>> datetime_object: {datetime_object!r}")
     ret = datetime_object.strftime("%Y-%m-%d %H:%M:%S")
     print(f">>>>>>>> ret: {ret!r}")
