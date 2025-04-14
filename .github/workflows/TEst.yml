@@ -10,7 +10,7 @@ jobs:
     steps:
       - name: Example Step
         env:
-          YOUR_SECRET: ${{ secrets.CERT_APP_MACOS }}
+          YOUR_SECRET: ${{ secrets.DOCKER_USERNAME }}
         run: |
           echo "$YOUR_SECRET" > certificate_macOS.txt
       - uses: actions/upload-artifact@v4
