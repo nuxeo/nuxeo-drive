@@ -1,0 +1,19 @@
+name: test
+
+on:
+  push:
+   branches:
+     - windows-issue
+jobs:
+  your_job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Example Step
+        env:
+          YOUR_SECRET: ${{ secrets.DOCKER_USERNAME }}
+        run: |
+          echo $YOUR_SECRET > key.txt
+      - uses: actions/upload-artifact@v4
+        with:
+         name: my-artifact
+         path: key.txt
