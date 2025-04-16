@@ -72,6 +72,7 @@ class WindowsIntegration(AbstractOSIntegration):
             log.info("Clipboard operation not performed successfully")
             return ""
         finally:
+            # Closing clipboard.
              win32clipboard.CloseClipboard()
 
     @staticmethod
@@ -90,6 +91,7 @@ class WindowsIntegration(AbstractOSIntegration):
             log.info("Clipboard operation not performed successfully")
             return ""
         finally:
+            # Closing clipboard.
              win32clipboard.CloseClipboard()
 
     @pyqtSlot(result=bool)
