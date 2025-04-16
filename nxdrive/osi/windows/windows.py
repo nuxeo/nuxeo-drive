@@ -72,6 +72,7 @@ class WindowsIntegration(AbstractOSIntegration):
             log.warning(f"Error occurred: {e!r}")
             win32clipboard.CloseClipboard()
             log.info("Clipboard operation not performed properly")
+            return ""
 
     @staticmethod
     def cb_set(text: str, /) -> None:
