@@ -69,7 +69,7 @@ class WindowsIntegration(AbstractOSIntegration):
             win32clipboard.CloseClipboard()
             return text
         except Exception as e:
-            log.warning(f"Error occured: {e!r}")
+            log.warning(f"Error occurred: {e!r}")
             win32clipboard.CloseClipboard()
             log.info("Clipboard operation not performed properly")
 
@@ -86,7 +86,7 @@ class WindowsIntegration(AbstractOSIntegration):
             win32clipboard.SetClipboardText(text, win32clipboard.CF_UNICODETEXT)
             win32clipboard.CloseClipboard()
         except Exception as e:
-            log.warning(f"Error occured: {e!r}")
+            log.warning(f"Error occurred: {e!r}")
             win32clipboard.CloseClipboard()
             log.info("Clipboard operation not performed properly")
 
