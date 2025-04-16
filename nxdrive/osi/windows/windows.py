@@ -66,13 +66,13 @@ class WindowsIntegration(AbstractOSIntegration):
 
             win32clipboard.OpenClipboard()
             text: str = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
-            win32clipboard.CloseClipboard()
             return text
         except Exception as e:
             log.warning(f"Error occurred: {e!r}")
-            win32clipboard.CloseClipboard()
-            log.info("Clipboard operation not performed properly")
+            log.info("Clipboard operation not performed successfully")
             return ""
+        finally:
+             win32clipboard.CloseClipboard()
 
     @staticmethod
     def cb_set(text: str, /) -> None:
@@ -85,11 +85,12 @@ class WindowsIntegration(AbstractOSIntegration):
             win32clipboard.OpenClipboard()
             win32clipboard.EmptyClipboard()
             win32clipboard.SetClipboardText(text, win32clipboard.CF_UNICODETEXT)
-            win32clipboard.CloseClipboard()
         except Exception as e:
             log.warning(f"Error occurred: {e!r}")
-            win32clipboard.CloseClipboard()
-            log.info("Clipboard operation not performed properly")
+            log.info("Clipboard operation not performed successfully")
+            return ""
+        finally:
+             win32clipboard.CloseClipboard()
 
     @pyqtSlot(result=bool)
     def install_addons(self, *, setup: str = "nuxeo-drive-addons.exe") -> bool:
