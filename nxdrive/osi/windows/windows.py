@@ -89,7 +89,6 @@ class WindowsIntegration(AbstractOSIntegration):
         except Exception as e:
             log.warning(f"Error occurred: {e!r}")
             log.info("Clipboard operation not performed successfully")
-            return ""
         finally:
             # Closing clipboard.
             win32clipboard.CloseClipboard()
