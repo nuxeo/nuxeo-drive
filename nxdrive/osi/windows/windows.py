@@ -61,24 +61,37 @@ class WindowsIntegration(AbstractOSIntegration):
         """Get the text data from the clipboard.
         Emulate: CTRL + V
         """
-        import win32clipboard
+        try:
+            import win32clipboard
 
-        win32clipboard.OpenClipboard()
-        text: str = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
-        win32clipboard.CloseClipboard()
-        return text
+            win32clipboard.OpenClipboard()
+            text: str = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
+            return text
+        except Exception as e:
+            log.warning(f"Error occurred: {e!r}")
+            log.info("Clipboard operation not performed successfully")
+            return ""
+        finally:
+            # Closing clipboard.
+            win32clipboard.CloseClipboard()
 
     @staticmethod
     def cb_set(text: str, /) -> None:
         """Copy some *text* into the clipboard.
         Emulate: CTRL + C
         """
-        import win32clipboard
+        try:
+            import win32clipboard
 
-        win32clipboard.OpenClipboard()
-        win32clipboard.EmptyClipboard()
-        win32clipboard.SetClipboardText(text, win32clipboard.CF_UNICODETEXT)
-        win32clipboard.CloseClipboard()
+            win32clipboard.OpenClipboard()
+            win32clipboard.EmptyClipboard()
+            win32clipboard.SetClipboardText(text, win32clipboard.CF_UNICODETEXT)
+        except Exception as e:
+            log.warning(f"Error occurred: {e!r}")
+            log.info("Clipboard operation not performed successfully")
+        finally:
+            # Closing clipboard.
+            win32clipboard.CloseClipboard()
 
     @pyqtSlot(result=bool)
     def install_addons(self, *, setup: str = "nuxeo-drive-addons.exe") -> bool:
