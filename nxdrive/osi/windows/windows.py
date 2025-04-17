@@ -73,7 +73,7 @@ class WindowsIntegration(AbstractOSIntegration):
             return ""
         finally:
             # Closing clipboard.
-             win32clipboard.CloseClipboard()
+            win32clipboard.CloseClipboard()
 
     @staticmethod
     def cb_set(text: str, /) -> None:
@@ -92,7 +92,7 @@ class WindowsIntegration(AbstractOSIntegration):
             return ""
         finally:
             # Closing clipboard.
-             win32clipboard.CloseClipboard()
+            win32clipboard.CloseClipboard()
 
     @pyqtSlot(result=bool)
     def install_addons(self, *, setup: str = "nuxeo-drive-addons.exe") -> bool:
