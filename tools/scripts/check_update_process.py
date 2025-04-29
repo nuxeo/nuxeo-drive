@@ -118,6 +118,7 @@ def gen_exe():
         )
 
     print(">>> Command:", cmd, flush=True)
+    print(f">>>> calling subprocess.check_call with: {cmd.split()}")
     subprocess.check_call(cmd.split())
 
 
@@ -448,6 +449,7 @@ def generate_installer(root, version, move=False):
     """Generate the installer for a given version and copy/move it to the web server root."""
 
     # Generate the installer
+    print(">>>> calling gen_exe()")
     gen_exe()
 
     # Copy or move all files to the webserver
@@ -557,6 +559,7 @@ def main():
 
     # Generate the current version executable
     version, _ = version_find()
+    print(f">>>> version: {version!r}")
     generate_installer(root, version)
 
     try:
