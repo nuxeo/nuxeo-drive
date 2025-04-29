@@ -110,7 +110,7 @@ def gen_exe():
     if EXT == "appimage":
         cmd = "sh tools/linux/deploy_ci_agent.sh --build"
     elif EXT == "dmg":
-        cmd = "sh tools/osx/deploy_ci_agent.sh --build"
+        cmd = "sh ./tools/osx/deploy_ci_agent.sh --build"
     else:
         cmd = (
             "powershell -ExecutionPolicy Unrestricted"
