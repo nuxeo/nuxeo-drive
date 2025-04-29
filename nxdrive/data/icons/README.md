@@ -9,7 +9,7 @@ Note: Use a base size of 256x256 pixels if nothing specified.
 - app_icon.svg
 - folder_mac.svg
 - folder_windows.svg
-- wizard.svg, see [NXDRIVE-1137](https://jira.nuxeo.com/browse/NXDRIVE-1137) for size and screenshot
+- wizard.svg, see [NXDRIVE-1137](https://hyland.atlassian.net/browse/NXDRIVE-1137) for size and screenshot
 
 Specifically, for the systray status icon:
 - active.svg (only macOS: for when the systray icon is pressed)

@@ -33,7 +33,7 @@ History:
 
 ### Known Browsers Limitations
 
-With the Safari browser, the Direct Edit feature can be unstable (see [NXDRIVE-972](https://jira.nuxeo.com/browse/NXDRIVE-972)).
+With the Safari browser, the Direct Edit feature can be unstable (see [NXDRIVE-972](https://hyland.atlassian.net/browse/NXDRIVE-972)).
 We recommend using recent versions of Firefox or Chrome for the best experience.
 
 ### Python

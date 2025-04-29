@@ -5,7 +5,7 @@
 - Author: Mickaël Schoentgen <mschoentgen@nuxeo.com>,
           Léa Klein <lklein@uxeo.com>
 - Status: draft
-- Related-Ticket: [NXDRIVE-XXXX](https://jira.nuxeo.com/browse/NXDRIVE-XXXX)
+- Related-Ticket: [NXDRIVE-XXXX](https://hyland.atlassian.net/browse/NXDRIVE-XXXX)
 
 ## Abstract
 

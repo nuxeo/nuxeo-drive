@@ -12,7 +12,7 @@ log = getLogger(__name__)
 class TestGroupChanges(OneUserTest):
     """
     Test that changes on groups are detected by Drive.
-    See https://jira.nuxeo.com/browse/NXP-14830.
+    See https://hyland.atlassian.net/browse/NXP-14830.
     """
 
     def setUp(self):

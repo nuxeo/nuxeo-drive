@@ -713,7 +713,7 @@ class RemoteWatcher(EngineWorker):
         self._last_sync_date = int(summary.get("syncDate", 0))
         # If available, read 'upperBound' key as last event log id
         # according to the new implementation of the audit change finder,
-        # see https://jira.nuxeo.com/browse/NXP-14826.
+        # see https://hyland.atlassian.net/browse/NXP-14826.
         self._last_event_log_id = int(summary.get("upperBound", 0))
 
         self.dao.store_int("remote_last_sync_date", self._last_sync_date)
@@ -811,12 +811,12 @@ class RemoteWatcher(EngineWorker):
             # Possibly fetch multiple doc pairs as the same doc
             # can be synchronized in 2 places,
             # typically if under a sync root and locally edited.
-            # See https://jira.nuxeo.com/browse/NXDRIVE-125
+            # See https://hyland.atlassian.net/browse/NXDRIVE-125
             doc_pairs = self.dao.get_states_from_remote(remote_ref)
             if not doc_pairs:
                 # Relax constraint on factory name in FileSystemItem id to
                 # match 'deleted' or 'securityUpdated' events.
-                # See https://jira.nuxeo.com/browse/NXDRIVE-167
+                # See https://hyland.atlassian.net/browse/NXDRIVE-167
                 doc_pair = self.dao.get_first_state_from_partial_remote(remote_ref)
                 if doc_pair:
                     doc_pairs = [doc_pair]

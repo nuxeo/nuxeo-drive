@@ -63,7 +63,7 @@ class DirectTransferUploader(BaseUploader):
 
         What can be done to prevent such scenario is not on the Nuxeo Drive side but on the server one.
         For now, 2 options are possible but not qualified to be done in a near future:
-            - https://jira.nuxeo.com/browse/NXP-22959;
+            - https://hyland.atlassian.net/browse/NXP-22959;
             - create a new operation `Document.GetOrCreate` that ensures atomicity.
         """
         doc_pair: DocPair = kwargs.pop("doc_pair")

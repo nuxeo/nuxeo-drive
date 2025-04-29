@@ -5,8 +5,8 @@
 - Author: Mickaël Schoentgen <mschoentgen@nuxeo.com>,
           Léa Klein <lklein@nuxeo.com>
 - Status: implemented
-- Related-Ticket: [NXDRIVE-1436](https://jira.nuxeo.com/browse/NXDRIVE-1436)
-                  [NXDRIVE-1542](https://jira.nuxeo.com/browse/NXDRIVE-1542)
+- Related-Ticket: [NXDRIVE-1436](https://hyland.atlassian.net/browse/NXDRIVE-1436)
+                  [NXDRIVE-1542](https://hyland.atlassian.net/browse/NXDRIVE-1542)
 
 ## Abstract
 
@@ -17,7 +17,7 @@ Running the test suite twice should not use same users and workspaces to ensure 
 
 As of now, tests are calling the `NuxeoDrive.SetupIntegrationTests` operation to create users and workspaces.
 
-With the future move to Jenkins X for testing ([NXDRIVE-1435](https://jira.nuxeo.com/browse/NXDRIVE-1435)), we will encounter errors because 3 OSes will talk to the server at the same time.
+With the future move to Jenkins X for testing ([NXDRIVE-1435](https://hyland.atlassian.net/browse/NXDRIVE-1435)), we will encounter errors because 3 OSes will talk to the server at the same time.
 It will break everything as users and workspaces are the same everywhere.
 
 Before that move, we need to tweak tests setup to:

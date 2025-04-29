@@ -209,7 +209,7 @@ install_python() {
     export PYTHON_CONFIGURE_OPTS="--enable-shared"
 
     # We need to override the default python used by pyenv as we installed it manually
-    # See ticket: https://jira.nuxeo.com/browse/NXDRIVE-2724
+    # See ticket: https://hyland.atlassian.net/browse/NXDRIVE-2724
 
     #if [ "${MACOSX_DEPLOYMENT_TARGET:-unset}" != "unset" ]; then
     #    ln -sf $(which python3) $(which python)

@@ -7,7 +7,7 @@
 - Reviewer: Yannis Achour <yachour@nuxeo.com>
             Romain Grasland <rgrasland@nuxeo.com>
 - Status: implemented
-- Related-Ticket: [NXDRIVE-2070](https://jira.nuxeo.com/browse/NXDRIVE-2070)
+- Related-Ticket: [NXDRIVE-2070](https://hyland.atlassian.net/browse/NXDRIVE-2070)
 
 ## Abstract
 
@@ -88,7 +88,7 @@ feature.s3              = true
 ### Default Values
 
 When configuration files do not expose those new parameters, default values apply.
-The up-to-date documentation can be found here: [TODO NXDOC-2083](https://jira.nuxeo.com/browse/NXDOC-2083).
+The up-to-date documentation can be found here: [TODO NXDOC-2083](https://hyland.atlassian.net/browse/NXDOC-2083).
 
 At the time of that DEP, defaults are:
 
@@ -100,9 +100,9 @@ At the time of that DEP, defaults are:
 
 ## Backward Compatibility
 
-Starting with Nuxeo Drive 4.0.2, the server configuration is not checked in strict mode (introduced within [NXDRIVE-1438](https://jira.nuxeo.com/browse/NXDRIVE-1438)), e.g.: unknown parameters __will not__ make the application to crash.
+Starting with Nuxeo Drive 4.0.2, the server configuration is not checked in strict mode (introduced within [NXDRIVE-1438](https://hyland.atlassian.net/browse/NXDRIVE-1438)), e.g.: unknown parameters __will not__ make the application to crash.
 
-Starting with Nuxeo Drive 4.0.0 ([NXDRIVE-1300](https://jira.nuxeo.com/browse/NXDRIVE-1300)), the local configuration is checked in strict mode, e.g.: unknown parameters __will__ make the application to crash.
+Starting with Nuxeo Drive 4.0.0 ([NXDRIVE-1300](https://hyland.atlassian.net/browse/NXDRIVE-1300)), the local configuration is checked in strict mode, e.g.: unknown parameters __will__ make the application to crash.
 
 So it is quite safe to setup new parameters globally as Nuxeo Drive 4.0.2 is already quite old (2018-12-06) and Nuxeo recommends to always use an up-to-date version.
 
