@@ -117,6 +117,9 @@ def gen_exe():
             ' . ".\\tools\\windows\\deploy_ci_agent.ps1" -build'
         )
 
+    cmd_1 = "ls"
+    subprocess.check_call(cmd_1)
+
     print(">>> Command:", cmd, flush=True)
     print(f">>>> calling subprocess.check_call with: {cmd.split()}")
     subprocess.check_call(cmd.split())
