@@ -535,27 +535,33 @@ function sign($file) {
 	#		Remove-Item -Path $cert -Verbose
 	#	}
 	#}
-	Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"
-	Write-Output ">>> Signing $file"
-	& $Env:SIGNTOOL_PATH\signtool.exe sign `
-		/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
-		/n "$Env:SIGNING_ID_NEW" `
-		/d "$Env:APP_NAME" `
-		/td SHA256 /fd sha256 `
-		/tr http://timestamp.digicert.com/sha256/timestamp `
-		/v `
-		"$file"
+	if ($Env:SIGN_EXE) {
+		Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"
+		Write-Output ">>> Signing $file"
+		& $Env:SIGNTOOL_PATH\signtool.exe sign `
+			/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
+			/n "$Env:SIGNING_ID_NEW" `
+			/d "$Env:APP_NAME" `
+			/td SHA256 /fd sha256 `
+			/tr http://timestamp.digicert.com/sha256/timestamp `
+			/v `
+			"$file"
 
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
+		if ($lastExitCode -ne 0) {
+			ExitWithCode $lastExitCode
+		}
+
+		Write-Output ">>> Verifying $file"
+		& $Env:SIGNTOOL_PATH\signtool.exe verify /pa /v "$file"
+		if ($lastExitCode -ne 0) {
+			ExitWithCode $lastExitCode
+		}
 	}
-
-	Write-Output ">>> Verifying $file"
-	& $Env:SIGNTOOL_PATH\signtool.exe verify /pa /v "$file"
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
+	else {
+		Write-Output ">>> Signing is disabled, signing process skipped."
 	}
 }
+
 function build_installer_and_sign {
 	# Build the installer
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""
