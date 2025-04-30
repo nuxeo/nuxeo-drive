@@ -87,8 +87,6 @@ function build_installer {
 		build_overlays
 	}
 
-	#sign_dlls
-
 	Write-Output ">>> [$app_version] Freezing the application"
 	freeze_pyinstaller
 
@@ -99,7 +97,6 @@ function build_installer {
 	Get-ChildItem -Path "dist\ndrive" -Recurse -File -Include *.qmlc | Foreach ($_) { Remove-Item -Verbose $_.Fullname }
 
 	add_missing_ddls
-	#sign "dist\ndrive\ndrive.exe"
 
 	# Stop now if we only want the application to be frozen (for integration tests)
 	if ($Env:FREEZE_ONLY) {
@@ -535,7 +532,7 @@ function sign($file) {
 	#		Remove-Item -Path $cert -Verbose
 	#	}
 	#}
-	if ($Env:SIGN_EXE) {
+	if ($Env:SIGN_EXE -eq "true") {
 		Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"
 		Write-Output ">>> Signing $file"
 		#& $Env:SIGNTOOL_PATH\signtool.exe sign `
