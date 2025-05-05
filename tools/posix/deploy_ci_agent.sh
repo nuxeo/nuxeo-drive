@@ -56,7 +56,7 @@ build_installer() {
         ${PYTHON_VENV} tools/osx/fix_app_qt_folder_names_for_codesign.py dist/*.app
 
         # Remove broken symlinks pointing to an inexistent target
-        echo ">>>> find ${dist/*.app/Contents/MacOS}"
+        echo ">>>> find ==>>"
         find dist/*.app/Contents/MacOS -type l -exec sh -c 'for x; do [ -e "$x" ] || rm -v "$x"; done' _ {} +
          echo ">>>> found"
     elif [ "${OSI}" = "linux" ]; then

@@ -31,14 +31,17 @@ prepare_signing() {
     security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
 
     # Allow to use the codesign executable
+    echo ">>> Allow to use the codesign executable"
     security set-key-partition-list -S apple-tool:,apple: -s -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
 
-    security find-identity -p codesigning -v "${KEYCHAIN_PATH}" | grep "${SIGNING_ID}" || (
+    echo ">>> deep verifying"
+    security find-identity -p codesigning -vv --deep-verify "${KEYCHAIN_PATH}" | grep "${SIGNING_ID}" || (
         echo "The '${SIGNING_ID}' identity is not available or no more valid."
         echo "This is the identities list:"
         security find-identity -p codesigning "${KEYCHAIN_PATH}"
         exit 1
     )
+    echo ">>> deep verified"
 }
 
 prepare_signing_from_scratch() {
@@ -99,8 +102,10 @@ create_package() {
     mv -fv "${WORKSPACE_DRIVE}/NuxeoFinderSync.appex" "${pkg_path}/Contents/PlugIns/"
 
     if [ "${GITHUB_WORKSPACE:-unset}" != "unset" ]; then
+        echo ">>> prepare_signing_from_scratch"
         prepare_signing_from_scratch
     else
+        echo ">>> prepare_signing"
         prepare_signing
     fi
 
@@ -112,11 +117,16 @@ create_package() {
         # arbitrary order. When the `codesign` runs, it will look at some
         # dependencies of the current binary and see that they are not signed
         # yet. But the find command will eventually reach it and sign it later.
+        echo " ${pkg_path}/Contents/MacOS"
         find "${pkg_path}/Contents/MacOS" -type f -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        echo ">>> found ${pkg_path}/Contents/MacOS"
 
+        echo ">>> finding ${pkg_path}/Contents/Resources"
         # QML libraries need to be signed too for the notarization
         find "${pkg_path}/Contents/Resources" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        echo ">>> found ${pkg_path}/Contents/Resources"
 
+        echo ">>> Then we sign the extension "
         # Then we sign the extension
         ${CODESIGN} "${SIGNING_ID}"                  \
                     --force                          \
@@ -124,13 +134,17 @@ create_package() {
                     --entitlements "${entitlements}" \
                     "${pkg_path}/Contents/PlugIns/NuxeoFinderSync.appex"
 
+        echo ">>> And we shallow sign the .app"
         # And we shallow sign the .app
         ${CODESIGN} "${SIGNING_ID}" "${pkg_path}" --force
 
         echo ">>> [sign] Verifying code signature"
         codesign --display --verbose "${pkg_path}"
+        echo ">>> 001"
         codesign --verbose=4 --deep --strict "${pkg_path}"
+        echo ">>> 002"
         spctl --assess --verbose "${pkg_path}"
+        echo ">>> 003"
     fi
 
     echo ">>> [package] Creating the DMG file"
