@@ -143,7 +143,7 @@ create_package() {
         echo ">>> 001"
         codesign --verbose=4 --deep --strict "${pkg_path}"
         echo ">>> 002"
-        spctl --assess --verbose "${pkg_path}"
+        spctl --assess --verbose --type execute "${pkg_path}"
         echo ">>> 003"
     fi
 
