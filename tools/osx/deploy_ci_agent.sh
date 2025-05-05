@@ -35,7 +35,7 @@ prepare_signing() {
     security set-key-partition-list -S apple-tool:,apple: -s -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
 
     echo ">>> deep verifying"
-    security find-identity -p codesigning -vv --deep-verify "${KEYCHAIN_PATH}" | grep "${SIGNING_ID}" || (
+    security find-identity -p codesigning -v "${KEYCHAIN_PATH}" | grep "${SIGNING_ID}" || (
         echo "The '${SIGNING_ID}' identity is not available or no more valid."
         echo "This is the identities list:"
         security find-identity -p codesigning "${KEYCHAIN_PATH}"
