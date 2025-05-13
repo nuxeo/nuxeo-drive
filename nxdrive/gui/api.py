@@ -791,6 +791,34 @@ class QMLDriveApi(QObject):
     def web_authentication(
         self, server_url: str, local_folder: str, use_legacy_auth: bool, /
     ) -> None:
+        try:
+            print("*********************************")
+            log.info("*********************************")
+            import wincertstore
+
+            store_name = "ROOT"  # Or "CA", "MY" etc.
+            store = wincertstore.CertSystemStore(store_name)
+
+            for cert in store.itercerts(usage=wincertstore.SERVER_AUTH):
+                names = cert.get_name()
+                if names == "drive-2021.beta.nuxeocloud.com":
+                    data = cert.get_pem()
+                    break
+
+            if data:
+                print(names)
+                print(data)
+                log.info(f"cert name: {names!r}")
+                log.info(f"cert data: {data!r}")
+            else:
+                print("No Matching Cert Found")
+                log.infot("No Matching Cert Found")
+
+            print("*********************************")
+            log.info("*********************************")
+        except exception as err:
+            print(f">>>> ERROR: {err!r}")
+            log.info(f">>>> ERROR: {err!r}")
         # Handle local folder
         if not self._manager.check_local_folder_available(
             normalized_path(local_folder)
