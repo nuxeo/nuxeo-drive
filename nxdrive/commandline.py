@@ -608,7 +608,7 @@ class CliHandler:
                 if not socket_operation_successful:
                     if RETRY < 3:
                         RETRY += 1
-                        log.info(f"Retry: (str(RETRY)!r)")
+                        log.info(f"Retry: {str(RETRY)!r}")
                         lock.refresh_lock()
                         self.launch()
                     else:
