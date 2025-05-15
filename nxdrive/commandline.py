@@ -598,6 +598,7 @@ class CliHandler:
     def launch(self, options: Optional[Namespace], /, *, console: bool = False) -> int:
         """Launch the Qt app in the main thread and sync in another thread."""
         from .utils import PidLockFile
+
         global RETRY
 
         lock = PidLockFile(self.manager.home, "qt")
@@ -605,7 +606,9 @@ class CliHandler:
         if pid:
             if Options.protocol_url:
                 payload = force_encode(Options.protocol_url)
-                socket_operation_successful = self._send_to_running_instance(payload, pid)
+                socket_operation_successful = self._send_to_running_instance(
+                    payload, pid
+                )
                 if not socket_operation_successful:
                     if RETRY < 3:
                         RETRY += 1
@@ -639,7 +642,7 @@ class CliHandler:
 
         return payload
 
-    def _send_to_running_instance(self, payload: bytes, pid: int, /) -> None:
+    def _send_to_running_instance(self, payload: bytes, pid: int, /) -> bool:
         from .qt import constants as qt
         from .qt.imports import QByteArray, QLocalSocket
 
@@ -654,7 +657,7 @@ class CliHandler:
 
             if not client.waitForConnected():
                 log.error(f"Unable to open client socket: {client.errorString()}")
-                return
+                return False
 
             client.write(QByteArray(payload))
             client.waitForBytesWritten()
@@ -664,6 +667,7 @@ class CliHandler:
         finally:
             del client
         log.debug("Successfully closed client socket")
+        return True
 
     def clean_folder(self, options: Namespace, /) -> int:
         from .client.local import LocalClient
