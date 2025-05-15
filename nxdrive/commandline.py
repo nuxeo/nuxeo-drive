@@ -62,6 +62,7 @@ To get options for a specific command:
 
 """
 DEFAULT_LOCAL_FOLDER = get_default_local_folder()
+RETRY = 0
 
 
 class CliHandler:
@@ -601,9 +602,17 @@ class CliHandler:
         lock = PidLockFile(self.manager.home, "qt")
         pid = lock.lock()
         if pid:
+            
             if Options.protocol_url:
                 payload = force_encode(Options.protocol_url)
-                self._send_to_running_instance(payload, pid)
+                socket_operation_successful = self._send_to_running_instance(payload, pid)
+                if not socket_operation_successful:
+                    if retry < 3:
+                        retry += 1
+                        lock.refresh_lock()
+                        self.launch()
+                    else:
+                        retry = 0
             else:
                 log.warning(f"{APP_NAME} is already running: exiting.")
             return 0

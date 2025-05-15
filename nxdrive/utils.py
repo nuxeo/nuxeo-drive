@@ -1055,6 +1055,10 @@ class PidLockFile:
         self.key = key
         self.locked = False
         self.pid_filepath = safe_long_path(folder / f"nxdrive_{key}.pid")
+    
+    def refresh_lock(self):
+        self.unlock()
+        self.lock()
 
     def unlock(self) -> None:
         if not self.locked:
