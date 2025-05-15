@@ -598,6 +598,7 @@ class CliHandler:
     def launch(self, options: Optional[Namespace], /, *, console: bool = False) -> int:
         """Launch the Qt app in the main thread and sync in another thread."""
         from .utils import PidLockFile
+        global RETRY
 
         lock = PidLockFile(self.manager.home, "qt")
         pid = lock.lock()
