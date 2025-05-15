@@ -602,13 +602,13 @@ class CliHandler:
         lock = PidLockFile(self.manager.home, "qt")
         pid = lock.lock()
         if pid:
-            
             if Options.protocol_url:
                 payload = force_encode(Options.protocol_url)
                 socket_operation_successful = self._send_to_running_instance(payload, pid)
                 if not socket_operation_successful:
                     if RETRY < 3:
                         RETRY += 1
+                        log.info(f"Retry: (str(RETRY)!r)")
                         lock.refresh_lock()
                         self.launch()
                     else:
