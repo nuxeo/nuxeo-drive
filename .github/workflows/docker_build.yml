@@ -33,7 +33,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Build the image
-        uses: docker/build-push-action@v5.1.0
+        uses: docker/build-push-action@v6.17.0
         with:
           context: .
           file: tools/linux/Dockerfile
