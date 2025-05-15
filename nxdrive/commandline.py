@@ -607,12 +607,12 @@ class CliHandler:
                 payload = force_encode(Options.protocol_url)
                 socket_operation_successful = self._send_to_running_instance(payload, pid)
                 if not socket_operation_successful:
-                    if retry < 3:
-                        retry += 1
+                    if RETRY < 3:
+                        RETRY += 1
                         lock.refresh_lock()
                         self.launch()
                     else:
-                        retry = 0
+                        RETRY = 0
             else:
                 log.warning(f"{APP_NAME} is already running: exiting.")
             return 0
