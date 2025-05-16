@@ -143,8 +143,8 @@ create_package() {
         echo ">>> 001"
         codesign --verbose=4 --deep --strict "${pkg_path}"
         echo ">>> 002"
-        spctl --assess --verbose --type execute "${pkg_path}"
-        echo ">>> 003"
+        # spctl --assess --verbose --type execute "${pkg_path}"
+        # echo ">>> 003"
     fi
 
     echo ">>> [package] Creating the DMG file"
@@ -187,11 +187,16 @@ create_package() {
     # Clean tmp directories
     rm -rf "${src_folder_tmp}" "${dmg_tmp}" "${pkg_path}"
 
+    echo ">>>> checking if SIGNING_ID = unset"
     if [ "${SIGNING_ID:-unset}" != "unset" ]; then
         echo ">>>> Signing the app"
         ${CODESIGN} "${SIGNING_ID}" --verbose "dist/nuxeo-drive-${app_version}.dmg"
         echo ">>>> Notarizing the app"
         ${PYTHON_VENV} tools/osx/notarize.py "dist/nuxeo-drive-${app_version}.dmg"
+        echo ">>>> Notarized the app"
+
+        spctl --assess --verbose --type execute "${pkg_path}"
+        echo(">>>> spctl end")
     fi
 }
 
