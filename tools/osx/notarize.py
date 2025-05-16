@@ -75,6 +75,8 @@ def submit_dmg_for_notarization(file: str) -> str:
     print(f">>> [notarization] {output}")
     uuid = get_notarization_id(output)
     status = get_notarization_status(output)
+    print(f">>>> uuid: {uuid!r}")
+    print(f">>>> status: {status!r}")
     return (uuid if uuid else "", status if status else "")
 
 
@@ -159,26 +161,33 @@ def display_notarization_logs(notary_logs_path: str) -> str:
 def main(file: str, uuid: str = "") -> int:
     """Entry point."""
 
+    print(">>>> inside notarize.py")
     if not uuid:
         # This is a new DMG file to notarize
+        print(">>>> new DMG file to notarize; calling submit_dmg_for_notarization")
         uuid, status = submit_dmg_for_notarization(file)
     if not uuid:
+        print(">>>> !! No notarization UUID found.")
         print(" !! No notarization UUID found.", flush=True)
         return 1
 
     if not status or status != "Accepted":
+        print(">>>> !! Notarization failed. Check the report for details.")
         print(" !! Notarization failed. Check the report for details.", flush=True)
         return 2
 
     notary_logs_path = fetch_notarization_logs(uuid)
+    print(f">>>> notary_logs_path: {notary_logs_path!r}")
 
     if not notary_logs_path:
+        print(">>>> !! Notarization logs path not found.")
         print(" !! Notarization logs path not found.", flush=True)
         return 3
 
     # Below method will display notarization logs (Useful in case issue occurs during notarization)
-    # display_notarization_logs(notary_logs_path)
+    display_notarization_logs(notary_logs_path)
 
+    print(">>>> calling staple_the_notarization")
     staple_the_notarization(file)
     return 0
 
