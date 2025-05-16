@@ -400,9 +400,9 @@ typing-extensions==4.12.2 \
     --hash=sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d \
     --hash=sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8
     # via mypy
-types-python-dateutil==2.9.0.20240906 \
-    --hash=sha256:27c8cc2d058ccb14946eebcaaa503088f4f6dbc4fb6093d3d456a49aef2753f6 \
-    --hash=sha256:9706c3b68284c25adffc47319ecc7947e5bb86b3773f843c73906fd598bc176e
+types-python-dateutil==2.9.0.20250516 \
+    --hash=sha256:13e80d6c9c47df23ad773d54b2826bd52dbbb41be87c3f339381c1700ad21ee5 \
+    --hash=sha256:2b2b3f57f9c6a61fba26a9c0ffb9ea5681c9b83e69cd897c6b5f668d9c0cab93
     # via mypy
 types-PyYAML==6.0.12.12 \
     --hash=sha256:334373d392fde0fdf95af5c3f1661885fa10c52167b14593eb856289e1855062 \
