@@ -154,6 +154,7 @@ def server(nuxeo_url):
     """
     verification_needed = get_verify()
     auth = (env.NXDRIVE_TEST_USERNAME, env.NXDRIVE_TEST_PASSWORD)
+    print(f">>>> auth: {auth!r}")
     server = Nuxeo(auth=auth, host=nuxeo_url, verify=verification_needed)
     server.client.set(schemas=["dublincore"])
 
