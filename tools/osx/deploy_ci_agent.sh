@@ -196,7 +196,7 @@ create_package() {
         echo ">>>> Notarized the app"
 
         spctl --assess --verbose --type execute "${pkg_path}"
-        echo(">>>> spctl end")
+        echo ">>>> spctl end"
     fi
 }
 
