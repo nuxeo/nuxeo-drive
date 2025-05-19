@@ -611,7 +611,9 @@ class CliHandler:
                 socket_operation_successful = self._send_to_running_instance(
                     payload, pid
                 )
-                log.info(f">>>> socket_operation_successful: {socket_operation_successful!r}")
+                log.info(
+                    f">>>> socket_operation_successful: {socket_operation_successful!r}"
+                )
                 if not socket_operation_successful:
                     if RETRY < MAX_RETRIES:
                         RETRY += 1
