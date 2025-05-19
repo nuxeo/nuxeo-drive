@@ -63,6 +63,7 @@ To get options for a specific command:
 """
 DEFAULT_LOCAL_FOLDER = get_default_local_folder()
 RETRY = 0
+MAX_RETRIES = 3
 
 
 class CliHandler:
@@ -600,6 +601,7 @@ class CliHandler:
         from .utils import PidLockFile
 
         global RETRY
+        global MAX_RETRIES
 
         lock = PidLockFile(self.manager.home, "qt")
         pid = lock.lock()
@@ -610,11 +612,11 @@ class CliHandler:
                     payload, pid
                 )
                 if not socket_operation_successful:
-                    if RETRY < 3:
+                    if RETRY < MAX_RETRIES:
                         RETRY += 1
                         log.info(f"Retry: {str(RETRY)!r}")
                         lock.refresh_lock()
-                        self.launch()
+                        self.launch(options, console=console)
                     else:
                         RETRY = 0
             else:
