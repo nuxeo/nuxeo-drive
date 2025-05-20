@@ -75,6 +75,7 @@ def submit_dmg_for_notarization(file: str) -> str:
     print(f">>> [notarization] {output}")
     uuid = get_notarization_id(output)
     status = get_notarization_status(output)
+    print(f">>>> Notarization logs: {display_notarization_logs(fetch_notarization_logs(uuid))}")
     print(f">>>> uuid: {uuid!r}")
     print(f">>>> status: {status!r}")
     return (uuid if uuid else "", status if status else "")
@@ -156,6 +157,7 @@ def display_notarization_logs(notary_logs_path: str) -> str:
         data = json.load(log_file)
         formated_logs = json.dumps(data, indent=4)
         print(formated_logs, flush=True)
+        print(f"LOGS: {formated_logs!r}")
 
 
 def main(file: str, uuid: str = "") -> int:
