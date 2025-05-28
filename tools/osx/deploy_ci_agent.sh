@@ -124,6 +124,8 @@ create_package() {
         echo ">>> finding ${pkg_path}/Contents/Resources"
         # QML libraries need to be signed too for the notarization
         find "${pkg_path}/Contents/Resources" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks" -type f -name "*.so" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
         echo ">>> found ${pkg_path}/Contents/Resources"
 
         echo ">>> Then we sign the extension "
@@ -191,6 +193,7 @@ create_package() {
     if [ "${SIGNING_ID:-unset}" != "unset" ]; then
         echo ">>>> Signing the app"
         ${CODESIGN} "${SIGNING_ID}" --verbose "dist/nuxeo-drive-${app_version}.dmg"
+
         echo ">>>> Notarizing the app"
         ${PYTHON_VENV} tools/osx/notarize.py "dist/nuxeo-drive-${app_version}.dmg"
         echo ">>>> Notarized the app"

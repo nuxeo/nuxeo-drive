@@ -157,7 +157,7 @@ def display_notarization_logs(notary_logs_path: str) -> str:
         data = json.load(log_file)
         formated_logs = json.dumps(data, indent=4)
         print(formated_logs, flush=True)
-        print(f"LOGS: {formated_logs!r}")
+        #print(f"LOGS: {formated_logs!r}")
 
 
 def main(file: str, uuid: str = "") -> int:
