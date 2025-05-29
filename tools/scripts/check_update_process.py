@@ -228,10 +228,11 @@ def cat_log():
     print("", flush=True)
     print("", flush=True)
     print(">>> $ cat", src, flush=True)
-    with open(src, encoding="utf-8") as fh:
-        print(fh.read(), flush=True)
-        print("", flush=True)
-        print("", flush=True)
+    if os.path.exists(src):
+        with open(src, encoding="utf-8") as fh:
+            print(fh.read(), flush=True)
+            print("", flush=True)
+            print("", flush=True)
 
 
 def set_options():
