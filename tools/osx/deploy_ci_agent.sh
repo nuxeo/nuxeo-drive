@@ -127,8 +127,8 @@ create_package() {
         find "${pkg_path}/Contents/Frameworks" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
         find "${pkg_path}/Contents/Frameworks" -type f -name "*.so" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
         find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtQmlModels.framework/Versions/5/" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
-        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtConcurrent.framework/Versions/5/" "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
-        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtSvg.framework/Versions/5/" "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtConcurrent.framework/Versions/5/" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtSvg.framework/Versions/5/" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
         find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtXmlPatterns.framework/Versions/5/" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
         find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtNetwork.framework/Versions/5/" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
         find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtQuickTest.framework/Versions/5/" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
