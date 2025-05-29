@@ -187,7 +187,7 @@ def main(file: str, uuid: str = "") -> int:
         return 3
 
     # Below method will display notarization logs (Useful in case issue occurs during notarization)
-    display_notarization_logs(notary_logs_path)
+    # display_notarization_logs(notary_logs_path)
 
     print(">>>> calling staple_the_notarization")
     staple_the_notarization(file)
