@@ -153,6 +153,17 @@ create_package() {
         find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtDBus.framework/Versions/5/" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
         find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtGui.framework/Versions/5/" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
         find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtPrintSupport.framework/Versions/5/" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtMultimediaQuick.framework/Versions/5/" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtQuickControls2.framework/Versions/5/" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtQuickParticles.framework/Versions/5/" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtRemoteObjects.framework/Versions/5/" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtQuick3DRender.framework/Versions/5/" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtNfc.framework/Versions/5/" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtQuick3DAssetImport.framework/Versions/5/" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtQuick3DRuntimeRender.framework/Versions/5/" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtMultimedia.framework/Versions/5/" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtSensors.framework/Versions/5/" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtSql.framework/Versions/5/" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
         echo ">>> found ${pkg_path}/Contents/Resources"
 
         echo ">>> Then we sign the extension "
