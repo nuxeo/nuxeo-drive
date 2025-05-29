@@ -126,6 +126,33 @@ create_package() {
         find "${pkg_path}/Contents/Resources" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
         find "${pkg_path}/Contents/Frameworks" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
         find "${pkg_path}/Contents/Frameworks" -type f -name "*.so" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtQmlModels.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtConcurrent.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtSvg.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtXmlPatterns.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtNetwork.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtQuickTest.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtQuickShapes.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtQuick3D.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtBluetooth.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtPositioning.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtWidgets.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtTest.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtQmlWorkerScript.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtQml.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtWebChannel.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtQml.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtCore.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtQuick.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtWebView.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtLocation.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtPositioningQuick.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtQuickTemplates2.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtQuick3DUtils.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtWebSockets.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtDBus.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtGui.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        find "${pkg_path}/Contents/Frameworks/PyQt5/Qt5/lib/QtPrintSupport.framework/Versions/5/" -type f -name "*.*" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
         echo ">>> found ${pkg_path}/Contents/Resources"
 
         echo ">>> Then we sign the extension "
