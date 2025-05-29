@@ -183,6 +183,8 @@ create_package() {
         echo ">>> 001"
         codesign --verbose=4 --deep --strict "${pkg_path}"
         echo ">>> 002"
+        spctl --assess --verbose --type execute "${pkg_path}"
+        echo ">>> 003"
         # spctl --assess --verbose --type execute "${pkg_path}"
         # echo ">>> 003"
     fi
@@ -236,7 +238,7 @@ create_package() {
         ${PYTHON_VENV} tools/osx/notarize.py "dist/nuxeo-drive-${app_version}.dmg"
         echo ">>>> Notarized the app"
 
-        spctl --assess --verbose --type execute "${pkg_path}"
+        # spctl --assess --verbose --type execute "${pkg_path}"
         echo ">>>> spctl end"
     fi
 }
