@@ -561,7 +561,6 @@ function sign($file) {
 
 function build_installer_and_sign {
 	# Build the installer
-	Write-Output ">>> build_installer_and_sign called"
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""
 
 	# Build DDLs only on GitHub-CI, no need to loose time on the local dev machine

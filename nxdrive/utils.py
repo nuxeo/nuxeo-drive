@@ -646,7 +646,7 @@ def get_certificate_details(
     Note: This function uses a undocumented method of the _ssl module.
           It is continuously tested in our CI to ensure it still
           available after any Python upgrade.
-          Certified working as of Python 3.12.3.
+          Certified working as of Python 3.9.5.
     """
 
     import ssl

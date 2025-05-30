@@ -130,7 +130,7 @@ create_package() {
         echo ">>> [sign] Verifying code signature"
         codesign --display --verbose "${pkg_path}"
         codesign --verbose=4 --deep --strict "${pkg_path}"
-        spctl --assess --verbose --type execute "${pkg_path}"
+        spctl --assess --verbose "${pkg_path}"
     fi
 
     echo ">>> [package] Creating the DMG file"
