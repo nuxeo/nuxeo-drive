@@ -40,11 +40,9 @@ build_installer() {
     # Do some clean-up
     ${PYTHON_VENV} tools/cleanup_application_tree.py dist/ndrive
 
-    echo ">>>> removing compiled QML files"
     # Remove compiled QML files
     find dist -depth -type f -name "*.qmlc" -delete
 
-    echo ">>>> removing empty folders"
     # Remove empty folders
     find dist -depth -type d -empty -delete
 
@@ -56,32 +54,22 @@ build_installer() {
         ${PYTHON_VENV} tools/osx/fix_app_qt_folder_names_for_codesign.py dist/*.app
 
         # Remove broken symlinks pointing to an inexistent target
-        echo ">>>> find ==>>"
         find dist/*.app/Contents/MacOS -type l -exec sh -c 'for x; do [ -e "$x" ] || rm -v "$x"; done' _ {} +
-         echo ">>>> found"
     elif [ "${OSI}" = "linux" ]; then
-        echo ">>>> remove_excluded_files"
         remove_excluded_files dist/ndrive
-        echo ">>>> removed excluded files"
     fi
 
-    echo ">>>> FREEZE_ONLY: ${FREEZE_ONLY:-0}"
     # Stop now if we only want the application to be frozen (for integration tests)
     if [ "${FREEZE_ONLY:-0}" = "1" ]; then
-        echo ">>>> exiting"
         exit 0
     fi
 
-    echo ">>>> ZIP_NEEDED: ${ZIP_NEEDED:-0}"
     if [ "${ZIP_NEEDED:-0}" = "1" ]; then
         version="$(grep __version__ nxdrive/__init__.py | cut -d'"' -f2)"
-        echo ">>>> version: ${version}"
         cd dist
-        echo ">>>> zipping"
         zip -9 -q -r "nuxeo-drive-${OSI}-${version}.zip" "ndrive"
         cd -
     fi
-    echo ">>>> calling create_package"
 
     create_package
 }

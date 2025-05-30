@@ -117,11 +117,7 @@ def gen_exe():
             ' . ".\\tools\\windows\\deploy_ci_agent.ps1" -build'
         )
 
-    cmd_1 = "ls"
-    subprocess.check_call(cmd_1)
-
     print(">>> Command:", cmd, flush=True)
-    print(f">>>> calling subprocess.check_call with: {cmd.split()}")
     subprocess.check_call(cmd.split())
 
 
@@ -228,14 +224,6 @@ def cat_log():
     print("", flush=True)
     print("", flush=True)
     print(">>> $ cat", src, flush=True)
-    if not os.path.exists(src):
-        dirs = ["~/.nuxeo-drive/", "~/.nuxeo-drive/logs"]
-        for directory in dirs:
-            if not os.path.isdir(directory):
-                os.mkdir(directory)
-        with open(src, "w") as f:
-            f.write("")
-        f.close()
     with open(src, encoding="utf-8") as fh:
         print(fh.read(), flush=True)
         print("", flush=True)
@@ -460,7 +448,6 @@ def generate_installer(root, version, move=False):
     """Generate the installer for a given version and copy/move it to the web server root."""
 
     # Generate the installer
-    print(">>>> calling gen_exe()")
     gen_exe()
 
     # Copy or move all files to the webserver
@@ -570,7 +557,6 @@ def main():
 
     # Generate the current version executable
     version, _ = version_find()
-    print(f">>>> version: {version!r}")
     generate_installer(root, version)
 
     try:
