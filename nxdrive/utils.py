@@ -603,6 +603,7 @@ def retrieve_ssl_certificate(hostname: str, /, *, port: int = 443) -> str:
     """Retrieve the SSL certificate from a given hostname."""
 
     import ssl
+
     MINIMUM_TLS_VERSION = ssl.TLSVersion.TLSv1_2
 
     with ssl.create_connection((hostname, port)) as conn:  # type: ignore
