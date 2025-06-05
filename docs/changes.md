@@ -24,7 +24,6 @@
 - [5.5.0](changes/5.5.0.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.4.1...release-5.5.0))
 - [5.5.1](changes/5.5.1.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.5.0...release-5.5.1))
 - [5.5.2](changes/5.5.2.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.5.1...master))
-- [5.5.2](changes/5.5.2.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/wip-NXDRIVE-2929-upgrade-python-from-3.9.5-to-3.13.1...wip-NXDRIVE-3000-fix-code-scanning-issues))
 
 ## 4.x
 
