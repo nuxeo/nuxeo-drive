@@ -1,4 +1,7 @@
 name: Functional tests
+permissions:
+  contents: read
+  pull-requests: write
 
 on:
   pull_request:
