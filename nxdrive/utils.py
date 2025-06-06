@@ -69,8 +69,6 @@ DEFAULTS_CERT_DETAILS = {
     "notBefore": "N/A",
 }
 
-MINIMUM_TLS_VERSION = "TLSv1_2"
-
 log = getLogger(__name__)
 
 
@@ -610,7 +608,7 @@ def retrieve_ssl_certificate(hostname: str, /, *, port: int = 443) -> str:
         # Declaring a minimum version to restrict the protocol
         # For more information check NXDRIVE-2920
         context = ssl.create_default_context()
-        context.minimum_version = getattr(ssl.TLSVersion, MINIMUM_TLS_VERSION)
+        context.minimum_version = ssl.TLSVersion.TLSv1_2
         with context.wrap_socket(conn, server_hostname=hostname) as sock:
             cert_data: bytes = sock.getpeercert(binary_form=True)  # type: ignore
             return ssl.DER_cert_to_PEM_cert(cert_data)
