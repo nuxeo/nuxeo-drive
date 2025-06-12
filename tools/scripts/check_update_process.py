@@ -224,6 +224,14 @@ def cat_log():
     print("", flush=True)
     print("", flush=True)
     print(">>> $ cat", src, flush=True)
+    if not os.path.exists(src):
+        dirs = ["~/.nuxeo-drive/", "~/.nuxeo-drive/logs"]
+        for directory in dirs:
+            if not os.path.isdir(directory):
+                os.mkdir(directory)
+        with open(src, "w") as f:
+            f.write("")
+        f.close()
     with open(src, encoding="utf-8") as fh:
         print(fh.read(), flush=True)
         print("", flush=True)
