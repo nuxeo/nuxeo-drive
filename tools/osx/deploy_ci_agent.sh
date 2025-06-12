@@ -157,8 +157,8 @@ create_package() {
     local dmg_size=$(( $(du -sm "${pkg_path}" | cut -d$'\t' -f1,1) + 20 ))
     echo ">>> [DMG ${app_version}] ${dmg_path} (${dmg_size} Mo)"
 
-    dmg_size = dmg_size * 2
-    echo ">>> [DMG ${app_version}] new size: (${dmg_size} Mo)"
+    #dmg_size = dmg_size * 2
+    #echo ">>> [DMG ${app_version}] new size: (${dmg_size} Mo)"
 
     echo ">>> [DMG ${app_version}] Preparing the DMG"
     cp -a "${pkg_path}" "${src_folder_tmp}"
@@ -172,8 +172,10 @@ create_package() {
             -srcfolder "${src_folder_tmp}" \
             -volname "${app_name}"         \
             -format UDRW                   \
-            -size "${dmg_size}m"           \
+            -size 500           \
             "${dmg_tmp}"
+
+    # -size "${dmg_size}m"           \
 
     rm -f "${dmg_path}"
     hdiutil convert "${dmg_tmp}" \
