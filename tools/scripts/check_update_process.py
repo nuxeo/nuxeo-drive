@@ -227,8 +227,9 @@ def cat_log():
     print("", flush=True)
     print("", flush=True)
     print(">>> $ cat", src, flush=True)
+    print(f"src: {src!r}")
     if not os.path.exists(src):
-        dirs = ["~/.nuxeo-drive/", "~/.nuxeo-drive/logs"]
+        dirs = [".nuxeo-drive/", ".nuxeo-drive/logs"]
         for directory in dirs:
             if not os.path.isdir(directory):
                 os.mkdir(directory)
@@ -325,7 +326,10 @@ def uninstall_drive():
     # Purge local files
     if os.path.isdir(home):
         print(">>> Deleting", home, flush=True)
-        shutil.rmtree(home)
+        try:
+            shutil.rmtree(home)
+        except Exception as e:
+            print(e)
 
 
 def version_decrement(version):
