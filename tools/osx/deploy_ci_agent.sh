@@ -117,6 +117,10 @@ create_package() {
         # QML libraries need to be signed too for the notarization
         find "${pkg_path}/Contents/Resources" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
 
+        echo ">>>> signing app"
+        find "${pkg_path}" -type f -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        echo ">>>> signed app"
+
         # Then we sign the extension
         ${CODESIGN} "${SIGNING_ID}"                  \
                     --force                          \
@@ -126,16 +130,21 @@ create_package() {
 
         # And we shallow sign the .app
         ${CODESIGN} "${SIGNING_ID}" "${pkg_path}" --force
+        echo "signed ${pkg_path}"
 
         echo ">>> [sign] Verifying code signature"
         codesign --display --verbose "${pkg_path}"
+        echo ">>>> codesign --display --verbose"
         codesign --verbose=4 --deep --strict "${pkg_path}"
+        echo ">>>> --verbose=4 --deep --strict"
         spctl --assess --verbose "${pkg_path}"
+        echo "spctl "
     fi
 
     echo ">>> [package] Creating the DMG file"
 
     app_version="$(grep __version__ nxdrive/__init__.py | cut -d'"' -f2)"
+    echo ">>>> app_version: ${app_version}"
     local dmg_path="${output_dir}/nuxeo-drive-${app_version}.dmg"
 
     # Clean-up
