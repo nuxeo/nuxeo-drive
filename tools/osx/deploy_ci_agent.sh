@@ -157,6 +157,9 @@ create_package() {
     local dmg_size=$(( $(du -sm "${pkg_path}" | cut -d$'\t' -f1,1) + 20 ))
     echo ">>> [DMG ${app_version}] ${dmg_path} (${dmg_size} Mo)"
 
+    dmg_size = dmg_size * 2
+    echo ">>> [DMG ${app_version}] new size: (${dmg_size} Mo)"
+
     echo ">>> [DMG ${app_version}] Preparing the DMG"
     cp -a "${pkg_path}" "${src_folder_tmp}"
     mkdir "${src_folder_tmp}/.background"
