@@ -172,7 +172,10 @@ def install_drive(installer):
         dst = f"{Path.home()}/Applications/Nuxeo Drive.app"
         if os.path.isdir(dst):
             print(">>> Deleting", dst, flush=True)
-            shutil.rmtree(dst)
+            try:
+                shutil.rmtree(dst)
+            except Exception as e:
+                print(e)
         print(">>> Copying", src, "->", dst, flush=True)
         shutil.copytree(src, dst)
 
@@ -303,7 +306,10 @@ def uninstall_drive():
         path = f"{Path.home()}/Applications/Nuxeo Drive.app"
         if os.path.isdir(path):
             print(">>> Deleting", path, flush=True)
-            shutil.rmtree(path)
+            try:
+                shutil.rmtree(path)
+            except Exception as e:
+                print(e)
     else:
         home = expandvars("C:\\Users\\%username%\\.nuxeo-drive")
         cmd = [
