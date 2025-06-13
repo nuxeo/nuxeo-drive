@@ -228,14 +228,37 @@ def cat_log():
     print("", flush=True)
     print(">>> $ cat", src, flush=True)
     print(f"src: {src!r}")
+    
+    src_path = src
+    dir_list = []
+
+    while True:
+        if not os.path.exists(src_path):
+            head, tail = os.path.split(src_path)
+            if "nxdrive.log" not in src_path:
+                dir_list.append(src_path)
+            if not head:
+                break
+            src_path = head
+        else:
+            break
+    if dir_list:
+        dir_list.reverse()
+        for directory in dir_list:
+            os.mkdir(directory)
+    with open(src, "w") as f:
+        f.write("")
+        f.close()
+    """
     if not os.path.exists(src):
-        dirs = [".nuxeo-drive/", ".nuxeo-drive/logs"]
+        dirs = [".nuxeo-drive", ".nuxeo-drive/logs"]
         for directory in dirs:
             if not os.path.isdir(directory):
                 os.mkdir(directory)
-    with open(src, "a") as f:
-        f.write("")
-    f.close()
+        with open(src, "w") as f:
+            f.write("")
+        f.close()
+    """
     with open(src, encoding="utf-8") as fh:
         print(fh.read(), flush=True)
         print("", flush=True)
