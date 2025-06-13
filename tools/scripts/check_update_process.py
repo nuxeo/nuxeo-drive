@@ -171,7 +171,7 @@ def install_drive(installer):
         src = "{}/Nuxeo Drive.app".format(mount_dir)
         dst = f"{Path.home()}/Applications/Nuxeo Drive.app"
         if os.path.isdir(dst):
-            print(">>> Deleting", dst, flush=True)
+            print(">>> Deleting dst: ", dst, flush=True)
             try:
                 shutil.rmtree(dst)
             except Exception as e:
@@ -306,7 +306,7 @@ def uninstall_drive():
         home = expanduser("~/.nuxeo-drive")
         path = f"{Path.home()}/Applications/Nuxeo Drive.app"
         if os.path.isdir(path):
-            print(">>> Deleting", path, flush=True)
+            print(">>> Deleting path: ", path, flush=True)
             try:
                 shutil.rmtree(path)
             except Exception as e:
@@ -325,7 +325,7 @@ def uninstall_drive():
 
     # Purge local files
     if os.path.isdir(home):
-        print(">>> Deleting", home, flush=True)
+        print(">>> Deleting home: ", home, flush=True)
         try:
             shutil.rmtree(home)
         except Exception as e:
