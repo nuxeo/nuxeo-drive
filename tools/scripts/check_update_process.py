@@ -328,8 +328,12 @@ def uninstall_drive():
         print(">>> Deleting home: ", home, flush=True)
         try:
             shutil.rmtree(home)
+            print("deleted")
         except Exception as e:
+            print("got exception")
             print(e)
+        print("successfully")
+    print("OK")
 
 
 def version_decrement(version):
