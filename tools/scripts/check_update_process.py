@@ -247,10 +247,14 @@ def cat_log():
     if dir_list:
         dir_list.reverse()
         for directory in dir_list:
+            print(f">>>> creating {directory!r}")
             os.mkdir(directory)
+            print(f">>>> {directory!r} created")
+    print(">>>> All dirs created")
     with open(src, "a") as f:
         f.write("")
         f.close()
+    print(">>>> file operation completed")
     """
     if not os.path.exists(src):
         dirs = [".nuxeo-drive", ".nuxeo-drive/logs"]
@@ -265,6 +269,7 @@ def cat_log():
         print(fh.read(), flush=True)
         print("", flush=True)
         print("", flush=True)
+    print(">>>> end of function")
 
 
 def set_options():
