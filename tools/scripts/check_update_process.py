@@ -233,6 +233,7 @@ def cat_log():
     dir_list = []
 
     while True:
+        print(f">>>> inside whule; dir_list: {dir_list!r}")
         if not os.path.exists(src_path):
             head, tail = os.path.split(src_path)
             if "nxdrive.log" not in src_path:
@@ -242,11 +243,12 @@ def cat_log():
             src_path = head
         else:
             break
+    print(">>>> outside while")
     if dir_list:
         dir_list.reverse()
         for directory in dir_list:
             os.mkdir(directory)
-    with open(src, "w") as f:
+    with open(src, "a") as f:
         f.write("")
         f.close()
     """
