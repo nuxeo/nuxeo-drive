@@ -265,7 +265,7 @@ def cat_log():
             f.write("")
         f.close()
     """
-    with open(src, encoding="utf-8") as fh:
+    with open(src, "r", encoding="utf-8") as fh:
         print(fh.read(), flush=True)
         print("", flush=True)
         print("", flush=True)

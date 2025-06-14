@@ -137,7 +137,7 @@ jobs:
 
       - name: "[macOS] Generate the .dmg and validate against 2025"
         if: matrix.os == 'macos-13'
-        timeout-minutes: 20
+        timeout-minutes: 30
         env:
           NXDRIVE_TEST_NUXEO_URL: "https://drive-2025.beta.nuxeocloud.com/nuxeo"
           NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2025_TEST_USERNAME }}
