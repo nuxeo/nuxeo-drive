@@ -521,7 +521,7 @@ def job(root, version, executable, previous_version, name):
         webserver(root)
 
         # Display the log file
-        #cat_log()
+        cat_log()
 
         print(">>>> checking for current_ver")
 
