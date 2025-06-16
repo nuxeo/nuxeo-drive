@@ -471,6 +471,8 @@ def webserver(folder, port=8000):
     except Exception as e:
         print(f">>>> Exception: {e!r}")
         pass
+    finally:
+        print(">>>> end webserver")
 
 
 #
