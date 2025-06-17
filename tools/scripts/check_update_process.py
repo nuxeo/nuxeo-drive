@@ -171,8 +171,10 @@ def install_drive(installer):
         src = "{}/Nuxeo Drive.app".format(mount_dir)
         dst = f"{Path.home()}/Applications/Nuxeo Drive.app"
         if os.path.isdir(dst):
-            print(">>> Deleting", dst, flush=True)
-            shutil.rmtree(dst)
+            try:
+                shutil.rmtree(dst)
+            except Exception as e:
+                print(e)
         print(">>> Copying", src, "->", dst, flush=True)
         shutil.copytree(src, dst)
 
@@ -181,7 +183,7 @@ def install_drive(installer):
         subprocess.check_call(cmd)
     else:
         cmd = [installer, "/verysilent"]
-        print(">>> Command:", cmd, flush=True)
+        print(">>> Command.:", cmd, flush=True)
         subprocess.check_call(cmd)
 
 
@@ -213,8 +215,9 @@ def launch_drive(executable, args=None):
     subprocess.check_call(cmd)
 
 
+"""
 def cat_log():
-    """Cat the log file."""
+    ""Cat the log file.""
 
     if EXT == "exe":
         src = expandvars("C:\\Users\\%username%\\.nuxeo-drive\\logs\\nxdrive.log")
@@ -228,6 +231,63 @@ def cat_log():
         print(fh.read(), flush=True)
         print("", flush=True)
         print("", flush=True)
+"""
+"""
+def cat_log():
+    ""Cat the log file.""
+
+    if EXT == "exe":
+        src = expandvars("C:\\Users\\%username%\\.nuxeo-drive\\logs\\nxdrive.log")
+    else:
+        src = expanduser("~/.nuxeo-drive/logs/nxdrive.log")
+
+    print("", flush=True)
+    print("", flush=True)
+    print(">>> $ cat", src, flush=True)
+    print(f"src: {src!r}")
+
+    src_path = src
+    dir_list = []
+
+    while True:
+        print(f">>>> inside whule; dir_list: {dir_list!r}")
+        if not os.path.exists(src_path):
+            head, tail = os.path.split(src_path)
+            if "nxdrive.log" not in src_path:
+                dir_list.append(src_path)
+            if not head:
+                break
+            src_path = head
+        else:
+            break
+    print(">>>> outside while")
+    if dir_list:
+        dir_list.reverse()
+        for directory in dir_list:
+            print(f">>>> creating {directory!r}")
+            os.mkdir(directory)
+            print(f">>>> {directory!r} created")
+    print(">>>> All dirs created")
+    with open(src, "a") as f:
+        f.write("")
+        f.close()
+    print(">>>> file operation completed")
+    ""
+    if not os.path.exists(src):
+        dirs = [".nuxeo-drive", ".nuxeo-drive/logs"]
+        for directory in dirs:
+            if not os.path.isdir(directory):
+                os.mkdir(directory)
+        with open(src, "w") as f:
+            f.write("")
+        f.close()
+    ""
+    with open(src, "r", encoding="utf-8") as fh:
+        print(fh.read(), flush=True)
+        print("", flush=True)
+        print("", flush=True)
+    print(">>>> end of function")
+"""
 
 
 def set_options():
@@ -294,8 +354,10 @@ def uninstall_drive():
         home = expanduser("~/.nuxeo-drive")
         path = f"{Path.home()}/Applications/Nuxeo Drive.app"
         if os.path.isdir(path):
-            print(">>> Deleting", path, flush=True)
-            shutil.rmtree(path)
+            try:
+                shutil.rmtree(path)
+            except Exception as e:
+                print(e)
     else:
         home = expandvars("C:\\Users\\%username%\\.nuxeo-drive")
         cmd = [
@@ -310,8 +372,10 @@ def uninstall_drive():
 
     # Purge local files
     if os.path.isdir(home):
-        print(">>> Deleting", home, flush=True)
-        shutil.rmtree(home)
+        try:
+            shutil.rmtree(home)
+        except Exception as e:
+            print(e)
 
 
 def version_decrement(version):
@@ -508,7 +572,7 @@ def job(root, version, executable, previous_version, name):
         webserver(root)
 
         # Display the log file
-        cat_log()
+        # cat_log()
 
         # And assert the version is the good one
         current_ver = get_version()

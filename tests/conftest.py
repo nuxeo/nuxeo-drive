@@ -4,10 +4,12 @@ import sys
 import nuxeo.client
 import nuxeo.operations
 import pytest
+import sqlite3
+from datetime import datetime
 from nuxeo.client import Nuxeo
 
 from nxdrive.options import Options
-from nxdrive.utils import get_verify
+from nxdrive.utils import adapt_datetime_iso, get_verify
 
 from . import env
 
@@ -17,6 +19,8 @@ pytest_plugins = "tests.pytest_random"
 # Operations cache
 OPS_CACHE = None
 SERVER_INFO = None
+
+sqlite3.register_adapter(datetime, adapt_datetime_iso)
 
 
 @pytest.hookimpl(trylast=True, hookwrapper=True)
@@ -94,6 +98,8 @@ def no_warnings(recwarn):
         elif "Unverified HTTPS request is being made to host" in message:
             continue
         elif "Cryptography will be significantly faster" in message:
+            continue
+        elif "unclosed database" in message:
             continue
 
         warn = f"{warning.filename}:{warning.lineno} {message}"

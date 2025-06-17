@@ -5,7 +5,7 @@
 
 Nuxeo Drive has different parameters that you can set up through:
 
-- The REST API endpoint `/drive/configuration` served by the server (since [NXP-22946](https://jira.nuxeo.com/browse/NXP-22946) and Drive 3.0.0).
+- The REST API endpoint `/drive/configuration` served by the server (since [NXP-22946](https://hyland.atlassian.net/browse/NXP-22946) and Drive 3.0.0).
 - The command line.
 - A registry key inside `HKEY_CURRENT_USER\Software\Nuxeo\Drive` (since Drive 3.1.0, Windows only).
 - A `config.ini` file that can be located in different places:
@@ -607,7 +607,7 @@ Share anonymous usage analytics to help the developers build the best experience
 
 - Default value (bool): `False`
 - Version added: 4.1.0
-- Version changed: 4.4.5, a minimal set of GDPR-information is sent even if set to `False` (see [NXDRIVE-2254](https://jira.nuxeo.com/browse/NXDRIVE-2254))
+- Version changed: 4.4.5, a minimal set of GDPR-information is sent even if set to `False` (see [NXDRIVE-2254](https://hyland.atlassian.net/browse/NXDRIVE-2254))
 
 #### `use-idempotent-requests`
 
@@ -617,7 +617,7 @@ Control whenever specific HTTP calls should be made idempotent or not.
 - Version added: 5.1.1
 - Version changed: 5.2.3, defaulting to `True`
 
-It requires [NXP-29978](https://jira.nuxeo.com/browse/NXP-29978) on the server.
+It requires [NXP-29978](https://hyland.atlassian.net/browse/NXP-29978) on the server.
 
 If enabled, those requests will be impacted:
 - `FileManager.Import` (Direct Transfer)

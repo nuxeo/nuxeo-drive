@@ -1198,7 +1198,7 @@ class Processor(EngineWorker):
         Even though we are not able to figure out how this can happen we
         need to handle this case to put the database back to a consistent
         state.
-        This is tracked by https://jira.nuxeo.com/browse/NXP-14039
+        This is tracked by https://hyland.atlassian.net/browse/NXP-14039
         """
         log.warning("Inconsistency should not happens anymore")
         log.warning(
@@ -1549,7 +1549,7 @@ class Processor(EngineWorker):
         # Even though we are not able to figure out how this can happen we
         # need to handle this case to put the database back to a consistent
         # state.
-        # This is tracked by https://jira.nuxeo.com/browse/NXP-13216
+        # This is tracked by https://hyland.atlassian.net/browse/NXP-13216
         log.info("Inconsistency should not happens anymore")
         log.info(
             f"Detected inconsistent doc pair {doc_pair!r}, deleting it hoping the "

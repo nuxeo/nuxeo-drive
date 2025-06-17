@@ -3,7 +3,7 @@ import os
 from collections import namedtuple
 from datetime import datetime
 from math import pow
-from pathlib import Path, _posix_flavour, _windows_flavour
+from pathlib import Path
 from time import sleep
 from unittest.mock import patch
 
@@ -12,6 +12,7 @@ import pytest
 import nxdrive.utils
 from nxdrive.constants import APP_NAME, MAC, WINDOWS, DigestStatus
 from nxdrive.options import Options
+from nxdrive.dao.utils import dump
 
 from ..markers import not_windows, windows_only
 
@@ -73,18 +74,6 @@ JROlHjdA3/jyqD4WuFzzXzWwF6zta0l/hqF9BtGmQRR9qXC2+fsQ4mhUK8C9vhCH
 """
 
 Stat = namedtuple("Stat", "st_size")
-
-
-class MockedPath(Path):
-    """Simple way to test Path methods.
-    Using mock did not make it.
-    """
-
-    _flavour = _windows_flavour if WINDOWS else _posix_flavour
-
-    def resolve(self, *_, **__):
-        """Raise a PermissionError."""
-        raise PermissionError("Boom!")
 
 
 @pytest.mark.parametrize(
@@ -1342,3 +1331,14 @@ def test_get_timestamp():
     )
 
     assert nxdrive.utils.get_timestamp_from_date(d) == 1681550211
+
+
+def test_dump_db(tmp_path):
+    file_path = os.path.join(tmp_path, "test-db-backup.txt")
+    with open(file_path, "w"):
+        pass
+    db_path = os.path.join(tmp_path, "test_dump.db")
+    with open(db_path, "w"):
+        pass
+
+    dump(Path(db_path), Path(file_path))

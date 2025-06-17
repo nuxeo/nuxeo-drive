@@ -227,3 +227,9 @@ def test_get_task_url(manager_factory, nuxeo_url):
         remote_ref = str(uuid4())
         url = engine.get_task_url(remote_ref)
         assert url == f"{nuxeo_url}/ui#!/tasks/{remote_ref}"
+
+
+def test_check_last_sync(manager_factory, nuxeo_url):
+    manager, engine = manager_factory()
+    with manager:
+        assert not engine._check_last_sync()
