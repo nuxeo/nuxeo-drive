@@ -245,7 +245,7 @@ def cat_log():
     print("", flush=True)
     print(">>> $ cat", src, flush=True)
     print(f"src: {src!r}")
-    
+
     src_path = src
     dir_list = []
 
