@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Crowdin Action
-        uses: crowdin/github-action@v2.5.2
+        uses: crowdin/github-action@v2.7.1
         with:
           # Tokens
           project_id: ${{ secrets.CROWDIN_PROJECT_ID }}
