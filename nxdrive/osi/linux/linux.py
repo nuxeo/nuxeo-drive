@@ -53,7 +53,7 @@ class LinuxIntegration(AbstractOSIntegration):
         if select:
             log.info(
                 "The Select/Highlight feature is not yet implemented, please vote "
-                "https://jira.nuxeo.com/browse/NXDRIVE-848 to show your interest"
+                "https://hyland.atlassian.net/browse/NXDRIVE-848 to show your interest"
             )
 
         # xdg-open should be supported by recent Gnome, KDE, Xfce

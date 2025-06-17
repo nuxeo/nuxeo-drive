@@ -13,7 +13,7 @@ Because the DEPs are maintained as text files in a [versioned repository](https:
 
 The DEP process begins with a new idea for Drive.
 It is highly recommended that a single DEP contain a single key proposal or new idea.
-Small enhancements or patches often don't need a DEP and can be injected into the Drive development workflow with a patch submission to the [Drive issue tracker](https://jira.nuxeo.com/browse/NXDRIVE).
+Small enhancements or patches often don't need a DEP and can be injected into the Drive development workflow with a patch submission to the [Drive issue tracker](https://hyland.atlassian.net/browse/NXDRIVE).
 The more focused the DEP, the more successful it tends to be.
 The DEP editors reserve the right to reject DEP proposals if they appear too unfocused or too broad.
 If in doubt, split your DEP into several well-focused ones.

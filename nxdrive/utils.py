@@ -13,7 +13,7 @@ import stat
 import sys
 from configparser import DEFAULTSECT, ConfigParser
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import lru_cache
 from itertools import islice
 from logging import getLogger
@@ -68,8 +68,6 @@ DEFAULTS_CERT_DETAILS = {
     "notAfter": "N/A",
     "notBefore": "N/A",
 }
-
-MINIMUM_TLS_VERSION = "TLSv1_2"
 
 log = getLogger(__name__)
 
@@ -610,7 +608,7 @@ def retrieve_ssl_certificate(hostname: str, /, *, port: int = 443) -> str:
         # Declaring a minimum version to restrict the protocol
         # For more information check NXDRIVE-2920
         context = ssl.create_default_context()
-        context.minimum_version = getattr(ssl.TLSVersion, MINIMUM_TLS_VERSION)
+        context.minimum_version = ssl.TLSVersion.TLSv1_2
         with context.wrap_socket(conn, server_hostname=hostname) as sock:
             cert_data: bytes = sock.getpeercert(binary_form=True)  # type: ignore
             return ssl.DER_cert_to_PEM_cert(cert_data)
@@ -1287,7 +1285,7 @@ def today_is_special() -> bool:
     """This beautiful day is special, isn't it? As all other days, right? :)"""
     return (
         os.getenv("I_LOVE_XMAS", "0") == "1"
-        or int(datetime.utcnow().strftime("%j")) >= 354
+        or int(datetime.now(tz=timezone.utc).strftime("%j")) >= 354
     )
 
 
@@ -1301,7 +1299,7 @@ def get_current_locale() -> str:
     else:
         import locale
 
-        encoding = locale.getdefaultlocale()[1] or ""
+        encoding = locale.getlocale()[1] or ""
 
     # Guess the current locale name
     if WINDOWS:
@@ -1315,7 +1313,7 @@ def get_current_locale() -> str:
         l10n_code = NSLocale.currentLocale()
         l10n = NSLocale.localeIdentifier(l10n_code)
     else:
-        l10n = locale.getdefaultlocale()[0] or ""
+        l10n = locale.getlocale()[1] or ""
 
     return ".".join([l10n, encoding])
 
@@ -1363,3 +1361,8 @@ def get_task_type(type_of_task: str) -> str:
     if "updateRequest" in type_of_task:
         return Translator.get("UPDATE_REQUESTED", values=[""])
     return Translator.get("PENDING_TASKS", values=[""])
+
+
+def adapt_datetime_iso(val: datetime, /) -> Any:
+    # adapter for sqlite3
+    return val.strftime("%Y-%m-%d %H:%M:%S")

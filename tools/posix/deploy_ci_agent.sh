@@ -98,7 +98,7 @@ check_upgrade() {
 check_vars() {
     # Check required variables
     if [ "${PYTHON_DRIVE_VERSION:-unset}" = "unset" ]; then
-        export PYTHON_DRIVE_VERSION="3.9.5"  # XXX_PYTHON
+        export PYTHON_DRIVE_VERSION="3.13.1"  # XXX_PYTHON
     fi
     if [ "${WORKSPACE:-unset}" = "unset" ]; then
         if [ "${GITHUB_WORKSPACE:-unset}" != "unset" ]; then
@@ -209,7 +209,7 @@ install_python() {
     export PYTHON_CONFIGURE_OPTS="--enable-shared"
 
     # We need to override the default python used by pyenv as we installed it manually
-    # See ticket: https://jira.nuxeo.com/browse/NXDRIVE-2724
+    # See ticket: https://hyland.atlassian.net/browse/NXDRIVE-2724
 
     #if [ "${MACOSX_DEPLOYMENT_TARGET:-unset}" != "unset" ]; then
     #    ln -sf $(which python3) $(which python)

@@ -9,7 +9,7 @@ Until Drive 3.1.0, we were using the [Esky](https://pypi.org/project/esky/) fram
 - Errors when dealing with the Windows UAC;
 - Not Python 3 compliant.
 
-So, with the issue [NXDRIVE-1143](https://jira.nuxeo.com/browse/NXDRIVE-1143), we decided to seek an alternative.
+So, with the issue [NXDRIVE-1143](https://hyland.atlassian.net/browse/NXDRIVE-1143), we decided to seek an alternative.
 
 ## Alternatives
 

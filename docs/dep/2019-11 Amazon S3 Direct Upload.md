@@ -6,10 +6,10 @@
 - Reviewer: Yannis Achour <yachour@nuxeo.com>,
             Antoine Taillefer <ataillefer@nuxeo.com>
 - Status: implemented
-- Related-Ticket: [NXDRIVE-1621](https://jira.nuxeo.com/browse/NXDRIVE-1621),
-                  [NXDRIVE-1918](https://jira.nuxeo.com/browse/NXDRIVE-1918),
-                  [NXPY-138](https://jira.nuxeo.com/browse/NXPY-138),
-                  [NXPY-149](https://jira.nuxeo.com/browse/NXPY-149)
+- Related-Ticket: [NXDRIVE-1621](https://hyland.atlassian.net/browse/NXDRIVE-1621),
+                  [NXDRIVE-1918](https://hyland.atlassian.net/browse/NXDRIVE-1918),
+                  [NXPY-138](https://hyland.atlassian.net/browse/NXPY-138),
+                  [NXPY-149](https://hyland.atlassian.net/browse/NXPY-149)
 
 ## Abstract
 
@@ -43,7 +43,7 @@ There are 2 types of uploads: [single and multipart](https://docs.aws.amazon.com
 
 ### Technical Overview
 
-> Note that below statements work thanks to the patched Python client that now supports the S3 upload provider, see [NXPY-138](https://jira.nuxeo.com/browse/NXPY-138) for details.
+> Note that below statements work thanks to the patched Python client that now supports the S3 upload provider, see [NXPY-138](https://hyland.atlassian.net/browse/NXPY-138) for details.
 
 The [technical overview](https://doc.nuxeo.com/nxdoc/amazon-s3-direct-upload/#technical-overview) document from Nuxeo is a good start to understand what actions are needed in order to use S3.
 

@@ -981,7 +981,7 @@ class LocalWatcher(EngineWorker):
 
             if evt.event_type == "moved":
                 # Ignore normalization of the filename on the file system
-                # See https://jira.nuxeo.com/browse/NXDRIVE-188
+                # See https://hyland.atlassian.net/browse/NXDRIVE-188
 
                 if force_decode(dst_path) in (
                     str(src_path),

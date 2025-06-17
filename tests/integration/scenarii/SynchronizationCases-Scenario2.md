@@ -1,6 +1,6 @@
 # Drive not uploading renamed file from shared folder
 
-Related issue: https://jira.nuxeo.com/browse/NXDRIVE-646
+Related issue: https://hyland.atlassian.net/browse/NXDRIVE-646
 
 ## Scenario to reproduce
 
