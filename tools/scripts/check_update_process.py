@@ -117,7 +117,7 @@ def gen_exe():
             ' . ".\\tools\\windows\\deploy_ci_agent.ps1" -build'
         )
 
-    print(">>> Command 1.:", cmd, flush=True)
+    print(">>> Command:", cmd, flush=True)
     subprocess.check_call(cmd.split())
 
 
@@ -164,14 +164,13 @@ def install_drive(installer):
     elif EXT == "dmg":
         # Simulate what nxdrive.updater.darwin.install() does
         cmd = ["hdiutil", "mount", installer]
-        print(">>> Command 2.:", cmd, flush=True)
+        print(">>> Command:", cmd, flush=True)
         mount_info = subprocess.check_output(cmd, text=True).strip()
         mount_dir = mount_info.splitlines()[-1].split("\t")[-1]
 
         src = "{}/Nuxeo Drive.app".format(mount_dir)
         dst = f"{Path.home()}/Applications/Nuxeo Drive.app"
         if os.path.isdir(dst):
-            print(">>> Deleting dst: ", dst, flush=True)
             try:
                 shutil.rmtree(dst)
             except Exception as e:
@@ -180,11 +179,11 @@ def install_drive(installer):
         shutil.copytree(src, dst)
 
         cmd = ["hdiutil", "unmount", mount_dir]
-        print(">>> Command 3.:", cmd, flush=True)
+        print(">>> Command:", cmd, flush=True)
         subprocess.check_call(cmd)
     else:
         cmd = [installer, "/verysilent"]
-        print(">>> Command 4.:", cmd, flush=True)
+        print(">>> Command.:", cmd, flush=True)
         subprocess.check_call(cmd)
 
 
@@ -212,9 +211,8 @@ def launch_drive(executable, args=None):
             *args,
         ]
 
-    print(">>> Command 5.:", cmd, flush=True)
+    print(">>> Command:", cmd, flush=True)
     subprocess.check_call(cmd)
-    print(">>>> Drive stareted ???  [subprocess.check_call(cmd)]")
 
 
 """
@@ -356,7 +354,6 @@ def uninstall_drive():
         home = expanduser("~/.nuxeo-drive")
         path = f"{Path.home()}/Applications/Nuxeo Drive.app"
         if os.path.isdir(path):
-            print(">>> Deleting path: ", path, flush=True)
             try:
                 shutil.rmtree(path)
             except Exception as e:
@@ -370,20 +367,15 @@ def uninstall_drive():
             "/verysilent",
         ]
         if os.path.isfile(cmd[0]):
-            print(">>> Command 6.:", cmd, flush=True)
+            print(">>> Command:", cmd, flush=True)
             subprocess.check_call(cmd)
 
     # Purge local files
     if os.path.isdir(home):
-        print(">>> Deleting home: ", home, flush=True)
         try:
             shutil.rmtree(home)
-            print("deleted")
         except Exception as e:
-            print("got exception")
             print(e)
-        print("successfully")
-    print("OK")
 
 
 def version_decrement(version):
@@ -457,23 +449,15 @@ def webserver(folder, port=8000):
     os.chdir(folder)
 
     httpd = socketserver.TCPServer(("", port), Server)
-    print(f">>>> httpd: {httpd!r}")
     print(">>> Serving", folder, f"at http://localhost:{port}", flush=True)
     print(">>> CTRL+C to terminate (or wait 60 sec)", flush=True)
     try:
-        print(">>>> Starting new Thread")
         threading.Thread(target=stop, args=(httpd,)).start()
-        print(">>>> New Thread Started")
         httpd.serve_forever()
-        print(">>>> httpd.serve_forever")
     except KeyboardInterrupt:
-        print(">>>>KeyboardInterrupt; httpd.shutdown")
         httpd.shutdown()
-    except Exception as e:
-        print(f">>>> Exception: {e!r}")
+    except Exception:
         pass
-    finally:
-        print(">>>> end webserver")
 
 
 #
@@ -589,8 +573,6 @@ def job(root, version, executable, previous_version, name):
 
         # Display the log file
         # cat_log()
-
-        print(">>>> checking for current_ver")
 
         # And assert the version is the good one
         current_ver = get_version()
