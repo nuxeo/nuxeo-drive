@@ -91,6 +91,8 @@ jobs:
           env_vars: OS,PYTHON
 
   functional-tests-windows:
+    permissions:
+      pull-requests: write
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
