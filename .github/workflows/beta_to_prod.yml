@@ -1,4 +1,7 @@
 name: Beta to production
+permissions:
+  contents: read
+  pull-requests: read
 
 on:
   workflow_dispatch:
