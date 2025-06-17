@@ -5,6 +5,7 @@ See https://github.com/pyinstaller/pyinstaller/issues/2560
 
 import locale
 import platform
+import pip_system_certs.wrapt_requests
 import signal
 import sqlite3
 import sys
@@ -19,6 +20,8 @@ from nxdrive.fatal_error import (
 )
 from nxdrive.utils import adapt_datetime_iso
 
+
+pip_system_certs.wrapt_requests.inject_truststore()
 
 def signal_handler(signum: int, _: FrameType, /) -> None:
     """Signal handler."""
