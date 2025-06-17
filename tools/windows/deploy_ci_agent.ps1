@@ -87,8 +87,6 @@ function build_installer {
 		build_overlays
 	}
 
-	#sign_dlls
-
 	Write-Output ">>> [$app_version] Freezing the application"
 	freeze_pyinstaller
 
@@ -99,7 +97,6 @@ function build_installer {
 	Get-ChildItem -Path "dist\ndrive" -Recurse -File -Include *.qmlc | Foreach ($_) { Remove-Item -Verbose $_.Fullname }
 
 	add_missing_ddls
-	#sign "dist\ndrive\ndrive.exe"
 
 	# Stop now if we only want the application to be frozen (for integration tests)
 	if ($Env:FREEZE_ONLY) {
@@ -212,7 +209,7 @@ function check_upgrade {
 function check_vars {
 	# Check required variables
 	if (-Not ($Env:PYTHON_DRIVE_VERSION)) {
-		$Env:PYTHON_DRIVE_VERSION = '3.9.5'  # XXX_PYTHON
+		$Env:PYTHON_DRIVE_VERSION = '3.13.1'  # XXX_PYTHON
 	}
 	if (-Not ($Env:WORKSPACE)) {
 		if ($Env:GITHUB_WORKSPACE) {
@@ -535,27 +532,33 @@ function sign($file) {
 	#		Remove-Item -Path $cert -Verbose
 	#	}
 	#}
-	Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"
-	Write-Output ">>> Signing $file"
-	& $Env:SIGNTOOL_PATH\signtool.exe sign `
-		/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
-		/n "$Env:SIGNING_ID_NEW" `
-		/d "$Env:APP_NAME" `
-		/td SHA256 /fd sha256 `
-		/tr http://timestamp.digicert.com/sha256/timestamp `
-		/v `
-		"$file"
+	if ($Env:SIGN_EXE -eq "true") {
+		Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"
+		Write-Output ">>> Signing $file"
+		& $Env:SIGNTOOL_PATH\signtool.exe sign `
+			/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
+			/n "$Env:SIGNING_ID_NEW" `
+			/d "$Env:APP_NAME" `
+			/td SHA256 /fd sha256 `
+			/tr http://timestamp.digicert.com/sha256/timestamp `
+			/v `
+			"$file"
 
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
+		if ($lastExitCode -ne 0) {
+			ExitWithCode $lastExitCode
+		}
+
+		Write-Output ">>> Verifying $file"
+		& $Env:SIGNTOOL_PATH\signtool.exe verify /pa /v "$file"
+		if ($lastExitCode -ne 0) {
+			ExitWithCode $lastExitCode
+		}
 	}
-
-	Write-Output ">>> Verifying $file"
-	& $Env:SIGNTOOL_PATH\signtool.exe verify /pa /v "$file"
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
+	else {
+		Write-Output ">>> Signing is disabled, signing process skipped."
 	}
 }
+
 function build_installer_and_sign {
 	# Build the installer
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""

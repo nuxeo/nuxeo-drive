@@ -1,3 +1,4 @@
+import os
 import pathlib
 from time import sleep
 
@@ -79,3 +80,11 @@ def test_xattr_error_invalid_start_byte(tmp_path):
     raw_value, result_needed = b"fdrpMACS\x80", "fdrpMACS"
     local.set_path_remote_id(file, raw_value)
     assert local.get_path_remote_id(file) == result_needed
+
+
+def test_get_info(tmp_path):
+    local = LocalClient(tmp_path)
+    file = tmp_path / "test-get-info.txt"
+    file.write_text("HELLO", encoding="utf-8")
+    path = os.path.join(tmp_path, "test-get-info.txt")
+    assert local.get_info(path)

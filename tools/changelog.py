@@ -174,7 +174,7 @@ def get_issue_infos(issue, raw=False):
     """Retrieve issue information."""
 
     debug(">>> Fetching information of {}".format(issue))
-    base_url = "https://jira.nuxeo.com"
+    base_url = "https://hyland.atlassian.net"
     url = base_url + "/rest/api/2/issue/{}".format(issue)
     headers = {"User-Agent": "changelog/{}".format(__version__)}
 

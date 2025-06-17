@@ -10,7 +10,7 @@ It has worked for years but was preventing our move to Python 3 and Qt 5:
 - It is not possible to sign installers and packages;
 - cx_Freeze and Esky are not Python 3 compliant.
 
-So, with the issue [NXDRIVE-730](https://jira.nuxeo.com/browse/NXDRIVE-730), we decided to seek an alternative.
+So, with the issue [NXDRIVE-730](https://hyland.atlassian.net/browse/NXDRIVE-730), we decided to seek an alternative.
 
 ## Current Implementation
 
@@ -39,10 +39,10 @@ If you want to exactly know how it is done, check the file `tools/osx/deploy_ci_
 - No more modifications into the registry with Python;
 - Easily expandable (customers can customize their installers);
 - Installation and update more than easy (download and click on Next, Next and OK);
-- No more admin rights required ([NXDRIVE-601](https://jira.nuxeo.com/browse/NXDRIVE-601));
+- No more admin rights required ([NXDRIVE-601](https://hyland.atlassian.net/browse/NXDRIVE-601));
 - Installer with our logo and colors;
 - Complete uninstaller (Drive files and regedit purge, but not personal files);
-- Good information and logo in the panel configuration ([NXDRIVE-512](https://jira.nuxeo.com/browse/NXDRIVE-512) and [NXDRIVE-448](https://jira.nuxeo.com/browse/NXDRIVE-448));
+- Good information and logo in the panel configuration ([NXDRIVE-512](https://hyland.atlassian.net/browse/NXDRIVE-512) and [NXDRIVE-448](https://hyland.atlassian.net/browse/NXDRIVE-448));
 - Possibility to sign the package;
 - Installation via CLI possible;
 - Installer can be built via a batch script;

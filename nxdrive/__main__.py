@@ -6,7 +6,9 @@ See https://github.com/pyinstaller/pyinstaller/issues/2560
 import locale
 import platform
 import signal
+import sqlite3
 import sys
+from datetime import datetime
 from types import FrameType
 
 from nxdrive.constants import APP_NAME
@@ -15,6 +17,7 @@ from nxdrive.fatal_error import (
     check_os_version,
     show_critical_error,
 )
+from nxdrive.utils import adapt_datetime_iso
 
 
 def signal_handler(signum: int, _: FrameType, /) -> None:
@@ -34,12 +37,14 @@ def main() -> int:
     # Catch CTRL+C
     signal.signal(signal.SIGINT, signal_handler)
 
+    sqlite3.register_adapter(datetime, adapt_datetime_iso)
+
     ret = 0
 
     try:
         # XXX_PYTHON
-        if sys.version_info < (3, 9, 1):
-            raise RuntimeError(f"{APP_NAME} requires Python 3.9.1+")
+        if sys.version_info < (3, 13, 1):
+            raise RuntimeError(f"{APP_NAME} requires Python 3.13.1+")
 
         # NXDRIVE-2230: Ensure the OS locale will be respected through the application
         try:

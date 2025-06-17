@@ -44,7 +44,7 @@ channel = centralized
 
 	if ($version -eq "4.4.0") {
 		# On 4.4.0 we need to enforce client_version locally.
-		# See https://jira.nuxeo.com/browse/NXDRIVE-2047 for details.
+		# See https://hyland.atlassian.net/browse/NXDRIVE-2047 for details.
 		$data = "${data}client_version = $version"
 	}
 

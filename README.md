@@ -142,7 +142,7 @@ The source code of Nuxeo Drive is available under the GNU LGPL v2.1 described in
 
 ## Roadmap
 
-The [backlog](https://jira.nuxeo.com/issues/?jql=(project%20%3D%20%22Nuxeo%20Drive%20%22%20OR%20project%20%3D%20%22Nuxeo%20Python%20Client%22%20%20OR%20component%20%3D%20%22Nuxeo%20Drive%22%20OR%20project%20%3D%20NXDOC%20AND%20Tags%20%3D%20nxdrive)%20AND%20resolution%20%3D%20Unresolved%20ORDER%20BY%20%22Backlog%20priority%22%20%20ASC) is handled on JIRA.
+The [backlog](https://hyland.atlassian.net/issues/?jql=(project%20%3D%20%22Nuxeo%20Drive%20%22%20OR%20project%20%3D%20%22Nuxeo%20Python%20Client%22%20%20OR%20component%20%3D%20%22Nuxeo%20Drive%22%20OR%20project%20%3D%20NXDOC%20AND%20Tags%20%3D%20nxdrive)%20AND%20resolution%20%3D%20Unresolved%20ORDER%20BY%20%22Backlog%20priority%22%20%20ASC) is handled on JIRA.
 
 ## Developing on Nuxeo Drive
 
