@@ -214,6 +214,7 @@ def launch_drive(executable, args=None):
 
     print(">>> Command 5.:", cmd, flush=True)
     subprocess.check_call(cmd)
+    print(">>>> Drive stareted ???  [subprocess.check_call(cmd)]")
 
 
 """
