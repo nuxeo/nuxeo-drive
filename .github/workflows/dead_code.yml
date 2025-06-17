@@ -1,4 +1,6 @@
 name: Dead code
+permissions:
+  contents: read
 
 on:
   pull_request:

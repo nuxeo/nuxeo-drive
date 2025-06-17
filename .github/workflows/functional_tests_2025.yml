@@ -1,4 +1,6 @@
 name: Functional tests LTS 2025
+permissions:
+  contents: read
 
 on:
   pull_request:
