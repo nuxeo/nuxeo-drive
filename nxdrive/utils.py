@@ -1365,4 +1365,5 @@ def get_task_type(type_of_task: str) -> str:
 
 def adapt_datetime_iso(val: datetime, /) -> Any:
     # adapter for sqlite3
+    # testing
     return val.strftime("%Y-%m-%d %H:%M:%S")
