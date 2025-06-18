@@ -139,6 +139,8 @@ def get_last_version_number():
 def get_version():
     """Get the current version."""
 
+    print("++++ insige get_version")
+
     if EXT == "dmg":
         cmd = [
             f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
@@ -440,11 +442,16 @@ def webserver(folder, port=8000):
 
     def stop(server):
         """Stop the server after 60 seconds."""
+        print(">>>> sleeping for 60 secs")
         time.sleep(60)
+        print(">>>> just wake up")
         try:
+            print(">>>> shutting down the server")
             server.shutdown()
-        except Exception:
-            pass
+            print(">>>> server shut down completed")
+        except Exception as e:
+            print(f">>>> exception while shut down the server: {e!r}")
+            # pass
 
     os.chdir(folder)
 
@@ -453,11 +460,16 @@ def webserver(folder, port=8000):
     print(">>> CTRL+C to terminate (or wait 60 sec)", flush=True)
     try:
         threading.Thread(target=stop, args=(httpd,)).start()
+        print(">>>> starting the server")
         httpd.serve_forever()
+        print(">>>> server started")
     except KeyboardInterrupt:
+        print(">>>> KeyboardInterrupt; shutting down")
         httpd.shutdown()
-    except Exception:
-        pass
+        print(">>>> KeyboardInterrupt; server shut down completed")
+    except Exception as e:
+        print(f">>>> exception while starting the server: {e!r}")
+        # pass
 
 
 #
