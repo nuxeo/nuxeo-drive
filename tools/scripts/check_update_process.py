@@ -587,6 +587,7 @@ def job(root, version, executable, previous_version, name):
         # cat_log()
 
         # And assert the version is the good one
+        print(">>>> Getting the version")
         current_ver = get_version()
         print(f">>> Current version is {current_ver!r}", flush=True)
         """
