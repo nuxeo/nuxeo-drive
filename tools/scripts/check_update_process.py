@@ -466,7 +466,7 @@ def webserver(folder, port=8000):
 
 """
 def webserver(folder, port=8000):
-    """Start a local web server that stops after 60 seconds."""
+    ""Start a local web server that stops after 60 seconds.""
 
     def stop(server):
         time.sleep(60)
