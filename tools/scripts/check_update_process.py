@@ -149,9 +149,9 @@ def get_version():
             actual_app_path,
             "--version",
         ]
-        # ret = subprocess.check_output(cmd, text=True).strip()
-        ret = "10.0"
-        print(f">>>> ret: {ret!r}")
+        ret = subprocess.check_output(cmd, text=True).strip()
+        #ret = "10.0"
+        #print(f">>>> ret: {ret!r}")
         return ret
 
     file = (
