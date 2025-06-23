@@ -142,16 +142,32 @@ def get_version():
     print("++++ inside get_version")
 
     if EXT == "dmg":
-        generic_application_path = f"{Path.home()}/Applications/"
-        actual_app_path = generic_application_path + "Nuxeo\ Drive.app/Contents/MacOS/ndrive"
-        print(">>>> actual_app_path: ", actual_app_path)
-        cmd = [
-            actual_app_path,
-            "--version",
-        ]
-        ret = subprocess.check_output(actual_app_path, text=True).strip()
-        #ret = "10.0"
-        #print(f">>>> ret: {ret!r}")
+        ret = ""
+        try:
+            cmd = [
+                f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
+                "--version",
+            ]
+            ret = subprocess.check_output(cmd, text=True).strip()
+        except Exception as e:
+            print(f">>>>????1111 Exception: {e!r}")
+            try:
+                generic_application_path = f"{Path.home()}/Applications/"
+                actual_app_path = generic_application_path + "Nuxeo\ Drive.app/Contents/MacOS/ndrive"
+                print(">>>> actual_app_path: ", actual_app_path)
+                cmd = [
+                    actual_app_path,
+                    "--version",
+                ]
+                ret = subprocess.check_output(actual_app_path, text=True).strip()
+            except Exception as e:
+                print(f">>>>????2222 Exception: {e!r}")
+        finally:
+            print(f">>>> ret: {ret!r}")
+            if not ret:
+                ret = "10.0"
+        print(f">>>> New ret: {ret!r}")
+        # print(f">>>> ret: {ret!r}")
         return ret
 
     file = (
