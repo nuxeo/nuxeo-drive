@@ -153,8 +153,20 @@ def get_version():
         if EXT == "exe"
         else expanduser("~/.nuxeo-drive/VERSION")
     )
-    with open(file, encoding="utf-8") as f:
-        return f.read().strip()
+    print(f">>>> file: {file!r}")
+    ret = ""
+    try:
+        with open(file, encoding="utf-8") as f:
+            ret = f.read().strip()
+    except Exception as e:
+        print(f">>>> Exception: {e!r}")
+        with open(file) as f:
+            ret = f.read().strip()
+    finally:
+        if not ret:
+            ret = "10.0"
+    print(f">>>> ret: {ret!r}")
+    return ret
 
 
 def install_drive(installer):
