@@ -437,21 +437,17 @@ def version_update(version, lineno):
         handler.write("".join(content))
 
 
+"""
 def webserver(folder, port=8000):
-    """Start a local web server."""
+    ""Start a local web server.""
 
     def stop(server):
-        """Stop the server after 60 seconds."""
-        print(">>>> sleeping for 60 secs")
+        ""Stop the server after 60 seconds.""
         time.sleep(60)
-        print(">>>> just wake up")
         try:
-            print(">>>> shutting down the server")
             server.shutdown()
-            print(">>>> server shut down completed")
-        except Exception as e:
-            print(f">>>> exception while shut down the server: {e!r}")
-            # pass
+        except Exception:
+            pass
 
     os.chdir(folder)
 
@@ -459,24 +455,37 @@ def webserver(folder, port=8000):
     print(">>> Serving", folder, f"at http://localhost:{port}", flush=True)
     print(">>> CTRL+C to terminate (or wait 60 sec)", flush=True)
     try:
-        # threading.Thread(target=stop, args=(httpd,)).start()
-        print(">>>> starting the server")
+        threading.Thread(target=stop, args=(httpd,)).start()
         httpd.serve_forever()
-        print(">>>> server started")
     except KeyboardInterrupt:
-        print(">>>> KeyboardInterrupt; shutting down")
         httpd.shutdown()
-        print(">>>> KeyboardInterrupt; server shut down completed")
-    except Exception as e:
-        print(f">>>> exception while starting the server: {e!r}")
-        # pass
-    finally:
-        print(">>>> #### sleeping for 60 secs")
+    except Exception:
+        pass
+"""
+
+
+def webserver(folder, port=8000):
+    """Start a local web server that stops after 60 seconds."""
+
+    def stop(server):
         time.sleep(60)
-        print(">>>> ####  just wake up")
-        print(">>>> #### shutting down the server")
-        httpd.shutdown()
-        print(">>>> ####  server shut down completed")
+        try:
+            print(">>> Auto-shutting down HTTP server", flush=True)
+            server.shutdown()
+        except Exception:
+            pass
+
+    os.chdir(folder)
+    httpd = socketserver.TCPServer(("", port), Server)
+    print(">>> Serving", folder, f"at http://localhost:{port}", flush=True)
+
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+
+    stopper = threading.Thread(target=stop, args=(httpd,), daemon=True)
+    stopper.start()
+
+    # return httpd  # Optionally return to allow manual shutdown earlier if needed
 
 
 #
