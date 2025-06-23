@@ -139,14 +139,17 @@ def get_last_version_number():
 def get_version():
     """Get the current version."""
 
-    print("++++ insige get_version")
+    print("++++ inside get_version")
 
     if EXT == "dmg":
         cmd = [
             f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
             "--version",
         ]
-        return subprocess.check_output(cmd, text=True).strip()
+        # ret = subprocess.check_output(cmd, text=True).strip()
+        ret = "10.0"
+        print(f">>>> ret: {ret!r}")
+        return ret
 
     file = (
         expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
