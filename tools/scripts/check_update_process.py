@@ -459,10 +459,16 @@ def webserver(folder, port=8000):
     print(">>> Serving", folder, f"at http://localhost:{port}", flush=True)
     print(">>> CTRL+C to terminate (or wait 60 sec)", flush=True)
     try:
-        threading.Thread(target=stop, args=(httpd,)).start()
+        # threading.Thread(target=stop, args=(httpd,)).start()
         print(">>>> starting the server")
         httpd.serve_forever()
         print(">>>> server started")
+        print(">>>> #### sleeping for 60 secs")
+        time.sleep(60)
+        print(">>>> ####  just wake up")
+        print(">>>> #### shutting down the server")
+        httpd.shutdown()
+        print(">>>> ####  server shut down completed")
     except KeyboardInterrupt:
         print(">>>> KeyboardInterrupt; shutting down")
         httpd.shutdown()
