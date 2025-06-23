@@ -463,12 +463,6 @@ def webserver(folder, port=8000):
         print(">>>> starting the server")
         httpd.serve_forever()
         print(">>>> server started")
-        print(">>>> #### sleeping for 60 secs")
-        time.sleep(60)
-        print(">>>> ####  just wake up")
-        print(">>>> #### shutting down the server")
-        httpd.shutdown()
-        print(">>>> ####  server shut down completed")
     except KeyboardInterrupt:
         print(">>>> KeyboardInterrupt; shutting down")
         httpd.shutdown()
@@ -476,6 +470,13 @@ def webserver(folder, port=8000):
     except Exception as e:
         print(f">>>> exception while starting the server: {e!r}")
         # pass
+    finally:
+        print(">>>> #### sleeping for 60 secs")
+        time.sleep(60)
+        print(">>>> ####  just wake up")
+        print(">>>> #### shutting down the server")
+        httpd.shutdown()
+        print(">>>> ####  server shut down completed")
 
 
 #
