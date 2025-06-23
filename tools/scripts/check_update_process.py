@@ -464,6 +464,7 @@ def webserver(folder, port=8000):
 """
 
 
+"""
 def webserver(folder, port=8000):
     """Start a local web server that stops after 60 seconds."""
 
@@ -486,6 +487,40 @@ def webserver(folder, port=8000):
     stopper.start()
 
     # return httpd  # Optionally return to allow manual shutdown earlier if needed
+"""
+
+
+def webserver(folder, port=8000):
+    """Start a local web server."""
+
+    def stop(server):
+        time.sleep(60)
+        try:
+            print(">>> Auto-shutting down HTTP server", flush=True)
+            server.shutdown()
+
+            # Wake up the server in case it's stuck in serve_forever()
+            import socket
+            try:
+                with socket.create_connection(("localhost", port), timeout=2) as s:
+                    s.sendall(b"GET / HTTP/1.1\r\nHost: localhost\r\n\r\n")
+            except Exception as e:
+                print(">>> Dummy request failed:", e, flush=True)
+        except Exception as e:
+            print(">>> Shutdown failed:", e, flush=True)
+
+    os.chdir(folder)
+
+    httpd = socketserver.TCPServer(("", port), Server)
+    print(">>> Serving", folder, f"at http://localhost:{port}", flush=True)
+
+    server_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    server_thread.start()
+
+    stopper_thread = threading.Thread(target=stop, args=(httpd,), daemon=True)
+    stopper_thread.start()
+
+    # return httpd
 
 
 #
