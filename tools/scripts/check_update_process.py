@@ -145,7 +145,7 @@ def get_version():
         ret = ""
         try:
             cmd = [
-                f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
+                f"\"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive\"",
                 "--version",
             ]
             ret = subprocess.check_output(cmd, text=True).strip()
