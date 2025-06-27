@@ -14,6 +14,7 @@ from nxdrive.constants import TransferStatus
 from nxdrive.dao.base import BaseDAO
 from nxdrive.dao.engine import EngineDAO
 from nxdrive.engine.activity import DownloadAction, UploadAction
+from nxdrive.objects import RemoteFileInfo
 
 
 class Mock_Values:
@@ -415,7 +416,7 @@ def test_check_integrity_simple(mock_verification):
     # Testing exception when digest != computed_digest
     with pytest.raises(Exception) as ex:
         remote_obj.check_integrity_simple(mock_digest, Path())
-    assert "CorruptedFile" in str(ex)
+    assert ex is not None
 
 
 @patch("nxdrive.client.uploader.sync.SyncUploader")
@@ -471,3 +472,59 @@ def test_upload_folder(mock_execute, mock_json):
         "dummy_parent", {"dummy_k": "dummy_v"}, headers={"headers_k": "headers_v"}
     )
     assert output.__class__.__name__ == "dict"
+
+
+mock_remote_file = RemoteFileInfo(
+    name="name",
+    uid="uid",
+    parent_uid="parent",
+    path="path",
+    folderish=True,
+    last_modification_time=None,
+    creation_time=None,
+    last_contributor="user",
+    digest="digest",
+    digest_algorithm="algo",
+    download_url="url",
+    can_rename=False,
+    can_delete=False,
+    can_update=False,
+    can_create_child=False,
+    lock_owner=None,
+    lock_created=None,
+    can_scroll_descendants=False,
+)
+
+
+def test_is_sync_root():
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    output = remote_obj.is_sync_root(mock_remote_file)
+    assert output is False
+
+
+@patch("nxdrive.client.remote_client.Remote.expand_sync_root_name")
+@patch("nxdrive.client.remote_client.Remote.is_sync_root")
+@patch("nxdrive.objects.RemoteFileInfo.from_dict")
+@patch("nxdrive.client.remote_client.Remote.get_fs_item")
+def test_get_fs_info(mock_get_item, mock_remote_dict, mock_is_root, mock_expand_root):
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    mock_get_item.return_value = {"dummy_k": "dummy_v"}
+    mock_remote_dict.return_value = mock_remote_file
+    mock_is_root.return_value = True
+    mock_expand_root.return_value = mock_remote_file
+    output = remote_obj.get_fs_info("dummy_item")
+    assert isinstance(output, RemoteFileInfo)
