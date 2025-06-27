@@ -390,3 +390,83 @@ def test_check_integrity(mock_verification):
     with pytest.raises(Exception) as ex:
         remote_obj.check_integrity(mock_digest, mock_download_action)
     assert "CorruptedFile" in str(ex)
+
+
+@patch("nxdrive.engine.activity.VerificationAction")
+def test_check_integrity_simple(mock_verification):
+    class Mock_Verification:
+        def __init__(self):
+            self.progess = 10
+
+        def finish_action(self):
+            pass
+
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    mock_digest = "275876e34cf609db118f3d84b799a790"
+    mock_verification.return_value = Mock_Verification()
+    # Testing exception when digest != computed_digest
+    with pytest.raises(Exception) as ex:
+        remote_obj.check_integrity_simple(mock_digest, Path())
+    assert "CorruptedFile" in str(ex)
+
+
+@patch("nxdrive.client.uploader.sync.SyncUploader")
+def test_upload(mock_sync_uploader):
+    from nxdrive.client.uploader import BaseUploader
+
+    class Mock_Uploader(BaseUploader):
+        def __init__(self, remote: Remote) -> None:
+            super().__init__(remote)
+
+        def upload(
+            self,
+            file_path: Path,
+            /,
+            *,
+            command: str = "",
+            filename: str = "",
+            **kwargs: Any,
+        ) -> Dict[str, Any]:
+            return {"dummy": "dummy"}
+
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        dao=EngineDAO(Path() / "tests" / "resources" / "databases" / "test_engine.db"),
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    mock_sync_uploader.return_value = Mock_Uploader(remote_obj)
+    output = remote_obj.upload(
+        Path() / "tests" / "resources" / "files" / "testFile.txt",
+        uploader=type(Mock_Uploader(remote_obj)),
+    )
+    assert output == {"dummy": "dummy"}
+
+
+@patch("json.dumps")
+@patch("nxdrive.client.remote_client.Remote.execute")
+def test_upload_folder(mock_execute, mock_json):
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    mock_execute.return_value = {}
+    mock_json.return_value = None
+    output = remote_obj.upload_folder(
+        "dummy_parent", {"dummy_k": "dummy_v"}, headers={"headers_k": "headers_v"}
+    )
+    assert output.__class__.__name__ == "dict"
