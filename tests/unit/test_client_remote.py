@@ -1,6 +1,7 @@
 """
 For file nxdrive/client/remote_client.py
 """
+
 from pathlib import Path
 from typing import Any, Dict
 from unittest.mock import patch
@@ -370,7 +371,7 @@ def test_check_integrity(mock_verification):
 
     class Mock_Verification:
         def __init__(self):
-            self.progess = 10
+            self.progress = 10
 
         def finish_action(self):
             pass
@@ -396,7 +397,7 @@ def test_check_integrity(mock_verification):
 def test_check_integrity_simple(mock_verification):
     class Mock_Verification:
         def __init__(self):
-            self.progess = 10
+            self.progress = 10
 
         def finish_action(self):
             pass
