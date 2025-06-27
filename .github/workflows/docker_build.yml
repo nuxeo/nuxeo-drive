@@ -1,5 +1,8 @@
 # Build and deploy a new docker image for Nuxeo Drive GNU/Linux binary builds
 name: Docker build
+permissions:
+  contents: read
+  pull-requests: read
 
 on:
   workflow_dispatch:
