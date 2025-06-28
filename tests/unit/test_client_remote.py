@@ -601,7 +601,7 @@ def test_scroll_descendants(mock_execute, mock_remote_dict):
     mock_execute.return_value = {"scrollId": 1, "fileSystemItems": ["item1", "item2"]}
     mock_remote_dict.return_value = ["item1", "item2"]
     output = remote_obj.scroll_descendants("item_id", "scroll_id")
-    assert isinstance(output, Dict)
+    assert isinstance(output, dict)
 
 
 @patch("nxdrive.objects.RemoteFileInfo.from_dict")
@@ -752,7 +752,7 @@ def test_get_fs_item(mock_execute):
     # with fs_item_id
     mock_execute.return_value = {"key": "value"}
     output = remote_obj.get_fs_item("fs_item_id", parent_fs_item_id="parent_fs_item_id")
-    assert isinstance(output, Dict)
+    assert isinstance(output, dict)
 
 
 @patch("nxdrive.client.remote_client.Remote.execute")
@@ -767,7 +767,7 @@ def test_get_changes(mock_execute):
     )
     mock_execute.return_value = {"key": "value"}
     output = remote_obj.get_changes("last_root")
-    assert isinstance(output, Dict)
+    assert isinstance(output, dict)
 
 
 @patch("nxdrive.client.remote_client.Remote.execute")
@@ -782,7 +782,7 @@ def test_fetch(mock_execute):
     )
     mock_execute.return_value = {"key": "value"}
     output = remote_obj.fetch("reference")
-    assert isinstance(output, Dict)
+    assert isinstance(output, dict)
 
 
 @patch("nxdrive.client.remote_client.Remote.fetch")
@@ -815,13 +815,278 @@ def test_check_ref(mock_fetch):
     assert output == "base_path/reference"
 
 
-# def test_get_info():
-#     remote_obj = Remote(
-#         "dummy_url",
-#         "dummy_user_id",
-#         "dummy_device_id",
-#         "dummy_version",
-#         token="dummy_token",
-#         repository="dummy_repository",
-#     )
-#     output = remote_obj.get_info("reference")
+@patch("nxdrive.objects.NuxeoDocumentInfo.from_dict")
+@patch("nxdrive.client.remote_client.Remote.fetch")
+@patch("nxdrive.client.remote_client.Remote.check_ref")
+def test_get_info(mock_check_ref, mock_fetch, mock_nxdi_dict):
+    from nxdrive.objects import NuxeoDocumentInfo
+
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    # Success condition
+
+    class Mock_Fetch:
+        def __init__(self, *args) -> None:
+            pass
+
+        def __getitem__(self, name: str) -> Any:
+            return name
+
+        def update(self, value: dict = {}):
+            pass
+
+    mock_check_ref.return_value = "check_ref"
+    mock_fetch.return_value = Mock_Fetch()
+    mock_nxdi_dict.return_value = NuxeoDocumentInfo
+    output = remote_obj.get_info("reference")
+    assert output.__qualname__ == "NuxeoDocumentInfo"
+
+
+@patch("nxdrive.client.remote_client.Remote.fetch")
+@patch("nxdrive.client.remote_client.Remote.check_ref")
+def test_get_info_exception(mock_check_ref, mock_fetch):
+    from nxdrive.exceptions import NotFound
+
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+
+    mock_check_ref.return_value = "check_ref"
+    mock_fetch.return_value = {}
+    mock_fetch.side_effect = NotFound()
+    # raise NotFound exception
+    with pytest.raises(NotFound) as ex:
+        remote_obj.get_info("reference", raise_if_missing=True)
+    assert str(ex.value) == "Could not find 'check_ref' on dummy_url/"
+    # Don't raise exception
+    output = remote_obj.get_info("reference", raise_if_missing=False)
+    assert output is None
+
+
+@patch("pathlib._abc.PathBase.write_bytes")
+@patch("nxdrive.client.remote_client.Remote.fetch")
+def test_get_note(mock_fetch, mock_write):
+    class Mock_Fetch:
+        def __init__(self, *args) -> None:
+            pass
+
+        def __getitem__(self, name: str) -> Any:
+            return self
+
+        def get(self, value):
+            return "mocked_data"
+
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    mock_fetch.return_value = Mock_Fetch()
+    mock_write.return_value = None
+    output = remote_obj.get_note("reference", file_out=Path(""))
+    assert isinstance(output, bytes)
+
+
+@patch("nxdrive.client.remote_client.Remote.execute")
+@patch("nxdrive.client.remote_client.Remote.get_note")
+def test_get_blob(mock_get_note, mock_execute):
+    from nxdrive.objects import NuxeoDocumentInfo
+
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    mock_nxdi_info = NuxeoDocumentInfo(
+        root="root",
+        name="str",
+        uid="uid",
+        parent_uid="parent_uid",
+        path="path",
+        folderish=True,
+        last_modification_time=None,
+        last_contributor="user",
+        repository="repo",
+        doc_type="docx",
+        version="1",
+        state="created",
+        is_trashed=False,
+        is_proxy=False,
+        is_version=True,
+        lock_owner=None,
+        lock_created=None,
+        permissions=["permission"],
+        properties={"key": "value"},
+    )
+    # doc_type == "Note"
+    mock_nxdi_info.doc_type = "Note"
+    mock_get_note.return_value = b""
+    mock_execute.return_value = b""
+    output = remote_obj.get_blob(mock_nxdi_info)
+    assert isinstance(output, bytes)
+    # doc_type != "Note"
+    mock_nxdi_info.doc_type = "Picture"
+    mock_execute.return_value = b""
+    output = remote_obj.get_blob(mock_nxdi_info)
+    assert isinstance(output, bytes)
+    # str instance
+    output = remote_obj.get_blob("string_data")
+
+
+@patch("nxdrive.client.remote_client.Remote.execute")
+@patch("json.dumps")
+@patch("nxdrive.client.remote_client.Remote.check_ref")
+def test_unlock(mock_check_ref, mock_json, mock_execute):
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    mock_check_ref.return_value = "checked"
+    mock_json.return_value = "json_dumped"
+    mock_execute.return_value = None
+    output = remote_obj.unlock("reference", headers={"key": "value"})
+    assert output is None
+
+
+@patch("nxdrive.client.remote_client.Remote.execute")
+@patch("nxdrive.client.remote_client.Remote.check_ref")
+def test_register_as_root(mock_check_ref, mock_execute):
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    mock_check_ref.return_value = "checked"
+    mock_execute.return_value = None
+    output = remote_obj.register_as_root("reference")
+    assert output is True
+
+
+@patch("nxdrive.client.remote_client.Remote.execute")
+@patch("nxdrive.client.remote_client.Remote.check_ref")
+def test_unregister_as_root(mock_check_ref, mock_execute):
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    mock_check_ref.return_value = "checked"
+    mock_execute.return_value = None
+    output = remote_obj.unregister_as_root("reference")
+    assert output is True
+
+
+@patch("nuxeo.client.NuxeoClient.request")
+def test_get_config_types(mock_request):
+    class Mock_Request:
+        def json(self):
+            return {"json_key": "json_value"}
+
+    mock_request.return_value = Mock_Request()
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    output = remote_obj.get_config_types()
+    assert output == {"json_key": "json_value"}
+
+
+@patch("nuxeo.client.NuxeoClient.request")
+def test_get_config_types_exception(mock_request):
+    mock_request.side_effect = Exception("dummy_exception")
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    output = remote_obj.get_config_types()
+    assert output == {}
+
+
+@patch("nuxeo.client.NuxeoClient.server_version")
+def test_get_trash_condition(mock_version):
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    # Version greater than 10.2
+    remote_obj.client.server_version = "11"
+    output = remote_obj._get_trash_condition()
+    assert output == "AND ecm:isTrashed = 0"
+    # Version lower than 10.2
+    remote_obj.client.server_version = "10"
+    output = remote_obj._get_trash_condition()
+    assert output == "AND ecm:currentLifeCycleState != 'deleted'"
+    # Version equals to 10.2
+    remote_obj.client.server_version = "10.2"
+    output = remote_obj._get_trash_condition()
+    assert output == "AND ecm:isTrashed = 0"
+
+
+@patch("nxdrive.client.remote_client.Remote.filter_schema")
+@patch("nxdrive.objects.SubTypeEnricher.from_dict")
+@patch("nxdrive.client.remote_client.Remote.fetch")
+def test_get_doc_enricher(mock_fetch, mock_enricher_dict, mock_filter_schema):
+    class Mock_Enricher:
+        def __init__(self) -> None:
+            self.facets = ["facet1", "facet2"]
+
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    mock_fetch.return_value = {"key": "value"}
+    mock_enricher_dict.return_value = Mock_Enricher()
+    mock_filter_schema.return_value = ["facet1", "facet3"]
+    # isFolderish == True
+    output = remote_obj.get_doc_enricher(
+        parent="parent", enricherType="subtypes", isFolderish=True
+    )
+    assert output == ["facet1", "facet2"]
+    # isFolderish == False
+    output = remote_obj.get_doc_enricher(
+        parent="parent", enricherType="subtypes", isFolderish=False
+    )
+    assert output == ["facet1"]
