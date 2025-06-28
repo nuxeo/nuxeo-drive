@@ -37,7 +37,7 @@ class Mock_Values:
         return self.verify
 
     def mock_fetch(self):
-        return {"kfetch": "vfetch"}
+        return {"kfetch": "vfetch", "uid": "base_uid", "path": "base_path"}
 
     def mock_metrics(self):
         return self
@@ -553,3 +553,275 @@ def test_stream_content(mock_fs_info, mock_download, mock_remove_transfer):
     mock_remove_transfer.return_value = None
     output = remote_obj.stream_content("item_id", Path(), Path())
     assert isinstance(output, Path)
+
+
+@patch("nxdrive.client.remote_client.Remote.is_filtered")
+@patch("nxdrive.objects.RemoteFileInfo.from_dict")
+@patch("nxdrive.client.remote_client.Remote.execute")
+def test_get_fs_children(mock_execute, mock_remote_dict, mock_filtered):
+    class Mock_Info:
+        def __init__(self) -> None:
+            self.path = "info_path"
+
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    mock_execute.return_value = ["item_1", "item_2"]
+    mock_remote_dict.return_value = Mock_Info()
+    mock_filtered.return_value = False
+    output = remote_obj.get_fs_children("item_id", filtered=True)
+    for item in output:
+        assert isinstance(item, Mock_Info)
+    # not filtered
+    output = remote_obj.get_fs_children("item_id", filtered=False)
+    for item in output:
+        assert isinstance(item, Mock_Info)
+    # is_filtered == False
+    mock_filtered.return_value = True
+    output = remote_obj.get_fs_children("item_id", filtered=True)
+    assert output == []
+
+
+@patch("nxdrive.objects.RemoteFileInfo.from_dict")
+@patch("nxdrive.client.remote_client.Remote.execute")
+def test_scroll_descendants(mock_execute, mock_remote_dict):
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    mock_execute.return_value = {"scrollId": 1, "fileSystemItems": ["item1", "item2"]}
+    mock_remote_dict.return_value = ["item1", "item2"]
+    output = remote_obj.scroll_descendants("item_id", "scroll_id")
+    assert isinstance(output, Dict)
+
+
+@patch("nxdrive.objects.RemoteFileInfo.from_dict")
+@patch("nxdrive.client.remote_client.Remote.execute")
+def test_make_folder(mock_execute, mock_remote_dict):
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    mock_execute.return_value = {"scrollId": 1, "fileSystemItems": ["item1", "item2"]}
+    mock_remote_dict.return_value = mock_remote_file
+    output = remote_obj.make_folder("parent", "folder_name")
+    assert isinstance(output, RemoteFileInfo)
+
+
+@patch("nxdrive.objects.RemoteFileInfo.from_dict")
+@patch("nxdrive.client.remote_client.Remote.upload")
+def test_stream_file(mock_upload, mock_remote_dict):
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    mock_upload.return_value = {"scrollId": 1, "fileSystemItems": ["item1", "item2"]}
+    mock_remote_dict.return_value = mock_remote_file
+    output = remote_obj.stream_file("parent_id", Path())
+    assert isinstance(output, RemoteFileInfo)
+
+
+@patch("nxdrive.objects.RemoteFileInfo.from_dict")
+@patch("nxdrive.client.remote_client.Remote.upload")
+def test_stream_update(mock_upload, mock_remote_dict):
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    mock_upload.return_value = {"scrollId": 1, "fileSystemItems": ["item1", "item2"]}
+    mock_remote_dict.return_value = mock_remote_file
+    output = remote_obj.stream_update("fs_system_id", Path())
+    assert isinstance(output, RemoteFileInfo)
+
+
+@patch("nxdrive.client.remote_client.Remote.execute")
+def test_delete(mock_execute):
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    mock_execute.return_value = None
+    output = remote_obj.delete("fs_item_id")
+    assert output is None
+
+
+def test_undelete():
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    with pytest.raises(Exception) as ex:
+        remote_obj.undelete("fs_item_id")
+    assert ex is not None
+
+
+@patch("nxdrive.objects.RemoteFileInfo.from_dict")
+@patch("nxdrive.client.remote_client.Remote.execute")
+def test_rename(mock_execute, mock_remote_dict):
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    mock_execute.return_value = {"scrollId": 1, "fileSystemItems": ["item1", "item2"]}
+    mock_remote_dict.return_value = mock_remote_file
+    output = remote_obj.rename("fs_item_id", "new_name")
+    assert isinstance(output, RemoteFileInfo)
+
+
+@patch("nxdrive.objects.RemoteFileInfo.from_dict")
+@patch("nxdrive.client.remote_client.Remote.execute")
+def test_move(mock_execute, mock_remote_dict):
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    mock_execute.return_value = {"scrollId": 1, "fileSystemItems": ["item1", "item2"]}
+    mock_remote_dict.return_value = mock_remote_file
+    output = remote_obj.move("fs_item_id", "new_parent_id")
+    assert isinstance(output, RemoteFileInfo)
+
+
+def test_move2():
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    # with parent_ref
+    with pytest.raises(Exception) as ex:
+        remote_obj.move2("fs_item_#id", "parent_#ref", "name")
+    assert "Invalid URL" in str(ex)
+    # without parent_ref
+    output = remote_obj.move2("fs_item_#id", "", "name")
+    assert output == {}
+
+
+@patch("nxdrive.client.remote_client.Remote.execute")
+def test_get_fs_item(mock_execute):
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    # No fs_item_id
+    output = remote_obj.get_fs_item("")
+    assert output is None
+    # with fs_item_id
+    mock_execute.return_value = {"key": "value"}
+    output = remote_obj.get_fs_item("fs_item_id", parent_fs_item_id="parent_fs_item_id")
+    assert isinstance(output, Dict)
+
+
+@patch("nxdrive.client.remote_client.Remote.execute")
+def test_get_changes(mock_execute):
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    mock_execute.return_value = {"key": "value"}
+    output = remote_obj.get_changes("last_root")
+    assert isinstance(output, Dict)
+
+
+@patch("nxdrive.client.remote_client.Remote.execute")
+def test_fetch(mock_execute):
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="dummy_repository",
+    )
+    mock_execute.return_value = {"key": "value"}
+    output = remote_obj.fetch("reference")
+    assert isinstance(output, Dict)
+
+
+@patch("nxdrive.client.remote_client.Remote.fetch")
+def test_check_ref(mock_fetch):
+    # if endswith("/") is True
+    mock_fetch.return_value = {"uid": "base_uid", "path": "base_path/"}
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        base_folder="base_folder",
+        repository="dummy_repository",
+    )
+    output = remote_obj.check_ref("/reference")
+    assert output == "base_path/reference"
+    # if endswith("/") is False
+    mock_fetch.return_value = {"uid": "base_uid", "path": "base_path"}
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        base_folder="base_folder",
+        repository="dummy_repository",
+    )
+    output = remote_obj.check_ref("/reference")
+    assert output == "base_path/reference"
+
+
+# def test_get_info():
+#     remote_obj = Remote(
+#         "dummy_url",
+#         "dummy_user_id",
+#         "dummy_device_id",
+#         "dummy_version",
+#         token="dummy_token",
+#         repository="dummy_repository",
+#     )
+#     output = remote_obj.get_info("reference")
