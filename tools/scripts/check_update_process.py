@@ -454,12 +454,11 @@ def version_update(version, lineno):
         handler.write("".join(content))
 
 
-"""
 def webserver(folder, port=8000):
-    ""Start a local web server.""
+    """Start a local web server."""
 
     def stop(server):
-        ""Stop the server after 60 seconds.""
+        """Stop the server after 60 seconds."""
         time.sleep(60)
         try:
             server.shutdown()
@@ -478,11 +477,11 @@ def webserver(folder, port=8000):
         httpd.shutdown()
     except Exception:
         pass
+
+
 """
-
-
 def webserver(folder, port=8000):
-    """Start a local web server."""
+    ""Start a local web server.""
 
     def stop(server):
         print(">>>> Stop started")
@@ -513,7 +512,7 @@ def webserver(folder, port=8000):
 
     stopper_thread = threading.Thread(target=stop, args=(httpd,), daemon=True)
     stopper_thread.start()
-
+"""
 
 #
 # Functions used by main()
