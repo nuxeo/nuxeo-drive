@@ -451,11 +451,12 @@ def version_update(version, lineno):
         handler.write("".join(content))
 
 
+"""
 def webserver(folder, port=8000):
-    """Start a local web server."""
+    ""Start a local web server.""
 
     def stop(server):
-        """Stop the server after 60 seconds."""
+        ""Stop the server after 60 seconds.""
         time.sleep(60)
         try:
             server.shutdown()
@@ -474,6 +475,41 @@ def webserver(folder, port=8000):
         httpd.shutdown()
     except Exception:
         pass
+"""
+
+
+def webserver(folder, port=8000):
+    """Start a local web server."""
+
+    def stop(server):
+        print(">>>> Stop started")
+        time.sleep(60)
+        try:
+            print(">>> Auto-shutting down HTTP server", flush=True)
+            server.shutdown()
+
+            # Wake up the server in case it's stuck in serve_forever()
+            import socket
+            try:
+                with socket.create_connection(("localhost", port), timeout=2) as s:
+                    s.sendall(b"GET / HTTP/1.1\r\nHost: localhost\r\n\r\n")
+            except Exception as e:
+                print(">>> Dummy request failed:", e, flush=True)
+        except Exception as e:
+            print(">>> Shutdown failed:", e, flush=True)
+        print(">>>> Stopped")
+
+    os.chdir(folder)
+
+    httpd = socketserver.TCPServer(("", port), Server)
+    print(">>> Serving", folder, f"at http://localhost:{port}", flush=True)
+
+    server_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    server_thread.start()
+    print(">>>> Server Started....")
+
+    stopper_thread = threading.Thread(target=stop, args=(httpd,), daemon=True)
+    stopper_thread.start()
 
 
 #
@@ -585,7 +621,9 @@ def job(root, version, executable, previous_version, name):
         threading.Thread(target=launch_drive, args=(executable,)).start()
 
         # Start the web server
+        print(">>>> Starting server")
         webserver(root)
+        print(">>>> Server Started")
 
         # Display the log file
         # cat_log()
