@@ -140,10 +140,18 @@ def get_version():
     """Get the current version."""
 
     if EXT == "dmg":
-        cmd = [
-            f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
-            "--version",
-        ]
+        cmmnd = ['mdfind', f'kMDItemDisplayName == "Nuxeo Drive" && kMDItemKind == "Application"']
+        result = subprocess.run(cmmnd, capture_output=True, text=True, check=True)
+        app_path = result.stdout.strip()
+        pth = app_path + "/Contents/MacOS/ndrive"
+        cmd = [pth, "--version",]
+
+        # p = f"{Path.home()}/Applications/Nuxeo" + f"{chr(92)}" + " Drive.app/Contents/MacOS/ndrive"
+        # cmd = [p, "--version",]
+        # cmd = [
+        #     f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
+        #     "--version",
+        # ]
         return subprocess.check_output(cmd, text=True).strip()
 
     file = (
