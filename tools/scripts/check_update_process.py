@@ -140,11 +140,17 @@ def get_version():
     """Get the current version."""
 
     if EXT == "dmg":
+        print(">>>> get_version DMG")
         cmmnd = ['mdfind', f'kMDItemDisplayName == "Nuxeo Drive" && kMDItemKind == "Application"']
+        print(f">>>> cmmnd: {cmmnd!r}")
         result = subprocess.run(cmmnd, capture_output=True, text=True, check=True)
+        print(f">>>> result: {result!r}")
         app_path = result.stdout.strip()
+        print(f">>>> app_path: {app_path!r}")
         pth = app_path + "/Contents/MacOS/ndrive"
+        print(f">>>> pth: {pth!r}")
         cmd = [pth, "--version",]
+        print(f">>>> cmd: {cmd!r}")
 
         # p = f"{Path.home()}/Applications/Nuxeo" + f"{chr(92)}" + " Drive.app/Contents/MacOS/ndrive"
         # cmd = [p, "--version",]
@@ -152,7 +158,9 @@ def get_version():
         #     f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
         #     "--version",
         # ]
-        return subprocess.check_output(cmd, text=True).strip()
+        ret = subprocess.check_output(cmd, text=True).strip()
+        print(f">>>> ret: {ret!r}")
+        return ret
 
     file = (
         expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
@@ -583,6 +591,7 @@ def job(root, version, executable, previous_version, name):
         # cat_log()
 
         # And assert the version is the good one
+        print(">>>> getting latest version")
         current_ver = get_version()
         print(f">>> Current version is {current_ver!r}", flush=True)
         """
