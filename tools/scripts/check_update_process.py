@@ -143,10 +143,13 @@ def get_version():
 
         # p = f"{Path.home()}/Applications/Nuxeo" + f"{chr(92)}" + " Drive.app/Contents/MacOS/ndrive"
         # cmd = [p, "--version",]
+
         # cmd = [
-        #     f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
+        #     f"{Path.home()}/Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive",
         #     "--version",
         # ]
+        # return subprocess.check_output(cmd, text=True).strip()
+
         """
         print(">>>> get_version DMG")
         cmmnd = ['mdfind', f'kMDItemDisplayName == "Nuxeo Drive" && kMDItemKind == "Application"']
@@ -163,7 +166,14 @@ def get_version():
         print(f">>>> ret: {ret!r}")
         return ret
         """
-        return "5.5.2"
+        cmd = [
+            "/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
+            "--version",
+        ]
+        ret = subprocess.check_output(cmd, text=True).strip()
+        print(f">>>> ret: {ret!r}")
+        return ret
+        # return "5.5.2"
 
     file = (
         expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
