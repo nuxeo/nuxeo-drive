@@ -65,8 +65,10 @@ def test_check_executable_path_exception(mock_popen, mock_exec):
     assert output is False
 
 
+@patch("traceback.format_exception")
 @patch("nxdrive.qt.imports.QApplication.exec_")
-def test_show_critical_error(mock_exec):
+def test_show_critical_error(mock_exec, mock_traceback):
+    mock_traceback.return_value = ["dummy_exception1", "dummy_exception2"]
     output = show_critical_error()
     assert output is None
 
