@@ -176,8 +176,10 @@ def get_version():
         return ret
         """
         # return "5.5.2"
+        print(">>>> get_version DMG")
         ret = ""
         try:
+            print(">>>> try 001")
             cmd = [
                 f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
                 "--version",
@@ -187,6 +189,7 @@ def get_version():
         except Exception as e:
             print(f">>>> Exception: {e!r}")
             try:
+                print(">>>> try 002")
                 cmd = [
                 f"{Path.home()}/Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive",
                 "--version",
@@ -196,6 +199,7 @@ def get_version():
             except Exception as e:
                 print(f"#### Exception: {e!r}")
                 try:
+                    print(">>>> try 003")
                     cmd = [
                     "/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
                     "--version",
