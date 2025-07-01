@@ -1,6 +1,7 @@
 """
 Unit test cases for nxdrive/client/uploader/direct_transfer.py
 """
+
 from pathlib import Path
 from sqlite3 import Connection, Cursor
 from unittest.mock import patch
