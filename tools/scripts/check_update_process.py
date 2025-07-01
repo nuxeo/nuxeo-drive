@@ -166,6 +166,7 @@ def get_version():
         print(f">>>> ret: {ret!r}")
         return ret
         """
+        """
         cmd = [
             "/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
             "--version",
@@ -173,7 +174,42 @@ def get_version():
         ret = subprocess.check_output(cmd, text=True).strip()
         print(f">>>> ret: {ret!r}")
         return ret
+        """
         # return "5.5.2"
+        ret = ""
+        try:
+            cmd = [
+                f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
+                "--version",
+                ]
+            ret = subprocess.check_output(cmd, text=True).strip()
+            print(f">>>> ret: {ret!r}")
+        except Exception as e:
+            print(f">>>> Exception: {e!r}")
+            try:
+                cmd = [
+                f"{Path.home()}/Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive",
+                "--version",
+                ]
+                ret = subprocess.check_output(cmd, text=True).strip()
+                print(f"#### ret: {ret!r}")
+            except Exception as e:
+                print(f"#### Exception: {e!r}")
+                try:
+                    cmd = [
+                    "/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
+                    "--version",
+                    ]
+                    ret = subprocess.check_output(cmd, text=True).strip()
+                    print(f"++++ ret: {ret!r}")
+                except Exception as e:
+                    print(f"++++ Exception: {e!r}")
+        finally:
+            if not ret:
+                print(":::::::::::::::: Not Ret")
+                ret = "5.5.2"
+        return ret
+
 
     file = (
         expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
