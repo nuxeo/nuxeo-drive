@@ -11,11 +11,10 @@ from nxdrive.fatal_error import (
     fatal_error_mac,
     fatal_error_qt,
     fatal_error_win,
-    show_critical_error,
 )
 from nxdrive.options import Options
 
-from ..markers import linux_only, mac_only, not_linux, windows_only
+from ..markers import mac_only, not_linux, windows_only
 
 
 @not_linux(reason="Qt does not work correctly on Linux")
@@ -63,37 +62,3 @@ def test_check_executable_path_exception(mock_popen, mock_exec):
     mock_exec.side_effect = Exception("dummy_exception")
     output = check_executable_path()
     assert output is False
-
-
-@patch("traceback.format_exception")
-@patch("nxdrive.qt.imports.QApplication.exec_")
-def test_show_critical_error(mock_exec, mock_traceback):
-    mock_traceback.return_value = ["dummy_exception1", "dummy_exception2"]
-    output = show_critical_error()
-    assert output is None
-
-
-@mac_only
-@patch("subprocess.Popen")
-@patch("nxdrive.qt.imports.QApplication.exec_")
-def test_show_critical_error_exception_mac(mock_exec, mock_popen):
-    mock_exec.side_effect = Exception("dummy_exception")
-    output = show_critical_error()
-    assert output is None
-
-
-@windows_only
-@patch("ctypes.windll.user32.MessageBoxW")
-@patch("nxdrive.qt.imports.QApplication.exec_")
-def test_show_critical_error_exception_windows(mock_exec, mock_message_box):
-    mock_exec.side_effect = Exception("dummy_exception")
-    output = show_critical_error()
-    assert output is None
-
-
-@linux_only
-@patch("nxdrive.qt.imports.QApplication.exec_")
-def test_show_critical_error_exception_linux(mock_exec):
-    mock_exec.side_effect = Exception("dummy_exception")
-    output = show_critical_error()
-    assert output is None
