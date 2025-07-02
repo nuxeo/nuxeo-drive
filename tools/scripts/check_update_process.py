@@ -136,10 +136,21 @@ def get_last_version_number():
     return get_latest_version(versions, "release")
 
 
+app_version = "5.5.2"
+def access_dmg_path_to_get_version():
+    cmd = [
+        "/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
+        "--version",
+        ]
+    res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    app_version = res
+
+
 def get_version():
     """Get the current version."""
 
     if EXT == "dmg":
+        print(">>>> get_version DMG")
 
         # p = f"{Path.home()}/Applications/Nuxeo" + f"{chr(92)}" + " Drive.app/Contents/MacOS/ndrive"
         # cmd = [p, "--version",]
@@ -150,6 +161,7 @@ def get_version():
         # ]
         # return subprocess.check_output(cmd, text=True).strip()
 
+        """
         print(">>>> get_version DMG")
         ret = "5.5.2"
         try:
@@ -169,6 +181,7 @@ def get_version():
             print(f">>>> Exception: {e!r}")
         finally:
             return ret
+        """
         
         """
         cmd = [
@@ -219,7 +232,17 @@ def get_version():
                 ret = "5.5.2"
         return ret
         """
-
+        
+        access_path_thread = threading.Thread(target=access_dmg_path_to_get_version)
+        access_path_thread.start()
+        timeout_seconds = 5
+        print(f"***** Main thread: Waiting for worker thread with a {timeout_seconds}-second timeout")
+        access_path_thread.join(timeout=timeout_seconds)
+        if access_path_thread.is_alive():
+            print("Main thread: Worker thread timed out and is still running.")
+        else:
+            print("Main thread: Worker thread finished within the timeout.")
+        return app_version
 
     file = (
         expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
