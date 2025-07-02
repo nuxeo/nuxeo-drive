@@ -150,22 +150,26 @@ def get_version():
         # ]
         # return subprocess.check_output(cmd, text=True).strip()
 
-        """
         print(">>>> get_version DMG")
-        cmmnd = ['mdfind', f'kMDItemDisplayName == "Nuxeo Drive" && kMDItemKind == "Application"']
-        print(f">>>> cmmnd: {cmmnd!r}")
-        result = subprocess.run(cmmnd, capture_output=True, text=True, check=True)
-        print(f">>>> result: {result!r}")
-        app_path = result.stdout.strip()
-        print(f">>>> app_path: {app_path!r}")
-        pth = app_path + "/Contents/MacOS/ndrive"
-        print(f">>>> pth: {pth!r}")
-        cmd = [pth, "--version",]
-        print(f">>>> cmd: {cmd!r}")
-        ret = subprocess.check_output(cmd, text=True).strip()
-        print(f">>>> ret: {ret!r}")
-        return ret
-        """
+        ret = "5.5.2"
+        try:
+            cmmnd = ['mdfind', f'kMDItemDisplayName == "Nuxeo Drive" && kMDItemKind == "Application"']
+            print(f">>>> cmmnd: {cmmnd!r}")
+            result = subprocess.run(cmmnd, capture_output=True, text=True, check=True)
+            print(f">>>> result: {result!r}")
+            app_path = result.stdout.strip()
+            print(f">>>> app_path: {app_path!r}")
+            pth = app_path + "/Contents/MacOS/ndrive"
+            print(f">>>> pth: {pth!r}")
+            cmd = [pth, "--version",]
+            print(f">>>> cmd: {cmd!r}")
+            ret = subprocess.check_output(cmd, text=True).strip()
+            print(f">>>> ret: {ret!r}")
+        except Exception as e:
+            print(f">>>> Exception: {e!r}")
+        finally:
+            return ret
+        
         """
         cmd = [
             "/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
@@ -176,6 +180,7 @@ def get_version():
         return ret
         """
         # return "5.5.2"
+        """
         print(">>>> get_version DMG")
         ret = ""
         try:
@@ -213,6 +218,7 @@ def get_version():
                 print(":::::::::::::::: Not Ret")
                 ret = "5.5.2"
         return ret
+        """
 
 
     file = (
