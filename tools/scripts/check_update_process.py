@@ -232,7 +232,8 @@ def get_version():
                 ret = "5.5.2"
         return ret
         """
-        
+
+        """
         access_path_thread = threading.Thread(target=access_dmg_path_to_get_version)
         access_path_thread.start()
         timeout_seconds = 5
@@ -243,6 +244,23 @@ def get_version():
         else:
             print("Main thread: Worker thread finished within the timeout.")
         return app_version
+        """
+        cmd = [
+            "ls -l",
+            f"{Path.home()}/Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive",
+            ]
+        print(">>>> RUN 001")
+        subprocess.run(cmd)
+        print(">>>> RUN 002")
+        cmd = [
+            "xattr -d com.apple.quarantine",
+            f"{Path.home()}/Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive",
+        ]
+        subprocess.run(cmd)
+        print(">>>> RUN 003")
+        ret = subprocess.check_output(cmd, text=True).strip()
+        print(f">>>> ret: {ret!r}")
+        return ret
 
     file = (
         expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
