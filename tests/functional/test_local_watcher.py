@@ -8,9 +8,85 @@ from unittest.mock import patch
 
 import pytest
 
-from nxdrive.client.local.base import FileInfo
+from nxdrive.client.local.base import FileInfo, LocalClientMixin
 from nxdrive.engine.watcher.local_watcher import LocalWatcher
 from tests.markers import not_mac
+
+
+class Mock_Local_Client(LocalClientMixin):
+    def __init__(self) -> None:
+        super().__init__(Path())
+        self.abs_path = Path("dummy_absolute_path")
+
+    def abspath(self, ref: Path) -> Path:
+        return self.abs_path
+
+    def get_children_info(self, ref: Path) -> List[FileInfo]:
+        file_info = FileInfo(
+            Path(""), Path("dummy_local_path"), False, datetime.now(), digest_func="md5"
+        )
+        file_info2 = FileInfo(
+            Path(""),
+            Path("dummy_local_path2"),
+            False,
+            datetime.now(),
+            digest_func="md5",
+        )
+        return [file_info, file_info2]
+
+    def get_remote_id(self, ref: Path, /, *, name: str = "ndrive") -> str:
+        return "remote_id"
+
+    def exists(self, ref: Path) -> bool:
+        return True
+
+    def is_case_sensitive(self) -> bool:
+        return False
+
+    def remove_remote_id(
+        self, ref: Path, /, *, name: str = "ndrive", cleanup: bool = False
+    ) -> None:
+        return None
+
+
+class Mock_DAO:
+    def __init__(self):
+        self.db_children = []
+        self.doc_pairs = [self, self]
+        self.folderish = False
+        self.local_digest = "md6"
+        self.last_local_updated = "2025-07-04 11:41:23"
+        self.local_name = "dummy_local_name"
+        self.local_path = "dummy_local_path"
+        self.local_state = "dummy_local_state"
+        self.pair_state = "dummy_pair_state"
+        self.processor = 0
+        self.remote_name = "dummy_remote_name"
+        self.remote_path = "dummy_remote_path"
+        self.remote_ref = "dummy_remote_ref"
+        self.remote_state = "dummy_remote_state"
+
+    def get_local_children(self, path: Path):
+        self.db_children.append(self)
+        mock_dao2 = Mock_DAO()
+        mock_dao2.local_name = "dummy_local_name2"
+        self.db_children.append(mock_dao2)
+        return self.db_children
+
+    def get_new_remote_children(self, id: str):
+        return self.doc_pairs
+
+    def get_normal_state_from_remote(self, ref: str):
+        return self.doc_pairs[0]
+
+    def get_state_from_id(self, id: int):
+        return self.doc_pairs[0]
+
+    def insert_local_state(self, child, path):
+        return 2
+
+    def update_local_state(self, pair, child):
+        pass
 
 
 @not_mac(reason="Failure on mac")
@@ -212,59 +288,9 @@ def test_get_creation_time(manager_factory):
 
 
 def test_scan_recursive(manager_factory):
-    from nxdrive.client.local.base import LocalClientMixin
-
-    class Mock_Local_Client(LocalClientMixin):
-        def __init__(self) -> None:
-            super().__init__(Path())
-            self.abs_path = Path("dummy_absolute_path")
-
-        def abspath(self, ref: Path) -> Path:
-            return self.abs_path
-
-        def get_children_info(self, ref: Path) -> List[FileInfo]:
-            file_info = FileInfo(
-                Path(""), Path("dummy_local_path"), False, datetime.now()
-            )
-            file_info2 = FileInfo(
-                Path(""), Path("dummy_local_path2"), False, datetime.now()
-            )
-            return [file_info, file_info2]
-
-        def get_remote_id(self, ref: Path, /, *, name: str = "ndrive") -> str:
-            return "remote_id"
-
-        def exists(self, ref: Path) -> bool:
-            return True
-
-        def is_case_sensitive(self) -> bool:
-            return False
-
-    class Mock_DAO:
-        def __init__(self):
-            self.db_children = []
-            self.doc_pairs = [self, self]
-            self.local_name = "dummy_local_name"
-            self.local_path = "dummy_local_path"
-            self.pair_state = "dummy_pair_state"
-            self.processor = 0
-            self.remote_name = "dummy_remote_name"
-            self.remote_path = "dummy_remote_path"
-            self.remote_ref = "dummy_remote_ref"
-            self.remote_state = "dummy_remote_state"
-
-        def get_local_children(self, path: Path):
-            self.db_children.append(self)
-            return self.db_children
-
-        def get_new_remote_children(self, id: str):
-            return self.doc_pairs
-
-        def get_normal_state_from_remote(self, ref: str):
-            return self.doc_pairs[0]
-
-        def update_local_state(self, pair, child):
-            pass
+    """
+    if child_name not in children
+    """
 
     manager, engine = manager_factory()
     remote = engine.remote
@@ -275,8 +301,44 @@ def test_scan_recursive(manager_factory):
     )
     with patch(
         "nxdrive.engine.watcher.local_watcher.LocalWatcher.get_creation_time"
-    ) as mock_creation_time:
+    ) as mock_creation_time, patch(
+        "nxdrive.engine.watcher.local_watcher.LocalWatcher.remove_void_transfers"
+    ) as mock_remove_transfers:
         mock_creation_time.return_value = 2000
+        mock_remove_transfers.return_value = None
         local_watcher.dao = Mock_DAO()
         local_watcher.local = Mock_Local_Client()
+        local_watcher._delete_files = {}
         assert local_watcher._scan_recursive(mock_file_info, recursive=False) is None
+
+
+def test_scan_recursive_2(manager_factory):
+    """
+    if child_name in children
+    """
+    manager, engine = manager_factory()
+    remote = engine.remote
+    dao = remote.dao
+    local_watcher = LocalWatcher(engine, dao)
+    mock_file_info = FileInfo(
+        Path(""), Path("tests/resources/files/testFile.txt"), False, datetime.now()
+    )
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.LocalWatcher.get_creation_time"
+    ) as mock_creation_time, patch(
+        "nxdrive.engine.watcher.local_watcher.LocalWatcher.remove_void_transfers"
+    ) as mock_remove_transfers:
+        mock_creation_time.return_value = 2000
+        mock_dao = Mock_DAO()
+        mock_local_client = Mock_Local_Client()
+        mock_dao.local_name = "dummy_local_path"
+        mock_remove_transfers.return_value = None
+        local_watcher.dao = mock_dao
+        local_watcher.local = mock_local_client
+        local_watcher._protected_files = {}
+        local_watcher._delete_files = {}
+        assert local_watcher._scan_recursive(mock_file_info, recursive=False) is None
+
+
+def test_setup_watchdog():
+    pass
