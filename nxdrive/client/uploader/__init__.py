@@ -417,6 +417,7 @@ class BaseUploader:
                 self._set_transfer_status(transfer, TransferStatus.ONGOING)
             raise exc
 
+    """
     def link_blob_to_doc(
         self,
         command: str,
@@ -426,7 +427,7 @@ class BaseUploader:
         /,
         **kwargs: Any,
     ) -> Dict[str, Any]:
-        """Link the given uploaded *blob* to the given document."""
+        ""Link the given uploaded *blob* to the given document.""
 
         headers = {"Nuxeo-Transaction-Timeout": str(TX_TIMEOUT)}
         if transfer.request_uid:
@@ -451,6 +452,75 @@ class BaseUploader:
         else:
             kwargs["headers"] = headers
         try:
+            doc_type = kwargs.get("doc_type", "")
+            return (
+                self._transfer_docType_file(transfer, headers, doc_type)
+                if transfer.is_direct_transfer and doc_type and doc_type != ""
+                else self._transfer_autoType_file(command, blob, kwargs)
+            )
+        except Exception as exc:
+            err = f"Error while linking blob to doc: {exc!r}"
+            log.warning(err)
+            action.finalizing_status = "Error"
+            if "TCPKeepAliveHTTPSConnectionPool" not in str(exc):
+                transfer.request_uid = str(uuid4())
+                self.dao.update_upload_requestid(transfer)
+            raise exc
+        finally:
+            action.finish_action()
+    """
+
+    def link_blob_to_doc(
+        self,
+        command: str,
+        transfer: Upload,
+        blob: FileBlob,
+        chunked: bool,
+        /,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """Link the given uploaded *blob* to the given document."""
+
+        import requests
+        from requests.exceptions import HTTPError
+
+        """
+        try:
+            resp = requests.get('http://example.com/api/trigger-500')
+            resp.raise_for_status()
+        except HTTPError as e:
+            if e.response.status_code == 500:
+                print("Received HTTP 500 Internal Server Error.")
+            else:
+                print(f"An HTTP error occurred: {e}")
+        """
+
+        headers = {"Nuxeo-Transaction-Timeout": str(TX_TIMEOUT)}
+        if transfer.request_uid:
+            headers[IDEMPOTENCY_KEY] = transfer.request_uid
+
+        # By default, the batchId will be removed after its first use.
+        # We do not want that for better upload resiliency, especially with large files.
+        # The batchId must be removed manually then.
+        if chunked:
+            headers["X-Batch-No-Drop"] = "true"
+
+        action = self.linking_action(
+            transfer.path,
+            blob.size,
+            reporter=QApplication.instance(),
+            engine=transfer.engine,
+            doc_pair=transfer.doc_pair,
+        )
+        action.is_direct_transfer = transfer.is_direct_transfer
+        if "headers" in kwargs:
+            kwargs["headers"].update(headers)
+        else:
+            kwargs["headers"] = headers
+        try:
+            resp = requests.get("http://example.com/api/trigger-500")
+            resp.raise_for_status()
+
             doc_type = kwargs.get("doc_type", "")
             return (
                 self._transfer_docType_file(transfer, headers, doc_type)

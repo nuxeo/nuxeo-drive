@@ -56,11 +56,12 @@ class WindowsIntegration(AbstractOSIntegration):
             )
         )
 
+    """
     @staticmethod
     def cb_get() -> str:
-        """Get the text data from the clipboard.
+        ""Get the text data from the clipboard.
         Emulate: CTRL + V
-        """
+        ""
         try:
             import win32clipboard
 
@@ -77,9 +78,9 @@ class WindowsIntegration(AbstractOSIntegration):
 
     @staticmethod
     def cb_set(text: str, /) -> None:
-        """Copy some *text* into the clipboard.
+        ""Copy some *text* into the clipboard.
         Emulate: CTRL + C
-        """
+        ""
         try:
             import win32clipboard
 
@@ -92,6 +93,53 @@ class WindowsIntegration(AbstractOSIntegration):
         finally:
             # Closing clipboard.
             win32clipboard.CloseClipboard()
+    """
+
+    @staticmethod
+    def cb_get() -> str:
+        """Get the text data from the clipboard.
+        Emulate: CTRL + V
+        """
+        log.info(">>>> cb_get")
+        try:
+            import win32clipboard
+
+            log.info(">>>> cb_get opening clipboard")
+            win32clipboard.OpenClipboard()
+            text: str = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
+            log.info(">>>> cb_get returning text")
+            return text
+        except Exception as e:
+            log.warning(f"Error occurred: {e!r}")
+            log.info("Clipboard operation not performed successfully")
+            return ""
+        finally:
+            # Closing clipboard.
+            log.info(">>>> cb_get closing clipboard")
+            win32clipboard.CloseClipboard()
+            log.info(">>>> cb_get clipboard closed")
+
+    @staticmethod
+    def cb_set(text: str, /) -> None:
+        """Copy some *text* into the clipboard.
+        Emulate: CTRL + C
+        """
+        log.info(">>>> cb_set")
+        try:
+            import win32clipboard
+
+            log.info(">>>> cb_set opening clipboard")
+            win32clipboard.OpenClipboard()
+            win32clipboard.EmptyClipboard()
+            win32clipboard.SetClipboardText(text, win32clipboard.CF_UNICODETEXT)
+        except Exception as e:
+            log.warning(f"Error occurred: {e!r}")
+            log.info("Clipboard operation not performed successfully")
+        finally:
+            # Closing clipboard.
+            log.info(">>>> cb_set closing clipboard")
+            win32clipboard.CloseClipboard()
+            log.info(">>>> cb_set clipboard closed")
 
     @pyqtSlot(result=bool)
     def install_addons(self, *, setup: str = "nuxeo-drive-addons.exe") -> bool:
