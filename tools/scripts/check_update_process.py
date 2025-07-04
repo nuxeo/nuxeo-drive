@@ -245,6 +245,7 @@ def get_version():
             print("Main thread: Worker thread finished within the timeout.")
         return app_version
         """
+        """
         try:
             print(">>>> RUN 001")
             cmd = [
@@ -267,6 +268,89 @@ def get_version():
             print(">>>> RUN 006")
         except Exception as e:
             print(f">>>> ExCePtIoN 002: {e!r}")
+        """
+        try:
+            print(">>>> RUN 001")
+            cmd = [
+                "ls",
+                f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS",
+                ]
+            print(">>>> RUN 002")
+            subprocess.run(cmd)
+            print(">>>> RUN 003")
+        except Exception as e:
+            print(f">>>> ExCePtIoN 001: {e!r}")
+        try:
+            print(">>>> RUN 004")
+            cmd = [
+                "ls",
+                f"{Path.home()}/Applications/Nuxeo\\ Drive.app/Contents/MacOS",
+            ]
+            print(">>>> RUN 005")
+            subprocess.run(cmd)
+            print(">>>> RUN 006")
+        except Exception as e:
+            print(f">>>> ExCePtIoN 002: {e!r}")
+        try:
+            print(">>>> RUN 007")
+            cmd = [
+                "ls",
+                f"{Path.home()}/Applications/Nuxeo{chr(92)} Drive.app/Contents/MacOS",
+            ]
+            print(">>>> RUN 008")
+            subprocess.run(cmd)
+            print(">>>> RUN 009")
+        except Exception as e:
+            print(f">>>> ExCePtIoN 003: {e!r}")
+        try:
+            print(">>>> RUN 010")
+            cmmnd = ['mdfind', f'kMDItemDisplayName == "Nuxeo Drive" && kMDItemKind == "Application"']
+            result = subprocess.run(cmmnd, capture_output=True, text=True, check=True)
+            app_path = result.stdout.strip()
+            pth = app_path + "/Contents/MacOS"
+            cmd = [
+                "ls",
+                pth,
+                ]
+            print(">>>> RUN 011")
+            subprocess.run(cmd)
+            print(">>>> RUN 012")
+        except Exception as e:
+            print(f">>>> ExCePtIoN 004: {e!r}")
+        try:
+            print(">>>> RUN 013")
+            cmd = [
+                "ls",
+                "/Applications/Nuxeo Drive.app/Contents/MacOS",
+                ]
+            print(">>>> RUN 014")
+            subprocess.run(cmd)
+            print(">>>> RUN 015")
+        except Exception as e:
+            print(f">>>> ExCePtIoN 005: {e!r}")
+        try:
+            print(">>>> RUN 016")
+            cmd = [
+                "ls",
+                "/Applications/Nuxeo\\ Drive.app/Contents/MacOS",
+            ]
+            print(">>>> RUN 017")
+            subprocess.run(cmd)
+            print(">>>> RUN 018")
+        except Exception as e:
+            print(f">>>> ExCePtIoN 006: {e!r}")
+        try:
+            print(">>>> RUN 019")
+            cmd = [
+                "ls",
+                f"/Applications/Nuxeo{chr(92)} Drive.app/Contents/MacOS",
+            ]
+            print(">>>> RUN 020")
+            subprocess.run(cmd)
+            print(">>>> RUN 021")
+        except Exception as e:
+            print(f">>>> ExCePtIoN 007: {e!r}")
+
         cmd = [
             f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
             "--version",
