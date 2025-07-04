@@ -246,21 +246,27 @@ def get_version():
         return app_version
         """
         try:
+            print(">>>> RUN 001")
             cmd = [
                 "ls -l",
                 f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
                 ]
-            print(">>>> RUN 001")
-            subprocess.run(cmd)
             print(">>>> RUN 002")
+            subprocess.run(cmd)
+            print(">>>> RUN 003")
+        except Exception as e:
+            print(f">>>> ExCePtIoN 001: {e!r}")
+        try:
+            print(">>>> RUN 004")
             cmd = [
                 "xattr -d com.apple.quarantine",
                 f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
             ]
+            print(">>>> RUN 005")
             subprocess.run(cmd)
-            print(">>>> RUN 003")
+            print(">>>> RUN 006")
         except Exception as e:
-            print(f">>>> ExCePtIoN: {e!r}")
+            print(f">>>> ExCePtIoN 002: {e!r}")
         cmd = [
             f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
             "--version",
