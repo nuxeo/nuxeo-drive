@@ -1,5 +1,8 @@
 # Alpha purgation
 name: Alpha clean-up
+permissions:
+  contents: read
+  pull-requests: read
 
 on:
   # Check for updates every day

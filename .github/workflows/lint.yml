@@ -1,4 +1,7 @@
 name: Code quality
+permissions:
+  contents: read
+  pull-requests: read
 
 on:
   pull_request:
