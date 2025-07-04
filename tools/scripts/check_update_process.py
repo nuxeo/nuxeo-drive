@@ -245,19 +245,26 @@ def get_version():
             print("Main thread: Worker thread finished within the timeout.")
         return app_version
         """
-        cmd = [
-            "ls -l",
-            f"{Path.home()}/Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive",
+        try:
+            cmd = [
+                "ls -l",
+                f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
+                ]
+            print(">>>> RUN 001")
+            subprocess.run(cmd)
+            print(">>>> RUN 002")
+            cmd = [
+                "xattr -d com.apple.quarantine",
+                f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
             ]
-        print(">>>> RUN 001")
-        subprocess.run(cmd)
-        print(">>>> RUN 002")
+            subprocess.run(cmd)
+            print(">>>> RUN 003")
+        except Exception as e:
+            print(f">>>> ExCePtIoN: {e!r}")
         cmd = [
-            "xattr -d com.apple.quarantine",
-            f"{Path.home()}/Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive",
-        ]
-        subprocess.run(cmd)
-        print(">>>> RUN 003")
+            f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
+            "--version",
+            ]
         ret = subprocess.check_output(cmd, text=True).strip()
         print(f">>>> ret: {ret!r}")
         return ret
