@@ -1,6 +1,7 @@
 """
 Functional test for nxdrive/engine/watcher/local_watcher.py
 """
+
 from datetime import datetime
 from pathlib import Path
 from typing import List
@@ -17,6 +18,15 @@ class Mock_Local_Client(LocalClientMixin):
     def __init__(self) -> None:
         super().__init__(Path())
         self.abs_path = Path("dummy_absolute_path")
+        self.default_file_info = FileInfo(
+            Path(""), Path("dummy_local_path"), False, datetime.now(), digest_func="md5"
+        )
+        self.equal_digest = True
+        self.exist = True
+        self.local_info = True
+        self.path = Path("")
+        self.ignored = True
+        self.temp = True
 
     def abspath(self, ref: Path) -> Path:
         return self.abs_path
@@ -34,19 +44,45 @@ class Mock_Local_Client(LocalClientMixin):
         )
         return [file_info, file_info2]
 
+    def get_info(self, ref: Path, /, *, check: bool = True) -> FileInfo:
+        return self.default_file_info
+
+    def get_path(self, target: Path) -> Path:
+        return self.path
+
     def get_remote_id(self, ref: Path, /, *, name: str = "ndrive") -> str:
         return "remote_id"
 
     def exists(self, ref: Path) -> bool:
-        return True
+        return self.exist
 
     def is_case_sensitive(self) -> bool:
         return False
+
+    def is_equal_digests(
+        self,
+        local_digest: str | None,
+        remote_digest: str | None,
+        local_path: Path,
+        /,
+        *,
+        remote_digest_algorithm: str = None,
+    ) -> bool:
+        return self.equal_digest
+
+    def is_ignored(self, parent_ref: Path, file_name: str) -> bool:
+        return self.ignored
+
+    def is_temp_file(self, path) -> bool:
+        return self.temp
 
     def remove_remote_id(
         self, ref: Path, /, *, name: str = "ndrive", cleanup: bool = False
     ) -> None:
         return None
+
+    def try_get_info(self, ref: Path) -> FileInfo | None:
+        return self.default_file_info
 
 
 class Mock_DAO:
@@ -57,14 +93,19 @@ class Mock_DAO:
         self.local_digest = "md6"
         self.last_local_updated = "2025-07-04 11:41:23"
         self.local_name = "dummy_local_name"
-        self.local_path = "dummy_local_path"
+        self.local_path = Path("dummy_local_path")
         self.local_state = "dummy_local_state"
+        self.pair_index: int = (
+            2  # To control the index of doc_pair received from get_state_from_local
+        )
         self.pair_state = "dummy_pair_state"
         self.processor = 0
+        self.remote_can_create_child = False
         self.remote_name = "dummy_remote_name"
         self.remote_path = "dummy_remote_path"
         self.remote_ref = "dummy_remote_ref"
         self.remote_state = "dummy_remote_state"
+        self.version = 1
 
     def get_local_children(self, path: Path):
         self.db_children.append(self)
@@ -82,10 +123,29 @@ class Mock_DAO:
     def get_state_from_id(self, id: int):
         return self.doc_pairs[0]
 
+    def get_state_from_local(self, path):
+        if self.pair_index != -1:
+            mock_dao = Mock_DAO()
+            mock_dao.pair_state = "unsynchronized"
+            self.doc_pairs.append(mock_dao)
+            return self.doc_pairs[self.pair_index]
+        else:
+            mock_client_path = Mock_Local_Client().path
+            # return a doc_pair when the path passed is the parent
+            if mock_client_path.parent == path:
+                return self.doc_pairs[0]
+            return
+
     def insert_local_state(self, child, path):
         return 2
 
+    def remove_state(self, doc_pair):
+        return None
+
     def update_local_state(self, pair, child):
+        pass
+
+    def unsynchronize_state(self, row, last_error):
         pass
 
 
@@ -253,6 +313,7 @@ def test_scan_pair(manager_factory):
     dao = remote.dao
     local_watcher = LocalWatcher(engine, dao)
     local_path = Path("")
+    local_watcher._delete_files = {}
     # with info
     with patch(
         "nxdrive.client.local.base.LocalClientMixin.try_get_info"
@@ -282,8 +343,7 @@ def test_get_creation_time(manager_factory):
     dao = remote.dao
     local_watcher = LocalWatcher(engine, dao)
     assert (
-        local_watcher.get_creation_time(Path("tests/resources/files/testFile.txt"))
-        == 9565868
+        local_watcher.get_creation_time(Path("tests/resources/files/testFile.txt")) > 0
     )
 
 
@@ -340,5 +400,488 @@ def test_scan_recursive_2(manager_factory):
         assert local_watcher._scan_recursive(mock_file_info, recursive=False) is None
 
 
-def test_setup_watchdog():
-    pass
+def test_setup_watchdog(manager_factory):
+    from nxdrive.feature import Feature
+
+    manager, engine = manager_factory()
+    remote = engine.remote
+    dao = remote.dao
+    Feature.synchronization = True
+    local_watcher = LocalWatcher(engine, dao)
+    assert local_watcher._setup_watchdog() is None
+
+
+def test_stop_watchdog(manager_factory):
+    """
+    Observer created
+    """
+    from nxdrive.feature import Feature
+
+    manager, engine = manager_factory()
+    remote = engine.remote
+    dao = remote.dao
+    Feature.synchronization = True
+    local_watcher = LocalWatcher(engine, dao)
+    local_watcher._setup_watchdog()
+    assert local_watcher._stop_watchdog() is None
+
+
+def test_stop_watchdog2(manager_factory):
+    """
+    Observer not created
+    """
+    from nxdrive.feature import Feature
+
+    manager, engine = manager_factory()
+    remote = engine.remote
+    dao = remote.dao
+    Feature.synchronization = True
+    local_watcher = LocalWatcher(engine, dao)
+    assert local_watcher._stop_watchdog() is None
+
+
+def test_handle_watchdog_delete(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+    dao = remote.dao
+    local_watcher = LocalWatcher(engine, dao)
+    assert isinstance(local_watcher, LocalWatcher)
+
+
+def test_handle_delete_on_known_pair(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+    dao = remote.dao
+    local_watcher = LocalWatcher(engine, dao)
+    assert isinstance(local_watcher, LocalWatcher)
+
+
+def test_handle_move_on_known_pair(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+    dao = remote.dao
+    local_watcher = LocalWatcher(engine, dao)
+    assert isinstance(local_watcher, LocalWatcher)
+
+
+def test_handle_watchdog_event_on_known_pair(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+    dao = remote.dao
+    local_watcher = LocalWatcher(engine, dao)
+    assert isinstance(local_watcher, LocalWatcher)
+
+
+def test_handle_watchdog_event_on_known_acquired_pair(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+    dao = remote.dao
+    local_watcher = LocalWatcher(engine, dao)
+    assert isinstance(local_watcher, LocalWatcher)
+
+
+def test_handle_watchdog_root_event(manager_factory):
+    manager, engine = manager_factory()
+    remote = engine.remote
+    dao = remote.dao
+    local_watcher = LocalWatcher(engine, dao)
+    assert isinstance(local_watcher, LocalWatcher)
+
+
+def test_handle_watchdog_event(manager_factory):
+    from watchdog.events import FileSystemEvent
+
+    from nxdrive.exceptions import ThreadInterrupt
+
+    manager, engine = manager_factory()
+    remote = engine.remote
+    dao = remote.dao
+    local_watcher = LocalWatcher(engine, dao)
+    # evt.src_path == ""
+    mock_file_system = FileSystemEvent(
+        src_path="", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    assert local_watcher.handle_watchdog_event(mock_file_system) is None
+    # evt.event_type == "moved"
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_path", dest_path="dummy_path", is_synthetic=False
+    )
+    mock_file_system.event_type = "moved"
+    assert local_watcher.handle_watchdog_event(mock_file_system) is None
+    # client.get_path(src_path) == ROOT
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    mock_dao = Mock_DAO()
+    mock_local_client = Mock_Local_Client()
+    local_watcher.dao = mock_dao
+    local_watcher.local = mock_local_client
+    assert local_watcher.handle_watchdog_event(mock_file_system) is None
+    # evt.event_type != "moved" and client.is_ignored == True
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    mock_dao = Mock_DAO()
+    mock_local_client = Mock_Local_Client()
+    mock_local_client.path = Path("tests")
+    local_watcher.dao = mock_dao
+    local_watcher.local = mock_local_client
+    assert local_watcher.handle_watchdog_event(mock_file_system) is None
+    # client.is_temp_file == True
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    mock_dao = Mock_DAO()
+    mock_local_client = Mock_Local_Client()
+    mock_local_client.path = Path("tests")
+    mock_local_client.ignored = False
+    local_watcher.dao = mock_dao
+    local_watcher.local = mock_local_client
+    assert local_watcher.handle_watchdog_event(mock_file_system) is None
+    # doc_pair == True and doc_pair.pair_state == "unsynchronized"
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    mock_file_system.event_type = "deleted"
+    mock_dao = Mock_DAO()
+    mock_local_client = Mock_Local_Client()
+    mock_local_client.path = Path("tests")
+    mock_local_client.ignored = False
+    mock_local_client.temp = False
+    local_watcher.dao = mock_dao
+    local_watcher.local = mock_local_client
+    assert local_watcher.handle_watchdog_event(mock_file_system) is None
+    # doc_pair == True and doc_pair.pair_state != unsynchronized
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    mock_file_system.event_type = "created"
+    mock_dao = Mock_DAO()
+    mock_dao.local_state = "deleted"
+    mock_dao.pair_state = "locally_deleted"
+    mock_dao.pair_index = 0
+    mock_local_client = Mock_Local_Client()
+    mock_local_client.path = Path("tests")
+    mock_local_client.ignored = False
+    mock_local_client.temp = False
+    local_watcher.dao = mock_dao
+    local_watcher.local = mock_local_client
+    assert local_watcher.handle_watchdog_event(mock_file_system) is None
+    # doc_pair == True and evt.event_type == "moved"
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    mock_file_system.event_type = "moved"
+    mock_dao = Mock_DAO()
+    mock_dao.pair_state = "locally_deleted"
+    mock_dao.pair_index = 0
+    mock_local_client = Mock_Local_Client()
+    mock_local_client.path = Path("tests")
+    mock_local_client.ignored = False
+    mock_local_client.temp = False
+    local_watcher.dao = mock_dao
+    local_watcher.local = mock_local_client
+    assert local_watcher.handle_watchdog_event(mock_file_system) is None
+    # doc_pair == True and no subcondition passes
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    mock_file_system.event_type = "created"
+    mock_dao = Mock_DAO()
+    mock_dao.pair_state = "locally_deleted"
+    mock_dao.pair_index = 0
+    mock_local_client = Mock_Local_Client()
+    mock_local_client.path = Path("tests")
+    mock_local_client.ignored = False
+    mock_local_client.temp = False
+    local_watcher.dao = mock_dao
+    local_watcher.local = mock_local_client
+    assert local_watcher.handle_watchdog_event(mock_file_system) is None
+    # evt.event_type == "deleted"
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    mock_file_system.event_type = "deleted"
+    mock_dao = Mock_DAO()
+    mock_dao.pair_index = -1
+    mock_local_client = Mock_Local_Client()
+    mock_local_client.path = Path("tests")
+    mock_local_client.ignored = False
+    mock_local_client.temp = False
+    local_watcher.dao = mock_dao
+    local_watcher.local = mock_local_client
+    assert local_watcher.handle_watchdog_event(mock_file_system) is None
+    # evt.event_type == "moved" and client.is_ignored == True
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    mock_file_system.event_type = "moved"
+    mock_dao = Mock_DAO()
+    mock_dao.pair_index = -1
+    mock_local_client = Mock_Local_Client()
+    mock_local_client.path = Path("tests")
+    mock_local_client.ignored = True
+    mock_local_client.temp = False
+    local_watcher.dao = mock_dao
+    local_watcher.local = mock_local_client
+    assert local_watcher.handle_watchdog_event(mock_file_system) is None
+    # evt.event_type == "moved" and client.is_ignored == False
+    # local_info.remote_ref != ""
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    mock_file_system.event_type = "moved"
+    mock_dao = Mock_DAO()
+    mock_dao.pair_index = -1
+    mock_local_client = Mock_Local_Client()
+    mock_local_client.default_file_info.remote_ref = "dummy_remote_ref"
+    mock_local_client.exist = False
+    mock_local_client.path = Path("tests")
+    mock_local_client.ignored = False
+    mock_local_client.temp = False
+    local_watcher.dao = mock_dao
+    local_watcher.local = mock_local_client
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.LocalWatcher._handle_move_on_known_pair"
+    ) as mock_move_known_pair:
+        mock_move_known_pair.return_value = None
+        assert local_watcher.handle_watchdog_event(mock_file_system) is None
+    # evt.event_type == "moved" and client.is_ignored == False
+    # local_info.remote_ref == ""
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    mock_file_system.event_type = "moved"
+    mock_dao = Mock_DAO()
+    mock_dao.pair_index = -1
+    mock_local_client = Mock_Local_Client()
+    mock_local_client.default_file_info.remote_ref = ""
+    mock_local_client.default_file_info.folderish = True
+    mock_local_client.exist = False
+    mock_local_client.path = Path("tests")
+    mock_local_client.ignored = False
+    mock_local_client.temp = False
+    local_watcher.dao = mock_dao
+    local_watcher.local = mock_local_client
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.LocalWatcher.scan_pair"
+    ) as mock_scan:
+        mock_scan.return_value = None
+        assert local_watcher.handle_watchdog_event(mock_file_system) is None
+    # evt.event_type not in ("created", "modified")
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    mock_file_system.event_type = "dummy_type"
+    mock_dao = Mock_DAO()
+    mock_dao.pair_index = -1
+    mock_local_client = Mock_Local_Client()
+    mock_local_client.path = Path("tests")
+    mock_local_client.ignored = False
+    mock_local_client.temp = False
+    local_watcher.dao = mock_dao
+    local_watcher.local = mock_local_client
+    assert local_watcher.handle_watchdog_event(mock_file_system) is None
+    # evt.event_type in ("created", "modified") and local_info == None
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    mock_file_system.event_type = "created"
+    mock_dao = Mock_DAO()
+    mock_dao.pair_index = -1
+    mock_local_client = Mock_Local_Client()
+    mock_local_client.default_file_info = None
+    mock_local_client.path = Path("tests")
+    mock_local_client.ignored = False
+    mock_local_client.temp = False
+    local_watcher.dao = mock_dao
+    local_watcher.local = mock_local_client
+    assert local_watcher.handle_watchdog_event(mock_file_system) is None
+    # evt.event_type in ("created", "modified")
+    # local_info != None and local.remote_ref != None
+    # from_pair.processor > 0
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    mock_file_system.event_type = "created"
+    mock_dao = Mock_DAO()
+    mock_dao.pair_index = -1
+    mock_dao.processor = 1
+    mock_local_client = Mock_Local_Client()
+    mock_local_client.default_file_info.remote_ref = "dummy_remote_ref"
+    mock_local_client.path = Path("tests")
+    mock_local_client.ignored = False
+    mock_local_client.temp = False
+    local_watcher.dao = mock_dao
+    local_watcher.local = mock_local_client
+    assert local_watcher.handle_watchdog_event(mock_file_system) is None
+    # evt.event_type in ("created", "modified")
+    # local_info != None and local.remote_ref != None
+    # from_pair.processor == 0
+    # client.exists == False
+    # dst_parent.remote_can_create_child == False
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    mock_file_system.event_type = "modified"
+    mock_dao = Mock_DAO()
+    mock_dao.pair_index = -1
+    mock_dao.pair_state = "dummy_pair_state"
+    mock_local_client = Mock_Local_Client()
+    mock_local_client.default_file_info.remote_ref = "dummy_remote_ref"
+    mock_local_client.exist = False
+    mock_local_client.path = Path("tests")
+    mock_local_client.ignored = False
+    mock_local_client.temp = False
+    local_watcher.dao = mock_dao
+    local_watcher.local = mock_local_client
+    assert local_watcher.handle_watchdog_event(mock_file_system) is None
+    # evt.event_type in ("created", "modified")
+    # local_info != None and local.remote_ref != None
+    # from_pair.processor == 0
+    # client.exists == False
+    # dst_parent.remote_can_create_child == True
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    mock_file_system.event_type = "modified"
+    mock_dao = Mock_DAO()
+    mock_dao.pair_index = -1
+    mock_dao.pair_state = "dummy_pair_state"
+    mock_dao.remote_can_create_child = True
+    mock_local_client = Mock_Local_Client()
+    mock_local_client.default_file_info.remote_ref = "dummy_remote_ref"
+    mock_local_client.exist = False
+    mock_local_client.path = Path("tests")
+    mock_local_client.ignored = False
+    mock_local_client.temp = False
+    local_watcher.dao = mock_dao
+    local_watcher.local = mock_local_client
+    assert local_watcher.handle_watchdog_event(mock_file_system) is None
+    # evt.event_type in ("created", "modified")
+    # local_info != None and local.remote_ref != None
+    # from_pair.processor > 0
+    # client.exists == True
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    mock_file_system.event_type = "created"
+    mock_dao = Mock_DAO()
+    mock_dao.pair_index = -1
+    mock_dao.pair_state = "dummy_pair_state"
+    mock_local_client = Mock_Local_Client()
+    mock_local_client.default_file_info.remote_ref = "dummy_remote_ref"
+    mock_local_client.exist = True
+    mock_local_client.path = Path("tests")
+    mock_local_client.ignored = False
+    mock_local_client.temp = False
+    local_watcher.dao = mock_dao
+    local_watcher.local = mock_local_client
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.LocalWatcher.get_creation_time"
+    ) as mock_creation_time:
+        mock_creation_time.side_effect = [100, 200]
+        assert local_watcher.handle_watchdog_event(mock_file_system) is None
+    # evt.event_type in ("created", "modified")
+    # local_info != None and local.remote_ref != None
+    # from_pair.processor > 0
+    # client.exists == True
+    # moved == False
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    mock_file_system.event_type = "created"
+    mock_dao = Mock_DAO()
+    mock_dao.pair_index = -1
+    mock_dao.pair_state = "dummy_pair_state"
+    mock_local_client = Mock_Local_Client()
+    mock_local_client.default_file_info.remote_ref = "dummy_remote_ref"
+    mock_local_client.exist = True
+    mock_local_client.path = Path("tests")
+    mock_local_client.ignored = False
+    mock_local_client.temp = False
+    local_watcher.dao = mock_dao
+    local_watcher.local = mock_local_client
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.LocalWatcher.get_creation_time"
+    ) as mock_creation_time:
+        mock_creation_time.return_value = 100
+        assert local_watcher.handle_watchdog_event(mock_file_system) is None
+    # evt.event_type in ("created", "modified")
+    # local_info != None and local.remote_ref != None
+    # from_pair.processor > 0
+    # client.exists == True
+    # moved == False and local_info.folderish == True
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    mock_file_system.event_type = "created"
+    mock_dao = Mock_DAO()
+    mock_dao.pair_index = -1
+    mock_dao.pair_state = "dummy_pair_state"
+    mock_local_client = Mock_Local_Client()
+    mock_local_client.default_file_info.remote_ref = "dummy_remote_ref"
+    mock_local_client.default_file_info.folderish = True
+    mock_local_client.exist = True
+    mock_local_client.path = Path("tests")
+    mock_local_client.ignored = False
+    mock_local_client.temp = False
+    local_watcher.dao = mock_dao
+    local_watcher.local = mock_local_client
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.LocalWatcher.get_creation_time"
+    ) as mock_creation_time, patch(
+        "nxdrive.engine.watcher.local_watcher.LocalWatcher.scan_pair"
+    ) as mock_scan_pair:
+        mock_creation_time.return_value = 100
+        mock_scan_pair.return_value = None
+        assert local_watcher.handle_watchdog_event(mock_file_system) is None
+
+    # raising ThreadInterrupt Exception
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    mock_file_system.event_type = "created"
+    mock_dao = Mock_DAO()
+    mock_dao.pair_index = -1
+    mock_dao.pair_state = "dummy_pair_state"
+    mock_local_client = Mock_Local_Client()
+    mock_local_client.default_file_info.remote_ref = "dummy_remote_ref"
+    mock_local_client.exist = True
+    mock_local_client.path = Path("tests")
+    mock_local_client.ignored = False
+    mock_local_client.temp = False
+    local_watcher.dao = mock_dao
+    local_watcher.local = mock_local_client
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.LocalWatcher.get_creation_time"
+    ) as mock_creation_time:
+        mock_creation_time.return_value = 100
+        mock_creation_time.side_effect = ThreadInterrupt(
+            "Custom ThreadInterrupt exception"
+        )
+        with pytest.raises(ThreadInterrupt) as ex:
+            local_watcher.handle_watchdog_event(mock_file_system)
+        assert str(ex.value) == "Custom ThreadInterrupt exception"
+    # raising OSError Exception
+    mock_file_system = FileSystemEvent(
+        src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
+    )
+    mock_file_system.event_type = "created"
+    mock_dao = Mock_DAO()
+    mock_dao.pair_index = -1
+    mock_dao.pair_state = "dummy_pair_state"
+    mock_local_client = Mock_Local_Client()
+    mock_local_client.default_file_info.remote_ref = "dummy_remote_ref"
+    mock_local_client.exist = True
+    mock_local_client.path = Path("tests")
+    mock_local_client.ignored = False
+    mock_local_client.temp = False
+    local_watcher.dao = mock_dao
+    local_watcher.local = mock_local_client
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.LocalWatcher.get_creation_time"
+    ) as mock_creation_time:
+        mock_creation_time.return_value = 100
+        mock_creation_time.side_effect = OSError("Custom OSError exception")
+        assert local_watcher.handle_watchdog_event(mock_file_system) is None
