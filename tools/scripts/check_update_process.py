@@ -352,6 +352,7 @@ def get_version():
             print(f">>>> ExCePtIoN 007: {e!r}")
 
         cmd = [
+            "sudo",
             f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
             "--version",
             ]
