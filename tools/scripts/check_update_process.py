@@ -269,6 +269,9 @@ def get_version():
         except Exception as e:
             print(f">>>> ExCePtIoN 002: {e!r}")
         """
+
+        print("==============================================================")
+        """
         try:
             print(">>>> RUN 001")
             cmd = [
@@ -350,6 +353,33 @@ def get_version():
             print(">>>> RUN 021")
         except Exception as e:
             print(f">>>> ExCePtIoN 007: {e!r}")
+        """
+
+        try:
+            cmd1 = [
+                "ls",
+                f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS",
+                ]
+            ret = subprocess.run(cmd1)
+            print(f">>> ret 001: {ret!r}")
+            cmmnd = ['mdfind', f'kMDItemDisplayName == "Nuxeo Drive" && kMDItemKind == "Application"']
+            result = subprocess.run(cmmnd, capture_output=True, text=True, check=True)
+            app_path = result.stdout.strip()
+            pth = app_path + "/Contents/MacOS"
+            cmd2 = [
+                "ls",
+                pth,
+                ]
+            ret = subprocess.run(cmd2)
+            print(f">>> ret 002: {ret!r}")
+            ret = subprocess.check_output(cmd1)
+            print(f">>> ret 003: {ret!r}")
+            ret = subprocess.check_output(cmd2)
+            print(f">>> ret 004: {ret!r}")
+        except Exception as e:
+            print(f">>>> ExCePtIoN: {e!r}")
+
+        print("==============================================================")
 
         cmd = [
             "sudo",
