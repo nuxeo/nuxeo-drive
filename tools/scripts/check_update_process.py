@@ -470,6 +470,8 @@ def launch_drive(executable, args=None):
                     print(">>>> Application Already Running")
             except Exception as e:
                 print(f"Exception occured while trying to open Nuxeo Drive: {e!r}")
+            finally:
+                return
     else:
         cmd = [
             expandvars(
