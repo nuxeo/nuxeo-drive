@@ -859,6 +859,7 @@ def job(root, version, executable, previous_version, name):
             url = os.getenv("NXDRIVE_TEST_NUXEO_URL", "http://localhost:8080/nuxeo")
             username = os.getenv("NXDRIVE_TEST_USERNAME", "Administrator")
             password = os.getenv("NXDRIVE_TEST_PASSWORD", "Administrator")
+            print(">>>> calling launch_drive 001")
             launch_drive(
                 executable,
                 [
@@ -897,12 +898,17 @@ def job(root, version, executable, previous_version, name):
         if not version_forced:
             # Remove the account
             try:
+                print(">>>> calling launch_drive 002")
                 launch_drive(executable, ["clean-folder", f"--local-folder={root}"])
             except Exception as exc:
                 print(" !! ERROR:", exc, flush=True)
 
         # Remove the installation
-        uninstall_drive()
+        try:
+            print(">>>> calling uninstall_drive 002")
+            uninstall_drive()
+        except Exception as exc:
+            print(" !! ERROR:", exc, flush=True)
 
 
 def setup():
