@@ -457,21 +457,21 @@ def launch_drive(executable, args=None):
         if args:
             cmd.append("--args")
             cmd.extend(args)
-            print(">>> Command 4:", cmd, flush=True)
-            try:
-                launch = True
-                import psutil
-                for process in psutil.process_iter(['name']):
-                    if process.info['name'] == "ndrive":
-                        launch = False
-                if launch:
-                    subprocess.check_call(cmd)
-                else:
-                    print(">>>> Application Already Running")
-            except Exception as e:
-                print(f"Exception occured while trying to open Nuxeo Drive: {e!r}")
-            finally:
-                return
+        print(">>> Command 4:", cmd, flush=True)
+        try:
+            launch = True
+            import psutil
+            for process in psutil.process_iter(['name']):
+                if process.info['name'] == "ndrive":
+                    launch = False
+            if launch:
+                subprocess.check_call(cmd)
+            else:
+                print(">>>> Application Already Running")
+        except Exception as e:
+            print(f"Exception occured while trying to open Nuxeo Drive: {e!r}")
+        finally:
+            return
     else:
         cmd = [
             expandvars(
