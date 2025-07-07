@@ -117,7 +117,8 @@ def gen_exe():
             ' . ".\\tools\\windows\\deploy_ci_agent.ps1" -build'
         )
 
-    print(">>> Command:", cmd, flush=True)
+    print(">>>> gen_exe")
+    print(">>> Command 1:", cmd, flush=True)
     subprocess.check_call(cmd.split())
 
 
@@ -415,7 +416,8 @@ def install_drive(installer):
     elif EXT == "dmg":
         # Simulate what nxdrive.updater.darwin.install() does
         cmd = ["hdiutil", "mount", installer]
-        print(">>> Command:", cmd, flush=True)
+        print(">>>> install_drive 1")
+        print(">>> Command 2:", cmd, flush=True)
         mount_info = subprocess.check_output(cmd, text=True).strip()
         mount_dir = mount_info.splitlines()[-1].split("\t")[-1]
 
@@ -430,7 +432,8 @@ def install_drive(installer):
         shutil.copytree(src, dst)
 
         cmd = ["hdiutil", "unmount", mount_dir]
-        print(">>> Command:", cmd, flush=True)
+        print(">>>> install_drive 2")
+        print(">>> Command 3:", cmd, flush=True)
         subprocess.check_call(cmd)
     else:
         cmd = [installer, "/verysilent"]
@@ -462,8 +465,11 @@ def launch_drive(executable, args=None):
             *args,
         ]
 
-    print(">>> Command:", cmd, flush=True)
-    subprocess.check_call(cmd)
+    try:
+        print(">>> Command 4:", cmd, flush=True)
+        subprocess.check_call(cmd)
+    except Exception as e:
+        print(f"Exception occured while trying to open Nuxeo Drive: {e!r}")
 
 
 """
@@ -618,7 +624,7 @@ def uninstall_drive():
             "/verysilent",
         ]
         if os.path.isfile(cmd[0]):
-            print(">>> Command:", cmd, flush=True)
+            print(">>> Command 5:", cmd, flush=True)
             subprocess.check_call(cmd)
 
     # Purge local files
