@@ -1320,7 +1320,7 @@ def get_current_locale() -> str:
 
 def get_verify():
     # type: () -> bool
-    """#Detects if SSL verification is required or not"""
+    """Detects if SSL verification is required or not"""
     ssl_verification_needed = True
     if Options.ssl_no_verify is True:
         ssl_verification_needed = False
