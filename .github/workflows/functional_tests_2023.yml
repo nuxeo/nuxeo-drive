@@ -1,5 +1,5 @@
 name: Functional tests LTS 2023
-# edited
+
 on:
   pull_request:
     paths:
