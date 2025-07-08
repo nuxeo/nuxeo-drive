@@ -61,18 +61,36 @@ sign() {
         fi
     fi
 
-    # Find the AppImage in the dist folder
-    appimage_file=$(ls dist/*-x86_64.AppImage | head -n 1)
-    if [ ! -f "$appimage_file" ]; then
-        echo ">>> [AppImage] No AppImage found in the dist folder"
+    # Check if GPG_PASSPHRASE is set
+    if [ -z "$GPG_PASSPHRASE" ]; then
+        echo ">>> [AppImage] GPG_PASSPHRASE is not set"
         exit 1
     fi
 
+    # Find the AppImage in the dist folder (ensure exactly one match)
+    shopt -s nullglob
+    appimage_files=(dist/*-x86_64.AppImage)
+    shopt -u nullglob
+
+    if [ ${#appimage_files[@]} -eq 0 ]; then
+        echo ">>> [AppImage] No AppImage found in the dist folder"
+        exit 1
+    elif [ ${#appimage_files[@]} -gt 1 ]; then
+        echo ">>> [AppImage] Multiple AppImages found in the dist folder:"
+        for f in "${appimage_files[@]}"; do
+            echo "    $f"
+        done
+        echo ">>> [AppImage] Aborting to prevent signing the wrong file."
+        exit 1
+    fi
+
+    appimage_file="${appimage_files[0]}"
+
     # Sign the AppImage with a detached signature
-    gpg --batch --yes --output "${appimage_file}.sig" --detach-sign "$appimage_file"
+    gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --output "${appimage_file}.sig" --detach-sign "$appimage_file"
 
     # Verify the signature
-    gpg --verify "${appimage_file}.sig" "$appimage_file"
+    gpg --trust-model always --verify "${appimage_file}.sig" "$appimage_file"
     if [ $? -eq 0 ]; then
         echo ">>> [AppImage] Signature verification successful"
     else
