@@ -42,6 +42,48 @@ check() {
     return 0  # <-- Needed, do not remove!
 }
 
+sign() {
+    # Import GPG Private Key for signing the AppImage
+    if [ -n "$GPG_PRIVATE_KEY" ]; then
+        echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+        if [ $? -ne 0 ]; then
+            echo ">>> [AppImage] Failed to import GPG private key"
+            exit 1
+        fi
+    fi
+
+    # Import GPG Public Key for verifying the signature
+    if [ -n "$GPG_PUBLIC_KEY" ]; then
+        echo "$GPG_PUBLIC_KEY" | gpg --batch --import
+        if [ $? -ne 0 ]; then
+            echo ">>> [AppImage] Failed to import GPG public key"
+            exit 1
+        fi
+    fi
+
+    # Find the AppImage in the dist folder
+    appimage_file=$(ls dist/*-x86_64.AppImage | head -n 1)
+    if [ ! -f "$appimage_file" ]; then
+        echo ">>> [AppImage] No AppImage found in the dist folder"
+        exit 1
+    fi
+
+    # Sign the AppImage with a detached signature
+    gpg --batch --yes --output "${appimage_file}.sig" --detach-sign "$appimage_file"
+
+    # Verify the signature
+    gpg --verify "${appimage_file}.sig" "$appimage_file"
+    if [ $? -eq 0 ]; then
+        echo ">>> [AppImage] Signature verification successful"
+    else
+        echo ">>> [AppImage] Signature verification failed"
+        exit 1
+    fi
+
+    echo ">>> [AppImage] Signed AppImage created: ${appimage_file}.sig"
+    return 0  # <-- Needed, do not remove!
+}
+
 create_package() {
     # Create the final AppImage
     local app_name="nuxeo-drive"
