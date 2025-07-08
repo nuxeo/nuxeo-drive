@@ -94,6 +94,14 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: bash tools/linux/deploy_ci_agent.sh --check
 
+      - name: "[GNU/Linux] Sign the .AppImage"
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          GPG_PUBLIC_KEY: ${{ secrets.GPG_PUBLIC_KEY }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: bash tools/linux/deploy_ci_agent.sh --sign
+
       #
       # macOS
       #
