@@ -355,6 +355,7 @@ def get_version():
             print(f">>>> ExCePtIoN 007: {e!r}")
         """
 
+        """
         print("==============================================================")
         try:
             cmd1 = [
@@ -384,10 +385,10 @@ def get_version():
         print("==============================================================")
 
         cmd = [
-            "sudo",
             f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
             "--version",
             ]
+        
         with subprocess.Popen(cmd1, stdout=subprocess.PIPE, text=True, bufsize=1) as process:
             for line in process.stdout:
                 print(line, end='') # 'end=' prevents adding extra newlines
@@ -397,6 +398,12 @@ def get_version():
         ret = subprocess.check_output(cmd, text=True).strip()
         print(f">>>> ret: {ret!r}")
         return ret
+        """
+        cmd = [
+            f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
+            "--version",
+        ]
+        return subprocess.check_output(cmd, text=True).strip()
 
     file = (
         expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
