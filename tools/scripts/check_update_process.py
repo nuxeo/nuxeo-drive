@@ -117,7 +117,8 @@ def gen_exe():
             ' . ".\\tools\\windows\\deploy_ci_agent.ps1" -build'
         )
 
-    print(">>> Command:", cmd, flush=True)
+    print(">>>> gen_exe")
+    print(">>> Command 1:", cmd, flush=True)
     subprocess.check_call(cmd.split())
 
 
@@ -136,10 +137,268 @@ def get_last_version_number():
     return get_latest_version(versions, "release")
 
 
+app_version = "5.5.2"
+def access_dmg_path_to_get_version():
+    cmd = [
+        "/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
+        "--version",
+        ]
+    res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    app_version = res
+
+
 def get_version():
     """Get the current version."""
 
     if EXT == "dmg":
+        print(">>>> get_version DMG")
+
+        # p = f"{Path.home()}/Applications/Nuxeo" + f"{chr(92)}" + " Drive.app/Contents/MacOS/ndrive"
+        # cmd = [p, "--version",]
+
+        # cmd = [
+        #     f"{Path.home()}/Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive",
+        #     "--version",
+        # ]
+        # return subprocess.check_output(cmd, text=True).strip()
+
+        """
+        print(">>>> get_version DMG")
+        ret = "5.5.2"
+        try:
+            cmmnd = ['mdfind', f'kMDItemDisplayName == "Nuxeo Drive" && kMDItemKind == "Application"']
+            print(f">>>> cmmnd: {cmmnd!r}")
+            result = subprocess.run(cmmnd, capture_output=True, text=True, check=True)
+            print(f">>>> result: {result!r}")
+            app_path = result.stdout.strip()
+            print(f">>>> app_path: {app_path!r}")
+            pth = app_path + "/Contents/MacOS/ndrive"
+            print(f">>>> pth: {pth!r}")
+            cmd = [pth, "--version",]
+            print(f">>>> cmd: {cmd!r}")
+            ret = subprocess.check_output(cmd, text=True).strip()
+            print(f">>>> ret: {ret!r}")
+        except Exception as e:
+            print(f">>>> Exception: {e!r}")
+        finally:
+            return ret
+        """
+        
+        """
+        cmd = [
+            "/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
+            "--version",
+        ]
+        ret = subprocess.check_output(cmd, text=True).strip()
+        print(f">>>> ret: {ret!r}")
+        return ret
+        """
+        # return "5.5.2"
+        """
+        print(">>>> get_version DMG")
+        ret = ""
+        try:
+            print(">>>> try 001")
+            cmd = [
+                f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
+                "--version",
+                ]
+            ret = subprocess.check_output(cmd, text=True).strip()
+            print(f">>>> ret: {ret!r}")
+        except Exception as e:
+            print(f">>>> Exception: {e!r}")
+            try:
+                print(">>>> try 002")
+                cmd = [
+                f"{Path.home()}/Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive",
+                "--version",
+                ]
+                ret = subprocess.check_output(cmd, text=True).strip()
+                print(f"#### ret: {ret!r}")
+            except Exception as e:
+                print(f"#### Exception: {e!r}")
+                try:
+                    print(">>>> try 003")
+                    cmd = [
+                    "/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
+                    "--version",
+                    ]
+                    ret = subprocess.check_output(cmd, text=True).strip()
+                    print(f"++++ ret: {ret!r}")
+                except Exception as e:
+                    print(f"++++ Exception: {e!r}")
+        finally:
+            if not ret:
+                print(":::::::::::::::: Not Ret")
+                ret = "5.5.2"
+        return ret
+        """
+
+        """
+        access_path_thread = threading.Thread(target=access_dmg_path_to_get_version)
+        access_path_thread.start()
+        timeout_seconds = 5
+        print(f"***** Main thread: Waiting for worker thread with a {timeout_seconds}-second timeout")
+        access_path_thread.join(timeout=timeout_seconds)
+        if access_path_thread.is_alive():
+            print("Main thread: Worker thread timed out and is still running.")
+        else:
+            print("Main thread: Worker thread finished within the timeout.")
+        return app_version
+        """
+        """
+        try:
+            print(">>>> RUN 001")
+            cmd = [
+                "ls -l",
+                f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
+                ]
+            print(">>>> RUN 002")
+            subprocess.run(cmd)
+            print(">>>> RUN 003")
+        except Exception as e:
+            print(f">>>> ExCePtIoN 001: {e!r}")
+        try:
+            print(">>>> RUN 004")
+            cmd = [
+                "xattr -d com.apple.quarantine",
+                f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
+            ]
+            print(">>>> RUN 005")
+            subprocess.run(cmd)
+            print(">>>> RUN 006")
+        except Exception as e:
+            print(f">>>> ExCePtIoN 002: {e!r}")
+        """
+
+        """
+        try:
+            print(">>>> RUN 001")
+            cmd = [
+                "ls",
+                f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS",
+                ]
+            print(">>>> RUN 002")
+            subprocess.run(cmd)
+            print(">>>> RUN 003")
+        except Exception as e:
+            print(f">>>> ExCePtIoN 001: {e!r}")
+        try:
+            print(">>>> RUN 004")
+            cmd = [
+                "ls",
+                f"{Path.home()}/Applications/Nuxeo\\ Drive.app/Contents/MacOS",
+            ]
+            print(">>>> RUN 005")
+            subprocess.run(cmd)
+            print(">>>> RUN 006")
+        except Exception as e:
+            print(f">>>> ExCePtIoN 002: {e!r}")
+        try:
+            print(">>>> RUN 007")
+            cmd = [
+                "ls",
+                f"{Path.home()}/Applications/Nuxeo{chr(92)} Drive.app/Contents/MacOS",
+            ]
+            print(">>>> RUN 008")
+            subprocess.run(cmd)
+            print(">>>> RUN 009")
+        except Exception as e:
+            print(f">>>> ExCePtIoN 003: {e!r}")
+        try:
+            print(">>>> RUN 010")
+            cmmnd = ['mdfind', f'kMDItemDisplayName == "Nuxeo Drive" && kMDItemKind == "Application"']
+            result = subprocess.run(cmmnd, capture_output=True, text=True, check=True)
+            app_path = result.stdout.strip()
+            pth = app_path + "/Contents/MacOS"
+            cmd = [
+                "ls",
+                pth,
+                ]
+            print(">>>> RUN 011")
+            subprocess.run(cmd)
+            print(">>>> RUN 012")
+        except Exception as e:
+            print(f">>>> ExCePtIoN 004: {e!r}")
+        try:
+            print(">>>> RUN 013")
+            cmd = [
+                "ls",
+                "/Applications/Nuxeo Drive.app/Contents/MacOS",
+                ]
+            print(">>>> RUN 014")
+            subprocess.run(cmd)
+            print(">>>> RUN 015")
+        except Exception as e:
+            print(f">>>> ExCePtIoN 005: {e!r}")
+        try:
+            print(">>>> RUN 016")
+            cmd = [
+                "ls",
+                "/Applications/Nuxeo\\ Drive.app/Contents/MacOS",
+            ]
+            print(">>>> RUN 017")
+            subprocess.run(cmd)
+            print(">>>> RUN 018")
+        except Exception as e:
+            print(f">>>> ExCePtIoN 006: {e!r}")
+        try:
+            print(">>>> RUN 019")
+            cmd = [
+                "ls",
+                f"/Applications/Nuxeo{chr(92)} Drive.app/Contents/MacOS",
+            ]
+            print(">>>> RUN 020")
+            subprocess.run(cmd)
+            print(">>>> RUN 021")
+        except Exception as e:
+            print(f">>>> ExCePtIoN 007: {e!r}")
+        """
+
+        """
+        print("==============================================================")
+        try:
+            cmd1 = [
+                "ls",
+                f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS",
+                ]
+            ret = subprocess.check_output(cmd1, text=True).strip()
+            print(f">>> ret 001: {ret!r}")
+
+            cmd2 = [
+                "ls",
+                "-l",
+                f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
+                ]
+            ret = subprocess.check_output(cmd2, text=True).strip()
+            print(f">>> ret 002: {ret!r}")
+
+            cmd3 = [
+                f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
+                "--version",
+                ]
+            ret = subprocess.check_output(cmd3, text=True).strip()
+            print(f">>> ret 003: {ret!r}")
+        except Exception as e:
+            print(f">>>> ExCePtIoN: {e!r}")
+
+        print("==============================================================")
+
+        cmd = [
+            f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
+            "--version",
+            ]
+        
+        with subprocess.Popen(cmd1, stdout=subprocess.PIPE, text=True, bufsize=1) as process:
+            for line in process.stdout:
+                print(line, end='') # 'end=' prevents adding extra newlines
+            # Check for errors after the process completes
+            process.wait()
+            print(process.returncode)
+        ret = subprocess.check_output(cmd, text=True).strip()
+        print(f">>>> ret: {ret!r}")
+        return ret
+        """
         cmd = [
             f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
             "--version",
@@ -164,7 +423,8 @@ def install_drive(installer):
     elif EXT == "dmg":
         # Simulate what nxdrive.updater.darwin.install() does
         cmd = ["hdiutil", "mount", installer]
-        print(">>> Command:", cmd, flush=True)
+        print(">>>> install_drive 1")
+        print(">>> Command 2:", cmd, flush=True)
         mount_info = subprocess.check_output(cmd, text=True).strip()
         mount_dir = mount_info.splitlines()[-1].split("\t")[-1]
 
@@ -179,7 +439,8 @@ def install_drive(installer):
         shutil.copytree(src, dst)
 
         cmd = ["hdiutil", "unmount", mount_dir]
-        print(">>> Command:", cmd, flush=True)
+        print(">>>> install_drive 2")
+        print(">>> Command 3:", cmd, flush=True)
         subprocess.check_call(cmd)
     else:
         cmd = [installer, "/verysilent"]
@@ -203,6 +464,21 @@ def launch_drive(executable, args=None):
         if args:
             cmd.append("--args")
             cmd.extend(args)
+        print(">>> Command 4:", cmd, flush=True)
+        try:
+            launch = True
+            import psutil
+            for process in psutil.process_iter(['name']):
+                if process.info['name'] == "ndrive":
+                    launch = False
+            if launch:
+                subprocess.check_call(cmd)
+            else:
+                print(">>>> Application Already Running")
+        except Exception as e:
+            print(f"Exception occured while trying to open Nuxeo Drive: {e!r}")
+        finally:
+            return
     else:
         cmd = [
             expandvars(
@@ -367,7 +643,7 @@ def uninstall_drive():
             "/verysilent",
         ]
         if os.path.isfile(cmd[0]):
-            print(">>> Command:", cmd, flush=True)
+            print(">>> Command 5:", cmd, flush=True)
             subprocess.check_call(cmd)
 
     # Purge local files
@@ -435,6 +711,7 @@ def version_update(version, lineno):
         handler.write("".join(content))
 
 
+
 def webserver(folder, port=8000):
     """Start a local web server."""
 
@@ -458,6 +735,43 @@ def webserver(folder, port=8000):
         httpd.shutdown()
     except Exception:
         pass
+"""
+
+
+
+def webserver(folder, port=8000):
+    ""Start a local web server.""
+
+    def stop(server):
+        print(">>>> Stop started")
+        time.sleep(60)
+        try:
+            print(">>> Auto-shutting down HTTP server", flush=True)
+            server.shutdown()
+
+            # Wake up the server in case it's stuck in serve_forever()
+            import socket
+            try:
+                with socket.create_connection(("localhost", port), timeout=2) as s:
+                    s.sendall(b"GET / HTTP/1.1\r\nHost: localhost\r\n\r\n")
+            except Exception as e:
+                print(">>> Dummy request failed:", e, flush=True)
+        except Exception as e:
+            print(">>> Shutdown failed:", e, flush=True)
+        print(">>>> Stopped")
+
+    os.chdir(folder)
+
+    httpd = socketserver.TCPServer(("", port), Server)
+    print(">>> Serving", folder, f"at http://localhost:{port}", flush=True)
+
+    server_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    server_thread.start()
+    print(">>>> Server Started....")
+
+    stopper_thread = threading.Thread(target=stop, args=(httpd,), daemon=True)
+    stopper_thread.start()
+"""
 
 
 #
@@ -553,6 +867,7 @@ def job(root, version, executable, previous_version, name):
             url = os.getenv("NXDRIVE_TEST_NUXEO_URL", "http://localhost:8080/nuxeo")
             username = os.getenv("NXDRIVE_TEST_USERNAME", "Administrator")
             password = os.getenv("NXDRIVE_TEST_PASSWORD", "Administrator")
+            print(">>>> calling launch_drive 001")
             launch_drive(
                 executable,
                 [
@@ -569,12 +884,15 @@ def job(root, version, executable, previous_version, name):
         threading.Thread(target=launch_drive, args=(executable,)).start()
 
         # Start the web server
+        print(">>>> Starting server")
         webserver(root)
+        print(">>>> Server Started")
 
         # Display the log file
         # cat_log()
 
         # And assert the version is the good one
+        print(">>>> getting latest version")
         current_ver = get_version()
         print(f">>> Current version is {current_ver!r}", flush=True)
         """
@@ -588,12 +906,17 @@ def job(root, version, executable, previous_version, name):
         if not version_forced:
             # Remove the account
             try:
+                print(">>>> calling launch_drive 002")
                 launch_drive(executable, ["clean-folder", f"--local-folder={root}"])
             except Exception as exc:
                 print(" !! ERROR:", exc, flush=True)
 
         # Remove the installation
-        uninstall_drive()
+        try:
+            print(">>>> calling uninstall_drive 002")
+            uninstall_drive()
+        except Exception as exc:
+            print(" !! ERROR:", exc, flush=True)
 
 
 def setup():
