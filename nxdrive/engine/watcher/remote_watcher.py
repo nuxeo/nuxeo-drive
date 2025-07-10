@@ -128,7 +128,7 @@ class RemoteWatcher(EngineWorker):
         self.dao.add_path_to_scan(str(remote_path))
         self._next_check = 0
 
-    def _scan_pair(self, remote_path: str, /):
+    def _scan_pair(self, remote_path: str, /) -> None:
         if remote_path is None:
             return
         remote_path = str(remote_path)
