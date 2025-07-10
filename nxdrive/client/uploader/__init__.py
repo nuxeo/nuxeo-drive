@@ -417,7 +417,6 @@ class BaseUploader:
                 self._set_transfer_status(transfer, TransferStatus.ONGOING)
             raise exc
 
-    """
     def link_blob_to_doc(
         self,
         command: str,
@@ -427,7 +426,7 @@ class BaseUploader:
         /,
         **kwargs: Any,
     ) -> Dict[str, Any]:
-        ""Link the given uploaded *blob* to the given document.""
+        """Link the given uploaded *blob* to the given document."""
 
         headers = {"Nuxeo-Transaction-Timeout": str(TX_TIMEOUT)}
         if transfer.request_uid:
@@ -468,8 +467,8 @@ class BaseUploader:
             raise exc
         finally:
             action.finish_action()
-    """
 
+    """
     def link_blob_to_doc(
         self,
         command: str,
@@ -479,12 +478,12 @@ class BaseUploader:
         /,
         **kwargs: Any,
     ) -> Dict[str, Any]:
-        """Link the given uploaded *blob* to the given document."""
+        ""Link the given uploaded *blob* to the given document.""
 
         import requests
         from requests.exceptions import HTTPError
 
-        """
+        ""
         try:
             resp = requests.get('http://example.com/api/trigger-500')
             resp.raise_for_status()
@@ -493,7 +492,7 @@ class BaseUploader:
                 print("Received HTTP 500 Internal Server Error.")
             else:
                 print(f"An HTTP error occurred: {e}")
-        """
+        ""
 
         headers = {"Nuxeo-Transaction-Timeout": str(TX_TIMEOUT)}
         if transfer.request_uid:
@@ -537,6 +536,7 @@ class BaseUploader:
             raise exc
         finally:
             action.finish_action()
+    """
 
     def _transfer_autoType_file(
         self, command: str, blob: FileBlob, kwargs: dict[str, Any]
