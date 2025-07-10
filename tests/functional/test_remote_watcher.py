@@ -1,8 +1,73 @@
 from collections import namedtuple
+from pathlib import Path
+from sqlite3 import Connection, Cursor
 from unittest.mock import patch
 
+import pytest
+
 from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
-from nxdrive.objects import RemoteFileInfo
+from nxdrive.exceptions import ThreadInterrupt
+from nxdrive.objects import DocPair, RemoteFileInfo
+from tests.functional.mocked_classes import Mock_DAO, Mock_Remote
+
+
+def test_get_metrics(manager_factory):
+    manager, engine = manager_factory()
+    dao = engine.dao
+    remote_watcher = RemoteWatcher(engine, dao)
+    assert isinstance(remote_watcher.get_metrics(), dict)
+
+
+def test_execute(manager_factory):
+    manager, engine = manager_factory()
+    dao = engine.dao
+    remote_watcher = RemoteWatcher(engine, dao)
+    with pytest.raises(ThreadInterrupt) as ex:
+        remote_watcher._execute()
+    assert str(ex.exconly()).startswith("nxdrive.exceptions.ThreadInterrupt")
+
+
+def test_scan_remote(manager_factory):
+    from nxdrive.exceptions import NotFound
+
+    manager, engine = manager_factory()
+    dao = engine.dao
+    remote_watcher = RemoteWatcher(engine, dao)
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = DocPair(cursor, ())
+    mock_doc_pair.id = 1
+    mock_doc_pair.local_path = Path("dummy_local_path")
+    mock_doc_pair.local_parent_path = Path("dummy_parent_path")
+    mock_doc_pair.remote_ref = "dummy_remote_ref"
+    mock_doc_pair.local_state = "dummy_local_state"
+    mock_doc_pair.remote_state = "dummy_remote_state"
+    mock_doc_pair.pair_state = "dummy_pair_state"
+    mock_doc_pair.last_error = "dummy_last_error"
+    mock_dao = Mock_DAO()
+    mock_dao.pair_index = 0
+    mock_remote = Mock_Remote()
+    remote_watcher.dao = mock_dao
+    remote_watcher.engine.remote = mock_remote
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
+    ) as mock_remove_void, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
+    ) as mock_changes:
+        mock_remove_void.return_value = None
+        mock_changes.return_value = None
+        assert remote_watcher.scan_remote(from_state=mock_doc_pair) is None
+    # exception NotFound
+    mock_dao = Mock_DAO()
+    mock_dao.pair_index = 0
+    mock_remote = Mock_Remote()
+    remote_watcher.dao = mock_dao
+    remote_watcher.engine.remote = mock_remote
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
+    ) as mock_remove_void:
+        mock_remove_void.return_value = None
+        mock_remove_void.side_effect = NotFound("Custom NotFound Exception")
+        assert remote_watcher.scan_remote(from_state=mock_doc_pair) is None
 
 
 def test_sync_root_name(manager_factory):
@@ -188,13 +253,3 @@ def test_sync_root_name(manager_factory):
                                 dao, "get_state_from_id", new=get_state_from_id_
                             ):
                                 update_remote_states
-
-
-# def test_scan_remote(manager_factory):
-#     import platform
-
-#     if platform.system() == "Darwin":
-#         manager, engine = manager_factory()
-#         dao = engine.dao
-#         test_watcher = RemoteWatcher(engine, dao)
-#         test_watcher.scan_remote()
