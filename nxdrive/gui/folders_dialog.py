@@ -59,7 +59,12 @@ def regexp_validator() -> QRegExpValidator:
 class DialogMixin(QDialog):
     """The base class for the tree view window."""
 
-    def __init__(self, application: "Application", engine: Engine, /) -> None:
+    def __init__(
+        self, application: "Application", engine: Engine, selected_folder=None, /
+    ) -> None:
+
+        log.info(f">>>> inside DialogMixin; selected_folder: {selected_folder!r}")
+
         super().__init__(None)
 
         self.title_label = ""
@@ -77,6 +82,7 @@ class DialogMixin(QDialog):
 
         self.engine = engine
         self.application = application
+        self.selected_folder = selected_folder
 
         # The documents list
         self.tree_view = self.get_tree_view()
@@ -91,6 +97,7 @@ class DialogMixin(QDialog):
 
         # The content view
         self.vertical_layout = QVBoxLayout(self)
+        log.info(f">>>> self.selected_folder: {self.selected_folder!r}")
 
     def get_buttons(self) -> QDialogButtonBox.StandardButtons:
         """Create the buttons to display at the bottom of the window."""
@@ -240,11 +247,18 @@ class FoldersDialog(DialogMixin):
     newCtxTransfer = pyqtSignal(list)
 
     def __init__(
-        self, application: "Application", engine: Engine, path: Optional[Path], /
+        self,
+        application: "Application",
+        engine: Engine,
+        path: Optional[Path],
+        selected_folder=None,
+        /,
     ) -> None:
         """*path* is None when the dialog window is opened from a click on the systray menu icon."""
 
-        super().__init__(application, engine)
+        log.info(f">>>> inside FoldersDialog __init__; selected_folder: {selected_folder!r}")
+
+        super().__init__(application, engine, selected_folder)
         self.setWindowFlags(self.windowFlags() & ~qt.WindowStaysOnTopHint)
 
         self.path: Optional[Path] = None
@@ -615,7 +629,7 @@ class FoldersDialog(DialogMixin):
         """Render the folders tree."""
         self.resize(800, 450)
         client = FoldersOnly(self.engine.remote)
-        return FolderTreeView(self, client)
+        return FolderTreeView(self, client, self.selected_folder)
 
     def _files_display(self) -> str:
         """Return the original file or folder to upload and the count of others to proceed."""
