@@ -96,10 +96,21 @@ class WindowsIntegration(AbstractOSIntegration):
     """
 
     @staticmethod
+    def cb_get() -> None:
+        log.info(">>>> cb_get called")
+        return
+    
+    @staticmethod
+    def cb_set() -> None:
+        log.info(">>>> cb_set called")
+        return
+
+    """
+    @staticmethod
     def cb_get() -> str:
-        """Get the text data from the clipboard.
+        ""Get the text data from the clipboard.
         Emulate: CTRL + V
-        """
+        ""
         log.info(">>>> cb_get")
         try:
             import win32clipboard
@@ -121,9 +132,9 @@ class WindowsIntegration(AbstractOSIntegration):
 
     @staticmethod
     def cb_set(text: str, /) -> None:
-        """Copy some *text* into the clipboard.
+        ""Copy some *text* into the clipboard.
         Emulate: CTRL + C
-        """
+        ""
         log.info(">>>> cb_set")
         try:
             import win32clipboard
@@ -140,6 +151,7 @@ class WindowsIntegration(AbstractOSIntegration):
             log.info(">>>> cb_set closing clipboard")
             win32clipboard.CloseClipboard()
             log.info(">>>> cb_set clipboard closed")
+    """
 
     @pyqtSlot(result=bool)
     def install_addons(self, *, setup: str = "nuxeo-drive-addons.exe") -> bool:
