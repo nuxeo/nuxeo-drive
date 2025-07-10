@@ -42,23 +42,8 @@ check() {
     return 0  # <-- Needed, do not remove!
 }
 
-sign() {
-    # Import GPG Private Key for signing the AppImage
-    if [ -n "$GPG_PRIVATE_KEY" ]; then
-        echo "$GPG_PRIVATE_KEY" | gpg --batch --import
-        if [ $? -ne 0 ]; then
-            echo ">>> [AppImage] Failed to import GPG private key"
-            exit 1
-        fi
-    fi
-
-    # Check if GPG_PASSPHRASE is set
-    if [ -z "$GPG_PASSPHRASE" ]; then
-        echo ">>> [AppImage] GPG_PASSPHRASE is not set"
-        exit 1
-    fi
-
-    # Find the AppImage in the dist folder (ensure exactly one match)
+find_appimage() {
+    # Find the AppImage in the dist folder
     shopt -s nullglob
     appimage_files=(dist/*-x86_64.AppImage)
     shopt -u nullglob
@@ -76,6 +61,25 @@ sign() {
     fi
 
     appimage_file="${appimage_files[0]}"
+}
+
+sign() {
+    # Import GPG Private Key for signing the AppImage
+    if [ -n "$GPG_PRIVATE_KEY" ]; then
+        echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+        if [ $? -ne 0 ]; then
+            echo ">>> [AppImage] Failed to import GPG private key"
+            exit 1
+        fi
+    fi
+
+    # Check if GPG_PASSPHRASE is set
+    if [ -z "$GPG_PASSPHRASE" ]; then
+        echo ">>> [AppImage] GPG_PASSPHRASE is not set"
+        exit 1
+    fi
+
+    find_appimage
 
     # Sign the AppImage with a detached signature
     gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --output "${appimage_file}.sig" --detach-sign "$appimage_file"
@@ -93,6 +97,8 @@ verify_sign() {
             exit 1
         fi
     fi
+
+    find_appimage
 
     # Verify the signature
     gpg --trust-model always --verify "${appimage_file}.sig" "$appimage_file"
