@@ -209,6 +209,7 @@ def test_update_local_status(manager_factory):
     assert local_watcher._update_local_status() is None
 
 
+@windows_only(reason="Intended to be run on Windows")
 def test_win_queue_empty(manager_factory):
     manager, engine = manager_factory()
     remote = engine.remote
