@@ -101,8 +101,8 @@ class WindowsIntegration(AbstractOSIntegration):
         return
     
     @staticmethod
-    def cb_set() -> None:
-        log.info(">>>> cb_set called")
+    def cb_set(text: str, /) -> None:
+        log.info(f">>>> cb_set called with: {text!r}")
         return
 
     """
