@@ -14,7 +14,7 @@ from watchdog.events import FileSystemEvent
 from nxdrive.client.local.base import FileInfo, LocalClientMixin
 from nxdrive.engine.watcher.local_watcher import LocalWatcher
 from nxdrive.objects import DocPair
-from tests.markers import not_mac, windows_only
+from tests.markers import not_linux, not_mac, windows_only
 
 
 class Mock_Local_Client(LocalClientMixin):
@@ -236,6 +236,84 @@ def test_win_delete_check(manager_factory):
     assert local_watcher._win_delete_check() is None
 
 
+def test_win_dequeue_delete(manager_factory):
+    from nxdrive.exceptions import ThreadInterrupt
+
+    manager, engine = manager_factory()
+    remote = engine.remote
+    dao = remote.dao
+    local_watcher = LocalWatcher(engine, dao)
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = DocPair(cursor, ())
+    mock_doc_pair = DocPair(cursor, ())
+    mock_doc_pair.id = 1
+    mock_doc_pair.local_path = Path("dummy_local_path")
+    mock_doc_pair.local_parent_path = Path("dummy_parent_path")
+    mock_doc_pair.remote_ref = "dummy_remote_ref"
+    mock_doc_pair.local_state = "dummy_local_state"
+    mock_doc_pair.remote_state = "dummy_remote_state"
+    mock_doc_pair.pair_state = "dummy_pair_state"
+    mock_doc_pair.last_error = "dummy_last_error"
+    local_watcher._delete_events = {}
+    local_watcher._delete_events["dummy_remote_ref"] = (10, mock_doc_pair)
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.LocalWatcher._handle_watchdog_delete"
+    ) as mock_watchdog_delete:
+        mock_watchdog_delete.return_value = None
+        assert local_watcher._win_dequeue_delete() is None
+    # current_milli_time() - evt_time < WIN_MOVE_RESOLUTION_PERIOD
+    local_watcher = LocalWatcher(engine, dao)
+    local_watcher._delete_events = {}
+    local_watcher._delete_events["dummy_remote_ref"] = (10, mock_doc_pair)
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.LocalWatcher._handle_watchdog_delete"
+    ) as mock_watchdog_delete, patch(
+        "nxdrive.engine.watcher.local_watcher.current_milli_time"
+    ) as mock_milli_time:
+        mock_watchdog_delete.return_value = None
+        mock_milli_time.return_value = 100
+        assert local_watcher._win_dequeue_delete() is None
+    # local.exists == True
+    local_watcher = LocalWatcher(engine, dao)
+    mock_client = Mock_Local_Client()
+    local_watcher._delete_events = {}
+    local_watcher._delete_events["dummy_remote_ref"] = (10, mock_doc_pair)
+    local_watcher.local = mock_client
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.LocalWatcher._handle_watchdog_delete"
+    ) as mock_watchdog_delete:
+        mock_watchdog_delete.return_value = None
+        assert local_watcher._win_dequeue_delete() is None
+    # raise ThreadInterrupt
+    # local.exists == True
+    local_watcher = LocalWatcher(engine, dao)
+    mock_client = Mock_Local_Client()
+    local_watcher._delete_events = {}
+    local_watcher._delete_events["dummy_remote_ref"] = (10, mock_doc_pair)
+    local_watcher.local = mock_client
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.LocalWatcher._handle_watchdog_delete"
+    ) as mock_watchdog_delete:
+        mock_watchdog_delete.return_value = None
+        mock_watchdog_delete.side_effect = ThreadInterrupt("Custom Thread Interrupt")
+        with pytest.raises(ThreadInterrupt) as ex:
+            local_watcher._win_dequeue_delete()
+        assert str(ex.exconly()).startswith("nxdrive.exceptions.ThreadInterrupt")
+    # raise Exception
+    # local.exists == True
+    local_watcher = LocalWatcher(engine, dao)
+    mock_client = Mock_Local_Client()
+    local_watcher._delete_events = {}
+    local_watcher._delete_events["dummy_remote_ref"] = (10, mock_doc_pair)
+    local_watcher.local = mock_client
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.LocalWatcher._handle_watchdog_delete"
+    ) as mock_watchdog_delete:
+        mock_watchdog_delete.return_value = None
+        mock_watchdog_delete.side_effect = Exception("Custom Exception")
+        assert local_watcher._win_dequeue_delete() is None
+
+
 def test_win_folder_scan_empty(manager_factory):
     manager, engine = manager_factory()
     remote = engine.remote
@@ -262,11 +340,94 @@ def test_win_folder_scan_check(manager_factory):
 
 
 def test_win_dequeue_folder_scan(manager_factory):
+    from time import time
+
+    from nxdrive.exceptions import ThreadInterrupt
+
     manager, engine = manager_factory()
     remote = engine.remote
     dao = remote.dao
     local_watcher = LocalWatcher(engine, dao)
-    assert isinstance(local_watcher, LocalWatcher)
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = DocPair(cursor, ())
+    mock_doc_pair = DocPair(cursor, ())
+    mock_doc_pair.id = 1
+    mock_doc_pair.local_path = Path("dummy_local_path")
+    mock_doc_pair.local_parent_path = Path("dummy_parent_path")
+    mock_doc_pair.remote_ref = "dummy_remote_ref"
+    mock_doc_pair.local_state = "dummy_local_state"
+    mock_doc_pair.remote_state = "dummy_remote_state"
+    mock_doc_pair.pair_state = "dummy_pair_state"
+    mock_doc_pair.last_error = "dummy_last_error"
+    local_watcher._folder_scan_events = {}
+    local_watcher._folder_scan_events[Path("tests/resources/files/testFile.txt")] = (
+        10.0,
+        mock_doc_pair,
+    )
+    # delay < self._windows_folder_scan_delay
+    local_watcher._windows_folder_scan_delay = int(round(time() * 1000)) + 20
+    assert local_watcher._win_dequeue_folder_scan() is None
+    # delay >= self._windows_folder_scan_delay
+    # mtime <= evt_time
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.LocalWatcher.scan_pair"
+    ) as mock_scan:
+        mock_scan.return_value = None
+        local_watcher._windows_folder_scan_delay = int(round(time() * 1000)) - 2000
+        assert local_watcher._win_dequeue_folder_scan() is None
+    # delay >= self._windows_folder_scan_delay
+    # mtime > evt_time
+    mock_client = Mock_Local_Client()
+    mock_client.default_file_info.last_modification_time = datetime.now()
+    local_watcher = LocalWatcher(engine, dao)
+    local_watcher._folder_scan_events = {}
+    local_watcher._folder_scan_events[Path("tests/resources/files/testFile.txt")] = (
+        10.0,
+        mock_doc_pair,
+    )
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.LocalWatcher.scan_pair"
+    ) as mock_scan:
+        mock_scan.return_value = None
+        local_watcher.local = mock_client
+        local_watcher._windows_folder_scan_delay = int(round(time() * 1000)) - 2000
+        assert local_watcher._win_dequeue_folder_scan() is None
+    # raise ThreadInterrupt
+    mock_client = Mock_Local_Client()
+    mock_client.default_file_info.last_modification_time = datetime.now()
+    local_watcher = LocalWatcher(engine, dao)
+    local_watcher._folder_scan_events = {}
+    local_watcher._folder_scan_events[Path("tests/resources/files/testFile.txt")] = (
+        10.0,
+        mock_doc_pair,
+    )
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.LocalWatcher.scan_pair"
+    ) as mock_scan:
+        mock_scan.return_value = None
+        mock_scan.side_effect = ThreadInterrupt("Custom thread interrupt")
+        local_watcher.local = mock_client
+        local_watcher._windows_folder_scan_delay = int(round(time() * 1000)) - 2000
+        with pytest.raises(ThreadInterrupt) as ex:
+            local_watcher._win_dequeue_folder_scan()
+        assert str(ex.exconly()).startswith("nxdrive.exceptions.ThreadInterrupt")
+    # raise Exception
+    mock_client = Mock_Local_Client()
+    mock_client.default_file_info.last_modification_time = datetime.now()
+    local_watcher = LocalWatcher(engine, dao)
+    local_watcher._folder_scan_events = {}
+    local_watcher._folder_scan_events[Path("tests/resources/files/testFile.txt")] = (
+        10.0,
+        mock_doc_pair,
+    )
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.LocalWatcher.scan_pair"
+    ) as mock_scan:
+        mock_scan.return_value = None
+        mock_scan.side_effect = Exception("Custom Exception")
+        local_watcher.local = mock_client
+        local_watcher._windows_folder_scan_delay = int(round(time() * 1000)) - 2000
+        assert local_watcher._win_dequeue_folder_scan() is None
 
 
 def test_scan(manager_factory):
@@ -346,6 +507,7 @@ def test_empty_events(manager_factory):
     assert local_watcher.empty_events() is True
 
 
+@not_linux(reason="Linux is unable to fetch creation time")
 def test_get_creation_time(manager_factory):
     manager, engine = manager_factory()
     remote = engine.remote
