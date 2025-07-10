@@ -1,9 +1,10 @@
 from datetime import datetime
 from pathlib import Path
+from sqlite3 import Connection, Cursor
 from typing import Any, List
 
 from nxdrive.client.local.base import FileInfo, LocalClientMixin
-from nxdrive.objects import DocPair
+from nxdrive.objects import DocPair, RemoteFileInfo
 
 
 class Mock_Local_Client(LocalClientMixin):
@@ -88,6 +89,7 @@ class Mock_DAO:
         self.acquired_state = "DocPair_object"
         self.db_children = []
         self.doc_pairs = [self, self]
+        self.filter = True
         self.folderish = False
         self.id = 1
         self.local_digest = "md6"
@@ -95,6 +97,8 @@ class Mock_DAO:
         self.local_name = "dummy_local_name"
         self.local_path = Path("dummy_local_path")
         self.local_state = "dummy_local_state"
+        self.get_states = []
+        self.get_state_index = 0
         self.pair_index: int = (
             2  # To control the index of doc_pair received from get_state_from_local
         )
@@ -108,6 +112,18 @@ class Mock_DAO:
         self.remote_state = "dummy_remote_state"
         self.update_remote = True
         self.version = 1
+        # DocPair
+        cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+        self.mocked_doc_pair = DocPair(cursor, ())
+        self.mocked_doc_pair.id = 1
+        self.mocked_doc_pair.local_path = Path("dummy_local_path")
+        self.mocked_doc_pair.local_parent_path = Path("dummy_parent_path")
+        self.mocked_doc_pair.remote_ref = "dummy_remote_ref"
+        self.mocked_doc_pair.local_state = "dummy_local_state"
+        self.mocked_doc_pair.remote_parent_path = "dummy_remote_parent_path"
+        self.mocked_doc_pair.remote_state = "dummy_remote_state"
+        self.mocked_doc_pair.pair_state = "dummy_pair_state"
+        self.mocked_doc_pair.last_error = "dummy_last_error"
 
     def acquire_state(self, thread_id, doc_pair_id):
         return self.acquired_state
@@ -128,7 +144,7 @@ class Mock_DAO:
     def get_normal_state_from_remote(self, ref: str):
         return self.doc_pairs[0]
 
-    def get_state_from_id(self, id: int):
+    def get_state_from_id(self, id: int, from_write=False):
         return self.doc_pairs[0]
 
     def get_state_from_local(self, path):
@@ -144,8 +160,25 @@ class Mock_DAO:
                 return self.doc_pairs[0]
             return
 
+    def get_state_from_remote_with_path(self, ref: str, path: str):
+        value = self.get_states[self.get_state_index]
+        self.get_state_index += 1
+        return value
+
     def insert_local_state(self, child, path):
         return 2
+
+    def insert_remote_state(
+        self,
+        info: RemoteFileInfo,
+        remote_parent_path: str,
+        local_path: Path,
+        local_parent_path: Path,
+    ):
+        pass
+
+    def is_filter(self, path: str):
+        return self.filter
 
     def _queue_pair_state(
         self, id: int, folderish: bool, pair_state: str, pair: DocPair
@@ -193,6 +226,8 @@ class Mock_Remote:
         self.can_scroll_descendants = False
         self.folderish = False
         self.name = "dummy_name"
+        self.path = "dummy_path"
+        self.uid = "dummy_uid"
 
     def get_fs_info(self, fs_item_id, parent_fs_item_id=""):
         return self

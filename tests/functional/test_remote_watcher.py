@@ -70,6 +70,74 @@ def test_scan_remote(manager_factory):
         assert remote_watcher.scan_remote(from_state=mock_doc_pair) is None
 
 
+def test_scan_pair(manager_factory):
+    """
+    For _scan_pair
+    """
+    manager, engine = manager_factory()
+    dao = engine.dao
+    remote_watcher = RemoteWatcher(engine, dao)
+    # remote_path is None
+    assert remote_watcher._scan_pair(None) is None
+    # remote is not None
+    # dao.is_filter == True
+    mock_dao = Mock_DAO()
+    remote_watcher = RemoteWatcher(engine, dao)
+    remote_watcher.dao = mock_dao
+    assert remote_watcher._scan_pair("dummy_remote_path") is None
+    # remote is not None
+    # dao.is_filter == False
+    # doc_pair is not None
+    mock_dao = Mock_DAO()
+    mock_dao.get_states.extend([mock_dao.mocked_doc_pair])
+    mock_dao.filter = False
+    mock_remote = Mock_Remote()
+    remote_watcher = RemoteWatcher(engine, dao)
+    remote_watcher.dao = mock_dao
+    remote_watcher.engine.remote = mock_remote
+    assert remote_watcher._scan_pair("tests/resources/files/") is None
+    # remote is not None
+    # dao.is_filter == False
+    # doc_pair is None
+    # os.path.dirname(child_info.path) == remote_parent_path
+    mock_dao = Mock_DAO()
+    mock_dao.filter = False
+    mock_dao.mocked_doc_pair.remote_parent_path = "tests/resources"
+    mock_dao.mocked_doc_pair.remote_ref = "files"
+    mock_dao.get_states.extend([None, mock_dao.mocked_doc_pair])
+    mock_remote = Mock_Remote()
+    mock_remote.path = "tests/resources/files/"
+    mock_remote.folderish = True
+    remote_watcher = RemoteWatcher(engine, dao)
+    remote_watcher.dao = mock_dao
+    remote_watcher.engine.remote = mock_remote
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._do_scan_remote"
+    ) as mock_scan_remote:
+        mock_scan_remote.return_value = None
+        assert remote_watcher._scan_pair("tests/resources/files/") is None
+    # remote is not None
+    # dao.is_filter == False
+    # doc_pair is None
+    # os.path.dirname(child_info.path) != remote_parent_path
+    mock_dao = Mock_DAO()
+    mock_dao.filter = False
+    mock_dao.mocked_doc_pair.remote_parent_path = "tests/resources"
+    mock_dao.mocked_doc_pair.remote_ref = "files2"
+    mock_dao.get_states.extend([None, mock_dao.mocked_doc_pair])
+    mock_remote = Mock_Remote()
+    mock_remote.path = "tests/resources/files/"
+    mock_remote.folderish = True
+    remote_watcher = RemoteWatcher(engine, dao)
+    remote_watcher.dao = mock_dao
+    remote_watcher.engine.remote = mock_remote
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
+    ) as mock_scan_remote:
+        mock_scan_remote.return_value = None
+        assert remote_watcher._scan_pair("tests/resources/files/") is None
+
+
 def test_sync_root_name(manager_factory):
     manager, engine = manager_factory()
     dao = engine.dao
