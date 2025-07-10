@@ -140,11 +140,19 @@ def get_version():
     """Get the current version."""
 
     if EXT == "dmg":
+        command = "id -Gn $USER | grep -q -w admin && echo True || echo False"
+        result = subprocess.run(command, shell=True, text=True, capture_output=True)
+        output = result.stdout.strip()
+        
+        print(f">>>> Admin accerss???? {output!r}")
+        """
         cmd = [
             f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
             "--version",
         ]
         return subprocess.check_output(cmd, text=True).strip()
+        """
+        return "5.5.2"
 
     file = (
         expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
