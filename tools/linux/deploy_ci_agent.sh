@@ -52,15 +52,6 @@ sign() {
         fi
     fi
 
-    # Import GPG Public Key for verifying the signature
-    if [ -n "$GPG_PUBLIC_KEY" ]; then
-        echo "$GPG_PUBLIC_KEY" | gpg --batch --import
-        if [ $? -ne 0 ]; then
-            echo ">>> [AppImage] Failed to import GPG public key"
-            exit 1
-        fi
-    fi
-
     # Check if GPG_PASSPHRASE is set
     if [ -z "$GPG_PASSPHRASE" ]; then
         echo ">>> [AppImage] GPG_PASSPHRASE is not set"
@@ -89,6 +80,20 @@ sign() {
     # Sign the AppImage with a detached signature
     gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --output "${appimage_file}.sig" --detach-sign "$appimage_file"
 
+    echo ">>> [AppImage] AppImage signed: ${appimage_file}.sig"
+    return 0  # <-- Needed, do not remove!
+}
+
+verify_sign() {
+    # Import GPG Public Key for verifying the signature
+    if [ -n "$GPG_PUBLIC_KEY" ]; then
+        echo "$GPG_PUBLIC_KEY" | gpg --batch --import
+        if [ $? -ne 0 ]; then
+            echo ">>> [AppImage] Failed to import GPG public key"
+            exit 1
+        fi
+    fi
+
     # Verify the signature
     gpg --trust-model always --verify "${appimage_file}.sig" "$appimage_file"
     if [ $? -eq 0 ]; then
@@ -97,9 +102,6 @@ sign() {
         echo ">>> [AppImage] Signature verification failed"
         exit 1
     fi
-
-    echo ">>> [AppImage] Signed AppImage created: ${appimage_file}.sig"
-    return 0  # <-- Needed, do not remove!
 }
 
 create_package() {

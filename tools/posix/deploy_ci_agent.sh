@@ -392,6 +392,10 @@ main() {
                 sign
                 exit 0
             ;;
+            "--verify-sign")
+                verify_sign
+                exit 0
+            ;;
             "--install" | "--install-python")
                 export INSTALL_ARG="1"
             ;;
