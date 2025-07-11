@@ -1,3 +1,4 @@
+import os
 import webbrowser
 from logging import getLogger
 from pathlib import Path
@@ -267,12 +268,18 @@ class FoldersDialog(DialogMixin):
         self.remote_folder_ref = self.engine.dao.get_config(
             "dt_last_remote_location_ref", default=""
         )
-        self.remote_folder_title = self.engine.dao.get_config(
-            "dt_last_remote_location_title", default=""
-        )
-        self.last_remote_location = self.engine.dao.get_config(
-            "dt_last_remote_location", default=""
-        )
+        if selected_folder:
+            self.remote_folder_title = os.path.basename(selected_folder)
+        else:
+            self.remote_folder_title = self.engine.dao.get_config(
+                "dt_last_remote_location_title", default=""
+            )
+        if selected_folder:
+            self.last_remote_location = selected_folder
+        else:
+            self.last_remote_location = self.engine.dao.get_config(
+                "dt_last_remote_location", default=""
+            )
         self.last_local_selected_location = self.engine.dao.get_config(
             "dt_last_local_selected_location"
         )
