@@ -6,6 +6,7 @@ from dateutil.tz import tzlocal
 
 from ..constants import DT_ACTIVE_SESSIONS_MAX_ITEMS, DT_MONITORING_MAX_ITEMS
 from ..options import Options
+from ..options import Options
 from ..qt import constants as qt
 from ..qt.imports import (
     QAbstractListModel,
