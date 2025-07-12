@@ -712,17 +712,6 @@ def test_handle_changes(manager_factory):
         mock_offline.return_value = False
         mock_scan_remote.side_effect = Unauthorized()
         assert remote_watcher._handle_changes(False) is False
-    # HTTPError
-    Feature.synchronization = "activated"
-    remote_watcher = RemoteWatcher(engine, dao)
-    with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
-    ) as mock_offline, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
-    ) as mock_scan_remote:
-        mock_offline.return_value = False
-        mock_scan_remote.side_effect = HTTPError(status=504)
-        assert remote_watcher._handle_changes(False) is False
     # OSError
     Feature.synchronization = "activated"
     remote_watcher = RemoteWatcher(engine, dao)
@@ -733,6 +722,17 @@ def test_handle_changes(manager_factory):
     ) as mock_scan_remote:
         mock_offline.return_value = False
         mock_scan_remote.side_effect = OSError()
+        assert remote_watcher._handle_changes(False) is False
+    # HTTPError
+    Feature.synchronization = "activated"
+    remote_watcher = RemoteWatcher(engine, dao)
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+    ) as mock_offline, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
+    ) as mock_scan_remote:
+        mock_offline.return_value = False
+        mock_scan_remote.side_effect = HTTPError(status=504)
         assert remote_watcher._handle_changes(False) is False
     # ThreadInterrupt
     # Feature.synchronization = "activated"
@@ -822,6 +822,64 @@ def test_force_remote_scan(manager_factory):
         )
         is None
     )
+
+
+def test_update_remote_states(manager_factory):
+    manager, engine = manager_factory()
+    dao = engine.dao
+    # not summary
+    remote_watcher = RemoteWatcher(engine, dao)
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
+    ) as mock_summary:
+        mock_summary.return_value = None
+        assert remote_watcher._update_remote_states() is None
+    # summary..get("hasTooManyChanges") == True
+    remote_watcher = RemoteWatcher(engine, dao)
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
+    ) as mock_summary:
+        mock_summary.return_value = {"hasTooManyChanges": True}
+        assert remote_watcher._update_remote_states() is None
+    # not summary.get("fileSystemChanges")
+    remote_watcher = RemoteWatcher(engine, dao)
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
+    ) as mock_summary:
+        mock_summary.return_value = {"fileSystemChanges": False}
+        assert remote_watcher._update_remote_states() is None
+    # "fileSystemChanges" == True
+    mock_remote = Mock_Remote()
+    remote_watcher = RemoteWatcher(engine, dao)
+    remote_watcher.engine.remote = mock_remote
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
+    ) as mock_summary, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._interact"
+    ) as mock_interact, patch(
+        "nxdrive.objects.RemoteFileInfo.from_dict"
+    ) as mock_from_dict, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.filtered"
+    ) as mock_filtered:
+        mock_summary.return_value = {
+            "fileSystemChanges": [
+                {"eventDate": 30, "fileSystemItem": {"digest": "notInBinaryStore"}},
+                {
+                    "eventDate": 20,
+                    "fileSystemItem": {"digest": "md5"},
+                    "fileSystemItemId": 2,
+                },
+                {
+                    "eventDate": 10,
+                    "fileSystemItem": {"digest": "md5"},
+                    "fileSystemItemId": 1,
+                },
+            ]
+        }
+        mock_interact.return_value = None
+        mock_from_dict.return_value = "data"
+        mock_filtered.side_effect = [True, False]
+        assert remote_watcher._update_remote_states() is None
 
 
 def test_sync_root_name(manager_factory):

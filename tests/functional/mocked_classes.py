@@ -284,6 +284,7 @@ class Mock_Remote:
         self.folderish = False
         self.name = "dummy_name"
         self.path = "dummy_path"
+        self.sync_root: bool = True
         self.uid = "dummy_uid"
 
     def get_fs_info(self, fs_item_id, parent_fs_item_id=""):
@@ -291,6 +292,12 @@ class Mock_Remote:
 
     def scroll_descendants(self, fs_item_id: str, scroll_id: str, batch_size: int = 0):
         return self.descendants
+
+    def is_sync_root(self, item):
+        return self.sync_root
+
+    def expand_sync_root_name(self, sync_root):
+        return Mock_Remote_File_Info()
 
 
 class Mock_Remote_File_Info(RemoteFileInfo):
