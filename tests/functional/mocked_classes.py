@@ -110,6 +110,7 @@ class Mock_DAO:
         self.remote_parent_path = "dummy_remote_parent_path"
         self.remote_ref = "dummy_remote_ref"
         self.remote_state = "dummy_remote_state"
+        self.synchronize = True
         self.update_remote = True
         self.version = 1
         # DocPair
@@ -180,6 +181,9 @@ class Mock_DAO:
     def is_filter(self, path: str):
         return self.filter
 
+    def queue_children(self, row: DocPair):
+        pass
+
     def _queue_pair_state(
         self, id: int, folderish: bool, pair_state: str, pair: DocPair
     ):
@@ -193,6 +197,11 @@ class Mock_DAO:
 
     def replace_local_paths(self, old_path, new_path):
         pass
+
+    def synchronize_state(
+        self, row: DocPair, version: int = None, dynamic_state: bool = False
+    ):
+        return self.synchronize
 
     def update_config(self, name: str, value: Any):
         pass
@@ -219,6 +228,7 @@ class Mock_DAO:
 class Mock_Doc_Pair(DocPair):
     def __init__(self, cursor: Cursor, data: tuple) -> None:
         self.id = 1
+        self.last_error = "dummy_last_error"
         self.local_path = Path("dummy_local_path")
         self.local_parent_path = Path("dummy_parent_path")
         self.remote_ref = "dummy_remote_ref"

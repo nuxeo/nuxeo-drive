@@ -11,6 +11,7 @@ from nxdrive.objects import DocPair, RemoteFileInfo
 from tests.functional.mocked_classes import (
     Mock_DAO,
     Mock_Doc_Pair,
+    Mock_Local_Client,
     Mock_Remote,
     Mock_Remote_File_Info,
 )
@@ -352,16 +353,205 @@ def test_find_remote_child_match_or_create(manager_factory):
     manager, engine = manager_factory()
     dao = engine.dao
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
-    # remote_info.folderish == False
+    # parent_pair.last_error == "DEDUP"
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.last_error = "DEDUP"
+    mock_remote_file_info = Mock_Remote_File_Info()
+    remote_watcher = RemoteWatcher(engine, dao)
+    assert (
+        remote_watcher._find_remote_child_match_or_create(
+            mock_doc_pair, mock_remote_file_info
+        )
+        is None
+    )
+    # parent_pair.last_error != "DEDUP"
+    # dao.get_normal_state_from_remote == DocPair
+    mock_dao = Mock_DAO()
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_remote_file_info = Mock_Remote_File_Info()
     remote_watcher = RemoteWatcher(engine, dao)
-    assert isinstance(
+    remote_watcher.dao = mock_dao
+    assert (
         remote_watcher._find_remote_child_match_or_create(
             mock_doc_pair, mock_remote_file_info
-        ),
-        DocPair,
+        )
+        is None
     )
+    # parent_pair.last_error != "DEDUP"
+    # dao.get_normal_state_from_remote == None
+    # child_pair is None
+    # parent_pair is not None
+    # engine.local.exists == True
+    mock_client = Mock_Local_Client()
+    mock_client.exist = True
+    mock_dao = Mock_DAO()
+    mock_dao.doc_pairs[0] = None
+    mock_dao.pair_index = 0
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_remote_file_info = Mock_Remote_File_Info()
+    mock_remote_file_info.uid = "remote_ref"
+    remote_watcher = RemoteWatcher(engine, dao)
+    remote_watcher.dao = mock_dao
+    remote_watcher.engine.local = mock_client
+    assert (
+        remote_watcher._find_remote_child_match_or_create(
+            mock_doc_pair, mock_remote_file_info
+        )
+        is None
+    )
+    # parent_pair.last_error != "DEDUP"
+    # dao.get_normal_state_from_remote == None
+    # child_pair is not None
+    # child_pair.remote_ref is not None
+    # child_pair.remote_ref != child_info.uid
+    mock_client = Mock_Local_Client()
+    mock_client.exist = True
+    mock_dao = Mock_DAO()
+    mock_dao.doc_pairs[0] = None
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_remote_file_info = Mock_Remote_File_Info()
+    remote_watcher = RemoteWatcher(engine, dao)
+    remote_watcher.dao = mock_dao
+    remote_watcher.engine.local = mock_client
+    assert (
+        remote_watcher._find_remote_child_match_or_create(
+            mock_doc_pair, mock_remote_file_info
+        )
+        is None
+    )
+    # parent_pair.last_error != "DEDUP"
+    # dao.get_normal_state_from_remote == None
+    # child_pair is not None
+    # child_pair.remote_ref is not None
+    # child_pair.remote_ref == child_info.uid
+    # child_pair.folderish == child_info.folderish
+    # engine.local.is_equal_digests == True
+    # child_pair.local_path != local_path
+    mock_client = Mock_Local_Client()
+    mock_client.exist = True
+    mock_client.equal_digest = True
+    mock_dao = Mock_DAO()
+    mock_dao.doc_pairs[0] = None
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_remote_file_info = Mock_Remote_File_Info()
+    mock_remote_file_info.uid = (
+        "dummy_remote_ref"  # Matching with child_pair.remote_ref
+    )
+    remote_watcher = RemoteWatcher(engine, dao)
+    remote_watcher.dao = mock_dao
+    remote_watcher.engine.local = mock_client
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
+    ) as mock_remove_void:
+        mock_remove_void.return_value = None
+        assert (
+            remote_watcher._find_remote_child_match_or_create(
+                mock_doc_pair, mock_remote_file_info
+            )
+            is None
+        )
+    # parent_pair.last_error != "DEDUP"
+    # dao.get_normal_state_from_remote == None
+    # child_pair is not None
+    # child_pair.remote_ref is not None
+    # child_pair.remote_ref == child_info.uid
+    # child_pair.folderish == child_info.folderish
+    # engine.local.is_equal_digests == True
+    # child_pair.local_path == local_path
+    # synced == True
+    mock_client = Mock_Local_Client()
+    mock_client.exist = True
+    mock_client.equal_digest = True
+    mock_dao = Mock_DAO()
+    mock_dao.doc_pairs[0] = None
+    mock_dao.pair_index = 1
+    mock_dao.local_path = Path("dummy_local_path/dummy_name")
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_remote_file_info = Mock_Remote_File_Info()
+    mock_remote_file_info.uid = (
+        "dummy_remote_ref"  # Matching with child_pair.remote_ref
+    )
+    remote_watcher = RemoteWatcher(engine, dao)
+    remote_watcher.dao = mock_dao
+    remote_watcher.engine.local = mock_client
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
+    ) as mock_remove_void:
+        mock_remove_void.return_value = None
+        assert (
+            remote_watcher._find_remote_child_match_or_create(
+                mock_doc_pair, mock_remote_file_info
+            )
+            is None
+        )
+    # parent_pair.last_error != "DEDUP"
+    # dao.get_normal_state_from_remote == None
+    # child_pair is not None
+    # child_pair.remote_ref is not None
+    # child_pair.remote_ref == child_info.uid
+    # child_pair.folderish == child_info.folderish
+    # engine.local.is_equal_digests == True
+    # child_pair.local_path == local_path
+    # synced == False
+    mock_client = Mock_Local_Client()
+    mock_client.exist = True
+    mock_client.equal_digest = True
+    mock_dao = Mock_DAO()
+    mock_dao.doc_pairs[0] = None
+    mock_dao.local_path = Path("dummy_local_path/dummy_name")
+    mock_dao.pair_index = 1
+    mock_dao.synchronize = False
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_remote_file_info = Mock_Remote_File_Info()
+    mock_remote_file_info.uid = (
+        "dummy_remote_ref"  # Matching with child_pair.remote_ref
+    )
+    remote_watcher = RemoteWatcher(engine, dao)
+    remote_watcher.dao = mock_dao
+    remote_watcher.engine.local = mock_client
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
+    ) as mock_remove_void:
+        mock_remove_void.return_value = None
+        assert (
+            remote_watcher._find_remote_child_match_or_create(
+                mock_doc_pair, mock_remote_file_info
+            )
+            is None
+        )
+    # parent_pair.last_error != "DEDUP"
+    # dao.get_normal_state_from_remote == None
+    # child_pair is not None
+    # child_pair.remote_ref is not None
+    # child_pair.remote_ref == child_info.uid
+    # child_pair.folderish == child_info.folderish
+    # engine.local.is_equal_digests == False
+    mock_client = Mock_Local_Client()
+    mock_client.exist = True
+    mock_client.equal_digest = False
+    mock_dao = Mock_DAO()
+    mock_dao.doc_pairs[0] = None
+    mock_dao.local_path = Path("dummy_local_path/dummy_name")
+    mock_dao.pair_index = 1
+    mock_dao.synchronize = False
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_remote_file_info = Mock_Remote_File_Info()
+    mock_remote_file_info.uid = (
+        "dummy_remote_ref"  # Matching with child_pair.remote_ref
+    )
+    remote_watcher = RemoteWatcher(engine, dao)
+    remote_watcher.dao = mock_dao
+    remote_watcher.engine.local = mock_client
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
+    ) as mock_remove_void:
+        mock_remove_void.return_value = None
+        assert (
+            remote_watcher._find_remote_child_match_or_create(
+                mock_doc_pair, mock_remote_file_info
+            )
+            is None
+        )
 
 
 def test_sync_root_name(manager_factory):
