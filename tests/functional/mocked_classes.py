@@ -216,6 +216,26 @@ class Mock_DAO:
         pass
 
 
+class Mock_Doc_Pair(DocPair):
+    def __init__(self, cursor: Cursor, data: tuple) -> None:
+        self.id = 1
+        self.local_path = Path("dummy_local_path")
+        self.local_parent_path = Path("dummy_parent_path")
+        self.remote_ref = "dummy_remote_ref"
+        self.local_state = "dummy_local_state"
+        self.remote_state = "dummy_remote_state"
+        self.pair_state = "dummy_pair_state"
+        self.last_error = "dummy_last_error"
+        self.remote_can_delete = True
+        self.remote_can_rename = True
+        self.remote_can_update = False
+        self.remote_can_create_child = True
+        self.remote_name = "doc_pair_remote"
+        self.remote_digest = "doc_pair_digest"
+        self.remote_parent_path = "dummy_remote_parent_path"
+        self.remote_parent_ref = "doc_pair_remote_parent_ref"
+
+
 class Mock_Engine:
     def __init__(self) -> None:
         self.remote = Mock_Remote()
@@ -224,6 +244,11 @@ class Mock_Engine:
 class Mock_Remote:
     def __init__(self) -> None:
         self.can_scroll_descendants = False
+        self.descendants = {
+            "descendants": [Mock_Remote_File_Info()],
+            "scroll_id": "scroll_id_data",
+        }
+        self.digest = "dummy_digest"
         self.folderish = False
         self.name = "dummy_name"
         self.path = "dummy_path"
@@ -231,3 +256,28 @@ class Mock_Remote:
 
     def get_fs_info(self, fs_item_id, parent_fs_item_id=""):
         return self
+
+    def scroll_descendants(self, fs_item_id: str, scroll_id: str, batch_size: int = 0):
+        return self.descendants
+
+
+class Mock_Remote_File_Info(RemoteFileInfo):
+    def __init__(self) -> None:
+        self.name = "dummy_name"
+        self.uid = "dummy_uid"
+        self.parent_uid = "dummy_parent_uid"
+        self.path = "dummy_path"
+        self.folderish = False
+        self.last_modification_time = datetime.now()
+        self.creation_time = datetime.now()
+        self.last_contributor = None
+        self.digest = None
+        self.digest_algorithm = "md5"
+        self.download_url = "dummy_url"
+        self.can_rename = False
+        self.can_delete = False
+        self.can_update = False
+        self.can_create_child = False
+        self.lock_owner = "dummy_lock_owner"
+        self.lock_created = datetime.now()
+        self.can_scroll_descendants = False

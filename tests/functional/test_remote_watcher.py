@@ -8,7 +8,12 @@ import pytest
 from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
 from nxdrive.exceptions import ThreadInterrupt
 from nxdrive.objects import DocPair, RemoteFileInfo
-from tests.functional.mocked_classes import Mock_DAO, Mock_Remote
+from tests.functional.mocked_classes import (
+    Mock_DAO,
+    Mock_Doc_Pair,
+    Mock_Remote,
+    Mock_Remote_File_Info,
+)
 
 
 def test_get_metrics(manager_factory):
@@ -136,6 +141,211 @@ def test_scan_pair(manager_factory):
     ) as mock_scan_remote:
         mock_scan_remote.return_value = None
         assert remote_watcher._scan_pair("tests/resources/files/") is None
+
+
+def test_check_modified(manager_factory):
+    manager, engine = manager_factory()
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = DocPair(cursor, ())
+    mock_doc_pair.id = 1
+    mock_doc_pair.local_path = Path("dummy_local_path")
+    mock_doc_pair.local_parent_path = Path("dummy_parent_path")
+    mock_doc_pair.remote_ref = "dummy_remote_ref"
+    mock_doc_pair.local_state = "dummy_local_state"
+    mock_doc_pair.remote_state = "dummy_remote_state"
+    mock_doc_pair.pair_state = "dummy_pair_state"
+    mock_doc_pair.last_error = "dummy_last_error"
+    mock_doc_pair.remote_can_delete = True
+    mock_doc_pair.remote_can_rename = True
+    mock_doc_pair.remote_can_update = False
+    mock_doc_pair.remote_can_create_child = True
+    mock_doc_pair.remote_name = "doc_pair_remote"
+    mock_doc_pair.remote_digest = "doc_pair_digest"
+    mock_doc_pair.remote_parent_ref = "doc_pair_remote_parent_ref"
+    mock_remote_file_info = Mock_Remote_File_Info()
+    assert RemoteWatcher._check_modified(mock_doc_pair, mock_remote_file_info) is True
+
+
+def test_scan_remote_scroll(manager_factory):
+    manager, engine = manager_factory()
+    dao = engine.dao
+    remote_watcher = RemoteWatcher(engine, dao)
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_remote_file_info = Mock_Remote_File_Info()
+    # remote_parent_path is None
+    assert (
+        remote_watcher._scan_remote_scroll(
+            mock_doc_pair, mock_remote_file_info, moved=False
+        )
+        is None
+    )
+    # remote_parent_path is not None
+    # moved == True
+    # not parent_pair
+    # to_process != []
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_remote = Mock_Remote()
+    mock_remote_file_info = Mock_Remote_File_Info()
+    remote_watcher = RemoteWatcher(engine, dao)
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._init_scan_remote"
+    ) as mock_init_scan, patch(
+        "nxdrive.client.remote_client.Remote.scroll_descendants"
+    ) as mock_scroll_descendants, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._interact"
+    ) as mock_interact:
+        mock_init_scan.return_value = "dummy_remote_parent_path"
+        mock_remote2 = Mock_Remote()
+        mock_remote2.descendants["descendants"] = False
+        mock_scroll_descendants.side_effect = [
+            mock_remote.descendants,
+            mock_remote2.descendants,
+        ]
+        mock_interact.return_value = True
+        assert (
+            remote_watcher._scan_remote_scroll(
+                mock_doc_pair, mock_remote_file_info, moved=True
+            )
+            is None
+        )
+    # remote_parent_path is not None
+    # moved == True
+    # self.filtered(descendant_info) == True
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_remote = Mock_Remote()
+    mock_remote_file_info = Mock_Remote_File_Info()
+    remote_watcher = RemoteWatcher(engine, dao)
+    remote_watcher.engine.remote = mock_remote
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._init_scan_remote"
+    ) as mock_init_scan, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._interact"
+    ) as mock_interact, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.filtered"
+    ) as mock_filtered:
+        mock_init_scan.return_value = "dummy_remote_parent_path"
+        mock_filtered.return_value = True
+        mock_interact.side_effect = [None, ThreadInterrupt("Custom thread interrupt")]
+        with pytest.raises(ThreadInterrupt) as ex:
+            remote_watcher._scan_remote_scroll(
+                mock_doc_pair, mock_remote_file_info, moved=True
+            )
+        assert str(ex.exconly()).startswith("nxdrive.exceptions.ThreadInterrupt")
+    # remote_parent_path is not None
+    # moved == True
+    # dao.is_filter(descendant_info.path) == True
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_remote = Mock_Remote()
+    mock_remote_file_info = Mock_Remote_File_Info()
+    remote_watcher = RemoteWatcher(engine, dao)
+    remote_watcher.engine.remote = mock_remote
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._init_scan_remote"
+    ) as mock_init_scan, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._interact"
+    ) as mock_interact, patch(
+        "nxdrive.dao.engine.EngineDAO.is_filter"
+    ) as mock_filter:
+        mock_init_scan.return_value = "dummy_remote_parent_path"
+        mock_interact.side_effect = [None, ThreadInterrupt("Custom thread interrupt")]
+        mock_filter.return_value = True
+        with pytest.raises(ThreadInterrupt) as ex:
+            remote_watcher._scan_remote_scroll(
+                mock_doc_pair, mock_remote_file_info, moved=True
+            )
+        assert str(ex.exconly()).startswith("nxdrive.exceptions.ThreadInterrupt")
+    # remote_parent_path is not None
+    # moved == True
+    # descendant_info.digest == "notInBinaryStore"
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_remote = Mock_Remote()
+    mock_remote.descendants["descendants"][0].digest = "notInBinaryStore"
+    mock_remote_file_info = Mock_Remote_File_Info()
+    remote_watcher = RemoteWatcher(engine, dao)
+    remote_watcher.engine.remote = mock_remote
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._init_scan_remote"
+    ) as mock_init_scan, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._interact"
+    ) as mock_interact:
+        mock_init_scan.return_value = "dummy_remote_parent_path"
+        mock_interact.side_effect = [None, ThreadInterrupt("Custom thread interrupt")]
+        with pytest.raises(ThreadInterrupt) as ex:
+            remote_watcher._scan_remote_scroll(
+                mock_doc_pair, mock_remote_file_info, moved=True
+            )
+        assert str(ex.exconly()).startswith("nxdrive.exceptions.ThreadInterrupt")
+    # remote_parent_path is not None
+    # moved == False
+    # descendant_info.uid in descendants
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_remote = Mock_Remote()
+    mock_remote_file_info = Mock_Remote_File_Info()
+    remote_watcher = RemoteWatcher(engine, dao)
+    remote_watcher.engine.remote = mock_remote
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._init_scan_remote"
+    ) as mock_init_scan, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._interact"
+    ) as mock_interact, patch(
+        "nxdrive.dao.engine.EngineDAO.get_remote_descendants"
+    ) as mock_remote_descendants, patch(
+        "nxdrive.dao.engine.EngineDAO.update_remote_state"
+    ) as mock_remote_state, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
+    ) as mock_void_tranfers:
+        mock_init_scan.return_value = "dummy_remote_parent_path"
+        mock_interact.side_effect = [None, ThreadInterrupt("Custom thread interrupt")]
+        mock_remote_state.return_value = True
+        mock_void_tranfers.return_value = None
+        mock_doc_pair2 = Mock_Doc_Pair(cursor, ())
+        mock_doc_pair2.remote_ref = "dummy_uid"
+        mock_remote_descendants.return_value = [mock_doc_pair2]
+        with pytest.raises(ThreadInterrupt) as ex:
+            remote_watcher._scan_remote_scroll(
+                mock_doc_pair, mock_remote_file_info, moved=False
+            )
+        assert str(ex.exconly()).startswith("nxdrive.exceptions.ThreadInterrupt")
+
+
+def test_init_scan_remote(manager_factory):
+    manager, engine = manager_factory()
+    dao = engine.dao
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    # remote_info.folderish == False
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_remote_file_info = Mock_Remote_File_Info()
+    remote_watcher = RemoteWatcher(engine, dao)
+    assert (
+        remote_watcher._init_scan_remote(mock_doc_pair, mock_remote_file_info) is None
+    )
+    # remote_info.folderish == True
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_remote_file_info = Mock_Remote_File_Info()
+    mock_remote_file_info.folderish = True
+    remote_watcher = RemoteWatcher(engine, dao)
+    assert (
+        remote_watcher._init_scan_remote(mock_doc_pair, mock_remote_file_info)
+        == "dummy_remote_parent_path/dummy_uid"
+    )
+    # remote_info.folderish == True
+    # dao.is_path_scanned == True
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_remote_file_info = Mock_Remote_File_Info()
+    mock_remote_file_info.folderish = True
+    remote_watcher = RemoteWatcher(engine, dao)
+    with patch("nxdrive.dao.engine.EngineDAO.is_path_scanned") as mock_path_scanned:
+        mock_path_scanned.return_value = True
+        assert (
+            remote_watcher._init_scan_remote(mock_doc_pair, mock_remote_file_info)
+            is None
+        )
 
 
 def test_sync_root_name(manager_factory):
