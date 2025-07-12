@@ -348,6 +348,22 @@ def test_init_scan_remote(manager_factory):
         )
 
 
+def test_find_remote_child_match_or_create(manager_factory):
+    manager, engine = manager_factory()
+    dao = engine.dao
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    # remote_info.folderish == False
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_remote_file_info = Mock_Remote_File_Info()
+    remote_watcher = RemoteWatcher(engine, dao)
+    assert isinstance(
+        remote_watcher._find_remote_child_match_or_create(
+            mock_doc_pair, mock_remote_file_info
+        ),
+        DocPair,
+    )
+
+
 def test_sync_root_name(manager_factory):
     manager, engine = manager_factory()
     dao = engine.dao
