@@ -11,6 +11,7 @@ from nxdrive.objects import DocPair, RemoteFileInfo
 from tests.functional.mocked_classes import (
     Mock_DAO,
     Mock_Doc_Pair,
+    Mock_Engine,
     Mock_Local_Client,
     Mock_Remote,
     Mock_Remote_File_Info,
@@ -552,6 +553,275 @@ def test_find_remote_child_match_or_create(manager_factory):
             )
             is None
         )
+
+
+def test_handle_readonly(manager_factory):
+    manager, engine = manager_factory()
+    dao = engine.dao
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    # doc_pair.is_readonly == False
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    remote_watcher = RemoteWatcher(engine, dao)
+    assert remote_watcher._handle_readonly(mock_doc_pair) is None
+    # doc_pair.is_readonly == True
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.local_path = Path.cwd() / Path("tests/resources/files/testFile.txt")
+    mock_doc_pair.read_only = True
+    remote_watcher = RemoteWatcher(engine, dao)
+    assert remote_watcher._handle_readonly(mock_doc_pair) is None
+
+
+def test_partial_full_scan(manager_factory):
+    manager, engine = manager_factory()
+    dao = engine.dao
+    remote_watcher = RemoteWatcher(engine, dao)
+    # path == "/"
+    mock_path = "/"
+    assert remote_watcher._partial_full_scan(mock_path) is None
+    # path != "/"
+    mock_path = "dummy_path"
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._scan_pair"
+    ) as mock_scan_pair:
+        mock_scan_pair.return_value = None
+        assert remote_watcher._partial_full_scan(mock_path) is None
+
+
+def test_check_offline(manager_factory):
+    manager, engine = manager_factory()
+    dao = engine.dao
+    # engine.is_offline == False
+    mock_engine = Mock_Engine()
+    remote_watcher = RemoteWatcher(mock_engine, dao)
+    assert remote_watcher._check_offline() is False
+    # engine.is_offline == True
+    # online == True
+    mock_engine = Mock_Engine()
+    mock_engine.offline = True
+    mock_engine.remote.client.reachable = True
+    remote_watcher = RemoteWatcher(mock_engine, dao)
+    assert remote_watcher._check_offline() is False
+
+
+def test_handle_changes(manager_factory):
+    from datetime import datetime
+
+    from nuxeo.exceptions import BadQuery, HTTPError, Unauthorized
+
+    from nxdrive.exceptions import ScrollDescendantsError
+    from nxdrive.options import Feature
+
+    manager, engine = manager_factory()
+    dao = engine.dao
+    remote_watcher = RemoteWatcher(engine, dao)
+    # not Feature.synchronization
+    # first_pass == True
+    Feature.synchronization = None
+    assert remote_watcher._handle_changes(True) is True
+    # not Feature.synchronization
+    # first_pass == False
+    Feature.synchronization = None
+    assert remote_watcher._handle_changes(False) is False
+    # Feature.synchronization
+    # _check_offline == True
+    Feature.synchronization = "activated"
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+    ) as mock_offline:
+        mock_offline.return_value = True
+        assert remote_watcher._handle_changes(False) is False
+    # Feature.synchronization
+    # _check_offline == False
+    # first_pass == True
+    Feature.synchronization = "activated"
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+    ) as mock_offline:
+        mock_offline.return_value = False
+        assert remote_watcher._handle_changes(True) is True
+    # Feature.synchronization
+    # _check_offline == False
+    # first_pass == False
+    # full_scan is not None
+    Feature.synchronization = "activated"
+    remote_watcher = RemoteWatcher(engine, dao)
+    remote_watcher._last_remote_full_scan = datetime.now()
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+    ) as mock_offline, patch(
+        "nxdrive.dao.engine.EngineDAO.get_config"
+    ) as mock_config, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._partial_full_scan"
+    ) as mock_partial_scan:
+        mock_offline.return_value = False
+        mock_config.return_value = "dummy_config"
+        mock_partial_scan.return_value = None
+        assert remote_watcher._handle_changes(False) is False
+    # Feature.synchronization
+    # _check_offline == False
+    # first_pass == False
+    # full_scan is None
+    Feature.synchronization = "activated"
+    remote_watcher = RemoteWatcher(engine, dao)
+    remote_watcher._last_remote_full_scan = datetime.now()
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+    ) as mock_offline, patch(
+        "nxdrive.dao.engine.EngineDAO.get_paths_to_scan"
+    ) as mock_paths, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._partial_full_scan"
+    ) as mock_partial_scan:
+        mock_offline.return_value = False
+        mock_paths.side_effect = [["path1"], ["path2"], None]
+        mock_partial_scan.return_value = None
+        assert remote_watcher._handle_changes(False) is True
+    # BadQuery
+    Feature.synchronization = "activated"
+    remote_watcher = RemoteWatcher(engine, dao)
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+    ) as mock_offline, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
+    ) as mock_scan_remote:
+        mock_offline.return_value = False
+        mock_scan_remote.side_effect = BadQuery("Custom Bad Query")
+        with pytest.raises(BadQuery) as ex:
+            remote_watcher._handle_changes(False)
+        assert str(ex.exconly()).startswith("nuxeo.exceptions.BadQuery")
+    # ScrollDescendantsError
+    Feature.synchronization = "activated"
+    remote_watcher = RemoteWatcher(engine, dao)
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+    ) as mock_offline, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
+    ) as mock_scan_remote:
+        mock_offline.return_value = False
+        mock_scan_remote.side_effect = ScrollDescendantsError(
+            "Custom ScrollDescendantsError Exception"
+        )
+        assert remote_watcher._handle_changes(False) is False
+    # Unauthorized
+    Feature.synchronization = "activated"
+    remote_watcher = RemoteWatcher(engine, dao)
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+    ) as mock_offline, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
+    ) as mock_scan_remote:
+        mock_offline.return_value = False
+        mock_scan_remote.side_effect = Unauthorized()
+        assert remote_watcher._handle_changes(False) is False
+    # HTTPError
+    Feature.synchronization = "activated"
+    remote_watcher = RemoteWatcher(engine, dao)
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+    ) as mock_offline, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
+    ) as mock_scan_remote:
+        mock_offline.return_value = False
+        mock_scan_remote.side_effect = HTTPError(status=504)
+        assert remote_watcher._handle_changes(False) is False
+    # OSError
+    Feature.synchronization = "activated"
+    remote_watcher = RemoteWatcher(engine, dao)
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+    ) as mock_offline, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
+    ) as mock_scan_remote:
+        mock_offline.return_value = False
+        mock_scan_remote.side_effect = OSError()
+        assert remote_watcher._handle_changes(False) is False
+    # ThreadInterrupt
+    # Feature.synchronization = "activated"
+    remote_watcher = RemoteWatcher(engine, dao)
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+    ) as mock_offline, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
+    ) as mock_scan_remote:
+        mock_offline.return_value = False
+        mock_scan_remote.side_effect = ThreadInterrupt("Custom ThreadInterrupt")
+        with pytest.raises(ThreadInterrupt) as ex:
+            remote_watcher._handle_changes(False)
+        assert str(ex.exconly()).startswith("nxdrive.exceptions.ThreadInterrupt")
+    # Exception
+    Feature.synchronization = "activated"
+    remote_watcher = RemoteWatcher(engine, dao)
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+    ) as mock_offline, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
+    ) as mock_scan_remote:
+        mock_offline.return_value = False
+        mock_scan_remote.side_effect = Exception("Custom Exception")
+        assert remote_watcher._handle_changes(False) is False
+
+
+def test_call_and_measure_gcs(manager_factory):
+    manager, engine = manager_factory()
+    dao = engine.dao
+    remote_watcher = RemoteWatcher(engine, dao)
+    output = remote_watcher._call_and_measure_gcs()
+    assert output["activeSynchronizationRootDefinitions"] == ""
+    assert output["fileSystemChanges"] == []
+    assert output["hasTooManyChanges"] is False
+    assert output["syncDate"] > 0
+
+
+def test_get_changes(manager_factory):
+    manager, engine = manager_factory()
+    dao = engine.dao
+    remote_watcher = RemoteWatcher(engine, dao)
+    output = remote_watcher._get_changes()
+    assert output["activeSynchronizationRootDefinitions"] == ""
+    assert output["fileSystemChanges"] == []
+    assert output["hasTooManyChanges"] is False
+    assert output["syncDate"] > 0
+    # not isinstance(summary, dict)
+    remote_watcher = RemoteWatcher(engine, dao)
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._call_and_measure_gcs"
+    ) as mock_measure_gc:
+        mock_measure_gc.return_value = []
+        assert remote_watcher._get_changes() is None
+    # root_defs is None
+    remote_watcher = RemoteWatcher(engine, dao)
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._call_and_measure_gcs"
+    ) as mock_measure_gc:
+        mock_measure_gc.return_value = {"activeSynchronizationRootDefinitions": None}
+        assert remote_watcher._get_changes() is None
+
+
+def test_force_remote_scan(manager_factory):
+    manager, engine = manager_factory()
+    dao = engine.dao
+    remote_watcher = RemoteWatcher(engine, dao)
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_remote_file_info = Mock_Remote_File_Info()
+    # remote_path is None
+    # force_recursion == True
+    assert (
+        remote_watcher._force_remote_scan(
+            mock_doc_pair, mock_remote_file_info, remote_path=None, force_recursion=True
+        )
+        is None
+    )
+    # remote_path is not None
+    # force_recursion == False
+    assert (
+        remote_watcher._force_remote_scan(
+            mock_doc_pair,
+            mock_remote_file_info,
+            remote_path="remote_path",
+            force_recursion=False,
+        )
+        is None
+    )
 
 
 def test_sync_root_name(manager_factory):

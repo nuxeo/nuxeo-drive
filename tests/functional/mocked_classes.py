@@ -228,6 +228,7 @@ class Mock_DAO:
 class Mock_Doc_Pair(DocPair):
     def __init__(self, cursor: Cursor, data: tuple) -> None:
         self.id = 1
+        self.folderish = False
         self.last_error = "dummy_last_error"
         self.local_path = Path("dummy_local_path")
         self.local_parent_path = Path("dummy_parent_path")
@@ -244,16 +245,37 @@ class Mock_Doc_Pair(DocPair):
         self.remote_digest = "doc_pair_digest"
         self.remote_parent_path = "dummy_remote_parent_path"
         self.remote_parent_ref = "doc_pair_remote_parent_ref"
+        # Custom attributes
+        self.read_only = False
+
+    def is_readonly(self) -> bool:
+        return self.read_only
 
 
 class Mock_Engine:
     def __init__(self) -> None:
+        self.offline = False
         self.remote = Mock_Remote()
+
+    def is_offline(self) -> bool:
+        return self.offline
+
+    def set_offline(self, value: bool = True):
+        pass
+
+
+class Mock_Nuxeo_Client:
+    def __init__(self) -> None:
+        self.reachable = False
+
+    def is_reachable(self):
+        return self.reachable
 
 
 class Mock_Remote:
     def __init__(self) -> None:
         self.can_scroll_descendants = False
+        self.client = Mock_Nuxeo_Client()
         self.descendants = {
             "descendants": [Mock_Remote_File_Info()],
             "scroll_id": "scroll_id_data",
