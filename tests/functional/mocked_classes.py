@@ -92,6 +92,7 @@ class Mock_DAO:
         self.filter = True
         self.folderish = False
         self.id = 1
+        self.last_error = "DEDUP"
         self.local_digest = "md6"
         self.last_local_updated = "2025-07-04 11:41:23"
         self.local_name = "dummy_local_name"
@@ -132,6 +133,9 @@ class Mock_DAO:
     def clean_scanned(self):
         pass
 
+    def delete_remote_state(self, doc_pair):
+        pass
+
     def get_local_children(self, path: Path):
         self.db_children.append(self)
         mock_dao2 = Mock_DAO()
@@ -160,6 +164,11 @@ class Mock_DAO:
             if mock_client_path.parent == path:
                 return self.doc_pairs[0]
             return
+
+    def get_states_from_remote(self, ref: str):
+        if self.pair_index >= len(self.doc_pairs):
+            self.pair_index = len(self.doc_pairs) - 1
+        return [self.doc_pairs[self.pair_index], None]
 
     def get_state_from_remote_with_path(self, ref: str, path: str):
         value = self.get_states[self.get_state_index]
@@ -192,7 +201,9 @@ class Mock_DAO:
     def release_state(self, thread_id):
         pass
 
-    def remove_state(self, doc_pair):
+    def remove_state(
+        self, doc_pair, remote_recursion: bool = True, recursive: bool = True
+    ):
         return None
 
     def replace_local_paths(self, old_path, new_path):
@@ -283,6 +294,7 @@ class Mock_Remote:
         }
         self.digest = "dummy_digest"
         self.folderish = False
+        self.fs_item = {"item1": "item1_name"}
         self.name = "dummy_name"
         self.path = "dummy_path"
         self.sync_root: bool = True
@@ -290,6 +302,9 @@ class Mock_Remote:
 
     def get_fs_info(self, fs_item_id, parent_fs_item_id=""):
         return self
+
+    def get_fs_item(self, fs_item_id, parent_fs_item_id: str = None):
+        self.fs_item
 
     def scroll_descendants(self, fs_item_id: str, scroll_id: str, batch_size: int = 0):
         return self.descendants

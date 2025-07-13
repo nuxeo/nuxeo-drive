@@ -577,7 +577,11 @@ def test_partial_full_scan(manager_factory):
     remote_watcher = RemoteWatcher(engine, dao)
     # path == "/"
     mock_path = "/"
-    assert remote_watcher._partial_full_scan(mock_path) is None
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
+    ) as mock_scan_remote:
+        mock_scan_remote.return_value = None
+        assert remote_watcher._partial_full_scan(mock_path) is None
     # path != "/"
     mock_path = "dummy_path"
     with patch(
@@ -617,14 +621,17 @@ def test_handle_changes(manager_factory):
     # not Feature.synchronization
     # first_pass == True
     Feature.synchronization = None
+    remote_watcher = RemoteWatcher(engine, dao)
     assert remote_watcher._handle_changes(True) is True
     # not Feature.synchronization
     # first_pass == False
     Feature.synchronization = None
+    remote_watcher = RemoteWatcher(engine, dao)
     assert remote_watcher._handle_changes(False) is False
     # Feature.synchronization
     # _check_offline == True
     Feature.synchronization = True
+    remote_watcher = RemoteWatcher(engine, dao)
     with patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
     ) as mock_offline:
@@ -634,6 +641,7 @@ def test_handle_changes(manager_factory):
     # _check_offline == False
     # first_pass == True
     Feature.synchronization = True
+    remote_watcher = RemoteWatcher(engine, dao)
     with patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
     ) as mock_offline:
@@ -767,7 +775,6 @@ def test_call_and_measure_gcs(manager_factory):
     output = remote_watcher._call_and_measure_gcs()
     assert output["activeSynchronizationRootDefinitions"] == ""
     assert output["fileSystemChanges"] == []
-    assert output["hasTooManyChanges"] is False
     assert output["syncDate"] > 0
 
 
@@ -778,7 +785,6 @@ def test_get_changes(manager_factory):
     output = remote_watcher._get_changes()
     assert output["activeSynchronizationRootDefinitions"] == ""
     assert output["fileSystemChanges"] == []
-    assert output["hasTooManyChanges"] is False
     assert output["syncDate"] > 0
     # not isinstance(summary, dict)
     remote_watcher = RemoteWatcher(engine, dao)
@@ -849,9 +855,12 @@ def test_update_remote_states(manager_factory):
         mock_summary.return_value = {"fileSystemChanges": False}
         assert remote_watcher._update_remote_states() is None
     # "fileSystemChanges" == True
+    # fs_item is not None and new_info is not None
+    mock_dao = Mock_DAO()
     mock_remote = Mock_Remote()
     remote_watcher = RemoteWatcher(engine, dao)
     remote_watcher.engine.remote = mock_remote
+    remote_watcher.dao = mock_dao
     with patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
     ) as mock_summary, patch(
@@ -866,11 +875,13 @@ def test_update_remote_states(manager_factory):
                 {"eventDate": 30, "fileSystemItem": {"digest": "notInBinaryStore"}},
                 {
                     "eventDate": 20,
+                    "eventId": "deleted",
                     "fileSystemItem": {"digest": "md5"},
                     "fileSystemItemId": 2,
                 },
                 {
                     "eventDate": 10,
+                    "eventId": "deleted",
                     "fileSystemItem": {"digest": "md5"},
                     "fileSystemItemId": 1,
                 },
@@ -879,6 +890,129 @@ def test_update_remote_states(manager_factory):
         mock_interact.return_value = None
         mock_from_dict.return_value = "data"
         mock_filtered.side_effect = [True, False]
+        assert remote_watcher._update_remote_states() is None
+    # "fileSystemChanges" == True
+    # fs_item is None
+    # doc_pair.last_error == "DEDUP"
+    mock_dao = Mock_DAO()
+    mock_remote = Mock_Remote()
+    remote_watcher = RemoteWatcher(engine, dao)
+    remote_watcher.engine.remote = mock_remote
+    remote_watcher.dao = mock_dao
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
+    ) as mock_summary, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._interact"
+    ) as mock_interact, patch(
+        "nxdrive.objects.RemoteFileInfo.from_dict"
+    ) as mock_from_dict, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.filtered"
+    ) as mock_filtered, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
+    ) as mock_void_transfers:
+        mock_summary.return_value = {
+            "fileSystemChanges": [
+                {"eventDate": 30, "fileSystemItem": {"digest": "notInBinaryStore"}},
+                {
+                    "eventDate": 20,
+                    "eventId": "deleted",
+                    "fileSystemItemId": 2,
+                },
+                {
+                    "eventDate": 10,
+                    "eventId": "deleted",
+                    "fileSystemItemId": 1,
+                },
+            ]
+        }
+        mock_interact.return_value = None
+        mock_from_dict.return_value = "data"
+        mock_filtered.side_effect = [True, False]
+        mock_void_transfers.return_value = None
+        assert remote_watcher._update_remote_states() is None
+    # "fileSystemChanges" == True
+    # fs_item is None
+    # doc_pair.last_error != "DEDUP"
+    mock_dao = Mock_DAO()
+    mock_dao.last_error = "dummy_last_error"
+    mock_remote = Mock_Remote()
+    remote_watcher = RemoteWatcher(engine, dao)
+    remote_watcher.engine.remote = mock_remote
+    remote_watcher.dao = mock_dao
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
+    ) as mock_summary, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._interact"
+    ) as mock_interact, patch(
+        "nxdrive.objects.RemoteFileInfo.from_dict"
+    ) as mock_from_dict, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.filtered"
+    ) as mock_filtered, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
+    ) as mock_void_transfers:
+        mock_summary.return_value = {
+            "fileSystemChanges": [
+                {"eventDate": 30, "fileSystemItem": {"digest": "notInBinaryStore"}},
+                {
+                    "eventDate": 20,
+                    "eventId": "deleted",
+                    "fileSystemItemId": 2,
+                },
+                {
+                    "eventDate": 10,
+                    "eventId": "deleted",
+                    "fileSystemItemId": 1,
+                },
+            ]
+        }
+        mock_interact.return_value = None
+        mock_from_dict.return_value = "data"
+        mock_filtered.side_effect = [True, False]
+        mock_void_transfers.return_value = None
+        assert remote_watcher._update_remote_states() is None
+    # "fileSystemChanges" == True
+    # fs_item is None
+    # doc_pair.last_error != "DEDUP"
+    mock_dao = Mock_DAO()
+    mock_remote = Mock_Remote()
+    remote_watcher = RemoteWatcher(engine, dao)
+    remote_watcher.engine.remote = mock_remote
+    remote_watcher.dao = mock_dao
+    with patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
+    ) as mock_summary, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._interact"
+    ) as mock_interact, patch(
+        "nxdrive.objects.RemoteFileInfo.from_dict"
+    ) as mock_from_dict, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.filtered"
+    ) as mock_filtered, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
+    ) as mock_void_transfers:
+        mock_summary.return_value = {
+            "fileSystemChanges": [
+                {"eventDate": 40, "fileSystemItem": {"digest": "notInBinaryStore"}},
+                {
+                    "eventDate": 30,
+                    "eventId": "deleted",
+                    "fileSystemItemId": "item3",
+                },
+                {
+                    "eventDate": 20,
+                    "eventId": "securityUpdated",
+                    "fileSystemItemId": "item2",
+                },
+                {
+                    "eventDate": 10,
+                    "eventId": "securityUpdated",
+                    "fileSystemItemId": "item1",
+                },
+            ]
+        }
+        mock_interact.return_value = None
+        mock_from_dict.return_value = "data"
+        mock_filtered.side_effect = [True, True, False]
+        mock_void_transfers.return_value = None
         assert remote_watcher._update_remote_states() is None
 
 

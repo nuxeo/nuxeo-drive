@@ -660,8 +660,6 @@ class RemoteWatcher(EngineWorker):
         except Unauthorized:
             self.engine.set_invalid_credentials()
             self.engine.set_offline()
-        except (*CONNECTION_ERROR, OSError) as exc:
-            log.warning(f"Network error: {exc}")
         except HTTPError as exc:
             status = exc.status
             err = f"HTTP error {status} while trying to handle remote changes"
@@ -669,6 +667,8 @@ class RemoteWatcher(EngineWorker):
                 log.warning(f"Gateaway timeout: {exc}")
             else:
                 log.warning(err)
+        except (*CONNECTION_ERROR, OSError) as exc:
+            log.warning(f"Network error: {exc}")
         except ThreadInterrupt:
             raise
         except Exception:
