@@ -644,8 +644,11 @@ def test_handle_changes(manager_factory):
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
-    ) as mock_offline:
+    ) as mock_offline, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
+    ) as mock_scan_remote:
         mock_offline.return_value = False
+        mock_scan_remote.return_value = None
         assert remote_watcher._handle_changes(True) is True
     # Feature.synchronization
     # _check_offline == False
