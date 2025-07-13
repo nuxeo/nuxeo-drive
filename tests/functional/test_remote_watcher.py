@@ -624,7 +624,7 @@ def test_handle_changes(manager_factory):
     assert remote_watcher._handle_changes(False) is False
     # Feature.synchronization
     # _check_offline == True
-    Feature.synchronization = "activated"
+    Feature.synchronization = True
     with patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
     ) as mock_offline:
@@ -633,7 +633,7 @@ def test_handle_changes(manager_factory):
     # Feature.synchronization
     # _check_offline == False
     # first_pass == True
-    Feature.synchronization = "activated"
+    Feature.synchronization = True
     with patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
     ) as mock_offline:
@@ -643,7 +643,7 @@ def test_handle_changes(manager_factory):
     # _check_offline == False
     # first_pass == False
     # full_scan is not None
-    Feature.synchronization = "activated"
+    Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     remote_watcher._last_remote_full_scan = datetime.now()
     with patch(
@@ -661,7 +661,7 @@ def test_handle_changes(manager_factory):
     # _check_offline == False
     # first_pass == False
     # full_scan is None
-    Feature.synchronization = "activated"
+    Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     remote_watcher._last_remote_full_scan = datetime.now()
     with patch(
@@ -676,7 +676,7 @@ def test_handle_changes(manager_factory):
         mock_partial_scan.return_value = None
         assert remote_watcher._handle_changes(False) is True
     # BadQuery
-    Feature.synchronization = "activated"
+    Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
@@ -689,7 +689,7 @@ def test_handle_changes(manager_factory):
             remote_watcher._handle_changes(False)
         assert str(ex.exconly()).startswith("nuxeo.exceptions.BadQuery")
     # ScrollDescendantsError
-    Feature.synchronization = "activated"
+    Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
@@ -702,7 +702,7 @@ def test_handle_changes(manager_factory):
         )
         assert remote_watcher._handle_changes(False) is False
     # Unauthorized
-    Feature.synchronization = "activated"
+    Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
@@ -713,7 +713,7 @@ def test_handle_changes(manager_factory):
         mock_scan_remote.side_effect = Unauthorized()
         assert remote_watcher._handle_changes(False) is False
     # OSError
-    Feature.synchronization = "activated"
+    Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
@@ -724,7 +724,7 @@ def test_handle_changes(manager_factory):
         mock_scan_remote.side_effect = OSError()
         assert remote_watcher._handle_changes(False) is False
     # HTTPError
-    Feature.synchronization = "activated"
+    Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
@@ -735,7 +735,7 @@ def test_handle_changes(manager_factory):
         mock_scan_remote.side_effect = HTTPError(status=504)
         assert remote_watcher._handle_changes(False) is False
     # ThreadInterrupt
-    # Feature.synchronization = "activated"
+    # Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
@@ -748,7 +748,7 @@ def test_handle_changes(manager_factory):
             remote_watcher._handle_changes(False)
         assert str(ex.exconly()).startswith("nxdrive.exceptions.ThreadInterrupt")
     # Exception
-    Feature.synchronization = "activated"
+    Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"

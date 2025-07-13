@@ -267,6 +267,7 @@ class Mock_Engine:
 class Mock_Nuxeo_Client:
     def __init__(self) -> None:
         self.reachable = False
+        self.server_version = 1
 
     def is_reachable(self):
         return self.reachable
