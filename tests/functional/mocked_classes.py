@@ -3,6 +3,8 @@ from pathlib import Path
 from sqlite3 import Connection, Cursor
 from typing import Any, List
 
+from PyQt5 import QtCore
+
 from nxdrive.client.local.base import FileInfo, LocalClientMixin
 from nxdrive.constants import TransferStatus
 from nxdrive.objects import DocPair, RemoteFileInfo
@@ -329,6 +331,41 @@ class Mock_Nuxeo_Client:
 
     def is_reachable(self):
         return self.reachable
+
+
+class Mock_Qt:
+    def __init__(self) -> None:
+        self.appUpdate = self
+        self.changed = self
+        self.getLastFiles = self
+        self.setMessage: QtCore.PYQT_SLOT = QtCore.pyqtBoundSignal
+        self.setStatus = self
+        self.updateAvailable: QtCore.PYQT_SLOT = QtCore.pyqtBoundSignal
+        self.updateProgress: QtCore.PYQT_SLOT = QtCore.pyqtBoundSignal
+
+    def addButton(self, *args):
+        pass
+
+    def connect(self, *args):
+        pass
+
+    def emit(self, *args):
+        pass
+
+    def exec_(self):
+        pass
+
+    def setFlags(self, *args):
+        pass
+
+    def setIconPixmap(self, *args):
+        pass
+
+    def setText(self, *args):
+        pass
+
+    def setWindowTitle(self, *args):
+        pass
 
 
 class Mock_Remote:
