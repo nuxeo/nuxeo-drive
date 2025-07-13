@@ -102,7 +102,7 @@ class Processor(EngineWorker):
                 log.debug(f"Readonly unlock: unlock on {path!r} with {lock}")
                 Processor.readonly_locks[self.engine.uid][path] = [1, lock]
 
-    def _lock_readonly(self, path: Path, /) -> None:
+    def _lock_readonly(self, path: Path, /):
         with Processor.readonly_locker:
             if self.engine.uid not in Processor.readonly_locks:
                 Processor.readonly_locks[self.engine.uid] = {}

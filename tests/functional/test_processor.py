@@ -49,12 +49,13 @@ def test_lock_readonly():
     mock_engine = Mock_Engine()
     mock_path = Path("tests/resources/files/testFile.txt")
     processor = Processor(mock_engine, True)
+    Processor.readonly_locks = {mock_engine.uid: {Path("different_path"): [0, 2]}}
     assert processor._lock_readonly(mock_path) is None
     # path in Processor.readonly_locks[self.engine.uid]
     mock_engine = Mock_Engine()
     mock_path = Path("tests/resources/files/testFile.txt")
     processor = Processor(mock_engine, True)
-    Processor.readonly_locks = {mock_engine.uid: {mock_path: [0, 0]}}
+    Processor.readonly_locks = {mock_engine.uid: {mock_path: [0, 2]}}
     assert processor._lock_readonly(mock_path) is None
 
 

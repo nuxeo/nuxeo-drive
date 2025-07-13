@@ -1,7 +1,6 @@
 [run]
 concurrency = multiprocessing
 parallel = true
-omit = nxdrive/gui/*
 
 [paths]
 source =
