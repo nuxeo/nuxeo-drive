@@ -4,11 +4,12 @@ from sqlite3 import Connection, Cursor
 from typing import Any, List
 
 from nxdrive.client.local.base import FileInfo, LocalClientMixin
+from nxdrive.constants import TransferStatus
 from nxdrive.objects import DocPair, RemoteFileInfo
 
 
 class Mock_Local_Client(LocalClientMixin):
-    def __init__(self) -> None:
+    def __init__(self, *args) -> None:
         super().__init__(Path())
         self.abs_path = Path("dummy_absolute_path")
         self.default_file_info: FileInfo | None = FileInfo(
@@ -18,9 +19,13 @@ class Mock_Local_Client(LocalClientMixin):
         self.exist = True
         self.ignored = True
         self.local_info = True
+        self.__name__ = "Mock_Local_Client"
         self.path = Path("")
         self.remote_id = "remote_ref"
         self.temp = True
+
+    def __call__(self, *args, **kwargs):
+        pass
 
     def abspath(self, ref: Path) -> Path:
         return self.abs_path
@@ -89,6 +94,7 @@ class Mock_DAO:
         self.acquired_state = "DocPair_object"
         self.db_children = []
         self.doc_pairs = [self, self]
+        self.download = Mock_Download()
         self.filter = True
         self.folderish = False
         self.id = 1
@@ -97,6 +103,7 @@ class Mock_DAO:
         self.last_local_updated = "2025-07-04 11:41:23"
         self.local_name = "dummy_local_name"
         self.local_path = Path("dummy_local_path")
+        self.local_parent_path = Path("dummy_local_parent_path")
         self.local_state = "dummy_local_state"
         self.get_states = []
         self.get_state_index = 0
@@ -109,10 +116,12 @@ class Mock_DAO:
         self.remote_name = "dummy_remote_name"
         self.remote_path = "dummy_remote_path"
         self.remote_parent_path = "dummy_remote_parent_path"
+        self.remote_parent_ref = "dummy_remote_parent_ref"
         self.remote_ref = "dummy_remote_ref"
         self.remote_state = "dummy_remote_state"
         self.synchronize = True
         self.update_remote = True
+        self.upload = Mock_Upload()
         self.version = 1
         # DocPair
         cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -135,6 +144,12 @@ class Mock_DAO:
 
     def delete_remote_state(self, doc_pair):
         pass
+
+    def get_download(self, uid: int = None, path: Path = None, doc_pair: int = None):
+        return self.download
+
+    def get_upload(self, **kwargs: Any):
+        return self.upload
 
     def get_local_children(self, path: Path):
         self.db_children.append(self)
@@ -263,6 +278,11 @@ class Mock_Doc_Pair(DocPair):
         return self.read_only
 
 
+class Mock_Download:
+    def __init__(self) -> None:
+        self.status = TransferStatus.PAUSED
+
+
 class Mock_Engine:
     def __init__(self) -> None:
         self.dao = Mock_DAO()
@@ -351,3 +371,8 @@ class Mock_Remote_File_Info(RemoteFileInfo):
         self.lock_owner = "dummy_lock_owner"
         self.lock_created = datetime.now()
         self.can_scroll_descendants = False
+
+
+class Mock_Upload:
+    def __init__(self) -> None:
+        self.status = TransferStatus.PAUSED

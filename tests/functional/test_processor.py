@@ -7,12 +7,13 @@ from pathlib import Path
 from sqlite3 import Connection, Cursor
 from unittest.mock import patch
 
-from nxdrive.constants import DigestStatus
+from nxdrive.constants import DigestStatus, TransferStatus
 from nxdrive.engine.processor import Processor
 from tests.functional.mocked_classes import (
     Mock_Doc_Pair,
     Mock_Engine,
     Mock_Local_Client,
+    Mock_Remote,
 )
 
 
@@ -92,12 +93,114 @@ def test_digest_status():
 
 def test_handle_doc_pair_sync():
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    # finder_info and "brokMACS" in finder_info
     mock_client = Mock_Local_Client()
+    mock_client.remote_id = "brok + MacOS = brokMACS"
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_engine = Mock_Engine()
     processor = Processor(mock_engine, True)
     processor.local = mock_client
+    with patch("nxdrive.engine.processor.Processor._postpone_pair") as mock_postpone:
+        mock_postpone.return_value = None
+        assert processor._handle_doc_pair_sync(mock_doc_pair, True) is None
+    # finder_info and "brokMACS" not in finder_info
+    # parent_pair and parent_pair.last_error == "DEDUP"
+    mock_client = Mock_Local_Client()
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.pair_state = "locally_paired"
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    processor.local = mock_client
     assert processor._handle_doc_pair_sync(mock_doc_pair, True) is None
+    # finder_info and "brokMACS" not in finder_info
+    # not (refreshed and self.check_pair_state(refreshed))
+    mock_client = Mock_Local_Client()
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.pair_state = "locally_paired"
+    mock_doc_pair.folderish = True
+    mock_engine = Mock_Engine()
+    mock_remote = Mock_Remote()
+    mock_remote.digest = mock_doc_pair.remote_digest
+    processor = Processor(mock_engine, True)
+    processor.local = mock_client
+    processor.remote = mock_remote
+    with patch(
+        "nxdrive.engine.processor.Processor.check_pair_state"
+    ) as mock_pair_state:
+        mock_pair_state.return_value = False
+        assert processor._handle_doc_pair_sync(mock_doc_pair, True) is None
+    # finder_info and "brokMACS" not in finder_info
+    # not (refreshed and self.check_pair_state(refreshed))
+    # parent_pair.last_error != "DEDUP"
+    # not self.local.exists(parent_path)
+    mock_client = Mock_Local_Client()
+    mock_client.exist = False
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.last_error = "dummy_last_error"
+    mock_doc_pair.local_parent_path = Path("dummy_local_parent_path")
+    mock_doc_pair.pair_state = "locally_paired"
+    mock_doc_pair.folderish = True
+    mock_engine = Mock_Engine()
+    mock_remote = Mock_Remote()
+    mock_remote.digest = mock_doc_pair.remote_digest
+    processor = Processor(mock_engine, True)
+    processor.local = mock_client
+    processor.remote = mock_remote
+    with patch(
+        "nxdrive.engine.processor.Processor.check_pair_state"
+    ) as mock_pair_state, patch(
+        "nxdrive.engine.processor.Processor._get_normal_state_from_remote_ref"
+    ) as mock_get_normal_state:
+        mock_pair_state.return_value = True
+        mock_get_normal_state.return_value = mock_doc_pair
+        assert processor._handle_doc_pair_sync(mock_doc_pair, True) is None
+    # finder_info and "brokMACS" not in finder_info
+    # parent_pair and parent_pair.last_error != "DEDUP"
+    # download is not None
+    # download.status not in (TransferStatus.ONGOING, TransferStatus.DONE)
+    mock_client = Mock_Local_Client()
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.pair_state = "locally_paired"
+    mock_doc_pair.last_error = "dummy_last_error"
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    processor.local = mock_client
+    with patch(
+        "nxdrive.engine.processor.Processor._get_normal_state_from_remote_ref"
+    ) as mock_parent_pair:
+        mock_parent_pair.return_value = mock_doc_pair
+        assert processor._handle_doc_pair_sync(mock_doc_pair, True) is None
+    # download.status == TransferStatus.ONGOING
+    # upload.status not in (TransferStatus.ONGOING, TransferStatus.DONE)
+    mock_client = Mock_Local_Client()
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.pair_state = "locally_paired"
+    mock_doc_pair.last_error = "dummy_last_error"
+    mock_engine = Mock_Engine()
+    mock_engine.dao.download.status = TransferStatus.ONGOING
+    processor = Processor(mock_engine, True)
+    processor.local = mock_client
+    with patch(
+        "nxdrive.engine.processor.Processor._get_normal_state_from_remote_ref"
+    ) as mock_parent_pair:
+        mock_parent_pair.return_value = mock_doc_pair
+        assert processor._handle_doc_pair_sync(mock_doc_pair, True) is None
+    # download.status == TransferStatus.ONGOING
+    # download.status == TransferStatus.ONGOING
+    mock_client = Mock_Local_Client()
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.pair_state = "locally_paired"
+    mock_doc_pair.last_error = "dummy_last_error"
+    mock_engine = Mock_Engine()
+    mock_engine.dao.download.status = TransferStatus.ONGOING
+    mock_engine.dao.upload.status = TransferStatus.ONGOING
+    processor = Processor(mock_engine, True)
+    processor.local = mock_client
+    with patch(
+        "nxdrive.engine.processor.Processor._get_normal_state_from_remote_ref"
+    ) as mock_parent_pair:
+        mock_parent_pair.return_value = mock_doc_pair
+        assert processor._handle_doc_pair_sync(mock_doc_pair, Mock_Local_Client) is None
 
 
 def test_synchronize_direct_transfer(manager_factory):
