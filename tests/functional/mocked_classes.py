@@ -265,14 +265,29 @@ class Mock_Doc_Pair(DocPair):
 
 class Mock_Engine:
     def __init__(self) -> None:
+        self.dao = Mock_DAO()
+        self.local = self
+        self.manager = self
         self.offline = False
+        self.osi = self
         self.remote = Mock_Remote()
+        self.uid = "dummy_uid"
+        self.unlock_return = 0
 
     def is_offline(self) -> bool:
         return self.offline
 
+    def lock_ref(self, ref, locker, is_abs: bool = False):
+        pass
+
+    def send_sync_status(self, state, path):
+        pass
+
     def set_offline(self, value: bool = True):
         pass
+
+    def unlock_ref(self, ref, unlock_parent: bool = True, is_abs: bool = False):
+        return self.unlock_return
 
 
 class Mock_Nuxeo_Client:

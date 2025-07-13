@@ -1,3 +1,7 @@
+"""
+Functional tests for nxdrive/engine/watcher/remote_watcher.py
+"""
+
 from collections import namedtuple
 from pathlib import Path
 from sqlite3 import Connection, Cursor
