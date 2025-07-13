@@ -148,6 +148,9 @@ class Mock_DAO:
     def get_download(self, uid: int = None, path: Path = None, doc_pair: int = None):
         return self.download
 
+    def get_dt_upload(self, **kwargs):
+        return self.upload
+
     def get_upload(self, **kwargs: Any):
         return self.upload
 
@@ -283,9 +286,18 @@ class Mock_Download:
         self.status = TransferStatus.PAUSED
 
 
+class Mock_Emitter:
+    def __init__(self) -> None:
+        pass
+
+    def emit(self, *args):
+        pass
+
+
 class Mock_Engine:
     def __init__(self) -> None:
         self.dao = Mock_DAO()
+        self.directTranferError = Mock_Emitter()
         self.local = self
         self.manager = self
         self.offline = False
@@ -335,6 +347,9 @@ class Mock_Remote:
         self.sync_root: bool = True
         self.uid = "dummy_uid"
 
+    def cancel_batch(self, batch_details):
+        pass
+
     def get_fs_info(self, fs_item_id, parent_fs_item_id=""):
         return self
 
@@ -375,4 +390,7 @@ class Mock_Remote_File_Info(RemoteFileInfo):
 
 class Mock_Upload:
     def __init__(self) -> None:
+        self.batch = {}
+        cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+        self.doc_pair = Mock_Doc_Pair(cursor, ())
         self.status = TransferStatus.PAUSED

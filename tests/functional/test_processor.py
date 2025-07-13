@@ -7,8 +7,12 @@ from pathlib import Path
 from sqlite3 import Connection, Cursor
 from unittest.mock import patch
 
+import pytest
+from nuxeo.exceptions import HTTPError
+
 from nxdrive.constants import DigestStatus, TransferStatus
 from nxdrive.engine.processor import Processor
+from nxdrive.exceptions import NotFound, UploadCancelled, UploadPaused
 from tests.functional.mocked_classes import (
     Mock_Doc_Pair,
     Mock_Engine,
@@ -201,6 +205,110 @@ def test_handle_doc_pair_sync():
     ) as mock_parent_pair:
         mock_parent_pair.return_value = mock_doc_pair
         assert processor._handle_doc_pair_sync(mock_doc_pair, Mock_Local_Client) is None
+
+
+def test_handle_doc_pair_dt():
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_client = Mock_Local_Client()
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    # Not Found
+    with patch(
+        "tests.functional.mocked_classes.Mock_Local_Client.__call__"
+    ) as mock_client_call, patch(
+        "nxdrive.engine.processor.Processor._direct_transfer_cancel"
+    ) as mock_transfer_cancel:
+        mock_client_call.side_effect = NotFound("Custom NotFound Exception")
+        mock_transfer_cancel.return_value = None
+        with pytest.raises(NotFound) as ex:
+            processor._handle_doc_pair_dt(mock_doc_pair, mock_client)
+        assert str(ex.exconly()).startswith("nxdrive.exceptions.NotFound")
+    # HTTPError
+    with patch(
+        "tests.functional.mocked_classes.Mock_Local_Client.__call__"
+    ) as mock_client_call:
+        mock_client_call.side_effect = HTTPError(status=500)
+        with pytest.raises(HTTPError) as ex:
+            processor._handle_doc_pair_dt(mock_doc_pair, mock_client)
+        assert str(ex.exconly()).startswith("nuxeo.exceptions.HTTPError")
+    # HTTPError, status = 404
+    with patch(
+        "tests.functional.mocked_classes.Mock_Local_Client.__call__"
+    ) as mock_client_call, patch(
+        "nxdrive.engine.processor.Processor._postpone_pair"
+    ) as mock_postpone:
+        mock_client_call.side_effect = HTTPError(status=404)
+        mock_postpone.return_value = None
+        assert processor._handle_doc_pair_dt(mock_doc_pair, mock_client) is None
+    # UploadPaused
+    with patch(
+        "tests.functional.mocked_classes.Mock_Local_Client.__call__"
+    ) as mock_client_call:
+        mock_client_call.side_effect = UploadPaused(1)
+        with pytest.raises(UploadPaused) as ex:
+            processor._handle_doc_pair_dt(mock_doc_pair, mock_client)
+        assert str(ex.exconly()).startswith("nxdrive.exceptions.UploadPaused")
+    # RuntimeError
+    with patch(
+        "tests.functional.mocked_classes.Mock_Local_Client.__call__"
+    ) as mock_client_call:
+        mock_client_call.side_effect = RuntimeError()
+        with pytest.raises(RuntimeError) as ex:
+            processor._handle_doc_pair_dt(mock_doc_pair, mock_client)
+        assert str(ex.exconly()) == "RuntimeError"
+    # Exception
+    with patch(
+        "tests.functional.mocked_classes.Mock_Local_Client.__call__"
+    ) as mock_client_call, patch(
+        "nxdrive.engine.processor.Processor._direct_transfer_cancel"
+    ) as mock_dt_cancel:
+        mock_client_call.side_effect = Exception("Custom Exception")
+        mock_dt_cancel.return_value = None
+        with pytest.raises(Exception) as ex:
+            processor._handle_doc_pair_dt(mock_doc_pair, mock_client)
+        assert str(ex.exconly()) == "Exception: Custom Exception"
+    # UploadCancelled
+    # not upload or not upload.doc_pair
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_client = Mock_Local_Client()
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    with patch(
+        "tests.functional.mocked_classes.Mock_Local_Client.__call__"
+    ) as mock_client_call:
+        mock_client_call.side_effect = UploadCancelled(1)
+        assert processor._handle_doc_pair_dt(mock_doc_pair, mock_client) is None
+    # UploadCancelled
+    # not refreshed_doc_pair
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_client = Mock_Local_Client()
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_engine = Mock_Engine()
+    mock_engine.dao.upload.doc_pair = True
+    mock_engine.dao.doc_pairs[0] = None
+    processor = Processor(mock_engine, True)
+    with patch(
+        "tests.functional.mocked_classes.Mock_Local_Client.__call__"
+    ) as mock_client_call:
+        mock_client_call.side_effect = UploadCancelled(1)
+        assert processor._handle_doc_pair_dt(mock_doc_pair, mock_client) is None
+    # UploadCancelled - direct transfer cancel
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_client = Mock_Local_Client()
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_engine = Mock_Engine()
+    mock_engine.dao.upload.doc_pair = True
+    processor = Processor(mock_engine, True)
+    with patch(
+        "tests.functional.mocked_classes.Mock_Local_Client.__call__"
+    ) as mock_client_call, patch(
+        "nxdrive.engine.processor.Processor._direct_transfer_cancel"
+    ) as mock_dt_cancel:
+        mock_client_call.side_effect = UploadCancelled(1)
+        mock_dt_cancel.return_value = None
+        assert processor._handle_doc_pair_dt(mock_doc_pair, mock_client) is None
 
 
 def test_synchronize_direct_transfer(manager_factory):
