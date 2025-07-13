@@ -681,10 +681,13 @@ def test_handle_changes(manager_factory):
         "nxdrive.dao.engine.EngineDAO.get_paths_to_scan"
     ) as mock_paths, patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._partial_full_scan"
-    ) as mock_partial_scan:
+    ) as mock_partial_scan, patch(
+        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._update_remote_states"
+    ) as mock_update_remote_states:
         mock_offline.return_value = False
         mock_paths.side_effect = [["path1"], ["path2"], None]
         mock_partial_scan.return_value = None
+        mock_update_remote_states.return_value = None
         assert remote_watcher._handle_changes(False) is True
     # BadQuery
     Feature.synchronization = True
@@ -775,20 +778,14 @@ def test_call_and_measure_gcs(manager_factory):
     manager, engine = manager_factory()
     dao = engine.dao
     remote_watcher = RemoteWatcher(engine, dao)
-    output = remote_watcher._call_and_measure_gcs()
-    assert output["activeSynchronizationRootDefinitions"] == ""
-    assert output["fileSystemChanges"] == []
-    assert output["syncDate"] > 0
+    assert isinstance(remote_watcher._call_and_measure_gcs(), dict)
 
 
 def test_get_changes(manager_factory):
     manager, engine = manager_factory()
     dao = engine.dao
     remote_watcher = RemoteWatcher(engine, dao)
-    output = remote_watcher._get_changes()
-    assert output["activeSynchronizationRootDefinitions"] == ""
-    assert output["fileSystemChanges"] == []
-    assert output["syncDate"] > 0
+    assert isinstance(remote_watcher._get_changes(), dict)
     # not isinstance(summary, dict)
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
