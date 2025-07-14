@@ -62,6 +62,7 @@ def main() -> int:
         setup_sentry()
 
         scope = get_isolation_scope()
+        show_critical_error()
         scope._contexts.update(
             {
                 "runtime": {"name": "Python", "version": platform.python_version()},
