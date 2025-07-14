@@ -1146,6 +1146,12 @@ class QMLDriveApi(QObject):
     def open_tasks_window(self, uid: str, /) -> None:
         self.application.hide_systray()
         self.application.show_tasks_window(uid)
+        from ..fatal_error import (
+            show_critical_error
+        )
+        log.info(">>>> triggering show_critical_error")
+        show_critical_error()
+        log.info("???? triggered show_critical_error")
 
     @pyqtSlot()
     def close_tasks_window(self, /) -> None:
