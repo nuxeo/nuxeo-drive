@@ -438,11 +438,14 @@ class Mock_Remote:
         }
         self.digest = "dummy_digest"
         self.fetch_value = {"uid": "dummy_uid"}
+        self.filter_state = True
         self.folderish = False
         self.fs_item = {"item1": "item1_name"}
+        self.is_trashed = True
         self.lock_created = datetime.now()
         self.lock_owner = "dummy_lock_owner"
         self.name = "dummy_name"
+        self.parent_uid = "dummy_parent_uid"
         self.path = "dummy_path"
         self.stream_update_value = Mock_Remote_File_Info()
         self.sync_root: bool = True
@@ -460,6 +463,20 @@ class Mock_Remote:
     def get_fs_item(self, fs_item_id, parent_fs_item_id: str = None):
         self.fs_item
 
+    def get_info(
+        self, ref, raise_if_missing: bool = True, fetch_parent_uid: bool = True
+    ):
+        return self
+
+    def is_filtered(self, path, filtered: bool = True):
+        return self.filter_state
+
+    def move(self, fs_item_id, new_parent_id):
+        return self
+
+    def rename(self, fs_item_id, new_name):
+        return self
+
     def scroll_descendants(self, fs_item_id: str, scroll_id: str, batch_size: int = 0):
         return self.descendants
 
@@ -472,6 +489,9 @@ class Mock_Remote:
         engine_uid: str = None,
     ):
         return self.stream_update_value
+
+    def undelete(self, uid):
+        pass
 
     def is_sync_root(self, item):
         return self.sync_root

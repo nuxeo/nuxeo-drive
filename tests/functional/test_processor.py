@@ -14,6 +14,7 @@ from nxdrive.constants import DigestStatus, TransferStatus
 from nxdrive.engine.processor import Processor
 from nxdrive.exceptions import NotFound, UploadCancelled, UploadPaused
 from tests.functional.mocked_classes import (
+    Mock_DAO,
     Mock_Doc_Pair,
     Mock_Engine,
     Mock_Local_Client,
@@ -585,12 +586,144 @@ def test_postpone_pair():
 
 
 def test_synchronize_locally_created():
+    from nxdrive.exceptions import ParentNotSynced
+
     mock_client = Mock_Local_Client()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_engine = Mock_Engine()
     processor = Processor(mock_engine, True)
     processor.local = mock_client
+    assert (
+        processor._synchronize_locally_created(mock_doc_pair, overwrite=False) is None
+    )
+    # not delay
+    mock_client = Mock_Local_Client()
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    processor.local = mock_client
+    with patch("nxdrive.engine.processor.is_generated_tmp_file") as mock_tmp_file:
+        mock_tmp_file.return_value = True, False
+        assert (
+            processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
+            is None
+        )
+    # doc_pair.error_count == 0
+    mock_client = Mock_Local_Client()
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.error_count = 0
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    processor.local = mock_client
+    with patch(
+        "nxdrive.engine.processor.is_generated_tmp_file"
+    ) as mock_tmp_file, patch(
+        "nxdrive.engine.processor.Processor.increase_error"
+    ) as mock_increase_error:
+        mock_tmp_file.return_value = True, True
+        mock_increase_error.return_value = None
+        assert (
+            processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
+            is None
+        )
+    # parent_pair is not None
+    # parent_pair.pair_state == "unsynchronized"
+    mock_client = Mock_Local_Client()
+    mock_dao = Mock_DAO()
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.folderish = True
+    mock_doc_pair.pair_state = "unsynchronized"
+    mock_doc_pair.remote_ref = None
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    processor.dao = mock_dao
+    processor.local = mock_client
+    with patch(
+        "tests.functional.mocked_classes.Mock_DAO.get_state_from_local"
+    ) as mock_get_state, patch(
+        "nxdrive.engine.processor.Processor._get_normal_state_from_remote_ref"
+    ) as mock_normal_state:
+        mock_get_state.return_value = None
+        mock_normal_state.return_value = mock_doc_pair
+        assert (
+            processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
+            is None
+        )
+    # ParentNoSynced
+    mock_client = Mock_Local_Client()
+    mock_dao = Mock_DAO()
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.folderish = True
+    mock_doc_pair.remote_ref = None
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    processor.dao = mock_dao
+    processor.local = mock_client
+    with patch(
+        "tests.functional.mocked_classes.Mock_DAO.get_state_from_local"
+    ) as mock_get_state, patch(
+        "nxdrive.engine.processor.Processor._get_normal_state_from_remote_ref"
+    ) as mock_normal_state:
+        mock_get_state.return_value = None
+        mock_normal_state.return_value = mock_doc_pair
+        with pytest.raises(ParentNotSynced) as ex:
+            processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
+        assert str(ex.exconly()).startswith("nxdrive.exceptions.ParentNotSynced")
+    # remote_ref and info
+    # uid and info.is_trashed
+    mock_client = Mock_Local_Client()
+    mock_client.remote_id = "dummy#remote_id"
+    mock_dao = Mock_DAO()
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.folderish = True
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    processor.dao = mock_dao
+    processor.local = mock_client
+    assert (
+        processor._synchronize_locally_created(mock_doc_pair, overwrite=False) is None
+    )
+    # not info
+    # uid and info.is_trashed
+    mock_client = Mock_Local_Client()
+    mock_client.remote_id = "dummy#remote_id"
+    mock_dao = Mock_DAO()
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.folderish = True
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    processor.dao = mock_dao
+    processor.local = mock_client
+    with patch("tests.functional.mocked_classes.Mock_Remote.get_info") as mock_get_info:
+        mock_get_info.return_value = None
+        assert (
+            processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
+            is None
+        )
+    # info.is_trashed == False
+    mock_client = Mock_Local_Client()
+    mock_client.remote_id = "dummy#remote_id"
+    mock_dao = Mock_DAO()
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.folderish = True
+    mock_doc_pair.local_name = "dummy_name"
+    mock_doc_pair.local_state = "resolved"
+    mock_engine = Mock_Engine()
+    mock_remote = Mock_Remote()
+    mock_remote.is_trashed = False
+    mock_remote.parent_uid = "dummy_remote_ref"
+    processor = Processor(mock_engine, True)
+    processor.dao = mock_dao
+    processor.local = mock_client
+    processor.remote = mock_remote
     assert (
         processor._synchronize_locally_created(mock_doc_pair, overwrite=False) is None
     )
