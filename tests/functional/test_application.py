@@ -18,8 +18,13 @@ def test_exit_app(manager_factory):
     mock_qt = Mock_Qt()
     with patch(
         "PyQt5.QtQml.QQmlApplicationEngine.rootObjects"
-    ) as mock_root_objects, patch("PyQt5.QtCore.QObject.findChild") as mock_find_child:
+    ) as mock_root_objects, patch(
+        "PyQt5.QtCore.QObject.findChild"
+    ) as mock_find_child, patch(
+        "nxdrive.gui.application.Application.init_nxdrive_listener"
+    ) as mock_listener:
         mock_root_objects.return_value = [QObject()]
         mock_find_child.return_value = mock_qt
+        mock_listener.return_value = None
         app = Application(manager)
         assert app.exit_app() is None
