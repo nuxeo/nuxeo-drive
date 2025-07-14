@@ -13,22 +13,26 @@ from nxdrive.fatal_error import (
     fatal_error_win,
 )
 from nxdrive.options import Options
+from tests.functional.mocked_classes import Mock_Qt
 
 from ..markers import mac_only, not_linux, windows_only
 
 
 @not_linux(reason="Qt does not work correctly on Linux")
-@patch("nxdrive.qt.imports.QMessageBox.exec_")
-def test_check_executable_path_error_qt(mock_exec):
-    output = check_executable_path_error_qt(Path())
-    assert output is None
+def test_check_executable_path_error_qt():
+    mock_qt = Mock_Qt()
+    with patch("nxdrive.qt.imports.QMessageBox") as mock_message_box:
+        mock_message_box.return_value = mock_qt
+        output = check_executable_path_error_qt(Path())
+        assert output is None
 
 
 @not_linux(reason="Qt does not work correctly on Linux")
-@patch("nxdrive.qt.imports.QApplication.exec_")
-def test_fatal_error_qt(mock_exec):
-    output = fatal_error_qt("Dummy exception")
-    assert output is None
+def test_fatal_error_qt():
+    with patch("nxdrive.qt.imports.QApplication.exec_") as mock_app_exec:
+        mock_app_exec.return_value = None
+        output = fatal_error_qt("Dummy exception")
+        assert output is None
 
 
 @windows_only

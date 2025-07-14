@@ -9,7 +9,10 @@ from PyQt5.QtCore import QObject
 from nxdrive.gui.application import Application
 from tests.functional.mocked_classes import Mock_Qt
 
+from ..markers import not_linux
 
+
+@not_linux(reason="Qt does not work correctly on Linux")
 def test_exit_app(manager_factory):
     manager, engine = manager_factory()
     mock_qt = Mock_Qt()
