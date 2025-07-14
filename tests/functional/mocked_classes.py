@@ -32,6 +32,9 @@ class Mock_Local_Client(LocalClientMixin):
     def abspath(self, ref: Path) -> Path:
         return self.abs_path
 
+    def delete(self, ref):
+        pass
+
     def get_children_info(self, ref: Path) -> List[FileInfo]:
         file_info = FileInfo(
             Path(""), Path("dummy_local_path"), False, datetime.now(), digest_func="md5"
@@ -115,6 +118,7 @@ class Mock_DAO:
         self.pair_state = "dummy_pair_state"
         self.processor = 0
         self.remote_can_create_child = False
+        self.remote_digest = "dummy_remote_digest"
         self.remote_name = "dummy_remote_name"
         self.remote_path = "dummy_remote_path"
         self.remote_parent_path = "dummy_remote_parent_path"
@@ -217,6 +221,9 @@ class Mock_DAO:
     def is_filter(self, path: str):
         return self.filter
 
+    def mark_descendants_remotely_created(self, doc_pair):
+        pass
+
     def queue_children(self, row: DocPair):
         pass
 
@@ -246,7 +253,7 @@ class Mock_DAO:
         pass
 
     def synchronize_state(
-        self, row: DocPair, version: int = None, dynamic_state: bool = False
+        self, row: DocPair, version: int = None, dynamic_states: bool = False
     ):
         return self.synchronize
 
@@ -284,13 +291,15 @@ class Mock_DAO:
 class Mock_Doc_Pair(DocPair):
     def __init__(self, cursor: Cursor, data: tuple) -> None:
         self.id = 1
+        self.error_count = 0
         self.folderish = False
         self.last_error = "dummy_last_error"
+        self.local_digest = "dummy_local_digest"
+        self.local_name = "dummy_local_name"
         self.local_path = Path("dummy_local_path")
         self.local_parent_path = Path("dummy_parent_path")
         self.remote_ref = "dummy_remote_ref"
         self.local_state = "dummy_local_state"
-        self.remote_state = "dummy_remote_state"
         self.pair_state = "dummy_pair_state"
         self.last_error = "dummy_last_error"
         self.remote_can_delete = True
@@ -301,6 +310,7 @@ class Mock_Doc_Pair(DocPair):
         self.remote_digest = "doc_pair_digest"
         self.remote_parent_path = "dummy_remote_parent_path"
         self.remote_parent_ref = "doc_pair_remote_parent_ref"
+        self.remote_state = "dummy_remote_state"
         self.session = Mock_Session()
         self.size = 1
         # Custom attributes
@@ -330,10 +340,14 @@ class Mock_Engine:
         self.directTransferStats = Mock_Emitter()
         self.local = self
         self.manager = self
+        self.newLocked = Mock_Emitter()
+        self.newReadonly = Mock_Emitter()
         self.noSpaceLeftOnDevice = Mock_Emitter()
         self.offline = False
         self.osi = self
+        self.queue_manager = Mock_Queue_Manager()
         self.remote = Mock_Remote()
+        self.rollback = False
         self.uid = "dummy_uid"
         self.unlock_return = 0
 
@@ -345,6 +359,9 @@ class Mock_Engine:
 
     def is_offline(self) -> bool:
         return self.offline
+
+    def local_rollback(self):
+        return self.rollback
 
     def lock_ref(self, ref, locker, is_abs: bool = False):
         pass
@@ -403,6 +420,14 @@ class Mock_Qt:
         pass
 
 
+class Mock_Queue_Manager:
+    def __init__(self) -> None:
+        pass
+
+    def push_error(self, doc_pair, exception: Exception = None, interval: int = None):
+        pass
+
+
 class Mock_Remote:
     def __init__(self) -> None:
         self.can_scroll_descendants = False
@@ -415,8 +440,11 @@ class Mock_Remote:
         self.fetch_value = {"uid": "dummy_uid"}
         self.folderish = False
         self.fs_item = {"item1": "item1_name"}
+        self.lock_created = datetime.now()
+        self.lock_owner = "dummy_lock_owner"
         self.name = "dummy_name"
         self.path = "dummy_path"
+        self.stream_update_value = Mock_Remote_File_Info()
         self.sync_root: bool = True
         self.uid = "dummy_uid"
 
@@ -434,6 +462,16 @@ class Mock_Remote:
 
     def scroll_descendants(self, fs_item_id: str, scroll_id: str, batch_size: int = 0):
         return self.descendants
+
+    def stream_update(
+        self,
+        fs_item_id,
+        file_path,
+        parent_fs_item_id: str = None,
+        filename: str = None,
+        engine_uid: str = None,
+    ):
+        return self.stream_update_value
 
     def is_sync_root(self, item):
         return self.sync_root
