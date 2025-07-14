@@ -311,6 +311,117 @@ def test_handle_doc_pair_dt():
         assert processor._handle_doc_pair_dt(mock_doc_pair, mock_client) is None
 
 
+def test_get_next_doc_pair():
+    from sqlite3 import OperationalError
+
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    assert processor._get_next_doc_pair(mock_doc_pair) == "DocPair_object"
+    # sqlite3.OperationalError
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    with patch(
+        "tests.functional.mocked_classes.Mock_DAO.acquire_state"
+    ) as mock_acquire_state, patch(
+        "nxdrive.engine.processor.Processor._postpone_pair"
+    ) as mock_postpone_pair:
+        mock_acquire_state.side_effect = OperationalError()
+        mock_postpone_pair.return_value = None
+        assert processor._get_next_doc_pair(mock_doc_pair) is None
+
+
+def test_check_exists_on_the_server():
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    # doc_pair.pair_state != "locally_created"
+    with patch(
+        "nxdrive.engine.processor.Processor._postpone_pair"
+    ) as mock_postpone_pair:
+        assert processor._check_exists_on_the_server(mock_doc_pair) is None
+    # doc_pair.pair_state == "locally_created"
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.pair_state = "locally_created"
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    with patch(
+        "nxdrive.engine.processor.Processor._postpone_pair"
+    ) as mock_postpone_pair, patch(
+        "nxdrive.engine.processor.Processor.remove_void_transfers"
+    ) as mock_void_transfer:
+        mock_postpone_pair.return_value = None
+        mock_void_transfer.return_value = None
+        assert processor._check_exists_on_the_server(mock_doc_pair) is None
+    # Exception
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.pair_state = "locally_created"
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    with patch(
+        "nxdrive.engine.processor.Processor._postpone_pair"
+    ) as mock_postpone_pair, patch(
+        "nxdrive.engine.processor.Processor.remove_void_transfers"
+    ) as mock_void_transfer, patch(
+        "tests.functional.mocked_classes.Mock_Remote.fetch"
+    ) as mock_fetch:
+        mock_postpone_pair.return_value = None
+        mock_void_transfer.return_value = None
+        mock_fetch.side_effect = Exception("Custom exception")
+        assert processor._check_exists_on_the_server(mock_doc_pair) is None
+
+
+def test_handle_pair_handler_exception():
+    import errno
+
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    mock_exception = Exception("Custom exception")
+    with patch(
+        "nxdrive.engine.processor.Processor.increase_error"
+    ) as mock_increase_error:
+        mock_increase_error.return_value = None
+        assert (
+            processor._handle_pair_handler_exception(
+                mock_doc_pair, "dummy_handler", mock_exception
+            )
+            is None
+        )
+    # isinstance(e, OSError) and e.errno in NO_SPACE_ERRORS
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    mock_exception = OSError("Custom OSError")
+    mock_exception.errno = errno.ENOMEM
+    with patch(
+        "nxdrive.engine.processor.Processor.increase_error"
+    ) as mock_increase_error:
+        mock_increase_error.return_value = None
+        assert (
+            processor._handle_pair_handler_exception(
+                mock_doc_pair, "dummy_handler", mock_exception
+            )
+            is None
+        )
+
+
+def test_direct_transfer_end():
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    assert processor._direct_transfer_end(mock_doc_pair, False, recursive=False) is None
+
+
 def test_synchronize_direct_transfer(manager_factory):
     manager, engine = manager_factory()
     dao = engine.dao

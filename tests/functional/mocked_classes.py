@@ -121,6 +121,7 @@ class Mock_DAO:
         self.remote_parent_ref = "dummy_remote_parent_ref"
         self.remote_ref = "dummy_remote_ref"
         self.remote_state = "dummy_remote_state"
+        self.session = Mock_Session()
         self.synchronize = True
         self.update_remote = True
         self.upload = Mock_Upload()
@@ -143,6 +144,9 @@ class Mock_DAO:
 
     def clean_scanned(self):
         pass
+
+    def decrease_session_counts(self, uid):
+        return self.session
 
     def delete_remote_state(self, doc_pair):
         pass
@@ -168,6 +172,9 @@ class Mock_DAO:
 
     def get_normal_state_from_remote(self, ref: str):
         return self.doc_pairs[0]
+
+    def get_session(self, uid):
+        return self.session
 
     def get_state_from_id(self, id: int, from_write=False):
         return self.doc_pairs[0]
@@ -226,6 +233,15 @@ class Mock_DAO:
     ):
         return None
 
+    def remove_transfer(
+        self,
+        nature,
+        doc_pair: str = None,
+        path: Path = None,
+        is_direct_transfer: bool = False,
+    ):
+        pass
+
     def replace_local_paths(self, old_path, new_path):
         pass
 
@@ -240,6 +256,12 @@ class Mock_DAO:
     def update_local_state(self, pair, child, versioned=False):
         pass
 
+    def update_last_transfer(self, row_id, transfer):
+        pass
+
+    def update_remote_name(self, row_id, remote_name):
+        pass
+
     def update_remote_state(
         self,
         row,
@@ -251,6 +273,9 @@ class Mock_DAO:
         no_digest=False,
     ):
         return self.update_remote
+
+    def update_session(self, uid):
+        return self.session
 
     def unsynchronize_state(self, row, last_error):
         pass
@@ -276,6 +301,8 @@ class Mock_Doc_Pair(DocPair):
         self.remote_digest = "doc_pair_digest"
         self.remote_parent_path = "dummy_remote_parent_path"
         self.remote_parent_ref = "doc_pair_remote_parent_ref"
+        self.session = Mock_Session()
+        self.size = 1
         # Custom attributes
         self.read_only = False
 
@@ -300,13 +327,21 @@ class Mock_Engine:
     def __init__(self) -> None:
         self.dao = Mock_DAO()
         self.directTranferError = Mock_Emitter()
+        self.directTransferStats = Mock_Emitter()
         self.local = self
         self.manager = self
+        self.noSpaceLeftOnDevice = Mock_Emitter()
         self.offline = False
         self.osi = self
         self.remote = Mock_Remote()
         self.uid = "dummy_uid"
         self.unlock_return = 0
+
+    def suspend(self):
+        pass
+
+    def handle_session_status(self, session):
+        pass
 
     def is_offline(self) -> bool:
         return self.offline
@@ -377,6 +412,7 @@ class Mock_Remote:
             "scroll_id": "scroll_id_data",
         }
         self.digest = "dummy_digest"
+        self.fetch_value = {"uid": "dummy_uid"}
         self.folderish = False
         self.fs_item = {"item1": "item1_name"}
         self.name = "dummy_name"
@@ -386,6 +422,9 @@ class Mock_Remote:
 
     def cancel_batch(self, batch_details):
         pass
+
+    def fetch(self, ref, headers: dict = None, enrichers: list = None):
+        return self.fetch_value
 
     def get_fs_info(self, fs_item_id, parent_fs_item_id=""):
         return self
@@ -423,6 +462,11 @@ class Mock_Remote_File_Info(RemoteFileInfo):
         self.lock_owner = "dummy_lock_owner"
         self.lock_created = datetime.now()
         self.can_scroll_descendants = False
+
+
+class Mock_Session:
+    def __init__(self) -> None:
+        self.status = TransferStatus.PAUSED
 
 
 class Mock_Upload:
