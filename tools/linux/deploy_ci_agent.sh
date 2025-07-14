@@ -98,6 +98,10 @@ verify_sign() {
         fi
     fi
 
+    # Set trust level for the GPG key
+    KEY_FPR=$(echo "$GPG_PUBLIC_KEY" | gpg --with-colons --import-options show-only --import | awk -F: '/^fpr:/ { print $10 }' | head -n1)
+    echo "$KEY_FPR:6:" | gpg --batch --yes --import-ownertrust
+
     find_appimage
 
     # Verify the signature
