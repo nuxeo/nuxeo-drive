@@ -150,8 +150,11 @@ def get_version():
         pth = os.path.join(Path.home(), "/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive")
         if os.path.exists(pth):
             cmd = [pth,"--version",]
-            return subprocess.check_output(cmd, text=True).strip()
+            ret = subprocess.check_output(cmd, text=True).strip()
+            print(f">>>> version got: {ret!r}")
+            return ret
         else:
+            print(">>>> os.path.exists FALSE")
             return "5.5.2"
 
     file = (
