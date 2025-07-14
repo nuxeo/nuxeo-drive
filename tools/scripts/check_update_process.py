@@ -147,7 +147,12 @@ def get_version():
         ]
         return subprocess.check_output(cmd, text=True).strip()
         """
-        return "5.5.2"
+        pth = os.path.join(Path.home(), "/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive")
+        if os.path.exists(pth):
+            cmd = [pth,"--version",]
+            return subprocess.check_output(cmd, text=True).strip()
+        else:
+            return "5.5.2"
 
     file = (
         expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
