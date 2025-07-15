@@ -727,6 +727,133 @@ def test_synchronize_locally_created():
     assert (
         processor._synchronize_locally_created(mock_doc_pair, overwrite=False) is None
     )
+    # local.is_equal_digests == False
+    # doc_pair.pair_state == "locally_resolved"
+    mock_client = Mock_Local_Client()
+    mock_client.equal_digest = False
+    mock_client.remote_id = "dummy#remote_id"
+    mock_dao = Mock_DAO()
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.folderish = True
+    mock_doc_pair.local_state = "resolved"
+    mock_doc_pair.pair_state = "locally_resolved"
+    mock_engine = Mock_Engine()
+    mock_remote = Mock_Remote()
+    mock_remote.is_trashed = False
+    mock_remote.parent_uid = "dummy_remote_ref"
+    processor = Processor(mock_engine, True)
+    processor.dao = mock_dao
+    processor.local = mock_client
+    processor.remote = mock_remote
+    assert (
+        processor._synchronize_locally_created(mock_doc_pair, overwrite=False) is None
+    )
+    # HTTPError, status == 404
+    mock_client = Mock_Local_Client()
+    mock_client.equal_digest = False
+    mock_client.remote_id = "dummy#remote_id"
+    mock_dao = Mock_DAO()
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.folderish = True
+    mock_doc_pair.local_state = "resolved"
+    mock_doc_pair.pair_state = "locally_resolved"
+    mock_engine = Mock_Engine()
+    mock_remote = Mock_Remote()
+    mock_remote.is_trashed = False
+    mock_remote.parent_uid = "dummy_remote_ref"
+    processor = Processor(mock_engine, True)
+    processor.dao = mock_dao
+    processor.local = mock_client
+    processor.remote = mock_remote
+    with patch(
+        "tests.functional.mocked_classes.Mock_Remote.get_fs_info"
+    ) as mock_get_fs_info:
+        mock_get_fs_info.side_effect = HTTPError(status=404)
+        with pytest.raises(HTTPError) as ex:
+            processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
+        assert str(ex.exconly()).startswith("nuxeo.exceptions.HTTPError")
+    # HTTPError, status == 401
+    mock_client = Mock_Local_Client()
+    mock_client.equal_digest = False
+    mock_client.remote_id = "dummy#remote_id"
+    mock_dao = Mock_DAO()
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.folderish = True
+    mock_doc_pair.local_state = "resolved"
+    mock_doc_pair.pair_state = "locally_resolved"
+    mock_engine = Mock_Engine()
+    mock_remote = Mock_Remote()
+    mock_remote.is_trashed = False
+    mock_remote.parent_uid = "dummy_remote_ref"
+    processor = Processor(mock_engine, True)
+    processor.dao = mock_dao
+    processor.local = mock_client
+    processor.remote = mock_remote
+    with patch(
+        "tests.functional.mocked_classes.Mock_Remote.get_fs_info"
+    ) as mock_get_fs_info:
+        mock_get_fs_info.side_effect = HTTPError(status=401)
+        assert (
+            processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
+            is None
+        )
+    # NotFound
+    mock_client = Mock_Local_Client()
+    mock_client.equal_digest = False
+    mock_client.remote_id = "dummy#remote_id"
+    mock_dao = Mock_DAO()
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.folderish = True
+    mock_doc_pair.local_state = "resolved"
+    mock_doc_pair.pair_state = "locally_resolved"
+    mock_engine = Mock_Engine()
+    mock_remote = Mock_Remote()
+    mock_remote.is_trashed = False
+    mock_remote.parent_uid = "dummy_remote_ref"
+    processor = Processor(mock_engine, True)
+    processor.dao = mock_dao
+    processor.local = mock_client
+    processor.remote = mock_remote
+    with patch(
+        "tests.functional.mocked_classes.Mock_Remote.get_fs_info"
+    ) as mock_get_fs_info:
+        mock_get_fs_info.side_effect = NotFound()
+        assert (
+            processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
+            is None
+        )
+    # parent_pair.remote_can_create_child == True
+    mock_client = Mock_Local_Client()
+    mock_client.equal_digest = False
+    mock_client.remote_id = "dummy#remote_id"
+    mock_dao = Mock_DAO()
+    mock_dao.pair_index = 1
+    mock_dao.remote_can_create_child = True
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.folderish = True
+    mock_doc_pair.pair_state = "locally_resolved"
+    mock_doc_pair.remote_can_create_child = True
+    mock_engine = Mock_Engine()
+    mock_remote = Mock_Remote()
+    mock_remote.is_trashed = False
+    mock_remote.parent_uid = "dummy_remote_ref"
+    processor = Processor(mock_engine, True)
+    processor.dao = mock_dao
+    processor.local = mock_client
+    processor.remote = mock_remote
+    with patch(
+        "nxdrive.engine.processor.Processor._synchronize_if_not_remotely_dirty"
+    ) as mock_sync_not_dirty:
+        mock_sync_not_dirty.return_value = None
+        assert (
+            processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
+            is None
+        )
 
 
 def test_synchronize_direct_transfer(manager_factory):

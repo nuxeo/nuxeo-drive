@@ -1,6 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 from sqlite3 import Connection, Cursor
+from threading import RLock
 from typing import Any, List
 
 from PyQt5 import QtCore
@@ -110,6 +111,7 @@ class Mock_DAO:
         self.local_path = Path("dummy_local_path")
         self.local_parent_path = Path("dummy_local_parent_path")
         self.local_state = "dummy_local_state"
+        self.lock = RLock()
         self.get_states = []
         self.get_state_index = 0
         self.pair_index: int = (
@@ -444,6 +446,7 @@ class Mock_Remote:
         self.is_trashed = True
         self.lock_created = datetime.now()
         self.lock_owner = "dummy_lock_owner"
+        self.make_folder_output = Mock_Remote_File_Info()
         self.name = "dummy_name"
         self.parent_uid = "dummy_parent_uid"
         self.path = "dummy_path"
@@ -473,6 +476,9 @@ class Mock_Remote:
 
     def move(self, fs_item_id, new_parent_id):
         return self
+
+    def make_folder(self, parent_foler, name, overwrite: bool = False):
+        return self.make_folder_output
 
     def rename(self, fs_item_id, new_name):
         return self
