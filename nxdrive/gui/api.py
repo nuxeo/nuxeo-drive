@@ -1150,7 +1150,8 @@ class QMLDriveApi(QObject):
             show_critical_error
         )
         log.info(">>>> triggering show_critical_error")
-        show_critical_error()
+        res = 10 / 0
+        log.info(res)
         log.info("???? triggered show_critical_error")
 
     @pyqtSlot()
