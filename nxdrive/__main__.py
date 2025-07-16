@@ -72,11 +72,9 @@ def main() -> int:
         ret = CliHandler().handle(sys.argv[1:])
     except SystemExit as exc:
         if exc.code != 0:
-            log.info(">>>> exc.code != 0; show_critical_error")
             show_critical_error()
         ret = exc.code
     except Exception:
-        log.info(">>>> show_critical_error")
         show_critical_error()
         ret = 1
 
