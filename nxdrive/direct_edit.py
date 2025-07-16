@@ -331,6 +331,10 @@ class DirectEdit(Worker):
         pair = None
         kwargs: Dict[str, Any] = {}
 
+        log.info(">>>> Raising SystemExit")
+        raise SystemExit("Program terminated due to a manual error.")
+        log.info(">>>> Raised SystemExit")
+
         if blob.digest:
             # The digest is available in the Blob, use it and disable parameters check
             # as 'digest' is not a recognized param for the Blob.Get operation.
@@ -502,8 +506,6 @@ class DirectEdit(Worker):
 
         if not info:
             return None
-        else:
-            return 10 / 0
 
         url = None
         url_info: Dict[str, str] = {}
