@@ -1149,10 +1149,6 @@ class QMLDriveApi(QObject):
         from ..fatal_error import (
             show_critical_error
         )
-        log.info(">>>> triggering show_critical_error")
-        res = 10 / 0
-        log.info(res)
-        log.info("???? triggered show_critical_error")
 
     @pyqtSlot()
     def close_tasks_window(self, /) -> None:

@@ -60,6 +60,7 @@ def main() -> int:
         # Setup Sentry even if the user did not allow it because it can be tweaked
         # later via the "use-sentry" parameter. It will be useless if Sentry is not installed first.
         setup_sentry()
+        raise SystemExit("Manual error. Program terminated.")
 
         scope = get_isolation_scope()
         # show_critical_error()
@@ -72,9 +73,11 @@ def main() -> int:
         ret = CliHandler().handle(sys.argv[1:])
     except SystemExit as exc:
         if exc.code != 0:
+            log.info(">>>> exc.code != 0; show_critical_error")
             show_critical_error()
         ret = exc.code
     except Exception:
+        log.info(">>>> show_critical_error")
         show_critical_error()
         ret = 1
 
