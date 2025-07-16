@@ -22,7 +22,9 @@ class Mock_Local_Client(LocalClientMixin):
         self.exist = True
         self.ignored = True
         self.local_info = True
+        self.made_folder = Path("")
         self.__name__ = "Mock_Local_Client"
+        self.new_file_data = (Path(""), Path(""), "new_file")
         self.path = Path("")
         self.remote_id = "remote_ref"
         self.temp = True
@@ -33,7 +35,15 @@ class Mock_Local_Client(LocalClientMixin):
     def abspath(self, ref: Path) -> Path:
         return self.abs_path
 
+    def change_file_date(
+        self, filepath: Path, /, *, mtime: str = None, ctime: str = None
+    ) -> None:
+        pass
+
     def delete(self, ref):
+        pass
+
+    def delete_final(self, ref: Path) -> None:
         pass
 
     def get_children_info(self, ref: Path) -> List[FileInfo]:
@@ -51,6 +61,9 @@ class Mock_Local_Client(LocalClientMixin):
 
     def get_info(self, ref: Path, /, *, check: bool = True) -> FileInfo:
         return self.default_file_info
+
+    def get_new_file(self, parent, name):
+        return self.new_file_data
 
     def get_path(self, target: Path) -> Path:
         return self.path
@@ -81,10 +94,22 @@ class Mock_Local_Client(LocalClientMixin):
     def is_temp_file(self, path) -> bool:
         return self.temp
 
+    def make_folder(self, parent: Path, name: str) -> Path:
+        return self.made_folder
+
+    def move(self, ref, new_parent_ref, name: str = None):
+        return self.default_file_info
+
+    def rename(self, ref, to_name):
+        return self.default_file_info
+
     def remove_remote_id(
         self, ref: Path, /, *, name: str = "ndrive", cleanup: bool = False
     ) -> None:
         return None
+
+    def set_readonly(self, ref: Path) -> None:
+        pass
 
     def set_remote_id(
         self, ref: Path, remote_id: bytes | str, /, *, name: str = "ndrive"
@@ -93,6 +118,9 @@ class Mock_Local_Client(LocalClientMixin):
 
     def try_get_info(self, ref: Path) -> FileInfo | None:
         return self.default_file_info
+
+    def unset_readonly(self, ref: Path) -> None:
+        pass
 
 
 class Mock_DAO:
@@ -128,6 +156,7 @@ class Mock_DAO:
         self.remote_ref = "dummy_remote_ref"
         self.remote_state = "dummy_remote_state"
         self.session = Mock_Session()
+        self.size = 1
         self.synchronize = True
         self.update_remote = True
         self.upload = Mock_Upload()
@@ -159,6 +188,9 @@ class Mock_DAO:
 
     def delete_remote_state(self, doc_pair):
         pass
+
+    def get_dedupe_pair(self, name, parent, row_id):
+        return self.mocked_doc_pair
 
     def get_download(self, uid: int = None, path: Path = None, doc_pair: int = None):
         return self.download
@@ -200,6 +232,9 @@ class Mock_DAO:
             if mock_client_path.parent == path:
                 return self.doc_pairs[0]
             return
+
+    def get_states_from_partial_local(self, path, srtict: bool = True):
+        return self.doc_pairs
 
     def get_states_from_remote(self, ref: str):
         if self.pair_index >= len(self.doc_pairs):
@@ -257,6 +292,12 @@ class Mock_DAO:
     def replace_local_paths(self, old_path, new_path):
         pass
 
+    def reset_error(self, row, last_error: str = None):
+        pass
+
+    def set_conflict_state(self, row):
+        pass
+
     def synchronize_state(
         self, row: DocPair, version: int = None, dynamic_states: bool = False
     ):
@@ -265,13 +306,19 @@ class Mock_DAO:
     def update_config(self, name: str, value: Any):
         pass
 
-    def update_local_state(self, pair, child, versioned=False, queue: bool = True):
-        pass
-
     def update_last_transfer(self, row_id, transfer):
         pass
 
+    def update_local_parent_path(self, doc_pair, new_name, new_path):
+        pass
+
+    def update_local_state(self, pair, child, versioned=False, queue: bool = True):
+        pass
+
     def update_remote_name(self, row_id, remote_name):
+        pass
+
+    def update_remote_parent_path(self, doc_pair, new_path):
         pass
 
     def update_remote_state(
@@ -296,12 +343,14 @@ class Mock_DAO:
         return self.mocked_doc_pair
 
 
-class Mock_Doc_Pair(DocPair):
+class Mock_Doc_Pair:
     def __init__(self, cursor: Cursor, data: tuple) -> None:
+        self.creation_date = "2025-01-15"
         self.id = 1
         self.error_count = 0
         self.folderish = False
         self.last_error = "dummy_last_error"
+        self.last_remote_updated = "dummy_last_remote_updated"
         self.local_digest = "dummy_local_digest"
         self.local_name = "dummy_local_name"
         self.local_path = Path("dummy_local_path")
@@ -309,7 +358,6 @@ class Mock_Doc_Pair(DocPair):
         self.remote_ref = "dummy_remote_ref"
         self.local_state = "dummy_local_state"
         self.pair_state = "dummy_pair_state"
-        self.last_error = "dummy_last_error"
         self.remote_can_delete = True
         self.remote_can_rename = True
         self.remote_can_update = False
@@ -358,6 +406,7 @@ class Mock_Engine:
         self.queue_manager = Mock_Queue_Manager()
         self.remote = Mock_Remote()
         self.rollback = False
+        self.trash = False
         self.uid = "dummy_uid"
         self.unlock_return = 0
 
@@ -370,13 +419,19 @@ class Mock_Engine:
     def is_offline(self) -> bool:
         return self.offline
 
-    def local_rollback(self):
+    def local_rollback(self, force: bool = False):
         return self.rollback
 
     def lock_ref(self, ref, locker, is_abs: bool = False):
         pass
 
+    def release_folder_lock(self):
+        pass
+
     def send_sync_status(self, state, path):
+        pass
+
+    def set_local_folder_lock(self, path):
         pass
 
     def set_offline(self, value: bool = True):
@@ -384,6 +439,9 @@ class Mock_Engine:
 
     def unlock_ref(self, ref, unlock_parent: bool = True, is_abs: bool = False):
         return self.unlock_return
+
+    def use_trash(self):
+        return self.trash
 
 
 class Mock_Nuxeo_Client:
