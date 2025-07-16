@@ -190,10 +190,9 @@ class Application(QApplication):
         # Timer used to refresh the files list in the systray menu, see .refresh_files()
         self._last_refresh_view = 0.0
         # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        if not self.manager.preferences_metrics_chosen:
-            self.show_metrics_acceptance()
-            print("----------------- log 9 ----------------------")
-        return
+        # if not self.manager.preferences_metrics_chosen:
+        #     self.show_metrics_acceptance()
+        print("----------------- log 9 ----------------------")
         self._conflicts_modals: Dict[str, bool] = {}
         self.current_notification: Optional[Notification] = None
         self.default_tooltip = APP_NAME
