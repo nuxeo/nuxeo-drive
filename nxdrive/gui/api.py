@@ -1146,9 +1146,10 @@ class QMLDriveApi(QObject):
     def open_tasks_window(self, uid: str, /) -> None:
         self.application.hide_systray()
         self.application.show_tasks_window(uid)
-        from ..fatal_error import (
-            show_critical_error
-        )
+        #from ..fatal_error import (
+        #    show_critical_error
+        #)
+        raise SystemExit("Manual error. Program terminated.")
 
     @pyqtSlot()
     def close_tasks_window(self, /) -> None:
