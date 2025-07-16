@@ -183,14 +183,13 @@ class Application(QApplication):
         self.setApplicationName(APP_NAME)
         print("----------------- log 6 ----------------------")
         self._init_translator()
-        # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         print("----------------- log 7 ----------------------")
         self.setQuitOnLastWindowClosed(False)
         print("----------------- log 8 ----------------------")
 
         # Timer used to refresh the files list in the systray menu, see .refresh_files()
         self._last_refresh_view = 0.0
-        return
+        # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         if not self.manager.preferences_metrics_chosen:
             self.show_metrics_acceptance()
             print("----------------- log 9 ----------------------")
@@ -199,7 +198,7 @@ class Application(QApplication):
         self.current_notification: Optional[Notification] = None
         self.default_tooltip = APP_NAME
         print("----------------- log 10 ----------------------")
-
+        return
         # Font selection (*.point_size* will be used in QML for Hi-DPI scaling)
         point_size = 12
         font = QFont("Helvetica, Times", pointSize=point_size)
