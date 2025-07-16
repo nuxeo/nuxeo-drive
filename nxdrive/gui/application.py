@@ -193,12 +193,11 @@ class Application(QApplication):
         if not self.manager.preferences_metrics_chosen:
             self.show_metrics_acceptance()
             print("----------------- log 9 ----------------------")
-
+        return
         self._conflicts_modals: Dict[str, bool] = {}
         self.current_notification: Optional[Notification] = None
         self.default_tooltip = APP_NAME
         print("----------------- log 10 ----------------------")
-        return
         # Font selection (*.point_size* will be used in QML for Hi-DPI scaling)
         point_size = 12
         font = QFont("Helvetica, Times", pointSize=point_size)
