@@ -148,6 +148,9 @@ class Mock_DAO:
     def acquire_state(self, thread_id, doc_pair_id):
         return self.acquired_state
 
+    def add_filter(self, path):
+        pass
+
     def clean_scanned(self):
         pass
 
@@ -262,7 +265,7 @@ class Mock_DAO:
     def update_config(self, name: str, value: Any):
         pass
 
-    def update_local_state(self, pair, child, versioned=False):
+    def update_local_state(self, pair, child, versioned=False, queue: bool = True):
         pass
 
     def update_last_transfer(self, row_id, transfer):
@@ -338,6 +341,7 @@ class Mock_Emitter:
 class Mock_Engine:
     def __init__(self) -> None:
         self.dao = Mock_DAO()
+        self.deleteReadonly = Mock_Emitter()
         self.directTranferError = Mock_Emitter()
         self.directTransferStats = Mock_Emitter()
         self.local = self
@@ -447,6 +451,7 @@ class Mock_Remote:
         self.lock_created = datetime.now()
         self.lock_owner = "dummy_lock_owner"
         self.make_folder_output = Mock_Remote_File_Info()
+        self.move2_out = {}
         self.name = "dummy_name"
         self.parent_uid = "dummy_parent_uid"
         self.path = "dummy_path"
@@ -455,6 +460,9 @@ class Mock_Remote:
         self.uid = "dummy_uid"
 
     def cancel_batch(self, batch_details):
+        pass
+
+    def delete(self, fs_item_id, parent_fs_item_id: str = None):
         pass
 
     def fetch(self, ref, headers: dict = None, enrichers: list = None):
@@ -477,6 +485,9 @@ class Mock_Remote:
     def move(self, fs_item_id, new_parent_id):
         return self
 
+    def move2(self, fs_item_id, parent_ref, name):
+        return self.move2_out
+
     def make_folder(self, parent_foler, name, overwrite: bool = False):
         return self.make_folder_output
 
@@ -485,6 +496,16 @@ class Mock_Remote:
 
     def scroll_descendants(self, fs_item_id: str, scroll_id: str, batch_size: int = 0):
         return self.descendants
+
+    def stream_file(
+        self,
+        parent_id,
+        file_path,
+        filename: str = None,
+        overwrite: bool = False,
+        **kwargs: Any,
+    ):
+        return self.stream_update_value
 
     def stream_update(
         self,

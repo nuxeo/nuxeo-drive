@@ -854,6 +854,248 @@ def test_synchronize_locally_created():
             processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
             is None
         )
+    # doc_pair.folderish == False
+    # local_info.size != doc_pair.size
+    mock_client = Mock_Local_Client()
+    mock_client.equal_digest = False
+    mock_client.remote_id = "dummy#remote_id"
+    mock_dao = Mock_DAO()
+    mock_dao.pair_index = 1
+    mock_dao.remote_can_create_child = True
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.pair_state = "locally_resolved"
+    mock_doc_pair.remote_can_create_child = True
+    mock_engine = Mock_Engine()
+    mock_remote = Mock_Remote()
+    mock_remote.is_trashed = False
+    mock_remote.parent_uid = "dummy_remote_ref"
+    processor = Processor(mock_engine, True)
+    processor.dao = mock_dao
+    processor.local = mock_client
+    processor.remote = mock_remote
+    assert (
+        processor._synchronize_locally_created(mock_doc_pair, overwrite=False) is None
+    )
+    # doc_pair.folderish == False
+    # doc_pair.local_digest == UNACCESSIBLE_HASH
+    mock_client = Mock_Local_Client()
+    mock_client.default_file_info.size = 1
+    mock_client.equal_digest = False
+    mock_client.remote_id = "dummy#remote_id"
+    mock_dao = Mock_DAO()
+    mock_dao.pair_index = 1
+    mock_dao.remote_can_create_child = True
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.local_digest = "TO_COMPUTE"
+    mock_doc_pair.pair_state = "locally_resolved"
+    mock_doc_pair.remote_can_create_child = True
+    mock_doc_pair.size = 1
+    mock_engine = Mock_Engine()
+    mock_remote = Mock_Remote()
+    mock_remote.is_trashed = False
+    mock_remote.parent_uid = "dummy_remote_ref"
+    processor = Processor(mock_engine, True)
+    processor.dao = mock_dao
+    processor.local = mock_client
+    processor.remote = mock_remote
+    assert (
+        processor._synchronize_locally_created(mock_doc_pair, overwrite=False) is None
+    )
+    # stream file
+    mock_client = Mock_Local_Client()
+    mock_client.default_file_info.size = 1
+    mock_client.equal_digest = False
+    mock_client.remote_id = "dummy#remote_id"
+    mock_dao = Mock_DAO()
+    mock_dao.pair_index = 1
+    mock_dao.remote_can_create_child = True
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.pair_state = "locally_resolved"
+    mock_doc_pair.remote_can_create_child = True
+    mock_doc_pair.size = 1
+    mock_engine = Mock_Engine()
+    mock_remote = Mock_Remote()
+    mock_remote.is_trashed = False
+    mock_remote.parent_uid = "dummy_remote_ref"
+    processor = Processor(mock_engine, True)
+    processor.dao = mock_dao
+    processor.local = mock_client
+    processor.remote = mock_remote
+    with patch(
+        "nxdrive.engine.processor.Processor._synchronize_if_not_remotely_dirty"
+    ) as mock_sync_not_remote_dirty:
+        mock_sync_not_remote_dirty.return_value = None
+        assert (
+            processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
+            is None
+        )
+
+
+def test_synchronize_locally_deleted():
+    from nxdrive.behavior import Behavior
+
+    # doc_pair.remote_can_delete
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    with patch(
+        "nxdrive.engine.processor.Processor._search_for_dedup"
+    ) as mock_search_dedup, patch(
+        "nxdrive.engine.processor.Processor.remove_void_transfers"
+    ) as mock_void_transfers:
+        mock_search_dedup.return_value = None
+        mock_void_transfers.return_value = None
+        assert processor._synchronize_locally_deleted(mock_doc_pair) is None
+    # not doc_pair.remote_can_delete
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.remote_can_delete = False
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    with patch(
+        "nxdrive.engine.processor.Processor._search_for_dedup"
+    ) as mock_search_dedup, patch(
+        "nxdrive.engine.processor.Processor.remove_void_transfers"
+    ) as mock_void_transfers:
+        mock_search_dedup.return_value = None
+        mock_void_transfers.return_value = None
+        assert processor._synchronize_locally_deleted(mock_doc_pair) is None
+    # not doc_pair.remote_ref
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.remote_ref = ""
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    with patch(
+        "nxdrive.engine.processor.Processor._search_for_dedup"
+    ) as mock_search_dedup, patch(
+        "nxdrive.engine.processor.Processor.remove_void_transfers"
+    ) as mock_void_transfers:
+        mock_search_dedup.return_value = None
+        mock_void_transfers.return_value = None
+        assert processor._synchronize_locally_deleted(mock_doc_pair) is None
+    # not Behavior.server_deletion
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_engine = Mock_Engine()
+    Behavior.server_deletion = False
+    processor = Processor(mock_engine, True)
+    assert processor._synchronize_locally_deleted(mock_doc_pair) is None
+
+
+def test_synchronize_locally_moved_remotely_modified():
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    with patch(
+        "nxdrive.engine.processor.Processor._synchronize_locally_moved"
+    ) as mock_sync_local_move, patch(
+        "nxdrive.engine.processor.Processor._synchronize_remotely_modified"
+    ) as mock_sync_remote_modify:
+        mock_sync_local_move.return_value = None
+        mock_sync_remote_modify.return_value = None
+        assert (
+            processor._synchronize_locally_moved_remotely_modified(mock_doc_pair)
+            is None
+        )
+
+
+def test_synchronize_locally_moved_created():
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    with patch(
+        "nxdrive.engine.processor.Processor._synchronize_locally_created"
+    ) as mock_sync_local_create:
+        mock_sync_local_create.return_value = None
+        assert processor._synchronize_locally_moved_created(mock_doc_pair) is None
+
+
+def test_synchronize_locally_moved():
+    mock_client = Mock_Local_Client()
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    processor.local = mock_client
+    with patch(
+        "nxdrive.engine.processor.Processor._search_for_dedup"
+    ) as mock_search_dedup:
+        mock_search_dedup.return_value = None
+        assert processor._synchronize_locally_moved(mock_doc_pair, update=True) is None
+    # parent_ref and parent_ref == doc_pair.remote_parent_ref
+    mock_client = Mock_Local_Client()
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.remote_parent_ref = mock_client.remote_id
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    processor.local = mock_client
+    with patch(
+        "nxdrive.engine.processor.Processor._search_for_dedup"
+    ) as mock_search_dedup:
+        mock_search_dedup.return_value = None
+        assert processor._synchronize_locally_moved(mock_doc_pair, update=True) is None
+    # Exception
+    mock_client = Mock_Local_Client()
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.remote_parent_ref = mock_client.remote_id
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    processor.local = mock_client
+    with patch(
+        "nxdrive.engine.processor.Processor._search_for_dedup"
+    ) as mock_search_dedup, patch(
+        "nxdrive.engine.processor.Processor._handle_failed_remote_rename"
+    ) as mock_handle_failed_remote, patch(
+        "nxdrive.engine.processor.Processor._refresh_remote"
+    ) as mock_refresh_remote:
+        mock_search_dedup.return_value = None
+        mock_handle_failed_remote.return_value = None
+        mock_refresh_remote.side_effect = Exception("Custom Exception")
+        assert processor._synchronize_locally_moved(mock_doc_pair, update=True) is None
+    # not doc_pair.remote_can_rename
+    mock_client = Mock_Local_Client()
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.remote_can_rename = False
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    processor.local = mock_client
+    with patch(
+        "nxdrive.engine.processor.Processor._search_for_dedup"
+    ) as mock_search_dedup, patch(
+        "nxdrive.engine.processor.Processor._handle_failed_remote_rename"
+    ) as mcok_failed_remote_name:
+        mock_search_dedup.return_value = None
+        mcok_failed_remote_name.return_value = None
+        assert processor._synchronize_locally_moved(mock_doc_pair, update=True) is None
+    # doc_pair.remote_can_delete == True
+    # not parent_pair.pair_state == "unsynchronized"
+    mock_client = Mock_Local_Client()
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.remote_can_delete = True
+    mock_engine = Mock_Engine()
+    mock_engine.dao.pair_state = "synchronized"
+    mock_engine.dao.remote_can_create_child = True
+    processor = Processor(mock_engine, True)
+    processor.local = mock_client
+    with patch(
+        "nxdrive.engine.processor.Processor._search_for_dedup"
+    ) as mock_search_dedup, patch(
+        "nxdrive.engine.processor.Processor._handle_failed_remote_rename"
+    ) as mcok_failed_remote_name:
+        mock_search_dedup.return_value = None
+        mcok_failed_remote_name.return_value = None
+        assert processor._synchronize_locally_moved(mock_doc_pair, update=True) is None
 
 
 def test_synchronize_direct_transfer(manager_factory):
