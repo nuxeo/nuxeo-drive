@@ -175,6 +175,7 @@ class Application(QApplication):
         self.timer = QTimer()
         self.timer.timeout.connect(lambda: None)
         self.timer.start(100)
+        # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         print("----------------- log 4 ----------------------")
 
         self.osi = self.manager.osi
@@ -183,6 +184,7 @@ class Application(QApplication):
         self.setApplicationName(APP_NAME)
         print("----------------- log 6 ----------------------")
         self._init_translator()
+        return
         print("----------------- log 7 ----------------------")
         self.setQuitOnLastWindowClosed(False)
         print("----------------- log 8 ----------------------")
@@ -208,7 +210,7 @@ class Application(QApplication):
         self.point_size = point_size / sqrt(QFontMetricsF(font).height() / point_size)
         self.today_is_special = today_is_special()
         print("----------------- log 13 ----------------------")
-        return
+        # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         self.init_gui()
         print("----------------- log 14 ----------------------")
 
