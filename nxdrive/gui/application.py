@@ -175,6 +175,7 @@ class Application(QApplication):
         self.timer = QTimer()
         self.timer.timeout.connect(lambda: None)
         self.timer.start(100)
+        return
         print("----------------- log 4 ----------------------")
 
         self.osi = self.manager.osi
