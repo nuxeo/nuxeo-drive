@@ -1098,6 +1098,34 @@ def test_synchronize_locally_moved():
         assert processor._synchronize_locally_moved(mock_doc_pair, update=True) is None
 
 
+def test_synchronize_deleted_unknown():
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    assert processor._synchronize_deleted_unknown(mock_doc_pair) is None
+
+
+def test_download_content():
+    class Custom_DocPair:
+        def __init__(self) -> None:
+            self.local_path = Path("tests/resources/files/testFile.txt")
+
+    mock_client = Mock_Local_Client()
+    mock_client.abs_path = Path("tests/resources/files/testFile.txt")
+    cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+    mock_dao = Mock_DAO()
+    mock_doc_pair = Mock_Doc_Pair(cursor, ())
+    mock_doc_pair.remote_ref = "files/"
+    mock_dao.mocked_doc_pair = Custom_DocPair()
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+    processor.dao = mock_dao
+    processor.local = mock_client
+    mock_path = Path("testFile2.txt")
+    assert isinstance(processor._download_content(mock_doc_pair, mock_path), Path)
+
+
 def test_synchronize_direct_transfer(manager_factory):
     manager, engine = manager_factory()
     dao = engine.dao

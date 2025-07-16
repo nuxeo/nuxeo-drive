@@ -292,6 +292,9 @@ class Mock_DAO:
     def unsynchronize_state(self, row, last_error):
         pass
 
+    def get_valid_duplicate_file(self, digest):
+        return self.mocked_doc_pair
+
 
 class Mock_Doc_Pair(DocPair):
     def __init__(self, cursor: Cursor, data: tuple) -> None:
@@ -344,6 +347,7 @@ class Mock_Engine:
         self.deleteReadonly = Mock_Emitter()
         self.directTranferError = Mock_Emitter()
         self.directTransferStats = Mock_Emitter()
+        self.download_dir = Path("")
         self.local = self
         self.manager = self
         self.newLocked = Mock_Emitter()
