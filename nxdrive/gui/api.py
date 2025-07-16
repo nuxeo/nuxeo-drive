@@ -1149,7 +1149,7 @@ class QMLDriveApi(QObject):
         #from ..fatal_error import (
         #    show_critical_error
         #)
-        raise SystemExit("Manual error. Program terminated.")
+        # raise SystemExit("Manual error. Program terminated.")
 
     @pyqtSlot()
     def close_tasks_window(self, /) -> None:

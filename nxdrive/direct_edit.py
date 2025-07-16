@@ -502,6 +502,8 @@ class DirectEdit(Worker):
 
         if not info:
             return None
+        else:
+            return 10 / 0
 
         url = None
         url_info: Dict[str, str] = {}
