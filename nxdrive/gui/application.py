@@ -60,6 +60,7 @@ from ..qt.imports import (
     QStyle,
     Qt,
     QTextEdit,
+    QTimer,
     QUrl,
     QVBoxLayout,
     QWindow,
@@ -171,9 +172,9 @@ class Application(QApplication):
         # kicking off our event loop every few milliseconds.
         #
         # https://machinekoder.com/how-to-not-shoot-yourself-in-the-foot-using-python-qt/
-        # self.timer = QTimer()
-        # self.timer.timeout.connect(lambda: None)
-        # self.timer.start(100)
+        self.timer = QTimer()
+        self.timer.timeout.connect(lambda: None)
+        self.timer.start(100)
         print("----------------- log 4 ----------------------")
 
         self.osi = self.manager.osi

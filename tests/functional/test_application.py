@@ -27,4 +27,5 @@ def test_exit_app(manager_factory):
         mock_find_child.return_value = mock_qt
         mock_listener.return_value = None
         app = Application(manager)
-        assert app.exit_app() is None
+        print("App Initialized")
+        assert app.exit_app() is not None
