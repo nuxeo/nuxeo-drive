@@ -140,11 +140,9 @@ class Application(QApplication):
         # and https://codereview.qt-project.org/c/qt/qtwebengine/+/244966
         #
         # The bug happened with PyQt 5.13.0 on Windows.
-        print("----------------- log 1 ----------------------")
         QApplication.setOrganizationName(COMPANY)
-        print("----------------- log 2 ----------------------")
+
         super().__init__(list(*args))
-        print("----------------- log 3 ----------------------")
         self.manager = manager
 
         # Used by SyncAndQuitWorker
@@ -175,50 +173,37 @@ class Application(QApplication):
         self.timer = QTimer()
         self.timer.timeout.connect(lambda: None)
         self.timer.start(100)
-        print("----------------- log 4 ----------------------")
 
         self.osi = self.manager.osi
         self.setWindowIcon(self.icon)
-        print("----------------- log 5 ----------------------")
         self.setApplicationName(APP_NAME)
-        print("----------------- log 6 ----------------------")
         self._init_translator()
-        print("----------------- log 7 ----------------------")
         self.setQuitOnLastWindowClosed(False)
-        print("----------------- log 8 ----------------------")
 
         # Timer used to refresh the files list in the systray menu, see .refresh_files()
         self._last_refresh_view = 0.0
-        # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
         if not self.manager.preferences_metrics_chosen:
             self.show_metrics_acceptance()
-        print("----------------- log 9 ----------------------")
+
         self._conflicts_modals: Dict[str, bool] = {}
         self.current_notification: Optional[Notification] = None
         self.default_tooltip = APP_NAME
-        print("----------------- log 10 ----------------------")
+
         # Font selection (*.point_size* will be used in QML for Hi-DPI scaling)
         point_size = 12
         font = QFont("Helvetica, Times", pointSize=point_size)
-        print("----------------- log 11 ----------------------")
         self.setFont(font)
-        print("----------------- log 12 ----------------------")
         self.point_size = point_size / sqrt(QFontMetricsF(font).height() / point_size)
         self.today_is_special = today_is_special()
-        print("----------------- log 13 ----------------------")
-        # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
         self.init_gui()
-        print("----------------- log 14 ----------------------")
 
         self.manager.dropEngine.connect(self.dropped_engine)
-        print("----------------- log 15 ----------------------")
         self.manager.restartNeeded.connect(self.show_msgbox_restart_needed)
-        print("----------------- log 16 ----------------------")
 
         self.setup_systray()
-        print("----------------- log 17 ----------------------")
         self.manager.reloadIconsSet.connect(self.load_icons_set)
-        print("----------------- log 18 ----------------------")
 
         # Direct Edit
         self.manager.direct_edit.directEditConflict.connect(self._direct_edit_conflict)
@@ -228,23 +213,18 @@ class Application(QApplication):
         self.manager.direct_edit.directEditError[str, list, str].connect(
             self._direct_edit_error
         )
-        print("----------------- log 19 ----------------------")
 
         # Check if actions is required, separate method so it can be overridden
         self.init_checks()
-        print("----------------- log 20 ----------------------")
 
         # Setup notification center for macOS
         if MAC:
             self._setup_notification_center()
-            print("----------------- log 21 ----------------------")
 
         self.added_user_engine_list = [str]
         self.workflow = None
         # Initiate workflow when drive starts if tasks managemnt feature is enable
-        print("----------------- log 22 ----------------------")
         self.init_workflow()
-        print("----------------- log 23 ----------------------")
 
         # Application update
         self.manager.updater.appUpdated.connect(self.quit)
@@ -254,37 +234,26 @@ class Application(QApplication):
         # Display release notes on new version
         if self.manager.old_version != self.manager.version:
             self._show_release_notes(self.manager.old_version, self.manager.version)
-            print("----------------- log 24 ----------------------")
 
         # Listen for nxdrive:// sent by a new instance
-        print("----------------- log 25 ----------------------")
         self.init_nxdrive_listener()
-        print("----------------- log 26 ----------------------")
 
         # Connect this slot last so the other slots connected
         # to self.aboutToQuit can run beforehand.
-        print("----------------- log 27 ----------------------")
         self.aboutToQuit.connect(self.manager.stop)
-        print("----------------- log 28 ----------------------")
 
         # Send previous crash metrics
-        print("----------------- log 29 ----------------------")
         self._send_crash_metrics()
-        print("----------------- log 30 ----------------------")
 
         # Handle the eventual command via the custom URL scheme
         if Options.protocol_url:
-            print("----------------- log 31 ----------------------")
             self._handle_nxdrive_url(Options.protocol_url)
-            print("----------------- log 32 ----------------------")
 
     @pyqtSlot()
     def exit_app(self) -> None:
         """Initiate the application exit."""
-        print("----------------- log 33 ----------------------")
         State.about_to_quit = True
         self.quit()
-        print("----------------- log 34 ----------------------")
 
     def _shutdown(self) -> None:
         """
@@ -305,7 +274,6 @@ class Application(QApplication):
             del self.app_engine
 
     def init_gui(self) -> None:
-        print("----------------- log 36 ----------------------")
         self.api = QMLDriveApi(self)
         self.active_session_model = ActiveSessionModel(self.translate)
         self.auto_update_feature_model = FeatureModel(Feature.auto_update)
@@ -334,11 +302,9 @@ class Application(QApplication):
         self.language_model.addLanguages(Translator.languages())
 
         flags = qt.FramelessWindowHint | qt.WindowStaysOnTopHint
-        print("----------------- log 37 ----------------------")
 
         if WINDOWS:
             # Conflicts
-            print("----------------- log 38 ----------------------")
             self.conflicts_window = CustomWindow()
             self.conflicts_window.setMinimumWidth(550)
             self.conflicts_window.setMinimumHeight(600)
@@ -378,16 +344,12 @@ class Application(QApplication):
             self.create_custom_window_for_task_manager()
 
             flags |= qt.Popup
-            print("----------------- log 39 ----------------------")
         else:
-            print("----------------- log 40 ----------------------")
             self.app_engine = QQmlApplicationEngine()
-            print("----------------- log 41 ----------------------")
             self._fill_qml_context(self.app_engine.rootContext())
             self.app_engine.load(
                 QUrl.fromLocalFile(str(find_resource("qml", file="Main.qml")))
             )
-            print("----------------- log 42 ----------------------")
             root = self.app_engine.rootObjects()[0]
             self.conflicts_window = root.findChild(CustomWindow, "conflictsWindow")
             self.settings_window = root.findChild(CustomWindow, "settingsWindow")
@@ -396,15 +358,12 @@ class Application(QApplication):
                 CustomWindow, "directTransferWindow"
             )
             self.task_manager_window = root.findChild(CustomWindow, "taskManagerWindow")
-            print("----------------- log 43 ----------------------")
 
             if LINUX:
                 flags |= qt.Drawer
-                print("----------------- log 44 ----------------------")
-        print("----------------- log 45 ----------------------")
+
         self.aboutToQuit.connect(self._shutdown)
         self.systray_window.setFlags(flags)
-        print("----------------- log 46 ----------------------")
 
         self.manager.newEngine.connect(self.add_engines)
         self.manager.initEngine.connect(self.add_engines)
@@ -413,17 +372,14 @@ class Application(QApplication):
         self._window_root(self.systray_window).appUpdate.connect(self.api.app_update)
         self._window_root(self.systray_window).getLastFiles.connect(self.get_last_files)
         self.api.setMessage.connect(self._window_root(self.settings_window).setMessage)
-        print("----------------- log 47 ----------------------")
 
         if self.manager.engines:
-            print("----------------- log 48 ----------------------")
             current_uid = self.engine_model.engines_uid[0]
             engine = self.manager.engines[current_uid]
             self.get_last_files(current_uid)
             self.refresh_transfers(engine.dao)
             self.update_status(engine)
-            print("----------------- log 49 ----------------------")
-        print("----------------- log 50 ----------------------")
+
         self.manager.updater.updateAvailable.connect(
             self._window_root(self.systray_window).updateAvailable
         )
@@ -433,7 +389,6 @@ class Application(QApplication):
 
         self.manager.featureUpdate.connect(self._update_feature_state)
         self.last_engine_uid = ""
-        print("----------------- log 51 ----------------------")
 
     def create_custom_window_for_task_manager(self) -> None:
         # Task Manager
