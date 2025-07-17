@@ -172,7 +172,10 @@ class FolderTreeView(TreeViewMixin):
     filled = pyqtSignal()
 
     def __init__(
-        self, parent: "FoldersDialog", client: FoldersOnly, selected_folder: str=None, /
+        self, parent: "FoldersDialog",
+        client: FoldersOnly,
+        selected_folder: str = None,
+        /
     ) -> None:
         super().__init__(parent, client)
 

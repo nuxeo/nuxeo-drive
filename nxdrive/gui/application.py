@@ -1019,7 +1019,7 @@ class Application(QApplication):
         self._show_window(self.filters_dlg)
 
     def show_server_folders(
-        self, engine: Engine, path: Optional[Path], selected_folder: str=None, /
+        self, engine: Engine, path: Optional[Path], selected_folder: str = None, /
     ) -> None:
         """Display the remote folders dialog window.
         *path* is None when the dialog window is opened from a click on the systray menu icon.
@@ -1852,7 +1852,7 @@ class Application(QApplication):
         return selected_engine
 
     def ctx_direct_transfer(
-        self, path: Path, folder_path: str=None, from_web: bool=False, /
+        self, path: Path, folder_path: str=None, from_web: bool = False, /
     ) -> None:
         """Direct Transfer of local files and folders to anywhere on the server."""
 

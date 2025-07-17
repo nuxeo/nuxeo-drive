@@ -61,7 +61,10 @@ class DialogMixin(QDialog):
     """The base class for the tree view window."""
 
     def __init__(
-        self, application: "Application", engine: Engine, selected_folder: str=None, /
+        self, application: "Application",
+        engine: Engine,
+        selected_folder: str = None,
+        /
     ) -> None:
         super().__init__(None)
 
@@ -248,7 +251,7 @@ class FoldersDialog(DialogMixin):
         application: "Application",
         engine: Engine,
         path: Optional[Path],
-        selected_folder: str=None,
+        selected_folder: str = None,
         /,
     ) -> None:
         """*path* is None when the dialog window is opened from a click on the systray menu icon."""

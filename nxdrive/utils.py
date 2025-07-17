@@ -859,9 +859,7 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
 
     protocol_regex = (
         # Direct Transfer stuff
-        (
-            r"nxdrive://(?P<cmd>direct-transfer)/"
-        ),
+        (r"nxdrive://(?P<cmd>direct-transfer)/"),
         # Direct Edit stuff
         (
             r"nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/(?P<server>.*)/"
