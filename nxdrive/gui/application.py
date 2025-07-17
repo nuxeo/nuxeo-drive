@@ -1711,10 +1711,14 @@ class Application(QApplication):
             "direct-transfer": self.ctx_direct_transfer,
             "edit-metadata": manager.ctx_edit_metadata,
         }.get(cmd, None)
-        if func:
+
+        if "direct-transfer" in cmd:
+            # web-ui
+            remote_path = info.get("remote_path", "")
+            if remote_path:
+                self.ctx_direct_transfer(None, remote_path, True)
+        elif func:
             args: Tuple[Any, ...] = (path,)
-        elif "direct-transfer" in cmd:
-            self.ctx_direct_transfer(None, info["remote_path"], True)
         elif "edit" in cmd:
             if not manager.wait_for_server_config():
                 self.display_warning(
@@ -1852,7 +1856,7 @@ class Application(QApplication):
         return selected_engine
 
     def ctx_direct_transfer(
-        self, path: Path, folder_path: str=None, from_web: bool = False, /
+        self, path: Path, folder_path: str = None, from_web: bool = False, /
     ) -> None:
         """Direct Transfer of local files and folders to anywhere on the server."""
 

@@ -61,10 +61,7 @@ class DialogMixin(QDialog):
     """The base class for the tree view window."""
 
     def __init__(
-        self, application: "Application",
-        engine: Engine,
-        selected_folder: str = None,
-        /
+        self, application: "Application", engine: Engine, selected_folder: str = None, /
     ) -> None:
         super().__init__(None)
 
