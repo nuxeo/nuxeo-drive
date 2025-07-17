@@ -1690,11 +1690,6 @@ class Application(QApplication):
     def _handle_nxdrive_url(self, url: str, /) -> bool:
         """Handle an nxdrive protocol URL."""
 
-        if "transfer" in url:
-            folder_path = url.split("/nuxeo")[1]
-            self.ctx_direct_transfer(None, folder_path, True)
-            return
-
         info = parse_protocol_url(url)
         if not info:
             return False
@@ -1718,6 +1713,8 @@ class Application(QApplication):
         }.get(cmd, None)
         if func:
             args: Tuple[Any, ...] = (path,)
+        elif "direct-transfer" in cmd:
+            self.ctx_direct_transfer(None, info["remote_path"], True)
         elif "edit" in cmd:
             if not manager.wait_for_server_config():
                 self.display_warning(

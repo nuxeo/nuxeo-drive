@@ -909,6 +909,12 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
         full_query = urlparse(parsed_url["query"]).path
         query = dict(parse_qsl(full_query))
         return {"command": cmd, **query}
+    elif cmd == "direct-transfer":
+        remote_path = re.split("/nuxeo", url, 1)[1]
+        return {
+            "command": cmd,
+            "remote_path": remote_path,
+        }
     return {"command": cmd, "filepath": parsed_url["path"]}
 
 
