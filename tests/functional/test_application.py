@@ -151,7 +151,7 @@ def test_msbox(manager_factory):
     ) as mock_download_repr, patch(
         "PyQt5.QtWidgets.QDialog.exec_"
     ) as mock_exec, patch(
-        "nxdrive.engine.workers._execute"
+        "nxdrive.engine.workers.PollWorker._execute"
     ) as mock_execute:
         mock_root_objects.return_value = [QObject()]
         mock_find_child.return_value = mock_qt
