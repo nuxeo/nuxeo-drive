@@ -37,7 +37,7 @@ def test_exit_app(manager_factory):
         app.exit(0)
 
 
-@not_linux(reason="Qt does not work correctly on Linux")
+@mac_only
 def test_shutdown(manager_factory):
     manager, engine = manager_factory()
     mock_qt = Mock_Qt()
@@ -87,7 +87,7 @@ def test_create_custom_window_for_task_manager(manager_factory):
         app.exit(0)
 
 
-@not_linux(reason="Qt does not work correctly on Linux")
+@mac_only
 def test_update_workflow(manager_factory):
     manager, engine = manager_factory()
     mock_qt = Mock_Qt()
@@ -112,7 +112,7 @@ def test_update_workflow(manager_factory):
         app.exit(0)
 
 
-@not_linux(reason="Qt does not work correctly on Linux")
+@mac_only
 def test_update_feature_state(manager_factory):
     manager, engine = manager_factory()
     mock_qt = Mock_Qt()
@@ -170,7 +170,7 @@ def test_msbox(manager_factory):
         app.exit(0)
 
 
-@not_linux(reason="Qt does not work correctly on Linux")
+@mac_only
 def test_display_warning(manager_factory):
     manager, engine = manager_factory()
     mock_qt = Mock_Qt()
