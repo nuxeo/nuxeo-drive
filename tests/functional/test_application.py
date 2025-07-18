@@ -133,7 +133,7 @@ def test_update_feature_state(manager_factory):
         assert app._update_feature_state("tasks_management", True) is None
 
 
-@not_linux(reason="Qt does not work correctly on Linux")
+@mac_only
 def test_msbox(manager_factory):
     from PyQt5.QtWidgets import QMessageBox
 
