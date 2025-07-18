@@ -26,12 +26,15 @@ def test_exit_app(manager_factory):
         "nxdrive.gui.application.Application.show_metrics_acceptance"
     ) as mock_show_metrics, patch(
         "nxdrive.engine.activity.FileAction.__repr__"
-    ) as mock_download_repr:
+    ) as mock_download_repr, patch(
+        "nxdrive.gui.application.Application.create_custom_window_for_task_manager"
+    ) as mock_task_manager:
         mock_root_objects.return_value = [QObject()]
         mock_find_child.return_value = mock_qt
         mock_listener.return_value = None
         mock_show_metrics.return_value = None
         mock_download_repr.return_value = "Nuxeo Drive"
+        mock_task_manager.return_value = None
         app = Application(manager)
         assert app.exit_app() is None
         app.exit(0)
@@ -51,12 +54,15 @@ def test_shutdown(manager_factory):
         "nxdrive.gui.application.Application.show_metrics_acceptance"
     ) as mock_show_metrics, patch(
         "nxdrive.engine.activity.FileAction.__repr__"
-    ) as mock_download_repr:
+    ) as mock_download_repr, patch(
+        "nxdrive.gui.application.Application.create_custom_window_for_task_manager"
+    ) as mock_task_manager:
         mock_root_objects.return_value = [QObject()]
         mock_find_child.return_value = mock_qt
         mock_listener.return_value = None
         mock_show_metrics.return_value = None
         mock_download_repr.return_value = "Nuxeo Drive"
+        mock_task_manager.return_value = None
         app = Application(manager)
         assert app._shutdown() is None
         app.exit(0)
@@ -101,12 +107,15 @@ def test_update_workflow(manager_factory):
         "nxdrive.gui.application.Application.show_metrics_acceptance"
     ) as mock_show_metrics, patch(
         "nxdrive.engine.activity.FileAction.__repr__"
-    ) as mock_download_repr:
+    ) as mock_download_repr, patch(
+        "nxdrive.gui.application.Application.create_custom_window_for_task_manager"
+    ) as mock_task_manager:
         mock_root_objects.return_value = [QObject()]
         mock_find_child.return_value = mock_qt
         mock_listener.return_value = None
         mock_show_metrics.return_value = None
         mock_download_repr.return_value = "Nuxeo Drive"
+        mock_task_manager.return_value = None
         app = Application(manager)
         assert app.update_workflow() is None
         app.exit(0)
@@ -126,12 +135,15 @@ def test_update_feature_state(manager_factory):
         "nxdrive.gui.application.Application.show_metrics_acceptance"
     ) as mock_show_metrics, patch(
         "nxdrive.engine.activity.FileAction.__repr__"
-    ) as mock_download_repr:
+    ) as mock_download_repr, patch(
+        "nxdrive.gui.application.Application.create_custom_window_for_task_manager"
+    ) as mock_task_manager:
         mock_root_objects.return_value = [QObject()]
         mock_find_child.return_value = mock_qt
         mock_listener.return_value = None
         mock_show_metrics.return_value = None
         mock_download_repr.return_value = "Nuxeo Drive"
+        mock_task_manager.return_value = None
         app = Application(manager)
         assert app._update_feature_state("auto_update", True) is None
         app.exit(0)
@@ -157,7 +169,9 @@ def test_msbox(manager_factory):
         "PyQt5.QtWidgets.QDialog.exec_"
     ) as mock_exec, patch(
         "nxdrive.engine.workers.PollWorker._execute"
-    ) as mock_execute:
+    ) as mock_execute, patch(
+        "nxdrive.gui.application.Application.create_custom_window_for_task_manager"
+    ) as mock_task_manager:
         mock_root_objects.return_value = [QObject()]
         mock_find_child.return_value = mock_qt
         mock_listener.return_value = None
@@ -165,6 +179,7 @@ def test_msbox(manager_factory):
         mock_download_repr.return_value = "Nuxeo Drive"
         mock_exec.return_value = None
         mock_execute.return_value = None
+        mock_task_manager.return_value = None
         app = Application(manager)
         assert isinstance(app._msgbox(), QMessageBox)
         app.exit(0)
@@ -188,7 +203,9 @@ def test_display_warning(manager_factory):
         "nxdrive.gui.application.Application.translate"
     ) as mock_translate, patch(
         "nxdrive.gui.application.Application._msgbox"
-    ) as mock_msgbox:
+    ) as mock_msgbox, patch(
+        "nxdrive.gui.application.Application.create_custom_window_for_task_manager"
+    ) as mock_task_manager:
         mock_root_objects.return_value = [QObject()]
         mock_find_child.return_value = mock_qt
         mock_listener.return_value = None
@@ -196,6 +213,7 @@ def test_display_warning(manager_factory):
         mock_download_repr.return_value = "Nuxeo Drive"
         mock_translate.return_value = None
         mock_msgbox.return_value = None
+        mock_task_manager.return_value = None
         app = Application(manager)
         assert (
             app.display_warning(
