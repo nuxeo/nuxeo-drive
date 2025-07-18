@@ -858,6 +858,8 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
     path_cmds = ("access-online", "copy-share-link", "direct-transfer", "edit-metadata")
 
     protocol_regex = (
+        # Direct Transfer stuff
+        (r"nxdrive://(?P<cmd>direct-transfer)/"),
         # Direct Edit stuff
         (
             r"nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/(?P<server>.*)/"
@@ -895,6 +897,8 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
 
     parsed_url: Dict[str, str] = match_res.groupdict()
     cmd = parsed_url["cmd"]
+    print(f">>>> parsed_url: {parsed_url!r}")
+    print(f">>>> cmd: {cmd!r}")
     if cmd == "edit":
         return parse_edit_protocol(parsed_url, url_string)
     elif cmd == "token":
@@ -909,6 +913,13 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
         full_query = urlparse(parsed_url["query"]).path
         query = dict(parse_qsl(full_query))
         return {"command": cmd, **query}
+    # web ui
+    elif cmd == "direct-transfer" and ("http" in url_string or "https" in url_string):
+        remote_path = re.split("/nuxeo", url_string.strip(), maxsplit=1)[1]
+        return {
+            "command": cmd,
+            "remote_path": remote_path,
+        }
     return {"command": cmd, "filepath": parsed_url["path"]}
 
 

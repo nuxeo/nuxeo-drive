@@ -394,7 +394,7 @@ class QMLDriveApi(QObject):
         if not engine:
             return
 
-        self.application.show_server_folders(engine, None)
+        self.application.show_server_folders(engine, None, None)
 
     @pyqtSlot(str, result=str)
     def get_hostname_from_url(self, url: str, /) -> str:
