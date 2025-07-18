@@ -397,6 +397,7 @@ class Mock_Engine:
         self.directTransferStats = Mock_Emitter()
         self.download_dir = Path("")
         self.local = self
+        self.local_folder = Path("tests/resources")
         self.manager = self
         self.newLocked = Mock_Emitter()
         self.newReadonly = Mock_Emitter()
