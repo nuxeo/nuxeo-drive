@@ -476,10 +476,22 @@ class Mock_Qt:
     def exec_(self):
         pass
 
+    def rootContext(self):
+        pass
+
     def setFlags(self, *args):
         pass
 
     def setIconPixmap(self, *args):
+        pass
+
+    def setMinimumHeight(self, *args):
+        pass
+
+    def setMinimumWidth(self, *args):
+        pass
+
+    def setSource(self, *args):
         pass
 
     def setText(self, *args):

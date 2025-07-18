@@ -9,10 +9,10 @@ from PyQt5.QtCore import QObject
 from nxdrive.gui.application import Application
 from tests.functional.mocked_classes import Mock_Qt
 
-from ..markers import mac_only
+from ..markers import mac_only, not_linux
 
 
-@mac_only
+@not_linux(reason="Qt does not run on linux")
 def test_exit_app(manager_factory):
     manager, engine = manager_factory()
     mock_qt = Mock_Qt()
@@ -68,29 +68,38 @@ def test_shutdown(manager_factory):
         app.exit(0)
 
 
-# @mac_only
-# def test_create_custom_window_for_task_manager(manager_factory):
-#     manager, engine = manager_factory()
-#     mock_qt = Mock_Qt()
-#     with patch(
-#         "PyQt5.QtQml.QQmlApplicationEngine.rootObjects"
-#     ) as mock_root_objects, patch(
-#         "PyQt5.QtCore.QObject.findChild"
-#     ) as mock_find_child, patch(
-#         "nxdrive.gui.application.Application.init_nxdrive_listener"
-#     ) as mock_listener, patch(
-#         "nxdrive.gui.application.Application.show_metrics_acceptance"
-#     ) as mock_show_metrics, patch(
-#         "nxdrive.engine.activity.FileAction.__repr__"
-#     ) as mock_download_repr:
-#         mock_root_objects.return_value = [QObject()]
-#         mock_find_child.return_value = mock_qt
-#         mock_listener.return_value = None
-#         mock_show_metrics.return_value = None
-#         mock_download_repr.return_value = "Nuxeo Drive"
-#         app = Application(manager)
-#         assert app.create_custom_window_for_task_manager() is None
-#         app.exit(0)
+@mac_only
+def test_create_custom_window_for_task_manager(manager_factory):
+    manager, engine = manager_factory()
+    mock_qt = Mock_Qt()
+    with patch(
+        "PyQt5.QtQml.QQmlApplicationEngine.rootObjects"
+    ) as mock_root_objects, patch(
+        "PyQt5.QtCore.QObject.findChild"
+    ) as mock_find_child, patch(
+        "nxdrive.gui.application.Application.init_nxdrive_listener"
+    ) as mock_listener, patch(
+        "nxdrive.gui.application.Application.show_metrics_acceptance"
+    ) as mock_show_metrics, patch(
+        "nxdrive.engine.activity.FileAction.__repr__"
+    ) as mock_download_repr, patch(
+        "nxdrive.gui.application.Application._fill_qml_context"
+    ) as mock_qml_context, patch(
+        "nxdrive.gui.application.CustomWindow"
+    ) as mock_custom_window, patch(
+        "" "tests.functional.mocked_classes.Mock_Qt.rootContext"
+    ) as mock_root_context:
+        mock_root_objects.return_value = [QObject()]
+        mock_find_child.return_value = mock_qt
+        mock_listener.return_value = None
+        mock_show_metrics.return_value = None
+        mock_download_repr.return_value = "Nuxeo Drive"
+        mock_qml_context.return_value = None
+        mock_custom_window.return_value = Mock_Qt
+        mock_root_context.return_value = None
+        app = Application(manager)
+        assert app.create_custom_window_for_task_manager() is None
+        app.exit(0)
 
 
 @mac_only
