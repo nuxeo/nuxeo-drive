@@ -482,6 +482,9 @@ class Mock_Qt:
     def rootContext(self):
         pass
 
+    def setCheckBox(self, *args):
+        pass
+
     def setFlags(self, *args):
         pass
 
