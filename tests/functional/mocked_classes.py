@@ -407,9 +407,13 @@ class Mock_Engine:
         self.queue_manager = Mock_Queue_Manager()
         self.remote = Mock_Remote()
         self.rollback = False
+        self.server_url = "dummy_url"
         self.trash = False
         self.uid = "dummy_uid"
         self.unlock_return = 0
+
+    def delete_doc(self, path, mode=None):
+        pass
 
     def suspend(self):
         pass
@@ -419,6 +423,9 @@ class Mock_Engine:
 
     def is_offline(self) -> bool:
         return self.offline
+
+    def is_syncing(self):
+        return True
 
     def local_rollback(self, force: bool = False):
         return self.rollback
@@ -470,6 +477,9 @@ class Mock_Qt:
     def clickedButton(self):
         pass
 
+    def close(self):
+        pass
+
     def connect(self, *args):
         pass
 
@@ -479,6 +489,12 @@ class Mock_Qt:
     def exec_(self):
         pass
 
+    def height(self):
+        return 0
+
+    def raise_(self):
+        pass
+
     def rootContext(self):
         pass
 
@@ -486,6 +502,9 @@ class Mock_Qt:
         pass
 
     def setFlags(self, *args):
+        pass
+
+    def setGeometry(self, *args):
         pass
 
     def setIconPixmap(self, *args):
@@ -503,8 +522,23 @@ class Mock_Qt:
     def setText(self, *args):
         pass
 
+    def setX(self, *args):
+        pass
+
+    def setY(self, *args):
+        pass
+
     def setWindowTitle(self, *args):
         pass
+
+    def show(self):
+        pass
+
+    def size(self):
+        return 0
+
+    def width(self):
+        return 0
 
 
 class Mock_Queue_Manager:
