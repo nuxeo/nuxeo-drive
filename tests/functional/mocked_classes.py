@@ -467,6 +467,9 @@ class Mock_Qt:
     def addButton(self, *args):
         pass
 
+    def clickedButton(self):
+        pass
+
     def connect(self, *args):
         pass
 
