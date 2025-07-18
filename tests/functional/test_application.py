@@ -34,6 +34,7 @@ def test_exit_app(manager_factory):
         mock_download_repr.return_value = "Nuxeo Drive"
         app = Application(manager)
         assert app.exit_app() is None
+        app.exit(0)
 
 
 @not_linux(reason="Qt does not work correctly on Linux")
@@ -58,6 +59,7 @@ def test_shutdown(manager_factory):
         mock_download_repr.return_value = "Nuxeo Drive"
         app = Application(manager)
         assert app._shutdown() is None
+        app.exit(0)
 
 
 @windows_only
@@ -82,6 +84,7 @@ def test_create_custom_window_for_task_manager(manager_factory):
         mock_download_repr.return_value = "Nuxeo Drive"
         app = Application(manager)
         assert app.create_custom_window_for_task_manager() is None
+        app.exit(0)
 
 
 @not_linux(reason="Qt does not work correctly on Linux")
@@ -106,6 +109,7 @@ def test_update_workflow(manager_factory):
         mock_download_repr.return_value = "Nuxeo Drive"
         app = Application(manager)
         assert app.update_workflow() is None
+        app.exit(0)
 
 
 @not_linux(reason="Qt does not work correctly on Linux")
@@ -130,6 +134,7 @@ def test_update_feature_state(manager_factory):
         mock_download_repr.return_value = "Nuxeo Drive"
         app = Application(manager)
         assert app._update_feature_state("auto_update", True) is None
+        app.exit(0)
 
 
 @mac_only
@@ -162,12 +167,11 @@ def test_msbox(manager_factory):
         mock_execute.return_value = None
         app = Application(manager)
         assert isinstance(app._msgbox(), QMessageBox)
+        app.exit(0)
 
 
 @not_linux(reason="Qt does not work correctly on Linux")
 def test_display_warning(manager_factory):
-    from PyQt5.QtWidgets import QMessageBox
-
     manager, engine = manager_factory()
     mock_qt = Mock_Qt()
     with patch(
@@ -193,9 +197,10 @@ def test_display_warning(manager_factory):
         mock_translate.return_value = None
         mock_msgbox.return_value = None
         app = Application(manager)
-        assert isinstance(
+        assert (
             app.display_warning(
                 "Warning title", "Warning message", ["value1", "value2"]
-            ),
-            QMessageBox,
+            )
+            is None
         )
+        app.exit(0)
