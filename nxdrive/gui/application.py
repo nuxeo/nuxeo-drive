@@ -1712,10 +1712,10 @@ class Application(QApplication):
             "edit-metadata": manager.ctx_edit_metadata,
         }.get(cmd, None)
 
-        if "direct-transfer" in cmd:
+        remote_path = info.get("remote_path", "")
+
+        if "direct-transfer" in cmd and remote_path:
             # web-ui
-            remote_path = info.get("remote_path", "")
-            if remote_path:
                 self.ctx_direct_transfer(None, remote_path, True)
         elif func:
             args: Tuple[Any, ...] = (path,)
