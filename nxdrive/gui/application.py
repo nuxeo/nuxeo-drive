@@ -1716,7 +1716,8 @@ class Application(QApplication):
 
         if "direct-transfer" in cmd and remote_path:
             # from web-ui
-            self.ctx_direct_transfer(None, remote_path, True)
+            # self.ctx_direct_transfer(None, remote_path, True)
+            args: Tuple[Any, ...] = (None, remote_path, True)
         elif func:
             args: Tuple[Any, ...] = (path,)
         elif "edit" in cmd:
