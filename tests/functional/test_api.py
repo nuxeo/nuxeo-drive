@@ -575,4 +575,3 @@ def test_open_server_folders(manager_factory):
         mock_engine.return_value = engine
         mock_hide.return_value = None
         assert drive_api.open_server_folders("engine.uid") is None
-
