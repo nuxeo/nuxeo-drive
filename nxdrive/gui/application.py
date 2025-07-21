@@ -1714,12 +1714,11 @@ class Application(QApplication):
 
         remote_path = info.get("remote_path", "")
 
-        if "direct-transfer" in cmd and remote_path:
-            # from web-ui
-            # self.ctx_direct_transfer(None, remote_path, True)
-            args: Tuple[Any, ...] = (None, remote_path, True)
-        elif func:
-            args: Tuple[Any, ...] = (path,)
+        if func:
+            if remote_path:
+                args: Tuple[Any, ...] = (None, remote_path, True)
+            else:
+                args: Tuple[Any, ...] = (path,)
         elif "edit" in cmd:
             if not manager.wait_for_server_config():
                 self.display_warning(
