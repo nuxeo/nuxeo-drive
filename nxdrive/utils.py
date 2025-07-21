@@ -857,12 +857,12 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
     # Commands that need a path to work with
     path_cmds = ("access-online", "copy-share-link", "direct-transfer", "edit-metadata")
 
-    if "direct-transfer" in url_string  and (
+    if "direct-transfer" in url_string and (
         "/http/" in url_string or "/https/" in url_string
     ):
         protocol_regex = (
             # Direct Transfer stuff
-        (r"nxdrive://(?P<cmd>direct-transfer)/"),
+            (r"nxdrive://(?P<cmd>direct-transfer)/"),
         )
     else:
         protocol_regex = (
