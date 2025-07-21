@@ -965,17 +965,6 @@ def test_parse_protocol_url_edit_missing_username():
         nxdrive.utils.parse_protocol_url(url)
 
 
-"""
-def test_parse_protocol_url_direct_transfer():
-    url = "nxdrive://direct-transfer/http/server.cloud.nuxeo.com:8080/nuxeo/default-domain/UserWorkspaces/admin"
-    info = nxdrive.utils.parse_protocol_url(url)
-    assert info == {
-        "command": "direct-transfer",
-        "remote_path": "/default-domain/UserWorkspaces/nco-admin/Roy",
-    }
-"""
-
-
 def test_parse_protocol_url_oauth2_token():
     """Simple token parsing."""
     url = "nxdrive://authorize/?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA"
