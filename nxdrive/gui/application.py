@@ -1714,11 +1714,10 @@ class Application(QApplication):
 
         remote_path = info.get("remote_path", "")
 
+        args: Tuple[Any, ...] = ()
+
         if func:
-            if remote_path:
-                args: Tuple[Any, ...] = (None, remote_path, True)
-            else:
-                args: Tuple[Any, ...] = (path,)
+            args = (None, remote_path, True) if remote_path else (path,)
         elif "edit" in cmd:
             if not manager.wait_for_server_config():
                 self.display_warning(
