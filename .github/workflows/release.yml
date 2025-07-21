@@ -103,8 +103,6 @@ jobs:
 
       - name: "[GNU/Linux] Verify the .AppImage signature"
         if: matrix.os == 'ubuntu-latest'
-        env:
-          GPG_PUBLIC_KEY: ${{ secrets.GPG_PUBLIC_KEY }}
         run: bash tools/linux/deploy_ci_agent.sh --verify-sign
 
       #

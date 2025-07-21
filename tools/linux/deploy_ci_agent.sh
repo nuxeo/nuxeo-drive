@@ -89,18 +89,15 @@ sign() {
 }
 
 verify_sign() {
-    # Import GPG Public Key for verifying the signature
-    if [ -n "$GPG_PUBLIC_KEY" ]; then
-        echo "$GPG_PUBLIC_KEY" | gpg --batch --import
-        if [ $? -ne 0 ]; then
-            echo ">>> [AppImage] Failed to import GPG public key"
-            exit 1
-        fi
-    fi
+    GPG_KEY_ID="16D39950F9D3F3DF"
 
-    # Set trust level for the GPG key
-    KEY_FPR=$(echo "$GPG_PUBLIC_KEY" | gpg --with-colons --import-options show-only --import | awk -F: '/^fpr:/ { print $10 }' | head -n1)
-    echo "$KEY_FPR:6:" | gpg --batch --yes --import-ownertrust
+    # Import GPG Public Key from keyserver
+    echo ">>> [AppImage] Importing GPG public key with ID: $GPG_KEY_ID from keys.openpgp.org"
+    gpg --keyserver hkps://keys.openpgp.org --recv-keys "$GPG_KEY_ID"
+    if [ $? -ne 0 ]; then
+        echo ">>> [AppImage] Failed to import GPG public key"
+        exit 1
+    fi
 
     find_appimage
 
