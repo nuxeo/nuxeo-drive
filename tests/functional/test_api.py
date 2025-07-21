@@ -8,6 +8,7 @@ from nxdrive.utils import find_resource
 
 from ..markers import mac_only
 
+
 def test_web_authentication(manager_factory, nuxeo_url):
     manager = manager_factory(with_engine=False)
     manager.application = ""
