@@ -537,6 +537,7 @@ def test_get_engine(manager_factory, tmp):
         assert not drive_api.get_remote_document_url("dummy_uid", "remote_ref")
         assert not drive_api.on_clicked_open_task("dummy_uid", "dummy_task_id")
 
+
 def test_open_server_folders(manager_factory):
     from .test_direct_transfer_path import Mock_Qt
 
@@ -574,3 +575,4 @@ def test_open_server_folders(manager_factory):
         mock_engine.return_value = engine
         mock_hide.return_value = None
         assert drive_api.open_server_folders("engine.uid") is None
+
