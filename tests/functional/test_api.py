@@ -6,6 +6,7 @@ from nxdrive.gui.api import QMLDriveApi
 from nxdrive.translator import Translator
 from nxdrive.utils import find_resource
 
+from ..markers import mac_only
 
 def test_web_authentication(manager_factory, nuxeo_url):
     manager = manager_factory(with_engine=False)
@@ -538,6 +539,7 @@ def test_get_engine(manager_factory, tmp):
         assert not drive_api.on_clicked_open_task("dummy_uid", "dummy_task_id")
 
 
+@mac_only
 def test_open_server_folders(manager_factory):
     from .test_direct_transfer_path import Mock_Qt
 
@@ -575,3 +577,4 @@ def test_open_server_folders(manager_factory):
         mock_engine.return_value = engine
         mock_hide.return_value = None
         assert drive_api.open_server_folders("engine.uid") is None
+        app.exit(0)
