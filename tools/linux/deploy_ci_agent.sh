@@ -91,6 +91,10 @@ sign() {
 verify_sign() {
     GPG_KEY_ID="16D39950F9D3F3DF"
 
+    # Create a temporary GPG home directory for isolation
+    export GNUPGHOME=$(mktemp -d)
+    chmod 700 "$GNUPGHOME"
+
     # Import GPG Public Key from keyserver
     echo ">>> [AppImage] Importing GPG public key with ID: $GPG_KEY_ID from keys.openpgp.org"
     gpg --keyserver hkps://keys.openpgp.org --recv-keys "$GPG_KEY_ID"
@@ -98,6 +102,10 @@ verify_sign() {
         echo ">>> [AppImage] Failed to import GPG public key"
         exit 1
     fi
+
+    # Set trust level to ultimate
+    KEY_FPR=$(gpg --with-colons --fingerprint "$GPG_KEY_ID" | awk -F: '/^fpr:/ { print $10 }' | head -n1)
+    echo "$KEY_FPR:6:" | gpg --import-ownertrust
 
     find_appimage
 
