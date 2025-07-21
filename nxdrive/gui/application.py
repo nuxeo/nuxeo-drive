@@ -1717,7 +1717,7 @@ class Application(QApplication):
         args: Tuple[Any, ...] = ()
 
         if func:
-            args = (None, remote_path, True) if remote_path else (path, )
+            args = (None, remote_path, True) if remote_path else (path,)
         elif "edit" in cmd:
             if not manager.wait_for_server_config():
                 self.display_warning(
