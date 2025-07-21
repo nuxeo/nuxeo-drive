@@ -118,5 +118,7 @@ def test_handle_nxdrive_url(manager_factory):
         mock_task_manager.return_value = None
         app = Application(manager)
         mock_url = "nxdrive://direct-transfer/https/random.com/nuxeo/default-domain/UserWorkspaces"
+        mock_url2 = f"nxdrive://direct-transfer{engine.local_folder}"
         assert app._handle_nxdrive_url(mock_url) is True
+        assert app._handle_nxdrive_url(mock_url2) is True
         app.exit(0)
