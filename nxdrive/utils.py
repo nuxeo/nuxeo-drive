@@ -857,34 +857,40 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
     # Commands that need a path to work with
     path_cmds = ("access-online", "copy-share-link", "direct-transfer", "edit-metadata")
 
-    protocol_regex = (
-        # Direct Transfer stuff
+    if "direct-transfer" in url_string  and (
+        "/http/" in url_string or "/https/" in url_string
+    ):
+        protocol_regex = (
+            # Direct Transfer stuff
         (r"nxdrive://(?P<cmd>direct-transfer)/"),
-        # Direct Edit stuff
-        (
-            r"nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/(?P<server>.*)/"
-            r"user/(?P<username>.*)/repo/(?P<repo>.*)/"
-            r"nxdocid/(?P<docid>[0-9a-fA-F\-]*)/filename/(?P<filename>[^/]*)"
-            r"/downloadUrl/(?P<download>.*)"
-        ),
-        # Events from context menu:
-        #     - Access online
-        #     - Copy share-link
-        #     - Edit metadata
-        #     - Direct Transfer
-        # And event from macOS to sync the document status (FinderSync)
-        r"nxdrive://(?P<cmd>({}))/(?P<path>.*)".format("|".join(path_cmds)),
-        # Event to acquire the login token from the server
-        (
-            r"nxdrive://(?P<cmd>token)/"
-            rf"(?P<token>{DOC_UID_REG})/"
-            r"user/(?P<username>.*)"
-        ),
-        # Event to continue the OAuth2 login flow
-        # authorize?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
-        # authorize/?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
-        r"nxdrive://(?P<cmd>authorize)/?\?(?P<query>.+)",
-    )
+        )
+    else:
+        protocol_regex = (
+            # Direct Edit stuff
+            (
+                r"nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/(?P<server>.*)/"
+                r"user/(?P<username>.*)/repo/(?P<repo>.*)/"
+                r"nxdocid/(?P<docid>[0-9a-fA-F\-]*)/filename/(?P<filename>[^/]*)"
+                r"/downloadUrl/(?P<download>.*)"
+            ),
+            # Events from context menu:
+            #     - Access online
+            #     - Copy share-link
+            #     - Edit metadata
+            #     - Direct Transfer
+            # And event from macOS to sync the document status (FinderSync)
+            r"nxdrive://(?P<cmd>({}))/(?P<path>.*)".format("|".join(path_cmds)),
+            # Event to acquire the login token from the server
+            (
+                r"nxdrive://(?P<cmd>token)/"
+                rf"(?P<token>{DOC_UID_REG})/"
+                r"user/(?P<username>.*)"
+            ),
+            # Event to continue the OAuth2 login flow
+            # authorize?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
+            # authorize/?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
+            r"nxdrive://(?P<cmd>authorize)/?\?(?P<query>.+)",
+        )
 
     match_res = None
     for regex in protocol_regex:
