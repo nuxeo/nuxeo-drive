@@ -100,12 +100,23 @@ verify_sign() {
     fi
 
     # Set trust level to ultimate
-    (echo 5; echo y; echo save) | gpg --command-fd 0 --no-tty --no-greeting -q --edit-key "$GPG_KEY_ID" trust
+    echo ">>> [AppImage] Setting trust level for key $GPG_KEY_ID"
+    (echo 5; echo y; echo save) | \
+        gpg --command-fd 0 --no-tty --no-greeting -q --edit-key "$GPG_KEY_ID" trust
+
+    # Validate trust change
+    TRUST_LEVEL=$(gpg --list-keys --with-colons "$GPG_KEY_ID" | awk -F: '/^pub/ { print $2 }')
+
+    if [ "$TRUST_LEVEL" != "u" ]; then
+        echo ">>> [AppImage] WARNING: Trust level not set to ultimate (u). Current: $TRUST_LEVEL"
+    else
+        echo ">>> [AppImage] Trust level correctly set to ultimate (u)"
+    fi
 
     find_appimage
 
     # Verify the signature
-    gpg --trust-model always --verify "${appimage_file}.sig" "$appimage_file"
+    gpg --verify "${appimage_file}.sig" "$appimage_file"
     if [ $? -eq 0 ]; then
         echo ">>> [AppImage] Signature verification successful"
     else
