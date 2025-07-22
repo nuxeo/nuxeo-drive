@@ -100,8 +100,7 @@ verify_sign() {
     fi
 
     # Set trust level to ultimate
-    KEY_FPR=$(gpg --with-colons --fingerprint "$GPG_KEY_ID" | awk -F: '/^fpr:/ { print $10 }' | head -n1)
-    echo "$KEY_FPR:6:" | gpg --import-ownertrust
+    (echo 5; echo y; echo save) | gpg --command-fd 0 --no-tty --no-greeting -q --edit-key "$GPG_KEY_ID" trust
 
     find_appimage
 
