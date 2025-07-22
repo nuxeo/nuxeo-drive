@@ -77,7 +77,7 @@ def test_upload(
     output = dtu_obj.upload(mock_file_path, doc_pair=mock_doc_pair)
     assert output == {"path": "dummy_path", "uid": "dummy_uid"}
     # duplicate_behavior == "ignore" and exists_in_parent == True
-    mock_exist_parent.return_vaue = True
+    mock_exist_parent.return_value = True
     mock_doc_pair.duplicate_behavior = "ignore"
     output = dtu_obj.upload(mock_file_path, doc_pair=mock_doc_pair)
     assert output == {}
