@@ -101,8 +101,7 @@ def test_win_dequeue_delete(manager_factory):
     mock_doc_pair.remote_state = "dummy_remote_state"
     mock_doc_pair.pair_state = "dummy_pair_state"
     mock_doc_pair.last_error = "dummy_last_error"
-    local_watcher._delete_events = {}
-    local_watcher._delete_events["dummy_remote_ref"] = (10, mock_doc_pair)
+    local_watcher._delete_events = {"dummy_remote_ref": (10, mock_doc_pair)}
     with patch(
         "nxdrive.engine.watcher.local_watcher.LocalWatcher._handle_watchdog_delete"
     ) as mock_watchdog_delete:
@@ -210,11 +209,9 @@ def test_win_dequeue_folder_scan(manager_factory):
     mock_doc_pair.remote_state = "dummy_remote_state"
     mock_doc_pair.pair_state = "dummy_pair_state"
     mock_doc_pair.last_error = "dummy_last_error"
-    local_watcher._folder_scan_events = {}
-    local_watcher._folder_scan_events[Path("tests/resources/files/testFile.txt")] = (
-        10.0,
-        mock_doc_pair,
-    )
+    local_watcher._folder_scan_events = {
+        Path("tests/resources/files/testFile.txt"): (10.0, mock_doc_pair)
+    }
     # delay < self._windows_folder_scan_delay
     local_watcher._windows_folder_scan_delay = int(round(time() * 1000)) + 20
     assert local_watcher._win_dequeue_folder_scan() is None
