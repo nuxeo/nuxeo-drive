@@ -25,7 +25,7 @@ def test_has_folder_icon(mock_is_file, mock_subprocess_check_output):
 
 
 @pytest.mark.skipif(not LINUX, reason="GNU/Linux only.")
-def test_get_path_remote_id():
+def test_remove_remote_id_impl():
     # Test case must run only on Linux
     from nxdrive.client.local.linux import LocalClient
 
