@@ -56,6 +56,7 @@ class WindowsIntegration(AbstractOSIntegration):
             )
         )
 
+    """
     @staticmethod
     def cb_get() -> str:
         ""Get the text data from the clipboard.
@@ -75,7 +76,6 @@ class WindowsIntegration(AbstractOSIntegration):
             # Closing clipboard.
             win32clipboard.CloseClipboard()
 
-    """
     @staticmethod
     def cb_set(text: str, /) -> None:
         ""Copy some *text* into the clipboard.
