@@ -89,29 +89,18 @@ sign() {
 }
 
 verify_sign() {
-    GPG_KEY_ID="16D39950F9D3F3DF"
+    GPG_KEY_FPR="E660E4095687C2F71F5938D616D39950F9D3F3DF"
 
     # Import GPG Public Key from keyserver
-    echo ">>> [AppImage] Importing GPG public key with ID: $GPG_KEY_ID from keys.openpgp.org"
-    gpg --keyserver hkps://keys.openpgp.org --recv-keys "$GPG_KEY_ID"
+    echo ">>> [AppImage] Importing GPG public key with ID: $GPG_KEY_FPR from keys.openpgp.org"
+    gpg --keyserver hkps://keys.openpgp.org --recv-keys "$GPG_KEY_FPR"
     if [ $? -ne 0 ]; then
         echo ">>> [AppImage] Failed to import GPG public key"
         exit 1
     fi
 
     # Set trust level to ultimate
-    echo ">>> [AppImage] Setting trust level for key $GPG_KEY_ID"
-    (echo 5; echo y; echo save) | \
-        gpg --command-fd 0 --no-tty --no-greeting -q --edit-key "$GPG_KEY_ID" trust
-
-    # Validate trust change
-    TRUST_LEVEL=$(gpg --list-keys --with-colons "$GPG_KEY_ID" | awk -F: '/^pub/ { print $2 }')
-
-    if [ "$TRUST_LEVEL" != "u" ]; then
-        echo ">>> [AppImage] WARNING: Trust level not set to ultimate (u). Current: $TRUST_LEVEL"
-    else
-        echo ">>> [AppImage] Trust level correctly set to ultimate (u)"
-    fi
+    echo "$GPG_KEY_FPR:6:" | gpg --batch --yes --import-ownertrust
 
     find_appimage
 
