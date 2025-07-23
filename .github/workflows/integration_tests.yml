@@ -21,13 +21,13 @@ env:
 
 
 jobs:
-  integration-tests-windows-2023:
+  integration-tests-windows-LTS-2023:
     runs-on: windows-latest
     strategy:
         fail-fast: false
 
     env:
-      NXDRIVE_TEST_NUXEO_URL: "https://drive-2023.beta.nuxeocloud.com/nuxeo"
+      NXDRIVE_TEST_NUXEO_URL: https://drive-2023.beta.nuxeocloud.com/nuxeo
       NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2023_TEST_USERNAME }}
       NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2023_TEST_PASSWORD }}
 
@@ -69,7 +69,7 @@ jobs:
           flags: integration
           env_vars: OS,PYTHON
   
-  integration-tests-windows-2025:
+  integration-tests-windows-LTS-2025:
     runs-on: windows-latest
     strategy:
         fail-fast: false
