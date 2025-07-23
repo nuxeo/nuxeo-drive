@@ -25,8 +25,6 @@ jobs:
     runs-on: windows-latest
     strategy:
         fail-fast: false
-        matrix:
-          lts_environment:  [ ["https://drive-2021.beta.nuxeocloud.com/nuxeo",  "2021",  "NXDRIVE_TEST_USERNAME", "NXDRIVE_TEST_PASSWORD"], ["https://drive-2023.beta.nuxeocloud.com/nuxeo",  "2023",  "NXDRIVE_2023_TEST_USERNAME", "NXDRIVE_2023_TEST_PASSWORD"], ["https://drive-2025.beta.nuxeocloud.com/nuxeo",  "2025",  "NXDRIVE_2025_TEST_USERNAME", "NXDRIVE_2025_TEST_PASSWORD"] ]
 
     env:
       NXDRIVE_TEST_NUXEO_URL: "https://drive-2023.beta.nuxeocloud.com/nuxeo"
@@ -75,8 +73,6 @@ jobs:
     runs-on: windows-latest
     strategy:
         fail-fast: false
-        matrix:
-          lts_environment:  [ ["https://drive-2021.beta.nuxeocloud.com/nuxeo",  "2021",  "NXDRIVE_TEST_USERNAME", "NXDRIVE_TEST_PASSWORD"], ["https://drive-2023.beta.nuxeocloud.com/nuxeo",  "2023",  "NXDRIVE_2023_TEST_USERNAME", "NXDRIVE_2023_TEST_PASSWORD"], ["https://drive-2025.beta.nuxeocloud.com/nuxeo",  "2025",  "NXDRIVE_2025_TEST_USERNAME", "NXDRIVE_2025_TEST_PASSWORD"] ]
 
     env:
       NXDRIVE_TEST_NUXEO_URL: https://drive-2025.beta.nuxeocloud.com/nuxeo
