@@ -5,7 +5,7 @@
 - Author: Mickaël Schoentgen <mschoentgen@nuxeo.com>,
           Patrick Abgrall <pabgrall@nuxeo.com>
 - Status: implemented
-- Related-Ticket: [NXDRIVE-1803](https://jira.nuxeo.com/browse/NXDRIVE-1803)
+- Related-Ticket: [NXDRIVE-1803](https://hyland.atlassian.net/browse/NXDRIVE-1803)
 
 ## Abstract
 

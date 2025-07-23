@@ -1,4 +1,7 @@
 name: Integration tests
+permissions:
+  contents: read
+  pull-requests: read
 
 on:
   pull_request:
@@ -37,7 +40,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.9 # XXX_PYTHON
+          python-version: 3.13 # XXX_PYTHON
           architecture: "x86"
       - uses: actions/cache@v4
         with:

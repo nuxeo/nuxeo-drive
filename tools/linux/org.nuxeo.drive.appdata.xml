@@ -11,7 +11,7 @@
 	</description>
 	<launchable type="desktop-id">org.nuxeo.drive.desktop</launchable>
 	<url type="homepage">https://github.com/nuxeo/nuxeo-drive</url>
-	<url type="bugtracker">https://jira.nuxeo.com/browse/NXDRIVE</url>
+	<url type="bugtracker">https://hyland.atlassian.net/browse/NXDRIVE</url>
 	<url type="faq">https://doc.nuxeo.com/client-apps/nuxeo-drive-faq/</url>
 	<url type="help">https://doc.nuxeo.com/client-apps/nuxeo-drive/</url>
 	<url type="translate">https://crowdin.com/project/nuxeo-drive</url>

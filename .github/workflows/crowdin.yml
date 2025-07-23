@@ -1,4 +1,7 @@
 name: Crowdin
+permissions:
+  contents: read
+  pull-requests: write
 
 on:
   # Check for updates every day

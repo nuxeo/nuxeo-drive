@@ -1,5 +1,8 @@
 # Generate a new release (alpha or beta)
 name: Release
+permissions:
+  contents: write
+  pull-requests: read
 
 on:
   # Generate an alpha every day
@@ -70,7 +73,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         uses: docker/login-action@v3.0.0
         with:
-          registry: "docker-private.packages.nuxeo.com"
+          registry: "docker-private.devtools.nuxeo.com"
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
@@ -83,9 +86,9 @@ jobs:
       - name: "[GNU/Linux] Generate the .AppImage"
         if: matrix.os == 'ubuntu-latest'
         env:
-          REGISTRY: "docker-private.packages.nuxeo.com"
+          REGISTRY: "docker-private.devtools.nuxeo.com"
           REPOSITORY: "nuxeo-drive-build"
-        run: docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.9.5" # XXX_PYTHON
+        run: docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.13.1" # XXX_PYTHON
 
       - name: "[GNU/Linux] Ensure the AppImage is correct"
         if: matrix.os == 'ubuntu-latest'
@@ -104,7 +107,7 @@ jobs:
 
       #- name: "[macOS] Downloading Python"
       #  if: matrix.os == 'macos-13'
-      #  run: curl https://www.python.org/ftp/python/3.9.5/python-3.9.5-macosx10.9.pkg -o "python.pkg" # XXX_PYTHON
+      #  run: curl https://www.python.org/ftp/python/3.13.1/python-3.13.1-macos11.pkg -o "python.pkg" # XXX_PYTHON
 
       #- name: "[macOS] Install Python"
       #  if: matrix.os == 'macos-13'
@@ -116,22 +119,6 @@ jobs:
           MACOSX_DEPLOYMENT_TARGET: "11.3"
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --install-release
-
-      - name: "[macOS] Generate the .dmg and validate against 2021"
-        if: matrix.os == 'macos-13'
-        timeout-minutes: 20
-        env:
-          NXDRIVE_TEST_NUXEO_URL: "https://drive-2021.beta.nuxeocloud.com/nuxeo"
-          MACOSX_DEPLOYMENT_TARGET: "11.3"
-          KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-          NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
-          NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
-          NOTARIZATION_TEAMID: ${{ secrets.NOTARIZATION_TEAMID }}
-          SIGNING_ID: "NUXEO CORP"
-          SIGNING_ID_NEW: "Hyland Software, Inc."
-          SYSTEM_VERSION_COMPAT: 0
-        run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
 
       - name: "[macOS] Generate the .dmg and validate against 2023"
         if: matrix.os == 'macos-13'
@@ -228,33 +215,30 @@ jobs:
            smctl healthcheck
         shell: cmd
 
-
-      - name: "[Windows] Generate the .exe and validate against 2021"
-        timeout-minutes: 15
-        if: matrix.os == 'windows-latest'
-        env:
-          KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
-          NXDRIVE_TEST_NUXEO_URL: "https://drive-2021.beta.nuxeocloud.com/nuxeo"
-          SIGNING_ID: "Nuxeo"
-          SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
-        run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade
-
       - name: "[Windows] Generate the .exe and validate against 2023"
         timeout-minutes: 15
         if: matrix.os == 'windows-latest'
         env:
+          SIGN_EXE: github.event.inputs.signExe
+          KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
           NXDRIVE_TEST_NUXEO_URL: "https://drive-2023.beta.nuxeocloud.com/nuxeo"
           NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2023_TEST_USERNAME }}
           NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2023_TEST_PASSWORD }}
           SIGNING_ID: "Nuxeo"
+          SIGNING_ID_NEW: "Hyland Software, Inc."
           SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade
 
-      - name: "[Windows] Generate and sign the .exe"
+      - name: "[Windows] Generate the .exe and validate against 2025"
         timeout-minutes: 15
-        if: matrix.os == 'windows-latest' && github.event.inputs.signExe == 'true'
+        if: matrix.os == 'windows-latest'
         env:
+          SIGN_EXE: github.event.inputs.signExe
           KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
+          NXDRIVE_TEST_NUXEO_URL: "https://drive-2025.beta.nuxeocloud.com/nuxeo"
+          NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2025_TEST_USERNAME }}
+          NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2025_TEST_PASSWORD }}
+          SIGNING_ID: "Nuxeo"
           SIGNING_ID_NEW: "Hyland Software, Inc."
           SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -build_installer_and_sign

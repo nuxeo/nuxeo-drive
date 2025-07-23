@@ -117,6 +117,8 @@ create_package() {
         # QML libraries need to be signed too for the notarization
         find "${pkg_path}/Contents/Resources" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
 
+        find "${pkg_path}" -type f -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+
         # Then we sign the extension
         ${CODESIGN} "${SIGNING_ID}"                  \
                     --force                          \
@@ -127,7 +129,6 @@ create_package() {
         # And we shallow sign the .app
         ${CODESIGN} "${SIGNING_ID}" "${pkg_path}" --force
 
-        echo ">>> [sign] Verifying code signature"
         codesign --display --verbose "${pkg_path}"
         codesign --verbose=4 --deep --strict "${pkg_path}"
         spctl --assess --verbose "${pkg_path}"
@@ -160,8 +161,10 @@ create_package() {
             -srcfolder "${src_folder_tmp}" \
             -volname "${app_name}"         \
             -format UDRW                   \
-            -size "${dmg_size}m"           \
+            -size 500           \
             "${dmg_tmp}"
+
+    # -size "${dmg_size}m"           \
 
     rm -f "${dmg_path}"
     hdiutil convert "${dmg_tmp}" \

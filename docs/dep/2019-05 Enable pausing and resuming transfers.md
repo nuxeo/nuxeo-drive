@@ -5,7 +5,7 @@
 - Author: Mickaël Schoentgen <mschoentgen@nuxeo.com>,
           Léa Klein <lklein@nuxeo.com>
 - Status: implemented
-- Related-Ticket: [NXDRIVE-1380](https://jira.nuxeo.com/browse/NXDRIVE-1380)
+- Related-Ticket: [NXDRIVE-1380](https://hyland.atlassian.net/browse/NXDRIVE-1380)
 
 ## Abstract
 

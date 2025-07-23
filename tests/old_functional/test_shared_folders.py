@@ -7,7 +7,7 @@ from .common import TwoUsersTest
 
 class TestSharedFolders(TwoUsersTest):
     def test_move_sync_root_child_to_user_workspace(self):
-        """See https://jira.nuxeo.com/browse/NXP-14870"""
+        """See https://hyland.atlassian.net/browse/NXP-14870"""
         uid = None
         try:
             # Get remote  and local clients
