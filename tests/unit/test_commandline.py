@@ -207,10 +207,19 @@ def test_malformatted_line(cmd, config):
 def test_launch(cmd):
     obj_cli = cmd
     obj_cli.manager = obj_cli.get_manager()
-    Options.protocol_url = "dummy_url"
     with patch("nxdrive.utils.PidLockFile.lock") as mock_lock:
+        Options.protocol_url = "dummy_url"
         mock_lock.return_value = 100
         assert obj_cli.launch(None, console=False) == 0
+        Options.protocol_url = ""
+        assert obj_cli.launch(None, console=False) == 0
+
+    with patch("nxdrive.utils.PidLockFile.lock") as mock_lock:
+        mock_lock.return_value = ""
+        with patch("nxdrive.utils.PidLockFile.unlock") as mock_unlock:
+            mock_unlock.return_value = ""
+            with patch("nxdrive.commandline.CliHandler._get_application"):
+                assert obj_cli.launch(None, console=False)
 
 
 def test_send_to_running_instance(cmd):
