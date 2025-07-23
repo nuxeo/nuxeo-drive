@@ -282,11 +282,9 @@ def test_site_update_url():
 @Options.mock()
 def test_str():
     lst = [
-        "Options(deletion_behavior[manual]='unsync', \
-            log_level_file[manual]='DEBUG', ssl_no_verify[manual]=False, \
-                xxx_broken_update[manual]=None)",
-                "Options()"
-                ]
+        "Options(deletion_behavior[manual]='unsync', log_level_file[manual]='DEBUG', ssl_no_verify[manual]=False, xxx_broken_update[manual]=None)",
+        "Options()"
+        ]
     assert str(Options) in lst
  
     Options.delay = 42
