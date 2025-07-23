@@ -289,12 +289,13 @@ def test_str():
     lst = [lst_f, "Options()"]
     assert str(Options) in lst
  
+    Options.delay = 42
+ 
     lst1 = "Options(delay[manual]=42"
     lst2 = "deletion_behavior[manual]='unsync'"
-    
     lst_f = f"{lst1}, {lst2}, {lst3}, {lst4}, {lst5}"
+    lst = [lst_f, "Options(delay[manual]=42)"]
  
-    Options.delay = 42
     assert str(Options) in lst
 
 
