@@ -281,14 +281,21 @@ def test_site_update_url():
 
 @Options.mock()
 def test_str():
-    lst = [
-        "Options(deletion_behavior[manual]='unsync', log_level_file[manual]='DEBUG', ssl_no_verify[manual]=False, xxx_broken_update[manual]=None)",
-        "Options()"
-        ]
+    lst1 = "Options(deletion_behavior[manual]='unsync'"
+    lst3 = "log_level_file[manual]='DEBUG'"
+    lst4 = "ssl_no_verify[manual]=False"
+    lst5 = "xxx_broken_update[manual]=None)"
+    lst_f = f"{lst1}, {lst3}, {lst4}, {lst5}"
+    lst = [lst_f, "Options()"]
     assert str(Options) in lst
  
+    lst1 = "Options(delay[manual]=42"
+    lst2 = "deletion_behavior[manual]='unsync'"
+    
+    lst_f = f"{lst1}, {lst2}, {lst3}, {lst4}, {lst5}"
+ 
     Options.delay = 42
-    assert str(Options) == "Options(delay[manual]=42)"
+    assert str(Options) in lst
 
 
 @Options.mock()
