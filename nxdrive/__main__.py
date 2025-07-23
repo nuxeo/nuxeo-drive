@@ -23,6 +23,7 @@ from nxdrive.utils import adapt_datetime_iso
 
 pip_system_certs.wrapt_requests.inject_truststore()
 
+
 def signal_handler(signum: int, _: FrameType, /) -> None:
     """Signal handler."""
     from nxdrive.qt.imports import QApplication
