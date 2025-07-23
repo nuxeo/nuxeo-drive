@@ -1273,12 +1273,13 @@ def test_save_config(default_config, config_dump, tmp_path):
             assert config[env].getboolean(key) == config_dump[key]
 
 
+@linux_only
 def test_url_bad_ssl():
-    # from nxdrive.exceptions import InvalidSSLCertificate
+    from nxdrive.exceptions import InvalidSSLCertificate
 
     if not Options.ssl_no_verify:
-        #with pytest.raises(InvalidSSLCertificate):
-        nxdrive.utils.test_url(f"https://{BAD_HOSTNAMES[2]}/nuxeo")
+        with pytest.raises(InvalidSSLCertificate):
+            nxdrive.utils.test_url(f"https://{BAD_HOSTNAMES[2]}/nuxeo")
 
 
 @pytest.mark.parametrize(
