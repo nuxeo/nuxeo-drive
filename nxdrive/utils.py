@@ -1070,7 +1070,6 @@ class PidLockFile:
         try:
             log.info(f"Deleting existing PID file: {self.pid_filepath!r}")
             self.pid_filepath.unlink(missing_ok=True)
-            log.info("Existing PID file deleted")
         except OSError:
             log.warning(
                 f"Failed to remove stalled PID file: {self.pid_filepath!r} "
