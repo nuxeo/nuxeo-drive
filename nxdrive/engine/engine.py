@@ -1607,7 +1607,6 @@ class Engine(QObject):
 @dataclass
 class ServerBindingSettings:
     """Summarize server binding settings."""
-    # test
 
     server_url: str
     web_authentication: bool
