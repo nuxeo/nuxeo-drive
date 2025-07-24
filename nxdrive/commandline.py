@@ -611,8 +611,8 @@ class CliHandler:
                 socket_operation_successful = self._send_to_running_instance(
                     payload, pid
                 )
-                log.info(
-                    f">>>> socket_operation_successful: {socket_operation_successful!r}"
+                log.debug(
+                    f"socket_operation_successful: {socket_operation_successful!r}"
                 )
                 if not socket_operation_successful:
                     if RETRY < MAX_RETRIES:
@@ -621,7 +621,7 @@ class CliHandler:
                         lock.refresh_lock()
                         self.launch(options, console=console)
                     else:
-                        log.info(">>>> max RETRY reached")
+                        log.debug("maximum RETRY reached")
                         RETRY = 0
             else:
                 log.warning(f"{APP_NAME} is already running: exiting.")
@@ -658,7 +658,6 @@ class CliHandler:
             f"(payload={self.redact_payload(payload)!r})"
         )
         client = QLocalSocket()
-        log.info(f">>>> client: {client!r}")
         try:
             client.connectToServer(named_pipe)
 

@@ -1066,7 +1066,7 @@ class PidLockFile:
 
         # Clean pid file
         try:
-            log.info(f"Deleting existing PID file: {self.pid_filepath!r}")
+            log.debug(f"Deleting existing PID file: {self.pid_filepath!r}")
             self.pid_filepath.unlink(missing_ok=True)
         except OSError:
             log.warning(
@@ -1091,7 +1091,7 @@ class PidLockFile:
                 pid: Optional[int] = int(
                     self.pid_filepath.read_text(encoding="utf-8").strip()
                 )
-                log.info(f"Data in PID file: {pid!r}")
+                log.debug(f"Data in PID file: {pid!r}")
             except ValueError:
                 log.warning("The PID file has invalid data", exc_info=True)
                 pid = None
@@ -1108,10 +1108,10 @@ class PidLockFile:
                         psutil.Process(pid).create_time()
                         > self.pid_filepath.stat().st_mtime
                     ):
-                        log.info("The process has been created after the lock file")
+                        log.debug("The process has been created after the lock file")
                         raise ValueError()
 
-                    log.info(f"Returning PID: {pid!r}")
+                    log.debug(f"Returning PID: {pid!r}")
                     return pid
 
             # This is a pid file that is empty or pointing to either a
@@ -1152,7 +1152,7 @@ class PidLockFile:
             raise RuntimeError(f"Invalid PID: {pid!r}")
 
         self.pid_filepath.write_text(str(pid), encoding="utf-8")
-        log.info(f"pid: {str(pid)!r} stored in PID file: {self.pid_filepath!r}")
+        log.debug(f"pid: {str(pid)!r} stored in PID file: {self.pid_filepath!r}")
         return None
 
 
