@@ -1343,3 +1343,20 @@ def test_dump_db(tmp_path):
         pass
 
     dump(Path(db_path), Path(file_path))
+
+
+def test_refresh_lock():
+    pid = nxdrive.utils.PidLockFile(Path(""), "")
+    assert pid.refresh_lock() is None
+    # Removing pid file after test
+    (Path().cwd() / "nxdrive_.pid").unlink(missing_ok=True)
+
+
+def test_unlock():
+    pid = nxdrive.utils.PidLockFile(Path(""), "")
+    pid.lock()
+    with patch("pathlib.Path.unlink") as mock_unlink:
+        mock_unlink.side_effect = Exception("Custom Exception")
+        assert pid.unlock() is None
+    # Removing pid file after test
+    (Path().cwd() / "nxdrive_.pid").unlink(missing_ok=True)
