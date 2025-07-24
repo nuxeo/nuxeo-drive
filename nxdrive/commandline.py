@@ -62,6 +62,8 @@ To get options for a specific command:
 
 """
 DEFAULT_LOCAL_FOLDER = get_default_local_folder()
+RETRY = 0
+MAX_RETRIES = 3
 
 
 class CliHandler:
@@ -598,12 +600,29 @@ class CliHandler:
         """Launch the Qt app in the main thread and sync in another thread."""
         from .utils import PidLockFile
 
+        global RETRY
+        global MAX_RETRIES
+
         lock = PidLockFile(self.manager.home, "qt")
         pid = lock.lock()
         if pid:
             if Options.protocol_url:
                 payload = force_encode(Options.protocol_url)
-                self._send_to_running_instance(payload, pid)
+                socket_operation_successful = self._send_to_running_instance(
+                    payload, pid
+                )
+                log.debug(
+                    f"socket_operation_successful: {socket_operation_successful!r}"
+                )
+                if not socket_operation_successful:
+                    if RETRY < MAX_RETRIES:
+                        RETRY += 1
+                        log.info(f"Retry: {str(RETRY)!r}")
+                        lock.refresh_lock()
+                        self.launch(options, console=console)
+                    else:
+                        log.debug("maximum RETRY reached")
+                        RETRY = 0
             else:
                 log.warning(f"{APP_NAME} is already running: exiting.")
             return 0
@@ -629,7 +648,7 @@ class CliHandler:
 
         return payload
 
-    def _send_to_running_instance(self, payload: bytes, pid: int, /) -> None:
+    def _send_to_running_instance(self, payload: bytes, pid: int, /) -> bool:
         from .qt import constants as qt
         from .qt.imports import QByteArray, QLocalSocket
 
@@ -644,7 +663,7 @@ class CliHandler:
 
             if not client.waitForConnected():
                 log.error(f"Unable to open client socket: {client.errorString()}")
-                return
+                return False
 
             client.write(QByteArray(payload))
             client.waitForBytesWritten()
@@ -654,6 +673,7 @@ class CliHandler:
         finally:
             del client
         log.debug("Successfully closed client socket")
+        return True
 
     def clean_folder(self, options: Namespace, /) -> int:
         from .client.local import LocalClient

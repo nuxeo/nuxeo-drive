@@ -202,3 +202,30 @@ def test_malformatted_line(cmd, config):
     # Unknown logging level ('=', 'DEBUG', 'False', 'debug'), need to be one of ...
     # Callback check for 'log_level_console' denied modification. Value is still 'WARNING'.
     assert Options.log_level_console == "WARNING"
+
+
+def test_launch(cmd):
+    obj_cli = cmd
+    obj_cli.manager = obj_cli.get_manager()
+    with patch("nxdrive.utils.PidLockFile.lock") as mock_lock:
+        Options.protocol_url = "dummy_url"
+        mock_lock.return_value = 100
+        assert obj_cli.launch(None, console=False) == 0
+        Options.protocol_url = ""
+        assert obj_cli.launch(None, console=False) == 0
+
+    with patch("nxdrive.utils.PidLockFile.lock") as mock_lock:
+        mock_lock.return_value = ""
+        with patch("nxdrive.utils.PidLockFile.unlock") as mock_unlock:
+            mock_unlock.return_value = ""
+            with patch("nxdrive.commandline.CliHandler._get_application"):
+                assert obj_cli.launch(None, console=False)
+
+
+def test_send_to_running_instance(cmd):
+    obj_cli = cmd
+    obj_cli.manager = obj_cli.get_manager()
+    mock_payload = bytes()
+    with patch("PyQt5.QtNetwork.QLocalSocket.waitForConnected") as mock_wait_connected:
+        mock_wait_connected.return_value = True
+        assert obj_cli._send_to_running_instance(mock_payload, 100) is True
