@@ -22,7 +22,7 @@ GNU Lesser General Public License, these are the ones that apply.
   Thus any code written on the top of Nuxeo Drive must be distributed
 under the terms of one of the licenses available for PyQt.
 
-  ©2024 Hyland Software, Inc. and its affiliates. All rights reserved.
+  ©2025 Hyland Software, Inc. and its affiliates. All rights reserved.
 All Hyland product names are registered or unregistered trademarks of
 Hyland Software, Inc. or its affiliates.
 
