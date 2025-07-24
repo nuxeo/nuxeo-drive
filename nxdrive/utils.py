@@ -1067,9 +1067,15 @@ class PidLockFile:
     """This class handle the pid lock file"""
 
     def __init__(self, folder: Path, key: str, /) -> None:
+        self.folder = folder
         self.key = key
         self.locked = False
         self.pid_filepath = safe_long_path(folder / f"nxdrive_{key}.pid")
+
+    def refresh_lock(self) -> None:
+        log.info("Refreshing lock")
+        self.unlock()
+        self.lock()
 
     def unlock(self) -> None:
         if not self.locked:
@@ -1077,12 +1083,18 @@ class PidLockFile:
 
         # Clean pid file
         try:
+            log.debug(f"Deleting existing PID file: {self.pid_filepath!r}")
             self.pid_filepath.unlink(missing_ok=True)
         except OSError:
             log.warning(
                 f"Failed to remove stalled PID file: {self.pid_filepath!r} "
                 f"for stopped process {os.getpid()}",
                 exc_info=True,
+            )
+        except Exception as err:
+            log.warning(
+                f"Failed to remove existing PID file: {self.pid_filepath!r} "
+                f"Error: {err!r}"
             )
 
     def check_running(self) -> Optional[int]:
@@ -1096,6 +1108,7 @@ class PidLockFile:
                 pid: Optional[int] = int(
                     self.pid_filepath.read_text(encoding="utf-8").strip()
                 )
+                log.debug(f"Data in PID file: {pid!r}")
             except ValueError:
                 log.warning("The PID file has invalid data", exc_info=True)
                 pid = None
@@ -1112,8 +1125,10 @@ class PidLockFile:
                         psutil.Process(pid).create_time()
                         > self.pid_filepath.stat().st_mtime
                     ):
+                        log.debug("The process has been created after the lock file")
                         raise ValueError()
 
+                    log.debug(f"Returning PID: {pid!r}")
                     return pid
 
             # This is a pid file that is empty or pointing to either a
@@ -1154,6 +1169,7 @@ class PidLockFile:
             raise RuntimeError(f"Invalid PID: {pid!r}")
 
         self.pid_filepath.write_text(str(pid), encoding="utf-8")
+        log.debug(f"pid: {str(pid)!r} stored in PID file: {self.pid_filepath!r}")
         return None
 
 
