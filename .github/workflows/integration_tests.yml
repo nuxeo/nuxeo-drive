@@ -8,6 +8,7 @@ on:
     paths:
       - ".github/workflows/integration_tests.yml"
       - "nxdrive/**/*.py"
+      - "tests/*.py"
       - "tests/integration/**/*.py"
       - "tools/deps/*.txt"
   push:
@@ -16,24 +17,60 @@ on:
       - "nxdrive/**/*.py"
       - "tests/integration/**/*.py"
 
-env:
-  FREEZE_ONLY: 1
-
-
 jobs:
-  integration-tests-windows:
+  integration-tests-windows-LTS-2023:
     runs-on: windows-latest
     strategy:
         fail-fast: false
-        matrix:
-          lts_environment:  [ ["https://drive-2021.beta.nuxeocloud.com/nuxeo",  "2021",  "NXDRIVE_TEST_USERNAME", "NXDRIVE_TEST_PASSWORD"], ["https://drive-2023.beta.nuxeocloud.com/nuxeo",  "2023",  "NXDRIVE_2023_TEST_USERNAME", "NXDRIVE_2023_TEST_PASSWORD"], ["https://drive-2025.beta.nuxeocloud.com/nuxeo",  "2025",  "NXDRIVE_2025_TEST_USERNAME", "NXDRIVE_2025_TEST_PASSWORD"] ]
 
     env:
-      NXDRIVE_TEST_NUXEO_URL: ${{ matrix.lts_environment[0] }}
-      NXDRIVE_TEST_USERNAME: ${{ secrets[matrix.lts_environment[2]] }}
-      NXDRIVE_TEST_PASSWORD: ${{ secrets[matrix.lts_environment[3]] }}
+      NXDRIVE_TEST_NUXEO_URL: https://drive-2023.beta.nuxeocloud.com/nuxeo
+      NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2023_TEST_USERNAME }}
+      NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2023_TEST_PASSWORD }}
 
-    name: integration-tests-windows(LTS ${{ matrix.lts_environment[1] }})
+    name: integration-tests-windows(LTS 2023)
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.13 # XXX_PYTHON
+          architecture: "x86"
+      - uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\pip\Cache
+          key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-dev.txt', 'tools/deps/requirements-tox.txt') }}
+          restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-dev.txt', 'tools/deps/requirements-tox.txt') }}
+      - name: Freeze the application
+        run: |
+          powershell Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
+          powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
+          powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -build
+      - name: Install tox
+        run: python -m pip install -r tools/deps/requirements-tox.txt
+      - name: Integration tests
+        run: tox -e integration
+      - name: Upload coverage to Codecov
+        if: ${{ success() }} || ${{ failure() }}
+        uses: codecov/codecov-action@v5.2.0
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}
+          files: ./coverage.xml
+          flags: integration
+          env_vars: OS,PYTHON
+  
+  integration-tests-windows-LTS-2025:
+    runs-on: windows-latest
+    strategy:
+        fail-fast: false
+
+    env:
+      NXDRIVE_TEST_NUXEO_URL: https://drive-2025.beta.nuxeocloud.com/nuxeo
+      NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2025_TEST_USERNAME }}
+      NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2025_TEST_PASSWORD }}
+
+    name: integration-tests-windows(LTS 2025)
 
     steps:
       - uses: actions/checkout@v4
