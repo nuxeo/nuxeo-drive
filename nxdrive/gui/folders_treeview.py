@@ -171,7 +171,13 @@ class FolderTreeView(TreeViewMixin):
     update = pyqtSignal()
     filled = pyqtSignal()
 
-    def __init__(self, parent: "FoldersDialog", client: FoldersOnly, /) -> None:
+    def __init__(
+        self,
+        parent: "FoldersDialog",
+        client: FoldersOnly,
+        selected_folder: str = None,
+        /,
+    ) -> None:
         super().__init__(parent, client)
 
         # Actions to do when a folder is selected
@@ -181,6 +187,8 @@ class FolderTreeView(TreeViewMixin):
         self.current = self.selectionModel().currentIndex()
 
         self.filled.connect(self._find_current_and_select_it)
+
+        self.selected_folder = selected_folder
 
     def on_selection_changed(self, current: QModelIndex, _: QModelIndex, /) -> None:
         """Actions to do when a folder is selected."""
@@ -206,7 +214,10 @@ class FolderTreeView(TreeViewMixin):
         for idx in range(item.rowCount()):
             child = item.child(idx)
             data = child.data(qt.UserRole)
-            if data and data.get_path() == self.parent.remote_folder.text():
+            if data and (
+                data.get_path() == self.selected_folder
+                or data.get_path() == self.parent.remote_folder.text()
+            ):
                 self.selectionModel().select(
                     child.index(),
                     QItemSelectionModel.ClearAndSelect,
