@@ -37,7 +37,9 @@ def test_exit_app(manager_factory):
         "nxdrive.engine.workers.PollWorker._execute"
     ) as mock_execute, patch(
         "nxdrive.engine.workers.Worker.run"
-    ) as mock_run:
+    ) as mock_run, patch(
+        "PyQt5.QtWidgets.QDialog.exec_"
+    ) as mock_exec:
         mock_root_objects.return_value = [QObject()]
         mock_find_child.return_value = mock_qt
         mock_listener.return_value = None
@@ -46,6 +48,7 @@ def test_exit_app(manager_factory):
         mock_task_manager.return_value = None
         mock_execute.return_value = None
         mock_run.return_value = None
+        mock_exec.return_value = None
         app = Application(manager)
         assert app.exit_app() is None
         app.exit(0)
@@ -72,7 +75,9 @@ def test_shutdown(manager_factory):
         "nxdrive.engine.workers.PollWorker._execute"
     ) as mock_execute, patch(
         "nxdrive.engine.workers.Worker.run"
-    ) as mock_run:
+    ) as mock_run, patch(
+        "PyQt5.QtWidgets.QDialog.exec_"
+    ) as mock_exec:
         mock_root_objects.return_value = [QObject()]
         mock_find_child.return_value = mock_qt
         mock_listener.return_value = None
@@ -81,6 +86,7 @@ def test_shutdown(manager_factory):
         mock_task_manager.return_value = None
         mock_execute.return_value = None
         mock_run.return_value = None
+        mock_exec.return_value = None
         app = Application(manager)
         assert app._shutdown() is None
         app.exit(0)
@@ -147,7 +153,9 @@ def test_update_workflow(manager_factory):
         "nxdrive.engine.workers.PollWorker._execute"
     ) as mock_execute, patch(
         "nxdrive.engine.workers.Worker.run"
-    ) as mock_run:
+    ) as mock_run, patch(
+        "PyQt5.QtWidgets.QDialog.exec_"
+    ) as mock_exec:
         mock_root_objects.return_value = [QObject()]
         mock_find_child.return_value = mock_qt
         mock_listener.return_value = None
@@ -156,6 +164,7 @@ def test_update_workflow(manager_factory):
         mock_task_manager.return_value = None
         mock_execute.return_value = None
         mock_run.return_value = None
+        mock_exec.return_value = None
         app = Application(manager)
         assert app.update_workflow() is None
         app.exit(0)
@@ -182,7 +191,9 @@ def test_update_feature_state(manager_factory):
         "nxdrive.engine.workers.PollWorker._execute"
     ) as mock_execute, patch(
         "nxdrive.engine.workers.Worker.run"
-    ) as mock_run:
+    ) as mock_run, patch(
+        "PyQt5.QtWidgets.QDialog.exec_"
+    ) as mock_exec:
         mock_root_objects.return_value = [QObject()]
         mock_find_child.return_value = mock_qt
         mock_listener.return_value = None
@@ -191,6 +202,7 @@ def test_update_feature_state(manager_factory):
         mock_task_manager.return_value = None
         mock_execute.return_value = None
         mock_run.return_value = None
+        mock_exec.return_value = None
         app = Application(manager)
         assert app._update_feature_state("auto_update", True) is None
         app.exit(0)
