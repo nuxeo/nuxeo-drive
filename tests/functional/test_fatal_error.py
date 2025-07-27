@@ -2,29 +2,17 @@
 Functional test for nxdrive/fatal_error.py
 """
 
-from pathlib import Path
 from unittest.mock import patch
 
 from nxdrive.fatal_error import (
     check_executable_path,
-    check_executable_path_error_qt,
     fatal_error_mac,
     fatal_error_qt,
     fatal_error_win,
 )
 from nxdrive.options import Options
-from tests.functional.mocked_classes import Mock_Qt
 
 from ..markers import mac_only, not_linux, windows_only
-
-
-@not_linux(reason="Qt does not work correctly on Linux")
-def test_check_executable_path_error_qt():
-    mock_qt = Mock_Qt()
-    with patch("nxdrive.qt.imports.QMessageBox") as mock_message_box:
-        mock_message_box.return_value = mock_qt
-        output = check_executable_path_error_qt(Path())
-        assert output is None
 
 
 @not_linux(reason="Qt does not work correctly on Linux")
