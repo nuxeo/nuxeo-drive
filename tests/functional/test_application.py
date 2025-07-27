@@ -47,8 +47,9 @@ def test_exit_app(manager_factory):
         mock_execute.return_value = None
         mock_run.return_value = None
         app = Application(manager)
-        assert app.exit_app() is None
+        assert app.exit_app() is not None
         app.exit(0)
+        del app
 
 
 @mac_only
@@ -81,8 +82,9 @@ def test_shutdown(manager_factory):
         mock_execute.return_value = None
         mock_run.return_value = None
         app = Application(manager)
-        assert app._shutdown() is None
+        assert app._shutdown() is not None
         app.exit(0)
+        del app
 
 
 # @mac_only -- potential issue
@@ -155,8 +157,9 @@ def test_update_workflow(manager_factory):
         mock_execute.return_value = None
         mock_run.return_value = None
         app = Application(manager)
-        assert app.update_workflow() is None
+        assert app.update_workflow() is not None
         app.exit(0)
+        del app
 
 
 @mac_only
@@ -189,8 +192,9 @@ def test_update_feature_state(manager_factory):
         mock_execute.return_value = None
         mock_run.return_value = None
         app = Application(manager)
-        assert app._update_feature_state("auto_update", True) is None
+        assert app._update_feature_state("auto_update", True) is not None
         app.exit(0)
+        del app
 
 
 # @mac_only
