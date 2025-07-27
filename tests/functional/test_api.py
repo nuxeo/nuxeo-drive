@@ -571,7 +571,9 @@ def test_open_server_folders(manager_factory):
         "nxdrive.engine.workers.PollWorker._execute"
     ) as mock_execute, patch(
         "nxdrive.engine.workers.Worker.run"
-    ) as mock_run:
+    ) as mock_run, patch(
+        "PyQt5.QtWidgets.QDialog.exec_"
+    ) as mock_exec:
         mock_root_objects.return_value = [QObject()]
         mock_find_child.return_value = mock_qt
         mock_listener.return_value = None
@@ -580,9 +582,11 @@ def test_open_server_folders(manager_factory):
         mock_task_manager.return_value = None
         mock_execute.return_value = None
         mock_run.return_value = None
+        mock_exec.return_value = None
         app = Application(manager)
         drive_api = QMLDriveApi(app)
         mock_engine.return_value = engine
         mock_hide.return_value = None
         assert drive_api.open_server_folders("engine.uid") is None
         app.exit(0)
+        del app
