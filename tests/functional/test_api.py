@@ -542,11 +542,12 @@ def test_get_engine(manager_factory, tmp):
 
 @mac_only
 def test_open_server_folders(manager_factory):
-    from .test_direct_transfer_path import Mock_Qt
 
     from PyQt5.QtCore import QObject
 
     from nxdrive.gui.application import Application
+
+    from .test_direct_transfer_path import Mock_Qt
 
     manager, engine = manager_factory()
     mock_qt = Mock_Qt()
@@ -566,13 +567,16 @@ def test_open_server_folders(manager_factory):
         "nxdrive.gui.api.QMLDriveApi._get_engine"
     ) as mock_engine, patch(
         "nxdrive.gui.application.Application.hide_systray"
-    ) as mock_hide:
+    ) as mock_hide, patch(
+        "nxdrive.engine.workers.PollWorker._execute"
+    ) as mock_execute:
         mock_root_objects.return_value = [QObject()]
         mock_find_child.return_value = mock_qt
         mock_listener.return_value = None
         mock_show_metrics.return_value = None
         mock_download_repr.return_value = "Nuxeo Drive"
         mock_task_manager.return_value = None
+        mock_execute.return_value = None
         app = Application(manager)
         drive_api = QMLDriveApi(app)
         mock_engine.return_value = engine
