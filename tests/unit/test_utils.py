@@ -14,7 +14,7 @@ from nxdrive.constants import APP_NAME, MAC, WINDOWS, DigestStatus
 from nxdrive.options import Options
 from nxdrive.dao.utils import dump
 
-from ..markers import not_windows, windows_only
+from ..markers import linux_only, not_windows, windows_only
 
 BAD_HOSTNAMES = [
     "expired.badssl.com",
@@ -1273,6 +1273,7 @@ def test_save_config(default_config, config_dump, tmp_path):
             assert config[env].getboolean(key) == config_dump[key]
 
 
+@linux_only
 def test_url_bad_ssl():
     from nxdrive.exceptions import InvalidSSLCertificate
 
@@ -1342,3 +1343,20 @@ def test_dump_db(tmp_path):
         pass
 
     dump(Path(db_path), Path(file_path))
+
+
+def test_refresh_lock():
+    pid = nxdrive.utils.PidLockFile(Path(""), "")
+    assert pid.refresh_lock() is None
+    # Removing pid file after test
+    (Path().cwd() / "nxdrive_.pid").unlink(missing_ok=True)
+
+
+def test_unlock():
+    pid = nxdrive.utils.PidLockFile(Path(""), "")
+    pid.lock()
+    with patch("pathlib.Path.unlink") as mock_unlink:
+        mock_unlink.side_effect = Exception("Custom Exception")
+        assert pid.unlock() is None
+    # Removing pid file after test
+    (Path().cwd() / "nxdrive_.pid").unlink(missing_ok=True)

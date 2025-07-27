@@ -89,7 +89,7 @@ Rectangle {
                   "- PyQt: GNU General Public License, version 2 or 3\n\n" +
                   "Thus any code written on the top of Nuxeo Drive must be distributed" +
                   "under the terms of a GPL compliant license.\n\n" +
-                  "©2024 Hyland Software, Inc. and its affiliates. All rights reserved. " +
+                  "©2025 Hyland Software, Inc. and its affiliates. All rights reserved. " +
                   "All Hyland product names are registered or unregistered trademarks of Hyland Software, Inc. or its affiliates."
         }
     }

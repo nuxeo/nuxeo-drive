@@ -8,7 +8,7 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppUpdatesURL}
-AppCopyright="© 2024 {#MyAppPublisher}, Inc. and its affiliates. All rights reserved. All Hyland product names are registered or unregistered trademarks of Hyland Software, Inc. or its affiliates."
+AppCopyright="© 2025 {#MyAppPublisher}, Inc. and its affiliates. All rights reserved. All Hyland product names are registered or unregistered trademarks of Hyland Software, Inc. or its affiliates."
 
 ; Outputs
 OutputDir=..\..\dist

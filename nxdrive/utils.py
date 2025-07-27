@@ -857,32 +857,40 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
     # Commands that need a path to work with
     path_cmds = ("access-online", "copy-share-link", "direct-transfer", "edit-metadata")
 
-    protocol_regex = (
-        # Direct Edit stuff
-        (
-            r"nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/(?P<server>.*)/"
-            r"user/(?P<username>.*)/repo/(?P<repo>.*)/"
-            r"nxdocid/(?P<docid>[0-9a-fA-F\-]*)/filename/(?P<filename>[^/]*)"
-            r"/downloadUrl/(?P<download>.*)"
-        ),
-        # Events from context menu:
-        #     - Access online
-        #     - Copy share-link
-        #     - Edit metadata
-        #     - Direct Transfer
-        # And event from macOS to sync the document status (FinderSync)
-        r"nxdrive://(?P<cmd>({}))/(?P<path>.*)".format("|".join(path_cmds)),
-        # Event to acquire the login token from the server
-        (
-            r"nxdrive://(?P<cmd>token)/"
-            rf"(?P<token>{DOC_UID_REG})/"
-            r"user/(?P<username>.*)"
-        ),
-        # Event to continue the OAuth2 login flow
-        # authorize?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
-        # authorize/?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
-        r"nxdrive://(?P<cmd>authorize)/?\?(?P<query>.+)",
-    )
+    if "direct-transfer" in url_string and (
+        "/http/" in url_string or "/https/" in url_string
+    ):
+        protocol_regex = (
+            # Direct Transfer stuff
+            (r"nxdrive://(?P<cmd>direct-transfer)/"),
+        )
+    else:
+        protocol_regex = (
+            # Direct Edit stuff
+            (
+                r"nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/(?P<server>.*)/"
+                r"user/(?P<username>.*)/repo/(?P<repo>.*)/"
+                r"nxdocid/(?P<docid>[0-9a-fA-F\-]*)/filename/(?P<filename>[^/]*)"
+                r"/downloadUrl/(?P<download>.*)"
+            ),
+            # Events from context menu:
+            #     - Access online
+            #     - Copy share-link
+            #     - Edit metadata
+            #     - Direct Transfer
+            # And event from macOS to sync the document status (FinderSync)
+            r"nxdrive://(?P<cmd>({}))/(?P<path>.*)".format("|".join(path_cmds)),
+            # Event to acquire the login token from the server
+            (
+                r"nxdrive://(?P<cmd>token)/"
+                rf"(?P<token>{DOC_UID_REG})/"
+                r"user/(?P<username>.*)"
+            ),
+            # Event to continue the OAuth2 login flow
+            # authorize?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
+            # authorize/?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
+            r"nxdrive://(?P<cmd>authorize)/?\?(?P<query>.+)",
+        )
 
     match_res = None
     for regex in protocol_regex:
@@ -909,6 +917,15 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
         full_query = urlparse(parsed_url["query"]).path
         query = dict(parse_qsl(full_query))
         return {"command": cmd, **query}
+    # web ui
+    elif cmd == "direct-transfer" and (
+        "/http/" in url_string or "/https/" in url_string
+    ):
+        remote_path = re.split("/nuxeo", url_string.strip(), maxsplit=1)[1]
+        return {
+            "command": cmd,
+            "remote_path": remote_path,
+        }
     return {"command": cmd, "filepath": parsed_url["path"]}
 
 
@@ -1050,9 +1067,15 @@ class PidLockFile:
     """This class handle the pid lock file"""
 
     def __init__(self, folder: Path, key: str, /) -> None:
+        self.folder = folder
         self.key = key
         self.locked = False
         self.pid_filepath = safe_long_path(folder / f"nxdrive_{key}.pid")
+
+    def refresh_lock(self) -> None:
+        log.info("Refreshing lock")
+        self.unlock()
+        self.lock()
 
     def unlock(self) -> None:
         if not self.locked:
@@ -1060,12 +1083,18 @@ class PidLockFile:
 
         # Clean pid file
         try:
+            log.debug(f"Deleting existing PID file: {self.pid_filepath!r}")
             self.pid_filepath.unlink(missing_ok=True)
         except OSError:
             log.warning(
                 f"Failed to remove stalled PID file: {self.pid_filepath!r} "
                 f"for stopped process {os.getpid()}",
                 exc_info=True,
+            )
+        except Exception as err:
+            log.warning(
+                f"Failed to remove existing PID file: {self.pid_filepath!r} "
+                f"Error: {err!r}"
             )
 
     def check_running(self) -> Optional[int]:
@@ -1079,6 +1108,7 @@ class PidLockFile:
                 pid: Optional[int] = int(
                     self.pid_filepath.read_text(encoding="utf-8").strip()
                 )
+                log.debug(f"Data in PID file: {pid!r}")
             except ValueError:
                 log.warning("The PID file has invalid data", exc_info=True)
                 pid = None
@@ -1095,8 +1125,10 @@ class PidLockFile:
                         psutil.Process(pid).create_time()
                         > self.pid_filepath.stat().st_mtime
                     ):
+                        log.debug("The process has been created after the lock file")
                         raise ValueError()
 
+                    log.debug(f"Returning PID: {pid!r}")
                     return pid
 
             # This is a pid file that is empty or pointing to either a
@@ -1137,6 +1169,7 @@ class PidLockFile:
             raise RuntimeError(f"Invalid PID: {pid!r}")
 
         self.pid_filepath.write_text(str(pid), encoding="utf-8")
+        log.debug(f"pid: {str(pid)!r} stored in PID file: {self.pid_filepath!r}")
         return None
 
 
