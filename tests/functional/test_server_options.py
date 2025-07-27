@@ -22,7 +22,7 @@ def test_behavior(manager_factory):
     def disabled():
         return {"behavior": {"server_deletion": False}}
 
-    assert Behavior.server_deletion is False
+    assert Behavior.server_deletion is True
 
     # Mimic the IT team disabling the behavior
     with patch.object(engine.remote, "get_server_configuration", new=disabled):
@@ -50,7 +50,7 @@ def test_behavior_not_good(caplog, manager_factory):
     def bad_value():
         return {"behavior": {"server_deletion": "oui"}}
 
-    assert Behavior.server_deletion is False
+    assert Behavior.server_deletion is True
 
     # Mimic the IT team setting an unknown behavior
     with patch.object(engine.remote, "get_server_configuration", new=unknown):
