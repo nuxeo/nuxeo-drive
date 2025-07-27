@@ -177,7 +177,9 @@ def test_update_feature_state(manager_factory):
         "nxdrive.gui.application.Application.create_custom_window_for_task_manager"
     ) as mock_task_manager, patch(
         "nxdrive.engine.workers.PollWorker._execute"
-    ) as mock_execute:
+    ) as mock_execute, patch(
+        "nxdrive.engine.workers.Worker.run"
+    ) as mock_run:
         mock_root_objects.return_value = [QObject()]
         mock_find_child.return_value = mock_qt
         mock_listener.return_value = None
@@ -185,6 +187,7 @@ def test_update_feature_state(manager_factory):
         mock_download_repr.return_value = "Nuxeo Drive"
         mock_task_manager.return_value = None
         mock_execute.return_value = None
+        mock_run.return_value = None
         app = Application(manager)
         assert app._update_feature_state("auto_update", True) is None
         app.exit(0)
