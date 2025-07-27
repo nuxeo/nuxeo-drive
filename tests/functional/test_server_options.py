@@ -22,6 +22,7 @@ def test_behavior(manager_factory):
     def disabled():
         return {"behavior": {"server_deletion": False}}
 
+    # Default value is True
     assert Behavior.server_deletion is True
 
     # Mimic the IT team disabling the behavior
@@ -50,6 +51,7 @@ def test_behavior_not_good(caplog, manager_factory):
     def bad_value():
         return {"behavior": {"server_deletion": "oui"}}
 
+    # Default value is True
     assert Behavior.server_deletion is True
 
     # Mimic the IT team setting an unknown behavior
