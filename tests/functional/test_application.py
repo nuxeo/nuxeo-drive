@@ -12,6 +12,7 @@ from unittest.mock import patch
 import pytest
 from PyQt5.QtCore import QObject
 
+from nxdrive.gui.api import QMLDriveApi
 from nxdrive.gui.application import Application
 from tests.functional.mocked_classes import Mock_Engine, Mock_Qt
 
@@ -60,7 +61,7 @@ def app_obj(manager_factory):
 
 
 @mac_only
-def test_application(app_obj):
+def test_application(app_obj, manager_factory):
     from PyQt5.QtWidgets import QMessageBox
 
     from nxdrive.constants import DelAction
@@ -148,3 +149,13 @@ def test_application(app_obj):
             )
             is None
         )
+
+    # open_server_folders in QMLDriveApi
+    with patch("nxdrive.gui.api.QMLDriveApi._get_engine") as mock_engine, patch(
+        "nxdrive.gui.application.Application.hide_systray"
+    ) as mock_hide:
+        manager, engine = manager_factory()
+        drive_api = QMLDriveApi(app)
+        mock_engine.return_value = engine
+        mock_hide.return_value = None
+        assert drive_api.open_server_folders("engine.uid") is None

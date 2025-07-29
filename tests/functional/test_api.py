@@ -6,8 +6,6 @@ from nxdrive.gui.api import QMLDriveApi
 from nxdrive.translator import Translator
 from nxdrive.utils import find_resource
 
-from ..markers import mac_only
-
 
 def test_web_authentication(manager_factory, nuxeo_url):
     manager = manager_factory(with_engine=False)
@@ -538,55 +536,3 @@ def test_get_engine(manager_factory, tmp):
         )
         assert not drive_api.get_remote_document_url("dummy_uid", "remote_ref")
         assert not drive_api.on_clicked_open_task("dummy_uid", "dummy_task_id")
-
-
-@mac_only
-def test_open_server_folders(manager_factory):
-
-    from PyQt5.QtCore import QObject
-
-    from nxdrive.gui.application import Application
-
-    from .test_direct_transfer_path import Mock_Qt
-
-    manager, engine = manager_factory()
-    mock_qt = Mock_Qt()
-    with patch(
-        "PyQt5.QtQml.QQmlApplicationEngine.rootObjects"
-    ) as mock_root_objects, patch(
-        "PyQt5.QtCore.QObject.findChild"
-    ) as mock_find_child, patch(
-        "nxdrive.gui.application.Application.init_nxdrive_listener"
-    ) as mock_listener, patch(
-        "nxdrive.gui.application.Application.show_metrics_acceptance"
-    ) as mock_show_metrics, patch(
-        "nxdrive.engine.activity.FileAction.__repr__"
-    ) as mock_download_repr, patch(
-        "nxdrive.gui.application.Application.create_custom_window_for_task_manager"
-    ) as mock_task_manager, patch(
-        "nxdrive.gui.api.QMLDriveApi._get_engine"
-    ) as mock_engine, patch(
-        "nxdrive.gui.application.Application.hide_systray"
-    ) as mock_hide, patch(
-        "nxdrive.engine.workers.PollWorker._execute"
-    ) as mock_execute, patch(
-        "nxdrive.engine.workers.Worker.run"
-    ) as mock_run, patch(
-        "PyQt5.QtWidgets.QDialog.exec_"
-    ) as mock_exec:
-        mock_root_objects.return_value = [QObject()]
-        mock_find_child.return_value = mock_qt
-        mock_listener.return_value = None
-        mock_show_metrics.return_value = None
-        mock_download_repr.return_value = "Nuxeo Drive"
-        mock_task_manager.return_value = None
-        mock_execute.return_value = None
-        mock_run.return_value = None
-        mock_exec.return_value = None
-        app = Application(manager)
-        drive_api = QMLDriveApi(app)
-        mock_engine.return_value = engine
-        mock_hide.return_value = None
-        assert drive_api.open_server_folders("engine.uid") is None
-        app.exit(0)
-        del app
