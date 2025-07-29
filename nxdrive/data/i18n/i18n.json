@@ -340,7 +340,7 @@
     "ROOT_USED_WITH_OTHER_BINDING_HEADER": "A folder already in use has been detected.",
     "RUNNING": "Running",
     "RUNNING_FROM_WRONG_PATH": "You are running this app from \"%1\". However, for all features to run normally, the application must be named \"%2\" and located in the \"/$HOME/Applications\" directory.",
-    "SCRIPT_ADDR": "Script Address",
+    "SCRIPT_ADDR": "Script address",
     "SECTION_ABOUT": "About",
     "SECTION_ACCOUNTS": "Accounts",
     "SECTION_ADVANCED": "Advanced",
