@@ -70,6 +70,7 @@ def test_application(app_obj, manager_factory):
     assert app.exit_app() is None
     # _shutdown
     app.app_engine = object()
+    app.task_manager_window = object()
     assert app._shutdown() is None
     # create_custom_window_for_task_manager
     with patch(
