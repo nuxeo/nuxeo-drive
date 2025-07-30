@@ -64,14 +64,8 @@ def test_application(app_obj, manager_factory):
 
     from nxdrive.constants import DelAction
 
-    mock_qt = Mock_Qt()
-    # exit_app
     app = app_obj
-    assert app.exit_app() is None
-    # _shutdown
-    app.app_engine = object()
-    app.task_manager_window = object()
-    assert app._shutdown() is None
+    mock_qt = Mock_Qt()
     # create_custom_window_for_task_manager
     with patch(
         "nxdrive.gui.application.Application._fill_qml_context"
@@ -106,6 +100,7 @@ def test_application(app_obj, manager_factory):
         )
     # direct_edit_conflict
     assert app._direct_edit_conflict("dummy_filename", "dummy_ref", "md5") is None
+    # _root_deleted
     with patch("PyQt5.QtCore.QObject.sender") as mock_sender, patch(
         "nxdrive.gui.application.Application.question"
     ) as mock_question:
@@ -148,6 +143,12 @@ def test_application(app_obj, manager_factory):
             )
             is None
         )
+    # exit_app
+    assert app.exit_app() is None
+    # _shutdown
+    app.app_engine = object()
+    app.task_manager_window = object()
+    assert app._shutdown() is None
 
     # open_server_folders in QMLDriveApi
     with patch("nxdrive.gui.api.QMLDriveApi._get_engine") as mock_engine, patch(
