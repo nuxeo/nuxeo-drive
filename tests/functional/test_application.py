@@ -125,33 +125,35 @@ def test_application(app_obj, manager_factory):
             mock_engine = Mock_Engine()
             mock_sender.return_value = mock_engine
             assert app._root_moved(Path("tests/resources")) is None
+        # doc_deleted
+        with patch(
+            "nxdrive.gui.application.Application.question"
+        ) as mock_question, patch("PyQt5.QtCore.QObject.sender") as mock_sender:
+            mock_question.return_value = mock_qt
+            mock_engine = Mock_Engine()
+            mock_sender.return_value = mock_engine
+            assert app._doc_deleted(Path("tests/resources/files/testFile.txt")) is None
+        # file_already_exists
+        with patch(
+            "nxdrive.gui.application.Application.question"
+        ) as mock_question, patch("PyQt5.QtCore.QObject.sender") as mock_sender, patch(
+            "pathlib.Path.unlink"
+        ) as mock_unlink:
+            mock_question.return_value = mock_qt
+            mock_engine = Mock_Engine()
+            mock_sender.return_value = mock_engine
+            mock_unlink.return_value = None
+            assert (
+                app._file_already_exists(
+                    Path("tests/resources/files/testFile.txt"),
+                    Path("tests/resources/files/testFile.txt"),
+                )
+                is None
+            )
     # confirm_deletion
     with patch("nxdrive.gui.application.Application.question") as mock_question:
         mock_question.return_value = mock_qt
         assert isinstance(app.confirm_deletion(Path("tests/resources")), DelAction)
-    # doc_deleted
-    with patch("nxdrive.gui.application.Application.question") as mock_question, patch(
-        "PyQt5.QtCore.QObject.sender"
-    ) as mock_sender:
-        mock_question.return_value = mock_qt
-        mock_engine = Mock_Engine()
-        mock_sender.return_value = mock_engine
-        assert app._doc_deleted(Path("tests/resources/files/testFile.txt")) is None
-    # file_already_exists
-    with patch("nxdrive.gui.application.Application.question") as mock_question, patch(
-        "PyQt5.QtCore.QObject.sender"
-    ) as mock_sender, patch("pathlib.Path.unlink") as mock_unlink:
-        mock_question.return_value = mock_qt
-        mock_engine = Mock_Engine()
-        mock_sender.return_value = mock_engine
-        mock_unlink.return_value = None
-        assert (
-            app._file_already_exists(
-                Path("tests/resources/files/testFile.txt"),
-                Path("tests/resources/files/testFile.txt"),
-            )
-            is None
-        )
     # exit_app
     assert app.exit_app() is None
     # _shutdown
