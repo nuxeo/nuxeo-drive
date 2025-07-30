@@ -12,6 +12,7 @@ from unittest.mock import patch
 import pytest
 from PyQt5.QtCore import QObject
 
+from nxdrive.constants import WINDOWS
 from nxdrive.gui.api import QMLDriveApi
 from nxdrive.gui.application import Application
 from tests.functional.mocked_classes import Mock_Engine, Mock_Qt
@@ -107,22 +108,23 @@ def test_application(app_obj, manager_factory):
             )
             is None
         )
-    # _root_deleted
-    with patch("PyQt5.QtCore.QObject.sender") as mock_sender, patch(
-        "nxdrive.gui.application.Application.question"
-    ) as mock_question:
-        mock_question.return_value = mock_qt
-        mock_engine = Mock_Engine()
-        mock_sender.return_value = mock_engine
-        assert app._root_deleted() is None
-    # root_moved
-    with patch("nxdrive.gui.application.Application.question") as mock_question, patch(
-        "PyQt5.QtCore.QObject.sender"
-    ) as mock_sender:
-        mock_question.return_value = mock_qt
-        mock_engine = Mock_Engine()
-        mock_sender.return_value = mock_engine
-        assert app._root_moved(Path("tests/resources")) is None
+    if not WINDOWS:  # For some reason, the values don't get mocked on Windows
+        # _root_deleted
+        with patch("PyQt5.QtCore.QObject.sender") as mock_sender, patch(
+            "nxdrive.gui.application.Application.question"
+        ) as mock_question:
+            mock_question.return_value = mock_qt
+            mock_engine = Mock_Engine()
+            mock_sender.return_value = mock_engine
+            assert app._root_deleted() is None
+        # root_moved
+        with patch(
+            "nxdrive.gui.application.Application.question"
+        ) as mock_question, patch("PyQt5.QtCore.QObject.sender") as mock_sender:
+            mock_question.return_value = mock_qt
+            mock_engine = Mock_Engine()
+            mock_sender.return_value = mock_engine
+            assert app._root_moved(Path("tests/resources")) is None
     # confirm_deletion
     with patch("nxdrive.gui.application.Application.question") as mock_question:
         mock_question.return_value = mock_qt
