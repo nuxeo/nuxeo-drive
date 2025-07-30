@@ -56,8 +56,6 @@ def app_obj(manager_factory):
         mock_question.return_value = None
         app = Application(manager)
         yield app
-        app.exit(0)
-        del app
 
 
 @not_linux(reason="Qt does not work correctly on linux")
