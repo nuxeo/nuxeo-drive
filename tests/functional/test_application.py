@@ -99,7 +99,9 @@ def test_application(app_obj, manager_factory):
             is None
         )
     # direct_edit_conflict
-    assert app._direct_edit_conflict("dummy_filename", "dummy_ref", "md5") is None
+    with patch("nxdrive.gui.application.Application.question") as mock_question:
+        mock_question.return_value = mock_qt
+        assert app._direct_edit_conflict("dummy_filename", "dummy_ref", "md5") is None
     # _root_deleted
     with patch("PyQt5.QtCore.QObject.sender") as mock_sender, patch(
         "nxdrive.gui.application.Application.question"
