@@ -16,7 +16,7 @@ from nxdrive.gui.api import QMLDriveApi
 from nxdrive.gui.application import Application
 from tests.functional.mocked_classes import Mock_Engine, Mock_Qt
 
-from ..markers import mac_only
+from ..markers import not_linux
 
 
 @pytest.fixture
@@ -60,7 +60,7 @@ def app_obj(manager_factory):
         del app
 
 
-@mac_only
+@not_linux(reason="Qt does not work correctly on linux")
 def test_application(app_obj, manager_factory):
     from PyQt5.QtWidgets import QMessageBox
 
