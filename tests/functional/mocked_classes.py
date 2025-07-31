@@ -531,6 +531,9 @@ class Mock_Qt:
     def setWindowTitle(self, *args):
         pass
 
+    def setQuitOnLastWindowClosed(self, quit: bool):
+        return True
+
     def show(self):
         pass
 

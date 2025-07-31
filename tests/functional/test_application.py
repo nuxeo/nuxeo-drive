@@ -35,8 +35,6 @@ def app_obj(manager_factory):
     ) as mock_show_metrics, patch(
         "nxdrive.engine.activity.FileAction.__repr__"
     ) as mock_download_repr, patch(
-        "nxdrive.gui.application.Application.create_custom_window_for_task_manager"
-    ) as mock_task_manager, patch(
         "nxdrive.engine.workers.PollWorker._execute"
     ) as mock_execute, patch(
         "nxdrive.engine.workers.Worker.run"
@@ -50,7 +48,6 @@ def app_obj(manager_factory):
         mock_listener.return_value = None
         mock_show_metrics.return_value = None
         mock_download_repr.return_value = "Nuxeo Drive"
-        mock_task_manager.return_value = None
         mock_execute.return_value = None
         mock_run.return_value = None
         mock_exec.return_value = None
