@@ -654,8 +654,12 @@ class FoldersDialog(DialogMixin):
     def _process_additionnal_local_paths(self, paths: List[str], /) -> None:
         """Append more local paths to the upload queue."""
 
+        self.local_path_msg_lbl.setText("")
+
         upper_limit_mb = Options.direct_transfer_upper_limit
         upper_limit_bytes = upper_limit_mb * 1024 * 1024 if upper_limit_mb else None
+        current_total_size = sum(self.paths.values())
+        skipped_msgs = []
 
         for local_path in paths:
             if not local_path:
@@ -675,82 +679,10 @@ class FoldersDialog(DialogMixin):
             if path in self.paths.keys():
                 continue
 
-            current_total_size = sum(self.paths.values())
-
-            # Save the path
             if path.is_dir():
-                try:
-                    files_with_sizes = list(get_tree_list(path))
-                    log.info(f"Found {len(files_with_sizes)} files in directory {path}")
-                    total_dir_size = sum(size for _, size in files_with_sizes)
-                    log.info(
-                        f"Total directory size for {path}: {total_dir_size} bytes ({sizeof_fmt(total_dir_size)})"
-                    )
-
-                    # Check if the total size of the directory exceeds the limit
-                    if upper_limit_bytes and total_dir_size > upper_limit_bytes:
-                        msg = (
-                            f"Directory '{path}' size ({sizeof_fmt(total_dir_size)}) exceeds limit "
-                            f"of {upper_limit_mb} MB."
-                        )
-                        log.warning(msg)
-                        self.local_path_msg_lbl.setText(msg)
-                        continue
-
-                    # Check if adding the whole directory would exceed the limit
-                    if (
-                        upper_limit_bytes
-                        and current_total_size + total_dir_size > upper_limit_bytes
-                    ):
-                        msg = (
-                            f"Skipping directory '{path}' size ({sizeof_fmt(total_dir_size)}) as adding it would exceed the total limit "
-                            f"of {upper_limit_mb} MB."
-                        )
-                        log.warning(msg)
-                        self.local_path_msg_lbl.setText(msg)
-                        continue
-
-                    for file_path, size in files_with_sizes:
-                        if self.get_size(file_path) == 0:
-                            # ignoring zero byte files [NXDRIVE-2925]
-                            continue
-                        self.paths[file_path] = size
-
-                except OSError:
-                    log.warning(f"Error scanning directory {path!r}", exc_info=True)
-                    continue
-
+                current_total_size = self._process_directory(path, current_total_size, upper_limit_bytes, skipped_msgs)
             else:
-                try:
-                    file_size = self.get_size(path)
-                    if file_size == 0:
-                        # ignoring zero byte files [NXDRIVE-2925]
-                        continue
-                    # Check if the file size exceeds the limit
-                    if upper_limit_bytes and file_size > upper_limit_bytes:
-                        msg = (
-                            f"File '{path.name}' size ({sizeof_fmt(file_size)}) exceeds limit "
-                            f"of {upper_limit_mb} MB."
-                        )
-                        log.warning(msg)
-                        self.local_path_msg_lbl.setText(msg)
-                        continue
-                    # Check if adding this file would exceed the overall size limit
-                    if (
-                        upper_limit_bytes
-                        and current_total_size + file_size > upper_limit_bytes
-                    ):
-                        msg = (
-                            f"Skipping file '{path}' size ({sizeof_fmt(file_size)}) as adding it would exceed the total limit "
-                            f"of {upper_limit_mb} MB."
-                        )
-                        log.warning(msg)
-                        self.local_path_msg_lbl.setText(msg)
-                        continue
-                    self.paths[path] = file_size
-                except OSError:
-                    log.warning(f"Error calling stat() on {path!r}", exc_info=True)
-                    continue
+                current_total_size = self._process_file(path, current_total_size, upper_limit_bytes, skipped_msgs)
 
             self.last_local_selected_location = path.parent
 
@@ -758,11 +690,75 @@ class FoldersDialog(DialogMixin):
             if not self.path:
                 self.path = path
 
+        # After processing all paths, show all skipped messages if any
+        if skipped_msgs:
+            self.local_path_msg_lbl.setText("\n".join(skipped_msgs))
+        else:
+            self.local_path_msg_lbl.setText("")
+
         # Update labels with new information
         self.local_path.setText(self._files_display())
         self.local_paths_size_lbl.setText(sizeof_fmt(self.overall_size))
 
         self.button_ok_state()
+
+    def _process_directory(self, path: Path, current_total_size: int, upper_limit_bytes: int | None, skipped_msgs: list) -> int:
+        try:
+            files_with_sizes = list(get_tree_list(path))
+            total_dir_size = sum(size for _, size in files_with_sizes)
+
+            # Check if the total size of the directory exceeds the limit
+            if upper_limit_bytes and total_dir_size > upper_limit_bytes:
+                msg = f"Directory '{path}' size ({sizeof_fmt(total_dir_size)}) exceeds limit of {Options.direct_transfer_upper_limit} MB."
+                log.warning(msg)
+                skipped_msgs.append(msg)
+                return current_total_size
+
+            # Check if adding the whole directory would exceed the limit
+            if upper_limit_bytes and current_total_size + total_dir_size > upper_limit_bytes:
+                msg = f"Skipping directory '{path}' size ({sizeof_fmt(total_dir_size)}) as adding it would exceed the total limit of {Options.direct_transfer_upper_limit} MB."
+                log.warning(msg)
+                skipped_msgs.append(msg)
+                return current_total_size
+
+            for file_path, size in files_with_sizes:
+                # ignoring zero byte files [NXDRIVE-2925]
+                if self.get_size(file_path) == 0:
+                    continue
+                self.paths[file_path] = size
+                current_total_size += size
+
+        except OSError:
+            log.warning(f"Error scanning directory {path!r}", exc_info=True)
+        return current_total_size
+
+    def _process_file(self, path: Path, current_total_size: int, upper_limit_bytes: int | None, skipped_msgs: list) -> int:
+        try:
+            file_size = self.get_size(path)
+            if file_size == 0:
+                # ignoring zero byte files [NXDRIVE-2925]
+                return current_total_size
+
+            # Check if the file size exceeds the limit
+            if upper_limit_bytes and file_size > upper_limit_bytes:
+                msg = f"File '{path.name}' size ({sizeof_fmt(file_size)}) exceeds limit of {Options.direct_transfer_upper_limit} MB."
+                log.warning(msg)
+                skipped_msgs.append(msg)
+                return current_total_size
+
+            # Check if adding this file would exceed the overall size limit
+            if upper_limit_bytes and current_total_size + file_size > upper_limit_bytes:
+                msg = f"Skipping file '{path}' size ({sizeof_fmt(file_size)}) as adding it would exceed the total limit of {Options.direct_transfer_upper_limit} MB."
+                log.warning(msg)
+                skipped_msgs.append(msg)
+                return current_total_size
+
+            self.paths[path] = file_size
+            return current_total_size + file_size
+
+        except OSError:
+            log.warning(f"Error calling stat() on {path!r}", exc_info=True)
+            return current_total_size
 
     def _select_more_files(self) -> None:
         """Choose additional local files to upload."""
