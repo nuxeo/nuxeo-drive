@@ -680,9 +680,13 @@ class FoldersDialog(DialogMixin):
                 continue
 
             if path.is_dir():
-                current_total_size = self._process_directory(path, current_total_size, upper_limit_bytes, skipped_msgs)
+                current_total_size = self._process_directory(
+                    path, current_total_size, upper_limit_bytes, skipped_msgs
+                )
             else:
-                current_total_size = self._process_file(path, current_total_size, upper_limit_bytes, skipped_msgs)
+                current_total_size = self._process_file(
+                    path, current_total_size, upper_limit_bytes, skipped_msgs
+                )
 
             self.last_local_selected_location = path.parent
 
@@ -702,21 +706,36 @@ class FoldersDialog(DialogMixin):
 
         self.button_ok_state()
 
-    def _process_directory(self, path: Path, current_total_size: int, upper_limit_bytes: int | None, skipped_msgs: list) -> int:
+    def _process_directory(
+        self,
+        path: Path,
+        current_total_size: int,
+        upper_limit_bytes: int | None,
+        skipped_msgs: list[str],
+    ) -> int:
         try:
             files_with_sizes = list(get_tree_list(path))
             total_dir_size = sum(size for _, size in files_with_sizes)
 
             # Check if the total size of the directory exceeds the limit
             if upper_limit_bytes and total_dir_size > upper_limit_bytes:
-                msg = f"Directory '{path}' size ({sizeof_fmt(total_dir_size)}) exceeds limit of {Options.direct_transfer_upper_limit} MB."
+                msg = (
+                    f"Directory '{path}' size ({sizeof_fmt(total_dir_size)}) exceeds limit of "
+                    f"{Options.direct_transfer_upper_limit} MB."
+                )
                 log.warning(msg)
                 skipped_msgs.append(msg)
                 return current_total_size
 
             # Check if adding the whole directory would exceed the limit
-            if upper_limit_bytes and current_total_size + total_dir_size > upper_limit_bytes:
-                msg = f"Skipping directory '{path}' size ({sizeof_fmt(total_dir_size)}) as adding it would exceed the total limit of {Options.direct_transfer_upper_limit} MB."
+            if (
+                upper_limit_bytes
+                and current_total_size + total_dir_size > upper_limit_bytes
+            ):
+                msg = (
+                    f"Skipping directory '{path}' size ({sizeof_fmt(total_dir_size)}) as adding it would exceed "
+                    f"the total limit of {Options.direct_transfer_upper_limit} MB."
+                )
                 log.warning(msg)
                 skipped_msgs.append(msg)
                 return current_total_size
@@ -732,7 +751,13 @@ class FoldersDialog(DialogMixin):
             log.warning(f"Error scanning directory {path!r}", exc_info=True)
         return current_total_size
 
-    def _process_file(self, path: Path, current_total_size: int, upper_limit_bytes: int | None, skipped_msgs: list) -> int:
+    def _process_file(
+        self,
+        path: Path,
+        current_total_size: int,
+        upper_limit_bytes: int | None,
+        skipped_msgs: list,
+    ) -> int:
         try:
             file_size = self.get_size(path)
             if file_size == 0:
@@ -741,14 +766,20 @@ class FoldersDialog(DialogMixin):
 
             # Check if the file size exceeds the limit
             if upper_limit_bytes and file_size > upper_limit_bytes:
-                msg = f"File '{path.name}' size ({sizeof_fmt(file_size)}) exceeds limit of {Options.direct_transfer_upper_limit} MB."
+                msg = (
+                    f"File '{path.name}' size ({sizeof_fmt(file_size)}) exceeds limit of "
+                    f"{Options.direct_transfer_upper_limit} MB."
+                )
                 log.warning(msg)
                 skipped_msgs.append(msg)
                 return current_total_size
 
             # Check if adding this file would exceed the overall size limit
             if upper_limit_bytes and current_total_size + file_size > upper_limit_bytes:
-                msg = f"Skipping file '{path}' size ({sizeof_fmt(file_size)}) as adding it would exceed the total limit of {Options.direct_transfer_upper_limit} MB."
+                msg = (
+                    f"Skipping file '{path}' size ({sizeof_fmt(file_size)}) as adding it would exceed "
+                    f"the total limit of {Options.direct_transfer_upper_limit} MB."
+                )
                 log.warning(msg)
                 skipped_msgs.append(msg)
                 return current_total_size
