@@ -336,25 +336,34 @@ class FoldersDialog(DialogMixin):
     def _add_group_local(self) -> QGroupBox:
         """Group box for source files."""
         groupbox = QGroupBox(Translator.get("SOURCE_FILES"))
-        layout = QHBoxLayout()
-        groupbox.setLayout(layout)
+        vlayout = QVBoxLayout()
+        groupbox.setLayout(vlayout)
 
-        layout.setContentsMargins(10, 10, 10, 10)
-
-        self.local_paths_size_lbl = QLabel(sizeof_fmt(self.overall_size))
         self.local_path = QLineEdit()
         self.local_path.setTextMargins(5, 0, 5, 0)
         self.local_path.setText(self._files_display())
         self.local_path.setReadOnly(True)
+
+        self.local_paths_size_lbl = QLabel(sizeof_fmt(self.overall_size))
+
+        self.local_path_msg_lbl = QLabel("")
+        self.local_path_msg_lbl.setWordWrap(True)
+
+        hlayout = QHBoxLayout()
+        hlayout.addWidget(self.local_path)
+        hlayout.addWidget(self.local_paths_size_lbl)
+
         files_button = QPushButton(Translator.get("ADD_FILES"), self)
         files_button.clicked.connect(self._select_more_files)
-        layout.addWidget(self.local_path)
-        layout.addWidget(self.local_paths_size_lbl)
-        layout.addWidget(files_button)
+        hlayout.addWidget(files_button)
+
         if self.engine.have_folder_upload:
             folders_button = QPushButton(Translator.get("ADD_FOLDER"), self)
             folders_button.clicked.connect(self._select_more_folder)
-            layout.addWidget(folders_button)
+            hlayout.addWidget(folders_button)
+
+        vlayout.addLayout(hlayout)
+        vlayout.addWidget(self.local_path_msg_lbl)
 
         return groupbox
 
@@ -644,6 +653,10 @@ class FoldersDialog(DialogMixin):
 
     def _process_additionnal_local_paths(self, paths: List[str], /) -> None:
         """Append more local paths to the upload queue."""
+
+        upper_limit_mb = Options.direct_transfer_upper_limit
+        upper_limit_bytes = upper_limit_mb * 1024 * 1024 if upper_limit_mb else None
+
         for local_path in paths:
             if not local_path:
                 # When closing the folder selection, *local_path* would be an empty string.
@@ -662,18 +675,77 @@ class FoldersDialog(DialogMixin):
             if path in self.paths.keys():
                 continue
 
+            current_total_size = sum(self.paths.values())
+
             # Save the path
             if path.is_dir():
-                for file_path, size in get_tree_list(path):
-                    if self.get_size(file_path) == 0:
-                        # ignoring zero byte files [NXDRIVE-2925]
+                try:
+                    files_with_sizes = list(get_tree_list(path))
+                    log.info(f"Found {len(files_with_sizes)} files in directory {path}")
+                    total_dir_size = sum(size for _, size in files_with_sizes)
+                    log.info(
+                        f"Total directory size for {path}: {total_dir_size} bytes ({sizeof_fmt(total_dir_size)})"
+                    )
+
+                    # Check if the total size of the directory exceeds the limit
+                    if upper_limit_bytes and total_dir_size > upper_limit_bytes:
+                        msg = (
+                            f"Directory '{path}' size ({sizeof_fmt(total_dir_size)}) exceeds limit "
+                            f"of {upper_limit_mb} MB."
+                        )
+                        log.warning(msg)
+                        self.local_path_msg_lbl.setText(msg)
                         continue
-                    self.paths[file_path] = size
+
+                    # Check if adding the whole directory would exceed the limit
+                    if (
+                        upper_limit_bytes
+                        and current_total_size + total_dir_size > upper_limit_bytes
+                    ):
+                        msg = (
+                            f"Skipping directory '{path}' size ({sizeof_fmt(total_dir_size)}) as adding it would exceed the total limit "
+                            f"of {upper_limit_mb} MB."
+                        )
+                        log.warning(msg)
+                        self.local_path_msg_lbl.setText(msg)
+                        continue
+
+                    for file_path, size in files_with_sizes:
+                        if self.get_size(file_path) == 0:
+                            # ignoring zero byte files [NXDRIVE-2925]
+                            continue
+                        self.paths[file_path] = size
+
+                except OSError:
+                    log.warning(f"Error scanning directory {path!r}", exc_info=True)
+                    continue
+
             else:
                 try:
                     file_size = self.get_size(path)
                     if file_size == 0:
                         # ignoring zero byte files [NXDRIVE-2925]
+                        continue
+                    # Check if the file size exceeds the limit
+                    if upper_limit_bytes and file_size > upper_limit_bytes:
+                        msg = (
+                            f"File '{path.name}' size ({sizeof_fmt(file_size)}) exceeds limit "
+                            f"of {upper_limit_mb} MB."
+                        )
+                        log.warning(msg)
+                        self.local_path_msg_lbl.setText(msg)
+                        continue
+                    # Check if adding this file would exceed the overall size limit
+                    if (
+                        upper_limit_bytes
+                        and current_total_size + file_size > upper_limit_bytes
+                    ):
+                        msg = (
+                            f"Skipping file '{path}' size ({sizeof_fmt(file_size)}) as adding it would exceed the total limit "
+                            f"of {upper_limit_mb} MB."
+                        )
+                        log.warning(msg)
+                        self.local_path_msg_lbl.setText(msg)
                         continue
                     self.paths[path] = file_size
                 except OSError:
