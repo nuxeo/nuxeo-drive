@@ -659,7 +659,7 @@ class FoldersDialog(DialogMixin):
         upper_limit_mb = Options.direct_transfer_upper_limit
         upper_limit_bytes = upper_limit_mb * 1024 * 1024 if upper_limit_mb else None
         current_total_size = sum(self.paths.values())
-        skipped_msgs = []
+        skipped_items: list[str] = []
 
         for local_path in paths:
             if not local_path:
@@ -681,11 +681,11 @@ class FoldersDialog(DialogMixin):
 
             if path.is_dir():
                 current_total_size = self._process_directory(
-                    path, current_total_size, upper_limit_bytes, skipped_msgs
+                    path, current_total_size, upper_limit_bytes, skipped_items
                 )
             else:
                 current_total_size = self._process_file(
-                    path, current_total_size, upper_limit_bytes, skipped_msgs
+                    path, current_total_size, upper_limit_bytes, skipped_items
                 )
 
             self.last_local_selected_location = path.parent
@@ -694,9 +694,14 @@ class FoldersDialog(DialogMixin):
             if not self.path:
                 self.path = path
 
-        # After processing all paths, show all skipped messages if any
-        if skipped_msgs:
-            self.local_path_msg_lbl.setText("\n".join(skipped_msgs))
+        # Show skipped items if any
+        if skipped_items:
+            self.local_path_msg_lbl.setText(
+                self._skipped_items_summary(skipped_items, upper_limit_mb)
+            )
+            log.warning(
+                "Skipped items due to size limit: [%s]", ", ".join(skipped_items)
+            )
         else:
             self.local_path_msg_lbl.setText("")
 
@@ -711,7 +716,7 @@ class FoldersDialog(DialogMixin):
         path: Path,
         current_total_size: int,
         upper_limit_bytes: int | None,
-        skipped_msgs: list[str],
+        skipped_items: list[str],
     ) -> int:
         try:
             files_with_sizes = list(get_tree_list(path))
@@ -719,12 +724,7 @@ class FoldersDialog(DialogMixin):
 
             # Check if the total size of the directory exceeds the limit
             if upper_limit_bytes and total_dir_size > upper_limit_bytes:
-                msg = (
-                    f"Directory '{path}' size ({sizeof_fmt(total_dir_size)}) exceeds limit of "
-                    f"{Options.direct_transfer_upper_limit} MB."
-                )
-                log.warning(msg)
-                skipped_msgs.append(msg)
+                skipped_items.append(path.name)
                 return current_total_size
 
             # Check if adding the whole directory would exceed the limit
@@ -732,12 +732,7 @@ class FoldersDialog(DialogMixin):
                 upper_limit_bytes
                 and current_total_size + total_dir_size > upper_limit_bytes
             ):
-                msg = (
-                    f"Skipping directory '{path}' size ({sizeof_fmt(total_dir_size)}) as adding it would exceed "
-                    f"the total limit of {Options.direct_transfer_upper_limit} MB."
-                )
-                log.warning(msg)
-                skipped_msgs.append(msg)
+                skipped_items.append(path.name)
                 return current_total_size
 
             for file_path, size in files_with_sizes:
@@ -756,7 +751,7 @@ class FoldersDialog(DialogMixin):
         path: Path,
         current_total_size: int,
         upper_limit_bytes: int | None,
-        skipped_msgs: list,
+        skipped_items: list,
     ) -> int:
         try:
             file_size = self.get_size(path)
@@ -766,22 +761,12 @@ class FoldersDialog(DialogMixin):
 
             # Check if the file size exceeds the limit
             if upper_limit_bytes and file_size > upper_limit_bytes:
-                msg = (
-                    f"File '{path.name}' size ({sizeof_fmt(file_size)}) exceeds limit of "
-                    f"{Options.direct_transfer_upper_limit} MB."
-                )
-                log.warning(msg)
-                skipped_msgs.append(msg)
+                skipped_items.append(path.name)
                 return current_total_size
 
             # Check if adding this file would exceed the overall size limit
             if upper_limit_bytes and current_total_size + file_size > upper_limit_bytes:
-                msg = (
-                    f"Skipping file '{path}' size ({sizeof_fmt(file_size)}) as adding it would exceed "
-                    f"the total limit of {Options.direct_transfer_upper_limit} MB."
-                )
-                log.warning(msg)
-                skipped_msgs.append(msg)
+                skipped_items.append(path.name)
                 return current_total_size
 
             self.paths[path] = file_size
@@ -808,6 +793,16 @@ class FoldersDialog(DialogMixin):
             str(self.last_local_selected_location),
         )
         self._process_additionnal_local_paths([path])
+
+    def _skipped_items_summary(self, items: list[str], limit_mb: int) -> str:
+        """Show up to 2 skipped item names with a (+N) and the reason."""
+        count = len(items)
+        if count == 0:
+            return ""
+        names_part = (
+            ", ".join(items) if count <= 2 else f"{items[0]}, {items[1]} (+{count - 2})"
+        )
+        return f"Skipping {names_part} - limit of {limit_mb} MB exceeded."
 
 
 class NewFolderDialog(QDialog):
