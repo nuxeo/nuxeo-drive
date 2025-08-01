@@ -140,14 +140,27 @@ def get_version():
     """Get the current version."""
 
     if EXT == "dmg":
-        """
-        cmd = [
-            f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
-            "--version",
-        ]
-        return subprocess.check_output(cmd, text=True).strip()
-        """
-        return "5.6.0"
+        print("[DEBUG] get_version(): EXT is dmg", flush=True)
+        exe_path = f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive"
+        print(f"[DEBUG] get_version(): exe_path is {exe_path}", flush=True)
+        if not os.path.isfile(exe_path):
+            print(
+                f"[ERROR] get_version(): Executable not found: {exe_path}", flush=True
+            )
+            raise FileNotFoundError(f"Executable not found: {exe_path}")
+        cmd = [exe_path, "--version"]
+        print(f"[DEBUG] get_version(): Running command: {cmd}", flush=True)
+        try:
+            output = subprocess.check_output(cmd, text=True, timeout=30)
+            print(f"[DEBUG] get_version(): Command output: {output!r}", flush=True)
+            return output.strip()
+        except subprocess.TimeoutExpired:
+            print(f"[ERROR] get_version(): Command timed out: {cmd}", flush=True)
+            raise
+        except Exception as exc:
+            print(f"[ERROR] get_version(): Exception: {exc}", flush=True)
+            raise
+        # return "5.6.0"
 
     file = (
         expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
@@ -577,14 +590,21 @@ def job(root, version, executable, previous_version, name):
         # Display the log file
         # cat_log()
 
-        # And assert the version is the good one
-        current_ver = get_version()
-        print(f">>> Current version is {current_ver!r}", flush=True)
-        """
-        assert (
-            current_ver == version
-        ), f"Current version is {current_ver!r} (need {version})"
-        """
+        # Wait for the version to update, retrying for up to 5 minutes
+        max_wait = 300  # seconds
+        interval = 10  # seconds
+        waited = 0
+        while waited < max_wait:
+            current_ver = get_version()
+            print(f">>> Current version is {current_ver!r}", flush=True)
+            if current_ver == version:
+                break
+            time.sleep(interval)
+            waited += interval
+        else:
+            raise AssertionError(
+                f"Current version is {current_ver!r} (need {version}) after waiting {max_wait} seconds"
+            )
     finally:
         os.chdir(src)
 
