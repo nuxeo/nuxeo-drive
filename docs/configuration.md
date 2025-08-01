@@ -209,6 +209,15 @@ Delay in seconds before each remote check (calling the [NuxeoDrive.GetChangeSumm
 
 * * *
 
+#### `direct-transfer-upper-limit`
+
+Maximum allowed size (in MiB) for files or directories uploaded via Direct Transfer. If set to 0, no limit is enforced. Files or directories exceeding this limit will be skipped and a message will be shown in the UI.
+
+- Default value (int): `0`
+- Version added: 5.6.1
+
+* * *
+
 #### `disabled-file-integrity-check`
 
 Set to `True` to disable downloaded files integrity check.
