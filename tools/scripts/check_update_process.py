@@ -151,11 +151,17 @@ def get_version():
         cmd = [exe_path, "--version"]
         print(f"[DEBUG] get_version(): Running command: {cmd}", flush=True)
         try:
-            output = subprocess.check_output(cmd, text=True, timeout=30)
+            output = subprocess.check_output(cmd, text=True, timeout=30, stderr=subprocess.STDOUT)
             print(f"[DEBUG] get_version(): Command output: {output!r}", flush=True)
             return output.strip()
-        except subprocess.TimeoutExpired:
-            print(f"[ERROR] get_version(): Command timed out: {cmd}", flush=True)
+        except subprocess.CalledProcessError as exc:
+            print(f"[ERROR] get_version(): CalledProcessError: {exc}", flush=True)
+            print(f"[ERROR] get_version(): Return code: {exc.returncode}", flush=True)
+            print(f"[ERROR] get_version(): Output: {exc.output!r}", flush=True)
+            raise
+        except subprocess.TimeoutExpired as exc:
+            print(f"[ERROR] get_version(): TimeoutExpired: {exc}", flush=True)
+            print(f"[ERROR] get_version(): Output: {exc.output!r}", flush=True)
             raise
         except Exception as exc:
             print(f"[ERROR] get_version(): Exception: {exc}", flush=True)
