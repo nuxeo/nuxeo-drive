@@ -477,7 +477,7 @@ class Mock_Qt:
     def clickedButton(self):
         pass
 
-    def close(self):
+    def close(self=None):
         pass
 
     def connect(self, *args):

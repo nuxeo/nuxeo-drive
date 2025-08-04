@@ -151,6 +151,8 @@ def test_application(app_obj, manager_factory):
     with patch("nxdrive.gui.application.Application.question") as mock_question:
         mock_question.return_value = mock_qt
         assert isinstance(app.confirm_deletion(Path("tests/resources")), DelAction)
+    # show_systray
+    assert app.show_systray() is None
     # exit_app
     assert app.exit_app() is None
     # _shutdown
