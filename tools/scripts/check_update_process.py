@@ -39,6 +39,8 @@ import packaging.version
 import requests
 import yaml
 
+from os.path import isfile
+
 # Alter the lookup path to be able to find Nuxeo Drive sources
 sys.path.insert(0, os.getcwd())
 
@@ -136,35 +138,70 @@ def get_last_version_number():
     return get_latest_version(versions, "release")
 
 
+def run_ls(path):
+    """Run `ls -l` on the given path and print the output."""
+    print(f"[DEBUG] Listing contents of: {path}", flush=True)
+    try:
+        output = subprocess.check_output(
+            ["ls", "-l", path], text=True, stderr=subprocess.STDOUT
+        )
+        print(f"[DEBUG] ls -l {path} output:\n{output}", flush=True)
+    except subprocess.CalledProcessError as e:
+        print(f"[WARN] ls failed on {path}: {e.output}", flush=True)
+
+
 def get_version():
     """Get the current version."""
 
     if EXT == "dmg":
         print("[DEBUG] get_version(): EXT is dmg", flush=True)
-        exe_path = f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive"
-        print(f"[DEBUG] get_version(): exe_path is {exe_path}", flush=True)
-        if not os.path.isfile(exe_path):
-            print(
-                f"[ERROR] get_version(): Executable not found: {exe_path}", flush=True
-            )
+
+        home = Path.home()
+        applications_dir = home / "Applications"
+        app_bundle = applications_dir / "Nuxeo Drive.app"
+        macos_dir = app_bundle / "Contents" / "MacOS"
+        exe_path = macos_dir / "ndrive"
+
+        print(f"[DEBUG] Home directory: {home}", flush=True)
+        run_ls(home)
+
+        print(f"[DEBUG] Applications directory: {applications_dir}", flush=True)
+        run_ls(applications_dir)
+
+        print(f"[DEBUG] App bundle path: {app_bundle}", flush=True)
+        run_ls(app_bundle)
+
+        print(f"[DEBUG] Contents/MacOS directory: {macos_dir}", flush=True)
+        run_ls(macos_dir)
+
+        print(f"[DEBUG] Executable path: {exe_path}", flush=True)
+        if not isfile(exe_path):
+            print(f"[ERROR] Executable not found: {exe_path}", flush=True)
             raise FileNotFoundError(f"Executable not found: {exe_path}")
-        cmd = [exe_path, "--version"]
-        print(f"[DEBUG] get_version(): Running command: {cmd}", flush=True)
+
+        cmd = [str(exe_path), "--version"]
+        print(f"[DEBUG] Running command: {cmd}", flush=True)
+
         try:
-            output = subprocess.check_output(cmd, text=True, timeout=30, stderr=subprocess.STDOUT)
-            print(f"[DEBUG] get_version(): Command output: {output!r}", flush=True)
+            output = subprocess.check_output(
+                cmd, text=True, timeout=30, stderr=subprocess.STDOUT
+            )
+            print(f"[DEBUG] Command output: {output!r}", flush=True)
             return output.strip()
+
         except subprocess.CalledProcessError as exc:
-            print(f"[ERROR] get_version(): CalledProcessError: {exc}", flush=True)
-            print(f"[ERROR] get_version(): Return code: {exc.returncode}", flush=True)
-            print(f"[ERROR] get_version(): Output: {exc.output!r}", flush=True)
+            print(f"[ERROR] CalledProcessError: {exc}", flush=True)
+            print(f"[ERROR] Return code: {exc.returncode}", flush=True)
+            print(f"[ERROR] Output: {exc.output!r}", flush=True)
             raise
+
         except subprocess.TimeoutExpired as exc:
-            print(f"[ERROR] get_version(): TimeoutExpired: {exc}", flush=True)
-            print(f"[ERROR] get_version(): Output: {exc.output!r}", flush=True)
+            print(f"[ERROR] TimeoutExpired: {exc}", flush=True)
+            print(f"[ERROR] Output: {exc.output!r}", flush=True)
             raise
+
         except Exception as exc:
-            print(f"[ERROR] get_version(): Exception: {exc}", flush=True)
+            print(f"[ERROR] Exception: {exc}", flush=True)
             raise
         # return "5.6.0"
 
