@@ -350,6 +350,7 @@ class FoldersDialog(DialogMixin):
         self.local_path_msg_lbl.setWordWrap(True)
 
         hlayout = QHBoxLayout()
+        hlayout.setContentsMargins(10, 10, 10, 10)
         hlayout.addWidget(self.local_path)
         hlayout.addWidget(self.local_paths_size_lbl)
 
@@ -744,6 +745,11 @@ class FoldersDialog(DialogMixin):
 
         except OSError:
             log.warning(f"Error scanning directory {path!r}", exc_info=True)
+        except Exception:
+            log.error(
+                f"Unexpected error in _process_directory() for {path!r}", exc_info=True
+            )
+
         return current_total_size
 
     def _process_file(
@@ -774,7 +780,12 @@ class FoldersDialog(DialogMixin):
 
         except OSError:
             log.warning(f"Error calling stat() on {path!r}", exc_info=True)
-            return current_total_size
+        except Exception:
+            log.error(
+                f"Unexpected error in _process_file() for {path!r}", exc_info=True
+            )
+
+        return current_total_size
 
     def _select_more_files(self) -> None:
         """Choose additional local files to upload."""
