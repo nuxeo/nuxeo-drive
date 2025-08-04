@@ -138,16 +138,12 @@ def get_last_version_number():
     return get_latest_version(versions, "release")
 
 
-def run_ls(path):
-    """Run `ls -l` on the given path and print the output."""
-    print(f"[DEBUG] Listing contents of: {path}", flush=True)
-    try:
-        output = subprocess.check_output(
-            ["ls", "-l", path], text=True, stderr=subprocess.STDOUT
-        )
-        print(f"[DEBUG] ls -l {path} output:\n{output}", flush=True)
-    except subprocess.CalledProcessError as e:
-        print(f"[WARN] ls failed on {path}: {e.output}", flush=True)
+def extract_version(output):
+    """Extracts the first version-like string from output."""
+    match = re.search(r"\b(\d+\.\d+\.\d+)\b", output)
+    if match:
+        return match.group(1)
+    raise RuntimeError("Version number not found in output")
 
 
 def get_version():
@@ -155,53 +151,42 @@ def get_version():
 
     if EXT == "dmg":
         print("[DEBUG] get_version(): EXT is dmg", flush=True)
+        exe_path = f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive"
+        print(f"[DEBUG] get_version(): exe_path is {exe_path}", flush=True)
 
-        home = Path.home()
-        applications_dir = home / "Applications"
-        app_bundle = applications_dir / "Nuxeo Drive.app"
-        macos_dir = app_bundle / "Contents" / "MacOS"
-        exe_path = macos_dir / "ndrive"
-
-        print(f"[DEBUG] Home directory: {home}", flush=True)
-        run_ls(home)
-
-        print(f"[DEBUG] Applications directory: {applications_dir}", flush=True)
-        run_ls(applications_dir)
-
-        print(f"[DEBUG] App bundle path: {app_bundle}", flush=True)
-        run_ls(app_bundle)
-
-        print(f"[DEBUG] Contents/MacOS directory: {macos_dir}", flush=True)
-        run_ls(macos_dir)
-
-        print(f"[DEBUG] Executable path: {exe_path}", flush=True)
-        if not isfile(exe_path):
-            print(f"[ERROR] Executable not found: {exe_path}", flush=True)
+        if not os.path.isfile(exe_path):
+            print(
+                f"[ERROR] get_version(): Executable not found: {exe_path}", flush=True
+            )
             raise FileNotFoundError(f"Executable not found: {exe_path}")
 
-        cmd = [str(exe_path), "--version"]
-        print(f"[DEBUG] Running command: {cmd}", flush=True)
+        cmd = [exe_path, "--version"]
+        print(f"[DEBUG] get_version(): Running command: {cmd}", flush=True)
+
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
 
         try:
-            output = subprocess.check_output(
-                cmd, text=True, timeout=30, stderr=subprocess.STDOUT
-            )
-            print(f"[DEBUG] Command output: {output!r}", flush=True)
-            return output.strip()
-
-        except subprocess.CalledProcessError as exc:
-            print(f"[ERROR] CalledProcessError: {exc}", flush=True)
-            print(f"[ERROR] Return code: {exc.returncode}", flush=True)
-            print(f"[ERROR] Output: {exc.output!r}", flush=True)
-            raise
-
+            output, _ = proc.communicate(timeout=10)
+            print(f"[DEBUG] get_version(): Command output: {output!r}", flush=True)
         except subprocess.TimeoutExpired as exc:
-            print(f"[ERROR] TimeoutExpired: {exc}", flush=True)
-            print(f"[ERROR] Output: {exc.output!r}", flush=True)
+            proc.kill()
+            output, _ = proc.communicate()
+            print(f"[ERROR] get_version(): TimeoutExpired: {exc}", flush=True)
+            print(f"[DEBUG] get_version(): Partial output: {output!r}", flush=True)
+            raise
+        except Exception as exc:
+            print(f"[ERROR] get_version(): Exception: {exc}", flush=True)
             raise
 
-        except Exception as exc:
-            print(f"[ERROR] Exception: {exc}", flush=True)
+        try:
+            return extract_version(output.strip())
+        except RuntimeError as exc:
+            print(f"[ERROR] get_version(): {exc}", flush=True)
             raise
         # return "5.6.0"
 
