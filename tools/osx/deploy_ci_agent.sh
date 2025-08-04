@@ -161,8 +161,9 @@ create_package() {
             -srcfolder "${src_folder_tmp}" \
             -volname "${app_name}"         \
             -fs HFS+                       \
+            -fsargs "-c c=8,a=8,e=8"       \
             -format UDRW                   \
-            -size "${dmg_size}m"           \
+            -size 500           \
             "${dmg_tmp}"
 
     # -size "${dmg_size}m"           \
