@@ -138,36 +138,40 @@ def get_last_version_number():
 
 
 def get_version():
-    plist_path = Path.home() / "Applications/Nuxeo Drive.app/Contents/Info.plist"
-    print(f"[DEBUG] Checking plist at: {plist_path}", flush=True)
+    app_path = Path.home() / "Applications/Nuxeo Drive.app"
+    cmd = ["mdls", "-name", "kMDItemVersion", str(app_path)]
+    try:
+        output = subprocess.check_output(cmd, text=True).strip()
+        if "=" in output:
+            return output.split("=", 1)[1].strip().strip('"')
+    except Exception as e:
+        print(f"[WARN] mdls failed: {e}")
+    raise RuntimeError("Failed to get version via mdls")
 
-    if not plist_path.exists():
-        raise FileNotFoundError(f"Info.plist not found at {plist_path}")
 
-    with open(plist_path, "rb") as f:
-        plist = plistlib.load(f)
-        version = plist.get("CFBundleShortVersionString") or plist.get(
-            "CFBundleVersion"
-        )
-        if version:
-            return version
-        raise ValueError("Version not found in Info.plist")
+# def get_version():
+#     plist_path = Path.home() / "Applications/Nuxeo Drive.app/Contents/Info.plist"
+#     print(f"[DEBUG] Checking plist at: {plist_path}", flush=True)
 
-    file = (
-        expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
-        if EXT == "exe"
-        else expanduser("~/.nuxeo-drive/VERSION")
-    )
-    with open(file, encoding="utf-8") as f:
-        return f.read().strip()
+#     if not plist_path.exists():
+#         raise FileNotFoundError(f"Info.plist not found at {plist_path}")
 
-    file = (
-        expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
-        if EXT == "exe"
-        else expanduser("~/.nuxeo-drive/VERSION")
-    )
-    with open(file, encoding="utf-8") as f:
-        return f.read().strip()
+#     with open(plist_path, "rb") as f:
+#         plist = plistlib.load(f)
+#         version = plist.get("CFBundleShortVersionString") or plist.get(
+#             "CFBundleVersion"
+#         )
+#         if version:
+#             return version
+#         raise ValueError("Version not found in Info.plist")
+
+#     file = (
+#         expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
+#         if EXT == "exe"
+#         else expanduser("~/.nuxeo-drive/VERSION")
+#     )
+#     with open(file, encoding="utf-8") as f:
+#         return f.read().strip()
 
 
 def install_drive(installer):
@@ -589,21 +593,13 @@ def job(root, version, executable, previous_version, name):
         # Display the log file
         # cat_log()
 
-        # Wait for the version to update, retrying for up to 5 minutes
-        max_wait = 300  # seconds
-        interval = 10  # seconds
-        waited = 0
-        while waited < max_wait:
-            current_ver = get_version()
-            print(f">>> Current version is {current_ver!r}", flush=True)
-            if current_ver == version:
-                break
-            time.sleep(interval)
-            waited += interval
-        else:
-            raise AssertionError(
-                f"Current version is {current_ver!r} (need {version}) after waiting {max_wait} seconds"
-            )
+        # And assert the version is the good one
+        current_ver = get_version()
+        print(f">>> Current version is {current_ver!r}", flush=True)
+        assert (
+            current_ver == version
+        ), f"Current version is {current_ver!r} (need {version})"
+
     finally:
         os.chdir(src)
 
