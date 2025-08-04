@@ -58,11 +58,13 @@ def app_obj(manager_factory):
 
 @not_linux(reason="Qt does not work correctly on linux")
 def test_application(app_obj, manager_factory):
+    from PyQt5.QtCore import QRect
     from PyQt5.QtWidgets import QMessageBox
 
     from nxdrive.constants import DelAction
 
     app = app_obj
+    manager, engine = manager_factory()
     mock_qt = Mock_Qt()
     # create_custom_window_for_task_manager
     with patch(
@@ -153,6 +155,10 @@ def test_application(app_obj, manager_factory):
         assert isinstance(app.confirm_deletion(Path("tests/resources")), DelAction)
     # show_systray
     assert app.show_systray() is None
+    # show_filters
+    with patch("PyQt5.QtWidgets.QStyle.alignedRect") as mock_align_rect:
+        mock_align_rect.return_value = QRect()
+        assert app.show_filters(engine) is None
     # exit_app
     assert app.exit_app() is None
     # _shutdown
@@ -164,7 +170,6 @@ def test_application(app_obj, manager_factory):
     with patch("nxdrive.gui.api.QMLDriveApi._get_engine") as mock_engine, patch(
         "nxdrive.gui.application.Application.hide_systray"
     ) as mock_hide:
-        manager, engine = manager_factory()
         drive_api = QMLDriveApi(app)
         mock_engine.return_value = engine
         mock_hide.return_value = None
