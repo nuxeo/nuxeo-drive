@@ -38,8 +38,7 @@ from pathlib import Path
 import packaging.version
 import requests
 import yaml
-
-from os.path import isfile
+import plistlib
 
 # Alter the lookup path to be able to find Nuxeo Drive sources
 sys.path.insert(0, os.getcwd())
@@ -138,57 +137,29 @@ def get_last_version_number():
     return get_latest_version(versions, "release")
 
 
-def extract_version(output):
-    """Extracts the first version-like string from output."""
-    match = re.search(r"\b(\d+\.\d+\.\d+)\b", output)
-    if match:
-        return match.group(1)
-    raise RuntimeError("Version number not found in output")
-
-
 def get_version():
-    """Get the current version."""
+    plist_path = Path.home() / "Applications/Nuxeo Drive.app/Contents/Info.plist"
+    print(f"[DEBUG] Checking plist at: {plist_path}", flush=True)
 
-    if EXT == "dmg":
-        print("[DEBUG] get_version(): EXT is dmg", flush=True)
-        exe_path = f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive"
-        print(f"[DEBUG] get_version(): exe_path is {exe_path}", flush=True)
+    if not plist_path.exists():
+        raise FileNotFoundError(f"Info.plist not found at {plist_path}")
 
-        if not os.path.isfile(exe_path):
-            print(
-                f"[ERROR] get_version(): Executable not found: {exe_path}", flush=True
-            )
-            raise FileNotFoundError(f"Executable not found: {exe_path}")
-
-        cmd = [exe_path, "--version"]
-        print(f"[DEBUG] get_version(): Running command: {cmd}", flush=True)
-
-        proc = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
+    with open(plist_path, "rb") as f:
+        plist = plistlib.load(f)
+        version = plist.get("CFBundleShortVersionString") or plist.get(
+            "CFBundleVersion"
         )
+        if version:
+            return version
+        raise ValueError("Version not found in Info.plist")
 
-        try:
-            output, _ = proc.communicate(timeout=10)
-            print(f"[DEBUG] get_version(): Command output: {output!r}", flush=True)
-        except subprocess.TimeoutExpired as exc:
-            proc.kill()
-            output, _ = proc.communicate()
-            print(f"[ERROR] get_version(): TimeoutExpired: {exc}", flush=True)
-            print(f"[DEBUG] get_version(): Partial output: {output!r}", flush=True)
-            raise
-        except Exception as exc:
-            print(f"[ERROR] get_version(): Exception: {exc}", flush=True)
-            raise
-
-        try:
-            return extract_version(output.strip())
-        except RuntimeError as exc:
-            print(f"[ERROR] get_version(): {exc}", flush=True)
-            raise
-        # return "5.6.0"
+    file = (
+        expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
+        if EXT == "exe"
+        else expanduser("~/.nuxeo-drive/VERSION")
+    )
+    with open(file, encoding="utf-8") as f:
+        return f.read().strip()
 
     file = (
         expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
