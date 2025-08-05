@@ -150,6 +150,13 @@ def test_application(app_obj, manager_factory):
                 )
                 is None
             )
+        # open_authentication_dialog
+        Options.is_frozen = True
+        assert app.open_authentication_dialog("url", {"server_url": "value"}) is None
+        Options.is_frozen = False
+        assert (
+            app.open_authentication_dialog("url", {"server_url": "url_value"}) is None
+        )
     # confirm_deletion
     with patch("nxdrive.gui.application.Application.question") as mock_question:
         mock_question.return_value = mock_qt
@@ -180,15 +187,6 @@ def test_application(app_obj, manager_factory):
         mock_question.return_value = mock_qt
         uid = list(app.manager.engines.keys())[0]
         assert app.confirm_cancel_session(uid, 1, "localhost", 1) is True
-    # open_authentication_dialog
-    Options.is_frozen = True
-    assert app.open_authentication_dialog("url", {"server_url": "value"}) is None
-    with patch("PyQt5.QtWidgets.QDialog.exec_") as mock_dialog_exec:
-        mock_dialog_exec.return_value = None
-        Options.is_frozen = False
-        assert (
-            app.open_authentication_dialog("url", {"server_url": "url_value"}) is None
-        )
     # exit_app
     assert app.exit_app() is None
     # _shutdown
