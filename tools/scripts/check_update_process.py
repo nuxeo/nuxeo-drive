@@ -201,6 +201,10 @@ def get_version():
             print(f"[DEBUG] Command output: {output2!r}", flush=True)
             return output
 
+        except Exception as exc:
+            print(f"[ERROR] Exception: {exc}", flush=True)
+            raise
+
         cmd = [str(exe_path), "--version"]
         print(f"[DEBUG] Running command: {cmd}", flush=True)
 
@@ -657,21 +661,13 @@ def job(root, version, executable, previous_version, name):
         # Display the log file
         # cat_log()
 
-        # Wait for the version to update, retrying for up to 5 minutes
-        max_wait = 300  # seconds
-        interval = 10  # seconds
-        waited = 0
-        while waited < max_wait:
-            current_ver = get_version()
-            print(f">>> Current version is {current_ver!r}", flush=True)
-            if current_ver == version:
-                break
-            time.sleep(interval)
-            waited += interval
-        else:
-            raise AssertionError(
-                f"Current version is {current_ver!r} (need {version}) after waiting {max_wait} seconds"
-            )
+        # And assert the version is the good one
+        current_ver = get_version()
+        print(f">>> Current version is {current_ver!r}", flush=True)
+        assert (
+            current_ver == version
+        ), f"Current version is {current_ver!r} (need {version})"
+
     finally:
         os.chdir(src)
 
