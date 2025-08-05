@@ -193,25 +193,25 @@ def get_version():
         print(f"[DEBUG] Running command: {cmd}", flush=True)
 
         try:
-            output = subprocess.run(cmd, capture_output= True, text=True, shell=True)
+            output = subprocess.run(cmd, capture_output=True, text=True).stdout.strip()
+            print(f"[DEBUG] Command output: {output!r}", flush=True)
             output2 = subprocess.check_output(
                 cmd, text=True, timeout=30, stderr=subprocess.STDOUT
             )
-            print(f"[DEBUG] Command output: {output!r}", flush=True)
             print(f"[DEBUG] Command output: {output2!r}", flush=True)
-            return output.strip()
+            return output
 
         cmd = [str(exe_path), "--version"]
         print(f"[DEBUG] Running command: {cmd}", flush=True)
 
         try:
-            output = subprocess.run(cmd, capture_output= True, text=True, shell=True)
+            output = subprocess.run(cmd, capture_output=True, text=True).stdout.strip()
+            print(f"[DEBUG] Command output: {output!r}", flush=True)
             output2 = subprocess.check_output(
                 cmd, text=True, timeout=30, stderr=subprocess.STDOUT
             )
-            print(f"[DEBUG] Command output: {output!r}", flush=True)
             print(f"[DEBUG] Command output: {output2!r}", flush=True)
-            return output.strip()
+            return output
 
         except subprocess.CalledProcessError as exc:
             print(f"[ERROR] CalledProcessError: {exc}", flush=True)
