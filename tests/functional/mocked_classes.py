@@ -466,7 +466,9 @@ class Mock_Qt:
         self.appUpdate = self
         self.changed = self
         self.getLastFiles = self
+        self.setEngine = Mock_Emitter()
         self.setMessage: QtCore.PYQT_SLOT = QtCore.pyqtBoundSignal
+        self.setSection = Mock_Emitter()
         self.setStatus = self
         self.updateAvailable: QtCore.PYQT_SLOT = QtCore.pyqtBoundSignal
         self.updateProgress: QtCore.PYQT_SLOT = QtCore.pyqtBoundSignal

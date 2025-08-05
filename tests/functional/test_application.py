@@ -155,10 +155,19 @@ def test_application(app_obj, manager_factory):
         assert isinstance(app.confirm_deletion(Path("tests/resources")), DelAction)
     # show_systray
     assert app.show_systray() is None
-    # show_filters
     with patch("PyQt5.QtWidgets.QStyle.alignedRect") as mock_align_rect:
         mock_align_rect.return_value = QRect()
+        # show_filters
         assert app.show_filters(engine) is None
+        # show_conflicts_resolution
+        assert app.show_conflicts_resolution(engine) is None
+        # show_settings
+        assert app.show_settings("About") is None
+        # _show_direct_transfer_window
+        assert app._show_direct_transfer_window() is None
+    # folder_duplicate_warning
+    duplicates = ["dup1", "dup2", "dup3", "dup4", "dup5"]
+    assert app.folder_duplicate_warning(duplicates, "remote_path", "remote_url") is None
     # exit_app
     assert app.exit_app() is None
     # _shutdown
