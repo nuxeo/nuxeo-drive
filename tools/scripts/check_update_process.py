@@ -139,13 +139,13 @@ def get_last_version_number():
 
 
 def run_ls(path):
-    """Run `ls -l` on the given path and print the output."""
+    """Run `ls -a` on the given path and print the output."""
     print(f"[DEBUG] Listing contents of: {path}", flush=True)
     try:
         output = subprocess.check_output(
             ["ls", "-a", path], text=True, stderr=subprocess.STDOUT
         )
-        print(f"[DEBUG] ls -l {path} output:\n{output}", flush=True)
+        print(f"[DEBUG] ls -a {path} output:\n{output}", flush=True)
     except subprocess.CalledProcessError as e:
         print(f"[WARN] ls failed on {path}: {e.output}", flush=True)
 
@@ -164,6 +164,16 @@ def get_version():
 
         print(f"[DEBUG] Home directory: {home}", flush=True)
         run_ls(home)
+
+        nuxeo_dir = home / ".nuxeo-drive"
+        print(f"[DEBUG] Checking .nuxeo-drive directory: {nuxeo_dir}", flush=True)
+        run_ls(nuxeo_dir)
+
+        config_file = nuxeo_dir / "config.ini"
+        if config_file.is_file():
+            print(f"[DEBUG] Found config.ini: {config_file}", flush=True)
+        else:
+            print(f"[WARN] config.ini not found in {nuxeo_dir}", flush=True)
 
         print(f"[DEBUG] Applications directory: {applications_dir}", flush=True)
         run_ls(applications_dir)
