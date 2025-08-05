@@ -162,27 +162,27 @@ def get_version():
         macos_dir = app_bundle / "Contents" / "MacOS"
         exe_path = macos_dir / "ndrive"
 
-        print(f"[DEBUG] Home directory: {home}", flush=True)
-        run_ls(home)
+        # print(f"[DEBUG] Home directory: {home}", flush=True)
+        # run_ls(home)
 
-        nuxeo_dir = home / ".nuxeo-drive"
-        print(f"[DEBUG] Checking .nuxeo-drive directory: {nuxeo_dir}", flush=True)
-        run_ls(nuxeo_dir)
+        # nuxeo_dir = home / ".nuxeo-drive"
+        # print(f"[DEBUG] Checking .nuxeo-drive directory: {nuxeo_dir}", flush=True)
+        # run_ls(nuxeo_dir)
 
-        config_file = nuxeo_dir / "config.ini"
-        if config_file.is_file():
-            print(f"[DEBUG] Found config.ini: {config_file}", flush=True)
-        else:
-            print(f"[WARN] config.ini not found in {nuxeo_dir}", flush=True)
+        # config_file = nuxeo_dir / "config.ini"
+        # if config_file.is_file():
+        #     print(f"[DEBUG] Found config.ini: {config_file}", flush=True)
+        # else:
+        #     print(f"[WARN] config.ini not found in {nuxeo_dir}", flush=True)
 
-        print(f"[DEBUG] Applications directory: {applications_dir}", flush=True)
-        run_ls(applications_dir)
+        # print(f"[DEBUG] Applications directory: {applications_dir}", flush=True)
+        # run_ls(applications_dir)
 
-        print(f"[DEBUG] App bundle path: {app_bundle}", flush=True)
-        run_ls(app_bundle)
+        # print(f"[DEBUG] App bundle path: {app_bundle}", flush=True)
+        # run_ls(app_bundle)
 
-        print(f"[DEBUG] Contents/MacOS directory: {macos_dir}", flush=True)
-        run_ls(macos_dir)
+        # print(f"[DEBUG] Contents/MacOS directory: {macos_dir}", flush=True)
+        # run_ls(macos_dir)
 
         print(f"[DEBUG] Executable path: {exe_path}", flush=True)
         if not Path.is_file(exe_path):
