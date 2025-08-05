@@ -189,6 +189,20 @@ def get_version():
             print(f"[ERROR] Executable not found: {exe_path}", flush=True)
             raise FileNotFoundError(f"Executable not found: {exe_path}")
 
+        cmd = ["echo", str(Path.home())]
+        print(f"[DEBUG] Running command: {cmd}", flush=True)
+
+        try:
+            output = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=30
+            ).stdout.strip()
+            print(f"[DEBUG] Command output: {output!r}", flush=True)
+            return output
+
+        except Exception as exc:
+            print(f"[ERROR] Exception: {exc}", flush=True)
+            raise
+
         cmd = [str(exe_path), "--help"]
         print(f"[DEBUG] Running command: {cmd}", flush=True)
 
