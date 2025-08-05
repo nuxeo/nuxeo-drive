@@ -183,8 +183,12 @@ def test_application(app_obj, manager_factory):
     # open_authentication_dialog
     Options.is_frozen = True
     assert app.open_authentication_dialog("url", {"server_url": "value"}) is None
-    Options.is_frozen = False
-    assert app.open_authentication_dialog("url", {"server_url": "url_value"}) is None
+    with patch("PyQt5.QtWidgets.QDialog.exec_") as mock_dialog_exec:
+        mock_dialog_exec.return_value = None
+        Options.is_frozen = False
+        assert (
+            app.open_authentication_dialog("url", {"server_url": "url_value"}) is None
+        )
     # exit_app
     assert app.exit_app() is None
     # _shutdown
