@@ -156,7 +156,8 @@ def get_version():
     if EXT == "dmg":
         print("[DEBUG] get_version(): EXT is dmg", flush=True)
 
-        applications_dir = Path("/Applications")
+        home = Path.home()
+        applications_dir = home / "Applications"
         app_bundle = applications_dir / "Nuxeo Drive.app"
         macos_dir = app_bundle / "Contents" / "MacOS"
         exe_path = macos_dir / "ndrive"
