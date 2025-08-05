@@ -193,7 +193,9 @@ def get_version():
         print(f"[DEBUG] Running command: {cmd}", flush=True)
 
         try:
-            output = subprocess.run(cmd, capture_output=True, text=True).stdout.strip()
+            output = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=30
+            ).stdout.strip()
             print(f"[DEBUG] Command output: {output!r}", flush=True)
             output2 = subprocess.check_output(
                 cmd, text=True, timeout=30, stderr=subprocess.STDOUT
@@ -209,7 +211,9 @@ def get_version():
         print(f"[DEBUG] Running command: {cmd}", flush=True)
 
         try:
-            output = subprocess.run(cmd, capture_output=True, text=True).stdout.strip()
+            output = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=30
+            ).stdout.strip()
             print(f"[DEBUG] Command output: {output!r}", flush=True)
             output2 = subprocess.check_output(
                 cmd, text=True, timeout=30, stderr=subprocess.STDOUT
