@@ -156,8 +156,7 @@ def get_version():
     if EXT == "dmg":
         print("[DEBUG] get_version(): EXT is dmg", flush=True)
 
-        home = Path.home()
-        applications_dir = home / "Applications"
+        applications_dir = Path("/Applications")
         app_bundle = applications_dir / "Nuxeo Drive.app"
         macos_dir = app_bundle / "Contents" / "MacOS"
         exe_path = macos_dir / "ndrive"
@@ -188,20 +187,6 @@ def get_version():
         if not Path.is_file(exe_path):
             print(f"[ERROR] Executable not found: {exe_path}", flush=True)
             raise FileNotFoundError(f"Executable not found: {exe_path}")
-
-        cmd = ["echo", str(Path.home())]
-        print(f"[DEBUG] Running command: {cmd}", flush=True)
-
-        try:
-            output = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=30
-            ).stdout.strip()
-            print(f"[DEBUG] Command output: {output!r}", flush=True)
-            return output
-
-        except Exception as exc:
-            print(f"[ERROR] Exception: {exc}", flush=True)
-            raise
 
         cmd = [str(exe_path), "--help"]
         print(f"[DEBUG] Running command: {cmd}", flush=True)
