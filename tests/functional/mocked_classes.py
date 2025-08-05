@@ -503,6 +503,9 @@ class Mock_Qt:
     def setCheckBox(self, *args):
         pass
 
+    def setDefaultButton(self, *args):
+        pass
+
     def setFlags(self, *args):
         pass
 

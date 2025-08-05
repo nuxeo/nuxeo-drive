@@ -15,6 +15,7 @@ from PyQt5.QtCore import QObject
 from nxdrive.constants import WINDOWS
 from nxdrive.gui.api import QMLDriveApi
 from nxdrive.gui.application import Application
+from nxdrive.options import Options
 from tests.functional.mocked_classes import Mock_Engine, Mock_Qt
 
 from ..markers import not_linux
@@ -168,6 +169,22 @@ def test_application(app_obj, manager_factory):
     # folder_duplicate_warning
     duplicates = ["dup1", "dup2", "dup3", "dup4", "dup5"]
     assert app.folder_duplicate_warning(duplicates, "remote_path", "remote_url") is None
+    # confirm_cancel_transfer
+    with patch("nxdrive.gui.application.Application.question") as mock_question:
+        mock_question.return_value = mock_qt
+        uid = list(app.manager.engines.keys())[0]
+        assert app.confirm_cancel_transfer(uid, 1, "localhost") is None
+        assert app.confirm_cancel_transfer("engine_uid", 1, "localhost") is None
+    # confirm_cancel_session
+    with patch("nxdrive.gui.application.Application.question") as mock_question:
+        mock_question.return_value = mock_qt
+        uid = list(app.manager.engines.keys())[0]
+        assert app.confirm_cancel_session(uid, 1, "localhost", 1) is True
+    # open_authentication_dialog
+    Options.is_frozen = True
+    assert app.open_authentication_dialog("url", {"server_url": "value"}) is None
+    Options.is_frozen = False
+    assert app.open_authentication_dialog("url", {"server_url": "url_value"}) is None
     # exit_app
     assert app.exit_app() is None
     # _shutdown
