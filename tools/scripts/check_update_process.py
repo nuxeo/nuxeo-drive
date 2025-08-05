@@ -38,7 +38,8 @@ from pathlib import Path
 import packaging.version
 import requests
 import yaml
-import plistlib
+
+from os.path import isfile
 
 # Alter the lookup path to be able to find Nuxeo Drive sources
 sys.path.insert(0, os.getcwd())
@@ -137,41 +138,80 @@ def get_last_version_number():
     return get_latest_version(versions, "release")
 
 
-def get_version():
-    app_path = Path.home() / "Applications/Nuxeo Drive.app"
-    cmd = ["mdls", "-name", "kMDItemVersion", str(app_path)]
+def run_ls(path):
+    """Run `ls -l` on the given path and print the output."""
+    print(f"[DEBUG] Listing contents of: {path}", flush=True)
     try:
-        output = subprocess.check_output(cmd, text=True).strip()
-        if "=" in output:
-            return output.split("=", 1)[1].strip().strip('"')
-    except Exception as e:
-        print(f"[WARN] mdls failed: {e}")
-    raise RuntimeError("Failed to get version via mdls")
+        output = subprocess.check_output(
+            ["ls", "-a", path], text=True, stderr=subprocess.STDOUT
+        )
+        print(f"[DEBUG] ls -l {path} output:\n{output}", flush=True)
+    except subprocess.CalledProcessError as e:
+        print(f"[WARN] ls failed on {path}: {e.output}", flush=True)
 
 
-# def get_version():
-#     plist_path = Path.home() / "Applications/Nuxeo Drive.app/Contents/Info.plist"
-#     print(f"[DEBUG] Checking plist at: {plist_path}", flush=True)
+def get_version():
+    """Get the current version."""
 
-#     if not plist_path.exists():
-#         raise FileNotFoundError(f"Info.plist not found at {plist_path}")
+    if EXT == "dmg":
+        print("[DEBUG] get_version(): EXT is dmg", flush=True)
 
-#     with open(plist_path, "rb") as f:
-#         plist = plistlib.load(f)
-#         version = plist.get("CFBundleShortVersionString") or plist.get(
-#             "CFBundleVersion"
-#         )
-#         if version:
-#             return version
-#         raise ValueError("Version not found in Info.plist")
+        home = Path.home()
+        applications_dir = home / "Applications"
+        app_bundle = applications_dir / "Nuxeo Drive.app"
+        macos_dir = app_bundle / "Contents" / "MacOS"
+        exe_path = macos_dir / "ndrive"
 
-#     file = (
-#         expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
-#         if EXT == "exe"
-#         else expanduser("~/.nuxeo-drive/VERSION")
-#     )
-#     with open(file, encoding="utf-8") as f:
-#         return f.read().strip()
+        print(f"[DEBUG] Home directory: {home}", flush=True)
+        run_ls(home)
+
+        print(f"[DEBUG] Applications directory: {applications_dir}", flush=True)
+        run_ls(applications_dir)
+
+        print(f"[DEBUG] App bundle path: {app_bundle}", flush=True)
+        run_ls(app_bundle)
+
+        print(f"[DEBUG] Contents/MacOS directory: {macos_dir}", flush=True)
+        run_ls(macos_dir)
+
+        print(f"[DEBUG] Executable path: {exe_path}", flush=True)
+        if not Path.is_file(exe_path):
+            print(f"[ERROR] Executable not found: {exe_path}", flush=True)
+            raise FileNotFoundError(f"Executable not found: {exe_path}")
+
+        cmd = [str(exe_path), "--version"]
+        print(f"[DEBUG] Running command: {cmd}", flush=True)
+
+        try:
+            output = subprocess.check_output(
+                cmd, text=True, timeout=30, stderr=subprocess.STDOUT
+            )
+            print(f"[DEBUG] Command output: {output!r}", flush=True)
+            return output.strip()
+
+        except subprocess.CalledProcessError as exc:
+            print(f"[ERROR] CalledProcessError: {exc}", flush=True)
+            print(f"[ERROR] Return code: {exc.returncode}", flush=True)
+            print(f"[ERROR] Output: {exc.output!r}", flush=True)
+            raise
+
+        except subprocess.TimeoutExpired as exc:
+            print(f"[ERROR] TimeoutExpired: {exc}", flush=True)
+            print(f"[ERROR] Output: {exc.output!r}", flush=True)
+            raise
+
+        except Exception as exc:
+            print(f"[ERROR] Exception: {exc}", flush=True)
+            raise
+        # return "5.6.0"
+
+    file = (
+        expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
+        if EXT == "exe"
+        else expanduser("~/.nuxeo-drive/VERSION")
+    )
+    with open(file, encoding="utf-8") as f:
+        return f.read().strip()
 
 
 def install_drive(installer):
@@ -593,13 +633,21 @@ def job(root, version, executable, previous_version, name):
         # Display the log file
         # cat_log()
 
-        # And assert the version is the good one
-        current_ver = get_version()
-        print(f">>> Current version is {current_ver!r}", flush=True)
-        assert (
-            current_ver == version
-        ), f"Current version is {current_ver!r} (need {version})"
-
+        # Wait for the version to update, retrying for up to 5 minutes
+        max_wait = 300  # seconds
+        interval = 10  # seconds
+        waited = 0
+        while waited < max_wait:
+            current_ver = get_version()
+            print(f">>> Current version is {current_ver!r}", flush=True)
+            if current_ver == version:
+                break
+            time.sleep(interval)
+            waited += interval
+        else:
+            raise AssertionError(
+                f"Current version is {current_ver!r} (need {version}) after waiting {max_wait} seconds"
+            )
     finally:
         os.chdir(src)
 
