@@ -750,7 +750,10 @@ def test_handle_changes(manager_factory):
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
     ) as mock_scan_remote:
         mock_offline.return_value = False
-        mock_scan_remote.side_effect = HTTPError(status=504)
+        mock_scan_remote.side_effect = [HTTPError(status=504), HTTPError(status=404)]
+        # status == 504
+        assert remote_watcher._handle_changes(False) is False
+        # status == 404
         assert remote_watcher._handle_changes(False) is False
     # ThreadInterrupt
     # Feature.synchronization = True

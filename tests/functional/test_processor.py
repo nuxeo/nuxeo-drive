@@ -1124,8 +1124,12 @@ def test_download_content():
     processor = Processor(mock_engine, True)
     processor.dao = mock_dao
     processor.local = mock_client
-    mock_path = Path("testFile2.txt")
+    new_file = Path("testFile2.txt")
+    mock_path = new_file
     assert isinstance(processor._download_content(mock_doc_pair, mock_path), Path)
+    # Deleting the file created by shutil
+    new_file = Path.cwd() / "tests" / "resources" / "files" / new_file
+    new_file.unlink(missing_ok=True)
 
 
 def test_update_remotely():
