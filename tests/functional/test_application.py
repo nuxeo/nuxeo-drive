@@ -67,7 +67,7 @@ def test_application(app_obj, manager_factory):
     app = app_obj
     manager, engine = manager_factory()
     mock_qt = Mock_Qt()
-    # create_custom_window_for_task_manager
+    # Covering create_custom_window_for_task_manager
     with patch(
         "nxdrive.gui.application.Application._fill_qml_context"
     ) as mock_qml_context, patch(
@@ -79,18 +79,18 @@ def test_application(app_obj, manager_factory):
         mock_custom_window.return_value = Mock_Qt
         mock_root_context.return_value = None
         assert app.create_custom_window_for_task_manager() is None
-    # update_workflow
+    # Covering update_workflow
     assert app.update_workflow() is None
-    # updat_feature_state
+    # Covering updat_feature_state
     assert app._update_feature_state("auto_update", True) is None
-    # _msbox
+    # Covering _msbox
     assert isinstance(app._msgbox(), QMessageBox)
-    # display_info
+    # Covering display_info
     assert (
         app.display_info("Warning title", "Warning message", ["value1", "value2"])
         is None
     )
-    # display_warning
+    # Covering display_warning
     with patch("nxdrive.gui.application.Application._msgbox") as mock_msgbox:
         mock_msgbox.return_value = None
         assert (
@@ -99,7 +99,7 @@ def test_application(app_obj, manager_factory):
             )
             is None
         )
-    # direct_edit_conflict
+    # Covering direct_edit_conflict
     with patch("nxdrive.gui.application.Application.question") as mock_question:
         mock_question.return_value = mock_qt
         assert (
@@ -109,7 +109,7 @@ def test_application(app_obj, manager_factory):
             is None
         )
     if not WINDOWS:  # For some reason, the values don't get mocked on Windows
-        # _root_deleted
+        # Covering _root_deleted
         with patch("PyQt5.QtCore.QObject.sender") as mock_sender, patch(
             "nxdrive.gui.application.Application.question"
         ) as mock_question:
@@ -117,7 +117,7 @@ def test_application(app_obj, manager_factory):
             mock_engine = Mock_Engine()
             mock_sender.return_value = mock_engine
             assert app._root_deleted() is None
-        # root_moved
+        # Covering root_moved
         with patch(
             "nxdrive.gui.application.Application.question"
         ) as mock_question, patch("PyQt5.QtCore.QObject.sender") as mock_sender:
@@ -125,7 +125,7 @@ def test_application(app_obj, manager_factory):
             mock_engine = Mock_Engine()
             mock_sender.return_value = mock_engine
             assert app._root_moved(Path("tests/resources")) is None
-        # doc_deleted
+        # Covering doc_deleted
         with patch(
             "nxdrive.gui.application.Application.question"
         ) as mock_question, patch("PyQt5.QtCore.QObject.sender") as mock_sender:
@@ -133,7 +133,7 @@ def test_application(app_obj, manager_factory):
             mock_engine = Mock_Engine()
             mock_sender.return_value = mock_engine
             assert app._doc_deleted(Path("tests/resources/files/testFile.txt")) is None
-        # file_already_exists
+        # Covering file_already_exists
         with patch(
             "nxdrive.gui.application.Application.question"
         ) as mock_question, patch("PyQt5.QtCore.QObject.sender") as mock_sender, patch(
@@ -150,51 +150,51 @@ def test_application(app_obj, manager_factory):
                 )
                 is None
             )
-        # open_authentication_dialog
+        # Covering open_authentication_dialog
         Options.is_frozen = True
         assert app.open_authentication_dialog("url", {"server_url": "value"}) is None
         Options.is_frozen = False
         assert (
             app.open_authentication_dialog("url", {"server_url": "url_value"}) is None
         )
-    # confirm_deletion
+    # Covering confirm_deletion
     with patch("nxdrive.gui.application.Application.question") as mock_question:
         mock_question.return_value = mock_qt
         assert isinstance(app.confirm_deletion(Path("tests/resources")), DelAction)
-    # show_systray
+    # Covering show_systray
     assert app.show_systray() is None
     with patch("PyQt5.QtWidgets.QStyle.alignedRect") as mock_align_rect:
         mock_align_rect.return_value = QRect()
-        # show_filters
+        # Covering show_filters
         assert app.show_filters(engine) is None
-        # show_conflicts_resolution
+        # Covering show_conflicts_resolution
         assert app.show_conflicts_resolution(engine) is None
-        # show_settings
+        # Covering show_settings
         assert app.show_settings("About") is None
-        # _show_direct_transfer_window
+        # Covering _show_direct_transfer_window
         assert app._show_direct_transfer_window() is None
-    # folder_duplicate_warning
+    # Covering folder_duplicate_warning
     duplicates = ["dup1", "dup2", "dup3", "dup4", "dup5"]
     assert app.folder_duplicate_warning(duplicates, "remote_path", "remote_url") is None
-    # confirm_cancel_transfer
+    # Covering confirm_cancel_transfer
     with patch("nxdrive.gui.application.Application.question") as mock_question:
         mock_question.return_value = mock_qt
         uid = list(app.manager.engines.keys())[0]
         assert app.confirm_cancel_transfer(uid, 1, "localhost") is None
         assert app.confirm_cancel_transfer("engine_uid", 1, "localhost") is None
-    # confirm_cancel_session
+    # Covering confirm_cancel_session
     with patch("nxdrive.gui.application.Application.question") as mock_question:
         mock_question.return_value = mock_qt
         uid = list(app.manager.engines.keys())[0]
         assert app.confirm_cancel_session(uid, 1, "localhost", 1) is True
-    # exit_app
+    # Covering exit_app
     assert app.exit_app() is None
-    # _shutdown
+    # Covering _shutdown
     app.app_engine = object()
     app.task_manager_window = object()
     assert app._shutdown() is None
 
-    # open_server_folders in QMLDriveApi
+    # Covering open_server_folders in QMLDriveApi
     with patch("nxdrive.gui.api.QMLDriveApi._get_engine") as mock_engine, patch(
         "nxdrive.gui.application.Application.hide_systray"
     ) as mock_hide:

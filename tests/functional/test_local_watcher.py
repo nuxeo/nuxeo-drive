@@ -107,7 +107,7 @@ def test_win_dequeue_delete(manager_factory):
     ) as mock_watchdog_delete:
         mock_watchdog_delete.return_value = None
         assert local_watcher._win_dequeue_delete() is None
-    # current_milli_time() - evt_time < WIN_MOVE_RESOLUTION_PERIOD
+    # Covering current_milli_time() - evt_time < WIN_MOVE_RESOLUTION_PERIOD
     local_watcher = LocalWatcher(engine, dao)
     local_watcher._delete_events = {}
     local_watcher._delete_events["dummy_remote_ref"] = (10, mock_doc_pair)
@@ -119,7 +119,7 @@ def test_win_dequeue_delete(manager_factory):
         mock_watchdog_delete.return_value = None
         mock_milli_time.return_value = 100
         assert local_watcher._win_dequeue_delete() is None
-    # local.exists == True
+    # Covering local.exists == True
     local_watcher = LocalWatcher(engine, dao)
     mock_client = Mock_Local_Client()
     local_watcher._delete_events = {}
@@ -130,8 +130,8 @@ def test_win_dequeue_delete(manager_factory):
     ) as mock_watchdog_delete:
         mock_watchdog_delete.return_value = None
         assert local_watcher._win_dequeue_delete() is None
-    # raise ThreadInterrupt
-    # local.exists == True
+    # Covering raise ThreadInterrupt
+    # Covering local.exists == True
     local_watcher = LocalWatcher(engine, dao)
     mock_client = Mock_Local_Client()
     local_watcher._delete_events = {}
@@ -145,8 +145,8 @@ def test_win_dequeue_delete(manager_factory):
         with pytest.raises(ThreadInterrupt) as ex:
             local_watcher._win_dequeue_delete()
         assert str(ex.exconly()).startswith("nxdrive.exceptions.ThreadInterrupt")
-    # raise Exception
-    # local.exists == True
+    # Covering raise Exception
+    # Covering local.exists == True
     local_watcher = LocalWatcher(engine, dao)
     mock_client = Mock_Local_Client()
     local_watcher._delete_events = {}
@@ -212,19 +212,19 @@ def test_win_dequeue_folder_scan(manager_factory):
     local_watcher._folder_scan_events = {
         Path("tests/resources/files/testFile.txt"): (10.0, mock_doc_pair)
     }
-    # delay < self._windows_folder_scan_delay
+    # Covering delay < self._windows_folder_scan_delay
     local_watcher._windows_folder_scan_delay = int(round(time() * 1000)) + 20
     assert local_watcher._win_dequeue_folder_scan() is None
-    # delay >= self._windows_folder_scan_delay
-    # mtime <= evt_time
+    # Covering delay >= self._windows_folder_scan_delay
+    # Covering mtime <= evt_time
     with patch(
         "nxdrive.engine.watcher.local_watcher.LocalWatcher.scan_pair"
     ) as mock_scan:
         mock_scan.return_value = None
         local_watcher._windows_folder_scan_delay = int(round(time() * 1000)) - 2000
         assert local_watcher._win_dequeue_folder_scan() is None
-    # delay >= self._windows_folder_scan_delay
-    # mtime > evt_time
+    # Covering delay >= self._windows_folder_scan_delay
+    # Covering mtime > evt_time
     mock_client = Mock_Local_Client()
     mock_client.default_file_info.last_modification_time = datetime.now()
     local_watcher = LocalWatcher(engine, dao)
@@ -240,7 +240,7 @@ def test_win_dequeue_folder_scan(manager_factory):
         local_watcher.local = mock_client
         local_watcher._windows_folder_scan_delay = int(round(time() * 1000)) - 2000
         assert local_watcher._win_dequeue_folder_scan() is None
-    # raise ThreadInterrupt
+    # Covering raise ThreadInterrupt
     mock_client = Mock_Local_Client()
     mock_client.default_file_info.last_modification_time = datetime.now()
     local_watcher = LocalWatcher(engine, dao)
@@ -259,7 +259,7 @@ def test_win_dequeue_folder_scan(manager_factory):
         with pytest.raises(ThreadInterrupt) as ex:
             local_watcher._win_dequeue_folder_scan()
         assert str(ex.exconly()).startswith("nxdrive.exceptions.ThreadInterrupt")
-    # raise Exception
+    # Covering raise Exception
     mock_client = Mock_Local_Client()
     mock_client.default_file_info.last_modification_time = datetime.now()
     local_watcher = LocalWatcher(engine, dao)
@@ -332,7 +332,7 @@ def test_scan_pair(manager_factory):
     local_watcher = LocalWatcher(engine, dao)
     local_path = Path("")
     local_watcher._delete_files = {}
-    # with info
+    # Covering with info
     with patch(
         "nxdrive.client.local.base.LocalClientMixin.try_get_info"
     ) as mock_info, patch(
@@ -343,7 +343,7 @@ def test_scan_pair(manager_factory):
         )
         mock_delete.return_value = None
         assert local_watcher.scan_pair(local_path) is None
-    # without info
+    # Covering without info
     assert local_watcher.scan_pair(local_path) is None
 
 
@@ -475,12 +475,12 @@ def test_handle_watchdog_delete(manager_factory):
     mock_doc_pair.pair_state = "dummy_pair_state"
     mock_doc_pair.last_error = "dummy_last_error"
     mock_client = Mock_Local_Client()
-    # abspath.parent.exists == False
+    # Covering abspath.parent.exists == False
     with patch(
         "nxdrive.engine.watcher.local_watcher.LocalWatcher.remove_void_transfers"
     ) as mock_void:
         assert local_watcher._handle_watchdog_delete(mock_doc_pair) is None
-    # abspath.parent.exists == True
+    # Covering abspath.parent.exists == True
     with patch(
         "nxdrive.engine.watcher.local_watcher.LocalWatcher.remove_void_transfers"
     ) as mock_void:
@@ -505,14 +505,14 @@ def test_handle_delete_on_known_pair(manager_factory):
     mock_doc_pair.remote_state = "dummy_remote_state"
     mock_doc_pair.pair_state = "dummy_pair_state"
     mock_doc_pair.last_error = "dummy_last_error"
-    # self.local.exists == True
-    # not remote_id
+    # Covering self.local.exists == True
+    # Covering not remote_id
     mock_client = Mock_Local_Client()
     mock_client.exist = True
     mock_client.remote_id = ""
     local_watcher.local = mock_client
     assert local_watcher._handle_delete_on_known_pair(mock_doc_pair) is None
-    # self.local.exists == False
+    # Covering self.local.exists == False
     mock_client = Mock_Local_Client()
     mock_client.exist = False
     local_watcher.local = mock_client
@@ -542,7 +542,7 @@ def test_handle_move_on_known_pair(manager_factory):
         src_path="dummy_path", dest_path="dummy_path", is_synthetic=False
     )
     mock_rel_path = Path("")
-    # ignore == True
+    # Covering ignore == True
     with patch(
         "nxdrive.engine.watcher.local_watcher.is_generated_tmp_file"
     ) as mock_temp:
@@ -553,11 +553,11 @@ def test_handle_move_on_known_pair(manager_factory):
             )
             is None
         )
-    # ignore == False
-    # pair and pair.remote_ref == remote_ref
-    # local_info == FileInfo
-    # not doc_pair.folderish and pair.local_digest == digest
-    # doc_pair.id != pair.id
+    # Covering ignore == False
+    # Covering pair and pair.remote_ref == remote_ref
+    # Covering local_info == FileInfo
+    # Covering not doc_pair.folderish and pair.local_digest == digest
+    # Covering doc_pair.id != pair.id
     mock_doc_pair.folderish = False
     mock_dao = Mock_DAO()
     mock_dao.id = 2
@@ -573,9 +573,9 @@ def test_handle_move_on_known_pair(manager_factory):
         )
         is None
     )
-    # ignore == False
-    # pair and pair.remote_ref == remote_ref
-    # local_info == FileInfo
+    # Covering ignore == False
+    # Covering pair and pair.remote_ref == remote_ref
+    # Covering local_info == FileInfo
     mock_doc_pair.folderish = True
     mock_dao = Mock_DAO()
     mock_dao.id = 2
@@ -591,9 +591,9 @@ def test_handle_move_on_known_pair(manager_factory):
         )
         is None
     )
-    # ignore == False
-    # pair and pair.remote_ref != remote_ref
-    # local_info == None
+    # Covering ignore == False
+    # Covering pair and pair.remote_ref != remote_ref
+    # Covering local_info == None
     mock_doc_pair.folderish = True
     mock_dao = Mock_DAO()
     mock_dao.id = 2
@@ -610,10 +610,10 @@ def test_handle_move_on_known_pair(manager_factory):
         )
         is None
     )
-    # ignore == False
-    # pair and pair.remote_ref != remote_ref
-    # local_info == FileInfo
-    # is_text_edit_tmp_file == True
+    # Covering ignore == False
+    # Covering pair and pair.remote_ref != remote_ref
+    # Covering local_info == FileInfo
+    # Covering is_text_edit_tmp_file == True
     mock_doc_pair.folderish = True
     mock_dao = Mock_DAO()
     mock_dao.id = 2
@@ -633,10 +633,10 @@ def test_handle_move_on_known_pair(manager_factory):
             )
             is None
         )
-    # ignore == False
-    # pair and pair.remote_ref != remote_ref
-    # local_info == FileInfo
-    # is_text_edit_tmp_file == False
+    # Covering ignore == False
+    # Covering pair and pair.remote_ref != remote_ref
+    # Covering local_info == FileInfo
+    # Covering is_text_edit_tmp_file == False
     mock_doc_pair.folderish = True
     mock_doc_pair.local_path = Path("tests/resources/files/testFile.txt")
     mock_doc_pair.remote_name = "dummy_remote_name"
@@ -662,13 +662,13 @@ def test_handle_move_on_known_pair(manager_factory):
             )
             is None
         )
-    # ignore == False
-    # pair and pair.remote_ref != remote_ref
-    # local_info == FileInfo
-    # is_text_edit_tmp_file == False
-    # doc_pair.remote_name == local_info.name
-    # doc_pair.remote_parent_ref == remote_parent_ref
-    # rel_parent_path == doc_pair.local_path.parent
+    # Covering ignore == False
+    # Covering pair and pair.remote_ref != remote_ref
+    # Covering local_info == FileInfo
+    # Covering is_text_edit_tmp_file == False
+    # Covering doc_pair.remote_name == local_info.name
+    # Covering doc_pair.remote_parent_ref == remote_parent_ref
+    # Covering rel_parent_path == doc_pair.local_path.parent
     mock_doc_pair.folderish = True
     mock_doc_pair.local_path = Path("")
     mock_doc_pair.remote_name = "dummy_remote_name"
@@ -695,11 +695,11 @@ def test_handle_move_on_known_pair(manager_factory):
             )
             is None
         )
-    # ignore == False
-    # pair and pair.remote_ref != remote_ref
-    # local_info == FileInfo
-    # is_text_edit_tmp_file == False
-    # WINDOWS == True
+    # Covering ignore == False
+    # Covering pair and pair.remote_ref != remote_ref
+    # Covering local_info == FileInfo
+    # Covering is_text_edit_tmp_file == False
+    # Covering WINDOWS == True
     mock_doc_pair.folderish = True
     mock_doc_pair.local_path = Path("tests/resources/files/testFile.txt")
     mock_doc_pair.remote_name = "dummy_remote"
@@ -746,8 +746,8 @@ def test_handle_watchdog_event_on_known_pair(manager_factory):
     mock_doc_pair.remote_state = "dummy_remote_state"
     mock_doc_pair.pair_state = "dummy_pair_state"
     mock_doc_pair.last_error = "dummy_last_error"
-    # if acquired_pair == DocPair
-    # evt.event_type == "deleted"
+    # Covering if acquired_pair == DocPair
+    # Covering evt.event_type == "deleted"
     mock_file_system = FileSystemEvent(
         src_path="dummy_path", dest_path="dummy_path", is_synthetic=False
     )
@@ -766,8 +766,8 @@ def test_handle_watchdog_event_on_known_pair(manager_factory):
             )
             is None
         )
-    # if acquired_pair == DocPair
-    # evt.event_type != "deleted"
+    # Covering if acquired_pair == DocPair
+    # Covering evt.event_type != "deleted"
     mock_file_system = FileSystemEvent(
         src_path="dummy_path", dest_path="dummy_path", is_synthetic=False
     )
@@ -786,7 +786,7 @@ def test_handle_watchdog_event_on_known_pair(manager_factory):
             )
             is None
         )
-    # acquired_pair == None
+    # Covering acquired_pair == None
     mock_file_system = FileSystemEvent(
         src_path="dummy_path", dest_path="dummy_path", is_synthetic=False
     )
@@ -818,7 +818,7 @@ def test_handle_watchdog_event_on_known_acquired_pair(manager_factory):
     mock_doc_pair.pair_state = "dummy_pair_state"
     mock_doc_pair.last_error = "dummy_last_error"
     local_watcher = LocalWatcher(engine, dao)
-    # local_info == None
+    # Covering local_info == None
     mock_file_system = FileSystemEvent(
         src_path="dummy_path", dest_path="dummy_path", is_synthetic=False
     )
@@ -834,9 +834,9 @@ def test_handle_watchdog_event_on_known_acquired_pair(manager_factory):
         )
         is None
     )
-    # local_info != None
-    # remote_ref == None or ''
-    # local_info.get_digest() == doc_pair.local_digest
+    # Covering local_info != None
+    # Covering remote_ref == None or ''
+    # Covering local_info.get_digest() == doc_pair.local_digest
     mock_doc_pair.local_digest = "TO_COMPUTE"
     mock_file_system = FileSystemEvent(
         src_path="dummy_path", dest_path="dummy_path", is_synthetic=False
@@ -854,10 +854,10 @@ def test_handle_watchdog_event_on_known_acquired_pair(manager_factory):
         )
         is None
     )
-    # local_info != None
-    # remote_ref == None or ''
-    # local_info.get_digest() != doc_pair.local_digest
-    # folderish == True
+    # Covering local_info != None
+    # Covering remote_ref == None or ''
+    # Covering local_info.get_digest() != doc_pair.local_digest
+    # Covering folderish == True
     mock_doc_pair.local_digest = "dummy_digest"
     mock_doc_pair.folderish = True
     mock_file_system = FileSystemEvent(
@@ -876,11 +876,11 @@ def test_handle_watchdog_event_on_known_acquired_pair(manager_factory):
         )
         is None
     )
-    # local_info != None
-    # remote_ref != None
-    # folderish == False
-    # doc_pair.pair_state == "synchronized"
-    # doc_pair.local_digest == digest
+    # Covering local_info != None
+    # Covering remote_ref != None
+    # Covering folderish == False
+    # Covering doc_pair.pair_state == "synchronized"
+    # Covering doc_pair.local_digest == digest
     mock_doc_pair.local_digest = "TO_COMPUTE"
     mock_doc_pair.folderish = False
     mock_doc_pair.pair_state = "synchronized"
@@ -899,11 +899,11 @@ def test_handle_watchdog_event_on_known_acquired_pair(manager_factory):
         )
         is None
     )
-    # local_info != None
-    # remote_ref != None
-    # folderish == False
-    # doc_pair.pair_state == "synchronized"
-    # doc_pair.local_digest != digest
+    # Covering local_info != None
+    # Covering remote_ref != None
+    # Covering folderish == False
+    # Covering doc_pair.pair_state == "synchronized"
+    # Covering doc_pair.local_digest != digest
     mock_doc_pair.local_digest = "dummy_digest"
     mock_doc_pair.folderish = False
     mock_doc_pair.pair_state = "synchronized"
@@ -926,8 +926,8 @@ def test_handle_watchdog_event_on_known_acquired_pair(manager_factory):
             )
             is None
         )
-    # evt.event_type == "modified"
-    # local_info.size != doc_pair.size
+    # Covering evt.event_type == "modified"
+    # Covering local_info.size != doc_pair.size
     mock_doc_pair.local_digest = "TO_COMPUTE"
     mock_doc_pair.folderish = False
     mock_doc_pair.pair_state = "unsynchronized"
@@ -948,9 +948,9 @@ def test_handle_watchdog_event_on_known_acquired_pair(manager_factory):
         )
         is None
     )
-    # evt.event_type == "modified"
-    # local_info.size == doc_pair.size
-    # doc_pair.local_digest == UNACCESSIBLE_HASH
+    # Covering evt.event_type == "modified"
+    # Covering local_info.size == doc_pair.size
+    # Covering doc_pair.local_digest == UNACCESSIBLE_HASH
     mock_doc_pair.local_digest = "TO_COMPUTE"
     mock_doc_pair.folderish = False
     mock_doc_pair.pair_state = "unsynchronized"
@@ -971,10 +971,10 @@ def test_handle_watchdog_event_on_known_acquired_pair(manager_factory):
         )
         is None
     )
-    # evt.event_type == "modified"
-    # local_info.size == doc_pair.size
-    # doc_pair.local_digest != UNACCESSIBLE_HASH
-    # original_info
+    # Covering evt.event_type == "modified"
+    # Covering local_info.size == doc_pair.size
+    # Covering doc_pair.local_digest != UNACCESSIBLE_HASH
+    # Covering original_info
     mock_doc_pair.local_digest = "random_string"
     mock_doc_pair.folderish = False
     mock_doc_pair.pair_state = "unsynchronized"
@@ -1006,13 +1006,13 @@ def test_handle_watchdog_root_event(manager_factory):
     remote = engine.remote
     dao = remote.dao
     local_watcher = LocalWatcher(engine, dao)
-    # evt.event_type == "deleted"
+    # Covering evt.event_type == "deleted"
     mock_file_system = FileSystemEvent(
         src_path="dummy_path", dest_path="dummy_path", is_synthetic=False
     )
     mock_file_system.event_type = "deleted"
     assert local_watcher.handle_watchdog_root_event(mock_file_system) is None
-    # evt.event_type == "moved"
+    # Covering evt.event_type == "moved"
     mock_file_system = FileSystemEvent(
         src_path="dummy_path", dest_path="dummy_path", is_synthetic=False
     )
@@ -1029,18 +1029,18 @@ def test_handle_watchdog_event(manager_factory):
     remote = engine.remote
     dao = remote.dao
     local_watcher = LocalWatcher(engine, dao)
-    # evt.src_path == ""
+    # Covering evt.src_path == ""
     mock_file_system = FileSystemEvent(
         src_path="", dest_path="dummy_dest_path", is_synthetic=False
     )
     assert local_watcher.handle_watchdog_event(mock_file_system) is None
-    # evt.event_type == "moved"
+    # Covering evt.event_type == "moved"
     mock_file_system = FileSystemEvent(
         src_path="dummy_path", dest_path="dummy_path", is_synthetic=False
     )
     mock_file_system.event_type = "moved"
     assert local_watcher.handle_watchdog_event(mock_file_system) is None
-    # client.get_path(src_path) == ROOT
+    # Covering client.get_path(src_path) == ROOT
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1049,7 +1049,7 @@ def test_handle_watchdog_event(manager_factory):
     local_watcher.dao = mock_dao
     local_watcher.local = mock_local_client
     assert local_watcher.handle_watchdog_event(mock_file_system) is None
-    # evt.event_type != "moved" and client.is_ignored == True
+    # Covering evt.event_type != "moved" and client.is_ignored == True
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1059,7 +1059,7 @@ def test_handle_watchdog_event(manager_factory):
     local_watcher.dao = mock_dao
     local_watcher.local = mock_local_client
     assert local_watcher.handle_watchdog_event(mock_file_system) is None
-    # client.is_temp_file == True
+    # Covering client.is_temp_file == True
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1070,7 +1070,7 @@ def test_handle_watchdog_event(manager_factory):
     local_watcher.dao = mock_dao
     local_watcher.local = mock_local_client
     assert local_watcher.handle_watchdog_event(mock_file_system) is None
-    # doc_pair == True and doc_pair.pair_state == "unsynchronized"
+    # Covering doc_pair == True and doc_pair.pair_state == "unsynchronized"
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1083,7 +1083,7 @@ def test_handle_watchdog_event(manager_factory):
     local_watcher.dao = mock_dao
     local_watcher.local = mock_local_client
     assert local_watcher.handle_watchdog_event(mock_file_system) is None
-    # doc_pair == True and doc_pair.pair_state != unsynchronized
+    # Covering doc_pair == True and doc_pair.pair_state != unsynchronized
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1099,7 +1099,7 @@ def test_handle_watchdog_event(manager_factory):
     local_watcher.dao = mock_dao
     local_watcher.local = mock_local_client
     assert local_watcher.handle_watchdog_event(mock_file_system) is None
-    # doc_pair == True and evt.event_type == "moved"
+    # Covering doc_pair == True and evt.event_type == "moved"
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1114,7 +1114,7 @@ def test_handle_watchdog_event(manager_factory):
     local_watcher.dao = mock_dao
     local_watcher.local = mock_local_client
     assert local_watcher.handle_watchdog_event(mock_file_system) is None
-    # doc_pair == True and no subcondition passes
+    # Covering doc_pair == True and no subcondition passes
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1129,7 +1129,7 @@ def test_handle_watchdog_event(manager_factory):
     local_watcher.dao = mock_dao
     local_watcher.local = mock_local_client
     assert local_watcher.handle_watchdog_event(mock_file_system) is None
-    # evt.event_type == "deleted"
+    # Covering evt.event_type == "deleted"
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1143,7 +1143,7 @@ def test_handle_watchdog_event(manager_factory):
     local_watcher.dao = mock_dao
     local_watcher.local = mock_local_client
     assert local_watcher.handle_watchdog_event(mock_file_system) is None
-    # evt.event_type == "moved" and client.is_ignored == True
+    # Covering evt.event_type == "moved" and client.is_ignored == True
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1157,8 +1157,8 @@ def test_handle_watchdog_event(manager_factory):
     local_watcher.dao = mock_dao
     local_watcher.local = mock_local_client
     assert local_watcher.handle_watchdog_event(mock_file_system) is None
-    # evt.event_type == "moved" and client.is_ignored == False
-    # local_info.remote_ref != ""
+    # Covering evt.event_type == "moved" and client.is_ignored == False
+    # Covering local_info.remote_ref != ""
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1178,8 +1178,8 @@ def test_handle_watchdog_event(manager_factory):
     ) as mock_move_known_pair:
         mock_move_known_pair.return_value = None
         assert local_watcher.handle_watchdog_event(mock_file_system) is None
-    # evt.event_type == "moved" and client.is_ignored == False
-    # local_info.remote_ref == ""
+    # Covering evt.event_type == "moved" and client.is_ignored == False
+    # Covering local_info.remote_ref == ""
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1200,7 +1200,7 @@ def test_handle_watchdog_event(manager_factory):
     ) as mock_scan:
         mock_scan.return_value = None
         assert local_watcher.handle_watchdog_event(mock_file_system) is None
-    # evt.event_type not in ("created", "modified")
+    # Covering evt.event_type not in ("created", "modified")
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1214,7 +1214,7 @@ def test_handle_watchdog_event(manager_factory):
     local_watcher.dao = mock_dao
     local_watcher.local = mock_local_client
     assert local_watcher.handle_watchdog_event(mock_file_system) is None
-    # evt.event_type in ("created", "modified") and local_info == None
+    # Covering evt.event_type in ("created", "modified") and local_info == None
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1229,9 +1229,9 @@ def test_handle_watchdog_event(manager_factory):
     local_watcher.dao = mock_dao
     local_watcher.local = mock_local_client
     assert local_watcher.handle_watchdog_event(mock_file_system) is None
-    # evt.event_type in ("created", "modified")
-    # local_info != None and local.remote_ref != None
-    # from_pair.processor > 0
+    # Covering evt.event_type in ("created", "modified")
+    # Covering local_info != None and local.remote_ref != None
+    # Covering from_pair.processor > 0
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1247,11 +1247,11 @@ def test_handle_watchdog_event(manager_factory):
     local_watcher.dao = mock_dao
     local_watcher.local = mock_local_client
     assert local_watcher.handle_watchdog_event(mock_file_system) is None
-    # evt.event_type in ("created", "modified")
-    # local_info != None and local.remote_ref != None
-    # from_pair.processor == 0
-    # client.exists == False
-    # dst_parent.remote_can_create_child == False
+    # Covering evt.event_type in ("created", "modified")
+    # Covering local_info != None and local.remote_ref != None
+    # Covering from_pair.processor == 0
+    # Covering client.exists == False
+    # Covering dst_parent.remote_can_create_child == False
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1268,11 +1268,11 @@ def test_handle_watchdog_event(manager_factory):
     local_watcher.dao = mock_dao
     local_watcher.local = mock_local_client
     assert local_watcher.handle_watchdog_event(mock_file_system) is None
-    # evt.event_type in ("created", "modified")
-    # local_info != None and local.remote_ref != None
-    # from_pair.processor == 0
-    # client.exists == False
-    # dst_parent.remote_can_create_child == True
+    # Covering evt.event_type in ("created", "modified")
+    # Covering local_info != None and local.remote_ref != None
+    # Covering from_pair.processor == 0
+    # Covering client.exists == False
+    # Covering dst_parent.remote_can_create_child == True
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1290,10 +1290,10 @@ def test_handle_watchdog_event(manager_factory):
     local_watcher.dao = mock_dao
     local_watcher.local = mock_local_client
     assert local_watcher.handle_watchdog_event(mock_file_system) is None
-    # evt.event_type in ("created", "modified")
-    # local_info != None and local.remote_ref != None
-    # from_pair.processor > 0
-    # client.exists == True
+    # Covering evt.event_type in ("created", "modified")
+    # Covering local_info != None and local.remote_ref != None
+    # Covering from_pair.processor > 0
+    # Covering client.exists == True
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1314,11 +1314,11 @@ def test_handle_watchdog_event(manager_factory):
     ) as mock_creation_time:
         mock_creation_time.side_effect = [100, 200]
         assert local_watcher.handle_watchdog_event(mock_file_system) is None
-    # evt.event_type in ("created", "modified")
-    # local_info != None and local.remote_ref != None
-    # from_pair.processor > 0
-    # client.exists == True
-    # moved == False
+    # Covering evt.event_type in ("created", "modified")
+    # Covering local_info != None and local.remote_ref != None
+    # Covering from_pair.processor > 0
+    # Covering client.exists == True
+    # Covering moved == False
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1339,11 +1339,11 @@ def test_handle_watchdog_event(manager_factory):
     ) as mock_creation_time:
         mock_creation_time.return_value = 100
         assert local_watcher.handle_watchdog_event(mock_file_system) is None
-    # evt.event_type in ("created", "modified")
-    # local_info != None and local.remote_ref != None
-    # from_pair.processor > 0
-    # client.exists == True
-    # moved == False and local_info.folderish == True
+    # Covering evt.event_type in ("created", "modified")
+    # Covering local_info != None and local.remote_ref != None
+    # Covering from_pair.processor > 0
+    # Covering client.exists == True
+    # Covering moved == False and local_info.folderish == True
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1369,7 +1369,7 @@ def test_handle_watchdog_event(manager_factory):
         mock_scan_pair.return_value = None
         assert local_watcher.handle_watchdog_event(mock_file_system) is None
 
-    # raising ThreadInterrupt Exception
+    # Covering raising ThreadInterrupt Exception
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1395,8 +1395,8 @@ def test_handle_watchdog_event(manager_factory):
         with pytest.raises(ThreadInterrupt) as ex:
             local_watcher.handle_watchdog_event(mock_file_system)
         assert str(ex.value) == "Custom ThreadInterrupt exception"
-    # raising OSError Exception
-    # evt.event_type == created
+    # Covering raising OSError Exception
+    # Covering evt.event_type == created
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1420,8 +1420,8 @@ def test_handle_watchdog_event(manager_factory):
         mock_error.errno = errno.EEXIST
         mock_creation_time.side_effect = mock_error
         assert local_watcher.handle_watchdog_event(mock_file_system) is None
-    # raising OSError Exception
-    # evt.event_type != created
+    # Covering raising OSError Exception
+    # Covering evt.event_type != created
     mock_file_system = FileSystemEvent(
         src_path="dummy_src_path", dest_path="dummy_dest_path", is_synthetic=False
     )
@@ -1459,11 +1459,11 @@ def test_schedule_win_folder_scan(manager_factory):
     local_watcher.local = mock_client
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = DocPair(cursor, ())
-    # _win_folder_scan_interval <= 0 or _windows_folder_scan_delay <= 0
+    # Covering _win_folder_scan_interval <= 0 or _windows_folder_scan_delay <= 0
     local_watcher._win_folder_scan_interval = 0
     local_watcher._windows_folder_scan_delay = 0
     assert local_watcher._schedule_win_folder_scan(mock_doc_pair) is None
-    # _win_folder_scan_interval > 0 and _windows_folder_scan_delay > 0
+    # Covering _win_folder_scan_interval > 0 and _windows_folder_scan_delay > 0
     mock_client.default_file_info.last_modification_time = datetime.now()
     mock_doc_pair.id = 1
     mock_doc_pair.local_path = Path("dummy_local_path")

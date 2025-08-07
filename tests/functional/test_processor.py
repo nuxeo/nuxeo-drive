@@ -26,14 +26,14 @@ from ..markers import windows_only
 
 
 def test_unlock_soft_path():
-    # self.engine.uid in Processor.soft_locks
+    # Covering self.engine.uid in Processor.soft_locks
     mock_engine = Mock_Engine()
     processor = Processor(mock_engine, True)
     Processor.soft_locks = {mock_engine.uid: {Path(""): True}}
     assert (
         processor._unlock_soft_path(Path("tests/resources/files/testFile.txt")) is None
     )
-    # self.engine.uid not in Processor.soft_locks
+    # Covering self.engine.uid not in Processor.soft_locks
     mock_engine = Mock_Engine()
     mock_path = Path("tests/resources/files/testFile.txt")
     processor = Processor(mock_engine, True)
@@ -46,7 +46,7 @@ def test_unlock_readonly():
     mock_path = Path("tests/resources/files/testFile.txt")
     processor = Processor(mock_engine, True)
     assert processor._unlock_readonly(mock_path) is None
-    # path in Processor.readonly_locks[self.engine.uid]
+    # Covering path in Processor.readonly_locks[self.engine.uid]
     mock_engine = Mock_Engine()
     mock_path = Path("tests/resources/files/testFile.txt")
     processor = Processor(mock_engine, True)
@@ -60,7 +60,7 @@ def test_lock_readonly():
     processor = Processor(mock_engine, True)
     Processor.readonly_locks = {mock_engine.uid: {Path("different_path"): [0, 2]}}
     assert processor._lock_readonly(mock_path) is None
-    # path in Processor.readonly_locks[self.engine.uid]
+    # Covering path in Processor.readonly_locks[self.engine.uid]
     mock_engine = Mock_Engine()
     mock_path = Path("tests/resources/files/testFile.txt")
     processor = Processor(mock_engine, True)
@@ -91,8 +91,8 @@ def test_digest_status():
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     assert isinstance(Processor._digest_status(mock_doc_pair), DigestStatus)
-    # doc_pair.folderish == False
-    # doc_pair.pair_state == "remotely_created"
+    # Covering doc_pair.folderish == False
+    # Covering doc_pair.pair_state == "remotely_created"
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_doc_pair.folderish = False
     mock_doc_pair.pair_state = "remotely_created"
@@ -101,7 +101,7 @@ def test_digest_status():
 
 def test_handle_doc_pair_sync():
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
-    # finder_info and "brokMACS" in finder_info
+    # Covering finder_info and "brokMACS" in finder_info
     mock_client = Mock_Local_Client()
     mock_client.remote_id = "brok + MacOS = brokMACS"
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -111,8 +111,8 @@ def test_handle_doc_pair_sync():
     with patch("nxdrive.engine.processor.Processor._postpone_pair") as mock_postpone:
         mock_postpone.return_value = None
         assert processor._handle_doc_pair_sync(mock_doc_pair, True) is None
-    # finder_info and "brokMACS" not in finder_info
-    # parent_pair and parent_pair.last_error == "DEDUP"
+    # Covering finder_info and "brokMACS" not in finder_info
+    # Covering parent_pair and parent_pair.last_error == "DEDUP"
     mock_client = Mock_Local_Client()
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_doc_pair.pair_state = "locally_paired"
@@ -120,8 +120,8 @@ def test_handle_doc_pair_sync():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     assert processor._handle_doc_pair_sync(mock_doc_pair, True) is None
-    # finder_info and "brokMACS" not in finder_info
-    # not (refreshed and self.check_pair_state(refreshed))
+    # Covering finder_info and "brokMACS" not in finder_info
+    # Covering not (refreshed and self.check_pair_state(refreshed))
     mock_client = Mock_Local_Client()
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_doc_pair.pair_state = "locally_paired"
@@ -137,10 +137,10 @@ def test_handle_doc_pair_sync():
     ) as mock_pair_state:
         mock_pair_state.return_value = False
         assert processor._handle_doc_pair_sync(mock_doc_pair, True) is None
-    # finder_info and "brokMACS" not in finder_info
-    # not (refreshed and self.check_pair_state(refreshed))
-    # parent_pair.last_error != "DEDUP"
-    # not self.local.exists(parent_path)
+    # Covering finder_info and "brokMACS" not in finder_info
+    # Covering not (refreshed and self.check_pair_state(refreshed))
+    # Covering parent_pair.last_error != "DEDUP"
+    # Covering not self.local.exists(parent_path)
     mock_client = Mock_Local_Client()
     mock_client.exist = False
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -162,10 +162,10 @@ def test_handle_doc_pair_sync():
         mock_pair_state.return_value = True
         mock_get_normal_state.return_value = mock_doc_pair
         assert processor._handle_doc_pair_sync(mock_doc_pair, True) is None
-    # finder_info and "brokMACS" not in finder_info
-    # parent_pair and parent_pair.last_error != "DEDUP"
-    # download is not None
-    # download.status not in (TransferStatus.ONGOING, TransferStatus.DONE)
+    # Covering finder_info and "brokMACS" not in finder_info
+    # Covering parent_pair and parent_pair.last_error != "DEDUP"
+    # Covering download is not None
+    # Covering download.status not in (TransferStatus.ONGOING, TransferStatus.DONE)
     mock_client = Mock_Local_Client()
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_doc_pair.pair_state = "locally_paired"
@@ -178,8 +178,8 @@ def test_handle_doc_pair_sync():
     ) as mock_parent_pair:
         mock_parent_pair.return_value = mock_doc_pair
         assert processor._handle_doc_pair_sync(mock_doc_pair, True) is None
-    # download.status == TransferStatus.ONGOING
-    # upload.status not in (TransferStatus.ONGOING, TransferStatus.DONE)
+    # Covering download.status == TransferStatus.ONGOING
+    # Covering upload.status not in (TransferStatus.ONGOING, TransferStatus.DONE)
     mock_client = Mock_Local_Client()
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_doc_pair.pair_state = "locally_paired"
@@ -193,8 +193,8 @@ def test_handle_doc_pair_sync():
     ) as mock_parent_pair:
         mock_parent_pair.return_value = mock_doc_pair
         assert processor._handle_doc_pair_sync(mock_doc_pair, True) is None
-    # download.status == TransferStatus.ONGOING
-    # download.status == TransferStatus.ONGOING
+    # Covering download.status == TransferStatus.ONGOING
+    # Covering download.status == TransferStatus.ONGOING
     mock_client = Mock_Local_Client()
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_doc_pair.pair_state = "locally_paired"
@@ -217,7 +217,7 @@ def test_handle_doc_pair_dt():
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_engine = Mock_Engine()
     processor = Processor(mock_engine, True)
-    # Not Found
+    # Covering Not Found
     with patch(
         "tests.functional.mocked_classes.Mock_Local_Client.__call__"
     ) as mock_client_call, patch(
@@ -228,7 +228,7 @@ def test_handle_doc_pair_dt():
         with pytest.raises(NotFound) as ex:
             processor._handle_doc_pair_dt(mock_doc_pair, mock_client)
         assert str(ex.exconly()).startswith("nxdrive.exceptions.NotFound")
-    # HTTPError
+    # Covering HTTPError
     with patch(
         "tests.functional.mocked_classes.Mock_Local_Client.__call__"
     ) as mock_client_call:
@@ -236,7 +236,7 @@ def test_handle_doc_pair_dt():
         with pytest.raises(HTTPError) as ex:
             processor._handle_doc_pair_dt(mock_doc_pair, mock_client)
         assert str(ex.exconly()).startswith("nuxeo.exceptions.HTTPError")
-    # HTTPError, status = 404
+    # Covering HTTPError, status = 404
     with patch(
         "tests.functional.mocked_classes.Mock_Local_Client.__call__"
     ) as mock_client_call, patch(
@@ -245,7 +245,7 @@ def test_handle_doc_pair_dt():
         mock_client_call.side_effect = HTTPError(status=404)
         mock_postpone.return_value = None
         assert processor._handle_doc_pair_dt(mock_doc_pair, mock_client) is None
-    # UploadPaused
+    # Covering UploadPaused
     with patch(
         "tests.functional.mocked_classes.Mock_Local_Client.__call__"
     ) as mock_client_call:
@@ -253,7 +253,7 @@ def test_handle_doc_pair_dt():
         with pytest.raises(UploadPaused) as ex:
             processor._handle_doc_pair_dt(mock_doc_pair, mock_client)
         assert str(ex.exconly()).startswith("nxdrive.exceptions.UploadPaused")
-    # RuntimeError
+    # Covering RuntimeError
     with patch(
         "tests.functional.mocked_classes.Mock_Local_Client.__call__"
     ) as mock_client_call:
@@ -261,7 +261,7 @@ def test_handle_doc_pair_dt():
         with pytest.raises(RuntimeError) as ex:
             processor._handle_doc_pair_dt(mock_doc_pair, mock_client)
         assert str(ex.exconly()) == "RuntimeError"
-    # Exception
+    # Covering Exception
     with patch(
         "tests.functional.mocked_classes.Mock_Local_Client.__call__"
     ) as mock_client_call, patch(
@@ -272,8 +272,8 @@ def test_handle_doc_pair_dt():
         with pytest.raises(Exception) as ex:
             processor._handle_doc_pair_dt(mock_doc_pair, mock_client)
         assert str(ex.exconly()) == "Exception: Custom Exception"
-    # UploadCancelled
-    # not upload or not upload.doc_pair
+    # Covering UploadCancelled
+    # Covering not upload or not upload.doc_pair
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_client = Mock_Local_Client()
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -284,8 +284,8 @@ def test_handle_doc_pair_dt():
     ) as mock_client_call:
         mock_client_call.side_effect = UploadCancelled(1)
         assert processor._handle_doc_pair_dt(mock_doc_pair, mock_client) is None
-    # UploadCancelled
-    # not refreshed_doc_pair
+    # Covering UploadCancelled
+    # Covering not refreshed_doc_pair
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_client = Mock_Local_Client()
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -298,7 +298,7 @@ def test_handle_doc_pair_dt():
     ) as mock_client_call:
         mock_client_call.side_effect = UploadCancelled(1)
         assert processor._handle_doc_pair_dt(mock_doc_pair, mock_client) is None
-    # UploadCancelled - direct transfer cancel
+    # Covering UploadCancelled - direct transfer cancel
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_client = Mock_Local_Client()
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -323,7 +323,7 @@ def test_get_next_doc_pair():
     mock_engine = Mock_Engine()
     processor = Processor(mock_engine, True)
     assert processor._get_next_doc_pair(mock_doc_pair) == "DocPair_object"
-    # sqlite3.OperationalError
+    # Covering sqlite3.OperationalError
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_engine = Mock_Engine()
@@ -343,12 +343,12 @@ def test_check_exists_on_the_server():
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_engine = Mock_Engine()
     processor = Processor(mock_engine, True)
-    # doc_pair.pair_state != "locally_created"
+    # Covering doc_pair.pair_state != "locally_created"
     with patch(
         "nxdrive.engine.processor.Processor._postpone_pair"
     ) as mock_postpone_pair:
         assert processor._check_exists_on_the_server(mock_doc_pair) is None
-    # doc_pair.pair_state == "locally_created"
+    # Covering doc_pair.pair_state == "locally_created"
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_doc_pair.pair_state = "locally_created"
@@ -362,7 +362,7 @@ def test_check_exists_on_the_server():
         mock_postpone_pair.return_value = None
         mock_void_transfer.return_value = None
         assert processor._check_exists_on_the_server(mock_doc_pair) is None
-    # Exception
+    # Covering Exception
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_doc_pair.pair_state = "locally_created"
@@ -399,7 +399,7 @@ def test_handle_pair_handler_exception():
             )
             is None
         )
-    # isinstance(e, OSError) and e.errno in NO_SPACE_ERRORS
+    # Covering isinstance(e, OSError) and e.errno in NO_SPACE_ERRORS
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_engine = Mock_Engine()
@@ -434,8 +434,8 @@ def test_synchronize_conflicted():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     assert processor._synchronize_conflicted(mock_doc_pair) is None
-    # doc_pair.folderish == True
-    # self.local.get_remote_id(doc_pair.local_path) == doc_pair.remote_ref
+    # Covering doc_pair.folderish == True
+    # Covering self.local.get_remote_id(doc_pair.local_path) == doc_pair.remote_ref
     mock_client = Mock_Local_Client()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -465,7 +465,7 @@ def test_synchronize_if_not_remotely_dirty():
             )
             is None
         )
-    # remote_info is None
+    # Covering remote_info is None
     mock_client = Mock_Local_Client()
     mock_client.equal_digest = False
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -479,7 +479,7 @@ def test_synchronize_if_not_remotely_dirty():
     ) as mock_sync_remote:
         mock_sync_remote.return_value = None
         assert processor._synchronize_if_not_remotely_dirty(mock_doc_pair) is None
-    # NotFound
+    # Covering NotFound
     mock_client = Mock_Local_Client()
     mock_client.equal_digest = False
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -511,7 +511,7 @@ def test_synchronize_locally_modified():
     ) as mock_postpone_pair:
         mock_postpone_pair.return_value = None
         assert processor._synchronize_locally_modified(mock_doc_pair) is None
-    # doc_pair.local_digest != UNACCESSIBLE_HASH
+    # Covering doc_pair.local_digest != UNACCESSIBLE_HASH
     mock_client = Mock_Local_Client()
     mock_client.equal_digest = False
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -525,8 +525,8 @@ def test_synchronize_locally_modified():
     ) as mock_sync_if_not_remote_dirty:
         mock_sync_if_not_remote_dirty.return_value = None
         assert processor._synchronize_locally_modified(mock_doc_pair) is None
-    # doc_pair.local_digest != UNACCESSIBLE_HASH
-    # doc_pair.remote_can_update = False
+    # Covering doc_pair.local_digest != UNACCESSIBLE_HASH
+    # Covering doc_pair.remote_can_update = False
     mock_client = Mock_Local_Client()
     mock_client.equal_digest = False
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -541,9 +541,9 @@ def test_synchronize_locally_modified():
     ) as mock_sync_if_not_remote_dirty:
         mock_sync_if_not_remote_dirty.return_value = None
         assert processor._synchronize_locally_modified(mock_doc_pair) is None
-    # doc_pair.local_digest != UNACCESSIBLE_HASH
-    # doc_pair.remote_can_update == False
-    # self.engine.local_rollback == False
+    # Covering doc_pair.local_digest != UNACCESSIBLE_HASH
+    # Covering doc_pair.remote_can_update == False
+    # Covering self.engine.local_rollback == False
     mock_client = Mock_Local_Client()
     mock_client.equal_digest = False
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -558,7 +558,7 @@ def test_synchronize_locally_modified():
     ) as mock_sync_if_not_remote_dirty:
         mock_sync_if_not_remote_dirty.return_value = None
         assert processor._synchronize_locally_modified(mock_doc_pair) is None
-    # NotFound
+    # Covering NotFound
     mock_client = Mock_Local_Client()
     mock_client.equal_digest = False
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -599,7 +599,7 @@ def test_synchronize_locally_created():
     assert (
         processor._synchronize_locally_created(mock_doc_pair, overwrite=False) is None
     )
-    # not delay
+    # Covering not delay
     mock_client = Mock_Local_Client()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -612,7 +612,7 @@ def test_synchronize_locally_created():
             processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
             is None
         )
-    # doc_pair.error_count == 0
+    # Covering doc_pair.error_count == 0
     mock_client = Mock_Local_Client()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -631,8 +631,8 @@ def test_synchronize_locally_created():
             processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
             is None
         )
-    # parent_pair is not None
-    # parent_pair.pair_state == "unsynchronized"
+    # Covering parent_pair is not None
+    # Covering parent_pair.pair_state == "unsynchronized"
     mock_client = Mock_Local_Client()
     mock_dao = Mock_DAO()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -655,7 +655,7 @@ def test_synchronize_locally_created():
             processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
             is None
         )
-    # ParentNoSynced
+    # Covering ParentNoSynced
     mock_client = Mock_Local_Client()
     mock_dao = Mock_DAO()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -676,8 +676,8 @@ def test_synchronize_locally_created():
         with pytest.raises(ParentNotSynced) as ex:
             processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
         assert str(ex.exconly()).startswith("nxdrive.exceptions.ParentNotSynced")
-    # remote_ref and info
-    # uid and info.is_trashed
+    # Covering remote_ref and info
+    # Covering uid and info.is_trashed
     mock_client = Mock_Local_Client()
     mock_client.remote_id = "dummy#remote_id"
     mock_dao = Mock_DAO()
@@ -691,8 +691,8 @@ def test_synchronize_locally_created():
     assert (
         processor._synchronize_locally_created(mock_doc_pair, overwrite=False) is None
     )
-    # not info
-    # uid and info.is_trashed
+    # Covering not info
+    # Covering uid and info.is_trashed
     mock_client = Mock_Local_Client()
     mock_client.remote_id = "dummy#remote_id"
     mock_dao = Mock_DAO()
@@ -709,7 +709,7 @@ def test_synchronize_locally_created():
             processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
             is None
         )
-    # info.is_trashed == False
+    # Covering info.is_trashed == False
     mock_client = Mock_Local_Client()
     mock_client.remote_id = "dummy#remote_id"
     mock_dao = Mock_DAO()
@@ -729,8 +729,8 @@ def test_synchronize_locally_created():
     assert (
         processor._synchronize_locally_created(mock_doc_pair, overwrite=False) is None
     )
-    # local.is_equal_digests == False
-    # doc_pair.pair_state == "locally_resolved"
+    # Covering local.is_equal_digests == False
+    # Covering doc_pair.pair_state == "locally_resolved"
     mock_client = Mock_Local_Client()
     mock_client.equal_digest = False
     mock_client.remote_id = "dummy#remote_id"
@@ -751,7 +751,7 @@ def test_synchronize_locally_created():
     assert (
         processor._synchronize_locally_created(mock_doc_pair, overwrite=False) is None
     )
-    # HTTPError, status == 404
+    # Covering HTTPError, status == 404
     mock_client = Mock_Local_Client()
     mock_client.equal_digest = False
     mock_client.remote_id = "dummy#remote_id"
@@ -776,7 +776,7 @@ def test_synchronize_locally_created():
         with pytest.raises(HTTPError) as ex:
             processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
         assert str(ex.exconly()).startswith("nuxeo.exceptions.HTTPError")
-    # HTTPError, status == 401
+    # Covering HTTPError, status == 401
     mock_client = Mock_Local_Client()
     mock_client.equal_digest = False
     mock_client.remote_id = "dummy#remote_id"
@@ -802,7 +802,7 @@ def test_synchronize_locally_created():
             processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
             is None
         )
-    # NotFound
+    # Covering NotFound
     mock_client = Mock_Local_Client()
     mock_client.equal_digest = False
     mock_client.remote_id = "dummy#remote_id"
@@ -828,7 +828,7 @@ def test_synchronize_locally_created():
             processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
             is None
         )
-    # parent_pair.remote_can_create_child == True
+    # Covering parent_pair.remote_can_create_child == True
     mock_client = Mock_Local_Client()
     mock_client.equal_digest = False
     mock_client.remote_id = "dummy#remote_id"
@@ -856,8 +856,8 @@ def test_synchronize_locally_created():
             processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
             is None
         )
-    # doc_pair.folderish == False
-    # local_info.size != doc_pair.size
+    # Covering doc_pair.folderish == False
+    # Covering local_info.size != doc_pair.size
     mock_client = Mock_Local_Client()
     mock_client.equal_digest = False
     mock_client.remote_id = "dummy#remote_id"
@@ -879,8 +879,8 @@ def test_synchronize_locally_created():
     assert (
         processor._synchronize_locally_created(mock_doc_pair, overwrite=False) is None
     )
-    # doc_pair.folderish == False
-    # doc_pair.local_digest == UNACCESSIBLE_HASH
+    # Covering doc_pair.folderish == False
+    # Covering doc_pair.local_digest == UNACCESSIBLE_HASH
     mock_client = Mock_Local_Client()
     mock_client.default_file_info.size = 1
     mock_client.equal_digest = False
@@ -905,7 +905,7 @@ def test_synchronize_locally_created():
     assert (
         processor._synchronize_locally_created(mock_doc_pair, overwrite=False) is None
     )
-    # stream file
+    # Covering stream file
     mock_client = Mock_Local_Client()
     mock_client.default_file_info.size = 1
     mock_client.equal_digest = False
@@ -939,7 +939,7 @@ def test_synchronize_locally_created():
 def test_synchronize_locally_deleted():
     from nxdrive.behavior import Behavior
 
-    # doc_pair.remote_can_delete
+    # Covering doc_pair.remote_can_delete
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_engine = Mock_Engine()
@@ -952,7 +952,7 @@ def test_synchronize_locally_deleted():
         mock_search_dedup.return_value = None
         mock_void_transfers.return_value = None
         assert processor._synchronize_locally_deleted(mock_doc_pair) is None
-    # not doc_pair.remote_can_delete
+    # Covering not doc_pair.remote_can_delete
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_doc_pair.remote_can_delete = False
@@ -966,7 +966,7 @@ def test_synchronize_locally_deleted():
         mock_search_dedup.return_value = None
         mock_void_transfers.return_value = None
         assert processor._synchronize_locally_deleted(mock_doc_pair) is None
-    # not doc_pair.remote_ref
+    # Covering not doc_pair.remote_ref
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_doc_pair.remote_ref = ""
@@ -980,7 +980,7 @@ def test_synchronize_locally_deleted():
         mock_search_dedup.return_value = None
         mock_void_transfers.return_value = None
         assert processor._synchronize_locally_deleted(mock_doc_pair) is None
-    # not Behavior.server_deletion
+    # Covering not Behavior.server_deletion
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_engine = Mock_Engine()
@@ -1031,7 +1031,7 @@ def test_synchronize_locally_moved():
     ) as mock_search_dedup:
         mock_search_dedup.return_value = None
         assert processor._synchronize_locally_moved(mock_doc_pair, update=True) is None
-    # parent_ref and parent_ref == doc_pair.remote_parent_ref
+    # Covering parent_ref and parent_ref == doc_pair.remote_parent_ref
     mock_client = Mock_Local_Client()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -1044,7 +1044,7 @@ def test_synchronize_locally_moved():
     ) as mock_search_dedup:
         mock_search_dedup.return_value = None
         assert processor._synchronize_locally_moved(mock_doc_pair, update=True) is None
-    # Exception
+    # Covering Exception
     mock_client = Mock_Local_Client()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -1063,7 +1063,7 @@ def test_synchronize_locally_moved():
         mock_handle_failed_remote.return_value = None
         mock_refresh_remote.side_effect = Exception("Custom Exception")
         assert processor._synchronize_locally_moved(mock_doc_pair, update=True) is None
-    # not doc_pair.remote_can_rename
+    # Covering not doc_pair.remote_can_rename
     mock_client = Mock_Local_Client()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -1079,8 +1079,8 @@ def test_synchronize_locally_moved():
         mock_search_dedup.return_value = None
         mcok_failed_remote_name.return_value = None
         assert processor._synchronize_locally_moved(mock_doc_pair, update=True) is None
-    # doc_pair.remote_can_delete == True
-    # not parent_pair.pair_state == "unsynchronized"
+    # Covering doc_pair.remote_can_delete == True
+    # Covering not parent_pair.pair_state == "unsynchronized"
     mock_client = Mock_Local_Client()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -1127,7 +1127,7 @@ def test_download_content():
     new_file = Path("testFile2.txt")
     mock_path = new_file
     assert isinstance(processor._download_content(mock_doc_pair, mock_path), Path)
-    # Deleting the file created by shutil
+    # Covering Deleting the file created by shutil
     new_file = Path.cwd() / "tests" / "resources" / "files" / new_file
     new_file.unlink(missing_ok=True)
 
@@ -1159,9 +1159,9 @@ def test_search_for_dedup():
 
 
 def test_synchronize_remotely_modified():
-    # not doc_pair.folderish
-    # doc_pair.local_digest is not None
-    # local.is_equal_digests
+    # Covering not doc_pair.folderish
+    # Covering doc_pair.local_digest is not None
+    # Covering local.is_equal_digests
     mock_client = Mock_Local_Client()
     mock_client.equal_digest = False
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -1176,7 +1176,7 @@ def test_synchronize_remotely_modified():
     ) as mock_update_remote:
         mock_update_remote.return_value = None
         assert processor._synchronize_remotely_modified(mock_doc_pair) is None
-    # remote.is_filtered
+    # Covering remote.is_filtered
     mock_client = Mock_Local_Client()
     mock_client.equal_digest = False
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -1193,7 +1193,7 @@ def test_synchronize_remotely_modified():
     ) as mock_update_remote:
         mock_update_remote.return_value = None
         assert processor._synchronize_remotely_modified(mock_doc_pair) is None
-    # not new_parent_pair
+    # Covering not new_parent_pair
     mock_client = Mock_Local_Client()
     mock_client.equal_digest = False
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -1214,7 +1214,7 @@ def test_synchronize_remotely_modified():
         mock_postpone.return_value = None
         mock_is_move.return_value = (True, None)
         assert processor._synchronize_remotely_modified(mock_doc_pair) is None
-    # not (is_move or is_renaming) == False
+    # Covering not (is_move or is_renaming) == False
     mock_client = Mock_Local_Client()
     mock_client.equal_digest = False
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -1235,7 +1235,7 @@ def test_synchronize_remotely_modified():
         mock_postpone.return_value = None
         mock_is_move.return_value = (True, mock_doc_pair)
         assert processor._synchronize_remotely_modified(mock_doc_pair) is None
-    # old_path == new_path
+    # Covering old_path == new_path
     mock_client = Mock_Local_Client()
     mock_client.equal_digest = False
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -1258,7 +1258,7 @@ def test_synchronize_remotely_modified():
         mock_doc_pair2 = Mock_Doc_Pair(cursor, ())
         mock_is_move.return_value = (True, mock_doc_pair2)
         assert processor._synchronize_remotely_modified(mock_doc_pair) is None
-    # is_move == False
+    # Covering is_move == False
     mock_client = Mock_Local_Client()
     mock_client.equal_digest = False
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -1284,7 +1284,7 @@ def test_synchronize_remotely_modified():
 def test_synchronize_remotely_created():
     from nxdrive.exceptions import ParentNotSynced
 
-    # parent_pair is None
+    # Covering parent_pair is None
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_engine = Mock_Engine()
@@ -1297,7 +1297,7 @@ def test_synchronize_remotely_created():
         with pytest.raises(ParentNotSynced) as ex:
             processor._synchronize_remotely_created(mock_doc_pair)
         assert str(ex.exconly()).startswith("nxdrive.exceptions.ParentNotSynced")
-    # parent_pair.local_path is None
+    # Covering parent_pair.local_path is None
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_doc_pair.local_path = None
@@ -1310,7 +1310,7 @@ def test_synchronize_remotely_created():
     ) as mock_normal_state:
         mock_normal_state.return_value = mock_doc_pair
         assert processor._synchronize_remotely_created(mock_doc_pair) is None
-    # remote.is_filtered
+    # Covering remote.is_filtered
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_engine = Mock_Engine()
@@ -1323,7 +1323,7 @@ def test_synchronize_remotely_created():
     ) as mock_normal_state:
         mock_normal_state.return_value = mock_doc_pair
         assert processor._synchronize_remotely_created(mock_doc_pair) is None
-    # not self.local.exists
+    # Covering not self.local.exists
     mock_client = Mock_Local_Client()
     mock_client.exist = False
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -1339,8 +1339,8 @@ def test_synchronize_remotely_created():
     ) as mock_normal_state:
         mock_normal_state.return_value = mock_doc_pair
         assert processor._synchronize_remotely_created(mock_doc_pair) is None
-    # not self.local.exists
-    # NotFound
+    # Covering not self.local.exists
+    # Covering NotFound
     mock_client = Mock_Local_Client()
     mock_client.exist = False
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -1363,7 +1363,7 @@ def test_synchronize_remotely_created():
         mock_create_remotely.side_effect = NotFound()
         mock_sync_remote_delete.return_value = None
         assert processor._synchronize_remotely_created(mock_doc_pair) is None
-    # local.exists == True
+    # Covering local.exists == True
     mock_client = Mock_Local_Client()
     mock_client.exist = True
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -1380,9 +1380,9 @@ def test_synchronize_remotely_created():
     ) as mock_normal_state:
         mock_normal_state.return_value = mock_doc_pair
         assert processor._synchronize_remotely_created(mock_doc_pair) is None
-    # local.exists == True
-    # remote_ref != doc_pair.remote_ref
-    # not self.dao.synchronize_state
+    # Covering local.exists == True
+    # Covering remote_ref != doc_pair.remote_ref
+    # Covering not self.dao.synchronize_state
     mock_client = Mock_Local_Client()
     mock_client.exist = True
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -1425,7 +1425,7 @@ def test_create_remotely():
         assert processor._create_remotely(
             mock_doc_pair, mock_doc_pair2, mock_name
         ) == Path("")
-    # doc_pair.folderish == False
+    # Covering doc_pair.folderish == False
     mock_client = Mock_Local_Client()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -1462,8 +1462,8 @@ def test_synchronize_remotely_deleted():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     assert processor._synchronize_remotely_deleted(mock_doc_pair) is None
-    # remote_id != doc_pair.remote_ref
-    # doc_pair.local_state == "deleted"
+    # Covering remote_id != doc_pair.remote_ref
+    # Covering doc_pair.local_state == "deleted"
     mock_client = Mock_Local_Client()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -1478,8 +1478,8 @@ def test_synchronize_remotely_deleted():
     ) as mock_search_dedup:
         mock_search_dedup.return_value = None
         assert processor._synchronize_remotely_deleted(mock_doc_pair) is None
-    # remote_id != doc_pair.remote_ref
-    # doc_pair.local_state == "unsynchronized"
+    # Covering remote_id != doc_pair.remote_ref
+    # Covering doc_pair.local_state == "unsynchronized"
     mock_client = Mock_Local_Client()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -1490,8 +1490,8 @@ def test_synchronize_remotely_deleted():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     assert processor._synchronize_remotely_deleted(mock_doc_pair) is None
-    # remote_id != doc_pair.remote_ref
-    # doc_pair.local_state == "unsynchronized" or "deleted"
+    # Covering remote_id != doc_pair.remote_ref
+    # Covering doc_pair.local_state == "unsynchronized" or "deleted"
     mock_client = Mock_Local_Client()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -1513,7 +1513,7 @@ def test_synchronize_unknown_deleted():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     assert processor._synchronize_unknown_deleted(mock_doc_pair) is None
-    # doc_pair.local_path == None
+    # Covering doc_pair.local_path == None
     mock_client = Mock_Local_Client()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -1539,7 +1539,7 @@ def test_handle_failed_remote_rename_win():
 
 
 def test_handle_failed_remote_rename():
-    # not target_pair.remote_name
+    # Covering not target_pair.remote_name
     mock_client = Mock_Local_Client()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -1552,8 +1552,8 @@ def test_handle_failed_remote_rename():
     assert (
         processor._handle_failed_remote_rename(mock_doc_pair, mock_doc_pair2) is False
     )
-    # target_pair.remote_name exists
-    # target_pair.folderish
+    # Covering target_pair.remote_name exists
+    # Covering target_pair.folderish
     mock_client = Mock_Local_Client()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -1564,8 +1564,8 @@ def test_handle_failed_remote_rename():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     assert processor._handle_failed_remote_rename(mock_doc_pair, mock_doc_pair2) is True
-    # target_pair.remote_name exists
-    # target_pair.folderish == False
+    # Covering target_pair.remote_name exists
+    # Covering target_pair.folderish == False
     mock_client = Mock_Local_Client()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -1576,7 +1576,7 @@ def test_handle_failed_remote_rename():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     assert processor._handle_failed_remote_rename(mock_doc_pair, mock_doc_pair2) is True
-    # Exception
+    # Covering Exception
     mock_client = Mock_Local_Client()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -1596,7 +1596,7 @@ def test_handle_failed_remote_rename():
 
 
 def test_handle_readonly():
-    # doc_pair.folderish and WINDOWS
+    # Covering doc_pair.folderish and WINDOWS
     mock_client = Mock_Local_Client()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -1605,7 +1605,7 @@ def test_handle_readonly():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     assert processor._handle_readonly(mock_doc_pair) is None
-    # doc_pair.is_readonly == True
+    # Covering doc_pair.is_readonly == True
     mock_client = Mock_Local_Client()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -1614,7 +1614,7 @@ def test_handle_readonly():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     assert processor._handle_readonly(mock_doc_pair) is None
-    # doc_pair.is_readonly == False
+    # Covering doc_pair.is_readonly == False
     mock_client = Mock_Local_Client()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())

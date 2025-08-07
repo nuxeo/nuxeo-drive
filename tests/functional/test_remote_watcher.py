@@ -67,7 +67,7 @@ def test_scan_remote(manager_factory):
         mock_remove_void.return_value = None
         mock_changes.return_value = None
         assert remote_watcher.scan_remote(from_state=mock_doc_pair) is None
-    # exception NotFound
+    # Covering exception NotFound
     mock_dao = Mock_DAO()
     mock_dao.pair_index = 0
     mock_remote = Mock_Remote()
@@ -88,17 +88,17 @@ def test_scan_pair(manager_factory):
     manager, engine = manager_factory()
     dao = engine.dao
     remote_watcher = RemoteWatcher(engine, dao)
-    # remote_path is None
+    # Covering remote_path is None
     assert remote_watcher._scan_pair(None) is None
-    # remote is not None
-    # dao.is_filter == True
+    # Covering remote is not None
+    # Covering dao.is_filter == True
     mock_dao = Mock_DAO()
     remote_watcher = RemoteWatcher(engine, dao)
     remote_watcher.dao = mock_dao
     assert remote_watcher._scan_pair("dummy_remote_path") is None
-    # remote is not None
-    # dao.is_filter == False
-    # doc_pair is not None
+    # Covering remote is not None
+    # Covering dao.is_filter == False
+    # Covering doc_pair is not None
     mock_dao = Mock_DAO()
     mock_dao.get_states.extend([mock_dao.mocked_doc_pair])
     mock_dao.filter = False
@@ -107,10 +107,10 @@ def test_scan_pair(manager_factory):
     remote_watcher.dao = mock_dao
     remote_watcher.engine.remote = mock_remote
     assert remote_watcher._scan_pair("tests/resources/files/") is None
-    # remote is not None
-    # dao.is_filter == False
-    # doc_pair is None
-    # os.path.dirname(child_info.path) == remote_parent_path
+    # Covering remote is not None
+    # Covering dao.is_filter == False
+    # Covering doc_pair is None
+    # Covering os.path.dirname(child_info.path) == remote_parent_path
     mock_dao = Mock_DAO()
     mock_dao.filter = False
     mock_dao.mocked_doc_pair.remote_parent_path = "tests/resources"
@@ -127,10 +127,10 @@ def test_scan_pair(manager_factory):
     ) as mock_scan_remote:
         mock_scan_remote.return_value = None
         assert remote_watcher._scan_pair("tests/resources/files/") is None
-    # remote is not None
-    # dao.is_filter == False
-    # doc_pair is None
-    # os.path.dirname(child_info.path) != remote_parent_path
+    # Covering remote is not None
+    # Covering dao.is_filter == False
+    # Covering doc_pair is None
+    # Covering os.path.dirname(child_info.path) != remote_parent_path
     mock_dao = Mock_DAO()
     mock_dao.filter = False
     mock_dao.mocked_doc_pair.remote_parent_path = "tests/resources"
@@ -179,17 +179,17 @@ def test_scan_remote_scroll(manager_factory):
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_remote_file_info = Mock_Remote_File_Info()
-    # remote_parent_path is None
+    # Covering remote_parent_path is None
     assert (
         remote_watcher._scan_remote_scroll(
             mock_doc_pair, mock_remote_file_info, moved=False
         )
         is None
     )
-    # remote_parent_path is not None
-    # moved == True
-    # not parent_pair
-    # to_process != []
+    # Covering remote_parent_path is not None
+    # Covering moved == True
+    # Covering not parent_pair
+    # Covering to_process != []
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_remote = Mock_Remote()
@@ -216,9 +216,9 @@ def test_scan_remote_scroll(manager_factory):
             )
             is None
         )
-    # remote_parent_path is not None
-    # moved == True
-    # self.filtered(descendant_info) == True
+    # Covering remote_parent_path is not None
+    # Covering moved == True
+    # Covering self.filtered(descendant_info) == True
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_remote = Mock_Remote()
@@ -240,9 +240,9 @@ def test_scan_remote_scroll(manager_factory):
                 mock_doc_pair, mock_remote_file_info, moved=True
             )
         assert str(ex.exconly()).startswith("nxdrive.exceptions.ThreadInterrupt")
-    # remote_parent_path is not None
-    # moved == True
-    # dao.is_filter(descendant_info.path) == True
+    # Covering remote_parent_path is not None
+    # Covering moved == True
+    # Covering dao.is_filter(descendant_info.path) == True
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_remote = Mock_Remote()
@@ -264,9 +264,9 @@ def test_scan_remote_scroll(manager_factory):
                 mock_doc_pair, mock_remote_file_info, moved=True
             )
         assert str(ex.exconly()).startswith("nxdrive.exceptions.ThreadInterrupt")
-    # remote_parent_path is not None
-    # moved == True
-    # descendant_info.digest == "notInBinaryStore"
+    # Covering remote_parent_path is not None
+    # Covering moved == True
+    # Covering descendant_info.digest == "notInBinaryStore"
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_remote = Mock_Remote()
@@ -286,9 +286,9 @@ def test_scan_remote_scroll(manager_factory):
                 mock_doc_pair, mock_remote_file_info, moved=True
             )
         assert str(ex.exconly()).startswith("nxdrive.exceptions.ThreadInterrupt")
-    # remote_parent_path is not None
-    # moved == False
-    # descendant_info.uid in descendants
+    # Covering remote_parent_path is not None
+    # Covering moved == False
+    # Covering descendant_info.uid in descendants
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_remote = Mock_Remote()
@@ -324,14 +324,14 @@ def test_init_scan_remote(manager_factory):
     manager, engine = manager_factory()
     dao = engine.dao
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
-    # remote_info.folderish == False
+    # Covering remote_info.folderish == False
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_remote_file_info = Mock_Remote_File_Info()
     remote_watcher = RemoteWatcher(engine, dao)
     assert (
         remote_watcher._init_scan_remote(mock_doc_pair, mock_remote_file_info) is None
     )
-    # remote_info.folderish == True
+    # Covering remote_info.folderish == True
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_remote_file_info = Mock_Remote_File_Info()
     mock_remote_file_info.folderish = True
@@ -340,8 +340,8 @@ def test_init_scan_remote(manager_factory):
         remote_watcher._init_scan_remote(mock_doc_pair, mock_remote_file_info)
         == "dummy_remote_parent_path/dummy_uid"
     )
-    # remote_info.folderish == True
-    # dao.is_path_scanned == True
+    # Covering remote_info.folderish == True
+    # Covering dao.is_path_scanned == True
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_remote_file_info = Mock_Remote_File_Info()
     mock_remote_file_info.folderish = True
@@ -358,7 +358,7 @@ def test_find_remote_child_match_or_create(manager_factory):
     manager, engine = manager_factory()
     dao = engine.dao
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
-    # parent_pair.last_error == "DEDUP"
+    # Covering parent_pair.last_error == "DEDUP"
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_doc_pair.last_error = "DEDUP"
     mock_remote_file_info = Mock_Remote_File_Info()
@@ -369,8 +369,8 @@ def test_find_remote_child_match_or_create(manager_factory):
         )
         is None
     )
-    # parent_pair.last_error != "DEDUP"
-    # dao.get_normal_state_from_remote == DocPair
+    # Covering parent_pair.last_error != "DEDUP"
+    # Covering dao.get_normal_state_from_remote == DocPair
     mock_dao = Mock_DAO()
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_remote_file_info = Mock_Remote_File_Info()
@@ -382,11 +382,11 @@ def test_find_remote_child_match_or_create(manager_factory):
         )
         is None
     )
-    # parent_pair.last_error != "DEDUP"
-    # dao.get_normal_state_from_remote == None
-    # child_pair is None
-    # parent_pair is not None
-    # engine.local.exists == True
+    # Covering parent_pair.last_error != "DEDUP"
+    # Covering dao.get_normal_state_from_remote == None
+    # Covering child_pair is None
+    # Covering parent_pair is not None
+    # Covering engine.local.exists == True
     mock_client = Mock_Local_Client()
     mock_client.exist = True
     mock_dao = Mock_DAO()
@@ -404,11 +404,11 @@ def test_find_remote_child_match_or_create(manager_factory):
         )
         is None
     )
-    # parent_pair.last_error != "DEDUP"
-    # dao.get_normal_state_from_remote == None
-    # child_pair is not None
-    # child_pair.remote_ref is not None
-    # child_pair.remote_ref != child_info.uid
+    # Covering parent_pair.last_error != "DEDUP"
+    # Covering dao.get_normal_state_from_remote == None
+    # Covering child_pair is not None
+    # Covering child_pair.remote_ref is not None
+    # Covering child_pair.remote_ref != child_info.uid
     mock_client = Mock_Local_Client()
     mock_client.exist = True
     mock_dao = Mock_DAO()
@@ -424,14 +424,14 @@ def test_find_remote_child_match_or_create(manager_factory):
         )
         is None
     )
-    # parent_pair.last_error != "DEDUP"
-    # dao.get_normal_state_from_remote == None
-    # child_pair is not None
-    # child_pair.remote_ref is not None
-    # child_pair.remote_ref == child_info.uid
-    # child_pair.folderish == child_info.folderish
-    # engine.local.is_equal_digests == True
-    # child_pair.local_path != local_path
+    # Covering parent_pair.last_error != "DEDUP"
+    # Covering dao.get_normal_state_from_remote == None
+    # Covering child_pair is not None
+    # Covering child_pair.remote_ref is not None
+    # Covering child_pair.remote_ref == child_info.uid
+    # Covering child_pair.folderish == child_info.folderish
+    # Covering engine.local.is_equal_digests == True
+    # Covering child_pair.local_path != local_path
     mock_client = Mock_Local_Client()
     mock_client.exist = True
     mock_client.equal_digest = True
@@ -440,7 +440,7 @@ def test_find_remote_child_match_or_create(manager_factory):
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_remote_file_info = Mock_Remote_File_Info()
     mock_remote_file_info.uid = (
-        "dummy_remote_ref"  # Matching with child_pair.remote_ref
+        "dummy_remote_ref"  # Covering Matching with child_pair.remote_ref
     )
     remote_watcher = RemoteWatcher(engine, dao)
     remote_watcher.dao = mock_dao
@@ -455,15 +455,15 @@ def test_find_remote_child_match_or_create(manager_factory):
             )
             is None
         )
-    # parent_pair.last_error != "DEDUP"
-    # dao.get_normal_state_from_remote == None
-    # child_pair is not None
-    # child_pair.remote_ref is not None
-    # child_pair.remote_ref == child_info.uid
-    # child_pair.folderish == child_info.folderish
-    # engine.local.is_equal_digests == True
-    # child_pair.local_path == local_path
-    # synced == True
+    # Covering parent_pair.last_error != "DEDUP"
+    # Covering dao.get_normal_state_from_remote == None
+    # Covering child_pair is not None
+    # Covering child_pair.remote_ref is not None
+    # Covering child_pair.remote_ref == child_info.uid
+    # Covering child_pair.folderish == child_info.folderish
+    # Covering engine.local.is_equal_digests == True
+    # Covering child_pair.local_path == local_path
+    # Covering synced == True
     mock_client = Mock_Local_Client()
     mock_client.exist = True
     mock_client.equal_digest = True
@@ -474,7 +474,7 @@ def test_find_remote_child_match_or_create(manager_factory):
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_remote_file_info = Mock_Remote_File_Info()
     mock_remote_file_info.uid = (
-        "dummy_remote_ref"  # Matching with child_pair.remote_ref
+        "dummy_remote_ref"  # Covering Matching with child_pair.remote_ref
     )
     remote_watcher = RemoteWatcher(engine, dao)
     remote_watcher.dao = mock_dao
@@ -489,15 +489,15 @@ def test_find_remote_child_match_or_create(manager_factory):
             )
             is None
         )
-    # parent_pair.last_error != "DEDUP"
-    # dao.get_normal_state_from_remote == None
-    # child_pair is not None
-    # child_pair.remote_ref is not None
-    # child_pair.remote_ref == child_info.uid
-    # child_pair.folderish == child_info.folderish
-    # engine.local.is_equal_digests == True
-    # child_pair.local_path == local_path
-    # synced == False
+    # Covering parent_pair.last_error != "DEDUP"
+    # Covering dao.get_normal_state_from_remote == None
+    # Covering child_pair is not None
+    # Covering child_pair.remote_ref is not None
+    # Covering child_pair.remote_ref == child_info.uid
+    # Covering child_pair.folderish == child_info.folderish
+    # Covering engine.local.is_equal_digests == True
+    # Covering child_pair.local_path == local_path
+    # Covering synced == False
     mock_client = Mock_Local_Client()
     mock_client.exist = True
     mock_client.equal_digest = True
@@ -509,7 +509,7 @@ def test_find_remote_child_match_or_create(manager_factory):
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_remote_file_info = Mock_Remote_File_Info()
     mock_remote_file_info.uid = (
-        "dummy_remote_ref"  # Matching with child_pair.remote_ref
+        "dummy_remote_ref"  # Covering Matching with child_pair.remote_ref
     )
     remote_watcher = RemoteWatcher(engine, dao)
     remote_watcher.dao = mock_dao
@@ -524,13 +524,13 @@ def test_find_remote_child_match_or_create(manager_factory):
             )
             is None
         )
-    # parent_pair.last_error != "DEDUP"
-    # dao.get_normal_state_from_remote == None
-    # child_pair is not None
-    # child_pair.remote_ref is not None
-    # child_pair.remote_ref == child_info.uid
-    # child_pair.folderish == child_info.folderish
-    # engine.local.is_equal_digests == False
+    # Covering parent_pair.last_error != "DEDUP"
+    # Covering dao.get_normal_state_from_remote == None
+    # Covering child_pair is not None
+    # Covering child_pair.remote_ref is not None
+    # Covering child_pair.remote_ref == child_info.uid
+    # Covering child_pair.folderish == child_info.folderish
+    # Covering engine.local.is_equal_digests == False
     mock_client = Mock_Local_Client()
     mock_client.exist = True
     mock_client.equal_digest = False
@@ -542,7 +542,7 @@ def test_find_remote_child_match_or_create(manager_factory):
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_remote_file_info = Mock_Remote_File_Info()
     mock_remote_file_info.uid = (
-        "dummy_remote_ref"  # Matching with child_pair.remote_ref
+        "dummy_remote_ref"  # Covering Matching with child_pair.remote_ref
     )
     remote_watcher = RemoteWatcher(engine, dao)
     remote_watcher.dao = mock_dao
@@ -563,11 +563,11 @@ def test_handle_readonly(manager_factory):
     manager, engine = manager_factory()
     dao = engine.dao
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
-    # doc_pair.is_readonly == False
+    # Covering doc_pair.is_readonly == False
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     remote_watcher = RemoteWatcher(engine, dao)
     assert remote_watcher._handle_readonly(mock_doc_pair) is None
-    # doc_pair.is_readonly == True
+    # Covering doc_pair.is_readonly == True
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_doc_pair.local_path = Path.cwd() / Path("tests/resources/files/testFile.txt")
     mock_doc_pair.read_only = True
@@ -579,14 +579,14 @@ def test_partial_full_scan(manager_factory):
     manager, engine = manager_factory()
     dao = engine.dao
     remote_watcher = RemoteWatcher(engine, dao)
-    # path == "/"
+    # Covering path == "/"
     mock_path = "/"
     with patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
     ) as mock_scan_remote:
         mock_scan_remote.return_value = None
         assert remote_watcher._partial_full_scan(mock_path) is None
-    # path != "/"
+    # Covering path != "/"
     mock_path = "dummy_path"
     with patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._scan_pair"
@@ -598,12 +598,12 @@ def test_partial_full_scan(manager_factory):
 def test_check_offline(manager_factory):
     manager, engine = manager_factory()
     dao = engine.dao
-    # engine.is_offline == False
+    # Covering engine.is_offline == False
     mock_engine = Mock_Engine()
     remote_watcher = RemoteWatcher(mock_engine, dao)
     assert remote_watcher._check_offline() is False
-    # engine.is_offline == True
-    # online == True
+    # Covering engine.is_offline == True
+    # Covering online == True
     mock_engine = Mock_Engine()
     mock_engine.offline = True
     mock_engine.remote.client.reachable = True
@@ -622,18 +622,18 @@ def test_handle_changes(manager_factory):
     manager, engine = manager_factory()
     dao = engine.dao
     remote_watcher = RemoteWatcher(engine, dao)
-    # not Feature.synchronization
-    # first_pass == True
+    # Covering not Feature.synchronization
+    # Covering first_pass == True
     Feature.synchronization = None
     remote_watcher = RemoteWatcher(engine, dao)
     assert remote_watcher._handle_changes(True) is True
-    # not Feature.synchronization
-    # first_pass == False
+    # Covering not Feature.synchronization
+    # Covering first_pass == False
     Feature.synchronization = None
     remote_watcher = RemoteWatcher(engine, dao)
     assert remote_watcher._handle_changes(False) is False
-    # Feature.synchronization
-    # _check_offline == True
+    # Covering Feature.synchronization
+    # Covering _check_offline == True
     Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
@@ -641,9 +641,9 @@ def test_handle_changes(manager_factory):
     ) as mock_offline:
         mock_offline.return_value = True
         assert remote_watcher._handle_changes(False) is False
-    # Feature.synchronization
-    # _check_offline == False
-    # first_pass == True
+    # Covering Feature.synchronization
+    # Covering _check_offline == False
+    # Covering first_pass == True
     Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
@@ -654,10 +654,10 @@ def test_handle_changes(manager_factory):
         mock_offline.return_value = False
         mock_scan_remote.return_value = None
         assert remote_watcher._handle_changes(True) is True
-    # Feature.synchronization
-    # _check_offline == False
-    # first_pass == False
-    # full_scan is not None
+    # Covering Feature.synchronization
+    # Covering _check_offline == False
+    # Covering first_pass == False
+    # Covering full_scan is not None
     Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     remote_watcher._last_remote_full_scan = datetime.now()
@@ -672,10 +672,10 @@ def test_handle_changes(manager_factory):
         mock_config.return_value = "dummy_config"
         mock_partial_scan.return_value = None
         assert remote_watcher._handle_changes(False) is False
-    # Feature.synchronization
-    # _check_offline == False
-    # first_pass == False
-    # full_scan is None
+    # Covering Feature.synchronization
+    # Covering _check_offline == False
+    # Covering first_pass == False
+    # Covering full_scan is None
     Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     remote_watcher._last_remote_full_scan = datetime.now()
@@ -693,7 +693,7 @@ def test_handle_changes(manager_factory):
         mock_partial_scan.return_value = None
         mock_update_remote_states.return_value = None
         assert remote_watcher._handle_changes(False) is True
-    # BadQuery
+    # Covering BadQuery
     Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
@@ -706,7 +706,7 @@ def test_handle_changes(manager_factory):
         with pytest.raises(BadQuery) as ex:
             remote_watcher._handle_changes(False)
         assert str(ex.exconly()).startswith("nuxeo.exceptions.BadQuery")
-    # ScrollDescendantsError
+    # Covering ScrollDescendantsError
     Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
@@ -719,7 +719,7 @@ def test_handle_changes(manager_factory):
             "Custom ScrollDescendantsError Exception"
         )
         assert remote_watcher._handle_changes(False) is False
-    # Unauthorized
+    # Covering Unauthorized
     Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
@@ -730,7 +730,7 @@ def test_handle_changes(manager_factory):
         mock_offline.return_value = False
         mock_scan_remote.side_effect = Unauthorized()
         assert remote_watcher._handle_changes(False) is False
-    # OSError
+    # Covering OSError
     Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
@@ -741,7 +741,7 @@ def test_handle_changes(manager_factory):
         mock_offline.return_value = False
         mock_scan_remote.side_effect = OSError()
         assert remote_watcher._handle_changes(False) is False
-    # HTTPError
+    # Covering HTTPError
     Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
@@ -751,12 +751,12 @@ def test_handle_changes(manager_factory):
     ) as mock_scan_remote:
         mock_offline.return_value = False
         mock_scan_remote.side_effect = [HTTPError(status=504), HTTPError(status=404)]
-        # status == 504
+        # Covering status == 504
         assert remote_watcher._handle_changes(False) is False
-        # status == 404
+        # Covering status == 404
         assert remote_watcher._handle_changes(False) is False
-    # ThreadInterrupt
-    # Feature.synchronization = True
+    # Covering ThreadInterrupt
+    # Covering Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
@@ -768,7 +768,7 @@ def test_handle_changes(manager_factory):
         with pytest.raises(ThreadInterrupt) as ex:
             remote_watcher._handle_changes(False)
         assert str(ex.exconly()).startswith("nxdrive.exceptions.ThreadInterrupt")
-    # Exception
+    # Covering Exception
     Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
@@ -793,14 +793,14 @@ def test_get_changes(manager_factory):
     dao = engine.dao
     remote_watcher = RemoteWatcher(engine, dao)
     assert isinstance(remote_watcher._get_changes(), dict)
-    # not isinstance(summary, dict)
+    # Covering not isinstance(summary, dict)
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._call_and_measure_gcs"
     ) as mock_measure_gc:
         mock_measure_gc.return_value = []
         assert remote_watcher._get_changes() is None
-    # root_defs is None
+    # Covering root_defs is None
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._call_and_measure_gcs"
@@ -816,16 +816,16 @@ def test_force_remote_scan(manager_factory):
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
     mock_remote_file_info = Mock_Remote_File_Info()
-    # remote_path is None
-    # force_recursion == True
+    # Covering remote_path is None
+    # Covering force_recursion == True
     assert (
         remote_watcher._force_remote_scan(
             mock_doc_pair, mock_remote_file_info, remote_path=None, force_recursion=True
         )
         is None
     )
-    # remote_path is not None
-    # force_recursion == False
+    # Covering remote_path is not None
+    # Covering force_recursion == False
     assert (
         remote_watcher._force_remote_scan(
             mock_doc_pair,
@@ -840,29 +840,29 @@ def test_force_remote_scan(manager_factory):
 def test_update_remote_states(manager_factory):
     manager, engine = manager_factory()
     dao = engine.dao
-    # not summary
+    # Covering not summary
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
     ) as mock_summary:
         mock_summary.return_value = None
         assert remote_watcher._update_remote_states() is None
-    # summary..get("hasTooManyChanges") == True
+    # Covering summary..get("hasTooManyChanges") == True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
     ) as mock_summary:
         mock_summary.return_value = {"hasTooManyChanges": True}
         assert remote_watcher._update_remote_states() is None
-    # not summary.get("fileSystemChanges")
+    # Covering not summary.get("fileSystemChanges")
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
         "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
     ) as mock_summary:
         mock_summary.return_value = {"fileSystemChanges": False}
         assert remote_watcher._update_remote_states() is None
-    # "fileSystemChanges" == True
-    # fs_item is not None and new_info is not None
+    # Covering "fileSystemChanges" == True
+    # Covering fs_item is not None and new_info is not None
     mock_dao = Mock_DAO()
     mock_remote = Mock_Remote()
     remote_watcher = RemoteWatcher(engine, dao)
@@ -898,9 +898,9 @@ def test_update_remote_states(manager_factory):
         mock_from_dict.return_value = "data"
         mock_filtered.side_effect = [True, False]
         assert remote_watcher._update_remote_states() is None
-    # "fileSystemChanges" == True
-    # fs_item is None
-    # doc_pair.last_error == "DEDUP"
+    # Covering "fileSystemChanges" == True
+    # Covering fs_item is None
+    # Covering doc_pair.last_error == "DEDUP"
     mock_dao = Mock_DAO()
     mock_remote = Mock_Remote()
     remote_watcher = RemoteWatcher(engine, dao)
@@ -937,9 +937,9 @@ def test_update_remote_states(manager_factory):
         mock_filtered.side_effect = [True, False]
         mock_void_transfers.return_value = None
         assert remote_watcher._update_remote_states() is None
-    # "fileSystemChanges" == True
-    # fs_item is None
-    # doc_pair.last_error != "DEDUP"
+    # Covering "fileSystemChanges" == True
+    # Covering fs_item is None
+    # Covering doc_pair.last_error != "DEDUP"
     mock_dao = Mock_DAO()
     mock_dao.last_error = "dummy_last_error"
     mock_remote = Mock_Remote()
@@ -977,9 +977,9 @@ def test_update_remote_states(manager_factory):
         mock_filtered.side_effect = [True, False]
         mock_void_transfers.return_value = None
         assert remote_watcher._update_remote_states() is None
-    # "fileSystemChanges" == True
-    # fs_item is None
-    # doc_pair.last_error != "DEDUP"
+    # Covering "fileSystemChanges" == True
+    # Covering fs_item is None
+    # Covering doc_pair.last_error != "DEDUP"
     mock_dao = Mock_DAO()
     mock_remote = Mock_Remote()
     remote_watcher = RemoteWatcher(engine, dao)
