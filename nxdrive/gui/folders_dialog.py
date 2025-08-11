@@ -658,16 +658,10 @@ class FoldersDialog(DialogMixin):
         self.local_path_msg_lbl.setText("")
 
         # Retrieve size limits
-        single_file_limit_mb = Options.direct_transfer_single_file_upper_limit
-        multiple_files_limit_mb = Options.direct_transfer_multiple_file_upper_limit
+        file_limit_mb = Options.direct_transfer_file_upper_limit
         folder_limit_mb = Options.direct_transfer_folder_upper_limit
 
-        single_file_limit = (
-            single_file_limit_mb * 1024 * 1024 if single_file_limit_mb else None
-        )
-        multiple_files_limit = (
-            multiple_files_limit_mb * 1024 * 1024 if multiple_files_limit_mb else None
-        )
+        file_limit = file_limit_mb * 1024 * 1024 if file_limit_mb else None
         folder_limit = folder_limit_mb * 1024 * 1024 if folder_limit_mb else None
 
         current_total_size = sum(self.paths.values())
@@ -675,13 +669,13 @@ class FoldersDialog(DialogMixin):
 
         # Check multiple file size limit if applicable
         all_are_files = all(Path(p).is_file() for p in paths if p)
-        if multiple_files_limit and len(paths) > 1 and all_are_files:
+        if folder_limit and len(paths) > 1 and all_are_files:
             total_selected_size = sum(
                 self.get_size(Path(p))
                 for p in paths
                 if p and self.get_size(Path(p)) > 0
             )
-            if total_selected_size > multiple_files_limit:
+            if total_selected_size > folder_limit:
                 self.local_path_msg_lbl.setText(
                     "Combined file size exceeds limit. All files skipped."
                 )
@@ -706,24 +700,27 @@ class FoldersDialog(DialogMixin):
             if path in self.paths.keys():
                 continue
 
+            initial_total_size = current_total_size
+
             if path.is_dir():
                 current_total_size = self._process_directory(
                     path,
                     current_total_size,
-                    single_file_limit,
+                    file_limit,
                     folder_limit,
                     skipped_items,
                 )
             else:
                 current_total_size = self._process_file(
-                    path, current_total_size, single_file_limit, skipped_items
+                    path, current_total_size, file_limit, skipped_items
                 )
 
             self.last_local_selected_location = path.parent
 
             # If .path is None, then pick the first local path to display something useful
-            if not self.path:
-                self.path = path
+            if current_total_size > initial_total_size:
+                if not self.path:
+                    self.path = path
 
         # Show skipped items if any
         if skipped_items:
@@ -747,7 +744,7 @@ class FoldersDialog(DialogMixin):
         self,
         path: Path,
         current_total_size: int,
-        single_file_limit: int | None,
+        file_limit: int | None,
         folder_limit: int | None,
         skipped_items: list[str],
     ) -> int:
@@ -765,7 +762,7 @@ class FoldersDialog(DialogMixin):
                 if self.get_size(file_path) == 0:
                     continue
 
-                if single_file_limit and size > single_file_limit:
+                if file_limit and size > file_limit:
                     skipped_items.append(file_path.name)
                     continue
 
@@ -785,7 +782,7 @@ class FoldersDialog(DialogMixin):
         self,
         path: Path,
         current_total_size: int,
-        single_file_limit: int | None,
+        file_limit: int | None,
         skipped_items: list[str],
     ) -> int:
         try:
@@ -795,7 +792,7 @@ class FoldersDialog(DialogMixin):
                 return current_total_size
 
             # Skip if file exceeds single file limit
-            if single_file_limit and file_size > single_file_limit:
+            if file_limit and file_size > file_limit:
                 skipped_items.append(path.name)
                 return current_total_size
 

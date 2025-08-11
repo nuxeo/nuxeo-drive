@@ -6,11 +6,9 @@ import pytest
 import requests
 from sentry_sdk import get_isolation_scope
 
-from nxdrive.options import Options
-
 from nxdrive.options import (
-    validate_direct_transfer_single_file_upper_limit,
-    validate_direct_transfer_multiple_file_upper_limit,
+    Options,
+    validate_direct_transfer_file_upper_limit,
     validate_direct_transfer_folder_upper_limit,
 )
 
@@ -372,22 +370,13 @@ def test_sync_root_max_level_validator_good(value_set, final_value):
     assert Options.sync_root_max_level == final_value
 
 
-def test_validate_direct_transfer_single_file_upper_limit():
+def test_validate_direct_transfer_file_upper_limit():
     # Valid cases
-    assert validate_direct_transfer_single_file_upper_limit(0) == 0
-    assert validate_direct_transfer_single_file_upper_limit(500) == 500
+    assert validate_direct_transfer_file_upper_limit(0) == 0
+    assert validate_direct_transfer_file_upper_limit(500) == 500
     # Invalid case
     with pytest.raises(ValueError):
-        validate_direct_transfer_single_file_upper_limit(-10)
-
-
-def test_validate_direct_transfer_multiple_file_upper_limit():
-    # Valid cases
-    assert validate_direct_transfer_multiple_file_upper_limit(1) == 1
-    assert validate_direct_transfer_multiple_file_upper_limit(999) == 999
-    # Invalid case
-    with pytest.raises(ValueError):
-        validate_direct_transfer_multiple_file_upper_limit(-1)
+        validate_direct_transfer_file_upper_limit(-10)
 
 
 def test_validate_direct_transfer_folder_upper_limit():
