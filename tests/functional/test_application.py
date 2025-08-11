@@ -221,6 +221,7 @@ def dialog(app_obj, manager_factory):
     return FoldersDialog(app, engine, None)
 
 
+@not_linux(reason="Qt does not work correctly on linux")
 def test_add_valid_single_file_within_limit(tmp_path, dialog):
     test_file = tmp_path / "file1.txt"
     test_file.write_bytes(b"A" * 1024 * 100)  # 100 KB
@@ -237,6 +238,7 @@ def test_add_valid_single_file_within_limit(tmp_path, dialog):
     assert dialog.paths[test_file] == 102400
 
 
+@not_linux(reason="Qt does not work correctly on linux")
 def test_skip_file_exceeding_limit(tmp_path, dialog):
     test_file = tmp_path / "big_file.txt"
     test_file.write_bytes(b"A" * 1024 * 1024 * 10)  # 10 MB
@@ -253,6 +255,7 @@ def test_skip_file_exceeding_limit(tmp_path, dialog):
     assert "big_file.txt" in dialog.local_path_msg_lbl.text()
 
 
+@not_linux(reason="Qt does not work correctly on linux")
 def test_ignore_zero_byte_file(tmp_path, dialog):
     test_file = tmp_path / "empty.txt"
     test_file.touch()  # Zero-byte
@@ -261,6 +264,7 @@ def test_ignore_zero_byte_file(tmp_path, dialog):
     assert test_file not in dialog.paths
 
 
+@not_linux(reason="Qt does not work correctly on linux")
 def test_duplicate_file_skipped(tmp_path, dialog):
     test_file = tmp_path / "file.txt"
     test_file.write_text("Hello")
@@ -271,6 +275,7 @@ def test_duplicate_file_skipped(tmp_path, dialog):
     assert len(dialog.paths) == 1
 
 
+@not_linux(reason="Qt does not work correctly on linux")
 def test_multiple_files_exceeding_combined_limit(tmp_path, dialog):
     # Create two files: each 6 MB, total = 12 MB
     file1 = tmp_path / "file1.txt"
@@ -292,6 +297,7 @@ def test_multiple_files_exceeding_combined_limit(tmp_path, dialog):
     assert "Combined file size exceeds limit" in dialog.local_path_msg_lbl.text()
 
 
+@not_linux(reason="Qt does not work correctly on linux")
 def test_directory_within_folder_limit(tmp_path, dialog):
     dir_path = tmp_path / "my_folder"
     dir_path.mkdir()
@@ -313,6 +319,7 @@ def test_directory_within_folder_limit(tmp_path, dialog):
     assert (dir_path / "file2.txt") in dialog.paths
 
 
+@not_linux(reason="Qt does not work correctly on linux")
 def test_skip_directory_exceeding_folder_limit(tmp_path, dialog):
     dir_path = tmp_path / "big_folder"
     dir_path.mkdir()
