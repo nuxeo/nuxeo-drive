@@ -237,7 +237,9 @@ class MetaOptions(type):
         "debug_pydev": (False, "default"),
         "delay": (30, "default"),
         "deletion_behavior": ("unsync", "default"),
-        "direct_transfer_upper_limit": (0, "default"),
+        "direct_transfer_single_file_upper_limit": (0, "default"),
+        "direct_transfer_multiple_file_upper_limit": (0, "default"),
+        "direct_transfer_folder_upper_limit": (0, "default"),
         "disabled_file_integrity_check": (False, "default"),
         "disallowed_types_for_dt": (__doctypes_no_dt, "default"),
         "dt_hide_personal_space": (False, "default"),
@@ -631,10 +633,26 @@ def validate_sync_root_max_level_limits(value: int, /) -> int:
     raise ValueError("'sync_root_max_level' must be between 0 and 4 (inclusive).")
 
 
-def validate_direct_transfer_upper_limit(value: int, /) -> int:
+def validate_direct_transfer_single_file_upper_limit(value: int) -> int:
     if value < 0:
         raise ValueError(
-            "'direct_transfer_upper_limit' must be 0 or a positive integer"
+            "'direct_transfer_single_file_upper_limit' must be 0 or a positive integer"
+        )
+    return value
+
+
+def validate_direct_transfer_multiple_file_upper_limit(value: int) -> int:
+    if value < 0:
+        raise ValueError(
+            "'direct_transfer_multiple_file_upper_limit' must be 0 or a positive integer"
+        )
+    return value
+
+
+def validate_direct_transfer_folder_upper_limit(value: int) -> int:
+    if value < 0:
+        raise ValueError(
+            "'direct_transfer_folder_upper_limit' must be 0 or a positive integer"
         )
     return value
 
@@ -667,4 +685,12 @@ Options.checkers["tmp_file_limit"] = validate_tmp_file_limit
 Options.checkers["ca_bundle"] = validate_ca_bundle_path
 Options.checkers["cert_file"] = validate_cert_path
 Options.checkers["cert_key_file"] = validate_cert_path
-Options.checkers["direct_transfer_upper_limit"] = validate_direct_transfer_upper_limit
+Options.checkers[
+    "direct_transfer_single_file_upper_limit"
+] = validate_direct_transfer_single_file_upper_limit
+Options.checkers[
+    "direct_transfer_multiple_file_upper_limit"
+] = validate_direct_transfer_multiple_file_upper_limit
+Options.checkers[
+    "direct_transfer_folder_upper_limit"
+] = validate_direct_transfer_folder_upper_limit

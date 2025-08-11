@@ -662,8 +662,12 @@ class FoldersDialog(DialogMixin):
         multiple_files_limit_mb = Options.direct_transfer_multiple_file_upper_limit
         folder_limit_mb = Options.direct_transfer_folder_upper_limit
 
-        single_file_limit = single_file_limit_mb * 1024 * 1024 if single_file_limit_mb else None
-        multiple_files_limit = multiple_files_limit_mb * 1024 * 1024 if multiple_files_limit_mb else None
+        single_file_limit = (
+            single_file_limit_mb * 1024 * 1024 if single_file_limit_mb else None
+        )
+        multiple_files_limit = (
+            multiple_files_limit_mb * 1024 * 1024 if multiple_files_limit_mb else None
+        )
         folder_limit = folder_limit_mb * 1024 * 1024 if folder_limit_mb else None
 
         current_total_size = sum(self.paths.values())
@@ -673,10 +677,14 @@ class FoldersDialog(DialogMixin):
         all_are_files = all(Path(p).is_file() for p in paths if p)
         if multiple_files_limit and len(paths) > 1 and all_are_files:
             total_selected_size = sum(
-                self.get_size(Path(p)) for p in paths if p and self.get_size(Path(p)) > 0
+                self.get_size(Path(p))
+                for p in paths
+                if p and self.get_size(Path(p)) > 0
             )
             if total_selected_size > multiple_files_limit:
-                self.local_path_msg_lbl.setText("Combined file size exceeds limit. All files skipped.")
+                self.local_path_msg_lbl.setText(
+                    "Combined file size exceeds limit. All files skipped."
+                )
                 log.warning("All files skipped due to multiple file size limit.")
                 return
 
@@ -700,11 +708,15 @@ class FoldersDialog(DialogMixin):
 
             if path.is_dir():
                 current_total_size = self._process_directory(
-                    path, current_total_size, upper_limit_bytes, single_file_limit, folder_limit, skipped_items
+                    path,
+                    current_total_size,
+                    single_file_limit,
+                    folder_limit,
+                    skipped_items,
                 )
             else:
                 current_total_size = self._process_file(
-                    path, current_total_size, upper_limit_bytes, single_file_limit, skipped_items
+                    path, current_total_size, single_file_limit, skipped_items
                 )
 
             self.last_local_selected_location = path.parent
@@ -715,17 +727,18 @@ class FoldersDialog(DialogMixin):
 
         # Show skipped items if any
         if skipped_items:
-            self.local_path_msg_lbl.setText(
-                self._skipped_items_summary(skipped_items, upper_limit_mb)
-            )
+            self.local_path_msg_lbl.setText(self._skipped_items_summary(skipped_items))
             log.warning(
                 "Skipped items due to size limit: [%s]", ", ".join(skipped_items)
             )
         else:
             self.local_path_msg_lbl.setText("")
 
-        # Update labels with new information
-        self.local_path.setText(self._files_display())
+        # Update only if something was added
+        if self.paths:
+            self.local_path.setText(self._files_display())
+        else:
+            self.local_path.clear()
         self.local_paths_size_lbl.setText(sizeof_fmt(self.overall_size))
 
         self.button_ok_state()
@@ -734,7 +747,6 @@ class FoldersDialog(DialogMixin):
         self,
         path: Path,
         current_total_size: int,
-        upper_limit_bytes: int | None,
         single_file_limit: int | None,
         folder_limit: int | None,
         skipped_items: list[str],
@@ -773,7 +785,6 @@ class FoldersDialog(DialogMixin):
         self,
         path: Path,
         current_total_size: int,
-        upper_limit_bytes: int | None,
         single_file_limit: int | None,
         skipped_items: list[str],
     ) -> int:
@@ -818,7 +829,7 @@ class FoldersDialog(DialogMixin):
         )
         self._process_additionnal_local_paths([path])
 
-    def _skipped_items_summary(self, items: list[str], limit_mb: int) -> str:
+    def _skipped_items_summary(self, items: list[str]) -> str:
         """Show up to 2 skipped item names with a (+N) and the reason."""
         count = len(items)
         if count == 0:
@@ -826,7 +837,7 @@ class FoldersDialog(DialogMixin):
         names_part = (
             ", ".join(items) if count <= 2 else f"{items[0]}, {items[1]} (+{count - 2})"
         )
-        return f"Skipping {names_part} - limit of {limit_mb} MB exceeded."
+        return f"Skipping {names_part} - upper limit exceeded."
 
 
 class NewFolderDialog(QDialog):
