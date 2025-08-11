@@ -89,10 +89,14 @@ sign() {
 }
 
 verify_sign() {
-    GPG_KEY_FPR="E660E4095687C2F71F5938D616D39950F9D3F3DF"
+    # Check if GPG_PASSPHRASE is set
+    if [ -z "$GPG_KEY_FPR" ]; then
+        echo ">>> [AppImage] GPG_KEY_FPR is not set"
+        exit 1
+    fi
 
     # Import GPG Public Key from keyserver
-    echo ">>> [AppImage] Importing GPG public key with ID: $GPG_KEY_FPR from keys.openpgp.org"
+    echo ">>> [AppImage] Importing GPG public key from keys.openpgp.org"
     gpg --keyserver hkps://keys.openpgp.org --recv-keys "$GPG_KEY_FPR"
     if [ $? -ne 0 ]; then
         echo ">>> [AppImage] Failed to import GPG public key"
