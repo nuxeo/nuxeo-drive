@@ -6,7 +6,11 @@ import pytest
 import requests
 from sentry_sdk import get_isolation_scope
 
-from nxdrive.options import Options
+from nxdrive.options import (
+    Options,
+    validate_direct_transfer_file_upper_limit,
+    validate_direct_transfer_folder_upper_limit,
+)
 
 # Remove eventual logging callbacks
 with suppress(KeyError):
@@ -364,3 +368,21 @@ def test_disabled_features(caplog):
 def test_sync_root_max_level_validator_good(value_set, final_value):
     Options.sync_root_max_level = value_set
     assert Options.sync_root_max_level == final_value
+
+
+def test_validate_direct_transfer_file_upper_limit():
+    # Valid cases
+    assert validate_direct_transfer_file_upper_limit(0) == 0
+    assert validate_direct_transfer_file_upper_limit(500) == 500
+    # Invalid case
+    with pytest.raises(ValueError):
+        validate_direct_transfer_file_upper_limit(-10)
+
+
+def test_validate_direct_transfer_folder_upper_limit():
+    # Valid cases
+    assert validate_direct_transfer_folder_upper_limit(20) == 20
+    assert validate_direct_transfer_folder_upper_limit(0) == 0
+    # Invalid case
+    with pytest.raises(ValueError):
+        validate_direct_transfer_folder_upper_limit(-100)
