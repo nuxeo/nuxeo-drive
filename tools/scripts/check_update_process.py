@@ -191,15 +191,17 @@ def get_version():
 
         cmd = [str(exe_path), "--version"]
         print(f"[DEBUG] Running command: {cmd}", flush=True)
+        env = os.environ.copy()
+        env["QT_QPA_PLATFORM"] = "offscreen" # Prevent GUI blocking in CI
 
         try:
-            output = subprocess.run(
-                cmd, capture_output=True, text=True).stdout.strip()
-            print(f"[DEBUG] Command output: {output!r}", flush=True)
-            output2 = subprocess.check_output(
+            # output = subprocess.run(
+            #     cmd, capture_output=True, text=True).stdout.strip()
+            # print(f"[DEBUG] Command output: {output!r}", flush=True)
+            output = subprocess.check_output(
                 cmd, text=True, timeout=30, stderr=subprocess.STDOUT
             )
-            print(f"[DEBUG] Command output: {output2!r}", flush=True)
+            print(f"[DEBUG] Command output: {output!r}", flush=True)
             return output
 
         except subprocess.CalledProcessError as exc:
