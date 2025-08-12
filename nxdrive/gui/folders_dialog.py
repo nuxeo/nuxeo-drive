@@ -712,7 +712,7 @@ class FoldersDialog(DialogMixin):
                 )
             else:
                 current_total_size = self._process_file(
-                    path, current_total_size, file_limit, skipped_items
+                    path, current_total_size, file_limit, folder_limit, skipped_items
                 )
 
             self.last_local_selected_location = path.parent
@@ -757,6 +757,11 @@ class FoldersDialog(DialogMixin):
                 skipped_items.append(path.name)
                 return current_total_size
 
+            # Skip if adding this folder would exceed the total size limit
+            if folder_limit and (current_total_size + total_dir_size) > folder_limit:
+                skipped_items.append(path.name)
+                return current_total_size
+
             for file_path, size in files_with_sizes:
                 # ignoring zero byte files [NXDRIVE-2925]
                 if self.get_size(file_path) == 0:
@@ -783,6 +788,7 @@ class FoldersDialog(DialogMixin):
         path: Path,
         current_total_size: int,
         file_limit: int | None,
+        folder_limit: int | None,
         skipped_items: list[str],
     ) -> int:
         try:
@@ -793,6 +799,11 @@ class FoldersDialog(DialogMixin):
 
             # Skip if file exceeds single file limit
             if file_limit and file_size > file_limit:
+                skipped_items.append(path.name)
+                return current_total_size
+
+            # Skip if adding this file would exceed the total size limit
+            if folder_limit and (current_total_size + file_size) > folder_limit:
                 skipped_items.append(path.name)
                 return current_total_size
 
