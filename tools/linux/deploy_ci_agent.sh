@@ -68,14 +68,14 @@ sign() {
     if [ -n "$GPG_PRIVATE_KEY" ]; then
         echo "$GPG_PRIVATE_KEY" | gpg --batch --import
         if [ $? -ne 0 ]; then
-            echo ">>> [AppImage] Failed to import GPG private key"
+            echo ">>> [AppImage] Failed to import GPG private key from GitHub Secrets"
             exit 1
         fi
     fi
 
     # Check if GPG_PASSPHRASE is set
     if [ -z "$GPG_PASSPHRASE" ]; then
-        echo ">>> [AppImage] GPG_PASSPHRASE is not set"
+        echo ">>> [AppImage] GPG_PASSPHRASE is not set in GitHub Secrets"
         exit 1
     fi
 
@@ -91,7 +91,7 @@ sign() {
 verify_sign() {
     # Check if GPG_PASSPHRASE is set
     if [ -z "$GPG_KEY_FPR" ]; then
-        echo ">>> [AppImage] GPG_KEY_FPR is not set"
+        echo ">>> [AppImage] GPG_KEY_FPR is not set in GitHub Secrets"
         exit 1
     fi
 
