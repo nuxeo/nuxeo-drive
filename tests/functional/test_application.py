@@ -59,7 +59,7 @@ def app_obj(manager_factory):
 
 
 @not_linux(reason="Qt does not work correctly on linux")
-def test_application(app_obj, manager_factory):
+def test_application(app_obj, manager_factory, tmp_path):
     from PyQt5.QtCore import QRect
     from PyQt5.QtWidgets import QMessageBox
 
@@ -213,16 +213,11 @@ def test_application(app_obj, manager_factory):
     assert app._handle_nxdrive_url(mock_url) is True
     assert app._handle_nxdrive_url(mock_url2) is True
 
+    # Functional test case written as part of user story : https://hyland.atlassian.net/browse/NXDRIVE-3027
+    # Covering _process_additionnal_local_paths from FoldersDialog
+    dialog = FoldersDialog(app, engine, None)
 
-@pytest.fixture
-def dialog(app_obj, manager_factory):
-    manager, engine = manager_factory()
-    app = app_obj
-    return FoldersDialog(app, engine, None)
-
-
-@not_linux(reason="Qt does not work correctly on linux")
-def test_add_valid_single_file_within_limit(tmp_path, dialog):
+    # Test with a valid single file within the limit
     test_file = tmp_path / "file1.txt"
     test_file.write_bytes(b"A" * 1024 * 100)  # 100 KB
 
@@ -237,9 +232,9 @@ def test_add_valid_single_file_within_limit(tmp_path, dialog):
     assert test_file in dialog.paths
     assert dialog.paths[test_file] == 102400
 
-
-@not_linux(reason="Qt does not work correctly on linux")
-def test_skip_file_exceeding_limit(tmp_path, dialog):
+    # Test with a file exceeding the limit
+    dialog.paths.clear()
+    dialog.local_path_msg_lbl.setText("")
     test_file = tmp_path / "big_file.txt"
     test_file.write_bytes(b"A" * 1024 * 1024 * 10)  # 10 MB
 
@@ -254,18 +249,18 @@ def test_skip_file_exceeding_limit(tmp_path, dialog):
     assert test_file not in dialog.paths
     assert "big_file.txt" in dialog.local_path_msg_lbl.text()
 
-
-@not_linux(reason="Qt does not work correctly on linux")
-def test_ignore_zero_byte_file(tmp_path, dialog):
+    # Test with a zero-byte file
+    dialog.paths.clear()
+    dialog.local_path_msg_lbl.setText("")
     test_file = tmp_path / "empty.txt"
     test_file.touch()  # Zero-byte
 
     dialog._process_additionnal_local_paths([str(test_file)])
     assert test_file not in dialog.paths
 
-
-@not_linux(reason="Qt does not work correctly on linux")
-def test_duplicate_file_skipped(tmp_path, dialog):
+    # Test with a duplicate file
+    dialog.paths.clear()
+    dialog.local_path_msg_lbl.setText("")
     test_file = tmp_path / "file.txt"
     test_file.write_text("Hello")
 
@@ -274,9 +269,9 @@ def test_duplicate_file_skipped(tmp_path, dialog):
     dialog._process_additionnal_local_paths([str(test_file)])
     assert len(dialog.paths) == 1
 
-
-@not_linux(reason="Qt does not work correctly on linux")
-def test_multiple_files_exceeding_combined_limit(tmp_path, dialog):
+    # Test with multiple files exceeding the combined limit
+    dialog.paths.clear()
+    dialog.local_path_msg_lbl.setText("")
     # Create two files: each 6 MB, total = 12 MB
     file1 = tmp_path / "file1.txt"
     file2 = tmp_path / "file2.txt"
@@ -296,9 +291,9 @@ def test_multiple_files_exceeding_combined_limit(tmp_path, dialog):
     assert file2 not in dialog.paths
     assert "Combined file size exceeds limit" in dialog.local_path_msg_lbl.text()
 
-
-@not_linux(reason="Qt does not work correctly on linux")
-def test_directory_within_folder_limit(tmp_path, dialog):
+    # Test with a directory within the folder limit
+    dialog.paths.clear()
+    dialog.local_path_msg_lbl.setText("")
     dir_path = tmp_path / "my_folder"
     dir_path.mkdir()
     (dir_path / "file1.txt").write_bytes(b"A" * 1024 * 100)  # 100 KB
@@ -318,9 +313,9 @@ def test_directory_within_folder_limit(tmp_path, dialog):
     assert (dir_path / "file1.txt") in dialog.paths
     assert (dir_path / "file2.txt") in dialog.paths
 
-
-@not_linux(reason="Qt does not work correctly on linux")
-def test_skip_directory_exceeding_folder_limit(tmp_path, dialog):
+    # Test with a directory exceeding the folder limit
+    dialog.paths.clear()
+    dialog.local_path_msg_lbl.setText("")
     dir_path = tmp_path / "big_folder"
     dir_path.mkdir()
     (dir_path / "file.txt").write_bytes(b"A" * 1024 * 1024 * 10)  # 10 MB
