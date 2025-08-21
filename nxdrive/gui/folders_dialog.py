@@ -348,6 +348,7 @@ class FoldersDialog(DialogMixin):
 
         self.local_path_msg_lbl = QLabel("")
         self.local_path_msg_lbl.setWordWrap(True)
+        self.local_path_msg_lbl.setStyleSheet("color: red;")
 
         hlayout = QHBoxLayout()
         hlayout.setContentsMargins(10, 10, 10, 10)
@@ -676,9 +677,12 @@ class FoldersDialog(DialogMixin):
                 if p and self.get_size(Path(p)) > 0
             )
             if total_selected_size > folder_limit:
-                self.local_path_msg_lbl.setText(
+                self.local_path_msg_lbl.setText(Translator.get("SIZE_LIMIT_FOLDER"))
+                """
+                (
                     "Combined file size exceeds limit. All files skipped."
                 )
+                """
                 log.warning("All files skipped due to multiple file size limit.")
                 return
 
@@ -845,7 +849,8 @@ class FoldersDialog(DialogMixin):
         names_part = (
             ", ".join(items) if count <= 2 else f"{items[0]}, {items[1]} (+{count - 2})"
         )
-        return f"Skipping {names_part} - upper limit exceeded."
+        # return f"Skipping {names_part} - upper limit exceeded."
+        return Translator.get("SIZE_LIMIT_FILE", values=[names_part])
 
 
 class NewFolderDialog(QDialog):
