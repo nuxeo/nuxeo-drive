@@ -6,9 +6,9 @@ authlib==1.3.1 \
     --hash=sha256:7ae843f03c06c5c0debd63c9db91f9fda64fa62a42a77419fa15fbb7e7a58917 \
     --hash=sha256:d35800b973099bbadc49b42b256ecb80041ad56b7fe1216a362c7943c088f377
     # via nuxeo
-boto3==1.37.11 \
-     --hash=sha256:8eec08363ef5db05c2fbf58e89f0c0de6276cda2fdce01e76b3b5f423cd5c0f4 \
-     --hash=sha256:da6c22fc8a7e9bca5d7fc465a877ac3d45b6b086d776bd1a6c55bdde60523741
+boto3==1.40.17 \
+     --hash=sha256:2cacecd689cb51d81fbf54f84b64d0e6e922fbc18ee513c568b9f61caf4221e0 \
+     --hash=sha256:e115dc87d5975d32dfa0ebaf19c39e360665317a350004fa94b03200fe853f2e
     # via nuxeo
 botocore==1.40.17 \
      --hash=sha256:603951935c1a741ae70236bf15725c5293074f28503e7029ad0e24ece476a342 \
