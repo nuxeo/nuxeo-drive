@@ -1365,9 +1365,16 @@ def test_unlock():
 def test_find_real_office_file():
     base_dir = os.path.dirname(os.path.dirname(__file__))
     resources_dir = os.path.join(base_dir, "resources", "files")
-    real_file = os.path.join(resources_dir, "testfile.doc")
+    real_file = os.path.join(resources_dir, "testFile.doc")
 
     lock_file = os.path.join(resources_dir, "~$stFile.doc")
+
+    full_path, filename = nxdrive.utils.find_real_office_file(lock_file)
+
+    assert filename == "testFile.doc"
+    assert os.path.normpath(full_path) == os.path.normpath(real_file)
+
+    lock_file = os.path.join(resources_dir, "~$testFile.doc")
 
     full_path, filename = nxdrive.utils.find_real_office_file(lock_file)
 
@@ -1378,9 +1385,9 @@ def test_find_real_office_file():
 def test_find_real_libreoffice_file():
     base_dir = os.path.dirname(os.path.dirname(__file__))
     resources_dir = os.path.join(base_dir, "resources", "files")
-    real_file = os.path.join(resources_dir, "testfile.odt")
+    real_file = os.path.join(resources_dir, "testFile.odt")
 
-    lock_file = os.path.join(resources_dir, ".~lock.testfile.odt#")
+    lock_file = os.path.join(resources_dir, ".~lock.testFile.odt#")
 
     full_path, filename = nxdrive.utils.find_real_libreoffice_file(lock_file)
 
