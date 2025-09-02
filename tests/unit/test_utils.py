@@ -1371,7 +1371,7 @@ def test_find_real_office_file():
 
     full_path, filename = nxdrive.utils.find_real_office_file(lock_file)
 
-    assert filename == "testfile.doc"
+    assert filename == "testFile.doc"
     assert os.path.normpath(full_path) == os.path.normpath(real_file)
 
 
@@ -1384,5 +1384,5 @@ def test_find_real_libreoffice_file():
 
     full_path, filename = nxdrive.utils.find_real_libreoffice_file(lock_file)
 
-    assert filename == "testfile.odt"
+    assert filename == "testFile.odt"
     assert os.path.normpath(full_path) == os.path.normpath(real_file)
