@@ -1369,7 +1369,7 @@ def test_find_real_office_file():
 
     lock_file = os.path.join(resources_dir, "~$stFile.doc")
 
-    full_path, filename = find_real_office_file(lock_file)
+    full_path, filename = nxdrive.utils.find_real_office_file(lock_file)
 
     assert filename == "testfile.doc"
     assert os.path.normpath(full_path) == os.path.normpath(real_file)
@@ -1382,7 +1382,7 @@ def test_find_real_libreoffice_file():
 
     lock_file = os.path.join(resources_dir, ".~lock.testfile.odt#")
 
-    full_path, filename = find_real_libreoffice_file(lock_file)
+    full_path, filename = nxdrive.utils.find_real_libreoffice_file(lock_file)
 
     assert filename == "testfile.odt"
     assert os.path.normpath(full_path) == os.path.normpath(real_file)
