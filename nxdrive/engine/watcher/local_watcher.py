@@ -23,6 +23,8 @@ from ...options import Options
 from ...qt.imports import pyqtSignal
 from ...utils import (
     current_milli_time,
+    find_real_libreoffice_file,
+    find_real_office_file,
     force_decode,
     is_generated_tmp_file,
     is_large_file,
@@ -1336,11 +1338,11 @@ class DriveFSEventHandler(PatternMatchingEventHandler):
 
             # MS Office lock/temp files
             if filename.startswith("~$"):
-                _f_path, real_filename = self.find_real_office_file(event.src_path)
+                _f_path, real_filename = find_real_office_file(event.src_path)
 
             # OpenOffice/LibreOffice lock files
             elif filename.startswith(".~lock.") and filename.endswith("#"):
-                _f_path, real_filename = self.find_real_libreoffice_file(event.src_path)
+                _f_path, real_filename = find_real_libreoffice_file(event.src_path)
 
             if _f_path:
                     url = self.engine.manager.get_metadata_infos(Path(_f_path))
@@ -1364,28 +1366,3 @@ class DriveFSEventHandler(PatternMatchingEventHandler):
 
         self.watcher.watchdog_queue.put(event)
 
-    def find_real_office_file(self, lock_path: str) -> str | None:
-        folder = os.path.dirname(lock_path)
-        lock_filename = os.path.basename(lock_path)
-
-        _file = lock_filename[2:]
-        _file_path = os.path.join(folder, _file)
-
-        if os.path.exists(_file_path):
-            return _file_path, _file
-
-        # fallback: scan directory for similar extension
-        ext = os.path.splitext(_file)[1]
-        for f in os.listdir(folder):
-            if f.endswith(ext) and not f.startswith("~$"):
-                return os.path.join(folder, f), f
-    
-    def find_real_libreoffice_file (self, lock_path: str) -> str:
-        """
-        Given a LibreOffice/OpenOffice lock file (e.g. '.~lock.Report.odt#'),
-        return the real filename (e.g. 'Report.odt').
-        """
-        folder = os.path.dirname(lock_path)
-        lock_filename = os.path.basename(lock_path)
-        real_filename = lock_filename[len(".~lock."):-1]
-        return os.path.join(folder, real_filename), real_filename

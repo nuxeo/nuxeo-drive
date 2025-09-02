@@ -1360,3 +1360,15 @@ def test_unlock():
         assert pid.unlock() is None
     # Removing pid file after test
     (Path().cwd() / "nxdrive_.pid").unlink(missing_ok=True)
+
+
+def test_find_real_office_file():
+    file_path = self.location / "resources" / "files" / "~$stFile.doc"
+    file_name = nxdrive.utils.find_real_office_file(str(file_path))
+    assert file_name == "testFile.doc"
+
+
+def test_unlock():
+    file_path = self.location / "resources" / "files" / ".~lock.testFile.odt#"
+    file_name = nxdrive.utils.find_real_office_file(str(file_path))
+    assert file_name == "testFile.odt"
