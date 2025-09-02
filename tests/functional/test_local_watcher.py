@@ -1489,6 +1489,10 @@ def test_lock(manager_factory, tmp_path):
     remote = engine.remote
     dao = remote.dao
     local_watcher = LocalWatcher(engine, dao)
+
+    resource_dir = Path(__file__).parent.parent / "resources" / "files"
+    local_watcher.local.base_folder = resource_dir
+
     local_watcher._setup_watchdog()
 
     real_file = tmp_path / "testFile.odt"
