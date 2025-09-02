@@ -1482,6 +1482,8 @@ def test_schedule_win_folder_scan(manager_factory):
 
 
 def test_lock(manager_factory, tmp_path):
+    from watchdog.events import FileCreatedEvent, FileDeletedEvent
+
     manager, engine = manager_factory()
     remote = engine.remote
     dao = remote.dao
