@@ -1363,12 +1363,14 @@ def test_unlock():
 
 
 def test_find_real_office_file():
-    file_path = "tests/resources/files/~$stFile.doc"
-    file_name = nxdrive.utils.find_real_office_file(str(file_path))
+    _file_path = "tests/resources/files/~$stFile.doc"
+    file_path, file_name = nxdrive.utils.find_real_office_file(str(_file_path))
+    assert file_path == "tests/resources/files/testFile.doc"
     assert file_name == "testFile.doc"
 
 
 def test_unlock():
-    file_path = "tests/resources/files/.~lock.testFile.odt#"
-    file_name = nxdrive.utils.find_real_office_file(str(file_path))
+    _file_path = "tests/resources/files/.~lock.testFile.odt#"
+    file_path, file_name = nxdrive.utils.find_real_office_file(str(_file_path))
+    assert file_path == "tests/resources/files/testFile.odt"
     assert file_name == "testFile.odt"
