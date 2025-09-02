@@ -1482,6 +1482,7 @@ def test_schedule_win_folder_scan(manager_factory):
 
 
 def test_lock(manager_factory, tmp_path):
+    from time import time
     from watchdog.events import FileCreatedEvent, FileDeletedEvent
 
     manager, engine = manager_factory()
@@ -1499,3 +1500,6 @@ def test_lock(manager_factory, tmp_path):
 
     event = FileDeletedEvent(str(lock_file))
     local_watcher._event_handler.on_any_event(event)
+
+    time.sleep(5)
+    local_watcher._stop_watchdog()
