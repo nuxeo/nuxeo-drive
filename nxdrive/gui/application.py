@@ -1746,7 +1746,6 @@ class Application(QApplication):
             log.warning(f"Unknown event URL={url}, info={info!r}, path={path!r}")
             return False
 
-        log.info(f"Calling {func}{args}")
         func(*args)
         return True
 

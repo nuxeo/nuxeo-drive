@@ -42,6 +42,82 @@ check() {
     return 0  # <-- Needed, do not remove!
 }
 
+find_appimage() {
+    # Find the AppImage in the dist folder
+    shopt -s nullglob
+    appimage_files=(dist/*-x86_64.AppImage)
+    shopt -u nullglob
+
+    if [ ${#appimage_files[@]} -eq 0 ]; then
+        echo ">>> [AppImage] No AppImage found in the dist folder"
+        exit 1
+    elif [ ${#appimage_files[@]} -gt 1 ]; then
+        echo ">>> [AppImage] Multiple AppImages found in the dist folder:"
+        for f in "${appimage_files[@]}"; do
+            echo "    $f"
+        done
+        echo ">>> [AppImage] Aborting to prevent signing the wrong file."
+        exit 1
+    fi
+
+    appimage_file="${appimage_files[0]}"
+}
+
+sign() {
+    # Import GPG Private Key for signing the AppImage
+    if [ -n "$GPG_PRIVATE_KEY" ]; then
+        echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+        if [ $? -ne 0 ]; then
+            echo ">>> [AppImage] Failed to import GPG private key from GitHub Secrets"
+            exit 1
+        fi
+    fi
+
+    # Check if GPG_PASSPHRASE is set
+    if [ -z "$GPG_PASSPHRASE" ]; then
+        echo ">>> [AppImage] GPG_PASSPHRASE is not set in GitHub Secrets"
+        exit 1
+    fi
+
+    find_appimage
+
+    # Sign the AppImage with a detached signature
+    gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --output "${appimage_file}.sig" --detach-sign "$appimage_file"
+
+    echo ">>> [AppImage] AppImage signed: ${appimage_file}.sig"
+    return 0  # <-- Needed, do not remove!
+}
+
+verify_sign() {
+    # Check if GPG_PASSPHRASE is set
+    if [ -z "$GPG_KEY_FPR" ]; then
+        echo ">>> [AppImage] GPG_KEY_FPR is not set in GitHub Secrets"
+        exit 1
+    fi
+
+    # Import GPG Public Key from keyserver
+    echo ">>> [AppImage] Importing GPG public key from keys.openpgp.org"
+    gpg --keyserver hkps://keys.openpgp.org --recv-keys "$GPG_KEY_FPR"
+    if [ $? -ne 0 ]; then
+        echo ">>> [AppImage] Failed to import GPG public key"
+        exit 1
+    fi
+
+    # Set trust level to ultimate
+    echo "$GPG_KEY_FPR:6:" | gpg --batch --yes --import-ownertrust
+
+    find_appimage
+
+    # Verify the signature
+    gpg --verify "${appimage_file}.sig" "$appimage_file"
+    if [ $? -eq 0 ]; then
+        echo ">>> [AppImage] Signature verification successful"
+    else
+        echo ">>> [AppImage] Signature verification failed"
+        exit 1
+    fi
+}
+
 create_package() {
     # Create the final AppImage
     local app_name="nuxeo-drive"
