@@ -289,7 +289,7 @@ def test_application(app_obj, manager_factory, tmp_path):
 
     assert file1 not in dialog.paths
     assert file2 not in dialog.paths
-    assert "Combined file size exceeds limit" in dialog.local_path_msg_lbl.text()
+    assert "Size limit reached. Latest document(s) removed." in dialog.local_path_msg_lbl.text()
 
     # Test with a directory within the folder limit
     dialog.paths.clear()
