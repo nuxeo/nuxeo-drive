@@ -335,7 +335,7 @@
     "RESTART_NEEDED": "Berrabiaraztea beharrezkoa",
     "RESTART_NEEDED_MSG": "%1 berrabiarazi behar duzu erabiltzen jarraitu ahal izateko.",
     "RESUME": "Berrekin",
-    "REVIEW_DOCUMENT": "Dokumentuaren ikuskapenaren zain %1",
+    "REVIEW_DOCUMENT": "Dokumentuaren ikuskapenaren zain",
     "ROOT_USED_WITH_OTHER_BINDING": "Karpeta hau %1(e)k erabili du, bertako edukia ezabatuko da. Jarraitu nahi duzu? Hala ez bada, egin klik Utzi botoian eta hautatu beste karpeta bat.",
     "ROOT_USED_WITH_OTHER_BINDING_HEADER": "Dagoeneko erabiltzen ari den karpeta bat antzeman da.",
     "RUNNING": "Exekutatzen",
