@@ -678,11 +678,6 @@ class FoldersDialog(DialogMixin):
             )
             if total_selected_size > folder_limit:
                 self.local_path_msg_lbl.setText(Translator.get("SIZE_LIMIT_FOLDER"))
-                """
-                (
-                    "Combined file size exceeds limit. All files skipped."
-                )
-                """
                 log.warning("All files skipped due to multiple file size limit.")
                 return
 
@@ -849,7 +844,6 @@ class FoldersDialog(DialogMixin):
         names_part = (
             ", ".join(items) if count <= 2 else f"{items[0]}, {items[1]} (+{count - 2})"
         )
-        # return f"Skipping {names_part} - upper limit exceeded."
         return Translator.get("SIZE_LIMIT_FILE", values=[names_part])
 
 
