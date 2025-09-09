@@ -48,7 +48,10 @@ class ProcessAutoLockerWorker(PollWorker):
         self._first = True
 
         # Notification signals
-        self.concurrentAlreadyLocked.connect(manager.notification_service._concurrentLocked)
+        self.concurrentAlreadyLocked.connect(
+            manager.notification_service._concurrentLocked
+        )
+
         self.documentLocked.connect(manager.notification_service._lockDocument)
         self.documentUnlocked.connect(manager.notification_service._unlockDocument)
 

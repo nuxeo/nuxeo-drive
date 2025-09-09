@@ -11,7 +11,12 @@ from threading import Lock
 from time import mktime, sleep
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple
 
-from watchdog.events import FileCreatedEvent, FileDeletedEvent, FileSystemEvent, PatternMatchingEventHandler
+from watchdog.events import (
+    FileCreatedEvent,
+    FileDeletedEvent,
+    FileSystemEvent,
+    PatternMatchingEventHandler,
+)
 from watchdog.observers import Observer, api
 
 from ...client.local import FileInfo
@@ -621,11 +626,15 @@ class LocalWatcher(EngineWorker):
         log.info(f"Watching FS modification on {base!r}")
 
         # Filter out all ignored suffixes. It will handle custom ones too.
-        ignore_patterns = [f"*{suffix}" for suffix in Options.ignored_suffixes if "~" not in suffix]
+        ignore_patterns = [
+            f"*{suffix}" for suffix in Options.ignored_suffixes if "~" not in suffix
+        ]
 
         # The contents of the local folder
         self._observer = Observer()
-        self._event_handler = DriveFSEventHandler(self, ignore_patterns=ignore_patterns, engine=self.engine)
+        self._event_handler = DriveFSEventHandler(
+            self, ignore_patterns=ignore_patterns, engine=self.engine
+        )
         self._observer.schedule(self._event_handler, base, recursive=True)
 
         if Feature.synchronization:
@@ -1300,9 +1309,12 @@ class LocalWatcher(EngineWorker):
 
 class DriveFSEventHandler(PatternMatchingEventHandler):
     def __init__(
-        self, watcher: Worker, /, *,
+        self,
+        watcher: Worker,
+        /,
+        *,
         ignore_patterns: List[str] = None,
-        engine: "Engine" = None
+        engine: "Engine" = None,
     ) -> None:
         super().__init__(ignore_patterns=ignore_patterns)
         self.counter = 0
@@ -1345,15 +1357,19 @@ class DriveFSEventHandler(PatternMatchingEventHandler):
                 _f_path, real_filename = find_real_libreoffice_file(event.src_path)
 
             if _f_path:
-                    url = self.engine.manager.get_metadata_infos(Path(_f_path))
-                    doc_id = os.path.basename(url)
+                url = self.engine.manager.get_metadata_infos(Path(_f_path))
+                doc_id = os.path.basename(url)
             if doc_id:
                 self.autolock = self.engine.manager.autolock_service
                 if isinstance(event, FileCreatedEvent):
                     _lock = self.engine.remote.documents.fetch_lock_status(doc_id)
                     if _lock:
-                        log.info(f"{real_filename!r} already locked by {_lock["lockCreated"]!r}")
-                        self.autolock.concurrentAlreadyLocked.emit(real_filename, _lock["lockOwner"])
+                        log.info(
+                            f'{real_filename!r} already locked by {_lock["lockCreated"]!r}'
+                        )
+                        self.autolock.concurrentAlreadyLocked.emit(
+                            real_filename, _lock["lockOwner"]
+                        )
                     else:
                         self.engine.remote.lock(doc_id)
                         self.autolock.documentLocked.emit(real_filename)
@@ -1365,4 +1381,3 @@ class DriveFSEventHandler(PatternMatchingEventHandler):
                     log.info(f"UNLOCKED {real_filename!r}")
 
         self.watcher.watchdog_queue.put(event)
-

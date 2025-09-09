@@ -1421,12 +1421,15 @@ def find_real_office_file(lock_path: str) -> str | None:
         if f.endswith(ext) and not f.startswith("~$"):
             return os.path.join(folder, f), f
 
-def find_real_libreoffice_file (lock_path: str) -> str:
+    return ""
+
+
+def find_real_libreoffice_file(lock_path: str) -> str:
     """
     Given a LibreOffice/OpenOffice lock file (e.g. '.~lock.Report.odt#'),
     return the real filename (e.g. 'Report.odt').
     """
     folder = os.path.dirname(lock_path)
     lock_filename = os.path.basename(lock_path)
-    real_filename = lock_filename[len(".~lock."):-1]
+    real_filename = lock_filename[len(".~lock.") : -1]
     return os.path.join(folder, real_filename), real_filename

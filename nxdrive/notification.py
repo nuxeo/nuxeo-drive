@@ -554,6 +554,7 @@ class DisplayPendingTask(Notification):
 
 class ConcurrentEditingError(Notification):
     """Display a warning notification on concurrent editing"""
+
     def __init__(self, filename: str, lockOwner: str, /) -> None:
         values = [short_name(filename), lockOwner]
         super().__init__(
@@ -590,9 +591,9 @@ class DefaultNotificationService(NotificationService):
             self._direct_transfer_session_finshed
         )
         engine.displayPendingTask.connect(self._display_pending_task)
-    
+
     def _concurrentLocked(self, filename: str, lockOwner: str, /) -> None:
-        """ Display a notification when a Concurrent Editing is encountered"""
+        """Display a notification when a Concurrent Editing is encountered"""
         self.send_notification(ConcurrentEditingError(filename, lockOwner))
 
     def _direct_transfer_error(self, file: Path, /) -> None:
