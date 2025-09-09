@@ -552,6 +552,25 @@ class DisplayPendingTask(Notification):
         )
 
 
+class ConcurrentEditingError(Notification):
+    """Display a warning notification on concurrent editing"""
+
+    def __init__(self, filename: str, lockOwner: str, /) -> None:
+        values = [short_name(filename), lockOwner]
+        super().__init__(
+            uid="CONCURRENT_EDITING",
+            title=Translator.get("CONCURRENT_EDITING_WARNING"),
+            description=Translator.get("CONCURRENT_EDITING_MSG", values=values),
+            level=Notification.LEVEL_WARNING,
+            flags=(
+                Notification.FLAG_VOLATILE
+                | Notification.FLAG_BUBBLE
+                | Notification.FLAG_DISCARD_ON_TRIGGER
+                | Notification.FLAG_REMOVE_ON_DISCARD
+            ),
+        )
+
+
 class DefaultNotificationService(NotificationService):
     def init_signals(self) -> None:
         self._manager.initEngine.connect(self._connect_engine)
@@ -572,6 +591,10 @@ class DefaultNotificationService(NotificationService):
             self._direct_transfer_session_finshed
         )
         engine.displayPendingTask.connect(self._display_pending_task)
+
+    def _concurrentLocked(self, filename: str, lockOwner: str, /) -> None:
+        """Display a notification when a Concurrent Editing is encountered"""
+        self.send_notification(ConcurrentEditingError(filename, lockOwner))
 
     def _direct_transfer_error(self, file: Path, /) -> None:
         """Display a notification when a Direct Transfer is in error."""

@@ -31,6 +31,7 @@ log = getLogger(__name__)
 
 class ProcessAutoLockerWorker(PollWorker):
     orphanLocks = pyqtSignal(object)
+    concurrentAlreadyLocked = pyqtSignal(str, str)
     documentLocked = pyqtSignal(str)
     documentUnlocked = pyqtSignal(str)
 
@@ -47,6 +48,10 @@ class ProcessAutoLockerWorker(PollWorker):
         self._first = True
 
         # Notification signals
+        self.concurrentAlreadyLocked.connect(
+            manager.notification_service._concurrentLocked
+        )
+
         self.documentLocked.connect(manager.notification_service._lockDocument)
         self.documentUnlocked.connect(manager.notification_service._unlockDocument)
 
