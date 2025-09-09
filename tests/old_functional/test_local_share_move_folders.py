@@ -87,8 +87,6 @@ class TestLocalShareMoveFolders(TwoUsersTest):
             summary = original_get_changes(self)
             for event in summary["fileSystemChanges"]:
                 if event["eventId"] == SECURITY_UPDATED_EVENT:
-                    nonlocal src
-                    nonlocal dst
                     shutil.move(src, dst)
             return summary
 
