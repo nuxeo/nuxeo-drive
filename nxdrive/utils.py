@@ -1401,7 +1401,7 @@ def adapt_datetime_iso(val: datetime, /) -> Any:
     return val.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def find_real_office_file(lock_path: str) -> str | None:
+def find_real_office_file(lock_path: str) -> tuple[str, str]:
     """
     Given a MS Office lock file (e.g. '~$go.docx'),
     return the real filename (e.g. 'go.docx').
@@ -1421,10 +1421,10 @@ def find_real_office_file(lock_path: str) -> str | None:
         if f.endswith(ext) and not f.startswith("~$"):
             return os.path.join(folder, f), f
 
-    return ""
+    return "", ""
 
 
-def find_real_libreoffice_file(lock_path: str) -> str:
+def find_real_libreoffice_file(lock_path: str) -> tuple[str, str]:
     """
     Given a LibreOffice/OpenOffice lock file (e.g. '.~lock.Report.odt#'),
     return the real filename (e.g. 'Report.odt').
