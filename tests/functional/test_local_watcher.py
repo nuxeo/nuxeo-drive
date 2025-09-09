@@ -1479,32 +1479,3 @@ def test_schedule_win_folder_scan(manager_factory):
         Path("dummy_local_path"): (10.0, mock_doc_pair)
     }
     assert local_watcher._schedule_win_folder_scan(mock_doc_pair) is None
-
-"""
-def test_DriveFSEventHandler(manager_factory, tmp_path):
-    from time import time
-    from watchdog.events import FileCreatedEvent, FileDeletedEvent
-
-    manager, engine = manager_factory()
-    remote = engine.remote
-    dao = remote.dao
-    local_watcher = LocalWatcher(engine, dao)
-
-    resource_dir = Path(__file__).parent.parent / "resources" / "files"
-    local_watcher.local.base_folder = resource_dir
-
-    local_watcher._setup_watchdog()
-
-    real_file = tmp_path / "testFile.odt"
-    real_file.write_text("dummy")
-    lock_file = tmp_path / ".~lock.testfile.odt#"
-
-    event = FileCreatedEvent(str(lock_file))
-    local_watcher._event_handler.on_any_event(event)
-
-    event = FileDeletedEvent(str(lock_file))
-    local_watcher._event_handler.on_any_event(event)
-
-    time.sleep(5)
-    local_watcher._stop_watchdog()
-"""
