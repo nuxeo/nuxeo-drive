@@ -1333,7 +1333,7 @@ class DriveFSEventHandler(PatternMatchingEventHandler):
 
     def on_any_event(self, event: FileSystemEvent, /) -> None:
         self.counter += 1
-        log.info(f"Queueing watchdog: {event!r}")
+        log.debug(f"Queueing watchdog: {event!r}")
 
         # check if the event is FileModifiedEvent and next event is FileCreatedEvent
         # check if two filenames are same (not first 2 letters)
