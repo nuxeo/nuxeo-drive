@@ -15,6 +15,7 @@ from PyQt5.QtCore import QObject
 from nxdrive.constants import WINDOWS
 from nxdrive.gui.api import QMLDriveApi
 from nxdrive.gui.application import Application
+from nxdrive.gui.folders_dialog import FoldersDialog
 from nxdrive.options import Options
 from tests.functional.mocked_classes import Mock_Engine, Mock_Qt
 
@@ -58,7 +59,7 @@ def app_obj(manager_factory):
 
 
 @not_linux(reason="Qt does not work correctly on linux")
-def test_application(app_obj, manager_factory):
+def test_application(app_obj, manager_factory, tmp_path):
     from PyQt5.QtCore import QRect
     from PyQt5.QtWidgets import QMessageBox
 
@@ -211,3 +212,127 @@ def test_application(app_obj, manager_factory):
     mock_url2 = f"nxdrive://direct-transfer/{engine.local_folder}"
     assert app._handle_nxdrive_url(mock_url) is True
     assert app._handle_nxdrive_url(mock_url2) is True
+
+    # Functional test case written as part of user story : https://hyland.atlassian.net/browse/NXDRIVE-3027
+    # Covering _process_additionnal_local_paths from FoldersDialog
+    dialog = FoldersDialog(app, engine, None)
+
+    # Test with a valid single file within the limit
+    test_file = tmp_path / "file1.txt"
+    test_file.write_bytes(b"A" * 1024 * 100)  # 100 KB
+
+    original_limit = Options.direct_transfer_file_upper_limit
+    Options.direct_transfer_file_upper_limit = 1  # MB
+
+    try:
+        dialog._process_additionnal_local_paths([str(test_file)])
+    finally:
+        Options.direct_transfer_file_upper_limit = original_limit
+
+    assert test_file in dialog.paths
+    assert dialog.paths[test_file] == 102400
+
+    # Test with a file exceeding the limit
+    dialog.paths.clear()
+    dialog.local_path_msg_lbl.setText("")
+    test_file = tmp_path / "big_file.txt"
+    test_file.write_bytes(b"A" * 1024 * 1024 * 10)  # 10 MB
+
+    original_limit = Options.direct_transfer_file_upper_limit
+    Options.direct_transfer_file_upper_limit = 5  # MB
+
+    try:
+        dialog._process_additionnal_local_paths([str(test_file)])
+    finally:
+        Options.direct_transfer_file_upper_limit = original_limit
+
+    assert test_file not in dialog.paths
+    assert "big_file.txt" in dialog.local_path_msg_lbl.text()
+
+    # Test with a zero-byte file
+    dialog.paths.clear()
+    dialog.local_path_msg_lbl.setText("")
+    test_file = tmp_path / "empty.txt"
+    test_file.touch()  # Zero-byte
+
+    dialog._process_additionnal_local_paths([str(test_file)])
+    assert test_file not in dialog.paths
+
+    # Test with a duplicate file
+    dialog.paths.clear()
+    dialog.local_path_msg_lbl.setText("")
+    test_file = tmp_path / "file.txt"
+    test_file.write_text("Hello")
+
+    dialog.paths[test_file] = 5  # Already added
+
+    dialog._process_additionnal_local_paths([str(test_file)])
+    assert len(dialog.paths) == 1
+
+    # Test with multiple files exceeding the combined limit
+    dialog.paths.clear()
+    dialog.local_path_msg_lbl.setText("")
+    # Create two files: each 6 MB, total = 12 MB
+    file1 = tmp_path / "file1.txt"
+    file2 = tmp_path / "file2.txt"
+    file1.write_bytes(b"A" * 1024 * 1024 * 6)
+    file2.write_bytes(b"A" * 1024 * 1024 * 6)
+
+    # Set the combined multiple files size limit to 10 MB
+    original_limit = Options.direct_transfer_file_upper_limit
+    Options.direct_transfer_folder_upper_limit = 10  # MB
+
+    try:
+        dialog._process_additionnal_local_paths([str(file1), str(file2)])
+    finally:
+        Options.direct_transfer_folder_upper_limit = original_limit
+
+    assert file1 not in dialog.paths
+    assert file2 not in dialog.paths
+    assert (
+        "Size limit reached. Latest document(s) removed."
+        in dialog.local_path_msg_lbl.text()
+    )
+
+    # Test with a directory within the folder limit
+    dialog.paths.clear()
+    dialog.local_path_msg_lbl.setText("")
+    dir_path = tmp_path / "my_folder"
+    dir_path.mkdir()
+    (dir_path / "file1.txt").write_bytes(b"A" * 1024 * 100)  # 100 KB
+    (dir_path / "file2.txt").write_bytes(b"A" * 1024 * 200)  # 200 KB
+
+    files = [(dir_path / "file1.txt", 102400), (dir_path / "file2.txt", 204800)]
+
+    with patch("nxdrive.gui.folders_dialog.get_tree_list", return_value=files):
+        original_limit = Options.direct_transfer_folder_upper_limit
+        Options.direct_transfer_folder_upper_limit = 5  # MB
+
+        try:
+            dialog._process_additionnal_local_paths([str(dir_path)])
+        finally:
+            Options.direct_transfer_folder_upper_limit = original_limit
+
+    assert (dir_path / "file1.txt") in dialog.paths
+    assert (dir_path / "file2.txt") in dialog.paths
+
+    # Test with a directory exceeding the folder limit
+    dialog.paths.clear()
+    dialog.local_path_msg_lbl.setText("")
+    dir_path = tmp_path / "big_folder"
+    dir_path.mkdir()
+    (dir_path / "file.txt").write_bytes(b"A" * 1024 * 1024 * 10)  # 10 MB
+
+    files = [(dir_path / "file.txt", 10 * 1024 * 1024)]
+
+    with patch("nxdrive.gui.folders_dialog.get_tree_list", return_value=files):
+        original_limit = Options.direct_transfer_folder_upper_limit
+        Options.direct_transfer_folder_upper_limit = 5  # MB
+
+        try:
+            dialog._process_additionnal_local_paths([str(dir_path)])
+        finally:
+            Options.direct_transfer_folder_upper_limit = original_limit
+
+    assert not dialog.paths
+    assert "big_folder" in dialog.local_path_msg_lbl.text()

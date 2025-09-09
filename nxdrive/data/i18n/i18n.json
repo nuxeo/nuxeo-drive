@@ -371,6 +371,8 @@
     "SHARE_METRICS_TITLE": "%1 - Share debug info with developers",
     "SHOW_ACTIVITY_WINDOW": "Show activity window",
     "SHOW_FILE_STATUS": "Show file status",
+    "SIZE_LIMIT_FILE": "Size limit reached. \"%1\" removed.",
+    "SIZE_LIMIT_FOLDER": "Size limit reached. Latest document(s) removed.",
     "SOURCE_FILES": "Source file(s):",
     "SOURCE_LINK": "See the source",
     "SUCCESS": "Success",
