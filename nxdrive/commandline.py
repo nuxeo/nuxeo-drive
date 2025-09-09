@@ -601,7 +601,6 @@ class CliHandler:
         from .utils import PidLockFile
 
         global RETRY
-        global MAX_RETRIES
 
         lock = PidLockFile(self.manager.home, "qt")
         pid = lock.lock()

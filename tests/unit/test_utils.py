@@ -11,8 +11,8 @@ import pytest
 
 import nxdrive.utils
 from nxdrive.constants import APP_NAME, MAC, WINDOWS, DigestStatus
-from nxdrive.options import Options
 from nxdrive.dao.utils import dump
+from nxdrive.options import Options
 
 from ..markers import linux_only, not_windows, windows_only
 
@@ -419,7 +419,12 @@ def test_request_verify_ca_bundle_file(caplog, tmp_path):
     assert "Will use the final certificate from" in records[0]
     assert final_certificate.name in records[0]
 
-    # Test ssl_no_verify is True
+    # Test Options.ssl_no_verify is True and ssl_no_verify is True
+    Options.ssl_no_verify = True
+    assert not nxdrive.utils.requests_verify(ca_bundle, True)
+
+    # Test Options.ssl_no_verify is False and ssl_no_verify is True
+    Options.ssl_no_verify = False
     assert not nxdrive.utils.requests_verify(ca_bundle, True)
 
     # Test ca_bundle is None
