@@ -2,9 +2,11 @@ from contextlib import suppress
 from copy import deepcopy
 from logging import getLogger
 from pathlib import Path
+from time import sleep
 from typing import TYPE_CHECKING, Dict, Iterable, Iterator
 
 import psutil
+import traceback
 
 from .constants import LINUX, MAC, WINDOWS
 from .engine.workers import PollWorker
@@ -31,7 +33,6 @@ log = getLogger(__name__)
 
 class ProcessAutoLockerWorker(PollWorker):
     orphanLocks = pyqtSignal(object)
-    concurrentAlreadyLocked = pyqtSignal(str, str)
     documentLocked = pyqtSignal(str)
     documentUnlocked = pyqtSignal(str)
 
@@ -48,10 +49,6 @@ class ProcessAutoLockerWorker(PollWorker):
         self._first = True
 
         # Notification signals
-        self.concurrentAlreadyLocked.connect(
-            manager.notification_service._concurrentLocked
-        )
-
         self.documentLocked.connect(manager.notification_service._lockDocument)
         self.documentUnlocked.connect(manager.notification_service._unlockDocument)
 
@@ -122,6 +119,9 @@ class ProcessAutoLockerWorker(PollWorker):
                 # that opens the document does not use identifiable temporary files.
                 # Such as Photoshop and Illustrator.
                 self.set_autolock(path, self.direct_edit)
+        log.info("Sleeping for 10 seconds after for loop")
+        sleep(10)
+        log.info("Sleep completed")
 
         # Lock new documents
         if self._to_lock:
@@ -173,15 +173,26 @@ def get_open_files() -> Iterator[Item]:
     # Let's skip all errors at the top the the code.
     # It would be an endless fight to catch specific errors only.
     # Here, it is typically MemoryError's.
+    log.info(f"traceback from get_open_files : {traceback.extract_stack}")
     try:
         for proc in psutil.process_iter(attrs=["pid"]):
+            log.info("Inside psutil.process_iter loop")
             # But we also want to filter out errors by processor to be able to retrieve some data from others
             with suppress(Exception):
                 for handler in proc.open_files():
+                    log.info("Inside proc.open_files loop")
                     # And so for errors happening at the processes level (typically PermissisonError's)
                     with suppress(Exception):
+                        log.info(f"pid : {proc.pid}, handler.path : {handler.path}")
                         yield proc.pid, Path(handler.path)
-    except Exception:
+            log.info("Initiating cache clear")
+            psutil.process_iter.cache_clear()
+            log.info("Cache clearing complete")
+    except Exception as ex:
+        log.info(f"autolocker exception >>>>>>>> {ex}")
         log.warning("Cannot get opened files", exc_info=True)
+        log.info("Sleeping for 10 seconds after exception")
+        sleep(10)
+        log.info("Sleep completed")
 
     yield from get_other_opened_files()
