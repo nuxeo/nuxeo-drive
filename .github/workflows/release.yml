@@ -32,7 +32,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, 'macos-13']
+        os: [ubuntu-latest, windows-2022, 'macos-13']
 
     steps:
       - name: Checkout
@@ -173,22 +173,22 @@ jobs:
       # Windows
       #
       - name: "[Windows] Unlock PowerShell"
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-2022'
         run: powershell Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
 
       - name: "[Windows] Setup the environment"
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-2022'
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
 
       - name: Setup Certificate
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-2022'
         run: |
            echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
            cat  /d/Certificate_pkcs12.p12
         shell: bash
 
       - name: Set variables
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-2022'
         id: variables
         run: |
           dir
@@ -207,7 +207,7 @@ jobs:
         shell: bash
 
       - name: Setup Keylocker KSP on windows
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-2022'
         run: |
           curl -X GET  https://one.digicert.com/signingmanager/api-ui/v1/releases/Keylockertools-windows-x64.msi/download -H "x-api-key:%SM_API_KEY%" -o Keylockertools-windows-x64.msi
           msiexec /i Keylockertools-windows-x64.msi /quiet /qn
@@ -217,20 +217,20 @@ jobs:
         shell: cmd
 
       - name: Certificates Sync
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-2022'
         run: |
            smctl windows certsync --keypair-alias=${{ secrets.SM_KEYPAIR_ALIAS }}
         shell: cmd
 
       - name: Health status
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-2022'
         run: |
            smctl healthcheck
         shell: cmd
 
       - name: "[Windows] Generate the .exe and validate against 2023"
         timeout-minutes: 15
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-2022'
         env:
           SIGN_EXE: github.event.inputs.signExe
           KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
@@ -244,7 +244,7 @@ jobs:
 
       - name: "[Windows] Generate the .exe and validate against 2025"
         timeout-minutes: 15
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-2022'
         env:
           SIGN_EXE: github.event.inputs.signExe
           KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
