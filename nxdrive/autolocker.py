@@ -86,6 +86,7 @@ class ProcessAutoLockerWorker(PollWorker):
         current_locks = deepcopy(self._autolocked)
 
         for pid, path in get_open_files():
+            log.info(f"Inside for loop _process method: {pid}, {path}")
             # Filter out files depending on configured ignored patterns
             if path.name.startswith(Options.ignored_prefixes) or path.name.endswith(
                 Options.ignored_suffixes
@@ -173,7 +174,7 @@ def get_open_files() -> Iterator[Item]:
     # Let's skip all errors at the top the the code.
     # It would be an endless fight to catch specific errors only.
     # Here, it is typically MemoryError's.
-    log.info(f"traceback from get_open_files : {traceback.extract_stack}")
+    log.info(f"traceback from get_open_files : {traceback.extract_stack()}")
     try:
         for proc in psutil.process_iter(attrs=["pid"]):
             log.info("Inside psutil.process_iter loop")
