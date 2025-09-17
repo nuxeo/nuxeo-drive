@@ -187,7 +187,7 @@ def get_open_files() -> Iterator[Item]:
                         log.info(f"pid : {proc.pid}, handler.path : {handler.path}")
                         yield proc.pid, Path(handler.path)
             log.info("Initiating cache clear")
-            psutil.process_iter.cache_clear()
+            psutil.process_iter().cache_clear()
             log.info("Cache clearing complete")
     except Exception as ex:
         log.info(f"autolocker exception >>>>>>>> {ex}")
