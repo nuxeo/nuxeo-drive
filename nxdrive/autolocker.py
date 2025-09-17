@@ -1,9 +1,11 @@
+import ctypes
 from contextlib import suppress
 from copy import deepcopy
+from ctypes import wintypes
 from logging import getLogger
 from pathlib import Path
 from time import sleep
-from typing import TYPE_CHECKING, Dict, Iterable, Iterator
+from typing import TYPE_CHECKING, Dict, Iterable, Iterator, Optional
 
 import psutil
 
@@ -28,6 +30,62 @@ elif WINDOWS:
 __all__ = ("ProcessAutoLockerWorker",)
 
 log = getLogger(__name__)
+
+
+def get_clipboard_owner_process_name() -> Optional[str]:
+    """
+    Get the name of the process that currently owns the Windows clipboard.
+
+    Returns:
+        str: The process name (e.g., 'notepad.exe') or None if not found
+    """
+    if not WINDOWS:
+        return None
+
+    try:
+        # Get handle to clipboard owner window
+        user32 = ctypes.windll.user32
+        kernel32 = ctypes.windll.kernel32
+
+        # Get the window that currently owns the clipboard
+        clipboard_owner_hwnd = user32.GetClipboardOwner()
+        if not clipboard_owner_hwnd:
+            return None
+
+        # Get the process ID of the window owner
+        process_id = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(clipboard_owner_hwnd, ctypes.byref(process_id))
+
+        if not process_id.value:
+            return None
+
+        # Get process handle
+        process_handle = kernel32.OpenProcess(
+            0x0400 | 0x0010,  # PROCESS_QUERY_INFORMATION | PROCESS_VM_READ
+            False,
+            process_id.value,
+        )
+
+        if not process_handle:
+            return None
+
+        try:
+            # Get the process name using GetModuleFileNameEx
+            buffer_size = 260  # MAX_PATH
+            buffer = ctypes.create_unicode_buffer(buffer_size)
+
+            psapi = ctypes.windll.psapi
+            if psapi.GetModuleFileNameExW(process_handle, None, buffer, buffer_size):
+                full_path = buffer.value
+                return full_path.split("\\")[-1]  # Extract just the filename
+
+        finally:
+            kernel32.CloseHandle(process_handle)
+
+    except Exception as e:
+        log.warning(f"Error getting clipboard owner: {e}")
+
+    return None
 
 
 class ProcessAutoLockerWorker(PollWorker):
@@ -82,6 +140,13 @@ class ProcessAutoLockerWorker(PollWorker):
         self.dao.unlock_path(path)
 
     def _process(self) -> None:
+        # Log current clipboard owner process
+        clipboard_owner = get_clipboard_owner_process_name()
+        if clipboard_owner:
+            log.info(f"Current clipboard owner: {clipboard_owner}")
+        else:
+            log.info("No clipboard owner detected")
+
         current_locks = deepcopy(self._autolocked)
 
         for pid, path in get_open_files():
