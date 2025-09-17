@@ -4,7 +4,7 @@ from copy import deepcopy
 from ctypes import wintypes
 from logging import getLogger
 from pathlib import Path
-from time import sleep
+from time import sleep, time
 from typing import TYPE_CHECKING, Dict, Iterable, Iterator, Optional
 
 import psutil
@@ -88,6 +88,31 @@ def get_clipboard_owner_process_name() -> Optional[str]:
     return None
 
 
+def release_clipboard() -> bool:
+    """
+    Release the clipboard by clearing it.
+
+    Returns:
+        bool: True if clipboard was successfully released, False otherwise
+    """
+    if not WINDOWS:
+        return False
+
+    try:
+        import win32clipboard
+
+        win32clipboard.OpenClipboard()
+        win32clipboard.EmptyClipboard()
+        win32clipboard.CloseClipboard()
+
+        log.info("Clipboard released successfully")
+        return True
+
+    except Exception as e:
+        log.warning(f"Error releasing clipboard: {e}")
+        return False
+
+
 class ProcessAutoLockerWorker(PollWorker):
     orphanLocks = pyqtSignal(object)
     documentLocked = pyqtSignal(str)
@@ -104,6 +129,10 @@ class ProcessAutoLockerWorker(PollWorker):
         self._lockers: Dict[Path, "DirectEdit"] = {}
         self._to_lock: Items = []
         self._first = True
+
+        # Clipboard tracking variables
+        self._clipboard_owner_start_time: Optional[float] = None
+        self._last_clipboard_owner: Optional[str] = None
 
         # Notification signals
         self.documentLocked.connect(manager.notification_service._lockDocument)
@@ -140,17 +169,54 @@ class ProcessAutoLockerWorker(PollWorker):
         self.dao.unlock_path(path)
 
     def _process(self) -> None:
-        # Log current clipboard owner process
-        clipboard_owner = get_clipboard_owner_process_name()
-        if clipboard_owner:
-            log.info(f"Current clipboard owner: {clipboard_owner}")
-        else:
-            log.info("No clipboard owner detected")
 
         current_locks = deepcopy(self._autolocked)
 
         for pid, path in get_open_files():
             log.info(f"Inside for loop _process method: {pid}, {path}")
+            # Log current clipboard owner process
+            clipboard_owner = get_clipboard_owner_process_name()
+            if clipboard_owner:
+                log.info(f"Last known clipboard owner: {clipboard_owner}")
+
+                # Check if clipboard is owned by nuxeo drive and handle 10-second timeout
+                if clipboard_owner.lower() in (
+                    "ndrive.exe",
+                    "nuxeo-drive.exe",
+                    "ndrive",
+                    "nuxeo-drive",
+                ):
+                    current_time = time()
+
+                    if self._last_clipboard_owner != clipboard_owner:
+                        # New nuxeo drive clipboard ownership detected
+                        self._clipboard_owner_start_time = current_time
+                        self._last_clipboard_owner = clipboard_owner
+                        log.info(
+                            f"Nuxeo Drive took clipboard ownership at {current_time}"
+                        )
+                    elif self._clipboard_owner_start_time is not None:
+                        # Check if nuxeo drive has held clipboard for 10 seconds
+                        elapsed_time = current_time - self._clipboard_owner_start_time
+                        if elapsed_time >= 10.0:
+                            log.warning(
+                                f"Nuxeo Drive has held clipboard for {elapsed_time:.1f} seconds, releasing..."
+                            )
+                            if release_clipboard():
+                                self._clipboard_owner_start_time = None
+                                self._last_clipboard_owner = None
+                            else:
+                                log.error("Failed to release clipboard")
+                else:
+                    # Different owner, reset tracking
+                    if self._last_clipboard_owner != clipboard_owner:
+                        self._clipboard_owner_start_time = None
+                        self._last_clipboard_owner = clipboard_owner
+            else:
+                log.info("No clipboard owner detected")
+                # No owner, reset tracking
+                self._clipboard_owner_start_time = None
+                self._last_clipboard_owner = None
             # Filter out files depending on configured ignored patterns
             if path.name.startswith(Options.ignored_prefixes) or path.name.endswith(
                 Options.ignored_suffixes
@@ -252,7 +318,7 @@ def get_open_files() -> Iterator[Item]:
                         log.info(f"pid : {proc.pid}, handler.path : {handler.path}")
                         yield proc.pid, Path(handler.path)
             log.info("Initiating cache clear")
-            psutil.process_iter().cache_clear()
+            psutil.process_iter.cache_clear()
             log.info("Cache clearing complete")
     except Exception as ex:
         log.info(f"autolocker exception >>>>>>>> {ex}")
