@@ -402,19 +402,19 @@ function install_python {
 	Write-Output ">>> Installed Python $Env:PYTHON_DRIVE_VERSION into $Env:PYTHON_DIR"
 
 
-	if (Test-Path $Env:PYTHON_DIR) {
-        Write-Output ">>> PYTHON_DIR exists at: $Env:PYTHON_DIR"
-        Write-Output ">>> Contents of PYTHON_DIR:"
-        Get-ChildItem -Path $Env:PYTHON_DIR | ForEach-Object {
-            if ($_.PSIsContainer) {
-                Write-Output "  [DIR]  $($_.Name)"
-            } else {
-                Write-Output "  [FILE] $($_.Name)"
-            }
-        }
-    } else {
-        Write-Output ">>> PYTHON_DIR does not exist at: $Env:PYTHON_DIR"
-    }
+	# if (Test-Path $Env:PYTHON_DIR) {
+    #     Write-Output ">>> PYTHON_DIR exists at: $Env:PYTHON_DIR"
+    #     Write-Output ">>> Contents of PYTHON_DIR:"
+    #     Get-ChildItem -Path $Env:PYTHON_DIR | ForEach-Object {
+    #         if ($_.PSIsContainer) {
+    #             Write-Output "  [DIR]  $($_.Name)"
+    #         } else {
+    #             Write-Output "  [FILE] $($_.Name)"
+    #         }
+    #     }
+    # } else {
+    #     Write-Output ">>> PYTHON_DIR does not exist at: $Env:PYTHON_DIR"
+    # }
 
 	# Fix a bloody issue ... !
 	New-Item -Path $Env:STORAGE_DIR -Name Scripts -ItemType directory -Verbose
@@ -425,6 +425,7 @@ function install_python {
 
 	if (Test-Path $vcDllFromPythonDir) {
 		Write-Output ">>> Found vcruntime140.dll in PYTHON_DIR"
+	}
 	elseif (Test-Path $vcDllFromPythonLocation) {
 		Write-Output ">>> Found vcruntime140.dll in PythonLocation"
 		Copy-Item $vcDllFromPythonLocation "$Env:STORAGE_DIR\Scripts" -Verbose
