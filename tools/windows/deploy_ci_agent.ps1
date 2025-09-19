@@ -373,9 +373,9 @@ function install_python {
 	download $url $output
 
 	if (Test-Path $output){
-		Write-Output ">>>> present $output"
+		Write-Output ">>>> present output"
 	} else {
-		Write-Output ">>>> absent $output"
+		Write-Output ">>>> absent output"
 	}
 
 	Write-Output ">>> Installing Python $Env:PYTHON_DRIVE_VERSION into $Env:PYTHON_DIR"
