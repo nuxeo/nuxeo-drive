@@ -212,14 +212,19 @@ function check_vars {
 		$Env:PYTHON_DRIVE_VERSION = '3.13.1'  # XXX_PYTHON
 	}
 	if (-Not ($Env:WORKSPACE)) {
+		Write-Output ">>>> not workspace"
 		if ($Env:GITHUB_WORKSPACE) {
+			Write-Output ">>>> GITHUB_WORKSPACE $Env:GITHUB_WORKSPACE"
 			# Running from GitHub Actions
 			$Env:WORKSPACE = (Get-Item $Env:GITHUB_WORKSPACE).parent.FullName
+			Write-Output ">>>> new workspace $Env:WORKSPACE"
 		}
 		else {
 			Write-Output ">>> WORKSPACE not defined. Aborting."
 			ExitWithCode 1
 		}
+	} else {
+		Write-Output ">>>> workspace $Env:WORKSPACE"
 	}
 	if (-Not ($Env:WORKSPACE_DRIVE)) {
 		if (Test-Path "$($Env:WORKSPACE)\sources") {
