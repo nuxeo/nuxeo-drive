@@ -425,6 +425,7 @@ function install_python {
 
 	if (Test-Path $vcDllFromPythonDir) {
 		Write-Output ">>> Found vcruntime140.dll in PYTHON_DIR"
+		dir
 		Get-ChildItem -Path $Env:PYTHON_DIR | ForEach-Object {
 			Write-Output ">>>> name: $($_.Name)"
 		}
