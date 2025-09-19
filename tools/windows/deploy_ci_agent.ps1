@@ -425,12 +425,6 @@ function install_python {
 
 	if (Test-Path $vcDllFromPythonDir) {
 		Write-Output ">>> Found vcruntime140.dll in PYTHON_DIR"
-		dir
-		Get-ChildItem -Path $Env:PYTHON_DIR | ForEach-Object {
-			Write-Output ">>>> name: $($_.Name)"
-		}
-		Copy-Item $vcDllFromPythonDir "$Env:STORAGE_DIR\Scripts" -Verbose
-	}
 	elseif (Test-Path $vcDllFromPythonLocation) {
 		Write-Output ">>> Found vcruntime140.dll in PythonLocation"
 		Copy-Item $vcDllFromPythonLocation "$Env:STORAGE_DIR\Scripts" -Verbose
@@ -442,7 +436,9 @@ function install_python {
 
 	Write-Output ">>> Setting-up the Python virtual environment"
 
-	& $Env:PYTHON_DIR\python.exe $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
+	$exePath = Join-Path $Env:PYTHON_DIR "python.exe"
+
+	& $exePath $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
