@@ -377,12 +377,6 @@ function install_python {
 	$output = "$Env:WORKSPACE\$filename"
 	download $url $output
 
-	if (Test-Path $output){
-		Write-Output ">>>> present $output"
-	} else {
-		Write-Output ">>>> absent $output"
-	}
-
 	Write-Output ">>> Installing Python $Env:PYTHON_DRIVE_VERSION into $Env:PYTHON_DIR"
 	# https://docs.python.org/3.7/using/windows.html#installing-without-ui
 	Start-Process $output -argumentlist "`
@@ -401,21 +395,6 @@ function install_python {
 		-wait
 	Write-Output ">>> Installed Python $Env:PYTHON_DRIVE_VERSION into $Env:PYTHON_DIR"
 
-
-	# if (Test-Path $Env:PYTHON_DIR) {
-    #     Write-Output ">>> PYTHON_DIR exists at: $Env:PYTHON_DIR"
-    #     Write-Output ">>> Contents of PYTHON_DIR:"
-    #     Get-ChildItem -Path $Env:PYTHON_DIR | ForEach-Object {
-    #         if ($_.PSIsContainer) {
-    #             Write-Output "  [DIR]  $($_.Name)"
-    #         } else {
-    #             Write-Output "  [FILE] $($_.Name)"
-    #         }
-    #     }
-    # } else {
-    #     Write-Output ">>> PYTHON_DIR does not exist at: $Env:PYTHON_DIR"
-    # }
-
 	# Fix a bloody issue ... !
 	New-Item -Path $Env:STORAGE_DIR -Name Scripts -ItemType directory -Verbose
 	# Copy-Item $Env:PYTHON_DIR\vcruntime140.dll $Env:STORAGE_DIR\Scripts -Verbose
@@ -425,6 +404,7 @@ function install_python {
 
 	if (Test-Path $vcDllFromPythonDir) {
 		Write-Output ">>> Found vcruntime140.dll in PYTHON_DIR"
+		Copy-Item $vcDllFromPythonDir "$Env:STORAGE_DIR\Scripts" -Verbose
 	}
 	elseif (Test-Path $vcDllFromPythonLocation) {
 		Write-Output ">>> Found vcruntime140.dll in PythonLocation"
@@ -434,19 +414,16 @@ function install_python {
 		Write-Warning ">>> vcruntime140.dll not found in either PYTHON_DIR or PythonLocation!"
 	}
 
-
 	Write-Output ">>> Setting-up the Python virtual environment"
 
-
-
-	$exePath1 = Join-Path $Env:PYTHON_DIR "python.exe"
-	$exePath2 = Join-Path $Env:PythonLocation "python.exe"
+	$exePathPYTHON_DIR = Join-Path $Env:PYTHON_DIR "python.exe"
+	$exePathPythonLocation = Join-Path $Env:PythonLocation "python.exe"
 	
-	if (Test-Path $exePath1) {
-		& $exePath1 $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
+	if (Test-Path $exePathPYTHON_DIR) {
+		& $exePathPYTHON_DIR $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
 	}
-	elseif (Test-Path $exePath2) {
-		& $exePath2 $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
+	elseif (Test-Path $exePathPythonLocation) {
+		& $exePathPythonLocation $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
 	}
 	else {
 		Write-Warning ">>> unable to execute"
