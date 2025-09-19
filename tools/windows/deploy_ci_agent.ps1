@@ -372,6 +372,12 @@ function install_python {
 	$output = "$Env:WORKSPACE\$filename"
 	download $url $output
 
+	if (Test-Path $output){
+		Write-Output ">>>> present $output"
+	} else {
+		Write-Output ">>>> absent $output"
+	}
+
 	Write-Output ">>> Installing Python $Env:PYTHON_DRIVE_VERSION into $Env:PYTHON_DIR"
 	# https://docs.python.org/3.7/using/windows.html#installing-without-ui
 	Start-Process $output -argumentlist "`
