@@ -388,21 +388,17 @@ function install_python {
 		Include_tools=0 `
 		" `
 		-wait
-	Write-Output ">>> Installed Python $Env:PYTHON_DRIVE_VERSION into $Env:PYTHON_DIR"
 
 	# Fix a bloody issue ... !
 	New-Item -Path $Env:STORAGE_DIR -Name Scripts -ItemType directory -Verbose
-	# Copy-Item $Env:PYTHON_DIR\vcruntime140.dll $Env:STORAGE_DIR\Scripts -Verbose
 
 	$vcDllFromPythonDir = Join-Path $Env:PYTHON_DIR "vcruntime140.dll"
 	$vcDllFromPythonLocation = Join-Path $Env:PythonLocation "vcruntime140.dll"
 
 	if (Test-Path $vcDllFromPythonDir) {
-		Write-Output ">>> Found vcruntime140.dll in PYTHON_DIR"
 		Copy-Item $vcDllFromPythonDir "$Env:STORAGE_DIR\Scripts" -Verbose
 	}
 	elseif (Test-Path $vcDllFromPythonLocation) {
-		Write-Output ">>> Found vcruntime140.dll in PythonLocation"
 		Copy-Item $vcDllFromPythonLocation "$Env:STORAGE_DIR\Scripts" -Verbose
 	}
 	else {
@@ -421,7 +417,7 @@ function install_python {
 		& $exePathPythonLocation $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
 	}
 	else {
-		Write-Warning ">>> unable to execute"
+		Write-Warning ">>> unable to create venv"
 	}
 	
 	if ($lastExitCode -ne 0) {
