@@ -437,9 +437,21 @@ function install_python {
 
 	Write-Output ">>> Setting-up the Python virtual environment"
 
-	$exePath = Join-Path $Env:PYTHON_DIR "python.exe"
 
-	& $exePath $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
+
+	$exePath1 = Join-Path $Env:PYTHON_DIR "python.exe"
+	$exePath2 = Join-Path $Env:PythonLocation "python.exe"
+	
+	if (Test-Path $exePath1) {
+		& $exePath1 $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
+	}
+	elseif (Test-Path $exePath2) {
+		& $exePath2 $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
+	}
+	else {
+		Write-Warning ">>> unable to execute"
+	}
+	
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
