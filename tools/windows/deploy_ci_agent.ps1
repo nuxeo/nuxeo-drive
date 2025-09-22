@@ -395,9 +395,11 @@ function install_python {
 	$vcDllFromPythonDir = ""
 
 	if (Test-Path $Env:PYTHON_DIR) {
+		Write-Output ">>> PYTHON_DIR exists"
 		$vcDllFromPythonDir = Join-Path $Env:PYTHON_DIR "vcruntime140.dll"
 	}
 	elseif (Test-Path $Env:PythonLocation) {
+		Write-Output ">>> PythonLocation exists"
 		$vcDllFromPythonLocation = Join-Path $Env:PythonLocation "vcruntime140.dll"
 	}
 	Write-Output ">>> PYTHON_DIR: $Env:PYTHON_DIR"
