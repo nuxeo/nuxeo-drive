@@ -391,11 +391,35 @@ function install_python {
 
 	# Fix a bloody issue ... !
 	New-Item -Path $Env:STORAGE_DIR -Name Scripts -ItemType directory -Verbose
-	Copy-Item $Env:PYTHON_DIR\vcruntime140.dll $Env:STORAGE_DIR\Scripts -Verbose
+
+	$vcDllFromPythonDir = Join-Path $Env:PYTHON_DIR "vcruntime140.dll"
+	$vcDllFromPythonLocation = Join-Path $Env:PythonLocation "vcruntime140.dll"
+
+	if (Test-Path $vcDllFromPythonDir) {
+		Copy-Item $vcDllFromPythonDir "$Env:STORAGE_DIR\Scripts" -Verbose
+	}
+	elseif (Test-Path $vcDllFromPythonLocation) {
+		Copy-Item $vcDllFromPythonLocation "$Env:STORAGE_DIR\Scripts" -Verbose
+	}
+	else {
+		Write-Warning ">>> vcruntime140.dll not found in either PYTHON_DIR or PythonLocation!"
+	}
 
 	Write-Output ">>> Setting-up the Python virtual environment"
 
-	& $Env:PYTHON_DIR\python.exe $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
+	$exePathPYTHON_DIR = Join-Path $Env:PYTHON_DIR "python.exe"
+	$exePathPythonLocation = Join-Path $Env:PythonLocation "python.exe"
+
+	if (Test-Path $exePathPYTHON_DIR) {
+		& $exePathPYTHON_DIR $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
+	}
+	elseif (Test-Path $exePathPythonLocation) {
+		& $exePathPythonLocation $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
+	}
+	else {
+		Write-Warning ">>> unable to create venv"
+	}
+
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
