@@ -392,6 +392,8 @@ function install_python {
 	# Fix a bloody issue ... !
 	New-Item -Path $Env:STORAGE_DIR -Name Scripts -ItemType directory -Verbose
 
+	$vcDllFromPythonDir = ""
+
 	if (Test-Path $Env:PYTHON_DIR) {
 		$vcDllFromPythonDir = Join-Path $Env:PYTHON_DIR "vcruntime140.dll"
 	}
