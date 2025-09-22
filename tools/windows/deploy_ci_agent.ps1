@@ -393,6 +393,7 @@ function install_python {
 	New-Item -Path $Env:STORAGE_DIR -Name Scripts -ItemType directory -Verbose
 
 	$vcDllFromPythonDir = ""
+	$vcDllFromPythonLocation = ""
 
 	if (Test-Path $Env:PYTHON_DIR) {
 		Write-Output ">>> PYTHON_DIR exists"
@@ -401,6 +402,7 @@ function install_python {
 	elseif (Test-Path $Env:PythonLocation) {
 		Write-Output ">>> PythonLocation exists"
 		$vcDllFromPythonLocation = Join-Path $Env:PythonLocation "vcruntime140.dll"
+		Write-Output ">>> vcDllFromPythonLocation: $vcDllFromPythonLocation"
 	}
 	Write-Output ">>> PYTHON_DIR: $Env:PYTHON_DIR"
 	Write-Output ">>> PythonLocation: $Env:PythonLocation"
