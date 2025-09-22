@@ -399,6 +399,8 @@ function install_python {
 		$vcDllFromPythonLocation = Join-Path $Env:PythonLocation "vcruntime140.dll"
 	}
 
+	Write-Output ">>> vcDllFromPythonDir: $vcDllFromPythonDir"
+
 	if (Test-Path $vcDllFromPythonDir) {
 		Copy-Item $vcDllFromPythonDir "$Env:STORAGE_DIR\Scripts" -Verbose
 	}
@@ -413,7 +415,7 @@ function install_python {
 
 	$exePathPYTHON_DIR = Join-Path $Env:PYTHON_DIR "python.exe"
 	$exePathPythonLocation = Join-Path $Env:PythonLocation "python.exe"
-	
+
 	if (Test-Path $exePathPYTHON_DIR) {
 		& $exePathPYTHON_DIR $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
 	}
@@ -423,7 +425,7 @@ function install_python {
 	else {
 		Write-Warning ">>> unable to create venv"
 	}
-	
+
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
