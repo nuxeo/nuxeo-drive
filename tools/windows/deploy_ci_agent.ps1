@@ -397,12 +397,12 @@ function install_python {
 		$vcDllFromPythonDir = Join-Path $Env:PYTHON_DIR "vcruntime140.dll"
 		$exePathPYTHON_DIR = Join-Path $Env:PYTHON_DIR "python.exe"
 	}
-	
+
 	if (-not [string]::IsNullOrEmpty($Env:PythonLocation)) {
 		$vcDllFromPythonLocation = Join-Path $Env:PythonLocation "vcruntime140.dll"
 		$exePathPythonLocation = Join-Path $Env:PythonLocation "python.exe"
 	}
-	
+
 	# Try PYTHON_DIR first
 	if ($vcDllFromPythonDir -and (Test-Path $vcDllFromPythonDir)) {
 		Copy-Item $vcDllFromPythonDir "$Env:STORAGE_DIR\Scripts" -Verbose
@@ -415,7 +415,7 @@ function install_python {
 	else {
 		Write-Warning ">>> vcruntime140.dll not found in PYTHON_DIR or PythonLocation (or variables not set)!"
 	}
-	
+
 	Write-Output ">>> Setting-up the Python virtual environment"
 
 	if ($exePathPYTHON_DIR -and (Test-Path $exePathPYTHON_DIR)) {
