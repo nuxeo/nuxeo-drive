@@ -1,10 +1,10 @@
-import ctypes
+# import ctypes
+# from ctypes import wintypes
 from contextlib import suppress
 from copy import deepcopy
-from ctypes import wintypes
 from logging import getLogger
 from pathlib import Path
-from time import sleep, time
+from time import sleep  # time was added here
 from typing import TYPE_CHECKING, Dict, Iterable, Iterator, Optional
 
 import psutil
@@ -31,86 +31,27 @@ __all__ = ("ProcessAutoLockerWorker",)
 
 log = getLogger(__name__)
 
-
-def get_clipboard_owner_process_name() -> Optional[str]:
-    """
-    Get the name of the process that currently owns the Windows clipboard.
-
-    Returns:
-        str: The process name (e.g., 'notepad.exe') or None if not found
-    """
-    if not WINDOWS:
-        return None
-
-    try:
-        # Get handle to clipboard owner window
-        user32 = ctypes.windll.user32
-        kernel32 = ctypes.windll.kernel32
-
-        # Get the window that currently owns the clipboard
-        clipboard_owner_hwnd = user32.GetClipboardOwner()
-        if not clipboard_owner_hwnd:
-            return None
-
-        # Get the process ID of the window owner
-        process_id = wintypes.DWORD()
-        user32.GetWindowThreadProcessId(clipboard_owner_hwnd, ctypes.byref(process_id))
-
-        if not process_id.value:
-            return None
-
-        # Get process handle
-        process_handle = kernel32.OpenProcess(
-            0x0400 | 0x0010,  # PROCESS_QUERY_INFORMATION | PROCESS_VM_READ
-            False,
-            process_id.value,
-        )
-
-        if not process_handle:
-            return None
-
-        try:
-            # Get the process name using GetModuleFileNameEx
-            buffer_size = 260  # MAX_PATH
-            buffer = ctypes.create_unicode_buffer(buffer_size)
-
-            psapi = ctypes.windll.psapi
-            if psapi.GetModuleFileNameExW(process_handle, None, buffer, buffer_size):
-                full_path = buffer.value
-                return full_path.split("\\")[-1]  # Extract just the filename
-
-        finally:
-            kernel32.CloseHandle(process_handle)
-
-    except Exception as e:
-        log.warning(f"Error getting clipboard owner: {e}")
-
-    return None
-
-
-def release_clipboard() -> bool:
-    """
-    Release the clipboard by clearing it.
-
-    Returns:
-        bool: True if clipboard was successfully released, False otherwise
-    """
-    if not WINDOWS:
-        return False
-
-    try:
-        import win32clipboard
-
-        win32clipboard.OpenClipboard()
-        win32clipboard.EmptyClipboard()
-        win32clipboard.CloseClipboard()
-
-        log.info("Clipboard released successfully")
-        return True
-
-    except Exception as e:
-        log.warning(f"Error releasing clipboard: {e}")
-        return False
+# Define which processes to monitor for file operations
+# This can be customized based on your needs
+MONITORED_PROCESSES = {
+    # Microsoft Office Suite
+    "winword.exe",  # Microsoft Word
+    "excel.exe",  # Microsoft Excel
+    "powerpnt.exe",  # Microsoft PowerPoint
+    "msaccess.exe",  # Microsoft Access
+    "outlook.exe",  # Microsoft Outlook (for attachments)
+    "onenote.exe",  # Microsoft OneNote
+    "visio.exe",  # Microsoft Visio
+    "mspub.exe",  # Microsoft Publisher
+    # Other common applications (uncomment as needed)
+    # "notepad.exe",    # Windows Notepad
+    # "notepad++.exe",  # Notepad++
+    # "code.exe",       # Visual Studio Code
+    # "devenv.exe",     # Visual Studio
+    # "photoshop.exe",  # Adobe Photoshop
+    # "illustrator.exe", # Adobe Illustrator
+    # "acrobat.exe",    # Adobe Acrobat
+}
 
 
 class ProcessAutoLockerWorker(PollWorker):
@@ -174,49 +115,6 @@ class ProcessAutoLockerWorker(PollWorker):
 
         for pid, path in get_open_files():
             log.info(f"Inside for loop _process method: {pid}, {path}")
-            # Log current clipboard owner process
-            clipboard_owner = get_clipboard_owner_process_name()
-            if clipboard_owner:
-                log.info(f"Last known clipboard owner: {clipboard_owner}")
-
-                # Check if clipboard is owned by nuxeo drive and handle 10-second timeout
-                if clipboard_owner.lower() in (
-                    "ndrive.exe",
-                    "nuxeo-drive.exe",
-                    "ndrive",
-                    "nuxeo-drive",
-                ):
-                    current_time = time()
-
-                    if self._last_clipboard_owner != clipboard_owner:
-                        # New nuxeo drive clipboard ownership detected
-                        self._clipboard_owner_start_time = current_time
-                        self._last_clipboard_owner = clipboard_owner
-                        log.info(
-                            f"Nuxeo Drive took clipboard ownership at {current_time}"
-                        )
-                    elif self._clipboard_owner_start_time is not None:
-                        # Check if nuxeo drive has held clipboard for 10 seconds
-                        elapsed_time = current_time - self._clipboard_owner_start_time
-                        if elapsed_time >= 10.0:
-                            log.warning(
-                                f"Nuxeo Drive has held clipboard for {elapsed_time:.1f} seconds, releasing..."
-                            )
-                            if release_clipboard():
-                                self._clipboard_owner_start_time = None
-                                self._last_clipboard_owner = None
-                            else:
-                                log.error("Failed to release clipboard")
-                else:
-                    # Different owner, reset tracking
-                    if self._last_clipboard_owner != clipboard_owner:
-                        self._clipboard_owner_start_time = None
-                        self._last_clipboard_owner = clipboard_owner
-            else:
-                log.info("No clipboard owner detected")
-                # No owner, reset tracking
-                self._clipboard_owner_start_time = None
-                self._last_clipboard_owner = None
             # Filter out files depending on configured ignored patterns
             if path.name.startswith(Options.ignored_prefixes) or path.name.endswith(
                 Options.ignored_suffixes
@@ -296,7 +194,8 @@ class ProcessAutoLockerWorker(PollWorker):
 
 def get_open_files() -> Iterator[Item]:
     """
-    Get all opened files on the OS.
+    Get all opened files on the OS, filtered to only include specific applications.
+    Currently filters for MS Office applications and other configurable processes.
 
     :return: Generator of (PID, file path).
     """
@@ -306,20 +205,37 @@ def get_open_files() -> Iterator[Item]:
     # It would be an endless fight to catch specific errors only.
     # Here, it is typically MemoryError's.
     log.info(f"traceback from get_open_files : {traceback.extract_stack()}")
+    log.info(f"Monitoring processes: {sorted(MONITORED_PROCESSES)}")
+
     try:
-        for proc in psutil.process_iter(attrs=["pid"]):
-            log.info("Inside psutil.process_iter loop")
-            # But we also want to filter out errors by processor to be able to retrieve some data from others
-            with suppress(Exception):
-                for handler in proc.open_files():
-                    log.info("Inside proc.open_files loop")
-                    # And so for errors happening at the processes level (typically PermissisonError's)
-                    with suppress(Exception):
-                        log.info(f"pid : {proc.pid}, handler.path : {handler.path}")
-                        yield proc.pid, Path(handler.path)
-            log.info("Initiating cache clear")
-            psutil.process_iter.cache_clear()
-            log.info("Cache clearing complete")
+        for proc in psutil.process_iter(attrs=["pid", "name"]):
+            try:
+                process_name = proc.info["name"].lower() if proc.info["name"] else ""
+
+                # Only process applications we're interested in
+                if process_name not in MONITORED_PROCESSES:
+                    continue
+
+                log.info(
+                    f"Checking monitored process: {process_name} (PID: {proc.pid})"
+                )
+
+                # But we also want to filter out errors by processor to be able to retrieve some data from others
+                with suppress(Exception):
+                    for handler in proc.open_files():
+                        log.info("Inside proc.open_files loop")
+                        # And so for errors happening at the processes level (typically PermissisonError's)
+                        with suppress(Exception):
+                            log.info("Inside proc.open_files inner loop")
+                            log.info(f"pid : {proc.pid}, handler.path : {handler.path}")
+                            yield proc.pid, Path(handler.path)
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                # Process might have terminated or we don't have access
+                continue
+
+        log.info("Initiating cache clear")
+        psutil.process_iter.cache_clear()
+        log.info("Cache clearing complete")
     except Exception as ex:
         log.info(f"autolocker exception >>>>>>>> {ex}")
         log.warning("Cannot get opened files", exc_info=True)
