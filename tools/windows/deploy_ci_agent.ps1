@@ -395,10 +395,12 @@ function install_python {
 	# Only build the path if the environment variable is not null or empty
 	if (-not [string]::IsNullOrEmpty($Env:PYTHON_DIR)) {
 		$vcDllFromPythonDir = Join-Path $Env:PYTHON_DIR "vcruntime140.dll"
+		$exePathPYTHON_DIR = Join-Path $Env:PYTHON_DIR "python.exe"
 	}
 	
 	if (-not [string]::IsNullOrEmpty($Env:PythonLocation)) {
 		$vcDllFromPythonLocation = Join-Path $Env:PythonLocation "vcruntime140.dll"
+		$exePathPythonLocation = Join-Path $Env:PythonLocation "python.exe"
 	}
 	
 	# Try PYTHON_DIR first
@@ -416,13 +418,10 @@ function install_python {
 	
 	Write-Output ">>> Setting-up the Python virtual environment"
 
-	$exePathPYTHON_DIR = Join-Path $Env:PYTHON_DIR "python.exe"
-	$exePathPythonLocation = Join-Path $Env:PythonLocation "python.exe"
-
-	if (Test-Path $exePathPYTHON_DIR) {
+	if ($exePathPYTHON_DIR -and (Test-Path $exePathPYTHON_DIR)) {
 		& $exePathPYTHON_DIR $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
 	}
-	elseif (Test-Path $exePathPythonLocation) {
+	elseif ($exePathPythonLocation -and (Test-Path $exePathPythonLocation)) {
 		& $exePathPythonLocation $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
 	}
 	else {
