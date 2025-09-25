@@ -192,13 +192,13 @@ class FolderTreeView(TreeViewMixin):
 
     def on_selection_changed(self, current: QModelIndex, _: QModelIndex, /) -> None:
         """Actions to do when a folder is selected."""
-        item = self.model().itemFromIndex(current).data(qt.UserRole)
-        self.parent.remote_folder.setText(item.get_path())
-        self.parent.remote_folder_ref = item.get_id()
-        self.parent.remote_folder_title = item.get_label()
-        self.current = current
-        self.parent.button_ok_state()
-        self.parent.update_file_group()
+        if item := self.model().itemFromIndex(current).data(qt.UserRole):
+            self.parent.remote_folder.setText(item.get_path())
+            self.parent.remote_folder_ref = item.get_id()
+            self.parent.remote_folder_title = item.get_label()
+            self.current = current
+            self.parent.button_ok_state()
+            self.parent.update_file_group()
 
     def refresh_selected(self) -> None:
         """Force reload the the current selected index."""

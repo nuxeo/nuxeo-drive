@@ -271,6 +271,7 @@ class MetaOptions(type):
         "remote_repo": ("default", "default"),
         "res_dir": (_get_resources_dir(), "default"),
         "session_uid": (str(uuid4()), "default"),
+        "shared_folder_navigation": (False, "default"),
         "ssl_no_verify": (False, "default"),
         "startup_page": ("drive_login.jsp", "default"),
         "sync_and_quit": (False, "default"),
