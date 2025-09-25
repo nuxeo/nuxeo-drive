@@ -86,7 +86,7 @@ class TestLocalMoveAndRename(OneUserTest):
         marker = False
 
         def set_remote_id(ref: Path, remote_id: bytes, name: str = "ndrive"):
-            nonlocal local, marker
+            nonlocal marker
             LocalTest.set_remote_id(local, ref, remote_id, name=name)
             if not marker and ref.name == "File.txt":
                 local.rename(ref, "Renamed File.txt")
@@ -113,7 +113,7 @@ class TestLocalMoveAndRename(OneUserTest):
         marker = False
 
         def set_remote_id(ref: Path, remote_id: bytes, name: str = "ndrive"):
-            nonlocal local, marker
+            nonlocal marker
             if not marker and ref.name == "File.txt":
                 self.engine_1.local.rename(ref, "Renamed File.txt")
                 marker = True

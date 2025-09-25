@@ -1399,3 +1399,38 @@ def get_task_type(type_of_task: str) -> str:
 def adapt_datetime_iso(val: datetime, /) -> Any:
     # adapter for sqlite3
     return val.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def find_real_office_file(lock_path: str) -> tuple[str, str]:
+    """
+    Given a MS Office lock file (e.g. '~$go.docx'),
+    return the real filename (e.g. 'go.docx').
+    """
+    folder = os.path.dirname(lock_path)
+    lock_filename = os.path.basename(lock_path)
+
+    _file = lock_filename[2:]
+    _file_path = os.path.join(folder, _file)
+
+    if os.path.exists(_file_path):
+        return _file_path, _file
+
+    # fallback: scan directory for similar extension
+    ext = os.path.splitext(_file)[1]
+    for f in os.listdir(folder):
+        if f.endswith(ext) and not f.startswith("~$"):
+            return os.path.join(folder, f), f
+
+    return "", ""
+
+
+def find_real_libreoffice_file(lock_path: str) -> tuple[str, str]:
+    """
+    Given a LibreOffice/OpenOffice lock file (e.g. '.~lock.Report.odt#'),
+    return the real filename (e.g. 'Report.odt').
+    """
+    # test
+    folder = os.path.dirname(lock_path)
+    lock_filename = os.path.basename(lock_path)
+    real_filename = lock_filename[len(".~lock.") : -1]
+    return os.path.join(folder, real_filename), real_filename

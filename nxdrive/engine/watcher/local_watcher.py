@@ -1,4 +1,5 @@
 import errno
+import os
 import re
 import sqlite3
 import sys
@@ -10,7 +11,12 @@ from threading import Lock
 from time import mktime, sleep
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple
 
-from watchdog.events import FileSystemEvent, PatternMatchingEventHandler
+from watchdog.events import (
+    FileCreatedEvent,
+    FileDeletedEvent,
+    FileSystemEvent,
+    PatternMatchingEventHandler,
+)
 from watchdog.observers import Observer, api
 
 from ...client.local import FileInfo
@@ -22,6 +28,8 @@ from ...options import Options
 from ...qt.imports import pyqtSignal
 from ...utils import (
     current_milli_time,
+    find_real_libreoffice_file,
+    find_real_office_file,
     force_decode,
     is_generated_tmp_file,
     is_large_file,
@@ -618,11 +626,15 @@ class LocalWatcher(EngineWorker):
         log.info(f"Watching FS modification on {base!r}")
 
         # Filter out all ignored suffixes. It will handle custom ones too.
-        ignore_patterns = [f"*{suffix}" for suffix in Options.ignored_suffixes]
+        ignore_patterns = [
+            f"*{suffix}" for suffix in Options.ignored_suffixes if "~" not in suffix
+        ]
 
         # The contents of the local folder
         self._observer = Observer()
-        self._event_handler = DriveFSEventHandler(self, ignore_patterns=ignore_patterns)
+        self._event_handler = DriveFSEventHandler(
+            self, ignore_patterns=ignore_patterns, engine=self.engine
+        )
         self._observer.schedule(self._event_handler, base, recursive=True)
 
         if Feature.synchronization:
@@ -1297,11 +1309,17 @@ class LocalWatcher(EngineWorker):
 
 class DriveFSEventHandler(PatternMatchingEventHandler):
     def __init__(
-        self, watcher: Worker, /, *, ignore_patterns: List[str] = None
+        self,
+        watcher: Worker,
+        /,
+        *,
+        ignore_patterns: List[str] = None,
+        engine: "Engine" = None,
     ) -> None:
         super().__init__(ignore_patterns=ignore_patterns)
         self.counter = 0
         self.watcher = watcher
+        self.engine = engine
 
     def __repr__(self) -> str:
         return (
@@ -1316,4 +1334,50 @@ class DriveFSEventHandler(PatternMatchingEventHandler):
     def on_any_event(self, event: FileSystemEvent, /) -> None:
         self.counter += 1
         log.debug(f"Queueing watchdog: {event!r}")
+
+        # check if the event is FileModifiedEvent and next event is FileCreatedEvent
+        # check if two filenames are same (not first 2 letters)
+        # and locked remotely
+        # show a notification (concurrent editing)
+        # else add it to the lock queuq (or lock remotely)
+
+        # If it's a file (not a directory)
+        if self.engine and not event.is_directory:
+            filename = os.path.basename(event.src_path)
+            _f_path = None
+            doc_id = ""
+            real_filename = ""
+
+            # MS Office lock/temp files
+            if filename.startswith("~$"):
+                _f_path, real_filename = find_real_office_file(event.src_path)
+
+            # OpenOffice/LibreOffice lock files
+            elif filename.startswith(".~lock.") and filename.endswith("#"):
+                _f_path, real_filename = find_real_libreoffice_file(event.src_path)
+
+            if _f_path:
+                url = self.engine.manager.get_metadata_infos(Path(_f_path))
+                doc_id = os.path.basename(url)
+            if doc_id:
+                self.autolock = self.engine.manager.autolock_service
+                if isinstance(event, FileCreatedEvent):
+                    _lock = self.engine.remote.documents.fetch_lock_status(doc_id)
+                    if _lock:
+                        log.info(
+                            f'{real_filename!r} already locked by {_lock["lockCreated"]!r}'
+                        )
+                        self.autolock.concurrentAlreadyLocked.emit(
+                            real_filename, _lock["lockOwner"]
+                        )
+                    else:
+                        self.engine.remote.lock(doc_id)
+                        self.autolock.documentLocked.emit(real_filename)
+                        log.info(f"LOCKED {real_filename!r}")
+                elif isinstance(event, FileDeletedEvent):
+                    _lock = self.engine.remote.documents.fetch_lock_status(doc_id)
+                    self.engine.remote.unlock(doc_id)
+                    self.autolock.documentUnlocked.emit(real_filename)
+                    log.info(f"UNLOCKED {real_filename!r}")
+
         self.watcher.watchdog_queue.put(event)
