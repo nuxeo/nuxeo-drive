@@ -392,6 +392,12 @@ function install_python {
 	# Fix a bloody issue ... !
 	New-Item -Path $Env:STORAGE_DIR -Name Scripts -ItemType directory -Verbose
 
+	# Initializing variables
+	$vcDllFromPythonDir = $null
+	$exePathPYTHON_DIR = $null
+	$vcDllFromPythonLocation = $null
+	$exePathPythonLocation = $null
+
 	# Only build the path if the environment variable is not null or empty
 	if (-not [string]::IsNullOrEmpty($Env:PYTHON_DIR)) {
 		$vcDllFromPythonDir = Join-Path $Env:PYTHON_DIR "vcruntime140.dll"
