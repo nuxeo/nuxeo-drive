@@ -30,7 +30,7 @@ jobs:
         with:
           driver: docker
       - name: Login to the registry
-        uses: docker/login-action@v3.0.0
+        uses: docker/login-action@v3.5.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.DOCKER_USERNAME }}
