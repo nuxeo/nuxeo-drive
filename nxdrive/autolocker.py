@@ -1,6 +1,6 @@
 # import ctypes
 # from ctypes import wintypes
-# from contextlib import suppress
+from contextlib import suppress
 from copy import deepcopy
 from logging import getLogger
 from pathlib import Path
@@ -223,53 +223,64 @@ def get_open_files() -> Iterator[Item]:
     # Let's skip all errors at the top the the code.
     # It would be an endless fight to catch specific errors only.
     # Here, it is typically MemoryError's.
-    log.info(f"Monitoring processes: {sorted(MONITORED_PROCESSES)}")
+    if WINDOWS:
+        log.info(f"Monitoring processes: {sorted(MONITORED_PROCESSES)}")
+        try:
+            psutil.process_iter.cache_clear()
+            for proc in psutil.process_iter(attrs=["pid", "name"]):
+                try:
+                    process_name_raw = proc.name().lower() if proc.name() else ""
+                    # Remove extension from process name for comparison (e.g., "winword.exe" -> "winword")
+                    process_name = (
+                        process_name_raw.rsplit(".", 1)[0]
+                        if "." in process_name_raw
+                        else process_name_raw
+                    )
 
-    try:
-        psutil.process_iter.cache_clear()
-        for proc in psutil.process_iter(attrs=["pid", "name"]):
-            try:
-                process_name_raw = proc.name().lower() if proc.name() else ""
-                # Remove extension from process name for comparison (e.g., "winword.exe" -> "winword")
-                process_name = (
-                    process_name_raw.rsplit(".", 1)[0]
-                    if "." in process_name_raw
-                    else process_name_raw
-                )
+                    # Only monitor processes that are in our inclusion list
+                    if process_name not in MONITORED_PROCESSES:
+                        continue
 
-                # Only monitor processes that are in our inclusion list
-                if process_name not in MONITORED_PROCESSES:
+                    log.info(
+                        f"Monitoring process: {process_name_raw} -> {process_name} (PID: {proc.pid})"
+                    )
+
+                    # But we also want to filter out errors by processor to be able to retrieve some data from others
+                    for handler in proc.open_files():
+                        # And so for errors happening at the processes level (typically PermissisonError's)
+                        log.info("Inside proc.open_files inner loop")
+                        log.info(f"pid : {proc.pid}, handler.path : {handler.path}")
+                        yield proc.pid, Path(handler.path)
+                except psutil.NoSuchProcess:
+                    # Process might have terminated while we were checking it
+                    log.info(
+                        f"psutil.NoSuchProcess for process: {process_name_raw} (PID: {proc.pid})"
+                    )
                     continue
-
-                log.info(
-                    f"Monitoring process: {process_name_raw} -> {process_name} (PID: {proc.pid})"
-                )
-
+                except psutil.AccessDenied:
+                    # We don't have access to this process
+                    log.info(
+                        f"psutil.AccessDenied for process: {process_name_raw} (PID: {proc.pid})"
+                    )
+                    continue
+                except Exception as ex:
+                    log.info(
+                        f"Exception {type(ex).__name__} for process: {process_name_raw} (PID: {proc.pid})"
+                    )
+                    log.info(traceback.format_exc())
+        except Exception as ex:
+            log.info(f"autolocker exception >>>>>>>> {ex}")
+            log.warning("Cannot get opened files", exc_info=True)
+    else:
+        try:
+            for proc in psutil.process_iter(attrs=["pid"]):
                 # But we also want to filter out errors by processor to be able to retrieve some data from others
-                for handler in proc.open_files():
-                    # And so for errors happening at the processes level (typically PermissisonError's)
-                    log.info("Inside proc.open_files inner loop")
-                    log.info(f"pid : {proc.pid}, handler.path : {handler.path}")
-                    yield proc.pid, Path(handler.path)
-            except psutil.NoSuchProcess:
-                # Process might have terminated while we were checking it
-                log.info(
-                    f"psutil.NoSuchProcess for process: {process_name_raw} (PID: {proc.pid})"
-                )
-                continue
-            except psutil.AccessDenied:
-                # We don't have access to this process
-                log.info(
-                    f"psutil.AccessDenied for process: {process_name_raw} (PID: {proc.pid})"
-                )
-                continue
-            except Exception as ex:
-                log.info(
-                    f"Exception {type(ex).__name__} for process: {process_name_raw} (PID: {proc.pid})"
-                )
-                log.info(traceback.format_exc())
-    except Exception as ex:
-        log.info(f"autolocker exception >>>>>>>> {ex}")
-        log.warning("Cannot get opened files", exc_info=True)
+                with suppress(Exception):
+                    for handler in proc.open_files():
+                        # And so for errors happening at the processes level (typically PermissisonError's)
+                        with suppress(Exception):
+                            yield proc.pid, Path(handler.path)
+        except Exception:
+            log.warning("Cannot get opened files", exc_info=True)
 
     yield from get_other_opened_files()
