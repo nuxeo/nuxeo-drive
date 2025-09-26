@@ -227,7 +227,7 @@ def get_open_files() -> Iterator[Item]:
         log.info(f"Monitoring processes: {sorted(MONITORED_PROCESSES)}")
         try:
             psutil.process_iter.cache_clear()
-            for proc in psutil.process_iter(attrs=["pid", "name"]):
+            for proc in psutil.process_iter(attrs=["pid", "name", "username"]):
                 try:
                     process_name_raw = proc.name().lower() if proc.name() else ""
                     # Remove extension from process name for comparison (e.g., "winword.exe" -> "winword")
@@ -242,7 +242,8 @@ def get_open_files() -> Iterator[Item]:
                         continue
 
                     log.info(
-                        f"Monitoring process: {process_name_raw} -> {process_name} (PID: {proc.pid})"
+                        f"Monitoring process: {process_name_raw} -> {process_name} (PID: {proc.pid}) \
+                        (User: {proc.info.get('username')})"
                     )
 
                     # But we also want to filter out errors by processor to be able to retrieve some data from others
