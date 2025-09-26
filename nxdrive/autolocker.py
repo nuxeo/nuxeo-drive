@@ -31,82 +31,46 @@ __all__ = ("ProcessAutoLockerWorker",)
 
 log = getLogger(__name__)
 
-# Define which processes to EXCLUDE from monitoring for file operations
-# Process names should be without extensions (e.g., "chrome" not "chrome.exe")
-# This can be customized based on your needs - add processes you want to ignore
-EXCLUDED_PROCESSES = {
-    # Core system processes
-    "system",
-    "system idle process",
-    "secure system",
-    "idle",
-    "registry",
-    # Windows system services
-    "smss",
-    "csrss",
-    "wininit",
-    "winlogon",
-    "services",
-    "lsaiso",
-    "lsass",
-    "svchost",
-    "fontdrvhost",
-    "logonui",
-    "dwm",
-    "vmms",
-    "spoolsv",
-    "inetinfo",
-    "msdtc",
-    # Windows utilities and built-in tools
-    "conhost",
-    "aggregatorhost",
-    "dllhost",
-    "wmiprvse",
-    "vmcompute",
-    "sihost",
-    "taskhostw",
-    "ctfmon",
-    "rundll32",
-    "explorer",
-    "textinputhost",
-    "startmenuexperiencehost",
-    "runtimebroker",
-    "searchapp",
-    "applicationframehost",
-    "shellexperiencehost",
-    "systemsettingsbroker",
-    "smartscreen",
-    "wudfhost",
-    # Security and antivirus processes
-    "mssense",
-    "mmpeng",
-    "mpdefendercoreservice",
-    "nissrv",
-    "sensetvm",
-    "sensendr",
-    "senseir",
-    "securityhealthservice",
-    "mpcmdrun",
-    # Remote and management tools
-    "rdpclip",
-    "ccmexec",
-    "vm3dservice",
-    "ir_agent",
-    "cmrcservice",
-    "wslservice",
-    "policyhost",
-    "scnotification",
-    "azurearcsystray",
-    "rapid7_endpoint_broker",
-    "rapid7_agent_core",
-    # Development and administrative tools
-    "pwsh",
-    "powershell",
-    "pet",
-    # Nuxeo Drive itself
-    "ndrive",
-    # Add more processes as needed based on your environment
+# Define which processes to INCLUDE for monitoring file operations
+# Only these applications will be monitored for document editing
+# Process names should be without extensions (e.g., "winword" not "winword.exe")
+MONITORED_PROCESSES = {
+    # Microsoft Office Suite
+    "winword",  # Microsoft Word
+    "excel",  # Microsoft Excel
+    "powerpnt",  # Microsoft PowerPoint
+    "outlook",  # Microsoft Outlook
+    "onenote",  # Microsoft OneNote
+    # Adobe Creative Suite
+    "photoshop",  # Adobe Photoshop
+    "illustrator",  # Adobe Illustrator
+    "indesign",  # Adobe InDesign
+    "acrobat",  # Adobe Acrobat
+    "acroread",  # Adobe Acrobat Reader
+    "aftereffects",  # Adobe After Effects
+    "premiere",  # Adobe Premiere Pro
+    "dreamweaver",  # Adobe Dreamweaver
+    "flash",  # Adobe Flash (legacy)
+    "lightroom",  # Adobe Lightroom
+    "bridge",  # Adobe Bridge
+    "audition",  # Adobe Audition
+    "animate",  # Adobe Animate
+    "xd",  # Adobe XD
+    "dimension",  # Adobe Dimension
+    # OpenOffice
+    "soffice",  # Entire office suite
+    "scalc",  # OpenOffice Calc
+    "swriter",  # OpenOffice Writer
+    "simpress",  # OpenOffice Impress
+    "sdraw",  # OpenOffice Draw
+    "sbase",  # OpenOffice Base
+    "smath",  # OpenOffice Math
 }
+
+# Add processes from Options.include_process to the monitored processes
+if Options.include_process:
+    MONITORED_PROCESSES.update(Options.include_process)
+    log.info(f"Added processes to include from user config: {Options.include_process}")
 
 
 class ProcessAutoLockerWorker(PollWorker):
@@ -249,8 +213,8 @@ class ProcessAutoLockerWorker(PollWorker):
 
 def get_open_files() -> Iterator[Item]:
     """
-    Get all opened files on the OS, filtered to exclude specific applications.
-    Processes in EXCLUDED_PROCESSES will be ignored to reduce system load.
+    Get all opened files on the OS, filtered to include only specific applications.
+    Only processes in MONITORED_PROCESSES will be monitored for file operations.
 
     :return: Generator of (PID, file path).
     """
@@ -259,44 +223,44 @@ def get_open_files() -> Iterator[Item]:
     # Let's skip all errors at the top the the code.
     # It would be an endless fight to catch specific errors only.
     # Here, it is typically MemoryError's.
-    log.info(f"Excluding processes: {sorted(EXCLUDED_PROCESSES)}")
+    log.info(f"Monitoring processes: {sorted(MONITORED_PROCESSES)}")
 
     try:
         psutil.process_iter.cache_clear()
         for proc in psutil.process_iter(attrs=["pid", "name"]):
             try:
                 process_name_raw = proc.name().lower() if proc.name() else ""
-                # Remove extension from process name for comparison (e.g., "chrome.exe" -> "chrome")
+                # Remove extension from process name for comparison (e.g., "winword.exe" -> "winword")
                 process_name = (
                     process_name_raw.rsplit(".", 1)[0]
                     if "." in process_name_raw
                     else process_name_raw
                 )
 
-                # Skip processes that are in our exclusion list
-                if process_name in EXCLUDED_PROCESSES:
-                    continue
-
-                # Skip process with specific PID 72
-                if proc.pid == 72:
-                    log.info(f"Skipping process with PID 72: {process_name_raw}")
+                # Only monitor processes that are in our inclusion list
+                if process_name not in MONITORED_PROCESSES:
                     continue
 
                 log.info(
-                    f"Checking process: {process_name_raw} -> {process_name} (PID: {proc.pid})"
+                    f"Monitoring process: {process_name_raw} -> {process_name} (PID: {proc.pid})"
                 )
 
                 # But we also want to filter out errors by processor to be able to retrieve some data from others
                 for handler in proc.open_files():
-                    log.info("Inside proc.open_files loop")
                     # And so for errors happening at the processes level (typically PermissisonError's)
                     log.info("Inside proc.open_files inner loop")
                     log.info(f"pid : {proc.pid}, handler.path : {handler.path}")
                     yield proc.pid, Path(handler.path)
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                # Process might have terminated or we don't have access
+            except psutil.NoSuchProcess:
+                # Process might have terminated while we were checking it
                 log.info(
-                    f"psutil.NoSuchProcess or psutil.AccessDenied for process: {process_name_raw} (PID: {proc.pid})"
+                    f"psutil.NoSuchProcess for process: {process_name_raw} (PID: {proc.pid})"
+                )
+                continue
+            except psutil.AccessDenied:
+                # We don't have access to this process
+                log.info(
+                    f"psutil.AccessDenied for process: {process_name_raw} (PID: {proc.pid})"
                 )
                 continue
             except Exception as ex:
