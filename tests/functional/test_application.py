@@ -10,14 +10,16 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from PyQt5.QtCore import QObject
+from PyQt5.QtCore import QModelIndex, QObject
 
 from nxdrive.constants import WINDOWS
 from nxdrive.gui.api import QMLDriveApi
 from nxdrive.gui.application import Application
 from nxdrive.gui.folders_dialog import FoldersDialog
+from nxdrive.gui.folders_model import FoldersOnly
+from nxdrive.gui.folders_treeview import FolderTreeView
 from nxdrive.options import Options
-from tests.functional.mocked_classes import Mock_Engine, Mock_Qt
+from tests.functional.mocked_classes import Mock_Engine, Mock_Item_Model, Mock_Qt
 
 from ..markers import not_linux
 
@@ -336,3 +338,21 @@ def test_application(app_obj, manager_factory, tmp_path):
 
     assert not dialog.paths
     assert "big_folder" in dialog.local_path_msg_lbl.text()
+
+    # Test case as part of user story : https://hyland.atlassian.net/browse/NXDRIVE-3056
+    # Covering on_selection_changed method used in FolderTreeView
+    parent = FoldersDialog(app, engine, None)
+    client = FoldersOnly(engine.remote)
+    folder_tree_view = FolderTreeView(parent, client, None)
+    q_model_index = QModelIndex()
+
+    with patch(
+        "nxdrive.gui.folders_treeview.FolderTreeView.model"
+    ) as mock_model, patch(
+        "nxdrive.gui.folders_dialog.FoldersDialog.update_file_group"
+    ) as mock_update_file_group:
+        mock_model.return_value = Mock_Item_Model()
+        mock_update_file_group.return_value = None
+        assert (
+            folder_tree_view.on_selection_changed(q_model_index, q_model_index) is None
+        )

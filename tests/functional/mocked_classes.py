@@ -452,6 +452,26 @@ class Mock_Engine:
         return self.trash
 
 
+class Mock_Item_Model:
+    def __init__(self) -> None:
+        pass
+
+    def data(self, role):
+        return self
+
+    def get_path(self):
+        return "dummy_path"
+
+    def get_id(self):
+        return "dummy_id"
+
+    def get_label(self):
+        return "dummy_label"
+
+    def itemFromIndex(self, index):
+        return self
+
+
 class Mock_Nuxeo_Client:
     def __init__(self) -> None:
         self.reachable = False
