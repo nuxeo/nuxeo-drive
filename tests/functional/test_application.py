@@ -10,16 +10,23 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from PyQt5.QtCore import QModelIndex, QObject
+from PyQt5.QtCore import QModelIndex, QObject, Qt
 
 from nxdrive.constants import WINDOWS
 from nxdrive.gui.api import QMLDriveApi
 from nxdrive.gui.application import Application
 from nxdrive.gui.folders_dialog import FoldersDialog
+from nxdrive.gui.folders_loader import ContentLoaderMixin
 from nxdrive.gui.folders_model import FoldersOnly
 from nxdrive.gui.folders_treeview import FolderTreeView
 from nxdrive.options import Options
-from tests.functional.mocked_classes import Mock_Engine, Mock_Item_Model, Mock_Qt
+from tests.functional.mocked_classes import (
+    Mock_Engine,
+    Mock_Filtered_Doc,
+    Mock_Item_Model,
+    Mock_Qt,
+    Mock_Remote_File_Info,
+)
 
 from ..markers import not_linux
 
@@ -356,3 +363,45 @@ def test_application(app_obj, manager_factory, tmp_path):
         assert (
             folder_tree_view.on_selection_changed(q_model_index, q_model_index) is None
         )
+
+    # Covering run method in ContentLoaderMixin
+    content_loader = ContentLoaderMixin(
+        folder_tree_view, item=None, force_refresh=False
+    )
+    mock_remote_file_info = Mock_Remote_File_Info()
+
+    # info.get_id() in self.tree.cache and not self.force_refresh
+    content_loader.tree.cache.append("dummy_id")
+    content_loader.info = Mock_Filtered_Doc(
+        mock_remote_file_info, Qt.CheckState.Checked
+    )
+    assert content_loader.run() is None
+
+    # info.get_id() not in self.tree.cache
+    # if not info.is_expandable() and not info.get_path().startswith("/default-domain/UserWorkspaces/")
+    content_loader.tree.cache.remove("dummy_id")
+    content_loader.info = Mock_Filtered_Doc(
+        mock_remote_file_info, Qt.CheckState.Checked
+    )
+    content_loader.info.expandable = False
+    assert content_loader.run() is None
+
+    # info.get_id() not in self.tree.cache
+    # if info.is_expandable()
+    content_loader.tree.cache.remove("dummy_id")
+    content_loader.info = Mock_Filtered_Doc(
+        mock_remote_file_info, Qt.CheckState.Checked
+    )
+    content_loader.info.expandable = True
+    assert content_loader.run() is None
+
+    # throwing exception in try block
+    with patch(
+        "tests.functional.mocked_classes.Mock_Filtered_Doc.is_expandable"
+    ) as mock_expandable:
+        mock_expandable.side_effect = Exception("Mock Exception")
+        content_loader.tree.cache.remove("dummy_id")
+        content_loader.info = Mock_Filtered_Doc(
+            mock_remote_file_info, Qt.CheckState.Checked
+        )
+        assert content_loader.run() is None
