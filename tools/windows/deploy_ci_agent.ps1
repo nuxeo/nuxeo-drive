@@ -38,6 +38,23 @@ $global:PIP_OPT = "-m", "pip", "install", "--no-cache-dir", "--upgrade", "--upgr
 # Imports
 Import-Module BitsTransfer
 
+function Install-PythonRequirements {
+	param(
+		[string]$RequirementsFile,
+		[string]$Description
+	)
+
+	Write-Output ">>> Installing $Description"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r $RequirementsFile
+	if ($lastExitCode -ne 0) {
+		Write-Error "Failed to install $Description from $RequirementsFile"
+		ExitWithCode $lastExitCode
+	}
+
+	Write-Output ">>> Installed packages after $Description:"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m pip list
+}
+
 function add_missing_ddls {
 	# Missing DLLS for Windows 7
 	$folder = "C:\Program Files (x86)\Windows Kits\10\Redist\ucrt\DLLs\x86\"
@@ -325,24 +342,13 @@ function install_deps {
 		}
 	}
 
-	Write-Output ">>> Installing requirements"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements-pip.txt
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements.txt
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements-dev.txt
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
+	# Install requirements in sequence
+	Install-PythonRequirements "tools\deps\requirements-pip.txt" "pip requirements"
+	Install-PythonRequirements "tools\deps\requirements.txt" "main requirements"
+	Install-PythonRequirements "tools\deps\requirements-dev.txt" "development requirements"
+
 	if (-Not ($install_release)) {
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements-tests.txt
-		if ($lastExitCode -ne 0) {
-			ExitWithCode $lastExitCode
-		}
+		Install-PythonRequirements "tools\deps\requirements-tests.txt" "test requirements"
 		# & $Env:STORAGE_DIR\Scripts\pre-commit.exe install
 	}
 
