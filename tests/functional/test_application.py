@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from nuxeo.models import Document
 from PyQt5.QtCore import QModelIndex, QObject, Qt
 
 from nxdrive.constants import WINDOWS
@@ -17,7 +18,7 @@ from nxdrive.gui.api import QMLDriveApi
 from nxdrive.gui.application import Application
 from nxdrive.gui.folders_dialog import FoldersDialog
 from nxdrive.gui.folders_loader import ContentLoaderMixin
-from nxdrive.gui.folders_model import FoldersOnly
+from nxdrive.gui.folders_model import Doc, FoldersOnly
 from nxdrive.gui.folders_treeview import FolderTreeView
 from nxdrive.options import Options
 from tests.functional.mocked_classes import (
@@ -405,3 +406,38 @@ def test_application(app_obj, manager_factory, tmp_path):
             mock_remote_file_info, Qt.CheckState.Checked
         )
         assert content_loader.run() is None
+
+    # Covering Doc methods in folders_model.py
+    mock_document = Document()
+    mock_document.contextParameters["permissions"] = ["AddChildren", "Read"]
+    doc = Doc(mock_document, False)
+    assert isinstance(repr(doc), str)
+
+    # enable - exception block
+    mock_document = Document()
+    doc = Doc(mock_document, False)
+    assert doc.enable() is False
+
+    # get_id - exception block
+    mock_document = Document()
+    del mock_document.uid
+    doc = Doc(mock_document, False)
+    assert doc.get_id() == ""
+
+    # get_label - exception block
+    mock_document = Document()
+    del mock_document.title
+    doc = Doc(mock_document, False)
+    assert doc.get_label() == ""
+
+    # get_path - exception block
+    mock_document = Document()
+    del mock_document.path
+    doc = Doc(mock_document, False)
+    assert doc.get_path() == ""
+
+    # selectable - exception block
+    mock_document = Document()
+    del mock_document.contextParameters
+    doc = Doc(mock_document, False)
+    assert doc.selectable() is False
