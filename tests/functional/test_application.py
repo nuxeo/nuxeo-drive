@@ -18,7 +18,7 @@ from nxdrive.gui.api import QMLDriveApi
 from nxdrive.gui.application import Application
 from nxdrive.gui.folders_dialog import FoldersDialog
 from nxdrive.gui.folders_loader import ContentLoaderMixin
-from nxdrive.gui.folders_model import Doc, FoldersOnly
+from nxdrive.gui.folders_model import Doc, FilteredDoc, FoldersOnly
 from nxdrive.gui.folders_treeview import FolderTreeView
 from nxdrive.options import Options
 from tests.functional.mocked_classes import (
@@ -441,3 +441,8 @@ def test_application(app_obj, manager_factory, tmp_path):
     del mock_document.contextParameters
     doc = Doc(mock_document, False)
     assert doc.selectable() is False
+
+    # Covering FilteredDoc methods in folders_model.py
+    mock_fs_info = Mock_Remote_File_Info()
+    filtered_doc = FilteredDoc(mock_fs_info, Qt.CheckState.Checked)
+    assert isinstance(repr(filtered_doc), str)

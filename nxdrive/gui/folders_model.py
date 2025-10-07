@@ -111,33 +111,33 @@ class Doc(FileInfo):
                 and self.doc.type not in Options.disallowed_types_for_dt
                 and "AddChildren" in self.doc.contextParameters["permissions"]
             )
-        except Exception:
-            return (
-                "HiddenInCreation" not in self.doc["facets"]
-                and self.doc["type"] not in Options.disallowed_types_for_dt
-                and "AddChildren" in self.doc["contextParameters"]["permissions"]
-            )
+        except Exception as ex:
+            log.info(f"Error while enabling folder: {ex}")
+            return False
 
     def get_id(self) -> str:
         """The document's UID."""
         try:
             return self.doc.uid
-        except Exception:
-            return self.doc["uid"]
+        except Exception as ex:
+            log.info(f"Error while getting document ID: {ex}")
+            return ""
 
     def get_label(self) -> str:
         """The document's name as it is showed in the tree."""
         try:
             return self.doc.title
-        except Exception:
-            return self.doc["title"]
+        except Exception as ex:
+            log.info(f"Error while getting document title: {ex}")
+            return ""
 
     def get_path(self) -> str:
         """Guess the document's path on the server."""
         try:
             return self.doc.path
-        except Exception:
-            return self.doc["path"]
+        except Exception as ex:
+            log.info(f"Error while getting document path: {ex}")
+            return ""
 
     def selectable(self) -> bool:
         """Allow to fetch its children only if the user has at least the "Read" permission
@@ -145,8 +145,9 @@ class Doc(FileInfo):
         """
         try:
             return "Read" in self.doc.contextParameters["permissions"]
-        except Exception:
-            return "Read" in self.doc["contextParameters"]["permissions"]
+        except Exception as ex:
+            log.info(f"Error while checking document permissions: {ex}")
+            return False
 
 
 class FilteredDoc(FileInfo):
