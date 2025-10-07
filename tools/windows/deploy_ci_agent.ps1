@@ -51,7 +51,7 @@ function Install-PythonRequirements {
 		ExitWithCode $lastExitCode
 	}
 
-	Write-Output ">>> Installed packages after $Description:"
+	Write-Output ">>> Installed packages after $Description :"
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m pip list
 }
 
