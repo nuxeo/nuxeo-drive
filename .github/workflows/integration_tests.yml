@@ -42,6 +42,13 @@ jobs:
           path: ~\AppData\Local\pip\Cache
           key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-dev.txt', 'tools/deps/requirements-tox.txt') }}
           restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-dev.txt', 'tools/deps/requirements-tox.txt') }}
+      - name: Check Dependencies
+        run: |
+          python -m pip list
+          echo "=== Python version ==="
+          python --version
+          echo "=== Pip version ==="
+          python -m pip --version
       - name: Freeze the application
         run: |
           powershell Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
@@ -59,7 +66,7 @@ jobs:
           files: ./coverage.xml
           flags: integration
           env_vars: OS,PYTHON
-  
+
   integration-tests-windows-LTS-2025:
     runs-on: windows-latest
     strategy:
