@@ -378,6 +378,16 @@ class Mock_Doc_Pair:
         return self.read_only
 
 
+class Mock_Document_API:
+    def __init__(self) -> None:
+        self.uid = "dummy_uid"
+        self.path = "/"
+        pass
+
+    def get(self, path: str = "", uid: str = ""):
+        return self
+
+
 class Mock_Download:
     def __init__(self) -> None:
         self.status = TransferStatus.PAUSED

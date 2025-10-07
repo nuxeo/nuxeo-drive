@@ -22,6 +22,7 @@ from nxdrive.gui.folders_model import Doc, FilteredDoc, FoldersOnly
 from nxdrive.gui.folders_treeview import FolderTreeView
 from nxdrive.options import Options
 from tests.functional.mocked_classes import (
+    Mock_Document_API,
     Mock_Engine,
     Mock_Filtered_Doc,
     Mock_Item_Model,
@@ -446,3 +447,39 @@ def test_application(app_obj, manager_factory, tmp_path):
     mock_fs_info = Mock_Remote_File_Info()
     filtered_doc = FilteredDoc(mock_fs_info, Qt.CheckState.Checked)
     assert isinstance(repr(filtered_doc), str)
+
+    # Covering get_roots method in FoldersOnly
+    folders_only = FoldersOnly(engine.remote)
+    assert isinstance(folders_only.get_roots(), list)
+
+    # Covering _get_root_folders method in FoldersOnly
+    folders_only = FoldersOnly(engine.remote)
+    folders_only.remote.documents = Mock_Document_API()
+    with patch("nxdrive.gui.folders_model.FoldersOnly._get_children") as mock_children:
+        mock_children.return_value = [Document()]
+        assert isinstance(folders_only._get_root_folders(), list)
+
+    # _get_root_folders - exception block - if Options.shared_folder_navigation = True
+    def mock_fetch(*args, **kwargs):
+        mock_doc = Document()
+        mock_doc.contextParameters["permissions"] = ["Read", "Write"]
+        return mock_doc
+
+    folders_only = FoldersOnly(engine.remote)
+    folders_only.remote.documents = Mock_Document_API()
+    folders_only.remote.fetch = mock_fetch
+    Options.shared_folder_navigation = True
+    with patch("nxdrive.gui.folders_model.FoldersOnly.get_roots") as mock_roots:
+        mock_root = {
+            "type": "Folder",
+            "path": "/",
+            "uid": "root_id",
+        }
+        mock_roots.return_value = [mock_root]
+        assert isinstance(folders_only._get_root_folders(), list)
+
+    # _get_root_folders - exception block - if Options.shared_folder_navigation = False
+    folders_only = FoldersOnly(engine.remote)
+    folders_only.remote.documents = Mock_Document_API()
+    Options.shared_folder_navigation = False
+    assert isinstance(folders_only._get_root_folders(), list)
