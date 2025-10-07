@@ -344,8 +344,8 @@ function install_deps {
 
 	# Install requirements in sequence
 	Install-PythonRequirements "tools\deps\requirements-pip.txt" "pip requirements"
-	Install-PythonRequirements "tools\deps\requirements.txt" "main requirements"
 	Install-PythonRequirements "tools\deps\requirements-dev.txt" "development requirements"
+	Install-PythonRequirements "tools\deps\requirements.txt" "main requirements"
 
 	if (-Not ($install_release)) {
 		Install-PythonRequirements "tools\deps\requirements-tests.txt" "test requirements"
