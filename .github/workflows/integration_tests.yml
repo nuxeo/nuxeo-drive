@@ -42,17 +42,16 @@ jobs:
           path: ~\AppData\Local\pip\Cache
           key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-dev.txt', 'tools/deps/requirements-tox.txt') }}
           restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-dev.txt', 'tools/deps/requirements-tox.txt') }}
-      - name: Check Dependencies
+      - name: Freeze the application
         run: |
+          powershell Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
+          powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
+          echo "=== Check Dependencies ==="
           python -m pip list
           echo "=== Python version ==="
           python --version
           echo "=== Pip version ==="
           python -m pip --version
-      - name: Freeze the application
-        run: |
-          powershell Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
-          powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
           powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -build
       - name: Install tox
         run: python -m pip install -r tools/deps/requirements-tox.txt
