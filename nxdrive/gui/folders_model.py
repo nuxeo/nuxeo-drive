@@ -300,9 +300,9 @@ class FoldersOnly:
                             enrichers=["permissions"],
                         )
                         if (
-                            "Write" in doc.contextParameters["permissions"]
-                            or "ReadWrite" in doc.contextParameters["permissions"]
-                            or "Everything" in doc.contextParameters["permissions"]
+                            "Write" in doc["contextParameters"]["permissions"]
+                            or "ReadWrite" in doc["contextParameters"]["permissions"]
+                            or "Everything" in doc["contextParameters"]["permissions"]
                         ):
                             ret_list.append(Doc(doc, False, True))
                 return ret_list
