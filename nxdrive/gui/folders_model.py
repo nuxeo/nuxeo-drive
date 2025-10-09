@@ -78,14 +78,20 @@ class FileInfo:
         return path
 
 
+class FromDict:
+    def __init__(self, doc: dict) -> None:
+        for key, value in doc.items():
+            setattr(self, key, value)
+
+
 class Doc(FileInfo):
     """A folderish document. Used by the Direct Transfer feature."""
 
     def __init__(
-        self, doc: Document, expandable: bool = True, /, *, parent: FileInfo = None
+        self, doc: Document, expandable: bool = True, convert: bool = False, /, *, parent: FileInfo = None
     ) -> None:
         super().__init__(parent=parent)
-        self.doc = doc
+        self.doc = FromDict(doc) if convert else doc
         self.expandable = expandable
 
     def __repr__(self) -> str:
@@ -105,48 +111,29 @@ class Doc(FileInfo):
 
     def enable(self) -> bool:
         """Allow to select the folder only if the user can effectively create documents inside."""
-        try:
-            return (
-                "HiddenInCreation" not in self.doc.facets
-                and self.doc.type not in Options.disallowed_types_for_dt
-                and "AddChildren" in self.doc.contextParameters["permissions"]
-            )
-        except Exception:
-            return (
-                "HiddenInCreation" not in self.doc["facets"]
-                and self.doc["type"] not in Options.disallowed_types_for_dt
-                and "AddChildren" in self.doc["contextParameters"]["permissions"]
-            )
+        return (
+            "HiddenInCreation" not in self.doc.facets
+            and self.doc.type not in Options.disallowed_types_for_dt
+            and "AddChildren" in self.doc.contextParameters["permissions"]
+        )
 
     def get_id(self) -> str:
         """The document's UID."""
-        try:
-            return self.doc.uid
-        except Exception:
-            return self.doc["uid"]
+        return self.doc.uid
 
     def get_label(self) -> str:
         """The document's name as it is showed in the tree."""
-        try:
-            return self.doc.title
-        except Exception:
-            return self.doc["title"]
+        return self.doc.title
 
     def get_path(self) -> str:
         """Guess the document's path on the server."""
-        try:
-            return self.doc.path
-        except Exception:
-            return self.doc["path"]
+        return self.doc.path
 
     def selectable(self) -> bool:
         """Allow to fetch its children only if the user has at least the "Read" permission
         and if it contains at least one subfolder.
         """
-        try:
-            return "Read" in self.doc.contextParameters["permissions"]
-        except Exception:
-            return "Read" in self.doc["contextParameters"]["permissions"]
+        return "Read" in self.doc.contextParameters["permissions"]
 
 
 class FilteredDoc(FileInfo):
@@ -310,7 +297,7 @@ class FoldersOnly:
                             or "ReadWrite" in doc["contextParameters"]["permissions"]
                             or "Everything" in doc["contextParameters"]["permissions"]
                         ):
-                            ret_list.append(Doc(doc, False))
+                            ret_list.append(Doc(doc, False, True))
                 return ret_list
             else:
                 log.warning("Error while retrieving documents on '/'", exc_info=True)
