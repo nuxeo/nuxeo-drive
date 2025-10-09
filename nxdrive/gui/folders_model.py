@@ -4,6 +4,7 @@ from typing import Any, Iterator, List, Union
 from nuxeo.models import Document
 
 from ..client.remote_client import Remote
+from ..constants import USER_WORKSPACE
 from ..objects import Filters, RemoteFileInfo
 from ..options import Options
 from ..qt import constants as qt
@@ -286,7 +287,7 @@ class FoldersOnly:
                 ret_list = []
                 for root in roots:
                     if root["type"] == "Folder" and not root["path"].startswith(
-                        "/default-domain/UserWorkspaces/"
+                        USER_WORKSPACE
                     ):
                         doc = self.remote.fetch(
                             root["uid"],
