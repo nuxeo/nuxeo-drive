@@ -345,11 +345,13 @@ function install_deps {
 	# Install requirements in sequence
 	Install-PythonRequirements "tools\deps\requirements-pip.txt" "pip requirements"
 	Install-PythonRequirements "tools\deps\requirements-dev.txt" "development requirements"
-	Install-PythonRequirements "tools\deps\requirements.txt" "main requirements"
 
 	if (-Not ($install_release)) {
 		Install-PythonRequirements "tools\deps\requirements-tests.txt" "test requirements"
 		# & $Env:STORAGE_DIR\Scripts\pre-commit.exe install
+	}
+	else {
+		Install-PythonRequirements "tools\deps\requirements.txt" "main requirements"
 	}
 
 	# See NXDRIVE-1554 for details
