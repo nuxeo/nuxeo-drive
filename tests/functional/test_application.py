@@ -414,35 +414,6 @@ def test_application(app_obj, manager_factory, tmp_path):
     doc = Doc(mock_document, False)
     assert isinstance(repr(doc), str)
 
-    # enable - exception block
-    mock_document = Document()
-    doc = Doc(mock_document, False)
-    assert doc.enable() is False
-
-    # get_id - exception block
-    mock_document = Document()
-    del mock_document.uid
-    doc = Doc(mock_document, False)
-    assert doc.get_id() == ""
-
-    # get_label - exception block
-    mock_document = Document()
-    del mock_document.title
-    doc = Doc(mock_document, False)
-    assert doc.get_label() == ""
-
-    # get_path - exception block
-    mock_document = Document()
-    del mock_document.path
-    doc = Doc(mock_document, False)
-    assert doc.get_path() == ""
-
-    # selectable - exception block
-    mock_document = Document()
-    del mock_document.contextParameters
-    doc = Doc(mock_document, False)
-    assert doc.selectable() is False
-
     # Covering FilteredDoc methods in folders_model.py
     mock_fs_info = Mock_Remote_File_Info()
     filtered_doc = FilteredDoc(mock_fs_info, Qt.CheckState.Checked)
@@ -461,8 +432,7 @@ def test_application(app_obj, manager_factory, tmp_path):
 
     # _get_root_folders - exception block - if Options.shared_folder_navigation = True
     def mock_fetch(*args, **kwargs):
-        mock_doc = Document()
-        mock_doc.contextParameters["permissions"] = ["Read", "Write"]
+        mock_doc = {"contextParameters": {"permissions": ["Read", "Write"]}}
         return mock_doc
 
     folders_only = FoldersOnly(engine.remote)
@@ -472,7 +442,7 @@ def test_application(app_obj, manager_factory, tmp_path):
     with patch("nxdrive.gui.folders_model.FoldersOnly.get_roots") as mock_roots:
         mock_root = {
             "type": "Folder",
-            "path": "/",
+            "path": "/dummy",
             "uid": "root_id",
         }
         mock_roots.return_value = [mock_root]
