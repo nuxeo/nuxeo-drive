@@ -392,28 +392,42 @@ function install_python {
 	# Fix a bloody issue ... !
 	New-Item -Path $Env:STORAGE_DIR -Name Scripts -ItemType directory -Verbose
 
-	$vcDllFromPythonDir = Join-Path $Env:PYTHON_DIR "vcruntime140.dll"
-	$vcDllFromPythonLocation = Join-Path $Env:PythonLocation "vcruntime140.dll"
+	# Initializing variables
+	$vcDllFromPythonDir = $null
+	$exePathPYTHON_DIR = $null
+	$vcDllFromPythonLocation = $null
+	$exePathPythonLocation = $null
 
-	if (Test-Path $vcDllFromPythonDir) {
+	# Only build the path if the environment variable is not null or empty
+	if (-not [string]::IsNullOrEmpty($Env:PYTHON_DIR)) {
+		$vcDllFromPythonDir = Join-Path $Env:PYTHON_DIR "vcruntime140.dll"
+		$exePathPYTHON_DIR = Join-Path $Env:PYTHON_DIR "python.exe"
+	}
+
+	if (-not [string]::IsNullOrEmpty($Env:PythonLocation)) {
+		$vcDllFromPythonLocation = Join-Path $Env:PythonLocation "vcruntime140.dll"
+		$exePathPythonLocation = Join-Path $Env:PythonLocation "python.exe"
+	}
+
+	# Try PYTHON_DIR first
+	if ($vcDllFromPythonDir -and (Test-Path $vcDllFromPythonDir)) {
 		Copy-Item $vcDllFromPythonDir "$Env:STORAGE_DIR\Scripts" -Verbose
 	}
-	elseif (Test-Path $vcDllFromPythonLocation) {
+	# Then try PythonLocation
+	elseif ($vcDllFromPythonLocation -and (Test-Path $vcDllFromPythonLocation)) {
 		Copy-Item $vcDllFromPythonLocation "$Env:STORAGE_DIR\Scripts" -Verbose
 	}
+	# If neither exists
 	else {
-		Write-Warning ">>> vcruntime140.dll not found in either PYTHON_DIR or PythonLocation!"
+		Write-Warning ">>> vcruntime140.dll not found in PYTHON_DIR or PythonLocation (or variables not set)!"
 	}
 
 	Write-Output ">>> Setting-up the Python virtual environment"
 
-	$exePathPYTHON_DIR = Join-Path $Env:PYTHON_DIR "python.exe"
-	$exePathPythonLocation = Join-Path $Env:PythonLocation "python.exe"
-
-	if (Test-Path $exePathPYTHON_DIR) {
+	if ($exePathPYTHON_DIR -and (Test-Path $exePathPYTHON_DIR)) {
 		& $exePathPYTHON_DIR $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
 	}
-	elseif (Test-Path $exePathPythonLocation) {
+	elseif ($exePathPythonLocation -and (Test-Path $exePathPythonLocation)) {
 		& $exePathPythonLocation $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
 	}
 	else {
