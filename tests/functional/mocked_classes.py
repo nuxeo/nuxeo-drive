@@ -5,9 +5,11 @@ from threading import RLock
 from typing import Any, List
 
 from PyQt5 import QtCore
+from PyQt5.QtCore import Qt
 
 from nxdrive.client.local.base import FileInfo, LocalClientMixin
 from nxdrive.constants import TransferStatus
+from nxdrive.gui.folders_model import FilteredDoc
 from nxdrive.objects import DocPair, RemoteFileInfo
 
 
@@ -376,6 +378,16 @@ class Mock_Doc_Pair:
         return self.read_only
 
 
+class Mock_Document_API:
+    def __init__(self) -> None:
+        self.uid = "dummy_uid"
+        self.path = "/"
+        pass
+
+    def get(self, path: str = "", uid: str = ""):
+        return self
+
+
 class Mock_Download:
     def __init__(self) -> None:
         self.status = TransferStatus.PAUSED
@@ -450,6 +462,49 @@ class Mock_Engine:
 
     def use_trash(self):
         return self.trash
+
+
+class Mock_Filtered_Doc(FilteredDoc):
+    def __init__(self, info, state: Qt.CheckState) -> None:
+        super().__init__(info, state)
+        self.expandable = True
+        self.id = "dummy_id"
+        self.label = "dummy_label"
+        self.path = "dummy_path"
+        self.info = info
+        self.state = state
+
+    def get_id(self):
+        return self.id
+
+    def get_path(self):
+        return self.path
+
+    def get_label(self):
+        return self.label
+
+    def is_expandable(self) -> bool:
+        return self.expandable
+
+
+class Mock_Item_Model:
+    def __init__(self) -> None:
+        pass
+
+    def data(self, role):
+        return self
+
+    def get_path(self):
+        return "dummy_path"
+
+    def get_id(self):
+        return "dummy_id"
+
+    def get_label(self):
+        return "dummy_label"
+
+    def itemFromIndex(self, index):
+        return self
 
 
 class Mock_Nuxeo_Client:

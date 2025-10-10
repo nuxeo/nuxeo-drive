@@ -10,14 +10,25 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from PyQt5.QtCore import QObject
+from nuxeo.models import Document
+from PyQt5.QtCore import QModelIndex, QObject, Qt
 
 from nxdrive.constants import WINDOWS
 from nxdrive.gui.api import QMLDriveApi
 from nxdrive.gui.application import Application
 from nxdrive.gui.folders_dialog import FoldersDialog
+from nxdrive.gui.folders_loader import ContentLoaderMixin
+from nxdrive.gui.folders_model import Doc, FilteredDoc, FoldersOnly
+from nxdrive.gui.folders_treeview import FolderTreeView
 from nxdrive.options import Options
-from tests.functional.mocked_classes import Mock_Engine, Mock_Qt
+from tests.functional.mocked_classes import (
+    Mock_Document_API,
+    Mock_Engine,
+    Mock_Filtered_Doc,
+    Mock_Item_Model,
+    Mock_Qt,
+    Mock_Remote_File_Info,
+)
 
 from ..markers import not_linux
 
@@ -336,3 +347,109 @@ def test_application(app_obj, manager_factory, tmp_path):
 
     assert not dialog.paths
     assert "big_folder" in dialog.local_path_msg_lbl.text()
+
+    # Test case as part of user story : https://hyland.atlassian.net/browse/NXDRIVE-3056
+    # Covering on_selection_changed method used in FolderTreeView
+    parent = FoldersDialog(app, engine, None)
+    client = FoldersOnly(engine.remote)
+    folder_tree_view = FolderTreeView(parent, client, None)
+    q_model_index = QModelIndex()
+
+    with patch(
+        "nxdrive.gui.folders_treeview.FolderTreeView.model"
+    ) as mock_model, patch(
+        "nxdrive.gui.folders_dialog.FoldersDialog.update_file_group"
+    ) as mock_update_file_group:
+        mock_model.return_value = Mock_Item_Model()
+        mock_update_file_group.return_value = None
+        assert (
+            folder_tree_view.on_selection_changed(q_model_index, q_model_index) is None
+        )
+
+    # Covering run method in ContentLoaderMixin
+    content_loader = ContentLoaderMixin(
+        folder_tree_view, item=None, force_refresh=False
+    )
+    mock_remote_file_info = Mock_Remote_File_Info()
+
+    # info.get_id() in self.tree.cache and not self.force_refresh
+    content_loader.tree.cache.append("dummy_id")
+    content_loader.info = Mock_Filtered_Doc(
+        mock_remote_file_info, Qt.CheckState.Checked
+    )
+    assert content_loader.run() is None
+
+    # info.get_id() not in self.tree.cache
+    # if not info.is_expandable() and not info.get_path().startswith("/default-domain/UserWorkspaces/")
+    content_loader.tree.cache.remove("dummy_id")
+    content_loader.info = Mock_Filtered_Doc(
+        mock_remote_file_info, Qt.CheckState.Checked
+    )
+    content_loader.info.expandable = False
+    assert content_loader.run() is None
+
+    # info.get_id() not in self.tree.cache
+    # if info.is_expandable()
+    content_loader.tree.cache.remove("dummy_id")
+    content_loader.info = Mock_Filtered_Doc(
+        mock_remote_file_info, Qt.CheckState.Checked
+    )
+    content_loader.info.expandable = True
+    assert content_loader.run() is None
+
+    # throwing exception in try block
+    with patch(
+        "tests.functional.mocked_classes.Mock_Filtered_Doc.is_expandable"
+    ) as mock_expandable:
+        mock_expandable.side_effect = Exception("Mock Exception")
+        content_loader.tree.cache.remove("dummy_id")
+        content_loader.info = Mock_Filtered_Doc(
+            mock_remote_file_info, Qt.CheckState.Checked
+        )
+        assert content_loader.run() is None
+
+    # Covering Doc methods in folders_model.py
+    mock_document = Document()
+    mock_document.contextParameters["permissions"] = ["AddChildren", "Read"]
+    doc = Doc(mock_document, False)
+    assert isinstance(repr(doc), str)
+
+    # Covering FilteredDoc methods in folders_model.py
+    mock_fs_info = Mock_Remote_File_Info()
+    filtered_doc = FilteredDoc(mock_fs_info, Qt.CheckState.Checked)
+    assert isinstance(repr(filtered_doc), str)
+
+    # Covering get_roots method in FoldersOnly
+    folders_only = FoldersOnly(engine.remote)
+    assert isinstance(folders_only.get_roots(), list)
+
+    # Covering _get_root_folders method in FoldersOnly
+    folders_only = FoldersOnly(engine.remote)
+    folders_only.remote.documents = Mock_Document_API()
+    with patch("nxdrive.gui.folders_model.FoldersOnly._get_children") as mock_children:
+        mock_children.return_value = [Document()]
+        assert isinstance(folders_only._get_root_folders(), list)
+
+    # _get_root_folders - exception block - if Options.shared_folder_navigation = True
+    def mock_fetch(*args, **kwargs):
+        mock_doc = {"contextParameters": {"permissions": ["Read", "Write"]}}
+        return mock_doc
+
+    folders_only = FoldersOnly(engine.remote)
+    folders_only.remote.documents = Mock_Document_API()
+    folders_only.remote.fetch = mock_fetch
+    Options.shared_folder_navigation = True
+    with patch("nxdrive.gui.folders_model.FoldersOnly.get_roots") as mock_roots:
+        mock_root = {
+            "type": "Folder",
+            "path": "/dummy",
+            "uid": "root_id",
+        }
+        mock_roots.return_value = [mock_root]
+        assert isinstance(folders_only._get_root_folders(), list)
+
+    # _get_root_folders - exception block - if Options.shared_folder_navigation = False
+    folders_only = FoldersOnly(engine.remote)
+    folders_only.remote.documents = Mock_Document_API()
+    Options.shared_folder_navigation = False
+    assert isinstance(folders_only._get_root_folders(), list)

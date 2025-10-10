@@ -89,7 +89,13 @@ class Doc(FileInfo):
     """A folderish document. Used by the Direct Transfer feature."""
 
     def __init__(
-        self, doc: Document, expandable: bool = True, convert: bool = False, /, *, parent: FileInfo = None
+        self,
+        doc: Document,
+        expandable: bool = True,
+        convert: bool = False,
+        /,
+        *,
+        parent: FileInfo = None,
     ) -> None:
         super().__init__(parent=parent)
         self.doc = FromDict(doc) if convert else doc
