@@ -1,6 +1,7 @@
 from logging import getLogger
 from typing import TYPE_CHECKING, List, Optional
 
+from ..constants import USER_WORKSPACE
 from ..qt import constants as qt
 from ..qt.imports import QRunnable, QStandardItem, QStandardItemModel, QVariant
 from ..translator import Translator
@@ -46,7 +47,7 @@ class ContentLoaderMixin(QRunnable):
         try:
             if info:
                 if not info.is_expandable() and not info.get_path().startswith(
-                    "/default-domain/UserWorkspaces/"
+                    USER_WORKSPACE
                 ):
                     children = []
                 else:
