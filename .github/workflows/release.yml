@@ -232,7 +232,7 @@ jobs:
         timeout-minutes: 15
         if: matrix.os == 'windows-latest'
         env:
-          SIGN_EXE: github.event.inputs.signExe
+          u: ${{ github.event.inputs.signExe }}
           KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
           NXDRIVE_TEST_NUXEO_URL: "https://drive-2023.beta.nuxeocloud.com/nuxeo"
           NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2023_TEST_USERNAME }}
@@ -246,7 +246,7 @@ jobs:
         timeout-minutes: 15
         if: matrix.os == 'windows-latest'
         env:
-          SIGN_EXE: github.event.inputs.signExe
+          SIGN_EXE: ${{ github.event.inputs.signExe }}
           KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
           NXDRIVE_TEST_NUXEO_URL: "https://drive-2025.beta.nuxeocloud.com/nuxeo"
           NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2025_TEST_USERNAME }}
