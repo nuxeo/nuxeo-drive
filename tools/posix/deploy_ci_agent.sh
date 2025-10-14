@@ -157,11 +157,13 @@ create_venv() {
 install_deps() {
     echo ">>> Installing requirements"
     ${PIP} -r tools/deps/requirements-pip.txt
-    ${PIP} -r tools/deps/requirements.txt
     ${PIP} -r tools/deps/requirements-dev.txt
+
     if [ "${INSTALL_RELEASE_ARG:-0}" != "1" ]; then
         ${PIP} -r tools/deps/requirements-tests.txt
         ./venv/bin/pre-commit install
+    else
+        ${PIP} -r tools/deps/requirements.txt
     fi
 }
 
