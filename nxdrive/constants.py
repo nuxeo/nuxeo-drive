@@ -70,6 +70,10 @@ NO_SPACE_ERRORS = {
     errno.ERANGE,  # Result too large
 }
 
+QUERY_ENDPOINT = "/api/v1/search/lang/NXQL/execute?query="
+
+USER_WORKSPACE = "/default-domain/UserWorkspaces/"
+
 # OSError indicating the incapacity to do anything because of too long file name or deep tree
 LONG_FILE_ERRORS = {errno.ENAMETOOLONG}
 if WINDOWS:
