@@ -109,7 +109,7 @@ class Doc(FileInfo):
         )
 
     def is_expandable(self) -> bool:
-        """Returns if the current user is an Admin"""
+        """Returns whether the folder is expandable"""
         return self.expandable
 
     def folderish(self) -> bool:
@@ -173,7 +173,7 @@ class FilteredDoc(FileInfo):
         )
 
     def is_expandable(self) -> bool:
-        """Returns if the current user is an Admin"""
+        """Returns whether the folder is expandable"""
         return True
 
     def get_label(self) -> str:
