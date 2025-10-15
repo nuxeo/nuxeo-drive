@@ -1,5 +1,5 @@
 from logging import getLogger
-from typing import Any, Iterator, List, Union
+from typing import Iterator, List, Union
 
 from nuxeo.models import Document
 
@@ -273,7 +273,7 @@ class FoldersOnly:
                 )
             )
 
-    def get_roots(self) -> List[Any]:
+    def get_roots(self) -> List:
         from ..constants import QUERY_ENDPOINT
 
         url = f"{QUERY_ENDPOINT}select * from Document WHERE ecm:mixinType = 'Folderish' and ecm:isTrashed = 0"
