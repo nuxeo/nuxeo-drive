@@ -541,6 +541,13 @@ function launch_tests {
 
 function sign($file) {
 	# Code sign a file
+
+	$signToolPath = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue |
+    Sort-Object LastWriteTime -Descending |
+    Select-Object -First 1 -ExpandProperty 
+
+	Write-Output ">>> SIGNTOOL_PATH:  ==>>. '$signToolPath' "
+
 	if (-Not ($Env:SIGNTOOL_PATH)) {
 		Write-Output ">>> SIGNTOOL_PATH not set, skipping code signature"
 		return
