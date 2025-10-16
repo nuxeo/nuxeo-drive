@@ -467,21 +467,22 @@ class TestErrorHandling:
 
         # Create a mock Windows permission error
         with patch("nxdrive.engine.queue_manager.WINDOWS", True):
-            # Create mock exception with Windows error attributes
-            perm_error = Mock(spec=PermissionError)
-            perm_error.winerror = WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE
-            perm_error.strerror = "The process cannot access the file"
+            # Create a subclass of PermissionError with Windows error attributes
+            class WindowsPermissionError(PermissionError):
+                def __init__(self, message):
+                    super().__init__(message)
+                    self.winerror = WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE
+                    self.strerror = "The process cannot access the file"
+
+            perm_error = WindowsPermissionError("Permission denied")
 
             with patch.object(queue_manager, "newError") as mock_signal:
-                with patch("isinstance", return_value=True):
-                    queue_manager.push_error(doc_pair, exception=perm_error)
+                queue_manager.push_error(doc_pair, exception=perm_error)
 
-                    # Should reset error count to 1 for this specific error
-                    expected_time = int(time.time()) + (
-                        queue_manager._error_interval * 1
-                    )
-                    assert abs(doc_pair.error_next_try - expected_time) <= 1
-                    mock_signal.emit.assert_called_once_with(1)
+                # Should reset error count to 1 for this specific error
+                expected_time = int(time.time()) + (queue_manager._error_interval * 1)
+                assert abs(doc_pair.error_next_try - expected_time) <= 1
+                mock_signal.emit.assert_called_once_with(1)
 
     def test_push_error_ongoing_request_error(self, queue_manager):
         """Test OngoingRequestError handling (no notification)."""
