@@ -570,7 +570,6 @@ function sign($file) {
 	#		Remove-Item -Path $cert -Verbose
 	#	}
 	#}
-	Write-Output "SIGN_EXE = $Env:SIGN_EXE"
 	if ($Env:SIGN_EXE -eq "true") {
 		Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"
 		Write-Output ">>> Signing $file"
