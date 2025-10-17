@@ -541,8 +541,19 @@ function launch_tests {
 
 function sign($file) {
 	# Code sign a file
-	if (-Not ($Env:SIGNTOOL_PATH)) {
-		Write-Output ">>> SIGNTOOL_PATH not set, skipping code signature"
+
+	$signToolPath = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Directory |
+	Sort-Object Name -Descending |
+	ForEach-Object {
+		$x64Path = Join-Path $_.FullName "x64\signtool.exe"
+		if (Test-Path $x64Path) { return $x64Path }
+		} |
+		Select-Object -First 1
+
+	Write-Output ">>> SignTool Path:  ==>> '$signToolPath' "
+
+	if (-Not ($signToolPath)) {
+		Write-Output ">>> signtool not found, skipping code signature"
 		return
 	}
 	if (-Not ($Env:SIGNING_ID)) {
@@ -573,7 +584,7 @@ function sign($file) {
 	if ($Env:SIGN_EXE -eq "true") {
 		Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"
 		Write-Output ">>> Signing $file"
-		& $Env:SIGNTOOL_PATH\signtool.exe sign `
+		& $signToolPath sign `
 			/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
 			/n "$Env:SIGNING_ID_NEW" `
 			/d "$Env:APP_NAME" `
@@ -587,7 +598,7 @@ function sign($file) {
 		}
 
 		Write-Output ">>> Verifying $file"
-		& $Env:SIGNTOOL_PATH\signtool.exe verify /pa /v "$file"
+		& $signToolPath verify /pa /v "$file"
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}
