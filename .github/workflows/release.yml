@@ -239,7 +239,7 @@ jobs:
           NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2023_TEST_PASSWORD }}
           SIGNING_ID: "Nuxeo"
           SIGNING_ID_NEW: "Hyland Software, Inc."
-          SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
+          # SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade
 
       - name: "[Windows] Generate the .exe and validate against 2025"
@@ -253,7 +253,7 @@ jobs:
           NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2025_TEST_PASSWORD }}
           SIGNING_ID: "Nuxeo"
           SIGNING_ID_NEW: "Hyland Software, Inc."
-          SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
+          # SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -build_installer_and_sign
 
       - name: "Upload artifacts"
