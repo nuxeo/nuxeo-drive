@@ -1012,6 +1012,21 @@ class TestDirectEditExtraLines(unittest.TestCase):
 class TestDirectEditAdvancedCoverage:
     """Additional tests to cover more complex functionality and error cases"""
 
+    def setup_method(self):
+        """Set up test fixtures for each test method."""
+        import tempfile
+
+        self.temp_dir = tempfile.mkdtemp()
+        self.folder = Path(self.temp_dir)
+        self.manager = MagicMock()
+
+    def teardown_method(self):
+        """Clean up test fixtures after each test method."""
+        import shutil
+
+        if hasattr(self, "temp_dir"):
+            shutil.rmtree(self.temp_dir, ignore_errors=True)
+
     def test_url_parsing_regex_functionality(self):
         """Test URL parsing regex patterns - covers lines 509-521"""
         # Test regex pattern matching without full method execution
@@ -1064,10 +1079,7 @@ class TestDirectEditAdvancedCoverage:
 
     def test_prepare_edit_no_blob(self):
         """Test when no blob is found - covers lines 549-550"""
-        manager = MagicMock()
-        folder = Path("/tmp")
-
-        direct_edit = DirectEdit(manager, folder)
+        direct_edit = DirectEdit(self.manager, self.folder)
 
         # This test covers the warning path when no blob is found
 
@@ -1086,10 +1098,7 @@ class TestDirectEditAdvancedCoverage:
 
     def test_edit_method_basic_functionality(self):
         """Test basic edit method functionality - covers main workflow"""
-        manager = MagicMock()
-        folder = Path("/tmp")
-
-        direct_edit = DirectEdit(manager, folder)
+        direct_edit = DirectEdit(self.manager, self.folder)
 
         with patch.object(
             direct_edit, "_prepare_edit", return_value=Path("/tmp/test.pdf")
@@ -1097,27 +1106,21 @@ class TestDirectEditAdvancedCoverage:
             direct_edit.edit("https://server.com", "doc123", "testuser", None)
 
             # Should call manager.open_local_file
-            assert manager.open_local_file.called
+            assert self.manager.open_local_file.called
 
     def test_edit_no_file_path(self):
         """Test edit when _prepare_edit returns None"""
-        manager = MagicMock()
-        folder = Path("/tmp")
-
-        direct_edit = DirectEdit(manager, folder)
+        direct_edit = DirectEdit(self.manager, self.folder)
 
         with patch.object(direct_edit, "_prepare_edit", return_value=None):
             direct_edit.edit("https://server.com", "doc123", "testuser", None)
 
             # Should not call manager.open_local_file
-            assert not manager.open_local_file.called
+            assert not self.manager.open_local_file.called
 
     def test_extract_edit_info_basic(self):
         """Test _extract_edit_info method basic functionality"""
-        manager = MagicMock()
-        folder = Path("/tmp")
-
-        direct_edit = DirectEdit(manager, folder)
+        direct_edit = DirectEdit(self.manager, self.folder)
         direct_edit.local = MagicMock()
 
         # Mock local.get_remote_id calls
@@ -1138,10 +1141,7 @@ class TestDirectEditAdvancedCoverage:
 
     def test_get_info_method_exists(self):
         """Test _get_info method exists and is callable"""
-        manager = MagicMock()
-        folder = Path("/tmp")
-
-        direct_edit = DirectEdit(manager, folder)
+        direct_edit = DirectEdit(self.manager, self.folder)
 
         # Verify _get_info method exists
         assert hasattr(direct_edit, "_get_info")
@@ -1149,14 +1149,11 @@ class TestDirectEditAdvancedCoverage:
 
     def test_direct_edit_workflow_integration(self):
         """Test DirectEdit workflow integration"""
-        manager = MagicMock()
-        folder = Path("/tmp")
-
-        direct_edit = DirectEdit(manager, folder)
+        direct_edit = DirectEdit(self.manager, self.folder)
 
         # Test that DirectEdit can be properly initialized and used
-        assert direct_edit._manager is manager
-        assert direct_edit._folder == folder
+        assert direct_edit._manager is self.manager
+        assert direct_edit._folder == self.folder
 
         # Test that key methods exist
         assert hasattr(direct_edit, "edit")
@@ -1166,12 +1163,24 @@ class TestDirectEditAdvancedCoverage:
 class TestDirectEditErrorHandling:
     """Tests for DirectEdit error handling and exception paths - covers lines 567-572, 579-604, 637-675"""
 
+    def setup_method(self):
+        """Set up test fixtures for each test method."""
+        import tempfile
+
+        self.temp_dir = tempfile.mkdtemp()
+        self.folder = Path(self.temp_dir)
+        self.manager = MagicMock()
+
+    def teardown_method(self):
+        """Clean up test fixtures after each test method."""
+        import shutil
+
+        if hasattr(self, "temp_dir"):
+            shutil.rmtree(self.temp_dir, ignore_errors=True)
+
     def test_prepare_edit_connection_error_handling(self):
         """Test connection error handling in _prepare_edit - covers lines 567-569"""
-        manager = MagicMock()
-        folder = Path("/tmp")
-
-        direct_edit = DirectEdit(manager, folder)
+        direct_edit = DirectEdit(self.manager, self.folder)
 
         # Test generic connection error exception path
         mock_engine = MagicMock()
@@ -1202,10 +1211,7 @@ class TestDirectEditErrorHandling:
 
     def test_prepare_edit_http_error_404_handling(self):
         """Test HTTP 404 error handling in _prepare_edit - covers lines 571-577"""
-        manager = MagicMock()
-        folder = Path("/tmp")
-
-        direct_edit = DirectEdit(manager, folder)
+        direct_edit = DirectEdit(self.manager, self.folder)
 
         # Test HTTPError 404 handling using mock
         mock_engine = MagicMock()
@@ -1242,10 +1248,7 @@ class TestDirectEditErrorHandling:
 
     def test_prepare_edit_generic_http_error_handling(self):
         """Test generic HTTP error handling in _prepare_edit - covers error paths"""
-        manager = MagicMock()
-        folder = Path("/tmp")
-
-        direct_edit = DirectEdit(manager, folder)
+        direct_edit = DirectEdit(self.manager, self.folder)
 
         mock_engine = MagicMock()
         mock_info = MagicMock()
@@ -1272,10 +1275,7 @@ class TestDirectEditErrorHandling:
 
     def test_prepare_edit_download_warning_path(self):
         """Test download warning when tmp_file is None - covers lines 567-569"""
-        manager = MagicMock()
-        folder = Path("/tmp")
-
-        direct_edit = DirectEdit(manager, folder)
+        direct_edit = DirectEdit(self.manager, self.folder)
 
         mock_engine = MagicMock()
         mock_engine.hostname = "server.com"  # Set proper hostname for Qt signal
@@ -1298,10 +1298,7 @@ class TestDirectEditErrorHandling:
 
     def test_edit_no_associated_software_error(self):
         """Test NoAssociatedSoftware error handling in edit method - covers lines 637-642"""
-        manager = MagicMock()
-        folder = Path("/tmp")
-
-        direct_edit = DirectEdit(manager, folder)
+        direct_edit = DirectEdit(self.manager, self.folder)
 
         from nxdrive.exceptions import NoAssociatedSoftware
 
@@ -1314,8 +1311,8 @@ class TestDirectEditErrorHandling:
             no_software_error.filename = "test.xyz"
             no_software_error.mimetype = "application/unknown"
 
-            # Mock manager.open_local_file to raise NoAssociatedSoftware
-            manager.open_local_file.side_effect = no_software_error
+            # Mock self.manager.open_local_file to raise NoAssociatedSoftware
+            self.manager.open_local_file.side_effect = no_software_error
 
             # Mock the directEditError signal
             direct_edit.directEditError = MagicMock()
@@ -1330,10 +1327,7 @@ class TestDirectEditErrorHandling:
 
     def test_edit_os_error_access_denied_handling(self):
         """Test OSError EACCES handling in edit method - covers lines 650-675"""
-        manager = MagicMock()
-        folder = Path("/tmp")
-
-        direct_edit = DirectEdit(manager, folder)
+        direct_edit = DirectEdit(self.manager, self.folder)
 
         import errno
 
@@ -1345,25 +1339,22 @@ class TestDirectEditErrorHandling:
             os_error.errno = errno.EACCES
             os_error.filename = "/tmp/test.pdf"
 
-            # Set up manager.open_local_file to fail first, then succeed
-            manager.open_local_file.side_effect = [os_error, None]
+            # Set up self.manager.open_local_file to fail first, then succeed
+            self.manager.open_local_file.side_effect = [os_error, None]
 
             direct_edit.edit("https://server.com", "doc123", "testuser", None)
 
             # Should call open_local_file twice (first fails, second succeeds)
-            assert manager.open_local_file.call_count == 2
+            assert self.manager.open_local_file.call_count == 2
             # Both calls should be with the same file path (convert to string for comparison)
             call_args = [
-                str(call[0][0]) for call in manager.open_local_file.call_args_list
+                str(call[0][0]) for call in self.manager.open_local_file.call_args_list
             ]
             assert all(arg == "/tmp/test.pdf" for arg in call_args)
 
     def test_edit_os_error_non_access_denied_handling(self):
         """Test OSError non-EACCES handling in edit method - covers error re-raising"""
-        manager = MagicMock()
-        folder = Path("/tmp")
-
-        direct_edit = DirectEdit(manager, folder)
+        direct_edit = DirectEdit(self.manager, self.folder)
 
         import errno
 
@@ -1375,8 +1366,8 @@ class TestDirectEditErrorHandling:
             os_error.errno = errno.ENOENT
             os_error.filename = "/tmp/test.pdf"
 
-            # Mock manager.open_local_file to raise non-EACCES error
-            manager.open_local_file.side_effect = os_error
+            # Mock self.manager.open_local_file to raise non-EACCES error
+            self.manager.open_local_file.side_effect = os_error
 
             # Should re-raise non-EACCES OSError
             try:
@@ -1387,10 +1378,7 @@ class TestDirectEditErrorHandling:
 
     def test_prepare_edit_no_blob_warning(self):
         """Test no blob warning path in _prepare_edit - covers lines 549-550"""
-        manager = MagicMock()
-        folder = Path("/tmp")
-
-        direct_edit = DirectEdit(manager, folder)
+        direct_edit = DirectEdit(self.manager, self.folder)
 
         mock_engine = MagicMock()
         mock_info = MagicMock()
@@ -1412,23 +1400,17 @@ class TestDirectEditErrorHandling:
 
     def test_edit_no_file_path_returned(self):
         """Test edit method when _prepare_edit returns None"""
-        manager = MagicMock()
-        folder = Path("/tmp")
-
-        direct_edit = DirectEdit(manager, folder)
+        direct_edit = DirectEdit(self.manager, self.folder)
 
         with patch.object(direct_edit, "_prepare_edit", return_value=None):
             direct_edit.edit("https://server.com", "doc123", "testuser", None)
 
-            # Should not call manager.open_local_file when no file path
-            assert not manager.open_local_file.called
+            # Should not call self.manager.open_local_file when no file path
+            assert not self.manager.open_local_file.called
 
     def test_file_system_path_operations(self):
         """Test file system path operations and validation - covers file path logic"""
-        manager = MagicMock()
-        folder = Path("/tmp")
-
-        direct_edit = DirectEdit(manager, folder)
+        direct_edit = DirectEdit(self.manager, self.folder)
 
         # Test path creation and validation logic
         doc_id = "test-doc-123"
