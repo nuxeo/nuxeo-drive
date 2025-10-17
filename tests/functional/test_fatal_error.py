@@ -650,8 +650,8 @@ class TestCriticalErrorHandling:
     def test_show_critical_error_qt_fails_windows_fallback(self):
         """Test show_critical_error falls back to Windows dialog when Qt fails."""
         try:
-            raise IOError("File system error")
-        except IOError:
+            raise OSError("File system error")
+        except OSError:
             qt_exception = Exception("Qt not available")
 
             with patch(
@@ -670,7 +670,7 @@ class TestCriticalErrorHandling:
                 mock_win_error.assert_called_once()
                 error_text = mock_win_error.call_args[0][0]
                 assert "entire installation is broken" in error_text
-                assert "IOError: File system error" in error_text
+                assert "OSError: File system error" in error_text
                 assert "Qt not available" in error_text
 
     @mac_only
