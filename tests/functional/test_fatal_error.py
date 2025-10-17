@@ -805,6 +805,7 @@ class TestIntegrationScenarios:
 
     def test_complete_error_display_workflow(self):
         """Test complete error display workflow from exception to user dialog."""
+
         # Simulate a real application error
         def problematic_function():
             raise FileNotFoundError(
