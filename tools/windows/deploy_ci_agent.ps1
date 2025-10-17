@@ -580,7 +580,7 @@ function sign($file) {
 	if ($Env:SIGN_EXE -eq "true") {
 		Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"
 		Write-Output ">>> Signing $file"
-		# & $signToolPath\signtool.exe sign `
+		# & $signToolPath sign `
 		# 	/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
 		# 	/n "$Env:SIGNING_ID_NEW" `
 		# 	/d "$Env:APP_NAME" `
@@ -594,7 +594,7 @@ function sign($file) {
 		}
 
 		Write-Output ">>> Verifying $file"
-		& $signToolPath\signtool.exe verify /pa /v "$file"
+		& $signToolPath verify /pa /v "$file"
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}
