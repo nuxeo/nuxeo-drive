@@ -546,12 +546,12 @@ function sign($file) {
     Sort-Object LastWriteTime -Descending |
     Select-Object -First 1 -ExpandProperty FullName
 
-	Write-Output ">>> SIGNTOOL_PATH:  ==>>. '$signToolPath' "
+	Write-Output ">>> SignTool Path:  ==>> '$signToolPath' "
 
-	if (-Not ($Env:SIGNTOOL_PATH)) {
-		Write-Output ">>> SIGNTOOL_PATH not set, skipping code signature"
-		return
-	}
+	# if (-Not ($Env:SIGNTOOL_PATH)) {
+	# 	Write-Output ">>> SIGNTOOL_PATH not set, skipping code signature"
+	# 	return
+	# }
 	if (-Not ($Env:SIGNING_ID)) {
 		$Env:SIGNING_ID = "Nuxeo"
 		Write-Output ">>> SIGNING_ID is not set, using '$Env:SIGNING_ID'"
@@ -580,21 +580,21 @@ function sign($file) {
 	if ($Env:SIGN_EXE -eq "true") {
 		Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"
 		Write-Output ">>> Signing $file"
-		& $Env:SIGNTOOL_PATH\signtool.exe sign `
-			/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
-			/n "$Env:SIGNING_ID_NEW" `
-			/d "$Env:APP_NAME" `
-			/td SHA256 /fd sha256 `
-			/tr http://timestamp.digicert.com/sha256/timestamp `
-			/v `
-			"$file"
+		# & $signToolPath\signtool.exe sign `
+		# 	/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
+		# 	/n "$Env:SIGNING_ID_NEW" `
+		# 	/d "$Env:APP_NAME" `
+		# 	/td SHA256 /fd sha256 `
+		# 	/tr http://timestamp.digicert.com/sha256/timestamp `
+		# 	/v `
+		# 	"$file"
 
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}
 
 		Write-Output ">>> Verifying $file"
-		& $Env:SIGNTOOL_PATH\signtool.exe verify /pa /v "$file"
+		& $signToolPath\signtool.exe verify /pa /v "$file"
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}
