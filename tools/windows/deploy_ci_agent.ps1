@@ -542,9 +542,13 @@ function launch_tests {
 function sign($file) {
 	# Code sign a file
 
-	$signToolPath = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
-    Sort-Object LastWriteTime -Descending |
-    Select-Object -First 1 -ExpandProperty FullName
+	$signToolPath = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Directory |
+	Sort-Object Name -Descending |
+	ForEach-Object {
+		$x64Path = Join-Path $_.FullName "x64\signtool.exe"
+		if (Test-Path $x64Path) { return $x64Path }
+		} | 
+		Select-Object -First 1
 
 	Write-Output ">>> SignTool Path:  ==>> '$signToolPath' "
 
