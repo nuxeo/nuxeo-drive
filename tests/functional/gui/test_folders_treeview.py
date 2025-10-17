@@ -708,9 +708,11 @@ class TestTreeViewIntegration:
                     "cache_size": len(self.cache),
                     "cache_hits": self.cache_hits,
                     "cache_misses": self.cache_misses,
-                    "hit_ratio": self.cache_hits / (self.cache_hits + self.cache_misses)
-                    if (self.cache_hits + self.cache_misses) > 0
-                    else 0,
+                    "hit_ratio": (
+                        self.cache_hits / (self.cache_hits + self.cache_misses)
+                        if (self.cache_hits + self.cache_misses) > 0
+                        else 0
+                    ),
                 }
 
         tree_view = MockOptimizedTreeView(mock_parent, mock_client)

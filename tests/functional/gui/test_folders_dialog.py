@@ -635,6 +635,7 @@ class TestFoldersDialogIntegration:
 
     def test_regexp_validator_function(self):
         """Test the regexp validator utility function."""
+
         # Since we can't import the actual function due to Qt dependencies,
         # we'll test our mock version
         def mock_regexp_validator():
