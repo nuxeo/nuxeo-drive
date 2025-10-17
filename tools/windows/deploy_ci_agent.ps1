@@ -552,10 +552,10 @@ function sign($file) {
 
 	Write-Output ">>> SignTool Path:  ==>> '$signToolPath' "
 
-	# if (-Not ($Env:SIGNTOOL_PATH)) {
-	# 	Write-Output ">>> SIGNTOOL_PATH not set, skipping code signature"
-	# 	return
-	# }
+	if (-Not ($signToolPath)) {
+		Write-Output ">>> signtool not found, skipping code signature"
+		return
+	}
 	if (-Not ($Env:SIGNING_ID)) {
 		$Env:SIGNING_ID = "Nuxeo"
 		Write-Output ">>> SIGNING_ID is not set, using '$Env:SIGNING_ID'"
