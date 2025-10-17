@@ -1,6 +1,5 @@
 """Test the folder dialog classes without creating real Qt dialogs."""
 
-import os
 from unittest.mock import MagicMock, Mock, patch
 
 from nxdrive.engine.engine import Engine
@@ -320,8 +319,10 @@ class TestFoldersDialog:
                 self.new_folders_created = []
 
             def create_new_folder(self, parent_path, folder_name):
-                # Simulate folder creation
-                new_path = os.path.join(parent_path, folder_name)
+                # Simulate folder creation using Path for cross-platform compatibility
+                from pathlib import Path
+
+                new_path = str(Path(parent_path) / folder_name)
                 self.new_folders_created.append(new_path)
 
                 # Update tree view
@@ -340,7 +341,11 @@ class TestFoldersDialog:
         assert dialog.validate_folder_name("ValidFolder")
         new_path = dialog.create_new_folder("/test/parent", "NewFolder")
         assert new_path in dialog.new_folders_created
-        assert new_path == "/test/parent/NewFolder"
+        # Use Path for cross-platform comparison
+        from pathlib import Path
+
+        expected_path = str(Path("/test/parent") / "NewFolder")
+        assert new_path == expected_path
         dialog.tree_view.refresh_model.assert_called_once()
 
         # Test invalid folder name
