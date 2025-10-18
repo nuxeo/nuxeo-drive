@@ -1914,7 +1914,7 @@ class TestQMLDriveApiJsonDefault:
             # Verify auth URL opened
             self.mock_application.open_authentication_dialog.assert_called_once()
             args = self.mock_application.open_authentication_dialog.call_args[0]
-            assert "https://auth.url" in args[0]
+            assert args[0] == "https://auth.url"
 
         # Test no engine found
         with patch.object(self.api, "_get_engine", return_value=None):
