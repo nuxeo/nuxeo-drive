@@ -1100,9 +1100,10 @@ class TestDirectEditAdvancedCoverage:
         """Test basic edit method functionality - covers main workflow"""
         direct_edit = DirectEdit(self.manager, self.folder)
 
-        with patch.object(
-            direct_edit, "_prepare_edit", return_value=Path("/tmp/test.pdf")
-        ):
+        # Create a proper temporary file path
+        test_file_path = self.folder / "test.pdf"
+
+        with patch.object(direct_edit, "_prepare_edit", return_value=test_file_path):
             direct_edit.edit("https://server.com", "doc123", "testuser", None)
 
             # Should call manager.open_local_file
@@ -1331,13 +1332,14 @@ class TestDirectEditErrorHandling:
 
         import errno
 
-        with patch.object(
-            direct_edit, "_prepare_edit", return_value=Path("/tmp/test.pdf")
-        ):
+        # Create a proper temporary file path
+        test_file_path = self.folder / "test.pdf"
+
+        with patch.object(direct_edit, "_prepare_edit", return_value=test_file_path):
             # Create OSError with EACCES (permission denied)
             os_error = OSError("Permission denied")
             os_error.errno = errno.EACCES
-            os_error.filename = "/tmp/test.pdf"
+            os_error.filename = str(test_file_path)
 
             # Set up self.manager.open_local_file to fail first, then succeed
             self.manager.open_local_file.side_effect = [os_error, None]
@@ -1346,11 +1348,11 @@ class TestDirectEditErrorHandling:
 
             # Should call open_local_file twice (first fails, second succeeds)
             assert self.manager.open_local_file.call_count == 2
-            # Both calls should be with the same file path (convert to string for comparison)
+            # Both calls should be with the same file path (normalize for cross-platform comparison)
             call_args = [
-                str(call[0][0]) for call in self.manager.open_local_file.call_args_list
+                Path(call[0][0]) for call in self.manager.open_local_file.call_args_list
             ]
-            assert all(arg == "/tmp/test.pdf" for arg in call_args)
+            assert all(Path(arg) == test_file_path for arg in call_args)
 
     def test_edit_os_error_non_access_denied_handling(self):
         """Test OSError non-EACCES handling in edit method - covers error re-raising"""
@@ -1358,13 +1360,14 @@ class TestDirectEditErrorHandling:
 
         import errno
 
-        with patch.object(
-            direct_edit, "_prepare_edit", return_value=Path("/tmp/test.pdf")
-        ):
+        # Create a proper temporary file path
+        test_file_path = self.folder / "test.pdf"
+
+        with patch.object(direct_edit, "_prepare_edit", return_value=test_file_path):
             # Create OSError with different errno (not EACCES)
             os_error = OSError("File not found")
             os_error.errno = errno.ENOENT
-            os_error.filename = "/tmp/test.pdf"
+            os_error.filename = str(test_file_path)
 
             # Mock self.manager.open_local_file to raise non-EACCES error
             self.manager.open_local_file.side_effect = os_error
