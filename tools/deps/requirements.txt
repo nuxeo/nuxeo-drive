@@ -327,6 +327,9 @@ pyobjc-framework-SystemConfiguration==10.3.1 ; sys_platform == "darwin" \
     # via pypac
 pypac==0.15.0 \
     --hash=sha256:558779a8f6a40d7f0f18e493b1d6386b3112a3a7874d67197aa723a46ee1744a
+pyperclip==1.11.0 \
+    --hash=sha256:244035963e4428530d9e3a6101a1ef97209c6825edab1567beac148ccc1db1b6 \
+    --hash=sha256:299403e9ff44581cb9ba2ffeed69c7aa96a008622ad0c46cb575ca75b5b84273
 pyparsing==2.4.7 \
     --hash=sha256:c203ec8783bf771a155b207279b9bccb8dea02d8f0c9e5f8ead507bc3246ecc1 \
     --hash=sha256:ef9d7589ef3c200abe66653d3f1ab1033c3c419ae9b9bdb1240a85b024efc88b

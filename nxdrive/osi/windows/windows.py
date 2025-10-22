@@ -61,11 +61,11 @@ class WindowsIntegration(AbstractOSIntegration):
         """Get the text data from the clipboard.
         Emulate: CTRL + V
         """
-        import win32clipboard
+        import pyperclip
 
-        win32clipboard.OpenClipboard()
-        text: str = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
-        win32clipboard.CloseClipboard()
+        log.info("Getting text from clipboard")
+        text = pyperclip.paste()
+        log.info(f"Retrieved {len(text)} characters from clipboard")
         return text
 
     @staticmethod
@@ -73,12 +73,11 @@ class WindowsIntegration(AbstractOSIntegration):
         """Copy some *text* into the clipboard.
         Emulate: CTRL + C
         """
-        import win32clipboard
+        import pyperclip
 
-        win32clipboard.OpenClipboard()
-        win32clipboard.EmptyClipboard()
-        win32clipboard.SetClipboardText(text, win32clipboard.CF_UNICODETEXT)
-        win32clipboard.CloseClipboard()
+        log.info(f"Copying {len(text)} characters to clipboard")
+        pyperclip.copy(text)
+        log.info("Text successfully copied to clipboard")
 
     @pyqtSlot(result=bool)
     def install_addons(self, *, setup: str = "nuxeo-drive-addons.exe") -> bool:
