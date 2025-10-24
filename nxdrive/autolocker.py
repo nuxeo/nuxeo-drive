@@ -1,7 +1,7 @@
-# import ctypes
-# from ctypes import wintypes
+import ctypes
 from contextlib import suppress
 from copy import deepcopy
+from ctypes import wintypes
 from logging import getLogger
 from pathlib import Path
 from time import sleep  # time was added here
@@ -131,6 +131,46 @@ class ProcessAutoLockerWorker(PollWorker):
     def _process(self) -> None:
 
         current_locks = deepcopy(self._autolocked)
+
+        # Fetch and log clipboard owner
+        if WINDOWS:
+            try:
+                clipboard_owner_hwnd = ctypes.windll.user32.GetClipboardOwner()
+                if clipboard_owner_hwnd:
+                    # Get the process ID from the window handle
+                    pid = wintypes.DWORD()
+                    ctypes.windll.user32.GetWindowThreadProcessId(
+                        clipboard_owner_hwnd, ctypes.byref(pid)
+                    )
+
+                    if pid.value:
+                        try:
+                            proc = psutil.Process(pid.value)
+                            clipboard_owner_name = proc.name().lower()
+                            log.info(
+                                f"Clipboard owner: {clipboard_owner_name} (PID: {pid.value})"
+                            )
+
+                            # List of process names that should have their clipboard cleared
+                            clipboard_clear_processes = {"ndrive.exe"}
+
+                            if clipboard_owner_name in clipboard_clear_processes:
+                                log.info(
+                                    f"Clearing clipboard owned by {clipboard_owner_name}"
+                                )
+                                # Open, empty, and close the clipboard
+                                if ctypes.windll.user32.OpenClipboard(None):
+                                    ctypes.windll.user32.EmptyClipboard()
+                                    ctypes.windll.user32.CloseClipboard()
+                                    log.info("Clipboard cleared successfully")
+                        except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
+                            log.info(
+                                f"Could not get process info for clipboard owner: {e}"
+                            )
+                else:
+                    log.info("No clipboard owner detected")
+            except Exception as e:
+                log.info(f"Error checking clipboard owner: {e}")
 
         for pid, path in get_open_files():
             log.info(f"Inside for loop _process method: {pid}, {path}")
