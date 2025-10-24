@@ -86,7 +86,7 @@ jobs:
       - name: "[GNU/Linux] Generate the .AppImage"
         if: matrix.os == 'ubuntu-latest'
         env:
-          REGISTRY: "docker-private.devtools.nuxeo.com"
+          REGISTRY: "docker-private.packages.nuxeo.com"
           REPOSITORY: "nuxeo-drive-build"
         run: docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.13.1" # XXX_PYTHON
 
