@@ -569,7 +569,10 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     # Covering updat_feature_state
     assert app._update_feature_state("auto_update", True) is None
     # Covering _msbox
-    assert isinstance(app._msgbox(), QMessageBox)
+    with patch("nxdrive.gui.application.Application._msgbox") as mock_msgbox_method:
+        mock_msgbox_instance = Mock(spec=QMessageBox)
+        mock_msgbox_method.return_value = mock_msgbox_instance
+        assert isinstance(app._msgbox(), type(mock_msgbox_instance))
     # Covering display_info
     assert (
         app.display_info("Warning title", "Warning message", ["value1", "value2"])
@@ -723,13 +726,21 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     original_limit = Options.direct_transfer_file_upper_limit
     Options.direct_transfer_file_upper_limit = 5  # MB
 
-    try:
-        dialog._process_additionnal_local_paths([str(test_file)])
-    finally:
-        Options.direct_transfer_file_upper_limit = original_limit
+    # Mock Translator.get to return a message with the filename included
+    with patch("nxdrive.translator.Translator.get") as mock_translator:
+        mock_translator.side_effect = lambda key, values=None: (
+            f"Size limit exceeded: {values[0]}"
+            if key == "SIZE_LIMIT_FILE" and values
+            else "Mocked translation"
+        )
 
-    assert test_file not in dialog.paths
-    assert "big_file.txt" in dialog.local_path_msg_lbl.text()
+        try:
+            dialog._process_additionnal_local_paths([str(test_file)])
+        finally:
+            Options.direct_transfer_file_upper_limit = original_limit
+
+        assert test_file not in dialog.paths
+        assert "big_file.txt" in dialog.local_path_msg_lbl.text()
 
     # Test with a zero-byte file
     dialog.paths.clear()
@@ -764,17 +775,25 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     original_limit = Options.direct_transfer_file_upper_limit
     Options.direct_transfer_folder_upper_limit = 10  # MB
 
-    try:
-        dialog._process_additionnal_local_paths([str(file1), str(file2)])
-    finally:
-        Options.direct_transfer_folder_upper_limit = original_limit
+    # Mock Translator.get to return appropriate messages
+    with patch("nxdrive.translator.Translator.get") as mock_translator:
+        mock_translator.side_effect = lambda key, values=None: (
+            "Size limit reached. Latest document(s) removed."
+            if key == "SIZE_LIMIT_FOLDER"
+            else "Mocked translation"
+        )
 
-    assert file1 not in dialog.paths
-    assert file2 not in dialog.paths
-    assert (
-        "Size limit reached. Latest document(s) removed."
-        in dialog.local_path_msg_lbl.text()
-    )
+        try:
+            dialog._process_additionnal_local_paths([str(file1), str(file2)])
+        finally:
+            Options.direct_transfer_folder_upper_limit = original_limit
+
+        assert file1 not in dialog.paths
+        assert file2 not in dialog.paths
+        assert (
+            "Size limit reached. Latest document(s) removed."
+            in dialog.local_path_msg_lbl.text()
+        )
 
     # Test with a directory within the folder limit
     dialog.paths.clear()
@@ -807,7 +826,16 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
 
     files = [(dir_path / "file.txt", 10 * 1024 * 1024)]
 
-    with patch("nxdrive.gui.folders_dialog.get_tree_list", return_value=files):
+    # Mock Translator.get to return a message with the folder name included
+    with patch("nxdrive.gui.folders_dialog.get_tree_list", return_value=files), patch(
+        "nxdrive.translator.Translator.get"
+    ) as mock_translator:
+        mock_translator.side_effect = lambda key, values=None: (
+            f"Size limit exceeded: {values[0]}"
+            if key == "SIZE_LIMIT_FILE" and values
+            else "Mocked translation"
+        )
+
         original_limit = Options.direct_transfer_folder_upper_limit
         Options.direct_transfer_folder_upper_limit = 5  # MB
 
