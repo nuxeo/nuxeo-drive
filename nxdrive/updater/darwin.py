@@ -157,7 +157,7 @@ class Updater(BaseUpdater):
             subprocess.check_call(cmd)
             log.info(f"Copied application bundle successfully to {self.final_app!r}")
         except subprocess.CalledProcessError as exc:
-            log.error(f"Failed to copy .app : {exc}")
+            log.error(f"Failed to copy .app: {exc}")
             raise
 
     def _fix_notarization(self, path: str, /) -> None:
