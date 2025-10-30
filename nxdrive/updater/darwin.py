@@ -146,7 +146,6 @@ class Updater(BaseUpdater):
 
         src = f"{mount_dir}/{APP_NAME}.app"
         log.info(f"Copying {src!r} -> {self.final_app!r}")
-
         # shutil.copytree(src, self.final_app)
 
         # Copy to the final application location using ditto
