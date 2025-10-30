@@ -114,10 +114,10 @@ def test_copy_calls_ditto_and_propagates_error(monkeypatch, tmp_path):
 
     # Success path: should call ditto with src and dest
     u._copy(str(mount_dir))
-    assert recorded["cmd"][0] == 'ditto'
+    assert recorded["cmd"][0] == "ditto"
     # On Windows the darwin code builds the src with a forward slash
     # so compare by app bundle name rather than full path
-    assert 'Nuxeo Drive.app' in recorded["cmd"][1]
+    assert "Nuxeo Drive.app" in recorded["cmd"][1]
 
     # Failure path: make check_call raise CalledProcessError and expect _copy to raise
     def failing_call(cmd):
@@ -140,7 +140,7 @@ def test_fix_notarization_suppresses_error(monkeypatch):
     u = make_updater()
     # Should not raise
     u._fix_notarization("some.dmg")
-    assert called["cmd"][0] == 'xattr'
+    assert called["cmd"][0] == "xattr"
 
 
 def test_restart_launches_and_emits(monkeypatch):
@@ -164,6 +164,6 @@ def test_restart_launches_and_emits(monkeypatch):
     u.appUpdated = SimpleNamespace(emit=fake_emit)
 
     u._restart()
-    assert 'sleep' in popped["cmd"]
+    assert "sleep" in popped["cmd"]
     assert popped["shell"] is True
-    assert emit_called.get('ok', False) is True
+    assert emit_called.get("ok", False) is True
