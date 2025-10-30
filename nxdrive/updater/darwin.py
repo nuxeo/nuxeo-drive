@@ -151,9 +151,11 @@ class Updater(BaseUpdater):
 
         # Copy to the final application location using ditto
         try:
+            # Safe: cmd is a list, shell=False (no injection risk)
             cmd = ["ditto", src, str(self.final_app)]
+            log.debug(f"Full command line: {cmd}")
             subprocess.check_call(cmd)
-            log.info(f"Successfully copied to {self.final_app!r}")
+            log.info(f"Copied application bundle successfully to {self.final_app!r}")
         except subprocess.CalledProcessError as exc:
             log.error(f"Failed to copy .app : {exc}")
             raise
