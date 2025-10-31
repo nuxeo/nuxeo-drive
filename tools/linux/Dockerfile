@@ -73,24 +73,3 @@ RUN chmod a+x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
 VOLUME ["/opt/dist", "/opt/sources"]
-
-# # Install the Python version needed by Nuxeo Drive
-# RUN git clone -b wip-NXDRIVE-3075-fix-release-workflow-on-linux $GIT_URL sources && \
-#     cd sources && \
-#     WORKSPACE=/opt ./tools/linux/deploy_ci_agent.sh --install-python && \
-#     cd /opt && \
-#     rm -rf /opt/sources && \
-#     rm -rf /opt/deploy-dir/.pyenv/versions/*/lib/python*/test && \
-#     localedef -i en_US -f UTF-8 en_US.UTF-8 || true && \
-#     cp -f /usr/lib/locale/locale-archive /usr/lib/locale/locale-archive.tmpl || true && \
-#     localedef --list-archive | grep -v 'en_US.utf8' | xargs --no-run-if-empty localedef --delete-from-archive || true && \
-#     dnf remove -y git && \
-#     dnf clean all
-
-# # Copy entrypoint script from local context
-# COPY entrypoint.sh /
-# RUN chmod a+x /entrypoint.sh
-
-# ENTRYPOINT ["/entrypoint.sh"]
-# VOLUME ["/opt/dist", "/opt/sources"]
-
