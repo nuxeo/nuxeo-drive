@@ -73,7 +73,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         uses: docker/login-action@v3.0.0
         with:
-          registry: "docker-private.devtools.nuxeo.com"
+          registry: "docker-private.packages.nuxeo.com"
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
@@ -86,7 +86,7 @@ jobs:
       - name: "[GNU/Linux] Generate the .AppImage"
         if: matrix.os == 'ubuntu-latest'
         env:
-          REGISTRY: "docker-private.devtools.nuxeo.com"
+          REGISTRY: "docker-private.packages.nuxeo.com"
           REPOSITORY: "nuxeo-drive-build"
         run: docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.13.1" # XXX_PYTHON
 
@@ -232,28 +232,28 @@ jobs:
         timeout-minutes: 15
         if: matrix.os == 'windows-latest'
         env:
-          SIGN_EXE: github.event.inputs.signExe
+          SIGN_EXE: ${{ github.event.inputs.signExe }}
           KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
           NXDRIVE_TEST_NUXEO_URL: "https://drive-2023.beta.nuxeocloud.com/nuxeo"
           NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2023_TEST_USERNAME }}
           NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2023_TEST_PASSWORD }}
           SIGNING_ID: "Nuxeo"
           SIGNING_ID_NEW: "Hyland Software, Inc."
-          SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
+          # SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade
 
       - name: "[Windows] Generate the .exe and validate against 2025"
         timeout-minutes: 15
         if: matrix.os == 'windows-latest'
         env:
-          SIGN_EXE: github.event.inputs.signExe
+          SIGN_EXE: ${{ github.event.inputs.signExe }}
           KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
           NXDRIVE_TEST_NUXEO_URL: "https://drive-2025.beta.nuxeocloud.com/nuxeo"
           NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2025_TEST_USERNAME }}
           NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2025_TEST_PASSWORD }}
           SIGNING_ID: "Nuxeo"
           SIGNING_ID_NEW: "Hyland Software, Inc."
-          SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
+          # SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -build_installer_and_sign
 
       - name: "Upload artifacts"
