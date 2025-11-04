@@ -59,7 +59,7 @@ jobs:
           files: ./coverage.xml
           flags: integration
           env_vars: OS,PYTHON
-
+  
   integration-tests-windows-LTS-2025:
     runs-on: windows-latest
     strategy:
