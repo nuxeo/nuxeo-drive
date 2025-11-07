@@ -164,9 +164,7 @@ class ProcessAutoLockerWorker(PollWorker):
                 # that opens the document does not use identifiable temporary files.
                 # Such as Photoshop and Illustrator.
                 self.set_autolock(path, self.direct_edit)
-        log.info("Sleeping for 10 seconds after for loop")
         sleep(10)
-        log.info("Sleep completed")
 
         # Lock new documents
         if self._to_lock:

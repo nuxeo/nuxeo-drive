@@ -63,11 +63,11 @@ class WindowsIntegration(AbstractOSIntegration):
         """
         import win32clipboard
 
-        log.info("Opening clipboard to get text data")
+        log.debug("Opening clipboard to get data")
         win32clipboard.OpenClipboard()
         text: str = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
         win32clipboard.CloseClipboard()
-        log.info(f"Retrieved {len(text)} characters from clipboard")
+        log.debug("Retrieved data from clipboard")
         return text
 
     @staticmethod
@@ -77,12 +77,12 @@ class WindowsIntegration(AbstractOSIntegration):
         """
         import win32clipboard
 
-        log.info(f"Setting clipboard with {len(text)} characters")
+        log.debug("Setting clipboard data")
         win32clipboard.OpenClipboard()
         win32clipboard.EmptyClipboard()
         win32clipboard.SetClipboardText(text, win32clipboard.CF_UNICODETEXT)
         win32clipboard.CloseClipboard()
-        log.info("Clipboard set successfully")
+        log.debug("Clipboard data set successfully")
 
     @pyqtSlot(result=bool)
     def install_addons(self, *, setup: str = "nuxeo-drive-addons.exe") -> bool:
