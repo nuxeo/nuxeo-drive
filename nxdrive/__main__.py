@@ -60,7 +60,7 @@ def main() -> int:
         if not (check_executable_path() and check_os_version()):
             return 1
 
-        from sentry_sdk import get_isolation_scope  # type: ignore
+        from sentry_sdk import get_isolation_scope
 
         from nxdrive.commandline import CliHandler
         from nxdrive.metrics.utils import current_os

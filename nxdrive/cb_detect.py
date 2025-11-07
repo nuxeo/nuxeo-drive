@@ -37,8 +37,8 @@ class ClipboardMonitorThread(threading.Thread):
         import subprocess
         import sys
 
-        import win32clipboard  # type: ignore
-        import win32process  # type: ignore
+        import win32clipboard
+        import win32process
 
         ndrive_exe = "ndrive.exe"  # Use a dummy name for testing
         ownership_start_time = None

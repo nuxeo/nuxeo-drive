@@ -399,14 +399,14 @@ class CliHandler:
             from typing import Type
 
             try:
-                import ipdb  # type: ignore
+                import ipdb
             except ImportError:
                 import pdb
             else:
                 pdb = ipdb
 
             # Automatically check all operations done with the Python client
-            import nuxeo.constants  # type: ignore
+            import nuxeo.constants
 
             nuxeo.constants.CHECK_PARAMS = True
 
@@ -541,8 +541,8 @@ class CliHandler:
             try:
                 import ctypes
 
-                import win32clipboard  # type: ignore
-                import win32process  # type: ignore
+                import win32clipboard
+                import win32process
 
                 try:
                     hwnd = win32clipboard.GetClipboardOwner()
@@ -734,7 +734,7 @@ class CliHandler:
 
     def console(self, options: Namespace, /) -> int:
         if options.debug_pydev:
-            from pydev import pydevd  # type: ignore
+            from pydev import pydevd
 
             pydevd.settrace()
         return self.launch(options, console=True)
