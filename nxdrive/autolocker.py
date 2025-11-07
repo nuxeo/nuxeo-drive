@@ -3,7 +3,7 @@ from copy import deepcopy
 from logging import getLogger
 from pathlib import Path
 from time import sleep  # time was added here
-from typing import TYPE_CHECKING, Dict, Iterable, Iterator, Optional
+from typing import TYPE_CHECKING, Dict, Iterable, Iterator
 
 import psutil  # type: ignore
 
@@ -87,10 +87,6 @@ class ProcessAutoLockerWorker(PollWorker):
         self._lockers: Dict[Path, "DirectEdit"] = {}
         self._to_lock: Items = []
         self._first = True
-
-        # Clipboard tracking variables
-        self._clipboard_owner_start_time: Optional[float] = None
-        self._last_clipboard_owner: Optional[str] = None
 
         # Notification signals
         self.documentLocked.connect(manager.notification_service._lockDocument)
