@@ -38,6 +38,23 @@ $global:PIP_OPT = "-m", "pip", "install", "--no-cache-dir", "--upgrade", "--upgr
 # Imports
 Import-Module BitsTransfer
 
+function Install-PythonRequirements {
+	param(
+		[string]$RequirementsFile,
+		[string]$Description
+	)
+
+	Write-Output ">>> Installing $Description"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r $RequirementsFile
+	if ($lastExitCode -ne 0) {
+		Write-Error "Failed to install $Description from $RequirementsFile"
+		ExitWithCode $lastExitCode
+	}
+
+	Write-Output ">>> Installed packages after $Description :"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m pip list
+}
+
 function add_missing_ddls {
 	# Missing DLLS for Windows 7
 	$folder = "C:\Program Files (x86)\Windows Kits\10\Redist\ucrt\DLLs\x86\"
@@ -325,25 +342,16 @@ function install_deps {
 		}
 	}
 
-	Write-Output ">>> Installing requirements"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements-pip.txt
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements.txt
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements-dev.txt
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
+	# Install requirements in sequence
+	Install-PythonRequirements "tools\deps\requirements-pip.txt" "pip requirements"
+	Install-PythonRequirements "tools\deps\requirements-dev.txt" "development requirements"
+
 	if (-Not ($install_release)) {
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements-tests.txt
-		if ($lastExitCode -ne 0) {
-			ExitWithCode $lastExitCode
-		}
+		Install-PythonRequirements "tools\deps\requirements-tests.txt" "test requirements"
 		# & $Env:STORAGE_DIR\Scripts\pre-commit.exe install
+	}
+	else {
+		Install-PythonRequirements "tools\deps\requirements.txt" "main requirements"
 	}
 
 	# See NXDRIVE-1554 for details
@@ -541,8 +549,19 @@ function launch_tests {
 
 function sign($file) {
 	# Code sign a file
-	if (-Not ($Env:SIGNTOOL_PATH)) {
-		Write-Output ">>> SIGNTOOL_PATH not set, skipping code signature"
+
+	$signToolPath = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Directory |
+	Sort-Object Name -Descending |
+	ForEach-Object {
+		$x64Path = Join-Path $_.FullName "x64\signtool.exe"
+		if (Test-Path $x64Path) { return $x64Path }
+		} |
+		Select-Object -First 1
+
+	Write-Output ">>> SignTool Path:  ==>> '$signToolPath' "
+
+	if (-Not ($signToolPath)) {
+		Write-Output ">>> signtool not found, skipping code signature"
 		return
 	}
 	if (-Not ($Env:SIGNING_ID)) {
@@ -574,7 +593,7 @@ function sign($file) {
 	if ($Env:SIGN_EXE -eq "true") {
 		Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"
 		Write-Output ">>> Signing $file"
-		& $Env:SIGNTOOL_PATH\signtool.exe sign `
+		& $signToolPath sign `
 			/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
 			/n "$Env:SIGNING_ID_NEW" `
 			/d "$Env:APP_NAME" `
@@ -588,7 +607,7 @@ function sign($file) {
 		}
 
 		Write-Output ">>> Verifying $file"
-		& $Env:SIGNTOOL_PATH\signtool.exe verify /pa /v "$file"
+		& $signToolPath verify /pa /v "$file"
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}

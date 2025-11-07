@@ -36,6 +36,6 @@ Feature = SimpleNamespace(
     s3=False,
 )
 
-Beta: List[str] = ["s3"]
+Beta: List[str] = []
 
 DisabledFeatures: List[str] = []

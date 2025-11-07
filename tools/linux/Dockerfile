@@ -46,7 +46,7 @@ RUN dnf install -y \
     dnf clean all
 
 # Install the Python version needed by Nuxeo Drive
-RUN git clone -b wip-NXDRIVE-2929-upgrade-python-from-3.9.5-to-3.13.1 $GIT_URL sources && \
+RUN git clone -b master $GIT_URL sources && \
     cd sources && \
     #git reset --hard ${SCM_REF} && \
     # Install Python
