@@ -628,13 +628,16 @@ class CliHandler:
 
         exit_code: int = 1
         with HealthCheck():
+            from .gui.application import Application
+
             # Monitor the "minimum syndical".
             # If a crash happens outside that context manager, this is not considered a crash
             # as we only do care about synchronization parts that could be altered.
             app = self._get_application(console=console)
 
             # Blocking clipboard signals to avoid issues on Windows
-            if WINDOWS:
+            # Clipboard is only access for GUI (Qt)
+            if WINDOWS and isinstance(app, Application):
                 clipboard = app.clipboard()
                 clipboard.blockSignals(True)
 
