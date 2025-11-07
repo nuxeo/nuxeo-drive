@@ -592,6 +592,10 @@ class DefaultNotificationService(NotificationService):
         )
         engine.displayPendingTask.connect(self._display_pending_task)
 
+    def _concurrentLocked(self, filename: str, lockOwner: str, /) -> None:
+        """Display a notification when a Concurrent Editing is encountered"""
+        self.send_notification(ConcurrentEditingError(filename, lockOwner))
+
     def _direct_transfer_error(self, file: Path, /) -> None:
         """Display a notification when a Direct Transfer is in error."""
         self.send_notification(DirectTransferError(file))
