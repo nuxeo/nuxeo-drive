@@ -678,9 +678,9 @@ Options.checkers["tmp_file_limit"] = validate_tmp_file_limit
 Options.checkers["ca_bundle"] = validate_ca_bundle_path
 Options.checkers["cert_file"] = validate_cert_path
 Options.checkers["cert_key_file"] = validate_cert_path
-Options.checkers[
-    "direct_transfer_file_upper_limit"
-] = validate_direct_transfer_file_upper_limit
-Options.checkers[
-    "direct_transfer_folder_upper_limit"
-] = validate_direct_transfer_folder_upper_limit
+Options.checkers["direct_transfer_file_upper_limit"] = (
+    validate_direct_transfer_file_upper_limit
+)
+Options.checkers["direct_transfer_folder_upper_limit"] = (
+    validate_direct_transfer_folder_upper_limit
+)
