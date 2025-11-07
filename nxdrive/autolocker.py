@@ -73,6 +73,7 @@ if Options.include_process:
 
 class ProcessAutoLockerWorker(PollWorker):
     orphanLocks = pyqtSignal(object)
+    concurrentAlreadyLocked = pyqtSignal(str, str)
     documentLocked = pyqtSignal(str)
     documentUnlocked = pyqtSignal(str)
 
@@ -89,6 +90,9 @@ class ProcessAutoLockerWorker(PollWorker):
         self._first = True
 
         # Notification signals
+        self.concurrentAlreadyLocked.connect(
+            manager.notification_service._concurrentLocked
+        )
         self.documentLocked.connect(manager.notification_service._lockDocument)
         self.documentUnlocked.connect(manager.notification_service._unlockDocument)
 
@@ -123,7 +127,6 @@ class ProcessAutoLockerWorker(PollWorker):
         self.dao.unlock_path(path)
 
     def _process(self) -> None:
-
         current_locks = deepcopy(self._autolocked)
 
         for pid, path in get_open_files():
