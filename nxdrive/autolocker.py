@@ -5,7 +5,7 @@ from pathlib import Path
 from time import sleep  # time was added here
 from typing import TYPE_CHECKING, Dict, Iterable, Iterator, Optional
 
-import psutil
+import psutil  # type: ignore
 
 from .constants import LINUX, MAC, WINDOWS
 from .engine.workers import PollWorker
