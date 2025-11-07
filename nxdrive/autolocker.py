@@ -1,7 +1,5 @@
-import ctypes
 from contextlib import suppress
 from copy import deepcopy
-from ctypes import wintypes
 from logging import getLogger
 from pathlib import Path
 from time import sleep  # time was added here
@@ -132,46 +130,6 @@ class ProcessAutoLockerWorker(PollWorker):
 
         current_locks = deepcopy(self._autolocked)
 
-        # Fetch and log clipboard owner
-        if WINDOWS:
-            try:
-                clipboard_owner_hwnd = ctypes.windll.user32.GetClipboardOwner()
-                if clipboard_owner_hwnd:
-                    # Get the process ID from the window handle
-                    pid = wintypes.DWORD()
-                    ctypes.windll.user32.GetWindowThreadProcessId(
-                        clipboard_owner_hwnd, ctypes.byref(pid)
-                    )
-
-                    if pid.value:
-                        try:
-                            proc = psutil.Process(pid.value)
-                            clipboard_owner_name = proc.name().lower()
-                            log.info(
-                                f"Clipboard owner: {clipboard_owner_name} (PID: {pid.value})"
-                            )
-
-                            # List of process names that should have their clipboard cleared
-                            clipboard_clear_processes = {"ndrive.exe"}
-
-                            if clipboard_owner_name in clipboard_clear_processes:
-                                log.info(
-                                    f"Clearing clipboard owned by {clipboard_owner_name}"
-                                )
-                                # Open, empty, and close the clipboard
-                                if ctypes.windll.user32.OpenClipboard(None):
-                                    ctypes.windll.user32.EmptyClipboard()
-                                    ctypes.windll.user32.CloseClipboard()
-                                    log.info("Clipboard cleared successfully")
-                        except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
-                            log.info(
-                                f"Could not get process info for clipboard owner: {e}"
-                            )
-                else:
-                    log.info("No clipboard owner detected")
-            except Exception as e:
-                log.info(f"Error checking clipboard owner: {e}")
-
         for pid, path in get_open_files():
             log.info(f"Inside for loop _process method: {pid}, {path}")
             # Filter out files depending on configured ignored patterns
@@ -264,7 +222,7 @@ def get_open_files() -> Iterator[Item]:
     # It would be an endless fight to catch specific errors only.
     # Here, it is typically MemoryError's.
     if WINDOWS:
-        log.info(f"Monitoring processes: {sorted(MONITORED_PROCESSES)}")
+        log.debug(f"All processes to be monitored: {sorted(MONITORED_PROCESSES)}")
         try:
             psutil.process_iter.cache_clear()
             for proc in psutil.process_iter(attrs=["pid", "name", "username"]):
@@ -281,7 +239,7 @@ def get_open_files() -> Iterator[Item]:
                     if process_name not in MONITORED_PROCESSES:
                         continue
 
-                    log.info(
+                    log.debug(
                         f"Monitoring process: {process_name_raw} -> {process_name} (PID: {proc.pid}) \
                         (User: {proc.info.get('username')})"
                     )
@@ -289,29 +247,29 @@ def get_open_files() -> Iterator[Item]:
                     # But we also want to filter out errors by processor to be able to retrieve some data from others
                     for handler in proc.open_files():
                         # And so for errors happening at the processes level (typically PermissisonError's)
-                        log.info("Inside proc.open_files inner loop")
-                        log.info(f"pid : {proc.pid}, handler.path : {handler.path}")
+                        log.debug("Inside proc.open_files inner loop")
+                        log.debug(f"pid : {proc.pid}, handler.path : {handler.path}")
                         yield proc.pid, Path(handler.path)
                 except psutil.NoSuchProcess:
                     # Process might have terminated while we were checking it
-                    log.info(
+                    log.error(
                         f"psutil.NoSuchProcess for process: {process_name_raw} (PID: {proc.pid})"
                     )
                     continue
                 except psutil.AccessDenied:
                     # We don't have access to this process
-                    log.info(
+                    log.error(
                         f"psutil.AccessDenied for process: {process_name_raw} (PID: {proc.pid})"
                     )
                     continue
                 except Exception as ex:
-                    log.info(
+                    log.error(
                         f"Exception {type(ex).__name__} for process: {process_name_raw} (PID: {proc.pid})"
                     )
-                    log.info(traceback.format_exc())
+                    log.debug(traceback.format_exc())
         except Exception as ex:
-            log.info(f"autolocker exception >>>>>>>> {ex}")
-            log.warning("Cannot get opened files", exc_info=True)
+            log.error(f"autolocker exception >>>>>>>> {ex}")
+            log.error("Cannot get opened files", exc_info=True)
     else:
         try:
             for proc in psutil.process_iter(attrs=["pid"]):

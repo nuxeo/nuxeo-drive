@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 from . import __version__
-from .constants import APP_NAME, BUNDLE_IDENTIFIER, DEFAULT_CHANNEL, LINUX
+from .constants import APP_NAME, BUNDLE_IDENTIFIER, DEFAULT_CHANNEL, LINUX, WINDOWS
 from .logging_config import configure
 from .options import DEFAULT_LOG_LEVEL_CONSOLE, DEFAULT_LOG_LEVEL_FILE, Options
 from .osi import AbstractOSIntegration
@@ -536,6 +536,47 @@ class CliHandler:
 
         options = self.parse_cli(argv)
 
+        # Clear clipboard if ndrive.exe was the last owner (Windows only)
+        if WINDOWS:
+            try:
+                import ctypes
+
+                import win32clipboard
+                import win32process
+
+                try:
+                    hwnd = win32clipboard.GetClipboardOwner()
+                    if hwnd:
+                        # Get the process ID from the window handle
+                        _, pid = win32process.GetWindowThreadProcessId(hwnd)
+                        # Get the process handle
+                        process_handle = ctypes.windll.kernel32.OpenProcess(
+                            0x0400 | 0x0010, False, pid
+                        )
+                        if process_handle:
+                            # Get the executable name
+                            exe_name = ctypes.create_unicode_buffer(260)
+                            size = ctypes.c_ulong(260)
+                            ctypes.windll.kernel32.QueryFullProcessImageNameW(
+                                process_handle, 0, exe_name, ctypes.byref(size)
+                            )
+                            ctypes.windll.kernel32.CloseHandle(process_handle)
+
+                            exe_basename = os.path.basename(exe_name.value)
+                            current_exe = "ndrive.exe"
+
+                            if exe_basename == current_exe:
+                                log.debug(
+                                    f"Clearing clipboard as {exe_basename} was the last owner"
+                                )
+                                win32clipboard.OpenClipboard()
+                                win32clipboard.EmptyClipboard()
+                                win32clipboard.CloseClipboard()
+                except Exception as e:
+                    log.error(f"Could not check/clear clipboard owner: {e}")
+            except ImportError:
+                pass
+
         if hasattr(options, "local_folder"):
             options.local_folder = normalize_and_expand_path(options.local_folder)
         if hasattr(options, "nxdrive_home"):
@@ -632,6 +673,12 @@ class CliHandler:
             # If a crash happens outside that context manager, this is not considered a crash
             # as we only do care about synchronization parts that could be altered.
             app = self._get_application(console=console)
+
+            # Start clipboard monitor thread (Windows only)
+            from nxdrive.cb_detect import ClipboardMonitorThread
+
+            ClipboardMonitorThread().start()
+
             exit_code = app.exec_()
 
         lock.unlock()
