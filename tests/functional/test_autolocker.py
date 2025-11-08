@@ -36,7 +36,6 @@ class TestGetOpenFiles:
         # Clearing added process from the monitored list
         MONITORED_PROCESSES.remove("svchost")
 
-    # @windows_only
     def test_process_iter_fault(self):
         # Forcing Exception in psutil.process_iter
         with patch("psutil.process_iter") as mock_process_iter:
