@@ -90,6 +90,6 @@ def test_get_open_files():
 
     # On WINDOWS, if no monitored processes are running, then this returns an empty list.
     if WINDOWS:
-        assert files == []
+        assert not files
     else:
         assert files
