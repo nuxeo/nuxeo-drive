@@ -240,6 +240,7 @@ def test_clipboard_signal_block(cmd):
         mock_application.return_value = Application(obj_cli.manager)
         mock_show_metrics.return_value = None
         mock_exec.return_value = 0
+
         assert obj_cli.launch(None, console=False) == 0
 
 
