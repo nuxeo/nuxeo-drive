@@ -130,7 +130,7 @@ class ProcessAutoLockerWorker(PollWorker):
         current_locks = deepcopy(self._autolocked)
 
         for pid, path in get_open_files():
-            log.info(f"Inside for loop _process method: {pid}, {path}")
+            log.debug(f"Inside for loop _process method: {pid}, {path}")
             # Filter out files depending on configured ignored patterns
             if path.name.startswith(Options.ignored_prefixes) or path.name.endswith(
                 Options.ignored_suffixes
