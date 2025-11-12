@@ -387,7 +387,7 @@ function install_python {
 		"/passive",
 		"TargetDir=$Env:PYTHON_DIR",
 		"AssociateFiles=0",
-		"CompileAll=1", 
+		"CompileAll=1",
 		"Shortcuts=0",
 		"Include_doc=0",
 		"Include_launcher=0",
@@ -419,7 +419,7 @@ function install_python {
 
 	# Fix a bloody issue ... !
 	New-Item -Path $Env:STORAGE_DIR -Name Scripts -ItemType directory -Verbose
-	
+
 	# Check if Python directory and required DLL exist
 	if (Test-Path $Env:PYTHON_DIR) {
 		$dllPath = "$Env:PYTHON_DIR\vcruntime140.dll"
