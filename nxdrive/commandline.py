@@ -636,7 +636,7 @@ class CliHandler:
             app = self._get_application(console=console)
 
             # Blocking clipboard signals to avoid issues on Windows
-            # Clipboard is only access for GUI (Qt)
+            # Clipboard is only accessed for GUI (Qt)
             if WINDOWS and isinstance(app, Application):
                 clipboard = app.clipboard()
                 clipboard.blockSignals(True)
