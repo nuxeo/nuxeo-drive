@@ -221,18 +221,26 @@ def test_launch(cmd):
             with patch("nxdrive.commandline.CliHandler._get_application"):
                 assert obj_cli.launch(None, console=False)
 
-    # Test Windows clipboard blocking signals
-    with patch("nxdrive.utils.PidLockFile.lock") as mock_lock:
-        from nxdrive.gui.application import Application
 
+@windows_only
+def test_clipboard_signal_block(cmd):
+    from nxdrive.gui.application import Application
+
+    obj_cli = cmd
+    obj_cli.manager = obj_cli.get_manager()
+    # Test Windows clipboard blocking signals
+    with patch("nxdrive.utils.PidLockFile.lock") as mock_lock, patch(
+        "nxdrive.commandline.CliHandler._get_application"
+    ) as mock_application, patch(
+        "nxdrive.gui.application.Application.exec_"
+    ) as mock_exec, patch(
+        "nxdrive.gui.application.Application.show_metrics_acceptance"
+    ) as mock_show_metrics:
         mock_lock.return_value = ""
-        with patch(
-            "nxdrive.commandline.CliHandler._get_application"
-        ) as mock_application:
-            mock_application.return_value = Application(obj_cli.manager)
-            with patch("nxdrive.gui.application.Application.exec_") as mock_exec:
-                mock_exec.return_value = 0
-                assert obj_cli.launch(None, console=False) == 0
+        mock_application.return_value = Application(obj_cli.manager)
+        mock_show_metrics.return_value = None
+        mock_exec.return_value = 0
+        assert obj_cli.launch(None, console=False) == 0
 
 
 def test_send_to_running_instance(cmd):
