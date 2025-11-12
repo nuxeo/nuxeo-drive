@@ -4,6 +4,7 @@ from typing import Iterator, List, Union
 from nuxeo.models import Document
 
 from ..client.remote_client import Remote
+from ..constants import USER_WORKSPACE
 from ..objects import Filters, RemoteFileInfo
 from ..options import Options
 from ..qt import constants as qt
@@ -78,18 +79,38 @@ class FileInfo:
         return path
 
 
+class FromDict:
+    def __init__(self, doc: dict) -> None:
+        for key, value in doc.items():
+            setattr(self, key, value)
+
+
 class Doc(FileInfo):
     """A folderish document. Used by the Direct Transfer feature."""
 
-    def __init__(self, doc: Document, /, *, parent: FileInfo = None) -> None:
+    def __init__(
+        self,
+        doc: Document,
+        expandable: bool = True,
+        convert: bool = False,
+        /,
+        *,
+        parent: FileInfo = None,
+    ) -> None:
         super().__init__(parent=parent)
-        self.doc = doc
+        self.doc = FromDict(doc) if convert else doc
+        self.expandable = expandable
 
     def __repr__(self) -> str:
         return (
             f"{type(self).__name__}<id={self.get_id()}, label={self.get_label()}, "
+            f"is_expandable={self.is_expandable()!r}, "
             f"parent={self.get_path()!r}, enable={self.enable()!r}, selectable={self.selectable()!r}>"
         )
+
+    def is_expandable(self) -> bool:
+        """Returns whether the folder is expandable"""
+        return self.expandable
 
     def folderish(self) -> bool:
         """Only folders are used, so it is always True."""
@@ -147,8 +168,13 @@ class FilteredDoc(FileInfo):
     def __repr__(self) -> str:
         return (
             f"{type(self).__name__}<state={self.state}, id={self.get_id()}, "
+            f"is_expandable={self.is_expandable()!r}, "
             f"label={self.get_label()}, folderish={self.folderish()!r}, parent={self.get_path()!r}>"
         )
+
+    def is_expandable(self) -> bool:
+        """Returns whether the folder is expandable"""
+        return True
 
     def get_label(self) -> str:
         """The document's name as it is showed in the tree."""
@@ -247,6 +273,12 @@ class FoldersOnly:
                 )
             )
 
+    def get_roots(self) -> List:
+        from ..constants import QUERY_ENDPOINT
+
+        url = f"{QUERY_ENDPOINT}select * from Document WHERE ecm:mixinType = 'Folderish' and ecm:isTrashed = 0"
+        return self.remote.client.request("GET", url).json()["entries"]
+
     def _get_root_folders(self) -> List["Documents"]:
         """Get root folders.
         Use a try...except block to prevent loading error on the root,
@@ -256,9 +288,28 @@ class FoldersOnly:
             root = self.remote.documents.get(path="/")
             return [Doc(doc) for doc in self._get_children(root.uid)]
         except Exception:
-            log.warning("Error while retrieving documents on '/'", exc_info=True)
-            context = {"permissions": [], "hasFolderishChild": False}
-            return [Doc(Document(title="/", contextParameters=context))]
+            if Options.shared_folder_navigation:
+                roots = self.get_roots()
+                ret_list = []
+                for root in roots:
+                    if root["type"] == "Folder" and not root["path"].startswith(
+                        USER_WORKSPACE
+                    ):
+                        doc = self.remote.fetch(
+                            root["uid"],
+                            enrichers=["permissions"],
+                        )
+                        if (
+                            "Write" in doc["contextParameters"]["permissions"]
+                            or "ReadWrite" in doc["contextParameters"]["permissions"]
+                            or "Everything" in doc["contextParameters"]["permissions"]
+                        ):
+                            ret_list.append(Doc(doc, False, True))
+                return ret_list
+            else:
+                log.warning("Error while retrieving documents on '/'", exc_info=True)
+                context = {"permissions": [], "hasFolderishChild": False}
+                return [Doc(Document(title="/", contextParameters=context))]
 
     def get_top_documents(self) -> Iterator["Documents"]:
         """Fetch all documents at the root."""

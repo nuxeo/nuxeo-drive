@@ -38,6 +38,23 @@ $global:PIP_OPT = "-m", "pip", "install", "--no-cache-dir", "--upgrade", "--upgr
 # Imports
 Import-Module BitsTransfer
 
+function Install-PythonRequirements {
+	param(
+		[string]$RequirementsFile,
+		[string]$Description
+	)
+
+	Write-Output ">>> Installing $Description"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r $RequirementsFile
+	if ($lastExitCode -ne 0) {
+		Write-Error "Failed to install $Description from $RequirementsFile"
+		ExitWithCode $lastExitCode
+	}
+
+	Write-Output ">>> Installed packages after $Description :"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m pip list
+}
+
 function add_missing_ddls {
 	# Missing DLLS for Windows 7
 	$folder = "C:\Program Files (x86)\Windows Kits\10\Redist\ucrt\DLLs\x86\"
@@ -325,25 +342,16 @@ function install_deps {
 		}
 	}
 
-	Write-Output ">>> Installing requirements"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements-pip.txt
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements.txt
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements-dev.txt
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
+	# Install requirements in sequence
+	Install-PythonRequirements "tools\deps\requirements-pip.txt" "pip requirements"
+	Install-PythonRequirements "tools\deps\requirements-dev.txt" "development requirements"
+
 	if (-Not ($install_release)) {
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements-tests.txt
-		if ($lastExitCode -ne 0) {
-			ExitWithCode $lastExitCode
-		}
+		Install-PythonRequirements "tools\deps\requirements-tests.txt" "test requirements"
 		# & $Env:STORAGE_DIR\Scripts\pre-commit.exe install
+	}
+	else {
+		Install-PythonRequirements "tools\deps\requirements.txt" "main requirements"
 	}
 
 	# See NXDRIVE-1554 for details
@@ -420,23 +428,48 @@ function install_python {
 	# Fix a bloody issue ... !
 	New-Item -Path $Env:STORAGE_DIR -Name Scripts -ItemType directory -Verbose
 
-	# Check if Python directory and required DLL exist
-	if (Test-Path $Env:PYTHON_DIR) {
-		$dllPath = "$Env:PYTHON_DIR\vcruntime140.dll"
-		if (Test-Path $dllPath) {
-			Copy-Item $dllPath $Env:STORAGE_DIR\Scripts -Verbose
-		} else {
-			Write-Output ">>> Error: vcruntime140.dll not found at $dllPath"
-			ExitWithCode 1
-		}
-	} else {
-		Write-Output ">>> Error: Python directory $Env:PYTHON_DIR does not exist"
-		ExitWithCode 1
+	# Initializing variables
+	$vcDllFromPythonDir = $null
+	$exePathPYTHON_DIR = $null
+	$vcDllFromPythonLocation = $null
+	$exePathPythonLocation = $null
+
+	# Only build the path if the environment variable is not null or empty
+	if (-not [string]::IsNullOrEmpty($Env:PYTHON_DIR)) {
+		$vcDllFromPythonDir = Join-Path $Env:PYTHON_DIR "vcruntime140.dll"
+		$exePathPYTHON_DIR = Join-Path $Env:PYTHON_DIR "python.exe"
+	}
+
+	if (-not [string]::IsNullOrEmpty($Env:PythonLocation)) {
+		$vcDllFromPythonLocation = Join-Path $Env:PythonLocation "vcruntime140.dll"
+		$exePathPythonLocation = Join-Path $Env:PythonLocation "python.exe"
+	}
+
+	# Try PYTHON_DIR first
+	if ($vcDllFromPythonDir -and (Test-Path $vcDllFromPythonDir)) {
+		Copy-Item $vcDllFromPythonDir "$Env:STORAGE_DIR\Scripts" -Verbose
+	}
+	# Then try PythonLocation
+	elseif ($vcDllFromPythonLocation -and (Test-Path $vcDllFromPythonLocation)) {
+		Copy-Item $vcDllFromPythonLocation "$Env:STORAGE_DIR\Scripts" -Verbose
+	}
+	# If neither exists
+	else {
+		Write-Warning ">>> vcruntime140.dll not found in PYTHON_DIR or PythonLocation (or variables not set)!"
 	}
 
 	Write-Output ">>> Setting-up the Python virtual environment"
 
-	& $Env:PYTHON_DIR\python.exe $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
+	if ($exePathPYTHON_DIR -and (Test-Path $exePathPYTHON_DIR)) {
+		& $exePathPYTHON_DIR $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
+	}
+	elseif ($exePathPythonLocation -and (Test-Path $exePathPythonLocation)) {
+		& $exePathPythonLocation $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
+	}
+	else {
+		Write-Warning ">>> unable to create venv"
+	}
+
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -544,8 +577,19 @@ function launch_tests {
 
 function sign($file) {
 	# Code sign a file
-	if (-Not ($Env:SIGNTOOL_PATH)) {
-		Write-Output ">>> SIGNTOOL_PATH not set, skipping code signature"
+
+	$signToolPath = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Directory |
+	Sort-Object Name -Descending |
+	ForEach-Object {
+		$x64Path = Join-Path $_.FullName "x64\signtool.exe"
+		if (Test-Path $x64Path) { return $x64Path }
+		} |
+		Select-Object -First 1
+
+	Write-Output ">>> SignTool Path:  ==>> '$signToolPath' "
+
+	if (-Not ($signToolPath)) {
+		Write-Output ">>> signtool not found, skipping code signature"
 		return
 	}
 	if (-Not ($Env:SIGNING_ID)) {
@@ -576,7 +620,7 @@ function sign($file) {
 	if ($Env:SIGN_EXE -eq "true") {
 		Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"
 		Write-Output ">>> Signing $file"
-		& $Env:SIGNTOOL_PATH\signtool.exe sign `
+		& $signToolPath sign `
 			/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
 			/n "$Env:SIGNING_ID_NEW" `
 			/d "$Env:APP_NAME" `
@@ -590,7 +634,7 @@ function sign($file) {
 		}
 
 		Write-Output ">>> Verifying $file"
-		& $Env:SIGNTOOL_PATH\signtool.exe verify /pa /v "$file"
+		& $signToolPath verify /pa /v "$file"
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}
