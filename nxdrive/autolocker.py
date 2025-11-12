@@ -2,7 +2,7 @@ from contextlib import suppress
 from copy import deepcopy
 from logging import getLogger
 from pathlib import Path
-from time import sleep  # time was added here
+from time import sleep
 from typing import TYPE_CHECKING, Dict, Iterable, Iterator
 
 import psutil
