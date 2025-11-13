@@ -35,6 +35,10 @@ jobs:
         os: [ubuntu-latest, windows-latest, 'macos-13']
 
     steps:
+      - name: Inputs Received
+        run: |
+          echo "releaseType=${{ github.event.inputs.releaseType }}" >> $GITHUB_OUTPUT
+          echo "signExe=${{ github.event.inputs.signExe }}" >> $GITHUB_OUTPUT
       - name: Checkout
         uses: actions/checkout@v4
         with:

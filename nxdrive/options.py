@@ -250,6 +250,7 @@ class MetaOptions(type):
         "ignored_files": (__files, "default"),
         "ignored_prefixes": (__prefixes, "default"),
         "ignored_suffixes": (__suffixes, "default"),
+        "include_process": ((), "default"),  # See autolocker.py for default values
         "is_alpha": (_IS_ALPHA, "default"),
         "is_frozen": (_IS_FROZEN, "default"),
         "light_icons": (False, "default"),
