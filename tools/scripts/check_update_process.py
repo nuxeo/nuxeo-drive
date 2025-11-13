@@ -39,6 +39,8 @@ import packaging.version
 import requests
 import yaml
 
+from os.path import isfile
+
 # Alter the lookup path to be able to find Nuxeo Drive sources
 sys.path.insert(0, os.getcwd())
 
@@ -136,18 +138,87 @@ def get_last_version_number():
     return get_latest_version(versions, "release")
 
 
+def run_ls(path):
+    """Run `ls -a` on the given path and print the output."""
+    print(f"[DEBUG] Listing contents of: {path}", flush=True)
+    try:
+        output = subprocess.check_output(
+            ["ls", "-a", path], text=True, stderr=subprocess.STDOUT
+        )
+        print(f"[DEBUG] ls -a {path} output:\n{output}", flush=True)
+    except subprocess.CalledProcessError as e:
+        print(f"[WARN] ls failed on {path}: {e.output}", flush=True)
+
+
 def get_version():
     """Get the current version."""
 
     if EXT == "dmg":
-        """
-        cmd = [
-            f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
-            "--version",
-        ]
-        return subprocess.check_output(cmd, text=True).strip()
-        """
-        return "5.6.0"
+        print("[DEBUG] get_version(): EXT is dmg", flush=True)
+
+        home = Path.home()
+        applications_dir = home / "Applications"
+        app_bundle = applications_dir / "Nuxeo Drive.app"
+        macos_dir = app_bundle / "Contents" / "MacOS"
+        exe_path = macos_dir / "ndrive"
+
+        # print(f"[DEBUG] Home directory: {home}", flush=True)
+        # run_ls(home)
+
+        # nuxeo_dir = home / ".nuxeo-drive"
+        # print(f"[DEBUG] Checking .nuxeo-drive directory: {nuxeo_dir}", flush=True)
+        # run_ls(nuxeo_dir)
+
+        # config_file = nuxeo_dir / "config.ini"
+        # if config_file.is_file():
+        #     print(f"[DEBUG] Found config.ini: {config_file}", flush=True)
+        # else:
+        #     print(f"[WARN] config.ini not found in {nuxeo_dir}", flush=True)
+
+        # print(f"[DEBUG] Applications directory: {applications_dir}", flush=True)
+        # run_ls(applications_dir)
+
+        # print(f"[DEBUG] App bundle path: {app_bundle}", flush=True)
+        # run_ls(app_bundle)
+
+        # print(f"[DEBUG] Contents/MacOS directory: {macos_dir}", flush=True)
+        # run_ls(macos_dir)
+
+        print(f"[DEBUG] Executable path: {exe_path}", flush=True)
+        if not Path.is_file(exe_path):
+            print(f"[ERROR] Executable not found: {exe_path}", flush=True)
+            raise FileNotFoundError(f"Executable not found: {exe_path}")
+
+        cmd = [str(exe_path), "--version"]
+        print(f"[DEBUG] Running command: {cmd}", flush=True)
+        env = os.environ.copy()
+        env["QT_QPA_PLATFORM"] = "offscreen" # Prevent GUI blocking in CI
+
+        try:
+            # output = subprocess.run(
+            #     cmd, capture_output=True, text=True).stdout.strip()
+            # print(f"[DEBUG] Command output: {output!r}", flush=True)
+            output = subprocess.check_output(
+                cmd, text=True, timeout=30, stderr=subprocess.STDOUT
+            )
+            print(f"[DEBUG] Command output: {output!r}", flush=True)
+            return output
+
+        except subprocess.CalledProcessError as exc:
+            print(f"[ERROR] CalledProcessError: {exc}", flush=True)
+            print(f"[ERROR] Return code: {exc.returncode}", flush=True)
+            print(f"[ERROR] Output: {exc.output!r}", flush=True)
+            raise
+
+        except subprocess.TimeoutExpired as exc:
+            print(f"[ERROR] TimeoutExpired: {exc}", flush=True)
+            print(f"[ERROR] Output: {exc.output!r}", flush=True)
+            raise
+
+        except Exception as exc:
+            print(f"[ERROR] Exception: {exc}", flush=True)
+            raise
+        # return "5.6.0"
 
     file = (
         expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
@@ -580,11 +651,10 @@ def job(root, version, executable, previous_version, name):
         # And assert the version is the good one
         current_ver = get_version()
         print(f">>> Current version is {current_ver!r}", flush=True)
-        """
         assert (
             current_ver == version
         ), f"Current version is {current_ver!r} (need {version})"
-        """
+
     finally:
         os.chdir(src)
 

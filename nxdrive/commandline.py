@@ -70,6 +70,7 @@ class CliHandler:
     """Set default arguments."""
 
     def get_version(self) -> str:
+        print("Entering CliHandler.get_version()")
         return __version__
 
     def make_cli_parser(self, *, add_subparsers: bool = True) -> ArgumentParser:
