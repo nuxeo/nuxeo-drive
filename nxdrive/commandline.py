@@ -466,6 +466,9 @@ class CliHandler:
                 # Normalize the key
                 name = name.replace("-", "_").replace(".", "_").lower()
                 conf_args[name] = get_value(value)
+                if name == "include_process" and not isinstance(conf_args[name], tuple):
+                    log.error("Ignoring include_process value, must be a tuple")
+                    conf_args[name] = ()
 
             if conf_args:
                 file = os.path.abspath(conf_file)
