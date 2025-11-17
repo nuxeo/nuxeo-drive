@@ -1364,7 +1364,7 @@ class DriveFSEventHandler(PatternMatchingEventHandler):
                 if isinstance(event, FileCreatedEvent):
                     _lock = self.engine.remote.documents.fetch_lock_status(doc_id)
                     if _lock:
-                        log.info(f'{real_filename!r} is already locked by another user')
+                        log.info(f"{real_filename!r} is already locked by another user")
                         self.autolock.concurrentAlreadyLocked.emit(real_filename)
                     else:
                         self.engine.remote.lock(doc_id)
