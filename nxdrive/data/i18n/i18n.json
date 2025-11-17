@@ -36,7 +36,7 @@
     "COMPLETED": "Completed",
     "COMPLETED_ON": "Completed on %1",
     "CONCURRENT_EDITING_WARNING": "Concurrent Editing Warning",
-    "CONCURRENT_EDITING_MSG": "\"%1\" is already locked by \"%2\"",
+    "CONCURRENT_EDITING_MSG": "\"%1\" is already locked by another user",
     "CONFIRM_DISCONNECT": "Confirm deletion?",
     "CONFIRM_UPDATE_MESSAGE": "About to update to %1 version %2",
     "CONFLICT": "Conflict",
