@@ -752,7 +752,7 @@ class TestSpecificNotifications:
         with patch("nxdrive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
-            notif = ConcurrentEditingError("concurrent_file.txt", "user123")
+            notif = ConcurrentEditingError("concurrent_file.txt")
 
         assert notif.uid.startswith("CONCURRENT_EDITING")
         assert notif.level == Notification.LEVEL_WARNING
