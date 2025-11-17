@@ -214,7 +214,7 @@ Delay in seconds before each remote check (calling the [NuxeoDrive.GetChangeSumm
 Maximum allowed size (in MB) for a single file uploaded via Direct Transfer. If set to 0, no limit is enforced. Files exceeding this limit will be skipped, and a warning message will be shown in the UI.
 
 - Default value (int): `0`
-- Version added: 5.6.1
+- Version added: 6.0.0
 
 * * *
 
@@ -223,7 +223,7 @@ Maximum allowed size (in MB) for a single file uploaded via Direct Transfer. If 
 Maximum allowed size (in MB) for either a folder (including all its contents) or multiple files selected together for upload via Direct Transfer. If the combined size of selected files or the total size of a folder exceeds this limit, the folder will be skipped entirely or all the files will be rejected, and a warning message will be shown in the UI.
 
 - Default value (int): `0`
-- Version added: 5.6.1
+- Version added: 6.0.0
 
 * * *
 
