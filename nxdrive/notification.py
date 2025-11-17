@@ -556,7 +556,7 @@ class ConcurrentEditingError(Notification):
     """Display a warning notification on concurrent editing"""
 
     def __init__(self, filename: str, lockOwner: str, /) -> None:
-        values = [short_name(filename), lockOwner]
+        values = [short_name(filename)]
         super().__init__(
             uid="CONCURRENT_EDITING",
             title=Translator.get("CONCURRENT_EDITING_WARNING"),
