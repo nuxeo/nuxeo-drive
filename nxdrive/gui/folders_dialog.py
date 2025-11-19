@@ -763,7 +763,7 @@ class FoldersDialog(DialogMixin):
 
             for file_path, size in files_with_sizes:
                 # ignoring zero byte files [NXDRIVE-2925]
-                if self.get_size(file_path) == 0:
+                if file_path.is_file() and self.get_size(file_path) == 0:
                     continue
 
                 if file_limit and size > file_limit:
