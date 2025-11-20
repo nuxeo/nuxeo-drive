@@ -336,25 +336,36 @@ class FoldersDialog(DialogMixin):
     def _add_group_local(self) -> QGroupBox:
         """Group box for source files."""
         groupbox = QGroupBox(Translator.get("SOURCE_FILES"))
-        layout = QHBoxLayout()
-        groupbox.setLayout(layout)
+        vlayout = QVBoxLayout()
+        groupbox.setLayout(vlayout)
 
-        layout.setContentsMargins(10, 10, 10, 10)
-
-        self.local_paths_size_lbl = QLabel(sizeof_fmt(self.overall_size))
         self.local_path = QLineEdit()
         self.local_path.setTextMargins(5, 0, 5, 0)
         self.local_path.setText(self._files_display())
         self.local_path.setReadOnly(True)
+
+        self.local_paths_size_lbl = QLabel(sizeof_fmt(self.overall_size))
+
+        self.local_path_msg_lbl = QLabel("")
+        self.local_path_msg_lbl.setWordWrap(True)
+        self.local_path_msg_lbl.setStyleSheet("color: red;")
+
+        hlayout = QHBoxLayout()
+        hlayout.setContentsMargins(10, 10, 10, 10)
+        hlayout.addWidget(self.local_path)
+        hlayout.addWidget(self.local_paths_size_lbl)
+
         files_button = QPushButton(Translator.get("ADD_FILES"), self)
         files_button.clicked.connect(self._select_more_files)
-        layout.addWidget(self.local_path)
-        layout.addWidget(self.local_paths_size_lbl)
-        layout.addWidget(files_button)
+        hlayout.addWidget(files_button)
+
         if self.engine.have_folder_upload:
             folders_button = QPushButton(Translator.get("ADD_FOLDER"), self)
             folders_button.clicked.connect(self._select_more_folder)
-            layout.addWidget(folders_button)
+            hlayout.addWidget(folders_button)
+
+        vlayout.addLayout(hlayout)
+        vlayout.addWidget(self.local_path_msg_lbl)
 
         return groupbox
 
@@ -644,6 +655,32 @@ class FoldersDialog(DialogMixin):
 
     def _process_additionnal_local_paths(self, paths: List[str], /) -> None:
         """Append more local paths to the upload queue."""
+
+        self.local_path_msg_lbl.setText("")
+
+        # Retrieve size limits
+        file_limit_mb = Options.direct_transfer_file_upper_limit
+        folder_limit_mb = Options.direct_transfer_folder_upper_limit
+
+        file_limit = file_limit_mb * 1024 * 1024 if file_limit_mb else None
+        folder_limit = folder_limit_mb * 1024 * 1024 if folder_limit_mb else None
+
+        current_total_size = sum(self.paths.values())
+        skipped_items: list[str] = []
+
+        # Check multiple file size limit if applicable
+        all_are_files = all(Path(p).is_file() for p in paths if p)
+        if folder_limit and len(paths) > 1 and all_are_files:
+            total_selected_size = sum(
+                self.get_size(Path(p))
+                for p in paths
+                if p and self.get_size(Path(p)) > 0
+            )
+            if total_selected_size > folder_limit:
+                self.local_path_msg_lbl.setText(Translator.get("SIZE_LIMIT_FOLDER"))
+                log.warning("All files skipped due to multiple file size limit.")
+                return
+
         for local_path in paths:
             if not local_path:
                 # When closing the folder selection, *local_path* would be an empty string.
@@ -658,39 +695,128 @@ class FoldersDialog(DialogMixin):
                 log.debug(f"Ignored path for Direct Transfer: {str(path)!r}")
                 continue
 
-            # Prevent to upload twice the same file
+            # Prevent uploading the same file twice
             if path in self.paths.keys():
                 continue
 
-            # Save the path
+            initial_total_size = current_total_size
+
             if path.is_dir():
-                for file_path, size in get_tree_list(path):
-                    if self.get_size(file_path) == 0:
-                        # ignoring zero byte files [NXDRIVE-2925]
-                        continue
-                    self.paths[file_path] = size
+                current_total_size = self._process_directory(
+                    path,
+                    current_total_size,
+                    file_limit,
+                    folder_limit,
+                    skipped_items,
+                )
             else:
-                try:
-                    file_size = self.get_size(path)
-                    if file_size == 0:
-                        # ignoring zero byte files [NXDRIVE-2925]
-                        continue
-                    self.paths[path] = file_size
-                except OSError:
-                    log.warning(f"Error calling stat() on {path!r}", exc_info=True)
-                    continue
+                current_total_size = self._process_file(
+                    path, current_total_size, file_limit, folder_limit, skipped_items
+                )
 
             self.last_local_selected_location = path.parent
 
             # If .path is None, then pick the first local path to display something useful
-            if not self.path:
-                self.path = path
+            if current_total_size > initial_total_size:
+                if not self.path:
+                    self.path = path
 
-        # Update labels with new information
-        self.local_path.setText(self._files_display())
+        # Show skipped items if any
+        if skipped_items:
+            self.local_path_msg_lbl.setText(self._skipped_items_summary(skipped_items))
+            log.warning(
+                "Skipped items due to size limit: [%s]", ", ".join(skipped_items)
+            )
+        else:
+            self.local_path_msg_lbl.setText("")
+
+        # Update only if something was added
+        if self.paths:
+            self.local_path.setText(self._files_display())
+        else:
+            self.local_path.clear()
         self.local_paths_size_lbl.setText(sizeof_fmt(self.overall_size))
 
         self.button_ok_state()
+
+    def _process_directory(
+        self,
+        path: Path,
+        current_total_size: int,
+        file_limit: int | None,
+        folder_limit: int | None,
+        skipped_items: list[str],
+    ) -> int:
+        try:
+            files_with_sizes = list(get_tree_list(path))
+            total_dir_size = sum(size for _, size in files_with_sizes)
+
+            # Skip whole folder if folder size exceeds the limit
+            if folder_limit and total_dir_size > folder_limit:
+                skipped_items.append(path.name)
+                return current_total_size
+
+            # Skip if adding this folder would exceed the total size limit
+            if folder_limit and (current_total_size + total_dir_size) > folder_limit:
+                skipped_items.append(path.name)
+                return current_total_size
+
+            for file_path, size in files_with_sizes:
+                # ignoring zero byte files [NXDRIVE-2925]
+                if file_path.is_file() and self.get_size(file_path) == 0:
+                    continue
+
+                if file_limit and size > file_limit:
+                    skipped_items.append(file_path.name)
+                    continue
+
+                self.paths[file_path] = size
+                current_total_size += size
+
+        except OSError:
+            log.warning(f"Error scanning directory {path!r}", exc_info=True)
+        except Exception:
+            log.error(
+                f"Unexpected error in _process_directory() for {path!r}", exc_info=True
+            )
+
+        return current_total_size
+
+    def _process_file(
+        self,
+        path: Path,
+        current_total_size: int,
+        file_limit: int | None,
+        folder_limit: int | None,
+        skipped_items: list[str],
+    ) -> int:
+        try:
+            file_size = self.get_size(path)
+            if file_size == 0:
+                # ignoring zero byte files [NXDRIVE-2925]
+                return current_total_size
+
+            # Skip if file exceeds single file limit
+            if file_limit and file_size > file_limit:
+                skipped_items.append(path.name)
+                return current_total_size
+
+            # Skip if adding this file would exceed the total size limit
+            if folder_limit and (current_total_size + file_size) > folder_limit:
+                skipped_items.append(path.name)
+                return current_total_size
+
+            self.paths[path] = file_size
+            return current_total_size + file_size
+
+        except OSError:
+            log.warning(f"Error calling stat() on {path!r}", exc_info=True)
+        except Exception:
+            log.error(
+                f"Unexpected error in _process_file() for {path!r}", exc_info=True
+            )
+
+        return current_total_size
 
     def _select_more_files(self) -> None:
         """Choose additional local files to upload."""
@@ -709,6 +835,16 @@ class FoldersDialog(DialogMixin):
             str(self.last_local_selected_location),
         )
         self._process_additionnal_local_paths([path])
+
+    def _skipped_items_summary(self, items: list[str]) -> str:
+        """Show up to 2 skipped item names with a (+N) and the reason."""
+        count = len(items)
+        if count == 0:
+            return ""
+        names_part = (
+            ", ".join(items) if count <= 2 else f"{items[0]}, {items[1]} (+{count - 2})"
+        )
+        return Translator.get("SIZE_LIMIT_FILE", values=[names_part])
 
 
 class NewFolderDialog(QDialog):

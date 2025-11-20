@@ -174,7 +174,6 @@ def test_cleanup_orphan_files(manager_factory, obj_factory):
             Mocked dao.get_local_paths() method.
             Return the locked file path.
             """
-            nonlocal file
 
             return [file]
 
@@ -183,9 +182,6 @@ def test_cleanup_orphan_files(manager_factory, obj_factory):
             Mocked _extract_edit_info() method.
             Mandatory as there is no blob to work with in the test.
             """
-
-            nonlocal doc
-            nonlocal engine
 
             return DirectEditDetails(
                 uid=doc.uid,
@@ -252,9 +248,6 @@ def test_document_hijacking(manager_factory, obj_factory):
             Mocked _extract_edit_info() method.
             Mandatory as there is no blob to work with in the test.
             """
-
-            nonlocal doc
-            nonlocal engine
 
             assert ref == Path(f"{doc.uid}_file-content/{xlsx_file.name}")
 

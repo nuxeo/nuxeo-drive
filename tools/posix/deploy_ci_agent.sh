@@ -157,11 +157,13 @@ create_venv() {
 install_deps() {
     echo ">>> Installing requirements"
     ${PIP} -r tools/deps/requirements-pip.txt
-    ${PIP} -r tools/deps/requirements.txt
     ${PIP} -r tools/deps/requirements-dev.txt
+
     if [ "${INSTALL_RELEASE_ARG:-0}" != "1" ]; then
         ${PIP} -r tools/deps/requirements-tests.txt
         ./venv/bin/pre-commit install
+    else
+        ${PIP} -r tools/deps/requirements.txt
     fi
 }
 
@@ -386,6 +388,14 @@ main() {
         case "$1" in
             "--check")
                 check
+                exit 0
+            ;;
+            "--sign")
+                sign
+                exit 0
+            ;;
+            "--verify-sign")
+                verify_sign
                 exit 0
             ;;
             "--install" | "--install-python")

@@ -10,6 +10,9 @@ future==1.0.0; sys_platform == "win32" \
     --hash=sha256:929292d34f5872e70396626ef385ec22355a1fae8ad29e1a734c3e43f9fbc216 \
     --hash=sha256:bd2968309307861edae1458a4f8a4f3598c03be43b97521076aebf5d94c07b05
     # via pefile
+gnupg==2.3.1; sys_platform == "linux" \
+    --hash=sha256:299e02e14ed76395a7c010449cda53cf91a9bace95db23f2d5b827196602a54e \
+    --hash=sha256:8db5a05c369dbc231dab4c98515ce828f2dffdc14f1534441a6c59b71c6d2031
 macholib==1.16.3 ; sys_platform == "darwin" \
     --hash=sha256:07ae9e15e8e4cd9a788013d81f5908b3609aa76f9b1421bae9c4d7606ec86a30 \
     --hash=sha256:0e315d7583d38b8c77e815b1ecbdbf504a8258d8b3e17b61165c6feb60d18f2c
@@ -17,10 +20,23 @@ macholib==1.16.3 ; sys_platform == "darwin" \
 pefile==2023.2.7 ; sys_platform == "win32" \
     --hash=sha256:da185cd2af68c08a6cd4481f7325ed600a88f6a813bad9dea07ab3ef73d8d8d6
     # via pyinstaller
+psutil==7.0.0 \
+    --hash=sha256:101d71dc322e3cffd7cea0650b09b3d08b8e7c4109dd6809fe452dfd00e58b25 \
+    --hash=sha256:1e744154a6580bc968a0195fd25e80432d3afec619daf145b9e5ba16cc1d688e \
+    --hash=sha256:1fcee592b4c6f146991ca55919ea3d1f8926497a713ed7faaf8225e174581e91 \
+    --hash=sha256:39db632f6bb862eeccf56660871433e111b6ea58f2caea825571951d4b6aa3da \
+    --hash=sha256:4b1388a4f6875d7e2aff5c4ca1cc16c545ed41dd8bb596cefea80111db353a34 \
+    --hash=sha256:4cf3d4eb1aa9b348dec30105c55cd9b7d4629285735a102beb4441e38db90553 \
+    --hash=sha256:7be9c3eba38beccb6495ea33afd982a44074b78f28c434a1f51cc07fd315c456 \
+    --hash=sha256:84df4eb63e16849689f76b1ffcb36db7b8de703d1bc1fe41773db487621b6c17 \
+    --hash=sha256:a5f098451abc2828f7dc6b58d44b532b22f2088f4999a937557b603ce72b1993 \
+    --hash=sha256:ba3fcef7523064a6c9da440fc4d6bd07da93ac726b5733c29027d7dc95b39d99
+    # via gnupg
 pyinstaller==6.11.1 \
     --hash=sha256:2e8365276c5131c9bef98e358fbc305e4022db8bedc9df479629d6414021956a \
     --hash=sha256:44e36172de326af6d4e7663b12f71dbd34e2e3e02233e181e457394423daaf03 \
-    --hash=sha256:32c742a24fe65d0702958fadf4040f76de85859c26bec0008766e5dbabc5b68f
+    --hash=sha256:32c742a24fe65d0702958fadf4040f76de85859c26bec0008766e5dbabc5b68f \
+    --hash=sha256:7ac83c0dc0e04357dab98c487e74ad2adb30e7eb186b58157a8faf46f1fa796f
 pyinstaller-hooks-contrib==2024.11 \
     --hash=sha256:2781d121a1ee961152ba7287a262c65a1078da30c9ef7621cb8c819326884fd5
     # via pyinstaller

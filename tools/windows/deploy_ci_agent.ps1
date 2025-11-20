@@ -38,6 +38,23 @@ $global:PIP_OPT = "-m", "pip", "install", "--no-cache-dir", "--upgrade", "--upgr
 # Imports
 Import-Module BitsTransfer
 
+function Install-PythonRequirements {
+	param(
+		[string]$RequirementsFile,
+		[string]$Description
+	)
+
+	Write-Output ">>> Installing $Description"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r $RequirementsFile
+	if ($lastExitCode -ne 0) {
+		Write-Error "Failed to install $Description from $RequirementsFile"
+		ExitWithCode $lastExitCode
+	}
+
+	Write-Output ">>> Installed packages after $Description :"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m pip list
+}
+
 function add_missing_ddls {
 	# Missing DLLS for Windows 7
 	$folder = "C:\Program Files (x86)\Windows Kits\10\Redist\ucrt\DLLs\x86\"
@@ -55,13 +72,13 @@ function build($app_version, $script) {
 		$output = "$Env:WORKSPACE\$filename"
 		$url = "https://mlaan2.home.xs4all.nl/ispack/$filename"
 		download $url $output
-
 		Write-Output ">>> Installing Inno Setup $Env:INNO_SETUP_VERSION"
 		# https://jrsoftware.org/ishelp/index.php?topic=setupcmdline
 		Start-Process $output -argumentlist "`
 			/SP- `
 			/VERYSILENT `
-			/SUPPRESSMSGBOXES
+			/SUPPRESSMSGBOXES `
+			/DIR=`"$Env:ISCC_PATH`" `
 			/TYPE=compact `
 			" `
 			-wait
@@ -233,14 +250,14 @@ function check_vars {
 		}
 	}
 	if (-Not ($Env:ISCC_PATH)) {
-		$Env:ISCC_PATH = "C:\Program Files (x86)\Inno Setup 6"  # XXX_INNO_SETUP
+		$Env:ISCC_PATH = "C:\Program Files\Inno Setup 6"  # XXX_INNO_SETUP
 	}
 	if (-Not ($Env:INNO_SETUP_VERSION)) {
 		$Env:INNO_SETUP_VERSION = "6.1.2"  # XXX_INNO_SETUP
 	}
 	if (-Not ($Env:PYTHON_DIR)) {
 		$version = $Env:PYTHON_DRIVE_VERSION -replace '\.', ""
-		$Env:PYTHON_DIR = "C:\Python$version-32"
+		$Env:PYTHON_DIR = "C:\Python$version-64"
 	}
 
 	$Env:STORAGE_DIR = (New-Item -ItemType Directory -Force -Path "$($Env:WORKSPACE)\deploy-dir\$Env:PYTHON_DRIVE_VERSION").FullName
@@ -325,25 +342,16 @@ function install_deps {
 		}
 	}
 
-	Write-Output ">>> Installing requirements"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements-pip.txt
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements.txt
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements-dev.txt
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
+	# Install requirements in sequence
+	Install-PythonRequirements "tools\deps\requirements-pip.txt" "pip requirements"
+	Install-PythonRequirements "tools\deps\requirements-dev.txt" "development requirements"
+
 	if (-Not ($install_release)) {
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements-tests.txt
-		if ($lastExitCode -ne 0) {
-			ExitWithCode $lastExitCode
-		}
+		Install-PythonRequirements "tools\deps\requirements-tests.txt" "test requirements"
 		# & $Env:STORAGE_DIR\Scripts\pre-commit.exe install
+	}
+	else {
+		Install-PythonRequirements "tools\deps\requirements.txt" "main requirements"
 	}
 
 	# See NXDRIVE-1554 for details
@@ -367,35 +375,101 @@ function install_python {
 	}
 
 	# Python needs to be downloaded and installed on GitHub-CI
-	$filename = "python-$Env:PYTHON_DRIVE_VERSION.exe"
+	$filename = "python-$Env:PYTHON_DRIVE_VERSION-amd64.exe"
 	$url = "https://www.python.org/ftp/python/$Env:PYTHON_DRIVE_VERSION/$filename"
 	$output = "$Env:WORKSPACE\$filename"
 	download $url $output
 
+	# Create Python directory if it doesn't exist
+	if (-Not (Test-Path $Env:PYTHON_DIR)) {
+		Write-Output ">>> Creating Python directory: $Env:PYTHON_DIR"
+		New-Item -ItemType Directory -Force -Path $Env:PYTHON_DIR | Out-Null
+	} else {
+		Write-Output ">>> Python directory already exists: $Env:PYTHON_DIR"
+	}
 	Write-Output ">>> Installing Python $Env:PYTHON_DRIVE_VERSION into $Env:PYTHON_DIR"
 	# https://docs.python.org/3.7/using/windows.html#installing-without-ui
-	Start-Process $output -argumentlist "`
-		/quiet `
-		TargetDir=$Env:PYTHON_DIR `
-		AssociateFiles=0 `
-		CompileAll=1 `
-		Shortcuts=0 `
-		Include_doc=0 `
-		Include_launcher=0 `
-		InstallLauncherAllUsers=0 `
-		Include_tcltk=0 `
-		Include_test=0 `
-		Include_tools=0 `
-		" `
-		-wait
+	# Use /passive instead of /quiet to show progress but require no user interaction
+	# /quiet can fail silently, while /passive shows installation progress
+	$installResult = Start-Process $output -ArgumentList @(
+		"/passive",
+		"TargetDir=$Env:PYTHON_DIR",
+		"AssociateFiles=0",
+		"CompileAll=1",
+		"Shortcuts=0",
+		"Include_doc=0",
+		"Include_launcher=0",
+		"InstallLauncherAllUsers=0",
+		"Include_tcltk=0",
+		"Include_test=0",
+		"Include_tools=0"
+	) -Wait -PassThru
+	Write-Output ">>> Python installation finished with exit code: $($installResult.ExitCode)"
+	if ($installResult.ExitCode -ne 0) {
+		Write-Output ">>> Python installation failed with exit code: $($installResult.ExitCode)"
+		ExitWithCode $installResult.ExitCode
+	}
+
+	# If python 64 is installed, use it to take the vcruntime140.dll from it
+
+	# Verify Python was installed correctly
+	if (-Not (Test-Path "$Env:PYTHON_DIR\python.exe")) {
+		Write-Output ">>> Error: Python executable not found at $Env:PYTHON_DIR\python.exe after installation"
+		ExitWithCode 1
+	}
+
+	Write-Output ">>> Python installation successful! Verifying version..."
+	& "$Env:PYTHON_DIR\python.exe" --version
+	if ($lastExitCode -ne 0) {
+		Write-Output ">>> Error: Python executable is not working properly"
+		ExitWithCode $lastExitCode
+	}
 
 	# Fix a bloody issue ... !
 	New-Item -Path $Env:STORAGE_DIR -Name Scripts -ItemType directory -Verbose
-	Copy-Item $Env:PYTHON_DIR\vcruntime140.dll $Env:STORAGE_DIR\Scripts -Verbose
+
+	# Initializing variables
+	$vcDllFromPythonDir = $null
+	$exePathPYTHON_DIR = $null
+	$vcDllFromPythonLocation = $null
+	$exePathPythonLocation = $null
+
+	# Only build the path if the environment variable is not null or empty
+	if (-not [string]::IsNullOrEmpty($Env:PYTHON_DIR)) {
+		$vcDllFromPythonDir = Join-Path $Env:PYTHON_DIR "vcruntime140.dll"
+		$exePathPYTHON_DIR = Join-Path $Env:PYTHON_DIR "python.exe"
+	}
+
+	if (-not [string]::IsNullOrEmpty($Env:PythonLocation)) {
+		$vcDllFromPythonLocation = Join-Path $Env:PythonLocation "vcruntime140.dll"
+		$exePathPythonLocation = Join-Path $Env:PythonLocation "python.exe"
+	}
+
+	# Try PYTHON_DIR first
+	if ($vcDllFromPythonDir -and (Test-Path $vcDllFromPythonDir)) {
+		Copy-Item $vcDllFromPythonDir "$Env:STORAGE_DIR\Scripts" -Verbose
+	}
+	# Then try PythonLocation
+	elseif ($vcDllFromPythonLocation -and (Test-Path $vcDllFromPythonLocation)) {
+		Copy-Item $vcDllFromPythonLocation "$Env:STORAGE_DIR\Scripts" -Verbose
+	}
+	# If neither exists
+	else {
+		Write-Warning ">>> vcruntime140.dll not found in PYTHON_DIR or PythonLocation (or variables not set)!"
+	}
 
 	Write-Output ">>> Setting-up the Python virtual environment"
 
-	& $Env:PYTHON_DIR\python.exe $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
+	if ($exePathPYTHON_DIR -and (Test-Path $exePathPYTHON_DIR)) {
+		& $exePathPYTHON_DIR $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
+	}
+	elseif ($exePathPythonLocation -and (Test-Path $exePathPythonLocation)) {
+		& $exePathPythonLocation $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
+	}
+	else {
+		Write-Warning ">>> unable to create venv"
+	}
+
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -503,8 +577,19 @@ function launch_tests {
 
 function sign($file) {
 	# Code sign a file
-	if (-Not ($Env:SIGNTOOL_PATH)) {
-		Write-Output ">>> SIGNTOOL_PATH not set, skipping code signature"
+
+	$signToolPath = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Directory |
+	Sort-Object Name -Descending |
+	ForEach-Object {
+		$x64Path = Join-Path $_.FullName "x64\signtool.exe"
+		if (Test-Path $x64Path) { return $x64Path }
+		} |
+		Select-Object -First 1
+
+	Write-Output ">>> SignTool Path:  ==>> '$signToolPath' "
+
+	if (-Not ($signToolPath)) {
+		Write-Output ">>> signtool not found, skipping code signature"
 		return
 	}
 	if (-Not ($Env:SIGNING_ID)) {
@@ -535,7 +620,7 @@ function sign($file) {
 	if ($Env:SIGN_EXE -eq "true") {
 		Write-Output ">>> $Env:SM_CODE_SIGNING_CERT_SHA1_HASH"
 		Write-Output ">>> Signing $file"
-		& $Env:SIGNTOOL_PATH\signtool.exe sign `
+		& $signToolPath sign `
 			/sha1 "$ENV:SM_CODE_SIGNING_CERT_SHA1_HASH" `
 			/n "$Env:SIGNING_ID_NEW" `
 			/d "$Env:APP_NAME" `
@@ -549,7 +634,7 @@ function sign($file) {
 		}
 
 		Write-Output ">>> Verifying $file"
-		& $Env:SIGNTOOL_PATH\signtool.exe verify /pa /v "$file"
+		& $signToolPath verify /pa /v "$file"
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}

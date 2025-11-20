@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 from . import __version__
-from .constants import APP_NAME, BUNDLE_IDENTIFIER, DEFAULT_CHANNEL, LINUX
+from .constants import APP_NAME, BUNDLE_IDENTIFIER, DEFAULT_CHANNEL, LINUX, WINDOWS
 from .logging_config import configure
 from .options import DEFAULT_LOG_LEVEL_CONSOLE, DEFAULT_LOG_LEVEL_FILE, Options
 from .osi import AbstractOSIntegration
@@ -466,6 +466,9 @@ class CliHandler:
                 # Normalize the key
                 name = name.replace("-", "_").replace(".", "_").lower()
                 conf_args[name] = get_value(value)
+                if name == "include_process" and not isinstance(conf_args[name], tuple):
+                    log.error("Ignoring include_process value, must be a tuple")
+                    conf_args[name] = ()
 
             if conf_args:
                 file = os.path.abspath(conf_file)
@@ -601,7 +604,6 @@ class CliHandler:
         from .utils import PidLockFile
 
         global RETRY
-        global MAX_RETRIES
 
         lock = PidLockFile(self.manager.home, "qt")
         pid = lock.lock()
@@ -629,10 +631,19 @@ class CliHandler:
 
         exit_code: int = 1
         with HealthCheck():
+            from .gui.application import Application
+
             # Monitor the "minimum syndical".
             # If a crash happens outside that context manager, this is not considered a crash
             # as we only do care about synchronization parts that could be altered.
             app = self._get_application(console=console)
+
+            # Blocking clipboard signals to avoid issues on Windows
+            # Clipboard is only accessed for GUI (Qt)
+            if WINDOWS and isinstance(app, Application):
+                clipboard = app.clipboard()
+                clipboard.blockSignals(True)
+
             exit_code = app.exec_()
 
         lock.unlock()

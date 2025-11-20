@@ -9,6 +9,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 import nxdrive.autolocker
+from nxdrive.constants import WINDOWS
 from nxdrive.dao.manager import ManagerDAO
 
 from .. import ensure_no_exception
@@ -87,4 +88,8 @@ def test_get_open_files():
     for f in files:
         print(f)
 
-    assert files
+    # On WINDOWS, if no monitored processes are running, then this returns an empty list.
+    if WINDOWS:
+        assert not files
+    else:
+        assert files

@@ -237,6 +237,8 @@ class MetaOptions(type):
         "debug_pydev": (False, "default"),
         "delay": (30, "default"),
         "deletion_behavior": ("unsync", "default"),
+        "direct_transfer_file_upper_limit": (0, "default"),
+        "direct_transfer_folder_upper_limit": (0, "default"),
         "disabled_file_integrity_check": (False, "default"),
         "disallowed_types_for_dt": (__doctypes_no_dt, "default"),
         "dt_hide_personal_space": (False, "default"),
@@ -248,6 +250,7 @@ class MetaOptions(type):
         "ignored_files": (__files, "default"),
         "ignored_prefixes": (__prefixes, "default"),
         "ignored_suffixes": (__suffixes, "default"),
+        "include_process": ((), "default"),  # See autolocker.py for default values
         "is_alpha": (_IS_ALPHA, "default"),
         "is_frozen": (_IS_FROZEN, "default"),
         "light_icons": (False, "default"),
@@ -269,6 +272,7 @@ class MetaOptions(type):
         "remote_repo": ("default", "default"),
         "res_dir": (_get_resources_dir(), "default"),
         "session_uid": (str(uuid4()), "default"),
+        "shared_folder_navigation": (False, "default"),
         "ssl_no_verify": (False, "default"),
         "startup_page": ("drive_login.jsp", "default"),
         "sync_and_quit": (False, "default"),
@@ -630,6 +634,22 @@ def validate_sync_root_max_level_limits(value: int, /) -> int:
     raise ValueError("'sync_root_max_level' must be between 0 and 4 (inclusive).")
 
 
+def validate_direct_transfer_file_upper_limit(value: int) -> int:
+    if value < 0:
+        raise ValueError(
+            "'direct_transfer_file_upper_limit' must be 0 or a positive integer"
+        )
+    return value
+
+
+def validate_direct_transfer_folder_upper_limit(value: int) -> int:
+    if value < 0:
+        raise ValueError(
+            "'direct_transfer_folder_upper_limit' must be 0 or a positive integer"
+        )
+    return value
+
+
 def _callback_synchronization_enabled(new_value: bool) -> None:
     log.warning(
         "The option is deprecated since 5.2.0 and will be removed in a future release."
@@ -658,3 +678,9 @@ Options.checkers["tmp_file_limit"] = validate_tmp_file_limit
 Options.checkers["ca_bundle"] = validate_ca_bundle_path
 Options.checkers["cert_file"] = validate_cert_path
 Options.checkers["cert_key_file"] = validate_cert_path
+Options.checkers["direct_transfer_file_upper_limit"] = (
+    validate_direct_transfer_file_upper_limit
+)
+Options.checkers["direct_transfer_folder_upper_limit"] = (
+    validate_direct_transfer_folder_upper_limit
+)

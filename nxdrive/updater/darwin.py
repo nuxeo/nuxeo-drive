@@ -146,7 +146,18 @@ class Updater(BaseUpdater):
 
         src = f"{mount_dir}/{APP_NAME}.app"
         log.info(f"Copying {src!r} -> {self.final_app!r}")
-        shutil.copytree(src, self.final_app)
+        # shutil.copytree(src, self.final_app)
+
+        # Copy to the final application location using ditto
+        try:
+            # Safe: cmd is a list, shell=False (no injection risk)
+            cmd = ["ditto", src, str(self.final_app)]
+            log.debug(f"Full command line: {cmd}")
+            subprocess.check_call(cmd)
+            log.info(f"Copied application bundle successfully to {self.final_app!r}")
+        except subprocess.CalledProcessError as exc:
+            log.error(f"Failed to copy .app: {exc}")
+            raise
 
     def _fix_notarization(self, path: str, /) -> None:
         """Fix the notarization (enforced security since February 2020)"""
