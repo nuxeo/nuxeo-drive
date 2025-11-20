@@ -73,7 +73,7 @@ if Options.include_process:
 
 class ProcessAutoLockerWorker(PollWorker):
     orphanLocks = pyqtSignal(object)
-    concurrentAlreadyLocked = pyqtSignal(str, str)
+    concurrentAlreadyLocked = pyqtSignal(str)
     documentLocked = pyqtSignal(str)
     documentUnlocked = pyqtSignal(str)
 
