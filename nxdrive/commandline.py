@@ -603,6 +603,10 @@ class CliHandler:
         """Launch the Qt app in the main thread and sync in another thread."""
         from .utils import PidLockFile
 
+        # Set QT_XCB_GL_INTEGRATION for Linux to avoid OpenGL issues
+        if LINUX:
+            os.environ["QT_XCB_GL_INTEGRATION"] = "none"
+
         global RETRY
 
         lock = PidLockFile(self.manager.home, "qt")
