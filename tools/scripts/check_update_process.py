@@ -147,7 +147,7 @@ def get_version():
         ]
         return subprocess.check_output(cmd, text=True).strip()
         """
-        return "6.0.0"
+        return "6.1.0"
 
     file = (
         expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
