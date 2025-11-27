@@ -374,7 +374,46 @@ function install_python {
 		return
 	}
 
-	# Python needs to be downloaded and installed on GitHub-CI
+	# Check system python version
+	try {
+		$pythonVersion = python --version 2>&1
+	}
+	catch {
+		$pythonVersion = $false
+	}
+	
+	# Check system python architecture
+	try {
+		$pythonArch = python -c "import struct; print(struct.calcsize('P') * 8)" 2>&1
+	}
+	catch {
+		$pythonArch = $false
+	}
+
+	Write-Output ">>> Detected system Python version: $pythonVersion"
+	Write-Output ">>> Detected system Python architecture: $pythonArch bits"
+
+	if (($pythonVersion -and $pythonArch) -and ($pythonVersion -match $Env:PYTHON_DRIVE_VERSION -and $pythonArch -eq 64)) {
+		Write-Output ">>> Required Python version $Env:PYTHON_DRIVE_VERSION (64 bits) already installed on the system."
+		# Split PATH into individual directories
+		$paths = $env:PATH -split ';'
+
+		# Filter paths containing '\Python\'
+		$pythonPaths = $paths | Where-Object { $_ -like '*\Python*' }
+
+		# Check for python.exe in those directories
+		foreach ($path in $pythonPaths) {
+			$pythonExe = Join-Path -Path $path -ChildPath "python.exe"
+			if (Test-Path $pythonExe) {
+				Write-Output "Found python.exe in: $path"
+				$Env:PYTHON_DIR = $path
+			} else {
+				continue
+			}
+		}
+	}
+	else {
+		# Python needs to be downloaded and installed on GitHub-CI
 	$filename = "python-$Env:PYTHON_DRIVE_VERSION-amd64.exe"
 	$url = "https://www.python.org/ftp/python/$Env:PYTHON_DRIVE_VERSION/$filename"
 	$output = "$Env:WORKSPACE\$filename"
@@ -402,7 +441,8 @@ function install_python {
 		"InstallLauncherAllUsers=0",
 		"Include_tcltk=0",
 		"Include_test=0",
-		"Include_tools=0"
+		"Include_tools=0",
+		"PrependPath=1"
 	) -Wait -PassThru
 	Write-Output ">>> Python installation finished with exit code: $($installResult.ExitCode)"
 	if ($installResult.ExitCode -ne 0) {
@@ -423,6 +463,7 @@ function install_python {
 	if ($lastExitCode -ne 0) {
 		Write-Output ">>> Error: Python executable is not working properly"
 		ExitWithCode $lastExitCode
+	}
 	}
 
 	# Fix a bloody issue ... !
