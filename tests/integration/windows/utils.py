@@ -23,6 +23,9 @@ def cb_get() -> str:
 def fatal_error_dlg(app, with_details: bool = True) -> bool:
     # Check if the fatal error dialog is prompted.
     # XXX: Keep synced with FATAL_ERROR_TITLE.
+
+    import pywinauto
+
     dlg = app.window(title=f"{APP_NAME} - Fatal error")
     log.info(f"Error Window exists: {dlg.exists()!r}")
 
@@ -41,7 +44,10 @@ def fatal_error_dlg(app, with_details: bool = True) -> bool:
 
             dlg.close()
             return True
-        dlg.wait("exists", timeout=10, retry_interval=1)
+        try:
+            dlg.wait("exists", timeout=10, retry_interval=1)
+        except pywinauto.timings.TimeoutError:
+            log.info("Fatal error dialog not found yet.")
         count -= 1
     return False
 
