@@ -26,18 +26,23 @@ def fatal_error_dlg(app, with_details: bool = True) -> bool:
     dlg = app.window(title=f"{APP_NAME} - Fatal error")
     log.info(f"Error Window exists: {dlg.exists()!r}")
 
-    if dlg.exists():
-        if with_details:
-            # Copy details
-            sleep(1)
-            dlg.child_window(title="Copy details").wait("visible").click()
-            sleep(1)
-            log.warning(f"Fatal error screen detected! Details:\n{cb_get()}")
-        else:
-            log.warning("Fatal error screen detected!")
+    count = 3
 
-        dlg.close()
-        return True
+    while count > 0:
+        if dlg.exists():
+            if with_details:
+                # Copy details
+                sleep(1)
+                dlg.child_window(title="Copy details").wait("visible").click()
+                sleep(1)
+                log.warning(f"Fatal error screen detected! Details:\n{cb_get()}")
+            else:
+                log.warning("Fatal error screen detected!")
+
+            dlg.close()
+            return True
+        dlg.wait("exists", timeout=10, retry_interval=1)
+        count -= 1
     return False
 
 
