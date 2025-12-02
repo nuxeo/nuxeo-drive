@@ -61,7 +61,7 @@ def fatal_error_dlg(app, with_details: bool = True, wait_timeout: int = 0) -> bo
                 return True
         except pywinauto.timings.TimeoutError:
             log.error(
-                f"Fatal error dialog did not appear within {wait_timeout} seconds."
+                f"Fatal error dialog did not appear within {wait_timeout * 10} seconds."
             )
 
     return False
