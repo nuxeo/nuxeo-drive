@@ -20,14 +20,16 @@ def cb_get() -> str:
     return text
 
 
-def fatal_error_dlg(app, with_details: bool = True) -> bool:
+def fatal_error_dlg(app, with_details: bool = True, retry: int = 1) -> bool:
     # Check if the fatal error dialog is prompted.
     # XXX: Keep synced with FATAL_ERROR_TITLE.
 
     dlg = app.window(title=f"{APP_NAME} - Fatal error")
     log.info(f"Error Window exists: {dlg.exists()!r}")
 
-    count = 3
+    count = retry
+
+    # To get sleep time : (count - 1) x 10 seconds
 
     while count > 0:
         if dlg.exists():
@@ -42,8 +44,10 @@ def fatal_error_dlg(app, with_details: bool = True) -> bool:
 
             dlg.close()
             return True
-        sleep(10)
         count -= 1
+        # If we are at count = 0, then the iteration won't execute again, hence no need to sleep
+        if count > 0:
+            sleep(10)
     return False
 
 

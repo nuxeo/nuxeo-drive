@@ -21,7 +21,7 @@ log = getLogger(__name__)
 def launch(exe, args: str, wait: int = 0) -> None:
     try:
         with exe(args=args, wait=wait) as app:
-            return not fatal_error_dlg(app)
+            return not fatal_error_dlg(app, retry=2)
     except Exception:
         return False
 

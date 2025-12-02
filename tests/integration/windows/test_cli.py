@@ -30,7 +30,7 @@ def test_start_app(exe):
 def test_invalid_argument(exe, arg):
     try:
         with exe(args=arg) as app:
-            assert fatal_error_dlg(app, with_details=False)
+            assert fatal_error_dlg(app, with_details=False, retry=3)
     except AssertionError as msg:
         log.warning(msg)
 
@@ -38,7 +38,7 @@ def test_invalid_argument(exe, arg):
 @pytest.mark.parametrize("arg", ["--log-level-file=42", "--delay=foo"])
 def test_invalid_argument_value(exe, arg):
     with exe(args=arg) as app:
-        assert fatal_error_dlg(app, with_details=False)
+        assert fatal_error_dlg(app, with_details=False, retry=3)
 
 
 @pytest.mark.parametrize(
@@ -111,9 +111,7 @@ def test_argument_log_filename(exe, tmp, file):
     assert log.is_file()
 
 
-@pytest.mark.parametrize(
-    "folder", ["azerty", "$alice", "léa", "mi Kaël", "こん ツリ ^^"]
-)
+@pytest.mark.parametrize("folder", ["azerty", "$alice", "léa", "mi Kaël", "こん ツリ ^^"])
 def test_argument_nxdrive_home(exe, tmp, folder):
     path = tmp()
     path.mkdir(parents=True, exist_ok=True)
@@ -142,4 +140,4 @@ def test_argument_nxdrive_home(exe, tmp, folder):
 def test_removed_argument(exe, arg):
     """Test removed/obsolete CLI arguments."""
     with exe(args=arg) as app:
-        assert fatal_error_dlg(app, with_details=False)
+        assert fatal_error_dlg(app, with_details=False, retry=3)
