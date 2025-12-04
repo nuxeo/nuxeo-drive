@@ -1,7 +1,5 @@
 """
-Simple unit tests for DirectEdit functionality to cover uncovered lines.
-
-This test suite focuses on testing specific uncovered lines in a straightforward way.
+Unit tests for nxdrive.direct_edit module.
 """
 
 import re
@@ -412,31 +410,997 @@ class TestDirectEditBasicFunctionality:
 
         from pathlib import Path
 
-        # Mock dependencies
-        with patch.object(direct_edit, "_get_engine") as mock_get_engine:
-            mock_engine = Mock()
-            mock_get_engine.return_value = mock_engine
-            mock_engine.remote.get_blob.return_value = None
+        from nuxeo.exceptions import CorruptedFile
 
-            test_file = Path("/tmp/test.txt")
-            with patch.object(direct_edit, "_get_tmp_file", return_value=test_file):
-                # Test download method exists and can be called
-                # Note: _download has complex signature, just verify it exists
-                assert hasattr(direct_edit, "_download")
+        from nxdrive.objects import Blob, NuxeoDocumentInfo
+
+        # Setup common mocks
+        mock_engine = Mock()
+        mock_engine.uid = "test_engine_uid"
+        mock_engine.local = Mock()
+        mock_engine.dao = Mock()
+        mock_engine.remote = Mock()
+
+        file_path = Path("/test/file.txt")
+        file_out = self.folder / "output.txt"
+        xpath = "file:content"
+
+        # Scenario 1: Download with blob digest and valid duplicate file
+        mock_info = Mock(spec=NuxeoDocumentInfo)
+        mock_blob = Mock(spec=Blob)
+        mock_blob.digest = "test_digest_123"
+        mock_blob.name = "test.txt"
+
+        # Mock dao.get_valid_duplicate_file to return a pair
+        mock_pair = Mock()
+        mock_pair.local_path = Path("local/path/to/file.txt")
+        mock_pair.is_readonly.return_value = False
+        mock_engine.dao.get_valid_duplicate_file.return_value = mock_pair
+
+        # Mock local.abspath to return existing file path
+        existing_file = self.folder / "existing.txt"
+        existing_file.write_text("test content")
+        mock_engine.local.abspath.return_value = existing_file
+
+        result = direct_edit._download(
+            mock_engine, mock_info, file_path, file_out, mock_blob, xpath
+        )
+
+        # Verify file was copied from existing
+        assert result == file_out
+        assert file_out.exists()
+        mock_engine.dao.get_valid_duplicate_file.assert_called_once_with(
+            "test_digest_123"
+        )
+
+        # Cleanup
+        file_out.unlink(missing_ok=True)
+
+        # Scenario 2: Download with blob digest and readonly duplicate file
+        file_out2 = self.folder / "output2.txt"
+        mock_pair2 = Mock()
+        mock_pair2.local_path = Path("local/path/to/file2.txt")
+        mock_pair2.is_readonly.return_value = True
+        mock_engine.dao.get_valid_duplicate_file.return_value = mock_pair2
+
+        existing_file2 = self.folder / "existing2.txt"
+        existing_file2.write_text("test content 2")
+        mock_engine.local.abspath.return_value = existing_file2
+
+        with patch("nxdrive.direct_edit.unset_path_readonly") as mock_unset_readonly:
+            result2 = direct_edit._download(
+                mock_engine, mock_info, file_path, file_out2, mock_blob, xpath
+            )
+
+            assert result2 == file_out2
+            mock_unset_readonly.assert_called_once_with(file_out2)
+
+        # Cleanup
+        file_out2.unlink(missing_ok=True)
+
+        # Scenario 3: Download with blob digest but duplicate file not found (FileNotFoundError)
+        file_out3 = self.folder / "output3.txt"
+        mock_pair3 = Mock()
+        mock_pair3.local_path = Path("local/path/to/nonexistent.txt")
+        mock_engine.dao.get_valid_duplicate_file.return_value = mock_pair3
+        mock_engine.local.abspath.return_value = Path("/nonexistent/file.txt")
+        mock_engine.remote.get_blob.return_value = None
+
+        result3 = direct_edit._download(
+            mock_engine, mock_info, file_path, file_out3, mock_blob, xpath
+        )
+
+        # Should fall back to get_blob when FileNotFoundError occurs
+        assert result3 == file_out3
+        mock_engine.remote.get_blob.assert_called()
+
+        # Cleanup
+        file_out3.unlink(missing_ok=True)
+
+        # Scenario 4: Download without blob digest, using get_blob
+        file_out4 = self.folder / "output4.txt"
+        mock_blob_no_digest = Mock(spec=Blob)
+        mock_blob_no_digest.digest = None
+        mock_engine.dao.get_valid_duplicate_file.return_value = None
+        mock_engine.remote.get_blob.return_value = None
+
+        result4 = direct_edit._download(
+            mock_engine, mock_info, file_path, file_out4, mock_blob_no_digest, xpath
+        )
+
+        assert result4 == file_out4
+        mock_engine.remote.get_blob.assert_called()
+        call_kwargs = mock_engine.remote.get_blob.call_args[1]
+        assert call_kwargs["xpath"] == xpath
+        assert call_kwargs["file_out"] == file_out4
+
+        # Cleanup
+        file_out4.unlink(missing_ok=True)
+
+        # Scenario 5: Download with URL parameter
+        file_out5 = self.folder / "output5.txt"
+        mock_blob_with_url = Mock(spec=Blob)
+        mock_blob_with_url.digest = "digest_abc"
+        mock_engine.dao.get_valid_duplicate_file.return_value = None
+        mock_engine.remote.download.return_value = None
+        mock_engine.dao.remove_transfer.return_value = None
+
+        result5 = direct_edit._download(
+            mock_engine,
+            mock_info,
+            file_path,
+            file_out5,
+            mock_blob_with_url,
+            xpath,
+            url="https://server.com/nuxeo/nxfile/default/doc123/file:content/test.pdf",
+        )
+
+        assert result5 == file_out5
+        mock_engine.remote.download.assert_called()
+        mock_engine.dao.remove_transfer.assert_called_with("download", path=file_path)
+
+        # Cleanup
+        file_out5.unlink(missing_ok=True)
+
+        # Scenario 6: Download with CorruptedFile exception and retry
+        file_out6 = self.folder / "output6.txt"
+        mock_blob_corrupted = Mock(spec=Blob)
+        mock_blob_corrupted.digest = "digest_xyz"
+        mock_engine.dao.get_valid_duplicate_file.return_value = None
+
+        # First call raises CorruptedFile, second call succeeds
+        mock_engine.remote.download.side_effect = [
+            CorruptedFile(str(file_out6), "digest_xyz", "wrong_digest"),
+            None,
+        ]
+
+        direct_edit.directEditError = Mock()
+        direct_edit.directEditError.emit = Mock()
+
+        with patch("nxdrive.direct_edit.sleep") as mock_sleep:
+            result6 = direct_edit._download(
+                mock_engine,
+                mock_info,
+                file_path,
+                file_out6,
+                mock_blob_corrupted,
+                xpath,
+                url="https://server.com/nuxeo/test.pdf",
+            )
+
+            assert result6 == file_out6
+            # Should emit retry error signal
+            direct_edit.directEditError.emit.assert_called_with(
+                "DIRECT_EDIT_CORRUPTED_DOWNLOAD_RETRY", []
+            )
+            # Should sleep before retry
+            mock_sleep.assert_called_once_with(5)
+
+        # Cleanup
+        file_out6.unlink(missing_ok=True)
+        mock_engine.remote.download.side_effect = None
+
+        # Scenario 7: Download with CorruptedFile exception exceeding retry threshold
+        file_out7 = self.folder / "output7.txt"
+        mock_blob_always_corrupt = Mock(spec=Blob)
+        mock_blob_always_corrupt.digest = "digest_fail"
+        mock_engine.dao.get_valid_duplicate_file.return_value = None
+
+        # Always raise CorruptedFile
+        mock_engine.remote.download.side_effect = CorruptedFile(
+            str(file_out7), "digest_fail", "wrong_digest"
+        )
+
+        direct_edit.directEditError = Mock()
+        direct_edit.directEditError.emit = Mock()
+
+        with patch("nxdrive.direct_edit.sleep") as mock_sleep:
+            result7 = direct_edit._download(
+                mock_engine,
+                mock_info,
+                file_path,
+                file_out7,
+                mock_blob_always_corrupt,
+                xpath,
+                url="https://server.com/nuxeo/test.pdf",
+            )
+
+            # Should return None after exhausting retries
+            assert result7 is None
+            # Should emit failure error signal
+            assert any(
+                call[0][0] == "DIRECT_EDIT_CORRUPTED_DOWNLOAD_FAILURE"
+                for call in direct_edit.directEditError.emit.call_args_list
+            )
+
+        # Cleanup
+        file_out7.unlink(missing_ok=True)
+        mock_engine.remote.download.side_effect = None
+
+        # Scenario 8: Download with custom callback (using URL path to ensure callback is used)
+        file_out8 = self.folder / "output8.txt"
+        mock_blob_callback = Mock(spec=Blob)
+        mock_blob_callback.digest = "digest_callback"
+        mock_engine.dao.get_valid_duplicate_file.return_value = None
+        mock_engine.remote.download.return_value = None
+        mock_engine.remote.download.side_effect = None
+
+        custom_callback = Mock()
+        result8 = direct_edit._download(
+            mock_engine,
+            mock_info,
+            file_path,
+            file_out8,
+            mock_blob_callback,
+            xpath,
+            callback=custom_callback,
+            url="https://server.com/nuxeo/callback-test.pdf",
+        )
+
+        assert result8 == file_out8
+        # Verify custom callback was passed to download
+        call_kwargs8 = mock_engine.remote.download.call_args[1]
+        assert call_kwargs8["callback"] == custom_callback
+
+        # Cleanup
+        file_out8.unlink(missing_ok=True)
+
+        # Scenario 9: Test that existing file_out is removed before download
+        file_out9 = self.folder / "output9.txt"
+        file_out9.write_text("old content")
+        assert file_out9.exists()
+
+        mock_blob_remove = Mock(spec=Blob)
+        mock_blob_remove.digest = None
+        mock_engine.dao.get_valid_duplicate_file.return_value = None
+        mock_engine.remote.get_blob.return_value = None
+
+        result9 = direct_edit._download(
+            mock_engine, mock_info, file_path, file_out9, mock_blob_remove, xpath
+        )
+
+        # Old file should have been removed and recreated
+        assert result9 == file_out9
+
+        # Cleanup
+        file_out9.unlink(missing_ok=True)
 
     def test_prepare_edit_method_comprehensive(self):
-        """Test _prepare_edit method with various scenarios."""
+        """Test _prepare_edit method with various scenarios - covers main workflow."""
         direct_edit = DirectEdit(self.manager, self.folder)
 
-        # Test method exists
-        assert hasattr(direct_edit, "_prepare_edit")
+        from nxdrive.objects import Blob, NuxeoDocumentInfo
+
+        # Setup mocks for successful _prepare_edit
+        mock_engine = Mock()
+        mock_engine.hostname = "server.example.com"
+        mock_engine.remote_user = "testuser"
+        mock_engine.remote = Mock()
+        mock_engine.remote.base_folder_ref = "/"
+        mock_engine.remote.client = Mock()
+        mock_engine.remote.client.repository = "default"
+
+        doc_id = "test-doc-id-123"
+
+        # Mock successful document info
+        mock_info = Mock(spec=NuxeoDocumentInfo)
+        mock_info.doc_type = "File"
+        mock_info.path = "/default-domain/test.pdf"
+        mock_info.is_version = False
+        mock_info.is_proxy = False
+        mock_info.lock_owner = None
+        mock_info.permissions = ["Read", "Write"]
+
+        # Mock blob
+        mock_blob = Mock(spec=Blob)
+        mock_blob.name = "test.pdf"
+        mock_blob.digest = "abc123"
+        mock_blob.digest_algorithm = "md5"
+        mock_info.get_blob.return_value = mock_blob
+
+        # Create temporary file
+        temp_file = self.folder / "temp.pdf"
+        temp_file.write_text("test content")
+
+        with patch.object(direct_edit, "_get_engine", return_value=mock_engine):
+            with patch.object(direct_edit, "_get_info", return_value=mock_info):
+                with patch.object(direct_edit, "_download", return_value=temp_file):
+                    with patch.object(direct_edit, "send_notification"):
+                        direct_edit.is_already_locked = True
+
+                        result = direct_edit._prepare_edit(
+                            "https://server.example.com/nuxeo", doc_id, user="testuser"
+                        )
+
+                        # Verify result is a Path
+                        assert result is not None
+                        assert isinstance(result, Path)
+
+                        # Verify _get_info was called
+                        direct_edit._get_info.assert_called_once_with(
+                            mock_engine, doc_id
+                        )
+
+                        # Verify notification was sent since is_already_locked=True
+                        direct_edit.send_notification.assert_called_once()
+
+    def test_prepare_edit_no_engine(self):
+        """Test _prepare_edit when _get_engine returns None."""
+        direct_edit = DirectEdit(self.manager, self.folder)
+
+        with patch.object(direct_edit, "_get_engine", return_value=None):
+            result = direct_edit._prepare_edit(
+                "https://server.example.com/nuxeo", "doc123", user="testuser"
+            )
+
+            # Should return None when no engine found
+            assert result is None
+
+    def test_prepare_edit_no_info(self):
+        """Test _prepare_edit when _get_info returns None."""
+        direct_edit = DirectEdit(self.manager, self.folder)
+
+        mock_engine = Mock()
+
+        with patch.object(direct_edit, "_get_engine", return_value=mock_engine):
+            with patch.object(direct_edit, "_get_info", return_value=None):
+                result = direct_edit._prepare_edit(
+                    "https://server.example.com/nuxeo", "doc123", user="testuser"
+                )
+
+                # Should return None when _get_info returns None
+                assert result is None
+
+    def test_prepare_edit_with_download_url(self):
+        """Test _prepare_edit with download_url parameter - covers URL parsing."""
+        direct_edit = DirectEdit(self.manager, self.folder)
+
+        from nxdrive.objects import Blob, NuxeoDocumentInfo
+
+        mock_engine = Mock()
+        mock_engine.hostname = "server.example.com"
+
+        mock_info = Mock(spec=NuxeoDocumentInfo)
+        mock_info.doc_type = "File"
+        mock_info.path = "/test.pdf"
+
+        mock_blob = Mock(spec=Blob)
+        mock_blob.name = "test.pdf"
+        mock_blob.digest = "xyz789"
+        mock_blob.digest_algorithm = "sha256"
+        mock_info.get_blob.return_value = mock_blob
+
+        temp_file = self.folder / "temp.pdf"
+        temp_file.write_text("content")
+
+        # Download URL that matches regex pattern
+        download_url = "nxdoc/default/doc-id-123/file:content/test.pdf?changeToken=123"
+
+        with patch.object(direct_edit, "_get_engine", return_value=mock_engine):
+            with patch.object(direct_edit, "_get_info", return_value=mock_info):
+                with patch.object(
+                    direct_edit, "_download", return_value=temp_file
+                ) as mock_download:
+                    result = direct_edit._prepare_edit(
+                        "https://server.example.com/nuxeo",
+                        "doc123",
+                        user="testuser",
+                        download_url=download_url,
+                    )
+
+                    # Verify download was called with url parameter
+                    assert mock_download.called
+                    call_kwargs = mock_download.call_args[1]
+                    assert "url" in call_kwargs
+                    assert "https://server.example.com/nuxeo/" in call_kwargs["url"]
+
+                    assert result is not None
+
+    def test_prepare_edit_note_document_xpath(self):
+        """Test _prepare_edit with Note document type - covers xpath logic for Note."""
+        direct_edit = DirectEdit(self.manager, self.folder)
+
+        from nxdrive.objects import Blob, NuxeoDocumentInfo
+
+        mock_engine = Mock()
+        mock_engine.hostname = "server.example.com"  # Add hostname for Qt signal
+
+        mock_info = Mock(spec=NuxeoDocumentInfo)
+        mock_info.doc_type = "Note"  # Note document type
+        mock_info.path = "/note.txt"
+
+        mock_blob = Mock(spec=Blob)
+        mock_blob.name = "note.txt"
+        mock_blob.digest = "note123"
+        mock_blob.digest_algorithm = "md5"
+
+        # Track which xpath was used
+        called_xpath = []
+
+        def track_xpath(xpath):
+            called_xpath.append(xpath)
+            return mock_blob
+
+        mock_info.get_blob.side_effect = track_xpath
+
+        temp_file = self.folder / "temp.txt"
+        temp_file.write_text("note content")
+
+        with patch.object(direct_edit, "_get_engine", return_value=mock_engine):
+            with patch.object(direct_edit, "_get_info", return_value=mock_info):
+                with patch.object(direct_edit, "_download", return_value=temp_file):
+                    result = direct_edit._prepare_edit(
+                        "https://server.example.com/nuxeo", "doc123"
+                    )
+
+                    # Verify xpath was "note:note" for Note documents
+                    assert "note:note" in called_xpath
+                    assert result is not None
+
+    def test_prepare_edit_blobholder_xpath(self):
+        """Test _prepare_edit with blobholder:0 xpath - covers xpath normalization."""
+        direct_edit = DirectEdit(self.manager, self.folder)
+
+        from nxdrive.objects import Blob, NuxeoDocumentInfo
+
+        mock_engine = Mock()
+        mock_engine.hostname = "server.example.com"  # Add hostname for Qt signal
+
+        mock_info = Mock(spec=NuxeoDocumentInfo)
+        mock_info.doc_type = "File"
+
+        mock_blob = Mock(spec=Blob)
+        mock_blob.name = "file.pdf"
+        mock_blob.digest = "digest123"
+        mock_blob.digest_algorithm = "sha1"
+
+        # Track xpath
+        called_xpath = []
+
+        def track_xpath(xpath):
+            called_xpath.append(xpath)
+            return mock_blob
+
+        mock_info.get_blob.side_effect = track_xpath
+
+        temp_file = self.folder / "temp.pdf"
+        temp_file.write_text("file content")
+
+        # Download URL with blobholder:0 xpath
+        download_url = "nxdoc/default/doc123/blobholder:0/file.pdf"
+
+        with patch.object(direct_edit, "_get_engine", return_value=mock_engine):
+            with patch.object(direct_edit, "_get_info", return_value=mock_info):
+                with patch.object(direct_edit, "_download", return_value=temp_file):
+                    result = direct_edit._prepare_edit(
+                        "https://server.example.com/nuxeo",
+                        "doc123",
+                        download_url=download_url,
+                    )
+
+                    # blobholder:0 should be converted to file:content
+                    assert "file:content" in called_xpath
+                    assert result is not None
+
+    def test_prepare_edit_unsafe_filename(self):
+        """Test _prepare_edit with unsafe filename - covers filename sanitization."""
+        direct_edit = DirectEdit(self.manager, self.folder)
+
+        from nxdrive.objects import Blob, NuxeoDocumentInfo
+
+        mock_engine = Mock()
+        mock_engine.hostname = "server.example.com"  # Add hostname for Qt signal
+
+        mock_info = Mock(spec=NuxeoDocumentInfo)
+        mock_info.doc_type = "File"
+
+        # Unsafe filename with special characters
+        unsafe_filename = "test<>file:name?.pdf"
+
+        mock_blob = Mock(spec=Blob)
+        mock_blob.name = unsafe_filename
+        mock_blob.digest = "digest456"
+        mock_blob.digest_algorithm = "md5"
+        mock_info.get_blob.return_value = mock_blob
+
+        temp_file = self.folder / "temp.pdf"
+        temp_file.write_text("content")
+
+        with patch.object(direct_edit, "_get_engine", return_value=mock_engine):
+            with patch.object(direct_edit, "_get_info", return_value=mock_info):
+                with patch.object(direct_edit, "_download", return_value=temp_file):
+                    result = direct_edit._prepare_edit(
+                        "https://server.example.com/nuxeo", "doc123"
+                    )
+
+                    # Should sanitize the filename
+                    assert result is not None
+                    # Verify filename was sanitized (colon replaced with hyphen)
+                    assert (
+                        result.name == "test<>file-name?.pdf"
+                    )  # ':' was replaced with '-'
+
+    def test_prepare_edit_with_callback(self):
+        """Test _prepare_edit with custom callback parameter."""
+        direct_edit = DirectEdit(self.manager, self.folder)
+
+        from nxdrive.objects import Blob, NuxeoDocumentInfo
+
+        mock_engine = Mock()
+        mock_engine.hostname = "server.example.com"  # Add hostname for Qt signal
+
+        mock_info = Mock(spec=NuxeoDocumentInfo)
+        mock_info.doc_type = "File"
+
+        mock_blob = Mock(spec=Blob)
+        mock_blob.name = "test.pdf"
+        mock_blob.digest = "callback123"
+        mock_blob.digest_algorithm = "md5"
+        mock_info.get_blob.return_value = mock_blob
+
+        temp_file = self.folder / "temp.pdf"
+        temp_file.write_text("content")
+
+        custom_callback = Mock()
+
+        with patch.object(direct_edit, "_get_engine", return_value=mock_engine):
+            with patch.object(direct_edit, "_get_info", return_value=mock_info):
+                with patch.object(
+                    direct_edit, "_download", return_value=temp_file
+                ) as mock_download:
+                    result = direct_edit._prepare_edit(
+                        "https://server.example.com/nuxeo",
+                        "doc123",
+                        callback=custom_callback,
+                    )
+
+                    # Verify callback was passed to _download
+                    call_kwargs = mock_download.call_args[1]
+                    assert call_kwargs.get("callback") == custom_callback
+                    assert result is not None
+
+    def test_prepare_edit_sets_remote_ids(self):
+        """Test _prepare_edit sets all remote IDs correctly."""
+        direct_edit = DirectEdit(self.manager, self.folder)
+
+        from nxdrive.objects import Blob, NuxeoDocumentInfo
+
+        mock_engine = Mock()
+        mock_engine.hostname = "server.example.com"  # Add hostname for Qt signal
+
+        mock_info = Mock(spec=NuxeoDocumentInfo)
+        mock_info.doc_type = "File"
+
+        mock_blob = Mock(spec=Blob)
+        mock_blob.name = "test.pdf"
+        mock_blob.digest = "remote_id_test"
+        mock_blob.digest_algorithm = "sha256"
+        mock_info.get_blob.return_value = mock_blob
+
+        temp_file = self.folder / "temp.pdf"
+        temp_file.write_text("content")
+
+        server_url = "https://server.example.com/nuxeo"
+        doc_id = "doc-remote-id-123"
+        user = "testuser"
+
+        with patch.object(direct_edit, "_get_engine", return_value=mock_engine):
+            with patch.object(direct_edit, "_get_info", return_value=mock_info):
+                with patch.object(direct_edit, "_download", return_value=temp_file):
+                    with patch.object(
+                        direct_edit.local, "set_remote_id"
+                    ) as mock_set_id:
+                        result = direct_edit._prepare_edit(
+                            server_url, doc_id, user=user
+                        )
+
+                        # Verify all remote IDs were set
+                        assert mock_set_id.call_count >= 5
+
+                        # Check that specific remote IDs were set
+                        call_args_list = mock_set_id.call_args_list
+                        remote_id_names = [
+                            call[1].get("name")
+                            for call in call_args_list
+                            if "name" in call[1]
+                        ]
+
+                        assert "nxdirectedit" in remote_id_names
+                        assert "nxdirectedituser" in remote_id_names
+                        assert "nxdirecteditxpath" in remote_id_names
+                        assert "nxdirecteditdigest" in remote_id_names
+                        assert "nxdirecteditdigestalgorithm" in remote_id_names
+                        assert "nxdirecteditname" in remote_id_names
+
+                        assert result is not None
+
+    def test_prepare_edit_connection_error(self):
+        """Test _prepare_edit with CONNECTION_ERROR exception - covers lines 570-572."""
+        direct_edit = DirectEdit(self.manager, self.folder)
+
+        from requests.exceptions import ConnectionError
+
+        from nxdrive.objects import Blob, NuxeoDocumentInfo
+
+        mock_engine = Mock()
+        mock_engine.hostname = "server.example.com"
+
+        mock_info = Mock(spec=NuxeoDocumentInfo)
+        mock_info.doc_type = "File"
+        mock_info.name = "test.pdf"
+
+        mock_blob = Mock(spec=Blob)
+        mock_blob.name = "test.pdf"
+        mock_blob.digest = "digest123"
+        mock_blob.digest_algorithm = "md5"
+        mock_info.get_blob.return_value = mock_blob
+
+        with patch.object(direct_edit, "_get_engine", return_value=mock_engine):
+            with patch.object(direct_edit, "_get_info", return_value=mock_info):
+                # Mock _download to raise ConnectionError (part of CONNECTION_ERROR tuple)
+                with patch.object(
+                    direct_edit,
+                    "_download",
+                    side_effect=ConnectionError("Network error"),
+                ):
+                    result = direct_edit._prepare_edit(
+                        "https://server.example.com/nuxeo", "doc123"
+                    )
+
+                    # Should return None when connection error occurs
+                    assert result is None
+
+    def test_prepare_edit_http_error_404(self):
+        """Test _prepare_edit with HTTPError 404 exception - covers lines 573-579."""
+        direct_edit = DirectEdit(self.manager, self.folder)
+
+        from nuxeo.exceptions import HTTPError
+
+        from nxdrive.objects import Blob, NuxeoDocumentInfo
+
+        mock_engine = Mock()
+        mock_engine.hostname = "server.example.com"
+
+        mock_info = Mock(spec=NuxeoDocumentInfo)
+        mock_info.doc_type = "File"
+        mock_info.name = "test_document.pdf"
+
+        mock_blob = Mock(spec=Blob)
+        mock_blob.name = "test.pdf"
+        mock_blob.digest = "digest456"
+        mock_blob.digest_algorithm = "sha256"
+        mock_info.get_blob.return_value = mock_blob
+
+        # Create a custom HTTPError-like exception
+        class MockHTTPError(HTTPError):
+            def __init__(self, status, message):
+                super().__init__()
+                self.status = status
+                self.message = message
+
+        http_error = MockHTTPError(404, "Document not found")
+
+        with patch.object(direct_edit, "_get_engine", return_value=mock_engine):
+            with patch.object(direct_edit, "_get_info", return_value=mock_info):
+                with patch.object(direct_edit, "_download", side_effect=http_error):
+                    # Mock the signal - need to handle subscript notation
+                    mock_signal = Mock()
+                    direct_edit.directEditError = Mock(
+                        __getitem__=Mock(return_value=mock_signal)
+                    )
+
+                    result = direct_edit._prepare_edit(
+                        "https://server.example.com/nuxeo", "doc123"
+                    )
+
+                    # Should return None for 404 errors
+                    assert result is None
+
+                    # Verify the directEditError signal was emitted
+                    mock_signal.emit.assert_called_once()
+                    args = mock_signal.emit.call_args[0]
+                    assert args[0] == "DIRECT_EDIT_DOC_NOT_FOUND"
+                    assert args[1] == [mock_info.name]
+                    assert "Document not found" in args[2]
+
+    def test_prepare_edit_http_error_other(self):
+        """Test _prepare_edit with non-404 HTTPError - covers line 579 (raise exc)."""
+        direct_edit = DirectEdit(self.manager, self.folder)
+
+        from nuxeo.exceptions import HTTPError
+
+        from nxdrive.objects import Blob, NuxeoDocumentInfo
+
+        mock_engine = Mock()
+        mock_engine.hostname = "server.example.com"
+
+        mock_info = Mock(spec=NuxeoDocumentInfo)
+        mock_info.doc_type = "File"
+
+        mock_blob = Mock(spec=Blob)
+        mock_blob.name = "test.pdf"
+        mock_blob.digest = "digest789"
+        mock_blob.digest_algorithm = "md5"
+        mock_info.get_blob.return_value = mock_blob
+
+        # Create a custom HTTPError-like exception with status 500 (not 404)
+        class MockHTTPError(HTTPError):
+            def __init__(self, status, message):
+                super().__init__()
+                self.status = status
+                self.message = message
+
+        http_error = MockHTTPError(500, "Server error")
+
+        with patch.object(direct_edit, "_get_engine", return_value=mock_engine):
+            with patch.object(direct_edit, "_get_info", return_value=mock_info):
+                with patch.object(direct_edit, "_download", side_effect=http_error):
+                    # Should re-raise non-404 HTTPError
+                    with pytest.raises(HTTPError) as exc_info:
+                        direct_edit._prepare_edit(
+                            "https://server.example.com/nuxeo", "doc123"
+                        )
+
+                    # Verify it's the exception we raised
+                    assert exc_info.value is http_error
+                    assert exc_info.value.status == 500
 
     def test_get_info_method_comprehensive(self):
         """Test _get_info method with error scenarios."""
         direct_edit = DirectEdit(self.manager, self.folder)
 
-        # Test method exists and can handle engines
-        assert hasattr(direct_edit, "_get_info")
+        from datetime import datetime
+
+        from nuxeo.exceptions import Forbidden, Unauthorized
+
+        from nxdrive.exceptions import NotFound
+        from nxdrive.objects import NuxeoDocumentInfo
+
+        # Setup common mocks
+        mock_engine = Mock()
+        mock_engine.hostname = "server.example.com"
+        mock_engine.remote_user = "testuser"
+        mock_engine.remote = Mock()
+        doc_id = "test-doc-id-123"
+
+        # Scenario 1: Success with autolock disabled - fetch path
+        with patch.object(
+            direct_edit._manager, "get_direct_edit_auto_lock", return_value=False
+        ):
+
+            mock_doc = {
+                "uid": doc_id,
+                "title": "Test Document",
+                "path": "/default-domain/test",
+                "properties": {},
+                "type": "File",
+                "isVersion": False,
+                "isProxy": False,
+                "lockOwner": None,
+                "permissions": ["Read", "Write"],
+            }
+
+            mock_engine.remote.fetch.return_value = mock_doc
+            mock_engine.remote.base_folder_ref = "/"
+            mock_engine.remote.client = Mock()
+            mock_engine.remote.client.repository = "default"
+
+            with patch("nxdrive.objects.NuxeoDocumentInfo.from_dict") as mock_from_dict:
+                mock_info = Mock(spec=NuxeoDocumentInfo)
+                mock_info.is_version = False
+                mock_info.is_proxy = False
+                mock_info.lock_owner = None
+                mock_info.permissions = ["Read", "Write"]
+                mock_from_dict.return_value = mock_info
+
+                result = direct_edit._get_info(mock_engine, doc_id)
+
+                assert result == mock_info
+                mock_engine.remote.fetch.assert_called_once_with(
+                    doc_id,
+                    headers={"fetch-document": "lock"},
+                    enrichers=["permissions"],
+                )  # Scenario 2: Success with autolock enabled - lock path
+        with patch.object(
+            direct_edit._manager, "get_direct_edit_auto_lock", return_value=True
+        ):
+            direct_edit.is_already_locked = False
+
+            mock_engine.remote.lock.return_value = mock_doc
+            mock_engine.remote.fetch.reset_mock()
+
+            with patch("nxdrive.objects.NuxeoDocumentInfo.from_dict") as mock_from_dict:
+                mock_info = Mock(spec=NuxeoDocumentInfo)
+                mock_info.is_version = False
+                mock_info.is_proxy = False
+                mock_info.lock_owner = None
+                mock_info.permissions = ["Read", "Write"]
+                mock_from_dict.return_value = mock_info
+
+                result = direct_edit._get_info(mock_engine, doc_id)
+
+                assert result == mock_info
+                assert direct_edit.is_already_locked is True
+                mock_engine.remote.lock.assert_called_once_with(doc_id)
+                mock_engine.remote.fetch.assert_not_called()  # Scenario 3: Forbidden exception
+        with patch.object(
+            direct_edit._manager, "get_direct_edit_auto_lock", return_value=True
+        ):
+            mock_engine.remote.lock.side_effect = Forbidden()
+            direct_edit.directEditForbidden = Mock()
+            direct_edit.directEditForbidden.emit = Mock()
+
+            result = direct_edit._get_info(mock_engine, doc_id)
+
+            assert result is None
+            direct_edit.directEditForbidden.emit.assert_called_once_with(
+                doc_id, mock_engine.hostname, mock_engine.remote_user
+            )
+
+        # Scenario 4: Unauthorized exception
+        with patch.object(
+            direct_edit._manager, "get_direct_edit_auto_lock", return_value=True
+        ):
+            mock_engine.remote.lock.side_effect = Unauthorized()
+            mock_engine.set_invalid_credentials = Mock()
+
+            result = direct_edit._get_info(mock_engine, doc_id)
+
+            assert result is None
+            mock_engine.set_invalid_credentials.assert_called_once()
+
+        # Scenario 5: NotFound exception
+        with patch.object(
+            direct_edit._manager, "get_direct_edit_auto_lock", return_value=True
+        ):
+            mock_engine.remote.lock.side_effect = NotFound("Document not found")
+            direct_edit.directEditError = Mock()
+            direct_edit.directEditError.emit = Mock()
+
+            result = direct_edit._get_info(mock_engine, doc_id)
+
+            assert result is None
+            direct_edit.directEditError.emit.assert_called_once_with(
+                "DIRECT_EDIT_NOT_FOUND", [doc_id, mock_engine.hostname]
+            )
+
+        # Scenario 6: Invalid response - not a dict
+        with patch.object(
+            direct_edit._manager, "get_direct_edit_auto_lock", return_value=True
+        ):
+            mock_engine.remote.lock.side_effect = None
+            mock_engine.remote.lock.return_value = "invalid response"
+            direct_edit.directEditError.emit.reset_mock()
+
+            result = direct_edit._get_info(mock_engine, doc_id)
+
+            assert result is None
+            direct_edit.directEditError.emit.assert_called_once_with(
+                "DIRECT_EDIT_BAD_RESPONSE", [doc_id, mock_engine.hostname]
+            )
+
+        # Scenario 7: Document is a version
+        mock_engine.remote.lock.return_value = mock_doc
+        direct_edit.directEditError.emit.reset_mock()
+
+        with patch("nxdrive.objects.NuxeoDocumentInfo.from_dict") as mock_from_dict:
+            mock_info = Mock(spec=NuxeoDocumentInfo)
+            mock_info.is_version = True
+            mock_info.version = "1.0"
+            mock_info.name = "Test Doc"
+            mock_info.uid = doc_id
+            mock_from_dict.return_value = mock_info
+
+            result = direct_edit._get_info(mock_engine, doc_id)
+
+            assert result is None
+            direct_edit.directEditError.emit.assert_called_once_with(
+                "DIRECT_EDIT_VERSION",
+                [mock_info.version, mock_info.name, mock_info.uid],
+            )
+
+        # Scenario 8: Document is a proxy
+        direct_edit.directEditError.emit.reset_mock()
+
+        with patch("nxdrive.objects.NuxeoDocumentInfo.from_dict") as mock_from_dict:
+            mock_info = Mock(spec=NuxeoDocumentInfo)
+            mock_info.is_version = False
+            mock_info.is_proxy = True
+            mock_info.name = "Test Proxy"
+            mock_from_dict.return_value = mock_info
+
+            result = direct_edit._get_info(mock_engine, doc_id)
+
+            assert result is None
+            direct_edit.directEditError.emit.assert_called_once_with(
+                "DIRECT_EDIT_PROXY", [mock_info.name]
+            )
+
+        # Scenario 9: Document locked by another user
+        direct_edit.directEditLocked = Mock()
+        direct_edit.directEditLocked.emit = Mock()
+
+        with patch("nxdrive.objects.NuxeoDocumentInfo.from_dict") as mock_from_dict:
+            mock_info = Mock(spec=NuxeoDocumentInfo)
+            mock_info.is_version = False
+            mock_info.is_proxy = False
+            mock_info.lock_owner = "anotheruser"
+            mock_info.name = "Locked Document"
+            mock_info.lock_created = datetime(2023, 1, 1, 12, 0, 0)
+            mock_info.permissions = ["Read", "Write"]
+            mock_from_dict.return_value = mock_info
+
+            mock_engine.get_user_full_name = Mock(return_value="Another User")
+
+            result = direct_edit._get_info(mock_engine, doc_id)
+
+            assert result is None
+            mock_engine.get_user_full_name.assert_called_once_with("anotheruser")
+            direct_edit.directEditLocked.emit.assert_called_once_with(
+                mock_info.name, "Another User", mock_info.lock_created
+            )
+
+        # Scenario 10: Document has no Write permission
+        direct_edit.directEditReadonly = Mock()
+        direct_edit.directEditReadonly.emit = Mock()
+
+        with patch("nxdrive.objects.NuxeoDocumentInfo.from_dict") as mock_from_dict:
+            mock_info = Mock(spec=NuxeoDocumentInfo)
+            mock_info.is_version = False
+            mock_info.is_proxy = False
+            mock_info.lock_owner = None
+            mock_info.name = "Readonly Document"
+            mock_info.permissions = ["Read"]  # No Write permission
+            mock_from_dict.return_value = mock_info
+
+            result = direct_edit._get_info(mock_engine, doc_id)
+
+            assert result is None
+            direct_edit.directEditReadonly.emit.assert_called_once_with(mock_info.name)
+
+        # Scenario 11: Document locked by same user (should pass)
+        with patch("nxdrive.objects.NuxeoDocumentInfo.from_dict") as mock_from_dict:
+            mock_info = Mock(spec=NuxeoDocumentInfo)
+            mock_info.is_version = False
+            mock_info.is_proxy = False
+            mock_info.lock_owner = "testuser"  # Same as engine.remote_user
+            mock_info.name = "Self Locked Document"
+            mock_info.permissions = ["Read", "Write"]
+            mock_from_dict.return_value = mock_info
+
+            result = direct_edit._get_info(mock_engine, doc_id)
+
+            assert result == mock_info
+
+        # Scenario 12: Document with no permissions attribute (None)
+        with patch("nxdrive.objects.NuxeoDocumentInfo.from_dict") as mock_from_dict:
+            mock_info = Mock(spec=NuxeoDocumentInfo)
+            mock_info.is_version = False
+            mock_info.is_proxy = False
+            mock_info.lock_owner = None
+            mock_info.name = "No Perms Document"
+            mock_info.permissions = None  # No permissions attribute
+            mock_from_dict.return_value = mock_info
+
+            result = direct_edit._get_info(mock_engine, doc_id)
+
+            # Should pass as permissions is None (falsy)
+            assert result == mock_info
+
+        # Scenario 13: Document with empty permissions list
+        with patch("nxdrive.objects.NuxeoDocumentInfo.from_dict") as mock_from_dict:
+            mock_info = Mock(spec=NuxeoDocumentInfo)
+            mock_info.is_version = False
+            mock_info.is_proxy = False
+            mock_info.lock_owner = None
+            mock_info.name = "Empty Perms Document"
+            mock_info.permissions = []  # Empty list
+            mock_from_dict.return_value = mock_info
+
+            result = direct_edit._get_info(mock_engine, doc_id)
+
+            # Should pass as permissions is empty (falsy)
+            assert result == mock_info
 
     def test_edit_method_comprehensive(self):
         """Test edit method with various scenarios."""
