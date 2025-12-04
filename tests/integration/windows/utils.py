@@ -20,8 +20,9 @@ def cb_get() -> str:
     return text
 
 
-def window_exists(app, with_details: bool = True) -> bool:
-    dlg = app
+def window_exists(dlg, with_details: bool = True) -> bool:
+    """Check if app.window (dlg) exists and handle it."""
+
     if dlg.exists():
         if with_details:
             # Copy details
