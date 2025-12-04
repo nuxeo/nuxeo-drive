@@ -381,7 +381,7 @@ function install_python {
 	catch {
 		$pythonVersion = $false
 	}
-	
+
 	# Check system python architecture
 	try {
 		$pythonArch = python -c "import struct; print(struct.calcsize('P') * 8)" 2>&1
@@ -389,81 +389,80 @@ function install_python {
 	catch {
 		$pythonArch = $false
 	}
-
-	Write-Output ">>> Detected system Python version: $pythonVersion"
-	Write-Output ">>> Detected system Python architecture: $pythonArch bits"
-
 	if (($pythonVersion -and $pythonArch) -and ($pythonVersion -match $Env:PYTHON_DRIVE_VERSION -and $pythonArch -eq 64)) {
-		Write-Output ">>> Required Python version $Env:PYTHON_DRIVE_VERSION (64 bits) already installed on the system."
-		# Split PATH into individual directories
-		$paths = $env:PATH -split ';'
+		Write-Output ">>> Required Python version $Env:PYTHON_DRIVE_VERSION ($pythonArch bits) already installed on the system."
+		try {
+			# Split PATH into individual directories
+			$paths = $env:PATH -split ';'
 
-		# Filter paths containing '\Python\'
-		$pythonPaths = $paths | Where-Object { $_ -like '*\Python*' }
+			# Filter paths containing '\Python\'
+			$pythonPaths = $paths | Where-Object { $_ -like '*\Python*' }
 
-		# Check for python.exe in those directories
-		foreach ($path in $pythonPaths) {
-			$pythonExe = Join-Path -Path $path -ChildPath "python.exe"
-			if (Test-Path $pythonExe) {
-				Write-Output "Found python.exe in: $path"
-				$Env:PYTHON_DIR = $path
-			} else {
-				continue
+			# Check for python.exe in those directories
+			foreach ($path in $pythonPaths) {
+				$pythonExe = Join-Path -Path $path -ChildPath "python.exe"
+				if (Test-Path $pythonExe) {
+					Write-Output "Found python.exe in: $path"
+					$Env:PYTHON_DIR = $path
+				} else {
+					continue
+				}
 			}
+		}
+		catch {
+			$Env:PYTHON_DIR = ""
 		}
 	}
 	else {
 		# Python needs to be downloaded and installed on GitHub-CI
-	$filename = "python-$Env:PYTHON_DRIVE_VERSION-amd64.exe"
-	$url = "https://www.python.org/ftp/python/$Env:PYTHON_DRIVE_VERSION/$filename"
-	$output = "$Env:WORKSPACE\$filename"
-	download $url $output
+		$filename = "python-$Env:PYTHON_DRIVE_VERSION-amd64.exe"
+		$url = "https://www.python.org/ftp/python/$Env:PYTHON_DRIVE_VERSION/$filename"
+		$output = "$Env:WORKSPACE\$filename"
+		download $url $output
 
-	# Create Python directory if it doesn't exist
-	if (-Not (Test-Path $Env:PYTHON_DIR)) {
-		Write-Output ">>> Creating Python directory: $Env:PYTHON_DIR"
-		New-Item -ItemType Directory -Force -Path $Env:PYTHON_DIR | Out-Null
-	} else {
-		Write-Output ">>> Python directory already exists: $Env:PYTHON_DIR"
-	}
-	Write-Output ">>> Installing Python $Env:PYTHON_DRIVE_VERSION into $Env:PYTHON_DIR"
-	# https://docs.python.org/3.7/using/windows.html#installing-without-ui
-	# Use /passive instead of /quiet to show progress but require no user interaction
-	# /quiet can fail silently, while /passive shows installation progress
-	$installResult = Start-Process $output -ArgumentList @(
-		"/passive",
-		"TargetDir=$Env:PYTHON_DIR",
-		"AssociateFiles=0",
-		"CompileAll=1",
-		"Shortcuts=0",
-		"Include_doc=0",
-		"Include_launcher=0",
-		"InstallLauncherAllUsers=0",
-		"Include_tcltk=0",
-		"Include_test=0",
-		"Include_tools=0",
-		"PrependPath=1"
-	) -Wait -PassThru
-	Write-Output ">>> Python installation finished with exit code: $($installResult.ExitCode)"
-	if ($installResult.ExitCode -ne 0) {
-		Write-Output ">>> Python installation failed with exit code: $($installResult.ExitCode)"
-		ExitWithCode $installResult.ExitCode
-	}
+		# Create Python directory if it doesn't exist
+		if (-Not (Test-Path $Env:PYTHON_DIR)) {
+			Write-Output ">>> Creating Python directory: $Env:PYTHON_DIR"
+			New-Item -ItemType Directory -Force -Path $Env:PYTHON_DIR | Out-Null
+		} else {
+			Write-Output ">>> Python directory already exists: $Env:PYTHON_DIR"		}
+		Write-Output ">>> Installing Python $Env:PYTHON_DRIVE_VERSION into $Env:PYTHON_DIR"
+		# https://docs.python.org/3.7/using/windows.html#installing-without-ui
+		# Use /passive instead of /quiet to show progress but require no user interaction
+		# /quiet can fail silently, while /passive shows installation progress
+		$installResult = Start-Process $output -ArgumentList @(
+			"/passive",
+			"TargetDir=$Env:PYTHON_DIR",
+			"AssociateFiles=0",
+			"CompileAll=1",
+			"Shortcuts=0",
+			"Include_doc=0",
+			"Include_launcher=0",
+			"InstallLauncherAllUsers=0",
+			"Include_tcltk=0",
+			"Include_test=0",
+			"Include_tools=0",
+			"PrependPath=1"
+		) -Wait -PassThru
+		Write-Output ">>> Python installation finished with exit code: $($installResult.ExitCode)"
+		if ($installResult.ExitCode -ne 0) {
+			Write-Output ">>> Python installation failed with exit code: $($installResult.ExitCode)"
+			ExitWithCode $installResult.ExitCode		}
 
-	# If python 64 is installed, use it to take the vcruntime140.dll from it
+		# If python 64 is installed, use it to take the vcruntime140.dll from it
 
-	# Verify Python was installed correctly
-	if (-Not (Test-Path "$Env:PYTHON_DIR\python.exe")) {
-		Write-Output ">>> Error: Python executable not found at $Env:PYTHON_DIR\python.exe after installation"
-		ExitWithCode 1
-	}
+		# Verify Python was installed correctly
+		if (-Not (Test-Path "$Env:PYTHON_DIR\python.exe")) {
+			Write-Output ">>> Error: Python executable not found at $Env:PYTHON_DIR\python.exe after installation"
+			ExitWithCode 1
+		}
 
-	Write-Output ">>> Python installation successful! Verifying version..."
-	& "$Env:PYTHON_DIR\python.exe" --version
-	if ($lastExitCode -ne 0) {
-		Write-Output ">>> Error: Python executable is not working properly"
-		ExitWithCode $lastExitCode
-	}
+		Write-Output ">>> Python installation successful! Verifying version..."
+		& "$Env:PYTHON_DIR\python.exe" --version
+		if ($lastExitCode -ne 0) {
+			Write-Output ">>> Error: Python executable is not working properly"
+			ExitWithCode $lastExitCode
+		}
 	}
 
 	# Fix a bloody issue ... !
