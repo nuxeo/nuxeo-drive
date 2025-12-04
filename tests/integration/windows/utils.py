@@ -20,6 +20,23 @@ def cb_get() -> str:
     return text
 
 
+def window_exists(app, with_details: bool = True) -> bool:
+    dlg = app
+    if dlg.exists():
+        if with_details:
+            # Copy details
+            sleep(1)
+            dlg.child_window(title="Copy details").wait("visible").click()
+            sleep(1)
+            log.warning(f"Fatal error screen detected! Details:\n{cb_get()}")
+        else:
+            log.warning("Fatal error screen detected!")
+
+        dlg.close()
+        return True
+    return False
+
+
 def fatal_error_dlg(app, with_details: bool = True, wait_timeout: int = 0) -> bool:
     # Check if the fatal error dialog is prompted.
     # XXX: Keep synced with FATAL_ERROR_TITLE.
@@ -30,34 +47,14 @@ def fatal_error_dlg(app, with_details: bool = True, wait_timeout: int = 0) -> bo
     log.info(f"Error Window exists: {dlg.exists()!r}")
 
     if wait_timeout == 0:
-        if dlg.exists():
-            if with_details:
-                # Copy details
-                sleep(1)
-                dlg.child_window(title="Copy details").wait("visible").click()
-                sleep(1)
-                log.warning(f"Fatal error screen detected! Details:\n{cb_get()}")
-            else:
-                log.warning("Fatal error screen detected!")
-
-            dlg.close()
+        if window_exists(dlg, with_details):
             return True
     else:
         # Wait for dialog to appear if wait_timeout is enabled
         try:
             dlg.wait("exists", timeout=10 * wait_timeout, retry_interval=1)
             # Dialog appeared after waiting - handle it now
-            if dlg.exists():
-                if with_details:
-                    # Copy details
-                    sleep(1)
-                    dlg.child_window(title="Copy details").wait("visible").click()
-                    sleep(1)
-                    log.warning(f"Fatal error screen detected! Details:\n{cb_get()}")
-                else:
-                    log.warning("Fatal error screen detected!")
-
-                dlg.close()
+            if window_exists(dlg, with_details):
                 return True
         except pywinauto.timings.TimeoutError:
             log.error(
