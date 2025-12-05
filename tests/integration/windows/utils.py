@@ -38,7 +38,7 @@ def window_exists(dlg, with_details: bool = True) -> bool:
     return False
 
 
-def fatal_error_dlg(app, with_details: bool = True, wait_timeout: int = 0) -> bool:
+def fatal_error_dlg(app, with_details: bool = True, wait_timeout_multiplier: int = 0) -> bool:
     # Check if the fatal error dialog is prompted.
     # XXX: Keep synced with FATAL_ERROR_TITLE.
 
@@ -47,19 +47,24 @@ def fatal_error_dlg(app, with_details: bool = True, wait_timeout: int = 0) -> bo
     dlg = app.window(title=f"{APP_NAME} - Fatal error")
     log.info(f"Error Window exists: {dlg.exists()!r}")
 
-    if wait_timeout == 0:
+    if wait_timeout_multiplier == 0:
         if window_exists(dlg, with_details):
             return True
     else:
-        # Wait for dialog to appear if wait_timeout is enabled
+        # Check instantly if fatal error dialog exists
+        if window_exists(dlg, with_details):
+            return True
+
+        # If not, then wait for it
+        # Wait for dialog to appear if wait_timeout_multiplier is enabled
         try:
-            dlg.wait("exists", timeout=10 * wait_timeout, retry_interval=1)
+            dlg.wait("exists", timeout=10 * wait_timeout_multiplier, retry_interval=1)
             # Dialog appeared after waiting - handle it now
             if window_exists(dlg, with_details):
                 return True
         except pywinauto.timings.TimeoutError:
             log.error(
-                f"Fatal error dialog did not appear within {wait_timeout * 10} seconds."
+                f"Fatal error dialog did not appear within {wait_timeout_multiplier * 10} seconds."
             )
 
     return False
