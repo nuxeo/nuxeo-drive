@@ -38,7 +38,9 @@ def window_exists(dlg, with_details: bool = True) -> bool:
     return False
 
 
-def fatal_error_dlg(app, with_details: bool = True, wait_timeout_multiplier: int = 0) -> bool:
+def fatal_error_dlg(
+    app, with_details: bool = True, wait_timeout_multiplier: int = 0
+) -> bool:
     # Check if the fatal error dialog is prompted.
     # XXX: Keep synced with FATAL_ERROR_TITLE.
 
