@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from nxdrive.constants import DOC_UID_REG
+from nxdrive.constants import DOC_UID_REG, LINUX, WINDOWS
 from nxdrive.direct_edit import DirectEdit, _is_lock_file
 from nxdrive.exceptions import ThreadInterrupt
 
@@ -915,10 +915,19 @@ class TestDirectEditBasicFunctionality:
 
                     # Should sanitize the filename
                     assert result is not None
-                    # Verify filename was sanitized (colon replaced with hyphen)
-                    assert (
-                        result.name == "test<>file-name?.pdf"
-                    )  # ':' was replaced with '-'
+                    # Verify filename was sanitized
+                    if WINDOWS:
+                        assert (
+                            result.name == "test--file-name-.pdf"
+                        )  # All special chars replaced on Windows
+                    elif LINUX:
+                        assert (
+                            result.name == "test<>file:name?.pdf"
+                        )  # Linux allows all characters
+                    else:  # macOS
+                        assert (
+                            result.name == "test<>file-name?.pdf"
+                        )  # ':' was replaced with '-'
 
     def test_prepare_edit_with_callback(self):
         """Test _prepare_edit with custom callback parameter."""
