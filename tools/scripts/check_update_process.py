@@ -140,14 +140,13 @@ def get_version():
     """Get the current version."""
 
     if EXT == "dmg":
-        """
         cmd = [
-            f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
-            "--version",
+            "/usr/libexec/PlistBuddy",
+            "-c",
+            "Print :CFBundleShortVersionString",
+            "/Applications/Nuxeo Drive.app/Contents/Info.plist",
         ]
         return subprocess.check_output(cmd, text=True).strip()
-        """
-        return "6.1.0"
 
     file = (
         expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
