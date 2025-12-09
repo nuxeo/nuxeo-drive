@@ -32,7 +32,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, 'macos-13']
+        os: [ubuntu-latest, windows-latest, 'macos-15-intel']
 
     steps:
       - name: Inputs Received
@@ -116,29 +116,29 @@ jobs:
       #
 
       - name: "[macOS] Setup certificates"
-        if: matrix.os == 'macos-13'
+        if: matrix.os == 'macos-15-intel'
         run: |
           wget https://www.apple.com/appleca/AppleIncRootCertificate.cer
           echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.p12
           echo "${{ secrets.PRIV_APP_MACOS }}" | base64 --decode > nuxeo-drive.priv
 
       #- name: "[macOS] Downloading Python"
-      #  if: matrix.os == 'macos-13'
+      #  if: matrix.os == 'macos-15-intel'
       #  run: curl https://www.python.org/ftp/python/3.13.1/python-3.13.1-macos11.pkg -o "python.pkg" # XXX_PYTHON
 
       #- name: "[macOS] Install Python"
-      #  if: matrix.os == 'macos-13'
+      #  if: matrix.os == 'macos-15-intel'
       #  run: sudo installer -pkg python.pkg -target /
 
       - name: "[macOS] Setup the environment"
-        if: matrix.os == 'macos-13'
+        if: matrix.os == 'macos-15-intel'
         env:
           MACOSX_DEPLOYMENT_TARGET: "11.3"
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --install-release
 
       - name: "[macOS] Generate the .dmg and validate against 2023"
-        if: matrix.os == 'macos-13'
+        if: matrix.os == 'macos-15-intel'
         timeout-minutes: 20
         env:
           NXDRIVE_TEST_NUXEO_URL: "https://drive-2023.beta.nuxeocloud.com/nuxeo"
@@ -156,7 +156,7 @@ jobs:
         run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
 
       - name: "[macOS] Generate the .dmg and validate against 2025"
-        if: matrix.os == 'macos-13'
+        if: matrix.os == 'macos-15-intel'
         timeout-minutes: 20
         env:
           NXDRIVE_TEST_NUXEO_URL: "https://drive-2025.beta.nuxeocloud.com/nuxeo"
