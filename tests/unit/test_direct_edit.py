@@ -4182,9 +4182,9 @@ class TestDirectEditBasicFunctionality:
         ), patch.object(
             direct_edit.local,
             "get_remote_id",
-            side_effect=lambda p, name: "document.txt"
-            if name == "nxdirecteditname"
-            else None,
+            side_effect=lambda p, name: (
+                "document.txt" if name == "nxdirecteditname" else None
+            ),
         ), patch.object(
             direct_edit._manager, "get_direct_edit_auto_lock", return_value=False
         ):
@@ -4233,9 +4233,9 @@ class TestDirectEditBasicFunctionality:
         ), patch.object(
             direct_edit.local,
             "get_remote_id",
-            side_effect=lambda p, name: "file.txt"
-            if name == "nxdirecteditname"
-            else None,
+            side_effect=lambda p, name: (
+                "file.txt" if name == "nxdirecteditname" else None
+            ),
         ), patch.object(
             direct_edit._manager, "get_direct_edit_auto_lock", return_value=False
         ):
@@ -4296,9 +4296,9 @@ class TestDirectEditBasicFunctionality:
         ), patch.object(
             direct_edit.local,
             "get_remote_id",
-            side_effect=lambda p, name: "document.txt"
-            if name == "nxdirecteditname"
-            else "0",
+            side_effect=lambda p, name: (
+                "document.txt" if name == "nxdirecteditname" else "0"
+            ),
         ), patch.object(
             direct_edit._manager, "get_direct_edit_auto_lock", return_value=True
         ), patch.object(
@@ -4330,9 +4330,9 @@ class TestDirectEditBasicFunctionality:
         ), patch.object(
             direct_edit.local,
             "get_remote_id",
-            side_effect=lambda p, name: "file.txt"
-            if name == "nxdirecteditname"
-            else "1",
+            side_effect=lambda p, name: (
+                "file.txt" if name == "nxdirecteditname" else "1"
+            ),
         ), patch.object(
             direct_edit.local, "remove_remote_id"
         ) as mock_remove_remote_id:
@@ -4361,9 +4361,9 @@ class TestDirectEditBasicFunctionality:
         ), patch.object(
             direct_edit.local,
             "get_remote_id",
-            side_effect=lambda p, name: "file.txt"
-            if name == "nxdirecteditname"
-            else None,
+            side_effect=lambda p, name: (
+                "file.txt" if name == "nxdirecteditname" else None
+            ),
         ), patch.object(
             direct_edit._manager, "get_direct_edit_auto_lock", return_value=False
         ):
@@ -4397,9 +4397,9 @@ class TestDirectEditBasicFunctionality:
         ), patch.object(
             direct_edit.local,
             "get_remote_id",
-            side_effect=lambda p, name: "document.txt"
-            if name == "nxdirecteditname"
-            else "0",
+            side_effect=lambda p, name: (
+                "document.txt" if name == "nxdirecteditname" else "0"
+            ),
         ), patch.object(
             direct_edit._manager, "get_direct_edit_auto_lock", return_value=True
         ), patch.object(
@@ -4435,9 +4435,9 @@ class TestDirectEditBasicFunctionality:
         ), patch.object(
             direct_edit.local,
             "get_remote_id",
-            side_effect=lambda p, name: "file.txt"
-            if name == "nxdirecteditname"
-            else "1",
+            side_effect=lambda p, name: (
+                "file.txt" if name == "nxdirecteditname" else "1"
+            ),
         ), patch.object(
             direct_edit._manager, "get_direct_edit_auto_lock", return_value=True
         ), patch.object(
@@ -4475,9 +4475,9 @@ class TestDirectEditBasicFunctionality:
         ), patch.object(
             direct_edit.local,
             "get_remote_id",
-            side_effect=lambda p, name: "original.txt"
-            if name == "nxdirecteditname"
-            else "0",
+            side_effect=lambda p, name: (
+                "original.txt" if name == "nxdirecteditname" else "0"
+            ),
         ):
             # Clear queue
             while not direct_edit._upload_queue.empty():
@@ -4505,9 +4505,9 @@ class TestDirectEditBasicFunctionality:
         ), patch.object(
             direct_edit.local,
             "get_remote_id",
-            side_effect=lambda p, name: "doc.txt"
-            if name == "nxdirecteditname"
-            else None,
+            side_effect=lambda p, name: (
+                "doc.txt" if name == "nxdirecteditname" else None
+            ),
         ), patch.object(
             direct_edit._manager, "get_direct_edit_auto_lock", return_value=False
         ):
@@ -4546,9 +4546,9 @@ class TestDirectEditBasicFunctionality:
         ), patch.object(
             direct_edit.local,
             "get_remote_id",
-            side_effect=lambda p, name: "file.txt"
-            if name == "nxdirecteditname"
-            else "1",
+            side_effect=lambda p, name: (
+                "file.txt" if name == "nxdirecteditname" else "1"
+            ),
         ), patch.object(
             direct_edit._manager, "get_direct_edit_auto_lock", return_value=True
         ), patch.object(
@@ -4580,9 +4580,9 @@ class TestDirectEditBasicFunctionality:
         ), patch.object(
             direct_edit.local,
             "get_remote_id",
-            side_effect=lambda p, name: "file.txt"
-            if name == "nxdirecteditname"
-            else "0",
+            side_effect=lambda p, name: (
+                "file.txt" if name == "nxdirecteditname" else "0"
+            ),
         ), patch.object(
             direct_edit._manager, "get_direct_edit_auto_lock", return_value=False
         ), patch.object(
