@@ -1192,3 +1192,1129 @@ def test_scan_recursive(tmp_path):
 
     # Should have called insert for new folder
     mock_dao.insert_local_state.assert_called_once_with(folder_child, parent_info9.path)
+
+
+def test_win_dequeue_delete(tmp_path):
+    """Test LocalWatcher._win_dequeue_delete() method."""
+    from nxdrive.engine.watcher.local_watcher import (
+        WIN_MOVE_RESOLUTION_PERIOD,
+        LocalWatcher,
+    )
+
+    mock_engine = Mock()
+    mock_dao = Mock()
+    mock_local = Mock()
+    mock_engine.local = mock_local
+    mock_engine.manager = Mock()
+
+    watcher = LocalWatcher(mock_engine, mock_dao)
+    watcher.local = mock_local
+
+    # Test Case 1: Delete event too recent (within WIN_MOVE_RESOLUTION_PERIOD)
+    doc_pair1 = Mock()
+    doc_pair1.remote_ref = "ref1"
+    doc_pair1.local_path = Path("/test/file1.txt")
+
+    with patch("nxdrive.engine.watcher.local_watcher.current_milli_time") as mock_time:
+        current = 10000
+        evt_time = current - (WIN_MOVE_RESOLUTION_PERIOD - 100)  # Too recent
+        mock_time.return_value = current
+        watcher._delete_events = {"ref1": (evt_time, doc_pair1)}
+
+        watcher._win_dequeue_delete()
+
+        # Event should still be in queue (too recent)
+        assert "ref1" in watcher._delete_events
+
+    # Test Case 2: Delete event old enough, file doesn't exist (real delete)
+    with patch("nxdrive.engine.watcher.local_watcher.current_milli_time") as mock_time:
+        current = 20000
+        evt_time = current - WIN_MOVE_RESOLUTION_PERIOD - 100  # Old enough
+        mock_time.return_value = current
+        mock_local.exists.return_value = False
+        watcher._delete_events = {"ref1": (evt_time, doc_pair1)}
+        watcher._handle_watchdog_delete = Mock()
+
+        watcher._win_dequeue_delete()
+
+        # Event should be removed and delete handled
+        assert "ref1" not in watcher._delete_events
+        watcher._handle_watchdog_delete.assert_called_once_with(doc_pair1)
+
+    # Test Case 3: Delete event old enough, file exists with same remote_ref (ignored)
+    with patch("nxdrive.engine.watcher.local_watcher.current_milli_time") as mock_time:
+        current = 30000
+        evt_time = current - WIN_MOVE_RESOLUTION_PERIOD - 100
+        mock_time.return_value = current
+        mock_local.exists.return_value = True
+        mock_local.get_remote_id.return_value = "ref1"  # Same as doc_pair1.remote_ref
+        watcher._delete_events = {"ref1": (evt_time, doc_pair1)}
+
+        watcher._win_dequeue_delete()
+
+        # Event should be removed (file still exists with same remote_id)
+        assert "ref1" not in watcher._delete_events
+
+    # Test Case 4: Delete event old enough, file exists with different remote_ref
+    doc_pair2 = Mock()
+    doc_pair2.remote_ref = "ref2"
+    doc_pair2.local_path = Path("/test/file2.txt")
+
+    with patch("nxdrive.engine.watcher.local_watcher.current_milli_time") as mock_time:
+        current = 40000
+        evt_time = current - WIN_MOVE_RESOLUTION_PERIOD - 100
+        mock_time.return_value = current
+        mock_local.exists.return_value = True
+        mock_local.get_remote_id.return_value = "different_ref"  # Different from ref2
+        watcher._delete_events = {"ref2": (evt_time, doc_pair2)}
+        watcher._handle_watchdog_delete = Mock()
+
+        watcher._win_dequeue_delete()
+
+        # Event should be removed and delete handled
+        assert "ref2" not in watcher._delete_events
+        watcher._handle_watchdog_delete.assert_called_once_with(doc_pair2)
+
+
+def test_win_folder_scan_check(tmp_path):
+    """Test LocalWatcher._win_folder_scan_check() and _win_dequeue_folder_scan()."""
+    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+
+    mock_engine = Mock()
+    mock_dao = Mock()
+    mock_local = Mock()
+    mock_engine.local = mock_local
+
+    watcher = LocalWatcher(mock_engine, mock_dao)
+    watcher._win_dequeue_folder_scan = Mock()
+
+    # Test Case 1: Too soon, should return early
+    with patch("nxdrive.engine.watcher.local_watcher.current_milli_time") as mock_time:
+        current = 10000
+        mock_time.return_value = current
+        watcher._win_folder_scan_interval = current - 1000  # Recent
+
+        watcher._win_folder_scan_check()
+
+        # Should not dequeue
+        watcher._win_dequeue_folder_scan.assert_not_called()
+
+    # Test Case 2: Enough time passed, should dequeue
+    watcher._win_dequeue_folder_scan.reset_mock()
+    with patch("nxdrive.engine.watcher.local_watcher.current_milli_time") as mock_time:
+        current = 20000
+        mock_time.side_effect = [current, current + 10]
+        watcher._win_folder_scan_interval = (
+            current - watcher._windows_folder_scan_delay - 100
+        )
+
+        watcher._win_folder_scan_check()
+
+        # Should dequeue
+        watcher._win_dequeue_folder_scan.assert_called_once()
+        assert watcher._win_folder_scan_interval == current + 10
+
+
+def test_scan_handle_deleted_files():
+    """Test LocalWatcher._scan_handle_deleted_files()."""
+    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+
+    mock_engine = Mock()
+    mock_dao = Mock()
+    mock_engine.delete_doc = Mock()
+
+    watcher = LocalWatcher(mock_engine, mock_dao)
+
+    # Test Case 1: Delete files not in protected list
+    doc_pair1 = Mock()
+    doc_pair1.local_path = Path("/test/file1.txt")
+    doc_pair2 = Mock()
+    doc_pair2.local_path = Path("/test/file2.txt")
+
+    watcher._delete_files = {"ref1": doc_pair1, "ref2": doc_pair2}
+    watcher._protected_files = {}
+
+    watcher._scan_handle_deleted_files()
+
+    # Both should be deleted
+    assert mock_engine.delete_doc.call_count == 2
+    mock_engine.delete_doc.assert_any_call(doc_pair1.local_path)
+    mock_engine.delete_doc.assert_any_call(doc_pair2.local_path)
+    assert watcher._delete_files == {}
+
+    # Test Case 2: Skip protected files
+    mock_engine.delete_doc.reset_mock()
+    doc_pair3 = Mock()
+    doc_pair3.local_path = Path("/test/file3.txt")
+
+    watcher._delete_files = {"ref1": doc_pair1, "ref3": doc_pair3}
+    watcher._protected_files = {"ref3": True}  # ref3 is protected
+
+    watcher._scan_handle_deleted_files()
+
+    # Only file1 should be deleted, file3 is protected
+    mock_engine.delete_doc.assert_called_once_with(doc_pair1.local_path)
+    assert watcher._delete_files == {}
+
+
+def test_get_metrics():
+    """Test LocalWatcher.get_metrics()."""
+    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+
+    mock_engine = Mock()
+    mock_dao = Mock()
+
+    watcher = LocalWatcher(mock_engine, mock_dao)
+    watcher._metrics = {
+        "last_local_scan_time": 5000,
+        "new_files": 10,
+        "update_files": 5,
+        "delete_files": 3,
+    }
+
+    # Test Case 1: Without event handler
+    watcher._event_handler = None
+    metrics = watcher.get_metrics()
+
+    assert "last_local_scan_time" in metrics
+    assert metrics["new_files"] == 10
+    assert "fs_events" not in metrics
+
+    # Test Case 2: With event handler
+    mock_handler = Mock()
+    mock_handler.counter = 42
+    watcher._event_handler = mock_handler
+
+    metrics = watcher.get_metrics()
+
+    assert metrics["fs_events"] == 42
+    assert metrics["new_files"] == 10
+
+
+def test_suspend_queue():
+    """Test LocalWatcher._suspend_queue()."""
+    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+
+    mock_engine = Mock()
+    mock_dao = Mock()
+    mock_queue_manager = Mock()
+    mock_engine.queue_manager = mock_queue_manager
+
+    watcher = LocalWatcher(mock_engine, mock_dao)
+
+    # Test Case 1: Suspend with processors
+    processor1 = Mock()
+    processor2 = Mock()
+    mock_queue_manager.get_processors_on.return_value = [processor1, processor2]
+
+    watcher._suspend_queue()
+
+    # Verify suspend and processors stopped
+    mock_queue_manager.suspend.assert_called_once()
+    mock_queue_manager.get_processors_on.assert_called_once_with(
+        ROOT, exact_match=False
+    )
+    processor1.stop.assert_called_once()
+    processor2.stop.assert_called_once()
+
+    # Test Case 2: Suspend without processors
+    mock_queue_manager.reset_mock()
+    mock_queue_manager.get_processors_on.return_value = []
+
+    watcher._suspend_queue()
+
+    mock_queue_manager.suspend.assert_called_once()
+    assert processor1.stop.call_count == 1  # Still just once from before
+
+
+def test_empty_events():
+    """Test LocalWatcher.empty_events()."""
+    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+
+    mock_engine = Mock()
+    mock_dao = Mock()
+
+    watcher = LocalWatcher(mock_engine, mock_dao)
+    watcher.watchdog_queue = Queue()
+
+    # Test Case 1: All empty (non-Windows)
+    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", False):
+        assert watcher.empty_events() is True
+
+    # Test Case 2: Watchdog queue not empty
+    watcher.watchdog_queue.put(Mock())
+    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", False):
+        assert watcher.empty_events() is False
+
+    # Clean up
+    watcher.watchdog_queue.get()
+
+    # Test Case 3: Windows with delete events
+    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", True):
+        watcher._delete_events = {"ref1": (1000, Mock())}
+        watcher._folder_scan_events = {}
+        assert watcher.empty_events() is False
+
+    # Test Case 4: Windows with folder scan events
+    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", True):
+        watcher._delete_events = {}
+        watcher._folder_scan_events = {Path("/test"): (1000, Mock())}
+        assert watcher.empty_events() is False
+
+    # Test Case 5: Windows all empty
+    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", True):
+        watcher._delete_events = {}
+        watcher._folder_scan_events = {}
+        assert watcher.empty_events() is True
+
+
+def test_handle_watchdog_delete():
+    """Test LocalWatcher._handle_watchdog_delete()."""
+    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+
+    mock_engine = Mock()
+    mock_dao = Mock()
+    mock_local = Mock()
+    mock_engine.local = mock_local
+    mock_engine.manager = Mock()
+    mock_engine.manager.dao = Mock()
+    mock_engine.delete_doc = Mock()
+
+    watcher = LocalWatcher(mock_engine, mock_dao)
+    watcher.local = mock_local
+    watcher.remove_void_transfers = Mock()
+
+    doc_pair = Mock()
+    doc_pair.local_path = Path("/test/file.txt")
+
+    # Test Case 1: Parent doesn't exist, should return early
+    mock_local.abspath.return_value = Path("/test/file.txt")
+    with patch.object(Path, "exists", return_value=False):
+        watcher._handle_watchdog_delete(doc_pair)
+
+    # Should not call delete_doc
+    mock_engine.delete_doc.assert_not_called()
+    watcher.remove_void_transfers.assert_called_once_with(doc_pair)
+
+    # Test Case 2: Show deletion prompt is True
+    watcher.remove_void_transfers.reset_mock()
+    mock_engine.manager.dao.get_bool.return_value = True
+    watcher.docDeleted = Mock()
+    watcher.docDeleted.emit = Mock()
+
+    with patch.object(Path, "exists", return_value=True):
+        watcher._handle_watchdog_delete(doc_pair)
+
+    # Should emit signal, not delete directly
+    watcher.docDeleted.emit.assert_called_once_with(doc_pair.local_path)
+    mock_engine.delete_doc.assert_not_called()
+
+    # Test Case 3: Show deletion prompt is False
+    mock_engine.manager.dao.get_bool.return_value = False
+    mock_engine.delete_doc.reset_mock()
+
+    with patch.object(Path, "exists", return_value=True):
+        watcher._handle_watchdog_delete(doc_pair)
+
+    # Should delete directly
+    mock_engine.delete_doc.assert_called_once_with(doc_pair.local_path)
+
+
+def test_handle_delete_on_known_pair():
+    """Test LocalWatcher._handle_delete_on_known_pair()."""
+    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+
+    mock_engine = Mock()
+    mock_dao = Mock()
+    mock_local = Mock()
+    mock_engine.local = mock_local
+
+    watcher = LocalWatcher(mock_engine, mock_dao)
+    watcher.local = mock_local
+    watcher._handle_watchdog_delete = Mock()
+
+    doc_pair = Mock()
+    doc_pair.local_path = Path("/test/file.txt")
+    doc_pair.remote_ref = "ref123"
+
+    # Test Case 1: Windows - add to delete events
+    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", True), patch(
+        "nxdrive.engine.watcher.local_watcher.current_milli_time"
+    ) as mock_time:
+        mock_time.return_value = 5000
+        watcher._delete_events = {}
+
+        watcher._handle_delete_on_known_pair(doc_pair)
+
+        # Should be in delete events, not deleted immediately
+        assert "ref123" in watcher._delete_events
+        assert watcher._delete_events["ref123"][0] == 5000
+        watcher._handle_watchdog_delete.assert_not_called()
+
+    # Test Case 2: Non-Windows, file doesn't exist
+    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", False):
+        mock_local.exists.return_value = False
+        watcher._handle_watchdog_delete.reset_mock()
+
+        watcher._handle_delete_on_known_pair(doc_pair)
+
+        # Should call delete handler
+        watcher._handle_watchdog_delete.assert_called_once_with(doc_pair)
+
+    # Test Case 3: Non-Windows, file exists with same remote_id (update case)
+    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", False):
+        mock_local.exists.return_value = True
+        mock_local.get_remote_id.return_value = "ref123"  # Same as doc_pair
+        watcher._handle_watchdog_delete.reset_mock()
+
+        watcher._handle_delete_on_known_pair(doc_pair)
+
+        # Should not call delete (it's an update, not delete)
+        watcher._handle_watchdog_delete.assert_not_called()
+
+    # Test Case 4: Non-Windows, file exists with different remote_id
+    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", False):
+        mock_local.exists.return_value = True
+        mock_local.get_remote_id.return_value = "different_ref"
+        watcher._handle_watchdog_delete.reset_mock()
+
+        watcher._handle_delete_on_known_pair(doc_pair)
+
+        # Should call delete handler
+        watcher._handle_watchdog_delete.assert_called_once_with(doc_pair)
+
+
+def test_handle_watchdog_root_event():
+    """Test LocalWatcher.handle_watchdog_root_event()."""
+    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+
+    mock_engine = Mock()
+    mock_dao = Mock()
+
+    watcher = LocalWatcher(mock_engine, mock_dao)
+    watcher.rootDeleted = Mock()
+    watcher.rootDeleted.emit = Mock()
+    watcher.rootMoved = Mock()
+    watcher.rootMoved.emit = Mock()
+
+    # Test Case 1: Root deleted event
+    evt = Mock()
+    evt.event_type = "deleted"
+
+    watcher.handle_watchdog_root_event(evt)
+
+    watcher.rootDeleted.emit.assert_called_once()
+    watcher.rootMoved.emit.assert_not_called()
+
+    # Test Case 2: Root moved event
+    watcher.rootDeleted.emit.reset_mock()
+    evt = Mock()
+    evt.event_type = "moved"
+    evt.dest_path = "/new/path"
+
+    with patch("nxdrive.engine.watcher.local_watcher.normalize") as mock_normalize:
+        mock_normalize.return_value = Path("/new/path")
+        watcher.handle_watchdog_root_event(evt)
+
+    watcher.rootMoved.emit.assert_called_once_with(Path("/new/path"))
+    watcher.rootDeleted.emit.assert_not_called()
+
+
+def test_schedule_win_folder_scan():
+    """Test LocalWatcher._schedule_win_folder_scan()."""
+    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+
+    mock_engine = Mock()
+    mock_dao = Mock()
+    mock_local = Mock()
+    mock_engine.local = mock_local
+
+    watcher = LocalWatcher(mock_engine, mock_dao)
+    watcher.local = mock_local
+
+    # Test Case 1: Interval <= 0, should return early
+    watcher._win_folder_scan_interval = 0
+    watcher._folder_scan_events = {}
+    doc_pair = Mock()
+
+    watcher._schedule_win_folder_scan(doc_pair)
+
+    assert len(watcher._folder_scan_events) == 0
+
+    # Test Case 2: Delay <= 0, should return early
+    watcher._win_folder_scan_interval = 100
+    watcher._windows_folder_scan_delay = 0
+
+    watcher._schedule_win_folder_scan(doc_pair)
+
+    assert len(watcher._folder_scan_events) == 0
+
+    # Test Case 3: Valid interval and delay, local_info exists
+    from datetime import datetime
+
+    watcher._win_folder_scan_interval = 100
+    watcher._windows_folder_scan_delay = 10000
+    doc_pair.local_path = Path("/test/folder")
+
+    local_info = Mock()
+    local_info.last_modification_time = datetime(2025, 12, 11, 10, 0, 0)
+    mock_local.try_get_info.return_value = local_info
+
+    watcher._schedule_win_folder_scan(doc_pair)
+
+    # Should be added to folder scan events
+    assert doc_pair.local_path in watcher._folder_scan_events
+    assert watcher._folder_scan_events[doc_pair.local_path][1] == doc_pair
+
+    # Test Case 4: local_info is None
+    watcher._folder_scan_events = {}
+    mock_local.try_get_info.return_value = None
+
+    watcher._schedule_win_folder_scan(doc_pair)
+
+    # Should not be added
+    assert len(watcher._folder_scan_events) == 0
+
+
+def test_win_queue_methods():
+    """Test LocalWatcher.win_queue_empty() and get_win_queue_size()."""
+    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+
+    mock_engine = Mock()
+    mock_dao = Mock()
+
+    watcher = LocalWatcher(mock_engine, mock_dao)
+
+    # Test Case 1: Empty queue
+    watcher._delete_events = {}
+    assert watcher.win_queue_empty() is True
+    assert watcher.get_win_queue_size() == 0
+
+    # Test Case 2: Non-empty queue
+    watcher._delete_events = {"ref1": (1000, Mock()), "ref2": (2000, Mock())}
+    assert watcher.win_queue_empty() is False
+    assert watcher.get_win_queue_size() == 2
+
+
+def test_win_folder_scan_methods():
+    """Test LocalWatcher.win_folder_scan_empty() and get_win_folder_scan_size()."""
+    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+
+    mock_engine = Mock()
+    mock_dao = Mock()
+
+    watcher = LocalWatcher(mock_engine, mock_dao)
+
+    # Test Case 1: Empty
+    watcher._folder_scan_events = {}
+    assert watcher.win_folder_scan_empty() is True
+    assert watcher.get_win_folder_scan_size() == 0
+
+    # Test Case 2: Non-empty
+    watcher._folder_scan_events = {
+        Path("/test1"): (1000, Mock()),
+        Path("/test2"): (2000, Mock()),
+        Path("/test3"): (3000, Mock()),
+    }
+    assert watcher.win_folder_scan_empty() is False
+    assert watcher.get_win_folder_scan_size() == 3
+
+
+def test_handle_move_on_known_pair():
+    """Test LocalWatcher._handle_move_on_known_pair()."""
+    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+
+    mock_engine = Mock()
+    mock_dao = Mock()
+    mock_local = Mock()
+    mock_engine.local = mock_local
+
+    watcher = LocalWatcher(mock_engine, mock_dao)
+    watcher.local = mock_local
+    watcher.remove_void_transfers = Mock()
+
+    # Test Case 1: Move to Office temp file (ignored)
+    doc_pair = Mock()
+    doc_pair.local_path = Path("/test/file.docx")
+    evt = Mock()
+    evt.dest_path = "/test/~$file.docx"  # Office temp file
+    rel_path = Path("/test/file.docx")
+
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.is_generated_tmp_file"
+    ) as mock_is_tmp:
+        mock_is_tmp.return_value = (True, None)
+        watcher._handle_move_on_known_pair(doc_pair, evt, rel_path)
+        mock_dao.update_local_state.assert_not_called()
+
+    # Test Case 2: Move where dest pair exists with same remote_ref (substitution)
+    doc_pair = Mock()
+    doc_pair.id = 1
+    doc_pair.local_path = Path("/test/file1.txt")
+    doc_pair.folderish = False
+    evt = Mock()
+    evt.dest_path = "/test/file2.txt"
+    rel_path = Path("/test/file2.txt")
+
+    existing_pair = Mock()
+    existing_pair.id = 2
+    existing_pair.remote_ref = "ref123"
+    existing_pair.local_digest = "olddigest"
+
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.is_generated_tmp_file"
+    ) as mock_is_tmp, patch(
+        "nxdrive.engine.watcher.local_watcher.normalize"
+    ) as mock_normalize:
+        mock_is_tmp.return_value = (False, None)
+        mock_normalize.return_value = Path("/test/file2.txt")
+        mock_local.get_path.return_value = rel_path
+        mock_dao.get_state_from_local.return_value = existing_pair
+        mock_local.get_remote_id.return_value = "ref123"  # Same remote_ref
+
+        local_info = Mock()
+        local_info.get_digest.return_value = "newdigest"  # Different digest
+        mock_local.try_get_info.return_value = local_info
+
+        watcher._handle_move_on_known_pair(doc_pair, evt, rel_path)
+
+        # Should update the existing pair and remove the old doc_pair
+        assert existing_pair.local_digest == "newdigest"
+        assert existing_pair.local_state == "modified"
+        mock_dao.update_local_state.assert_called_once_with(existing_pair, local_info)
+        mock_dao.remove_state.assert_called_once_with(doc_pair)
+
+    # Test Case 3: Normal move
+    mock_dao.reset_mock()
+    doc_pair = Mock()
+    doc_pair.local_path = Path("/test/file1.txt")
+    doc_pair.remote_name = "file1.txt"
+    doc_pair.remote_parent_ref = "parent_ref"
+    doc_pair.local_state = "synchronized"
+    doc_pair.folderish = False
+    evt = Mock()
+    evt.dest_path = "/test/subfolder/file1.txt"
+    rel_path = Path("/test/subfolder/file1.txt")
+
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.is_generated_tmp_file"
+    ) as mock_is_tmp, patch(
+        "nxdrive.engine.watcher.local_watcher.normalize"
+    ) as mock_normalize:
+        mock_is_tmp.return_value = (False, None)
+        mock_normalize.return_value = Path("/test/subfolder/file1.txt")
+        mock_local.get_path.side_effect = [rel_path, Path("/test/subfolder")]
+        mock_dao.get_state_from_local.return_value = None  # No existing pair at dest
+
+        local_info = Mock()
+        local_info.name = "file1.txt"
+        local_info.path = Path("/test/subfolder/file1.txt")
+        mock_local.try_get_info.return_value = local_info
+        mock_local.get_remote_id.return_value = "different_parent_ref"
+
+        watcher._handle_move_on_known_pair(doc_pair, evt, rel_path)
+
+        # Should set state to moved
+        assert doc_pair.local_state == "moved"
+        mock_dao.update_local_state.assert_called_once()
+
+
+def test_handle_watchdog_event_on_known_pair():
+    """Test LocalWatcher._handle_watchdog_event_on_known_pair()."""
+    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+
+    mock_engine = Mock()
+    mock_dao = Mock()
+    mock_local = Mock()
+    mock_engine.local = mock_local
+
+    watcher = LocalWatcher(mock_engine, mock_dao)
+    watcher.local = mock_local
+    watcher.thread_id = 123
+
+    # Test Case 1: Successfully acquire lock, delete event
+    doc_pair = Mock()
+    doc_pair.id = 1
+    acquired_pair = Mock()
+    acquired_pair.id = 1
+    evt = Mock()
+    evt.event_type = "deleted"
+    rel_path = Path("/test/file.txt")
+
+    mock_dao.acquire_state.return_value = acquired_pair
+    watcher._handle_delete_on_known_pair = Mock()
+
+    watcher._handle_watchdog_event_on_known_pair(doc_pair, evt, rel_path)
+
+    mock_dao.acquire_state.assert_called_once_with(123, 1)
+    watcher._handle_delete_on_known_pair.assert_called_once_with(doc_pair)
+    mock_dao.release_state.assert_called_once_with(123)
+
+    # Test Case 2: Successfully acquire lock, modified event
+    mock_dao.reset_mock()
+    evt = Mock()
+    evt.event_type = "modified"
+    watcher._handle_watchdog_event_on_known_acquired_pair = Mock()
+
+    mock_dao.acquire_state.return_value = acquired_pair
+
+    watcher._handle_watchdog_event_on_known_pair(doc_pair, evt, rel_path)
+
+    watcher._handle_watchdog_event_on_known_acquired_pair.assert_called_once_with(
+        acquired_pair, evt, rel_path
+    )
+
+    # Test Case 3: Cannot acquire lock
+    mock_dao.reset_mock()
+    watcher._handle_delete_on_known_pair.reset_mock()
+    watcher._handle_watchdog_event_on_known_acquired_pair.reset_mock()
+    mock_dao.acquire_state.return_value = None  # Cannot acquire
+
+    watcher._handle_watchdog_event_on_known_pair(doc_pair, evt, rel_path)
+
+    watcher._handle_delete_on_known_pair.assert_not_called()
+    watcher._handle_watchdog_event_on_known_acquired_pair.assert_not_called()
+
+
+def test_handle_watchdog_event_on_known_acquired_pair():
+    """Test LocalWatcher._handle_watchdog_event_on_known_acquired_pair()."""
+    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+
+    mock_engine = Mock()
+    mock_dao = Mock()
+    mock_local = Mock()
+    mock_engine.local = mock_local
+
+    watcher = LocalWatcher(mock_engine, mock_dao)
+    watcher.local = mock_local
+    watcher.remove_void_transfers = Mock()
+
+    # Test Case 1: local_info is None (file disappeared)
+    doc_pair = Mock()
+    evt = Mock()
+    rel_path = Path("/test/file.txt")
+    mock_local.try_get_info.return_value = None
+
+    watcher._handle_watchdog_event_on_known_acquired_pair(doc_pair, evt, rel_path)
+
+    mock_dao.update_local_state.assert_not_called()
+
+    # Test Case 2: Folder event (just update modification time)
+    doc_pair = Mock()
+    doc_pair.folderish = True
+    evt = Mock()
+    evt.event_type = "modified"
+    local_info = Mock()
+    mock_local.try_get_info.return_value = local_info
+
+    watcher._handle_watchdog_event_on_known_acquired_pair(doc_pair, evt, rel_path)
+
+    mock_dao.update_local_modification_time.assert_called_once_with(
+        doc_pair, local_info
+    )
+    mock_dao.update_local_state.assert_not_called()
+
+    # Test Case 3: File with unchanged digest (synchronized state)
+    mock_dao.reset_mock()
+    doc_pair = Mock()
+    doc_pair.folderish = False
+    doc_pair.pair_state = "synchronized"
+    doc_pair.local_digest = "abc123"
+    doc_pair.remote_ref = "ref123"
+    evt = Mock()
+    evt.event_type = "modified"
+
+    local_info = Mock()
+    local_info.size = 1024
+    local_info.remote_ref = None
+    local_info.get_digest.return_value = "abc123"  # Same digest
+    mock_local.try_get_info.return_value = local_info
+
+    with patch("nxdrive.engine.watcher.local_watcher.is_large_file") as mock_large:
+        mock_large.return_value = False
+
+        watcher._handle_watchdog_event_on_known_acquired_pair(doc_pair, evt, rel_path)
+
+        mock_local.set_remote_id.assert_called_once_with(rel_path, "ref123")
+        mock_dao.update_local_modification_time.assert_called_once_with(
+            doc_pair, local_info
+        )
+
+    # Test Case 4: File with changed digest
+    mock_dao.reset_mock()
+    mock_local.reset_mock()
+    doc_pair = Mock()
+    doc_pair.folderish = False
+    doc_pair.pair_state = "synchronized"
+    doc_pair.local_digest = "abc123"
+    doc_pair.remote_ref = "ref123"
+    doc_pair.size = 1024
+
+    local_info = Mock()
+    local_info.size = 1024
+    local_info.get_digest.return_value = "xyz789"  # Different digest
+    local_info.remote_ref = "ref123"
+    mock_local.try_get_info.return_value = local_info
+
+    with patch("nxdrive.engine.watcher.local_watcher.is_large_file") as mock_large:
+        mock_large.return_value = False
+        evt = Mock()
+        evt.event_type = "modified"
+
+        watcher._handle_watchdog_event_on_known_acquired_pair(doc_pair, evt, rel_path)
+
+        assert doc_pair.local_digest == "xyz789"
+        assert doc_pair.local_state == "modified"
+        mock_dao.update_local_state.assert_called_once_with(doc_pair, local_info)
+
+
+def test_handle_watchdog_event():
+    """Test LocalWatcher.handle_watchdog_event() - basic scenarios."""
+    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+
+    mock_engine = Mock()
+    mock_dao = Mock()
+    mock_local = Mock()
+    mock_engine.local = mock_local
+    mock_engine.manager = Mock()
+    mock_engine.manager.osi = Mock()
+
+    watcher = LocalWatcher(mock_engine, mock_dao)
+    watcher.local = mock_local
+    watcher.handle_watchdog_root_event = Mock()
+    watcher._handle_watchdog_event_on_known_pair = Mock()
+
+    # Test Case 1: Event without source path
+    evt = Mock()
+    evt.src_path = None
+
+    watcher.handle_watchdog_event(evt)
+
+    watcher.handle_watchdog_root_event.assert_not_called()
+
+    # Test Case 2: Root event
+    evt = Mock()
+    evt.src_path = "/test/root"
+    evt.event_type = "deleted"
+
+    with patch("nxdrive.engine.watcher.local_watcher.normalize") as mock_normalize:
+        mock_normalize.return_value = Path("/test/root")
+        mock_local.get_path.return_value = ROOT
+
+        watcher.handle_watchdog_event(evt)
+
+        watcher.handle_watchdog_root_event.assert_called_once_with(evt)
+
+    # Test Case 3: Ignored file
+    watcher.handle_watchdog_root_event.reset_mock()
+    evt = Mock()
+    evt.src_path = "/test/folder/.hidden"
+    evt.event_type = "created"
+
+    with patch("nxdrive.engine.watcher.local_watcher.normalize") as mock_normalize:
+        mock_normalize.return_value = Path("/test/folder/.hidden")
+        mock_local.get_path.side_effect = [Path("/folder/.hidden"), Path("/folder")]
+        mock_local.is_ignored.return_value = True
+
+        watcher.handle_watchdog_event(evt)
+
+        watcher._handle_watchdog_event_on_known_pair.assert_not_called()
+
+    # Test Case 4: Known pair - modified event
+    watcher._handle_watchdog_event_on_known_pair.reset_mock()
+    evt = Mock()
+    evt.src_path = "/test/folder/file.txt"
+    evt.event_type = "modified"
+
+    doc_pair = Mock()
+    doc_pair.pair_state = "synchronized"
+    doc_pair.local_path = Path("/folder/file.txt")
+
+    with patch("nxdrive.engine.watcher.local_watcher.normalize") as mock_normalize:
+        mock_normalize.side_effect = [
+            Path("/test/folder/file.txt"),
+            Path("/test/folder/file.txt"),
+        ]
+        mock_local.get_path.side_effect = [
+            Path("/folder/file.txt"),
+            Path("/folder"),
+            Path("/folder/file.txt"),
+            Path("/folder"),
+        ]
+        mock_local.is_ignored.return_value = False
+        mock_local.is_temp_file.return_value = False
+        mock_dao.get_state_from_local.return_value = doc_pair
+
+        watcher.handle_watchdog_event(evt)
+
+        watcher._handle_watchdog_event_on_known_pair.assert_called_once()
+
+    # Test Case 5: Unknown pair - deleted event (ignored)
+    watcher._handle_watchdog_event_on_known_pair.reset_mock()
+    evt = Mock()
+    evt.src_path = "/test/folder/newfile.txt"
+    evt.event_type = "deleted"
+
+    with patch("nxdrive.engine.watcher.local_watcher.normalize") as mock_normalize:
+        mock_normalize.side_effect = [
+            Path("/test/folder/newfile.txt"),
+            Path("/test/folder/newfile.txt"),
+        ]
+        mock_local.get_path.side_effect = [
+            Path("/folder/newfile.txt"),
+            Path("/folder"),
+            Path("/folder/newfile.txt"),
+            Path("/folder"),
+        ]
+        mock_local.is_ignored.return_value = False
+        mock_local.is_temp_file.return_value = False
+        mock_dao.get_state_from_local.return_value = None  # Unknown pair
+
+        watcher.handle_watchdog_event(evt)
+
+        watcher._handle_watchdog_event_on_known_pair.assert_not_called()
+
+    # Test Case 6: Unknown pair - created event
+    evt = Mock()
+    evt.src_path = "/test/folder/newfile.txt"
+    evt.event_type = "created"
+
+    local_info = Mock()
+    local_info.remote_ref = None
+    local_info.folderish = False
+
+    with patch("nxdrive.engine.watcher.local_watcher.normalize") as mock_normalize:
+        mock_normalize.side_effect = [
+            Path("/test/folder/newfile.txt"),
+            Path("/test/folder/newfile.txt"),
+        ]
+        mock_local.get_path.side_effect = [
+            Path("/folder/newfile.txt"),
+            Path("/folder"),
+            Path("/folder/newfile.txt"),
+            Path("/folder"),
+        ]
+        mock_local.is_ignored.return_value = False
+        mock_local.is_temp_file.return_value = False
+        mock_dao.get_state_from_local.return_value = None
+        mock_local.try_get_info.return_value = local_info
+
+        watcher.handle_watchdog_event(evt)
+
+        mock_dao.insert_local_state.assert_called_once_with(local_info, Path("/folder"))
+
+
+def test_drive_fs_event_handler():
+    """Test DriveFSEventHandler class."""
+    from watchdog.events import FileCreatedEvent
+
+    from nxdrive.engine.watcher.local_watcher import DriveFSEventHandler
+
+    mock_watcher = Mock()
+    mock_watcher.watchdog_queue = Queue()
+    mock_engine = Mock()
+
+    # Test Case 1: Basic initialization
+    handler = DriveFSEventHandler(mock_watcher, engine=mock_engine)
+    assert handler.counter == 0
+    assert handler.watcher == mock_watcher
+    assert handler.engine == mock_engine
+
+    # Test Case 2: on_any_event increments counter and queues event
+    event = FileCreatedEvent("/test/file.txt")
+    event.is_directory = False
+
+    handler.on_any_event(event)
+
+    assert handler.counter == 1
+    assert not mock_watcher.watchdog_queue.empty()
+    queued_event = mock_watcher.watchdog_queue.get()
+    assert queued_event == event
+
+    # Test Case 3: Multiple events
+    event2 = FileCreatedEvent("/test/file2.txt")
+    event2.is_directory = False
+    event3 = FileCreatedEvent("/test/file3.txt")
+    event3.is_directory = True
+
+    handler.on_any_event(event2)
+    handler.on_any_event(event3)
+
+    assert handler.counter == 3
+    assert mock_watcher.watchdog_queue.qsize() == 2
+
+    # Test Case 4: repr
+    repr_str = repr(handler)
+    assert "DriveFSEventHandler" in repr_str
+
+
+def test_setup_and_stop_watchdog():
+    """Test LocalWatcher._setup_watchdog() and _stop_watchdog()."""
+    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+
+    mock_engine = Mock()
+    mock_dao = Mock()
+    mock_local = Mock()
+    mock_engine.local = mock_local
+    mock_local.base_folder = Path("/test/sync")
+
+    watcher = LocalWatcher(mock_engine, mock_dao)
+    watcher.local = mock_local
+
+    # Test Case 1: Setup watchdog with synchronization enabled
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.Observer"
+    ) as mock_observer_class, patch(
+        "nxdrive.engine.watcher.local_watcher.Feature"
+    ) as mock_feature:
+        mock_observer = Mock()
+        mock_observer_class.return_value = mock_observer
+        mock_feature.synchronization = True
+
+        watcher._setup_watchdog()
+
+        # Should create observer and event handler
+        assert watcher._observer == mock_observer
+        assert watcher._event_handler is not None
+        mock_observer.start.assert_called_once()
+        mock_observer.schedule.assert_called_once()
+
+    # Test Case 2: Stop watchdog with synchronization enabled
+    with patch("nxdrive.engine.watcher.local_watcher.Observer"), patch(
+        "nxdrive.engine.watcher.local_watcher.Feature"
+    ) as mock_feature:
+        mock_feature.synchronization = True
+        mock_observer = Mock()
+        watcher._observer = mock_observer
+        watcher._event_handler = Mock()
+
+        watcher._stop_watchdog()
+
+        mock_observer.stop.assert_called_once()
+        mock_observer.join.assert_called_once()
+
+
+def test_scan_method():
+    """Test LocalWatcher._scan()."""
+    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+
+    mock_engine = Mock()
+    mock_dao = Mock()
+    mock_local = Mock()
+    mock_engine.local = mock_local
+
+    watcher = LocalWatcher(mock_engine, mock_dao)
+    watcher.local = mock_local
+    watcher._suspend_queue = Mock()
+    watcher._scan_recursive = Mock()  # Mock to avoid ThreadInterrupt
+    watcher._scan_handle_deleted_files = Mock()
+    watcher.localScanFinished = Mock()
+    watcher.localScanFinished.emit = Mock()
+    mock_engine.queue_manager = Mock()
+    mock_engine.queue_manager.is_paused.return_value = False
+    mock_engine.queue_manager.resume = Mock()
+
+    # Test Case 1: Basic scan with Windows
+    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", True), patch(
+        "nxdrive.engine.watcher.local_watcher.current_milli_time"
+    ) as mock_time, patch(
+        "nxdrive.engine.watcher.local_watcher.Feature"
+    ) as mock_feature:
+        mock_feature.synchronization = True
+        start_time = 10000
+        end_time = 15000
+        mock_time.side_effect = [start_time, end_time]
+
+        root_info = Mock()
+        mock_local.get_info.return_value = root_info
+
+        watcher._scan()
+
+        watcher._suspend_queue.assert_called_once()
+        watcher._scan_recursive.assert_called_once_with(root_info)
+        watcher._scan_handle_deleted_files.assert_called_once()
+        assert watcher._metrics["last_local_scan_time"] == end_time - start_time
+
+    # Test Case 2: Scan without Windows
+    watcher._suspend_queue.reset_mock()
+    watcher._scan_recursive.reset_mock()
+    watcher._scan_handle_deleted_files.reset_mock()
+
+    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", False), patch(
+        "nxdrive.engine.watcher.local_watcher.current_milli_time"
+    ) as mock_time, patch(
+        "nxdrive.engine.watcher.local_watcher.Feature"
+    ) as mock_feature:
+        mock_feature.synchronization = True
+        start_time = 20000
+        end_time = 22000
+        mock_time.side_effect = [start_time, end_time]
+
+        root_info2 = Mock()
+        mock_local.get_info.return_value = root_info2
+
+        watcher._scan()
+
+        watcher._suspend_queue.assert_called_once()
+        watcher._scan_recursive.assert_called_once_with(root_info2)
+        watcher._scan_handle_deleted_files.assert_called_once()
+        assert watcher._metrics["last_local_scan_time"] == end_time - start_time
+
+
+def test_win_dequeue_folder_scan():
+    """Test LocalWatcher._win_dequeue_folder_scan()."""
+    from datetime import datetime
+
+    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+
+    mock_engine = Mock()
+    mock_dao = Mock()
+    mock_local = Mock()
+    mock_engine.local = mock_local
+
+    watcher = LocalWatcher(mock_engine, mock_dao)
+    watcher.local = mock_local
+    watcher._win_folder_scan_interval = 10000
+    watcher._windows_folder_scan_delay = 5000
+
+    # Test Case 1: Folder scan event old enough, should scan and NOT reschedule (mtime <= evt_time)
+    doc_pair1 = Mock()
+    doc_pair1.local_path = Path("/test/folder1")
+
+    local_info1 = Mock()
+    local_info1.last_modification_time = datetime(2025, 12, 10, 10, 0, 0)
+
+    watcher._folder_scan_events = {
+        Path("/test/folder1"): (5000, doc_pair1)  # Old enough
+    }
+    watcher.scan_pair = Mock()
+    mock_local.try_get_info.return_value = local_info1
+
+    with patch(
+        "nxdrive.engine.watcher.local_watcher.current_milli_time"
+    ) as mock_time, patch("nxdrive.engine.watcher.local_watcher.mktime") as mock_mktime:
+        mock_time.return_value = 16000  # Current time
+        mock_mktime.return_value = 4999  # Older than event time, so don't reschedule
+
+        watcher._win_dequeue_folder_scan()
+
+        # Should scan the folder and remove from queue
+        watcher.scan_pair.assert_called_once_with(doc_pair1.local_path)
+        assert Path("/test/folder1") not in watcher._folder_scan_events
+
+    # Test Case 2: Folder scan event too recent, skip
+    watcher.scan_pair.reset_mock()
+    doc_pair2 = Mock()
+    doc_pair2.local_path = Path("/test/folder2")
+
+    watcher._folder_scan_events = {
+        Path("/test/folder2"): (15000, doc_pair2)  # Too recent
+    }
+
+    with patch("nxdrive.engine.watcher.local_watcher.current_milli_time") as mock_time:
+        mock_time.return_value = 16000  # Not enough time passed
+
+        watcher._win_dequeue_folder_scan()
+
+        watcher.scan_pair.assert_not_called()
+        assert Path("/test/folder2") in watcher._folder_scan_events
