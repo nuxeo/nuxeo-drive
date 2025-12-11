@@ -132,6 +132,11 @@ def mock_engine(mock_manager, mock_dao, mock_remote, mock_queue_manager, tmp_pat
     engine.doc_container_type = "Automatic"
     engine._folder_lock = None
 
+    # Mock local client
+    engine.local = Mock()
+    engine.local.get_path = Mock()
+    engine.local.unset_readonly = Mock()
+
     # Mock watchers
     engine._local_watcher = Mock(spec=LocalWatcher)
     engine._local_watcher.stop = Mock()
@@ -181,6 +186,30 @@ def mock_engine(mock_manager, mock_dao, mock_remote, mock_queue_manager, tmp_pat
     engine.open_remote = Engine.open_remote.__get__(engine, Engine)
     engine.resume = Engine.resume.__get__(engine, Engine)
     engine.send_metric = Engine.send_metric.__get__(engine, Engine)
+    engine._resume_transfers = Engine._resume_transfers.__get__(engine, Engine)
+    engine.resume_transfer = Engine.resume_transfer.__get__(engine, Engine)
+    engine.resume_session = Engine.resume_session.__get__(engine, Engine)
+    engine._manage_staled_transfers = Engine._manage_staled_transfers.__get__(
+        engine, Engine
+    )
+    engine.cancel_upload = Engine.cancel_upload.__get__(engine, Engine)
+    engine.suspend = Engine.suspend.__get__(engine, Engine)
+    engine.unbind = Engine.unbind.__get__(engine, Engine)
+    engine.local_rollback = Engine.local_rollback.__get__(engine, Engine)
+    engine.create_thread = Engine.create_thread.__get__(engine, Engine)
+    engine.retry_pair = Engine.retry_pair.__get__(engine, Engine)
+    engine.ignore_pair = Engine.ignore_pair.__get__(engine, Engine)
+    engine.resolve_with_local = Engine.resolve_with_local.__get__(engine, Engine)
+    engine.resolve_with_remote = Engine.resolve_with_remote.__get__(engine, Engine)
+    engine._check_last_sync = Engine._check_last_sync.__get__(engine, Engine)
+    engine._thread_finished = Engine._thread_finished.__get__(engine, Engine)
+    engine.stop = Engine.stop.__get__(engine, Engine)
+    engine.update_token = Engine.update_token.__get__(engine, Engine)
+    engine._setup_local_folder = Engine._setup_local_folder.__get__(engine, Engine)
+    engine._check_https = Engine._check_https.__get__(engine, Engine)
+    engine.cancel_action_on = Engine.cancel_action_on.__get__(engine, Engine)
+    engine._add_top_level_state = Engine._add_top_level_state.__get__(engine, Engine)
+    engine.suspend_client = Engine.suspend_client.__get__(engine, Engine)
     engine._create_local_watcher = Mock()
 
     return engine
@@ -898,3 +927,711 @@ class TestResume:
         assert mock_engine._pause is False
         mock_engine.queue_manager.resume.assert_called_once()
         mock_engine.syncResumed.emit.assert_called_once()
+
+
+class TestResumeTransfers:
+    """Test cases for Engine._resume_transfers method."""
+
+    def test_resume_transfers_with_list(self, mock_engine):
+        """Test resuming transfers with a list of transfers."""
+        mock_transfer1 = Mock()
+        mock_transfer1.uid = 1
+        mock_transfer1.doc_pair = 10
+
+        mock_transfer2 = Mock()
+        mock_transfer2.uid = 2
+        mock_transfer2.doc_pair = 20
+
+        mock_func = Mock(return_value=[mock_transfer1, mock_transfer2])
+
+        mock_doc_pair1 = Mock()
+        mock_doc_pair2 = Mock()
+        mock_engine.dao.get_state_from_id.side_effect = [mock_doc_pair1, mock_doc_pair2]
+        mock_engine.queue_manager.push = Mock()
+
+        mock_engine._resume_transfers("download", mock_func)
+
+        assert mock_engine.dao.resume_transfer.call_count == 2
+        mock_engine.dao.resume_transfer.assert_any_call(
+            "download", 1, is_direct_transfer=False
+        )
+        mock_engine.dao.resume_transfer.assert_any_call(
+            "download", 2, is_direct_transfer=False
+        )
+        assert mock_engine.queue_manager.push.call_count == 2
+
+    def test_resume_transfers_with_single(self, mock_engine):
+        """Test resuming transfers with a single transfer."""
+        mock_transfer = Mock()
+        mock_transfer.uid = 1
+        mock_transfer.doc_pair = 10
+
+        mock_func = Mock(return_value=mock_transfer)
+        mock_doc_pair = Mock()
+        mock_engine.dao.get_state_from_id.return_value = mock_doc_pair
+        mock_engine.queue_manager.push = Mock()
+
+        mock_engine._resume_transfers("upload", mock_func, is_direct_transfer=True)
+
+        mock_engine.dao.resume_transfer.assert_called_once_with(
+            "upload", 1, is_direct_transfer=True
+        )
+        mock_engine.queue_manager.push.assert_called_once_with(mock_doc_pair)
+
+    def test_resume_transfers_skip_none_uid(self, mock_engine):
+        """Test resuming transfers skips transfers with None uid."""
+        mock_transfer = Mock()
+        mock_transfer.uid = None
+
+        mock_func = Mock(return_value=[mock_transfer])
+
+        mock_engine._resume_transfers("download", mock_func)
+
+        mock_engine.dao.resume_transfer.assert_not_called()
+        mock_engine.queue_manager.push.assert_not_called()
+
+
+class TestResumeTransfer:
+    """Test cases for Engine.resume_transfer method."""
+
+    def test_resume_download(self, mock_engine):
+        """Test resuming a download."""
+        mock_transfer = Mock()
+        mock_transfer.uid = 1
+        mock_transfer.doc_pair = 10
+        mock_engine.dao.get_download.return_value = mock_transfer
+        mock_engine.dao.get_state_from_id.return_value = Mock()
+        mock_engine.queue_manager.push = Mock()
+
+        mock_engine.resume_transfer("download", 1)
+
+        mock_engine.dao.get_download.assert_called_once_with(uid=1)
+
+    def test_resume_upload(self, mock_engine):
+        """Test resuming an upload."""
+        mock_transfer = Mock()
+        mock_transfer.uid = 2
+        mock_transfer.doc_pair = 20
+        mock_engine.dao.get_upload.return_value = mock_transfer
+        mock_engine.dao.get_state_from_id.return_value = Mock()
+        mock_engine.queue_manager.push = Mock()
+
+        mock_engine.resume_transfer("upload", 2)
+
+        mock_engine.dao.get_upload.assert_called_once_with(uid=2)
+
+    def test_resume_direct_transfer_upload(self, mock_engine):
+        """Test resuming a direct transfer upload."""
+        mock_transfer = Mock()
+        mock_transfer.uid = 3
+        mock_transfer.doc_pair = 30
+        mock_engine.dao.get_dt_upload.return_value = mock_transfer
+        mock_engine.dao.get_state_from_id.return_value = Mock()
+        mock_engine.queue_manager.push = Mock()
+
+        mock_engine.resume_transfer("upload", 3, is_direct_transfer=True)
+
+        mock_engine.dao.get_dt_upload.assert_called_once_with(uid=3)
+
+
+class TestResumeSession:
+    """Test cases for Engine.resume_session method."""
+
+    def test_resume_session(self, mock_engine):
+        """Test resuming a session."""
+        session_uid = 123
+
+        mock_engine.resume_session(session_uid)
+
+        mock_engine.dao.change_session_status.assert_called_once_with(
+            session_uid, TransferStatus.ONGOING
+        )
+        mock_engine.dao.resume_session.assert_called_once_with(session_uid)
+
+
+class TestManageStaledTransfers:
+    """Test cases for Engine._manage_staled_transfers method."""
+
+    def test_manage_staled_transfers_after_crash(self, mock_engine):
+        """Test managing staled transfers after app crash."""
+        mock_download = Mock()
+        mock_download.status = TransferStatus.ONGOING
+        mock_download.is_direct_transfer = False
+        mock_download.path = Path("/test/file.txt")
+
+        mock_upload = Mock()
+        mock_upload.status = TransferStatus.ONGOING
+        mock_upload.is_direct_transfer = True
+        mock_upload.path = Path("/test/upload.txt")
+
+        mock_engine.dao.get_downloads_with_status.return_value = [mock_download]
+        mock_engine.dao.get_uploads_with_status.return_value = [mock_upload]
+
+        with patch("nxdrive.engine.engine.State") as mock_state:
+            mock_state.has_crashed = True
+            mock_engine._manage_staled_transfers()
+
+        # Should update status to SUSPENDED
+        assert mock_engine.dao.set_transfer_status.call_count == 2
+        assert mock_download.status == TransferStatus.SUSPENDED
+        assert mock_upload.status == TransferStatus.SUSPENDED
+
+    def test_manage_staled_transfers_no_crash(self, mock_engine):
+        """Test managing staled transfers when no crash occurred."""
+        mock_download = Mock()
+        mock_download.status = TransferStatus.ONGOING
+        mock_download.is_direct_transfer = False
+        mock_download.path = Path("/test/file.txt")
+
+        mock_upload = Mock()
+        mock_upload.status = TransferStatus.ONGOING
+        mock_upload.is_direct_transfer = True
+        mock_upload.path = Path("/test/upload.txt")
+
+        mock_engine.dao.get_downloads_with_status.return_value = [mock_download]
+        mock_engine.dao.get_uploads_with_status.return_value = [mock_upload]
+
+        with patch("nxdrive.engine.engine.State") as mock_state:
+            mock_state.has_crashed = False
+            mock_engine._manage_staled_transfers()
+
+        # Should remove staled transfers
+        assert mock_engine.dao.remove_transfer.call_count == 2
+
+
+class TestCancelUpload:
+    """Test cases for Engine.cancel_upload method."""
+
+    def test_cancel_upload_not_found(self, mock_engine):
+        """Test canceling upload when upload not found."""
+        mock_engine.dao.get_dt_upload.return_value = None
+
+        mock_engine.cancel_upload(123)
+
+        mock_engine.dao.get_dt_upload.assert_called_once_with(uid=123)
+        mock_engine.dao.get_state_from_local.assert_not_called()
+
+    def test_cancel_upload_no_doc_pair(self, mock_engine):
+        """Test canceling upload when doc pair not found."""
+        mock_upload = Mock()
+        mock_upload.path = Path("/test/file.txt")
+        mock_engine.dao.get_dt_upload.return_value = mock_upload
+        mock_engine.dao.get_state_from_local.return_value = None
+
+        mock_engine.cancel_upload(123)
+
+        mock_engine.remote.cancel_batch.assert_not_called()
+
+    def test_cancel_ongoing_upload(self, mock_engine):
+        """Test canceling ongoing upload."""
+        mock_upload = Mock()
+        mock_upload.status = TransferStatus.ONGOING
+        mock_upload.path = Path("/test/file.txt")
+
+        mock_doc_pair = Mock()
+        mock_doc_pair.processor = 999
+        mock_doc_pair.session = 456
+
+        mock_engine.dao.get_dt_upload.return_value = mock_upload
+        mock_engine.dao.get_state_from_local.return_value = mock_doc_pair
+
+        mock_engine.cancel_upload(123)
+
+        # Should set status to CANCELLED but not remove
+        assert mock_upload.status == TransferStatus.CANCELLED
+        mock_engine.dao.set_transfer_status.assert_called_once_with(
+            "upload", mock_upload
+        )
+        mock_engine.remote.cancel_batch.assert_not_called()
+
+    def test_cancel_non_ongoing_upload(self, mock_engine):
+        """Test canceling non-ongoing upload."""
+        mock_upload = Mock()
+        mock_upload.status = TransferStatus.SUSPENDED
+        mock_upload.path = Path("/test/file.txt")
+        mock_upload.batch = "batch-123"
+
+        mock_doc_pair = Mock()
+        mock_doc_pair.processor = None
+        mock_doc_pair.session = 456
+
+        mock_engine.dao.get_dt_upload.return_value = mock_upload
+        mock_engine.dao.get_state_from_local.return_value = mock_doc_pair
+
+        mock_engine.cancel_upload(123)
+
+        mock_engine.remote.cancel_batch.assert_called_once_with("batch-123")
+        mock_engine.dao.remove_transfer.assert_called_once_with(
+            "upload", path=mock_upload.path, is_direct_transfer=True
+        )
+        mock_engine.dao.remove_state.assert_called_once_with(mock_doc_pair)
+
+
+class TestSuspend:
+    """Test cases for Engine.suspend method."""
+
+    def test_suspend(self, mock_engine):
+        """Test suspending engine."""
+        mock_engine._pause = False
+        mock_thread = Mock()
+        mock_thread.worker = Mock()
+        mock_engine._threads = [mock_thread]
+        mock_engine.syncSuspended = Mock()
+        mock_engine.syncSuspended.emit = Mock()
+
+        mock_engine.suspend()
+
+        assert mock_engine._pause is True
+        mock_engine.dao.suspend_transfers.assert_called_once()
+        mock_engine.queue_manager.suspend.assert_called_once()
+        mock_thread.worker.suspend.assert_called_once()
+        mock_engine.syncSuspended.emit.assert_called_once()
+
+    def test_suspend_already_paused(self, mock_engine):
+        """Test suspending when already paused."""
+        mock_engine._pause = True
+
+        mock_engine.suspend()
+
+        # Should return early without doing anything
+        mock_engine.dao.suspend_transfers.assert_not_called()
+
+
+class TestUnbind:
+    """Test cases for Engine.unbind method."""
+
+    def test_unbind(self, mock_engine, tmp_path):
+        """Test unbinding engine."""
+        mock_engine.download_dir = tmp_path / "downloads"
+        mock_engine.download_dir.mkdir()
+
+        with patch.object(mock_engine, "stop") as mock_stop:
+            with patch.object(mock_engine, "dispose_db") as mock_dispose:
+                with patch("nxdrive.engine.engine.shutil"):
+                    mock_engine.unbind()
+
+        mock_stop.assert_called_once()
+        mock_engine.manager.osi.unwatch_folder.assert_called_once_with(
+            mock_engine.local_folder
+        )
+        mock_engine.manager.osi.unregister_folder_link.assert_called_once_with(
+            mock_engine.local_folder
+        )
+        mock_dispose.assert_called_once()
+        mock_engine.manager.remove_engine_dbs.assert_called_once_with(mock_engine.uid)
+        mock_engine.remote.revoke_token.assert_called_once()
+
+
+class TestLocalRollback:
+    """Test cases for Engine.local_rollback method."""
+
+    def test_local_rollback_force_true(self, mock_engine):
+        """Test local rollback with force=True."""
+        result = Engine.local_rollback(force=True)
+        assert result is True
+
+    def test_local_rollback_force_false(self, mock_engine):
+        """Test local rollback with force=False."""
+        result = Engine.local_rollback(force=False)
+        assert result is False
+
+    def test_local_rollback_default(self, mock_engine):
+        """Test local rollback with default."""
+        result = Engine.local_rollback()
+        assert result is False
+
+
+class TestCreateThread:
+    """Test cases for Engine.create_thread method."""
+
+    def test_create_thread_with_worker(self, mock_engine):
+        """Test creating thread with provided worker."""
+        from nxdrive.engine.workers import Worker
+
+        mock_worker = Mock(spec=Worker)
+        mock_worker.thread = Mock()
+        mock_worker.run = Mock()
+        mock_worker.quit = Mock()
+
+        thread = mock_engine.create_thread(mock_worker, "TestWorker")
+
+        assert thread == mock_worker.thread
+        mock_worker.thread.started.connect.assert_called_once()
+        assert thread in mock_engine._threads
+
+    def test_create_thread_without_start_connect(self, mock_engine):
+        """Test creating thread without start_connect."""
+        from nxdrive.engine.workers import Worker
+
+        mock_worker = Mock(spec=Worker)
+        mock_worker.thread = Mock()
+
+        thread = mock_engine.create_thread(
+            mock_worker, "TestWorker", start_connect=False
+        )
+
+        assert thread == mock_worker.thread
+        mock_worker.thread.started.connect.assert_not_called()
+
+
+class TestRetryPair:
+    """Test cases for Engine.retry_pair method."""
+
+    def test_retry_pair(self, mock_engine):
+        """Test retrying a pair."""
+        mock_state = Mock()
+        mock_engine.dao.get_state_from_id.return_value = mock_state
+
+        mock_engine.retry_pair(123)
+
+        mock_engine.dao.get_state_from_id.assert_called_once_with(123)
+        mock_engine.dao.reset_error.assert_called_once_with(mock_state)
+
+    def test_retry_pair_not_found(self, mock_engine):
+        """Test retrying pair when state not found."""
+        mock_engine.dao.get_state_from_id.return_value = None
+
+        mock_engine.retry_pair(123)
+
+        mock_engine.dao.reset_error.assert_not_called()
+
+
+class TestIgnorePair:
+    """Test cases for Engine.ignore_pair method."""
+
+    def test_ignore_pair(self, mock_engine):
+        """Test ignoring a pair."""
+        mock_state = Mock()
+        mock_engine.dao.get_state_from_id.return_value = mock_state
+
+        mock_engine.ignore_pair(123, "Test reason")
+
+        mock_engine.dao.get_state_from_id.assert_called_once_with(123)
+        mock_engine.dao.unsynchronize_state.assert_called_once_with(
+            mock_state, "Test reason", ignore=True
+        )
+        mock_engine.dao.reset_error.assert_called_once_with(
+            mock_state, last_error="Test reason"
+        )
+
+    def test_ignore_pair_not_found(self, mock_engine):
+        """Test ignoring pair when state not found."""
+        mock_engine.dao.get_state_from_id.return_value = None
+
+        mock_engine.ignore_pair(123, "Test reason")
+
+        mock_engine.dao.unsynchronize_state.assert_not_called()
+
+
+class TestResolveWithLocal:
+    """Test cases for Engine.resolve_with_local method."""
+
+    def test_resolve_with_local(self, mock_engine):
+        """Test resolving conflict with local version."""
+        mock_row = Mock()
+        mock_engine.dao.get_state_from_id.return_value = mock_row
+
+        mock_engine.resolve_with_local(123)
+
+        mock_engine.dao.get_state_from_id.assert_called_once_with(123)
+        mock_engine.dao.force_local.assert_called_once_with(mock_row)
+
+    def test_resolve_with_local_not_found(self, mock_engine):
+        """Test resolving with local when row not found."""
+        mock_engine.dao.get_state_from_id.return_value = None
+
+        mock_engine.resolve_with_local(123)
+
+        mock_engine.dao.force_local.assert_not_called()
+
+
+class TestResolveWithRemote:
+    """Test cases for Engine.resolve_with_remote method."""
+
+    def test_resolve_with_remote(self, mock_engine):
+        """Test resolving conflict with remote version."""
+        mock_row = Mock()
+        mock_engine.dao.get_state_from_id.return_value = mock_row
+
+        mock_engine.resolve_with_remote(123)
+
+        mock_engine.dao.get_state_from_id.assert_called_once_with(123)
+        mock_engine.dao.force_remote.assert_called_once_with(mock_row)
+
+    def test_resolve_with_remote_not_found(self, mock_engine):
+        """Test resolving with remote when row not found."""
+        mock_engine.dao.get_state_from_id.return_value = None
+
+        mock_engine.resolve_with_remote(123)
+
+        mock_engine.dao.force_remote.assert_not_called()
+
+
+class TestCheckLastSync:
+    """Test cases for Engine._check_last_sync method."""
+
+    def test_check_last_sync_not_started(self, mock_engine):
+        """Test check last sync when sync not started."""
+        mock_engine._sync_started = False
+
+        mock_engine._check_last_sync()
+
+        # Should return early
+        mock_engine._local_watcher.empty_events.assert_not_called()
+
+    def test_check_last_sync_queue_not_empty(self, mock_engine):
+        """Test check last sync when queue not empty."""
+        mock_engine._sync_started = True
+        mock_engine._local_watcher.empty_events.return_value = True
+        mock_engine.queue_manager.get_errors_count.return_value = 0
+        mock_engine.queue_manager.get_overall_size.return_value = 5
+        mock_engine.queue_manager.active.return_value = False
+        mock_engine._remote_watcher.empty_polls = 3
+        mock_engine.dao.get_syncing_count.return_value = 0
+        mock_engine.syncCompleted = Mock()
+        mock_engine.syncCompleted.emit = Mock()
+
+        mock_engine._check_last_sync()
+
+        # Should not emit syncCompleted
+        mock_engine.syncCompleted.emit.assert_not_called()
+
+    def test_check_last_sync_completed_no_errors(self, mock_engine):
+        """Test check last sync when sync completed without errors."""
+        mock_engine._sync_started = True
+        mock_engine._local_watcher.empty_events.return_value = True
+        mock_engine.queue_manager.get_errors_count.return_value = 0
+        mock_engine.queue_manager.get_overall_size.return_value = 0
+        mock_engine.queue_manager.active.return_value = False
+        mock_engine._remote_watcher.empty_polls = 3
+        mock_engine.dao.get_syncing_count.return_value = 0
+        mock_engine.syncCompleted = Mock()
+        mock_engine.syncCompleted.emit = Mock()
+
+        with patch("nxdrive.engine.engine.datetime"):
+            mock_engine._check_last_sync()
+
+        assert mock_engine._sync_started is False
+        mock_engine.dao.update_config.assert_called_once()
+        mock_engine.syncCompleted.emit.assert_called_once()
+
+    def test_check_last_sync_completed_with_errors(self, mock_engine):
+        """Test check last sync when sync completed with errors."""
+        mock_engine._sync_started = True
+        mock_engine._local_watcher.empty_events.return_value = True
+        mock_engine.queue_manager.get_errors_count.return_value = 2
+        mock_engine.queue_manager.get_overall_size.return_value = 0
+        mock_engine.queue_manager.active.return_value = False
+        mock_engine._remote_watcher.empty_polls = 3
+        mock_engine.dao.get_syncing_count.return_value = 0
+        mock_engine.syncPartialCompleted = Mock()
+        mock_engine.syncPartialCompleted.emit = Mock()
+
+        mock_engine._check_last_sync()
+
+        mock_engine.syncPartialCompleted.emit.assert_called_once()
+
+
+class TestThreadFinished:
+    """Test cases for Engine._thread_finished method."""
+
+    def test_thread_finished(self, mock_engine):
+        """Test handling finished threads."""
+        mock_thread1 = Mock()
+        mock_thread1.isFinished.return_value = True
+        mock_thread1.quit = Mock()
+
+        mock_thread2 = Mock()
+        mock_thread2.isFinished.return_value = False
+
+        mock_engine._threads = [mock_thread1, mock_thread2]
+
+        mock_engine._thread_finished()
+
+        mock_thread1.quit.assert_called_once()
+        assert mock_thread1 not in mock_engine._threads
+        assert mock_thread2 in mock_engine._threads
+
+
+class TestStop:
+    """Test cases for Engine.stop method."""
+
+    def test_stop(self, mock_engine):
+        """Test stopping engine."""
+        mock_engine._stopped = False
+        mock_thread = Mock()
+        mock_thread.wait.return_value = True
+        mock_thread.isRunning.return_value = False
+        mock_engine._threads = [mock_thread]
+        mock_engine._stop = Mock()
+        mock_engine._stop.emit = Mock()
+
+        with patch("nxdrive.engine.engine.Processor") as mock_processor:
+            mock_engine.stop()
+
+        assert mock_engine._stopped is True
+        mock_engine.dao.suspend_transfers.assert_called_once()
+        mock_engine.dao.save_backup.assert_called_once()
+        mock_engine.remote.metrics.force_poll.assert_called_once()
+        mock_engine._stop.emit.assert_called_once()
+        mock_processor.soft_locks = {}
+
+
+class TestUpdateToken:
+    """Test cases for Engine.update_token method."""
+
+    def test_update_token_same_user(self, mock_engine):
+        """Test updating token with same user."""
+        mock_token = Mock()
+        mock_engine.remote_user = "testuser"
+
+        with patch.object(mock_engine, "_load_configuration"):
+            with patch.object(mock_engine, "_save_token"):
+                with patch.object(mock_engine, "set_invalid_credentials"):
+                    with patch.object(mock_engine, "start") as mock_start:
+                        mock_engine.update_token(mock_token, "testuser")
+
+        assert mock_engine._remote_token == mock_token
+        mock_engine.remote.update_token.assert_called_once_with(mock_token)
+        mock_start.assert_called_once()
+        mock_engine.manager.restartNeeded.emit.assert_not_called()
+
+    def test_update_token_different_user(self, mock_engine):
+        """Test updating token with different user."""
+        mock_token = Mock()
+        mock_engine.remote_user = "olduser"
+        mock_engine.manager.restartNeeded = Mock()
+        mock_engine.manager.restartNeeded.emit = Mock()
+
+        with patch.object(mock_engine, "_load_configuration"):
+            with patch.object(mock_engine, "_save_token"):
+                with patch.object(mock_engine, "set_invalid_credentials"):
+                    mock_engine.update_token(mock_token, "newuser")
+
+        assert mock_engine.remote_user == "newuser"
+        mock_engine.dao.update_config.assert_called_with("remote_user", "newuser")
+        mock_engine.manager.restartNeeded.emit.assert_called_once()
+
+
+class TestSetupLocalFolder:
+    """Test cases for Engine._setup_local_folder method."""
+
+    def test_setup_local_folder_no_sync(self, mock_engine):
+        """Test setup local folder when synchronization disabled."""
+        mock_local_folder = Mock()
+        mock_local_folder.is_dir = Mock()
+        mock_engine.local_folder = mock_local_folder
+
+        with patch.object(Feature, "synchronization", False):
+            mock_engine._setup_local_folder(True)
+
+        # Should return early
+        mock_local_folder.is_dir.assert_not_called()
+
+    def test_setup_local_folder_no_check(self, mock_engine):
+        """Test setup local folder without check_fs."""
+        mock_local_folder = Mock()
+        mock_local_folder.is_dir = Mock()
+        mock_engine.local_folder = mock_local_folder
+
+        with patch.object(Feature, "synchronization", True):
+            mock_engine._setup_local_folder(False)
+
+        # Should return early
+        mock_local_folder.is_dir.assert_not_called()
+
+
+class TestCancelActionOn:
+    """Test cases for Engine.cancel_action_on method."""
+
+    def test_cancel_action_on(self, mock_engine):
+        """Test canceling action on specific pair."""
+        from nxdrive.engine.processor import Processor
+
+        mock_pair = Mock()
+        mock_pair.id = 123
+
+        mock_worker = Mock(spec=Processor)
+        mock_worker.get_current_pair.return_value = mock_pair
+        mock_worker.quit = Mock()
+
+        mock_thread = Mock()
+        mock_thread.worker = mock_worker
+
+        mock_engine._threads = [mock_thread]
+
+        mock_engine.cancel_action_on(123)
+
+        mock_worker.quit.assert_called_once()
+
+    def test_cancel_action_on_no_match(self, mock_engine):
+        """Test canceling action when pair not found."""
+        from nxdrive.engine.processor import Processor
+
+        mock_pair = Mock()
+        mock_pair.id = 456
+
+        mock_worker = Mock(spec=Processor)
+        mock_worker.get_current_pair.return_value = mock_pair
+        mock_worker.quit = Mock()
+
+        mock_thread = Mock()
+        mock_thread.worker = mock_worker
+
+        mock_engine._threads = [mock_thread]
+
+        mock_engine.cancel_action_on(123)
+
+        mock_worker.quit.assert_not_called()
+
+
+class TestSuspendClient:
+    """Test cases for Engine.suspend_client method."""
+
+    def test_suspend_client_when_paused(self, mock_engine):
+        """Test suspend client when engine is paused."""
+        from nxdrive.exceptions import ThreadInterrupt
+
+        mock_engine._pause = True
+        mock_uploader = Mock()
+
+        with pytest.raises(ThreadInterrupt):
+            mock_engine.suspend_client(mock_uploader)
+
+    def test_suspend_client_when_stopped(self, mock_engine):
+        """Test suspend client when engine is stopped."""
+        from nxdrive.exceptions import ThreadInterrupt
+
+        mock_engine._pause = False
+        mock_engine._stopped = True
+        mock_uploader = Mock()
+
+        with pytest.raises(ThreadInterrupt):
+            mock_engine.suspend_client(mock_uploader)
+
+    def test_suspend_client_with_folder_lock(self, mock_engine):
+        """Test suspend client with folder lock."""
+        from nxdrive.engine.activity import FileAction
+        from nxdrive.exceptions import PairInterrupt
+
+        mock_engine._pause = False
+        mock_engine._stopped = False
+        mock_engine._folder_lock = Path("/test/locked")
+        mock_uploader = Mock()
+
+        mock_action = Mock(spec=FileAction)
+        mock_action.filepath = Path("/test/locked/subfolder/file.txt")
+
+        mock_engine.local.get_path = Mock(
+            return_value=Path("/test/locked/subfolder/file.txt")
+        )
+
+        with patch.object(mock_engine, "is_paused", return_value=False):
+            with patch.object(mock_engine, "is_started", return_value=True):
+                with patch(
+                    "nxdrive.engine.engine.current_thread_id", return_value=12345
+                ):
+                    with patch("nxdrive.engine.engine.Action") as mock_action_cls:
+                        mock_action_cls.get_current_action.return_value = mock_action
+                        with pytest.raises(PairInterrupt):
+                            mock_engine.suspend_client(mock_uploader)
