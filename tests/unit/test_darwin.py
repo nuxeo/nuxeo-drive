@@ -6,9 +6,13 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from nxdrive.constants import MAC
 from nxdrive.objects import DocPair
 from nxdrive.options import Options
-from nxdrive.osi.darwin.darwin import DarwinIntegration
+
+if MAC:
+    from nxdrive.osi.darwin.darwin import DarwinIntegration
+
 from tests.markers import mac_only
 
 
