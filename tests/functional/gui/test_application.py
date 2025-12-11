@@ -689,6 +689,8 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     app.workflow = Workflow()
     engine.uid = "engine_uid"
     assert app.update_workflow() is None
+    delattr(app, "workflow")
+    assert app.update_workflow() is None
 
     # Covering open_server_folders in QMLDriveApi
     with patch("nxdrive.gui.api.QMLDriveApi._get_engine") as mock_engine, patch(

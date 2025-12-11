@@ -1,4 +1,5 @@
 """Unit tests for LocalWatcher._execute() method."""
+
 from pathlib import Path
 from queue import Queue
 from unittest.mock import MagicMock, Mock, call, patch
@@ -64,16 +65,19 @@ def test_execute(tmp_path):
 
     watcher._interact.side_effect = interact_side_effect
 
-    # Execute and expect ThreadInterrupt
-    with pytest.raises(ThreadInterrupt):
-        watcher._execute()
+    # Execute and expect ThreadInterrupt (patch OS to ensure non-Linux, non-Windows)
+    with patch("nxdrive.engine.watcher.local_watcher.LINUX", False), patch(
+        "nxdrive.engine.watcher.local_watcher.WINDOWS", False
+    ):
+        with pytest.raises(ThreadInterrupt):
+            watcher._execute()
 
-    # Verify the flow
-    mock_local.exists.assert_called_once_with(ROOT)
-    watcher._setup_watchdog.assert_called_once()
-    watcher._scan.assert_called_once()
-    assert watcher._interact.call_count >= 1
-    watcher._stop_watchdog.assert_called_once()  # Finally block executed
+        # Verify the flow
+        mock_local.exists.assert_called_once_with(ROOT)
+        watcher._setup_watchdog.assert_called_once()
+        watcher._scan.assert_called_once()
+        assert watcher._interact.call_count >= 1
+        watcher._stop_watchdog.assert_called_once()  # Finally block executed
 
     # Reset for next test
     mock_local.reset_mock()
@@ -81,6 +85,7 @@ def test_execute(tmp_path):
     watcher._scan.reset_mock()
     watcher._interact.reset_mock()
     watcher._stop_watchdog.reset_mock()
+    watcher._update_local_status.reset_mock()
     interact_call_count[0] = 0
 
     # Test Case 3: Linux-specific flow with _update_local_status
