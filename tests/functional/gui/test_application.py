@@ -7,9 +7,11 @@ import pytest
 from nuxeo.models import Document
 from PyQt5.QtCore import QModelIndex, QObject, Qt
 
+from nxdrive.client.workflow import Workflow
 from nxdrive.constants import WINDOWS
 from nxdrive.dao.engine import EngineDAO
 from nxdrive.engine.engine import Engine
+from nxdrive.feature import Feature
 from nxdrive.gui.api import QMLDriveApi
 from nxdrive.gui.application import Application
 from nxdrive.gui.folders_dialog import FoldersDialog
@@ -681,6 +683,12 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     app.app_engine = object()
     app.task_manager_window = object()
     assert app._shutdown() is None
+    # Covering update_workflow
+    app.added_user_engine_list = []
+    Feature.tasks_management = True
+    app.workflow = Workflow()
+    engine.uid = "engine_uid"
+    assert app.update_workflow() is None
 
     # Covering open_server_folders in QMLDriveApi
     with patch("nxdrive.gui.api.QMLDriveApi._get_engine") as mock_engine, patch(
