@@ -20,6 +20,7 @@ def mock_engine():
     engine.local = Mock()
     engine.remote = Mock()
     engine.queue_manager = Mock()
+    engine.queue_manager.get_error_threshold = Mock(return_value=3)
     engine.get_metadata_url = Mock(return_value="http://test.url/metadata")
     engine.get_remote_url = Mock(return_value="http://test.url/remote")
     return engine
@@ -50,6 +51,7 @@ def doc_pair():
     pair.local_digest = "abc123"
     pair.remote_digest = "abc123"
     pair.session = None
+    pair.version = 0
     return pair
 
 
@@ -414,7 +416,13 @@ class TestExecute:
                 processor, "_handle_doc_pair_sync", side_effect=ThreadInterrupt()
             ):
                 with patch.object(processor, "_interact"):
-                    processor._execute()
+                    with pytest.raises(ThreadInterrupt):
+                        processor._execute()
+
+                    # Verify the doc_pair was pushed back to queue
+                    processor.engine.queue_manager.push.assert_called_once_with(
+                        doc_pair
+                    )
 
     def test_execute_not_found(self, processor, doc_pair):
         """Test handling NotFound exception."""
@@ -509,11 +517,16 @@ class TestExecute:
                 "_handle_doc_pair_sync",
                 side_effect=DuplicationDisabledError(),
             ):
-                with patch.object(processor, "increase_error") as mock_error:
-                    with patch.object(processor, "_interact"):
-                        processor._execute()
+                with patch.object(processor.dao, "increase_error") as mock_error:
+                    with patch.object(processor.engine.queue_manager, "push_error"):
+                        with patch.object(processor, "_interact"):
+                            with patch.object(
+                                processor, "check_pair_state", return_value=True
+                            ):
+                                processor._execute()
 
-                        mock_error.assert_called_once()
+                                # giveup_error calls dao.increase_error
+                                mock_error.assert_called_once()
 
     def test_execute_permission_error(self, processor, doc_pair):
         """Test handling PermissionError."""
@@ -525,11 +538,18 @@ class TestExecute:
             with patch.object(
                 processor, "_handle_doc_pair_sync", side_effect=PermissionError()
             ):
-                with patch.object(processor.dao, "increase_error") as mock_error:
-                    with patch.object(processor, "_interact"):
-                        processor._execute()
+                with patch.object(processor, "_postpone_pair") as mock_postpone:
+                    with patch.object(processor.engine, "errorOpenedFile"):
+                        with patch.object(processor, "_interact"):
+                            with patch.object(
+                                processor, "check_pair_state", return_value=True
+                            ):
+                                processor._execute()
 
-                        mock_error.assert_called_once()
+                                # PermissionError calls _postpone_pair, not increase_error
+                                mock_postpone.assert_called_once_with(
+                                    doc_pair, "Used by another process"
+                                )
 
     def test_execute_oserror_no_space(self, processor, doc_pair):
         """Test handling OSError with no space left."""
