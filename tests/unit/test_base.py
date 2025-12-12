@@ -437,7 +437,10 @@ class TestGetNewFile:
         ref, os_path, result_name = local_client.get_new_file(parent, name)
 
         assert ref == parent / name
-        assert os_path == tmp_path / name
+        expected = tmp_path / name
+        # On Windows, os_path has \\?\ prefix for long path support
+        # Compare by resolving both paths to handle this
+        assert str(os_path).replace("//?/", "").replace("\\\\?\\", "") == str(expected)
         assert result_name == name
 
     def test_get_new_file_with_unsafe_chars(self, local_client, tmp_path):
@@ -616,6 +619,8 @@ class TestRename:
         file_ref = temp_file.relative_to(tmp_path)
 
         if not local_client.is_case_sensitive():
+            # Set download_dir to tmp_path so temp file is created in the same directory
+            local_client.download_dir = tmp_path
             # Should use temporary name strategy
             info = local_client.rename(file_ref, "TEST_FILE.TXT")
             assert info.name == "TEST_FILE.TXT"
@@ -769,7 +774,10 @@ class TestMiscMethods:
         ref = Path("subfolder") / "file.txt"
         abs_path = local_client.abspath(ref)
 
-        assert abs_path == tmp_path / "subfolder" / "file.txt"
+        expected = tmp_path / "subfolder" / "file.txt"
+        # On Windows, abspath adds \\?\ prefix for long path support
+        # Compare by resolving both paths to handle this
+        assert str(abs_path).replace("//?/", "").replace("\\\\?\\", "") == str(expected)
         assert abs_path.is_absolute()
 
     def test_get_path(self, local_client, tmp_path):
