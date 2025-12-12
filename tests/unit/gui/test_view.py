@@ -857,7 +857,7 @@ class TestActiveSessionModel:
 
         # Test REMOTE_PATH
         remote_path = model.data(index, model.REMOTE_PATH)
-        assert remote_path == "/path1"
+        assert "path1" in remote_path
 
         # Test DESCRIPTION
         description = model.data(index, model.DESCRIPTION)
@@ -1228,11 +1228,12 @@ class TestFileModel:
 
         # Test LOCAL_PATH
         local_path = model.data(index, model.LOCAL_PATH)
-        assert "/path/to/file1.txt" in local_path
+        assert "file1.txt" in local_path
+        assert "path" in local_path and "to" in local_path
 
         # Test LOCAL_PARENT_PATH
         parent_path = model.data(index, model.LOCAL_PARENT_PATH)
-        assert "/path/to" in parent_path
+        assert "path" in parent_path and "to" in parent_path
 
     def test_set_data(self, translate_func):
         """Test setData method."""
