@@ -1,6 +1,7 @@
 """Integration tests for accept_unofficial_ssl_cert method - macOS only."""
 
 from unittest.mock import MagicMock, Mock, patch
+from urllib.parse import urlparse
 
 import pytest
 
@@ -331,7 +332,18 @@ class TestAcceptUnofficialSslCert:
                     in html_content.lower()
                 )
 
-                # Check that certificate fields are present
-                assert "test.example.com" in html_content
+                # Check that certificate fields are present using urlparse validation
+                # Validate hostname format
+                parsed = urlparse(f"https://{hostname}")
+                assert parsed.hostname in html_content
+                assert hostname == "test.example.com"
+
+                # Verify organization and CA information
                 assert "Test Organization" in html_content
                 assert "Test CA" in html_content
+
+                # Validate CA issuer URLs if present in HTML
+                for ca_url in mock_cert["caIssuers"]:
+                    parsed_ca = urlparse(ca_url)
+                    assert parsed_ca.scheme in ["http", "https"]
+                    assert parsed_ca.netloc  # Ensure valid domain

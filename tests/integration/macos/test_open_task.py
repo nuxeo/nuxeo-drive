@@ -1,6 +1,7 @@
 """Integration tests for open_task method - macOS only."""
 
 from unittest.mock import MagicMock, Mock, patch
+from urllib.parse import urlparse
 
 import pytest
 
@@ -135,10 +136,13 @@ class TestOpenTask:
 
             called_url = mock_webbrowser.open.call_args[0][0]
 
-            # Verify URL format: server_url + endpoint + task_id
-            assert called_url.startswith("https://example.com")
-            assert "/ui/#!/tasks/" in called_url
-            assert called_url.endswith("test-task-id")
+            # Verify URL format using urlparse
+            parsed = urlparse(called_url)
+            assert parsed.scheme == "https"
+            assert parsed.netloc == "example.com"
+            assert "/ui/#!/tasks/" in parsed.path
+            assert parsed.path.endswith(task_id)
+            assert task_id == "test-task-id"
 
     def test_open_task_with_trailing_slash_in_server_url(self, mock_application):
         """Test open_task handles server URL with trailing slash."""
@@ -157,8 +161,12 @@ class TestOpenTask:
 
             # URL might have double slash, but that's the current implementation
             called_url = mock_webbrowser.open.call_args[0][0]
-            assert "server.com" in called_url
-            assert "task-xyz" in called_url
+
+            # Verify URL components using urlparse
+            parsed = urlparse(called_url)
+            assert parsed.netloc == "server.com"
+            assert task_id in parsed.path
+            assert task_id == "task-xyz"
 
     def test_open_task_webbrowser_called_once(self, mock_application):
         """Test open_task calls webbrowser.open exactly once."""
