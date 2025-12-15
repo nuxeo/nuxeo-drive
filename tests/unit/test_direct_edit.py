@@ -6,6 +6,7 @@ import re
 import shutil
 import tempfile
 import unittest
+from logging import getLogger
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
@@ -14,6 +15,8 @@ import pytest
 from nxdrive.constants import DOC_UID_REG, LINUX, WINDOWS
 from nxdrive.direct_edit import DirectEdit, _is_lock_file
 from nxdrive.exceptions import ThreadInterrupt
+
+log = getLogger(__name__)
 
 
 class TestDirectEditBasicFunctionality:
@@ -341,8 +344,8 @@ class TestDirectEditBasicFunctionality:
         try:
             direct_edit.stop_client(uploader)
             assert False, "Should have raised ThreadInterrupt"
-        except ThreadInterrupt:
-            pass  # Expected
+        except ThreadInterrupt as e:
+            log.error(f"ThreadInterrupt : {e}")  # Expected
 
     def test_use_autolock_property_extended(self):
         """Test use_autolock property with different manager settings."""
@@ -2198,8 +2201,8 @@ class TestDirectEditBasicFunctionality:
         # Clear queue for next test
         try:
             direct_edit._lock_queue.get_nowait()
-        except Empty:
-            pass
+        except Empty as e:
+            log.error(f"Empty : {e}")
 
         # Scenario 14: HTTPError with status 504 - should requeue
         test_ref_504 = self.folder / "test_504" / "file.txt"
@@ -2218,8 +2221,8 @@ class TestDirectEditBasicFunctionality:
         # Clear queue
         try:
             direct_edit._lock_queue.get_nowait()
-        except Empty:
-            pass
+        except Empty as e:
+            log.error(f"Empty : {e}")
 
         # Scenario 15: HTTPError with other status (404) - should re-raise
         test_ref_404 = self.folder / "test_404" / "file.txt"
@@ -4120,8 +4123,8 @@ class TestDirectEditBasicFunctionality:
             # KeyboardInterrupt should be re-raised but finally block should execute
             try:
                 direct_edit._stop_watchdog()
-            except KeyboardInterrupt:
-                pass  # Expected
+            except KeyboardInterrupt as e:
+                log.error(f"KeyboardInterrupt : {e}")  # Expected
 
             # Finally block should have executed and set _observer to None
             assert direct_edit._observer is None
@@ -4645,8 +4648,8 @@ class TestDirectEditBasicFunctionality:
             try:
                 # This would call internal URL parsing methods
                 direct_edit._extract_edit_info(Path("test"))
-            except Exception:
-                pass  # Expected for invalid URLs
+            except Exception as e:
+                log.error(f"Exception : {e}")  # Expected for invalid URLs
 
     def test_thread_and_queue_operations(self):
         """Test threading and queue-related operations."""

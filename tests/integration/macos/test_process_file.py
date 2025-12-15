@@ -1,8 +1,11 @@
 """Integration tests for FoldersDialog._process_file method - macOS only."""
 
+from logging import getLogger
 from unittest.mock import Mock
 
 from ...markers import mac_only
+
+log = getLogger(__name__)
 
 
 @mac_only
@@ -37,10 +40,10 @@ def test_process_file_basic():
                 self.paths[path] = file_size
                 current_total_size += file_size
 
-            except OSError:
-                pass
-            except Exception:
-                pass
+            except OSError as e:
+                log.error(f"OSError : {e}")
+            except Exception as e:
+                log.error(f"Exception : {e}")
 
             return current_total_size
 
@@ -80,10 +83,10 @@ def test_process_file_zero_byte():
                 self.paths[path] = file_size
                 current_total_size += file_size
 
-            except OSError:
-                pass
-            except Exception:
-                pass
+            except OSError as e:
+                log.error(f"OSError : {e}")
+            except Exception as e:
+                log.error(f"Exception : {e}")
 
             return current_total_size
 
@@ -125,10 +128,10 @@ def test_process_file_exceeds_file_limit():
                 self.paths[path] = file_size
                 current_total_size += file_size
 
-            except OSError:
-                pass
-            except Exception:
-                pass
+            except OSError as e:
+                log.error(f"OSError : {e}")
+            except Exception as e:
+                log.error(f"Exception : {e}")
 
             return current_total_size
 
@@ -176,10 +179,10 @@ def test_process_file_exceeds_folder_limit():
                 self.paths[path] = file_size
                 current_total_size += file_size
 
-            except OSError:
-                pass
-            except Exception:
-                pass
+            except OSError as e:
+                log.error(f"OSError : {e}")
+            except Exception as e:
+                log.error(f"Exception : {e}")
 
             return current_total_size
 
@@ -214,10 +217,10 @@ def test_process_file_oserror_handling():
                 file_size = self.get_size(path)
                 self.paths[path] = file_size
                 current_total_size += file_size
-            except OSError:
-                pass
-            except Exception:
-                pass
+            except OSError as e:
+                log.error(f"OSError : {e}")
+            except Exception as e:
+                log.error(f"Exception : {e}")
 
             return current_total_size
 
@@ -250,10 +253,10 @@ def test_process_file_general_exception_handling():
                 file_size = self.get_size(path)
                 self.paths[path] = file_size
                 current_total_size += file_size
-            except OSError:
-                pass
-            except Exception:
-                pass
+            except OSError as e:
+                log.error(f"OSError : {e}")
+            except Exception as e:
+                log.error(f"Exception : {e}")
 
             return current_total_size
 
@@ -292,10 +295,10 @@ def test_process_file_paths_dictionary_update():
                 self.paths[path] = file_size
                 current_total_size += file_size
 
-            except OSError:
-                pass
-            except Exception:
-                pass
+            except OSError as e:
+                log.error(f"OSError : {e}")
+            except Exception as e:
+                log.error(f"Exception : {e}")
 
             return current_total_size
 
@@ -345,10 +348,10 @@ def test_process_file_file_limit_at_boundary():
                 self.paths[path] = file_size
                 current_total_size += file_size
 
-            except OSError:
-                pass
-            except Exception:
-                pass
+            except OSError as e:
+                log.error(f"OSError : {e}")
+            except Exception as e:
+                log.error(f"Exception : {e}")
 
             return current_total_size
 
@@ -393,10 +396,10 @@ def test_process_file_folder_limit_at_boundary():
                 self.paths[path] = file_size
                 current_total_size += file_size
 
-            except OSError:
-                pass
-            except Exception:
-                pass
+            except OSError as e:
+                log.error(f"OSError : {e}")
+            except Exception as e:
+                log.error(f"Exception : {e}")
 
             return current_total_size
 
@@ -445,10 +448,10 @@ def test_process_file_with_all_checks():
                 self.paths[path] = file_size
                 current_total_size += file_size
 
-            except OSError:
-                pass
-            except Exception:
-                pass
+            except OSError as e:
+                log.error(f"OSError : {e}")
+            except Exception as e:
+                log.error(f"Exception : {e}")
 
             return current_total_size
 

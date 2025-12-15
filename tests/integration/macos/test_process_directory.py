@@ -1,8 +1,11 @@
 """Integration tests for FoldersDialog._process_directory method - macOS only."""
 
+from logging import getLogger
 from unittest.mock import Mock, patch
 
 from ...markers import mac_only
+
+log = getLogger(__name__)
 
 
 @mac_only
@@ -30,10 +33,10 @@ def test_process_directory_zero_byte_files_skipped():
                     self.paths[file_path] = size
                     current_total_size += size
 
-            except OSError:
-                pass
-            except Exception:
-                pass
+            except OSError as e:
+                log.error(f"OSError : {e}")
+            except Exception as e:
+                log.error(f"Exception : {e}")
 
             return current_total_size
 
@@ -69,10 +72,10 @@ def test_process_directory_oserror_handling():
                 from nxdrive.utils import get_tree_list
 
                 list(get_tree_list(path))
-            except OSError:
-                pass
-            except Exception:
-                pass
+            except OSError as e:
+                log.error(f"OSError : {e}")
+            except Exception as e:
+                log.error(f"Exception : {e}")
 
             return current_total_size
 
@@ -104,10 +107,10 @@ def test_process_directory_general_exception_handling():
                 from nxdrive.utils import get_tree_list
 
                 list(get_tree_list(path))
-            except OSError:
-                pass
-            except Exception:
-                pass
+            except OSError as e:
+                log.error(f"OSError : {e}")
+            except Exception as e:
+                log.error(f"Exception : {e}")
 
             return current_total_size
 

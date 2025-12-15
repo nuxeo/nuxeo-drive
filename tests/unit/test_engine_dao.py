@@ -1,4 +1,5 @@
 import sqlite3
+from logging import getLogger
 from multiprocessing import RLock
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -8,6 +9,8 @@ from nxdrive.constants import TransferStatus
 from nxdrive.dao.migrations.migration import MigrationInterface
 
 from ..markers import windows_only
+
+log = getLogger(__name__)
 
 
 def test_acquire_processors(engine_dao):
@@ -707,8 +710,8 @@ class TestAcquireState:
             try:
                 dao.acquire_state(thread_id, row_id)
                 assert False, "Should have raised RuntimeError"
-            except RuntimeError:
-                pass
+            except RuntimeError as e:
+                log.error(f"RuntimeError : {e}")
 
             # Verify processor was released
             c = dao._get_read_connection().cursor()
