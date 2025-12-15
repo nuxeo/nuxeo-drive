@@ -10,6 +10,7 @@ on:
       - "nxdrive/**/*.py"
       - "tests/*.py"
       - "tests/functional/*.py"
+      - "tests/functional/gui/*.py"
       - "tools/deps/*.txt"
   push:
     branches: [master]
