@@ -137,11 +137,13 @@ class TestOpenTask:
             called_url = mock_webbrowser.open.call_args[0][0]
 
             # Verify URL format using urlparse
+            # Note: #! is treated as fragment by urlparse
             parsed = urlparse(called_url)
             assert parsed.scheme == "https"
             assert parsed.netloc == "example.com"
-            assert "/ui/#!/tasks/" in parsed.path
-            assert parsed.path.endswith(task_id)
+            assert parsed.path == "/ui/"
+            assert parsed.fragment.startswith("!/tasks/")
+            assert parsed.fragment.endswith(task_id)
             assert task_id == "test-task-id"
 
     def test_open_task_with_trailing_slash_in_server_url(self, mock_application):
@@ -163,9 +165,10 @@ class TestOpenTask:
             called_url = mock_webbrowser.open.call_args[0][0]
 
             # Verify URL components using urlparse
+            # Note: task_id is in the fragment after #!
             parsed = urlparse(called_url)
             assert parsed.netloc == "server.com"
-            assert task_id in parsed.path
+            assert task_id in parsed.fragment
             assert task_id == "task-xyz"
 
     def test_open_task_webbrowser_called_once(self, mock_application):
