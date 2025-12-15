@@ -921,12 +921,12 @@ class TestSetTransferDoc:
             # Create a download
             download = Download(
                 uid=None,
-                path=Path("/tmp/test_download_doc.txt"),
+                path=Path("test_download_doc.txt"),
                 status=TransferStatus.ONGOING,
                 engine="original-engine",
                 is_direct_edit=False,
                 filesize=2048,
-                tmpname=Path("/tmp/temp_download_doc.txt"),
+                tmpname=Path("temp_download_doc.txt"),
                 url="http://example.com/file.txt",
                 doc_pair=5,
             )
@@ -966,12 +966,12 @@ class TestSaveDownload:
             # Create a download object
             download = Download(
                 uid=None,
-                path=Path("/tmp/download_file_basic.txt"),
+                path=Path("download_file_basic.txt"),
                 status=TransferStatus.ONGOING,
                 engine="test-engine-uid",
                 is_direct_edit=False,
                 filesize=4096,
-                tmpname=Path("/tmp/temp_download_file_basic.txt"),
+                tmpname=Path("temp_download_file_basic.txt"),
                 url="http://example.com/download.txt",
                 doc_pair=10,
             )
@@ -1007,12 +1007,12 @@ class TestSaveDownload:
             # Create a direct edit download
             download = Download(
                 uid=None,
-                path=Path("/tmp/direct_edit_download_save.txt"),
+                path=Path("direct_edit_download_save.txt"),
                 status=TransferStatus.ONGOING,
                 engine="test-engine",
                 is_direct_edit=True,
                 filesize=8192,
-                tmpname=Path("/tmp/temp_direct_edit_save.txt"),
+                tmpname=Path("temp_direct_edit_save.txt"),
                 url="http://example.com/direct_edit.txt",
                 doc_pair=20,
             )
@@ -1044,12 +1044,12 @@ class TestSaveDownload:
             for idx, status in enumerate(statuses):
                 download = Download(
                     uid=None,
-                    path=Path(f"/tmp/download_status_{idx}.txt"),
+                    path=Path(f"download_status_{idx}.txt"),
                     status=status,
                     engine="test-engine",
                     is_direct_edit=False,
                     filesize=1024 * (idx + 1),
-                    tmpname=Path(f"/tmp/temp_status_{idx}.txt"),
+                    tmpname=Path(f"temp_status_{idx}.txt"),
                     url=f"http://example.com/file_{idx}.txt",
                     doc_pair=30 + idx,
                 )
