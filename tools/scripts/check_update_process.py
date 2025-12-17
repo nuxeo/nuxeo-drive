@@ -146,8 +146,12 @@ def get_version():
         #     "Print :CFBundleShortVersionString",
         #     "/Applications/Nuxeo Drive.app/Contents/Info.plist",
         # ]
-        version = "1.0.0"
         try:
+            check_ndrive_location = os.system(
+                "cd / | /Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive"
+            )
+            if check_ndrive_location != 0:
+                raise Exception("Nuxeo Drive not found in /Applications in root")
             cmd = [
                 "/Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive",
                 "--version",
@@ -155,10 +159,10 @@ def get_version():
             stream = os.popen(" ".join(cmd))
             version = stream.read().strip()
             stream.close()
+            return version
         except Exception as e:
             print(f">>> Error while getting version: {e!r}", flush=True)
-        finally:
-            return version
+            raise
 
     file = (
         expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
