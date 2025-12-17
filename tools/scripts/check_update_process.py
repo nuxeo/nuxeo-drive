@@ -150,21 +150,13 @@ def get_version():
         try:
             version = subprocess.check_output(
                 [
-                    "/usr/libexec/PlistBuddy",
-                    "-c",
-                    "Print :CFBundleShortVersionString",
-                    "/Applications/Nuxeo Drive.app/Contents/Info.plist",
-                ],
-                text=True,
-            ).strip()
-        except subprocess.CalledProcessError as e:
-            version = subprocess.check_output(
-                [
                     f"/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
                     "--version",
                 ],
                 text=True,
             ).strip()
+        except subprocess.CalledProcessError as e:
+            print(f"Error in subprocess while getting version: {e}")
         finally:
             return version
 
