@@ -146,15 +146,27 @@ def get_version():
         #     "Print :CFBundleShortVersionString",
         #     "/Applications/Nuxeo Drive.app/Contents/Info.plist",
         # ]
-        return subprocess.check_output(
-            [
-                "/usr/libexec/PlistBuddy",
-                "-c",
-                "Print :CFBundleShortVersionString",
-                "/Applications/Nuxeo Drive.app/Contents/Info.plist",
-            ],
-            text=True,
-        ).strip()
+        version = "1.0.0"
+        try:
+            version = subprocess.check_output(
+                [
+                    "/usr/libexec/PlistBuddy",
+                    "-c",
+                    "Print :CFBundleShortVersionString",
+                    "/Applications/Nuxeo Drive.app/Contents/Info.plist",
+                ],
+                text=True,
+            ).strip()
+        except subprocess.CalledProcessError as e:
+            version = subprocess.check_output(
+                [
+                    f"/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
+                    "--version",
+                ],
+                text=True,
+            ).strip()
+        finally:
+            return version
 
     file = (
         expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
