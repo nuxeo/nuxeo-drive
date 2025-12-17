@@ -148,15 +148,15 @@ def get_version():
         # ]
         version = "1.0.0"
         try:
-            version = subprocess.check_output(
-                [
-                    "/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
-                    "--version",
-                ],
-                text=True,
-            ).strip()
+            cmd = [
+                "/Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive",
+                "--version",
+            ]
+            stream = os.popen(" ".join(cmd))
+            version = stream.read().strip()
+            stream.close()
         except Exception as e:
-            print(f">>> Error in subprocess while getting version: {e!r}", flush=True)
+            print(f">>> Error while getting version: {e!r}", flush=True)
         finally:
             return version
 
