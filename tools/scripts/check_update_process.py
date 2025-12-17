@@ -147,10 +147,10 @@ def get_version():
         #     "/Applications/Nuxeo Drive.app/Contents/Info.plist",
         # ]
         try:
-            check_ndrive_location = os.system(
-                f"{Path.home()}/Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive"
+            ndrive_location = Path(
+                f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive"
             )
-            if check_ndrive_location != 0:
+            if not ndrive_location.exists():
                 raise Exception("Nuxeo Drive not found in /Applications in path.home")
             cmd = [
                 f"{Path.home()}/Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive",
