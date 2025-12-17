@@ -148,12 +148,12 @@ def get_version():
         # ]
         try:
             check_ndrive_location = os.system(
-                "cd / | /Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive"
+                f"{Path.home()}/Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive"
             )
             if check_ndrive_location != 0:
-                raise Exception("Nuxeo Drive not found in /Applications in root")
+                raise Exception("Nuxeo Drive not found in /Applications in path.home")
             cmd = [
-                "/Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive",
+                f"{Path.home()}/Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive",
                 "--version",
             ]
             stream = os.popen(" ".join(cmd))
