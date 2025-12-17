@@ -140,13 +140,21 @@ def get_version():
     """Get the current version."""
 
     if EXT == "dmg":
-        cmd = [
-            "/usr/libexec/PlistBuddy",
-            "-c",
-            "Print :CFBundleShortVersionString",
-            "/Applications/Nuxeo Drive.app/Contents/Info.plist",
-        ]
-        return subprocess.check_output(cmd, text=True).strip()
+        # cmd = [
+        #     "/usr/libexec/PlistBuddy",
+        #     "-c",
+        #     "Print :CFBundleShortVersionString",
+        #     "/Applications/Nuxeo Drive.app/Contents/Info.plist",
+        # ]
+        return subprocess.check_output(
+            [
+                "/usr/libexec/PlistBuddy",
+                "-c",
+                "Print :CFBundleShortVersionString",
+                "/Applications/Nuxeo Drive.app/Contents/Info.plist",
+            ],
+            text=True,
+        ).strip()
 
     file = (
         expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
