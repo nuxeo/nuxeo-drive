@@ -584,8 +584,11 @@ def job(root, version, executable, previous_version, name):
                 ],
             )
 
-        # Launch Drive in its own thread
         print(">>> Testing upgrade", previous_version, "->", version, flush=True)
+        # Assert the version is the good one
+        current_ver = get_version()
+        print(f">>> Current version is {current_ver!r}", flush=True)
+        # Launch Drive in its own thread
         threading.Thread(target=launch_drive, args=(executable,)).start()
 
         # Start the web server
@@ -594,9 +597,6 @@ def job(root, version, executable, previous_version, name):
         # Display the log file
         # cat_log()
 
-        # And assert the version is the good one
-        current_ver = get_version()
-        print(f">>> Current version is {current_ver!r}", flush=True)
         """
         assert (
             current_ver == version
