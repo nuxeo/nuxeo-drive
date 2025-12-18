@@ -140,12 +140,6 @@ def get_version():
     """Get the current version."""
 
     if EXT == "dmg":
-        # cmd = [
-        #     "/usr/libexec/PlistBuddy",
-        #     "-c",
-        #     "Print :CFBundleShortVersionString",
-        #     "/Applications/Nuxeo Drive.app/Contents/Info.plist",
-        # ]
         try:
             ndrive_app_location = Path(
                 f"{Path.home()}/Applications/Nuxeo Drive.app/Contents"
