@@ -156,19 +156,23 @@ def get_version():
             if not ndrive_exe_location.exists():
                 raise Exception("Nuxeo Drive not found in /Applications in path.home")
             else:
-                plist_path = ndrive_app_location / "Info.plist"
-                print(f">>> Command to run : {["cat", str(plist_path)]}", flush=True)
-                plist_info = subprocess.check_output(["cat", str(plist_path)],text=True)
-                print(f">>> Plist info: {plist_info!r}", flush=True)
                 print(f">>> ndrive exe found at: {ndrive_exe_location!r}", flush=True)
             # cmd = [
             #     f"{Path.home()}/Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive",
             #     "--version",
             # ]
-            print(f">>> Command to run : {[ndrive_exe_location, "--version"]}", flush=True)
-            version = subprocess.check_output([ndrive_exe_location, "--version"], text=True)
-            print(">>> Retrieved version:", version, flush=True)
-            return version
+            plist_path = ndrive_app_location / "Info.plist"
+            print(f">>> Command to run : {["cat", str(plist_path)]}", flush=True)
+            plist_info = subprocess.check_output(["cat", str(plist_path)],text=True)
+            print(f">>> Plist info: {plist_info!r}", flush=True)
+            if "CFBundleShortVersionString" in plist_info:
+                start_index = plist_info.index("CFBundleShortVersionString") + len("CFBundleShortVersionString") + 4
+                end_index = plist_info.index("</string>", start_index)
+                version = plist_info[start_index:end_index].strip()
+                version = version.split("<string>")[1]
+                return version
+            else:
+                raise Exception("Version information not found in Info.plist")
         except Exception as e:
             print(f">>> Error while getting version: {e!r}", flush=True)
             raise
