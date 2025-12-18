@@ -154,17 +154,13 @@ def get_version():
                 raise Exception("Nuxeo Drive not found in /Applications in path.home")
             else:
                 print(f">>> ndrive found at: {ndrive_location!r}", flush=True)
-            cmd = [
-                f"{Path.home()}/Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive",
-                "--version",
-            ]
-            print(f">>> Command to run : {cmd}", flush=True)
-            stream = os.popen(" ".join(cmd))
-            print(">>> OS.popen completed", flush=True)
-            version = stream.read().strip()
-            print(">>> Version reading completed", flush=True)
-            stream.close()
-            print(">>> Stream closed", flush=True)
+            # cmd = [
+            #     f"{Path.home()}/Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive",
+            #     "--version",
+            # ]
+            print(f">>> Command to run : {[ndrive_location, "--version"]}", flush=True)
+            version = subprocess.check_output([ndrive_location, "--version"], text=True)
+            print(">>> Retrieved version:", version, flush=True)
             return version
         except Exception as e:
             print(f">>> Error while getting version: {e!r}", flush=True)
