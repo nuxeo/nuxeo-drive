@@ -158,13 +158,13 @@ def get_version():
                 f"{Path.home()}/Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive",
                 "--version",
             ]
-print(f">>> Command to run : {cmd})
+            print(f">>> Command to run : {cmd}", flush=True)
             stream = os.popen(" ".join(cmd))
-print(">>> OS.popen completed")
+            print(">>> OS.popen completed", flush=True)
             version = stream.read().strip()
-print(">>> Version reading completed")
+            print(">>> Version reading completed", flush=True)
             stream.close()
-print(">>> Stream closed")
+            print(">>> Stream closed", flush=True)
             return version
         except Exception as e:
             print(f">>> Error while getting version: {e!r}", flush=True)
