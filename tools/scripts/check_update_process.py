@@ -154,17 +154,10 @@ def get_version():
                 f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive"
             )
             if not ndrive_exe_location.exists():
-                raise Exception("Nuxeo Drive not found in /Applications in path.home")
-            else:
-                print(f">>> ndrive exe found at: {ndrive_exe_location!r}", flush=True)
-            # cmd = [
-            #     f"{Path.home()}/Applications/Nuxeo\\ Drive.app/Contents/MacOS/ndrive",
-            #     "--version",
-            # ]
+                raise Exception(f"Nuxeo Drive not found in {ndrive_exe_location!r}")
             plist_path = ndrive_app_location / "Info.plist"
             print(f">>> Command to run : {["cat", str(plist_path)]}", flush=True)
             plist_info = subprocess.check_output(["cat", str(plist_path)],text=True)
-            print(f">>> Plist info: {plist_info!r}", flush=True)
             if "CFBundleShortVersionString" in plist_info:
                 start_index = plist_info.index("CFBundleShortVersionString") + len("CFBundleShortVersionString") + 4
                 end_index = plist_info.index("</string>", start_index)
@@ -595,11 +588,8 @@ def job(root, version, executable, previous_version, name):
                 ],
             )
 
-        print(">>> Testing upgrade", previous_version, "->", version, flush=True)
-        # Assert the version is the good one
-        current_ver = get_version()
-        print(f">>> Current version is {current_ver!r}", flush=True)
         # Launch Drive in its own thread
+        print(">>> Testing upgrade", previous_version, "->", version, flush=True)
         threading.Thread(target=launch_drive, args=(executable,)).start()
 
         # Start the web server
@@ -608,6 +598,9 @@ def job(root, version, executable, previous_version, name):
         # Display the log file
         # cat_log()
 
+        # And assert the version is the good one
+        current_ver = get_version()
+        print(f">>> Current version is {current_ver!r}", flush=True)
         """
         assert (
             current_ver == version
