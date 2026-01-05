@@ -25,8 +25,8 @@ from ..qt.imports import (
     QMenu,
     QPoint,
     QPushButton,
-    QRegExp,
-    QRegExpValidator,
+    QRegularExpression,
+    QRegularExpressionValidator,
     QSize,
     Qt,
     QVBoxLayout,
@@ -48,13 +48,13 @@ log = getLogger(__name__)
 DOC_URL = "https://doc.nuxeo.com/n/CBX/#duplicates-behavior"
 
 
-def regexp_validator() -> QRegExpValidator:
+def regexp_validator() -> QRegularExpressionValidator:
     """
     Generate a validator based on a specific regexp that will check an user input.
     This code has been moved to a method to allow unit testing.
     """
-    expr = QRegExp(f"^[^{INVALID_CHARS}]+")
-    return QRegExpValidator(expr)
+    expr = QRegularExpression(f"^[^{INVALID_CHARS}]+")
+    return QRegularExpressionValidator(expr)
 
 
 class DialogMixin(QDialog):

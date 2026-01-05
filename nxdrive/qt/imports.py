@@ -2,7 +2,7 @@
 Put here all PyQt imports used across the project.
 """
 
-from PyQt5.QtCore import (
+from PyQt6.QtCore import (
     QT_VERSION_STR,
     QAbstractListModel,
     QByteArray,
@@ -13,7 +13,7 @@ from PyQt5.QtCore import (
     QObject,
     QPoint,
     QRect,
-    QRegExp,
+    QRegularExpression,
     QRunnable,
     QSize,
     Qt,
@@ -27,7 +27,7 @@ from PyQt5.QtCore import (
     pyqtSignal,
     pyqtSlot,
 )
-from PyQt5.QtGui import (
+from PyQt6.QtGui import (
     QCursor,
     QDesktopServices,
     QFont,
@@ -35,13 +35,13 @@ from PyQt5.QtGui import (
     QIcon,
     QKeyEvent,
     QPixmap,
-    QRegExpValidator,
+    QRegularExpressionValidator,
     QStandardItem,
     QStandardItemModel,
     QValidator,
     QWindow,
 )
-from PyQt5.QtNetwork import (
+from PyQt6.QtNetwork import (
     QAbstractSocket,
     QHostAddress,
     QHostInfo,
@@ -51,9 +51,9 @@ from PyQt5.QtNetwork import (
     QTcpServer,
     QTcpSocket,
 )
-from PyQt5.QtQml import QQmlApplicationEngine, QQmlContext, qmlRegisterType
-from PyQt5.QtQuick import QQuickView, QQuickWindow
-from PyQt5.QtWidgets import (
+from PyQt6.QtQml import QQmlApplicationEngine, QQmlContext, qmlRegisterType
+from PyQt6.QtQuick import QQuickView, QQuickWindow
+from PyQt6.QtWidgets import (
     QApplication,
     QCheckBox,
     QComboBox,
@@ -117,8 +117,8 @@ __all__ = (
     "QQuickView",
     "QQuickWindow",
     "QRect",
-    "QRegExp",
-    "QRegExpValidator",
+    "QRegularExpression",
+    "QRegularExpressionValidator",
     "QRunnable",
     "QSize",
     "QSizePolicy",
