@@ -331,7 +331,7 @@ class FoldersDialog(DialogMixin):
 
         pointed_item = self.tree_view.get_item_from_position(position)
         action.setEnabled(self.tree_view.is_item_enabled(pointed_item))
-        menu.exec_(self.tree_view.viewport().mapToGlobal(position))
+        menu.exec(self.tree_view.viewport().mapToGlobal(position))
 
     def _add_group_local(self) -> QGroupBox:
         """Group box for source files."""
@@ -532,7 +532,7 @@ class FoldersDialog(DialogMixin):
     def _new_folder_button_action(self) -> None:
         """Show a dialog allowing to edit the value of *new_folder*."""
         dialog = NewFolderDialog(self)
-        dialog.exec_()
+        dialog.exec()
 
     def _find_folders_duplicates(self) -> List[str]:
         """Return a list of duplicate folder(s) found on the remote path."""
