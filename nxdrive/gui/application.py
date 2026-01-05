@@ -111,7 +111,7 @@ if TYPE_CHECKING:
 __all__ = ("Application",)
 
 # Enable High-DPI
-QApplication.setAttribute(qt.AA_EnableHighDpiScaling, True)
+# QApplication.setAttribute(qt.AA_EnableHighDpiScaling, True)
 
 log = getLogger(__name__)
 

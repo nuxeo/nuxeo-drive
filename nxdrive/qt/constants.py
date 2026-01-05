@@ -18,7 +18,7 @@ from .imports import (
     QValidator,
 )
 
-AA_EnableHighDpiScaling = Qt.ApplicationAttribute.AA_EnableHighDpiScaling
+# AA_EnableHighDpiScaling = Qt.ApplicationAttribute.AA_EnableHighDpiScaling
 Acceptable = QValidator.State.Acceptable
 AcceptRole = QMessageBox.ButtonRole.AcceptRole
 ActionRole = QDialogButtonBox.ButtonRole.ActionRole
@@ -32,7 +32,7 @@ Checked = Qt.CheckState.Checked
 ConnectedState = QAbstractSocket.SocketState.ConnectedState
 Critical = QMessageBox.Icon.Critical
 Drawer = Qt.WindowType.Drawer
-Fixed = QSizePolicy.Fixed
+Fixed = QSizePolicy.Policy.Fixed
 FixedPixelWidth = QTextEdit.LineWrapMode.FixedPixelWidth
 FocusOut = QEvent.Type.FocusOut
 FramelessWindowHint = Qt.WindowType.FramelessWindowHint
@@ -43,7 +43,7 @@ Invalid = QValidator.State.Invalid
 ItemIsEditable = Qt.ItemFlag.ItemIsEditable
 ItemIsEnabled = Qt.ItemFlag.ItemIsEnabled
 ItemIsSelectable = Qt.ItemFlag.ItemIsSelectable
-Key_Escape = Qt.Key_Escape
+Key_Escape = Qt.Key.Key_Escape
 LeftToRight = Qt.LayoutDirection.LeftToRight
 MiddleClick = QSystemTrayIcon.ActivationReason.MiddleClick
 MouseButtonPress = QEvent.Type.MouseButtonPress

@@ -96,7 +96,7 @@ class DialogMixin(QDialog):
         # The content view
         self.vertical_layout = QVBoxLayout(self)
 
-    def get_buttons(self) -> QDialogButtonBox.StandardButtons:
+    def get_buttons(self) -> QDialogButtonBox.standardButtons:
         """Create the buttons to display at the bottom of the window."""
         return qt.Ok | qt.Cancel
 
@@ -117,7 +117,7 @@ class DocumentsDialog(DialogMixin):
         self.no_root_label = self.get_no_roots_label()
         self.vertical_layout.insertWidget(0, self.no_root_label)
 
-    def get_buttons(self) -> QDialogButtonBox.StandardButtons:
+    def get_buttons(self) -> QDialogButtonBox.standardButtons:
         """Create the buttons to display at the bottom of the window."""
         # Select/Unselect roots
         self.select_all_state = True
