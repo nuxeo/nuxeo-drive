@@ -165,7 +165,7 @@ def fatal_error_qt(exc_formatted: str, /) -> None:
 
     dialog.setLayout(layout)
     dialog.show()
-    app.exec_()
+    app.exec()
 
 
 def fatal_error_win(text: str, /) -> None:
