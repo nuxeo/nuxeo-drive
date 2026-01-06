@@ -145,9 +145,7 @@ def get_version():
             ndrive_app_location = Path(
                 f"{Path.home()}/Applications/Nuxeo Drive.app/Contents"
             )
-            ndrive_exe_location = Path(
-                f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive"
-            )
+            ndrive_exe_location = ndrive_app_location / "MacOS" / "ndrive"
             if not ndrive_exe_location.exists():
                 raise Exception(f"Nuxeo Drive not found in {ndrive_exe_location!r}")
             plist_path = ndrive_app_location / "Info.plist"
@@ -159,7 +157,7 @@ def get_version():
                 raise Exception("Version information not found in Info.plist")
             return str(version)
         except Exception as e:
-            print(f">>> Error while getting version: {e!r}", flush=True)
+            print(f">>> plist path : {plist_path!r}\nCFBundleShortVersionString : {version!r}\nError while getting version {e!r}", flush=True)
             raise
 
     file = (
