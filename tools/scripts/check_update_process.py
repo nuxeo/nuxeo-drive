@@ -157,7 +157,10 @@ def get_version():
                 raise Exception("Version information not found in Info.plist")
             return str(version)
         except Exception as e:
-            print(f">>> plist path : {plist_path!r}\nCFBundleShortVersionString : {version!r}\nError while getting version {e!r}", flush=True)
+            print(
+                f">>> plist path : {plist_path!r}\nCFBundleShortVersionString : {version!r}\nError while getting version {e!r}",
+                flush=True,
+            )
             raise
 
     file = (
