@@ -4,8 +4,8 @@ from sqlite3 import Connection, Cursor
 from threading import RLock
 from typing import Any, List
 
-from PyQt5 import QtCore
-from PyQt5.QtCore import Qt
+from PyQt6 import QtCore
+from PyQt6.QtCore import Qt
 
 from nxdrive.client.local.base import FileInfo, LocalClientMixin
 from nxdrive.constants import TransferStatus
