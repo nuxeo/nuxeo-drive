@@ -532,7 +532,7 @@ class FoldersDialog(DialogMixin):
     def _new_folder_button_action(self) -> None:
         """Show a dialog allowing to edit the value of *new_folder*."""
         dialog = NewFolderDialog(self)
-        dialog.exec_()
+        dialog.exec()
 
     def _find_folders_duplicates(self) -> List[str]:
         """Return a list of duplicate folder(s) found on the remote path."""
