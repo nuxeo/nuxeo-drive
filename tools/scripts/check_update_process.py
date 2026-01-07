@@ -23,6 +23,7 @@ import hashlib
 import http.server
 import os
 import os.path
+import plistlib
 import re
 import shutil
 import socketserver
@@ -140,14 +141,26 @@ def get_version():
     """Get the current version."""
 
     if EXT == "dmg":
-        """
-        cmd = [
-            f"{Path.home()}/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
-            "--version",
-        ]
-        return subprocess.check_output(cmd, text=True).strip()
-        """
-        return "6.1.0"
+        try:
+            ndrive_app_location = Path(
+                f"{Path.home()}/Applications/Nuxeo Drive.app/Contents"
+            )
+            ndrive_exe_location = ndrive_app_location / "MacOS" / "ndrive"
+            if not ndrive_exe_location.exists():
+                raise Exception(f"Nuxeo Drive not found in {ndrive_exe_location!r}")
+            plist_path = ndrive_app_location / "Info.plist"
+            print(f">>> Reading Info.plist from: {plist_path}", flush=True)
+            with plist_path.open("rb") as f:
+                plist = plistlib.load(f)
+            version = plist.get("CFBundleShortVersionString")
+            if not version:
+                raise Exception("Version information not found in Info.plist")
+            return str(version)
+        except Exception as e:
+            print(f">>> plist path : {plist_path!r}", flush=True)
+            print(f">>> CFBundleShortVersionString : {version!r}", flush=True)
+            print(f">>> Error while getting version : {e!r}", flush=True)
+            raise
 
     file = (
         expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
