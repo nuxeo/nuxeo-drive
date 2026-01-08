@@ -1,9 +1,9 @@
 // Import versions are 6.x for Qt 6
 // https://doc.qt.io/qt-6/qtquickcontrols-index.html
-import QtQuick 6.0
-import QtQuick.Window 6.0
-import SystrayWindow 1.0
-import CustomWindow 1.0
+import QtQuick
+import QtQuick.Window
+import SystrayWindow
+import CustomWindow
 import "tasksManager"
 
 QtObject {

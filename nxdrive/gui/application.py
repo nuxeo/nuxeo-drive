@@ -974,6 +974,7 @@ class Application(QApplication):
 
     @pyqtSlot()
     def show_systray(self) -> None:
+        log.info("Showing systray window in application.py")
         self.close_tasks_window()
         self.systray_window.close()
         icon = self.tray_icon.geometry()
@@ -995,7 +996,6 @@ class Application(QApplication):
 
         self.systray_window.setX(int(pos_x))
         self.systray_window.setY(int(pos_y))
-
         self.systray_window.show()
         self.systray_window.raise_()
 

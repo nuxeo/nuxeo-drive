@@ -1,7 +1,7 @@
-import QtQuick 6.0
+import QtQuick
 // QtQuick.Dialogs is available in Qt 6.2+
 import QtQuick.Dialogs
-import QtQuick.Layouts 6.0
+import QtQuick.Layouts
 import "icon-font/Icon.js" as MdiFont
 
 NuxeoPopup {

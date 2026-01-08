@@ -1,4 +1,4 @@
-import QtQuick 6.0
+import QtQuick
 
 TextEdit {
     font.pointSize: point_size

@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, List, Optional
 
 from ..constants import USER_WORKSPACE
 from ..qt import constants as qt
-from ..qt.imports import QRunnable, QStandardItem, QStandardItemModel, QVariant
+from ..qt.imports import QRunnable, QStandardItem, QStandardItemModel, Qt, QVariant
 from ..translator import Translator
 from .folders_model import Doc, Documents, FilteredDoc
 
@@ -112,8 +112,8 @@ class DocumentContentLoader(ContentLoaderMixin):
         subitem = QStandardItem(child.get_label())
         if child.checkable():
             subitem.setCheckable(True)
-            subitem.setCheckState(True)
-            subitem.setTristate(True)
+            subitem.setCheckState(Qt.CheckState.Checked)
+            subitem.setUserTristate(True)
             subitem.setCheckState(child.state)
         subitem.setEnabled(child.enable())
         subitem.setSelectable(child.selectable())
