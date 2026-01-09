@@ -423,8 +423,8 @@ main() {
             "--check-upgrade") check_upgrade ;;
             "--install" | "--install-release")
                 install_deps
-                if ! check_import "import PyQt5" >/dev/null; then
-                    echo ">>> No PyQt5. Installation failed."
+                if ! check_import "import PyQt6" >/dev/null; then
+                    echo ">>> No PyQt6. Installation failed."
                     exit 1
                 fi
                 ;;

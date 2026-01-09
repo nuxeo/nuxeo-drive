@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 from ..constants import MAC
 from ..qt import constants as qt
-from ..qt.imports import QApplication, QEvent, QMenu, QQuickView, QSystemTrayIcon
+from ..qt.imports import QApplication, QEvent, QMenu, QQuickView, QQuickWindow, QSystemTrayIcon
 from ..translator import Translator
 
 if TYPE_CHECKING:
@@ -43,8 +43,10 @@ class DriveSystrayIcon(QSystemTrayIcon):
             # On left click, open the usual menu with engines and sync files
             # If it is already open, we close it
             if self.application.systray_window.isVisible():
+                log.info("Hiding systray window")
                 self.application.hide_systray()
             else:
+                log.info("Showing systray window")
                 self.application.show_systray()
         elif reason == qt.MiddleClick:
             # On middle click, open settings.  Yeah, it rocks!
@@ -86,8 +88,9 @@ class DriveSystrayIcon(QSystemTrayIcon):
         return menu
 
 
-class SystrayWindow(QQuickView):
+class SystrayWindow(QQuickWindow):
     def event(self, event: QEvent, /) -> bool:
+        # log.info(f"SystrayWindow event: {event} : {event.type()}")
         if event.type() == qt.FocusOut or (
             event.type() == qt.MouseButtonPress
             and not self.geometry().contains(event.screenPos().toPoint())
