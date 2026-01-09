@@ -5,7 +5,7 @@ import "icon-font/Icon.js" as MdiFont
 
 Rectangle {
     id: control
-    property variant fileData: model
+    property var fileData: model
     property bool paused: status == "PAUSED" || status == "SUSPENDED"
     property bool download: transfer_type == "download"
     width: parent ? parent.width : 0

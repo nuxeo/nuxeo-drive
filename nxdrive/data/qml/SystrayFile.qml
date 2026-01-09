@@ -5,7 +5,7 @@ import "icon-font/Icon.js" as MdiFont
 
 Rectangle {
     id: control
-    property variant fileData: model
+    property var fileData: model
     width: parent ? parent.width : 0
     height: 55
 

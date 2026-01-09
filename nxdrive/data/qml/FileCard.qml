@@ -8,7 +8,7 @@ ShadowRectangle {
     signal resolved()
     signal ignored()
 
-    property variant fileData
+    property var fileData
     property string type: fileData.state == "conflicted" ? "conflict" : "error"
 
     width: parent ? parent.width - 10 : 0
