@@ -734,8 +734,8 @@ function main {
 	}
  elseif ($install -or $install_release) {
 		install_deps
-		if ((check_import "import PyQt5") -ne 1) {
-			Write-Output ">>> No PyQt5. Installation failed."
+		if ((check_import "import PyQt6") -ne 1) {
+			Write-Output ">>> No PyQt6. Installation failed."
 			ExitWithCode 1
 		}
 	}
