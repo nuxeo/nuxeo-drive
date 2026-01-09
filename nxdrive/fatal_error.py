@@ -34,7 +34,7 @@ def check_executable_path_error_qt(path: Path, /) -> None:
     msg.setText(content)
     msg.setWindowTitle(APP_NAME)
     msg.addButton(Translator.get("QUIT"), qt.AcceptRole)
-    msg.exec_()
+    msg.exec()
 
 
 def fatal_error_qt(exc_formatted: str, /) -> None:
@@ -165,7 +165,7 @@ def fatal_error_qt(exc_formatted: str, /) -> None:
 
     dialog.setLayout(layout)
     dialog.show()
-    app.exec_()
+    app.exec()
 
 
 def fatal_error_win(text: str, /) -> None:
