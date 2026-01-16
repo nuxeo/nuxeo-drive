@@ -301,7 +301,7 @@ class FoldersDialog(DialogMixin):
         # Handle paths added from the context menu
         self.newCtxTransfer.connect(self._process_additionnal_local_paths)
 
-        self.tree_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tree_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree_view.customContextMenuRequested.connect(self.open_menu)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:

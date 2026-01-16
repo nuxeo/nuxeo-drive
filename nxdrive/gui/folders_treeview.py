@@ -220,7 +220,7 @@ class FolderTreeView(TreeViewMixin):
             ):
                 self.selectionModel().select(
                     child.index(),
-                    QItemSelectionModel.ClearAndSelect,
+                    QItemSelectionModel.SelectionFlag.ClearAndSelect,
                 )
                 self.selectionModel().currentChanged.emit(child.index(), self.current)
                 return
