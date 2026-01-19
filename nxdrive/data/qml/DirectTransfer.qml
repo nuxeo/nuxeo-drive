@@ -7,6 +7,7 @@ import "icon-font/Icon.js" as MdiFont
 Rectangle {
     id: directTransfer
     anchors.fill: parent
+    color: uiBackground
 
     property string engineUid: ""
     property int activeSessionsCount: 0
@@ -46,6 +47,7 @@ Rectangle {
         id: buttonzone
         height: 60
         width: parent.width
+        color: uiBackground
         RowLayout {
             width: parent.width
             height: parent.height

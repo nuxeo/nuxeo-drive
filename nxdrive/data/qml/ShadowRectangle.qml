@@ -3,6 +3,7 @@ import QtQuick
 Rectangle {
     id: control
     radius: 8
+    color: lightTheme
     property string shadowColor: "#16000000"
     property real offset: Math.min(width*0.02, height*0.02)
     property int spread: 4

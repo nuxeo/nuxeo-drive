@@ -577,7 +577,12 @@ class Application(QApplication):
         context.setContextProperty("modulesVersionText", versions)
         context.setContextProperty("deviceIdText", device_id)
 
-        colors = {
+        # Theme support - detect OS dark mode using Qt's color scheme
+        is_dark_mode = self._is_system_dark_mode()
+        context.setContextProperty("isDarkMode", is_dark_mode)
+
+        # Light mode colors (default)
+        light_colors = {
             "mediumGray": "#7F8284",
             "lightGray": "#BCBFBF",
             "uiBackground": "#F4F4F4",
@@ -589,7 +594,7 @@ class Application(QApplication):
             "secondaryBgHover": "#0052CC",
             "secondaryButtonText": "#0066FF",
             "secondaryButtonTextHover": "#FFFFFF",
-            "buttonRedText": "#de350b",
+            "buttonRedText": "#DE350B",
             "buttonGreenText": "#057153",
             "buttonGrayText": "#444747",
             "primaryIcon": "#161616",
@@ -617,8 +622,56 @@ class Application(QApplication):
             "warningContent": "#FF9E00",
             "lightTheme": "#FFFFFF",
             "darkShadow": "#333333",
-            "refreshBackground": "#d0d1d6",
+            "refreshBackground": "#D0D1D6",
         }
+
+        # Dark mode colors
+        dark_colors = {
+            "mediumGray": "#A0A3A5",
+            "lightGray": "#4A4D4E",
+            "uiBackground": "#1E1E1E",
+            "primaryBg": "#4D94FF",
+            "primaryBgHover": "#3385FF",
+            "primaryButtonText": "#FFFFFF",
+            "primaryButtonTextHover": "#FFFFFF",
+            "secondaryBg": "transparent",
+            "secondaryBgHover": "#3385FF",
+            "secondaryButtonText": "#4D94FF",
+            "secondaryButtonTextHover": "#FFFFFF",
+            "buttonRedText": "#FF6B5B",
+            "buttonGreenText": "#36B37E",
+            "buttonGrayText": "#A0A3A5",
+            "primaryIcon": "#E4E4E4",
+            "secondaryIcon": "#B0B0B0",
+            "systrayIcon": "#FFFFFF",
+            "disabledIcon": "#5A5A5A",
+            "primaryText": "#E4E4E4",
+            "disabledText": "#5A5A5A",
+            "secondaryText": "#B0B0B0",
+            "progressFilled": "#4D94FF",
+            "progressFilledLight": "#7D4D94FF",  # Added 50% opacity (format AARRGGBB)
+            "progressEmpty": "#3D3D3D",
+            "focusedTab": "#E4E4E4",
+            "unfocusedTab": "#B0B0B0",
+            "focusedUnderline": "#4D94FF",
+            "unfocusedUnderline": "#4A4D4E",
+            "switchOnEnabled": "#4D94FF",
+            "switchOffEnabled": "#B0B0B0",
+            "switchDisabled": "#5A5A5A",
+            "interactiveLink": "#4D94FF",
+            "label": "#B0B0B0",
+            "grayBorder": "#6A6A6A",
+            "iconSuccess": "#36B37E",
+            "iconFailure": "#FF6B5B",
+            "errorContent": "#FF6B5B",
+            "warningContent": "#FFB54D",
+            "lightTheme": "#2D2D2D",
+            "darkShadow": "#121212",
+            "refreshBackground": "#3D3D3D",
+        }
+
+        # Select colors based on theme
+        colors = dark_colors if is_dark_mode else light_colors
 
         for name, value in colors.items():
             context.setContextProperty(name, value)
@@ -627,6 +680,41 @@ class Application(QApplication):
         if WINDOWS:
             return window.rootObject()
         return window
+
+    def _is_system_dark_mode(self) -> bool:
+        """Detect if the operating system is using dark mode."""
+        try:
+            # Qt 6.5+ provides colorScheme() on styleHints
+            style_hints = self.styleHints()
+            if hasattr(style_hints, "colorScheme"):
+                from PyQt6.QtCore import Qt
+
+                return style_hints.colorScheme() == Qt.ColorScheme.Dark
+        except Exception:
+            pass
+
+        # Fallback: Check palette for dark mode (works on most platforms)
+        try:
+            palette = self.palette()
+            # If window background is darker than text, it's likely dark mode
+            bg_color = palette.color(palette.ColorRole.Window)
+            text_color = palette.color(palette.ColorRole.WindowText)
+            # Calculate luminance (simple approximation)
+            bg_luminance = (
+                0.299 * bg_color.red()
+                + 0.587 * bg_color.green()
+                + 0.114 * bg_color.blue()
+            )
+            text_luminance = (
+                0.299 * text_color.red()
+                + 0.587 * text_color.green()
+                + 0.114 * text_color.blue()
+            )
+            return bg_luminance < text_luminance
+        except Exception:
+            pass
+
+        return False
 
     def translate(self, message: str, /, *, values: List[Any] = None) -> str:
         return Translator.get(message, values=values)

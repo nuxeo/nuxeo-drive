@@ -5,6 +5,7 @@ import "icon-font/Icon.js" as MdiFont
 
 Rectangle {
     id: control
+    color: uiBackground
 
     GridLayout {
         id: accountCreation
@@ -32,6 +33,7 @@ Rectangle {
         Layout.fillHeight: true
         height: parent.height - accountCreation.height
         width: parent.width
+        color: uiBackground
         anchors {
             top: accountCreation.bottom
             left: parent.left

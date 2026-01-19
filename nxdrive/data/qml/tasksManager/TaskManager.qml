@@ -8,6 +8,7 @@ import "../"
 Rectangle {
     id: taskManager
     anchors.fill: parent
+    color: uiBackground
 
     property string engineUid: ""
     property bool showSelfTasksList: false

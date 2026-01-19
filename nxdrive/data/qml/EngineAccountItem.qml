@@ -6,6 +6,7 @@ Rectangle {
     id: control
     width: parent ? parent.width : 0
     height: authenticated ? 100 : 125
+    color: uiBackground
     property bool authenticated: !api.has_invalid_credentials(uid)
     property string forceUi: force_ui || wui
     property bool sync_enabled: feat_synchronization.enabled
@@ -20,6 +21,7 @@ Rectangle {
             border.width: 1
             border.color: grayBorder
             radius: 10
+            color: lightTheme
 
             IconLabel {
                 id: disconnectIcon

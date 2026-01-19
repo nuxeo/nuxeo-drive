@@ -4,6 +4,7 @@ import QtQuick.Layouts
 
 Rectangle {
     id: control
+    color: uiBackground
 
     GridLayout {
         id: deletionBehavior
@@ -30,6 +31,7 @@ Rectangle {
         Layout.fillHeight: true
         height: parent.height
         width: parent.width
+        color: uiBackground
         anchors {
             top: deletionBehavior.bottom
             left: parent.left

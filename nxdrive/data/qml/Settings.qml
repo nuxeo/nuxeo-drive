@@ -3,9 +3,10 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
 
-Item {
+Rectangle {
     id: settings
     anchors.fill: parent
+    color: uiBackground
 
     FontLoader {
         id: iconFont

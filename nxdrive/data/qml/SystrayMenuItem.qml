@@ -13,6 +13,7 @@ Rectangle {
 
     ScaledText {
         id: itemText
+        color: primaryText
         text: control.text
 
         padding: 10
