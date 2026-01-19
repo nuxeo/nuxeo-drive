@@ -7,6 +7,7 @@ import "icon-font/Icon.js" as MdiFont
 Rectangle {
     id: systray
     width: 365; height: 370
+    color: uiBackground
     border {
         width: 1
         color: darkShadow
@@ -159,10 +160,10 @@ Rectangle {
                 IconLabel {
                      icon: MdiFont.Icon.minus
                     Image {
-                        source: "../icons/tasks.svg"
+                        source: isDarkMode ? "../icons/tasks_light.svg" : "../icons/tasks.svg"
                         anchors.fill: parent
                     }
-                    color: "#FFFFFF"
+                    color: lightTheme
                     enabled: feat_tasks_management.enabled
                     opacity: feat_tasks_management.enabled ? 1.0 : 0.2
                     onClicked: {
@@ -176,7 +177,7 @@ Rectangle {
                 // Icon 3: open remote server's URL
                 IconLabel {
                     icon: MdiFont.Icon.nuxeo
-                    iconColor: secondaryIcon
+                    iconColor: systrayIcon
                     onClicked: api.open_remote_server(accountSelect.getRole("uid"))
                     tooltip: api.get_hostname_from_url(accountSelect.getRole("server_url"))
                 }
@@ -184,7 +185,7 @@ Rectangle {
                 // Icon 4: open local sync root folder
                 IconLabel {
                     icon: MdiFont.Icon.folder
-                    iconColor: secondaryIcon
+                    iconColor: systrayIcon
                     onClicked: feat_synchronization.enabled ? api.open_local(accountSelect.getRole("uid"), "/") : null
                     tooltip: qsTr("OPEN_ROOT_FOLDER").arg(APP_NAME) + tl.tr
                     enabled: feat_synchronization.enabled
@@ -194,7 +195,7 @@ Rectangle {
                 // Icon 5: open the Direct Transfer window
                 IconLabel {
                     icon: MdiFont.Icon.directTransfert
-                    iconColor: secondaryIcon
+                    iconColor: systrayIcon
                     onClicked: feat_direct_transfer.enabled ? api.open_direct_transfer(accountSelect.getRole("uid")) : null
                     tooltip: qsTr("CONTEXT_MENU_4") + tl.tr
                     enabled: feat_direct_transfer.enabled
@@ -205,7 +206,7 @@ Rectangle {
                 IconLabel {
                     id: settingsContainer
                     icon: MdiFont.Icon.dotsVertical
-                    iconColor: secondaryIcon
+                    iconColor: systrayIcon
                     onClicked: contextMenu.visible = !contextMenu.visible
                 }
             }
@@ -223,6 +224,7 @@ Rectangle {
         // Transferring/synced files list
         Rectangle {
             Layout.fillWidth: true; Layout.fillHeight: true
+            color: uiBackground
 
             Flickable {
                 id: fileList
@@ -262,6 +264,7 @@ Rectangle {
                         width: parent.width
                         height: systrayContainer.extraCount > 0 ? 30 : 0
                         visible: systrayContainer.extraCount > 0
+                        color: uiBackground
                         Text {
                             text: qsTr("EXTRA_FILE_COUNT").arg(systrayContainer.extraCount) + tl.tr
                             anchors.centerIn: parent

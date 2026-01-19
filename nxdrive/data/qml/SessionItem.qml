@@ -11,6 +11,7 @@ Rectangle {
     visible: !shadow
     width: parent ? parent.width : 0
     height: shadow ? 0: 116
+    color: uiBackground
     RowLayout {
         anchors.fill: parent
         anchors.centerIn: parent
@@ -22,6 +23,7 @@ Rectangle {
             border.width: 1
             border.color: grayBorder
             radius: 10
+            color: lightTheme
 
             Layout.fillWidth: true
             Layout.fillHeight: true

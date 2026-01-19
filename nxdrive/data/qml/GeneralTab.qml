@@ -4,6 +4,7 @@ import QtQuick.Layouts
 
 Rectangle {
     id: control
+    color: uiBackground
 
     ColumnLayout {
         width: parent.width * 0.9

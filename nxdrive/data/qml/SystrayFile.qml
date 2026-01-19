@@ -8,6 +8,7 @@ Rectangle {
     property var fileData: model
     width: parent ? parent.width : 0
     height: 55
+    color: uiBackground
 
     ColumnLayout {
         anchors.fill: parent

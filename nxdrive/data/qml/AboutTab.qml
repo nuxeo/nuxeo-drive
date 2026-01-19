@@ -5,6 +5,7 @@ import "icon-font/Icon.js" as MdiFont
 
 Rectangle {
     id: control
+    color: uiBackground
 
     ColumnLayout {
         id: info

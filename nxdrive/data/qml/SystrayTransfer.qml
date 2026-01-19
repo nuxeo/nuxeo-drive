@@ -10,6 +10,7 @@ Rectangle {
     property bool download: transfer_type == "download"
     width: parent ? parent.width : 0
     height: 55
+    color: uiBackground
 
     ColumnLayout {
         anchors.fill: parent

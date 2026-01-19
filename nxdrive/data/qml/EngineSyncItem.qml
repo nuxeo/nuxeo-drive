@@ -5,6 +5,7 @@ Rectangle {
     id: control
     width: parent ? parent.width : 0
     height: 140
+    color: uiBackground
 
     RowLayout {
         anchors.fill: parent
@@ -16,6 +17,7 @@ Rectangle {
             border.width: 1
             border.color: grayBorder
             radius: 10
+            color: lightTheme
 
             GridLayout {
                 columns: 2
@@ -60,6 +62,7 @@ Rectangle {
                     border.color: progressFilled
                     border.width: 1
                     radius: 2
+                    color: lightTheme
                     Row {
                         anchors.fill: parent
                         anchors.margins: 2
