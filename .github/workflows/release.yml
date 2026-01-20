@@ -89,7 +89,7 @@ jobs:
       
       - name: "[GNU/Linux] Install Brotli system library"
         if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get install -y libbrotli-dev
+        run: sudo apt-get update && sudo apt-get install -y libbrotlidec1
 
 
       - name: "[GNU/Linux] Generate the .AppImage"
