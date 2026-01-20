@@ -87,17 +87,17 @@ jobs:
           mkdir build dist venv
           chmod 777 build dist venv
 
-      - name: "[GNU/Linux] Install Brotli system library"
-        if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get install -y libbrotli1 libbrotli-dev
-
-
       - name: "[GNU/Linux] Generate the .AppImage"
         if: matrix.os == 'ubuntu-latest'
         env:
           REGISTRY: "docker-private.packages.nuxeo.com"
           REPOSITORY: "nuxeo-drive-build"
-        run: docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.13.1" # XXX_PYTHON
+        run: |
+          docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.13.1" \
+            bash -c "apt-get update && apt-get install -y libbrotli1 libbrotli-dev && \
+            cd /opt/sources && \
+            ./tools/linux/deploy_ci_agent.sh --install-release && \
+            ./tools/linux/deploy_ci_agent.sh --build" # XXX_PYTHON
 
       - name: "[GNU/Linux] Ensure the AppImage is correct"
         if: matrix.os == 'ubuntu-latest'
