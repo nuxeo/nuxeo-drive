@@ -95,6 +95,8 @@ jobs:
         run: |
           docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.13.1" \
             bash -c "dnf install -y brotli brotli-devel && \
+            export WORKSPACE=/opt && \
+            export WORKSPACE_DRIVE=/opt/sources && \
             cd /opt/sources && \
             ./tools/linux/deploy_ci_agent.sh --install-release && \
             ./tools/linux/deploy_ci_agent.sh --build" # XXX_PYTHON
