@@ -94,7 +94,7 @@ jobs:
           REPOSITORY: "nuxeo-drive-build"
         run: |
           docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.13.1" \
-            bash -c "apt-get update && apt-get install -y libbrotli1 libbrotli-dev && \
+            bash -c "dnf install -y brotli brotli-devel && \
             cd /opt/sources && \
             ./tools/linux/deploy_ci_agent.sh --install-release && \
             ./tools/linux/deploy_ci_agent.sh --build" # XXX_PYTHON
