@@ -94,7 +94,7 @@ jobs:
           REPOSITORY: "nuxeo-drive-build"
         run: |
           docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.13.1" \
-            bash -c "dnf install -y brotli brotli-devel && \
+            bash -c "dnf install -y brotli brotli-devel mesa-libEGL && \
             export WORKSPACE=/opt && \
             export WORKSPACE_DRIVE=/opt/sources && \
             cd /opt/sources && \
