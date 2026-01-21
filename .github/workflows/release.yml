@@ -94,7 +94,7 @@ jobs:
           REPOSITORY: "nuxeo-drive-build"
         run: |
           docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${REPOSITORY}:py-3.13.1" \
-            bash -c "dnf install -y brotli brotli-devel mesa-libEGL && \
+            bash -c "dnf install -y brotli brotli-devel && \
             export WORKSPACE=/opt && \
             export WORKSPACE_DRIVE=/opt/sources && \
             cd /opt/sources && \
@@ -103,7 +103,9 @@ jobs:
 
       - name: "[GNU/Linux] Ensure the AppImage is correct"
         if: matrix.os == 'ubuntu-latest'
-        run: bash tools/linux/deploy_ci_agent.sh --check
+        run: |
+          sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
+          bash tools/linux/deploy_ci_agent.sh --check
 
       - name: "[GNU/Linux] Sign the .AppImage"
         if: matrix.os == 'ubuntu-latest'
