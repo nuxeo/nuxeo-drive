@@ -24,6 +24,7 @@ remove_excluded_files() {
 
 check() {
     # Check AppImage conformity.
+    sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
     echo ">>> [AppImage] Extracting the AppImage"
     cd dist
     [ -f "squashfs-root" ] && rm -rf "squashfs-root"
