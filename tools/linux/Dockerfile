@@ -20,6 +20,8 @@ WORKDIR /opt
 
 # Install required packages
 RUN dnf install -y \
+    brotli \
+    brotli-devel \
     dnf-plugins-core \
     file \
     gcc \
