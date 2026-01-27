@@ -7,6 +7,11 @@ export OSI="linux"
 
 . "$(python -c "import os.path; print(os.path.realpath('$0').replace('/linux/', '/posix/'))")"
 
+dependencies=(
+    "libegl1"
+    "libopengl0"
+)
+
 remove_excluded_files() {
     # Remove denylisted files known as having bad side effects
     local app_dir="$1"
@@ -24,7 +29,7 @@ remove_excluded_files() {
 
 check() {
     # Check AppImage conformity.
-    sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
+    sudo apt-get update && sudo apt-get install -y "${dependencies[@]}"
     echo ">>> [AppImage] Extracting the AppImage"
     cd dist
     [ -f "squashfs-root" ] && rm -rf "squashfs-root"
