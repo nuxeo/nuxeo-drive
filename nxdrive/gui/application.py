@@ -350,16 +350,17 @@ class Application(QApplication):
             self.app_engine.load(
                 QUrl.fromLocalFile(str(find_resource("qml", file="Main.qml")))
             )
-            log.info(f"QUrl.fromLocalFile: {QUrl.fromLocalFile(str(find_resource("qml", file="Main.qml")))}")
-            
+
             # Check if QML loaded successfully
             root_objects = self.app_engine.rootObjects()
             if not root_objects:
                 log.error("Failed to load QML! Checking for errors...")
                 for warning in self.app_engine.warnings():
                     log.error(f"QML Warning: {warning.toString()}")
-                raise RuntimeError("QML engine failed to load Main.qml - check logs for QML errors")
-            
+                raise RuntimeError(
+                    "QML engine failed to load Main.qml - check logs for QML errors"
+                )
+
             root = root_objects[0]
             self.conflicts_window = root.findChild(CustomWindow, "conflictsWindow")
             self.settings_window = root.findChild(CustomWindow, "settingsWindow")
@@ -605,6 +606,7 @@ class Application(QApplication):
             "unfocusedTab": "#525252",
             "focusedUnderline": "#0066FF",
             "unfocusedUnderline": "#E0E0E0",
+            "settingsTabGroup": "#FFFFFF",
             "switchOnEnabled": "#0066FF",
             "switchOffEnabled": "#525252",
             "switchDisabled": "#C6C6C6",
