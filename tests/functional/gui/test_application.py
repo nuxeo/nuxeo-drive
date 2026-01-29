@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from nuxeo.models import Document
-from PyQt5.QtCore import QModelIndex, QObject, Qt
+from PyQt6.QtCore import QModelIndex, QObject, Qt
 
 from nxdrive.client.workflow import Workflow
 from nxdrive.constants import WINDOWS
@@ -513,9 +513,9 @@ def app_obj(manager_factory):
     manager, engine = manager_factory()
     mock_qt = Mock_Qt()
     with patch(
-        "PyQt5.QtQml.QQmlApplicationEngine.rootObjects"
+        "PyQt6.QtQml.QQmlApplicationEngine.rootObjects"
     ) as mock_root_objects, patch(
-        "PyQt5.QtCore.QObject.findChild"
+        "PyQt6.QtCore.QObject.findChild"
     ) as mock_find_child, patch(
         "nxdrive.gui.application.Application.init_nxdrive_listener"
     ) as mock_listener, patch(
@@ -527,7 +527,7 @@ def app_obj(manager_factory):
     ) as mock_execute, patch(
         "nxdrive.engine.workers.Worker.run"
     ) as mock_run, patch(
-        "PyQt5.QtWidgets.QDialog.exec_"
+        "PyQt6.QtWidgets.QDialog.exec"
     ) as mock_exec, patch(
         "nxdrive.gui.application.Application.question"
     ) as mock_question:
@@ -546,8 +546,8 @@ def app_obj(manager_factory):
 
 @not_linux(reason="Qt does not work correctly on linux")
 def test_application_qt(app_obj, manager_factory, tmp_path):
-    from PyQt5.QtCore import QRect
-    from PyQt5.QtWidgets import QMessageBox
+    from PyQt6.QtCore import QRect
+    from PyQt6.QtWidgets import QMessageBox
 
     from nxdrive.constants import DelAction
 
@@ -600,7 +600,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
         )
     if not WINDOWS:  # For some reason, the values don't get mocked on Windows
         # Covering _root_deleted
-        with patch("PyQt5.QtCore.QObject.sender") as mock_sender, patch(
+        with patch("PyQt6.QtCore.QObject.sender") as mock_sender, patch(
             "nxdrive.gui.application.Application.question"
         ) as mock_question:
             mock_question.return_value = mock_qt
@@ -610,7 +610,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
         # Covering root_moved
         with patch(
             "nxdrive.gui.application.Application.question"
-        ) as mock_question, patch("PyQt5.QtCore.QObject.sender") as mock_sender:
+        ) as mock_question, patch("PyQt6.QtCore.QObject.sender") as mock_sender:
             mock_question.return_value = mock_qt
             mock_engine = Mock_Engine()
             mock_sender.return_value = mock_engine
@@ -618,7 +618,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
         # Covering doc_deleted
         with patch(
             "nxdrive.gui.application.Application.question"
-        ) as mock_question, patch("PyQt5.QtCore.QObject.sender") as mock_sender:
+        ) as mock_question, patch("PyQt6.QtCore.QObject.sender") as mock_sender:
             mock_question.return_value = mock_qt
             mock_engine = Mock_Engine()
             mock_sender.return_value = mock_engine
@@ -626,7 +626,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
         # Covering file_already_exists
         with patch(
             "nxdrive.gui.application.Application.question"
-        ) as mock_question, patch("PyQt5.QtCore.QObject.sender") as mock_sender, patch(
+        ) as mock_question, patch("PyQt6.QtCore.QObject.sender") as mock_sender, patch(
             "pathlib.Path.unlink"
         ) as mock_unlink:
             mock_question.return_value = mock_qt
@@ -653,7 +653,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
         assert isinstance(app.confirm_deletion(Path("tests/resources")), DelAction)
     # Covering show_systray
     assert app.show_systray() is None
-    with patch("PyQt5.QtWidgets.QStyle.alignedRect") as mock_align_rect:
+    with patch("PyQt6.QtWidgets.QStyle.alignedRect") as mock_align_rect:
         mock_align_rect.return_value = QRect()
         # Covering show_filters
         assert app.show_filters(engine) is None

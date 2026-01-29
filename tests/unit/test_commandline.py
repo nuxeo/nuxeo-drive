@@ -232,7 +232,7 @@ def test_clipboard_signal_block(cmd):
     with patch("nxdrive.utils.PidLockFile.lock") as mock_lock, patch(
         "nxdrive.commandline.CliHandler._get_application"
     ) as mock_application, patch(
-        "nxdrive.gui.application.Application.exec_"
+        "nxdrive.gui.application.Application.exec"
     ) as mock_exec, patch(
         "nxdrive.gui.application.Application.show_metrics_acceptance"
     ) as mock_show_metrics:
@@ -248,6 +248,6 @@ def test_send_to_running_instance(cmd):
     obj_cli = cmd
     obj_cli.manager = obj_cli.get_manager()
     mock_payload = bytes()
-    with patch("PyQt5.QtNetwork.QLocalSocket.waitForConnected") as mock_wait_connected:
+    with patch("PyQt6.QtNetwork.QLocalSocket.waitForConnected") as mock_wait_connected:
         mock_wait_connected.return_value = True
         assert obj_cli._send_to_running_instance(mock_payload, 100) is True

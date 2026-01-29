@@ -1,9 +1,16 @@
 from logging import getLogger
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
-from ..constants import MAC
+from ..constants import MAC, WINDOWS
 from ..qt import constants as qt
-from ..qt.imports import QApplication, QMenu, QQuickWindow, QSystemTrayIcon
+from ..qt.imports import (
+    QApplication,
+    QMenu,
+    QQuickView,
+    QQuickWindow,
+    QSystemTrayIcon,
+    QWindow,
+)
 from ..translator import Translator
 
 if TYPE_CHECKING:
@@ -86,9 +93,12 @@ class DriveSystrayIcon(QSystemTrayIcon):
         return menu
 
 
-class SystrayWindow(QQuickWindow):
-    def __init__(self, parent: "QQuickWindow | None" = None) -> None:
-        super().__init__(parent)
+inherited_base_class = QQuickView if WINDOWS else QQuickWindow
+
+
+class SystrayWindow(inherited_base_class):  # type: ignore
+    def __init__(self, parent: Optional[QWindow] = None) -> None:
+        super().__init__(parent=parent)
         self.activeChanged.connect(self._on_active_changed)
 
     def _on_active_changed(self) -> None:
