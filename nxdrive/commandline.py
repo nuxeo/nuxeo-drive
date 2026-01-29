@@ -644,7 +644,7 @@ class CliHandler:
                 clipboard = app.clipboard()
                 clipboard.blockSignals(True)
 
-            exit_code = app.exec_()
+            exit_code = app.exec()
 
         lock.unlock()
         log.info(f"{APP_NAME} exited with code {exit_code}")

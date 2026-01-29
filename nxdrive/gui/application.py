@@ -157,7 +157,7 @@ class Application(QApplication):
         # Therefore, you often will find event loops being used in GUI or web frameworks.
         #
         # However, the pitfall here is that Qt is implemented in C++ and not in Python.
-        # When we execute app.exec_() we start the Qt/C++ event loop, which loops
+        # When we execute app.exec() we start the Qt/C++ event loop, which loops
         # forever until it is stopped.
         #
         # The problem here is that we don't have any Python events set up yet.
@@ -662,7 +662,7 @@ class Application(QApplication):
         if details:
             msg.setDetailedText(details)
         if execute:
-            msg.exec_()
+            msg.exec()
         return msg
 
     def display_info(self, title: str, message: str, values: List[str], /) -> None:
@@ -720,7 +720,7 @@ class Application(QApplication):
                 Translator.get("DIRECT_EDIT_CONFLICT_OVERWRITE"), qt.AcceptRole
             )
             msg.addButton(Translator.get("CANCEL"), qt.RejectRole)
-            msg.exec_()
+            msg.exec()
             if msg.clickedButton() == overwrite:
                 self.manager.direct_edit.force_update(ref, digest)
             del self._conflicts_modals[filename]
@@ -756,7 +756,7 @@ class Application(QApplication):
             Translator.get("DRIVE_ROOT_DISCONNECT"), qt.RejectRole
         )
 
-        msg.exec_()
+        msg.exec()
         res = msg.clickedButton()
         if res == disconnect:
             self.manager.unbind_engine(engine.uid)
@@ -797,7 +797,7 @@ class Application(QApplication):
         disconnect = msg.addButton(
             Translator.get("DRIVE_ROOT_DISCONNECT"), qt.RejectRole
         )
-        msg.exec_()
+        msg.exec()
         res = msg.clickedButton()
 
         if res == disconnect:
@@ -833,7 +833,7 @@ class Application(QApplication):
         cb = QCheckBox(Translator.get("DONT_ASK_AGAIN"))
         msg.setCheckBox(cb)
 
-        msg.exec_()
+        msg.exec()
         res = msg.clickedButton()
 
         if cb.isChecked():
@@ -848,7 +848,7 @@ class Application(QApplication):
             )
             msg.addButton(Translator.get("NO"), qt.RejectRole)
             confirm = msg.addButton(Translator.get("YES"), qt.AcceptRole)
-            msg.exec_()
+            msg.exec()
             if msg.clickedButton() == confirm:
                 self.manager.set_deletion_behavior(DelAction.UNSYNC)
             return DelAction.UNSYNC
@@ -881,7 +881,7 @@ class Application(QApplication):
         )
         replace = msg.addButton(Translator.get("REPLACE"), qt.AcceptRole)
         msg.addButton(Translator.get("CANCEL"), qt.RejectRole)
-        msg.exec_()
+        msg.exec()
         if msg.clickedButton() == replace:
             oldpath.unlink()
             normalize_event_filename(newpath)
@@ -1080,7 +1080,7 @@ class Application(QApplication):
         spacer = QSpacerItem(600, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
         layout = msg_box.layout()
         layout.addItem(spacer, layout.rowCount(), 0, 1, layout.columnCount())
-        msg_box.exec_()
+        msg_box.exec()
 
     @pyqtSlot(str, int, str)
     def confirm_cancel_transfer(
@@ -1097,7 +1097,7 @@ class Application(QApplication):
         continued = msg.addButton(Translator.get("YES"), qt.AcceptRole)
         cancel = msg.addButton(Translator.get("NO"), qt.RejectRole)
         msg.setDefaultButton(cancel)
-        msg.exec_()
+        msg.exec()
         if msg.clickedButton() == continued:
             engine = self.manager.engines.get(engine_uid)
             if not engine:
@@ -1120,7 +1120,7 @@ class Application(QApplication):
         continued = msg.addButton(Translator.get("YES"), qt.AcceptRole)
         cancel = msg.addButton(Translator.get("NO"), qt.RejectRole)
         msg.setDefaultButton(cancel)
-        msg.exec_()
+        msg.exec()
         if msg.clickedButton() == continued:
             self.api.cancel_session(engine_uid, session_uid)
             return True
@@ -1214,7 +1214,7 @@ class Application(QApplication):
         layout.addWidget(buttons)
 
         dialog.setLayout(layout)
-        dialog.exec_()
+        dialog.exec()
 
     @pyqtSlot(object)
     def _connect_engine(self, engine: Engine, /) -> None:
@@ -1345,7 +1345,7 @@ class Application(QApplication):
         else:
             msg.addButton(Translator.get("CONTINUE"), qt.RejectRole)
 
-        msg.exec_()
+        msg.exec()
         if downgrade_version and msg.clickedButton() == downgrade:
             self.manager.updater.update(downgrade_version)
 
@@ -1380,7 +1380,7 @@ class Application(QApplication):
             qt.AcceptRole,
         )
 
-        msg.exec_()
+        msg.exec()
         res = msg.clickedButton()
         if downgrade_version and res == downgrade:
             self.manager.updater.update(downgrade_version)
@@ -1571,7 +1571,7 @@ class Application(QApplication):
         layout.addWidget(bypass)
         layout.addWidget(buttons)
         dialog.setLayout(layout)
-        dialog.exec_()
+        dialog.exec()
 
         return continue_with_bad_ssl_cert
 
@@ -1849,7 +1849,7 @@ class Application(QApplication):
         layout.addWidget(select)
         layout.addWidget(buttons)
         dialog.setLayout(layout)
-        dialog.exec_()
+        dialog.exec()
 
         return selected_engine
 
@@ -2066,7 +2066,7 @@ class Application(QApplication):
         dialog.setLayout(layout)
         dialog.resize(400, 200)
         dialog.show()
-        dialog.exec_()
+        dialog.exec()
 
         states = []
         if Options.use_analytics:
