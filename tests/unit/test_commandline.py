@@ -232,7 +232,7 @@ def test_clipboard_signal_block(cmd):
     with patch("nxdrive.utils.PidLockFile.lock") as mock_lock, patch(
         "nxdrive.commandline.CliHandler._get_application"
     ) as mock_application, patch(
-        "nxdrive.gui.application.Application.exec_"
+        "nxdrive.gui.application.Application.exec"
     ) as mock_exec, patch(
         "nxdrive.gui.application.Application.show_metrics_acceptance"
     ) as mock_show_metrics:
