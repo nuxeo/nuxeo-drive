@@ -1,11 +1,12 @@
+import os
 import shutil
+import sqlite3
 import sys
+from datetime import datetime
 
 import nuxeo.client
 import nuxeo.operations
 import pytest
-import sqlite3
-from datetime import datetime
 from nuxeo.client import Nuxeo
 
 from nxdrive.options import Options
@@ -21,6 +22,10 @@ OPS_CACHE = None
 SERVER_INFO = None
 
 sqlite3.register_adapter(datetime, adapt_datetime_iso)
+
+# Check __main.py__ for explanation
+if sys.platform == "win32":
+    os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
 
 
 @pytest.hookimpl(trylast=True, hookwrapper=True)
