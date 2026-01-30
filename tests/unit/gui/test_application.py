@@ -408,7 +408,7 @@ class TestRootMoved:
             mock_msg.addButton = Mock()
             mock_disconnect_btn = Mock()
             mock_msg.addButton.return_value = mock_disconnect_btn
-            mock_msg.exec_ = Mock()
+            mock_msg.exec = Mock()
             mock_msg.clickedButton = Mock(return_value=mock_disconnect_btn)
 
             with patch.object(app, "question", return_value=mock_msg):
@@ -437,7 +437,7 @@ class TestConfirmDeletion:
             mock_cb.isChecked = Mock(return_value=False)
             mock_msg.setCheckBox = Mock()
             mock_msg.addButton = Mock(return_value=mock_confirm_btn)
-            mock_msg.exec_ = Mock()
+            mock_msg.exec = Mock()
             mock_msg.clickedButton = Mock(return_value=mock_confirm_btn)
 
             with patch.object(app, "question", return_value=mock_msg), patch(
@@ -469,14 +469,14 @@ class TestConfirmDeletion:
             # Setup button returns
             button_calls = [mock_unsync_btn, Mock(), mock_confirm_btn]
             mock_msg.addButton = Mock(side_effect=button_calls)
-            mock_msg.exec_ = Mock()
+            mock_msg.exec = Mock()
             mock_msg.clickedButton = Mock(return_value=mock_unsync_btn)
 
             # Second dialog for confirmation
             mock_msg2 = Mock(spec=QMessageBox)
             mock_yes_btn = Mock()
             mock_msg2.addButton = Mock(return_value=mock_yes_btn)
-            mock_msg2.exec_ = Mock()
+            mock_msg2.exec = Mock()
             mock_msg2.clickedButton = Mock(return_value=mock_yes_btn)
 
             with patch.object(
@@ -507,7 +507,7 @@ class TestConfirmDeletion:
             mock_cb.isChecked = Mock(return_value=False)
             mock_msg.setCheckBox = Mock()
             mock_msg.addButton = Mock(return_value=mock_confirm_btn)
-            mock_msg.exec_ = Mock()
+            mock_msg.exec = Mock()
             mock_msg.clickedButton = Mock(return_value=mock_confirm_btn)
 
             with patch.object(app, "question", return_value=mock_msg), patch(
@@ -535,7 +535,7 @@ class TestConfirmDeletion:
             mock_cb.isChecked = Mock(return_value=True)
             mock_msg.setCheckBox = Mock()
             mock_msg.addButton = Mock(return_value=mock_confirm_btn)
-            mock_msg.exec_ = Mock()
+            mock_msg.exec = Mock()
             mock_msg.clickedButton = Mock(return_value=mock_confirm_btn)
 
             with patch.object(app, "question", return_value=mock_msg), patch(

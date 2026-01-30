@@ -543,7 +543,7 @@ class Mock_Qt:
     def emit(self, *args):
         pass
 
-    def exec_(self):
+    def exec(self):
         pass
 
     def height(self):
