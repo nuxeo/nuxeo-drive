@@ -831,3 +831,4 @@ class HealthCheck:
             self.crash_file.unlink(missing_ok=True)
         except Exception:
             log.exception("Cannot clean-up the crash file")
+            log.info("testing")
