@@ -1111,7 +1111,7 @@ class Application(QApplication):
             [remote_url, remote_path, duplicates_list_html],
             execute=False,
         )
-        spacer = QSpacerItem(600, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        spacer = QSpacerItem(600, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         layout = msg_box.layout()
         layout.addItem(spacer, layout.rowCount(), 0, 1, layout.columnCount())
         msg_box.exec()
