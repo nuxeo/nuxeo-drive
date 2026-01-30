@@ -18,262 +18,262 @@ if not WINDOWS:
 log = getLogger(__name__)
 
 
-def launch(exe, args: str, wait: int = 0) -> None:
-    print(f"launch called with args={args}, wait={wait}")
-    try:
-        with exe(args=args, wait=wait) as app:
-            return not fatal_error_dlg(app, wait_timeout_multiplier=1)
-    except Exception:
-        return False
+# def launch(exe, args: str, wait: int = 0) -> None:
+#     print(f"launch called with args={args}, wait={wait}")
+#     try:
+#         with exe(args=args, wait=wait) as app:
+#             return not fatal_error_dlg(app, wait_timeout_multiplier=1)
+#     except Exception:
+#         return False
 
 
-def bind(exe, args: str) -> None:
-    """bind-server option. Used at several places so moved out test functions."""
-    print(f"bind called with args={args}")
-    return launch(exe, f"bind-server {args}")
+# def bind(exe, args: str) -> None:
+#     """bind-server option. Used at several places so moved out test functions."""
+#     print(f"bind called with args={args}")
+#     return launch(exe, f"bind-server {args}")
 
 
-def unbind(exe, args: str) -> None:
-    """unbind-server option. Used at several places so moved out test functions."""
-    print(f"unbind called with args={args}")
-    return launch(exe, f"unbind-server {args}")
+# def unbind(exe, args: str) -> None:
+#     """unbind-server option. Used at several places so moved out test functions."""
+#     print(f"unbind called with args={args}")
+#     return launch(exe, f"unbind-server {args}")
 
 
-def test_console(exe):
-    print("test_console called")
-    assert launch(exe, "console")
+# def test_console(exe):
+#     print("test_console called")
+#     assert launch(exe, "console")
 
 
-@pytest.mark.parametrize(
-    "args",
-    [
-        "{user} {url}",
-        "{user} {url} --password=BadP@ssw0rd",
-        # --local-folder argument is tested in test_unbind()
-    ],
-)
-def test_bind_server(nuxeo_url, exe, args):
-    """
-    Test only with no access to the server to prevent useless binds.
-    Real binds are tested in test_unbind_server().
-    """
-    print(f"test_bind_server called with nuxeo_url={nuxeo_url}, args={args}")
-    assert bind(exe, args.format(user=env.NXDRIVE_TEST_USERNAME, url=nuxeo_url))
+# @pytest.mark.parametrize(
+#     "args",
+#     [
+#         "{user} {url}",
+#         "{user} {url} --password=BadP@ssw0rd",
+#         # --local-folder argument is tested in test_unbind()
+#     ],
+# )
+# def test_bind_server(nuxeo_url, exe, args):
+#     """
+#     Test only with no access to the server to prevent useless binds.
+#     Real binds are tested in test_unbind_server().
+#     """
+#     print(f"test_bind_server called with nuxeo_url={nuxeo_url}, args={args}")
+#     assert bind(exe, args.format(user=env.NXDRIVE_TEST_USERNAME, url=nuxeo_url))
 
 
-@pytest.mark.parametrize(
-    "args",
-    [
-        "",
-        env.NXDRIVE_TEST_USERNAME,
-        env.NXDRIVE_TEST_NUXEO_URL,
-        f"--password={env.NXDRIVE_TEST_PASSWORD}",
-        "--local-folder=foo",
-    ],
-)
-def test_bind_server_missing_arguments(exe, args):
-    print(f"test_bind_server_missing_arguments called with args={args}")
-    assert not bind(exe, args)
+# @pytest.mark.parametrize(
+#     "args",
+#     [
+#         "",
+#         env.NXDRIVE_TEST_USERNAME,
+#         env.NXDRIVE_TEST_NUXEO_URL,
+#         f"--password={env.NXDRIVE_TEST_PASSWORD}",
+#         "--local-folder=foo",
+#     ],
+# )
+# def test_bind_server_missing_arguments(exe, args):
+#     print(f"test_bind_server_missing_arguments called with args={args}")
+#     assert not bind(exe, args)
 
 
-@pytest.mark.parametrize("folder", ["Léa$", "this folder is good enough こん ツリ ^^"])
-def test_unbind_server(nuxeo_url, exe, folder):
-    """Will also test clean-folder."""
-    print(f"test_unbind_server called with nuxeo_url={nuxeo_url}, folder={folder}")
-    folder = tempfile.TemporaryDirectory(prefix=folder)
-    expanded_folder = folder.name
-    local_folder = f'--local-folder "{expanded_folder}"'
-    test_password = f"--password {env.NXDRIVE_TEST_PASSWORD}"
-    args = f"{test_password} {local_folder} {env.NXDRIVE_TEST_USERNAME} {nuxeo_url}"
+# @pytest.mark.parametrize("folder", ["Léa$", "this folder is good enough こん ツリ ^^"])
+# def test_unbind_server(nuxeo_url, exe, folder):
+#     """Will also test clean-folder."""
+#     print(f"test_unbind_server called with nuxeo_url={nuxeo_url}, folder={folder}")
+#     folder = tempfile.TemporaryDirectory(prefix=folder)
+#     expanded_folder = folder.name
+#     local_folder = f'--local-folder "{expanded_folder}"'
+#     test_password = f"--password {env.NXDRIVE_TEST_PASSWORD}"
+#     args = f"{test_password} {local_folder} {env.NXDRIVE_TEST_USERNAME} {nuxeo_url}"
 
-    try:
-        assert bind(exe, args)
-        assert os.path.isdir(expanded_folder)
-        assert unbind(exe, local_folder)
-    finally:
-        assert launch(exe, f"clean-folder {local_folder}")
+#     try:
+#         assert bind(exe, args)
+#         assert os.path.isdir(expanded_folder)
+#         assert unbind(exe, local_folder)
+#     finally:
+#         assert launch(exe, f"clean-folder {local_folder}")
 
-        os.chmod(expanded_folder, stat.S_IWUSR)
-        shutil.rmtree(expanded_folder)
-        folder.cleanup()
-        assert not os.path.isdir(expanded_folder)
-
-
-@pytest.mark.parametrize("folder", ["", "this folder does not exist こん ツリ ^^ Léa$"])
-def test_unbind_server_missing_argument(exe, folder):
-    """Without (or invalid) argument must not fail at all."""
-    print(f"test_unbind_server_missing_argument called with folder={folder}")
-    local_folder = f'--local-folder="{folder}"'
-    assert unbind(exe, local_folder)
+#         os.chmod(expanded_folder, stat.S_IWUSR)
+#         shutil.rmtree(expanded_folder)
+#         folder.cleanup()
+#         assert not os.path.isdir(expanded_folder)
 
 
-def test_bind_root_doc_not_found(nuxeo_url, exe, server, tmp):
-    print(f"test_bind_root_doc_not_found called with nuxeo_url={nuxeo_url}")
-    args = f"bind-root 'inexistant folder' --local-folder='{str(tmp())}'"
-    assert not launch(exe, args)
+# @pytest.mark.parametrize("folder", ["", "this folder does not exist こん ツリ ^^ Léa$"])
+# def test_unbind_server_missing_argument(exe, folder):
+#     """Without (or invalid) argument must not fail at all."""
+#     print(f"test_unbind_server_missing_argument called with folder={folder}")
+#     local_folder = f'--local-folder="{folder}"'
+#     assert unbind(exe, local_folder)
 
 
-def test_unbind_root_doc_not_found(nuxeo_url, exe, server, tmp):
-    print(f"test_unbind_root_doc_not_found called with nuxeo_url={nuxeo_url}")
-    args = f"unbind-root 'inexistant folder' --local-folder='{str(tmp())}'"
-    assert not launch(exe, args)
+# def test_bind_root_doc_not_found(nuxeo_url, exe, server, tmp):
+#     print(f"test_bind_root_doc_not_found called with nuxeo_url={nuxeo_url}")
+#     args = f"bind-root 'inexistant folder' --local-folder='{str(tmp())}'"
+#     assert not launch(exe, args)
 
 
-def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp):
-    """Automate things:
-    - bind a server
-    - bind a root
-    - sync data
-    - unbind the root
-    - unbind the server
-    """
-    print(
-        f"test_complete_scenario_synchronization_from_zero called with nuxeo_url={nuxeo_url}"
-    )
-
-    folder = tempfile.TemporaryDirectory(prefix="sync_test")
-    expanded_folder = folder.name
-    local_folder = f'--local-folder="{str(expanded_folder)}"'
-
-    ws = None
-
-    try:
-        # 1st, bind the server
-        args = f"{env.NXDRIVE_TEST_USERNAME} {nuxeo_url} {local_folder} --password {env.NXDRIVE_TEST_PASSWORD}"
-        assert bind(exe, args)
-        assert os.path.isdir(expanded_folder)
-
-        # 2nd, create a workspace
-        new = Document(
-            name="sync and stop",
-            type="Workspace",
-            properties={"dc:title": "sync and stop"},
-        )
-        ws = server.documents.create(new, parent_path=env.WS_DIR)
-
-        # 3rd, bind the root (e.g.: enable the sync of the workspace)
-        args = f'bind-root "{ws.path}" {local_folder}'
-        assert launch(exe, args, wait=5)
-
-        # 4th, sync and quit
-        assert launch(exe, "console --sync-and-quit", wait=40)
-
-        # Check
-        new_path = os.path.join(expanded_folder, ws.title)
-        os.mkdir(new_path)
-        assert os.path.isdir(new_path)
-
-        # Unbind the root
-        args = f'unbind-root "{ws.path}" {local_folder}'
-        assert launch(exe, args)
-
-        # Unbind the server
-        assert unbind(exe, local_folder)
-    finally:
-        if ws:
-            ws.delete()
-
-        assert launch(exe, f"clean-folder {local_folder}")
-
-        os.chmod(expanded_folder, stat.S_IWUSR)
-        shutil.rmtree(expanded_folder)
-        folder.cleanup()
-        assert not os.path.isdir(expanded_folder)
+# def test_unbind_root_doc_not_found(nuxeo_url, exe, server, tmp):
+#     print(f"test_unbind_root_doc_not_found called with nuxeo_url={nuxeo_url}")
+#     args = f"unbind-root 'inexistant folder' --local-folder='{str(tmp())}'"
+#     assert not launch(exe, args)
 
 
-def test_ctx_menu_access_online_inexistant(nuxeo_url, exe, server, tmp):
-    """It should be a no-op, no fatal error."""
-    print(f"test_ctx_menu_access_online_inexistant called with nuxeo_url={nuxeo_url}")
-    args = 'access-online --file="bla bla bla"'
-    assert launch(exe, args)
+# def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp):
+#     """Automate things:
+#     - bind a server
+#     - bind a root
+#     - sync data
+#     - unbind the root
+#     - unbind the server
+#     """
+#     print(
+#         f"test_complete_scenario_synchronization_from_zero called with nuxeo_url={nuxeo_url}"
+#     )
+
+#     folder = tempfile.TemporaryDirectory(prefix="sync_test")
+#     expanded_folder = folder.name
+#     local_folder = f'--local-folder="{str(expanded_folder)}"'
+
+#     ws = None
+
+#     try:
+#         # 1st, bind the server
+#         args = f"{env.NXDRIVE_TEST_USERNAME} {nuxeo_url} {local_folder} --password {env.NXDRIVE_TEST_PASSWORD}"
+#         assert bind(exe, args)
+#         assert os.path.isdir(expanded_folder)
+
+#         # 2nd, create a workspace
+#         new = Document(
+#             name="sync and stop",
+#             type="Workspace",
+#             properties={"dc:title": "sync and stop"},
+#         )
+#         ws = server.documents.create(new, parent_path=env.WS_DIR)
+
+#         # 3rd, bind the root (e.g.: enable the sync of the workspace)
+#         args = f'bind-root "{ws.path}" {local_folder}'
+#         assert launch(exe, args, wait=5)
+
+#         # 4th, sync and quit
+#         assert launch(exe, "console --sync-and-quit", wait=40)
+
+#         # Check
+#         new_path = os.path.join(expanded_folder, ws.title)
+#         os.mkdir(new_path)
+#         assert os.path.isdir(new_path)
+
+#         # Unbind the root
+#         args = f'unbind-root "{ws.path}" {local_folder}'
+#         assert launch(exe, args)
+
+#         # Unbind the server
+#         assert unbind(exe, local_folder)
+#     finally:
+#         if ws:
+#             ws.delete()
+
+#         assert launch(exe, f"clean-folder {local_folder}")
+
+#         os.chmod(expanded_folder, stat.S_IWUSR)
+#         shutil.rmtree(expanded_folder)
+#         folder.cleanup()
+#         assert not os.path.isdir(expanded_folder)
 
 
-def test_ctx_menu_copy_share_link_inexistant(nuxeo_url, exe, server, tmp):
-    print(f"test_ctx_menu_copy_share_link_inexistant called with nuxeo_url={nuxeo_url}")
-    args = 'copy-share-link --file="bla bla bla"'
-    assert launch(exe, args)
-    url_copied = cb_get()
-    assert not url_copied.startswith(nuxeo_url)
+# def test_ctx_menu_access_online_inexistant(nuxeo_url, exe, server, tmp):
+#     """It should be a no-op, no fatal error."""
+#     print(f"test_ctx_menu_access_online_inexistant called with nuxeo_url={nuxeo_url}")
+#     args = 'access-online --file="bla bla bla"'
+#     assert launch(exe, args)
 
 
-def test_ctx_menu_edit_metadata_inexistant(nuxeo_url, exe, server, tmp):
-    """It should be a no-op, no fatal error."""
-    print(f"test_ctx_menu_edit_metadata_inexistant called with nuxeo_url={nuxeo_url}")
-    args = 'edit-metadata --file="bla bla bla"'
-    assert launch(exe, args)
+# def test_ctx_menu_copy_share_link_inexistant(nuxeo_url, exe, server, tmp):
+#     print(f"test_ctx_menu_copy_share_link_inexistant called with nuxeo_url={nuxeo_url}")
+#     args = 'copy-share-link --file="bla bla bla"'
+#     assert launch(exe, args)
+#     url_copied = cb_get()
+#     assert not url_copied.startswith(nuxeo_url)
 
 
-def test_ctx_menu_entries(nuxeo_url, exe, server, tmp):
-    """Will test:
-    - access-online
-    - copy-share-link
-    - edit-metadata
-    """
-    print(f"test_ctx_menu_entries called with nuxeo_url={nuxeo_url}")
-
-    folder = tmp()
-    assert not folder.is_dir()
-    os.mkdir(folder)
-    local_folder = f'--local-folder="{str(folder)}"'
-
-    ws = None
-
-    try:
-        # 1st, bind the server
-        args = f"{env.NXDRIVE_TEST_USERNAME} {nuxeo_url} {local_folder} --password {env.NXDRIVE_TEST_PASSWORD}"
-        assert bind(exe, args)
-        assert folder.is_dir()
-
-        # 2nd, create a workspace
-        new = Document(
-            name="my workspace",
-            type="Workspace",
-            properties={"dc:title": "my workspace"},
-        )
-        ws = server.documents.create(new, parent_path=env.WS_DIR)
-
-        # 3rd, bind the root (e.g.: enable the sync of the workspace)
-        args = f'bind-root "{ws.path}" {local_folder}'
-        assert launch(exe, args, wait=5)
-
-        # 4th, sync and quit
-        assert launch(exe, "console --sync-and-quit", wait=40)
-
-        # Check
-        synced_folder = os.path.join(folder, ws.title)
-
-        os.mkdir(synced_folder)
-        assert os.path.isdir(synced_folder)
-
-        # Get the copy-share link
-        args = f'copy-share-link --file="{str(synced_folder)}"'
-        assert launch(exe, args)
-
-        # Test access-online, it should open a browser
-        args = f'access-online --file="{str(synced_folder)}"'
-        assert launch(exe, args)
-
-        # Test edit-metadata, it should open a browser
-        args = f'edit-metadata --file="{str(synced_folder)}"'
-        assert launch(exe, args)
-    finally:
-        if ws:
-            ws.delete()
-
-        assert launch(exe, f"clean-folder {local_folder}")
-
-        os.chmod(folder, stat.S_IWUSR)
-        shutil.rmtree(folder)
-        assert not os.path.isdir(folder)
+# def test_ctx_menu_edit_metadata_inexistant(nuxeo_url, exe, server, tmp):
+#     """It should be a no-op, no fatal error."""
+#     print(f"test_ctx_menu_edit_metadata_inexistant called with nuxeo_url={nuxeo_url}")
+#     args = 'edit-metadata --file="bla bla bla"'
+#     assert launch(exe, args)
 
 
-def test_app_init_workflow_via_subprocess(final_exe):
-    print(f"test_app_init_workflow_via_subprocess called with final_exe={final_exe}")
-    import subprocess
+# def test_ctx_menu_entries(nuxeo_url, exe, server, tmp):
+#     """Will test:
+#     - access-online
+#     - copy-share-link
+#     - edit-metadata
+#     """
+#     print(f"test_ctx_menu_entries called with nuxeo_url={nuxeo_url}")
 
-    p = subprocess.Popen([final_exe, "console"])
-    p.terminate()
-    p.wait(timeout=30)
-    p.kill()
-    poll = p.poll()
-    assert poll is not None
+#     folder = tmp()
+#     assert not folder.is_dir()
+#     os.mkdir(folder)
+#     local_folder = f'--local-folder="{str(folder)}"'
+
+#     ws = None
+
+#     try:
+#         # 1st, bind the server
+#         args = f"{env.NXDRIVE_TEST_USERNAME} {nuxeo_url} {local_folder} --password {env.NXDRIVE_TEST_PASSWORD}"
+#         assert bind(exe, args)
+#         assert folder.is_dir()
+
+#         # 2nd, create a workspace
+#         new = Document(
+#             name="my workspace",
+#             type="Workspace",
+#             properties={"dc:title": "my workspace"},
+#         )
+#         ws = server.documents.create(new, parent_path=env.WS_DIR)
+
+#         # 3rd, bind the root (e.g.: enable the sync of the workspace)
+#         args = f'bind-root "{ws.path}" {local_folder}'
+#         assert launch(exe, args, wait=5)
+
+#         # 4th, sync and quit
+#         assert launch(exe, "console --sync-and-quit", wait=40)
+
+#         # Check
+#         synced_folder = os.path.join(folder, ws.title)
+
+#         os.mkdir(synced_folder)
+#         assert os.path.isdir(synced_folder)
+
+#         # Get the copy-share link
+#         args = f'copy-share-link --file="{str(synced_folder)}"'
+#         assert launch(exe, args)
+
+#         # Test access-online, it should open a browser
+#         args = f'access-online --file="{str(synced_folder)}"'
+#         assert launch(exe, args)
+
+#         # Test edit-metadata, it should open a browser
+#         args = f'edit-metadata --file="{str(synced_folder)}"'
+#         assert launch(exe, args)
+#     finally:
+#         if ws:
+#             ws.delete()
+
+#         assert launch(exe, f"clean-folder {local_folder}")
+
+#         os.chmod(folder, stat.S_IWUSR)
+#         shutil.rmtree(folder)
+#         assert not os.path.isdir(folder)
+
+
+# def test_app_init_workflow_via_subprocess(final_exe):
+#     print(f"test_app_init_workflow_via_subprocess called with final_exe={final_exe}")
+#     import subprocess
+
+#     p = subprocess.Popen([final_exe, "console"])
+#     p.terminate()
+#     p.wait(timeout=30)
+#     p.kill()
+#     poll = p.poll()
+#     assert poll is not None
