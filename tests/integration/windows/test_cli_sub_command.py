@@ -19,6 +19,7 @@ log = getLogger(__name__)
 
 
 def launch(exe, args: str, wait: int = 0) -> None:
+    print(f"launch called with args={args}, wait={wait}")
     try:
         with exe(args=args, wait=wait) as app:
             return not fatal_error_dlg(app, wait_timeout_multiplier=1)
@@ -28,15 +29,18 @@ def launch(exe, args: str, wait: int = 0) -> None:
 
 def bind(exe, args: str) -> None:
     """bind-server option. Used at several places so moved out test functions."""
+    print(f"bind called with args={args}")
     return launch(exe, f"bind-server {args}")
 
 
 def unbind(exe, args: str) -> None:
     """unbind-server option. Used at several places so moved out test functions."""
+    print(f"unbind called with args={args}")
     return launch(exe, f"unbind-server {args}")
 
 
 def test_console(exe):
+    print("test_console called")
     assert launch(exe, "console")
 
 
@@ -53,6 +57,7 @@ def test_bind_server(nuxeo_url, exe, args):
     Test only with no access to the server to prevent useless binds.
     Real binds are tested in test_unbind_server().
     """
+    print(f"test_bind_server called with nuxeo_url={nuxeo_url}, args={args}")
     assert bind(exe, args.format(user=env.NXDRIVE_TEST_USERNAME, url=nuxeo_url))
 
 
@@ -67,12 +72,14 @@ def test_bind_server(nuxeo_url, exe, args):
     ],
 )
 def test_bind_server_missing_arguments(exe, args):
+    print(f"test_bind_server_missing_arguments called with args={args}")
     assert not bind(exe, args)
 
 
 @pytest.mark.parametrize("folder", ["Léa$", "this folder is good enough こん ツリ ^^"])
 def test_unbind_server(nuxeo_url, exe, folder):
     """Will also test clean-folder."""
+    print(f"test_unbind_server called with nuxeo_url={nuxeo_url}, folder={folder}")
     folder = tempfile.TemporaryDirectory(prefix=folder)
     expanded_folder = folder.name
     local_folder = f'--local-folder "{expanded_folder}"'
@@ -95,16 +102,19 @@ def test_unbind_server(nuxeo_url, exe, folder):
 @pytest.mark.parametrize("folder", ["", "this folder does not exist こん ツリ ^^ Léa$"])
 def test_unbind_server_missing_argument(exe, folder):
     """Without (or invalid) argument must not fail at all."""
+    print(f"test_unbind_server_missing_argument called with folder={folder}")
     local_folder = f'--local-folder="{folder}"'
     assert unbind(exe, local_folder)
 
 
 def test_bind_root_doc_not_found(nuxeo_url, exe, server, tmp):
+    print(f"test_bind_root_doc_not_found called with nuxeo_url={nuxeo_url}")
     args = f"bind-root 'inexistant folder' --local-folder='{str(tmp())}'"
     assert not launch(exe, args)
 
 
 def test_unbind_root_doc_not_found(nuxeo_url, exe, server, tmp):
+    print(f"test_unbind_root_doc_not_found called with nuxeo_url={nuxeo_url}")
     args = f"unbind-root 'inexistant folder' --local-folder='{str(tmp())}'"
     assert not launch(exe, args)
 
@@ -117,6 +127,9 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
     - unbind the root
     - unbind the server
     """
+    print(
+        f"test_complete_scenario_synchronization_from_zero called with nuxeo_url={nuxeo_url}"
+    )
 
     folder = tempfile.TemporaryDirectory(prefix="sync_test")
     expanded_folder = folder.name
@@ -170,11 +183,13 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
 
 def test_ctx_menu_access_online_inexistant(nuxeo_url, exe, server, tmp):
     """It should be a no-op, no fatal error."""
+    print(f"test_ctx_menu_access_online_inexistant called with nuxeo_url={nuxeo_url}")
     args = 'access-online --file="bla bla bla"'
     assert launch(exe, args)
 
 
 def test_ctx_menu_copy_share_link_inexistant(nuxeo_url, exe, server, tmp):
+    print(f"test_ctx_menu_copy_share_link_inexistant called with nuxeo_url={nuxeo_url}")
     args = 'copy-share-link --file="bla bla bla"'
     assert launch(exe, args)
     url_copied = cb_get()
@@ -183,6 +198,7 @@ def test_ctx_menu_copy_share_link_inexistant(nuxeo_url, exe, server, tmp):
 
 def test_ctx_menu_edit_metadata_inexistant(nuxeo_url, exe, server, tmp):
     """It should be a no-op, no fatal error."""
+    print(f"test_ctx_menu_edit_metadata_inexistant called with nuxeo_url={nuxeo_url}")
     args = 'edit-metadata --file="bla bla bla"'
     assert launch(exe, args)
 
@@ -193,6 +209,7 @@ def test_ctx_menu_entries(nuxeo_url, exe, server, tmp):
     - copy-share-link
     - edit-metadata
     """
+    print(f"test_ctx_menu_entries called with nuxeo_url={nuxeo_url}")
 
     folder = tmp()
     assert not folder.is_dir()
@@ -251,6 +268,7 @@ def test_ctx_menu_entries(nuxeo_url, exe, server, tmp):
 
 
 def test_app_init_workflow_via_subprocess(final_exe):
+    print(f"test_app_init_workflow_via_subprocess called with final_exe={final_exe}")
     import subprocess
 
     p = subprocess.Popen([final_exe, "console"])

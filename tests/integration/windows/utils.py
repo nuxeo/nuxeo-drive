@@ -12,6 +12,7 @@ def cb_get() -> str:
 
     Copied from WindowsAbstration class, else it does not work.
     """
+    print("cb_get called")
     import win32clipboard
 
     win32clipboard.OpenClipboard()
@@ -22,6 +23,7 @@ def cb_get() -> str:
 
 def window_exists(dlg, with_details: bool = True) -> bool:
     """Check if app.window (dlg) exists and handle it."""
+    print(f"window_exists called with dlg={dlg}, with_details={with_details}")
 
     if dlg.exists():
         if with_details:
@@ -43,6 +45,11 @@ def fatal_error_dlg(
 ) -> bool:
     # Check if the fatal error dialog is prompted.
     # XXX: Keep synced with FATAL_ERROR_TITLE.
+    print(
+        f"fatal_error_dlg called with app={app}, \
+        with_details={with_details}, \
+        wait_timeout_multiplier={wait_timeout_multiplier}"
+    )
 
     import pywinauto
 
@@ -74,6 +81,7 @@ def fatal_error_dlg(
 
 def main_window(app):
     # Return the main window.
+    print(f"main_window called with app={app}")
     sleep(10)
     return app.top_window()
 
@@ -81,6 +89,7 @@ def main_window(app):
 def share_metrics_dlg(app) -> bool:
     # Check if the pop-up to share metrics is prompted and close it.
     # XXX: Keep synced with SHARE_METRICS_TITLE.
+    print(f"share_metrics_dlg called with app={app}")
     dlg = app.window(title=f"{APP_NAME} - Share debug info with developers")
     if dlg:
         try:
@@ -96,6 +105,7 @@ def get_opened_url() -> str:
     # For the drive location
     # https://pypi.org/project/selenium/, Drivers section
     # Let's say the binary is at the root of the repository:
+    print("get_opened_url called")
     import os
 
     from selenium import webdriver

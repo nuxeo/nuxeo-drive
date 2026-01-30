@@ -14,6 +14,7 @@ log = getLogger(__name__)
 
 
 def test_start_app(exe):
+    print("test_start_app called")
     with exe() as app:
         assert not fatal_error_dlg(app)
         assert share_metrics_dlg(app)
@@ -28,6 +29,7 @@ def test_start_app(exe):
     "arg", ["invalid_AgUmeNt", "--invalid_AgUmeNt", "--invalid_AgUmeNt=42"]
 )
 def test_invalid_argument(exe, arg):
+    print(f"test_invalid_argument called with arg={arg}")
     try:
         with exe(args=arg) as app:
             assert fatal_error_dlg(app, with_details=False, wait_timeout_multiplier=2)
@@ -37,6 +39,7 @@ def test_invalid_argument(exe, arg):
 
 @pytest.mark.parametrize("arg", ["--log-level-file=42", "--delay=foo"])
 def test_invalid_argument_value(exe, arg):
+    print(f"test_invalid_argument_value called with arg={arg}")
     with exe(args=arg) as app:
         assert fatal_error_dlg(app, with_details=False, wait_timeout_multiplier=2)
 
@@ -75,6 +78,7 @@ def test_invalid_argument_value(exe, arg):
 )
 def test_valid_argument_value(exe, arg):
     """Test all CLI arguments but those requiring a folder."""
+    print(f"test_valid_argument_value called with arg={arg}")
     with exe(args=arg) as app:
         assert not fatal_error_dlg(app)
         share_metrics_dlg(app)
@@ -86,6 +90,7 @@ def test_valid_argument_value(exe, arg):
 )
 def test_check_drive_version(final_exe, tmp_path, version, arg):
     """Test the Drive version"""
+    print(f"test_check_drive_version called with arg={arg}, version={version}")
     file = tmp_path / "version.txt"
     cmd = [final_exe, arg, ">", file]
     subprocess.run(cmd, shell=True)
@@ -98,6 +103,7 @@ def test_check_drive_version(final_exe, tmp_path, version, arg):
     "file", ["azerty.log", "$alice.log", "léa.log", "mi Kaël.log", "こん ツリ ^^.log"]
 )
 def test_argument_log_filename(exe, tmp, file):
+    print(f"test_argument_log_filename called with file={file}")
     path = tmp()
     path.mkdir(parents=True, exist_ok=True)
 
@@ -111,10 +117,9 @@ def test_argument_log_filename(exe, tmp, file):
     assert log.is_file()
 
 
-@pytest.mark.parametrize(
-    "folder", ["azerty", "$alice", "léa", "mi Kaël", "こん ツリ ^^"]
-)
+@pytest.mark.parametrize("folder", ["azerty", "$alice", "léa", "mi Kaël", "こん ツリ ^^"])
 def test_argument_nxdrive_home(exe, tmp, folder):
+    print(f"test_argument_nxdrive_home called with folder={folder}")
     path = tmp()
     path.mkdir(parents=True, exist_ok=True)
 
@@ -141,5 +146,6 @@ def test_argument_nxdrive_home(exe, tmp, folder):
 )
 def test_removed_argument(exe, arg):
     """Test removed/obsolete CLI arguments."""
+    print(f"test_removed_argument called with arg={arg}")
     with exe(args=arg) as app:
         assert fatal_error_dlg(app, with_details=False, wait_timeout_multiplier=2)
