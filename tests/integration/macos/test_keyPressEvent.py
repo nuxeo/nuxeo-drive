@@ -21,7 +21,7 @@ def test_key_press_event_escape_key():
 
         def keyPressEvent(self, event):
             """On user Esc keypress event, restore the maximized window."""
-            if event.key() == Qt.Key_Escape:
+            if event.key() == Qt.Key.Key_Escape:
                 self.showNormal()
             else:
                 self.super_key_press_called = True
@@ -30,7 +30,7 @@ def test_key_press_event_escape_key():
 
     # Create mock event with Esc key
     mock_event = Mock()
-    mock_event.key.return_value = Qt.Key_Escape
+    mock_event.key.return_value = Qt.Key.Key_Escape
 
     dialog.keyPressEvent(mock_event)
 
@@ -54,7 +54,7 @@ def test_key_press_event_non_escape_key():
 
         def keyPressEvent(self, event):
             """On user Esc keypress event, restore the maximized window."""
-            if event.key() == Qt.Key_Escape:
+            if event.key() == Qt.Key.Key_Escape:
                 self.showNormal()
             else:
                 self.super_key_press_called = True
@@ -63,7 +63,7 @@ def test_key_press_event_non_escape_key():
 
     # Create mock event with Enter key
     mock_event = Mock()
-    mock_event.key.return_value = Qt.Key_Return
+    mock_event.key.return_value = Qt.Key.Key_Return
 
     dialog.keyPressEvent(mock_event)
 
@@ -87,7 +87,7 @@ def test_key_press_event_various_keys():
 
         def keyPressEvent(self, event):
             """On user Esc keypress event, restore the maximized window."""
-            if event.key() == Qt.Key_Escape:
+            if event.key() == Qt.Key.Key_Escape:
                 self.showNormal()
             else:
                 self.super_key_press_count += 1
@@ -95,7 +95,7 @@ def test_key_press_event_various_keys():
     dialog = MockFoldersDialog()
 
     # Test multiple non-Esc keys
-    for key in [Qt.Key_A, Qt.Key_B, Qt.Key_Space, Qt.Key_Tab]:
+    for key in [Qt.Key.Key_A, Qt.Key.Key_B, Qt.Key.Key_Space, Qt.Key.Key_Tab]:
         mock_event = Mock()
         mock_event.key.return_value = key
         dialog.keyPressEvent(mock_event)
@@ -105,7 +105,7 @@ def test_key_press_event_various_keys():
 
     # Test Esc key
     mock_event = Mock()
-    mock_event.key.return_value = Qt.Key_Escape
+    mock_event.key.return_value = Qt.Key.Key_Escape
     dialog.keyPressEvent(mock_event)
 
     assert dialog.show_normal_count == 1
@@ -125,7 +125,7 @@ def test_key_press_event_escape_key_multiple_times():
 
         def keyPressEvent(self, event):
             """On user Esc keypress event, restore the maximized window."""
-            if event.key() == Qt.Key_Escape:
+            if event.key() == Qt.Key.Key_Escape:
                 self.showNormal()
 
     dialog = MockFoldersDialog()
@@ -133,7 +133,7 @@ def test_key_press_event_escape_key_multiple_times():
     # Call keyPressEvent with Esc multiple times
     for _ in range(5):
         mock_event = Mock()
-        mock_event.key.return_value = Qt.Key_Escape
+        mock_event.key.return_value = Qt.Key.Key_Escape
         dialog.keyPressEvent(mock_event)
 
     # Verify showNormal was called 5 times
@@ -153,13 +153,13 @@ def test_key_press_event_key_method_called():
 
         def keyPressEvent(self, event):
             """On user Esc keypress event, restore the maximized window."""
-            if event.key() == Qt.Key_Escape:
+            if event.key() == Qt.Key.Key_Escape:
                 self.showNormal()
 
     dialog = MockFoldersDialog()
 
     mock_event = Mock()
-    mock_event.key.return_value = Qt.Key_Escape
+    mock_event.key.return_value = Qt.Key.Key_Escape
 
     dialog.keyPressEvent(mock_event)
 
@@ -182,7 +182,7 @@ def test_key_press_event_special_keys():
 
         def keyPressEvent(self, event):
             """On user Esc keypress event, restore the maximized window."""
-            if event.key() == Qt.Key_Escape:
+            if event.key() == Qt.Key.Key_Escape:
                 self.showNormal()
             else:
                 self.super_key_press_count += 1
@@ -191,12 +191,12 @@ def test_key_press_event_special_keys():
 
     # Test special keys that should not trigger showNormal
     special_keys = [
-        Qt.Key_F1,
-        Qt.Key_F12,
-        Qt.Key_Delete,
-        Qt.Key_Backspace,
-        Qt.Key_Home,
-        Qt.Key_End,
+        Qt.Key.Key_F1,
+        Qt.Key.Key_F12,
+        Qt.Key.Key_Delete,
+        Qt.Key.Key_Backspace,
+        Qt.Key.Key_Home,
+        Qt.Key.Key_End,
     ]
 
     for key in special_keys:
@@ -222,13 +222,13 @@ def test_key_press_event_nxdrive_2737_fix():
 
         def keyPressEvent(self, event):
             """On user Esc keypress event, restore the maximized window. See NXDRIVE-2737."""
-            if event.key() == Qt.Key_Escape:
+            if event.key() == Qt.Key.Key_Escape:
                 self.showNormal()
 
     dialog = MockFoldersDialog()
 
     mock_event = Mock()
-    mock_event.key.return_value = Qt.Key_Escape
+    mock_event.key.return_value = Qt.Key.Key_Escape
 
     dialog.keyPressEvent(mock_event)
 
@@ -249,7 +249,7 @@ def test_key_press_event_conditional_logic():
 
         def keyPressEvent(self, event):
             """On user Esc keypress event, restore the maximized window."""
-            if event.key() == Qt.Key_Escape:
+            if event.key() == Qt.Key.Key_Escape:
                 self.showNormal()
             else:
                 self.actions.append("super")
@@ -258,12 +258,12 @@ def test_key_press_event_conditional_logic():
 
     # Test if branch (Esc key)
     mock_event = Mock()
-    mock_event.key.return_value = Qt.Key_Escape
+    mock_event.key.return_value = Qt.Key.Key_Escape
     dialog.keyPressEvent(mock_event)
 
     # Test else branch (non-Esc key)
     mock_event = Mock()
-    mock_event.key.return_value = Qt.Key_A
+    mock_event.key.return_value = Qt.Key.Key_A
     dialog.keyPressEvent(mock_event)
 
     # Verify both branches executed
