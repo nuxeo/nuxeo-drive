@@ -89,7 +89,7 @@ def fatal_error_qt(exc_formatted: str, /) -> None:
         args = "\n".join(arg for arg in sys.argv[1:])
         details.append(section(text, args))
         cli_args.setText(args)
-        cli_args.setSizeAdjustPolicy(QTextEdit.AdjustToContents)
+        cli_args.setSizeAdjustPolicy(QTextEdit.SizeAdjustPolicy.AdjustToContents)
         layout.addWidget(label_cli)
         layout.addWidget(cli_args)
 
