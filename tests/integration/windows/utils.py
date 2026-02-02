@@ -29,11 +29,19 @@ def window_exists(dlg, with_details: bool = True) -> bool:
         if with_details:
             # Copy details
             sleep(1)
-            dlg.child_window(title="Copy details").wait("visible").click()
-            sleep(1)
-            log.warning(f"Fatal error screen detected! Details:\n{cb_get()}")
+            try:
+                dlg.child_window(title="Copy details").wait("visible").click()
+                sleep(1)
+                details = cb_get()
+                log.warning(f"Fatal error screen detected! Details:\n{details}")
+                # Also print to stdout to ensure visibility in CI logs
+                print(f"FATAL ERROR DETAILS:\n{details}")
+            except Exception as e:
+                log.warning(f"Fatal error screen detected! Could not get details: {e}")
+                print(f"FATAL ERROR: Could not get details: {e}")
         else:
             log.warning("Fatal error screen detected!")
+            print("FATAL ERROR: Dialog detected (no details requested)")
 
         dlg.close()
         return True

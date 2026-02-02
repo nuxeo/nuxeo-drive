@@ -1,5 +1,6 @@
 import subprocess
 from logging import getLogger
+from time import sleep
 
 import pytest
 
@@ -16,6 +17,8 @@ log = getLogger(__name__)
 def test_start_app(exe):
     print("test_start_app called")
     with exe() as app:
+        # Add additional time for app to fully initialize (CI environments can be slower)
+        sleep(2)
         assert not fatal_error_dlg(app)
         assert share_metrics_dlg(app)
 

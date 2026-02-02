@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from logging import getLogger
+from pathlib import Path
 from time import sleep
 
 import pytest
@@ -45,13 +46,32 @@ def exe(final_exe, tmp):
         args = args.strip()
 
         log.info(f"Starting {cmd!r} with args={args!r}")
+        print(f"Starting {cmd!r} with args={args!r}")
 
         app = Application(backend="uia").start(f"{cmd} {args}")
+        # Give the app time to start up (important for CI environments)
+        sleep(2)
         try:
             yield app
             if wait > 0:
                 sleep(wait)
         finally:
+            # Check for crash.state file and print its contents if it exists
+            crash_file = Path.home() / ".nuxeo-drive" / "crash.state"
+            if crash_file.exists():
+                try:
+                    print(f"CRASH STATE FILE FOUND at {crash_file}:")
+                    print(crash_file.read_text(encoding="utf-8", errors="replace"))
+                except Exception as e:
+                    print(f"Could not read crash.state: {e}")
+            # Also check the nxdrive-home path for crash.state
+            home_crash_file = path / "crash.state"
+            if home_crash_file.exists():
+                try:
+                    print(f"CRASH STATE FILE FOUND at {home_crash_file}:")
+                    print(home_crash_file.read_text(encoding="utf-8", errors="replace"))
+                except Exception as e:
+                    print(f"Could not read crash.state from home: {e}")
             app.kill()
 
     return execute
