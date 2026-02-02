@@ -25,63 +25,63 @@ def test_start_app(exe):
         main.close()
 
 
-# @pytest.mark.parametrize(
-#     "arg", ["invalid_AgUmeNt", "--invalid_AgUmeNt", "--invalid_AgUmeNt=42"]
-# )
-# def test_invalid_argument(exe, arg):
-#     print(f"test_invalid_argument called with arg={arg}")
-#     try:
-#         with exe(args=arg) as app:
-#             assert fatal_error_dlg(app, with_details=False, wait_timeout_multiplier=2)
-#     except AssertionError as msg:
-#         log.warning(msg)
+@pytest.mark.parametrize(
+    "arg", ["invalid_AgUmeNt", "--invalid_AgUmeNt", "--invalid_AgUmeNt=42"]
+)
+def test_invalid_argument(exe, arg):
+    print(f"test_invalid_argument called with arg={arg}")
+    try:
+        with exe(args=arg) as app:
+            assert fatal_error_dlg(app, with_details=False, wait_timeout_multiplier=2)
+    except AssertionError as msg:
+        log.warning(msg)
 
 
-# @pytest.mark.parametrize("arg", ["--log-level-file=42", "--delay=foo"])
-# def test_invalid_argument_value(exe, arg):
-#     print(f"test_invalid_argument_value called with arg={arg}")
-#     with exe(args=arg) as app:
-#         assert fatal_error_dlg(app, with_details=False, wait_timeout_multiplier=2)
+@pytest.mark.parametrize("arg", ["--log-level-file=42", "--delay=foo"])
+def test_invalid_argument_value(exe, arg):
+    print(f"test_invalid_argument_value called with arg={arg}")
+    with exe(args=arg) as app:
+        assert fatal_error_dlg(app, with_details=False, wait_timeout_multiplier=2)
 
 
-# @pytest.mark.parametrize(
-#     "arg",
-#     [
-#         "--channel=alpha",
-#         "--channel=beta",
-#         "--channel=release",
-#         "--debug",
-#         "--debug-pydev",
-#         "--delay=42",
-#         "--force-locale=es",
-#         "--handshake-timeout=42",
-#         "--log-level-file=DEBUG",
-#         "--log-level-file=INFO",
-#         "--log-level-file=WARNING",
-#         "--log-level-file=ERROR",
-#         "--log-level-console=DEBUG",
-#         "--log-level-console=INFO",
-#         "--log-level-console=WARNING",
-#         "--log-level-console=ERROR",
-#         # --log-filename tested in test_argument_log_filename()
-#         "--locale=es",
-#         "--max-errors=42",
-#         "--nofscheck",
-#         # --nxdrive-home tested in test_argument_nxdrive_home()
-#         "--proxy-server=https://Alice:password@example.org:8888",
-#         "--ssl-no-verify",
-#         "--sync-and-quit",
-#         "--timeout=42",
-#         "--update-check-delay=42",
-#         "--update-site-url='https://example.org'",
-#     ],
-# )
-# def test_valid_argument_value(exe, arg):
-#     """Test all CLI arguments but those requiring a folder."""
-#     print(f"test_valid_argument_value called with arg={arg}")
-#     with exe(args=arg) as app:
-#         assert not fatal_error_dlg(app)
-#         share_metrics_dlg(app)
+@pytest.mark.parametrize(
+    "arg",
+    [
+        "--channel=alpha",
+        "--channel=beta",
+        "--channel=release",
+        "--debug",
+        "--debug-pydev",
+        "--delay=42",
+        "--force-locale=es",
+        "--handshake-timeout=42",
+        "--log-level-file=DEBUG",
+        "--log-level-file=INFO",
+        "--log-level-file=WARNING",
+        "--log-level-file=ERROR",
+        "--log-level-console=DEBUG",
+        "--log-level-console=INFO",
+        "--log-level-console=WARNING",
+        "--log-level-console=ERROR",
+        # --log-filename tested in test_argument_log_filename()
+        "--locale=es",
+        "--max-errors=42",
+        "--nofscheck",
+        # --nxdrive-home tested in test_argument_nxdrive_home()
+        "--proxy-server=https://Alice:password@example.org:8888",
+        "--ssl-no-verify",
+        "--sync-and-quit",
+        "--timeout=42",
+        "--update-check-delay=42",
+        "--update-site-url='https://example.org'",
+    ],
+)
+def test_valid_argument_value(exe, arg):
+    """Test all CLI arguments but those requiring a folder."""
+    print(f"test_valid_argument_value called with arg={arg}")
+    with exe(args=arg) as app:
+        assert not fatal_error_dlg(app)
+        share_metrics_dlg(app)
 
 
 # @pytest.mark.parametrize(
