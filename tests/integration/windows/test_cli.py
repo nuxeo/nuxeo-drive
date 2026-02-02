@@ -87,19 +87,19 @@ def test_valid_argument_value(exe, arg):
         share_metrics_dlg(app)
 
 
-# @pytest.mark.parametrize(
-#     "arg",
-#     ["-v", "--version"],
-# )
-# def test_check_drive_version(final_exe, tmp_path, version, arg):
-#     """Test the Drive version"""
-#     print(f"test_check_drive_version called with arg={arg}, version={version}")
-#     file = tmp_path / "version.txt"
-#     cmd = [final_exe, arg, ">", file]
-#     subprocess.run(cmd, shell=True)
-#     with open(file, "r") as file:
-#         version_num = file.read().strip()
-#     assert version_num == version
+@pytest.mark.parametrize(
+    "arg",
+    ["-v", "--version"],
+)
+def test_check_drive_version(final_exe, tmp_path, version, arg):
+    """Test the Drive version"""
+    print(f"test_check_drive_version called with arg={arg}, version={version}")
+    file = tmp_path / "version.txt"
+    cmd = [final_exe, arg, ">", file]
+    subprocess.run(cmd, shell=True)
+    with open(file, "r") as file:
+        version_num = file.read().strip()
+    assert version_num == version
 
 
 @pytest.mark.parametrize(
