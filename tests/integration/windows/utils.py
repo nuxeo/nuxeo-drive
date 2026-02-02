@@ -16,7 +16,7 @@ def cb_get() -> str:
     import win32clipboard
 
     win32clipboard.OpenClipboard()
-    text = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
+    text = win32clipboard.GetClipboardData(win32clipboard.CF_TEXT)
     win32clipboard.CloseClipboard()
     return text
 
