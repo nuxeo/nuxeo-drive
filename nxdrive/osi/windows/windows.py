@@ -65,7 +65,7 @@ class WindowsIntegration(AbstractOSIntegration):
 
         log.debug("Opening clipboard to get data")
         win32clipboard.OpenClipboard()
-        text: str = win32clipboard.GetClipboardData(win32clipboard.CF_TEXT)
+        text: str = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
         win32clipboard.CloseClipboard()
         log.debug("Retrieved data from clipboard")
         return text
@@ -80,7 +80,7 @@ class WindowsIntegration(AbstractOSIntegration):
         log.debug("Setting clipboard data")
         win32clipboard.OpenClipboard()
         win32clipboard.EmptyClipboard()
-        win32clipboard.SetClipboardText(text, win32clipboard.CF_TEXT)
+        win32clipboard.SetClipboardText(text, win32clipboard.CF_UNICODETEXT)
         win32clipboard.CloseClipboard()
         log.debug("Clipboard data set successfully")
 
