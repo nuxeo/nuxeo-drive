@@ -13,16 +13,16 @@ if not WINDOWS:
 log = getLogger(__name__)
 
 
-# def test_start_app(exe):
-#     print("test_start_app called")
-#     with exe() as app:
-#         assert not fatal_error_dlg(app)
-#         assert share_metrics_dlg(app)
+def test_start_app(exe):
+    print("test_start_app called")
+    with exe() as app:
+        assert not fatal_error_dlg(app)
+        assert share_metrics_dlg(app)
 
-#         # There should be the main window
-#         main = main_window(app)
-#         assert main.exists()
-#         main.close()
+        # There should be the main window
+        main = main_window(app)
+        assert main.exists()
+        main.close()
 
 
 # @pytest.mark.parametrize(
