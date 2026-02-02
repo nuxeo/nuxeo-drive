@@ -401,7 +401,7 @@ function install_python {
 			# Check for python.exe in those directories
 			foreach ($path in $pythonPaths) {
 				$pythonExe = Join-Path -Path $path -ChildPath "python.exe"
-				if (Test-Path $pythonExe) {
+				if ((Test-Path $pythonExe) -and ($path -like "*\$Env:PYTHON_DRIVE_VERSION\*")) {
 					Write-Output "Found python.exe in: $path"
 					$Env:PYTHON_DIR = $path
 				} else {
