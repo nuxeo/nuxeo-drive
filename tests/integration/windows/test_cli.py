@@ -84,68 +84,68 @@ def test_valid_argument_value(exe, arg):
         share_metrics_dlg(app)
 
 
-@pytest.mark.parametrize(
-    "arg",
-    ["-v", "--version"],
-)
-def test_check_drive_version(final_exe, tmp_path, version, arg):
-    """Test the Drive version"""
-    print(f"test_check_drive_version called with arg={arg}, version={version}")
-    file = tmp_path / "version.txt"
-    cmd = [final_exe, arg, ">", file]
-    subprocess.run(cmd, shell=True)
-    with open(file, "r") as file:
-        version_num = file.read().strip()
-    assert version_num == version
-
-
-# @pytest.mark.parametrize(
-#     "file", ["azerty.log", "$alice.log", "léa.log", "mi Kaël.log", "こん ツリ ^^.log"]
-# )
-# def test_argument_log_filename(exe, tmp, file):
-#     print(f"test_argument_log_filename called with file={file}")
-#     path = tmp()
-#     path.mkdir(parents=True, exist_ok=True)
-
-#     log = path / file
-#     arg = f'--log-filename="{log}"'
-
-#     with exe(args=arg) as app:
-#         assert not fatal_error_dlg(app)
-#         share_metrics_dlg(app)
-
-#     assert log.is_file()
-
-
-# @pytest.mark.parametrize("folder", ["azerty", "$alice", "léa", "mi Kaël", "こん ツリ ^^"])
-# def test_argument_nxdrive_home(exe, tmp, folder):
-#     print(f"test_argument_nxdrive_home called with folder={folder}")
-#     path = tmp()
-#     path.mkdir(parents=True, exist_ok=True)
-
-#     home = path / folder
-#     arg = f'--nxdrive-home="{home}"'
-
-#     with exe(args=arg) as app:
-#         assert not fatal_error_dlg(app)
-#         share_metrics_dlg(app)
-
-#     assert home.is_dir()
-
-
 # @pytest.mark.parametrize(
 #     "arg",
-#     [
-#         "--beta-update-site-url='http://example.org'",
-#         "--beta-channel",
-#         "--consider-ssl-errors",
-#         "--max-sync-step=42",
-#         "--proxy-exceptions=unknown",
-#         "--proxy-type=none",
-#     ],
+#     ["-v", "--version"],
 # )
-# def test_removed_argument(exe, arg):
-#     """Test removed/obsolete CLI arguments."""
-#     print(f"test_removed_argument called with arg={arg}")
-#     with exe(args=arg) as app:
-#         assert fatal_error_dlg(app, with_details=False, wait_timeout_multiplier=2)
+# def test_check_drive_version(final_exe, tmp_path, version, arg):
+#     """Test the Drive version"""
+#     print(f"test_check_drive_version called with arg={arg}, version={version}")
+#     file = tmp_path / "version.txt"
+#     cmd = [final_exe, arg, ">", file]
+#     subprocess.run(cmd, shell=True)
+#     with open(file, "r") as file:
+#         version_num = file.read().strip()
+#     assert version_num == version
+
+
+@pytest.mark.parametrize(
+    "file", ["azerty.log", "$alice.log", "léa.log", "mi Kaël.log", "こん ツリ ^^.log"]
+)
+def test_argument_log_filename(exe, tmp, file):
+    print(f"test_argument_log_filename called with file={file}")
+    path = tmp()
+    path.mkdir(parents=True, exist_ok=True)
+
+    log = path / file
+    arg = f'--log-filename="{log}"'
+
+    with exe(args=arg) as app:
+        assert not fatal_error_dlg(app)
+        share_metrics_dlg(app)
+
+    assert log.is_file()
+
+
+@pytest.mark.parametrize("folder", ["azerty", "$alice", "léa", "mi Kaël", "こん ツリ ^^"])
+def test_argument_nxdrive_home(exe, tmp, folder):
+    print(f"test_argument_nxdrive_home called with folder={folder}")
+    path = tmp()
+    path.mkdir(parents=True, exist_ok=True)
+
+    home = path / folder
+    arg = f'--nxdrive-home="{home}"'
+
+    with exe(args=arg) as app:
+        assert not fatal_error_dlg(app)
+        share_metrics_dlg(app)
+
+    assert home.is_dir()
+
+
+@pytest.mark.parametrize(
+    "arg",
+    [
+        "--beta-update-site-url='http://example.org'",
+        "--beta-channel",
+        "--consider-ssl-errors",
+        "--max-sync-step=42",
+        "--proxy-exceptions=unknown",
+        "--proxy-type=none",
+    ],
+)
+def test_removed_argument(exe, arg):
+    """Test removed/obsolete CLI arguments."""
+    print(f"test_removed_argument called with arg={arg}")
+    with exe(args=arg) as app:
+        assert fatal_error_dlg(app, with_details=False, wait_timeout_multiplier=2)
