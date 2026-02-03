@@ -359,7 +359,10 @@ class Application(QApplication):
                 QUrl.fromLocalFile(str(find_resource("qml", file="DirectTransfer.qml")))
             )
             # Log QML loading errors for DirectTransfer.qml
-            if self.direct_transfer_window.status() == self.direct_transfer_window.Status.Error:
+            if (
+                self.direct_transfer_window.status()
+                == self.direct_transfer_window.Status.Error
+            ):
                 for error in self.direct_transfer_window.errors():
                     log.error(f"DirectTransfer.qml load error: {error.toString()}")
             else:
@@ -374,16 +377,20 @@ class Application(QApplication):
             self.app_engine.load(
                 QUrl.fromLocalFile(str(find_resource("qml", file="Main.qml")))
             )
-            log.info(f"QUrl.fromLocalFile: {QUrl.fromLocalFile(str(find_resource("qml", file="Main.qml")))}")
-            
+            log.info(
+                f"QUrl.fromLocalFile: {QUrl.fromLocalFile(str(find_resource('qml', file='Main.qml')))}"
+            )
+
             # Check if QML loaded successfully
             root_objects = self.app_engine.rootObjects()
             if not root_objects:
                 log.error("Failed to load QML! Checking for errors...")
                 for warning in self.app_engine.warnings():
                     log.error(f"QML Warning: {warning.toString()}")
-                raise RuntimeError("QML engine failed to load Main.qml - check logs for QML errors")
-            
+                raise RuntimeError(
+                    "QML engine failed to load Main.qml - check logs for QML errors"
+                )
+
             root = root_objects[0]
             self.conflicts_window = root.findChild(CustomWindow, "conflictsWindow")
             self.settings_window = root.findChild(CustomWindow, "settingsWindow")
@@ -1111,7 +1118,9 @@ class Application(QApplication):
             [remote_url, remote_path, duplicates_list_html],
             execute=False,
         )
-        spacer = QSpacerItem(600, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        spacer = QSpacerItem(
+            600, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
+        )
         layout = msg_box.layout()
         layout.addItem(spacer, layout.rowCount(), 0, 1, layout.columnCount())
         msg_box.exec()
