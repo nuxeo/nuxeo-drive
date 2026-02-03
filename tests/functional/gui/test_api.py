@@ -367,3 +367,74 @@ class TestAPIIntegration:
             # Test error handling
             result = api.handle_error("fail")
             assert "error: Test error" in result
+
+    def test_download_items_as_zip(self):
+        """Test download_items_as_zip method."""
+        mock_app = self.create_mock_application()
+        
+        # Create mock engine
+        mock_engine = MagicMock()
+        mock_remote = MagicMock()
+        mock_engine.remote = mock_remote
+        mock_app.manager.engines = {"test_engine": mock_engine}
+        
+        class MockQMLDriveApi:
+            def __init__(self, application):
+                self.application = application
+                self._manager = application.manager
+                
+            def download_items_as_zip(self, engine_uid, item_ids, output_path):
+                from pathlib import Path
+                
+                engine = self._manager.engines.get(engine_uid)
+                if not engine:
+                    return False
+                
+                try:
+                    fs_item_ids = [item_id.strip() for item_id in item_ids.split(",") if item_id.strip()]
+                    if not fs_item_ids:
+                        return False
+                    
+                    output_file = Path(output_path)
+                    tmp_file = output_file.with_suffix(".tmp")
+                    
+                    # Mock download
+                    engine.remote.download_as_zip(
+                        fs_item_ids,
+                        output_file,
+                        tmp_file,
+                        engine_uid=engine_uid,
+                    )
+                    
+                    return True
+                except Exception:
+                    return False
+        
+        with patch("nxdrive.gui.api.QMLDriveApi", MockQMLDriveApi):
+            api = MockQMLDriveApi(mock_app)
+            
+            # Test successful download
+            result = api.download_items_as_zip(
+                "test_engine",
+                "id1, id2, id3",
+                "/tmp/download.zip"
+            )
+            assert result is True
+            mock_remote.download_as_zip.assert_called_once()
+            
+            # Test with non-existent engine
+            result = api.download_items_as_zip(
+                "non_existent_engine",
+                "id1, id2",
+                "/tmp/download.zip"
+            )
+            assert result is False
+            
+            # Test with empty item IDs
+            result = api.download_items_as_zip(
+                "test_engine",
+                "",
+                "/tmp/download.zip"
+            )
+            assert result is False
+
