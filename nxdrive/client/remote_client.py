@@ -710,6 +710,58 @@ class Remote(Nuxeo):
 
         return tmp_file
 
+    def download_as_zip(
+        self,
+        fs_item_ids: List[str],
+        file_path: Path,
+        file_out: Path,
+        /,
+        **kwargs: Any,
+    ) -> Path:
+        """Download multiple files and folders as a ZIP archive.
+        
+        Args:
+            fs_item_ids: List of file system item IDs to download
+            file_path: Final destination path for the ZIP file
+            file_out: Temporary file path for the downloaded ZIP
+            **kwargs: Additional arguments passed to download()
+            
+        Returns:
+            Path to the downloaded ZIP file
+            
+        Raises:
+            NotFound: If any of the file system items cannot be found
+        """
+        log.info(f"Downloading {len(fs_item_ids)} items as ZIP to {file_out!r}")
+        
+        # Use Blob.BulkDownload operation to create a ZIP file on the server
+        # The operation takes a list of document IDs and returns a ZIP blob
+        try:
+            result = self.execute(
+                command="Blob.BulkDownload",
+                docIds=",".join(fs_item_ids),
+            )
+            
+            # The result should contain a download URL
+            if isinstance(result, dict) and "url" in result:
+                download_url = result["url"]
+            else:
+                # If the operation returns the blob directly, construct the download URL
+                # For NuxeoDrive items, we need to use the Download servlet
+                download_url = f"{self.client.host}/nuxeo/api/v1/automation/Blob.BulkDownload"
+            
+            # Download the ZIP file using the standard download method
+            return self.download(
+                download_url,
+                file_path,
+                file_out,
+                "",  # No digest check for ZIP files
+                **kwargs,
+            )
+        except HTTPError as e:
+            log.error(f"Failed to download items as ZIP: {e}")
+            raise
+
     def get_fs_children(
         self, fs_item_id: str, /, *, filtered: bool = True
     ) -> List[RemoteFileInfo]:

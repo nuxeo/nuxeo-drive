@@ -452,6 +452,55 @@ class QMLDriveApi(QObject):
         else:
             self.open_local(engine_uid, str(doc_pair.local_parent_path))
 
+    @pyqtSlot(str, str, str, result=bool)
+    def download_items_as_zip(
+        self, engine_uid: str, item_ids: str, output_path: str, /
+    ) -> bool:
+        """Download multiple files and folders as a ZIP archive.
+        
+        Args:
+            engine_uid: The engine UID
+            item_ids: Comma-separated list of file system item IDs to download
+            output_path: Local path where the ZIP file should be saved
+            
+        Returns:
+            True if download was successful, False otherwise
+        """
+        log.info(f"Downloading items as ZIP: {item_ids} to {output_path}")
+        engine = self._manager.engines.get(engine_uid)
+        if not engine:
+            log.error(f"Engine {engine_uid!r} not found")
+            return False
+        
+        try:
+            # Parse the comma-separated list of item IDs
+            fs_item_ids = [item_id.strip() for item_id in item_ids.split(",") if item_id.strip()]
+            if not fs_item_ids:
+                log.error("No item IDs provided")
+                return False
+            
+            # Prepare paths
+            output_file = Path(output_path)
+            tmp_file = output_file.with_suffix(".tmp")
+            
+            # Download the ZIP file
+            engine.remote.download_as_zip(
+                fs_item_ids,
+                output_file,
+                tmp_file,
+                engine_uid=engine_uid,
+            )
+            
+            # Rename the temporary file to the final name
+            if tmp_file.exists():
+                tmp_file.rename(output_file)
+            
+            log.info(f"Successfully downloaded ZIP to {output_file}")
+            return True
+        except Exception as e:
+            log.exception(f"Failed to download items as ZIP: {e}")
+            return False
+
     @pyqtSlot(str)
     def show_conflicts_resolution(self, uid: str, /) -> None:
         self.application.hide_systray()
