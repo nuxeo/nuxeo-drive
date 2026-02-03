@@ -341,6 +341,8 @@ def test_download_as_zip(manager_factory, obj_factory, tmp):
         # Mock the download method to simulate ZIP file download
         def mock_download(url, file_path, file_out, digest, **kwargs):
             # Create a simple mock ZIP file
+            # Ensure parent directory exists
+            file_out.parent.mkdir(parents=True, exist_ok=True)
             file_out.write_bytes(b"PK\x03\x04")  # ZIP file signature
             return file_out
 

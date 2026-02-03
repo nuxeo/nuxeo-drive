@@ -415,21 +415,27 @@ class TestAPIIntegration:
                     return False
 
         with patch("nxdrive.gui.api.QMLDriveApi", MockQMLDriveApi):
+            from pathlib import Path
+            from tempfile import gettempdir
+
             api = MockQMLDriveApi(mock_app)
 
-            # Test successful download
+            # Test successful download with platform-independent temp path
+            temp_dir = Path(gettempdir())
+            test_path = str(temp_dir / "download.zip")
+
             result = api.download_items_as_zip(
-                "test_engine", "id1, id2, id3", "/tmp/download.zip"
+                "test_engine", "id1, id2, id3", test_path
             )
             assert result is True
             mock_remote.download_as_zip.assert_called_once()
 
             # Test with non-existent engine
             result = api.download_items_as_zip(
-                "non_existent_engine", "id1, id2", "/tmp/download.zip"
+                "non_existent_engine", "id1, id2", test_path
             )
             assert result is False
 
             # Test with empty item IDs
-            result = api.download_items_as_zip("test_engine", "", "/tmp/download.zip")
+            result = api.download_items_as_zip("test_engine", "", test_path)
             assert result is False
