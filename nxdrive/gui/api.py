@@ -502,11 +502,10 @@ class QMLDriveApi(QObject):
 
             log.info(f"Successfully downloaded ZIP to {output_file}")
             return True
-        except Exception as e:
-            log.exception(f"Failed to download items as ZIP: {e}")
+        except Exception:
+            log.exception("Failed to download items as ZIP")
             # Clean up temporary file if it exists
-            if tmp_file.exists():
-                tmp_file.unlink(missing_ok=True)
+            tmp_file.unlink(missing_ok=True)
             return False
 
     @pyqtSlot(str)

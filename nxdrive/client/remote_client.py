@@ -779,10 +779,11 @@ class Remote(Nuxeo):
                 return file_out
             else:
                 # Fallback: construct the download URL
-                download_url = (
+                fallback_url = (
                     f"{self.client.host}/nuxeo/api/v1/bulk/download?"
                     f"docIds={','.join(fs_item_ids)}"
                 )
+                download_url = fallback_url
 
             # Download the ZIP file using the standard download method
             return self.download(
@@ -800,7 +801,7 @@ class Remote(Nuxeo):
             )
 
             # Alternative: Use REST API directly to download multiple files as ZIP
-            # Construct a REST API URL for bulk download (without /site/ in path)
+            # Use the same fallback URL construction as above
             download_url = (
                 f"{self.client.host}/nuxeo/api/v1/bulk/download?"
                 f"docIds={','.join(fs_item_ids)}"
@@ -816,8 +817,8 @@ class Remote(Nuxeo):
                 )
             except Exception as fallback_error:
                 log.error(
-                    f"All bulk download methods failed. "
-                    f"Primary error: {type(e).__name__}, Fallback error: {type(fallback_error).__name__}"
+                    f"All bulk download methods failed for {len(fs_item_ids)} items. "
+                    f"Primary: {type(e).__name__}, Fallback: {type(fallback_error).__name__}"
                 )
                 raise NotFound(
                     "Unable to download items as ZIP. The Nuxeo server may not support "
