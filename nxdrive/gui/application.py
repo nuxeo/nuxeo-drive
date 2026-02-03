@@ -312,6 +312,12 @@ class Application(QApplication):
             self.conflicts_window.setSource(
                 QUrl.fromLocalFile(str(find_resource("qml", file="Conflicts.qml")))
             )
+            # Log QML loading errors for Conflicts.qml
+            if self.conflicts_window.status() == self.conflicts_window.Status.Error:
+                for error in self.conflicts_window.errors():
+                    log.error(f"Conflicts.qml load error: {error.toString()}")
+            else:
+                log.debug("Conflicts.qml loaded successfully")
 
             # Settings
             self.settings_window = CustomWindow()
@@ -321,6 +327,12 @@ class Application(QApplication):
             self.settings_window.setSource(
                 QUrl.fromLocalFile(str(find_resource("qml", file="Settings.qml")))
             )
+            # Log QML loading errors for Settings.qml
+            if self.settings_window.status() == self.settings_window.Status.Error:
+                for error in self.settings_window.errors():
+                    log.error(f"Settings.qml load error: {error.toString()}")
+            else:
+                log.debug("Settings.qml loaded successfully")
 
             # Systray
             self.systray_window = SystrayWindow()
@@ -331,6 +343,12 @@ class Application(QApplication):
             self.systray_window.setSource(
                 QUrl.fromLocalFile(str(find_resource("qml", file="Systray.qml")))
             )
+            # Log QML loading errors for Systray.qml
+            if self.systray_window.status() == self.systray_window.Status.Error:
+                for error in self.systray_window.errors():
+                    log.error(f"Systray.qml load error: {error.toString()}")
+            else:
+                log.debug("Systray.qml loaded successfully")
 
             # Direct Transfer
             self.direct_transfer_window = CustomWindow()
@@ -340,6 +358,12 @@ class Application(QApplication):
             self.direct_transfer_window.setSource(
                 QUrl.fromLocalFile(str(find_resource("qml", file="DirectTransfer.qml")))
             )
+            # Log QML loading errors for DirectTransfer.qml
+            if self.direct_transfer_window.status() == self.direct_transfer_window.Status.Error:
+                for error in self.direct_transfer_window.errors():
+                    log.error(f"DirectTransfer.qml load error: {error.toString()}")
+            else:
+                log.debug("DirectTransfer.qml loaded successfully")
 
             self.create_custom_window_for_task_manager()
 
@@ -1087,7 +1111,7 @@ class Application(QApplication):
             [remote_url, remote_path, duplicates_list_html],
             execute=False,
         )
-        spacer = QSpacerItem(600, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        spacer = QSpacerItem(600, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         layout = msg_box.layout()
         layout.addItem(spacer, layout.rowCount(), 0, 1, layout.columnCount())
         msg_box.exec()
