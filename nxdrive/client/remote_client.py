@@ -719,49 +719,49 @@ class Remote(Nuxeo):
         **kwargs: Any,
     ) -> Path:
         """Download multiple files and folders as a ZIP archive.
-        
+
         This method attempts to download multiple files/folders as a single ZIP file.
         It tries multiple approaches in order of preference:
         1. Blob.BulkDownload operation (if available)
         2. Direct REST API call to bulk download endpoint
         3. Falls back to creating a temporary collection and downloading it
-        
+
         Args:
             fs_item_ids: List of file system item IDs to download
             file_path: Final destination path for the ZIP file
             file_out: Temporary file path for the downloaded ZIP
             **kwargs: Additional arguments passed to download()
-            
+
         Returns:
             Path to the downloaded ZIP file
-            
+
         Raises:
             NotFound: If any of the file system items cannot be found
             HTTPError: If the download fails
         """
         log.info(f"Downloading {len(fs_item_ids)} items as ZIP to {file_out!r}")
-        
+
         if not fs_item_ids:
             raise ValueError("No items specified for download")
-        
+
         # Try using Blob.BulkDownload operation if available
         # This operation is part of Nuxeo Platform and creates a ZIP of multiple documents
         try:
             # The operation expects a comma-separated list of document UIDs
             params = {"docIds": ",".join(fs_item_ids)}
-            
+
             # Execute the bulk download operation
             # This will return a blob that we need to download
             result = self.execute(
                 command="Blob.BulkDownload",
                 **params,
             )
-            
+
             # The result could be:
             # 1. A direct blob response (handled by execute)
             # 2. A dict with download information
             # 3. A URL to the generated ZIP
-            
+
             if isinstance(result, dict):
                 # If we get a dict, check for a download URL
                 download_url = result.get("url") or result.get("path")
@@ -770,7 +770,9 @@ class Remote(Nuxeo):
                         download_url = f"{self.client.host}{download_url}"
                 else:
                     # Construct the URL based on the operation result
-                    download_url = f"{self.client.host}/nuxeo/api/v1/automation/Blob.BulkDownload"
+                    download_url = (
+                        f"{self.client.host}/nuxeo/api/v1/automation/Blob.BulkDownload"
+                    )
             elif isinstance(result, bytes):
                 # Direct blob response - write it to file
                 file_out.write_bytes(result)
@@ -781,7 +783,7 @@ class Remote(Nuxeo):
                     f"{self.client.host}/nuxeo/api/v1/bulk/download?"
                     f"docIds={','.join(fs_item_ids)}"
                 )
-            
+
             # Download the ZIP file using the standard download method
             return self.download(
                 download_url,
@@ -790,18 +792,20 @@ class Remote(Nuxeo):
                 "",  # No digest check for ZIP files
                 **kwargs,
             )
-            
+
         except HTTPError as e:
             # If Blob.BulkDownload is not available, try alternative approach
-            log.warning(f"Blob.BulkDownload operation failed: {e}, trying alternative method")
-            
+            log.warning(
+                f"Blob.BulkDownload operation failed: {e}, trying alternative method"
+            )
+
             # Alternative: Use REST API directly to download multiple files as ZIP
             # Construct a REST API URL for bulk download
             download_url = (
                 f"{self.client.host}/nuxeo/site/api/v1/bulk/download?"
                 f"docIds={','.join(fs_item_ids)}"
             )
-            
+
             try:
                 return self.download(
                     download_url,

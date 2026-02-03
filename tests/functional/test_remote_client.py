@@ -318,30 +318,36 @@ def test_download_as_zip(manager_factory, obj_factory, tmp):
     """Test downloading multiple files as a ZIP archive."""
     manager, engine = manager_factory()
     remote = engine.remote
-    
+
     with manager:
         # Create test files
-        doc1 = obj_factory(title="Test File 1.txt", parent=env.WS_DIR, content=b"Content 1")
-        doc2 = obj_factory(title="Test File 2.txt", parent=env.WS_DIR, content=b"Content 2")
-        
+        doc1 = obj_factory(
+            title="Test File 1.txt", parent=env.WS_DIR, content=b"Content 1"
+        )
+        doc2 = obj_factory(
+            title="Test File 2.txt", parent=env.WS_DIR, content=b"Content 2"
+        )
+
         # Mock the execute method to simulate Blob.BulkDownload operation
         def mock_execute(*args, **kwargs):
             if kwargs.get("command") == "Blob.BulkDownload":
                 # Return a mock result with download URL
-                return {"url": f"{remote.client.host}/nuxeo/api/v1/bulk-download/mock-id"}
+                return {
+                    "url": f"{remote.client.host}/nuxeo/api/v1/bulk-download/mock-id"
+                }
             # For other operations, use the original execute
             return engine.remote.execute(*args, **kwargs)
-        
+
         # Mock the download method to simulate ZIP file download
         def mock_download(url, file_path, file_out, digest, **kwargs):
             # Create a simple mock ZIP file
             file_out.write_bytes(b"PK\x03\x04")  # ZIP file signature
             return file_out
-        
+
         # Prepare paths
         output_path = tmp() / "download.zip"
         tmp_path = output_path.with_suffix(".tmp")
-        
+
         with patch.object(remote, "execute", new=mock_execute):
             with patch.object(remote, "download", new=mock_download):
                 # Test downloading multiple items as ZIP
@@ -350,9 +356,8 @@ def test_download_as_zip(manager_factory, obj_factory, tmp):
                     output_path,
                     tmp_path,
                 )
-                
+
                 assert result == tmp_path
                 assert tmp_path.exists()
                 # Verify it's a ZIP file (starts with PK signature)
                 assert tmp_path.read_bytes().startswith(b"PK")
-

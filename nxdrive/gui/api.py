@@ -457,12 +457,12 @@ class QMLDriveApi(QObject):
         self, engine_uid: str, item_ids: str, output_path: str, /
     ) -> bool:
         """Download multiple files and folders as a ZIP archive.
-        
+
         Args:
             engine_uid: The engine UID
             item_ids: Comma-separated list of file system item IDs to download
             output_path: Local path where the ZIP file should be saved
-            
+
         Returns:
             True if download was successful, False otherwise
         """
@@ -471,18 +471,20 @@ class QMLDriveApi(QObject):
         if not engine:
             log.error(f"Engine {engine_uid!r} not found")
             return False
-        
+
         try:
             # Parse the comma-separated list of item IDs
-            fs_item_ids = [item_id.strip() for item_id in item_ids.split(",") if item_id.strip()]
+            fs_item_ids = [
+                item_id.strip() for item_id in item_ids.split(",") if item_id.strip()
+            ]
             if not fs_item_ids:
                 log.error("No item IDs provided")
                 return False
-            
+
             # Prepare paths
             output_file = Path(output_path)
             tmp_file = output_file.with_suffix(".tmp")
-            
+
             # Download the ZIP file
             engine.remote.download_as_zip(
                 fs_item_ids,
@@ -490,11 +492,11 @@ class QMLDriveApi(QObject):
                 tmp_file,
                 engine_uid=engine_uid,
             )
-            
+
             # Rename the temporary file to the final name
             if tmp_file.exists():
                 tmp_file.rename(output_file)
-            
+
             log.info(f"Successfully downloaded ZIP to {output_file}")
             return True
         except Exception as e:
