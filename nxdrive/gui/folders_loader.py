@@ -28,7 +28,11 @@ class ContentLoaderMixin(QRunnable):
     ) -> None:
         super().__init__()
         self.tree = tree
-        self.item = item or self.tree.model().invisibleRootItem()
+        self.item = item or (
+            QStandardItemModel(self.tree.model()).invisibleRootItem()
+            if self.tree.model()
+            else None
+        )
         self.info: Optional[Documents] = None
         self.force_refresh = force_refresh
         if item:
