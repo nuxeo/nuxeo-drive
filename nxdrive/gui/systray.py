@@ -101,7 +101,7 @@ inherited_base_class = QQuickView if WINDOWS else QQuickWindow
 
 class SystrayWindow(inherited_base_class):  # type: ignore
     def __init__(self, parent: Optional[QWindow] = None) -> None:
-        super().__init__(parent=parent)
+        super().__init__(parent)
         self.activeChanged.connect(self._on_active_changed)
 
     def _on_active_changed(self) -> None:
