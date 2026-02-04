@@ -70,8 +70,9 @@ class TreeViewMixin(QTreeView):
 
         self.set_loading_cursor(True)
         loader = self.loader(self, item=item, force_refresh=force_refresh)
-        if QThreadPool.globalInstance():
-            QThreadPool.globalInstance().start(loader)
+        pool = QThreadPool.globalInstance()
+        if pool:
+            pool.start(loader)
 
     def set_loading_cursor(self, busy: bool, /) -> None:
         """Set the cursor based on the actual status.
@@ -192,10 +193,14 @@ class FolderTreeView(TreeViewMixin):
         super().__init__(parent, client)
 
         # Actions to do when a folder is selected
-        self.selectionModel().currentChanged.connect(self.on_selection_changed)
+        selection_model = self.selectionModel()
+        if not selection_model:
+            log.error("Cannot get the selection model for FolderTreeView")
+            return
+        selection_model.currentChanged.connect(self.on_selection_changed)
 
         self.update.connect(self.refresh_selected)
-        self.current = self.selectionModel().currentIndex()
+        self.current = selection_model.currentIndex()
 
         self.filled.connect(self._find_current_and_select_it)
 
@@ -203,7 +208,12 @@ class FolderTreeView(TreeViewMixin):
 
     def on_selection_changed(self, current: QModelIndex, _: QModelIndex, /) -> None:
         """Actions to do when a folder is selected."""
-        if item := self.model().itemFromIndex(current).data(qt.UserRole):
+        if self.model():
+            model = QStandardItemModel(self.model())
+        else:
+            log.error("Cannot get the model for FolderTreeView")
+            return
+        if item := model.itemFromIndex(current).data(qt.UserRole):
             self.parent.remote_folder.setText(item.get_path())
             self.parent.remote_folder_ref = item.get_id()
             self.parent.remote_folder_title = item.get_label()
@@ -213,14 +223,30 @@ class FolderTreeView(TreeViewMixin):
 
     def refresh_selected(self) -> None:
         """Force reload the the current selected index."""
-        item = self.model().itemFromIndex(self.current)
-        self.load_children(item=item, force_refresh=True)
+        if self.model():
+            model = QStandardItemModel(self.model())
+        else:
+            log.error("Cannot force reload the the current selected index")
+            return
+        item = model.itemFromIndex(self.current)
+        item_model = item.model() if item else None
+        if not item_model:
+            log.error(
+                "Cannot get the item model to force reload the current selected index"
+            )
+            return
+        self.load_children(item=item_model, force_refresh=True)
 
     def _find_current_and_select_it(self) -> None:
         """Expand the tree view and select the current index."""
-        item = self.model().itemFromIndex(self.current)
+        if self.model():
+            model = QStandardItemModel(self.model())
+        else:
+            log.error("Cannot expand the tree view and select the current index")
+            return
+        item = model.itemFromIndex(self.current)
         if not item:
-            item = self.model().invisibleRootItem()
+            item = model.invisibleRootItem()
         longest_parent = None
         for idx in range(item.rowCount()):
             child = item.child(idx)
@@ -229,11 +255,19 @@ class FolderTreeView(TreeViewMixin):
                 data.get_path() == self.selected_folder
                 or data.get_path() == self.parent.remote_folder.text()
             ):
-                self.selectionModel().select(
+                selection_model = self.selectionModel()
+                if not selection_model:
+                    log.error(
+                        "Cannot get the selection model to select the current index"
+                    )
+                    raise RuntimeError(
+                        "Cannot get the selection model to select the current index"
+                    )
+                selection_model.select(
                     child.index(),
                     QItemSelectionModel.SelectionFlag.ClearAndSelect,
                 )
-                self.selectionModel().currentChanged.emit(child.index(), self.current)
+                selection_model.currentChanged.emit(child.index(), self.current)
                 return
             elif data and data.get_path() in self.parent.remote_folder.text():
                 if not longest_parent:
@@ -255,7 +289,12 @@ class FolderTreeView(TreeViewMixin):
 
     def select_item_from_path(self, new_remote_path: str) -> None:
         """Find and select an item in the tree view based in the *new_remote_path*."""
-        item = self.model().itemFromIndex(self.current)
+        if self.model():
+            model = QStandardItemModel(self.model())
+        else:
+            log.error("Cannot find and select an item in the tree view")
+            return
+        item = model.itemFromIndex(self.current)
         for idx in range(item.rowCount()):
             child = item.child(idx)
             data = child.data(qt.UserRole)
@@ -266,7 +305,17 @@ class FolderTreeView(TreeViewMixin):
     def get_item_from_position(self, position: QPoint) -> QStandardItem:
         """Get the item ath the current *position*."""
         index = self.indexAt(position)
-        return self.model().itemFromIndex(index)
+        if self.model():
+            model = QStandardItemModel(self.model())
+        else:
+            log.error("Cannot get the item at the current position")
+            raise RuntimeError("Cannot get the item at the current position")
+        item = model.itemFromIndex(index)
+        if item:
+            return item
+        else:
+            log.error("No item found at the current position")
+            raise RuntimeError("No item found at the current position")
 
     def is_item_enabled(self, item: QStandardItem) -> bool:
         """Check if the provided *item* is enabled."""
