@@ -1,3 +1,4 @@
+from logging import getLogger
 from typing import TYPE_CHECKING, List, Union
 
 from ..qt import constants as qt
@@ -19,6 +20,8 @@ if TYPE_CHECKING:
     from .folders_dialog import DialogMixin, DocumentsDialog, FoldersDialog  # noqa
 
 __all__ = ("DocumentTreeView", "FolderTreeView")
+
+log = getLogger(__name__)
 
 
 class TreeViewMixin(QTreeView):
@@ -45,9 +48,16 @@ class TreeViewMixin(QTreeView):
 
     def expand_item(self, index: QModelIndex, /) -> None:
         """When an item is clicked, load its children."""
-        index = self.model().index(index.row(), 0, index.parent())
-        item = self.model().itemFromIndex(index)
-        self.load_children(item=item)
+        if self.model():
+            model = QStandardItemModel(self.model())
+            index = model.index(index.row(), 0, index.parent())
+            item = model.itemFromIndex(index)
+            item_model = item.model() if item else None
+            if item_model:
+                self.load_children(item=item_model)
+            else:
+                log.error("Cannot get the item model to load its children")
+                raise RuntimeError("Cannot get the item model to load its children")
 
     def load_children(
         self, *, item: QStandardItemModel = None, force_refresh: bool = False
@@ -60,7 +70,8 @@ class TreeViewMixin(QTreeView):
 
         self.set_loading_cursor(True)
         loader = self.loader(self, item=item, force_refresh=force_refresh)
-        QThreadPool.globalInstance().start(loader)
+        if QThreadPool.globalInstance():
+            QThreadPool.globalInstance().start(loader)
 
     def set_loading_cursor(self, busy: bool, /) -> None:
         """Set the cursor based on the actual status.
