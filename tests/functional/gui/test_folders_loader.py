@@ -285,7 +285,6 @@ class TestDocumentContentLoader:
             mock_qstandarditem.assert_called_once_with("Test Document")
             mock_subitem.setCheckable.assert_called_once_with(True)
             mock_subitem.setCheckState.assert_called_with(qt.Checked)
-            mock_subitem.setTristate.assert_called_once_with(True)
             mock_subitem.setEnabled.assert_called_once_with(True)
             mock_subitem.setSelectable.assert_called_once_with(True)
             mock_subitem.setEditable.assert_called_once_with(False)

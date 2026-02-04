@@ -36,7 +36,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13.1" # XXX_PYTHON
-          architecture: "x86"
       - uses: actions/cache@v4
         with:
           path: ~\AppData\Local\pip\Cache
@@ -78,7 +77,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13.1" # XXX_PYTHON
-          architecture: "x86"
       - uses: actions/cache@v4
         with:
           path: ~\AppData\Local\pip\Cache
