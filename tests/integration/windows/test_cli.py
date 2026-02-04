@@ -120,7 +120,9 @@ def test_argument_log_filename(exe, tmp, file):
     assert log.is_file()
 
 
-@pytest.mark.parametrize("folder", ["azerty", "$alice", "léa", "mi Kaël", "こん ツリ ^^"])
+@pytest.mark.parametrize(
+    "folder", ["azerty", "$alice", "léa", "mi Kaël", "こん ツリ ^^"]
+)
 def test_argument_nxdrive_home(exe, tmp, folder):
     print(f"test_argument_nxdrive_home called with folder={folder}")
     path = tmp()

@@ -628,7 +628,7 @@ class DefaultNotificationService(NotificationService):
 
     def _newError(self, row_id: int, /) -> None:
         engine = self.sender()
-        if not hasattr(engine, "dao"):
+        if not engine or not hasattr(engine, "dao"):
             return
 
         doc_pair = engine.dao.get_state_from_id(row_id)
@@ -638,16 +638,20 @@ class DefaultNotificationService(NotificationService):
         self.send_notification(ErrorNotification(engine.uid, doc_pair))
 
     def _newConflict(self, row_id: int, /) -> None:
-        engine_uid = self.sender().uid
-        doc_pair = self.sender().dao.get_state_from_id(row_id)
+        engine = self.sender()
+        if not engine:
+            return
+        doc_pair = engine.dao.get_state_from_id(row_id)
         if not doc_pair:
             return
-        self.send_notification(ConflictNotification(engine_uid, doc_pair))
+        self.send_notification(ConflictNotification(engine.uid, doc_pair))
 
     def _newReadonly(self, filename: str, /, *, parent: str = None) -> None:
-        engine_uid = self.sender().uid
+        engine = self.sender()
+        if not engine:
+            return
         self.send_notification(
-            ReadOnlyNotification(engine_uid, filename, parent=parent)
+            ReadOnlyNotification(engine.uid, filename, parent=parent)
         )
 
     def _directEditForbidden(self, doc_id: str, user_id: str, hostname: str) -> None:
@@ -659,15 +663,19 @@ class DefaultNotificationService(NotificationService):
         self.send_notification(DirectEditReadOnlyNotification(filename))
 
     def _deleteReadonly(self, filename: str, /) -> None:
-        engine_uid = self.sender().uid
-        self.send_notification(DeleteReadOnlyNotification(engine_uid, filename))
+        engine = self.sender()
+        if not engine:
+            return
+        self.send_notification(DeleteReadOnlyNotification(engine.uid, filename))
 
     def _newLocked(
         self, filename: str, lock_owner: str, lock_created: datetime, /
     ) -> None:
-        engine_uid = self.sender().uid
+        engine = self.sender()
+        if not engine:
+            return
         self.send_notification(
-            LockedNotification(engine_uid, filename, lock_owner, lock_created)
+            LockedNotification(engine.uid, filename, lock_owner, lock_created)
         )
 
     def _directEditLocked(
@@ -684,12 +692,16 @@ class DefaultNotificationService(NotificationService):
         self.send_notification(DirectEditUpdatedNotification(filename))
 
     def _validAuthentication(self) -> None:
-        engine_uid = self.sender().uid
-        self.discard_notification("INVALID_CREDENTIALS_" + engine_uid)
+        engine = self.sender()
+        if not engine:
+            return
+        self.discard_notification("INVALID_CREDENTIALS_" + engine.uid)
 
     def _invalidAuthentication(self) -> None:
-        engine_uid = self.sender().uid
-        notif = InvalidCredentialNotification(engine_uid)
+        engine = self.sender()
+        if not engine:
+            return
+        notif = InvalidCredentialNotification(engine.uid)
         self.send_notification(notif)
 
     def _display_pending_task(

@@ -359,7 +359,10 @@ class Application(QApplication):
                 QUrl.fromLocalFile(str(find_resource("qml", file="DirectTransfer.qml")))
             )
             # Log QML loading errors for DirectTransfer.qml
-            if self.direct_transfer_window.status() == self.direct_transfer_window.Status.Error:
+            if (
+                self.direct_transfer_window.status()
+                == self.direct_transfer_window.Status.Error
+            ):
                 for error in self.direct_transfer_window.errors():
                     log.error(f"DirectTransfer.qml load error: {error.toString()}")
             else:
@@ -374,16 +377,20 @@ class Application(QApplication):
             self.app_engine.load(
                 QUrl.fromLocalFile(str(find_resource("qml", file="Main.qml")))
             )
-            log.info(f"QUrl.fromLocalFile: {QUrl.fromLocalFile(str(find_resource("qml", file="Main.qml")))}")
-            
+            log.info(
+                f"QUrl.fromLocalFile: {QUrl.fromLocalFile(str(find_resource('qml', file='Main.qml')))}"
+            )
+
             # Check if QML loaded successfully
             root_objects = self.app_engine.rootObjects()
             if not root_objects:
                 log.error("Failed to load QML! Checking for errors...")
                 for warning in self.app_engine.warnings():
                     log.error(f"QML Warning: {warning.toString()}")
-                raise RuntimeError("QML engine failed to load Main.qml - check logs for QML errors")
-            
+                raise RuntimeError(
+                    "QML engine failed to load Main.qml - check logs for QML errors"
+                )
+
             root = root_objects[0]
             self.conflicts_window = root.findChild(CustomWindow, "conflictsWindow")
             self.settings_window = root.findChild(CustomWindow, "settingsWindow")
@@ -776,6 +783,9 @@ class Application(QApplication):
     @pyqtSlot()
     def _root_deleted(self) -> None:
         engine = self.sender()
+        if not isinstance(engine, Engine):
+            log.error(f"Sender is not an Engine instance: {type(engine)}")
+            return
         log.info(f"Root has been deleted for engine: {engine.uid}")
 
         msg = self.question(
@@ -818,6 +828,9 @@ class Application(QApplication):
     @pyqtSlot(Path)
     def _root_moved(self, new_path: Path, /) -> None:
         engine = self.sender()
+        if not isinstance(engine, Engine):
+            log.error(f"Sender is not an Engine instance: {type(engine)}")
+            return
         log.info(f"Root has been moved for engine: {engine.uid} to {new_path!r}")
         info = [engine.local_folder, APP_NAME, str(new_path)]
 
@@ -1010,7 +1023,10 @@ class Application(QApplication):
             icon = QRect(cur.x(), cur.y(), 16, 16)
 
         # Adjust the position
-        dpi_ratio = self.primaryScreen().devicePixelRatio() if WINDOWS else 1
+        primary_screen = self.primaryScreen()
+        dpi_ratio = (
+            primary_screen.devicePixelRatio() if WINDOWS and primary_screen else 1
+        )
         pos_x = max(
             0, (icon.x() + icon.width()) / dpi_ratio - self.systray_window.width()
         )
@@ -1111,9 +1127,14 @@ class Application(QApplication):
             [remote_url, remote_path, duplicates_list_html],
             execute=False,
         )
-        spacer = QSpacerItem(600, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        spacer = QSpacerItem(
+            600, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
+        )
         layout = msg_box.layout()
-        layout.addItem(spacer, layout.rowCount(), 0, 1, layout.columnCount())
+        if layout:
+            layout.addItem(spacer, layout.rowCount(), 0, 1, layout.columnCount())
+        else:
+            log.error("Cannot get layout from message box")
         msg_box.exec()
 
     @pyqtSlot(str, int, str)
@@ -1589,13 +1610,21 @@ class Application(QApplication):
 
         buttons = QDialogButtonBox()
         buttons.setStandardButtons(qt.Ok | qt.Cancel)
-        buttons.button(qt.Ok).setEnabled(False)
+        ok_button = buttons.button(qt.Ok)
+        if ok_button:
+            ok_button.setEnabled(False)
+        else:
+            log.error("Cannot get OK button from dialog button box")
         buttons.accepted.connect(accept)
         buttons.rejected.connect(dialog.close)
 
         def bypass_triggered(state: int) -> None:
             """Enable the OK button only when the checkbox is checked."""
-            buttons.button(qt.Ok).setEnabled(bool(state))
+            ok_button = buttons.button(qt.Ok)
+            if ok_button:
+                ok_button.setEnabled(bool(state))
+            else:
+                log.error("Cannot get OK button to enable/disable")
 
         bypass = QCheckBox(Translator.get("SSL_TRUST_ANYWAY"))
         bypass.stateChanged.connect(bypass_triggered)
@@ -2044,6 +2073,9 @@ class Application(QApplication):
         """Refresh the files list every second to go easy on the QML side and prevent GUI lags."""
         if monotonic() - self._last_refresh_view > 1.0:
             engine = self.sender()
+            if not isinstance(engine, Engine):
+                log.error(f"Sender is not an Engine instance: {type(engine)}")
+                return
             self.get_last_files(engine.uid)
             self._last_refresh_view = monotonic()
 

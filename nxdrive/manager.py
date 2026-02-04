@@ -635,7 +635,8 @@ class Manager(QObject):
             return False
 
         runner = Runner(self._generate_csv_async, engine, session)
-        engine._threadpool.start(runner)
+        if engine._threadpool:
+            engine._threadpool.start(runner)
         return True
 
     def _generate_csv_async(self, engine: Engine, session: Session) -> None:
