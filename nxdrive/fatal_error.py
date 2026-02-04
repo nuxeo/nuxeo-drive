@@ -146,14 +146,16 @@ def fatal_error_qt(exc_formatted: str, /) -> None:
     buttons.setStandardButtons(qt.Ok)
     buttons.accepted.connect(dialog.close)
     update_button = buttons.addButton(tr("FATAL_ERROR_UPDATE_BTN"), qt.ActionRole)
-    update_button.setToolTip(tr("FATAL_ERROR_UPDATE_TOOLTIP", values=[APP_NAME]))
-    update_button.clicked.connect(open_update_site)
+    if update_button:
+        update_button.setToolTip(tr("FATAL_ERROR_UPDATE_TOOLTIP", values=[APP_NAME]))
+        update_button.clicked.connect(open_update_site)
     layout.addWidget(buttons)
 
     def copy() -> None:
         """Copy details to the clipboard and change the text of the button."""
         osi.cb_set("\n".join(details))
-        copy_paste.setText(tr("FATAL_ERROR_DETAILS_COPIED"))
+        if copy_paste:
+            copy_paste.setText(tr("FATAL_ERROR_DETAILS_COPIED"))
 
     # "Copy details" button
     with suppress(Exception):
@@ -161,7 +163,8 @@ def fatal_error_qt(exc_formatted: str, /) -> None:
 
         osi = AbstractOSIntegration.get(None)
         copy_paste = buttons.addButton(tr("FATAL_ERROR_DETAILS_COPY"), qt.ActionRole)
-        copy_paste.clicked.connect(copy)
+        if copy_paste:
+            copy_paste.clicked.connect(copy)
 
     dialog.setLayout(layout)
     dialog.show()
