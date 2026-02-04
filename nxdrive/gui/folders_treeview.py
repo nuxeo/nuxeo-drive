@@ -73,6 +73,8 @@ class TreeViewMixin(QTreeView):
         pool = QThreadPool.globalInstance()
         if pool:
             pool.start(loader)
+        else:
+            log.error("Cannot get the global thread pool to load children")
 
     def set_loading_cursor(self, busy: bool, /) -> None:
         """Set the cursor based on the actual status.
