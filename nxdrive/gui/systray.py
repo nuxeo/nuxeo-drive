@@ -61,7 +61,7 @@ class DriveSystrayIcon(QSystemTrayIcon):
         """Open the settings window."""
         self.application.show_settings("Advanced")
 
-    def get_context_menu(self) -> QMenu:
+    def get_context_menu(self) -> QMenu | None:
         """
         Create the context menu.
         It shows up on left click.
@@ -73,7 +73,7 @@ class DriveSystrayIcon(QSystemTrayIcon):
         style = QApplication.style()
         if not style:
             log.error("Could not get QApplication style for systray menu")
-            raise RuntimeError("Could not get QApplication style")
+            return
         menu = QMenu()
         menu.addAction(
             style.standardIcon(qt.SP_FileDialogInfoView),
