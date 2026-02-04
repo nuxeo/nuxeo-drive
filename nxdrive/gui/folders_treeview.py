@@ -1,5 +1,5 @@
 from logging import getLogger
-from typing import TYPE_CHECKING, List, Union
+from typing import TYPE_CHECKING, List, Optional, Union
 
 from ..qt import constants as qt
 from ..qt.imports import (
@@ -57,7 +57,6 @@ class TreeViewMixin(QTreeView):
                 self.load_children(item=item_model)
             else:
                 log.error("Cannot get the item model to load its children")
-                raise RuntimeError("Cannot get the item model to load its children")
 
     def load_children(
         self, *, item: QStandardItemModel = None, force_refresh: bool = False
@@ -271,9 +270,7 @@ class FolderTreeView(TreeViewMixin):
                     log.error(
                         "Cannot get the selection model to select the current index"
                     )
-                    raise RuntimeError(
-                        "Cannot get the selection model to select the current index"
-                    )
+                    return
                 selection_model.select(
                     child.index(),
                     QItemSelectionModel.SelectionFlag.ClearAndSelect,
@@ -319,20 +316,20 @@ class FolderTreeView(TreeViewMixin):
                 self.parent.remote_folder.setText(new_remote_path)
                 return
 
-    def get_item_from_position(self, position: QPoint) -> QStandardItem:
+    def get_item_from_position(self, position: QPoint) -> Optional[QStandardItem]:
         """Get the item ath the current *position*."""
         index = self.indexAt(position)
         if self.model():
             model = QStandardItemModel(self.model())
         else:
             log.error("Cannot get the item at the current position")
-            raise RuntimeError("Cannot get the item at the current position")
+            return None
         item = model.itemFromIndex(index)
         if item:
             return item
         else:
             log.error("No item found at the current position")
-            raise RuntimeError("No item found at the current position")
+            return None
 
     def is_item_enabled(self, item: QStandardItem) -> bool:
         """Check if the provided *item* is enabled."""

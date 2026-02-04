@@ -334,7 +334,10 @@ class FoldersDialog(DialogMixin):
 
         pointed_item = self.tree_view.get_item_from_position(position)
         if action:
-            action.setEnabled(self.tree_view.is_item_enabled(pointed_item))
+            action.setEnabled(
+                pointed_item is not None
+                and self.tree_view.is_item_enabled(pointed_item)
+            )
         menu.exec(self.tree_view.viewport().mapToGlobal(position))
 
     def _add_group_local(self) -> QGroupBox:
