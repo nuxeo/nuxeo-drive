@@ -213,13 +213,16 @@ class FolderTreeView(TreeViewMixin):
         else:
             log.error("Cannot get the model for FolderTreeView")
             return
-        if item := model.itemFromIndex(current).data(qt.UserRole):
+        standard_item = model.itemFromIndex(current)
+        if standard_item and (item := standard_item.data(qt.UserRole)):
             self.parent.remote_folder.setText(item.get_path())
             self.parent.remote_folder_ref = item.get_id()
             self.parent.remote_folder_title = item.get_label()
             self.current = current
             self.parent.button_ok_state()
             self.parent.update_file_group()
+        else:
+            log.error("Cannot get item data from selection")
 
     def refresh_selected(self) -> None:
         """Force reload the the current selected index."""
@@ -247,9 +250,15 @@ class FolderTreeView(TreeViewMixin):
         item = model.itemFromIndex(self.current)
         if not item:
             item = model.invisibleRootItem()
+        if not item:
+            log.error("Cannot get item or invisible root item")
+            return
         longest_parent = None
         for idx in range(item.rowCount()):
             child = item.child(idx)
+            if not child:
+                log.error(f"Cannot get child at index {idx}")
+                continue
             data = child.data(qt.UserRole)
             if data and (
                 data.get_path() == self.selected_folder
@@ -272,9 +281,9 @@ class FolderTreeView(TreeViewMixin):
             elif data and data.get_path() in self.parent.remote_folder.text():
                 if not longest_parent:
                     longest_parent = child
-                elif len(longest_parent.data(qt.UserRole).get_path()) < len(
-                    data.get_path()
-                ):
+                elif longest_parent.data(qt.UserRole) and len(
+                    longest_parent.data(qt.UserRole).get_path()
+                ) < len(data.get_path()):
                     longest_parent = child
 
         if longest_parent:
@@ -295,8 +304,14 @@ class FolderTreeView(TreeViewMixin):
             log.error("Cannot find and select an item in the tree view")
             return
         item = model.itemFromIndex(self.current)
+        if not item:
+            log.error("Cannot get item from current index")
+            return
         for idx in range(item.rowCount()):
             child = item.child(idx)
+            if not child:
+                log.error(f"Cannot get child at index {idx}")
+                continue
             data = child.data(qt.UserRole)
             if data and data.get_path() == new_remote_path:
                 self.parent.remote_folder.setText(new_remote_path)
