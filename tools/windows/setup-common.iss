@@ -45,6 +45,25 @@ CloseApplicationsFilter=*.*
 MinVersion=6.2.9200
 
 
+[InstallDelete]
+; NXDRIVE-3078: Clean up old Qt/PyQt DLLs before installing the new 64-bit version.
+; This is required to handle upgrades from 5.4.0 (PyInstaller 5.0) which had different
+; Qt DLL structure. Without this, orphaned 32-bit DLLs from 5.4.0 can cause
+; "DLL load failed while importing QtCore: %1 is not a valid Win32 application" errors.
+Type: filesandordirs; Name: "{app}\PyQt5"
+Type: files; Name: "{app}\Qt*.dll"
+Type: files; Name: "{app}\qt*.dll"
+Type: files; Name: "{app}\python*.dll"
+Type: files; Name: "{app}\vcruntime*.dll"
+Type: files; Name: "{app}\msvcp*.dll"
+Type: files; Name: "{app}\api-ms-*.dll"
+Type: files; Name: "{app}\ucrtbase.dll"
+Type: files; Name: "{app}\libcrypto*.dll"
+Type: files; Name: "{app}\libssl*.dll"
+Type: files; Name: "{app}\libffi*.dll"
+Type: files; Name: "{app}\sqlite3.dll"
+
+
 [UninstallDelete]
 ; Force the installation directory to be removed when uninstalling
 Type: filesandordirs; Name: "{app}"
