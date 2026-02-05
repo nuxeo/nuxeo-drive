@@ -390,6 +390,7 @@ class TestRootMoved:
 
     def test_root_moved_disconnect(self, mock_application):
         """Test disconnecting when root is moved."""
+        from nxdrive.engine.engine import Engine
         from nxdrive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None), patch.object(
@@ -399,7 +400,7 @@ class TestRootMoved:
             app.tasks_management_feature_model = Mock()
             app.manager = mock_application.manager
 
-            mock_engine = Mock()
+            mock_engine = Mock(spec=Engine)
             mock_engine.uid = "test_engine"
             mock_engine.local_folder = Path("/test/path")
             app.sender = Mock(return_value=mock_engine)
