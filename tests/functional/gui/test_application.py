@@ -863,21 +863,26 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     folder_tree_view = FolderTreeView(parent, client, None)  # type: ignore[arg-type]
     q_model_index = QModelIndex()
 
+    mock_item_model_instance = Mock_Item_Model()
     with patch(
         "nxdrive.gui.folders_treeview.FolderTreeView.model"
     ) as mock_model, patch(
         "nxdrive.gui.folders_dialog.FoldersDialog.update_file_group"
-    ) as mock_update_file_group:
-        mock_model.return_value = Mock_Item_Model()
+    ) as mock_update_file_group, patch(
+        "nxdrive.gui.folders_treeview.QStandardItemModel"
+    ) as mock_qstandarditemmodel:
+        mock_model.return_value = mock_item_model_instance
+        mock_qstandarditemmodel.return_value = mock_item_model_instance
         mock_update_file_group.return_value = None
         assert (
             folder_tree_view.on_selection_changed(q_model_index, q_model_index) is None
         )
 
     # Covering run method in ContentLoaderMixin
-    content_loader = ContentLoaderMixin(
-        folder_tree_view, item=None, force_refresh=False  # type: ignore[arg-type]
-    )
+    with patch("nxdrive.gui.folders_loader.QStandardItemModel"):
+        content_loader = ContentLoaderMixin(
+            folder_tree_view, item=None, force_refresh=False  # type: ignore[arg-type]
+        )
     mock_remote_file_info = Mock_Remote_File_Info()
 
     # info.get_id() in self.tree.cache and not self.force_refresh
