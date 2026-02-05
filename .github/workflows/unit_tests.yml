@@ -46,7 +46,7 @@ jobs:
       - name: Unit tests
         run: tox -e unit
       - name: Upload coverage to Codecov
-        if: ${{ success() }} || ${{ failure() }}
+        if: ${{ success() || failure() }}
         uses: codecov/codecov-action@v5.2.0
         with:
           token: ${{secrets.CODECOV_TOKEN}}
@@ -79,7 +79,7 @@ jobs:
       - name: Unit tests
         run: tox -e unit
       - name: Upload coverage to Codecov
-        if: ${{ success() }} || ${{ failure() }}
+        if: ${{ success() || failure() }}
         uses: codecov/codecov-action@v5.2.0
         with:
           token: ${{secrets.CODECOV_TOKEN}}
@@ -111,7 +111,7 @@ jobs:
       - name: Unit tests
         run: tox -e unit
       - name: Upload coverage to Codecov
-        if: ${{ success() }} || ${{ failure() }}
+        if: ${{ success() || failure() }}
         uses: codecov/codecov-action@v5.2.0
         with:
           token: ${{secrets.CODECOV_TOKEN}}
