@@ -636,6 +636,7 @@ class Application(QApplication):
             "unfocusedTab": "#525252",
             "focusedUnderline": "#0066FF",
             "unfocusedUnderline": "#E0E0E0",
+            "settingsTabGroup": "#FFFFFF",
             "switchOnEnabled": "#0066FF",
             "switchOffEnabled": "#525252",
             "switchDisabled": "#C6C6C6",

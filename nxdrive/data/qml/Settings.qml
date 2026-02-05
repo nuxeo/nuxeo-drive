@@ -25,6 +25,10 @@ Item {
 
         anchors.top: parent.top
 
+        background: Rectangle {
+        color: settingsTabGroup
+    }
+
         // Note: Keep synced with Application.show_settings()
         SettingsTab {
             text: qsTr("SECTION_FEATURES") + tl.tr
