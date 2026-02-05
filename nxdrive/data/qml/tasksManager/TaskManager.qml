@@ -77,6 +77,11 @@ Rectangle {
         height: 50
         spacing: 0
         anchors.top: refreshButton.bottom
+
+        background: Rectangle {
+        color: settingsTabGroup
+    }
+
         SettingsTab {
             text: qsTr("PENDING_TASKS") + tl.tr
             barIndex: bar.currentIndex;
