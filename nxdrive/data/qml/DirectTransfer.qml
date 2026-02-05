@@ -66,6 +66,10 @@ Rectangle {
 
         anchors.top: buttonzone.bottom
 
+        background: Rectangle {
+        color: settingsTabGroup
+    }
+
         SettingsTab {
             text: qsTr("RUNNING") + tl.tr
             barIndex: bar.currentIndex;
