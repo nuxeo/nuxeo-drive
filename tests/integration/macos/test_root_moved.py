@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
+from nxdrive.engine.engine import Engine
 from nxdrive.gui.application import Application
 from nxdrive.manager import Manager
 from tests.markers import mac_only
@@ -23,8 +24,8 @@ class TestRootMoved:
         app = MagicMock(spec=Application)
         app.manager = manager
 
-        # Create a mocked engine
-        engine = Mock()
+        # Create a mocked engine with spec=Engine to pass isinstance check
+        engine = Mock(spec=Engine)
         engine.uid = "test_engine"
         engine.local_folder = Path("/old/path")
         engine.set_local_folder = Mock()
