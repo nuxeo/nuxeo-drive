@@ -16,20 +16,31 @@ class TestContentLoaderMixin:
     def create_mock_tree(self):
         """Helper to create a mock tree view."""
         mock_tree = MagicMock()
-        mock_tree.model.return_value = MagicMock()
-        mock_tree.model.return_value.invisibleRootItem.return_value = MagicMock()
+        mock_model = MagicMock()
+        mock_invisible_root = MagicMock()
+        mock_model.invisibleRootItem.return_value = mock_invisible_root
+        mock_tree.model.return_value = mock_model
         mock_tree.cache = []
         mock_tree.client = MagicMock()
+        mock_tree._invisible_root = mock_invisible_root  # Store for assertions
         return mock_tree
+
+    def create_loader(self, mock_tree, item=None, force_refresh=False):
+        """Helper to create a ContentLoaderMixin with proper patching."""
+        invisible_root = mock_tree._invisible_root
+        mock_model_class = MagicMock()
+        mock_model_class.return_value.invisibleRootItem.return_value = invisible_root
+        with patch("nxdrive.gui.folders_loader.QStandardItemModel", mock_model_class):
+            return ContentLoaderMixin(mock_tree, item=item, force_refresh=force_refresh)
 
     def test_content_loader_mixin_initialization_no_item(self):
         """Test ContentLoaderMixin initialization without specific item."""
         mock_tree = self.create_mock_tree()
 
-        loader = ContentLoaderMixin(mock_tree)
+        loader = self.create_loader(mock_tree)
 
         assert loader.tree == mock_tree
-        assert loader.item == mock_tree.model().invisibleRootItem()
+        assert loader.item == mock_tree._invisible_root
         assert loader.info is None
         assert loader.force_refresh is False
 
@@ -40,7 +51,7 @@ class TestContentLoaderMixin:
         mock_info = MagicMock()
         mock_item.data.return_value = mock_info
 
-        loader = ContentLoaderMixin(mock_tree, item=mock_item)
+        loader = self.create_loader(mock_tree, item=mock_item)
 
         assert loader.tree == mock_tree
         assert loader.item == mock_item
@@ -51,7 +62,7 @@ class TestContentLoaderMixin:
         """Test ContentLoaderMixin initialization with force refresh."""
         mock_tree = self.create_mock_tree()
 
-        loader = ContentLoaderMixin(mock_tree, force_refresh=True)
+        loader = self.create_loader(mock_tree, force_refresh=True)
 
         assert loader.force_refresh is True
 
@@ -66,7 +77,7 @@ class TestContentLoaderMixin:
         # Add item to cache
         mock_tree.cache = ["cached_id"]
 
-        loader = ContentLoaderMixin(mock_tree, item=mock_item)
+        loader = self.create_loader(mock_tree, item=mock_item)
 
         with patch.object(loader, "handle_already_cached") as mock_handle_cached:
             loader.run()
@@ -87,7 +98,7 @@ class TestContentLoaderMixin:
         # Add item to cache
         mock_tree.cache = ["cached_id"]
 
-        loader = ContentLoaderMixin(mock_tree, item=mock_item, force_refresh=True)
+        loader = self.create_loader(mock_tree, item=mock_item, force_refresh=True)
 
         with patch.object(
             loader, "handle_already_cached"
@@ -111,7 +122,7 @@ class TestContentLoaderMixin:
         mock_info.get_path.return_value = "/test/path"
         mock_item.data.return_value = mock_info
 
-        loader = ContentLoaderMixin(mock_tree, item=mock_item)
+        loader = self.create_loader(mock_tree, item=mock_item)
 
         with patch.object(loader, "fill_tree"):
             mock_tree.client.get_children.return_value = []
@@ -122,7 +133,7 @@ class TestContentLoaderMixin:
     def test_add_loading_subitem(self):
         """Test adding loading placeholder subitem."""
         mock_tree = self.create_mock_tree()
-        loader = ContentLoaderMixin(mock_tree)
+        loader = self.create_loader(mock_tree)
 
         mock_item = MagicMock()
 
@@ -145,7 +156,7 @@ class TestContentLoaderMixin:
     def test_sort_children(self):
         """Test sorting children alphabetically."""
         mock_tree = self.create_mock_tree()
-        loader = ContentLoaderMixin(mock_tree)
+        loader = self.create_loader(mock_tree)
 
         # Mock children with different labels
         mock_children = [
@@ -163,7 +174,7 @@ class TestContentLoaderMixin:
         """Test filling tree with children."""
         mock_tree = self.create_mock_tree()
         mock_item = MagicMock()
-        loader = ContentLoaderMixin(mock_tree, item=mock_item)
+        loader = self.create_loader(mock_tree, item=mock_item)
 
         # Mock children
         mock_children = [
@@ -211,7 +222,7 @@ class TestContentLoaderMixin:
         mock_info.get_path.return_value = "/error/path"
         mock_item.data.return_value = mock_info
 
-        loader = ContentLoaderMixin(mock_tree, item=mock_item)
+        loader = self.create_loader(mock_tree, item=mock_item)
 
         # Mock error during client call
         mock_tree.client.get_children.side_effect = Exception("Network error")
@@ -240,17 +251,30 @@ class TestDocumentContentLoader:
     def create_mock_tree(self):
         """Helper to create a mock tree view."""
         mock_tree = MagicMock()
-        mock_tree.model.return_value = MagicMock()
-        mock_tree.model.return_value.invisibleRootItem.return_value = MagicMock()
+        mock_model = MagicMock()
+        mock_invisible_root = MagicMock()
+        mock_model.invisibleRootItem.return_value = mock_invisible_root
+        mock_tree.model.return_value = mock_model
         mock_tree.cache = []
         mock_tree.client = MagicMock()
+        mock_tree._invisible_root = mock_invisible_root  # Store for assertions
         return mock_tree
+
+    def create_loader(self, mock_tree, item=None, force_refresh=False):
+        """Helper to create a DocumentContentLoader with proper patching."""
+        invisible_root = mock_tree._invisible_root
+        mock_model_class = MagicMock()
+        mock_model_class.return_value.invisibleRootItem.return_value = invisible_root
+        with patch("nxdrive.gui.folders_loader.QStandardItemModel", mock_model_class):
+            return DocumentContentLoader(
+                mock_tree, item=item, force_refresh=force_refresh
+            )
 
     def test_document_content_loader_initialization(self):
         """Test DocumentContentLoader initialization."""
         mock_tree = self.create_mock_tree()
 
-        loader = DocumentContentLoader(mock_tree)
+        loader = self.create_loader(mock_tree)
 
         assert isinstance(loader, ContentLoaderMixin)
         assert loader.tree == mock_tree
@@ -258,7 +282,7 @@ class TestDocumentContentLoader:
     def test_new_subitem_for_document(self):
         """Test creating new subitem for document."""
         mock_tree = self.create_mock_tree()
-        loader = DocumentContentLoader(mock_tree)
+        loader = self.create_loader(mock_tree)
 
         # Mock filtered document
         mock_child = MagicMock()
@@ -295,7 +319,7 @@ class TestDocumentContentLoader:
     def test_new_subitem_for_non_checkable_document(self):
         """Test creating new subitem for non-checkable document."""
         mock_tree = self.create_mock_tree()
-        loader = DocumentContentLoader(mock_tree)
+        loader = self.create_loader(mock_tree)
 
         # Mock document that is not checkable
         mock_child = MagicMock()
@@ -327,18 +351,31 @@ class TestFolderContentLoader:
     def create_mock_tree(self):
         """Helper to create a mock tree view."""
         mock_tree = MagicMock()
-        mock_tree.model.return_value = MagicMock()
-        mock_tree.model.return_value.invisibleRootItem.return_value = MagicMock()
+        mock_model = MagicMock()
+        mock_invisible_root = MagicMock()
+        mock_model.invisibleRootItem.return_value = mock_invisible_root
+        mock_tree.model.return_value = mock_model
         mock_tree.cache = []
         mock_tree.client = MagicMock()
         mock_tree.filled = MagicMock()  # Signal for when tree is filled
+        mock_tree._invisible_root = mock_invisible_root  # Store for assertions
         return mock_tree
+
+    def create_loader(self, mock_tree, item=None, force_refresh=False):
+        """Helper to create a FolderContentLoader with proper patching."""
+        invisible_root = mock_tree._invisible_root
+        mock_model_class = MagicMock()
+        mock_model_class.return_value.invisibleRootItem.return_value = invisible_root
+        with patch("nxdrive.gui.folders_loader.QStandardItemModel", mock_model_class):
+            return FolderContentLoader(
+                mock_tree, item=item, force_refresh=force_refresh
+            )
 
     def test_folder_content_loader_initialization(self):
         """Test FolderContentLoader initialization."""
         mock_tree = self.create_mock_tree()
 
-        loader = FolderContentLoader(mock_tree)
+        loader = self.create_loader(mock_tree)
 
         assert isinstance(loader, ContentLoaderMixin)
         assert loader.tree == mock_tree
@@ -346,7 +383,7 @@ class TestFolderContentLoader:
     def test_new_subitem_for_folder(self):
         """Test creating new subitem for folder."""
         mock_tree = self.create_mock_tree()
-        loader = FolderContentLoader(mock_tree)
+        loader = self.create_loader(mock_tree)
 
         # Mock document (folder)
         mock_child = MagicMock()
@@ -382,7 +419,7 @@ class TestFolderContentLoader:
     def test_handle_already_cached_emits_filled_signal(self):
         """Test that handle_already_cached emits the filled signal."""
         mock_tree = self.create_mock_tree()
-        loader = FolderContentLoader(mock_tree)
+        loader = self.create_loader(mock_tree)
 
         loader.handle_already_cached()
 
@@ -396,8 +433,10 @@ class TestLoaderIntegration:
     def test_error_recovery_and_user_feedback(self):
         """Test error handling provides proper user feedback."""
         mock_tree = MagicMock()
-        mock_tree.model.return_value = MagicMock()
-        mock_tree.model.return_value.invisibleRootItem.return_value = MagicMock()
+        mock_model = MagicMock()
+        mock_invisible_root = MagicMock()
+        mock_model.invisibleRootItem.return_value = mock_invisible_root
+        mock_tree.model.return_value = mock_model
         mock_tree.cache = []
         mock_tree.client = MagicMock()
 
@@ -408,7 +447,12 @@ class TestLoaderIntegration:
         mock_info.get_path.return_value = "/error/path"
         mock_item.data.return_value = mock_info
 
-        loader = DocumentContentLoader(mock_tree, item=mock_item)
+        mock_model_class = MagicMock()
+        mock_model_class.return_value.invisibleRootItem.return_value = (
+            mock_invisible_root
+        )
+        with patch("nxdrive.gui.folders_loader.QStandardItemModel", mock_model_class):
+            loader = DocumentContentLoader(mock_tree, item=mock_item)
 
         # Simulate network error
         mock_tree.client.get_children.side_effect = Exception("Connection timeout")
