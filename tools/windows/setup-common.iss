@@ -46,7 +46,6 @@ MinVersion=6.2.9200
 
 
 [InstallDelete]
-; NXDRIVE-3078: Clean up old Qt/PyQt DLLs before installing the new 64-bit version.
 ; This is required to handle upgrades from 5.4.0 (PyInstaller 5.0) which had different
 ; Qt DLL structure. Without this, orphaned 32-bit DLLs from 5.4.0 can cause
 ; "DLL load failed while importing QtCore: %1 is not a valid Win32 application" errors.
