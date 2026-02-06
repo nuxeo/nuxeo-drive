@@ -136,9 +136,9 @@ cryptography==45.0.4 \
 distro==1.5.0 ; sys_platform == "linux" \
     --hash=sha256:df74eed763e18d10d0da624258524ae80486432cd17392d9c3d96f5e83cd2799 \
     --hash=sha256:0e58756ae38fbd8fc3020d54badb8eae17c5b9dcbed388b17bb55b8a5928df92
-docutils==0.21.2 \
-    --hash=sha256:3a6b18732edf182daa3cd12775bbb338cf5691468f91eeeb109deff6ebfa986f \
-    --hash=sha256:dafca5b9e384f0e419294eb4d2ff9fa826435bf15f15b7bd45723e8ad76811b2
+docutils==0.22.4 \
+    --hash=sha256:4db53b1fde9abecbb74d91230d32ab626d94f6badfc575d6db9194a49df29968 \
+    --hash=sha256:d0013f540772d1420576855455d050a2180186c91c15779301ac2ccb3eeb68de
     # via boto3
 dukpy==0.5.0 \
     --hash=sha256:016d105388f5486b3025de4ac6aff8100eb97170aeeea4edecf7ea08532253b7 \
