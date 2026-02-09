@@ -96,6 +96,8 @@ class DriveSystrayIcon(QSystemTrayIcon):
         return menu
 
 
+# Use QQuickView on Windows to work around platform-specific integration/focus issues
+# with the systray popup; on other platforms QQuickWindow is sufficient and lighter.
 inherited_base_class = QQuickView if WINDOWS else QQuickWindow
 
 
