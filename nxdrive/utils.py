@@ -865,32 +865,60 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
             (r"nxdrive://(?P<cmd>direct-transfer)/"),
         )
     else:
-        protocol_regex = (
-            # Direct Edit stuff
-            (
-                r"nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/(?P<server>.*)/"
-                r"user/(?P<username>.*)/repo/(?P<repo>.*)/"
-                r"nxdocid/(?P<docid>[0-9a-fA-F\-]*)/filename/(?P<filename>[^/]*)"
-                r"/downloadUrl/(?P<download>.*)"
-            ),
-            # Events from context menu:
-            #     - Access online
-            #     - Copy share-link
-            #     - Edit metadata
-            #     - Direct Transfer
-            # And event from macOS to sync the document status (FinderSync)
-            r"nxdrive://(?P<cmd>({}))/(?P<path>.*)".format("|".join(path_cmds)),
-            # Event to acquire the login token from the server
-            (
-                r"nxdrive://(?P<cmd>token)/"
-                rf"(?P<token>{DOC_UID_REG})/"
-                r"user/(?P<username>.*)"
-            ),
-            # Event to continue the OAuth2 login flow
-            # authorize?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
-            # authorize/?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
-            r"nxdrive://(?P<cmd>authorize)/?\?(?P<query>.+)",
-        )
+        if "direct-download" in url_string:
+            protocol_regex = (
+                # Direct Download stuff
+                (
+                    r"nxdrive://(?P<cmd>direct-download)/(?P<scheme>\w*)/(?P<server>.*)/"
+                    r"user/(?P<username>.*)/repo/(?P<repo>.*)/"
+                    r"nxdocid/(?P<docid>[0-9a-fA-F\-]*)/filename/(?P<filename>[^/]*)"
+                    r"/downloadUrl/(?P<download>.*)"
+                ),
+                # Events from context menu:
+                #     - Access online
+                #     - Copy share-link
+                #     - Edit metadata
+                #     - Direct Transfer
+                # And event from macOS to sync the document status (FinderSync)
+                r"nxdrive://(?P<cmd>({}))/(?P<path>.*)".format("|".join(path_cmds)),
+                # Event to acquire the login token from the server
+                (
+                    r"nxdrive://(?P<cmd>token)/"
+                    rf"(?P<token>{DOC_UID_REG})/"
+                    r"user/(?P<username>.*)"
+                ),
+                # Event to continue the OAuth2 login flow
+                # authorize?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
+                # authorize/?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
+                r"nxdrive://(?P<cmd>authorize)/?\?(?P<query>.+)",
+            )
+        else:
+            protocol_regex = (
+                # Direct Edit stuff
+                (
+                    r"nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/(?P<server>.*)/"
+                    r"user/(?P<username>.*)/repo/(?P<repo>.*)/"
+                    r"nxdocid/(?P<docid>[0-9a-fA-F\-]*)/filename/(?P<filename>[^/]*)"
+                    r"/downloadUrl/(?P<download>.*)"
+                ),
+                # Events from context menu:
+                #     - Access online
+                #     - Copy share-link
+                #     - Edit metadata
+                #     - Direct Transfer
+                # And event from macOS to sync the document status (FinderSync)
+                r"nxdrive://(?P<cmd>({}))/(?P<path>.*)".format("|".join(path_cmds)),
+                # Event to acquire the login token from the server
+                (
+                    r"nxdrive://(?P<cmd>token)/"
+                    rf"(?P<token>{DOC_UID_REG})/"
+                    r"user/(?P<username>.*)"
+                ),
+                # Event to continue the OAuth2 login flow
+                # authorize?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
+                # authorize/?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
+                r"nxdrive://(?P<cmd>authorize)/?\?(?P<query>.+)",
+            )
 
     match_res = None
     for regex in protocol_regex:
@@ -904,7 +932,13 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
     parsed_url: Dict[str, str] = match_res.groupdict()
     cmd = parsed_url["cmd"]
     if cmd == "edit":
+        print(f">>>> {cmd}-> parsed_url:{parsed_url}, url_string:{url_string}")
+        log.info(f">>>> {cmd}-> parsed_url:{parsed_url}, url_string:{url_string}")
         return parse_edit_protocol(parsed_url, url_string)
+    elif "direct-download" in cmd:
+        print(f">>>> {cmd}-> parsed_url:{parsed_url}, url_string:{url_string}")
+        log.info(f">>>> {cmd}-> parsed_url:{parsed_url}, url_string:{url_string}")
+        return parse_download_protocol(parsed_url, url_string)
     elif cmd == "token":
         return {
             "command": cmd,
@@ -955,6 +989,75 @@ def parse_edit_protocol(
         "doc_id": parsed_url["docid"],
         "filename": parsed_url["filename"],
         "download_url": parsed_url["download"],
+    }
+
+
+def parse_download_protocol(
+    parsed_url: Dict[str, str], url_string: str, /
+) -> Dict[str, Any]:
+    """
+    Parse a `nxdrive://direct-download` URL for downloading Nuxeo documents.
+    Supports batch downloads with multiple documents separated by ' || '.
+
+    Note: no need to decorate the function with lru_cache() as the caller
+    already is.
+    """
+
+    # Remove the protocol prefix to get the document paths
+    # url_string: nxdrive://direct-download/https/server/... || https/server/...
+    url_without_prefix = url_string.replace("nxdrive://direct-download/", "", 1)
+
+    # Split by ' || ' to get all document paths
+    doc_paths = url_without_prefix.split(" || ")
+
+    documents = []
+    for doc_path in doc_paths:
+        doc_path = doc_path.strip()
+        if not doc_path:
+            continue
+
+        doc = _parse_single_document_path(doc_path)
+        if doc:
+            documents.append(doc)
+
+    if not documents:
+        log.info(f"No valid documents found in {url_string!r}")
+
+    return {
+        "command": "download_direct",
+        "documents": documents,
+    }
+
+
+def _parse_single_document_path(path: str, /) -> Optional[Dict[str, str]]:
+    """
+    Parse a single document path from batch download URL.
+    Expected format: https/server/nuxeo/user/username/repo/reponame/nxdocid/docid/filename/name/downloadUrl/url
+    """
+    # Regex to parse individual document path
+    doc_regex = (
+        r"(?P<scheme>https?)/(?P<server>.*)/"
+        r"user/(?P<username>.*)/repo/(?P<repo>.*)/"
+        r"nxdocid/(?P<docid>[0-9a-fA-F\-]*)/filename/(?P<filename>[^/]*)"
+        r"/downloadUrl/(?P<download>.*)"
+    )
+
+    match = re.match(doc_regex, path, re.I)
+    if not match:
+        log.warning(f"Failed to parse additional document path: {path!r}")
+        return None
+
+    parsed = match.groupdict()
+    scheme = parsed["scheme"]
+    server_url = f"{scheme}://{parsed['server']}"
+
+    return {
+        "server_url": server_url,
+        "user": parsed["username"],
+        "repo": parsed["repo"],
+        "doc_id": parsed["docid"],
+        "filename": parsed["filename"],
+        "download_url": parsed["download"],
     }
 
 

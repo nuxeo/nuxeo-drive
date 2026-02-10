@@ -27,9 +27,16 @@ from nuxeo.utils import get_digest_algorithm
 
 from .. import __version__
 from ..client.local import FileInfo
-from ..constants import ROOT, UNACCESSIBLE_HASH, WINDOWS, TransferStatus
+from ..constants import (
+    ROOT,
+    UNACCESSIBLE_HASH,
+    WINDOWS,
+    DirectDownloadStatus,
+    TransferStatus,
+)
 from ..exceptions import UnknownPairState
 from ..objects import (
+    DirectDownload,
     DocPair,
     DocPairs,
     Download,
@@ -38,6 +45,7 @@ from ..objects import (
     Session,
     Upload,
 )
+from ..options import Options
 from ..qt.imports import pyqtSignal
 from ..utils import is_large_file
 from . import SCHEMA_VERSION, versions_history
@@ -109,6 +117,7 @@ class EngineDAO(BaseDAO):
     newConflict = pyqtSignal(object)
     transferUpdated = pyqtSignal()
     directTransferUpdated = pyqtSignal()
+    directDownloadUpdated = pyqtSignal()
     sessionUpdated = pyqtSignal(bool)
 
     def __init__(self, db: Path, /) -> None:
@@ -604,6 +613,35 @@ class EngineDAO(BaseDAO):
             "CREATE TABLE if not exists SessionItems ("
             "    session_id     INTEGER     NOT NULL,"
             "    data           VARCHAR     NOT NULL)"
+        )
+
+    @staticmethod
+    def _create_direct_downloads_table(cursor: Cursor, /) -> None:
+        """Create the DirectDownloads table."""
+        cursor.execute(
+            "CREATE TABLE IF NOT EXISTS DirectDownloads ("
+            "    uid                INTEGER     PRIMARY KEY,"
+            "    doc_uid            VARCHAR     NOT NULL,"
+            "    doc_name           VARCHAR     NOT NULL,"
+            "    doc_size           INTEGER     DEFAULT 0,"
+            "    download_path      VARCHAR,"
+            "    server_url         VARCHAR     NOT NULL,"
+            "    status             INTEGER     DEFAULT 0,"
+            "    bytes_downloaded   INTEGER     DEFAULT 0,"
+            "    total_bytes        INTEGER     DEFAULT 0,"
+            "    progress_percent   REAL        DEFAULT 0.0,"
+            "    created_at         TIMESTAMP   NOT NULL    DEFAULT CURRENT_TIMESTAMP,"
+            "    started_at         TIMESTAMP,"
+            "    completed_at       TIMESTAMP,"
+            "    is_folder          INTEGER     DEFAULT 0,"
+            "    folder_count       INTEGER     DEFAULT 0,"
+            "    file_count         INTEGER     DEFAULT 1,"
+            "    retry_count        INTEGER     DEFAULT 0,"
+            "    last_error         VARCHAR,"
+            "    engine             VARCHAR     DEFAULT '',"
+            "    zip_file           VARCHAR,"
+            "    selected_items     VARCHAR"
+            ")"
         )
 
     @staticmethod
@@ -2212,6 +2250,507 @@ class EngineDAO(BaseDAO):
         return [
             json.loads(res.data) for res in c.execute(sql, (session_id,)).fetchall()
         ]
+
+    # =========================================================================
+    # Direct Downloads CRUD
+    # =========================================================================
+
+    def get_direct_downloads(self) -> Generator[DirectDownload, None, None]:
+        """Get all direct downloads."""
+        c = self._get_read_connection().cursor()
+        sql = "SELECT * FROM DirectDownloads ORDER BY created_at DESC"
+        for row in c.execute(sql).fetchall():
+            yield self._row_to_direct_download(row)
+
+    def get_direct_download(self, uid: int, /) -> Optional[DirectDownload]:
+        """Get a direct download by its UID."""
+        c = self._get_read_connection().cursor()
+        sql = "SELECT * FROM DirectDownloads WHERE uid = ?"
+        row = c.execute(sql, (uid,)).fetchone()
+        return self._row_to_direct_download(row) if row else None
+
+    def get_direct_downloads_with_status(
+        self, status: DirectDownloadStatus, /
+    ) -> List[DirectDownload]:
+        """Get all direct downloads with a specific status."""
+        return [d for d in self.get_direct_downloads() if d.status == status]
+
+    def _get_batch_key(self, row: Dict[str, Any]) -> str:
+        """
+        Generate a unique key for grouping downloads by batch.
+        For multi-file downloads: use zip_file (contains timestamp, unique per batch)
+        For single-file downloads: use uid (unique per record) to keep them separate
+        """
+        zip_file = row.get("zip_file")
+        if zip_file:
+            return f"zip:{zip_file}"
+        # For single file downloads, use uid to keep each download separate
+        uid = row.get("uid") or ""
+        return f"single:{uid}"
+
+    def _aggregate_batch(self, rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Aggregate multiple download records into a single batch record.
+        Takes the first record as base and aggregates counts and sizes.
+        """
+        if not rows:
+            return {}
+
+        # Use first row as the base
+        base = rows[0].copy()
+
+        # Collect all file names from the batch
+        all_file_names = [r.get("doc_name", "") for r in rows if r.get("doc_name")]
+
+        # Aggregate values across all rows in the batch
+        total_bytes = sum(r.get("total_bytes", 0) for r in rows)
+        bytes_downloaded = sum(r.get("bytes_downloaded", 0) for r in rows)
+        file_count = sum(r.get("file_count", 0) for r in rows)
+        folder_count = sum(r.get("folder_count", 0) for r in rows)
+
+        # Calculate overall progress
+        progress_percent = (
+            (bytes_downloaded / total_bytes * 100) if total_bytes > 0 else 0.0
+        )
+
+        # Determine overall status (worst status wins)
+        statuses = [r.get("status") for r in rows]
+        if "FAILED" in statuses:
+            overall_status = "FAILED"
+        elif "CANCELLED" in statuses:
+            overall_status = "CANCELLED"
+        elif "PAUSED" in statuses:
+            overall_status = "PAUSED"
+        elif "IN_PROGRESS" in statuses:
+            overall_status = "IN_PROGRESS"
+        elif "PENDING" in statuses:
+            overall_status = "PENDING"
+        else:
+            overall_status = "COMPLETED"
+
+        # Get the most recent completed_at timestamp from all rows
+        completed_times = [r.get("completed_at") for r in rows if r.get("completed_at")]
+        most_recent_completed = (
+            max(completed_times) if completed_times else base.get("completed_at")
+        )
+
+        base["total_bytes"] = total_bytes
+        base["bytes_downloaded"] = bytes_downloaded
+        base["file_count"] = file_count
+        base["folder_count"] = folder_count
+        base["progress_percent"] = progress_percent
+        base["status"] = overall_status
+        base["completed_at"] = most_recent_completed
+        base["batch_count"] = len(rows)  # Number of items in this batch
+        base["all_file_names"] = all_file_names  # List of all file names in batch
+
+        return base
+
+    def get_active_direct_downloads(self) -> List[Dict[str, Any]]:
+        """
+        Get all active direct download batches (batches that have at least one
+        pending/in_progress/paused file). Returns a list of dictionaries grouped
+        by batch for GUI performance.
+
+        Important: This includes ALL files in a batch (including completed ones)
+        if any file in the batch is still active, to show accurate progress totals.
+        """
+        c = self._get_read_connection().cursor()
+
+        # First, find all zip_file values that have at least one active download
+        # (non-completed, non-failed, non-cancelled)
+        active_batch_ids = c.execute(
+            """
+            SELECT DISTINCT zip_file FROM DirectDownloads
+            WHERE status NOT IN (?, ?, ?) AND zip_file IS NOT NULL
+            """,
+            (
+                DirectDownloadStatus.COMPLETED.value,
+                DirectDownloadStatus.FAILED.value,
+                DirectDownloadStatus.CANCELLED.value,
+            ),
+        ).fetchall()
+        active_batch_ids = [row[0] for row in active_batch_ids]
+
+        # Also find single-file downloads (zip_file is NULL) that are still active
+        single_file_rows = [
+            {
+                "uid": res["uid"],
+                "doc_uid": res["doc_uid"],
+                "doc_name": res["doc_name"],
+                "doc_size": res["doc_size"],
+                "download_path": res["download_path"],
+                "server_url": res["server_url"],
+                "status": DirectDownloadStatus(res["status"]).name,
+                "bytes_downloaded": res["bytes_downloaded"],
+                "total_bytes": res["total_bytes"],
+                "progress_percent": res["progress_percent"],
+                "created_at": res["created_at"],
+                "started_at": res["started_at"],
+                "completed_at": res["completed_at"],
+                "is_folder": bool(res["is_folder"]),
+                "folder_count": res["folder_count"],
+                "file_count": res["file_count"],
+                "retry_count": res["retry_count"],
+                "last_error": res["last_error"],
+                "engine": res["engine"],
+                "zip_file": res["zip_file"],
+                "selected_items": res["selected_items"],
+            }
+            for res in c.execute(
+                """
+                SELECT * FROM DirectDownloads
+                WHERE status NOT IN (?, ?, ?) AND zip_file IS NULL
+                ORDER BY created_at DESC
+                """,
+                (
+                    DirectDownloadStatus.COMPLETED.value,
+                    DirectDownloadStatus.FAILED.value,
+                    DirectDownloadStatus.CANCELLED.value,
+                ),
+            ).fetchall()
+        ]
+
+        # Now fetch ALL files (including completed) from active batches
+        batch_rows: List[Dict[str, Any]] = []
+        if active_batch_ids:
+            placeholders = ",".join("?" * len(active_batch_ids))
+            batch_rows = [
+                {
+                    "uid": res["uid"],
+                    "doc_uid": res["doc_uid"],
+                    "doc_name": res["doc_name"],
+                    "doc_size": res["doc_size"],
+                    "download_path": res["download_path"],
+                    "server_url": res["server_url"],
+                    "status": DirectDownloadStatus(res["status"]).name,
+                    "bytes_downloaded": res["bytes_downloaded"],
+                    "total_bytes": res["total_bytes"],
+                    "progress_percent": res["progress_percent"],
+                    "created_at": res["created_at"],
+                    "started_at": res["started_at"],
+                    "completed_at": res["completed_at"],
+                    "is_folder": bool(res["is_folder"]),
+                    "folder_count": res["folder_count"],
+                    "file_count": res["file_count"],
+                    "retry_count": res["retry_count"],
+                    "last_error": res["last_error"],
+                    "engine": res["engine"],
+                    "zip_file": res["zip_file"],
+                    "selected_items": res["selected_items"],
+                }
+                for res in c.execute(
+                    f"""
+                    SELECT * FROM DirectDownloads
+                    WHERE zip_file IN ({placeholders})
+                    ORDER BY created_at DESC
+                    """,
+                    active_batch_ids,
+                ).fetchall()
+            ]
+
+        # Combine single-file and batch rows
+        all_rows = single_file_rows + batch_rows
+
+        # Group rows by batch
+        batches: Dict[str, List[Dict[str, Any]]] = {}
+        for row in all_rows:
+            key = self._get_batch_key(row)
+            if key not in batches:
+                batches[key] = []
+            batches[key].append(row)
+
+        # Aggregate each batch into a single record
+        return [self._aggregate_batch(batch_rows) for batch_rows in batches.values()]
+
+    def get_direct_downloads_for_monitoring(
+        self, *, limit: int = 50
+    ) -> List[Dict[str, Any]]:
+        """
+        Get individual download records for monitoring with real-time progress.
+        Unlike get_active_direct_downloads, this returns individual records (not batched)
+        to allow per-file progress tracking.
+        """
+        c = self._get_read_connection().cursor()
+        return [
+            {
+                "uid": res["uid"],
+                "doc_uid": res["doc_uid"],
+                "doc_name": res["doc_name"],
+                "doc_size": res["doc_size"],
+                "download_path": res["download_path"],
+                "server_url": res["server_url"],
+                "status": DirectDownloadStatus(res["status"]).name,
+                "bytes_downloaded": res["bytes_downloaded"],
+                "total_bytes": res["total_bytes"],
+                "progress": res[
+                    "progress_percent"
+                ],  # Use 'progress' key for consistency with monitoring model
+                "created_at": res["created_at"],
+                "started_at": res["started_at"],
+                "engine": res["engine"],
+                "shadow": False,
+            }
+            for res in c.execute(
+                "SELECT * FROM DirectDownloads WHERE status IN (?, ?) "
+                "ORDER BY created_at DESC LIMIT ?",
+                (
+                    DirectDownloadStatus.PENDING.value,
+                    DirectDownloadStatus.IN_PROGRESS.value,
+                    limit,
+                ),
+            ).fetchall()
+        ]
+
+    def get_completed_direct_downloads(
+        self, *, limit: int = 20
+    ) -> List[Dict[str, Any]]:
+        """
+        Get completed or cancelled direct downloads.
+        Returns a list of dictionaries grouped by batch for GUI performance.
+        """
+        c = self._get_read_connection().cursor()
+        rows = [
+            {
+                "uid": res["uid"],
+                "doc_uid": res["doc_uid"],
+                "doc_name": res["doc_name"],
+                "doc_size": res["doc_size"],
+                "download_path": res["download_path"],
+                "server_url": res["server_url"],
+                "status": DirectDownloadStatus(res["status"]).name,
+                "bytes_downloaded": res["bytes_downloaded"],
+                "total_bytes": res["total_bytes"],
+                "progress_percent": res["progress_percent"],
+                "created_at": res["created_at"],
+                "started_at": res["started_at"],
+                "completed_at": res["completed_at"],
+                "is_folder": bool(res["is_folder"]),
+                "folder_count": res["folder_count"],
+                "file_count": res["file_count"],
+                "retry_count": res["retry_count"],
+                "last_error": res["last_error"],
+                "engine": res["engine"],
+                "zip_file": res["zip_file"],
+                "selected_items": res["selected_items"],
+            }
+            for res in c.execute(
+                "SELECT * FROM DirectDownloads WHERE status IN (?, ?) "
+                "ORDER BY completed_at DESC",
+                (
+                    DirectDownloadStatus.COMPLETED.value,
+                    DirectDownloadStatus.CANCELLED.value,
+                ),
+            ).fetchall()
+        ]
+
+        # Group rows by batch
+        batches: Dict[str, List[Dict[str, Any]]] = {}
+        for row in rows:
+            key = self._get_batch_key(row)
+            if key not in batches:
+                batches[key] = []
+            batches[key].append(row)
+
+        # Aggregate each batch into a single record and limit results
+        result = [self._aggregate_batch(batch_rows) for batch_rows in batches.values()]
+        return result[:limit]
+
+    def save_direct_download(self, download: DirectDownload, /) -> int:
+        """
+        Save a new direct download record.
+        Inserts the record first, then enforces the total_download_history limit
+        by removing oldest records to maintain exactly max_history rows.
+        Returns the generated UID.
+        """
+        with self.lock:
+            c = self._get_write_connection().cursor()
+
+            # Insert the new record first
+            sql = (
+                "INSERT INTO DirectDownloads "
+                "(doc_uid, doc_name, doc_size, download_path, server_url, status, "
+                "bytes_downloaded, total_bytes, progress_percent, created_at, "
+                "started_at, completed_at, is_folder, folder_count, file_count, "
+                "retry_count, last_error, engine, zip_file, selected_items) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            )
+            values = (
+                download.doc_uid,
+                download.doc_name,
+                download.doc_size,
+                download.download_path,
+                download.server_url,
+                download.status.value,
+                download.bytes_downloaded,
+                download.total_bytes,
+                download.progress_percent,
+                download.created_at,
+                download.started_at,
+                download.completed_at,
+                1 if download.is_folder else 0,
+                download.folder_count,
+                download.file_count,
+                download.retry_count,
+                download.last_error,
+                download.engine,
+                download.zip_file,
+                download.selected_items,
+            )
+            c.execute(sql, values)
+            uid = int(c.execute("SELECT last_insert_rowid()").fetchone()[0])
+            download.uid = uid
+
+            # Enforce history limit - remove oldest records to maintain exact count
+            max_history = Options.total_download_history
+            if max_history > 0:
+                # Get current count after insertion
+                count = c.execute("SELECT COUNT(*) FROM DirectDownloads").fetchone()[0]
+
+                # If we exceed the limit, remove oldest rows to match exactly
+                if count > max_history:
+                    to_delete = count - max_history
+                    c.execute(
+                        "DELETE FROM DirectDownloads WHERE uid IN "
+                        "(SELECT uid FROM DirectDownloads ORDER BY created_at ASC LIMIT ?)",
+                        (to_delete,),
+                    )
+
+            self.directDownloadUpdated.emit()
+            return uid
+
+    def update_direct_download(self, download: DirectDownload, /) -> None:
+        """Update an existing direct download record."""
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            sql = (
+                "UPDATE DirectDownloads SET "
+                "doc_uid = ?, doc_name = ?, doc_size = ?, download_path = ?, "
+                "server_url = ?, status = ?, bytes_downloaded = ?, total_bytes = ?, "
+                "progress_percent = ?, started_at = ?, completed_at = ?, "
+                "is_folder = ?, folder_count = ?, file_count = ?, retry_count = ?, "
+                "last_error = ?, engine = ?, zip_file = ?, selected_items = ? "
+                "WHERE uid = ?"
+            )
+            values = (
+                download.doc_uid,
+                download.doc_name,
+                download.doc_size,
+                download.download_path,
+                download.server_url,
+                download.status.value,
+                download.bytes_downloaded,
+                download.total_bytes,
+                download.progress_percent,
+                download.started_at,
+                download.completed_at,
+                1 if download.is_folder else 0,
+                download.folder_count,
+                download.file_count,
+                download.retry_count,
+                download.last_error,
+                download.engine,
+                download.zip_file,
+                download.selected_items,
+                download.uid,
+            )
+            c.execute(sql, values)
+            self.directDownloadUpdated.emit()
+
+    def update_direct_download_progress(
+        self,
+        uid: int,
+        bytes_downloaded: int,
+        total_bytes: int,
+        progress_percent: float,
+        /,
+    ) -> None:
+        """Update just the progress fields of a direct download."""
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            sql = (
+                "UPDATE DirectDownloads SET "
+                "bytes_downloaded = ?, total_bytes = ?, progress_percent = ? "
+                "WHERE uid = ?"
+            )
+            c.execute(sql, (bytes_downloaded, total_bytes, progress_percent, uid))
+
+    def update_direct_download_status(
+        self,
+        uid: int,
+        status: DirectDownloadStatus,
+        /,
+        *,
+        last_error: Optional[str] = None,
+    ) -> None:
+        """Update the status of a direct download."""
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            now = datetime.now(timezone.utc)
+
+            if status == DirectDownloadStatus.IN_PROGRESS:
+                sql = "UPDATE DirectDownloads SET status = ?, started_at = ? WHERE uid = ?"
+                c.execute(sql, (status.value, now, uid))
+            elif status == DirectDownloadStatus.COMPLETED:
+                sql = (
+                    "UPDATE DirectDownloads SET status = ?, completed_at = ?, "
+                    "progress_percent = 100.0 WHERE uid = ?"
+                )
+                c.execute(sql, (status.value, now, uid))
+            elif status == DirectDownloadStatus.FAILED:
+                sql = (
+                    "UPDATE DirectDownloads SET status = ?, last_error = ?, "
+                    "retry_count = retry_count + 1 WHERE uid = ?"
+                )
+                c.execute(sql, (status.value, last_error, uid))
+            else:
+                sql = "UPDATE DirectDownloads SET status = ? WHERE uid = ?"
+                c.execute(sql, (status.value, uid))
+            self.directDownloadUpdated.emit()
+
+    def delete_direct_download(self, uid: int, /) -> None:
+        """Delete a direct download record."""
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            c.execute("DELETE FROM DirectDownloads WHERE uid = ?", (uid,))
+            self.directDownloadUpdated.emit()
+
+    def delete_completed_direct_downloads(self) -> int:
+        """Delete all completed direct downloads. Returns the number of deleted records."""
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "DELETE FROM DirectDownloads WHERE status = ?",
+                (DirectDownloadStatus.COMPLETED.value,),
+            )
+            self.directDownloadUpdated.emit()
+            return c.rowcount
+
+    def _row_to_direct_download(self, row: Any, /) -> DirectDownload:
+        """Convert a database row to a DirectDownload object."""
+        return DirectDownload(
+            uid=row["uid"],
+            doc_uid=row["doc_uid"],
+            doc_name=row["doc_name"],
+            doc_size=row["doc_size"] or 0,
+            download_path=row["download_path"],
+            server_url=row["server_url"],
+            status=DirectDownloadStatus(row["status"]),
+            bytes_downloaded=row["bytes_downloaded"] or 0,
+            total_bytes=row["total_bytes"] or 0,
+            progress_percent=row["progress_percent"] or 0.0,
+            created_at=row["created_at"],
+            started_at=row["started_at"],
+            completed_at=row["completed_at"],
+            is_folder=bool(row["is_folder"]),
+            folder_count=row["folder_count"] or 0,
+            file_count=row["file_count"] or 1,
+            retry_count=row["retry_count"] or 0,
+            last_error=row["last_error"],
+            engine=row["engine"] or "",
+            zip_file=row["zip_file"],
+            selected_items=row["selected_items"],
+        )
 
     def get_downloads_with_status(self, status: TransferStatus, /) -> List[Download]:
         return [d for d in self.get_downloads() if d.status == status]

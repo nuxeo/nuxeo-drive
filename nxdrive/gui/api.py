@@ -67,6 +67,7 @@ log = getLogger(__name__)
 class QMLDriveApi(QObject):
     openAuthenticationDialog = pyqtSignal(str, object)
     setMessage = pyqtSignal(str, str)
+    downloadLocationChanged = pyqtSignal()
 
     def __init__(self, application: "Application", /) -> None:
         super().__init__()
@@ -220,6 +221,24 @@ class QMLDriveApi(QObject):
     def get_completed_sessions_items(self, dao: EngineDAO, /) -> List[Dict[str, Any]]:
         """Fetch the list of completed sessions from the database."""
         return dao.get_completed_sessions_raw(limit=20)
+
+    def get_active_direct_downloads_items(
+        self, dao: EngineDAO, /
+    ) -> List[Dict[str, Any]]:
+        """Fetch the list of active direct downloads from the database."""
+        return dao.get_active_direct_downloads()
+
+    def get_completed_direct_downloads_items(
+        self, dao: EngineDAO, /
+    ) -> List[Dict[str, Any]]:
+        """Fetch the list of completed direct downloads from the database."""
+        return dao.get_completed_direct_downloads(limit=20)
+
+    def get_direct_downloads_for_monitoring(
+        self, dao: EngineDAO, /
+    ) -> List[Dict[str, Any]]:
+        """Fetch the list of direct downloads for monitoring with real-time progress."""
+        return dao.get_direct_downloads_for_monitoring(limit=50)
 
     @pyqtSlot(str, result=int)
     def get_active_sessions_count(self, uid: str, /) -> int:
@@ -384,6 +403,9 @@ class QMLDriveApi(QObject):
         self.application.refresh_direct_transfer_items(engine.dao)
         self.application.refresh_active_sessions_items(engine.dao)
         self.application.refresh_completed_sessions_items(engine.dao)
+        self.application.refresh_active_direct_downloads_items(engine.dao)
+        self.application.refresh_completed_direct_downloads_items(engine.dao)
+        self.application.refresh_direct_download_monitoring_items(engine.dao)
         self.application.show_direct_transfer_window(engine.uid)
 
     @pyqtSlot(str)
@@ -427,6 +449,85 @@ class QMLDriveApi(QObject):
             if engine:
                 filepath = engine.local.abspath(filepath)
                 self._manager.open_local_file(filepath)
+
+    @pyqtSlot(result=str)
+    def get_download_location(self) -> str:
+        """Get the current download location.
+
+        Returns the configured download folder, or the user's Downloads folder if not configured.
+        """
+        configured_folder = Options.download_folder
+        if configured_folder:
+            return str(configured_folder)
+        return str(Path.home() / "Downloads")
+
+    @pyqtSlot()
+    def open_download_folder(self) -> None:
+        """Open the download folder in the system file manager."""
+        download_path = self.get_download_location()
+        log.debug(f"Opening download folder: {download_path!r}")
+        self._manager.open_local_file(download_path)
+
+    @pyqtSlot()
+    def change_download_location(self) -> None:
+        """Open a folder selection dialog to change the download location."""
+        from ..qt.imports import QFileDialog
+
+        current_location = self.get_download_location()
+
+        # Open folder selection dialog
+        new_folder = QFileDialog.getExistingDirectory(
+            None,
+            Translator.get("SELECT_DOWNLOAD_FOLDER"),
+            current_location,
+            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks,
+        )
+
+        if new_folder:
+            # Update Options
+            Options.set("download_folder", new_folder, setter="manual")
+
+            # Save to config file
+            saved_conf = {"download_folder": new_folder}
+            save_config(saved_conf)
+
+            log.info(f"Download location changed to: {new_folder}")
+
+            # Emit signal to notify QML
+            self.downloadLocationChanged.emit()
+
+    @pyqtSlot(str, int)
+    def pause_direct_download(self, engine_uid: str, uid: int, /) -> None:
+        """Pause a direct download."""
+        from ..constants import DirectDownloadStatus
+
+        log.info(f"Pausing direct download {uid} for engine {engine_uid!r}")
+        engine = self._manager.engines.get(engine_uid)
+        if not engine:
+            return
+        engine.dao.update_direct_download_status(uid, DirectDownloadStatus.PAUSED)
+
+    @pyqtSlot(str, int)
+    def resume_direct_download(self, engine_uid: str, uid: int, /) -> None:
+        """Resume a paused direct download."""
+        from ..constants import DirectDownloadStatus
+
+        log.info(f"Resuming direct download {uid} for engine {engine_uid!r}")
+        engine = self._manager.engines.get(engine_uid)
+        if not engine:
+            return
+        engine.dao.update_direct_download_status(uid, DirectDownloadStatus.PENDING)
+
+    @pyqtSlot(str, int)
+    def cancel_direct_download(self, engine_uid: str, uid: int, /) -> None:
+        """Cancel a direct download."""
+        from ..constants import DirectDownloadStatus
+
+        log.info(f"Cancelling direct download {uid} for engine {engine_uid!r}")
+        engine = self._manager.engines.get(engine_uid)
+        if not engine:
+            return
+        engine.dao.update_direct_download_status(uid, DirectDownloadStatus.CANCELLED)
 
     @pyqtSlot()
     def open_help(self) -> None:

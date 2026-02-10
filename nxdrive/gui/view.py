@@ -25,7 +25,20 @@ if TYPE_CHECKING:
     from .application import Application  # noqa
     from ..engine.engine import Engine  # noqa
 
-__all__ = ("DirectTransferModel", "EngineModel", "FileModel", "LanguageModel")
+__all__ = (
+    "ActiveDirectDownloadModel",
+    "ActiveSessionModel",
+    "CompletedDirectDownloadModel",
+    "CompletedSessionModel",
+    "DirectDownloadMonitoringModel",
+    "DirectTransferModel",
+    "EngineModel",
+    "FeatureModel",
+    "FileModel",
+    "LanguageModel",
+    "TasksModel",
+    "TransferModel",
+)
 
 
 class EngineModel(QAbstractListModel):
@@ -665,6 +678,462 @@ class CompletedSessionModel(QAbstractListModel):
         self.dataChanged.emit(index, index, [role])
 
     @pyqtProperty("int", notify=sessionChanged)
+    def count(self) -> int:
+        return self.rowCount()
+
+
+def format_file_names_for_display(all_names: List[str], max_length: int = 60) -> str:
+    """
+    Format file names for display, fitting as many as possible within max_length.
+    If all names fit, show them all. Otherwise, show as many as fit with "+N" suffix.
+
+    Args:
+        all_names: List of file names to display
+        max_length: Maximum character length for the output string
+
+    Returns:
+        Formatted string like "file1.txt, file2.txt" or "file1.txt, file2.txt +3"
+    """
+    if not all_names:
+        return ""
+
+    if len(all_names) == 1:
+        return all_names[0]
+
+    # Try to fit all names first
+    full_text = ", ".join(all_names)
+    if len(full_text) <= max_length:
+        return full_text
+
+    # Need to truncate - find how many names we can fit
+    result_parts = []
+    current_length = 0
+    remaining_count = len(all_names)
+
+    for i, name in enumerate(all_names):
+        remaining_count = len(all_names) - i - 1
+
+        # Calculate what the suffix would be if we stop here
+        suffix = f" +{remaining_count}" if remaining_count > 0 else ""
+        separator = ", " if result_parts else ""
+
+        # Check if adding this name would exceed the limit
+        potential_length = current_length + len(separator) + len(name) + len(suffix)
+
+        if potential_length <= max_length:
+            result_parts.append(name)
+            current_length += len(separator) + len(name)
+        else:
+            # Can't fit this name, stop here
+            break
+
+    # Build the final result
+    if not result_parts:
+        # Even the first name is too long, just show it truncated with count
+        remaining = len(all_names) - 1
+        if remaining > 0:
+            # Truncate first name to fit with suffix
+            suffix = f" +{remaining}"
+            available = max_length - len(suffix) - 3  # 3 for "..."
+            if available > 0:
+                return f"{all_names[0][:available]}...{suffix}"
+            return f"{all_names[0][:max_length - 3]}..."
+        return (
+            all_names[0][: max_length - 3] + "..."
+            if len(all_names[0]) > max_length
+            else all_names[0]
+        )
+
+    result = ", ".join(result_parts)
+    remaining = len(all_names) - len(result_parts)
+
+    if remaining > 0:
+        result += f" +{remaining}"
+
+    return result
+
+
+class ActiveDirectDownloadModel(QAbstractListModel):
+    """Model for active direct downloads (pending, in_progress, paused)."""
+
+    downloadChanged = pyqtSignal()
+
+    UID = qt.UserRole + 1
+    DOC_UID = qt.UserRole + 2
+    DOC_NAME = qt.UserRole + 3
+    DOWNLOAD_PATH = qt.UserRole + 4
+    SERVER_URL = qt.UserRole + 5
+    STATUS = qt.UserRole + 6
+    BYTES_DOWNLOADED = qt.UserRole + 7
+    TOTAL_BYTES = qt.UserRole + 8
+    PROGRESS_PERCENT = qt.UserRole + 9
+    CREATED_AT = qt.UserRole + 10
+    IS_FOLDER = qt.UserRole + 11
+    FOLDER_COUNT = qt.UserRole + 12
+    FILE_COUNT = qt.UserRole + 13
+    ENGINE = qt.UserRole + 14
+    ZIP_FILE = qt.UserRole + 15
+    SELECTED_ITEMS = qt.UserRole + 16
+    TOTAL_SIZE_FMT = qt.UserRole + 17
+    SELECTED_ITEMS_DISPLAY = qt.UserRole + 18
+    SHADOW = qt.UserRole + 19
+    ALL_FILE_NAMES = qt.UserRole + 20
+    BATCH_COUNT = qt.UserRole + 21
+
+    def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
+        super().__init__(parent)
+        self.tr = translate
+        self.downloads: List[Dict[str, Any]] = []
+        self.names = {
+            self.UID: b"uid",
+            self.DOC_UID: b"doc_uid",
+            self.DOC_NAME: b"doc_name",
+            self.DOWNLOAD_PATH: b"download_path",
+            self.SERVER_URL: b"server_url",
+            self.STATUS: b"status",
+            self.BYTES_DOWNLOADED: b"bytes_downloaded",
+            self.TOTAL_BYTES: b"total_bytes",
+            self.PROGRESS_PERCENT: b"progress_percent",
+            self.CREATED_AT: b"created_at",
+            self.IS_FOLDER: b"is_folder",
+            self.FOLDER_COUNT: b"folder_count",
+            self.FILE_COUNT: b"file_count",
+            self.ENGINE: b"engine",
+            self.ZIP_FILE: b"zip_file",
+            self.SELECTED_ITEMS: b"selected_items",
+            self.TOTAL_SIZE_FMT: b"total_size_fmt",
+            self.SELECTED_ITEMS_DISPLAY: b"selected_items_display",
+            self.SHADOW: b"shadow",
+            self.ALL_FILE_NAMES: b"all_file_names",
+            self.BATCH_COUNT: b"batch_count",
+        }
+
+    def roleNames(self) -> Dict[int, bytes]:
+        return self.names
+
+    def rowCount(self, parent: QModelIndex = QModelIndex(), /) -> int:
+        return len(self.downloads)
+
+    def _format_selected_items(self, items_str: str) -> str:
+        """Format selected items for display, truncating if necessary."""
+        if not items_str:
+            return ""
+        items = items_str.split(", ")
+        if len(items) <= 2:
+            return items_str
+        # Show first 2 items and count of remaining
+        display = f"{items[0]}, {items[1][:10]}..."
+        remaining = len(items) - 2
+        if remaining > 0:
+            display += f" +{remaining}"
+        return display
+
+    def set_downloads(
+        self, downloads: List[Dict[str, Any]], /, *, parent: QModelIndex = QModelIndex()
+    ) -> None:
+        """Set the downloads list, replacing all existing items."""
+        # Clear existing
+        self.beginRemoveRows(parent, 0, max(0, self.rowCount() - 1))
+        self.downloads.clear()
+        self.endRemoveRows()
+
+        # Add new downloads
+        if downloads:
+            self.beginInsertRows(parent, 0, len(downloads) - 1)
+            self.downloads.extend(downloads)
+            self.endInsertRows()
+
+        self.downloadChanged.emit()
+
+    def data(self, index: QModelIndex, role: int, /) -> Any:
+        if not index.isValid() or index.row() >= len(self.downloads):
+            return None
+        row = self.downloads[index.row()]
+
+        if role == self.STATUS:
+            return row.get("status", "PENDING")
+        elif role == self.DOWNLOAD_PATH:
+            return row.get("download_path") or ""
+        elif role == self.TOTAL_SIZE_FMT:
+            total_bytes = row.get("total_bytes", 0)
+            return sizeof_fmt(total_bytes) if total_bytes else "0 B"
+        elif role == self.SELECTED_ITEMS_DISPLAY:
+            return self._format_selected_items(row.get("selected_items", ""))
+        elif role == self.CREATED_AT:
+            label = "STARTED"
+            args = []
+            dt = get_date_from_sqlite(row.get("created_at"))
+            if dt:
+                label += "_ON"
+                offset = tzlocal().utcoffset(dt)
+                if offset:
+                    dt += offset
+                args.append(Translator.format_datetime(dt))
+            return self.tr(label, values=args)
+        elif role == self.SHADOW:
+            return row.get("shadow", False)
+        elif role == self.ZIP_FILE:
+            return row.get("zip_file") or row.get("doc_name", "")
+        elif role == self.ALL_FILE_NAMES:
+            # Format file names: fit as many as possible within max length
+            all_names = row.get("all_file_names", [])
+            if not all_names:
+                return row.get("doc_name", "")
+            return format_file_names_for_display(all_names, max_length=60)
+        elif role == self.BATCH_COUNT:
+            return row.get("batch_count", 1)
+
+        key = self.names.get(role, b"").decode()
+        return row.get(key, "")
+
+    def setData(self, index: QModelIndex, value: Any, /, *, role: int = None) -> None:
+        if role is None or not index.isValid():
+            return
+        key = force_decode(self.roleNames()[role])
+        self.downloads[index.row()][key] = value
+        self.dataChanged.emit(index, index, [role])
+
+    @pyqtProperty("int", notify=downloadChanged)
+    def count(self) -> int:
+        return self.rowCount()
+
+    @pyqtProperty("int", notify=downloadChanged)
+    def count_no_shadow(self) -> int:
+        return self.row_count_no_shadow()
+
+
+class CompletedDirectDownloadModel(QAbstractListModel):
+    """Model for completed/cancelled direct downloads."""
+
+    downloadChanged = pyqtSignal()
+
+    UID = qt.UserRole + 1
+    DOC_UID = qt.UserRole + 2
+    DOC_NAME = qt.UserRole + 3
+    DOWNLOAD_PATH = qt.UserRole + 4
+    SERVER_URL = qt.UserRole + 5
+    STATUS = qt.UserRole + 6
+    BYTES_DOWNLOADED = qt.UserRole + 7
+    TOTAL_BYTES = qt.UserRole + 8
+    PROGRESS_PERCENT = qt.UserRole + 9
+    CREATED_AT = qt.UserRole + 10
+    IS_FOLDER = qt.UserRole + 11
+    FOLDER_COUNT = qt.UserRole + 12
+    FILE_COUNT = qt.UserRole + 13
+    ENGINE = qt.UserRole + 14
+    ZIP_FILE = qt.UserRole + 15
+    SELECTED_ITEMS = qt.UserRole + 16
+    TOTAL_SIZE_FMT = qt.UserRole + 17
+    COMPLETED_AT = qt.UserRole + 18
+    ALL_FILE_NAMES = qt.UserRole + 19
+    BATCH_COUNT = qt.UserRole + 20
+
+    def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
+        super().__init__(parent)
+        self.tr = translate
+        self.downloads: List[Dict[str, Any]] = []
+        self.names = {
+            self.UID: b"uid",
+            self.DOC_UID: b"doc_uid",
+            self.DOC_NAME: b"doc_name",
+            self.DOWNLOAD_PATH: b"download_path",
+            self.SERVER_URL: b"server_url",
+            self.STATUS: b"status",
+            self.BYTES_DOWNLOADED: b"bytes_downloaded",
+            self.TOTAL_BYTES: b"total_bytes",
+            self.PROGRESS_PERCENT: b"progress_percent",
+            self.CREATED_AT: b"created_at",
+            self.IS_FOLDER: b"is_folder",
+            self.FOLDER_COUNT: b"folder_count",
+            self.FILE_COUNT: b"file_count",
+            self.ENGINE: b"engine",
+            self.ZIP_FILE: b"zip_file",
+            self.SELECTED_ITEMS: b"selected_items",
+            self.TOTAL_SIZE_FMT: b"total_size_fmt",
+            self.COMPLETED_AT: b"completed_at",
+            self.ALL_FILE_NAMES: b"all_file_names",
+            self.BATCH_COUNT: b"batch_count",
+        }
+
+    def roleNames(self) -> Dict[int, bytes]:
+        return self.names
+
+    def rowCount(self, parent: QModelIndex = QModelIndex(), /) -> int:
+        return len(self.downloads)
+
+    def set_downloads(
+        self, downloads: List[Dict[str, Any]], /, *, parent: QModelIndex = QModelIndex()
+    ) -> None:
+        """Set the downloads list."""
+        self.beginRemoveRows(parent, 0, max(0, self.rowCount() - 1))
+        self.downloads.clear()
+        self.endRemoveRows()
+
+        if downloads:
+            self.beginInsertRows(parent, 0, len(downloads) - 1)
+            self.downloads.extend(downloads)
+            self.endInsertRows()
+
+        self.downloadChanged.emit()
+
+    def data(self, index: QModelIndex, role: int, /) -> Any:
+        if not index.isValid() or index.row() >= len(self.downloads):
+            return None
+        row = self.downloads[index.row()]
+
+        if role == self.STATUS:
+            return row.get("status", "COMPLETED")
+        elif role == self.DOWNLOAD_PATH:
+            return row.get("download_path") or ""
+        elif role == self.TOTAL_SIZE_FMT:
+            total_bytes = row.get("total_bytes", 0)
+            return sizeof_fmt(total_bytes) if total_bytes else "0 B"
+        elif role == self.COMPLETED_AT:
+            status = row.get("status", "COMPLETED")
+            label = "COMPLETED" if status == "COMPLETED" else "CANCELLED"
+            args = []
+            dt = get_date_from_sqlite(row.get("completed_at"))
+            if dt:
+                label += "_ON"
+                offset = tzlocal().utcoffset(dt)
+                if offset:
+                    dt += offset
+                args.append(Translator.format_datetime(dt))
+            return self.tr(label, values=args)
+        elif role == self.ZIP_FILE:
+            return row.get("zip_file") or row.get("doc_name", "")
+        elif role == self.ALL_FILE_NAMES:
+            # Format file names: fit as many as possible within max length
+            all_names = row.get("all_file_names", [])
+            if not all_names:
+                return row.get("doc_name", "")
+            return format_file_names_for_display(all_names, max_length=60)
+        elif role == self.BATCH_COUNT:
+            return row.get("batch_count", 1)
+
+        key = self.names.get(role, b"").decode()
+        return row.get(key, "")
+
+    @pyqtProperty("int", notify=downloadChanged)
+    def count(self) -> int:
+        return self.rowCount()
+
+
+class DirectDownloadMonitoringModel(QAbstractListModel):
+    """Model for monitoring active direct downloads with real-time progress."""
+
+    itemChanged = pyqtSignal()
+
+    UID = qt.UserRole + 1
+    DOC_NAME = qt.UserRole + 2
+    STATUS = qt.UserRole + 3
+    PROGRESS = qt.UserRole + 4
+    ENGINE = qt.UserRole + 5
+    FILESIZE = qt.UserRole + 6
+    TRANSFERRED = qt.UserRole + 7
+    DOWNLOAD_PATH = qt.UserRole + 8
+    SHADOW = qt.UserRole + 9
+
+    def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
+        super().__init__(parent)
+        self.tr = translate
+        self.items: List[Dict[str, Any]] = []
+        self.names = {
+            self.UID: b"uid",
+            self.DOC_NAME: b"doc_name",
+            self.STATUS: b"status",
+            self.PROGRESS: b"progress",
+            self.ENGINE: b"engine",
+            self.FILESIZE: b"filesize",
+            self.TRANSFERRED: b"transferred",
+            self.DOWNLOAD_PATH: b"download_path",
+            self.SHADOW: b"shadow",
+        }
+        # Pretty print for file sizes
+        self.psize = partial(sizeof_fmt, suffix=self.tr("BYTE_ABBREV"))
+
+    def rowCount(self, parent: QModelIndex = QModelIndex(), /) -> int:
+        return len(self.items)
+
+    def roleNames(self) -> Dict[int, bytes]:
+        return self.names
+
+    def set_items(
+        self, items: List[Dict[str, Any]], /, *, parent: QModelIndex = QModelIndex()
+    ) -> None:
+        """Set the items list, replacing all existing items."""
+        # Clear existing
+        self.beginRemoveRows(parent, 0, max(0, self.rowCount() - 1))
+        self.items.clear()
+        self.endRemoveRows()
+
+        # Add new items
+        if items:
+            self.beginInsertRows(parent, 0, len(items) - 1)
+            self.items.extend(items)
+            self.endInsertRows()
+
+        self.itemChanged.emit()
+
+    def data(self, index: QModelIndex, role: int, /) -> Any:
+        if not index.isValid() or index.row() >= len(self.items):
+            return None
+        row = self.items[index.row()]
+
+        if role == self.STATUS:
+            status = row.get("status", "PENDING")
+            return status if isinstance(status, str) else status.name
+        if role == self.PROGRESS:
+            return f"{row.get('progress', 0.0):,.1f}"
+        if role == self.SHADOW:
+            return row.get("shadow", False)
+        if role == self.FILESIZE:
+            return self.psize(row.get("total_bytes", 0))
+        if role == self.TRANSFERRED:
+            # Prefer bytes_downloaded if available, otherwise compute from progress
+            bytes_dl = row.get("bytes_downloaded")
+            if bytes_dl is not None and bytes_dl > 0:
+                return self.psize(bytes_dl)
+            total = row.get("total_bytes", 0)
+            progress = row.get("progress", 0.0)
+            return self.psize(total * progress / 100) if total > 0 else "0 B"
+        if role == self.DOC_NAME:
+            return row.get("doc_name", "")
+        if role == self.DOWNLOAD_PATH:
+            return row.get("download_path", "")
+        if role == self.ENGINE:
+            return row.get("engine", "")
+        if role == self.UID:
+            return row.get("uid", 0)
+
+        key = self.names.get(role, b"").decode()
+        return row.get(key, "")
+
+    def setData(self, index: QModelIndex, value: Any, /, *, role: int = None) -> None:
+        if role is None or not index.isValid():
+            return
+        key = force_decode(self.roleNames()[role])
+        self.items[index.row()][key] = value
+        self.dataChanged.emit(index, index, [role])
+
+    @pyqtSlot(dict)
+    def set_progress(self, action: Dict[str, Any], /) -> None:
+        """Update download progress for a specific item."""
+        for i, item in enumerate(self.items):
+            if item.get("uid") != action.get("uid"):
+                continue
+            # Update item data directly
+            item["progress"] = action.get("progress", 0.0)
+            item["bytes_downloaded"] = action.get("bytes_downloaded", 0)
+            item["total_bytes"] = action.get("total_bytes", item.get("total_bytes", 0))
+            # Emit data changed for the row
+            idx = self.createIndex(i, 0)
+            self.dataChanged.emit(
+                idx, idx, [self.PROGRESS, self.TRANSFERRED, self.FILESIZE]
+            )
+            break
+
+    @pyqtProperty("int", notify=itemChanged)
     def count(self) -> int:
         return self.rowCount()
 
