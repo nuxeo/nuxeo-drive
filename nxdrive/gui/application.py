@@ -314,8 +314,10 @@ class Application(QApplication):
             )
             # Log QML loading errors for Conflicts.qml
             if self.conflicts_window.status() == self.conflicts_window.Status.Error:
-                for error in self.conflicts_window.errors():
-                    log.error(f"Conflicts.qml load error: {error.toString()}")
+                errors = "\n  ".join(
+                    e.toString() for e in self.conflicts_window.errors()
+                )
+                log.debug(f"Conflicts.qml load errors:\n  {errors}")
             else:
                 log.debug("Conflicts.qml loaded successfully")
 
@@ -329,8 +331,10 @@ class Application(QApplication):
             )
             # Log QML loading errors for Settings.qml
             if self.settings_window.status() == self.settings_window.Status.Error:
-                for error in self.settings_window.errors():
-                    log.error(f"Settings.qml load error: {error.toString()}")
+                errors = "\n  ".join(
+                    e.toString() for e in self.settings_window.errors()
+                )
+                log.debug(f"Settings.qml load errors:\n  {errors}")
             else:
                 log.debug("Settings.qml loaded successfully")
 
@@ -345,8 +349,8 @@ class Application(QApplication):
             )
             # Log QML loading errors for Systray.qml
             if self.systray_window.status() == self.systray_window.Status.Error:
-                for error in self.systray_window.errors():
-                    log.error(f"Systray.qml load error: {error.toString()}")
+                errors = "\n  ".join(e.toString() for e in self.systray_window.errors())
+                log.debug(f"Systray.qml load errors:\n  {errors}")
             else:
                 log.debug("Systray.qml loaded successfully")
 
@@ -363,8 +367,10 @@ class Application(QApplication):
                 self.direct_transfer_window.status()
                 == self.direct_transfer_window.Status.Error
             ):
-                for error in self.direct_transfer_window.errors():
-                    log.error(f"DirectTransfer.qml load error: {error.toString()}")
+                errors = "\n  ".join(
+                    e.toString() for e in self.direct_transfer_window.errors()
+                )
+                log.debug(f"DirectTransfer.qml load errors:\n  {errors}")
             else:
                 log.debug("DirectTransfer.qml loaded successfully")
 
