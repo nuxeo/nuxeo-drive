@@ -10,7 +10,7 @@ boto3==1.42.45 \
      --hash=sha256:4db50b8b39321fab87ff7f40ab407887d436d004c1f2b0dfdf56e42b4884709b \
      --hash=sha256:5074e074a718a6f3c2b519cbb9ceab258f17b331a143d23351d487984f2a412f
     # via nuxeo
-botocore==1.42.43 \
+botocore==1.42.45 \
      --hash=sha256:a5ea5d1b7c46c2d5d113879e45b21eaf7d60dc865f4bcb46dfcf0703fe3429f4 \
      --hash=sha256:40b577d07b91a0ed26879da9e4658d82d3a400382446af1014d6ad3957497545
 certifi==2024.7.4 \
