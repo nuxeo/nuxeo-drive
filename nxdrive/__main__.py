@@ -4,13 +4,15 @@ See https://github.com/pyinstaller/pyinstaller/issues/2560
 """
 
 import locale
+import os
 import platform
-import pip_system_certs.wrapt_requests
 import signal
 import sqlite3
 import sys
 from datetime import datetime
 from types import FrameType
+
+import pip_system_certs.wrapt_requests
 
 from nxdrive.constants import APP_NAME
 from nxdrive.fatal_error import (
@@ -20,6 +22,11 @@ from nxdrive.fatal_error import (
 )
 from nxdrive.utils import adapt_datetime_iso
 
+# Set Qt Quick Controls style to "Basic" to avoid loading Windows-specific plugins
+# that may have missing DLL dependencies (the Windows style impl DLL is not shipped with PyQt6)
+# https://stackoverflow.com/questions/79568766/pyqt6-on-windows-qtquickcontrols2windowsstyleimplplugin-dll-the-specified-mod
+if sys.platform == "win32":
+    os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
 
 pip_system_certs.wrapt_requests.inject_truststore()
 

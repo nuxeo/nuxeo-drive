@@ -37,12 +37,14 @@ jobs:
           path: .tox
           key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
           restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+      - name: Install Linux dependencies
+        run: bash .github/workflows/linux_dependencies.sh
       - name: Install tox
         run: python -m pip install -r tools/deps/requirements-tox.txt
       - name: Unit tests
         run: tox -e unit
       - name: Upload coverage to Codecov
-        if: ${{ success() }} || ${{ failure() }}
+        if: ${{ success() || failure() }}
         uses: codecov/codecov-action@v5.2.0
         with:
           token: ${{secrets.CODECOV_TOKEN}}
@@ -75,7 +77,7 @@ jobs:
       - name: Unit tests
         run: tox -e unit
       - name: Upload coverage to Codecov
-        if: ${{ success() }} || ${{ failure() }}
+        if: ${{ success() || failure() }}
         uses: codecov/codecov-action@v5.2.0
         with:
           token: ${{secrets.CODECOV_TOKEN}}
@@ -91,7 +93,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.13 # XXX_PYTHON
-          architecture: "x86"
       - uses: actions/cache@v4
         with:
           path: ~\AppData\Local\pip\Cache
@@ -108,7 +109,7 @@ jobs:
       - name: Unit tests
         run: tox -e unit
       - name: Upload coverage to Codecov
-        if: ${{ success() }} || ${{ failure() }}
+        if: ${{ success() || failure() }}
         uses: codecov/codecov-action@v5.2.0
         with:
           token: ${{secrets.CODECOV_TOKEN}}

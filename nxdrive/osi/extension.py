@@ -84,7 +84,7 @@ class ExtensionListener(QTcpServer):
 
         for address in host_info.addresses():
             log.debug(
-                f"Found {PROTO[address.protocol()]} address: {address.toString()!r}"
+                f"Found {PROTO[int(address.protocol().value)]} address: {address.toString()!r}"
             )
             if address.protocol() == qt.IPv4Protocol:
                 return address

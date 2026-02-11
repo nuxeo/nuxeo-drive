@@ -132,7 +132,8 @@ class DocumentsDialog(DialogMixin):
             self.select_all_button = self.button_box.addButton(
                 self.select_all_text[self.select_all_state], qt.ActionRole
             )
-            self.select_all_button.clicked.connect(self._select_unselect_all_roots)
+            if self.select_all_button:
+                self.select_all_button.clicked.connect(self._select_unselect_all_roots)
         return buttons
 
     def get_tree_view(self) -> Union[QLabel, DocumentTreeView]:
@@ -173,7 +174,8 @@ class DocumentsDialog(DialogMixin):
 
     def _handle_no_roots(self) -> None:
         """When there is no sync root, display an informal message and hide the tree view."""
-        self.select_all_button.setVisible(False)
+        if self.select_all_button:
+            self.select_all_button.setVisible(False)
         self.tree_view.setVisible(False)
         self.tree_view.resize(0, 0)
         self.no_root_label.setVisible(True)
@@ -225,7 +227,8 @@ class DocumentsDialog(DialogMixin):
                 self.tree_view.update_item_changed(item)
 
         self.select_all_state = not self.select_all_state
-        self.select_all_button.setText(self.select_all_text[self.select_all_state])
+        if self.select_all_button:
+            self.select_all_button.setText(self.select_all_text[self.select_all_state])
 
 
 class FoldersDialog(DialogMixin):
@@ -330,7 +333,8 @@ class FoldersDialog(DialogMixin):
         )
 
         pointed_item = self.tree_view.get_item_from_position(position)
-        action.setEnabled(self.tree_view.is_item_enabled(pointed_item))
+        if action:
+            action.setEnabled(self.tree_view.is_item_enabled(pointed_item))
         menu.exec(self.tree_view.viewport().mapToGlobal(position))
 
     def _add_group_local(self) -> QGroupBox:
@@ -612,7 +616,9 @@ class FoldersDialog(DialogMixin):
         # Required criteria:
         #   - at least 1 local path or a new folder to create
         #   - a selected remote path
-        self.button_box.button(qt.Ok).setEnabled(bool(self.paths))
+        ok_button = self.button_box.button(qt.Ok)
+        if ok_button:
+            ok_button.setEnabled(bool(self.paths))
         self.new_folder_button.setEnabled(
             bool(self.remote_folder_ref) and bool(self.tree_view.current)
         )

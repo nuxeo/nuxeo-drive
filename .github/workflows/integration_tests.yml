@@ -36,7 +36,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13.1" # XXX_PYTHON
-          architecture: "x86"
       - uses: actions/cache@v4
         with:
           path: ~\AppData\Local\pip\Cache
@@ -52,7 +51,7 @@ jobs:
       - name: Integration tests
         run: tox -e integration-windows
       - name: Upload coverage to Codecov
-        if: ${{ success() }} || ${{ failure() }}
+        if: ${{ success() || failure() }}
         uses: codecov/codecov-action@v5.2.0
         with:
           token: ${{secrets.CODECOV_TOKEN}}
@@ -78,7 +77,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13.1" # XXX_PYTHON
-          architecture: "x86"
       - uses: actions/cache@v4
         with:
           path: ~\AppData\Local\pip\Cache
@@ -100,7 +98,7 @@ jobs:
       - name: Integration tests
         run: tox -e integration-windows
       - name: Upload coverage to Codecov
-        if: ${{ success() }} || ${{ failure() }}
+        if: ${{ success() || failure() }}
         uses: codecov/codecov-action@v5.2.0
         with:
           token: ${{secrets.CODECOV_TOKEN}}
@@ -140,7 +138,7 @@ jobs:
       - name: Integration tests
         run: tox -e integration-macos
       - name: Upload coverage to Codecov
-        if: ${{ success() }} || ${{ failure() }}
+        if: ${{ success() || failure() }}
         uses: codecov/codecov-action@v5.2.0
         with:
           token: ${{secrets.CODECOV_TOKEN}}

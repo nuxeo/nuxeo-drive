@@ -28,10 +28,14 @@ class ContentLoaderMixin(QRunnable):
     ) -> None:
         super().__init__()
         self.tree = tree
-        self.item = item or self.tree.model().invisibleRootItem()
+        self.item = item or (
+            QStandardItemModel(self.tree.model()).invisibleRootItem()
+            if self.tree.model()
+            else None
+        )
         self.info: Optional[Documents] = None
         self.force_refresh = force_refresh
-        if item:
+        if item and self.item:
             self.info = self.item.data(qt.UserRole)
 
     def run(self) -> None:
@@ -58,10 +62,11 @@ class ContentLoaderMixin(QRunnable):
             path = info.get_path() if info else "root"
             log.warning(f"Error while retrieving documents on {path!r}", exc_info=True)
             self.tree.set_loading_cursor(False)
-            item.removeRows(0, item.rowCount())
-            item.appendRow(
-                QStandardItem(Translator.get("LOADING_ERROR") + " \U0001F937")
-            )
+            if item:
+                item.removeRows(0, item.rowCount())
+                item.appendRow(
+                    QStandardItem(Translator.get("LOADING_ERROR") + " \U0001F937")
+                )
             return
 
         # Used with the filters window only
@@ -93,6 +98,9 @@ class ContentLoaderMixin(QRunnable):
 
     def fill_tree(self, children: List[Documents], /) -> None:
         """Fill the tree view with the new fetched children."""
+        if not self.item:
+            log.error("No item to fill in the tree view")
+            return
         self.item.removeRows(0, self.item.rowCount())
         for child in self.sort_children(children):
             subitem = self.new_subitem(child)

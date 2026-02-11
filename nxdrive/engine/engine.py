@@ -714,7 +714,8 @@ class Engine(QObject):
             new_folder=new_folder,
             new_folder_type=new_folder_type,
         )
-        self._threadpool.start(runner)
+        if self._threadpool:
+            self._threadpool.start(runner)
 
     def rollback_delete(self, path: Path, /) -> None:
         """Re-synchronize a document when a deletion is cancelled."""

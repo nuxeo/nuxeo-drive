@@ -51,7 +51,7 @@ class TestWrongChannel:
 
             # Mock the question dialog
             mock_dialog = Mock()
-            mock_dialog.exec_ = Mock()
+            mock_dialog.exec = Mock()
 
             # Create button mocks
             switch_button = Mock()
@@ -76,7 +76,7 @@ class TestWrongChannel:
 
             # Verify dialog was shown
             app.question.assert_called_once()
-            mock_dialog.exec_.assert_called_once()
+            mock_dialog.exec.assert_called_once()
 
             # Verify channel switch was triggered
             manager.set_update_channel.assert_called_once_with(version_channel)
@@ -106,7 +106,7 @@ class TestWrongChannel:
 
             # Mock the question dialog
             mock_dialog = Mock()
-            mock_dialog.exec_ = Mock()
+            mock_dialog.exec = Mock()
 
             # Create button mocks
             switch_button = Mock()
@@ -131,7 +131,7 @@ class TestWrongChannel:
 
             # Verify dialog was shown
             app.question.assert_called_once()
-            mock_dialog.exec_.assert_called_once()
+            mock_dialog.exec.assert_called_once()
 
             # Verify update was triggered
             manager.updater.update.assert_called_once_with(downgrade_version)
@@ -176,7 +176,7 @@ class TestWrongChannel:
 
             # Mock the question dialog
             mock_dialog = Mock()
-            mock_dialog.exec_ = Mock()
+            mock_dialog.exec = Mock()
 
             # Create button mocks
             switch_button = Mock()
@@ -202,7 +202,7 @@ class TestWrongChannel:
 
             # Verify dialog was shown
             app.question.assert_called_once()
-            mock_dialog.exec_.assert_called_once()
+            mock_dialog.exec.assert_called_once()
 
             # Verify neither action was triggered
             manager.set_update_channel.assert_not_called()
@@ -226,7 +226,7 @@ class TestWrongChannel:
             mock_translator.get.side_effect = lambda key, values=None: f"{key}_{values}"
 
             mock_dialog = Mock()
-            mock_dialog.exec_ = Mock()
+            mock_dialog.exec = Mock()
             downgrade_button = Mock()
 
             def add_button_side_effect(text, role):

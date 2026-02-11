@@ -55,7 +55,7 @@ class TestExecutablePathChecking:
             assert result is None
             mock_app.assert_called_once_with([])
             mock_messagebox.assert_called_once()
-            # Note: exec_ is called but we can't assert on Mock_Qt methods
+            # Note: exec is called but we can't assert on Mock_Qt methods
 
     @not_linux(reason="Qt does not work correctly on Linux")
     def test_check_executable_path_error_qt_with_translations(self):
@@ -382,7 +382,7 @@ class TestQtFatalErrorDialog:
             mock_dialog.setWindowTitle.assert_called_once()
             mock_dialog.resize.assert_called_once_with(800, 600)
             mock_dialog.show.assert_called_once()
-            # Note: exec_ is called but we can't assert on Mock_Qt methods
+            # Note: exec is called but we can't assert on Mock_Qt methods
 
     @not_linux(reason="Qt does not work correctly on Linux")
     def test_fatal_error_qt_with_cli_args(self):
