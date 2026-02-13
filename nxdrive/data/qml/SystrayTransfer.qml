@@ -1,11 +1,11 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 import "icon-font/Icon.js" as MdiFont
 
 Rectangle {
     id: control
-    property variant fileData: model
+    property var fileData: model
     property bool paused: status == "PAUSED" || status == "SUSPENDED"
     property bool download: transfer_type == "download"
     width: parent ? parent.width : 0

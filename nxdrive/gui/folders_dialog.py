@@ -25,8 +25,8 @@ from ..qt.imports import (
     QMenu,
     QPoint,
     QPushButton,
-    QRegExp,
-    QRegExpValidator,
+    QRegularExpression,
+    QRegularExpressionValidator,
     QSize,
     Qt,
     QVBoxLayout,
@@ -48,13 +48,13 @@ log = getLogger(__name__)
 DOC_URL = "https://doc.nuxeo.com/n/CBX/#duplicates-behavior"
 
 
-def regexp_validator() -> QRegExpValidator:
+def regexp_validator() -> QRegularExpressionValidator:
     """
     Generate a validator based on a specific regexp that will check an user input.
     This code has been moved to a method to allow unit testing.
     """
-    expr = QRegExp(f"^[^{INVALID_CHARS}]+")
-    return QRegExpValidator(expr)
+    expr = QRegularExpression(f"^[^{INVALID_CHARS}]+")
+    return QRegularExpressionValidator(expr)
 
 
 class DialogMixin(QDialog):
@@ -96,7 +96,7 @@ class DialogMixin(QDialog):
         # The content view
         self.vertical_layout = QVBoxLayout(self)
 
-    def get_buttons(self) -> QDialogButtonBox.StandardButtons:
+    def get_buttons(self) -> QDialogButtonBox.standardButtons:
         """Create the buttons to display at the bottom of the window."""
         return qt.Ok | qt.Cancel
 
@@ -117,7 +117,7 @@ class DocumentsDialog(DialogMixin):
         self.no_root_label = self.get_no_roots_label()
         self.vertical_layout.insertWidget(0, self.no_root_label)
 
-    def get_buttons(self) -> QDialogButtonBox.StandardButtons:
+    def get_buttons(self) -> QDialogButtonBox.standardButtons:
         """Create the buttons to display at the bottom of the window."""
         # Select/Unselect roots
         self.select_all_state = True
@@ -132,7 +132,8 @@ class DocumentsDialog(DialogMixin):
             self.select_all_button = self.button_box.addButton(
                 self.select_all_text[self.select_all_state], qt.ActionRole
             )
-            self.select_all_button.clicked.connect(self._select_unselect_all_roots)
+            if self.select_all_button:
+                self.select_all_button.clicked.connect(self._select_unselect_all_roots)
         return buttons
 
     def get_tree_view(self) -> Union[QLabel, DocumentTreeView]:
@@ -173,7 +174,8 @@ class DocumentsDialog(DialogMixin):
 
     def _handle_no_roots(self) -> None:
         """When there is no sync root, display an informal message and hide the tree view."""
-        self.select_all_button.setVisible(False)
+        if self.select_all_button:
+            self.select_all_button.setVisible(False)
         self.tree_view.setVisible(False)
         self.tree_view.resize(0, 0)
         self.no_root_label.setVisible(True)
@@ -225,7 +227,8 @@ class DocumentsDialog(DialogMixin):
                 self.tree_view.update_item_changed(item)
 
         self.select_all_state = not self.select_all_state
-        self.select_all_button.setText(self.select_all_text[self.select_all_state])
+        if self.select_all_button:
+            self.select_all_button.setText(self.select_all_text[self.select_all_state])
 
 
 class FoldersDialog(DialogMixin):
@@ -301,7 +304,7 @@ class FoldersDialog(DialogMixin):
         # Handle paths added from the context menu
         self.newCtxTransfer.connect(self._process_additionnal_local_paths)
 
-        self.tree_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tree_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree_view.customContextMenuRequested.connect(self.open_menu)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
@@ -330,8 +333,9 @@ class FoldersDialog(DialogMixin):
         )
 
         pointed_item = self.tree_view.get_item_from_position(position)
-        action.setEnabled(self.tree_view.is_item_enabled(pointed_item))
-        menu.exec_(self.tree_view.viewport().mapToGlobal(position))
+        if action:
+            action.setEnabled(self.tree_view.is_item_enabled(pointed_item))
+        menu.exec(self.tree_view.viewport().mapToGlobal(position))
 
     def _add_group_local(self) -> QGroupBox:
         """Group box for source files."""
@@ -532,7 +536,7 @@ class FoldersDialog(DialogMixin):
     def _new_folder_button_action(self) -> None:
         """Show a dialog allowing to edit the value of *new_folder*."""
         dialog = NewFolderDialog(self)
-        dialog.exec_()
+        dialog.exec()
 
     def _find_folders_duplicates(self) -> List[str]:
         """Return a list of duplicate folder(s) found on the remote path."""
@@ -612,7 +616,9 @@ class FoldersDialog(DialogMixin):
         # Required criteria:
         #   - at least 1 local path or a new folder to create
         #   - a selected remote path
-        self.button_box.button(qt.Ok).setEnabled(bool(self.paths))
+        ok_button = self.button_box.button(qt.Ok)
+        if ok_button:
+            ok_button.setEnabled(bool(self.paths))
         self.new_folder_button.setEnabled(
             bool(self.remote_folder_ref) and bool(self.tree_view.current)
         )

@@ -1167,7 +1167,7 @@ class TestFoldersDialogOpenMenu:
         mock_menu = Mock(spec=QMenu)
         mock_action = Mock()
         mock_menu.addAction = Mock(return_value=mock_action)
-        mock_menu.exec_ = Mock()
+        mock_menu.exec = Mock()
 
         # Create a test position
         test_position = Mock(spec=QPoint)
@@ -1208,8 +1208,8 @@ class TestFoldersDialogOpenMenu:
             dialog.tree_view.viewport.assert_called_once()
             mock_viewport.mapToGlobal.assert_called_once_with(test_position)
 
-            # Verify menu.exec_ was called with the global position
-            mock_menu.exec_.assert_called_once_with(global_position)
+            # Verify menu.exec was called with the global position
+            mock_menu.exec.assert_called_once_with(global_position)
 
             # Verify execution order by checking call counts
             assert dialog.tr.call_count == 1
@@ -1219,7 +1219,7 @@ class TestFoldersDialogOpenMenu:
             assert mock_action.setEnabled.call_count == 1
             assert dialog.tree_view.viewport.call_count == 1
             assert mock_viewport.mapToGlobal.call_count == 1
-            assert mock_menu.exec_.call_count == 1
+            assert mock_menu.exec.call_count == 1
 
         # Test Case 2: When tree item is disabled
         dialog.tree_view.is_item_enabled.reset_mock()
@@ -1230,7 +1230,7 @@ class TestFoldersDialogOpenMenu:
         mock_menu2 = Mock(spec=QMenu)
         mock_action2 = Mock()
         mock_menu2.addAction = Mock(return_value=mock_action2)
-        mock_menu2.exec_ = Mock()
+        mock_menu2.exec = Mock()
 
         with patch("nxdrive.gui.folders_dialog.QMenu", return_value=mock_menu2):
             # Call the method again
@@ -1249,7 +1249,7 @@ class TestFoldersDialogOpenMenu:
         mock_menu3 = Mock(spec=QMenu)
         mock_action3 = Mock()
         mock_menu3.addAction = Mock(return_value=mock_action3)
-        mock_menu3.exec_ = Mock()
+        mock_menu3.exec = Mock()
 
         with patch("nxdrive.gui.folders_dialog.QMenu", return_value=mock_menu3):
             # Call with different position
@@ -1258,8 +1258,8 @@ class TestFoldersDialogOpenMenu:
             # Verify mapToGlobal was called with the new position
             mock_viewport.mapToGlobal.assert_called_with(test_position2)
 
-            # Verify exec_ was called with the new global position
-            mock_menu3.exec_.assert_called_once_with(global_position2)
+            # Verify exec was called with the new global position
+            mock_menu3.exec.assert_called_once_with(global_position2)
 
         # Test Case 4: Verify translation key is used correctly
         dialog.tr.reset_mock()
@@ -1268,7 +1268,7 @@ class TestFoldersDialogOpenMenu:
         mock_menu4 = Mock(spec=QMenu)
         mock_action4 = Mock()
         mock_menu4.addAction = Mock(return_value=mock_action4)
-        mock_menu4.exec_ = Mock()
+        mock_menu4.exec = Mock()
 
         with patch("nxdrive.gui.folders_dialog.QMenu", return_value=mock_menu4):
             # Call the method
@@ -1299,7 +1299,7 @@ class TestFoldersDialogOpenMenu:
         mock_menu5 = Mock(spec=QMenu)
         mock_action5 = Mock()
         mock_menu5.addAction = Mock(return_value=mock_action5)
-        mock_menu5.exec_ = Mock()
+        mock_menu5.exec = Mock()
 
         with patch("nxdrive.gui.folders_dialog.QMenu", return_value=mock_menu5):
             # Call the method one final time
@@ -1312,13 +1312,13 @@ class TestFoldersDialogOpenMenu:
             assert mock_action5.setEnabled.called
             assert dialog.tree_view.viewport.called
             assert mock_viewport.mapToGlobal.called
-            assert mock_menu5.exec_.called
+            assert mock_menu5.exec.called
 
             # Verify the exact sequence
             dialog.tree_view.get_item_from_position.assert_called_with(final_position)
             dialog.tree_view.is_item_enabled.assert_called_with(final_pointed_item)
             mock_viewport.mapToGlobal.assert_called_with(final_position)
-            mock_menu5.exec_.assert_called_with(final_global_position)
+            mock_menu5.exec.assert_called_with(final_global_position)
 
 
 class TestFoldersDialogCheckForKnownTypes:
@@ -1874,12 +1874,12 @@ class TestFoldersDialogNewFolderButtonAction:
             # Verify NewFolderDialog was instantiated with the correct parent
             mock_new_folder_dialog_class.assert_called_once_with(dialog)
 
-            # Verify exec_() was called on the dialog instance
-            mock_new_folder_dialog.exec_.assert_called_once()
+            # Verify exec() was called on the dialog instance
+            mock_new_folder_dialog.exec.assert_called_once()
 
             # Verify the method completed without errors
             assert mock_new_folder_dialog_class.call_count == 1
-            assert mock_new_folder_dialog.exec_.call_count == 1
+            assert mock_new_folder_dialog.exec.call_count == 1
 
         # Test Case 2: Verify method execution order
         with patch(
@@ -1891,9 +1891,7 @@ class TestFoldersDialogNewFolderButtonAction:
             def track_dialog_creation(parent):
                 call_order.append(f"NewFolderDialog({parent})")
                 mock_dialog = Mock(spec=NewFolderDialog)
-                mock_dialog.exec_ = Mock(
-                    side_effect=lambda: call_order.append("exec_()")
-                )
+                mock_dialog.exec = Mock(side_effect=lambda: call_order.append("exec()"))
                 return mock_dialog
 
             mock_new_folder_dialog_class.side_effect = track_dialog_creation
@@ -1902,7 +1900,7 @@ class TestFoldersDialogNewFolderButtonAction:
             actual_new_folder_button_action(dialog)
 
             # Verify execution order
-            expected_order = [f"NewFolderDialog({dialog})", "exec_()"]
+            expected_order = [f"NewFolderDialog({dialog})", "exec()"]
             assert call_order == expected_order
 
         # Test Case 3: Test with different dialog instances
@@ -1931,10 +1929,10 @@ class TestFoldersDialogNewFolderButtonAction:
             expected_calls = [call(dialog), call(dialog2), call(dialog3)]
             mock_new_folder_dialog_class.assert_has_calls(expected_calls)
 
-            # Verify exec_() was called on each dialog instance
-            mock_new_folder_dialog1.exec_.assert_called_once()
-            mock_new_folder_dialog2.exec_.assert_called_once()
-            mock_new_folder_dialog3.exec_.assert_called_once()
+            # Verify exec() was called on each dialog instance
+            mock_new_folder_dialog1.exec.assert_called_once()
+            mock_new_folder_dialog2.exec.assert_called_once()
+            mock_new_folder_dialog3.exec.assert_called_once()
 
             # Verify total call counts
             assert mock_new_folder_dialog_class.call_count == 3
@@ -1981,12 +1979,12 @@ class TestFoldersDialogNewFolderButtonAction:
             # Verify constructor was called
             mock_new_folder_dialog_class.assert_called_once_with(dialog)
 
-        # Test Case 6: Test exception handling from exec_() method
+        # Test Case 6: Test exception handling from exec() method
         with patch(
             "nxdrive.gui.folders_dialog.NewFolderDialog"
         ) as mock_new_folder_dialog_class:
             mock_new_folder_dialog = Mock(spec=NewFolderDialog)
-            mock_new_folder_dialog.exec_.side_effect = Exception(
+            mock_new_folder_dialog.exec.side_effect = Exception(
                 "Dialog execution failed"
             )
             mock_new_folder_dialog_class.return_value = mock_new_folder_dialog
@@ -1994,13 +1992,13 @@ class TestFoldersDialogNewFolderButtonAction:
             # Call the method and expect exception to propagate
             try:
                 actual_new_folder_button_action(dialog)
-                assert False, "Expected exception from exec_() method"
+                assert False, "Expected exception from exec() method"
             except Exception as e:
                 assert str(e) == "Dialog execution failed"
 
             # Verify both methods were called before exception
             mock_new_folder_dialog_class.assert_called_once_with(dialog)
-            mock_new_folder_dialog.exec_.assert_called_once()
+            mock_new_folder_dialog.exec.assert_called_once()
 
         # Test Case 7: Verify dialog creation with different parent types
         # Create a mock that is a subclass of FoldersDialog
@@ -2020,7 +2018,7 @@ class TestFoldersDialogNewFolderButtonAction:
 
             # Verify it works with subclass instances
             mock_new_folder_dialog_class.assert_called_once_with(specialized_dialog)
-            mock_new_folder_dialog.exec_.assert_called_once()
+            mock_new_folder_dialog.exec.assert_called_once()
 
         # Test Case 8: Verify method can be called multiple times on same dialog
         with patch(
@@ -2040,9 +2038,9 @@ class TestFoldersDialogNewFolderButtonAction:
             expected_calls = [call(dialog)] * 3
             mock_new_folder_dialog_class.assert_has_calls(expected_calls)
 
-            # Verify exec_() was called on each instance
+            # Verify exec() was called on each instance
             for mock_dialog in mock_dialogs:
-                mock_dialog.exec_.assert_called_once()
+                mock_dialog.exec.assert_called_once()
 
         # Test Case 9: Verify the method signature and return value
         with patch(
@@ -2059,7 +2057,7 @@ class TestFoldersDialogNewFolderButtonAction:
 
             # Verify dialog creation and execution happened
             mock_new_folder_dialog_class.assert_called_once_with(dialog)
-            mock_new_folder_dialog.exec_.assert_called_once()
+            mock_new_folder_dialog.exec.assert_called_once()
 
         # Test Case 10: Integration test - verify NewFolderDialog gets correct parent reference
         with patch(

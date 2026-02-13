@@ -1,9 +1,16 @@
 from logging import getLogger
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
-from ..constants import MAC
+from ..constants import MAC, WINDOWS
 from ..qt import constants as qt
-from ..qt.imports import QApplication, QEvent, QMenu, QQuickView, QSystemTrayIcon
+from ..qt.imports import (
+    QApplication,
+    QMenu,
+    QQuickView,
+    QQuickWindow,
+    QSystemTrayIcon,
+    QWindow,
+)
 from ..translator import Translator
 
 if TYPE_CHECKING:
@@ -54,7 +61,7 @@ class DriveSystrayIcon(QSystemTrayIcon):
         """Open the settings window."""
         self.application.show_settings("Advanced")
 
-    def get_context_menu(self) -> QMenu:
+    def get_context_menu(self) -> QMenu | None:
         """
         Create the context menu.
         It shows up on left click.
@@ -64,6 +71,9 @@ class DriveSystrayIcon(QSystemTrayIcon):
         """
 
         style = QApplication.style()
+        if not style:
+            log.error("Could not get QApplication style for systray menu")
+            return
         menu = QMenu()
         menu.addAction(
             style.standardIcon(qt.SP_FileDialogInfoView),
@@ -86,12 +96,17 @@ class DriveSystrayIcon(QSystemTrayIcon):
         return menu
 
 
-class SystrayWindow(QQuickView):
-    def event(self, event: QEvent, /) -> bool:
-        if event.type() == qt.FocusOut or (
-            event.type() == qt.MouseButtonPress
-            and not self.geometry().contains(event.screenPos().toPoint())
-        ):
-            # The click was outside of the systray
+# Use QQuickView on Windows to work around platform-specific integration/focus issues
+# with the systray popup; on other platforms QQuickWindow is sufficient and lighter.
+inherited_base_class = QQuickView if WINDOWS else QQuickWindow
+
+
+class SystrayWindow(inherited_base_class):  # type: ignore
+    def __init__(self, parent: Optional[QWindow] = None) -> None:
+        super().__init__(parent)
+        self.activeChanged.connect(self._on_active_changed)
+
+    def _on_active_changed(self) -> None:
+        """Hide the window when it loses focus."""
+        if not self.isActive():
             self.hide()
-        return super().event(event)

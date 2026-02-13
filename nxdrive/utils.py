@@ -576,6 +576,7 @@ def safe_rename(src: Path, dst: Path, /) -> None:
 @lru_cache(maxsize=16)
 def find_resource(folder: str, /, *, file: str = "") -> Path:
     """Find the FS path of a directory in various OS binary packages."""
+    log.info(f"Finding resource, {normalized_path(Options.res_dir) / folder / file}")
     return normalized_path(Options.res_dir) / folder / file
 
 

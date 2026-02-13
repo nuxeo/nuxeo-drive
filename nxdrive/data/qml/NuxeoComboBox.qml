@@ -1,5 +1,5 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Controls
 import "icon-font/Icon.js" as MdiFont
 
 ComboBox {
@@ -22,6 +22,7 @@ ComboBox {
         id: boxIcon
         icon: MdiFont.Icon.chevronDown
         color: control.color; size: 16
+        leftPadding: 3
         anchors {
             verticalCenter: control.verticalCenter
             left: control.left

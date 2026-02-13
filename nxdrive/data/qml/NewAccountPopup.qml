@@ -1,7 +1,7 @@
-import QtQuick 2.15
-// QtQuick.Dialogs has another unknown versioning
-import QtQuick.Dialogs 1.3
-import QtQuick.Layouts 1.15
+import QtQuick
+// QtQuick.Dialogs is available in Qt 6.2+
+import QtQuick.Dialogs
+import QtQuick.Layouts
 import "icon-font/Icon.js" as MdiFont
 
 NuxeoPopup {
@@ -43,7 +43,7 @@ NuxeoPopup {
                     placeholderText: "https://server.com/nuxeo"
                     text: api.default_server_url_value()
                     font.family: "Courier"
-                    validator: RegExpValidator { regExp: /^https?:\/\/[^\s<"\/]+\/[^\s<"]+$/ }
+                    validator: RegularExpressionValidator { regularExpression: /^https?:\/\/[^\s<"\/]+\/[^\s<"]+$/ }
                 }
             }
 
@@ -66,7 +66,7 @@ NuxeoPopup {
                     IconLabel {
                         Layout.alignment: Qt.AlignRight
                         icon: MdiFont.Icon.folderOutline
-                        onClicked: fileDialog.visible = true
+                        onClicked: fileDialog.open()
                     }
                 }
                 RowLayout {
@@ -130,10 +130,9 @@ NuxeoPopup {
         }
     }
 
-    FileDialog {
+    FolderDialog {
         id: fileDialog
-        folder: shortcuts.home
-        selectFolder: true
-        onAccepted: folderInput.text = api.to_local_file(fileDialog.fileUrl)
+        currentFolder: api.default_local_folder()
+        onAccepted: folderInput.text = api.to_local_file(fileDialog.selectedFolder)
     }
 }

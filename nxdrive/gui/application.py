@@ -111,7 +111,7 @@ if TYPE_CHECKING:
 __all__ = ("Application",)
 
 # Enable High-DPI
-QApplication.setAttribute(qt.AA_EnableHighDpiScaling, True)
+# QApplication.setAttribute(qt.AA_EnableHighDpiScaling, True)
 
 log = getLogger(__name__)
 
@@ -157,7 +157,7 @@ class Application(QApplication):
         # Therefore, you often will find event loops being used in GUI or web frameworks.
         #
         # However, the pitfall here is that Qt is implemented in C++ and not in Python.
-        # When we execute app.exec_() we start the Qt/C++ event loop, which loops
+        # When we execute app.exec() we start the Qt/C++ event loop, which loops
         # forever until it is stopped.
         #
         # The problem here is that we don't have any Python events set up yet.
@@ -350,7 +350,21 @@ class Application(QApplication):
             self.app_engine.load(
                 QUrl.fromLocalFile(str(find_resource("qml", file="Main.qml")))
             )
-            root = self.app_engine.rootObjects()[0]
+            log.info(
+                f"QUrl.fromLocalFile: {QUrl.fromLocalFile(str(find_resource('qml', file='Main.qml')))}"
+            )
+
+            # Check if QML loaded successfully
+            root_objects = self.app_engine.rootObjects()
+            if not root_objects:
+                log.error("Failed to load QML! Checking for errors...")
+                for warning in self.app_engine.warnings():
+                    log.error(f"QML Warning: {warning.toString()}")
+                raise RuntimeError(
+                    "QML engine failed to load Main.qml - check logs for QML errors"
+                )
+
+            root = root_objects[0]
             self.conflicts_window = root.findChild(CustomWindow, "conflictsWindow")
             self.settings_window = root.findChild(CustomWindow, "settingsWindow")
             self.systray_window = root.findChild(SystrayWindow, "systrayWindow")
@@ -595,6 +609,7 @@ class Application(QApplication):
             "unfocusedTab": "#525252",
             "focusedUnderline": "#0066FF",
             "unfocusedUnderline": "#E0E0E0",
+            "settingsTabGroup": "#FFFFFF",
             "switchOnEnabled": "#0066FF",
             "switchOffEnabled": "#525252",
             "switchDisabled": "#C6C6C6",
@@ -662,7 +677,7 @@ class Application(QApplication):
         if details:
             msg.setDetailedText(details)
         if execute:
-            msg.exec_()
+            msg.exec()
         return msg
 
     def display_info(self, title: str, message: str, values: List[str], /) -> None:
@@ -720,7 +735,7 @@ class Application(QApplication):
                 Translator.get("DIRECT_EDIT_CONFLICT_OVERWRITE"), qt.AcceptRole
             )
             msg.addButton(Translator.get("CANCEL"), qt.RejectRole)
-            msg.exec_()
+            msg.exec()
             if msg.clickedButton() == overwrite:
                 self.manager.direct_edit.force_update(ref, digest)
             del self._conflicts_modals[filename]
@@ -742,6 +757,9 @@ class Application(QApplication):
     @pyqtSlot()
     def _root_deleted(self) -> None:
         engine = self.sender()
+        if not isinstance(engine, Engine):
+            log.error(f"Sender is not an Engine instance: {type(engine)}")
+            return
         log.info(f"Root has been deleted for engine: {engine.uid}")
 
         msg = self.question(
@@ -756,7 +774,7 @@ class Application(QApplication):
             Translator.get("DRIVE_ROOT_DISCONNECT"), qt.RejectRole
         )
 
-        msg.exec_()
+        msg.exec()
         res = msg.clickedButton()
         if res == disconnect:
             self.manager.unbind_engine(engine.uid)
@@ -784,6 +802,9 @@ class Application(QApplication):
     @pyqtSlot(Path)
     def _root_moved(self, new_path: Path, /) -> None:
         engine = self.sender()
+        if not isinstance(engine, Engine):
+            log.error(f"Sender is not an Engine instance: {type(engine)}")
+            return
         log.info(f"Root has been moved for engine: {engine.uid} to {new_path!r}")
         info = [engine.local_folder, APP_NAME, str(new_path)]
 
@@ -797,7 +818,7 @@ class Application(QApplication):
         disconnect = msg.addButton(
             Translator.get("DRIVE_ROOT_DISCONNECT"), qt.RejectRole
         )
-        msg.exec_()
+        msg.exec()
         res = msg.clickedButton()
 
         if res == disconnect:
@@ -833,7 +854,7 @@ class Application(QApplication):
         cb = QCheckBox(Translator.get("DONT_ASK_AGAIN"))
         msg.setCheckBox(cb)
 
-        msg.exec_()
+        msg.exec()
         res = msg.clickedButton()
 
         if cb.isChecked():
@@ -848,7 +869,7 @@ class Application(QApplication):
             )
             msg.addButton(Translator.get("NO"), qt.RejectRole)
             confirm = msg.addButton(Translator.get("YES"), qt.AcceptRole)
-            msg.exec_()
+            msg.exec()
             if msg.clickedButton() == confirm:
                 self.manager.set_deletion_behavior(DelAction.UNSYNC)
             return DelAction.UNSYNC
@@ -881,7 +902,7 @@ class Application(QApplication):
         )
         replace = msg.addButton(Translator.get("REPLACE"), qt.AcceptRole)
         msg.addButton(Translator.get("CANCEL"), qt.RejectRole)
-        msg.exec_()
+        msg.exec()
         if msg.clickedButton() == replace:
             oldpath.unlink()
             normalize_event_filename(newpath)
@@ -964,6 +985,7 @@ class Application(QApplication):
 
     @pyqtSlot()
     def show_systray(self) -> None:
+        log.info("Showing systray window in application.py")
         self.close_tasks_window()
         self.systray_window.close()
         icon = self.tray_icon.geometry()
@@ -975,7 +997,10 @@ class Application(QApplication):
             icon = QRect(cur.x(), cur.y(), 16, 16)
 
         # Adjust the position
-        dpi_ratio = self.primaryScreen().devicePixelRatio() if WINDOWS else 1
+        primary_screen = self.primaryScreen()
+        dpi_ratio = (
+            primary_screen.devicePixelRatio() if WINDOWS and primary_screen else 1
+        )
         pos_x = max(
             0, (icon.x() + icon.width()) / dpi_ratio - self.systray_window.width()
         )
@@ -985,7 +1010,6 @@ class Application(QApplication):
 
         self.systray_window.setX(int(pos_x))
         self.systray_window.setY(int(pos_y))
-
         self.systray_window.show()
         self.systray_window.raise_()
 
@@ -1077,10 +1101,15 @@ class Application(QApplication):
             [remote_url, remote_path, duplicates_list_html],
             execute=False,
         )
-        spacer = QSpacerItem(600, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        spacer = QSpacerItem(
+            600, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
+        )
         layout = msg_box.layout()
-        layout.addItem(spacer, layout.rowCount(), 0, 1, layout.columnCount())
-        msg_box.exec_()
+        if layout:
+            layout.addItem(spacer, layout.rowCount(), 0, 1, layout.columnCount())
+        else:
+            log.error("Cannot get layout from message box")
+        msg_box.exec()
 
     @pyqtSlot(str, int, str)
     def confirm_cancel_transfer(
@@ -1097,7 +1126,7 @@ class Application(QApplication):
         continued = msg.addButton(Translator.get("YES"), qt.AcceptRole)
         cancel = msg.addButton(Translator.get("NO"), qt.RejectRole)
         msg.setDefaultButton(cancel)
-        msg.exec_()
+        msg.exec()
         if msg.clickedButton() == continued:
             engine = self.manager.engines.get(engine_uid)
             if not engine:
@@ -1120,7 +1149,7 @@ class Application(QApplication):
         continued = msg.addButton(Translator.get("YES"), qt.AcceptRole)
         cancel = msg.addButton(Translator.get("NO"), qt.RejectRole)
         msg.setDefaultButton(cancel)
-        msg.exec_()
+        msg.exec()
         if msg.clickedButton() == continued:
             self.api.cancel_session(engine_uid, session_uid)
             return True
@@ -1214,7 +1243,7 @@ class Application(QApplication):
         layout.addWidget(buttons)
 
         dialog.setLayout(layout)
-        dialog.exec_()
+        dialog.exec()
 
     @pyqtSlot(object)
     def _connect_engine(self, engine: Engine, /) -> None:
@@ -1345,7 +1374,7 @@ class Application(QApplication):
         else:
             msg.addButton(Translator.get("CONTINUE"), qt.RejectRole)
 
-        msg.exec_()
+        msg.exec()
         if downgrade_version and msg.clickedButton() == downgrade:
             self.manager.updater.update(downgrade_version)
 
@@ -1380,7 +1409,7 @@ class Application(QApplication):
             qt.AcceptRole,
         )
 
-        msg.exec_()
+        msg.exec()
         res = msg.clickedButton()
         if downgrade_version and res == downgrade:
             self.manager.updater.update(downgrade_version)
@@ -1555,13 +1584,21 @@ class Application(QApplication):
 
         buttons = QDialogButtonBox()
         buttons.setStandardButtons(qt.Ok | qt.Cancel)
-        buttons.button(qt.Ok).setEnabled(False)
+        ok_button = buttons.button(qt.Ok)
+        if ok_button:
+            ok_button.setEnabled(False)
+        else:
+            log.error("Cannot get OK button from dialog button box")
         buttons.accepted.connect(accept)
         buttons.rejected.connect(dialog.close)
 
         def bypass_triggered(state: int) -> None:
             """Enable the OK button only when the checkbox is checked."""
-            buttons.button(qt.Ok).setEnabled(bool(state))
+            ok_button = buttons.button(qt.Ok)
+            if ok_button:
+                ok_button.setEnabled(bool(state))
+            else:
+                log.error("Cannot get OK button to enable/disable")
 
         bypass = QCheckBox(Translator.get("SSL_TRUST_ANYWAY"))
         bypass.stateChanged.connect(bypass_triggered)
@@ -1571,7 +1608,7 @@ class Application(QApplication):
         layout.addWidget(bypass)
         layout.addWidget(buttons)
         dialog.setLayout(layout)
-        dialog.exec_()
+        dialog.exec()
 
         return continue_with_bad_ssl_cert
 
@@ -1849,7 +1886,7 @@ class Application(QApplication):
         layout.addWidget(select)
         layout.addWidget(buttons)
         dialog.setLayout(layout)
-        dialog.exec_()
+        dialog.exec()
 
         return selected_engine
 
@@ -2010,6 +2047,9 @@ class Application(QApplication):
         """Refresh the files list every second to go easy on the QML side and prevent GUI lags."""
         if monotonic() - self._last_refresh_view > 1.0:
             engine = self.sender()
+            if not isinstance(engine, Engine):
+                log.error(f"Sender is not an Engine instance: {type(engine)}")
+                return
             self.get_last_files(engine.uid)
             self._last_refresh_view = monotonic()
 
@@ -2066,7 +2106,7 @@ class Application(QApplication):
         dialog.setLayout(layout)
         dialog.resize(400, 200)
         dialog.show()
-        dialog.exec_()
+        dialog.exec()
 
         states = []
         if Options.use_analytics:

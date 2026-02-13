@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
+from nxdrive.engine.engine import Engine
 from nxdrive.gui.application import Application
 from nxdrive.manager import Manager
 from tests.markers import mac_only
@@ -23,8 +24,8 @@ class TestRootMoved:
         app = MagicMock(spec=Application)
         app.manager = manager
 
-        # Create a mocked engine
-        engine = Mock()
+        # Create a mocked engine with spec=Engine to pass isinstance check
+        engine = Mock(spec=Engine)
         engine.uid = "test_engine"
         engine.local_folder = Path("/old/path")
         engine.set_local_folder = Mock()
@@ -43,7 +44,7 @@ class TestRootMoved:
 
             # Create the question dialog mock
             question_dialog = Mock()
-            question_dialog.exec_ = Mock()
+            question_dialog.exec = Mock()
             disconnect_button = Mock()
             recreate_button = Mock()
             move_button = Mock()
@@ -71,7 +72,7 @@ class TestRootMoved:
             bound_method(new_path)
 
             # Assertions
-            assert question_dialog.exec_.called
+            assert question_dialog.exec.called
             manager.unbind_engine.assert_called_once_with(engine.uid)
 
     def test_root_moved_recreate(self, mock_application):
@@ -84,7 +85,7 @@ class TestRootMoved:
 
             # Create the question dialog mock
             question_dialog = Mock()
-            question_dialog.exec_ = Mock()
+            question_dialog.exec = Mock()
             disconnect_button = Mock()
             recreate_button = Mock()
             move_button = Mock()
@@ -113,7 +114,7 @@ class TestRootMoved:
             bound_method(new_path)
 
             # Assertions
-            assert question_dialog.exec_.called
+            assert question_dialog.exec.called
             engine.reinit.assert_called_once()
             engine.start.assert_called_once()
 
@@ -127,7 +128,7 @@ class TestRootMoved:
 
             # Create the question dialog mock
             question_dialog = Mock()
-            question_dialog.exec_ = Mock()
+            question_dialog.exec = Mock()
             move_button = Mock()
             recreate_button = Mock()
             disconnect_button = Mock()
@@ -154,6 +155,6 @@ class TestRootMoved:
             bound_method(new_path)
 
             # Assertions
-            assert question_dialog.exec_.called
+            assert question_dialog.exec.called
             engine.set_local_folder.assert_called_once_with(new_path)
             engine.start.assert_called_once()

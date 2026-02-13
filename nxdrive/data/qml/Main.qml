@@ -1,10 +1,9 @@
-// Import versions are 2.x where x is the Qt minor version
-// Exception for QtQuick.Layouts which use 1.x
-// https://doc.qt.io/qt-5/qtquickcontrols-index.html
-import QtQuick 2.15
-import QtQuick.Window 2.15
-import SystrayWindow 1.0
-import CustomWindow 1.0
+// Import versions are 6.x for Qt 6
+// https://doc.qt.io/qt-6/qtquickcontrols-index.html
+import QtQuick
+import QtQuick.Window
+import SystrayWindow
+import CustomWindow
 import "tasksManager"
 
 QtObject {

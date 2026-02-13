@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 
 ShadowRectangle {
     id: control
@@ -8,7 +8,7 @@ ShadowRectangle {
     signal resolved()
     signal ignored()
 
-    property variant fileData
+    property var fileData
     property string type: fileData.state == "conflicted" ? "conflict" : "error"
 
     width: parent ? parent.width - 10 : 0
