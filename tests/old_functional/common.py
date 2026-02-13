@@ -233,7 +233,7 @@ class TwoUsersTest(TestCase):
         """
         I could not (yet?) migrate this method to pytest because I did not
         find a way to make tests pass.
-        We need to start each test in a thread and call self.app.exec_() to
+        We need to start each test in a thread and call self.app.exec() to
         let signals transit in the QApplication.
         """
 
@@ -282,7 +282,7 @@ class TwoUsersTest(TestCase):
             scope.set_tag("test", self._testMethodName)
             scope.set_tag("branch", os.getenv("BRANCH_NAME"))
             sync_thread.start()
-            assert self.app.exec_() == 0
+            assert self.app.exec() == 0
             sync_thread.join(30)
 
         log.info("TEST run end")

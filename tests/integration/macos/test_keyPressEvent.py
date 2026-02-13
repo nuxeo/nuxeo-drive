@@ -2,7 +2,7 @@
 
 from unittest.mock import Mock
 
-from PyQt5.QtCore import Qt
+from PyQt6.QtCore import Qt
 
 from ...markers import mac_only
 

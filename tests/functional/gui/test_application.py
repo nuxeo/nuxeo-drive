@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from nuxeo.models import Document
-from PyQt5.QtCore import QModelIndex, QObject, Qt
+from PyQt6.QtCore import QModelIndex, QObject, Qt
 
 from nxdrive.client.workflow import Workflow
 from nxdrive.constants import WINDOWS
