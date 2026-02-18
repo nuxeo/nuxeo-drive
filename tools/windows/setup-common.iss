@@ -38,29 +38,19 @@ WizardStyle=modern
 Compression=lzma
 SolidCompression=yes
 
-; Controls which files Setup will check for being in use before upgrading
-CloseApplicationsFilter=*.*
+; Disable the "close applications" prompt. The PrepareToInstall function
+; already handles killing ndrive.exe before installation proceeds.
+CloseApplications=no
 
 ; Minimum Windows version required (Windows 8)
 MinVersion=6.2.9200
 
 
 [InstallDelete]
-; This is required to handle upgrades from 5.4.0 (PyInstaller 5.0) which had different
-; Qt DLL structure. Without this, orphaned 32-bit DLLs from 5.4.0 can cause
-; "DLL load failed while importing QtCore: %1 is not a valid Win32 application" errors.
-Type: filesandordirs; Name: "{app}\PyQt5"
-Type: files; Name: "{app}\Qt*.dll"
-Type: files; Name: "{app}\qt*.dll"
-Type: files; Name: "{app}\python*.dll"
-Type: files; Name: "{app}\vcruntime*.dll"
-Type: files; Name: "{app}\msvcp*.dll"
-Type: files; Name: "{app}\api-ms-*.dll"
-Type: files; Name: "{app}\ucrtbase.dll"
-Type: files; Name: "{app}\libcrypto*.dll"
-Type: files; Name: "{app}\libssl*.dll"
-Type: files; Name: "{app}\libffi*.dll"
-Type: files; Name: "{app}\sqlite3.dll"
+; Delete everything inside the installation directory before installing new files.
+; This ensures no orphaned files from previous versions cause conflicts (e.g.,
+; "DLL load failed while importing QtCore" errors due to stale DLLs).
+Type: filesandordirs; Name: "{app}\*"
 
 
 [UninstallDelete]
@@ -130,4 +120,32 @@ begin
     username := ExpandConstant('{param:TARGETUSERNAME}');
     if (Length(url) > 0) and (Length(username) > 0) then
         Result := True;
+end;
+
+function IsProcessRunning(const ProcessName: String): Boolean;
+// Check if a process is currently running using tasklist.
+var
+    ResultCode: Integer;
+begin
+    Exec('cmd', '/C tasklist /FI "IMAGENAME eq ' + ProcessName + '" | find /I "' + ProcessName + '"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Result := (ResultCode = 0);
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+// Kill ndrive.exe if it is running before proceeding with the installation.
+// If automatic kill fails, ask user to manually kill Nuxeo Drive
+var
+    ResultCode: Integer;
+begin
+    Result := '';
+
+    if not IsProcessRunning('{#MyAppExeName}') then
+        Exit;    // Force-kill the process
+
+    Exec('taskkill', '/F /IM {#MyAppExeName}', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Sleep(2000);
+
+    // If the process is still running, ask the user to close it manually
+    if IsProcessRunning('{#MyAppExeName}') then
+        Result := '{#MyAppName} is still running and could not be stopped automatically.' + #13#10 + 'Please close {#MyAppName} manually and try again.';
 end;
