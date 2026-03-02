@@ -527,11 +527,8 @@ class CliHandler:
         """Parse options, setup logs and manager and dispatch execution."""
 
         # This ensures clean output without log messages
-        if "-v" in argv or "--version" in argv:
-            print(self.get_version())
-            file_path = Path.cwd() / "version.txt"
-            with open(file_path, "w", encoding="utf-8") as fh:
-                fh.write(self.get_version())
+        if "-v" == argv[0] or "--version" == argv[0]:
+            print(self.get_version(), end="")
             return 0
 
         # Pre-configure the logging to catch early errors
