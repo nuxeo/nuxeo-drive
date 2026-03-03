@@ -195,8 +195,6 @@ class CliHandler:
         common_parser.add_argument(
             "-v",
             "--version",
-            action="version",
-            version=self.get_version(),
             help=f"Print the current version of the {APP_NAME} client",
         )
 
@@ -527,6 +525,11 @@ class CliHandler:
 
     def handle(self, argv: List[str], /) -> int:
         """Parse options, setup logs and manager and dispatch execution."""
+
+        # This ensures clean output without log messages
+        if "-v" == argv[0] or "--version" == argv[0]:
+            print(self.get_version(), end="")
+            return 0
 
         # Pre-configure the logging to catch early errors
         early_options = Namespace(

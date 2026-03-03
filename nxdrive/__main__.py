@@ -5,12 +5,13 @@ See https://github.com/pyinstaller/pyinstaller/issues/2560
 
 import locale
 import platform
-import pip_system_certs.wrapt_requests
 import signal
 import sqlite3
 import sys
 from datetime import datetime
 from types import FrameType
+
+import pip_system_certs.wrapt_requests
 
 from nxdrive.constants import APP_NAME
 from nxdrive.fatal_error import (
@@ -19,7 +20,6 @@ from nxdrive.fatal_error import (
     show_critical_error,
 )
 from nxdrive.utils import adapt_datetime_iso
-
 
 pip_system_certs.wrapt_requests.inject_truststore()
 
@@ -37,6 +37,18 @@ def signal_handler(signum: int, _: FrameType, /) -> None:
 
 def main() -> int:
     """Entry point."""
+
+    # On Windows, GUI applications (built with console=False) don't have stdout/stderr
+    # connected to the parent console. This is needed for CLI output like --version.
+    if sys.platform == "win32":
+        import ctypes
+
+        # Try to attach to the parent console (e.g., Command Prompt or PowerShell)
+        # ATTACH_PARENT_PROCESS = -1
+        if ctypes.windll.kernel32.AttachConsole(-1):
+            # Reopen stdout and stderr to write to the attached console
+            sys.stdout = open("CONOUT$", "w")
+            sys.stderr = open("CONOUT$", "w")
 
     # Catch CTRL+C
     signal.signal(signal.SIGINT, signal_handler)
