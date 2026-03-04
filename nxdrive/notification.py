@@ -639,7 +639,7 @@ class DefaultNotificationService(NotificationService):
 
     def _newConflict(self, row_id: int, /) -> None:
         engine = self.sender()
-        if not engine:
+        if not engine or not hasattr(engine, "dao"):
             return
         doc_pair = engine.dao.get_state_from_id(row_id)
         if not doc_pair:
