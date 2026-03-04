@@ -716,6 +716,8 @@ class Engine(QObject):
         )
         if self._threadpool:
             self._threadpool.start(runner)
+        else:
+            log.warning("Cannot start direct transfer, thread pool is not available")
 
     def rollback_delete(self, path: Path, /) -> None:
         """Re-synchronize a document when a deletion is cancelled."""
@@ -839,7 +841,9 @@ class Engine(QObject):
         meth = (
             self.dao.get_download
             if nature == "download"
-            else self.dao.get_dt_upload if is_direct_transfer else self.dao.get_upload
+            else self.dao.get_dt_upload
+            if is_direct_transfer
+            else self.dao.get_upload
         )
         func = partial(meth, uid=uid)  # type: ignore
         self._resume_transfers(nature, func, is_direct_transfer=is_direct_transfer)

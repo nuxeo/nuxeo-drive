@@ -333,6 +333,8 @@ class FoldersDialog(DialogMixin):
         )
 
         pointed_item = self.tree_view.get_item_from_position(position)
+        if not pointed_item:
+            return
         if action:
             action.setEnabled(self.tree_view.is_item_enabled(pointed_item))
         menu.exec(self.tree_view.viewport().mapToGlobal(position))

@@ -637,7 +637,10 @@ class Manager(QObject):
         runner = Runner(self._generate_csv_async, engine, session)
         if engine._threadpool:
             engine._threadpool.start(runner)
-        return True
+            return True
+        else:
+            log.warning("Cannot generate CSV file, thread pool is not available")
+            return False
 
     def _generate_csv_async(self, engine: Engine, session: Session) -> None:
         from .session_csv import SessionCsv  # Circular import with Manager otherwise

@@ -425,7 +425,8 @@ function install_python {
 			Write-Output ">>> Creating Python directory: $Env:PYTHON_DIR"
 			New-Item -ItemType Directory -Force -Path $Env:PYTHON_DIR | Out-Null
 		} else {
-			Write-Output ">>> Python directory already exists: $Env:PYTHON_DIR"		}
+			Write-Output ">>> Python directory already exists: $Env:PYTHON_DIR"
+		}
 		Write-Output ">>> Installing Python $Env:PYTHON_DRIVE_VERSION into $Env:PYTHON_DIR"
 		# https://docs.python.org/3.7/using/windows.html#installing-without-ui
 		# Use /passive instead of /quiet to show progress but require no user interaction
@@ -447,7 +448,8 @@ function install_python {
 		Write-Output ">>> Python installation finished with exit code: $($installResult.ExitCode)"
 		if ($installResult.ExitCode -ne 0) {
 			Write-Output ">>> Python installation failed with exit code: $($installResult.ExitCode)"
-			ExitWithCode $installResult.ExitCode		}
+			ExitWithCode $installResult.ExitCode
+		}
 
 		# If python 64 is installed, use it to take the vcruntime140.dll from it
 
