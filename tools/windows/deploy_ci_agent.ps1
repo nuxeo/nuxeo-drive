@@ -356,7 +356,7 @@ function install_deps {
 
 	# See NXDRIVE-1554 for details
 	$bluetooth_pyd = "$Env:STORAGE_DIR\Lib\site-packages\PyQt6\QtBluetooth.pyd"
-	$bluetooth_dll = "$Env:STORAGE_DIR\Lib\site-packages\PyQt6\Qt\bin\Qt5Bluetooth.dll"
+	$bluetooth_dll = "$Env:STORAGE_DIR\Lib\site-packages\PyQt6\Qt\bin\Qt6Bluetooth.dll"
 	if (Test-Path $bluetooth_pyd) {
 		Remove-Item -Path $bluetooth_pyd -Verbose
 	}
@@ -389,7 +389,7 @@ function install_python {
 	catch {
 		$pythonArch = $false
 	}
-	if (($pythonVersion -and $pythonArch) -and ($pythonVersion -match $Env:PYTHON_DRIVE_VERSION -and $pythonArch -eq 64)) {
+	if (($pythonVersion -and $pythonArch) -and ($pythonVersion -match [regex]::Escape($Env:PYTHON_DRIVE_VERSION) -and $pythonArch -eq 64)) {
 		Write-Output ">>> Required Python version $Env:PYTHON_DRIVE_VERSION ($pythonArch bits) already installed on the system."
 		try {
 			# Split PATH into individual directories

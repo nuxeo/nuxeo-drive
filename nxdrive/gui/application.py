@@ -357,12 +357,8 @@ class Application(QApplication):
             # Check if QML loaded successfully
             root_objects = self.app_engine.rootObjects()
             if not root_objects:
-                log.error("Failed to load QML! Checking for errors...")
-                for warning in self.app_engine.warnings():
-                    log.error(f"QML Warning: {warning.toString()}")
-                raise RuntimeError(
-                    "QML engine failed to load Main.qml - check logs for QML errors"
-                )
+                log.error("Failed to load QML!")
+                raise RuntimeError("QML engine failed to load Main.qml")
 
             root = root_objects[0]
             self.conflicts_window = root.findChild(CustomWindow, "conflictsWindow")
