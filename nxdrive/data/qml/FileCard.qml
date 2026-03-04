@@ -150,6 +150,9 @@ ShadowRectangle {
                             }
                         }
                         highlighted: resolveAction.highlightedIndex === index
+                        background: Rectangle {
+                            color: highlighted ? primaryBgHover : "transparent"
+                        }
                     }
                     onActivated: {
                         if (resolveAction.currentIndex == 0) {

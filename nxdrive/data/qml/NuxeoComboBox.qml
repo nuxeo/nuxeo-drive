@@ -22,7 +22,7 @@ ComboBox {
         id: boxIcon
         icon: MdiFont.Icon.chevronDown
         color: control.color; size: 16
-        leftPadding: 3
+        leftPadding: 5
         anchors {
             verticalCenter: control.verticalCenter
             left: control.left

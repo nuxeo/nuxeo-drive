@@ -35,6 +35,9 @@ NuxeoPopup {
                     verticalAlignment: Text.AlignVCenter
                 }
                 highlighted: logLevel.highlightedIndex === index
+                background: Rectangle {
+                    color: highlighted ? primaryBgHover : "transparent"
+                }
             }
         }
 

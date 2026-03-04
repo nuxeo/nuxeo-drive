@@ -64,6 +64,9 @@ NuxeoPopup {
                     verticalAlignment: Text.AlignVCenter
                 }
                 highlighted: proxyType.highlightedIndex === index
+                background: Rectangle {
+                    color: highlighted ? primaryBgHover : "transparent"
+                }
             }
         }
 

@@ -55,6 +55,9 @@ NuxeoPopup {
                     verticalAlignment: Text.AlignVCenter
                 }
                 highlighted: channelType.highlightedIndex === index
+                background: Rectangle {
+                    color: highlighted ? primaryBgHover : "transparent"
+                }
             }
         }
 

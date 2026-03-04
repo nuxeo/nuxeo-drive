@@ -22,6 +22,10 @@ Rectangle {
 
         anchors.top: parent.top
 
+        background: Rectangle {
+        color: settingsTabGroup
+    }
+
         SettingsTab {
             text: qsTr("CONFLICTS_AND_ERRORS") + tl.tr
             barIndex: bar.currentIndex; index: 0
