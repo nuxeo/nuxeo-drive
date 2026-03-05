@@ -86,6 +86,19 @@ Rectangle {
                 onActivated: {
                     tl.set_language(languageModel.getTag(languageBox.currentIndex))
                 }
+
+                delegate: ItemDelegate {
+                    width: languageBox.width
+                    padding : 10
+                    contentItem: ScaledText {
+                        text: qsTr(model.name)
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    highlighted: languageBox.highlightedIndex === index
+                    background: Rectangle {
+                        color: highlighted ? popupBackgroundHighlighted : "transparent"
+                    }
+                }
             }
         }
 

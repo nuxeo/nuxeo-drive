@@ -600,6 +600,7 @@ class Application(QApplication):
             "secondaryText": "#525252",
             "progressFilled": "#0066FF",
             "progressFilledLight": "#7D0066FF",  # Added 50% opacity (format AARRGGBB)
+            "popupBackgroundHighlighted": "#F4F4F4",
             "progressEmpty": "#F4F4F4",
             "focusedTab": "#161616",
             "unfocusedTab": "#525252",

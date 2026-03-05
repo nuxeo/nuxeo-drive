@@ -30,13 +30,14 @@ NuxeoPopup {
 
             delegate: ItemDelegate {
                 width: logLevel.width
+                padding : 10
                 contentItem: ScaledText {
                     text: modelData
                     verticalAlignment: Text.AlignVCenter
                 }
                 highlighted: logLevel.highlightedIndex === index
                 background: Rectangle {
-                    color: highlighted ? primaryBgHover : "transparent"
+                    color: highlighted ? popupBackgroundHighlighted : "transparent"
                 }
             }
         }

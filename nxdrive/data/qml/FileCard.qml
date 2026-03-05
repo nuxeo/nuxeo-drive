@@ -151,7 +151,7 @@ ShadowRectangle {
                         }
                         highlighted: resolveAction.highlightedIndex === index
                         background: Rectangle {
-                            color: highlighted ? primaryBgHover : "transparent"
+                            color: highlighted ? popupBackgroundHighlighted : "transparent"
                         }
                     }
                     onActivated: {

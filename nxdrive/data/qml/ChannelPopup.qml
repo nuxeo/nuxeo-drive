@@ -50,13 +50,14 @@ NuxeoPopup {
 
             delegate: ItemDelegate {
                 width: channelType.width
+                padding : 10
                 contentItem: ScaledText {
                     text: qsTr(type) + tl.tr
                     verticalAlignment: Text.AlignVCenter
                 }
                 highlighted: channelType.highlightedIndex === index
                 background: Rectangle {
-                    color: highlighted ? primaryBgHover : "transparent"
+                    color: highlighted ? popupBackgroundHighlighted : "transparent"
                 }
             }
         }
