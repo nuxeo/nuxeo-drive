@@ -61,9 +61,9 @@ class TestWebAuthNotFrozen:
             "nuxeo.client.Nuxeo"
         ) as mock_nuxeo_class:
 
-            # Setup dialog mock with exec_
+            # Setup dialog mock with exec
             mock_dialog = Mock()
-            mock_dialog.exec_ = Mock()
+            mock_dialog.exec = Mock()
             mock_dialog_class.return_value = mock_dialog
 
             # Setup line edit mocks for username and password
@@ -136,7 +136,7 @@ class TestWebAuthNotFrozen:
 
             # Setup dialog mock
             mock_dialog = Mock()
-            mock_dialog.exec_ = Mock()
+            mock_dialog.exec = Mock()
             mock_dialog_class.return_value = mock_dialog
 
             # Setup line edits
@@ -190,7 +190,7 @@ class TestWebAuthNotFrozen:
         ) as mock_buttonbox_class:
 
             mock_dialog = Mock()
-            mock_dialog.exec_ = Mock()
+            mock_dialog.exec = Mock()
             mock_dialog_class.return_value = mock_dialog
 
             username_widget = Mock()
@@ -248,7 +248,7 @@ class TestWebAuthNotFrozen:
             ):
 
                 mock_dialog = Mock()
-                mock_dialog.exec_ = Mock()
+                mock_dialog.exec = Mock()
                 mock_dialog_class.return_value = mock_dialog
 
                 username_widget = Mock()
@@ -297,7 +297,7 @@ class TestWebAuthNotFrozen:
 
             # Setup dialog and inputs
             mock_dialog = Mock()
-            mock_dialog.exec_ = Mock()
+            mock_dialog.exec = Mock()
             mock_dialog_class.return_value = mock_dialog
 
             username_widget = Mock()
@@ -355,7 +355,7 @@ class TestWebAuthNotFrozen:
         ) as mock_buttonbox_class:
 
             mock_dialog = Mock()
-            mock_dialog.exec_ = Mock()
+            mock_dialog.exec = Mock()
             mock_dialog_class.return_value = mock_dialog
 
             username_widget = Mock()
@@ -392,5 +392,5 @@ class TestWebAuthNotFrozen:
             mock_buttonbox.accepted.connect.assert_called_once()
             mock_buttonbox.rejected.connect.assert_called_once()
 
-            # Verify exec_ was called
-            mock_dialog.exec_.assert_called_once()
+            # Verify exec was called
+            mock_dialog.exec.assert_called_once()

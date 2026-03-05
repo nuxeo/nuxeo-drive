@@ -642,9 +642,12 @@ class CliHandler:
             # Clipboard is only accessed for GUI (Qt)
             if WINDOWS and isinstance(app, Application):
                 clipboard = app.clipboard()
-                clipboard.blockSignals(True)
+                if clipboard:
+                    clipboard.blockSignals(True)
+                else:
+                    log.error("Cannot get clipboard from application")
 
-            exit_code = app.exec_()
+            exit_code = app.exec()
 
         lock.unlock()
         log.info(f"{APP_NAME} exited with code {exit_code}")
