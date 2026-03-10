@@ -75,6 +75,7 @@ class DriveSystrayIcon(QSystemTrayIcon):
             log.error("Could not get QApplication style for systray menu")
             return
         menu = QMenu()
+        menu.setStyleSheet("QMenu { background-color: #FFFFFF; color: #000000; }")
         menu.addAction(
             style.standardIcon(qt.SP_FileDialogInfoView),
             Translator.get("SETTINGS"),
