@@ -29,5 +29,17 @@ NuxeoComboBox {
             modelWidth = Math.max(textMetrics.width, modelWidth)
         }
     }
+
+    delegate: ItemDelegate {
+                width: control.width
+                contentItem: ScaledText {
+                    text: qsTr(remote_user) + tl.tr
+                    verticalAlignment: Text.AlignVCenter
+                }
+                highlighted: control.highlightedIndex === index
+                background: Rectangle {
+                    color: highlighted ? popupBackgroundHighlighted : "transparent"
+                }
+            }
     function getRole(role) { return model.get(currentIndex, role) }
 }
