@@ -471,7 +471,7 @@ Rectangle {
                 Layout.topMargin: 10
                 onClicked: {
                     application.hide_systray()
-                    application.quit()
+                    application.exit_app()
                 }
             }
         }

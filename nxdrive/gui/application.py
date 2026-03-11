@@ -271,6 +271,9 @@ class Application(QApplication):
             del self.direct_transfer_window
             del self.task_manager_window
         else:
+            # deleteLater() deletes the C++ object binding for app_engine
+            # This is required to prevent shutdown issues (mainly on MacOS)
+            self.app_engine.deleteLater()
             del self.app_engine
 
     def init_gui(self) -> None:
