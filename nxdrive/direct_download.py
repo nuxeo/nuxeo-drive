@@ -215,7 +215,10 @@ class DirectDownload(Worker):
         batch_folder = self._create_batch_folder()
 
         # Collect selected item names for display
-        selected_item_names = [doc.get("filename", "unknown") for doc in documents]
+        # Use doc_id as fallback if filename is None or empty
+        selected_item_names = [
+            doc.get("filename") or doc.get("doc_id", "unknown") for doc in documents
+        ]
         selected_items_str = ", ".join(selected_item_names)
 
         # Emit batch starting signal
@@ -424,7 +427,7 @@ class DirectDownload(Worker):
 
             # Fetch document info for additional details
             doc_id = doc.get("doc_id", "")
-            doc_name = doc.get("filename", "unknown")
+            doc_name = doc.get("filename") or doc_id or "unknown"
             doc_size = 0
             is_folder = False
             folder_count = 0
@@ -635,31 +638,50 @@ class DirectDownload(Worker):
         :param batch_folder: The batch folder to download into
         :raises Exception: If download fails
         """
-        filename = doc.get("filename", "unknown")
         server_url = doc.get("server_url", "")
         user = doc.get("user")
         doc_id = doc.get("doc_id", "")
-        download_url = doc.get("download_url", "")
 
-        # Emit starting signal
-        self.downloadStarting.emit(filename, server_url)
+        # Get filename and download_url from dict (may be None for simplified URL format)
+        filename = doc.get("filename")
+        download_url = doc.get("download_url")
 
         # Get engine for authentication
         engine = self._get_engine(server_url, user=user)
         if not engine:
             error_msg = f"No engine found for server {server_url}"
-            self.downloadError.emit(filename, error_msg)
+            self.downloadError.emit(filename or doc_id, error_msg)
             raise RuntimeError(error_msg)
 
-        # Fetch document info to check if it's a folder
+        # Fetch document info to get filename and check if it's a folder
         try:
-            doc_info = engine.remote.fetch(doc_id)
-            is_folderish = "Folderish" in doc_info.get("facets", [])
-            doc_title = doc_info.get("properties", {}).get("dc:title", filename)
-        except Exception:
+            doc_info = engine.remote.get_info(doc_id)
+            if not doc_info:
+                raise RuntimeError(f"Document {doc_id} not found")
+
+            is_folderish = doc_info.folderish
+            doc_title = doc_info.name
+
+            # Get download URL if not provided (for simplified URL format)
+            if not download_url and not is_folderish:
+                # Construct download URL from document info
+                blob = doc_info.get_blob("file:content")
+                if blob:
+                    # Build the download URL path
+                    download_url = f"nxfile/default/{doc_id}/file:content/{blob.name}"
+
+            # Use fetched filename if not provided
+            if not filename:
+                filename = doc_title
+
+        except Exception as e:
             log.exception(f"Failed to fetch document info for {doc_id}")
-            is_folderish = False
-            doc_title = filename
+            error_msg = f"Failed to get document information: {e}"
+            self.downloadError.emit(filename or doc_id, error_msg)
+            raise RuntimeError(error_msg)
+
+        # Emit starting signal
+        self.downloadStarting.emit(filename, server_url)
 
         # Sanitize filename for filesystem safety
         safe_name = safe_filename(doc_title)

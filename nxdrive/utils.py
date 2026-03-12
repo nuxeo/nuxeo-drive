@@ -867,13 +867,9 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
     else:
         if "direct-download" in url_string:
             protocol_regex = (
-                # Direct Download stuff
-                (
-                    r"nxdrive://(?P<cmd>direct-download)/(?P<scheme>\w*)/(?P<server>.*)/"
-                    r"user/(?P<username>.*)/repo/(?P<repo>.*)/"
-                    r"nxdocid/(?P<docid>[0-9a-fA-F\-]*)/filename/(?P<filename>[^/]*)"
-                    r"/downloadUrl/(?P<download>.*)"
-                ),
+                # Direct Download stuff - simplified format: just match the command
+                # The actual parsing happens in parse_download_protocol()
+                r"nxdrive://(?P<cmd>direct-download)/.*",
                 # Events from context menu:
                 #     - Access online
                 #     - Copy share-link
@@ -999,26 +995,37 @@ def parse_download_protocol(
     Parse a `nxdrive://direct-download` URL for downloading Nuxeo documents.
     Supports batch downloads with multiple documents separated by ' || '.
 
+    Format:
+    - First document: full URL with nxdocid/UUID
+    - Subsequent documents: just UUID (inherits server from first)
+
+    Example:
+    nxdrive://direct-download/https/server/nuxeo/nxdocid/uuid1 || uuid2 || uuid3
+
     Note: no need to decorate the function with lru_cache() as the caller
     already is.
     """
 
     # Remove the protocol prefix to get the document paths
-    # url_string: nxdrive://direct-download/https/server/... || https/server/...
     url_without_prefix = url_string.replace("nxdrive://direct-download/", "", 1)
 
     # Split by ' || ' to get all document paths
     doc_paths = url_without_prefix.split(" || ")
 
     documents = []
+    server_url = None  # Extract from first document, reuse for subsequent UIDs
+
     for doc_path in doc_paths:
         doc_path = doc_path.strip()
         if not doc_path:
             continue
 
-        doc = _parse_single_document_path(doc_path)
+        doc = _parse_single_document_path(doc_path, server_url=server_url)
         if doc:
             documents.append(doc)
+            # Extract server URL from first document for subsequent UIDs
+            if server_url is None:
+                server_url = doc.get("server_url")
 
     if not documents:
         log.info(f"No valid documents found in {url_string!r}")
@@ -1029,30 +1036,82 @@ def parse_download_protocol(
     }
 
 
-def _parse_single_document_path(path: str, /) -> Optional[Dict[str, str]]:
+def _parse_single_document_path(
+    path: str, /, *, server_url: str = None
+) -> Optional[Dict[str, str]]:
     """
     Parse a single document path from batch download URL.
-    Expected format: https/server/nuxeo/user/username/repo/reponame/nxdocid/docid/filename/name/downloadUrl/url
+
+    Supports three formats:
+    1. Simple UID: just a UUID (requires server_url parameter)
+    2. Simplified format: https/server/nuxeo/nxdocid/UUID
+    3. Full format (legacy): https/server/.../user/.../nxdocid/UUID/filename/.../downloadUrl/...
+
+    :param path: The document path or UID to parse
+    :param server_url: Server URL from previous document (for simple UID format)
+    :return: Dict with document information or None if parsing failed
     """
-    # Regex to parse individual document path
-    doc_regex = (
+
+    # Check if it's just a UUID (format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+    uuid_regex = (
+        r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    )
+    if re.match(uuid_regex, path):
+        if not server_url:
+            log.warning(
+                f"Cannot parse UID {path!r} without server URL from previous document"
+            )
+            return None
+
+        return {
+            "server_url": server_url,
+            "doc_id": path,
+            "user": None,
+            "repo": None,
+            "filename": None,
+            "download_url": None,
+        }
+
+    # Try simplified format: https/server/nuxeo/nxdocid/UUID
+    simple_regex = (
+        r"(?P<scheme>https?)/(?P<server>.*?)/"
+        r"nxdocid/(?P<docid>[0-9a-fA-F\-]+)/?(?:\?.*)?$"
+    )
+
+    match = re.match(simple_regex, path, re.I)
+    if match:
+        parsed = match.groupdict()
+        scheme = parsed["scheme"]
+        extracted_server_url = f"{scheme}://{parsed['server']}"
+
+        return {
+            "server_url": extracted_server_url,
+            "doc_id": parsed["docid"],
+            "user": None,
+            "repo": None,
+            "filename": None,
+            "download_url": None,
+        }
+
+    # Fallback to full format for backward compatibility
+    full_regex = (
         r"(?P<scheme>https?)/(?P<server>.*)/"
         r"user/(?P<username>.*)/repo/(?P<repo>.*)/"
         r"nxdocid/(?P<docid>[0-9a-fA-F\-]*)/filename/(?P<filename>[^/]*)"
         r"/downloadUrl/(?P<download>.*)"
     )
 
-    match = re.match(doc_regex, path, re.I)
+    match = re.match(full_regex, path, re.I)
     if not match:
-        log.warning(f"Failed to parse additional document path: {path!r}")
+        log.warning(f"Failed to parse document path: {path!r}")
         return None
 
     parsed = match.groupdict()
     scheme = parsed["scheme"]
-    server_url = f"{scheme}://{parsed['server']}"
+    extracted_server_url = f"{scheme}://{parsed['server']}"
 
     return {
-        "server_url": server_url,
+        "server_url": extracted_server_url,
         "user": parsed["username"],
         "repo": parsed["repo"],
         "doc_id": parsed["docid"],
