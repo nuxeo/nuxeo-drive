@@ -38,8 +38,7 @@ WizardStyle=modern
 Compression=lzma
 SolidCompression=yes
 
-; Disable the "close applications" prompt. The PrepareToInstall function
-; already handles killing ndrive.exe before installation proceeds.
+; Disable the "close applications" prompt
 CloseApplications=no
 
 ; Minimum Windows version required (Windows 8)
@@ -109,9 +108,83 @@ Filename: "{app}\{#MyAppExeName}"; Parameters: "bind-server --password ""{param:
 
 
 [Code]
+function IsNDriveRunning(): Boolean;
+// Check if ndrive.exe is currently running by querying the task list.
+// Writes tasklist output to a temp file and searches for the process name.
+var
+    ResultCode: Integer;
+    TempFile: String;
+    FileLines: TArrayOfString;
+    I: Integer;
+begin
+    Result := False;
+    TempFile := ExpandConstant('{tmp}\ndrive_check.txt');
+    Exec(
+        ExpandConstant('{sys}\cmd.exe'),
+        '/C tasklist /FI "IMAGENAME eq ndrive.exe" /NH > "' + TempFile + '"',
+        '',
+        SW_HIDE,
+        ewWaitUntilTerminated,
+        ResultCode
+    );    if LoadStringsFromFile(TempFile, FileLines) then
+    begin
+        for I := 0 to GetArrayLength(FileLines) - 1 do
+        begin
+            if Pos('ndrive.exe', LowerCase(FileLines[I])) > 0 then
+            begin
+                Result := True;
+                Break;
+            end;
+        end;
+    end;
+    DeleteFile(TempFile);
+end;
+
+function InitializeSetup(): Boolean;
+// Before setup begins, check whether ndrive.exe is running.
+// If it is, ask the user for confirmation:
+//   - Yes  → kill ndrive.exe and continue installation.
+//   - No   → abort installation immediately.
+var
+    ResultCode: Integer;
+    UserChoice: Integer;
+begin
+    Result := True;
+
+    if IsNDriveRunning() then
+    begin
+        UserChoice := MsgBox(
+            'Nuxeo Drive is currently running.' + #13#10 +
+            'It must be closed before the installation can proceed.' + #13#10#13#10 +
+            'Do you want to close Nuxeo Drive and continue with the installation?',
+            mbConfirmation,
+            MB_YESNO
+        );
+
+        if UserChoice = IDYES then
+        begin
+            // Kill the running process and let setup continue.
+            Exec(
+                ExpandConstant('{sys}\taskkill.exe'),
+                '/F /IM ndrive.exe',
+                '',
+                SW_HIDE,
+                ewWaitUntilTerminated,
+                ResultCode
+            );
+            Result := True;
+        end
+        else
+        begin
+            // User chose No – abort the installation silently.
+            Result := False;
+        end;
+    end;
+end;
+
 function NeedEngineBinding(): Boolean;
 // Check if the sysadmin wants to bind an engine.
-// It will guess by checking mandatory arguments.
+// It will check mandatory arguments.
 var
     url: String;
     username: String;
@@ -120,32 +193,4 @@ begin
     username := ExpandConstant('{param:TARGETUSERNAME}');
     if (Length(url) > 0) and (Length(username) > 0) then
         Result := True;
-end;
-
-function IsProcessRunning(const ProcessName: String): Boolean;
-// Check if a process is currently running using tasklist.
-var
-    ResultCode: Integer;
-begin
-    Exec('cmd', '/C tasklist /FI "IMAGENAME eq ' + ProcessName + '" | find /I "' + ProcessName + '"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    Result := (ResultCode = 0);
-end;
-
-function PrepareToInstall(var NeedsRestart: Boolean): String;
-// Kill ndrive.exe if it is running before proceeding with the installation.
-// If automatic kill fails, ask user to manually kill Nuxeo Drive
-var
-    ResultCode: Integer;
-begin
-    Result := '';
-
-    if not IsProcessRunning('{#MyAppExeName}') then
-        Exit;    // Force-kill the process
-
-    Exec('taskkill', '/F /IM {#MyAppExeName}', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    Sleep(2000);
-
-    // If the process is still running, ask the user to close it manually
-    if IsProcessRunning('{#MyAppExeName}') then
-        Result := '{#MyAppName} is still running and could not be stopped automatically.' + #13#10 + 'Please close {#MyAppName} manually and try again.';
 end;
