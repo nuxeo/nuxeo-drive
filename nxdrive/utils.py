@@ -996,11 +996,11 @@ def parse_download_protocol(
     Supports batch downloads with multiple documents separated by ' || '.
 
     Format:
-    - First document: full URL with nxdocid/UUID
+    - First document: https/server/UUID (automatically appends /nuxeo/ to server)
     - Subsequent documents: just UUID (inherits server from first)
 
     Example:
-    nxdrive://direct-download/https/server/nuxeo/nxdocid/uuid1 || uuid2 || uuid3
+    nxdrive://direct-download/https/server/uuid1 || uuid2 || uuid3
 
     Note: no need to decorate the function with lru_cache() as the caller
     already is.
@@ -1042,20 +1042,24 @@ def _parse_single_document_path(
     """
     Parse a single document path from batch download URL.
 
-    Supports three formats:
+    Supports multiple formats:
     1. Simple UID: just a UUID (requires server_url parameter)
-    2. Simplified format: https/server/nuxeo/nxdocid/UUID
-    3. Full format (legacy): https/server/.../user/.../nxdocid/UUID/filename/.../downloadUrl/...
+    2. Super-simple format: https/server/UUID (auto-appends /nuxeo/ to server)
+    3. Simplified format: https/server/nuxeo/nxdocid/UUID (legacy, still supported)
+    4. Full format (legacy): https/server/.../user/.../nxdocid/UUID/filename/.../downloadUrl/...
 
     :param path: The document path or UID to parse
     :param server_url: Server URL from previous document (for simple UID format)
     :return: Dict with document information or None if parsing failed
     """
 
-    # Check if it's just a UUID (format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
-    uuid_regex = (
-        r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    # UUID pattern: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    uuid_pattern = (
+        r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
     )
+
+    # Check if it's just a UUID (format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+    uuid_regex = f"^{uuid_pattern}$"
     if re.match(uuid_regex, path):
         if not server_url:
             log.warning(
@@ -1072,7 +1076,32 @@ def _parse_single_document_path(
             "download_url": None,
         }
 
-    # Try simplified format: https/server/nuxeo/nxdocid/UUID
+    # Try super-simple format: https/server/UUID (no /nuxeo/nxdocid/)
+    # This matches: https/drive-2025.beta.nuxeocloud.com/3eebfb90-4e2c-4aa9-bf3f-b657c02572e1
+    super_simple_regex = (
+        rf"(?P<scheme>https?)/(?P<server>[^/]+)/(?P<docid>{uuid_pattern})$"
+    )
+
+    match = re.match(super_simple_regex, path, re.I)
+    if match:
+        parsed = match.groupdict()
+        scheme = parsed["scheme"]
+        # Auto-append /nuxeo/ to the server URL
+        extracted_server_url = f"{scheme}://{parsed['server']}/nuxeo/"
+        log.debug(
+            f"Super-simple format: server_url={extracted_server_url}, doc_id={parsed['docid']}"
+        )
+
+        return {
+            "server_url": extracted_server_url,
+            "doc_id": parsed["docid"],
+            "user": None,
+            "repo": None,
+            "filename": None,
+            "download_url": None,
+        }
+
+    # Try simplified format (legacy): https/server/nuxeo/nxdocid/UUID
     simple_regex = (
         r"(?P<scheme>https?)/(?P<server>.*?)/"
         r"nxdocid/(?P<docid>[0-9a-fA-F\-]+)/?(?:\?.*)?$"
@@ -1082,7 +1111,11 @@ def _parse_single_document_path(
     if match:
         parsed = match.groupdict()
         scheme = parsed["scheme"]
-        extracted_server_url = f"{scheme}://{parsed['server']}"
+        # Server may include /nuxeo, ensure it ends with /nuxeo/
+        server_part = parsed["server"].rstrip("/")
+        if not server_part.endswith("/nuxeo"):
+            server_part = f"{server_part}/nuxeo"
+        extracted_server_url = f"{scheme}://{server_part}/"
 
         return {
             "server_url": extracted_server_url,
@@ -1108,7 +1141,10 @@ def _parse_single_document_path(
 
     parsed = match.groupdict()
     scheme = parsed["scheme"]
-    extracted_server_url = f"{scheme}://{parsed['server']}"
+    server_part = parsed["server"].rstrip("/")
+    if not server_part.endswith("/nuxeo"):
+        server_part = f"{server_part}/nuxeo"
+    extracted_server_url = f"{scheme}://{server_part}/"
 
     return {
         "server_url": extracted_server_url,
