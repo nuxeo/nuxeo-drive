@@ -38,29 +38,18 @@ WizardStyle=modern
 Compression=lzma
 SolidCompression=yes
 
-; Controls which files Setup will check for being in use before upgrading
-CloseApplicationsFilter=*.*
+; Disable the "close applications" prompt
+CloseApplications=no
 
 ; Minimum Windows version required (Windows 8)
 MinVersion=6.2.9200
 
 
 [InstallDelete]
-; This is required to handle upgrades from 5.4.0 (PyInstaller 5.0) which had different
-; Qt DLL structure. Without this, orphaned 32-bit DLLs from 5.4.0 can cause
-; "DLL load failed while importing QtCore: %1 is not a valid Win32 application" errors.
-Type: filesandordirs; Name: "{app}\PyQt5"
-Type: files; Name: "{app}\Qt*.dll"
-Type: files; Name: "{app}\qt*.dll"
-Type: files; Name: "{app}\python*.dll"
-Type: files; Name: "{app}\vcruntime*.dll"
-Type: files; Name: "{app}\msvcp*.dll"
-Type: files; Name: "{app}\api-ms-*.dll"
-Type: files; Name: "{app}\ucrtbase.dll"
-Type: files; Name: "{app}\libcrypto*.dll"
-Type: files; Name: "{app}\libssl*.dll"
-Type: files; Name: "{app}\libffi*.dll"
-Type: files; Name: "{app}\sqlite3.dll"
+; Delete everything inside the installation directory before installing new files.
+; This ensures no orphaned files from previous versions cause conflicts (e.g.,
+; "DLL load failed while importing QtCore" errors due to stale DLLs).
+Type: filesandordirs; Name: "{app}\*"
 
 
 [UninstallDelete]
@@ -119,9 +108,83 @@ Filename: "{app}\{#MyAppExeName}"; Parameters: "bind-server --password ""{param:
 
 
 [Code]
+function IsNDriveRunning(): Boolean;
+// Check if ndrive.exe is currently running by querying the task list.
+// Writes tasklist output to a temp file and searches for the process name.
+var
+    ResultCode: Integer;
+    TempFile: String;
+    FileLines: TArrayOfString;
+    I: Integer;
+begin
+    Result := False;
+    TempFile := ExpandConstant('{tmp}\ndrive_check.txt');
+    Exec(
+        ExpandConstant('{sys}\cmd.exe'),
+        '/C tasklist /FI "IMAGENAME eq ndrive.exe" /NH > "' + TempFile + '"',
+        '',
+        SW_HIDE,
+        ewWaitUntilTerminated,
+        ResultCode
+    );    if LoadStringsFromFile(TempFile, FileLines) then
+    begin
+        for I := 0 to GetArrayLength(FileLines) - 1 do
+        begin
+            if Pos('ndrive.exe', LowerCase(FileLines[I])) > 0 then
+            begin
+                Result := True;
+                Break;
+            end;
+        end;
+    end;
+    DeleteFile(TempFile);
+end;
+
+function InitializeSetup(): Boolean;
+// Before setup begins, check whether ndrive.exe is running.
+// If it is, ask the user for confirmation:
+//   - Yes  → kill ndrive.exe and continue installation.
+//   - No   → abort installation immediately.
+var
+    ResultCode: Integer;
+    UserChoice: Integer;
+begin
+    Result := True;
+
+    if IsNDriveRunning() then
+    begin
+        UserChoice := MsgBox(
+            'Nuxeo Drive is currently running.' + #13#10 +
+            'It must be closed before the installation can proceed.' + #13#10#13#10 +
+            'Do you want to close Nuxeo Drive and continue with the installation?',
+            mbConfirmation,
+            MB_YESNO
+        );
+
+        if UserChoice = IDYES then
+        begin
+            // Kill the running process and let setup continue.
+            Exec(
+                ExpandConstant('{sys}\taskkill.exe'),
+                '/F /IM ndrive.exe',
+                '',
+                SW_HIDE,
+                ewWaitUntilTerminated,
+                ResultCode
+            );
+            Result := True;
+        end
+        else
+        begin
+            // User chose No – abort the installation silently.
+            Result := False;
+        end;
+    end;
+end;
+
 function NeedEngineBinding(): Boolean;
 // Check if the sysadmin wants to bind an engine.
-// It will guess by checking mandatory arguments.
+// It will check mandatory arguments.
 var
     url: String;
     username: String;
