@@ -1,9 +1,13 @@
 # Changelog
 
+## 7.x
+
+- [7.0.0](changes/7.0.0.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-6.0.1...release-7.0.0))
+
 ## 6.x
 
 - [6.0.0](changes/6.0.0.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-5.6.0...release-6.0.0))
-- [6.1.0](changes/6.1.0.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-6.0.0...master))
+- [6.0.1](changes/6.0.1.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-6.0.0...release-6.0.1))
 
 ## 5.x
 
