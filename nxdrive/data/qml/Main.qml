@@ -74,14 +74,14 @@ QtObject {
         minimumHeight: 480
         objectName: "directTransferWindow"
         title: qsTr("DIRECT_TRANSFER_WINDOW_TITLE").arg(APP_NAME) + tl.tr
-        width: directTransfer.width; height: directTransfer.height
+        width: directTransferWin.width; height: directTransferWin.height
         visible: false
 
         signal setEngine(string uid)
 
-        onSetEngine: directTransfer.setEngine(uid)
+        onSetEngine: directTransferWin.setEngine(uid)
 
-        DirectTransfer { id: directTransfer }
+        DirectTransferWindow { id: directTransferWin }
     }
 
     property var taskManagerWindow: CustomWindow {

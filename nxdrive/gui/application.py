@@ -91,8 +91,11 @@ from .api import QMLDriveApi
 from .custom_window import CustomWindow
 from .systray import DriveSystrayIcon, SystrayWindow
 from .view import (
+    ActiveDirectDownloadModel,
     ActiveSessionModel,
+    CompletedDirectDownloadModel,
     CompletedSessionModel,
+    DirectDownloadMonitoringModel,
     DirectTransferModel,
     EngineModel,
     FeatureModel,
@@ -214,6 +217,11 @@ class Application(QApplication):
             self._direct_edit_error
         )
 
+        # Direct Download - connect progress signal to monitoring model
+        self.manager.direct_download.downloadProgress.connect(
+            self.direct_download_monitoring_model.set_progress
+        )
+
         # Check if actions is required, separate method so it can be overridden
         self.init_checks()
 
@@ -275,9 +283,16 @@ class Application(QApplication):
 
     def init_gui(self) -> None:
         self.api = QMLDriveApi(self)
+        self.active_direct_download_model = ActiveDirectDownloadModel(self.translate)
         self.active_session_model = ActiveSessionModel(self.translate)
         self.auto_update_feature_model = FeatureModel(Feature.auto_update)
+        self.completed_direct_download_model = CompletedDirectDownloadModel(
+            self.translate
+        )
         self.completed_session_model = CompletedSessionModel(self.translate)
+        self.direct_download_monitoring_model = DirectDownloadMonitoringModel(
+            self.translate
+        )
         self.direct_edit_feature_model = FeatureModel(Feature.direct_edit)
         self.direct_transfer_model = DirectTransferModel(self.translate)
         self.direct_transfer_feature_model = FeatureModel(Feature.direct_transfer)
@@ -338,7 +353,9 @@ class Application(QApplication):
             self.direct_transfer_window.setMinimumHeight(480)
             self._fill_qml_context(self.direct_transfer_window.rootContext())
             self.direct_transfer_window.setSource(
-                QUrl.fromLocalFile(str(find_resource("qml", file="DirectTransfer.qml")))
+                QUrl.fromLocalFile(
+                    str(find_resource("qml", file="DirectTransferWindow.qml"))
+                )
             )
 
             self.create_custom_window_for_task_manager()
@@ -501,11 +518,20 @@ class Application(QApplication):
     def _fill_qml_context(self, context: QQmlContext, /) -> None:
         """Fill the context of a QML element with the necessary resources."""
 
+        context.setContextProperty(
+            "ActiveDirectDownloadModel", self.active_direct_download_model
+        )
         context.setContextProperty("ActiveSessionModel", self.active_session_model)
+        context.setContextProperty(
+            "CompletedDirectDownloadModel", self.completed_direct_download_model
+        )
         context.setContextProperty(
             "CompletedSessionModel", self.completed_session_model
         )
         context.setContextProperty("ConflictsModel", self.conflicts_model)
+        context.setContextProperty(
+            "DirectDownloadMonitoringModel", self.direct_download_monitoring_model
+        )
         context.setContextProperty("DirectTransferModel", self.direct_transfer_model)
         context.setContextProperty("ErrorsModel", self.errors_model)
         context.setContextProperty("EngineModel", self.engine_model)
@@ -1245,6 +1271,28 @@ class Application(QApplication):
             partial(self.refresh_direct_transfer_items, engine.dao)
         )
 
+        # Refresh Direct Download items at startup
+        engine.started.connect(
+            partial(self.refresh_active_direct_downloads_items, engine.dao)
+        )
+        engine.started.connect(
+            partial(self.refresh_completed_direct_downloads_items, engine.dao)
+        )
+        engine.started.connect(
+            partial(self.refresh_direct_download_monitoring_items, engine.dao)
+        )
+
+        # Refresh Direct Download items on each database update
+        engine.dao.directDownloadUpdated.connect(
+            partial(self.refresh_active_direct_downloads_items, engine.dao)
+        )
+        engine.dao.directDownloadUpdated.connect(
+            partial(self.refresh_completed_direct_downloads_items, engine.dao)
+        )
+        engine.dao.directDownloadUpdated.connect(
+            partial(self.refresh_direct_download_monitoring_items, engine.dao)
+        )
+
         # Refresh ongoing Sessions items at startup
         engine.started.connect(partial(self.refresh_active_sessions_items, engine.dao))
 
@@ -1262,7 +1310,6 @@ class Application(QApplication):
         engine.started.connect(
             partial(self.add_engines, list(self.manager.engines.values()))
         )
-
         # Refresh completed Sessions items on each database update
         engine.dao.sessionUpdated.connect(
             partial(self.refresh_completed_sessions_items, engine.dao)
@@ -1690,6 +1737,9 @@ class Application(QApplication):
     def _handle_nxdrive_url(self, url: str, /) -> bool:
         """Handle an nxdrive protocol URL."""
 
+        if "edit" in url or "direct-download" in url:
+            log.info(f"url: {url}")
+
         info = parse_protocol_url(url)
         if not info:
             return False
@@ -1736,6 +1786,20 @@ class Application(QApplication):
                 info["user"],
                 info["download_url"],
             )
+        elif "download_direct" in cmd:
+            if manager.restart_needed:
+                self.show_msgbox_restart_needed()
+                return False
+
+            # info contains: {"command": "download_direct", "documents": [{...}, {...}]}
+            documents = info.get("documents", [])
+            if not documents:
+                log.warning("No documents found in direct download URL")
+                return False
+
+            func = manager.directDownload.emit
+            args = (documents,)
+
         elif cmd == "authorize":
             func = self.api.continue_oauth2_flow
             args = ({k: v for k, v in info.items() if k != "command"},)
@@ -1973,6 +2037,34 @@ class Application(QApplication):
                 self.active_session_model.set_sessions(sessions)
             else:
                 self.active_session_model.update_sessions(sessions)
+
+    @pyqtSlot(object)
+    def refresh_active_direct_downloads_items(
+        self, dao: EngineDAO, _: bool = False, /
+    ) -> None:
+        """Refresh the list of active direct downloads if a change is detected."""
+        downloads = self.api.get_active_direct_downloads_items(dao)
+        if downloads != self.active_direct_download_model.downloads:
+            self.active_direct_download_model.set_downloads(downloads)
+
+    @pyqtSlot(object)
+    def refresh_completed_direct_downloads_items(
+        self, dao: EngineDAO, _: bool = False, /
+    ) -> None:
+        """Refresh the list of completed direct downloads if a change is detected."""
+        downloads = self.api.get_completed_direct_downloads_items(dao)
+        current_downloads = self.completed_direct_download_model.downloads
+        if downloads != current_downloads:
+            self.completed_direct_download_model.set_downloads(downloads)
+
+    @pyqtSlot(object)
+    def refresh_direct_download_monitoring_items(
+        self, dao: EngineDAO, _: bool = False, /
+    ) -> None:
+        """Refresh the monitoring model with individual download progress."""
+        items = self.api.get_direct_downloads_for_monitoring(dao)
+        if items != self.direct_download_monitoring_model.items:
+            self.direct_download_monitoring_model.set_items(items)
 
     @pyqtSlot(object)
     def refresh_completed_sessions_items(
