@@ -242,6 +242,7 @@ class TestLoadChildren:
 # Shared sentinel (already defined above) – reused by FolderTreeView helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_folder_tree(root_item=_UNSET, current=_UNSET, selected_folder=None):
     """Return a FolderTreeView created via __new__ with Qt internals mocked out."""
     from nxdrive.gui.folders_treeview import FolderTreeView
@@ -269,6 +270,7 @@ def _make_folder_tree(root_item=_UNSET, current=_UNSET, selected_folder=None):
 # ---------------------------------------------------------------------------
 # TestSetLoadingCursor
 # ---------------------------------------------------------------------------
+
 
 class TestSetLoadingCursor:
     """Unit tests for TreeViewMixin.set_loading_cursor."""
@@ -332,6 +334,7 @@ class TestSetLoadingCursor:
 # TestOnSelectionChanged
 # ---------------------------------------------------------------------------
 
+
 class TestOnSelectionChanged:
     """Unit tests for FolderTreeView.on_selection_changed."""
 
@@ -358,9 +361,7 @@ class TestOnSelectionChanged:
         with patch("nxdrive.gui.folders_treeview.log") as mock_log:
             FolderTreeView.on_selection_changed(tree, MagicMock(), MagicMock())
 
-        mock_log.error.assert_called_once_with(
-            "Cannot get item data from selection"
-        )
+        mock_log.error.assert_called_once_with("Cannot get item data from selection")
 
     def test_item_with_no_user_role_data_logs_error(self):
         """on_selection_changed should log an error when UserRole data is None."""
@@ -374,9 +375,7 @@ class TestOnSelectionChanged:
         with patch("nxdrive.gui.folders_treeview.log") as mock_log:
             FolderTreeView.on_selection_changed(tree, MagicMock(), MagicMock())
 
-        mock_log.error.assert_called_once_with(
-            "Cannot get item data from selection"
-        )
+        mock_log.error.assert_called_once_with("Cannot get item data from selection")
 
     def test_happy_path_sets_parent_fields_and_calls_callbacks(self):
         """on_selection_changed should set all parent attributes and call callbacks."""
@@ -407,6 +406,7 @@ class TestOnSelectionChanged:
 # ---------------------------------------------------------------------------
 # TestRefreshSelected
 # ---------------------------------------------------------------------------
+
 
 class TestRefreshSelected:
     """Unit tests for FolderTreeView.refresh_selected."""
@@ -456,6 +456,7 @@ class TestRefreshSelected:
 # ---------------------------------------------------------------------------
 # TestFindCurrentAndSelectIt
 # ---------------------------------------------------------------------------
+
 
 class TestFindCurrentAndSelectIt:
     """Unit tests for FolderTreeView._find_current_and_select_it."""
@@ -633,6 +634,7 @@ class TestFindCurrentAndSelectIt:
 # TestSelectItemFromPath
 # ---------------------------------------------------------------------------
 
+
 class TestSelectItemFromPath:
     """Unit tests for FolderTreeView.select_item_from_path."""
 
@@ -659,9 +661,7 @@ class TestSelectItemFromPath:
         with patch("nxdrive.gui.folders_treeview.log") as mock_log:
             FolderTreeView.select_item_from_path(tree, "/some/path")
 
-        mock_log.error.assert_called_once_with(
-            "Cannot get item from current index"
-        )
+        mock_log.error.assert_called_once_with("Cannot get item from current index")
 
     def test_matching_child_sets_remote_folder_text(self):
         """When a child's path matches new_remote_path, remote_folder.setText is called."""
@@ -728,6 +728,7 @@ class TestSelectItemFromPath:
 # TestGetItemFromPosition
 # ---------------------------------------------------------------------------
 
+
 class TestGetItemFromPosition:
     """Unit tests for FolderTreeView.get_item_from_position."""
 
@@ -771,6 +772,4 @@ class TestGetItemFromPosition:
             result = FolderTreeView.get_item_from_position(tree, MagicMock())
 
         assert result is None
-        mock_log.error.assert_called_once_with(
-            "No item found at the current position"
-        )
+        mock_log.error.assert_called_once_with("No item found at the current position")

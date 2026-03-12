@@ -27,7 +27,7 @@ from tests.functional.mocked_classes import (
     Mock_Remote_File_Info,
 )
 
-from ...markers import not_linux
+from ...markers import not_linux, not_windows
 
 # Save reference to the real method before the app_obj fixture patches it out
 _real_show_metrics_acceptance = Application.show_metrics_acceptance
@@ -1074,6 +1074,7 @@ def test_root_deleted_sender_not_engine(app_obj, caplog):
 
 
 @not_linux(reason="Qt does not work correctly on linux")
+@not_windows(reason="patch('PyQt6.QtCore.QObject.sender') does not work on Windows")
 def test_root_deleted_disconnect(app_obj):
     """_root_deleted unbinds the engine when the user clicks disconnect."""
     app = app_obj
@@ -1096,6 +1097,7 @@ def test_root_deleted_disconnect(app_obj):
 
 
 @not_linux(reason="Qt does not work correctly on linux")
+@not_windows(reason="patch('PyQt6.QtCore.QObject.sender') does not work on Windows")
 def test_root_deleted_recreate(app_obj):
     """_root_deleted calls reinit and start when the user clicks recreate."""
     app = app_obj
