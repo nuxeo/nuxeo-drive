@@ -1,11 +1,10 @@
-"""Test the Application class and its GUI functionality without starting a real Qt application."""
-
+import logging
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from nuxeo.models import Document
-from PyQt5.QtCore import QModelIndex, QObject, Qt
+from PyQt6.QtCore import QModelIndex, QObject, Qt
 
 from nxdrive.client.workflow import Workflow
 from nxdrive.constants import WINDOWS
@@ -28,7 +27,10 @@ from tests.functional.mocked_classes import (
     Mock_Remote_File_Info,
 )
 
-from ...markers import not_linux
+from ...markers import not_linux, not_windows
+
+# Save reference to the real method before the app_obj fixture patches it out
+_real_show_metrics_acceptance = Application.show_metrics_acceptance
 
 
 class TestApplication:
@@ -513,9 +515,9 @@ def app_obj(manager_factory):
     manager, engine = manager_factory()
     mock_qt = Mock_Qt()
     with patch(
-        "PyQt5.QtQml.QQmlApplicationEngine.rootObjects"
+        "PyQt6.QtQml.QQmlApplicationEngine.rootObjects"
     ) as mock_root_objects, patch(
-        "PyQt5.QtCore.QObject.findChild"
+        "PyQt6.QtCore.QObject.findChild"
     ) as mock_find_child, patch(
         "nxdrive.gui.application.Application.init_nxdrive_listener"
     ) as mock_listener, patch(
@@ -527,7 +529,7 @@ def app_obj(manager_factory):
     ) as mock_execute, patch(
         "nxdrive.engine.workers.Worker.run"
     ) as mock_run, patch(
-        "PyQt5.QtWidgets.QDialog.exec_"
+        "PyQt6.QtWidgets.QDialog.exec"
     ) as mock_exec, patch(
         "nxdrive.gui.application.Application.question"
     ) as mock_question:
@@ -546,8 +548,8 @@ def app_obj(manager_factory):
 
 @not_linux(reason="Qt does not work correctly on linux")
 def test_application_qt(app_obj, manager_factory, tmp_path):
-    from PyQt5.QtCore import QRect
-    from PyQt5.QtWidgets import QMessageBox
+    from PyQt6.QtCore import QRect
+    from PyQt6.QtWidgets import QMessageBox
 
     from nxdrive.constants import DelAction
 
@@ -600,7 +602,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
         )
     if not WINDOWS:  # For some reason, the values don't get mocked on Windows
         # Covering _root_deleted
-        with patch("PyQt5.QtCore.QObject.sender") as mock_sender, patch(
+        with patch("PyQt6.QtCore.QObject.sender") as mock_sender, patch(
             "nxdrive.gui.application.Application.question"
         ) as mock_question:
             mock_question.return_value = mock_qt
@@ -610,7 +612,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
         # Covering root_moved
         with patch(
             "nxdrive.gui.application.Application.question"
-        ) as mock_question, patch("PyQt5.QtCore.QObject.sender") as mock_sender:
+        ) as mock_question, patch("PyQt6.QtCore.QObject.sender") as mock_sender:
             mock_question.return_value = mock_qt
             mock_engine = Mock_Engine()
             mock_sender.return_value = mock_engine
@@ -618,7 +620,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
         # Covering doc_deleted
         with patch(
             "nxdrive.gui.application.Application.question"
-        ) as mock_question, patch("PyQt5.QtCore.QObject.sender") as mock_sender:
+        ) as mock_question, patch("PyQt6.QtCore.QObject.sender") as mock_sender:
             mock_question.return_value = mock_qt
             mock_engine = Mock_Engine()
             mock_sender.return_value = mock_engine
@@ -626,7 +628,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
         # Covering file_already_exists
         with patch(
             "nxdrive.gui.application.Application.question"
-        ) as mock_question, patch("PyQt5.QtCore.QObject.sender") as mock_sender, patch(
+        ) as mock_question, patch("PyQt6.QtCore.QObject.sender") as mock_sender, patch(
             "pathlib.Path.unlink"
         ) as mock_unlink:
             mock_question.return_value = mock_qt
@@ -653,7 +655,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
         assert isinstance(app.confirm_deletion(Path("tests/resources")), DelAction)
     # Covering show_systray
     assert app.show_systray() is None
-    with patch("PyQt5.QtWidgets.QStyle.alignedRect") as mock_align_rect:
+    with patch("PyQt6.QtWidgets.QStyle.alignedRect") as mock_align_rect:
         mock_align_rect.return_value = QRect()
         # Covering show_filters
         assert app.show_filters(engine) is None
@@ -680,8 +682,8 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     # Covering exit_app
     assert app.exit_app() is None
     # Covering _shutdown
-    app.app_engine = object()
-    app.task_manager_window = object()
+    app.app_engine = Mock()
+    app.task_manager_window = Mock()
     assert app._shutdown() is None
     # Covering update_workflow
     app.added_user_engine_list = []
@@ -863,21 +865,26 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     folder_tree_view = FolderTreeView(parent, client, None)  # type: ignore[arg-type]
     q_model_index = QModelIndex()
 
+    mock_item_model_instance = Mock_Item_Model()
     with patch(
         "nxdrive.gui.folders_treeview.FolderTreeView.model"
     ) as mock_model, patch(
         "nxdrive.gui.folders_dialog.FoldersDialog.update_file_group"
-    ) as mock_update_file_group:
-        mock_model.return_value = Mock_Item_Model()
+    ) as mock_update_file_group, patch(
+        "nxdrive.gui.folders_treeview.QStandardItemModel"
+    ) as mock_qstandarditemmodel:
+        mock_model.return_value = mock_item_model_instance
+        mock_qstandarditemmodel.return_value = mock_item_model_instance
         mock_update_file_group.return_value = None
         assert (
             folder_tree_view.on_selection_changed(q_model_index, q_model_index) is None
         )
 
     # Covering run method in ContentLoaderMixin
-    content_loader = ContentLoaderMixin(
-        folder_tree_view, item=None, force_refresh=False  # type: ignore[arg-type]
-    )
+    with patch("nxdrive.gui.folders_loader.QStandardItemModel"):
+        content_loader = ContentLoaderMixin(
+            folder_tree_view, item=None, force_refresh=False  # type: ignore[arg-type]
+        )
     mock_remote_file_info = Mock_Remote_File_Info()
 
     # info.get_id() in self.tree.cache and not self.force_refresh
@@ -961,3 +968,230 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     folders_only.remote.documents = Mock_Document_API()  # type: ignore[assignment]
     Options.shared_folder_navigation = False
     assert isinstance(folders_only._get_root_folders(), list)
+
+
+@not_linux(reason="Qt does not work correctly on linux")
+def test_init_gui(app_obj):
+    """init_gui sets up all required models, windows, and signal connections."""
+    app = app_obj
+
+    # Models created by init_gui
+    assert hasattr(app, "api")
+    assert hasattr(app, "active_session_model")
+    assert hasattr(app, "auto_update_feature_model")
+    assert hasattr(app, "completed_session_model")
+    assert hasattr(app, "direct_edit_feature_model")
+    assert hasattr(app, "direct_transfer_model")
+    assert hasattr(app, "direct_transfer_feature_model")
+    assert hasattr(app, "document_type_selection_feature_model")
+    assert hasattr(app, "tasks_management_feature_model")
+    assert hasattr(app, "conflicts_model")
+    assert hasattr(app, "errors_model")
+    assert hasattr(app, "engine_model")
+    assert hasattr(app, "synchronization_feature_model")
+    assert hasattr(app, "transfer_model")
+    assert hasattr(app, "file_model")
+    assert hasattr(app, "ignoreds_model")
+    assert hasattr(app, "language_model")
+    assert hasattr(app, "tasks_model")
+
+    # Windows created by init_gui
+    assert hasattr(app, "conflicts_window")
+    assert hasattr(app, "settings_window")
+    assert hasattr(app, "systray_window")
+    assert hasattr(app, "direct_transfer_window")
+    assert hasattr(app, "task_manager_window")
+
+    # Non-Windows path sets app_engine
+    if not WINDOWS:
+        assert hasattr(app, "app_engine")
+
+
+@not_linux(reason="Qt does not work correctly on linux")
+def test_msgbox_default(app_obj):
+    """_msgbox with defaults creates a QMessageBox and executes it."""
+    from PyQt6.QtWidgets import QMessageBox
+
+    app = app_obj
+    with patch.object(QMessageBox, "exec") as mock_exec:
+        mock_exec.return_value = None
+        msg = app._msgbox()
+    assert isinstance(msg, QMessageBox)
+
+
+@not_linux(reason="Qt does not work correctly on linux")
+def test_msgbox_no_execute(app_obj):
+    """_msgbox with execute=False returns the box without executing."""
+    from PyQt6.QtWidgets import QMessageBox
+
+    app = app_obj
+    msg = app._msgbox(execute=False)
+    assert isinstance(msg, QMessageBox)
+
+
+@not_linux(reason="Qt does not work correctly on linux")
+def test_msgbox_with_header_message_details(app_obj):
+    """_msgbox sets header, message and details when provided."""
+    from PyQt6.QtWidgets import QMessageBox
+
+    app = app_obj
+    msg = app._msgbox(
+        header="Test Header",
+        message="Test Message",
+        details="Test Details",
+        execute=False,
+    )
+    assert isinstance(msg, QMessageBox)
+    assert msg.text() == "Test Header"
+    assert msg.informativeText() == "Test Message"
+    assert msg.detailedText() == "Test Details"
+
+
+@not_linux(reason="Qt does not work correctly on linux")
+def test_msgbox_with_title_and_icon(app_obj):
+    """_msgbox correctly sets the icon type."""
+    from nxdrive.qt import constants as qt
+
+    app = app_obj
+    msg = app._msgbox(
+        icon=qt.Warning,
+        title="My Title",
+        execute=False,
+    )
+    assert msg.icon() == qt.Warning
+
+
+@not_linux(reason="Qt does not work correctly on linux")
+def test_root_deleted_sender_not_engine(app_obj, caplog):
+    """_root_deleted returns early when sender() is not an Engine."""
+    app = app_obj
+    with patch("PyQt6.QtCore.QObject.sender") as mock_sender:
+        mock_sender.return_value = "not_an_engine"
+        with caplog.at_level(logging.ERROR):
+            result = app._root_deleted()
+    assert result is None
+    assert any("Sender is not an Engine instance" in r.message for r in caplog.records)
+
+
+@not_linux(reason="Qt does not work correctly on linux")
+@not_windows(reason="patch('PyQt6.QtCore.QObject.sender') does not work on Windows")
+def test_root_deleted_disconnect(app_obj):
+    """_root_deleted unbinds the engine when the user clicks disconnect."""
+    app = app_obj
+    mock_engine = Mock(spec=Engine)
+    mock_engine.uid = "test-uid"
+    mock_engine.local_folder = Path("/fake/path")
+
+    mock_msg = Mock()
+    disconnect_btn = Mock()
+    recreate_btn = Mock()
+    mock_msg.addButton = Mock(side_effect=[recreate_btn, disconnect_btn])
+    mock_msg.clickedButton.return_value = disconnect_btn
+
+    with patch("PyQt6.QtCore.QObject.sender", return_value=mock_engine), patch(
+        "nxdrive.gui.application.Application.question", return_value=mock_msg
+    ), patch.object(app.manager, "unbind_engine") as mock_unbind:
+        app._root_deleted()
+
+    mock_unbind.assert_called_once_with("test-uid")
+
+
+@not_linux(reason="Qt does not work correctly on linux")
+@not_windows(reason="patch('PyQt6.QtCore.QObject.sender') does not work on Windows")
+def test_root_deleted_recreate(app_obj):
+    """_root_deleted calls reinit and start when the user clicks recreate."""
+    app = app_obj
+    mock_engine = Mock(spec=Engine)
+    mock_engine.uid = "test-uid"
+    mock_engine.local_folder = Path("/fake/path")
+
+    recreate_btn = Mock()
+    disconnect_btn = Mock()
+    mock_msg = Mock()
+    mock_msg.addButton = Mock(side_effect=[recreate_btn, disconnect_btn])
+    mock_msg.clickedButton.return_value = recreate_btn
+
+    with patch("PyQt6.QtCore.QObject.sender", return_value=mock_engine), patch(
+        "nxdrive.gui.application.Application.question", return_value=mock_msg
+    ):
+        app._root_deleted()
+
+    mock_engine.reinit.assert_called_once()
+    mock_engine.start.assert_called_once()
+
+
+@not_linux(reason="Qt does not work correctly on linux")
+def test_show_metrics_acceptance(app_obj, tmp_path):
+    """show_metrics_acceptance writes the metrics.state file."""
+    app = app_obj
+
+    original_home = Options.nxdrive_home
+    Options.nxdrive_home = tmp_path
+    try:
+        with patch("nxdrive.gui.application.QDialog"):
+            _real_show_metrics_acceptance(app)
+
+        metrics_file = tmp_path / "metrics.state"
+        assert metrics_file.is_file()
+    finally:
+        Options.nxdrive_home = original_home
+
+
+@not_linux(reason="Qt does not work correctly on linux")
+def test_show_metrics_acceptance_content(app_obj, tmp_path):
+    """show_metrics_acceptance records analytics state into metrics.state."""
+    app = app_obj
+
+    original_home = Options.nxdrive_home
+    original_analytics = Options.use_analytics
+    Options.nxdrive_home = tmp_path
+    Options.use_analytics = True
+    try:
+        with patch("nxdrive.gui.application.QDialog"):
+            _real_show_metrics_acceptance(app)
+
+        metrics_file = tmp_path / "metrics.state"
+        assert metrics_file.is_file()
+        content = metrics_file.read_text(encoding="utf-8")
+        assert "analytics" in content
+    finally:
+        Options.nxdrive_home = original_home
+        Options.use_analytics = original_analytics
+
+
+@not_linux(reason="Qt does not work correctly on linux")
+def test_show_metrics_acceptance_analytics_choice(app_obj, tmp_path):
+    """analytics_choice callback is triggered when analytics checkbox is checked."""
+    from PyQt6.QtWidgets import QCheckBox as RealQCheckBox
+
+    app = app_obj
+    captured_checkboxes: list = []
+
+    def tracking_checkbox(text=""):
+        cb = RealQCheckBox(text)
+        captured_checkboxes.append(cb)
+        return cb
+
+    original_home = Options.nxdrive_home
+    original_analytics = Options.use_analytics
+    Options.nxdrive_home = tmp_path
+    Options.use_analytics = False
+
+    dialog_mock = MagicMock()
+
+    def fake_exec():
+        # cb_analytics is the second checkbox; trigger analytics_choice
+        if len(captured_checkboxes) >= 2:
+            captured_checkboxes[1].setChecked(True)
+
+    dialog_mock.exec = fake_exec
+    try:
+        with patch(
+            "nxdrive.gui.application.QCheckBox", side_effect=tracking_checkbox
+        ), patch("nxdrive.gui.application.QDialog", return_value=dialog_mock):
+            _real_show_metrics_acceptance(app)
+
+        assert Options.use_analytics is True
+    finally:
+        Options.nxdrive_home = original_home
+        Options.use_analytics = original_analytics

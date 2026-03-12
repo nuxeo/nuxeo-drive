@@ -417,7 +417,7 @@ class TestFoldersDialog:
                 ]
 
                 mock_menu.actions = self.context_menu_actions
-                mock_menu.exec_ = Mock()
+                mock_menu.exec = Mock()
                 return mock_menu
 
             def handle_menu_action(self, action_text):

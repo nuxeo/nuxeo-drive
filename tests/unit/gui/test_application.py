@@ -390,6 +390,7 @@ class TestRootMoved:
 
     def test_root_moved_disconnect(self, mock_application):
         """Test disconnecting when root is moved."""
+        from nxdrive.engine.engine import Engine
         from nxdrive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None), patch.object(
@@ -399,7 +400,7 @@ class TestRootMoved:
             app.tasks_management_feature_model = Mock()
             app.manager = mock_application.manager
 
-            mock_engine = Mock()
+            mock_engine = Mock(spec=Engine)
             mock_engine.uid = "test_engine"
             mock_engine.local_folder = Path("/test/path")
             app.sender = Mock(return_value=mock_engine)
@@ -408,7 +409,7 @@ class TestRootMoved:
             mock_msg.addButton = Mock()
             mock_disconnect_btn = Mock()
             mock_msg.addButton.return_value = mock_disconnect_btn
-            mock_msg.exec_ = Mock()
+            mock_msg.exec = Mock()
             mock_msg.clickedButton = Mock(return_value=mock_disconnect_btn)
 
             with patch.object(app, "question", return_value=mock_msg):
@@ -437,7 +438,7 @@ class TestConfirmDeletion:
             mock_cb.isChecked = Mock(return_value=False)
             mock_msg.setCheckBox = Mock()
             mock_msg.addButton = Mock(return_value=mock_confirm_btn)
-            mock_msg.exec_ = Mock()
+            mock_msg.exec = Mock()
             mock_msg.clickedButton = Mock(return_value=mock_confirm_btn)
 
             with patch.object(app, "question", return_value=mock_msg), patch(
@@ -469,14 +470,14 @@ class TestConfirmDeletion:
             # Setup button returns
             button_calls = [mock_unsync_btn, Mock(), mock_confirm_btn]
             mock_msg.addButton = Mock(side_effect=button_calls)
-            mock_msg.exec_ = Mock()
+            mock_msg.exec = Mock()
             mock_msg.clickedButton = Mock(return_value=mock_unsync_btn)
 
             # Second dialog for confirmation
             mock_msg2 = Mock(spec=QMessageBox)
             mock_yes_btn = Mock()
             mock_msg2.addButton = Mock(return_value=mock_yes_btn)
-            mock_msg2.exec_ = Mock()
+            mock_msg2.exec = Mock()
             mock_msg2.clickedButton = Mock(return_value=mock_yes_btn)
 
             with patch.object(
@@ -507,7 +508,7 @@ class TestConfirmDeletion:
             mock_cb.isChecked = Mock(return_value=False)
             mock_msg.setCheckBox = Mock()
             mock_msg.addButton = Mock(return_value=mock_confirm_btn)
-            mock_msg.exec_ = Mock()
+            mock_msg.exec = Mock()
             mock_msg.clickedButton = Mock(return_value=mock_confirm_btn)
 
             with patch.object(app, "question", return_value=mock_msg), patch(
@@ -535,7 +536,7 @@ class TestConfirmDeletion:
             mock_cb.isChecked = Mock(return_value=True)
             mock_msg.setCheckBox = Mock()
             mock_msg.addButton = Mock(return_value=mock_confirm_btn)
-            mock_msg.exec_ = Mock()
+            mock_msg.exec = Mock()
             mock_msg.clickedButton = Mock(return_value=mock_confirm_btn)
 
             with patch.object(app, "question", return_value=mock_msg), patch(

@@ -1,7 +1,7 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Window 2.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.Window
 
 Item {
     id: settings
@@ -24,6 +24,10 @@ Item {
         spacing: 0
 
         anchors.top: parent.top
+
+        background: Rectangle {
+        color: settingsTabGroup
+    }
 
         // Note: Keep synced with Application.show_settings()
         SettingsTab {

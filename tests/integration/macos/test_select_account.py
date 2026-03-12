@@ -76,7 +76,7 @@ class TestSelectAccount:
                     accept_callback()
                 return 1  # QDialog.Accepted
 
-            mock_dialog.exec_.side_effect = exec_side_effect
+            mock_dialog.exec.side_effect = exec_side_effect
 
             from nxdrive.gui.application import Application as RealApp
 
@@ -138,7 +138,7 @@ class TestSelectAccount:
                     close_callback()
                 return 0  # QDialog.Rejected
 
-            mock_dialog.exec_.side_effect = exec_side_effect
+            mock_dialog.exec.side_effect = exec_side_effect
 
             from nxdrive.gui.application import Application as RealApp
 
@@ -191,7 +191,7 @@ class TestSelectAccount:
                     accept_callback()
                 return 1
 
-            mock_dialog.exec_.side_effect = exec_side_effect
+            mock_dialog.exec.side_effect = exec_side_effect
 
             from nxdrive.gui.application import Application as RealApp
 
@@ -263,7 +263,7 @@ class TestSelectAccount:
                     accept_callback()
                 return 1
 
-            mock_dialog.exec_.side_effect = exec_side_effect
+            mock_dialog.exec.side_effect = exec_side_effect
 
             from nxdrive.gui.application import Application as RealApp
 
@@ -323,7 +323,7 @@ class TestSelectAccount:
                     accept_callback()
                 return 1
 
-            mock_dialog.exec_.side_effect = exec_side_effect
+            mock_dialog.exec.side_effect = exec_side_effect
 
             from nxdrive.gui.application import Application as RealApp
 
@@ -378,7 +378,7 @@ class TestSelectAccount:
                     accept_callback()
                 return 1
 
-            mock_dialog.exec_.side_effect = exec_side_effect
+            mock_dialog.exec.side_effect = exec_side_effect
 
             from nxdrive.gui.application import Application as RealApp
 

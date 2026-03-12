@@ -47,7 +47,7 @@ class TestServerIncompatible:
 
             # Mock the question dialog
             mock_dialog = Mock()
-            mock_dialog.exec_ = Mock()
+            mock_dialog.exec = Mock()
 
             # Create button mocks
             reject_button = Mock()
@@ -72,7 +72,7 @@ class TestServerIncompatible:
 
             # Verify dialog was shown
             app.question.assert_called_once()
-            mock_dialog.exec_.assert_called_once()
+            mock_dialog.exec.assert_called_once()
 
             # Verify update was triggered
             manager.updater.update.assert_called_once_with(downgrade_version)
@@ -96,7 +96,7 @@ class TestServerIncompatible:
 
             # Mock the question dialog
             mock_dialog = Mock()
-            mock_dialog.exec_ = Mock()
+            mock_dialog.exec = Mock()
 
             # Create button mocks
             reject_button = Mock()
@@ -121,7 +121,7 @@ class TestServerIncompatible:
 
             # Verify dialog was shown
             app.question.assert_called_once()
-            mock_dialog.exec_.assert_called_once()
+            mock_dialog.exec.assert_called_once()
 
             # Verify update was NOT triggered
             manager.updater.update.assert_not_called()
@@ -141,7 +141,7 @@ class TestServerIncompatible:
 
             # Mock the question dialog
             mock_dialog = Mock()
-            mock_dialog.exec_ = Mock()
+            mock_dialog.exec = Mock()
 
             continue_button = Mock()
             mock_dialog.addButton = Mock(return_value=continue_button)
@@ -155,7 +155,7 @@ class TestServerIncompatible:
 
             # Verify dialog was shown
             app.question.assert_called_once()
-            mock_dialog.exec_.assert_called_once()
+            mock_dialog.exec.assert_called_once()
 
             # Verify only one button (CONTINUE) was added
             assert mock_dialog.addButton.call_count == 1
@@ -180,7 +180,7 @@ class TestServerIncompatible:
             mock_translator.get.side_effect = lambda key, values=None: f"{key}_{values}"
 
             mock_dialog = Mock()
-            mock_dialog.exec_ = Mock()
+            mock_dialog.exec = Mock()
             accept_button = Mock()
             mock_dialog.addButton = Mock(return_value=accept_button)
             mock_dialog.clickedButton.return_value = accept_button
