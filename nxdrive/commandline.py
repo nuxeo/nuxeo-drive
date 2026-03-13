@@ -527,7 +527,7 @@ class CliHandler:
         """Parse options, setup logs and manager and dispatch execution."""
 
         # This ensures clean output without log messages
-        if "-v" == argv[0] or "--version" == argv[0]:
+        if len(argv) > 0 and ("-v" == argv[0] or "--version" == argv[0]):
             print(self.get_version(), end="")
             return 0
 
