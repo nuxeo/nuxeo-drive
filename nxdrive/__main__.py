@@ -14,7 +14,7 @@ from types import FrameType
 
 import pip_system_certs.wrapt_requests
 
-from nxdrive.constants import APP_NAME
+from nxdrive.constants import APP_NAME, LINUX
 from nxdrive.fatal_error import (
     check_executable_path,
     check_os_version,
@@ -27,6 +27,15 @@ from nxdrive.utils import adapt_datetime_iso
 # https://stackoverflow.com/questions/79568766/pyqt6-on-windows-qtquickcontrols2windowsstyleimplplugin-dll-the-specified-mod
 if sys.platform == "win32":
     os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
+
+# On Linux, Qt6 defaults to OpenGL via RHI which fails on systems without proper
+# GPU/OpenGL support (VMs, containers, headless). Fall back to software rendering
+# only when OpenGL libraries are not available.
+if LINUX and "QT_QUICK_BACKEND" not in os.environ:
+    import ctypes.util
+
+    if not ctypes.util.find_library("GL"):
+        os.environ["QT_QUICK_BACKEND"] = "software"
 
 pip_system_certs.wrapt_requests.inject_truststore()
 
