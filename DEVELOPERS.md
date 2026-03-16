@@ -47,7 +47,7 @@ See [docs/deployment.md](docs/deployment.md).
 
 ## Requirements Notes
 
-- The [Dependabot](https://dependabot.com) will automatically check for updates and opend a PR if needed.
+- The [Dependabot](https://dependabot.com) will automatically check for updates and opened a PR if needed.
 - :warning: **SECURITY**: before upgrading a package, ensure its source code and its updated dependencies are safe to distribute.
 
 ## Client Architecture

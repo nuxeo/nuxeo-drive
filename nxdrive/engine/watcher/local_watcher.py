@@ -781,7 +781,7 @@ class LocalWatcher(EngineWorker):
             if LINUX:
                 # This does not make it on GNU/Linux, and it would break
                 # test_move_and_copy_paste_folder_original_location_from_child_stopped().
-                # The call to dao.replace_local_paths() is revelant on macOS and Windows only.
+                # The call to dao.replace_local_paths() is relevant on macOS and Windows only.
                 # See NXDRIVE-1690 for more information.
                 return
 
