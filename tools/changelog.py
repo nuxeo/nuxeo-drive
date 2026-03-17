@@ -262,7 +262,7 @@ def report_categorized(issues_list, fmt):
 
     for component, value in components.items():
         if component == "Release":
-            # Release issues are not revelant as they are used
+            # Release issues are not relevant as they are used
             # to plan new beta or official release
             continue
 

@@ -35,7 +35,7 @@ TODO
 
 The icons overlay is implemented as a Windows callback service as described in the [official documentation](https://msdn.microsoft.com/en-us/library/windows/desktop/cc144122(v=vs.85).aspx).
 
-The revelant source code can be found in the `tools/windows/setup-admin.iss` file and the `nxdrive/osi/windows` folder.
+The relevant source code can be found in the `tools/windows/setup-admin.iss` file and the `nxdrive/osi/windows` folder.
 
 ### Building
 

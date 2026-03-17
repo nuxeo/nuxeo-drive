@@ -114,7 +114,7 @@ def test_expand_sync_root_name_levels(option, manager_factory, obj_factory):
 
         if option != Options.sync_root_max_level:
             # Typically the option was outside bounds, here it is "7".
-            # We shrink the posibble folder names to ease code for checking the final
+            # We shrink the possible folder names to ease code for checking the final
             # name
             potential_names = potential_names[option - Options.sync_root_max_level :]
 
@@ -156,7 +156,7 @@ def test_expand_sync_root_name_length(option, manager_factory, obj_factory):
 
         if option != Options.sync_root_max_level:
             # Typically the option was outside bounds, here it is "7".
-            # We shrink the posibble folder names to ease code for checking the final
+            # We shrink the possible folder names to ease code for checking the final
             # name
             potential_names = potential_names[option - Options.sync_root_max_level :]
 
