@@ -319,4 +319,6 @@ class FolderTreeView(TreeViewMixin):
     def is_item_enabled(self, item: QStandardItem) -> bool:
         """Check if the provided *item* is enabled."""
         data = item.data(qt.UserRole)
+        if data is None:
+            return False
         return data.enable()

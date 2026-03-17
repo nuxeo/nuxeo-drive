@@ -129,6 +129,7 @@ def test_generate_csv_threadpool_available(manager_factory):
     session = _make_session()
     with manager:
         with patch.object(engine.dao, "get_session", return_value=session):
+            engine._threadpool = Mock()
             result = manager.generate_csv(session.uid, engine)
     assert result is True
 
