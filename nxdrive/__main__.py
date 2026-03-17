@@ -47,8 +47,15 @@ def main() -> int:
         # ATTACH_PARENT_PROCESS = -1
         if ctypes.windll.kernel32.AttachConsole(-1):
             # Reopen stdout and stderr to write to the attached console
-            sys.stdout = open("CONOUT$", "w")
-            sys.stderr = open("CONOUT$", "w")
+            try:
+                sys.stdout = open("CONOUT$", "w")
+                sys.stderr = open("CONOUT$", "w")
+            except OSError as exc:
+                import logging
+
+                logging.getLogger(__name__).error(
+                    "Failed to attach console output: %s", exc
+                )
 
     # Catch CTRL+C
     signal.signal(signal.SIGINT, signal_handler)
