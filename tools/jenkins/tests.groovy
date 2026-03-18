@@ -239,7 +239,7 @@ timeout(240) {
         try {
             parallel builders
         } finally {
-            // Update revelant Jira issues only if we are working on the master branch
+            // Update relevant Jira issues only if we are working on the master branch
             if (env.BRANCH_NAME == 'master') {
                 node('SLAVE') {
                     step([$class: 'JiraIssueUpdater',
