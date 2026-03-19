@@ -14,7 +14,7 @@ from nuxeo.models import Batch
 from nuxeo.utils import get_digest_algorithm
 
 from .auth import Token
-from .constants import TransferStatus
+from .constants import DirectDownloadStatus, TransferStatus
 from .exceptions import DriveError
 from .translator import Translator
 from .utils import get_date_from_sqlite, get_timestamp_from_date
@@ -508,6 +508,33 @@ class Session:
     completed_on: str
     description: str
     planned_items: int
+
+
+@dataclass
+class DirectDownload:
+    """Represents a direct download record in the database."""
+
+    uid: Optional[int]  # Primary key, None for new records
+    doc_uid: str  # Document UID from Nuxeo
+    doc_name: str  # Document name/title
+    doc_size: int  # Document size in bytes
+    download_path: Optional[str]  # Local path where file is downloaded
+    server_url: str  # Server URL
+    status: DirectDownloadStatus  # Download status
+    bytes_downloaded: int  # Bytes downloaded so far
+    total_bytes: int  # Total bytes to download
+    progress_percent: float  # Progress percentage (0.0 to 100.0)
+    created_at: datetime  # When the download was created
+    started_at: Optional[datetime]  # When the download started
+    completed_at: Optional[datetime]  # When the download completed
+    is_folder: bool  # Whether this is a folder download
+    folder_count: int  # Number of subfolders (recursive), 0 for files
+    file_count: int  # Number of files in folder (1 for single file)
+    retry_count: int  # Number of retry attempts
+    last_error: Optional[str]  # Last error message
+    engine: str  # Engine UID
+    zip_file: Optional[str]  # Name of the zip file (None if no zip required)
+    selected_items: Optional[str]  # Comma-separated list of selected file/folder names
 
 
 # Subtype Enricher Object for doctype info on the Remote Nuxeo repository
