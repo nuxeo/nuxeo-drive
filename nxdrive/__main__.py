@@ -28,15 +28,6 @@ from nxdrive.utils import adapt_datetime_iso
 if WINDOWS:
     os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
 
-# On Linux, Qt6 defaults to OpenGL via RHI which fails on systems without proper
-# GPU/OpenGL support (VMs, containers, headless). Fall back to software rendering
-# only when OpenGL libraries are not available.
-if LINUX and "QT_QUICK_BACKEND" not in os.environ:
-    import ctypes.util
-
-    if not ctypes.util.find_library("GL"):
-        os.environ["QT_QUICK_BACKEND"] = "software"
-
 pip_system_certs.wrapt_requests.inject_truststore()
 
 
