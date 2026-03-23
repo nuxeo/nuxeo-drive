@@ -14,7 +14,7 @@ from types import FrameType
 
 import pip_system_certs.wrapt_requests
 
-from nxdrive.constants import APP_NAME, LINUX, WINDOWS
+from nxdrive.constants import APP_NAME, WINDOWS
 from nxdrive.fatal_error import (
     check_executable_path,
     check_os_version,

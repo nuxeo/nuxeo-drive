@@ -1060,6 +1060,83 @@ class TestDefaultNotificationService:
         args = mock_send.call_args[0]
         assert isinstance(args[0], ConcurrentEditingError)
 
+    def test_new_error_no_engine(self, default_service):
+        """Test _newError returns early when sender() is None."""
+        with patch.object(default_service, "sender", return_value=None):
+            with patch.object(default_service, "send_notification") as mock_send:
+                default_service._newError(1)
+
+        mock_send.assert_not_called()
+
+    def test_new_error_engine_without_dao(self, default_service):
+        """Test _newError returns early when engine has no dao attribute."""
+        engine_without_dao = Mock(spec=[])  # spec=[] means no attributes
+        with patch.object(default_service, "sender", return_value=engine_without_dao):
+            with patch.object(default_service, "send_notification") as mock_send:
+                default_service._newError(1)
+
+        mock_send.assert_not_called()
+
+    def test_new_conflict_no_engine(self, default_service):
+        """Test _newConflict returns early when sender() is None."""
+        with patch.object(default_service, "sender", return_value=None):
+            with patch.object(default_service, "send_notification") as mock_send:
+                default_service._newConflict(1)
+
+        mock_send.assert_not_called()
+
+    def test_new_conflict_no_doc_pair(self, default_service):
+        """Test _newConflict returns early when doc_pair is None."""
+        mock_engine = create_mock_engine()
+        mock_engine.dao.get_state_from_id.return_value = None
+
+        with patch.object(default_service, "sender", return_value=mock_engine):
+            with patch.object(default_service, "send_notification") as mock_send:
+                default_service._newConflict(1)
+
+        mock_send.assert_not_called()
+
+    def test_new_readonly_no_engine(self, default_service):
+        """Test _newReadonly returns early when sender() is None."""
+        with patch.object(default_service, "sender", return_value=None):
+            with patch.object(default_service, "send_notification") as mock_send:
+                default_service._newReadonly("file.txt")
+
+        mock_send.assert_not_called()
+
+    def test_delete_readonly_no_engine(self, default_service):
+        """Test _deleteReadonly returns early when sender() is None."""
+        with patch.object(default_service, "sender", return_value=None):
+            with patch.object(default_service, "send_notification") as mock_send:
+                default_service._deleteReadonly("file.txt")
+
+        mock_send.assert_not_called()
+
+    def test_new_locked_no_engine(self, default_service):
+        """Test _newLocked returns early when sender() is None."""
+        lock_created = datetime(2023, 10, 15, 14, 30, 0)
+        with patch.object(default_service, "sender", return_value=None):
+            with patch.object(default_service, "send_notification") as mock_send:
+                default_service._newLocked("file.txt", "user", lock_created)
+
+        mock_send.assert_not_called()
+
+    def test_valid_authentication_no_engine(self, default_service):
+        """Test _validAuthentication returns early when sender() is None."""
+        with patch.object(default_service, "sender", return_value=None):
+            with patch.object(default_service, "discard_notification") as mock_discard:
+                default_service._validAuthentication()
+
+        mock_discard.assert_not_called()
+
+    def test_invalid_authentication_no_engine(self, default_service):
+        """Test _invalidAuthentication returns early when sender() is None."""
+        with patch.object(default_service, "sender", return_value=None):
+            with patch.object(default_service, "send_notification") as mock_send:
+                default_service._invalidAuthentication()
+
+        mock_send.assert_not_called()
+
 
 class TestNotificationIntegration:
     """Integration tests for notification system."""
