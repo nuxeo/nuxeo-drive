@@ -1,7 +1,7 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.2
-import QtQuick.Window 2.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.Window
 import "../icon-font/Icon.js" as MdiFont
 import "../"
 
@@ -77,6 +77,11 @@ Rectangle {
         height: 50
         spacing: 0
         anchors.top: refreshButton.bottom
+
+        background: Rectangle {
+        color: settingsTabGroup
+    }
+
         SettingsTab {
             text: qsTr("PENDING_TASKS") + tl.tr
             barIndex: bar.currentIndex;

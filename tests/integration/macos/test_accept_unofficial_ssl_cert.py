@@ -94,7 +94,7 @@ class TestAcceptUnofficialSslCert:
                     accept_callback()
                 return 1  # QDialog.Accepted
 
-            mock_dialog.exec_.side_effect = exec_side_effect
+            mock_dialog.exec.side_effect = exec_side_effect
 
             with patch(
                 "nxdrive.gui.application.QTextEdit", return_value=mock_text_edit
@@ -117,7 +117,7 @@ class TestAcceptUnofficialSslCert:
 
                 # Verify dialog was created and shown
                 mock_dialog_class.assert_called_once()
-                mock_dialog.exec_.assert_called_once()
+                mock_dialog.exec.assert_called_once()
 
                 # Should return True when user accepts
                 assert result is True
@@ -159,8 +159,8 @@ class TestAcceptUnofficialSslCert:
                 mock_buttons.rejected.emit()
                 return 0  # QDialog.Rejected
 
-            mock_dialog.exec_.return_value = 0
-            mock_dialog.exec_.side_effect = exec_side_effect
+            mock_dialog.exec.return_value = 0
+            mock_dialog.exec.side_effect = exec_side_effect
 
             with patch(
                 "nxdrive.gui.application.QTextEdit", return_value=mock_text_edit
@@ -242,7 +242,7 @@ class TestAcceptUnofficialSslCert:
                 )
 
                 # Execute but don't wait for dialog
-                mock_dialog.exec_.return_value = 0
+                mock_dialog.exec.return_value = 0
 
                 bound_method(hostname)
 
@@ -302,7 +302,7 @@ class TestAcceptUnofficialSslCert:
             mock_ok_button = Mock()
             mock_checkbox = Mock()
 
-            mock_dialog.exec_.return_value = 0
+            mock_dialog.exec.return_value = 0
 
             with patch(
                 "nxdrive.gui.application.QTextEdit", return_value=mock_text_edit

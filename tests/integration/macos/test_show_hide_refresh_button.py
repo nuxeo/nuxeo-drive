@@ -53,7 +53,7 @@ class TestShowHideRefreshButton:
         mock_window.findChild.return_value = mock_refresh_button
         app.task_manager_window = mock_window
 
-        from PyQt5.QtCore import QObject
+        from PyQt6.QtCore import QObject
 
         from nxdrive.gui.application import Application as RealApp
 

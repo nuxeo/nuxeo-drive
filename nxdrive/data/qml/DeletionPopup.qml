@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 
 NuxeoPopup {
     id: control
@@ -50,11 +50,15 @@ NuxeoPopup {
 
             delegate: ItemDelegate {
                 width: deletionBehavior.width
+                padding : 10
                 contentItem: ScaledText {
                     text: qsTr(type) + tl.tr
                     verticalAlignment: Text.AlignVCenter
                 }
                 highlighted: deletionBehavior.highlightedIndex === index
+                background: Rectangle {
+                    color: highlighted ? popupBackgroundHighlighted : "transparent"
+                }
             }
         }
 

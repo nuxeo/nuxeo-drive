@@ -46,6 +46,8 @@ jobs:
         run: |
           sudo apt install xclip
           Xvfb :99 -screen 0 1920x1080x24+32 &
+      - name: Install Linux dependencies
+        run: bash .github/workflows/linux_dependencies.sh
       - name: Install tox
         run: python -m pip install -r tools/deps/requirements-tox.txt
       - name: Functional tests
@@ -53,7 +55,7 @@ jobs:
         env:
           DISPLAY: ":99"
       - name: Upload coverage to Codecov
-        if: ${{ success() }} || ${{ failure() }}
+        if: ${{ success() || failure() }}
         uses: codecov/codecov-action@v5.2.0
         with:
           token: ${{secrets.CODECOV_TOKEN}}
@@ -83,7 +85,7 @@ jobs:
       - name: Functional tests
         run: tox -e ft
       - name: Upload coverage to Codecov
-        if: ${{ success() }} || ${{ failure() }}
+        if: ${{ success() || failure() }}
         uses: codecov/codecov-action@v5.2.0
         with:
           token: ${{secrets.CODECOV_TOKEN}}
@@ -108,7 +110,7 @@ jobs:
       - name: Functional tests
         run: tox -e ft
       - name: Upload coverage to Codecov
-        if: ${{ success() }} || ${{ failure() }}
+        if: ${{ success() || failure() }}
         uses: codecov/codecov-action@v5.2.0
         with:
           token: ${{secrets.CODECOV_TOKEN}}

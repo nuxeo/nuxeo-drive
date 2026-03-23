@@ -629,6 +629,14 @@ class CliHandler:
                 log.warning(f"{APP_NAME} is already running: exiting.")
             return 0
 
+        if LINUX:
+            # On Linux, Qt6 defaults to OpenGL via RHI which fails on systems without proper
+            # GPU/OpenGL support (VMs, containers, headless).
+            os.environ["QT_QUICK_BACKEND"] = "software"
+            # On Linux, OpenGL apps might fail with hardware acceleration
+            # Hence, we switch to software rendering
+            os.environ["QT_XCB_GL_INTEGRATION"] = "none"
+
         exit_code: int = 1
         with HealthCheck():
             from .gui.application import Application
@@ -642,9 +650,12 @@ class CliHandler:
             # Clipboard is only accessed for GUI (Qt)
             if WINDOWS and isinstance(app, Application):
                 clipboard = app.clipboard()
-                clipboard.blockSignals(True)
+                if clipboard:
+                    clipboard.blockSignals(True)
+                else:
+                    log.error("Cannot get clipboard from application")
 
-            exit_code = app.exec_()
+            exit_code = app.exec()
 
         lock.unlock()
         log.info(f"{APP_NAME} exited with code {exit_code}")

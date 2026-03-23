@@ -259,7 +259,7 @@ class TransferModel(QAbstractListModel):
             if action["action_type"] in ("Linking", "Verification"):
                 self.setData(idx, True, role=self.FINALIZING)
 
-    def flags(self, index: QModelIndex, /) -> Qt.ItemFlags:
+    def flags(self, index: QModelIndex, /) -> Qt.ItemFlag:
         return qt.ItemIsEditable | qt.ItemIsEnabled | qt.ItemIsSelectable
 
 
@@ -755,7 +755,7 @@ class FileModel(QAbstractListModel):
     def count(self) -> int:
         return self.rowCount()
 
-    def flags(self, index: QModelIndex, /) -> Qt.ItemFlags:
+    def flags(self, index: QModelIndex, /) -> Qt.ItemFlag:
         return qt.ItemIsEditable | qt.ItemIsEnabled | qt.ItemIsSelectable
 
 
