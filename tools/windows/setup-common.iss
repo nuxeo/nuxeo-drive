@@ -155,8 +155,8 @@ begin
     begin
         UserChoice := MsgBox(
             'Nuxeo Drive is currently running.' + #13#10 +
-            'It must be closed before the installation can proceed.' + #13#10#13#10 +
-            'Do you want to close Nuxeo Drive and continue with the installation?',
+            'It must be closed before continuing with the installation.' + #13#10#13#10 +
+            'Would you like to close Nuxeo Drive now and proceed with the installation?',
             mbConfirmation,
             MB_YESNO
         );
