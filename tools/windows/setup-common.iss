@@ -188,7 +188,7 @@ begin
             else
             begin
                 MsgBox(
-                    'Unable to kill Nuxeo Drive. Please close the application manually and retry the installation.',
+                    'Unable to close Nuxeo Drive. Please close the application manually and retry the installation.',
                     mbError,
                     MB_OK
                 );
