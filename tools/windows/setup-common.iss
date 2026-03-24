@@ -46,10 +46,21 @@ MinVersion=6.2.9200
 
 
 [InstallDelete]
-; Delete everything inside the installation directory before installing new files.
-; This ensures no orphaned files from previous versions cause conflicts (e.g.,
-; "DLL load failed while importing QtCore" errors due to stale DLLs).
-Type: filesandordirs; Name: "{app}\*"
+; This is required to handle upgrades from 5.4.0 (PyInstaller 5.0) which had different
+; Qt DLL structure. Without this, orphaned 32-bit DLLs from 5.4.0 can cause
+; "DLL load failed while importing QtCore: %1 is not a valid Win32 application" errors.
+Type: filesandordirs; Name: "{app}\PyQt5"
+Type: files; Name: "{app}\Qt*.dll"
+Type: files; Name: "{app}\qt*.dll"
+Type: files; Name: "{app}\python*.dll"
+Type: files; Name: "{app}\vcruntime*.dll"
+Type: files; Name: "{app}\msvcp*.dll"
+Type: files; Name: "{app}\api-ms-*.dll"
+Type: files; Name: "{app}\ucrtbase.dll"
+Type: files; Name: "{app}\libcrypto*.dll"
+Type: files; Name: "{app}\libssl*.dll"
+Type: files; Name: "{app}\libffi*.dll"
+Type: files; Name: "{app}\sqlite3.dll"
 
 
 [UninstallDelete]
@@ -109,7 +120,7 @@ Filename: "{app}\{#MyAppExeName}"; Parameters: "bind-server --password ""{param:
 
 [Code]
 function IsNDriveRunning(): Boolean;
-// Check if ndrive.exe is currently running by querying the task list.
+// Check if Nuxeo Drive is currently running by querying the task list.
 // Writes tasklist output to a temp file and searches for the process name.
 var
     ResultCode: Integer;
@@ -121,7 +132,7 @@ begin
     TempFile := ExpandConstant('{tmp}\ndrive_check.txt');
     Exec(
         ExpandConstant('{sys}\cmd.exe'),
-        '/C tasklist /FI "IMAGENAME eq ndrive.exe" /NH > "' + TempFile + '"',
+        '/C tasklist /FI "IMAGENAME eq {#MyAppExeName}" /NH > "' + TempFile + '"',
         '',
         SW_HIDE,
         ewWaitUntilTerminated,
@@ -130,7 +141,7 @@ begin
     begin
         for I := 0 to GetArrayLength(FileLines) - 1 do
         begin
-            if Pos('ndrive.exe', LowerCase(FileLines[I])) > 0 then
+            if Pos('{#MyAppExeName}', LowerCase(FileLines[I])) > 0 then
             begin
                 Result := True;
                 Break;
@@ -141,9 +152,9 @@ begin
 end;
 
 function InitializeSetup(): Boolean;
-// Before setup begins, check whether ndrive.exe is running.
+// Before setup begins, check whether Nuxeo Drive is running.
 // If it is, ask the user for confirmation:
-//   - Yes  → kill ndrive.exe and continue installation.
+//   - Yes  → kill Nuxeo Drive and continue installation.
 //   - No   → abort installation immediately.
 var
     ResultCode: Integer;
@@ -160,19 +171,29 @@ begin
             mbConfirmation,
             MB_YESNO
         );
-
         if UserChoice = IDYES then
         begin
             // Kill the running process and let setup continue.
-            Exec(
+            if Exec(
                 ExpandConstant('{sys}\taskkill.exe'),
-                '/F /IM ndrive.exe',
+                '/F /IM {#MyAppExeName}',
                 '',
                 SW_HIDE,
                 ewWaitUntilTerminated,
                 ResultCode
-            );
-            Result := True;
+            ) and (ResultCode = 0) then
+            begin
+                Result := True;
+            end
+            else
+            begin
+                MsgBox(
+                    'Unable to kill Nuxeo Drive. Please close the application manually and retry the installation.',
+                    mbError,
+                    MB_OK
+                );
+                Result := False;
+            end;
         end
         else
         begin
