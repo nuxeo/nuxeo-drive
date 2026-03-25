@@ -38,8 +38,8 @@ WizardStyle=modern
 Compression=lzma
 SolidCompression=yes
 
-; Controls which files Setup will check for being in use before upgrading
-CloseApplicationsFilter=*.*
+; Disable the "close applications" prompt
+CloseApplications=no
 
 ; Minimum Windows version required (Windows 8)
 MinVersion=6.2.9200
@@ -119,9 +119,93 @@ Filename: "{app}\{#MyAppExeName}"; Parameters: "bind-server --password ""{param:
 
 
 [Code]
+function IsNDriveRunning(): Boolean;
+// Check if Nuxeo Drive is currently running by querying the task list.
+// Writes tasklist output to a temp file and searches for the process name.
+var
+    ResultCode: Integer;
+    TempFile: String;
+    FileLines: TArrayOfString;
+    I: Integer;
+begin
+    Result := False;
+    TempFile := ExpandConstant('{tmp}\ndrive_check.txt');
+    Exec(
+        ExpandConstant('{sys}\cmd.exe'),
+        '/C tasklist /FI "IMAGENAME eq {#MyAppExeName}" /NH > "' + TempFile + '"',
+        '',
+        SW_HIDE,
+        ewWaitUntilTerminated,
+        ResultCode
+    );    if LoadStringsFromFile(TempFile, FileLines) then
+    begin
+        for I := 0 to GetArrayLength(FileLines) - 1 do
+        begin
+            if Pos('{#MyAppExeName}', LowerCase(FileLines[I])) > 0 then
+            begin
+                Result := True;
+                Break;
+            end;
+        end;
+    end;
+    DeleteFile(TempFile);
+end;
+
+function InitializeSetup(): Boolean;
+// Before setup begins, check whether Nuxeo Drive is running.
+// If it is, ask the user for confirmation:
+//   - Yes  → kill Nuxeo Drive and continue installation.
+//   - No   → abort installation immediately.
+var
+    ResultCode: Integer;
+    UserChoice: Integer;
+begin
+    Result := True;
+
+    if IsNDriveRunning() then
+    begin
+        UserChoice := MsgBox(
+            'Nuxeo Drive is currently running.' + #13#10 +
+            'It must be closed before continuing with the installation.' + #13#10#13#10 +
+            'Would you like to close Nuxeo Drive now and proceed with the installation?',
+            mbConfirmation,
+            MB_YESNO
+        );
+        if UserChoice = IDYES then
+        begin
+            // Kill the running process and let setup continue.
+            if Exec(
+                ExpandConstant('{sys}\taskkill.exe'),
+                '/F /IM {#MyAppExeName}',
+                '',
+                SW_HIDE,
+                ewWaitUntilTerminated,
+                ResultCode
+            ) and (ResultCode = 0) then
+            begin
+                Result := True;
+            end
+            else
+            begin
+                MsgBox(
+                    'Unable to close Nuxeo Drive. Please close the application manually and retry the installation.',
+                    mbError,
+                    MB_OK
+                );
+                Result := False;
+            end;
+        end
+        else
+        begin
+            // User chose No – abort the installation silently.
+            Result := False;
+        end;
+    end;
+end;
+
 function NeedEngineBinding(): Boolean;
 // Check if the sysadmin wants to bind an engine.
-// It will guess by checking mandatory arguments.
+// It will check mandatory arguments.
 var
     url: String;
     username: String;

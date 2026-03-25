@@ -45,6 +45,25 @@ def signal_handler(signum: int, _: FrameType, /) -> None:
 def main() -> int:
     """Entry point."""
 
+    # On Windows, GUI applications (built with console=False) don't have stdout/stderr
+    # connected to the parent console. This is needed for CLI output like --version.
+    if sys.platform == "win32":
+        import ctypes
+
+        # Try to attach to the parent console (e.g., Command Prompt or PowerShell)
+        # ATTACH_PARENT_PROCESS = -1
+        if ctypes.windll.kernel32.AttachConsole(-1):
+            # Reopen stdout and stderr to write to the attached console
+            try:
+                sys.stdout = open("CONOUT$", "w")
+                sys.stderr = open("CONOUT$", "w")
+            except OSError as exc:
+                import logging
+
+                logging.getLogger(__name__).error(
+                    "Failed to attach console output: %s", exc
+                )
+
     # Catch CTRL+C
     signal.signal(signal.SIGINT, signal_handler)
 

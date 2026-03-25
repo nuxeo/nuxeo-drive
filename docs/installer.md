@@ -50,7 +50,7 @@ If you want to exactly know how it is done, check the file `tools/osx/deploy_ci_
 
 ##### Installer Customization
 
-The installer generator is drived by the file `tools\windows\setup.iss`. It is quite easy to read and understand, even easier to customize.
+The installer generator is driven by the file `tools\windows\setup.iss`. It is quite easy to read and understand, even easier to customize.
 So if you plan to create your own Nuxeo Drive installer, this is where to look at. We put a lot of comments in the file and modifying it will not require extended technical skills.
 
 When you are done with it, you call the *Inno Setup Compiler* with:

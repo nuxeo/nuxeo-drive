@@ -1,4 +1,5 @@
 import subprocess
+import sys
 from logging import getLogger
 from time import sleep
 
@@ -91,15 +92,14 @@ def test_valid_argument_value(exe, arg):
     "arg",
     ["-v", "--version"],
 )
-def test_check_drive_version(final_exe, tmp_path, version, arg):
+def test_check_drive_version(version, arg):
     """Test the Drive version"""
-    print(f"test_check_drive_version called with arg={arg}, version={version}")
-    file = tmp_path / "version.txt"
-    cmd = [final_exe, arg, ">", file]
-    subprocess.run(cmd, shell=True)
-    with open(file, "r") as file:
-        version_num = file.read().strip()
-    assert version_num == version
+    result = subprocess.run(
+        [sys.executable, "-m", "nxdrive", arg],
+        capture_output=True,
+        text=True,
+    )
+    assert result.stdout.strip() == version
 
 
 @pytest.mark.parametrize(
