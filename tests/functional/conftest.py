@@ -8,6 +8,7 @@ import pytest
 from faker import Faker
 from nuxeo.client import Nuxeo
 from nuxeo.documents import Document
+from nuxeo.exceptions import Conflict
 from nuxeo.models import Blob, FileBlob
 from nuxeo.users import User
 
@@ -97,10 +98,14 @@ def user_factory(request, server, faker):
             "username": username,
         }
 
-        user = server.users.create(User(properties=properties))
+        try:
+            user = server.users.create(User(properties=properties))
+            log.info(f"[FIXTURE] Created {user}")
+        except Conflict:
+            user = server.users.get(username)
+            log.info(f"[FIXTURE] User already exists, reusing {user}")
         user.properties["password"] = password
         request.addfinalizer(user.delete)
-        log.info(f"[FIXTURE] Created {user}")
         return user
 
     yield _make_user

@@ -1,7 +1,7 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Window 2.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.Window
 
 Rectangle {
     id: conflicts
@@ -21,6 +21,10 @@ Rectangle {
         spacing: 0
 
         anchors.top: parent.top
+
+        background: Rectangle {
+        color: settingsTabGroup
+    }
 
         SettingsTab {
             text: qsTr("CONFLICTS_AND_ERRORS") + tl.tr
