@@ -33,6 +33,9 @@ DT_MONITORING_MAX_ITEMS = 20
 # Number of sessions displayed in the Direct Transfer window, onto the active sessions tab
 DT_ACTIVE_SESSIONS_MAX_ITEMS = 15
 
+# Number of downloads displayed in the Direct Download window, onto the running tab
+DD_ACTIVE_DOWNLOADS_MAX_ITEMS = 15
+
 # List of chars that cannot be used in filenames (either OS or Nuxeo restrictions)
 INVALID_CHARS = r'/:\\|*><?"'
 
@@ -138,3 +141,14 @@ class TransferStatus(Enum):
     # But a "small" mess was done with NXDRIVE-1784 and fixed later with NXDRIVE-1901.
     # So we cannot use 5 as a value. Never again.
     CANCELLED = 6
+
+
+class DirectDownloadStatus(Enum):
+    """Used to represent a direct download status."""
+
+    PENDING = 0
+    IN_PROGRESS = 1
+    COMPLETED = 2
+    FAILED = 3
+    PAUSED = 4
+    CANCELLED = 5
