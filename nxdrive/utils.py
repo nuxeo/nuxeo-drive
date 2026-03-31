@@ -865,32 +865,56 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
             (r"nxdrive://(?P<cmd>direct-transfer)/"),
         )
     else:
-        protocol_regex = (
-            # Direct Edit stuff
-            (
-                r"nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/(?P<server>.*)/"
-                r"user/(?P<username>.*)/repo/(?P<repo>.*)/"
-                r"nxdocid/(?P<docid>[0-9a-fA-F\-]*)/filename/(?P<filename>[^/]*)"
-                r"/downloadUrl/(?P<download>.*)"
-            ),
-            # Events from context menu:
-            #     - Access online
-            #     - Copy share-link
-            #     - Edit metadata
-            #     - Direct Transfer
-            # And event from macOS to sync the document status (FinderSync)
-            r"nxdrive://(?P<cmd>({}))/(?P<path>.*)".format("|".join(path_cmds)),
-            # Event to acquire the login token from the server
-            (
-                r"nxdrive://(?P<cmd>token)/"
-                rf"(?P<token>{DOC_UID_REG})/"
-                r"user/(?P<username>.*)"
-            ),
-            # Event to continue the OAuth2 login flow
-            # authorize?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
-            # authorize/?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
-            r"nxdrive://(?P<cmd>authorize)/?\?(?P<query>.+)",
-        )
+        if "direct-download" in url_string:
+            protocol_regex = (
+                # Direct Download stuff - simplified format: just match the command
+                # The actual parsing happens in parse_download_protocol()
+                r"nxdrive://(?P<cmd>direct-download)/.*",
+                # Events from context menu:
+                #     - Access online
+                #     - Copy share-link
+                #     - Edit metadata
+                #     - Direct Transfer
+                # And event from macOS to sync the document status (FinderSync)
+                r"nxdrive://(?P<cmd>({}))/(?P<path>.*)".format("|".join(path_cmds)),
+                # Event to acquire the login token from the server
+                (
+                    r"nxdrive://(?P<cmd>token)/"
+                    rf"(?P<token>{DOC_UID_REG})/"
+                    r"user/(?P<username>.*)"
+                ),
+                # Event to continue the OAuth2 login flow
+                # authorize?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
+                # authorize/?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
+                r"nxdrive://(?P<cmd>authorize)/?\?(?P<query>.+)",
+            )
+        else:
+            protocol_regex = (
+                # Direct Edit stuff
+                (
+                    r"nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/(?P<server>.*)/"
+                    r"user/(?P<username>.*)/repo/(?P<repo>.*)/"
+                    r"nxdocid/(?P<docid>[0-9a-fA-F\-]*)/filename/(?P<filename>[^/]*)"
+                    r"/downloadUrl/(?P<download>.*)"
+                ),
+                # Events from context menu:
+                #     - Access online
+                #     - Copy share-link
+                #     - Edit metadata
+                #     - Direct Transfer
+                # And event from macOS to sync the document status (FinderSync)
+                r"nxdrive://(?P<cmd>({}))/(?P<path>.*)".format("|".join(path_cmds)),
+                # Event to acquire the login token from the server
+                (
+                    r"nxdrive://(?P<cmd>token)/"
+                    rf"(?P<token>{DOC_UID_REG})/"
+                    r"user/(?P<username>.*)"
+                ),
+                # Event to continue the OAuth2 login flow
+                # authorize?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
+                # authorize/?code=EAhJq9aZau&state=uuIwrlQy810Ra49DhDIaH2tXDYYowA
+                r"nxdrive://(?P<cmd>authorize)/?\?(?P<query>.+)",
+            )
 
     match_res = None
     for regex in protocol_regex:
@@ -904,7 +928,13 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
     parsed_url: Dict[str, str] = match_res.groupdict()
     cmd = parsed_url["cmd"]
     if cmd == "edit":
+        print(f">>>> {cmd}-> parsed_url:{parsed_url}, url_string:{url_string}")
+        log.info(f">>>> {cmd}-> parsed_url:{parsed_url}, url_string:{url_string}")
         return parse_edit_protocol(parsed_url, url_string)
+    elif "direct-download" in cmd:
+        print(f">>>> {cmd}-> parsed_url:{parsed_url}, url_string:{url_string}")
+        log.info(f">>>> {cmd}-> parsed_url:{parsed_url}, url_string:{url_string}")
+        return parse_download_protocol(parsed_url, url_string)
     elif cmd == "token":
         return {
             "command": cmd,
@@ -955,6 +985,174 @@ def parse_edit_protocol(
         "doc_id": parsed_url["docid"],
         "filename": parsed_url["filename"],
         "download_url": parsed_url["download"],
+    }
+
+
+def parse_download_protocol(
+    parsed_url: Dict[str, str], url_string: str, /
+) -> Dict[str, Any]:
+    """
+    Parse a `nxdrive://direct-download` URL for downloading Nuxeo documents.
+    Supports batch downloads with multiple documents separated by ' || '.
+
+    Format:
+    - First document: https/server/UUID (automatically appends /nuxeo/ to server)
+    - Subsequent documents: just UUID (inherits server from first)
+
+    Example:
+    nxdrive://direct-download/https/server/uuid1 || uuid2 || uuid3
+
+    Note: no need to decorate the function with lru_cache() as the caller
+    already is.
+    """
+
+    # Remove the protocol prefix to get the document paths
+    url_without_prefix = url_string.replace("nxdrive://direct-download/", "", 1)
+
+    # Split by ' || ' to get all document paths
+    doc_paths = url_without_prefix.split(" || ")
+
+    documents = []
+    server_url = None  # Extract from first document, reuse for subsequent UIDs
+
+    for doc_path in doc_paths:
+        doc_path = doc_path.strip()
+        if not doc_path:
+            continue
+
+        doc = _parse_single_document_path(doc_path, server_url=server_url)
+        if doc:
+            documents.append(doc)
+            # Extract server URL from first document for subsequent UIDs
+            if server_url is None:
+                server_url = doc.get("server_url")
+
+    if not documents:
+        log.info(f"No valid documents found in {url_string!r}")
+
+    return {
+        "command": "download_direct",
+        "documents": documents,
+    }
+
+
+def _parse_single_document_path(
+    path: str, /, *, server_url: str = None
+) -> Optional[Dict[str, str]]:
+    """
+    Parse a single document path from batch download URL.
+
+    Supports multiple formats:
+    1. Simple UID: just a UUID (requires server_url parameter)
+    2. Super-simple format: https/server/UUID (auto-appends /nuxeo/ to server)
+    3. Simplified format: https/server/nuxeo/nxdocid/UUID (legacy, still supported)
+    4. Full format (legacy): https/server/.../user/.../nxdocid/UUID/filename/.../downloadUrl/...
+
+    :param path: The document path or UID to parse
+    :param server_url: Server URL from previous document (for simple UID format)
+    :return: Dict with document information or None if parsing failed
+    """
+
+    # UUID pattern: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    uuid_pattern = (
+        r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+    )
+
+    # Check if it's just a UUID (format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+    uuid_regex = f"^{uuid_pattern}$"
+    if re.match(uuid_regex, path):
+        if not server_url:
+            log.warning(
+                f"Cannot parse UID {path!r} without server URL from previous document"
+            )
+            return None
+
+        return {
+            "server_url": server_url,
+            "doc_id": path,
+            "user": None,
+            "repo": None,
+            "filename": None,
+            "download_url": None,
+        }
+
+    # Try super-simple format: https/server/UUID (no /nuxeo/nxdocid/)
+    # This matches: https/drive-2025.beta.nuxeocloud.com/3eebfb90-4e2c-4aa9-bf3f-b657c02572e1
+    super_simple_regex = (
+        rf"(?P<scheme>https?)/(?P<server>[^/]+)/(?P<docid>{uuid_pattern})$"
+    )
+
+    match = re.match(super_simple_regex, path, re.I)
+    if match:
+        parsed = match.groupdict()
+        scheme = parsed["scheme"]
+        # Auto-append /nuxeo/ to the server URL
+        extracted_server_url = f"{scheme}://{parsed['server']}/nuxeo/"
+        log.debug(
+            f"Super-simple format: server_url={extracted_server_url}, doc_id={parsed['docid']}"
+        )
+
+        return {
+            "server_url": extracted_server_url,
+            "doc_id": parsed["docid"],
+            "user": None,
+            "repo": None,
+            "filename": None,
+            "download_url": None,
+        }
+
+    # Try simplified format (legacy): https/server/nuxeo/nxdocid/UUID
+    simple_regex = (
+        r"(?P<scheme>https?)/(?P<server>.*?)/"
+        r"nxdocid/(?P<docid>[0-9a-fA-F\-]+)/?(?:\?.*)?$"
+    )
+
+    match = re.match(simple_regex, path, re.I)
+    if match:
+        parsed = match.groupdict()
+        scheme = parsed["scheme"]
+        # Server may include /nuxeo, ensure it ends with /nuxeo/
+        server_part = parsed["server"].rstrip("/")
+        if not server_part.endswith("/nuxeo"):
+            server_part = f"{server_part}/nuxeo"
+        extracted_server_url = f"{scheme}://{server_part}/"
+
+        return {
+            "server_url": extracted_server_url,
+            "doc_id": parsed["docid"],
+            "user": None,
+            "repo": None,
+            "filename": None,
+            "download_url": None,
+        }
+
+    # Fallback to full format for backward compatibility
+    full_regex = (
+        r"(?P<scheme>https?)/(?P<server>.*)/"
+        r"user/(?P<username>.*)/repo/(?P<repo>.*)/"
+        r"nxdocid/(?P<docid>[0-9a-fA-F\-]*)/filename/(?P<filename>[^/]*)"
+        r"/downloadUrl/(?P<download>.*)"
+    )
+
+    match = re.match(full_regex, path, re.I)
+    if not match:
+        log.warning(f"Failed to parse document path: {path!r}")
+        return None
+
+    parsed = match.groupdict()
+    scheme = parsed["scheme"]
+    server_part = parsed["server"].rstrip("/")
+    if not server_part.endswith("/nuxeo"):
+        server_part = f"{server_part}/nuxeo"
+    extracted_server_url = f"{scheme}://{server_part}/"
+
+    return {
+        "server_url": extracted_server_url,
+        "user": parsed["username"],
+        "repo": parsed["repo"],
+        "doc_id": parsed["docid"],
+        "filename": parsed["filename"],
+        "download_url": parsed["download"],
     }
 
 

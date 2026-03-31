@@ -31,6 +31,7 @@ from .constants import (
     DelAction,
 )
 from .dao.manager import ManagerDAO
+from .direct_download import DirectDownload
 from .direct_edit import DirectEdit
 from .engine.engine import Engine
 from .engine.tracker import Tracker
@@ -92,6 +93,7 @@ class Manager(QObject):
     reloadIconsSet = pyqtSignal(bool)
     resumed = pyqtSignal()
     directEdit = pyqtSignal(str, str, str, str)
+    directDownload = pyqtSignal(list)  # List of document dicts
     restartNeeded = pyqtSignal()
     featureUpdate = pyqtSignal(str, bool)
 
@@ -151,6 +153,7 @@ class Manager(QObject):
         log.info(f"OS integration type: {self.osi.nature}")
 
         self.direct_edit_folder = find_suitable_direct_edit_dir(self.home / "edit")
+        self.direct_download_folder = self.home / "download"
 
         self._engine_definitions: List[EngineDef] = []
 
@@ -241,6 +244,9 @@ class Manager(QObject):
         # Create Direct Edit
         self.autolock_service = self._create_autolock_service()
         self.direct_edit = self._create_direct_edit()
+
+        # Create Direct Download
+        self.direct_download = self._create_direct_download()
 
         self.delete_users_from_tasks_cache = [str]
 
@@ -393,6 +399,18 @@ class Manager(QObject):
 
         return worker
 
+    def _create_direct_download(self) -> "DirectDownload":
+        """Create the Direct Download worker."""
+        # Use the dedicated folder for downloads (defined in __init__)
+        self.direct_download_folder.mkdir(exist_ok=True)
+
+        worker = DirectDownload(self, self.direct_download_folder)
+
+        # Start only when the configuration has been retrieved
+        self.server_config_updater.firstRunCompleted.connect(worker.thread.start)
+
+        return worker
+
     def _create_updater(self) -> "Updater":
         worker = updater(self)
         self.prompted_wrong_channel = False
@@ -459,6 +477,11 @@ class Manager(QObject):
         for engine in self.engines.copy().values():
             if engine.is_started():
                 engine.stop()
+
+        # Clean up the download folder on exit
+        if self.direct_download:
+            self.direct_download.cleanup()
+
         self.osi.cleanup()
         self.dispose_db()
         self.stopped.emit()
