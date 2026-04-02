@@ -480,7 +480,7 @@ class QMLDriveApi(QObject):
             None,
             Translator.get("SELECT_DOWNLOAD_FOLDER"),
             current_location,
-            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks,
+            QFileDialog.Option.ShowDirsOnly | QFileDialog.Option.DontResolveSymlinks,
         )
 
         if new_folder:
@@ -845,7 +845,7 @@ class QMLDriveApi(QObject):
             )
             msg.addButton(Translator.get("CONTINUE"), qt.AcceptRole)
             cancel = msg.addButton(Translator.get("CANCEL"), qt.RejectRole)
-            msg.exec_()
+            msg.exec()
             if msg.clickedButton() == cancel:
                 self.setMessage.emit("FOLDER_USED", "error")
                 return
