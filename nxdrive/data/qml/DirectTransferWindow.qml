@@ -1,7 +1,7 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Window 2.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.Window
 import "icon-font/Icon.js" as MdiFont
 
 Rectangle {
@@ -25,6 +25,10 @@ Rectangle {
         width: parent.width
         height: 50
         spacing: 0
+
+        background: Rectangle {
+        color: settingsTabGroup
+    }
 
         SettingsTab {
             text: qsTr("DIRECT_DOWNLOAD") + tl.tr
