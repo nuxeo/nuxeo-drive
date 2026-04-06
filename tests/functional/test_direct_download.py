@@ -41,13 +41,27 @@ def dao(tmp_path, app):
 
 @pytest.fixture()
 def translate():
-    """Provide a translate function for view models."""
-    Translator(find_resource("i18n"), lang="en")
+    """Provide a translate function for view models.
+
+    Uses the Translator instance methods directly instead of the static
+    ``Translator.get`` / ``Translator.format_datetime`` helpers because
+    other test modules (e.g. test_notification.py) may permanently mock
+    those static methods at module-level, contaminating parallel xdist
+    workers.
+    """
+    translator = Translator(find_resource("i18n"), lang="en")
 
     def _translate(message: str, /, *, values: List[Any] = None) -> str:
-        return Translator.get(message, values=values)
+        return translator.get_translation(message, values=values)
 
-    return _translate
+    def _real_format_datetime(date, /):
+        fmt = translator.get_translation("DATETIME_FORMAT")
+        return date.strftime(fmt)
+
+    with patch.object(
+        Translator, "format_datetime", staticmethod(_real_format_datetime)
+    ):
+        yield _translate
 
 
 def _make_record(
