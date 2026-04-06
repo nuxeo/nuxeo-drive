@@ -83,7 +83,7 @@ class DirectDownload(Worker):
         return self._folder
 
     @property
-    def download_folders(self) -> List[str]:  # noqa: F841
+    def download_folders(self) -> List[str]:
         """Return the list of all download batch folder names."""
         return self._download_folders.copy()
 
@@ -378,7 +378,7 @@ class DirectDownload(Worker):
 
         return user_downloads
 
-    def _cleanup_batch_folder(self, batch_folder: Path, /) -> None:  # noqa: F841
+    def _cleanup_batch_folder(self, batch_folder: Path, /) -> None:
         """
         Delete the timestamped batch folder after creating the zip archive.
 
@@ -590,7 +590,7 @@ class DirectDownload(Worker):
         except Exception:
             log.exception(f"Failed to update download path for {uid}")
 
-    def _update_download_progress(  # noqa: F841
+    def _update_download_progress(
         self,
         uid: int,
         bytes_downloaded: int,

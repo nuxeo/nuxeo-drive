@@ -24,11 +24,17 @@ CustomWindow.keyPressEvent  # Called by base class
 _.close_settings_too  # Used by Appiclation.show_filters()
 context.minimum_version  # Used to set TLS minimum version
 DirectTransferModel.destination_link  # Used in QML
+DirectDownload.download_folders  # Used in tests
+DirectDownload._cleanup_batch_folder  # Used in tests
+DirectDownload._update_download_progress  # Used in tests
 DocPair.last_sync_error_date  # Check NXDRIVE-1804
 Download.transfer_type  # Used in QML
 Engine.folder  # Used in QML
+EngineDAO.get_direct_downloads_with_status  # Used in tests
 EngineDAO.get_downloads_with_status()  # Used dynamically in Engine
 EngineDAO.get_uploads_with_status()  # Used dynamically in Engine
+EngineDAO.delete_direct_download  # Used in tests
+EngineDAO.delete_completed_direct_downloads  # Used in tests
 engine_migrations  # Used in tests
 exc.trash_issue  # LocalClient.delete()
 FileInfo.is_hidden  # Used in QML
@@ -74,6 +80,8 @@ QAbstractListModel.getTag  # Used in QML
 QAbstractListModel.getName  # Internal use of QML
 QAbstractListModel.nameRoles  # Internal use of QML
 QMLDriveApi.confirm_cancel_session  # Used in QML
+QMLDriveApi.change_download_location  # Used in QML
+QMLDriveApi.cancel_direct_download  # Used in QML
 QMLDriveApi.default_local_folder  # Used in QML
 QMLDriveApi.default_server_url_value  # Used in QML
 QMLDriveApi.display_pending_task  # Used in QML
@@ -94,6 +102,7 @@ QMLDriveApi.get_update_version  # Used in QML
 QMLDriveApi.get_available_version  # Used in QML
 QMLDriveApi.on_clicked_open_task  # Used in QML
 QMLDriveApi.open_direct_transfer  # Used in QML
+QMLDriveApi.open_download_folder  # Used in QML
 QMLDriveApi.open_document  # Used in QML
 QMLDriveApi.open_in_explorer  # Used in QML
 QMLDriveApi.open_local  # Used in QML
@@ -101,6 +110,8 @@ QMLDriveApi.open_remote_server  # Used in QML
 QMLDriveApi.open_remote_document  # Used in QML
 QMLDriveApi.open_server_folders  # Used in QML
 QMLDriveApi.open_tasks_window  # Used in QML
+QMLDriveApi.pause_direct_download  # Used in QML
+QMLDriveApi.resume_direct_download  # Used in QML
 QMLDriveApi.set_proxy_settings  # Used in QML
 QMLDriveApi.set_server_ui  # Used in QML
 QMLDriveApi.tasks_remaining  # Used in QML

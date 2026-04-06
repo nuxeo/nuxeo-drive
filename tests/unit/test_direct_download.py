@@ -582,9 +582,10 @@ class TestDirectDownloadFolder:
             }
         ]
 
-        with patch.object(dd, "_get_children", return_value=children), patch.object(
-            dd, "_download_file"
-        ) as mock_dl:
+        with (
+            patch.object(dd, "_get_children", return_value=children),
+            patch.object(dd, "_download_file") as mock_dl,
+        ):
             dd._download_folder(engine, "folder-uid", "TestFolder", self.folder)
             mock_dl.assert_called_once()
 
@@ -817,9 +818,10 @@ class TestDirectDownloadProcessDownload:
 
         doc = {"server_url": "https://server.com", "doc_id": "uuid-1"}
 
-        with patch.object(dd, "_get_engine", return_value=engine), patch.object(
-            dd, "_download_file"
-        ) as mock_dl:
+        with (
+            patch.object(dd, "_get_engine", return_value=engine),
+            patch.object(dd, "_download_file") as mock_dl,
+        ):
             dd._process_download(doc, self.folder)
             mock_dl.assert_called_once()
 
@@ -834,9 +836,10 @@ class TestDirectDownloadProcessDownload:
 
         doc = {"server_url": "https://server.com", "doc_id": "uuid-1"}
 
-        with patch.object(dd, "_get_engine", return_value=engine), patch.object(
-            dd, "_download_folder"
-        ) as mock_dl:
+        with (
+            patch.object(dd, "_get_engine", return_value=engine),
+            patch.object(dd, "_download_folder") as mock_dl,
+        ):
             dd._process_download(doc, self.folder)
             mock_dl.assert_called_once()
 
@@ -859,8 +862,9 @@ class TestDirectDownloadProcessDownload:
             "download_url": "nxfile/default/uuid-1/file:content/file.txt",
         }
 
-        with patch.object(dd, "_get_engine", return_value=engine), patch.object(
-            dd, "_download_file"
+        with (
+            patch.object(dd, "_get_engine", return_value=engine),
+            patch.object(dd, "_download_file"),
         ):
             dd._process_download(doc, self.folder)
 
@@ -909,12 +913,14 @@ class TestDirectDownloadProcessBatch:
             },
         ]
 
-        with patch.object(dd, "_create_download_record", return_value=1), patch.object(
-            dd, "_update_download_status"
-        ), patch.object(dd, "_process_download"), patch.object(
-            dd, "_create_zip_archive", return_value=Path("/tmp/archive.zip")
-        ), patch.object(
-            dd, "_update_download_path"
+        with (
+            patch.object(dd, "_create_download_record", return_value=1),
+            patch.object(dd, "_update_download_status"),
+            patch.object(dd, "_process_download"),
+            patch.object(
+                dd, "_create_zip_archive", return_value=Path("/tmp/archive.zip")
+            ),
+            patch.object(dd, "_update_download_path"),
         ):
             dd._process_batch(docs)
 
@@ -930,12 +936,11 @@ class TestDirectDownloadProcessBatch:
             },
         ]
 
-        with patch.object(dd, "_create_download_record", return_value=1), patch.object(
-            dd, "_update_download_status"
-        ), patch.object(
-            dd, "_process_download", side_effect=RuntimeError("fail")
-        ), patch.object(
-            dd, "_create_zip_archive", return_value=None
+        with (
+            patch.object(dd, "_create_download_record", return_value=1),
+            patch.object(dd, "_update_download_status"),
+            patch.object(dd, "_process_download", side_effect=RuntimeError("fail")),
+            patch.object(dd, "_create_zip_archive", return_value=None),
         ):
             dd._process_batch(docs)
 
@@ -947,10 +952,10 @@ class TestDirectDownloadProcessBatch:
             {"server_url": "https://server.com", "doc_id": "uuid-1"},
         ]
 
-        with patch.object(
-            dd, "_create_download_record", return_value=None
-        ), patch.object(dd, "_process_download"), patch.object(
-            dd, "_create_zip_archive", return_value=None
+        with (
+            patch.object(dd, "_create_download_record", return_value=None),
+            patch.object(dd, "_process_download"),
+            patch.object(dd, "_create_zip_archive", return_value=None),
         ):
             dd._process_batch(docs)
 
@@ -962,10 +967,10 @@ class TestDirectDownloadProcessBatch:
             {"server_url": "https://server.com", "doc_id": "uuid-1", "filename": ""},
         ]
 
-        with patch.object(
-            dd, "_create_download_record", return_value=None
-        ), patch.object(dd, "_process_download"), patch.object(
-            dd, "_create_zip_archive", return_value=None
+        with (
+            patch.object(dd, "_create_download_record", return_value=None),
+            patch.object(dd, "_process_download"),
+            patch.object(dd, "_create_zip_archive", return_value=None),
         ):
             dd._process_batch(docs)
 
@@ -1038,8 +1043,9 @@ class TestDirectDownloadDBOperations:
         dd = DirectDownload(self.manager, self.folder)
         doc = {"server_url": "https://server.com", "doc_id": "uuid-1"}
 
-        with patch.object(dd, "_get_engine", return_value=engine), patch.object(
-            dd, "_calculate_folder_size", return_value=(5000, 2, 10)
+        with (
+            patch.object(dd, "_get_engine", return_value=engine),
+            patch.object(dd, "_calculate_folder_size", return_value=(5000, 2, 10)),
         ):
             result = dd._create_download_record(doc)
             assert result == 10

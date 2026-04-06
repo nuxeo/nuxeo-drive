@@ -2269,7 +2269,7 @@ class EngineDAO(BaseDAO):
         row = c.execute(sql, (uid,)).fetchone()
         return self._row_to_direct_download(row) if row else None
 
-    def get_direct_downloads_with_status(  # noqa: F841
+    def get_direct_downloads_with_status(
         self, status: DirectDownloadStatus, /
     ) -> List[DirectDownload]:
         """Get all direct downloads with a specific status."""
@@ -2708,14 +2708,14 @@ class EngineDAO(BaseDAO):
                 c.execute(sql, (status.value, uid))
             self.directDownloadUpdated.emit()
 
-    def delete_direct_download(self, uid: int, /) -> None:  # noqa: F841
+    def delete_direct_download(self, uid: int, /) -> None:
         """Delete a direct download record."""
         with self.lock:
             c = self._get_write_connection().cursor()
             c.execute("DELETE FROM DirectDownloads WHERE uid = ?", (uid,))
             self.directDownloadUpdated.emit()
 
-    def delete_completed_direct_downloads(self) -> int:  # noqa: F841
+    def delete_completed_direct_downloads(self) -> int:
         """Delete all completed direct downloads. Returns the number of deleted records."""
         with self.lock:
             c = self._get_write_connection().cursor()
