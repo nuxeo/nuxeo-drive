@@ -706,7 +706,7 @@ def format_file_names_for_display(all_names: List[str], max_length: int = 60) ->
         return full_text
 
     # Need to truncate - find how many names we can fit
-    result_parts = []
+    result_parts: list[Any] = []
     current_length = 0
     remaining_count = len(all_names)
 

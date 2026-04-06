@@ -1038,7 +1038,7 @@ def parse_download_protocol(
 
 def _parse_single_document_path(
     path: str, /, *, server_url: str = None
-) -> Optional[Dict[str, str]]:
+) -> Optional[Dict[str, Any]]:
     """
     Parse a single document path from batch download URL.
 

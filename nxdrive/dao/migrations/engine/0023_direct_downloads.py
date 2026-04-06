@@ -1,6 +1,7 @@
 """
 Migration to add the DirectDownloads table for tracking direct download operations.
 """
+
 from sqlite3 import Cursor
 
 from ..migration import MigrationInterface
