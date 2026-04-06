@@ -33,9 +33,6 @@ DT_MONITORING_MAX_ITEMS = 20
 # Number of sessions displayed in the Direct Transfer window, onto the active sessions tab
 DT_ACTIVE_SESSIONS_MAX_ITEMS = 15
 
-# Number of downloads displayed in the Direct Download window, onto the running tab
-DD_ACTIVE_DOWNLOADS_MAX_ITEMS = 15
-
 # List of chars that cannot be used in filenames (either OS or Nuxeo restrictions)
 INVALID_CHARS = r'/:\\|*><?"'
 

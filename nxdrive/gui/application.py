@@ -1830,7 +1830,7 @@ class Application(QApplication):
                 return False
 
             # info contains: {"command": "download_direct", "documents": [{...}, {...}]}
-            documents = info.get("documents", [])
+            documents: Any = info.get("documents", [])
             if not documents:
                 log.warning("No documents found in direct download URL")
                 return False

@@ -462,14 +462,14 @@ class QMLDriveApi(QObject):
         return str(Path.home() / "Downloads")
 
     @pyqtSlot()
-    def open_download_folder(self) -> None:
+    def open_download_folder(self) -> None:  # noqa: F841
         """Open the download folder in the system file manager."""
         download_path = self.get_download_location()
         log.debug(f"Opening download folder: {download_path!r}")
         self._manager.open_local_file(download_path)
 
     @pyqtSlot()
-    def change_download_location(self) -> None:
+    def change_download_location(self) -> None:  # noqa: F841
         """Open a folder selection dialog to change the download location."""
         from ..qt.imports import QFileDialog
 
@@ -497,7 +497,7 @@ class QMLDriveApi(QObject):
             self.downloadLocationChanged.emit()
 
     @pyqtSlot(str, int)
-    def pause_direct_download(self, engine_uid: str, uid: int, /) -> None:
+    def pause_direct_download(self, engine_uid: str, uid: int, /) -> None:  # noqa: F841
         """Pause a direct download."""
         from ..constants import DirectDownloadStatus
 
@@ -508,7 +508,9 @@ class QMLDriveApi(QObject):
         engine.dao.update_direct_download_status(uid, DirectDownloadStatus.PAUSED)
 
     @pyqtSlot(str, int)
-    def resume_direct_download(self, engine_uid: str, uid: int, /) -> None:
+    def resume_direct_download(
+        self, engine_uid: str, uid: int, /
+    ) -> None:  # noqa: F841
         """Resume a paused direct download."""
         from ..constants import DirectDownloadStatus
 
@@ -519,7 +521,9 @@ class QMLDriveApi(QObject):
         engine.dao.update_direct_download_status(uid, DirectDownloadStatus.PENDING)
 
     @pyqtSlot(str, int)
-    def cancel_direct_download(self, engine_uid: str, uid: int, /) -> None:
+    def cancel_direct_download(
+        self, engine_uid: str, uid: int, /
+    ) -> None:  # noqa: F841
         """Cancel a direct download."""
         from ..constants import DirectDownloadStatus
 
