@@ -30,23 +30,6 @@ from nxdrive.utils import find_resource
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture(scope="module")
-def app():
-    """Module-scoped QCoreApplication to avoid creating/destroying 125+
-    separate instances (one per test) which destabilises the Qt runtime
-    on macOS and Windows, leading to segfaults in worker threads that
-    share the same xdist process.
-    """
-    from nxdrive.qt.imports import QCoreApplication, QTimer
-
-    application = QCoreApplication.instance() or QCoreApplication([])
-    timer = QTimer()
-    timer.timeout.connect(lambda: None)
-    timer.start(100)
-    yield application
-    timer.stop()
-
-
 @pytest.fixture()
 def dao(tmp_path, app):
     """Create a real EngineDAO with the DirectDownloads table."""
