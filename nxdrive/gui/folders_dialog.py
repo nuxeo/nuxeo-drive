@@ -37,6 +37,7 @@ from ..utils import find_icon, get_tree_list, sizeof_fmt
 from .constants import get_known_types_translations
 from .folders_model import FilteredDocuments, FoldersOnly
 from .folders_treeview import DocumentTreeView, FolderTreeView
+from .multi_folder_dialog import MultiFolderDialog
 
 if TYPE_CHECKING:
     from .application import Application  # noqa
@@ -837,12 +838,17 @@ class FoldersDialog(DialogMixin):
 
     def _select_more_folder(self) -> None:
         """Choose an additional local folder to upload."""
-        path = QFileDialog.getExistingDirectory(
-            self,
-            Translator.get("ADD_FOLDER"),
-            str(self.last_local_selected_location),
-        )
-        self._process_additionnal_local_paths([path])
+        # path = QFileDialog.getExistingDirectory(
+        #     self,
+        #     Translator.get("ADD_FOLDER"),
+        #     str(self.last_local_selected_location),
+        # )
+        mfd = MultiFolderDialog()
+        if mfd.exec():
+            path = mfd.selected_paths()
+            self._process_additionnal_local_paths(path)
+        else:
+            path = None
 
     def _skipped_items_summary(self, items: list[str]) -> str:
         """Show up to 2 skipped item names with a (+N) and the reason."""
