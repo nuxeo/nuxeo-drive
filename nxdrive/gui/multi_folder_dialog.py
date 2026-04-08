@@ -9,6 +9,7 @@ from pathlib import Path
 from PyQt6.QtCore import QDir
 from PyQt6.QtGui import QFileSystemModel
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QDialog,
     QDialogButtonBox,
     QHBoxLayout,
@@ -32,6 +33,10 @@ class MultiFolderDialog(QDialog):
         path_layout = QHBoxLayout()
         bottom_layout = QHBoxLayout()
 
+        # Show hidden files checkbox
+        self.showHidden = QCheckBox()
+        self.showHidden.setText("Show Hidden")
+        self.showHidden.checkStateChanged.connect(self.show_hidden_files)
         # Home button
         self.btnHome = QPushButton()
         self.btnHome.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
@@ -47,6 +52,7 @@ class MultiFolderDialog(QDialog):
 
         # Path bar layout
         path_layout.addWidget(self.path_bar)
+        path_layout.addWidget(self.showHidden)
         path_layout.addWidget(self.btnHome)
         path_layout.addWidget(self.btnUp)
         layout.addLayout(path_layout)
@@ -132,6 +138,14 @@ class MultiFolderDialog(QDialog):
             self.path_bar.setStyleSheet("")
         else:
             self.path_bar.setStyleSheet("background-color: #ffcccc")
+
+    def show_hidden_files(self) -> None:
+        if self.showHidden.isChecked():
+            self.model.setFilter(
+                QDir.Filter.AllEntries | QDir.Filter.NoDotAndDotDot | QDir.Filter.Hidden
+            )
+        else:
+            self.model.setFilter(QDir.Filter.AllEntries | QDir.Filter.NoDotAndDotDot)
 
     def load_directory(self, index):
         if index.column() == 0:
