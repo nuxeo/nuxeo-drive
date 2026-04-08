@@ -6,12 +6,12 @@ This is a dialog for selecting multiple folders in the NxDrive application.
 from logging import getLogger
 from pathlib import Path
 
-from PyQt6.QtCore import QDir
-from PyQt6.QtGui import QFileSystemModel
-from PyQt6.QtWidgets import (
+from nxdrive.qt.imports import (
     QCheckBox,
     QDialog,
     QDialogButtonBox,
+    QDir,
+    QFileSystemModel,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -29,6 +29,9 @@ class MultiFolderDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Select Files/Folders")
 
+        # Set minimum size
+        self.setMinimumSize(500, 450)
+
         layout = QVBoxLayout(self)
         path_layout = QHBoxLayout()
         bottom_layout = QHBoxLayout()
@@ -41,10 +44,12 @@ class MultiFolderDialog(QDialog):
         self.btnHome = QPushButton()
         self.btnHome.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.btnHome.setText("Home")
+        self.btnHome.clicked.connect(self.go_home)
         # Up button
         self.btnUp = QPushButton()
         self.btnUp.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.btnUp.setText("Go Up")
+        self.btnUp.clicked.connect(self.go_up)
         # Path bar
         self.path_bar = QLineEdit()
         self.path_bar.setText(QDir.homePath())
@@ -104,10 +109,6 @@ class MultiFolderDialog(QDialog):
         # Adding Add/Cancel buttons to the layout
         bottom_layout.addWidget(buttons)
         layout.addLayout(bottom_layout)
-
-        # Connections
-        self.btnHome.clicked.connect(self.go_home)
-        self.btnUp.clicked.connect(self.go_up)
 
     def selected_paths(self) -> list[str]:
         selection_model = self.tree.selectionModel()

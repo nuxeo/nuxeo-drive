@@ -364,12 +364,16 @@ class FoldersDialog(DialogMixin):
 
         files_button = QPushButton(Translator.get("ADD_FILES"), self)
         files_button.clicked.connect(self._select_more_files)
-        hlayout.addWidget(files_button)
+        # hlayout.addWidget(files_button) -- Disabled in favor of "Add files/folders" button
 
         if self.engine.have_folder_upload:
             folders_button = QPushButton(Translator.get("ADD_FOLDER"), self)
             folders_button.clicked.connect(self._select_more_folder)
-            hlayout.addWidget(folders_button)
+            # hlayout.addWidget(folders_button) -- Disabled in favor of "Add files/folders" button
+
+        upload_button = QPushButton("Add files/folders")
+        upload_button.clicked.connect(self._select_files_and_folders)
+        hlayout.addWidget(upload_button)
 
         vlayout.addLayout(hlayout)
         vlayout.addWidget(self.local_path_msg_lbl)
@@ -827,6 +831,14 @@ class FoldersDialog(DialogMixin):
 
         return current_total_size
 
+    def _select_files_and_folders(self) -> None:
+        mfd = MultiFolderDialog()
+        if mfd.exec():
+            path = mfd.selected_paths()
+            self._process_additionnal_local_paths(path)
+        else:
+            path = None
+
     def _select_more_files(self) -> None:
         """Choose additional local files to upload."""
         paths, _ = QFileDialog.getOpenFileNames(
@@ -838,17 +850,12 @@ class FoldersDialog(DialogMixin):
 
     def _select_more_folder(self) -> None:
         """Choose an additional local folder to upload."""
-        # path = QFileDialog.getExistingDirectory(
-        #     self,
-        #     Translator.get("ADD_FOLDER"),
-        #     str(self.last_local_selected_location),
-        # )
-        mfd = MultiFolderDialog()
-        if mfd.exec():
-            path = mfd.selected_paths()
-            self._process_additionnal_local_paths(path)
-        else:
-            path = None
+        path = QFileDialog.getExistingDirectory(
+            self,
+            Translator.get("ADD_FOLDER"),
+            str(self.last_local_selected_location),
+        )
+        self._process_additionnal_local_paths([path])
 
     def _skipped_items_summary(self, items: list[str]) -> str:
         """Show up to 2 skipped item names with a (+N) and the reason."""
