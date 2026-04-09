@@ -1182,6 +1182,20 @@ class Application(QApplication):
             user = str(username.text())
             pwd = str(password.text())
 
+            backend = os.getenv("NXDRIVE_REMOTE_BACKEND") or getattr(
+                Options, "remote_backend", "nuxeo"
+            )
+            if backend.lower() == "alfresco":
+                callback_params = self.api.callback_params
+                local_folder = callback_params.get("local_folder", "")
+                server_url = callback_params.get("server_url", url)
+                engine_type = callback_params.get("engine_type", "")
+                if engine_type:
+                    server_url = f"{server_url}#{engine_type}"
+                self.api.bind_server(local_folder, server_url, user, password=pwd)
+                dialog.close()
+                return
+
             verification_needed = get_verify()
 
             nuxeo = Nuxeo(

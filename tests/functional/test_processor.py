@@ -5,6 +5,7 @@ Functional tests for nxdrive/engine/processor.py
 from collections import namedtuple
 from pathlib import Path
 from sqlite3 import Connection, Cursor
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 import pytest
@@ -1660,3 +1661,107 @@ def test_synchronize_direct_transfer(manager_factory):
             processor._synchronize_direct_transfer(doc_pair)
         with patch.object(dao, "get_session", return_value=None):
             processor._synchronize_direct_transfer(doc_pair)
+
+
+def test_get_direct_transfer_upload_target_uses_session_root_for_nested_files():
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+
+    session = namedtuple("Session", "remote_ref")("session-root")
+    folder_pair = namedtuple(
+        "DocPair",
+        "local_state session folderish local_name local_parent_path",
+    )("direct", 1, True, "Selected", Path("tmp"))
+    nested_folder_pair = namedtuple(
+        "DocPair",
+        "local_state session folderish local_name local_parent_path",
+    )("direct", 1, True, "Nested", Path("tmp/Selected"))
+    file_pair = namedtuple(
+        "DocPair",
+        "remote_parent_ref session folderish local_parent_path",
+    )("child-parent", 1, False, Path("tmp/Selected/Nested"))
+
+    path_map = {
+        Path("tmp/Selected/Nested"): nested_folder_pair,
+        Path("tmp/Selected"): folder_pair,
+    }
+
+    with patch.object(processor.dao, "get_session", return_value=session):
+        with patch.object(
+            processor.dao,
+            "get_state_from_local",
+            side_effect=lambda path: path_map.get(path),
+        ):
+            parent_id, relative_path = processor._get_direct_transfer_upload_target(
+                file_pair
+            )
+
+    assert parent_id == "session-root"
+    assert relative_path == "Selected/Nested"
+
+
+def test_synchronize_direct_transfer_passes_rooted_relative_path():
+    mock_engine = Mock_Engine()
+    processor = Processor(mock_engine, True)
+
+    with patch.object(processor.remote, "upload", create=True) as upload_mock:
+        with patch.object(processor, "_direct_transfer_end"):
+            with TemporaryDirectory() as tmp:
+                selected_dir = Path(tmp) / "Selected"
+                nested_dir = selected_dir / "Nested"
+                nested_dir.mkdir(parents=True)
+                file_path = nested_dir / "doc.txt"
+                file_path.write_text("hello", encoding="utf-8")
+
+                doc_pair = namedtuple(
+                    "DocPair",
+                    "local_path local_parent_path session folderish remote_parent_ref",
+                )(
+                    Path(str(file_path).lstrip("/")),
+                    Path(str(nested_dir).lstrip("/")),
+                    1,
+                    False,
+                    "nested-parent",
+                )
+                session = namedtuple("Session", "status uid remote_ref")(
+                    TransferStatus.ONGOING,
+                    1,
+                    "session-root",
+                )
+                selected_pair = namedtuple(
+                    "Pair",
+                    "local_state session folderish local_name local_parent_path",
+                )(
+                    "direct",
+                    1,
+                    True,
+                    "Selected",
+                    Path(str(Path(tmp)).lstrip("/")),
+                )
+                nested_pair = namedtuple(
+                    "Pair",
+                    "local_state session folderish local_name local_parent_path",
+                )(
+                    "direct",
+                    1,
+                    True,
+                    "Nested",
+                    Path(str(selected_dir).lstrip("/")),
+                )
+                path_map = {
+                    Path(str(nested_dir).lstrip("/")): nested_pair,
+                    Path(str(selected_dir).lstrip("/")): selected_pair,
+                }
+
+                with patch.object(processor.dao, "get_session", return_value=session):
+                    with patch.object(
+                        processor.dao,
+                        "get_state_from_local",
+                        side_effect=lambda path: path_map.get(path),
+                    ):
+                        processor._synchronize_direct_transfer(doc_pair)
+
+        upload_mock.assert_called_once()
+        kwargs = upload_mock.call_args.kwargs
+        assert kwargs["parentId"] == "session-root"
+        assert kwargs["relative_path"] == "Selected/Nested"

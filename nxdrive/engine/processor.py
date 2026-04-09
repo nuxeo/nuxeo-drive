@@ -89,6 +89,11 @@ class Processor(EngineWorker):
             else:
                 Processor.soft_locks[self.engine.uid].pop(path, None)
 
+    @staticmethod
+    def _join_remote_path(parent_path: Optional[str], remote_ref: str, /) -> str:
+        """Build remote paths safely when parent_path can be null in DB rows."""
+        return f"{parent_path or ''}/{remote_ref}"
+
     def _unlock_readonly(self, path: Path, /) -> None:
         with Processor.readonly_locker:
             if self.engine.uid not in Processor.readonly_locks:
@@ -461,7 +466,9 @@ class Processor(EngineWorker):
                     self.dao.remove_state(doc_pair)
                 elif error in LONG_FILE_ERRORS:
                     self.dao.remove_filter(
-                        doc_pair.remote_parent_path + "/" + doc_pair.remote_ref
+                        self._join_remote_path(
+                            doc_pair.remote_parent_path, doc_pair.remote_ref
+                        )
                     )
                     self.engine.longPathError.emit(doc_pair)
                 elif hasattr(exc, "trash_issue"):
@@ -554,6 +561,49 @@ class Processor(EngineWorker):
             log.exception("Unknown error")
             self.increase_error(doc_pair, f"SYNC_HANDLER_{handler_name}", exception=e)
 
+    def _get_direct_transfer_upload_target(
+        self, doc_pair: DocPair, /
+    ) -> Tuple[str, str]:
+        """Return the upload parent id and optional rooted relative path for Direct Transfer.
+
+        For Alfresco, files can be uploaded from the session root using the multipart
+        ``relativePath`` field. This avoids having to rely on the immediate parent node id
+        during the file upload itself.
+        """
+        parent_ref = doc_pair.remote_parent_ref
+        relative_parts: List[str] = []
+
+        session = self.dao.get_session(doc_pair.session)
+        if session is None:
+            return parent_ref, ""
+
+        if not doc_pair.folderish and getattr(session, "remote_ref", ""):
+            parent_ref = session.remote_ref
+
+            seen_paths = set()
+            current_path = doc_pair.local_parent_path
+            while current_path not in seen_paths:
+                seen_paths.add(current_path)
+                ancestor = self.dao.get_state_from_local(current_path)
+                if not ancestor:
+                    break
+                if getattr(ancestor, "local_state", "") != "direct":
+                    break
+                if getattr(ancestor, "session", None) != doc_pair.session:
+                    break
+                if getattr(ancestor, "folderish", False) and getattr(
+                    ancestor, "local_name", ""
+                ):
+                    relative_parts.append(ancestor.local_name)
+
+                parent_path = getattr(ancestor, "local_parent_path", None)
+                if not isinstance(parent_path, Path):
+                    break
+                current_path = parent_path
+
+        relative_parts.reverse()
+        return parent_ref, "/".join(relative_parts)
+
     def _synchronize_direct_transfer(self, doc_pair: DocPair, /) -> None:
         """Direct Transfer of a local path."""
         session = self.dao.get_session(doc_pair.session)
@@ -584,8 +634,11 @@ class Processor(EngineWorker):
             return
 
         # Do the upload
+        parent_id, relative_path = self._get_direct_transfer_upload_target(doc_pair)
         self.remote.upload(
             path,
+            parentId=parent_id,
+            relative_path=relative_path,
             engine_uid=self.engine.uid,
             uploader=DirectTransferUploader,
             doc_pair=doc_pair,
@@ -826,6 +879,25 @@ class Processor(EngineWorker):
                 str(doc_pair.local_path), str(doc_pair.local_parent_path)
             )
 
+        if not name:
+            # The sync root row uses local_path="." so `.name` is empty.
+            # Do not attempt a server-side create with an empty node name.
+            if doc_pair.remote_ref:
+                with suppress(Exception):
+                    fs_item_info = self.remote.get_fs_info(doc_pair.remote_ref)
+                    remote_parent_path = self._join_remote_path(
+                        parent_pair.remote_parent_path, parent_pair.remote_ref
+                    )
+                    self.dao.update_remote_state(
+                        doc_pair,
+                        fs_item_info,
+                        remote_parent_path=remote_parent_path,
+                        versioned=False,
+                    )
+                self.dao.synchronize_state(doc_pair)
+                return
+            raise ValueError(f"Cannot create remote item with empty name: {doc_pair!r}")
+
         uid = info = None
         if remote_ref and "#" in remote_ref:
             # Verify it is not already synced elsewhere (a missed move?)
@@ -852,8 +924,8 @@ class Processor(EngineWorker):
                 if uid and info.is_trashed:
                     log.info(f"Untrash from the client: {doc_pair!r}")
                     self.remote.undelete(uid)
-                    remote_parent_path = (
-                        parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
+                    remote_parent_path = self._join_remote_path(
+                        parent_pair.remote_parent_path, parent_pair.remote_ref
                     )
                     fs_item_info = self.remote.get_fs_info(remote_ref)
                     # Handle document move
@@ -921,10 +993,8 @@ class Processor(EngineWorker):
                             fs_item_info = self.remote.rename(
                                 fs_item_info.uid, doc_pair.local_name
                             )
-                        remote_parent_path = (
-                            parent_pair.remote_parent_path
-                            + "/"
-                            + parent_pair.remote_ref
+                        remote_parent_path = self._join_remote_path(
+                            parent_pair.remote_parent_path, parent_pair.remote_ref
                         )
                         self.dao.update_remote_state(
                             doc_pair,
@@ -955,8 +1025,8 @@ class Processor(EngineWorker):
 
         parent_ref: str = parent_pair.remote_ref
         if parent_pair.remote_can_create_child:
-            remote_parent_path = (
-                parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
+            remote_parent_path = self._join_remote_path(
+                parent_pair.remote_parent_path, parent_pair.remote_ref
             )
             if doc_pair.folderish:
                 log.info(
@@ -1064,7 +1134,9 @@ class Processor(EngineWorker):
                 f" and marking {doc_pair.local_path!r} as filtered"
             )
             self.dao.remove_state(doc_pair)
-            self.dao.add_filter(f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}")
+            self.dao.add_filter(
+                self._join_remote_path(doc_pair.remote_parent_path, doc_pair.remote_ref)
+            )
             return
 
         if doc_pair.remote_can_delete:
@@ -1091,7 +1163,9 @@ class Processor(EngineWorker):
                 )
                 self.dao.remove_state(doc_pair)
                 self.dao.add_filter(
-                    doc_pair.remote_parent_path + "/" + doc_pair.remote_ref
+                    self._join_remote_path(
+                        doc_pair.remote_parent_path, doc_pair.remote_ref
+                    )
                 )
                 self.engine.deleteReadonly.emit(doc_pair.local_name)
         self._search_for_dedup(doc_pair)
@@ -1166,8 +1240,8 @@ class Processor(EngineWorker):
                 log.info(f"Moving remote file according to local {doc_pair!r}")
                 # Bug if move in a parent with no rights / partial move
                 # if rename at the same time
-                parent_path = (
-                    f"{parent_pair.remote_parent_path}/{parent_pair.remote_ref}"
+                parent_path = self._join_remote_path(
+                    parent_pair.remote_parent_path, parent_pair.remote_ref
                 )
                 remote_info = self.remote.move(
                     doc_pair.remote_ref, parent_pair.remote_ref
@@ -1348,10 +1422,9 @@ class Processor(EngineWorker):
                             new_parent_pair.local_path,
                             name=moved_name,
                         )
-                        new_parent_path = (
-                            new_parent_pair.remote_parent_path
-                            + "/"
-                            + new_parent_pair.remote_ref
+                        new_parent_path = self._join_remote_path(
+                            new_parent_pair.remote_parent_path,
+                            new_parent_pair.remote_ref,
                         )
                         self.dao.update_remote_parent_path(doc_pair, new_parent_path)
                     else:
@@ -1400,7 +1473,9 @@ class Processor(EngineWorker):
             # parent folder issue to get resolved first
             raise ParentNotSynced(name, doc_pair.remote_ref)
 
-        remote_path = f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}"
+        remote_path = self._join_remote_path(
+            doc_pair.remote_parent_path, doc_pair.remote_ref
+        )
         if self.remote.is_filtered(remote_path):
             nature = ("file", "folder")[doc_pair.folderish]
             log.debug(f"Skip filtered {nature} {doc_pair.local_path!r}")

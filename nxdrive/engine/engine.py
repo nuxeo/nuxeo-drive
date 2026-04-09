@@ -78,6 +78,25 @@ __all__ = ("Engine", "ServerBindingSettings")
 log = getLogger(__name__)
 
 
+def _get_remote_cls() -> Type[Remote]:
+    """Load the appropriate remote client backend based on configuration.
+
+    Defaults to Nuxeo Remote client. Can be overridden to Alfresco via:
+    - Options.remote_backend = "alfresco"
+    - Environment: NXDRIVE_REMOTE_BACKEND=alfresco
+    """
+    backend = os.getenv("NXDRIVE_REMOTE_BACKEND") or getattr(
+        Options, "remote_backend", "nuxeo"
+    )
+    backend = backend.lower()
+    if backend == "alfresco":
+        from ..client.alfresco_remote import AlfrescoRemote
+
+        log.info("Using Alfresco remote client backend")
+        return AlfrescoRemote  # type: ignore[return-value]
+    return Remote
+
+
 class Engine(QObject):
     """Used for threads interaction."""
 
@@ -131,10 +150,13 @@ class Engine(QObject):
         *,
         binder: Binder = None,
         processors: int = 10,
-        remote_cls: Type[Remote] = Remote,
+        remote_cls: Type[Remote] = None,
         local_cls: Type[LocalClientMixin] = LocalClient,
     ) -> None:
         super().__init__()
+
+        if remote_cls is None:
+            remote_cls = _get_remote_cls()
 
         self.version = manager.version
         self.remote: Remote = None  # type: ignore
@@ -739,7 +761,9 @@ class Engine(QObject):
         :return: The complete URL.
         """
         uid = remote_ref.split("#")[-1]
-        repo = self.remote.client.repository
+        repo = getattr(getattr(self.remote, "client", None), "repository", None)
+        if not repo:
+            repo = getattr(self.remote, "repository", Options.remote_repo)
         page = ("view_documents", "view_drive_metadata")[edit]
 
         urls = {
@@ -757,7 +781,9 @@ class Engine(QObject):
         :param edit: Show the metadata edit page instead of the task.
         :return: The complete URL.
         """
-        repo = self.remote.client.repository
+        repo = getattr(getattr(self.remote, "client", None), "repository", None)
+        if not repo:
+            repo = getattr(self.remote, "repository", Options.remote_repo)
         page = ("view_documents", "view_drive_metadata")[edit]
 
         urls = {
@@ -838,7 +864,9 @@ class Engine(QObject):
         meth = (
             self.dao.get_download
             if nature == "download"
-            else self.dao.get_dt_upload if is_direct_transfer else self.dao.get_upload
+            else self.dao.get_dt_upload
+            if is_direct_transfer
+            else self.dao.get_upload
         )
         func = partial(meth, uid=uid)  # type: ignore
         self._resume_transfers(nature, func, is_direct_transfer=is_direct_transfer)
@@ -1042,6 +1070,25 @@ class Engine(QObject):
         secure_token = force_decode(encrypt(stored_token, key))
         self.dao.update_config("remote_token", secure_token)
 
+    def _load_password(self) -> str:
+        """Retrieve the encrypted password from the database when available."""
+        stored_password = self.dao.get_config("remote_password")
+        if not stored_password:
+            return ""
+        key = f"{self.remote_user}{self.server_url}"
+        try:
+            return force_decode(decrypt(stored_password, key))
+        except Exception:
+            return ""
+
+    def _save_password(self, password: str) -> None:
+        """Store an encrypted password for backends requiring periodic re-auth."""
+        if not password:
+            return
+        key = f"{self.remote_user}{self.server_url}"
+        secure_password = force_decode(encrypt(password, key))
+        self.dao.update_config("remote_password", secure_password)
+
     def _load_configuration(self) -> None:
         self._web_authentication = self.dao.get_bool("web_authentication")
         self.server_url = self.dao.get_config("server_url")
@@ -1049,6 +1096,9 @@ class Engine(QObject):
         self.wui = self.dao.get_config("ui", default="web")
         self.force_ui = self.dao.get_config("force_ui")
         self.remote_user = self.dao.get_config("remote_user")
+        self._remote_password = self._load_password()
+        if not self._remote_password:
+            self._remote_password = os.getenv("NXDRIVE_TEST_PASSWORD", "")
         self._remote_token = self._load_token()
 
         if not self._remote_token:
@@ -1414,6 +1464,7 @@ class Engine(QObject):
         self.dao.store_bool("web_authentication", self._web_authentication)
         self.dao.update_config("server_url", self.server_url)
         self.dao.update_config("remote_user", self.remote_user)
+        self._save_password(self._remote_password)
         self._save_token(self._remote_token)
 
         # Check for the root

@@ -58,6 +58,11 @@ class RemoteWatcher(EngineWorker):
             "remote_last_full_scan"
         )
 
+    @staticmethod
+    def _join_remote_parent_path(parent_path: Optional[str], remote_ref: str, /) -> str:
+        """Build a stable remote parent path even when DB parent is null."""
+        return f"{parent_path or ''}/{remote_ref}"
+
     def get_metrics(self) -> Metrics:
         metrics = super().get_metrics()
         metrics["last_remote_sync_date"] = self._last_sync_date
@@ -163,8 +168,8 @@ class RemoteWatcher(EngineWorker):
         if parent_pair is None:
             return
         local_path = parent_pair.local_path / safe_filename(child_info.name)
-        remote_parent_path = (
-            parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
+        remote_parent_path = self._join_remote_parent_path(
+            parent_pair.remote_parent_path, parent_pair.remote_ref
         )
         if os.path.dirname(child_info.path) == remote_parent_path:
             row_id = self.dao.insert_remote_state(
@@ -448,7 +453,9 @@ class RemoteWatcher(EngineWorker):
             )
             return None
 
-        remote_parent_path = doc_pair.remote_parent_path + "/" + remote_info.uid
+        remote_parent_path = self._join_remote_parent_path(
+            doc_pair.remote_parent_path, remote_info.uid
+        )
         if self.dao.is_path_scanned(remote_parent_path):
             log.debug(f"Skip already remote scanned: {doc_pair.local_path!r}")
             return None
@@ -477,8 +484,8 @@ class RemoteWatcher(EngineWorker):
             return None
 
         local_path = parent_pair.local_path / safe_filename(child_info.name)
-        remote_parent_path = (
-            parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
+        remote_parent_path = self._join_remote_parent_path(
+            parent_pair.remote_parent_path, parent_pair.remote_ref
         )
         # Try to get the local definition if not linked
         child_pair = self.dao.get_state_from_local(local_path)
@@ -893,7 +900,9 @@ class RemoteWatcher(EngineWorker):
                                 new_info.name,
                                 new_info.uid,
                                 doc_pair.remote_parent_ref,
-                                doc_pair.remote_parent_path + "/" + remote_ref,
+                                self._join_remote_parent_path(
+                                    doc_pair.remote_parent_path, remote_ref
+                                ),
                                 new_info.folderish,
                                 new_info.last_modification_time,
                                 new_info.creation_time,

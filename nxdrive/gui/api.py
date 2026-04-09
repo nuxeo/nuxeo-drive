@@ -791,6 +791,20 @@ class QMLDriveApi(QObject):
     def web_authentication(
         self, server_url: str, local_folder: str, use_legacy_auth: bool, /
     ) -> None:
+        backend = getenv("NXDRIVE_REMOTE_BACKEND") or getattr(
+            Options, "remote_backend", "nuxeo"
+        )
+        if backend.lower() == "alfresco":
+            callback_params = {
+                "local_folder": local_folder,
+                "server_url": server_url,
+                "engine_type": urlsplit(server_url).fragment or DEFAULT_SERVER_TYPE,
+            }
+            # Alfresco does not use Nuxeo browser-token startup pages.
+            # Reuse the app dialog flow to ask username/password directly.
+            self.openAuthenticationDialog.emit(server_url, callback_params)
+            return
+
         # Handle local folder
         if not self._manager.check_local_folder_available(
             normalized_path(local_folder)

@@ -271,6 +271,7 @@ class MetaOptions(type):
         "proxy_server": (None, "default"),
         "remote_repo": ("default", "default"),
         "res_dir": (_get_resources_dir(), "default"),
+        "remote_backend": ("nuxeo", "default"),
         "session_uid": (str(uuid4()), "default"),
         "shared_folder_navigation": (False, "default"),
         "ssl_no_verify": (False, "default"),
@@ -678,9 +679,9 @@ Options.checkers["tmp_file_limit"] = validate_tmp_file_limit
 Options.checkers["ca_bundle"] = validate_ca_bundle_path
 Options.checkers["cert_file"] = validate_cert_path
 Options.checkers["cert_key_file"] = validate_cert_path
-Options.checkers["direct_transfer_file_upper_limit"] = (
-    validate_direct_transfer_file_upper_limit
-)
-Options.checkers["direct_transfer_folder_upper_limit"] = (
-    validate_direct_transfer_folder_upper_limit
-)
+Options.checkers[
+    "direct_transfer_file_upper_limit"
+] = validate_direct_transfer_file_upper_limit
+Options.checkers[
+    "direct_transfer_folder_upper_limit"
+] = validate_direct_transfer_folder_upper_limit
