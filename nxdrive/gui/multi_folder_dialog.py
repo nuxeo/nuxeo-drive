@@ -15,11 +15,14 @@ from nxdrive.qt.imports import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QListWidget,
     QPushButton,
     QSizePolicy,
     QTreeView,
     QVBoxLayout,
 )
+
+from ..constants import LINUX, MAC, WINDOWS
 
 log = getLogger(__name__)
 
@@ -30,7 +33,7 @@ class MultiFolderDialog(QDialog):
         self.setWindowTitle("Select Files/Folders")
 
         # Set minimum size
-        self.setMinimumSize(500, 450)
+        self.setMinimumSize(700, 450)
 
         layout = QVBoxLayout(self)
         path_layout = QHBoxLayout()
@@ -76,6 +79,12 @@ class MultiFolderDialog(QDialog):
             lambda _: self.tree.resizeColumnToContents(0)
         )
 
+        view_layout = QHBoxLayout()
+        panel_layout = QVBoxLayout()
+
+        panel_layout.addWidget(self.panel_locations())
+        view_layout.addLayout(panel_layout)
+
         # Create a tree view and set the model
         self.tree = QTreeView()
         self.tree.setModel(self.model)
@@ -92,7 +101,9 @@ class MultiFolderDialog(QDialog):
         self.tree.collapsed.connect(lambda _: self.tree.resizeColumnToContents(0))
 
         # Add the tree view to the layout
-        layout.addWidget(self.tree)
+        view_layout.addWidget(self.tree)
+
+        layout.addLayout(view_layout)
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
@@ -172,3 +183,82 @@ class MultiFolderDialog(QDialog):
             return
 
         self.path_bar.setText(str(parent_path))
+
+    def navigate_to_location(self, item) -> None:
+        location = item.text()
+        # MacOS paths
+        if MAC:
+            if location == "Applications":
+                applications_path = "/Applications"
+                self.path_bar.setText(applications_path)
+            elif location == "Desktop":
+                desktop_path = QDir.homePath() + "/Desktop"
+                self.path_bar.setText(desktop_path)
+            elif location == "Documents":
+                documents_path = QDir.homePath() + "/Documents"
+                self.path_bar.setText(documents_path)
+            elif location == "Downloads":
+                downloads_path = QDir.homePath() + "/Downloads"
+                self.path_bar.setText(downloads_path)
+            elif location == "Pictures":
+                pictures_path = QDir.homePath() + "/Pictures"
+                self.path_bar.setText(pictures_path)
+            elif location == "Music":
+                music_path = QDir.homePath() + "/Music"
+                self.path_bar.setText(music_path)
+            elif location == "Movies":
+                movies_path = QDir.homePath() + "/Movies"
+                self.path_bar.setText(movies_path)
+        # Windows paths
+        elif WINDOWS:
+            if location == "Desktop":
+                desktop_path = QDir.homePath() + "/Desktop"
+                self.path_bar.setText(desktop_path)
+            elif location == "Downloads":
+                downloads_path = QDir.homePath() + "/Downloads"
+                self.path_bar.setText(downloads_path)
+            elif location == "Documents":
+                documents_path = QDir.homePath() + "/Documents"
+                self.path_bar.setText(documents_path)
+            elif location == "Pictures":
+                pictures_path = QDir.homePath() + "/Pictures"
+                self.path_bar.setText(pictures_path)
+            elif location == "Music":
+                music_path = QDir.homePath() + "/Music"
+                self.path_bar.setText(music_path)
+            elif location == "Videos":
+                videos_path = QDir.homePath() + "/Videos"
+                self.path_bar.setText(videos_path)
+            elif location == "C:\\":
+                c_drive_path = QDir.rootPath()
+                self.path_bar.setText(c_drive_path)
+        # Linux paths
+
+    def panel_locations(self) -> QListWidget:
+        locations = QListWidget()
+        if MAC:
+            locations.addItem("Applications")
+            locations.addItem("Desktop")
+            locations.addItem("Documents")
+            locations.addItem("Downloads")
+            locations.addItem("Pictures")
+            locations.addItem("Music")
+            locations.addItem("Movies")
+        elif WINDOWS:
+            locations.addItem("Desktop")
+            locations.addItem("Downloads")
+            locations.addItem("Documents")
+            locations.addItem("Pictures")
+            locations.addItem("Music")
+            locations.addItem("Videos")
+            locations.addItem("C:\\")
+        elif LINUX:
+            locations.addItem("Desktop")
+            locations.addItem("Documents")
+            locations.addItem("Downloads")
+
+        locations.setFixedWidth(80)
+        locations.setSpacing(3)
+        # Handle clicks on the locations list to navigate to the selected location
+        locations.itemClicked.connect(self.navigate_to_location)
+        return locations

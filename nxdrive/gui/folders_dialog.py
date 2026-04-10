@@ -362,16 +362,18 @@ class FoldersDialog(DialogMixin):
         hlayout.addWidget(self.local_path)
         hlayout.addWidget(self.local_paths_size_lbl)
 
-        files_button = QPushButton(Translator.get("ADD_FILES"), self)
-        files_button.clicked.connect(self._select_more_files)
-        # hlayout.addWidget(files_button) -- Disabled in favor of "Add files/folders" button
+        # -- Disabled in favor of "Add items" button
+        # files_button = QPushButton(Translator.get("ADD_FILES"), self)
+        # files_button.clicked.connect(self._select_more_files)
+        # hlayout.addWidget(files_button)
 
-        if self.engine.have_folder_upload:
-            folders_button = QPushButton(Translator.get("ADD_FOLDER"), self)
-            folders_button.clicked.connect(self._select_more_folder)
-            # hlayout.addWidget(folders_button) -- Disabled in favor of "Add files/folders" button
+        # -- Disabled in favor of "Add items" button
+        # if self.engine.have_folder_upload:
+        #     folders_button = QPushButton(Translator.get("ADD_FOLDER"), self)
+        #     folders_button.clicked.connect(self._select_more_folder)
+        #     hlayout.addWidget(folders_button)
 
-        upload_button = QPushButton("Add files/folders")
+        upload_button = QPushButton("Add items")
         upload_button.clicked.connect(self._select_files_and_folders)
         hlayout.addWidget(upload_button)
 
