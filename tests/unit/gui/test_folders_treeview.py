@@ -2,7 +2,6 @@
 
 from unittest.mock import MagicMock, Mock, patch
 
-
 _UNSET = object()  # sentinel for "use default MagicMock"
 
 
