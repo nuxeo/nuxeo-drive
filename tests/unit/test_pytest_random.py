@@ -204,48 +204,40 @@ def test_success(): assert True
 
 
 def test_bypass_on_passing_test(testdir):
-    testdir.makepyfile(
-        """
+    testdir.makepyfile("""
 import pytest
 @pytest.mark.randombug('NXDRIVE-0', mode='BYPASS')
 def test_success(): assert True
-"""
-    )
+""")
     result = testdir.runpytest()
     assert_outcomes(result, passed=0, skipped=1)
 
 
 def test_bypass_on_failing_test(testdir):
-    testdir.makepyfile(
-        """
+    testdir.makepyfile("""
 import pytest
 @pytest.mark.randombug('NXDRIVE-0', mode='BYPASS')
 def test_fail(): assert False
-"""
-    )
+""")
     result = testdir.runpytest()
     assert_outcomes(result, passed=0, skipped=1)
 
 
 def test_bypass_and_false_condition_on_passing_test(testdir):
-    testdir.makepyfile(
-        """
+    testdir.makepyfile("""
 import pytest
 @pytest.mark.randombug('NXDRIVE-0', condition=False, mode='BYPASS')
 def test_success(): assert True
-"""
-    )
+""")
     result = testdir.runpytest()
     assert_outcomes(result)
 
 
 def test_bypass_and_false_condition_on_failing_test(testdir):
-    testdir.makepyfile(
-        """
+    testdir.makepyfile("""
 import pytest
 @pytest.mark.randombug('NXDRIVE-0', condition=False, mode='BYPASS')
 def test_fail(): assert False
-"""
-    )
+""")
     result = testdir.runpytest()
     assert_outcomes(result, passed=0, failed=1)
