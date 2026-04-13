@@ -3,6 +3,7 @@ This module contains the implementation of the MultiFolderDialog class.
 This is a dialog for selecting multiple folders in the NxDrive application.
 """
 
+import subprocess
 from logging import getLogger
 from pathlib import Path
 
@@ -163,9 +164,8 @@ class MultiFolderDialog(QDialog):
         if index.column() == 0:
             folder_path = Path(self.model.filePath(index))
             if folder_path.is_dir():
-                # Show the contents of the clicked directory
-                self.tree.setRootIndex(index)
                 # Update the path bar to reflect the new directory
+                # This automatically triggers the path_changed method to update the tree view
                 self.path_bar.setText(str(folder_path))
 
     def go_home(self) -> None:
@@ -188,7 +188,10 @@ class MultiFolderDialog(QDialog):
         location = item.text()
         # MacOS paths
         if MAC:
-            if location == "Applications":
+            if location == "Home":
+                home_path = QDir.homePath()
+                self.path_bar.setText(home_path)
+            elif location == "Applications":
                 applications_path = "/Applications"
                 self.path_bar.setText(applications_path)
             elif location == "Desktop":
@@ -209,9 +212,17 @@ class MultiFolderDialog(QDialog):
             elif location == "Movies":
                 movies_path = QDir.homePath() + "/Movies"
                 self.path_bar.setText(movies_path)
+            elif location.startswith("Mount/"):
+                log.debug("Detecting mount points for MacOS")
+                mount_path = self.macos_mount_points().get(location)
+                if mount_path:
+                    self.path_bar.setText(mount_path)
         # Windows paths
         elif WINDOWS:
-            if location == "Desktop":
+            if location == "Home":
+                home_path = QDir.homePath()
+                self.path_bar.setText(home_path)
+            elif location == "Desktop":
                 desktop_path = QDir.homePath() + "/Desktop"
                 self.path_bar.setText(desktop_path)
             elif location == "Downloads":
@@ -234,28 +245,48 @@ class MultiFolderDialog(QDialog):
                 self.path_bar.setText(c_drive_path)
         # Linux paths
 
+    def macos_mount_points(self) -> dict[str, str]:
+        output = subprocess.check_output(["mount"]).decode("utf-8")
+        mounts = {}
+        for line in output.splitlines():
+            line = line.split(" on ")[1]
+            if line.startswith("/Volumes/"):
+                name = "Mount/" + (line.split(" (")[0].split("/Volumes/")[1])
+                path = line.split(" (")[0]
+                mounts.update({name: path})
+        return mounts
+
     def panel_locations(self) -> QListWidget:
         locations = QListWidget()
         if MAC:
-            locations.addItem("Applications")
-            locations.addItem("Desktop")
-            locations.addItem("Documents")
-            locations.addItem("Downloads")
-            locations.addItem("Pictures")
-            locations.addItem("Music")
-            locations.addItem("Movies")
+            locations.addItems(
+                [
+                    "Home",
+                    "Applications",
+                    "Desktop",
+                    "Documents",
+                    "Downloads",
+                    "Pictures",
+                    "Music",
+                    "Movies",
+                    *self.macos_mount_points().keys(),
+                ]
+            )
         elif WINDOWS:
-            locations.addItem("Desktop")
-            locations.addItem("Downloads")
-            locations.addItem("Documents")
-            locations.addItem("Pictures")
-            locations.addItem("Music")
-            locations.addItem("Videos")
-            locations.addItem("C:\\")
+            locations.addItems(
+                [
+                    "Home",
+                    "Desktop",
+                    "Downloads",
+                    "Documents",
+                    "Pictures",
+                    "Music",
+                    "Videos",
+                    "C:\\",
+                ]
+            )
         elif LINUX:
-            locations.addItem("Desktop")
-            locations.addItem("Documents")
-            locations.addItem("Downloads")
+            locations.addItems(["Home", "Desktop", "Documents", "Downloads"])
 
         locations.setFixedWidth(80)
         locations.setSpacing(3)
