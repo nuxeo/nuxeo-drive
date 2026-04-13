@@ -3,6 +3,7 @@ This module contains the implementation of the MultiFolderDialog class.
 This is a dialog for selecting multiple folders in the NxDrive application.
 """
 
+import string
 import subprocess
 from logging import getLogger
 from pathlib import Path
@@ -24,6 +25,9 @@ from nxdrive.qt.imports import (
 )
 
 from ..constants import LINUX, MAC, WINDOWS
+
+if WINDOWS:
+    from ctypes import windll
 
 log = getLogger(__name__)
 
@@ -188,61 +192,47 @@ class MultiFolderDialog(QDialog):
         location = item.text()
         # MacOS paths
         if MAC:
-            if location == "Home":
-                home_path = QDir.homePath()
-                self.path_bar.setText(home_path)
-            elif location == "Applications":
-                applications_path = "/Applications"
-                self.path_bar.setText(applications_path)
-            elif location == "Desktop":
-                desktop_path = QDir.homePath() + "/Desktop"
-                self.path_bar.setText(desktop_path)
-            elif location == "Documents":
-                documents_path = QDir.homePath() + "/Documents"
-                self.path_bar.setText(documents_path)
-            elif location == "Downloads":
-                downloads_path = QDir.homePath() + "/Downloads"
-                self.path_bar.setText(downloads_path)
-            elif location == "Pictures":
-                pictures_path = QDir.homePath() + "/Pictures"
-                self.path_bar.setText(pictures_path)
-            elif location == "Music":
-                music_path = QDir.homePath() + "/Music"
-                self.path_bar.setText(music_path)
-            elif location == "Movies":
-                movies_path = QDir.homePath() + "/Movies"
-                self.path_bar.setText(movies_path)
-            elif location.startswith("Mount/"):
-                log.debug("Detecting mount points for MacOS")
-                mount_path = self.macos_mount_points().get(location)
-                if mount_path:
-                    self.path_bar.setText(mount_path)
+            match location:
+                case "Home":
+                    self.path_bar.setText(QDir.homePath())
+                case "Applications":
+                    self.path_bar.setText("/Applications")
+                case "Desktop":
+                    self.path_bar.setText(QDir.homePath() + "/Desktop")
+                case "Documents":
+                    self.path_bar.setText(QDir.homePath() + "/Documents")
+                case "Downloads":
+                    self.path_bar.setText(QDir.homePath() + "/Downloads")
+                case "Pictures":
+                    self.path_bar.setText(QDir.homePath() + "/Pictures")
+                case "Music":
+                    self.path_bar.setText(QDir.homePath() + "/Music")
+                case "Movies":
+                    self.path_bar.setText(QDir.homePath() + "/Movies")
+                case loc if loc.startswith("Mount/"):
+                    log.debug("Detecting mount points for MacOS")
+                    mount_path = self.macos_mount_points().get(location)
+                    if mount_path:
+                        self.path_bar.setText(mount_path)
         # Windows paths
         elif WINDOWS:
-            if location == "Home":
-                home_path = QDir.homePath()
-                self.path_bar.setText(home_path)
-            elif location == "Desktop":
-                desktop_path = QDir.homePath() + "/Desktop"
-                self.path_bar.setText(desktop_path)
-            elif location == "Downloads":
-                downloads_path = QDir.homePath() + "/Downloads"
-                self.path_bar.setText(downloads_path)
-            elif location == "Documents":
-                documents_path = QDir.homePath() + "/Documents"
-                self.path_bar.setText(documents_path)
-            elif location == "Pictures":
-                pictures_path = QDir.homePath() + "/Pictures"
-                self.path_bar.setText(pictures_path)
-            elif location == "Music":
-                music_path = QDir.homePath() + "/Music"
-                self.path_bar.setText(music_path)
-            elif location == "Videos":
-                videos_path = QDir.homePath() + "/Videos"
-                self.path_bar.setText(videos_path)
-            elif location == "C:\\":
-                c_drive_path = QDir.rootPath()
-                self.path_bar.setText(c_drive_path)
+            match location:
+                case "Home":
+                    self.path_bar.setText(QDir.homePath())
+                case "Desktop":
+                    self.path_bar.setText(QDir.homePath() + "/Desktop")
+                case "Downloads":
+                    self.path_bar.setText(QDir.homePath() + "/Downloads")
+                case "Documents":
+                    self.path_bar.setText(QDir.homePath() + "/Documents")
+                case "Pictures":
+                    self.path_bar.setText(QDir.homePath() + "/Pictures")
+                case "Music":
+                    self.path_bar.setText(QDir.homePath() + "/Music")
+                case "Videos":
+                    self.path_bar.setText(QDir.homePath() + "/Videos")
+                case loc if loc in self.get_windows_fixed_drives():
+                    self.path_bar.setText(loc)
         # Linux paths
 
     def macos_mount_points(self) -> dict[str, str]:
@@ -255,6 +245,19 @@ class MultiFolderDialog(QDialog):
                 path = line.split(" (")[0]
                 mounts.update({name: path})
         return mounts
+
+    def get_windows_fixed_drives(self) -> list[str]:
+        """Gets all available fixed disk drive letters on Windows."""
+        DRIVE_FIXED = 3
+        drives = []
+        bitmask = windll.kernel32.GetLogicalDrives()
+        for letter in string.ascii_uppercase:
+            if bitmask & 1:
+                root = f"{letter}:\\"
+                if windll.kernel32.GetDriveTypeW(root) == DRIVE_FIXED:
+                    drives.append(root)
+            bitmask >>= 1
+        return drives
 
     def panel_locations(self) -> QListWidget:
         locations = QListWidget()
@@ -282,7 +285,7 @@ class MultiFolderDialog(QDialog):
                     "Pictures",
                     "Music",
                     "Videos",
-                    "C:\\",
+                    *self.get_windows_fixed_drives(),
                 ]
             )
         elif LINUX:
