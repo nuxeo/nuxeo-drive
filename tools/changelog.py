@@ -71,8 +71,7 @@ def debug(*args, **kwargs):
 def examples():
     """Print several examples."""
 
-    print(
-        """
+    print("""
 Example {}: changelog.py
 
     Print changelog of commits from HEAD to the latest release tag.
@@ -114,10 +113,7 @@ Example {}: changelog.py -- --since=2017-03-16 --until=2017-03-28 --author="Mick
 
     Print changelog of commits between the dates on the master branch for a given author.
     Useful for sprint reports.
-""".format(
-            *range(1, 42)
-        ).strip()
-    )  # noqa
+""".format(*range(1, 42)).strip())  # noqa
 
 
 def get_latest_tag():
