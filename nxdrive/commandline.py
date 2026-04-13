@@ -1,4 +1,4 @@
-""" Utilities to operate Nuxeo Drive from the command line. """
+"""Utilities to operate Nuxeo Drive from the command line."""
 
 import faulthandler
 import os

@@ -1,4 +1,4 @@
-""" Python integration macOS notification center. """
+"""Python integration macOS notification center."""
 
 from typing import TYPE_CHECKING, Dict
 
