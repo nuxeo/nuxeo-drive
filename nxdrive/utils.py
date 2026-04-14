@@ -6,6 +6,7 @@ Most of functions are pure enough to be decorated with a LRU cache.
 Each *maxsize* is adjusted depending of the heavy use of the decorated function.
 """
 
+import base64
 import os
 import os.path
 import re
@@ -988,6 +989,46 @@ def parse_edit_protocol(
     }
 
 
+def decompress_download_url(compressed_url: str, /) -> str:
+    """
+    Decompress a binary-packed direct-download URL.
+
+    Format: nxdrive://direct-download/<base64-payload>
+    Payload: [scheme:1][server_len:1][server:N][uuid_count:1][uuids:16*N]
+
+    :param compressed_url: The compressed URL to decompress
+    :return: The decompressed URL in original format
+    """
+    compressed = compressed_url.replace("nxdrive://direct-download/", "")
+
+    # Add padding if needed for base64 decoding
+    padding = 4 - len(compressed) % 4
+    if padding != 4:
+        compressed += "=" * padding
+
+    payload = base64.urlsafe_b64decode(compressed)
+
+    scheme = "https" if payload[0] == 1 else "http"
+    server_len = payload[1]
+    server = payload[2 : 2 + server_len].decode("utf-8")
+    uuid_count = payload[2 + server_len]
+    uuid_start = 3 + server_len
+
+    uuids = []
+    for i in range(uuid_count):
+        offset = uuid_start + (i * 16)
+        uuid_bytes = payload[offset : offset + 16]
+        hex_str = uuid_bytes.hex()
+        uuid = (
+            f"{hex_str[:8]}-{hex_str[8:12]}-{hex_str[12:16]}-"
+            f"{hex_str[16:20]}-{hex_str[20:]}"
+        )
+        uuids.append(uuid)
+
+    uuid_str = " || ".join(uuids)
+    return f"nxdrive://direct-download/{scheme}/{server}/{uuid_str}"
+
+
 def parse_download_protocol(
     parsed_url: Dict[str, str], url_string: str, /
 ) -> Dict[str, Any]:
@@ -1008,6 +1049,20 @@ def parse_download_protocol(
 
     # Remove the protocol prefix to get the document paths
     url_without_prefix = url_string.replace("nxdrive://direct-download/", "", 1)
+
+    # Detect and decompress if URL is in compressed format
+    # Compressed URLs don't start with http/https - they're base64 encoded
+    if url_without_prefix and not url_without_prefix.lower().startswith(
+        ("http/", "https/")
+    ):
+        try:
+            decompressed_url = decompress_download_url(url_string)
+            url_without_prefix = decompressed_url.replace(
+                "nxdrive://direct-download/", "", 1
+            )
+            log.debug(f"Decompressed URL: {url_without_prefix}")
+        except Exception as e:
+            log.warning(f"Failed to decompress URL, treating as original format: {e}")
 
     # Split by ' || ' to get all document paths
     doc_paths = url_without_prefix.split(" || ")
