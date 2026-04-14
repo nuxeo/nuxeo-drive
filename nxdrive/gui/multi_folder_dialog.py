@@ -14,12 +14,15 @@ from nxdrive.qt.imports import (
     QDialogButtonBox,
     QDir,
     QFileSystemModel,
+    QFont,
+    QFontMetricsF,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QListWidget,
     QPushButton,
     QSizePolicy,
+    Qt,
     QTreeView,
     QVBoxLayout,
 )
@@ -33,16 +36,31 @@ if WINDOWS:
 log = getLogger(__name__)
 
 
+class CenteredHeaderFileSystemModel(QFileSystemModel):
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.TextAlignmentRole:
+            return Qt.AlignmentFlag.AlignCenter
+        return super().headerData(section, orientation, role)
+
+
 class MultiFolderDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Select Files/Folders")
 
+        # Load QSS stylesheet
+        qss_path = Path(__file__).parent / "multi_folder_dialog.qss"
+        if qss_path.exists():
+            self.setStyleSheet(qss_path.read_text(encoding="utf-8"))
+
         # Set minimum size
         self.setMinimumSize(700, 450)
 
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(6)
         path_layout = QHBoxLayout()
+        path_layout.setSpacing(4)
         bottom_layout = QHBoxLayout()
 
         # Show hidden files checkbox
@@ -76,7 +94,7 @@ class MultiFolderDialog(QDialog):
         layout.addWidget(self.label)
 
         # File System Model
-        self.model = QFileSystemModel()
+        self.model = CenteredHeaderFileSystemModel()
         self.model.setRootPath(QDir.homePath())
 
         # Allow files and directories except '.' and '..'
@@ -86,7 +104,9 @@ class MultiFolderDialog(QDialog):
         )
 
         view_layout = QHBoxLayout()
+        view_layout.setSpacing(6)
         panel_layout = QVBoxLayout()
+        panel_layout.setSpacing(4)
 
         panel_layout.addWidget(self.panel_locations())
         view_layout.addLayout(panel_layout)
@@ -111,6 +131,7 @@ class MultiFolderDialog(QDialog):
 
         layout.addLayout(view_layout)
 
+        bottom_layout.setContentsMargins(0, 6, 0, 0)
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
@@ -325,8 +346,63 @@ class MultiFolderDialog(QDialog):
         elif LINUX:
             locations.addItems(["Home", "Desktop", "Documents", "Downloads"])
 
-        locations.setFixedWidth(80)
+        # Compute width based on longest item text (using bold font for hover/selection)
+        bold_font = QFont(locations.font())
+        bold_font.setBold(True)
+        fm = QFontMetricsF(bold_font)
+        max_text_width = 0
+        for i in range(locations.count()):
+            item = locations.item(i)
+            if item:
+                text_width = fm.horizontalAdvance(item.text())
+                if text_width > max_text_width:
+                    max_text_width = text_width
+        # Add padding for item padding (8px*2) + list padding (4px*2) + scrollbar margin + extra
+        panel_width = int(max_text_width) + 8 * 2 + 4 * 2 + 20
+        locations.setFixedWidth(max(80, panel_width))
         locations.setSpacing(3)
+        # Enable mouse tracking for hover detection
+        locations.setMouseTracking(True)
+        self._hovered_item = None
+        locations.itemEntered.connect(self._on_item_hover)
+        locations.itemSelectionChanged.connect(
+            lambda: self._on_selection_changed(locations)
+        )
+        viewport = locations.viewport()
+        if viewport:
+            viewport.installEventFilter(self)
+        self._locations_widget = locations
         # Handle clicks on the locations list to navigate to the selected location
         locations.itemClicked.connect(self.navigate_to_location)
         return locations
+
+    def _set_item_bold(self, item, bold: bool) -> None:
+        font = item.font()
+        font.setBold(bold)
+        item.setFont(font)
+
+    def _on_item_hover(self, item) -> None:
+        # Restore previous hovered item (if not selected)
+        if self._hovered_item and self._hovered_item is not item:
+            if not self._hovered_item.isSelected():
+                self._set_item_bold(self._hovered_item, False)
+        self._set_item_bold(item, True)
+        self._hovered_item = item
+
+    def _on_selection_changed(self, locations: QListWidget) -> None:
+        for i in range(locations.count()):
+            item = locations.item(i)
+            if item:
+                self._set_item_bold(item, item.isSelected())
+
+    def eventFilter(self, a0, a1) -> bool:
+        # Clear hover bold when mouse leaves the list viewport
+        if (
+            hasattr(self, "_locations_widget")
+            and a0 is self._locations_widget.viewport()
+            and a1.type() == a1.Type.Leave
+        ):
+            if self._hovered_item and not self._hovered_item.isSelected():
+                self._set_item_bold(self._hovered_item, False)
+            self._hovered_item = None
+        return super().eventFilter(a0, a1)

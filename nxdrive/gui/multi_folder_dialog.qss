@@ -1,0 +1,29 @@
+QDialog {
+    padding: 8px;
+}
+QLineEdit {
+    padding: 4px 6px;
+    margin: 2px;
+}
+QCheckBox {
+    padding: 4px;
+    margin: 2px 4px;
+}
+QLabel {
+    padding: 2px 0px;
+    margin: 2px 0px;
+}
+QTreeView {
+    padding: 2px;
+    margin: 2px;
+}
+QTreeView::item {
+    padding: 2px 4px;
+}
+QListWidget {
+    padding: 4px;
+    margin: 2px;
+}
+QListWidget::item {
+    padding: 4px 8px;
+}
