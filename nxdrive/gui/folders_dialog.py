@@ -1,3 +1,4 @@
+import datetime
 import os
 import webbrowser
 from logging import getLogger
@@ -11,6 +12,8 @@ from ..options import Options
 from ..qt import constants as qt
 from ..qt.imports import (
     QComboBox,
+    QDateTime,
+    QDateTimeEdit,
     QDialog,
     QDialogButtonBox,
     QEvent,
@@ -297,6 +300,7 @@ class FoldersDialog(DialogMixin):
         self.vertical_layout.addWidget(self._add_group_local())
         self.vertical_layout.addWidget(self._add_group_remote())
         self.vertical_layout.addWidget(self._add_group_options())
+        self.vertical_layout.addWidget(self._add_group_scheduler())
         self.vertical_layout.addWidget(self.button_box)
 
         # Compute overall size and count, and check the button state
@@ -307,6 +311,10 @@ class FoldersDialog(DialogMixin):
 
         self.tree_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree_view.customContextMenuRequested.connect(self.open_menu)
+
+        # Add a schedule parameter to schedule transfer
+        # Default value is -1, which means that the transfer will be processed immediately
+        self.scheduled_datetime = -1
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         # On user Esc keypress event, restore the maximized window. See NXDRIVE-2737 for details.
@@ -434,6 +442,33 @@ class FoldersDialog(DialogMixin):
 
         # Populate the remote folder with the previously selected, if any
         self.remote_folder.setText(self.last_remote_location)
+
+        return groupbox
+
+    def _update_scheduled_datetime(self, datetime: QDateTime) -> None:
+        """Update the scheduled datetime to transfer files."""
+        self.scheduled_datetime = datetime.toPyDateTime()
+        log.debug(
+            f"Scheduled datetime updated to: {self.scheduled_datetime.isoformat()!r}"
+        )
+
+    def _add_group_scheduler(self) -> QGroupBox:
+        """Group box for schedule transfer."""
+        groupbox = QGroupBox("Schedule transfer")
+        layout = QVBoxLayout()
+        groupbox.setLayout(layout)
+
+        # Create a datetime picker
+        datetime_picker = QDateTimeEdit()
+        datetime_picker.setCalendarPopup(True)
+        datetime_picker.setDateTime(QDateTime.currentDateTime())
+        datetime_picker.setMinimumDateTime(QDateTime.currentDateTime())
+        datetime_picker.setDisplayFormat("dd/MM/yyyy HH:mm:ss")
+
+        # Store the datetime when value is changed
+        datetime_picker.dateTimeChanged.connect(self._update_scheduled_datetime)
+
+        layout.addWidget(datetime_picker)
 
         return groupbox
 
@@ -607,17 +642,56 @@ class FoldersDialog(DialogMixin):
         )
         doc_type = self.get_known_type_key(False, doc_type)
         cont_type = self.get_known_type_key(True, cont_type)
-        self.engine.direct_transfer_async(
-            self.paths,
-            self.remote_folder.text(),
-            self.remote_folder_ref,
-            self.remote_folder_title,
-            document_type=doc_type,
-            container_type=cont_type,
-            duplicate_behavior=self.cb.currentData(),
-            last_local_selected_location=self.last_local_selected_location,
-            last_local_selected_doc_type=self.last_local_selected_doc_type,
-        )
+
+        # Check if scheduled datetime has been set
+        if (
+            self.scheduled_datetime != -1
+            and isinstance(self.scheduled_datetime, datetime.datetime)
+            and self.scheduled_datetime > datetime.datetime.now()
+        ):
+            from threading import Timer
+
+            # Store values of Qt elements
+            # This is needed so that values persist until the scheduled transfer is processed
+            paths = self.paths
+            remote_folder_text = self.remote_folder.text()
+            remote_folder_ref = self.remote_folder_ref
+            remote_folder_title = self.remote_folder_title
+            document_type = doc_type
+            container_type = cont_type
+            duplicate_behavior = self.cb.currentData()
+            last_local_selected_location = self.last_local_selected_location
+            last_local_selected_doc_type = self.last_local_selected_doc_type
+
+            timer = Timer(
+                (self.scheduled_datetime - datetime.datetime.now()).total_seconds(),
+                lambda: self.engine.direct_transfer_async(
+                    paths,
+                    remote_folder_text,
+                    remote_folder_ref,
+                    remote_folder_title,
+                    document_type=document_type,
+                    container_type=container_type,
+                    duplicate_behavior=duplicate_behavior,
+                    last_local_selected_location=last_local_selected_location,
+                    last_local_selected_doc_type=last_local_selected_doc_type,
+                ),
+            )
+            timer.start()
+            log.info(f"Scheduled transfer at {self.scheduled_datetime.isoformat()!r}")
+        else:
+            # Start transfer immediately if no valid scheduled datetime is set
+            self.engine.direct_transfer_async(
+                self.paths,
+                self.remote_folder.text(),
+                self.remote_folder_ref,
+                self.remote_folder_title,
+                document_type=doc_type,
+                container_type=cont_type,
+                duplicate_behavior=self.cb.currentData(),
+                last_local_selected_location=self.last_local_selected_location,
+                last_local_selected_doc_type=self.last_local_selected_doc_type,
+            )
 
     def button_ok_state(self) -> None:
         """Handle the state of the OK button. It should be enabled when particular criteria are met."""
