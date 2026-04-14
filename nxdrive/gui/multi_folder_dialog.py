@@ -27,6 +27,7 @@ from nxdrive.qt.imports import (
 from ..constants import LINUX, MAC, WINDOWS
 
 if WINDOWS:
+    import winreg
     from ctypes import windll
 
 log = getLogger(__name__)
@@ -233,6 +234,8 @@ class MultiFolderDialog(QDialog):
                     self.path_bar.setText(QDir.homePath() + "/Videos")
                 case loc if loc in self.get_windows_fixed_drives():
                     self.path_bar.setText(loc)
+                case loc if loc in self.get_windows_onedrive_paths():
+                    self.path_bar.setText(self.get_windows_onedrive_paths()[loc])
         # Linux paths
 
     def macos_mount_points(self) -> dict[str, str]:
@@ -245,6 +248,36 @@ class MultiFolderDialog(QDialog):
                 path = line.split(" (")[0]
                 mounts.update({name: path})
         return mounts
+
+    def get_windows_onedrive_paths(self) -> dict[str, str]:
+        """Gets all OneDrive folder paths from the Windows registry."""
+        onedrive_paths: dict[str, str] = {}
+        try:
+            reg_key = winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r"Software\Microsoft\OneDrive\Accounts",
+            )
+            i = 0
+            while True:
+                try:
+                    account_name = winreg.EnumKey(reg_key, i)
+                    account_key = winreg.OpenKey(reg_key, account_name)
+                    try:
+                        user_folder, _ = winreg.QueryValueEx(account_key, "UserFolder")
+                        if Path(user_folder).exists():
+                            folder_name = Path(user_folder).name
+                            onedrive_paths[folder_name] = user_folder
+                    except OSError:
+                        pass
+                    finally:
+                        winreg.CloseKey(account_key)
+                    i += 1
+                except OSError:
+                    break
+            winreg.CloseKey(reg_key)
+        except OSError:
+            pass
+        return onedrive_paths
 
     def get_windows_fixed_drives(self) -> list[str]:
         """Gets all available fixed disk drive letters on Windows."""
@@ -286,6 +319,7 @@ class MultiFolderDialog(QDialog):
                     "Music",
                     "Videos",
                     *self.get_windows_fixed_drives(),
+                    *self.get_windows_onedrive_paths().keys(),
                 ]
             )
         elif LINUX:
