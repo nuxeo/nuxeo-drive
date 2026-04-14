@@ -1131,18 +1131,22 @@ def _parse_single_document_path(
             "download_url": None,
         }
 
-    # Try super-simple format: https/server/UUID (no /nuxeo/nxdocid/)
-    # This matches: https/drive-2025.beta.nuxeocloud.com/3eebfb90-4e2c-4aa9-bf3f-b657c02572e1
+    # Try super-simple format: https/server/UUID or https/server/path/UUID
+    # This matches:
+    #   https/drive-2025.beta.nuxeocloud.com/3eebfb90-4e2c-4aa9-bf3f-b657c02572e1
+    #   https/drive-2025.beta.nuxeocloud.com/nuxeo/3eebfb90-4e2c-4aa9-bf3f-b657c02572e1
     super_simple_regex = (
-        rf"(?P<scheme>https?)/(?P<server>[^/]+)/(?P<docid>{uuid_pattern})$"
+        rf"(?P<scheme>https?)/(?P<server_and_path>.+)/(?P<docid>{uuid_pattern})$"
     )
 
     match = re.match(super_simple_regex, path, re.I)
     if match:
         parsed = match.groupdict()
         scheme = parsed["scheme"]
-        # Auto-append /nuxeo/ to the server URL
-        extracted_server_url = f"{scheme}://{parsed['server']}/nuxeo/"
+        server_and_path = parsed["server_and_path"].rstrip("/")
+        if not server_and_path.endswith("/nuxeo"):
+            server_and_path = f"{server_and_path}/nuxeo"
+        extracted_server_url = f"{scheme}://{server_and_path}/"
         log.debug(
             f"Super-simple format: server_url={extracted_server_url}, doc_id={parsed['docid']}"
         )
