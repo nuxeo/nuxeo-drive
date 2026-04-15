@@ -299,8 +299,21 @@ class MultiFolderDialog(QDialog):
     def _parse_sfl_file(sfl_path: Path) -> dict[str, str]:
         """Parse an SFL/SFL2/SFL3/SFL4 file and return {name: path} for valid favorites."""
         favorites = {}
-        with open(sfl_path, "rb") as f:
-            plist_data = plistlib.load(f)
+        try:
+            with open(sfl_path, "rb") as f:
+                plist_data = plistlib.load(f)
+        except PermissionError:
+            log.debug(
+                "Direct read of %s denied by TCC, trying plutil subprocess",
+                sfl_path,
+            )
+            plist_data = MultiFolderDialog._read_plist_via_plutil(sfl_path)
+            if plist_data is None:
+                log.error(
+                    "Cannot read Finder favorites: grant Full Disk Access to this "
+                    "app in System Settings > Privacy & Security > Full Disk Access"
+                )
+                return favorites
 
         # NSKeyedArchiver format (sfl3/sfl4): bookmark data is in $objects
         if "$objects" in plist_data:
@@ -321,6 +334,19 @@ class MultiFolderDialog(QDialog):
                     name = item.get("Name") or Path(path).name
                     favorites[name] = path
         return favorites
+
+    @staticmethod
+    def _read_plist_via_plutil(sfl_path: Path) -> dict | None:
+        """Read a binary plist file via the plutil system binary (TCC workaround)."""
+        try:
+            xml_bytes = subprocess.check_output(
+                ["plutil", "-convert", "xml1", "-o", "-", str(sfl_path)],
+                stderr=subprocess.DEVNULL,
+            )
+            return plistlib.loads(xml_bytes)
+        except (subprocess.CalledProcessError, Exception):
+            log.debug("plutil fallback also failed for %s", sfl_path, exc_info=True)
+            return None
 
     @staticmethod
     def _path_from_bookmark(data: bytes) -> str | None:
