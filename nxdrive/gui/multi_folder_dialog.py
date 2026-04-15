@@ -287,7 +287,11 @@ class MultiFolderDialog(QDialog):
                 try:
                     favorites = self._parse_sfl_file(sfl_path)
                 except Exception:
-                    log.debug("Failed to read %s", sfl_path, exc_info=True)
+                    log.error(
+                        "Failed to parse Finder favorites from %s",
+                        sfl_path,
+                        exc_info=True,
+                    )
                 break
         return favorites
 
@@ -435,6 +439,10 @@ class MultiFolderDialog(QDialog):
         if MAC:
             self._finder_favorites = self.macos_finder_favorites()
             if self._finder_favorites:
+                log.debug(
+                    "Using Finder favorites for sidebar: %s",
+                    list(self._finder_favorites.keys()),
+                )
                 # Use Finder favorites as primary, add Home and mounts, deduplicate
                 seen: set[str] = set()
                 items: list[str] = ["Home"]
@@ -448,6 +456,7 @@ class MultiFolderDialog(QDialog):
                         items.append(name)
                         seen.add(name)
             else:
+                log.error("Finder favorites unavailable, using fallback standard paths")
                 # Fallback to standard paths if Finder favorites unavailable
                 items = [
                     "Home",
