@@ -1097,11 +1097,11 @@ def _parse_single_document_path(
     """
     Parse a single document path from batch download URL.
 
-    Supports multiple formats:
+    Supports multiple formats (checked in this order):
     1. Simple UID: just a UUID (requires server_url parameter)
-    2. Super-simple format: https/server/UUID (auto-appends /nuxeo/ to server)
-    3. Simplified format: https/server/nuxeo/nxdocid/UUID (legacy, still supported)
-    4. Full format (legacy): https/server/.../user/.../nxdocid/UUID/filename/.../downloadUrl/...
+    2. Simplified format: https/server/nuxeo/nxdocid/UUID (legacy, still supported)
+    3. Full format (legacy): https/server/.../user/.../nxdocid/UUID/filename/.../downloadUrl/...
+    4. Super-simple format: https/server/UUID (auto-appends /nuxeo/ to server)
 
     :param path: The document path or UID to parse
     :param server_url: Server URL from previous document (for simple UID format)
@@ -1131,36 +1131,8 @@ def _parse_single_document_path(
             "download_url": None,
         }
 
-    # Try super-simple format: https/server/UUID or https/server/path/UUID
-    # This matches:
-    #   https/drive-2025.beta.nuxeocloud.com/3eebfb90-4e2c-4aa9-bf3f-b657c02572e1
-    #   https/drive-2025.beta.nuxeocloud.com/nuxeo/3eebfb90-4e2c-4aa9-bf3f-b657c02572e1
-    super_simple_regex = (
-        rf"(?P<scheme>https?)/(?P<server_and_path>.+)/(?P<docid>{uuid_pattern})$"
-    )
-
-    match = re.match(super_simple_regex, path, re.I)
-    if match:
-        parsed = match.groupdict()
-        scheme = parsed["scheme"]
-        server_and_path = parsed["server_and_path"].rstrip("/")
-        if not server_and_path.endswith("/nuxeo"):
-            server_and_path = f"{server_and_path}/nuxeo"
-        extracted_server_url = f"{scheme}://{server_and_path}/"
-        log.debug(
-            f"Super-simple format: server_url={extracted_server_url}, doc_id={parsed['docid']}"
-        )
-
-        return {
-            "server_url": extracted_server_url,
-            "doc_id": parsed["docid"],
-            "user": None,
-            "repo": None,
-            "filename": None,
-            "download_url": None,
-        }
-
     # Try simplified format (legacy): https/server/nuxeo/nxdocid/UUID
+    # Must be checked before super-simple to avoid greedy match on /nxdocid/ path
     simple_regex = (
         r"(?P<scheme>https?)/(?P<server>.*?)/"
         r"nxdocid/(?P<docid>[0-9a-fA-F\-]+)/?(?:\?.*)?$"
@@ -1194,25 +1166,54 @@ def _parse_single_document_path(
     )
 
     match = re.match(full_regex, path, re.I)
-    if not match:
-        log.warning(f"Failed to parse document path: {path!r}")
-        return None
+    if match:
+        parsed = match.groupdict()
+        scheme = parsed["scheme"]
+        server_part = parsed["server"].rstrip("/")
+        if not server_part.endswith("/nuxeo"):
+            server_part = f"{server_part}/nuxeo"
+        extracted_server_url = f"{scheme}://{server_part}/"
 
-    parsed = match.groupdict()
-    scheme = parsed["scheme"]
-    server_part = parsed["server"].rstrip("/")
-    if not server_part.endswith("/nuxeo"):
-        server_part = f"{server_part}/nuxeo"
-    extracted_server_url = f"{scheme}://{server_part}/"
+        return {
+            "server_url": extracted_server_url,
+            "user": parsed["username"],
+            "repo": parsed["repo"],
+            "doc_id": parsed["docid"],
+            "filename": parsed["filename"],
+            "download_url": parsed["download"],
+        }
 
-    return {
-        "server_url": extracted_server_url,
-        "user": parsed["username"],
-        "repo": parsed["repo"],
-        "doc_id": parsed["docid"],
-        "filename": parsed["filename"],
-        "download_url": parsed["download"],
-    }
+    # Try super-simple format: https/server/UUID or https/server/path/UUID
+    # This matches:
+    #   https/drive-2025.beta.nuxeocloud.com/3eebfb90-4e2c-4aa9-bf3f-b657c02572e1
+    #   https/drive-2025.beta.nuxeocloud.com/nuxeo/3eebfb90-4e2c-4aa9-bf3f-b657c02572e1
+    super_simple_regex = (
+        rf"(?P<scheme>https?)/(?P<server_and_path>.+)/(?P<docid>{uuid_pattern})$"
+    )
+
+    match = re.match(super_simple_regex, path, re.I)
+    if match:
+        parsed = match.groupdict()
+        scheme = parsed["scheme"]
+        server_and_path = parsed["server_and_path"].rstrip("/")
+        if not server_and_path.endswith("/nuxeo"):
+            server_and_path = f"{server_and_path}/nuxeo"
+        extracted_server_url = f"{scheme}://{server_and_path}/"
+        log.debug(
+            f"Super-simple format: server_url={extracted_server_url}, doc_id={parsed['docid']}"
+        )
+
+        return {
+            "server_url": extracted_server_url,
+            "doc_id": parsed["docid"],
+            "user": None,
+            "repo": None,
+            "filename": None,
+            "download_url": None,
+        }
+
+    log.warning(f"Failed to parse document path: {path!r}")
+    return None
 
 
 def set_path_readonly(path: Path, /) -> None:
