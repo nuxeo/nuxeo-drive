@@ -24,6 +24,8 @@ from nxdrive.qt.imports import (
     QListWidget,
     QPushButton,
     QSizePolicy,
+    QStandardItem,
+    QStandardItemModel,
     Qt,
     QTreeView,
     QVBoxLayout,
@@ -49,6 +51,7 @@ class MultiFolderDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Select Files/Folders")
+        self._in_tag_mode = False
 
         # Load QSS stylesheet
         qss_path = Path(__file__).parent / "multi_folder_dialog.qss"
@@ -151,6 +154,19 @@ class MultiFolderDialog(QDialog):
         layout.addLayout(bottom_layout)
 
     def selected_paths(self) -> list[str]:
+        # Tag mode: paths stored as UserRole data on QStandardItemModel items
+        if self._in_tag_mode:
+            selection_model = self.tree.selectionModel()
+            if not selection_model:
+                return []
+            paths = []
+            for index in selection_model.selectedIndexes():
+                if index.column() == 0:
+                    path = index.data(Qt.ItemDataRole.UserRole)
+                    if path:
+                        paths.append(path)
+            return list(set(paths))
+
         selection_model = self.tree.selectionModel()
         if selection_model:
             indexes = selection_model.selectedIndexes()
@@ -171,7 +187,17 @@ class MultiFolderDialog(QDialog):
                 paths.append(path)
         return list(set(paths))  # remove duplicates
 
+    def _restore_filesystem_model(self) -> None:
+        """Switch back from tag mode to the normal filesystem model."""
+        if self._in_tag_mode:
+            self._in_tag_mode = False
+            self.tree.setModel(self.model)
+            self.model.directoryLoaded.connect(
+                lambda _: self.tree.resizeColumnToContents(0)
+            )
+
     def path_changed(self) -> None:
+        self._restore_filesystem_model()
         path = Path(self.path_bar.text())
         if path.exists():
             self.tree.setRootIndex(self.model.index(str(path)))
@@ -216,6 +242,10 @@ class MultiFolderDialog(QDialog):
         location = item.text()
         # MacOS paths
         if MAC:
+            # Tags are handled separately — don't restore filesystem model
+            is_tag = hasattr(self, "_finder_tags") and location in self._finder_tags
+            if not is_tag:
+                self._restore_filesystem_model()
             match location:
                 case "Home":
                     self.path_bar.setText(QDir.homePath())
@@ -242,6 +272,8 @@ class MultiFolderDialog(QDialog):
                     self, "_finder_favorites"
                 ) and loc in self._finder_favorites:
                     self.path_bar.setText(self._finder_favorites[loc])
+                case loc if hasattr(self, "_finder_tags") and loc in self._finder_tags:
+                    self._show_tagged_files(loc)
         # Windows paths
         elif WINDOWS:
             match location:
@@ -294,6 +326,69 @@ class MultiFolderDialog(QDialog):
                     )
                 break
         return favorites
+
+    @staticmethod
+    def macos_finder_tags() -> list[str]:
+        """Gets the Finder favorite tag names on macOS."""
+        try:
+            output = subprocess.check_output(
+                ["defaults", "read", "com.apple.finder", "FavoriteTagNames"],
+                stderr=subprocess.DEVNULL,
+            ).decode("utf-8")
+            # Parse the plist-style array output: lines between ( and )
+            tags: list[str] = []
+            for line in output.splitlines():
+                line = line.strip().rstrip(",")
+                if (
+                    line in ("(", ")", "")
+                    or line.startswith('"')
+                    and not line.strip('"')
+                ):
+                    continue
+                tag_name = line.strip('"')
+                if tag_name:
+                    tags.append(tag_name)
+            return tags
+        except Exception:
+            log.debug("Failed to read Finder tags", exc_info=True)
+            return []
+
+    def _show_tagged_files(self, tag_name: str) -> None:
+        """Find files with the given macOS Finder tag and show only them in the tree."""
+        try:
+            output = subprocess.check_output(
+                ["mdfind", f'kMDItemUserTags == "{tag_name}"'],
+                stderr=subprocess.DEVNULL,
+                timeout=10,
+            ).decode("utf-8")
+            paths = [p for p in output.strip().splitlines() if p and Path(p).exists()]
+        except Exception:
+            log.error("Failed to find files for tag %r", tag_name, exc_info=True)
+            paths = []
+
+        # Build a QStandardItemModel with only the tagged files
+        tag_model = QStandardItemModel()
+        tag_model.setHorizontalHeaderLabels(["Name", "Path"])
+        for file_path in sorted(paths):
+            name_item = QStandardItem(Path(file_path).name)
+            name_item.setData(file_path, Qt.ItemDataRole.UserRole)
+            name_item.setEditable(False)
+            path_item = QStandardItem(file_path)
+            path_item.setEditable(False)
+            tag_model.appendRow([name_item, path_item])
+
+        self._in_tag_mode = True
+        self.tree.setModel(tag_model)
+        self.tree.resizeColumnToContents(0)
+        self.tree.resizeColumnToContents(1)
+
+        # Update path bar to indicate tag mode
+        self.path_bar.blockSignals(True)
+        self.path_bar.setText(f"Tag: {tag_name}")
+        self.path_bar.setStyleSheet("")
+        self.path_bar.blockSignals(False)
+
+        log.debug("Showing %d files for tag %r", len(paths), tag_name)
 
     @staticmethod
     def _parse_sfl_file(sfl_path: Path) -> dict[str, str]:
@@ -496,6 +591,14 @@ class MultiFolderDialog(QDialog):
                     *self.macos_mount_points().keys(),
                 ]
             locations.addItems(items)
+            # Add macOS Finder tags
+            tags = self.macos_finder_tags()
+            if tags:
+                self._finder_tags = tags
+                locations.addItems(tags)
+                log.debug("Added Finder tags to sidebar: %s", tags)
+            else:
+                self._finder_tags = []
         elif WINDOWS:
             locations.addItems(
                 [
