@@ -3,7 +3,9 @@ This module contains the implementation of the MultiFolderDialog class.
 This is a dialog for selecting multiple folders in the NxDrive application.
 """
 
+import plistlib
 import string
+import struct
 import subprocess
 from logging import getLogger
 from pathlib import Path
@@ -236,6 +238,10 @@ class MultiFolderDialog(QDialog):
                     mount_path = self.macos_mount_points().get(location)
                     if mount_path:
                         self.path_bar.setText(mount_path)
+                case loc if hasattr(
+                    self, "_finder_favorites"
+                ) and loc in self._finder_favorites:
+                    self.path_bar.setText(self._finder_favorites[loc])
         # Windows paths
         elif WINDOWS:
             match location:
@@ -269,6 +275,117 @@ class MultiFolderDialog(QDialog):
                 path = line.split(" (")[0]
                 mounts.update({name: path})
         return mounts
+
+    def macos_finder_favorites(self) -> dict[str, str]:
+        """Gets Finder sidebar favorite paths on macOS from the shared file list."""
+        favorites = {}
+        sfl_dir = Path.home() / "Library/Application Support/com.apple.sharedfilelist"
+        # Try sfl4, sfl3, sfl2 in order (newer macOS versions use higher numbers)
+        for suffix in ("sfl4", "sfl3", "sfl2"):
+            sfl_path = sfl_dir / f"com.apple.LSSharedFileList.FavoriteItems.{suffix}"
+            if sfl_path.exists():
+                try:
+                    favorites = self._parse_sfl_file(sfl_path)
+                except Exception:
+                    log.debug("Failed to read %s", sfl_path, exc_info=True)
+                break
+        return favorites
+
+    @staticmethod
+    def _parse_sfl_file(sfl_path: Path) -> dict[str, str]:
+        """Parse an SFL/SFL2/SFL3/SFL4 file and return {name: path} for valid favorites."""
+        favorites = {}
+        with open(sfl_path, "rb") as f:
+            plist_data = plistlib.load(f)
+
+        # NSKeyedArchiver format (sfl3/sfl4): bookmark data is in $objects
+        if "$objects" in plist_data:
+            objects = plist_data["$objects"]
+            for obj in objects:
+                if isinstance(obj, bytes) and len(obj) > 48 and obj[:4] == b"book":
+                    path = MultiFolderDialog._path_from_bookmark(obj)
+                    if path and Path(path).exists():
+                        favorites[Path(path).name] = path
+        # Older plain plist format (sfl2): items list with Bookmark key
+        elif "items" in plist_data:
+            for item in plist_data["items"]:
+                bookmark_data = item.get("Bookmark")
+                if not bookmark_data:
+                    continue
+                path = MultiFolderDialog._path_from_bookmark(bytes(bookmark_data))
+                if path and Path(path).exists():
+                    name = item.get("Name") or Path(path).name
+                    favorites[name] = path
+        return favorites
+
+    @staticmethod
+    def _path_from_bookmark(data: bytes) -> str | None:
+        """Extract file path from macOS bookmark binary data."""
+        try:
+            if len(data) < 48 or data[:4] != b"book":
+                return None
+
+            # Data start offset is stored at header byte 12 (LE uint32)
+            data_start = struct.unpack_from("<I", data, 12)[0]
+
+            # First 4 bytes of data area: offset to TOC (relative to data_start)
+            toc_offset = data_start + struct.unpack_from("<I", data, data_start)[0]
+            if toc_offset + 20 > len(data):
+                return None
+
+            # TOC header: size(4) + magic(4) + id(4) + next_toc(4) + num_entries(4)
+            num_entries = struct.unpack_from("<I", data, toc_offset + 16)[0]
+            if num_entries > 100:
+                return None
+
+            # Build record map: record_type -> offset from data_start
+            records: dict[int, int] = {}
+            pos = toc_offset + 20
+            for _ in range(num_entries):
+                if pos + 12 > len(data):
+                    break
+                rtype, roffset, _ = struct.unpack_from("<IIi", data, pos)
+                records[rtype] = roffset
+                pos += 12
+
+            def read_record(offset: int) -> tuple[bytes | None, int]:
+                abs_off = data_start + offset
+                if abs_off + 8 > len(data):
+                    return None, 0
+                length, dtype = struct.unpack_from("<II", data, abs_off)
+                if abs_off + 8 + length > len(data):
+                    return None, 0
+                return data[abs_off + 8 : abs_off + 8 + length], dtype
+
+            # 0x2002: volume path string
+            volume_path = "/"
+            if 0x2002 in records:
+                raw, dtype = read_record(records[0x2002])
+                if raw and dtype == 0x101:
+                    volume_path = raw.decode("utf-8", errors="replace")
+
+            # 0x1004: array of u32 offsets pointing to path component string records
+            if 0x1004 not in records:
+                return None
+            raw, dtype = read_record(records[0x1004])
+            if not raw or dtype != 0x601:
+                return None
+
+            components = []
+            for i in range(0, len(raw), 4):
+                if i + 4 > len(raw):
+                    break
+                comp_off = struct.unpack_from("<I", raw, i)[0]
+                comp_raw, comp_dtype = read_record(comp_off)
+                if comp_raw and comp_dtype == 0x101:
+                    components.append(comp_raw.decode("utf-8", errors="replace"))
+
+            if not components:
+                return None
+
+            return volume_path.rstrip("/") + "/" + "/".join(components)
+        except Exception:
+            return None
 
     def get_windows_onedrive_paths(self) -> dict[str, str]:
         """Gets all OneDrive folder paths from the Windows registry."""
@@ -316,8 +433,23 @@ class MultiFolderDialog(QDialog):
     def panel_locations(self) -> QListWidget:
         locations = QListWidget()
         if MAC:
-            locations.addItems(
-                [
+            self._finder_favorites = self.macos_finder_favorites()
+            if self._finder_favorites:
+                # Use Finder favorites as primary, add Home and mounts, deduplicate
+                seen: set[str] = set()
+                items: list[str] = ["Home"]
+                seen.add("Home")
+                for name in self._finder_favorites:
+                    if name not in seen:
+                        items.append(name)
+                        seen.add(name)
+                for name in self.macos_mount_points():
+                    if name not in seen:
+                        items.append(name)
+                        seen.add(name)
+            else:
+                # Fallback to standard paths if Finder favorites unavailable
+                items = [
                     "Home",
                     "Applications",
                     "Desktop",
@@ -328,7 +460,7 @@ class MultiFolderDialog(QDialog):
                     "Movies",
                     *self.macos_mount_points().keys(),
                 ]
-            )
+            locations.addItems(items)
         elif WINDOWS:
             locations.addItems(
                 [
