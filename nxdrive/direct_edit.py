@@ -282,6 +282,16 @@ class DirectEdit(Worker):
             if server_url == url and (not user or user == bind.username):
                 return engine
 
+        # Resolve user through the userid mapper (UUID → username)
+        if user:
+            for engine in self._manager.engines.copy().values():
+                bind = engine.get_binder()
+                server_url = simplify_url(bind.server_url.rstrip("/"))
+                if server_url == url and engine.remote:
+                    resolved = engine.remote.client.resolve_username(user)
+                    if resolved == bind.username:
+                        return engine
+
         # Some backend are case insensitive
         if not user:
             return None
