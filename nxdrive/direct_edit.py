@@ -311,7 +311,15 @@ class DirectEdit(Worker):
         engine = self.__get_engine(server_url, user=user)
 
         if not engine:
-            values = [force_decode(user) if user else "Unknown", server_url, APP_NAME]
+            # Resolve a potential UUID to a human-readable username
+            # so the error dialog never exposes raw UUIDs to users.
+            display_user = user
+            if user:
+                for eng in self._manager.engines.copy().values():
+                    if eng.remote:
+                        display_user = eng.remote.client.resolve_username(user)
+                        break
+            values = [force_decode(display_user) if display_user else "Unknown", server_url, APP_NAME]
             log.warning(
                 f"No engine found for user {user!r} on server {server_url!r}, "
                 f"doc_id={doc_id!r}"
