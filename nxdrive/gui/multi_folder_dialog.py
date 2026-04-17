@@ -10,6 +10,8 @@ import subprocess
 from logging import getLogger
 from pathlib import Path
 
+from PyQt6.QtWidgets import QListWidgetItem
+
 from nxdrive.qt.imports import (
     QCheckBox,
     QDialog,
@@ -18,11 +20,13 @@ from nxdrive.qt.imports import (
     QFileSystemModel,
     QFont,
     QFontMetricsF,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QListWidget,
     QPushButton,
+    QSize,
     QSizePolicy,
     QStandardItem,
     QStandardItemModel,
@@ -34,6 +38,7 @@ from nxdrive.qt.imports import (
 from ..constants import LINUX, MAC, WINDOWS
 
 if WINDOWS:
+    import ctypes
     import winreg
     from ctypes import windll
 
@@ -196,6 +201,17 @@ class MultiFolderDialog(QDialog):
                 lambda _: self.tree.resizeColumnToContents(0)
             )
 
+    def _show_empty_drive(self, drive_path: str) -> None:
+        """Show an empty QTreeView for a drive with no accessible content."""
+        empty_model = QStandardItemModel()
+        empty_model.setHorizontalHeaderLabels(["Name", "Size", "Type", "Date Modified"])
+        self._in_tag_mode = True
+        self.tree.setModel(empty_model)
+        self.path_bar.blockSignals(True)
+        self.path_bar.setText(drive_path)
+        self.path_bar.setStyleSheet("")
+        self.path_bar.blockSignals(False)
+
     def path_changed(self) -> None:
         self._restore_filesystem_model()
         path = Path(self.path_bar.text())
@@ -291,10 +307,22 @@ class MultiFolderDialog(QDialog):
                     self.path_bar.setText(QDir.homePath() + "/Music")
                 case "Videos":
                     self.path_bar.setText(QDir.homePath() + "/Videos")
-                case loc if loc in self.get_windows_fixed_drives():
+                case loc if loc in self._windows_fixed_drives:
                     self.path_bar.setText(loc)
-                case loc if loc in self.get_windows_onedrive_paths():
-                    self.path_bar.setText(self.get_windows_onedrive_paths()[loc])
+                case loc if loc in self._windows_onedrive_paths:
+                    self.path_bar.setText(self._windows_onedrive_paths[loc])
+                case loc if loc in self._windows_mountable_drives:
+                    drive_path = self._windows_mountable_drives[loc]
+                    try:
+                        has_content = Path(drive_path).exists() and any(
+                            Path(drive_path).iterdir()
+                        )
+                    except OSError:
+                        has_content = False
+                    if has_content:
+                        self.path_bar.setText(drive_path)
+                    else:
+                        self._show_empty_drive(drive_path)
         # Linux paths
 
     def macos_mount_points(self) -> dict[str, str]:
@@ -546,13 +574,45 @@ class MultiFolderDialog(QDialog):
         """Gets all available fixed disk drive letters on Windows."""
         DRIVE_FIXED = 3
         drives = []
-        bitmask = windll.kernel32.GetLogicalDrives()
-        for letter in string.ascii_uppercase:
-            if bitmask & 1:
-                root = f"{letter}:\\"
-                if windll.kernel32.GetDriveTypeW(root) == DRIVE_FIXED:
-                    drives.append(root)
-            bitmask >>= 1
+        try:
+            bitmask = windll.kernel32.GetLogicalDrives()
+            for letter in string.ascii_uppercase:
+                if bitmask & 1:
+                    root = f"{letter}:\\"
+                    if windll.kernel32.GetDriveTypeW(root) == DRIVE_FIXED:
+                        drives.append(root)
+                bitmask >>= 1
+        except Exception as ex:
+            log.error("Failed to get Windows fixed drives : %s", ex, exc_info=True)
+        return drives
+
+    def get_windows_mountable_drives(self) -> dict[str, str]:
+        """Gets all mountable drives (USB, DVD, external SSD) on Windows."""
+        DRIVE_REMOVABLE = 2
+        DRIVE_CDROM = 5
+        drives: dict[str, str] = {}
+        try:
+            bitmask = windll.kernel32.GetLogicalDrives()
+            for letter in string.ascii_uppercase:
+                if bitmask & 1:
+                    root = f"{letter}:\\"
+                    drive_type = windll.kernel32.GetDriveTypeW(root)
+                    if drive_type in (DRIVE_REMOVABLE, DRIVE_CDROM):
+                        # Try to get the volume label
+                        vol_name_buf = ctypes.create_unicode_buffer(261)
+                        result = windll.kernel32.GetVolumeInformationW(
+                            root, vol_name_buf, 261, None, None, None, None, 0
+                        )
+                        vol_label = (
+                            vol_name_buf.value if result and vol_name_buf.value else ""
+                        )
+                        display = (
+                            f"{vol_label} ({letter}:)" if vol_label else f"{letter}:\\"
+                        )
+                        drives[display] = root
+                bitmask >>= 1
+        except Exception as ex:
+            log.error("Failed to get Windows mountable drives : %s", ex, exc_info=True)
         return drives
 
     def panel_locations(self) -> QListWidget:
@@ -566,20 +626,21 @@ class MultiFolderDialog(QDialog):
                 )
                 # Use Finder favorites as primary, add Home and mounts, deduplicate
                 seen: set[str] = set()
-                items: list[str] = ["Home"]
+                fav_items: list[str] = ["Home"]
                 seen.add("Home")
                 for name in self._finder_favorites:
                     if name not in seen:
-                        items.append(name)
+                        fav_items.append(name)
                         seen.add(name)
+                mount_items: list[str] = []
                 for name in self.macos_mount_points():
                     if name not in seen:
-                        items.append(name)
+                        mount_items.append(name)
                         seen.add(name)
             else:
                 log.error("Finder favorites unavailable, using fallback standard paths")
                 # Fallback to standard paths if Finder favorites unavailable
-                items = [
+                fav_items = [
                     "Home",
                     "Applications",
                     "Desktop",
@@ -588,18 +649,26 @@ class MultiFolderDialog(QDialog):
                     "Pictures",
                     "Music",
                     "Movies",
-                    *self.macos_mount_points().keys(),
                 ]
-            locations.addItems(items)
-            # Add macOS Finder tags
+                mount_items = list(self.macos_mount_points().keys())
+            locations.addItems(fav_items)
+            # Add mount locations with a divider
+            if mount_items:
+                self._add_separator(locations)
+                locations.addItems(mount_items)
+            # Add macOS Finder tags with a divider
             tags = self.macos_finder_tags()
             if tags:
                 self._finder_tags = tags
+                self._add_separator(locations)
                 locations.addItems(tags)
                 log.debug("Added Finder tags to sidebar: %s", tags)
             else:
                 self._finder_tags = []
         elif WINDOWS:
+            self._windows_fixed_drives = self.get_windows_fixed_drives()
+            self._windows_onedrive_paths = self.get_windows_onedrive_paths()
+            self._windows_mountable_drives = self.get_windows_mountable_drives()
             locations.addItems(
                 [
                     "Home",
@@ -609,8 +678,9 @@ class MultiFolderDialog(QDialog):
                     "Pictures",
                     "Music",
                     "Videos",
-                    *self.get_windows_fixed_drives(),
-                    *self.get_windows_onedrive_paths().keys(),
+                    *self._windows_fixed_drives,
+                    *self._windows_onedrive_paths.keys(),
+                    *self._windows_mountable_drives.keys(),
                 ]
             )
         elif LINUX:
@@ -645,6 +715,24 @@ class MultiFolderDialog(QDialog):
         # Handle clicks on the locations list to navigate to the selected location
         locations.itemClicked.connect(self.navigate_to_location)
         return locations
+
+    @staticmethod
+    def _add_separator(locations: QListWidget) -> None:
+        """Add a horizontal divider item to the QListWidget."""
+        item = QListWidgetItem()
+        item.setFlags(Qt.ItemFlag.NoItemFlags)
+        item.setSizeHint(QSize(0, 12))
+        locations.addItem(item)
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        # Pick a contrasting separator color based on background luminance
+        bg = locations.palette().color(locations.backgroundRole())
+        luminance = 0.299 * bg.red() + 0.587 * bg.green() + 0.114 * bg.blue()
+        color = "#555555" if luminance > 128 else "#aaaaaa"
+        separator.setStyleSheet(f"border: none; border-top: 1px solid {color};")
+        separator.setObjectName("panelSeparator")
+        locations.setItemWidget(item, separator)
 
     def _set_item_bold(self, item, bold: bool) -> None:
         font = item.font()

@@ -27,3 +27,7 @@ QListWidget {
 QListWidget::item {
     padding: 4px 8px;
 }
+QFrame#panelSeparator {
+    margin: 2px 8px;
+    border: none;
+}
