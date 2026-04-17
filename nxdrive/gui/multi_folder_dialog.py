@@ -628,14 +628,15 @@ class MultiFolderDialog(QDialog):
                     "-Command",
                     "(New-Object -ComObject Shell.Application)"
                     ".Namespace('shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}')"
-                    ".Items() | ForEach-Object { $_.Path }",
+                    ".Items() | Where-Object { $_.IsFolder } "
+                    "| ForEach-Object { $_.Path }",
                 ],
                 stderr=subprocess.DEVNULL,
                 timeout=10,
             ).decode("utf-8", errors="replace")
             for line in output.strip().splitlines():
                 path = line.strip()
-                if path and Path(path).exists():
+                if path and Path(path).is_dir():
                     pinned[Path(path).name] = path
         except Exception:
             log.error("Failed to get Windows pinned items", exc_info=True)
