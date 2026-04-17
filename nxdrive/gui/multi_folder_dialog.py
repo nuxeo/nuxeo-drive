@@ -325,6 +325,8 @@ class MultiFolderDialog(QDialog):
                         self._show_empty_drive(drive_path)
                 case loc if loc in self._windows_pinned_items:
                     self.path_bar.setText(self._windows_pinned_items[loc])
+                case loc if loc in self._windows_network_locations:
+                    self.path_bar.setText(self._windows_network_locations[loc])
         # Linux paths
 
     def macos_mount_points(self) -> dict[str, str]:
@@ -642,6 +644,51 @@ class MultiFolderDialog(QDialog):
             log.error("Failed to get Windows pinned items", exc_info=True)
         return pinned
 
+    def get_windows_network_locations(self) -> dict[str, str]:
+        """Gets mapped network drives and UNC network connections on Windows."""
+        locations: dict[str, str] = {}
+        DRIVE_REMOTE = 4
+        try:
+            # Mapped network drives (e.g. Z:\)
+            bitmask = windll.kernel32.GetLogicalDrives()
+            for letter in string.ascii_uppercase:
+                if bitmask & 1:
+                    root = f"{letter}:\\"
+                    if windll.kernel32.GetDriveTypeW(root) == DRIVE_REMOTE:
+                        locations[f"{letter}:\\"] = root
+                bitmask >>= 1
+        except Exception:
+            log.error("Failed to get mapped network drives", exc_info=True)
+        try:
+            # UNC paths from Network Neighborhood via registry
+            reg_key = winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r"Network",
+            )
+            i = 0
+            while True:
+                try:
+                    drive_letter = winreg.EnumKey(reg_key, i)
+                    drive_key = winreg.OpenKey(reg_key, drive_letter)
+                    try:
+                        remote_path, _ = winreg.QueryValueEx(drive_key, "RemotePath")
+                        if remote_path:
+                            display = f"{drive_letter}: ({remote_path})"
+                            locations[display] = f"{drive_letter}:\\"
+                    except OSError:
+                        pass
+                    finally:
+                        winreg.CloseKey(drive_key)
+                    i += 1
+                except OSError:
+                    break
+            winreg.CloseKey(reg_key)
+        except OSError:
+            pass
+        except Exception:
+            log.error("Failed to get network locations from registry", exc_info=True)
+        return locations
+
     def panel_locations(self) -> QListWidget:
         locations = QListWidget()
         if MAC:
@@ -697,6 +744,7 @@ class MultiFolderDialog(QDialog):
             self._windows_onedrive_paths = self.get_windows_onedrive_paths()
             self._windows_mountable_drives = self.get_windows_mountable_drives()
             self._windows_pinned_items = self.get_windows_pinned_items()
+            self._windows_network_locations = self.get_windows_network_locations()
             if self._windows_pinned_items:
                 log.debug(
                     "Using Explorer pinned items for sidebar: %s",
@@ -726,6 +774,15 @@ class MultiFolderDialog(QDialog):
                 if drive_items:
                     self._add_separator(locations)
                     locations.addItems(drive_items)
+                # Add network locations with a divider
+                net_items: list[str] = []
+                for name in self._windows_network_locations:
+                    if name not in seen:
+                        net_items.append(name)
+                        seen.add(name)
+                if net_items:
+                    self._add_separator(locations)
+                    locations.addItems(net_items)
             else:
                 log.error(
                     "Explorer pinned items unavailable, using fallback standard paths"
@@ -742,6 +799,7 @@ class MultiFolderDialog(QDialog):
                         *self._windows_fixed_drives,
                         *self._windows_onedrive_paths.keys(),
                         *self._windows_mountable_drives.keys(),
+                        *self._windows_network_locations.keys(),
                     ]
                 )
         elif LINUX:
