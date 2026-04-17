@@ -323,6 +323,8 @@ class MultiFolderDialog(QDialog):
                         self.path_bar.setText(drive_path)
                     else:
                         self._show_empty_drive(drive_path)
+                case loc if loc in self._windows_pinned_items:
+                    self.path_bar.setText(self._windows_pinned_items[loc])
         # Linux paths
 
     def macos_mount_points(self) -> dict[str, str]:
@@ -615,6 +617,30 @@ class MultiFolderDialog(QDialog):
             log.error("Failed to get Windows mountable drives : %s", ex, exc_info=True)
         return drives
 
+    def get_windows_pinned_items(self) -> dict[str, str]:
+        """Gets Windows File Explorer Quick Access pinned folder paths."""
+        pinned: dict[str, str] = {}
+        try:
+            output = subprocess.check_output(
+                [
+                    "powershell",
+                    "-NoProfile",
+                    "-Command",
+                    "(New-Object -ComObject Shell.Application)"
+                    ".Namespace('shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}')"
+                    ".Items() | ForEach-Object { $_.Path }",
+                ],
+                stderr=subprocess.DEVNULL,
+                timeout=10,
+            ).decode("utf-8", errors="replace")
+            for line in output.strip().splitlines():
+                path = line.strip()
+                if path and Path(path).exists():
+                    pinned[Path(path).name] = path
+        except Exception:
+            log.error("Failed to get Windows pinned items", exc_info=True)
+        return pinned
+
     def panel_locations(self) -> QListWidget:
         locations = QListWidget()
         if MAC:
@@ -669,20 +695,54 @@ class MultiFolderDialog(QDialog):
             self._windows_fixed_drives = self.get_windows_fixed_drives()
             self._windows_onedrive_paths = self.get_windows_onedrive_paths()
             self._windows_mountable_drives = self.get_windows_mountable_drives()
-            locations.addItems(
-                [
-                    "Home",
-                    "Desktop",
-                    "Downloads",
-                    "Documents",
-                    "Pictures",
-                    "Music",
-                    "Videos",
-                    *self._windows_fixed_drives,
-                    *self._windows_onedrive_paths.keys(),
-                    *self._windows_mountable_drives.keys(),
-                ]
-            )
+            self._windows_pinned_items = self.get_windows_pinned_items()
+            if self._windows_pinned_items:
+                log.debug(
+                    "Using Explorer pinned items for sidebar: %s",
+                    list(self._windows_pinned_items.keys()),
+                )
+                seen: set[str] = set()
+                pinned_items: list[str] = ["Home"]
+                seen.add("Home")
+                for name in self._windows_pinned_items:
+                    if name not in seen:
+                        pinned_items.append(name)
+                        seen.add(name)
+                drive_items: list[str] = []
+                for name in self._windows_fixed_drives:
+                    if name not in seen:
+                        drive_items.append(name)
+                        seen.add(name)
+                for name in self._windows_onedrive_paths:
+                    if name not in seen:
+                        drive_items.append(name)
+                        seen.add(name)
+                for name in self._windows_mountable_drives:
+                    if name not in seen:
+                        drive_items.append(name)
+                        seen.add(name)
+                locations.addItems(pinned_items)
+                if drive_items:
+                    self._add_separator(locations)
+                    locations.addItems(drive_items)
+            else:
+                log.error(
+                    "Explorer pinned items unavailable, using fallback standard paths"
+                )
+                locations.addItems(
+                    [
+                        "Home",
+                        "Desktop",
+                        "Downloads",
+                        "Documents",
+                        "Pictures",
+                        "Music",
+                        "Videos",
+                        *self._windows_fixed_drives,
+                        *self._windows_onedrive_paths.keys(),
+                        *self._windows_mountable_drives.keys(),
+                    ]
+                )
         elif LINUX:
             locations.addItems(["Home", "Desktop", "Documents", "Downloads"])
 
