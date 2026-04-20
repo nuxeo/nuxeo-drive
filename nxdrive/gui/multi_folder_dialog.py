@@ -765,12 +765,9 @@ class MultiFolderDialog(QDialog):
                     if name not in seen_win:
                         pinned_items.append(name)
                         seen_win.add(name)
+                # Fixed, DVD, and USB drives
                 drive_items: list[str] = []
                 for name in self._windows_fixed_drives:
-                    if name not in seen_win:
-                        drive_items.append(name)
-                        seen_win.add(name)
-                for name in self._windows_onedrive_paths:
                     if name not in seen_win:
                         drive_items.append(name)
                         seen_win.add(name)
@@ -778,10 +775,19 @@ class MultiFolderDialog(QDialog):
                     if name not in seen_win:
                         drive_items.append(name)
                         seen_win.add(name)
+                # OneDrive locations
+                onedrive_items: list[str] = []
+                for name in self._windows_onedrive_paths:
+                    if name not in seen_win:
+                        onedrive_items.append(name)
+                        seen_win.add(name)
                 locations.addItems(pinned_items)
                 if drive_items:
                     self._add_separator(locations)
                     locations.addItems(drive_items)
+                if onedrive_items:
+                    self._add_separator(locations)
+                    locations.addItems(onedrive_items)
                 # Add network locations with a divider
                 net_items: list[str] = []
                 for name in self._windows_network_locations:
@@ -795,6 +801,7 @@ class MultiFolderDialog(QDialog):
                 log.error(
                     "Explorer pinned items unavailable, using fallback standard paths"
                 )
+                # Standard locations
                 locations.addItems(
                     [
                         "Home",
@@ -804,12 +811,26 @@ class MultiFolderDialog(QDialog):
                         "Pictures",
                         "Music",
                         "Videos",
-                        *self._windows_fixed_drives,
-                        *self._windows_onedrive_paths.keys(),
-                        *self._windows_mountable_drives.keys(),
-                        *self._windows_network_locations.keys(),
                     ]
                 )
+                # Fixed, DVD, and USB drives
+                fallback_drives = [
+                    *self._windows_fixed_drives,
+                    *self._windows_mountable_drives.keys(),
+                ]
+                if fallback_drives:
+                    self._add_separator(locations)
+                    locations.addItems(fallback_drives)
+                # OneDrive locations
+                fallback_onedrive = list(self._windows_onedrive_paths.keys())
+                if fallback_onedrive:
+                    self._add_separator(locations)
+                    locations.addItems(fallback_onedrive)
+                # Network locations
+                fallback_network = list(self._windows_network_locations.keys())
+                if fallback_network:
+                    self._add_separator(locations)
+                    locations.addItems(fallback_network)
         elif LINUX:
             locations.addItems(["Home", "Desktop", "Documents", "Downloads"])
 
