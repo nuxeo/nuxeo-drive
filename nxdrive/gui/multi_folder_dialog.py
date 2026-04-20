@@ -17,6 +17,7 @@ from nxdrive.qt.imports import (
     QDialog,
     QDialogButtonBox,
     QDir,
+    QEvent,
     QFileSystemModel,
     QFont,
     QFontMetricsF,
@@ -25,6 +26,8 @@ from nxdrive.qt.imports import (
     QLabel,
     QLineEdit,
     QListWidget,
+    QModelIndex,
+    QObject,
     QPushButton,
     QSize,
     QSizePolicy,
@@ -46,14 +49,19 @@ log = getLogger(__name__)
 
 
 class CenteredHeaderFileSystemModel(QFileSystemModel):
-    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+    def headerData(
+        self,
+        section: int,
+        orientation: Qt.Orientation,
+        role: int = Qt.ItemDataRole.DisplayRole,
+    ) -> Qt.AlignmentFlag | object:
         if role == Qt.ItemDataRole.TextAlignmentRole:
             return Qt.AlignmentFlag.AlignCenter
         return super().headerData(section, orientation, role)
 
 
 class MultiFolderDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent: QDialog | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Select Files/Folders")
         self._in_tag_mode = False
@@ -230,7 +238,7 @@ class MultiFolderDialog(QDialog):
         else:
             self.model.setFilter(QDir.Filter.AllEntries | QDir.Filter.NoDotAndDotDot)
 
-    def load_directory(self, index):
+    def load_directory(self, index: QModelIndex) -> None:
         if index.column() == 0:
             folder_path = Path(self.model.filePath(index))
             if folder_path.is_dir():
@@ -254,7 +262,7 @@ class MultiFolderDialog(QDialog):
 
         self.path_bar.setText(str(parent_path))
 
-    def navigate_to_location(self, item) -> None:
+    def navigate_to_location(self, item: QListWidgetItem) -> None:
         location = item.text()
         # MacOS paths
         if MAC:
@@ -425,7 +433,7 @@ class MultiFolderDialog(QDialog):
     @staticmethod
     def _parse_sfl_file(sfl_path: Path) -> dict[str, str]:
         """Parse an SFL/SFL2/SFL3/SFL4 file and return {name: path} for valid favorites."""
-        favorites = {}
+        favorites: dict[str, str] = {}
         try:
             with open(sfl_path, "rb") as f:
                 plist_data = plistlib.load(f)
@@ -750,26 +758,26 @@ class MultiFolderDialog(QDialog):
                     "Using Explorer pinned items for sidebar: %s",
                     list(self._windows_pinned_items.keys()),
                 )
-                seen: set[str] = set()
+                seen_win: set[str] = set()
                 pinned_items: list[str] = ["Home"]
-                seen.add("Home")
+                seen_win.add("Home")
                 for name in self._windows_pinned_items:
-                    if name not in seen:
+                    if name not in seen_win:
                         pinned_items.append(name)
-                        seen.add(name)
+                        seen_win.add(name)
                 drive_items: list[str] = []
                 for name in self._windows_fixed_drives:
-                    if name not in seen:
+                    if name not in seen_win:
                         drive_items.append(name)
-                        seen.add(name)
+                        seen_win.add(name)
                 for name in self._windows_onedrive_paths:
-                    if name not in seen:
+                    if name not in seen_win:
                         drive_items.append(name)
-                        seen.add(name)
+                        seen_win.add(name)
                 for name in self._windows_mountable_drives:
-                    if name not in seen:
+                    if name not in seen_win:
                         drive_items.append(name)
-                        seen.add(name)
+                        seen_win.add(name)
                 locations.addItems(pinned_items)
                 if drive_items:
                     self._add_separator(locations)
@@ -777,9 +785,9 @@ class MultiFolderDialog(QDialog):
                 # Add network locations with a divider
                 net_items: list[str] = []
                 for name in self._windows_network_locations:
-                    if name not in seen:
+                    if name not in seen_win:
                         net_items.append(name)
-                        seen.add(name)
+                        seen_win.add(name)
                 if net_items:
                     self._add_separator(locations)
                     locations.addItems(net_items)
@@ -853,12 +861,12 @@ class MultiFolderDialog(QDialog):
         separator.setObjectName("panelSeparator")
         locations.setItemWidget(item, separator)
 
-    def _set_item_bold(self, item, bold: bool) -> None:
+    def _set_item_bold(self, item: QListWidgetItem, bold: bool) -> None:
         font = item.font()
         font.setBold(bold)
         item.setFont(font)
 
-    def _on_item_hover(self, item) -> None:
+    def _on_item_hover(self, item: QListWidgetItem) -> None:
         # Restore previous hovered item (if not selected)
         if self._hovered_item and self._hovered_item is not item:
             if not self._hovered_item.isSelected():
@@ -872,12 +880,13 @@ class MultiFolderDialog(QDialog):
             if item:
                 self._set_item_bold(item, item.isSelected())
 
-    def eventFilter(self, a0, a1) -> bool:
+    def eventFilter(self, a0: QObject | None, a1: QEvent | None) -> bool:
         # Clear hover bold when mouse leaves the list viewport
         if (
             hasattr(self, "_locations_widget")
             and a0 is self._locations_widget.viewport()
-            and a1.type() == a1.Type.Leave
+            and a1 is not None
+            and a1.type() == QEvent.Type.Leave
         ):
             if self._hovered_item and not self._hovered_item.isSelected():
                 self._set_item_bold(self._hovered_item, False)
