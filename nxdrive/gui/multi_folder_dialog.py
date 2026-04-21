@@ -336,8 +336,59 @@ class MultiFolderDialog(QDialog):
                 case loc if loc in self._windows_network_locations:
                     self.path_bar.setText(self._windows_network_locations[loc])
         # Linux paths
+        elif LINUX:
+            self._restore_filesystem_model()
+            linux_locs = self.linux_standard_locations()
+            if location in linux_locs:
+                self.path_bar.setText(linux_locs[location])
+            elif (
+                hasattr(self, "_linux_mount_points")
+                and location in self._linux_mount_points
+            ):
+                self.path_bar.setText(self._linux_mount_points[location])
 
-    def macos_mount_points(self) -> dict[str, str]:
+    @staticmethod
+    def linux_standard_locations() -> dict[str, str]:
+        """Gets standard folder locations on Linux."""
+        home = QDir.homePath()
+        return {
+            "Root": "/",
+            "Home": home,
+            "Desktop": home + "/Desktop",
+            "Documents": home + "/Documents",
+            "Downloads": home + "/Downloads",
+            "Pictures": home + "/Pictures",
+            "Music": home + "/Music",
+            "Videos": home + "/Videos",
+        }
+
+    @staticmethod
+    def linux_mount_points() -> dict[str, str]:
+        """Gets mountable locations on Linux from /media and /mnt."""
+        mounts: dict[str, str] = {}
+        for base in ("/media", "/mnt"):
+            base_path = Path(base)
+            if not base_path.is_dir():
+                continue
+            try:
+                for entry in sorted(base_path.iterdir()):
+                    if entry.is_dir():
+                        # /media/<user>/<device> structure
+                        if base == "/media":
+                            try:
+                                for sub in sorted(entry.iterdir()):
+                                    if sub.is_dir():
+                                        mounts[sub.name] = str(sub)
+                            except PermissionError:
+                                pass
+                        else:
+                            mounts[entry.name] = str(entry)
+            except PermissionError:
+                pass
+        return mounts
+
+    @staticmethod
+    def macos_mount_points() -> dict[str, str]:
         output = subprocess.check_output(["mount"]).decode("utf-8")
         mounts = {}
         for line in output.splitlines():
@@ -832,7 +883,14 @@ class MultiFolderDialog(QDialog):
                     self._add_separator(locations)
                     locations.addItems(fallback_network)
         elif LINUX:
-            locations.addItems(["Home", "Desktop", "Documents", "Downloads"])
+            for name, path in self.linux_standard_locations().items():
+                if Path(path).exists():
+                    locations.addItem(name)
+            # Mountable locations
+            self._linux_mount_points = self.linux_mount_points()
+            if self._linux_mount_points:
+                self._add_separator(locations)
+                locations.addItems(list(self._linux_mount_points.keys()))
 
         # Compute width based on longest item text (using bold font for hover/selection)
         bold_font = QFont(locations.font())
