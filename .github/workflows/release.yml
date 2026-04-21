@@ -40,7 +40,7 @@ jobs:
           echo "releaseType=${{ github.event.inputs.releaseType }}" >> $GITHUB_OUTPUT
           echo "signExe=${{ github.event.inputs.signExe }}" >> $GITHUB_OUTPUT
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.inputs.branch }}
 
@@ -261,7 +261,7 @@ jobs:
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -build_installer_and_sign
 
       - name: "Upload artifacts"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: package-distributions-${{ matrix.os }}
           path: |
@@ -276,7 +276,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.inputs.branch }}
 
@@ -308,7 +308,7 @@ jobs:
           git remote set-url origin "https://${{ env.GITHUB_USERNAME }}:${{ secrets.NXDRIVE_GIT_TOKEN }}@github.com/nuxeo/nuxeo-drive.git"
 
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: package-distributions*
           path: dist/
