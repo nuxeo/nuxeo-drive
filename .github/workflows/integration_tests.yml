@@ -52,7 +52,7 @@ jobs:
         run: tox -e integration-windows
       - name: Upload coverage to Codecov
         if: ${{ success() || failure() }}
-        uses: codecov/codecov-action@v5.2.0
+        uses: codecov/codecov-action@v6
         with:
           token: ${{secrets.CODECOV_TOKEN}}
           files: ./coverage.xml
@@ -99,7 +99,7 @@ jobs:
         run: tox -e integration-windows
       - name: Upload coverage to Codecov
         if: ${{ success() || failure() }}
-        uses: codecov/codecov-action@v5.2.0
+        uses: codecov/codecov-action@v6
         with:
           token: ${{secrets.CODECOV_TOKEN}}
           files: ./coverage.xml
@@ -139,7 +139,7 @@ jobs:
         run: tox -e integration-macos
       - name: Upload coverage to Codecov
         if: ${{ success() || failure() }}
-        uses: codecov/codecov-action@v5.2.0
+        uses: codecov/codecov-action@v6
         with:
           token: ${{secrets.CODECOV_TOKEN}}
           files: ./coverage.xml
