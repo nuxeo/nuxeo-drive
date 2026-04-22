@@ -54,9 +54,9 @@ def fatal_error_dlg(
     # Check if the fatal error dialog is prompted.
     # XXX: Keep synced with FATAL_ERROR_TITLE.
     print(
-        f"fatal_error_dlg called with app={app}, \
-        with_details={with_details}, \
-        wait_timeout_multiplier={wait_timeout_multiplier}"
+        f"fatal_error_dlg called with app={app}, "
+        f"with_details={with_details}, "
+        f"wait_timeout_multiplier={wait_timeout_multiplier}"
     )
 
     import pywinauto

@@ -1,4 +1,4 @@
-""" API to access local resources for synchronization. """
+"""API to access local resources for synchronization."""
 
 from .base import FileInfo, get
 

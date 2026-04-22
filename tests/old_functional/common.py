@@ -1,4 +1,4 @@
-""" Common test utilities. """
+"""Common test utilities."""
 
 import os
 import sys

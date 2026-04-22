@@ -1029,8 +1029,8 @@ def test_sync_root_name(manager_factory):
 
     docpair = namedtuple(
         "DocPair",
-        "local_path, local_parent_path, remote_ref, local_state, \
-            remote_state, pair_state, last_error, remote_parent_path",
+        "local_path, local_parent_path, remote_ref, local_state, "
+        "remote_state, pair_state, last_error, remote_parent_path",
         defaults=(
             ".",
             ".",
@@ -1048,38 +1048,52 @@ def test_sync_root_name(manager_factory):
     test_watcher = RemoteWatcher(engine, dao)
 
     def get_changes():
-        return eval(
-            '{ "type": "test", "fileSystemChanges": [ { "repositoryId": "default", \
-                "eventId": "securityUpdated", "eventDate": 1681875648592, "docUuid": \
-                    "a7e4ce2a-e4a7-432a-b5e1-62b354606929", "fileSystemItem": {"id": \
-                        "defaultSyncRootFolderItemFactory#default#a7e4ce2a-e4a7-432a-\
-                        b5e1-62b354606929-test", "parentId": "org.nuxeo.drive.service.\
-                            impl.DefaultTopLevelFolderItemFactory#", "name": "ROY", \
-                            "folder": True, "creator": "Administrator", \
-                                "lastContributor": "Administrator", \
-                                    "creationDate": 1681875486061, \
-                                        "lastModificationDate": 1681875528408, \
-                                            "canRename": True, "canDelete": True, \
-                                                "lockInfo": None, "path": "/org.nuxeo.\
-                                                    drive.service.impl.DefaultTopLevelFolder\
-                                                        ItemFactory#/defaultSyncRootFolderItemFactory\
-                                                        #default#a7e4ce2a-e4a7-432a-b5e1-62b354606929-test",\
-                                                         "userName": "Administrator", "canCreateChild": True,\
-                                                              "canScrollDescendants": True }, "fileSystemItemId": \
-                                                                "defaultSyncRootFolderItemFactory#default#a7e4ce2a-\
-                                                                e4a7-432a-b5e1-62b354606929-test", \
-                                                                    "fileSystemItemName": "ROY" } ]\
-                                                                    , "syncDate": 1681875652000, "upp\
-                                                                        erBound": 7834,\
-                                                                          "hasTooManyChanges": True, \
-                                                                            "activeSynchronizationRootDe\
-                                                                            finitions": "default:ffed6ec7-\
-                                                                                b6d3-41a7-ba10-801b7678a5\
-                                                                                84-test,default:a7e4ce2a-e4a7-432a-b5e1-62b35460692\
-                                                                                    9-test,default:db4e8005-c7aa-4f26-937b-23476e85\
-                                                                                        2223-test,default:47176834-992d-4d81-9ce1-a\
-                                                                                            51b7841d648-test" }'
-        )
+        return {
+            "type": "test",
+            "fileSystemChanges": [
+                {
+                    "repositoryId": "default",
+                    "eventId": "securityUpdated",
+                    "eventDate": 1681875648592,
+                    "docUuid": "a7e4ce2a-e4a7-432a-b5e1-62b354606929",
+                    "fileSystemItem": {
+                        "id": "defaultSyncRootFolderItemFactory#default#a7e4ce2a-e4a7-432a-b5e1-62b354606929-test",
+                        "parentId": "org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#",
+                        "name": "ROY",
+                        "folder": True,
+                        "creator": "Administrator",
+                        "lastContributor": "Administrator",
+                        "creationDate": 1681875486061,
+                        "lastModificationDate": 1681875528408,
+                        "canRename": True,
+                        "canDelete": True,
+                        "lockInfo": None,
+                        "path": (
+                            "/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#"
+                            "/defaultSyncRootFolderItemFactory#default"
+                            "#a7e4ce2a-e4a7-432a-b5e1-62b354606929-test"
+                        ),
+                        "userName": "Administrator",
+                        "canCreateChild": True,
+                        "canScrollDescendants": True,
+                    },
+                    "fileSystemItemId": (
+                        "defaultSyncRootFolderItemFactory#default"
+                        "#a7e4ce2a-e4a7-432a-b5e1-62b354606929-test"
+                    ),
+                    "fileSystemItemName": "ROY",
+                }
+            ],
+            "syncDate": 1681875652000,
+            "upperBound": 7834,
+            "hasTooManyChanges": True,
+            "activeSynchronizationRootDefinitions": (
+                "default:ffed6ec7-b6d3-41a7-ba10-801b7678a584-test,"
+                "default:a7e4ce2a-e4a7-432a-b5e1-62b354606929-test,"
+                "default:db4e8005-c7aa-4f26-937b-23476e852223-test,"
+                "default:47176834-992d-4d81-9ce1-a51b7841d648-test"
+            ),
+        }
 
     def init_scan_remote(doc_pair, remote_info):
         return remote_path
@@ -1116,29 +1130,27 @@ def test_sync_root_name(manager_factory):
     assert info is not None
 
     remote_info = RemoteFileInfo.from_dict(
-        eval(
-            '{"id": "defaultSyncRootFolderItemFactory#default\
-                                                #a7e4ce2a-e4a7-432a-b5e1-62b354606929-test",\
-                                                "parentId": "org.nuxeo.drive.service.impl.\
-                                                DefaultTopLevelFolderItemFactory#",\
-                                                "name": "ROY",\
-                                                "folder": True,\
-                                                "creator": "Administrator",\
-                                                "lastContributor": "Administrator",\
-                                                "creationDate": 1681875486061,\
-                                                "lastModificationDate": 1681875528408,\
-                                                "canRename": True,\
-                                                "canDelete": True,\
-                                                "lockInfo": None,\
-                                                "path": "/org.nuxeo.drive.service.\
-                                                impl.DefaultTopLevelFolderItemFactory\
-                                                #/defaultSyncRootFolderItemFactory#default\
-                                                #a7e4ce2a-e4a7-432a-b5e1-62b354606929-test",\
-                                                "userName": "Administrator",\
-                                                 "canCreateChild": True,\
-                                                "canScrollDescendants": True\
-                                                }'
-        )
+        {
+            "id": "defaultSyncRootFolderItemFactory#default#a7e4ce2a-e4a7-432a-b5e1-62b354606929-test",
+            "parentId": "org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#",
+            "name": "ROY",
+            "folder": True,
+            "creator": "Administrator",
+            "lastContributor": "Administrator",
+            "creationDate": 1681875486061,
+            "lastModificationDate": 1681875528408,
+            "canRename": True,
+            "canDelete": True,
+            "lockInfo": None,
+            "path": (
+                "/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#"
+                "/defaultSyncRootFolderItemFactory#default"
+                "#a7e4ce2a-e4a7-432a-b5e1-62b354606929-test"
+            ),
+            "userName": "Administrator",
+            "canCreateChild": True,
+            "canScrollDescendants": True,
+        }
     )
 
     def get_fs_children_(*args):

@@ -1,4 +1,4 @@
-""" Detect slow threads. """
+"""Detect slow threads."""
 
 import re
 from datetime import datetime

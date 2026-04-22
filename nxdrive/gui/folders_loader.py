@@ -63,7 +63,7 @@ class ContentLoaderMixin(QRunnable):
             if item:
                 item.removeRows(0, item.rowCount())
                 item.appendRow(
-                    QStandardItem(Translator.get("LOADING_ERROR") + " \U0001F937")
+                    QStandardItem(Translator.get("LOADING_ERROR") + " \U0001f937")
                 )
             return
 

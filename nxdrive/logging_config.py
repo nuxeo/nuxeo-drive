@@ -1,4 +1,4 @@
-""" Utilities to log nxdrive operations and failures. """
+"""Utilities to log nxdrive operations and failures."""
 
 import logging
 import os
