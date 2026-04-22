@@ -53,8 +53,7 @@ env = français
 
 [français]
 force-locale = fr
-"""
-        )
+""")
 
     return path
 

@@ -119,9 +119,7 @@ def test_relax_passing_after_failure(testdir):
 import pytest
 @pytest.mark.randombug('NXDRIVE-0')
 def test_fail():
-"""
-        + temporary_failure(3)
-    )
+""" + temporary_failure(3))
     result = testdir.runpytest()
     assert_outcomes(result, repeated=3)
 
@@ -162,9 +160,7 @@ def test_strict_failing_after_success(testdir):
 import pytest
 @pytest.mark.randombug('NXDRIVE-0', mode='STRICT')
 def test_fail():
-"""
-        + temporary_failure(3, reverse=True)
-    )
+""" + temporary_failure(3, reverse=True))
     result = testdir.runpytest()
     assert_outcomes(result, passed=0, failed=1, repeated=3)
 
