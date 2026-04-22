@@ -6,7 +6,6 @@ import pytest
 from ..markers import linux_only
 
 
-@linux_only
 @pytest.fixture
 def localclient(tmp_path):
     from nxdrive.client.local.linux import LocalClient
