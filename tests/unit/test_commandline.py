@@ -15,8 +15,7 @@ def create_ini(
 ) -> Path:
     path = Options.nxdrive_home / "config.ini"
     with open(path, "w", encoding=encoding) as f:
-        f.writelines(
-            f"""
+        f.writelines(f"""
 [{default_section}]
 env = {env}
 
@@ -39,8 +38,7 @@ tmp-file-limit = 0.0105
 log-level-console = DEBUG
  debug = False
 delay = 3
-"""
-        )
+""")
 
     if env != "Inception":
         return path
@@ -49,8 +47,7 @@ delay = 3
     path = Options.nxdrive_home / "drive_home" / "config.ini"
     path.parent.mkdir(exist_ok=True)
     with open(path, "w", encoding=encoding) as f:
-        f.writelines(
-            """
+        f.writelines("""
 [DEFAULT]
 env = français
 
