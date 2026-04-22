@@ -84,6 +84,7 @@ class MultiFolderDialog(QDialog):
         # Show hidden files checkbox
         self.showHidden = QCheckBox()
         self.showHidden.setText("Show Hidden")
+        self.showHidden.setChecked(False)
         self.showHidden.checkStateChanged.connect(self.show_hidden_files)
         # Home button
         self.btnHome = QPushButton()
@@ -224,6 +225,7 @@ class MultiFolderDialog(QDialog):
         self._restore_filesystem_model()
         path = Path(self.path_bar.text())
         if path.exists():
+            self.model.setRootPath(str(path))
             self.tree.setRootIndex(self.model.index(str(path)))
             self.tree.resizeColumnToContents(0)
             self.path_bar.setStyleSheet("")
@@ -237,6 +239,11 @@ class MultiFolderDialog(QDialog):
             )
         else:
             self.model.setFilter(QDir.Filter.AllEntries | QDir.Filter.NoDotAndDotDot)
+        # Re-apply the current root path to force a refresh of the tree view
+        current_path = self.path_bar.text()
+        if Path(current_path).exists():
+            self.model.setRootPath(current_path)
+            self.tree.setRootIndex(self.model.index(current_path))
 
     def load_directory(self, index: QModelIndex) -> None:
         if index.column() == 0:
