@@ -268,10 +268,8 @@ def test_store_refresh_token(manager_factory):
     manager, engine = manager_factory()
     remote = engine.remote
     remote.token = {
-        "access_token": "D0QCbs1aJJsPDXzT\
-                    1IrC4oKzjbFevn4s",
-        "refresh_token": "Fch4TbOM8okl8sLajlN\
-                        37L8YHKMSfc9cFe7RMVWRG4ctNvBmSvn2SFXg5CtUJKS2",
+        "access_token": "D0QCbs1aJJsPDXzT1IrC4oKzjbFevn4s",
+        "refresh_token": "Fch4TbOM8okl8sLajlN37L8YHKMSfc9cFe7RMVWRG4ctNvBmSvn2SFXg5CtUJKS2",
         "token_type": "bearer",
         "expires_in": 3239,
         "expires_at": 1711427876,
@@ -285,10 +283,8 @@ def test_store_refresh_token(manager_factory):
     assert old_remote_token == remote.token
 
     remote.auth.auth.token = {
-        "access_token": "D0QCbs1aJJsPDXzT\
-                    1IrC4oKzjbFevn4s",
-        "refresh_token": "Fch4TbOM8okl8sLajlP\
-                        37L8YHKMSfc9cFe7RMVWRG4ctNvBmSvn2SFXg5CtUJKS2",
+        "access_token": "D0QCbs1aJJsPDXzT1IrC4oKzjbFevn4s",
+        "refresh_token": "Fch4TbOM8okl8sLajlP37L8YHKMSfc9cFe7RMVWRG4ctNvBmSvn2SFXg5CtUJKS2",
         "token_type": "bearer",
         "expires_in": 3239,
         "expires_at": 1711427876,
@@ -299,10 +295,8 @@ def test_store_refresh_token(manager_factory):
     assert remote.token == remote.auth.auth.token
 
     remote.auth.auth.token = {
-        "access_token": "D0QCbs1aJJsPDXzT\
-                    1IrC4oKzjbFevn4s",
-        "refresh_token": "Fch4TbOM8okl8sLajlP\
-                        37L8YHKMSfc9cFe7RMVWRG4ctNvBmSvn2SFXg5CtUJKS2",
+        "access_token": "D0QCbs1aJJsPDXzT1IrC4oKzjbFevn4s",
+        "refresh_token": "Fch4TbOM8okl8sLajlP37L8YHKMSfc9cFe7RMVWRG4ctNvBmSvn2SFXg5CtUJKS2",
         "token_type": "bearer",
         "expires_in": 3239,
         "expires_at": 1711427876,
