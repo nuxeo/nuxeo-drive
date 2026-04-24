@@ -5551,5 +5551,85 @@ class TestDirectEditErrorHandling:
         assert expected_path.name == filename
 
 
+class TestGetEngineServerUrlFiltering(TestDirectEditBasicFunctionality):
+    """Test cases for server_url filtering in _get_engine display_user resolution."""
+
+    def _make_engine(self, server_url, username, *, has_remote=True):
+        """Helper to create a mock engine with binder."""
+        engine = Mock()
+        binder = Mock()
+        binder.server_url = server_url
+        binder.username = username
+        engine.get_binder = Mock(return_value=binder)
+        engine.has_invalid_credentials = Mock(return_value=False)
+        if has_remote:
+            engine.remote = Mock()
+            engine.remote.client.resolve_username = Mock(
+                side_effect=lambda u: f"resolved-{u}"
+            )
+        else:
+            engine.remote = None
+        return engine
+
+    def test_display_user_resolved_via_matching_server(self):
+        """Test that display_user is resolved only through an engine matching server_url."""
+        eng_a = self._make_engine("https://server-a.com/nuxeo/", "admin")
+        eng_b = self._make_engine("https://server-b.com/nuxeo/", "admin")
+        self.manager.engines = {"a": eng_a, "b": eng_b}
+
+        direct_edit = DirectEdit(self.manager, self.folder)
+        direct_edit.directEditError = Mock()
+        direct_edit.directEditError.emit = Mock()
+
+        # Request an engine for server-b with unknown user
+        direct_edit._get_engine(
+            "https://server-b.com/nuxeo", user="unknown-uuid"
+        )
+
+        # server-a should never be consulted (wrong server_url)
+        eng_a.remote.client.resolve_username.assert_not_called()
+        # server-b is called in both __get_engine (UUID resolver) and _get_engine (display_user)
+        assert eng_b.remote.client.resolve_username.call_count == 2
+
+    def test_display_user_not_resolved_when_no_matching_server(self):
+        """Test that display_user stays unchanged if no engine matches the server_url."""
+        eng_a = self._make_engine("https://server-a.com/nuxeo/", "admin")
+        self.manager.engines = {"a": eng_a}
+
+        direct_edit = DirectEdit(self.manager, self.folder)
+        direct_edit.directEditError = Mock()
+        direct_edit.directEditError.emit = Mock()
+
+        direct_edit._get_engine(
+            "https://other-server.com/nuxeo", user="some-uuid"
+        )
+
+        # No engine matches other-server, so resolve should not be called
+        eng_a.remote.client.resolve_username.assert_not_called()
+        # Error emitted with original user string
+        args = direct_edit.directEditError.emit.call_args[0]
+        assert args[0] == "DIRECT_EDIT_CANT_FIND_ENGINE"
+        assert "some-uuid" in args[1][0]
+
+    def test_display_user_skips_engines_without_remote(self):
+        """Test that engines without remote are skipped during resolution."""
+        eng_no_remote = self._make_engine(
+            "https://server.com/nuxeo/", "admin", has_remote=False
+        )
+        self.manager.engines = {"a": eng_no_remote}
+
+        direct_edit = DirectEdit(self.manager, self.folder)
+        direct_edit.directEditError = Mock()
+        direct_edit.directEditError.emit = Mock()
+
+        direct_edit._get_engine(
+            "https://server.com/nuxeo", user="some-uuid"
+        )
+
+        # No resolution attempted since engine has no remote
+        args = direct_edit.directEditError.emit.call_args[0]
+        assert "some-uuid" in args[1][0]
+
+
 if __name__ == "__main__":
     pytest.main([__file__])

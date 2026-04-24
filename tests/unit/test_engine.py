@@ -205,6 +205,8 @@ def mock_engine(mock_manager, mock_dao, mock_remote, mock_queue_manager, tmp_pat
     engine._thread_finished = Engine._thread_finished.__get__(engine, Engine)
     engine.stop = Engine.stop.__get__(engine, Engine)
     engine.update_token = Engine.update_token.__get__(engine, Engine)
+    engine._refresh_user_uuid = Engine._refresh_user_uuid.__get__(engine, Engine)
+    engine._seed_userid_mapper = Engine._seed_userid_mapper.__get__(engine, Engine)
     engine._setup_local_folder = Engine._setup_local_folder.__get__(engine, Engine)
     engine._check_https = Engine._check_https.__get__(engine, Engine)
     engine.cancel_action_on = Engine.cancel_action_on.__get__(engine, Engine)
@@ -1509,7 +1511,8 @@ class TestUpdateToken:
                     mock_engine.update_token(mock_token, "newuser")
 
         assert mock_engine.remote_user == "newuser"
-        mock_engine.dao.update_config.assert_called_with("remote_user", "newuser")
+        mock_engine.dao.update_config.assert_any_call("remote_user", "newuser")
+        mock_engine.dao.update_config.assert_any_call("user_uuid", "")
         mock_engine.manager.restartNeeded.emit.assert_called_once()
 
 
@@ -1635,3 +1638,102 @@ class TestSuspendClient:
                         mock_action_cls.get_current_action.return_value = mock_action
                         with pytest.raises(PairInterrupt):
                             mock_engine.suspend_client(mock_uploader)
+
+
+class TestRefreshUserUuid:
+    """Test cases for Engine._refresh_user_uuid method."""
+
+    def test_refresh_uuid_success(self, mock_engine):
+        """Test successful UUID resolution and persistence."""
+        mock_engine.remote.client.resolve_username = Mock()
+        mock_engine.remote.client.userid_mapper = {"testuser": "uuid-123"}
+
+        mock_engine._refresh_user_uuid()
+
+        mock_engine.remote.client.resolve_username.assert_called_once_with("testuser")
+        mock_engine.dao.update_config.assert_called_with("user_uuid", "uuid-123")
+
+    def test_refresh_uuid_no_remote(self, mock_engine):
+        """Test that no-op when remote is not available."""
+        mock_engine.remote = None
+
+        mock_engine._refresh_user_uuid()
+
+        mock_engine.dao.update_config.assert_not_called()
+
+    def test_refresh_uuid_no_uuid_returned(self, mock_engine):
+        """Test when resolve_username succeeds but no UUID in mapper."""
+        mock_engine.remote.client.resolve_username = Mock()
+        mock_engine.remote.client.userid_mapper = {}
+
+        mock_engine._refresh_user_uuid()
+
+        mock_engine.remote.client.resolve_username.assert_called_once_with("testuser")
+        mock_engine.dao.update_config.assert_not_called()
+
+    def test_refresh_uuid_exception(self, mock_engine):
+        """Test that exceptions are caught and logged without propagation."""
+        mock_engine.remote.client.resolve_username = Mock(
+            side_effect=Exception("network error")
+        )
+
+        # Should not raise
+        mock_engine._refresh_user_uuid()
+
+        mock_engine.dao.update_config.assert_not_called()
+
+
+class TestSeedUseridMapper:
+    """Test cases for Engine._seed_userid_mapper method."""
+
+    def test_seed_from_db(self, mock_engine):
+        """Test seeding mapper from existing DB value."""
+        mock_engine.dao.get_config = Mock(return_value="uuid-from-db")
+        mock_engine.remote.client.userid_mapper = {}
+
+        mock_engine._seed_userid_mapper()
+
+        assert mock_engine.remote.client.userid_mapper["testuser"] == "uuid-from-db"
+
+    def test_seed_missing_uuid_api_success(self, mock_engine):
+        """Test that missing UUID triggers API call and succeeds."""
+        # First call returns empty (no UUID in DB), second call returns the freshly stored UUID
+        mock_engine.dao.get_config = Mock(side_effect=["", "uuid-from-api"])
+        mock_engine.remote.client.resolve_username = Mock()
+        mock_engine.remote.client.userid_mapper = {"testuser": "uuid-from-api"}
+
+        mock_engine._seed_userid_mapper()
+
+        mock_engine.remote.client.resolve_username.assert_called_once_with("testuser")
+        mock_engine.dao.update_config.assert_called_with("user_uuid", "uuid-from-api")
+        assert mock_engine.remote.client.userid_mapper["testuser"] == "uuid-from-api"
+
+    def test_seed_missing_uuid_api_failure(self, mock_engine):
+        """Test that missing UUID + failed API call triggers re-login."""
+        mock_engine.dao.get_config = Mock(return_value="")
+        mock_engine.remote.client.resolve_username = Mock(
+            side_effect=Exception("server down")
+        )
+        mock_engine.remote.client.userid_mapper = {}
+        mock_engine.invalidAuthentication = Mock()
+        mock_engine.invalidAuthentication.emit = Mock()
+        mock_engine.authChanged = Mock()
+        mock_engine.authChanged.emit = Mock()
+        mock_engine._invalid_credentials = False
+        mock_engine.set_invalid_credentials = Engine.set_invalid_credentials.__get__(
+            mock_engine, Engine
+        )
+
+        mock_engine._seed_userid_mapper()
+
+        assert mock_engine._invalid_credentials is True
+
+    def test_seed_no_remote_user(self, mock_engine):
+        """Test no action when remote_user is not set."""
+        mock_engine.remote_user = ""
+        mock_engine.dao.get_config = Mock(return_value="")
+
+        mock_engine._seed_userid_mapper()
+
+        # Should not try to resolve or invalidate
+        mock_engine.dao.update_config.assert_not_called()
