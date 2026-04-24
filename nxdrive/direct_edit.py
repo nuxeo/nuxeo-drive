@@ -315,8 +315,9 @@ class DirectEdit(Worker):
             # so the error dialog never exposes raw UUIDs to users.
             display_user = user
             if user:
+                simplified = simplify_url(server_url)
                 for eng in self._manager.engines.copy().values():
-                    if eng.remote:
+                    if eng.remote and simplify_url(eng.get_binder().server_url.rstrip("/")) == simplified:
                         display_user = eng.remote.client.resolve_username(user)
                         break
             values = [force_decode(display_user) if display_user else "Unknown", server_url, APP_NAME]

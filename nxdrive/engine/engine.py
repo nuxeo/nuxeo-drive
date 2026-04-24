@@ -1347,6 +1347,22 @@ class Engine(QObject):
         """Use the local trash mechanisms."""
         return self.local.can_use_trash()
 
+    def _refresh_user_uuid(self) -> None:
+        """Resolve and persist the server-side user UUID for mapper recovery."""
+        if not self.remote:
+            return
+        try:
+            self.remote.client.resolve_username(self.remote_user)
+            user_uuid = self.remote.client.userid_mapper.get(self.remote_user)
+            if user_uuid:
+                self.dao.update_config("user_uuid", user_uuid)
+        except Exception:
+            log.warning(
+                "Failed to resolve user UUID for %r, will retry on next login",
+                self.remote_user,
+                exc_info=True,
+            )
+
     def update_token(self, token: Token, username: str, /) -> None:
         self._load_configuration()
         self._remote_token = token
@@ -1357,20 +1373,19 @@ class Engine(QObject):
         if username_changed:
             self.remote_user = username
             self.dao.update_config("remote_user", username)
+            # Clear stale UUID; it will be refreshed after restart
+            # when a new Remote is created for the new user.
+            self.dao.update_config("user_uuid", "")
         # Save the token *after* remote_user is up-to-date so the
         # encryption key (remote_user + server_url) is consistent.
         self._save_token(self._remote_token)
 
-        # Fetch and persist the server-side user UUID for mapper recovery
-        if self.remote:
-            self.remote.client.resolve_username(self.remote_user)
-            user_uuid = self.remote.client.userid_mapper.get(self.remote_user)
-            if user_uuid:
-                self.dao.update_config("user_uuid", user_uuid)
-
         if username_changed:
+            # The current Remote still has the old user's headers;
+            # defer UUID resolution to the restart.
             self.manager.restartNeeded.emit()
         else:
+            self._refresh_user_uuid()
             self.start()
 
     def init_remote(self) -> Remote:
@@ -1448,12 +1463,7 @@ class Engine(QObject):
         self.dao.update_config("remote_user", self.remote_user)
         self._save_token(self._remote_token)
 
-        # Fetch and persist the server-side user UUID for mapper recovery
-        if self.remote:
-            self.remote.client.resolve_username(self.remote_user)
-            user_uuid = self.remote.client.userid_mapper.get(self.remote_user)
-            if user_uuid:
-                self.dao.update_config("user_uuid", user_uuid)
+        self._refresh_user_uuid()
 
         # Check for the root
         # If the top level state for the server binding doesn't exist,
