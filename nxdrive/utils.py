@@ -1433,6 +1433,3 @@ def find_real_libreoffice_file(lock_path: str) -> tuple[str, str]:
     lock_filename = os.path.basename(lock_path)
     real_filename = lock_filename[len(".~lock.") : -1]
     return os.path.join(folder, real_filename), real_filename
-
-
-# change done to trigger workflows in CI, will be removed before merging to master
