@@ -1408,11 +1408,16 @@ class Engine(QObject):
     def _seed_userid_mapper(self) -> None:
         """Restore the userid_mapper from the persisted user UUID.
 
-        If no UUID is stored (e.g. upgrade from older version), mark
-        credentials invalid so the user is prompted to re-login, which
-        will fetch and persist the UUID.
+        If no UUID is stored (e.g. upgrade from older version), attempt
+        to resolve it from the server. Only if that also fails, mark
+        credentials invalid so the user is prompted to re-login.
         """
         user_uuid = self.dao.get_config("user_uuid")
+        if not user_uuid and self.remote_user and self.remote:
+            # Try fetching the UUID from the server before forcing re-login
+            self._refresh_user_uuid()
+            user_uuid = self.dao.get_config("user_uuid")
+
         if user_uuid and self.remote_user and self.remote:
             self.remote.client.userid_mapper[self.remote_user] = user_uuid
         elif self.remote_user:
