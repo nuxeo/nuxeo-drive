@@ -198,6 +198,7 @@ class Engine(QObject):
                 raise EngineInitError(self)
             self._check_https()
             self.remote = self.init_remote()
+            self._seed_userid_mapper()
 
         self._create_queue_manager()
         if Feature.synchronization:
@@ -1349,12 +1350,25 @@ class Engine(QObject):
     def update_token(self, token: Token, username: str, /) -> None:
         self._load_configuration()
         self._remote_token = token
-        self.remote.update_token(token)
-        self._save_token(self._remote_token)
+        if self.remote:
+            self.remote.update_token(token)
         self.set_invalid_credentials(value=False)
-        if username != self.remote_user:
+        username_changed = username != self.remote_user
+        if username_changed:
             self.remote_user = username
             self.dao.update_config("remote_user", username)
+        # Save the token *after* remote_user is up-to-date so the
+        # encryption key (remote_user + server_url) is consistent.
+        self._save_token(self._remote_token)
+
+        # Fetch and persist the server-side user UUID for mapper recovery
+        if self.remote:
+            self.remote.client.resolve_username(self.remote_user)
+            user_uuid = self.remote.client.userid_mapper.get(self.remote_user)
+            if user_uuid:
+                self.dao.update_config("user_uuid", user_uuid)
+
+        if username_changed:
             self.manager.restartNeeded.emit()
         else:
             self.start()
@@ -1375,6 +1389,21 @@ class Engine(QObject):
             "cert": client_certificate(),
         }
         return self.remote_cls(*args, **kwargs)
+
+    def _seed_userid_mapper(self) -> None:
+        """Restore the userid_mapper from the persisted user UUID.
+
+        If no UUID is stored (e.g. upgrade from older version), mark
+        credentials invalid so the user is prompted to re-login, which
+        will fetch and persist the UUID.
+        """
+        user_uuid = self.dao.get_config("user_uuid")
+        if user_uuid and self.remote_user and self.remote:
+            self.remote.client.userid_mapper[self.remote_user] = user_uuid
+        elif self.remote_user:
+            self.set_invalid_credentials(
+                value=True, reason="missing user_uuid, re-login required"
+            )
 
     def _setup_local_folder(self, check_fs: bool) -> None:
         if not Feature.synchronization or not check_fs:
@@ -1418,6 +1447,13 @@ class Engine(QObject):
         self.dao.update_config("server_url", self.server_url)
         self.dao.update_config("remote_user", self.remote_user)
         self._save_token(self._remote_token)
+
+        # Fetch and persist the server-side user UUID for mapper recovery
+        if self.remote:
+            self.remote.client.resolve_username(self.remote_user)
+            user_uuid = self.remote.client.userid_mapper.get(self.remote_user)
+            if user_uuid:
+                self.dao.update_config("user_uuid", user_uuid)
 
         # Check for the root
         # If the top level state for the server binding doesn't exist,
