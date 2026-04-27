@@ -1218,3 +1218,113 @@ def test_sync_root_name(manager_factory):
                                 dao, "get_state_from_id", new=get_state_from_id_
                             ):
                                 update_remote_states
+
+
+def test_collection_sync_root_scan(manager_factory):
+    """Test that collection sync roots are properly handled in _scan_remote_recursive.
+
+    A collection sync root has 'collectionSyncRootFolderItemFactory' in its uid
+    (instead of 'defaultSyncRootFolderItemFactory' for workspace sync roots).
+    Both types share the same parent_uid (the top-level folder factory), so
+    is_sync_root() returns True for both, ensuring expand_sync_root_name() is called.
+    """
+    manager, engine = manager_factory()
+    dao = engine.dao
+
+    top_level_folder = "org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#"
+    remote_path = f"/{top_level_folder}"
+
+    DocPair = namedtuple(
+        "DocPair",
+        (
+            "local_path",
+            "local_parent_path",
+            "remote_ref",
+            "local_state",
+            "remote_state",
+            "pair_state",
+            "last_error",
+            "remote_parent_path",
+        ),
+        defaults=(".", ".", top_level_folder, "synchronized", "synchronized", "synchronized", None, ""),
+    )
+
+    test_watcher = RemoteWatcher(engine, dao)
+
+    # Create a collection sync root (uses collectionSyncRootFolderItemFactory)
+    collection_sync_root = RemoteFileInfo.from_dict(
+        {
+            "id": "collectionSyncRootFolderItemFactory#default#b5e1-62b354606929-coll",
+            "parentId": top_level_folder,
+            "name": "MyCollection",
+            "folder": True,
+            "creator": "Administrator",
+            "lastContributor": "Administrator",
+            "creationDate": 1681875486061,
+            "lastModificationDate": 1681875528408,
+            "canRename": True,
+            "canDelete": True,
+            "lockInfo": None,
+            "path": f"/{top_level_folder}/collectionSyncRootFolderItemFactory#default#b5e1-62b354606929-coll",
+            "userName": "Administrator",
+            "canCreateChild": True,
+            "canScrollDescendants": True,
+        }
+    )
+
+    expand_sync_root_called = []
+
+    def expand_sync_root_name(sync_root):
+        expand_sync_root_called.append(sync_root.uid)
+        return sync_root
+
+    def init_scan_remote(doc_pair, remote_info):
+        return remote_path
+
+    def get_children(arg):
+        return []
+
+    def interact():
+        return
+
+    def do_scan_remote(*args, **kwargs):
+        return
+
+    def add_scanned(path):
+        pass
+
+    def find_remote_child_match_or_create(*args):
+        return (DocPair(), True)
+
+    docpair = DocPair()
+
+    with patch.object(test_watcher, "_init_scan_remote", new=init_scan_remote):
+        with patch.object(test_watcher, "_interact", new=interact):
+            with patch.object(
+                test_watcher,
+                "_find_remote_child_match_or_create",
+                new=find_remote_child_match_or_create,
+            ):
+                with patch.object(test_watcher, "_do_scan_remote", new=do_scan_remote):
+                    with patch.object(dao, "add_path_scanned", new=add_scanned):
+                        with patch.object(
+                            dao, "get_remote_children", new=get_children
+                        ):
+                            with patch.object(
+                                engine.remote,
+                                "get_fs_children",
+                                return_value=[collection_sync_root],
+                            ):
+                                with patch.object(
+                                    engine.remote,
+                                    "expand_sync_root_name",
+                                    new=expand_sync_root_name,
+                                ):
+                                    test_watcher._scan_remote_recursive(
+                                        docpair, collection_sync_root
+                                    )
+
+    # Verify that expand_sync_root_name was called for the collection sync root
+    assert collection_sync_root.uid in expand_sync_root_called, (
+        "expand_sync_root_name should be called for collection sync roots"
+    )
