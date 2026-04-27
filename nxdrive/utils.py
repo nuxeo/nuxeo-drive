@@ -31,7 +31,7 @@ from typing import (
     Tuple,
     Union,
 )
-from urllib.parse import parse_qsl, urlparse, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, unquote, urlparse, urlsplit, urlunsplit
 from uuid import uuid4
 
 from nuxeo.utils import get_digest_algorithm, get_digest_hash
@@ -922,6 +922,10 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
         "/http/" in url_string or "/https/" in url_string
     ):
         remote_path = re.split("/nuxeo", url_string.strip(), maxsplit=1)[1]
+        # On Windows, URL-encoded characters need to be decoded (e.g., %20 -> space)
+        # Note: literal %20 in folder names would be encoded as %2520, so this is safe
+        if WINDOWS:
+            remote_path = unquote(remote_path)
         return {
             "command": cmd,
             "remote_path": remote_path,
