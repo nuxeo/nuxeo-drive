@@ -39,6 +39,7 @@ from nxdrive.qt.imports import (
 )
 
 from ..constants import LINUX, MAC, WINDOWS
+from ..translator import Translator
 
 if WINDOWS:
     import ctypes
@@ -61,9 +62,23 @@ class CenteredHeaderFileSystemModel(QFileSystemModel):
 
 
 class MultiFolderDialog(QDialog):
+    # Maps English location names (used as navigation keys) to i18n translation keys
+    _STD_LOC_KEYS: dict[str, str] = {
+        "Home": "HOME",
+        "Applications": "APPLICATIONS",
+        "Desktop": "DESKTOP",
+        "Documents": "DOCUMENTS",
+        "Downloads": "DOWNLOADS",
+        "Pictures": "PICTURES",
+        "Music": "MUSIC",
+        "Movies": "MOVIES",
+        "Videos": "VIDEOS",
+        "Root": "ROOT",
+    }
+
     def __init__(self, parent: QDialog | None = None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Select Files/Folders")
+        self.setWindowTitle(Translator.get("SELECT_FILES_FOLDERS"))
         self._in_tag_mode = False
 
         # Load QSS stylesheet
@@ -83,18 +98,18 @@ class MultiFolderDialog(QDialog):
 
         # Show hidden files checkbox
         self.showHidden = QCheckBox()
-        self.showHidden.setText("Show Hidden")
+        self.showHidden.setText(Translator.get("SHOW_HIDDEN"))
         self.showHidden.setChecked(False)
         self.showHidden.checkStateChanged.connect(self.show_hidden_files)
         # Home button
         self.btnHome = QPushButton()
         self.btnHome.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        self.btnHome.setText("Home")
+        self.btnHome.setText(Translator.get("HOME"))
         self.btnHome.clicked.connect(self.go_home)
         # Up button
         self.btnUp = QPushButton()
         self.btnUp.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        self.btnUp.setText("Go Up")
+        self.btnUp.setText(Translator.get("GO_UP"))
         self.btnUp.clicked.connect(self.go_up)
         # Path bar
         self.path_bar = QLineEdit()
@@ -109,7 +124,7 @@ class MultiFolderDialog(QDialog):
         layout.addLayout(path_layout)
 
         # Add label
-        self.label = QLabel("Select files/folders:")
+        self.label = QLabel(Translator.get("SELECT_FILES_FOLDERS_LABEL"))
         layout.addWidget(self.label)
 
         # File System Model
@@ -156,10 +171,10 @@ class MultiFolderDialog(QDialog):
         )
         ok_button = buttons.button(QDialogButtonBox.StandardButton.Ok)
         if ok_button:
-            ok_button.setText("Add")
+            ok_button.setText(Translator.get("ADD"))
         cancel_button = buttons.button(QDialogButtonBox.StandardButton.Cancel)
         if cancel_button:
-            cancel_button.setText("Cancel")
+            cancel_button.setText(Translator.get("CANCEL"))
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
 
@@ -213,7 +228,14 @@ class MultiFolderDialog(QDialog):
     def _show_empty_drive(self, drive_path: str) -> None:
         """Show an empty QTreeView for a drive with no accessible content."""
         empty_model = QStandardItemModel()
-        empty_model.setHorizontalHeaderLabels(["Name", "Size", "Type", "Date Modified"])
+        empty_model.setHorizontalHeaderLabels(
+            [
+                Translator.get("NAME"),
+                Translator.get("SIZE"),
+                Translator.get("TYPE"),
+                Translator.get("DATE_MODIFIED"),
+            ]
+        )
         self._in_tag_mode = True
         self.tree.setModel(empty_model)
         self.path_bar.blockSignals(True)
@@ -270,7 +292,9 @@ class MultiFolderDialog(QDialog):
         self.path_bar.setText(str(parent_path))
 
     def navigate_to_location(self, item: QListWidgetItem) -> None:
-        location = item.text()
+        # Use English key stored in UserRole for standard locations; fall back to
+        # item text for dynamic items (Finder favorites, tags, drives, mounts).
+        location = item.data(Qt.ItemDataRole.UserRole) or item.text()
         # MacOS paths
         if MAC:
             # Tags are handled separately — don't restore filesystem model
@@ -466,7 +490,9 @@ class MultiFolderDialog(QDialog):
 
         # Build a QStandardItemModel with only the tagged files
         tag_model = QStandardItemModel()
-        tag_model.setHorizontalHeaderLabels(["Name", "Path"])
+        tag_model.setHorizontalHeaderLabels(
+            [Translator.get("NAME"), Translator.get("PATH")]
+        )
         for file_path in sorted(paths):
             name_item = QStandardItem(Path(file_path).name)
             name_item.setData(file_path, Qt.ItemDataRole.UserRole)
@@ -766,11 +792,11 @@ class MultiFolderDialog(QDialog):
                 )
                 # Use Finder favorites as primary, add Home and mounts, deduplicate
                 seen: set[str] = set()
-                fav_items: list[str] = ["Home"]
+                self._add_std_loc_item(locations, "Home")
                 seen.add("Home")
                 for name in self._finder_favorites:
                     if name not in seen:
-                        fav_items.append(name)
+                        locations.addItem(name)
                         seen.add(name)
                 mount_items: list[str] = []
                 for name in self.macos_mount_points():
@@ -780,7 +806,7 @@ class MultiFolderDialog(QDialog):
             else:
                 log.error("Finder favorites unavailable, using fallback standard paths")
                 # Fallback to standard paths if Finder favorites unavailable
-                fav_items = [
+                for name in [
                     "Home",
                     "Applications",
                     "Desktop",
@@ -789,9 +815,9 @@ class MultiFolderDialog(QDialog):
                     "Pictures",
                     "Music",
                     "Movies",
-                ]
+                ]:
+                    self._add_std_loc_item(locations, name)
                 mount_items = list(self.macos_mount_points().keys())
-            locations.addItems(fav_items)
             # Add mount locations with a divider
             if mount_items:
                 self._add_separator(locations)
@@ -817,11 +843,11 @@ class MultiFolderDialog(QDialog):
                     list(self._windows_pinned_items.keys()),
                 )
                 seen_win: set[str] = set()
-                pinned_items: list[str] = ["Home"]
+                self._add_std_loc_item(locations, "Home")
                 seen_win.add("Home")
                 for name in self._windows_pinned_items:
                     if name not in seen_win:
-                        pinned_items.append(name)
+                        locations.addItem(name)
                         seen_win.add(name)
                 # Fixed, DVD, and USB drives
                 drive_items: list[str] = []
@@ -839,7 +865,6 @@ class MultiFolderDialog(QDialog):
                     if name not in seen_win:
                         onedrive_items.append(name)
                         seen_win.add(name)
-                locations.addItems(pinned_items)
                 if drive_items:
                     self._add_separator(locations)
                     locations.addItems(drive_items)
@@ -860,17 +885,16 @@ class MultiFolderDialog(QDialog):
                     "Explorer pinned items unavailable, using fallback standard paths"
                 )
                 # Standard locations
-                locations.addItems(
-                    [
-                        "Home",
-                        "Desktop",
-                        "Downloads",
-                        "Documents",
-                        "Pictures",
-                        "Music",
-                        "Videos",
-                    ]
-                )
+                for name in [
+                    "Home",
+                    "Desktop",
+                    "Downloads",
+                    "Documents",
+                    "Pictures",
+                    "Music",
+                    "Videos",
+                ]:
+                    self._add_std_loc_item(locations, name)
                 # Fixed, DVD, and USB drives
                 fallback_drives = [
                     *self._windows_fixed_drives,
@@ -892,7 +916,7 @@ class MultiFolderDialog(QDialog):
         elif LINUX:
             for name, path in self.linux_standard_locations().items():
                 if Path(path).exists():
-                    locations.addItem(name)
+                    self._add_std_loc_item(locations, name)
             # Mountable locations
             self._linux_mount_points = self.linux_mount_points()
             if self._linux_mount_points:
@@ -928,6 +952,14 @@ class MultiFolderDialog(QDialog):
         # Handle clicks on the locations list to navigate to the selected location
         locations.itemClicked.connect(self.navigate_to_location)
         return locations
+
+    @classmethod
+    def _add_std_loc_item(cls, locations: QListWidget, name: str) -> None:
+        """Add a standard location item with translated display text and English key as UserRole data."""
+        i18n_key = cls._STD_LOC_KEYS.get(name, name)
+        item = QListWidgetItem(Translator.get(i18n_key))
+        item.setData(Qt.ItemDataRole.UserRole, name)
+        locations.addItem(item)
 
     @staticmethod
     def _add_separator(locations: QListWidget) -> None:

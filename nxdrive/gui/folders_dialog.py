@@ -373,7 +373,7 @@ class FoldersDialog(DialogMixin):
         #     folders_button.clicked.connect(self._select_more_folder)
         #     hlayout.addWidget(folders_button)
 
-        upload_button = QPushButton("Add items")
+        upload_button = QPushButton(Translator.get("ADD_ITEMS"))
         upload_button.clicked.connect(self._select_files_and_folders)
         hlayout.addWidget(upload_button)
 
