@@ -1,1 +1,1 @@
-""" Unit tests for gui module. """
+"""Unit tests for gui module."""

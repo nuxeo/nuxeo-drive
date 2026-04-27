@@ -1,4 +1,4 @@
-""" Auto-update framework. """
+"""Auto-update framework."""
 
 from logging import getLogger
 from typing import TYPE_CHECKING

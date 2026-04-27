@@ -22,21 +22,21 @@ jobs:
   unit-tests-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: 3.13 # XXX_PYTHON
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
-          restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
-      - uses: actions/cache@v4
+          key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+          restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+      - uses: actions/cache@v5
         with:
           path: .tox
-          key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
-          restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+          key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+          restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
       - name: Install Linux dependencies
         run: bash .github/workflows/linux_dependencies.sh
       - name: Install tox
@@ -45,7 +45,7 @@ jobs:
         run: tox -e unit
       - name: Upload coverage to Codecov
         if: ${{ success() || failure() }}
-        uses: codecov/codecov-action@v5.2.0
+        uses: codecov/codecov-action@v6
         with:
           token: ${{secrets.CODECOV_TOKEN}}
           files: ./coverage.xml
@@ -57,28 +57,28 @@ jobs:
     env:
       SYSTEM_VERSION_COMPAT: 0
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: 3.13 # XXX_PYTHON
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: ~/Library/Caches/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
-          restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
-      - uses: actions/cache@v4
+          key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+          restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+      - uses: actions/cache@v5
         with:
           path: .tox
-          key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
-          restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+          key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+          restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
       - name: Install tox
         run: python -m pip install -r tools/deps/requirements-tox.txt
       - name: Unit tests
         run: tox -e unit
       - name: Upload coverage to Codecov
         if: ${{ success() || failure() }}
-        uses: codecov/codecov-action@v5.2.0
+        uses: codecov/codecov-action@v6
         with:
           token: ${{secrets.CODECOV_TOKEN}}
           files: ./coverage.xml
@@ -88,29 +88,29 @@ jobs:
   unit-tests-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: 3.13 # XXX_PYTHON
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: ~\AppData\Local\pip\Cache
-          key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
-          restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+          restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
       # Cannot be used for now: OSError: [WinError 193] %1 is not a valid Win32 application
-      # - uses: actions/cache@v4
+      # - uses: actions/cache@v5
       #   with:
       #     path: .tox
-      #     key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
-      #     restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+      #     key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+      #     restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
       - name: Install tox
         run: python -m pip install -r tools/deps/requirements-tox.txt
       - name: Unit tests
         run: tox -e unit
       - name: Upload coverage to Codecov
         if: ${{ success() || failure() }}
-        uses: codecov/codecov-action@v5.2.0
+        uses: codecov/codecov-action@v6
         with:
           token: ${{secrets.CODECOV_TOKEN}}
           files: ./coverage.xml
