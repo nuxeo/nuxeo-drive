@@ -37,6 +37,7 @@ from ..utils import find_icon, get_tree_list, sizeof_fmt
 from .constants import get_known_types_translations
 from .folders_model import FilteredDocuments, FoldersOnly
 from .folders_treeview import DocumentTreeView, FolderTreeView
+from .multi_folder_dialog import MultiFolderDialog
 
 if TYPE_CHECKING:
     from .application import Application  # noqa
@@ -361,14 +362,20 @@ class FoldersDialog(DialogMixin):
         hlayout.addWidget(self.local_path)
         hlayout.addWidget(self.local_paths_size_lbl)
 
-        files_button = QPushButton(Translator.get("ADD_FILES"), self)
-        files_button.clicked.connect(self._select_more_files)
-        hlayout.addWidget(files_button)
+        # -- Disabled in favor of "Add items" button
+        # files_button = QPushButton(Translator.get("ADD_FILES"), self)
+        # files_button.clicked.connect(self._select_more_files)
+        # hlayout.addWidget(files_button)
 
-        if self.engine.have_folder_upload:
-            folders_button = QPushButton(Translator.get("ADD_FOLDER"), self)
-            folders_button.clicked.connect(self._select_more_folder)
-            hlayout.addWidget(folders_button)
+        # -- Disabled in favor of "Add items" button
+        # if self.engine.have_folder_upload:
+        #     folders_button = QPushButton(Translator.get("ADD_FOLDER"), self)
+        #     folders_button.clicked.connect(self._select_more_folder)
+        #     hlayout.addWidget(folders_button)
+
+        upload_button = QPushButton(Translator.get("ADD_ITEMS"))
+        upload_button.clicked.connect(self._select_files_and_folders)
+        hlayout.addWidget(upload_button)
 
         vlayout.addLayout(hlayout)
         vlayout.addWidget(self.local_path_msg_lbl)
@@ -825,6 +832,14 @@ class FoldersDialog(DialogMixin):
             )
 
         return current_total_size
+
+    def _select_files_and_folders(self) -> None:
+        mfd = MultiFolderDialog()
+        if mfd.exec():
+            path = mfd.selected_paths()
+            self._process_additionnal_local_paths(path)
+        else:
+            path = None
 
     def _select_more_files(self) -> None:
         """Choose additional local files to upload."""
