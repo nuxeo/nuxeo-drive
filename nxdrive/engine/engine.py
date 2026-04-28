@@ -198,6 +198,7 @@ class Engine(QObject):
                 raise EngineInitError(self)
             self._check_https()
             self.remote = self.init_remote()
+            self._seed_userid_mapper()
 
         self._create_queue_manager()
         if Feature.synchronization:
@@ -1346,17 +1347,57 @@ class Engine(QObject):
         """Use the local trash mechanisms."""
         return self.local.can_use_trash()
 
+    # Sentinel stored in the DB when the server does not provide a user UUID.
+    _NO_UUID_SUPPORT = "__nosupport__"
+
+    def _refresh_user_uuid(self) -> None:
+        """Resolve and persist the server-side user UUID for mapper recovery.
+
+        Raises on error so that each caller can decide how to react
+        (e.g. force re-login vs. silently retry later).
+        """
+        if not self.remote:
+            return
+        self.remote.client.resolve_username(self.remote_user)
+        user_uuid = self.remote.client.userid_mapper.get(self.remote_user)
+        if user_uuid:
+            self.dao.update_config("user_uuid", user_uuid)
+        else:
+            # Server does not provide a UUID; store a sentinel so we
+            # skip re-fetching on every restart.
+            self.dao.update_config("user_uuid", self._NO_UUID_SUPPORT)
+
     def update_token(self, token: Token, username: str, /) -> None:
         self._load_configuration()
         self._remote_token = token
-        self.remote.update_token(token)
-        self._save_token(self._remote_token)
+        if self.remote:
+            self.remote.update_token(token)
         self.set_invalid_credentials(value=False)
-        if username != self.remote_user:
+        username_changed = username != self.remote_user
+        if username_changed:
             self.remote_user = username
             self.dao.update_config("remote_user", username)
+            # Clear stale UUID; it will be refreshed after restart
+            # when a new Remote is created for the new user.
+            self.dao.update_config("user_uuid", "")
+        # Save the token *after* remote_user is up-to-date so the
+        # encryption key (remote_user + server_url) is consistent.
+        self._save_token(self._remote_token)
+
+        if username_changed:
+            # The current Remote still has the old user's headers;
+            # defer UUID resolution to the restart.
             self.manager.restartNeeded.emit()
         else:
+            try:
+                self._refresh_user_uuid()
+            except Exception:
+                log.warning(
+                    "Failed to resolve user UUID for %r during token update, "
+                    "will retry later",
+                    self.remote_user,
+                    exc_info=True,
+                )
             self.start()
 
     def init_remote(self) -> Remote:
@@ -1375,6 +1416,66 @@ class Engine(QObject):
             "cert": client_certificate(),
         }
         return self.remote_cls(*args, **kwargs)
+
+    def _seed_userid_mapper(self) -> None:
+        """Restore the userid_mapper from the persisted user UUID.
+
+        If no UUID is stored (e.g. upgrade from older version), attempt
+        to resolve it from the server.  Only on a fetch *error* mark
+        credentials invalid so the user is prompted to re-login.
+
+        If the sentinel value is in DB (server previously returned no
+        UUID), re-confirm by fetching again:
+        - still no UUID  → continue without mapper, no re-login
+        - UUID returned   → server now supports it; update DB & mapper
+        - fetch error     → continue without mapper (no re-login, since
+          the server was previously known not to support UUID)
+        """
+        user_uuid = self.dao.get_config("user_uuid")
+        was_nosupport = user_uuid == self._NO_UUID_SUPPORT
+
+        if was_nosupport and self.remote_user and self.remote:
+            # Re-confirm: server may have started supporting UUID.
+            try:
+                self._refresh_user_uuid()
+            except Exception:
+                log.warning(
+                    "Failed to re-check user UUID support for %r, "
+                    "continuing without UUID",
+                    self.remote_user,
+                    exc_info=True,
+                )
+                return
+            user_uuid = self.dao.get_config("user_uuid")
+            if user_uuid == self._NO_UUID_SUPPORT:
+                # Still no support — nothing more to do.
+                return
+            # Server now returns a UUID — fall through to seed mapper.
+
+        if not user_uuid and self.remote_user and self.remote:
+            # No entry at all (e.g. upgrade from older version).
+            try:
+                self._refresh_user_uuid()
+            except Exception:
+                log.warning(
+                    "Failed to fetch user UUID for %r, re-login required",
+                    self.remote_user,
+                    exc_info=True,
+                )
+                self.set_invalid_credentials(
+                    value=True, reason="failed to fetch user_uuid, re-login required"
+                )
+                return
+            user_uuid = self.dao.get_config("user_uuid")
+
+        # Seed the mapper only with a real UUID, never with the sentinel.
+        if (
+            user_uuid
+            and user_uuid != self._NO_UUID_SUPPORT
+            and self.remote_user
+            and self.remote
+        ):
+            self.remote.client.userid_mapper[self.remote_user] = user_uuid
 
     def _setup_local_folder(self, check_fs: bool) -> None:
         if not Feature.synchronization or not check_fs:
@@ -1418,6 +1519,15 @@ class Engine(QObject):
         self.dao.update_config("server_url", self.server_url)
         self.dao.update_config("remote_user", self.remote_user)
         self._save_token(self._remote_token)
+
+        try:
+            self._refresh_user_uuid()
+        except Exception:
+            log.warning(
+                "Failed to resolve user UUID for %r during bind, will retry later",
+                self.remote_user,
+                exc_info=True,
+            )
 
         # Check for the root
         # If the top level state for the server binding doesn't exist,
