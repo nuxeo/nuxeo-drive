@@ -1421,19 +1421,39 @@ class Engine(QObject):
         """Restore the userid_mapper from the persisted user UUID.
 
         If no UUID is stored (e.g. upgrade from older version), attempt
-        to resolve it from the server.  If the server does not support
-        UUID (sentinel value in DB), skip silently — no mapper seeding
-        and no re-login.  Only on a fetch *error* mark credentials
-        invalid so the user is prompted to re-login.
+        to resolve it from the server.  Only on a fetch *error* mark
+        credentials invalid so the user is prompted to re-login.
+
+        If the sentinel value is in DB (server previously returned no
+        UUID), re-confirm by fetching again:
+        - still no UUID  → continue without mapper, no re-login
+        - UUID returned   → server now supports it; update DB & mapper
+        - fetch error     → continue without mapper (no re-login, since
+          the server was previously known not to support UUID)
         """
         user_uuid = self.dao.get_config("user_uuid")
+        was_nosupport = user_uuid == self._NO_UUID_SUPPORT
 
-        # Server previously reported no UUID support — nothing to do.
-        if user_uuid == self._NO_UUID_SUPPORT:
-            return
+        if was_nosupport and self.remote_user and self.remote:
+            # Re-confirm: server may have started supporting UUID.
+            try:
+                self._refresh_user_uuid()
+            except Exception:
+                log.warning(
+                    "Failed to re-check user UUID support for %r, "
+                    "continuing without UUID",
+                    self.remote_user,
+                    exc_info=True,
+                )
+                return
+            user_uuid = self.dao.get_config("user_uuid")
+            if user_uuid == self._NO_UUID_SUPPORT:
+                # Still no support — nothing more to do.
+                return
+            # Server now returns a UUID — fall through to seed mapper.
 
         if not user_uuid and self.remote_user and self.remote:
-            # Try fetching the UUID from the server before forcing re-login
+            # No entry at all (e.g. upgrade from older version).
             try:
                 self._refresh_user_uuid()
             except Exception:
@@ -1448,8 +1468,7 @@ class Engine(QObject):
                 return
             user_uuid = self.dao.get_config("user_uuid")
 
-        # After a successful fetch the sentinel may have been stored;
-        # do not seed it into the mapper.
+        # Seed the mapper only with a real UUID, never with the sentinel.
         if (
             user_uuid
             and user_uuid != self._NO_UUID_SUPPORT
