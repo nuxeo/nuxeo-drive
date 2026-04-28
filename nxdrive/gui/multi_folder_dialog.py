@@ -347,7 +347,7 @@ class MultiFolderDialog(QDialog):
                 case "Videos":
                     self.path_bar.setText(QDir.homePath() + "/Videos")
                 case loc if loc in self._windows_fixed_drives:
-                    self.path_bar.setText(loc)
+                    self.path_bar.setText(self._windows_fixed_drives[loc])
                 case loc if loc in self._windows_onedrive_paths:
                     self.path_bar.setText(self._windows_onedrive_paths[loc])
                 case loc if loc in self._windows_mountable_drives:
@@ -666,17 +666,25 @@ class MultiFolderDialog(QDialog):
             pass
         return onedrive_paths
 
-    def get_windows_fixed_drives(self) -> list[str]:
+    def get_windows_fixed_drives(self) -> dict[str, str]:
         """Gets all available fixed disk drive letters on Windows."""
         DRIVE_FIXED = 3
-        drives = []
+        drives: dict[str, str] = {}
         try:
             bitmask = windll.kernel32.GetLogicalDrives()
             for letter in string.ascii_uppercase:
                 if bitmask & 1:
                     root = f"{letter}:\\"
                     if windll.kernel32.GetDriveTypeW(root) == DRIVE_FIXED:
-                        drives.append(root)
+                        vol_name_buf = ctypes.create_unicode_buffer(261)
+                        result = windll.kernel32.GetVolumeInformationW(
+                            root, vol_name_buf, 261, None, None, None, None, 0
+                        )
+                        vol_label = (
+                            vol_name_buf.value if result and vol_name_buf.value else ""
+                        )
+                        display = f"{vol_label} {root}" if vol_label else root
+                        drives[display] = root
                 bitmask >>= 1
         except Exception as ex:
             log.error("Failed to get Windows fixed drives : %s", ex, exc_info=True)
@@ -897,7 +905,7 @@ class MultiFolderDialog(QDialog):
                     self._add_std_loc_item(locations, name)
                 # Fixed, DVD, and USB drives
                 fallback_drives = [
-                    *self._windows_fixed_drives,
+                    *self._windows_fixed_drives.keys(),
                     *self._windows_mountable_drives.keys(),
                 ]
                 if fallback_drives:
