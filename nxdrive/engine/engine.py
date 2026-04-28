@@ -1347,21 +1347,25 @@ class Engine(QObject):
         """Use the local trash mechanisms."""
         return self.local.can_use_trash()
 
+    # Sentinel stored in the DB when the server does not provide a user UUID.
+    _NO_UUID_SUPPORT = "__nosupport__"
+
     def _refresh_user_uuid(self) -> None:
-        """Resolve and persist the server-side user UUID for mapper recovery."""
+        """Resolve and persist the server-side user UUID for mapper recovery.
+
+        Raises on error so that each caller can decide how to react
+        (e.g. force re-login vs. silently retry later).
+        """
         if not self.remote:
             return
-        try:
-            self.remote.client.resolve_username(self.remote_user)
-            user_uuid = self.remote.client.userid_mapper.get(self.remote_user)
-            if user_uuid:
-                self.dao.update_config("user_uuid", user_uuid)
-        except Exception:
-            log.warning(
-                "Failed to resolve user UUID for %r, will retry on next login",
-                self.remote_user,
-                exc_info=True,
-            )
+        self.remote.client.resolve_username(self.remote_user)
+        user_uuid = self.remote.client.userid_mapper.get(self.remote_user)
+        if user_uuid:
+            self.dao.update_config("user_uuid", user_uuid)
+        else:
+            # Server does not provide a UUID; store a sentinel so we
+            # skip re-fetching on every restart.
+            self.dao.update_config("user_uuid", self._NO_UUID_SUPPORT)
 
     def update_token(self, token: Token, username: str, /) -> None:
         self._load_configuration()
@@ -1385,7 +1389,15 @@ class Engine(QObject):
             # defer UUID resolution to the restart.
             self.manager.restartNeeded.emit()
         else:
-            self._refresh_user_uuid()
+            try:
+                self._refresh_user_uuid()
+            except Exception:
+                log.warning(
+                    "Failed to resolve user UUID for %r during token update, "
+                    "will retry later",
+                    self.remote_user,
+                    exc_info=True,
+                )
             self.start()
 
     def init_remote(self) -> Remote:
@@ -1409,21 +1421,42 @@ class Engine(QObject):
         """Restore the userid_mapper from the persisted user UUID.
 
         If no UUID is stored (e.g. upgrade from older version), attempt
-        to resolve it from the server. Only if that also fails, mark
-        credentials invalid so the user is prompted to re-login.
+        to resolve it from the server.  If the server does not support
+        UUID (sentinel value in DB), skip silently — no mapper seeding
+        and no re-login.  Only on a fetch *error* mark credentials
+        invalid so the user is prompted to re-login.
         """
         user_uuid = self.dao.get_config("user_uuid")
+
+        # Server previously reported no UUID support — nothing to do.
+        if user_uuid == self._NO_UUID_SUPPORT:
+            return
+
         if not user_uuid and self.remote_user and self.remote:
             # Try fetching the UUID from the server before forcing re-login
-            self._refresh_user_uuid()
+            try:
+                self._refresh_user_uuid()
+            except Exception:
+                log.warning(
+                    "Failed to fetch user UUID for %r, re-login required",
+                    self.remote_user,
+                    exc_info=True,
+                )
+                self.set_invalid_credentials(
+                    value=True, reason="failed to fetch user_uuid, re-login required"
+                )
+                return
             user_uuid = self.dao.get_config("user_uuid")
 
-        if user_uuid and self.remote_user and self.remote:
+        # After a successful fetch the sentinel may have been stored;
+        # do not seed it into the mapper.
+        if (
+            user_uuid
+            and user_uuid != self._NO_UUID_SUPPORT
+            and self.remote_user
+            and self.remote
+        ):
             self.remote.client.userid_mapper[self.remote_user] = user_uuid
-        elif self.remote_user:
-            self.set_invalid_credentials(
-                value=True, reason="missing user_uuid, re-login required"
-            )
 
     def _setup_local_folder(self, check_fs: bool) -> None:
         if not Feature.synchronization or not check_fs:
@@ -1468,7 +1501,14 @@ class Engine(QObject):
         self.dao.update_config("remote_user", self.remote_user)
         self._save_token(self._remote_token)
 
-        self._refresh_user_uuid()
+        try:
+            self._refresh_user_uuid()
+        except Exception:
+            log.warning(
+                "Failed to resolve user UUID for %r during bind, will retry later",
+                self.remote_user,
+                exc_info=True,
+            )
 
         # Check for the root
         # If the top level state for the server binding doesn't exist,
