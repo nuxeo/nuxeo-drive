@@ -983,9 +983,13 @@ def parse_edit_protocol(
 
 
 def _is_compressed_direct_transfer(url_string: str, /) -> bool:
-    """Check if a direct-transfer URL is in compressed (base64) format."""
+    """Check if a direct-transfer URL is in compressed (base64url) format."""
     payload = url_string.replace("nxdrive://direct-transfer/", "", 1)
-    return bool(payload) and not payload.lower().startswith(("http/", "https/"))
+    if not payload:
+        return False
+    # Base64url payloads only contain [A-Za-z0-9_-], while local paths
+    # contain '/' and other characters not valid in base64url encoding.
+    return bool(re.fullmatch(r"[A-Za-z0-9_-]+", payload))
 
 
 def decompress_transfer_url(compressed_url: str, /) -> str:
