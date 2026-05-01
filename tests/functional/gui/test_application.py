@@ -704,9 +704,9 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
         assert drive_api.open_server_folders("engine.uid") is None
 
     # Covers the changes made for Direct Transfer with workspace path specified from WebUI
-    mock_url = (
-        "nxdrive://direct-transfer/https/random.com/nuxeo/default-domain/UserWorkspaces"
-    )
+    # Compressed format: base64-encoded payload [scheme:1][server_len:1][server:N]
+    # Server = "random.com/nuxeo/default-domain/UserWorkspaces"
+    mock_url = "nxdrive://direct-transfer/AS5yYW5kb20uY29tL251eGVvL2RlZmF1bHQtZG9tYWluL1VzZXJXb3Jrc3BhY2Vz"
     mock_url2 = f"nxdrive://direct-transfer/{engine.local_folder}"
     assert app._handle_nxdrive_url(mock_url) is True
     assert app._handle_nxdrive_url(mock_url2) is True
