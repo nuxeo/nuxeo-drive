@@ -275,7 +275,12 @@ class TestDAODirectDownloadHistory:
         try:
             Options.total_download_history = 3
             for i in range(5):
-                dao.save_direct_download(_make_record(doc_uid=f"doc-{i}"))
+                dao.save_direct_download(
+                    _make_record(
+                        doc_uid=f"doc-{i}",
+                        status=DirectDownloadStatus.COMPLETED,
+                    )
+                )
             results = list(dao.get_direct_downloads())
             assert len(results) == 3
         finally:

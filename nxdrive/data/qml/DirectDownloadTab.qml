@@ -47,7 +47,7 @@ Rectangle {
     // Top button zone with download location and buttons
     Rectangle {
         id: buttonzone
-        height: 90
+        height: 55
         width: parent.width
 
         ColumnLayout {
@@ -89,21 +89,6 @@ Rectangle {
                         text: qsTr("CHANGE_DOWNLOAD_LOCATION") + tl.tr
                         onClicked: api.change_download_location()
                     }
-                }
-            }
-
-            // Second row: Open Folder button
-            RowLayout {
-                Layout.fillWidth: true
-
-                Item {
-                    Layout.fillWidth: true
-                }
-
-                NuxeoButton {
-                    text: qsTr("OPEN_DOWNLOAD_FOLDER") + tl.tr
-                    primary: false
-                    onClicked: api.open_download_folder()
                 }
             }
         }
