@@ -478,8 +478,9 @@ class Manager(QObject):
             if engine.is_started():
                 engine.stop()
 
-        # Clean up the download folder on exit
+        # Stop the direct download worker before cleanup
         if self.direct_download:
+            self.direct_download.stop()
             self.direct_download.cleanup()
 
         self.osi.cleanup()

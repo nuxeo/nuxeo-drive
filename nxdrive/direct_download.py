@@ -9,11 +9,13 @@ Supports recursive download of folders and their contents.
 
 import os
 import shutil
+import time
+import uuid
 import zipfile
 from datetime import datetime, timezone
 from logging import getLogger
 from pathlib import Path
-from queue import Queue
+from queue import Empty, Queue
 from threading import Lock
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
@@ -90,14 +92,15 @@ class DirectDownload(Worker):
     def _create_batch_folder(self) -> Path:
         """
         Create a new timestamped folder for a download batch.
-        Format: download_YYYYMMDD_HHMMSS
+        Format: download_YYYYMMDD_HHMMSS_ffffff_UUID
 
         :return: Path to the created batch folder
         """
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        folder_name = f"download_{timestamp}"
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        unique_id = uuid.uuid4().hex[:8]
+        folder_name = f"download_{timestamp}_{unique_id}"
         batch_folder = self._folder / folder_name
-        batch_folder.mkdir(parents=True, exist_ok=True)
+        batch_folder.mkdir(parents=True, exist_ok=False)
 
         # Add to the list of download folders
         self._download_folders.append(folder_name)
@@ -195,9 +198,10 @@ class DirectDownload(Worker):
 
             # Process queued download batches
             try:
-                if not self._download_queue.empty():
-                    batch = self._download_queue.get_nowait()
-                    self._process_batch(batch)
+                batch = self._download_queue.get(timeout=1.0)
+                self._process_batch(batch)
+            except Empty:
+                continue
             except Exception:
                 log.exception("Error processing download queue")
 
@@ -234,6 +238,11 @@ class DirectDownload(Worker):
         batch_id = batch_folder.name
 
         for doc in documents:
+            # Check if batch was cancelled before starting each doc
+            if self._is_download_cancelled(download_records):
+                log.info("Batch cancelled, stopping further downloads")
+                break
+
             # Create database record for this download with batch_id for grouping
             record_uid = self._create_download_record(
                 doc, selected_items=selected_items_str, batch_id=batch_id
@@ -248,16 +257,9 @@ class DirectDownload(Worker):
                         record_uid, DirectDownloadStatus.IN_PROGRESS
                     )
 
+                doc["_record_uid"] = record_uid
                 self._process_download(doc, batch_folder)
                 successful += 1
-
-                # Update status to COMPLETED
-                if record_uid:
-                    self._update_download_status(
-                        record_uid,
-                        DirectDownloadStatus.COMPLETED,
-                        download_path=str(batch_folder),
-                    )
 
             except Exception as exc:
                 log.exception("Document download failed")
@@ -271,6 +273,18 @@ class DirectDownload(Worker):
 
         # Create zip file of the batch folder in user's Downloads folder
         archive_path = self._create_zip_archive(batch_folder)
+
+        # Mark successful downloads as COMPLETED only after archive is created
+        for record_uid in download_records:
+            record = self._get_download_record(record_uid)
+            if record and record.status == DirectDownloadStatus.IN_PROGRESS:
+                self._update_download_status(
+                    record_uid,
+                    DirectDownloadStatus.COMPLETED,
+                    download_path=(
+                        str(archive_path) if archive_path else str(batch_folder)
+                    ),
+                )
 
         # Update download paths and zip_file name to the final archive location
         if archive_path:
@@ -314,8 +328,7 @@ class DirectDownload(Worker):
                     f"{source_file.name} downloaded successfully to {downloads_folder}"
                 )
 
-                # TODO: Uncomment to delete the timestamped download folder after copying
-                # self._cleanup_batch_folder(batch_folder)
+                self._cleanup_batch_folder(batch_folder)
 
                 return target_path
 
@@ -338,8 +351,7 @@ class DirectDownload(Worker):
                 f"Selected documents downloaded successfully to {downloads_folder}"
             )
 
-            # TODO: Uncomment to delete the timestamped download folder after zipping
-            # self._cleanup_batch_folder(batch_folder)
+            self._cleanup_batch_folder(batch_folder)
 
             return zip_path
 
@@ -384,17 +396,16 @@ class DirectDownload(Worker):
 
         :param batch_folder: The batch folder to delete
         """
-        # try:
-        #     if batch_folder.exists() and batch_folder.is_dir():
-        #         shutil.rmtree(batch_folder, ignore_errors=True)
-        #         # Remove from the list of download folders
-        #         folder_name = batch_folder.name
-        #         if folder_name in self._download_folders:
-        #             self._download_folders.remove(folder_name)
-        #         log.info(f"Cleaned up batch folder: {batch_folder}")
-        # except Exception as exc:
-        #     log.info(f"Failed to cleanup batch folder {batch_folder}: {exc}")
-        pass
+        try:
+            if batch_folder.exists() and batch_folder.is_dir():
+                shutil.rmtree(batch_folder, ignore_errors=True)
+                # Remove from the list of download folders
+                folder_name = batch_folder.name
+                if folder_name in self._download_folders:
+                    self._download_folders.remove(folder_name)
+                log.info(f"Cleaned up batch folder: {batch_folder}")
+        except Exception as exc:
+            log.warning(f"Failed to cleanup batch folder {batch_folder}: {exc}")
 
     # =========================================================================
     # Database Operations
@@ -469,7 +480,7 @@ class DirectDownload(Worker):
                 bytes_downloaded=0,
                 total_bytes=doc_size,
                 progress_percent=0.0,
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
                 started_at=None,
                 completed_at=None,
                 is_folder=is_folder,
@@ -561,12 +572,58 @@ class DirectDownload(Worker):
                     if record:
                         if download_path:
                             record.download_path = download_path
+                            engine.dao.update_direct_download(record)
                         engine.dao.update_direct_download_status(
                             uid, status, last_error=last_error
                         )
                         return
         except Exception:
             log.exception(f"Failed to update download status for {uid}")
+
+    def _get_download_record(self, uid: int, /) -> Optional[DirectDownloadRecord]:
+        """Get a download record by UID from any engine."""
+        try:
+            for engine in self._manager.engines.copy().values():
+                if engine.dao:
+                    record = engine.dao.get_direct_download(uid)
+                    if record:
+                        return record
+        except Exception:
+            log.exception(f"Failed to get download record for {uid}")
+        return None
+
+    def _is_download_cancelled(self, record_uids: List[int], /) -> bool:
+        """Check if any download in the batch has been cancelled or paused.
+        If paused, wait until resumed or cancelled."""
+        for uid in record_uids:
+            record = self._get_download_record(uid)
+            if not record:
+                continue
+            if record.status == DirectDownloadStatus.CANCELLED:
+                return True
+            # If paused, wait until resumed or cancelled
+            while record and record.status == DirectDownloadStatus.PAUSED:
+                if self._stop:
+                    return True
+                time.sleep(1.0)
+                record = self._get_download_record(uid)
+                if record and record.status == DirectDownloadStatus.CANCELLED:
+                    return True
+        return False
+
+    def _is_single_download_cancelled(self, uid: int, /) -> bool:
+        """Check if a single download has been cancelled or paused.
+        If paused, wait until resumed or cancelled."""
+        record = self._get_download_record(uid)
+        if not record:
+            return False
+        # If paused, wait until resumed or cancelled
+        while record and record.status == DirectDownloadStatus.PAUSED:
+            if self._stop:
+                return True
+            time.sleep(1.0)
+            record = self._get_download_record(uid)
+        return bool(record and record.status == DirectDownloadStatus.CANCELLED)
 
     def _update_download_path(
         self, uid: int, download_path: str, zip_file: str = None, /
@@ -683,8 +740,10 @@ class DirectDownload(Worker):
         # Emit starting signal
         self.downloadStarting.emit(filename, server_url)
 
-        # Sanitize filename for filesystem safety
-        safe_name = safe_filename(doc_title)
+        # Sanitize the resolved output name for filesystem safety.
+        # Preserve the explicit filename from the protocol URL when provided,
+        # and fall back to the repository document title otherwise.
+        safe_name = safe_filename(filename or doc_title)
 
         if is_folderish:
             # Handle folder: create folder and download contents recursively
@@ -692,7 +751,12 @@ class DirectDownload(Worker):
         else:
             # Handle file: download directly
             self._download_file(
-                engine, server_url, download_url, safe_name, batch_folder
+                engine,
+                server_url,
+                download_url,
+                safe_name,
+                batch_folder,
+                record_uid=doc.get("_record_uid"),
             )
 
         self.downloadCompleted.emit(safe_name, str(batch_folder / safe_name))
@@ -712,17 +776,14 @@ class DirectDownload(Worker):
         :param folder_id: The document ID of the folder
         :param folder_name: The name of the folder
         :param parent_path: The local parent path where to create the folder
+        :raises RuntimeError: If listing children fails
         """
         # Create the local folder
         folder_path = self._get_unique_path(parent_path / folder_name)
         folder_path.mkdir(parents=True, exist_ok=True)
 
         # Query for children documents
-        try:
-            children = self._get_children(engine, folder_id)
-        except Exception:
-            log.exception(f"Failed to get children for folder {folder_id}")
-            return
+        children = self._get_children(engine, folder_id)
 
         # Process each child
         for child in children:
@@ -754,6 +815,7 @@ class DirectDownload(Worker):
         :return: List of child documents with full properties
         """
         # Use NXQL query to get children UIDs first
+        # parent_id is a Nuxeo UUID validated upstream, safe for interpolation
         query = (
             f"SELECT * FROM Document "
             f"WHERE ecm:parentId = '{parent_id}' "
@@ -761,26 +823,31 @@ class DirectDownload(Worker):
             f"AND ecm:isTrashed = 0"
         )
 
-        result = engine.remote.query(query, page_size=1000)
-        entries = result.get("entries", [])
+        children: List[Dict[str, Any]] = []
+        page = 0
+        page_size = 1000
 
-        # The query result may not include blob properties with length
-        # Fetch each document individually to get complete properties
-        full_entries = []
-        for entry in entries:
-            doc_uid = entry.get("uid", "")
-            if doc_uid:
-                try:
-                    # Fetch full document info including blob properties
-                    full_doc = engine.remote.fetch(doc_uid)
-                    full_entries.append(full_doc)
-                except Exception:
-                    # Fall back to the query result if fetch fails
-                    full_entries.append(entry)
-            else:
-                full_entries.append(entry)
+        while True:
+            result = engine.remote.execute(
+                command="Document.Query",
+                query=query,
+                pageSize=page_size,
+                currentPageIndex=page,
+            )
+            entries = result.get("entries", [])
 
-        return full_entries
+            if not entries:
+                break
+
+            children.extend(entries)
+
+            # If we got fewer results than the page size, we've reached the end
+            if len(entries) < page_size:
+                break
+
+            page += 1
+
+        return children
 
     def _get_download_url(self, doc: Dict[str, Any], /) -> Optional[str]:
         """
@@ -815,6 +882,8 @@ class DirectDownload(Worker):
         filename: str,
         target_folder: Path,
         /,
+        *,
+        record_uid: Optional[int] = None,
     ) -> None:
         """
         Download a single file to the target folder.
@@ -824,6 +893,7 @@ class DirectDownload(Worker):
         :param download_url: The download URL path
         :param filename: The target filename
         :param target_folder: The folder to save the file in
+        :param record_uid: Optional DB record UID for progress tracking
         """
         # Calculate the target file path (handle duplicates)
         target_path = self._get_unique_path(target_folder / filename)
@@ -834,21 +904,50 @@ class DirectDownload(Worker):
         else:
             full_url = server_url.rstrip("/") + "/" + download_url.lstrip("/")
 
+        resp = None
         try:
-            # Use the engine's remote client to make the request
+            # Use the engine's remote client to make the request with streaming
             resp = engine.remote.client.request(
                 "GET",
                 full_url.replace(engine.remote.client.host, ""),
                 ssl_verify=engine.remote.verification_needed,
+                stream=True,
             )
+            resp.raise_for_status()
 
-            # Write the content to file
+            # Try to get total size from Content-Length header
+            try:
+                total_bytes = int(resp.headers.get("Content-Length", 0))
+            except (TypeError, ValueError):
+                total_bytes = 0
+            bytes_downloaded = 0
+
+            # Write the content to file using streaming to avoid loading all into memory
             with open(target_path, "wb") as f:
-                f.write(resp.content)
+                for chunk in resp.iter_content(chunk_size=64 * 1024):
+                    if not chunk:
+                        continue
+
+                    # Check for cancellation during download
+                    if record_uid and self._is_single_download_cancelled(record_uid):
+                        log.info(f"Download cancelled for {filename}")
+                        raise RuntimeError(f"Download cancelled for {filename}")
+
+                    f.write(chunk)
+                    bytes_downloaded += len(chunk)
+
+                    # Update progress
+                    if record_uid and total_bytes > 0:
+                        self._update_download_progress(
+                            record_uid, bytes_downloaded, total_bytes
+                        )
 
         except Exception:
             log.exception(f"Download failed for {filename}")
             raise
+        finally:
+            if resp is not None:
+                resp.close()
 
     def _get_unique_path(self, path: Path, /) -> Path:
         """

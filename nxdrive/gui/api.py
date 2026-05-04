@@ -3,7 +3,7 @@
 import json
 from dataclasses import asdict
 from logging import getLogger
-from os import getenv
+from os import access, getenv, W_OK
 from os.path import abspath
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
@@ -454,11 +454,14 @@ class QMLDriveApi(QObject):
     def get_download_location(self) -> str:
         """Get the current download location.
 
-        Returns the configured download folder, or the user's Downloads folder if not configured.
+        Returns the configured download folder if it exists and is writable,
+        otherwise falls back to the user's Downloads folder.
         """
         configured_folder = Options.download_folder
         if configured_folder:
-            return str(configured_folder)
+            configured_path = Path(configured_folder)
+            if configured_path.exists() and access(configured_path, W_OK):
+                return str(configured_path)
         return str(Path.home() / "Downloads")
 
     @pyqtSlot()

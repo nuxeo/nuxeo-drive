@@ -833,9 +833,11 @@ class ActiveDirectDownloadModel(QAbstractListModel):
     ) -> None:
         """Set the downloads list, replacing all existing items."""
         # Clear existing
-        self.beginRemoveRows(parent, 0, max(0, self.rowCount() - 1))
-        self.downloads.clear()
-        self.endRemoveRows()
+        current_rows = self.rowCount()
+        if current_rows > 0:
+            self.beginRemoveRows(parent, 0, current_rows - 1)
+            self.downloads.clear()
+            self.endRemoveRows()
 
         # Add new downloads
         if downloads:

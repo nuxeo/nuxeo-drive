@@ -929,12 +929,8 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
     parsed_url: Dict[str, str] = match_res.groupdict()
     cmd = parsed_url["cmd"]
     if cmd == "edit":
-        print(f">>>> {cmd}-> parsed_url:{parsed_url}, url_string:{url_string}")
-        log.info(f">>>> {cmd}-> parsed_url:{parsed_url}, url_string:{url_string}")
         return parse_edit_protocol(parsed_url, url_string)
     elif "direct-download" in cmd:
-        print(f">>>> {cmd}-> parsed_url:{parsed_url}, url_string:{url_string}")
-        log.info(f">>>> {cmd}-> parsed_url:{parsed_url}, url_string:{url_string}")
         return parse_download_protocol(parsed_url, url_string)
     elif cmd == "token":
         return {

@@ -2492,11 +2492,12 @@ class EngineDAO(BaseDAO):
                 "shadow": False,
             }
             for res in c.execute(
-                "SELECT * FROM DirectDownloads WHERE status IN (?, ?) "
+                "SELECT * FROM DirectDownloads WHERE status IN (?, ?, ?) "
                 "ORDER BY created_at DESC LIMIT ?",
                 (
                     DirectDownloadStatus.PENDING.value,
                     DirectDownloadStatus.IN_PROGRESS.value,
+                    DirectDownloadStatus.PAUSED.value,
                     limit,
                 ),
             ).fetchall()
@@ -2535,11 +2536,12 @@ class EngineDAO(BaseDAO):
                 "selected_items": res["selected_items"],
             }
             for res in c.execute(
-                "SELECT * FROM DirectDownloads WHERE status IN (?, ?) "
-                "ORDER BY completed_at DESC",
+                "SELECT * FROM DirectDownloads WHERE status IN (?, ?, ?) "
+                "ORDER BY COALESCE(completed_at, created_at) DESC",
                 (
                     DirectDownloadStatus.COMPLETED.value,
                     DirectDownloadStatus.CANCELLED.value,
+                    DirectDownloadStatus.FAILED.value,
                 ),
             ).fetchall()
         ]
@@ -2612,8 +2614,15 @@ class EngineDAO(BaseDAO):
                     to_delete = count - max_history
                     c.execute(
                         "DELETE FROM DirectDownloads WHERE uid IN "
-                        "(SELECT uid FROM DirectDownloads ORDER BY created_at ASC LIMIT ?)",
-                        (to_delete,),
+                        "(SELECT uid FROM DirectDownloads "
+                        "WHERE status IN (?, ?, ?) "
+                        "ORDER BY created_at ASC LIMIT ?)",
+                        (
+                            DirectDownloadStatus.COMPLETED.value,
+                            DirectDownloadStatus.CANCELLED.value,
+                            DirectDownloadStatus.FAILED.value,
+                            to_delete,
+                        ),
                     )
 
             self.directDownloadUpdated.emit()

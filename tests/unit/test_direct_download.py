@@ -398,7 +398,7 @@ class TestDirectDownloadCreateZipArchive:
 
 
 class TestDirectDownloadCleanupBatchFolder:
-    """Test _cleanup_batch_folder method (currently no-op)."""
+    """Test _cleanup_batch_folder method."""
 
     def setup_method(self):
         self.manager = Mock()
@@ -410,14 +410,14 @@ class TestDirectDownloadCleanupBatchFolder:
         if self.folder.exists():
             shutil.rmtree(self.folder, ignore_errors=True)
 
-    def test_cleanup_batch_folder_is_noop(self):
-        """Test _cleanup_batch_folder is currently a no-op."""
+    def test_cleanup_batch_folder_removes_folder(self):
+        """Test _cleanup_batch_folder removes the batch folder."""
         dd = DirectDownload(self.manager, self.folder)
         batch = self.folder / "download_20250101_120000"
         batch.mkdir()
         dd._cleanup_batch_folder(batch)
-        # Batch folder should still exist since code is commented out
-        assert batch.exists()
+        # Batch folder should be removed after cleanup
+        assert not batch.exists()
 
 
 class TestDirectDownloadGetDownloadUrl:
@@ -495,7 +495,8 @@ class TestDirectDownloadFile:
         engine.remote.client.host = "https://server.com"
         engine.remote.verification_needed = False
         resp = Mock()
-        resp.content = b"file_content"
+        resp.headers = {"Content-Length": "12"}
+        resp.iter_content.return_value = [b"file_content"]
         engine.remote.client.request.return_value = resp
 
         dd._download_file(
@@ -517,7 +518,8 @@ class TestDirectDownloadFile:
         engine.remote.client.host = "https://server.com"
         engine.remote.verification_needed = True
         resp = Mock()
-        resp.content = b"data"
+        resp.headers = {"Content-Length": "4"}
+        resp.iter_content.return_value = [b"data"]
         engine.remote.client.request.return_value = resp
 
         dd._download_file(
@@ -613,13 +615,13 @@ class TestDirectDownloadFolder:
             assert (self.folder / "Parent" / "SubFolder").is_dir()
 
     def test_download_folder_handles_children_error(self):
-        """Test folder download handles error fetching children."""
+        """Test folder download raises error when fetching children fails."""
         dd = DirectDownload(self.manager, self.folder)
         engine = Mock()
 
         with patch.object(dd, "_get_children", side_effect=RuntimeError("API error")):
-            dd._download_folder(engine, "folder-uid", "ErrFolder", self.folder)
-            assert (self.folder / "ErrFolder").is_dir()
+            with pytest.raises(RuntimeError, match="API error"):
+                dd._download_folder(engine, "folder-uid", "ErrFolder", self.folder)
 
 
 class TestDirectDownloadGetChildren:
@@ -636,28 +638,27 @@ class TestDirectDownloadGetChildren:
             shutil.rmtree(self.folder, ignore_errors=True)
 
     def test_get_children_fetches_full_docs(self):
-        """Test _get_children fetches each child individually."""
+        """Test _get_children fetches documents via execute."""
         dd = DirectDownload(self.manager, self.folder)
         engine = Mock()
-        engine.remote.query.return_value = {
-            "entries": [{"uid": "child-1"}, {"uid": "child-2"}]
-        }
-        full_doc1 = {"uid": "child-1", "properties": {"file:content": {"length": 100}}}
-        full_doc2 = {"uid": "child-2", "properties": {"file:content": {"length": 200}}}
-        engine.remote.fetch.side_effect = [full_doc1, full_doc2]
+        doc1 = {"uid": "child-1", "properties": {"file:content": {"length": 100}}}
+        doc2 = {"uid": "child-2", "properties": {"file:content": {"length": 200}}}
+        engine.remote.execute.return_value = {"entries": [doc1, doc2]}
 
         result = dd._get_children(engine, "parent-id")
         assert len(result) == 2
-        assert result[0] == full_doc1
-        assert result[1] == full_doc2
+        assert result[0] == doc1
+        assert result[1] == doc2
 
-    def test_get_children_fallback_on_fetch_error(self):
-        """Test fallback to query result if individual fetch fails."""
+    def test_get_children_pagination(self):
+        """Test _get_children handles multiple pages."""
         dd = DirectDownload(self.manager, self.folder)
         engine = Mock()
         entry = {"uid": "child-1"}
-        engine.remote.query.return_value = {"entries": [entry]}
-        engine.remote.fetch.side_effect = RuntimeError("network")
+        engine.remote.execute.side_effect = [
+            {"entries": [entry]},
+            {"entries": []},
+        ]
 
         result = dd._get_children(engine, "parent-id")
         assert len(result) == 1
@@ -668,7 +669,7 @@ class TestDirectDownloadGetChildren:
         dd = DirectDownload(self.manager, self.folder)
         engine = Mock()
         entry = {"uid": "", "name": "orphan"}
-        engine.remote.query.return_value = {"entries": [entry]}
+        engine.remote.execute.return_value = {"entries": [entry]}
 
         result = dd._get_children(engine, "parent-id")
         assert len(result) == 1
