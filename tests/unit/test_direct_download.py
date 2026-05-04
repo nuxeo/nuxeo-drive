@@ -1525,3 +1525,91 @@ class TestParseProtocolUrlDirectDownload:
         result = parse_protocol_url(url)
         assert result["command"] == "download_direct"
         assert len(result["documents"]) == 1
+
+
+class TestDecompressDownloadUrl:
+    """Test decompress_download_url and compressed URL parsing."""
+
+    @staticmethod
+    def _build_compressed_url(scheme: str, server: str, uuids: list) -> str:
+        """Helper to build a compressed direct-download URL."""
+        import base64
+        import uuid as uuid_mod
+
+        payload = bytearray()
+        # Scheme byte: 1 = https, 0 = http
+        payload.append(1 if scheme == "https" else 0)
+        # Server name length + server bytes
+        server_bytes = server.encode("utf-8")
+        payload.append(len(server_bytes))
+        payload.extend(server_bytes)
+        # UUID count
+        payload.append(len(uuids))
+        # Raw UUID bytes (16 bytes each)
+        for uid in uuids:
+            payload.extend(uuid_mod.UUID(uid).bytes)
+
+        encoded = base64.urlsafe_b64encode(bytes(payload)).decode("ascii")
+        # Strip padding to match real-world URLs
+        encoded = encoded.rstrip("=")
+        return f"nxdrive://direct-download/{encoded}"
+
+    def test_compressed_single_uuid(self):
+        """Test decompression of a single UUID payload."""
+        from nxdrive.utils import decompress_download_url
+
+        uid = "3eebfb90-4e2c-4aa9-bf3f-b657c02572e1"
+        url = self._build_compressed_url("https", "server.com", [uid])
+        result = decompress_download_url(url)
+        assert f"https/server.com/{uid}" in result
+        assert result.startswith("nxdrive://direct-download/")
+
+    def test_compressed_batch_uuids(self):
+        """Test decompression of multiple UUIDs."""
+        from nxdrive.utils import decompress_download_url
+
+        uuids = [
+            "11111111-1111-1111-1111-111111111111",
+            "22222222-2222-2222-2222-222222222222",
+            "33333333-3333-3333-3333-333333333333",
+        ]
+        url = self._build_compressed_url("https", "drive.nuxeocloud.com", uuids)
+        result = decompress_download_url(url)
+        assert "https/drive.nuxeocloud.com/" in result
+        assert " || ".join(uuids) in result
+
+    def test_compressed_http_scheme(self):
+        """Test decompression with HTTP (not HTTPS) scheme."""
+        from nxdrive.utils import decompress_download_url
+
+        uid = "11111111-1111-1111-1111-111111111111"
+        url = self._build_compressed_url("http", "server.local", [uid])
+        result = decompress_download_url(url)
+        assert "http/server.local/" in result
+        assert uid in result
+
+    def test_compressed_malformed_payload(self):
+        """Test that malformed compressed payload falls back gracefully."""
+        from nxdrive.utils import parse_download_protocol
+
+        # Garbage base64 that decodes to too-short binary
+        url = "nxdrive://direct-download/AQID"
+        result = parse_download_protocol({}, url)
+        # Should not crash; returns empty or treats as original format
+        assert "command" in result
+
+    def test_compressed_end_to_end(self):
+        """Test compressed URL through full parse_download_protocol flow."""
+        from nxdrive.utils import parse_download_protocol
+
+        uuids = [
+            "11111111-1111-1111-1111-111111111111",
+            "22222222-2222-2222-2222-222222222222",
+        ]
+        url = self._build_compressed_url("https", "server.com", uuids)
+        result = parse_download_protocol({}, url)
+        assert result["command"] == "download_direct"
+        assert len(result["documents"]) == 2
+        assert result["documents"][0]["server_url"] == "https://server.com/nuxeo/"
+        assert result["documents"][0]["doc_id"] == uuids[0]
+        assert result["documents"][1]["doc_id"] == uuids[1]

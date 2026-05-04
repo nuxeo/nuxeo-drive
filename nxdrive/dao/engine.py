@@ -616,35 +616,6 @@ class EngineDAO(BaseDAO):
         )
 
     @staticmethod
-    def _create_direct_downloads_table(cursor: Cursor, /) -> None:
-        """Create the DirectDownloads table."""
-        cursor.execute(
-            "CREATE TABLE IF NOT EXISTS DirectDownloads ("
-            "    uid                INTEGER     PRIMARY KEY,"
-            "    doc_uid            VARCHAR     NOT NULL,"
-            "    doc_name           VARCHAR     NOT NULL,"
-            "    doc_size           INTEGER     DEFAULT 0,"
-            "    download_path      VARCHAR,"
-            "    server_url         VARCHAR     NOT NULL,"
-            "    status             INTEGER     DEFAULT 0,"
-            "    bytes_downloaded   INTEGER     DEFAULT 0,"
-            "    total_bytes        INTEGER     DEFAULT 0,"
-            "    progress_percent   REAL        DEFAULT 0.0,"
-            "    created_at         TIMESTAMP   NOT NULL    DEFAULT CURRENT_TIMESTAMP,"
-            "    started_at         TIMESTAMP,"
-            "    completed_at       TIMESTAMP,"
-            "    is_folder          INTEGER     DEFAULT 0,"
-            "    folder_count       INTEGER     DEFAULT 0,"
-            "    file_count         INTEGER     DEFAULT 1,"
-            "    retry_count        INTEGER     DEFAULT 0,"
-            "    last_error         VARCHAR,"
-            "    engine             VARCHAR     DEFAULT '',"
-            "    zip_file           VARCHAR,"
-            "    selected_items     VARCHAR"
-            ")"
-        )
-
-    @staticmethod
     def _create_state_table(cursor: Cursor, /, *, force: bool = False) -> None:
         statement = "" if force else "if not exists"
         # Cannot force UNIQUE for a local_path as a duplicate can have
@@ -2313,18 +2284,18 @@ class EngineDAO(BaseDAO):
             (bytes_downloaded / total_bytes * 100) if total_bytes > 0 else 0.0
         )
 
-        # Determine overall status (worst status wins)
+        # Determine overall status (active states win over terminal states)
         statuses = [r.get("status") for r in rows]
-        if "FAILED" in statuses:
-            overall_status = "FAILED"
-        elif "CANCELLED" in statuses:
-            overall_status = "CANCELLED"
-        elif "PAUSED" in statuses:
-            overall_status = "PAUSED"
-        elif "IN_PROGRESS" in statuses:
+        if "IN_PROGRESS" in statuses:
             overall_status = "IN_PROGRESS"
         elif "PENDING" in statuses:
             overall_status = "PENDING"
+        elif "PAUSED" in statuses:
+            overall_status = "PAUSED"
+        elif "FAILED" in statuses:
+            overall_status = "FAILED"
+        elif "CANCELLED" in statuses:
+            overall_status = "CANCELLED"
         else:
             overall_status = "COMPLETED"
 
@@ -2695,7 +2666,7 @@ class EngineDAO(BaseDAO):
         """Update the status of a direct download."""
         with self.lock:
             c = self._get_write_connection().cursor()
-            now = datetime.now(timezone.utc)
+            now = datetime.now()
 
             if status == DirectDownloadStatus.IN_PROGRESS:
                 sql = "UPDATE DirectDownloads SET status = ?, started_at = ? WHERE uid = ?"
@@ -2712,6 +2683,9 @@ class EngineDAO(BaseDAO):
                     "retry_count = retry_count + 1 WHERE uid = ?"
                 )
                 c.execute(sql, (status.value, last_error, uid))
+            elif status == DirectDownloadStatus.CANCELLED:
+                sql = "UPDATE DirectDownloads SET status = ?, completed_at = ? WHERE uid = ?"
+                c.execute(sql, (status.value, now, uid))
             else:
                 sql = "UPDATE DirectDownloads SET status = ? WHERE uid = ?"
                 c.execute(sql, (status.value, uid))

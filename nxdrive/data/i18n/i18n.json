@@ -125,6 +125,7 @@
     "FOLDER_PLURAL": "folders",
     "DIRECT_DOWNLOAD_DETAILS": "[%1%] %2 of %3",
     "DOWNLOAD_MONITORING_DESCRIPTION": "Displaying active downloads with real-time progress",
+    "DOWNLOADING": "Downloading...",
     "DIRECT_TRANSFER_CANCEL": "Do you confirm the cancellation of the transfer of \"%1\"?",
     "DIRECT_TRANSFER_CANCEL_HEADER": "A transfer cancellation has been asked.",
     "DIRECT_TRANSFER_DETAILS": "[%1%] %2 of %3",

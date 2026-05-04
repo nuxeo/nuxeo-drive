@@ -1775,9 +1775,6 @@ class Application(QApplication):
     def _handle_nxdrive_url(self, url: str, /) -> bool:
         """Handle an nxdrive protocol URL."""
 
-        if "edit" in url or "direct-download" in url:
-            log.info(f"url: {url}")
-
         info = parse_protocol_url(url)
         if not info:
             return False

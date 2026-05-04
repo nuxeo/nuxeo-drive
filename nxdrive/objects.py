@@ -524,9 +524,9 @@ class DirectDownload:
     bytes_downloaded: int  # Bytes downloaded so far
     total_bytes: int  # Total bytes to download
     progress_percent: float  # Progress percentage (0.0 to 100.0)
-    created_at: datetime  # When the download was created
-    started_at: Optional[datetime]  # When the download started
-    completed_at: Optional[datetime]  # When the download completed
+    created_at: str  # When the download was created
+    started_at: Optional[str]  # When the download started
+    completed_at: Optional[str]  # When the download completed
     is_folder: bool  # Whether this is a folder download
     folder_count: int  # Number of subfolders (recursive), 0 for files
     file_count: int  # Number of files in folder (1 for single file)

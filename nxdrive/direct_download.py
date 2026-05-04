@@ -277,7 +277,11 @@ class DirectDownload(Worker):
         # Mark successful downloads as COMPLETED only after archive is created
         for record_uid in download_records:
             record = self._get_download_record(record_uid)
-            if record and record.status == DirectDownloadStatus.IN_PROGRESS:
+            if record and record.status in (
+                DirectDownloadStatus.IN_PROGRESS,
+                DirectDownloadStatus.PENDING,
+                DirectDownloadStatus.PAUSED,
+            ):
                 self._update_download_status(
                     record_uid,
                     DirectDownloadStatus.COMPLETED,

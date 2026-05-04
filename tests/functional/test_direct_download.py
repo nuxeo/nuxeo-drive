@@ -531,7 +531,7 @@ class TestDAOBatchAggregation:
         assert result["status"] == "CANCELLED"
 
     def test_aggregate_status_priority_paused(self, dao):
-        """Test PAUSED status priority."""
+        """Test PAUSED status priority - active states win over PAUSED."""
         rows = [
             {
                 "uid": 1,
@@ -551,6 +551,33 @@ class TestDAOBatchAggregation:
                 "file_count": 1,
                 "folder_count": 0,
                 "status": "PENDING",
+                "completed_at": None,
+            },
+        ]
+        result = dao._aggregate_batch(rows)
+        assert result["status"] == "PENDING"
+
+    def test_aggregate_status_priority_paused_over_terminal(self, dao):
+        """Test PAUSED wins over terminal states like FAILED."""
+        rows = [
+            {
+                "uid": 1,
+                "doc_name": "a",
+                "total_bytes": 0,
+                "bytes_downloaded": 0,
+                "file_count": 1,
+                "folder_count": 0,
+                "status": "PAUSED",
+                "completed_at": None,
+            },
+            {
+                "uid": 2,
+                "doc_name": "b",
+                "total_bytes": 0,
+                "bytes_downloaded": 0,
+                "file_count": 1,
+                "folder_count": 0,
+                "status": "FAILED",
                 "completed_at": None,
             },
         ]

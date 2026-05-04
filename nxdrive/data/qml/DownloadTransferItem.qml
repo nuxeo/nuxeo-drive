@@ -11,6 +11,7 @@ Rectangle {
 
     // Engine UID passed from parent
     property string engineUid: ""
+    property bool cancelClicked: false
 
     ColumnLayout {
         id: transfer
@@ -77,9 +78,9 @@ Rectangle {
                     icon: MdiFont.Icon.close
                     tooltip: qsTr("CANCEL") + tl.tr
                     iconColor: iconFailure
-                    enabled: status != "CANCELLED" && status != "COMPLETED"
+                    enabled: status != "CANCELLED" && status != "COMPLETED" && !cancelClicked
                     onClicked: {
-                        enabled = false
+                        cancelClicked = true
                         api.cancel_direct_download(engine || engineUid, uid)
                     }
                 }

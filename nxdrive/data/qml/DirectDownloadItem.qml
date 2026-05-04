@@ -15,6 +15,7 @@ Rectangle {
     property bool paused: status == "PAUSED"
     property bool pending: status == "PENDING"
     property bool inProgress: status == "IN_PROGRESS"
+    property bool cancelClicked: false
 
     width: parent ? parent.width : 0
     height: 116
@@ -162,10 +163,8 @@ Rectangle {
                             try {
                                 if (paused) {
                                     api.resume_direct_download(engine || engineUid, uid)
-                                    cancel_button.enabled = false
                                 } else {
                                     api.pause_direct_download(engine || engineUid, uid)
-                                    cancel_button.enabled = true
                                 }
                             } finally {
                                 enabled = true
@@ -176,12 +175,12 @@ Rectangle {
                     // Cancel icon
                     IconLabel {
                         id: cancel_button
-                        enabled: paused
+                        enabled: paused && !cancelClicked
                         icon: MdiFont.Icon.close
                         tooltip: qsTr("CANCEL") + tl.tr
                         iconColor: iconFailure
                         onClicked: {
-                            enabled = false
+                            cancelClicked = true
                             api.cancel_direct_download(engine || engineUid, uid)
                         }
                     }
