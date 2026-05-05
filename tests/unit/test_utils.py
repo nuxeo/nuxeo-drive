@@ -1028,6 +1028,40 @@ def test_parse_protocol_url_bad_http_scheme():
 
 
 @windows_only
+def test_parse_protocol_url_direct_transfer_web_ui_url_decoding():
+    """On Windows, URL-encoded characters should be decoded for direct-transfer Web UI URLs."""
+    # Test %20 is decoded to space
+    url = "nxdrive://direct-transfer/https/server.nuxeo.com/nuxeo/default-domain/UserWorkspaces/user/not%20shared"
+    info = nxdrive.utils.parse_protocol_url(url)
+    assert info == {
+        "command": "direct-transfer",
+        "remote_path": "/default-domain/UserWorkspaces/user/not shared",
+    }
+
+
+@windows_only
+def test_parse_protocol_url_direct_transfer_web_ui_literal_percent20():
+    """On Windows, %2520 should decode to literal %20 (folder name contains %20)."""
+    url = "nxdrive://direct-transfer/https/server.nuxeo.com/nuxeo/default-domain/folder%2520special"
+    info = nxdrive.utils.parse_protocol_url(url)
+    assert info == {
+        "command": "direct-transfer",
+        "remote_path": "/default-domain/folder%20special",
+    }
+
+
+@not_windows(reason="URL decoding only applies on Windows.")
+def test_parse_protocol_url_direct_transfer_web_ui_no_decoding():
+    """On non-Windows, URL-encoded characters should NOT be decoded."""
+    url = "nxdrive://direct-transfer/https/server.nuxeo.com/nuxeo/default-domain/UserWorkspaces/user/not%20shared"
+    info = nxdrive.utils.parse_protocol_url(url)
+    assert info == {
+        "command": "direct-transfer",
+        "remote_path": "/default-domain/UserWorkspaces/user/not%20shared",
+    }
+
+
+@windows_only
 @pytest.mark.parametrize(
     "path, result",
     [
