@@ -11,6 +11,7 @@ Rectangle {
     property string engineUid: ""
 
     signal setEngine(string uid)
+    signal switchToTab(int tabIndex)
 
     onSetEngine: {
         engineUid = uid
@@ -18,6 +19,10 @@ Rectangle {
         directUploadTab.setEngine(uid)
         // Update download location display
         directDownloadTab.updateDownloadLocation()
+    }
+
+    onSwitchToTab: {
+        mainTabBar.currentIndex = tabIndex
     }
 
     TabBar {
