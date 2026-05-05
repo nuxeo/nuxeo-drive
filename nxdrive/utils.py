@@ -944,8 +944,15 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
         return {"command": cmd, **query}
     # web ui - compressed format
     elif cmd == "direct-transfer" and _is_compressed_direct_transfer(url_string):
-        decompressed = decompress_transfer_url(url_string)
-        remote_path = re.split("/nuxeo", decompressed.strip(), maxsplit=1)[1]
+        try:
+            decompressed = decompress_transfer_url(url_string)
+            parts = re.split("/nuxeo", decompressed.strip(), maxsplit=1)
+            if len(parts) < 2:
+                raise ValueError("Missing /nuxeo in decompressed URL")
+            remote_path = parts[1]
+        except Exception:
+            log.exception(f"Failed to decompress direct-transfer URL: {url_string}")
+            return None
         return {
             "command": cmd,
             "remote_path": remote_path,
@@ -983,13 +990,28 @@ def parse_edit_protocol(
 
 
 def _is_compressed_direct_transfer(url_string: str, /) -> bool:
-    """Check if a direct-transfer URL is in compressed (base64url) format."""
+    """Check if a direct-transfer URL is in compressed (base64url) format.
+
+    Validates that the payload is base64url-encoded AND that the decoded
+    binary starts with a valid scheme byte (0x00=http or 0x01=https).
+    This prevents local paths from being misclassified as compressed URLs.
+    """
     payload = url_string.replace("nxdrive://direct-transfer/", "", 1)
     if not payload:
         return False
-    # Base64url payloads only contain [A-Za-z0-9_-], while local paths
-    # contain '/' and other characters not valid in base64url encoding.
-    return bool(re.fullmatch(r"[A-Za-z0-9_-]+", payload))
+    # Base64url payloads only contain [A-Za-z0-9_-]
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", payload):
+        return False
+    # Minimum payload: scheme(1) + server_len(1) + server(1) = 3 bytes → 4 base64 chars
+    if len(payload) < 4:
+        return False
+    # Validate binary structure: first byte must be a valid scheme marker
+    try:
+        padded = payload + "=" * ((4 - len(payload) % 4) % 4)
+        decoded = base64.urlsafe_b64decode(padded)
+        return len(decoded) >= 3 and decoded[0] in (0, 1)
+    except Exception:
+        return False
 
 
 def decompress_transfer_url(compressed_url: str, /) -> str:
@@ -1013,8 +1035,17 @@ def decompress_transfer_url(compressed_url: str, /) -> str:
 
     payload = base64.urlsafe_b64decode(compressed)
 
+    if len(payload) < 3:
+        raise ValueError(f"Payload too short ({len(payload)} bytes)")
+
     scheme = "https" if payload[0] == 1 else "http"
     server_len = payload[1]
+
+    if len(payload) < 2 + server_len:
+        raise ValueError(
+            f"Payload too short for server: need {2 + server_len}, got {len(payload)}"
+        )
+
     server = payload[2 : 2 + server_len].decode("utf-8")
 
     return f"nxdrive://direct-transfer/{scheme}/{server}"
