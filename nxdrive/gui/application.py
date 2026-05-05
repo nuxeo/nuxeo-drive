@@ -1100,6 +1100,17 @@ class Application(QApplication):
         window.setEngine.emit(engine_uid)
         self._center_on_screen(self.direct_transfer_window)
 
+    def show_direct_download_window(self) -> None:
+        """Display the Direct Transfer window with the Direct Download tab selected."""
+        engines = list(self.manager.engines.values())
+        engine = engines[0] if engines else None
+        if not engine:
+            return
+        window = self._window_root(self.direct_transfer_window)
+        window.setEngine.emit(engine.uid)
+        window.switchToTab.emit(0)
+        self._center_on_screen(self.direct_transfer_window)
+
     @pyqtSlot()
     def close_direct_transfer_window(self) -> None:
         """Close the Direct Transfer window."""
@@ -1834,6 +1845,9 @@ class Application(QApplication):
 
             func = manager.directDownload.emit
             args = (documents,)
+
+            # Open the Direct Download window to show progress
+            self.show_direct_download_window()
 
         elif cmd == "authorize":
             func = self.api.continue_oauth2_flow
