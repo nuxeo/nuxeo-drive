@@ -951,7 +951,7 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
                 raise ValueError("Missing /nuxeo in decompressed URL")
             remote_path = parts[1]
         except Exception:
-            log.exception(f"Failed to decompress direct-transfer URL: {url_string}")
+            log.exception(f"URL is not valid: {url_string}")
             return None
         return {
             "command": cmd,
