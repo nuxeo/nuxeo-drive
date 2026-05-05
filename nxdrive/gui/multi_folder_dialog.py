@@ -23,6 +23,7 @@ from nxdrive.qt.imports import (
     QFontMetricsF,
     QFrame,
     QHBoxLayout,
+    QIcon,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -40,6 +41,7 @@ from nxdrive.qt.imports import (
 
 from ..constants import LINUX, MAC, WINDOWS
 from ..translator import Translator
+from ..utils import find_icon
 
 if WINDOWS:
     import ctypes
@@ -103,13 +105,15 @@ class MultiFolderDialog(QDialog):
         self.showHidden.checkStateChanged.connect(self.show_hidden_files)
         # Home button
         self.btnHome = QPushButton()
+        self.btnHome.setIcon(QIcon(str(find_icon("home_light.svg"))))
         self.btnHome.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        self.btnHome.setText(Translator.get("HOME"))
+        self.btnHome.setToolTip(Translator.get("HOME"))
         self.btnHome.clicked.connect(self.go_home)
         # Up button
         self.btnUp = QPushButton()
+        self.btnUp.setIcon(QIcon(str(find_icon("up_arrow_light.svg"))))
         self.btnUp.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        self.btnUp.setText(Translator.get("GO_UP"))
+        self.btnUp.setToolTip(Translator.get("GO_UP"))
         self.btnUp.clicked.connect(self.go_up)
         # Path bar
         self.path_bar = QLineEdit()
