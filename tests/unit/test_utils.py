@@ -1398,3 +1398,166 @@ def test_find_real_libreoffice_file():
 
     assert filename == "testFile.odt"
     assert os.path.normpath(full_path) == os.path.normpath(real_file)
+
+
+# ============================================================================
+# Compressed direct-transfer URL tests
+# ============================================================================
+
+
+def _build_compressed_transfer_url(scheme: str, server: str) -> str:
+    """Helper to build a compressed direct-transfer URL."""
+    import base64
+
+    payload = bytearray()
+    payload.append(1 if scheme == "https" else 0)
+    server_bytes = server.encode("utf-8")
+    payload.append(len(server_bytes))
+    payload.extend(server_bytes)
+    encoded = base64.urlsafe_b64encode(bytes(payload)).decode("ascii").rstrip("=")
+    return f"nxdrive://direct-transfer/{encoded}"
+
+
+class TestIsCompressedDirectTransfer:
+    """Tests for _is_compressed_direct_transfer()."""
+
+    def test_valid_compressed_url(self):
+        url = _build_compressed_transfer_url(
+            "https", "server.com/nuxeo/default-domain/workspaces"
+        )
+        assert nxdrive.utils._is_compressed_direct_transfer(url) is True
+
+    def test_valid_http_compressed_url(self):
+        url = _build_compressed_transfer_url("http", "local.server/nuxeo/path")
+        assert nxdrive.utils._is_compressed_direct_transfer(url) is True
+
+    def test_local_unix_path(self):
+        url = "nxdrive://direct-transfer//Users/foo/Documents"
+        assert nxdrive.utils._is_compressed_direct_transfer(url) is False
+
+    def test_local_windows_path(self):
+        url = "nxdrive://direct-transfer/C:/Users/foo/Documents"
+        assert nxdrive.utils._is_compressed_direct_transfer(url) is False
+
+    def test_empty_payload(self):
+        url = "nxdrive://direct-transfer/"
+        assert nxdrive.utils._is_compressed_direct_transfer(url) is False
+
+    def test_too_short_payload(self):
+        url = "nxdrive://direct-transfer/abc"
+        assert nxdrive.utils._is_compressed_direct_transfer(url) is False
+
+    def test_invalid_scheme_byte(self):
+        """Payload whose first decoded byte is not 0 or 1."""
+        import base64
+
+        payload = bytearray([5, 3]) + b"abc"
+        encoded = base64.urlsafe_b64encode(bytes(payload)).decode("ascii").rstrip("=")
+        url = f"nxdrive://direct-transfer/{encoded}"
+        assert nxdrive.utils._is_compressed_direct_transfer(url) is False
+
+    def test_alphanumeric_folder_name(self):
+        """A folder named 'my-folder' should not be treated as compressed."""
+        url = "nxdrive://direct-transfer/my-folder"
+        assert nxdrive.utils._is_compressed_direct_transfer(url) is False
+
+    def test_special_characters_in_path(self):
+        url = "nxdrive://direct-transfer/path with spaces/file.txt"
+        assert nxdrive.utils._is_compressed_direct_transfer(url) is False
+
+
+class TestDecompressTransferUrl:
+    """Tests for decompress_transfer_url()."""
+
+    def test_decompress_https(self):
+        url = _build_compressed_transfer_url(
+            "https", "server.com/nuxeo/default-domain/workspaces"
+        )
+        result = nxdrive.utils.decompress_transfer_url(url)
+        assert result == (
+            "nxdrive://direct-transfer/https/server.com/nuxeo"
+            "/default-domain/workspaces"
+        )
+
+    def test_decompress_http(self):
+        url = _build_compressed_transfer_url("http", "local.server/nuxeo/my-workspace")
+        result = nxdrive.utils.decompress_transfer_url(url)
+        assert result == (
+            "nxdrive://direct-transfer/http/local.server/nuxeo/my-workspace"
+        )
+
+    def test_decompress_path_with_spaces(self):
+        """The core use case: paths with spaces."""
+        url = _build_compressed_transfer_url(
+            "https", "server.com/nuxeo/My Workspace/Sub Folder"
+        )
+        result = nxdrive.utils.decompress_transfer_url(url)
+        assert result == (
+            "nxdrive://direct-transfer/https/server.com/nuxeo"
+            "/My Workspace/Sub Folder"
+        )
+
+    def test_decompress_payload_too_short(self):
+        import base64
+
+        payload = bytearray([1, 5])  # scheme + server_len but no server bytes
+        encoded = base64.urlsafe_b64encode(bytes(payload)).decode("ascii").rstrip("=")
+        url = f"nxdrive://direct-transfer/{encoded}"
+        with pytest.raises(ValueError, match="Payload too short"):
+            nxdrive.utils.decompress_transfer_url(url)
+
+    def test_decompress_minimal_payload(self):
+        import base64
+
+        payload = bytearray([1])  # only scheme byte
+        encoded = base64.urlsafe_b64encode(bytes(payload)).decode("ascii").rstrip("=")
+        url = f"nxdrive://direct-transfer/{encoded}"
+        with pytest.raises(ValueError, match="Payload too short"):
+            nxdrive.utils.decompress_transfer_url(url)
+
+
+class TestParseProtocolUrlDirectTransfer:
+    """Tests for parse_protocol_url with compressed direct-transfer URLs."""
+
+    def test_compressed_url_parsed_correctly(self):
+        url = _build_compressed_transfer_url(
+            "https", "server.com/nuxeo/default-domain/UserWorkspaces"
+        )
+        info = nxdrive.utils.parse_protocol_url(url)
+        assert info is not None
+        assert info["command"] == "direct-transfer"
+        assert info["remote_path"] == "/default-domain/UserWorkspaces"
+
+    def test_compressed_url_with_spaces(self):
+        url = _build_compressed_transfer_url(
+            "https", "server.com/nuxeo/My Folder/Sub Dir"
+        )
+        info = nxdrive.utils.parse_protocol_url(url)
+        assert info is not None
+        assert info["command"] == "direct-transfer"
+        assert info["remote_path"] == "/My Folder/Sub Dir"
+
+    def test_local_path_falls_through_to_filepath(self):
+        """Local paths must not be treated as compressed URLs."""
+        url = "nxdrive://direct-transfer//Users/foo/Documents/file.txt"
+        info = nxdrive.utils.parse_protocol_url(url)
+        assert info is not None
+        assert info["command"] == "direct-transfer"
+        assert "filepath" in info
+
+    def test_malformed_compressed_url_returns_none(self):
+        """Malformed payload that passes detection but fails decompression."""
+        import base64
+
+        # Valid scheme byte but server_len exceeds payload
+        payload = bytearray([1, 50]) + b"short"
+        encoded = base64.urlsafe_b64encode(bytes(payload)).decode("ascii").rstrip("=")
+        url = f"nxdrive://direct-transfer/{encoded}"
+        info = nxdrive.utils.parse_protocol_url(url)
+        assert info is None
+
+    def test_compressed_url_missing_nuxeo_returns_none(self):
+        """Compressed URL without /nuxeo in server path returns None."""
+        url = _build_compressed_transfer_url("https", "server.com/no-nuxeo-here/path")
+        info = nxdrive.utils.parse_protocol_url(url)
+        assert info is None
