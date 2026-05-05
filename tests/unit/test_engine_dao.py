@@ -484,11 +484,18 @@ def test_db_init_at_v21(tmp_path, engine_dao):
 
         # We upgrade the database, check the version then stock the result
         migration.upgrade(cursor)
+
+        # Apply all subsequent migrations to match the full EngineDAO state
+        for m in list(engine_migrations.values())[1:]:
+            m.upgrade(cursor)
+
         upgrade_state = cursor.execute(
             "select name from sqlite_master where type = 'table'"
         ).fetchall()
 
         # We downgrade and check that everything has been reverted
+        for m in reversed(list(engine_migrations.values())[1:]):
+            m.downgrade(cursor)
         migration.downgrade(cursor)
         downgrade_state = cursor.execute(
             "select name from sqlite_master where type = 'table'"
@@ -533,18 +540,25 @@ def test_db_init_at_v22(tmp_path, engine_dao):
 
         # We upgrade the database, check the version then stock the result
         migration21.upgrade(cursor)
-        upgrade_state = cursor.execute(
-            "select name from sqlite_master where type = 'table'"
-        ).fetchall()
 
-        # New migration 22 should be the first one
+        # New migration 22 should be the second one
         migration22 = list(engine_migrations.values())[1]
 
         # We upgrade the database, check the version then stock the result
         migration22.upgrade(cursor)
 
+        # Apply all subsequent migrations to match the full EngineDAO state
+        for m in list(engine_migrations.values())[2:]:
+            m.upgrade(cursor)
+
+        upgrade_state = cursor.execute(
+            "select name from sqlite_master where type = 'table'"
+        ).fetchall()
+
         # We downgrade and check that everything has been reverted
         """
+        for m in reversed(list(engine_migrations.values())[2:]):
+            m.downgrade(cursor)
         migration22.downgrade(cursor)
         migration21.downgrade(cursor)
         downgrade_state = cursor.execute(

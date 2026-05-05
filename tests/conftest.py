@@ -189,7 +189,7 @@ def app():
     """
     from nxdrive.qt.imports import QCoreApplication, QTimer
 
-    app = QCoreApplication([])
+    app = QCoreApplication.instance() or QCoreApplication([])
 
     # Little trick here! See Application.__init__() for details.
     timer = QTimer()
@@ -197,3 +197,5 @@ def app():
     timer.start(100)
 
     yield app
+
+    timer.stop()

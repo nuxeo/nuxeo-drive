@@ -138,3 +138,14 @@ class TransferStatus(Enum):
     # But a "small" mess was done with NXDRIVE-1784 and fixed later with NXDRIVE-1901.
     # So we cannot use 5 as a value. Never again.
     CANCELLED = 6
+
+
+class DirectDownloadStatus(Enum):
+    """Used to represent a direct download status."""
+
+    PENDING = 0
+    IN_PROGRESS = 1
+    COMPLETED = 2
+    FAILED = 3
+    PAUSED = 4
+    CANCELLED = 5
