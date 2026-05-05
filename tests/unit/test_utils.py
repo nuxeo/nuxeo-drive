@@ -5,7 +5,7 @@ from datetime import datetime
 from math import pow
 from pathlib import Path
 from time import sleep
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -1561,3 +1561,44 @@ class TestParseProtocolUrlDirectTransfer:
         url = _build_compressed_transfer_url("https", "server.com/no-nuxeo-here/path")
         info = nxdrive.utils.parse_protocol_url(url)
         assert info is None
+
+
+class TestShowDirectDownloadWindow:
+    """Tests for Application.show_direct_download_window()."""
+
+    def _make_app(self, engines=None):
+        app = Mock()
+        app.show_direct_download_window = __import__(
+            "nxdrive.gui.application", fromlist=["Application"]
+        ).Application.show_direct_download_window.__get__(app)
+
+        manager = Mock()
+        if engines is None:
+            engine = Mock()
+            engine.uid = "test-engine-uid"
+            engines = {"uid1": engine}
+        manager.engines = engines
+        app.manager = manager
+
+        return app
+
+    def test_opens_window_with_engine_and_tab_zero(self):
+        """Test that the window opens with the first engine and tab 0."""
+        app = self._make_app()
+        mock_window = Mock()
+        app._window_root.return_value = mock_window
+
+        app.show_direct_download_window()
+
+        mock_window.setEngine.emit.assert_called_once_with("test-engine-uid")
+        mock_window.switchToTab.emit.assert_called_once_with(0)
+        app._center_on_screen.assert_called_once_with(app.direct_transfer_window)
+
+    def test_no_engines_does_nothing(self):
+        """Test that nothing happens when no engines are configured."""
+        app = self._make_app(engines={})
+
+        app.show_direct_download_window()
+
+        app._window_root.assert_not_called()
+        app._center_on_screen.assert_not_called()
