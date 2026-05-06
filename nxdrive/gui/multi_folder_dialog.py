@@ -805,10 +805,16 @@ class MultiFolderDialog(QDialog):
                 # Use Finder favorites as primary, add Home and mounts, deduplicate
                 seen: set[str] = set()
                 self._add_std_loc_item(locations, "Home")
+                # Add icon for Home
+                locations.item(0).setIcon(self.fetch_icon("Home"))
                 seen.add("Home")
                 for name in self._finder_favorites:
                     if name not in seen:
                         locations.addItem(name)
+                        # Add icon for the latest item
+                        locations.item(locations.count() - 1).setIcon(
+                            self.fetch_icon(name)
+                        )
                         seen.add(name)
                 mount_items: list[str] = []
                 for name in self.macos_mount_points():
@@ -829,17 +835,27 @@ class MultiFolderDialog(QDialog):
                     "Movies",
                 ]:
                     self._add_std_loc_item(locations, name)
+                    # Add icon for the latest item
+                    locations.item(locations.count() - 1).setIcon(self.fetch_icon(name))
                 mount_items = list(self.macos_mount_points().keys())
             # Add mount locations with a divider
             if mount_items:
                 self._add_separator(locations)
-                locations.addItems(mount_items)
+                for name in mount_items:
+                    locations.addItem(name)
+                    # Add icon for the latest item
+                    locations.item(locations.count() - 1).setIcon(self.fetch_icon(name))
             # Add macOS Finder tags with a divider
             tags = self.macos_finder_tags()
             if tags:
                 self._finder_tags = tags
                 self._add_separator(locations)
-                locations.addItems(tags)
+                for name in tags:
+                    locations.addItem(name)
+                    # Add icon for the latest item
+                    locations.item(locations.count() - 1).setIcon(
+                        self.fetch_icon("tag")
+                    )
                 log.debug("Added Finder tags to sidebar: %s", tags)
             else:
                 self._finder_tags = []
@@ -964,6 +980,31 @@ class MultiFolderDialog(QDialog):
         # Handle clicks on the locations list to navigate to the selected location
         locations.itemClicked.connect(self.navigate_to_location)
         return locations
+
+    def fetch_icon(self, name: str) -> QIcon | None:
+        match name:
+            case "Home":
+                return QIcon(str(find_icon("home_light.svg")))
+            case "Applications":
+                return QIcon(str(find_icon("applications_light.svg")))
+            case "Desktop":
+                return QIcon(str(find_icon("desktop_light.svg")))
+            case "Documents":
+                return QIcon(str(find_icon("documents_light.svg")))
+            case "Downloads":
+                return QIcon(str(find_icon("downloads_light.svg")))
+            case "Pictures":
+                return QIcon(str(find_icon("pictures_light.svg")))
+            case "Music":
+                return QIcon(str(find_icon("music_light.svg")))
+            case "Movies" | "Videos":
+                return QIcon(str(find_icon("videos_light.svg")))
+            case loc if loc.startswith("Mount/"):
+                return QIcon(str(find_icon("mount_point_light.svg")))
+            case "tag":
+                return QIcon(str(find_icon("tag_light.svg")))
+            case _:
+                return QIcon(str(find_icon("folder_generic_light.svg")))
 
     @classmethod
     def _add_std_loc_item(cls, locations: QListWidget, name: str) -> None:
