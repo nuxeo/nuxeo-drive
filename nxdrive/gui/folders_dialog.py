@@ -835,9 +835,12 @@ class FoldersDialog(DialogMixin):
 
     def _select_files_and_folders(self) -> None:
         """Open a dialog to select multiple files and folders to upload."""
-        # Application dark mode detect
-        dark_mode = self.application._dark_mode
-        mfd = MultiFolderDialog(dark_mode=dark_mode, parent=self)
+        # Send the dark mode pyqtSignal
+        mfd = MultiFolderDialog(
+            dark_mode=self.application.is_dark_mode(),
+            dark_mode_signal=self.application._dark_mode_signal,
+            parent=self,
+        )
         if mfd.exec():
             path = mfd.selected_paths()
             self._process_additionnal_local_paths(path)

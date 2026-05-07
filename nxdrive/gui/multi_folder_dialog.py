@@ -37,6 +37,7 @@ from nxdrive.qt.imports import (
     Qt,
     QTreeView,
     QVBoxLayout,
+    pyqtBoundSignal,
 )
 
 from ..constants import LINUX, MAC, WINDOWS
@@ -78,11 +79,19 @@ class MultiFolderDialog(QDialog):
         "Root": "ROOT",
     }
 
-    def __init__(self, dark_mode: bool, parent: QDialog | None = None) -> None:
+    def __init__(
+        self,
+        dark_mode: bool = False,
+        dark_mode_signal: pyqtBoundSignal | None = None,
+        parent: QDialog | None = None,
+    ) -> None:
         super().__init__(parent)
         self.setWindowTitle(Translator.get("SELECT_FILES_FOLDERS"))
         self._in_tag_mode = False
-        self._dark_mode = dark_mode
+        if dark_mode_signal:
+            dark_mode_signal.connect(self._on_dark_mode_changed)
+
+        self._dark_mode: bool = dark_mode
 
         # Load QSS stylesheet
         qss_path = Path(__file__).parent / "multi_folder_dialog.qss"
@@ -146,11 +155,11 @@ class MultiFolderDialog(QDialog):
 
         view_layout = QHBoxLayout()
         view_layout.setSpacing(6)
-        panel_layout = QVBoxLayout()
-        panel_layout.setSpacing(4)
+        self.panel_layout = QVBoxLayout()
+        self.panel_layout.setSpacing(4)
 
-        panel_layout.addWidget(self.panel_locations())
-        view_layout.addLayout(panel_layout)
+        self.panel_layout.addWidget(self.panel_locations())
+        view_layout.addLayout(self.panel_layout)
 
         # Create a tree view and set the model
         self.tree = QTreeView()
@@ -188,6 +197,22 @@ class MultiFolderDialog(QDialog):
         # Adding Add/Cancel buttons to the layout
         bottom_layout.addWidget(buttons)
         layout.addLayout(bottom_layout)
+
+    def _on_dark_mode_changed(self, enabled: bool) -> None:
+        """Update dark mode property"""
+        self._dark_mode = enabled
+        # Update icons
+        # Update Home and Go Up button icons
+        icon_color = "light" if self._dark_mode else "dark"
+        self.btnHome.setIcon(QIcon(str(find_icon(f"home_{icon_color}.svg"))))
+        self.btnUp.setIcon(QIcon(str(find_icon(f"up_arrow_{icon_color}.svg"))))
+        # Clear panel and re-add to update any icons in the locations panel
+        locations_widget = self.panel_layout.takeAt(0)
+        if locations_widget:
+            widget = locations_widget.widget()
+            if widget:
+                widget.deleteLater()
+        self.panel_layout.addWidget(self.panel_locations())
 
     def selected_paths(self) -> list[str]:
         # Tag mode: paths stored as UserRole data on QStandardItemModel items
