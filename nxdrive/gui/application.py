@@ -129,6 +129,7 @@ class Application(QApplication):
     filters_dlg: Optional[DialogMixin] = None
     _delegator: Optional["NotificationDelegator"] = None
     tray_icon: DriveSystrayIcon
+    _dark_mode: bool = False
 
     def __init__(self, manager: "Manager", *args: Any) -> None:
         # This 1st line is needed to fix:
@@ -420,6 +421,9 @@ class Application(QApplication):
         self.manager.featureUpdate.connect(self._update_feature_state)
         self.last_engine_uid = ""
 
+        # Detect Dark Mode and set to class variable
+        Application._dark_mode = self._is_dark_mode()
+
     def create_custom_window_for_task_manager(self) -> None:
         # Task Manager
         self.task_manager_window = CustomWindow()
@@ -431,6 +435,22 @@ class Application(QApplication):
                 str(find_resource("qml/tasksManager", file="TaskManager.qml"))
             )
         )
+
+    def _is_dark_mode(self) -> bool:
+        # Detect the current scheme
+        if not self.styleHints():
+            return False
+        scheme = self.styleHints().colorScheme()
+
+        if scheme == Qt.ColorScheme.Dark:
+            log.debug("System is in Dark Mode")
+            return True
+        elif scheme == Qt.ColorScheme.Light:
+            log.debug("System is in Light Mode")
+            return False
+        else:
+            log.debug("Scheme is Unknown")
+            return False
 
     def init_workflow(self) -> None:
         if not self.manager.engines:

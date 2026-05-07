@@ -78,10 +78,11 @@ class MultiFolderDialog(QDialog):
         "Root": "ROOT",
     }
 
-    def __init__(self, parent: QDialog | None = None) -> None:
+    def __init__(self, dark_mode: bool, parent: QDialog | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(Translator.get("SELECT_FILES_FOLDERS"))
         self._in_tag_mode = False
+        self._dark_mode = dark_mode
 
         # Load QSS stylesheet
         qss_path = Path(__file__).parent / "multi_folder_dialog.qss"
@@ -105,13 +106,15 @@ class MultiFolderDialog(QDialog):
         self.showHidden.checkStateChanged.connect(self.show_hidden_files)
         # Home button
         self.btnHome = QPushButton()
-        self.btnHome.setIcon(QIcon(str(find_icon("home_light.svg"))))
+        icon_color = "light" if self._dark_mode else "dark"
+        self.btnHome.setIcon(QIcon(str(find_icon(f"home_{icon_color}.svg"))))
         self.btnHome.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.btnHome.setToolTip(Translator.get("HOME"))
         self.btnHome.clicked.connect(self.go_home)
         # Up button
         self.btnUp = QPushButton()
-        self.btnUp.setIcon(QIcon(str(find_icon("up_arrow_light.svg"))))
+        icon_color = "light" if self._dark_mode else "dark"
+        self.btnUp.setIcon(QIcon(str(find_icon(f"up_arrow_{icon_color}.svg"))))
         self.btnUp.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.btnUp.setToolTip(Translator.get("GO_UP"))
         self.btnUp.clicked.connect(self.go_up)
@@ -982,29 +985,31 @@ class MultiFolderDialog(QDialog):
         return locations
 
     def fetch_icon(self, name: str) -> QIcon | None:
+        # Detect icon color based on dark mode
+        icon_color = "light" if self._dark_mode else "dark"
         match name:
             case "Home":
-                return QIcon(str(find_icon("home_light.svg")))
+                return QIcon(str(find_icon(f"home_{icon_color}.svg")))
             case "Applications":
-                return QIcon(str(find_icon("applications_light.svg")))
+                return QIcon(str(find_icon(f"applications_{icon_color}.svg")))
             case "Desktop":
-                return QIcon(str(find_icon("desktop_light.svg")))
+                return QIcon(str(find_icon(f"desktop_{icon_color}.svg")))
             case "Documents":
-                return QIcon(str(find_icon("documents_light.svg")))
+                return QIcon(str(find_icon(f"documents_{icon_color}.svg")))
             case "Downloads":
-                return QIcon(str(find_icon("downloads_light.svg")))
+                return QIcon(str(find_icon(f"downloads_{icon_color}.svg")))
             case "Pictures":
-                return QIcon(str(find_icon("pictures_light.svg")))
+                return QIcon(str(find_icon(f"pictures_{icon_color}.svg")))
             case "Music":
-                return QIcon(str(find_icon("music_light.svg")))
+                return QIcon(str(find_icon(f"music_{icon_color}.svg")))
             case "Movies" | "Videos":
-                return QIcon(str(find_icon("videos_light.svg")))
+                return QIcon(str(find_icon(f"videos_{icon_color}.svg")))
             case loc if loc.startswith("Mount/"):
-                return QIcon(str(find_icon("mount_point_light.svg")))
+                return QIcon(str(find_icon(f"mount_point_{icon_color}.svg")))
             case "tag":
-                return QIcon(str(find_icon("tag_light.svg")))
+                return QIcon(str(find_icon(f"tag_{icon_color}.svg")))
             case _:
-                return QIcon(str(find_icon("folder_generic_light.svg")))
+                return QIcon(str(find_icon(f"folder_generic_{icon_color}.svg")))
 
     @classmethod
     def _add_std_loc_item(cls, locations: QListWidget, name: str) -> None:

@@ -834,7 +834,10 @@ class FoldersDialog(DialogMixin):
         return current_total_size
 
     def _select_files_and_folders(self) -> None:
-        mfd = MultiFolderDialog()
+        """Open a dialog to select multiple files and folders to upload."""
+        # Application dark mode detect
+        dark_mode = self.application._dark_mode
+        mfd = MultiFolderDialog(dark_mode=dark_mode, parent=self)
         if mfd.exec():
             path = mfd.selected_paths()
             self._process_additionnal_local_paths(path)
