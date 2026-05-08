@@ -41,6 +41,7 @@ from nxdrive.qt.imports import (
 )
 
 from ..constants import LINUX, MAC, WINDOWS
+from ..options import Options
 from ..translator import Translator
 from ..utils import find_icon
 
@@ -94,9 +95,11 @@ class MultiFolderDialog(QDialog):
         self._dark_mode: bool = dark_mode
 
         # Load QSS stylesheet
-        qss_path = Path(__file__).parent / "multi_folder_dialog.qss"
+        qss_path = Options.res_dir / "styles" / "multi_folder_dialog.qss"
         if qss_path.exists():
             self.setStyleSheet(qss_path.read_text(encoding="utf-8"))
+        else:
+            log.warning("QSS stylesheet not found at %s", qss_path)
 
         # Set minimum size
         self.setMinimumSize(700, 450)
@@ -892,10 +895,16 @@ class MultiFolderDialog(QDialog):
                 )
                 seen_win: set[str] = set()
                 self._add_std_loc_item(locations, "Home")
+                # Add icon for Home
+                locations.item(0).setIcon(self.fetch_icon("Home"))
                 seen_win.add("Home")
                 for name in self._windows_pinned_items:
                     if name not in seen_win:
                         locations.addItem(name)
+                        # Add icon for the latest item
+                        locations.item(locations.count() - 1).setIcon(
+                            self.fetch_icon(name)
+                        )
                         seen_win.add(name)
                 # Fixed, DVD, and USB drives
                 drive_items: list[str] = []
@@ -915,10 +924,18 @@ class MultiFolderDialog(QDialog):
                         seen_win.add(name)
                 if drive_items:
                     self._add_separator(locations)
-                    locations.addItems(drive_items)
+                    for item in drive_items:
+                        locations.addItem(item)
+                        locations.item(locations.count() - 1).setIcon(
+                            self.fetch_icon("Win_drive\\" + item)
+                        )
                 if onedrive_items:
                     self._add_separator(locations)
-                    locations.addItems(onedrive_items)
+                    for item in onedrive_items:
+                        locations.addItem(item)
+                        locations.item(locations.count() - 1).setIcon(
+                            self.fetch_icon("Win_onedrive\\" + item)
+                        )
                 # Add network locations with a divider
                 net_items: list[str] = []
                 for name in self._windows_network_locations:
@@ -927,7 +944,11 @@ class MultiFolderDialog(QDialog):
                         seen_win.add(name)
                 if net_items:
                     self._add_separator(locations)
-                    locations.addItems(net_items)
+                    for item in net_items:
+                        locations.addItem(item)
+                        locations.item(locations.count() - 1).setIcon(
+                            self.fetch_icon("Win_network\\" + item)
+                        )
             else:
                 log.error(
                     "Explorer pinned items unavailable, using fallback standard paths"
@@ -950,17 +971,29 @@ class MultiFolderDialog(QDialog):
                 ]
                 if fallback_drives:
                     self._add_separator(locations)
-                    locations.addItems(fallback_drives)
+                    for item in fallback_drives:
+                        locations.addItem(item)
+                        locations.item(locations.count() - 1).setIcon(
+                            self.fetch_icon("Win_drive\\" + item)
+                        )
                 # OneDrive locations
                 fallback_onedrive = list(self._windows_onedrive_paths.keys())
                 if fallback_onedrive:
                     self._add_separator(locations)
-                    locations.addItems(fallback_onedrive)
+                    for item in fallback_onedrive:
+                        locations.addItem(item)
+                        locations.item(locations.count() - 1).setIcon(
+                            self.fetch_icon("Win_onedrive\\" + item)
+                        )
                 # Network locations
                 fallback_network = list(self._windows_network_locations.keys())
                 if fallback_network:
                     self._add_separator(locations)
-                    locations.addItems(fallback_network)
+                    for item in fallback_network:
+                        locations.addItem(item)
+                        locations.item(locations.count() - 1).setIcon(
+                            self.fetch_icon("Win_network\\" + item)
+                        )
         elif LINUX:
             for name, path in self.linux_standard_locations().items():
                 if Path(path).exists():
@@ -1025,6 +1058,12 @@ class MultiFolderDialog(QDialog):
                 return QIcon(str(find_icon(f"mount_point_{icon_color}.svg")))
             case "tag":
                 return QIcon(str(find_icon(f"tag_{icon_color}.svg")))
+            case loc if loc.startswith("Win_drive\\"):
+                return QIcon(str(find_icon(f"win_drive_{icon_color}.svg")))
+            case loc if loc.startswith("Win_onedrive\\"):
+                return QIcon(str(find_icon(f"win_onedrive_{icon_color}.svg")))
+            case loc if loc.startswith("Win_network\\"):
+                return QIcon(str(find_icon(f"win_network_{icon_color}.svg")))
             case _:
                 return QIcon(str(find_icon(f"folder_generic_{icon_color}.svg")))
 
