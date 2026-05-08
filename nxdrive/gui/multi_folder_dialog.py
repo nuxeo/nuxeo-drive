@@ -541,6 +541,51 @@ class MultiFolderDialog(QDialog):
 
         log.debug("Showing %d files for tag %r", len(paths), tag_name)
 
+    class FDAAlert(QDialog):
+        def __init__(self, parent: QDialog | None = None) -> None:
+            super().__init__(parent)
+            self.setWindowTitle("Finder favorites unavailable")
+
+            message = QLabel(
+                "You will be unable to view your Finder favorites due to macOS permissions. \
+                                 Please grant Full Disk Access to this app in \
+                                 System Settings > Privacy & Security > Full Disk Access \
+                                 and restart Nuxeo Drive to enable this feature"
+            )
+            message.setWordWrap(True)
+
+            self.setFixedSize(QSize(400, 200))
+
+            ok_button = QPushButton("OK")
+            ok_button.clicked.connect(self.close_alert)
+
+            dont_show_again_button = QPushButton("Don't show again")
+            dont_show_again_button.clicked.connect(self.close_alert_and_remember)
+
+            layout = QVBoxLayout()
+            layout.addWidget(message)
+            layout.addWidget(ok_button)
+            layout.addWidget(dont_show_again_button)
+
+            self.setLayout(layout)
+
+        def close_alert(self):
+            self.close()
+
+        def close_alert_and_remember(self):
+            # Check if "dont_show_fda_alert" file exists, if not create it to remember the user's choice
+            dont_show_file = Path.home() / ".nuxeo-drive" / "dont_show_fda_alert"
+            if not dont_show_file.exists():
+                dont_show_file.parent.mkdir(parents=True, exist_ok=True)
+                dont_show_file.touch()
+            self.close()
+
+    @staticmethod
+    def _load_fda_alert() -> None:
+        log.warning("Cannot access Finder favorites due to macOS permissions.")
+        _fda_alert = MultiFolderDialog.FDAAlert()
+        _fda_alert.exec()
+
     @staticmethod
     def _parse_sfl_file(sfl_path: Path) -> dict[str, str]:
         """Parse an SFL/SFL2/SFL3/SFL4 file and return {name: path} for valid favorites."""
@@ -559,6 +604,9 @@ class MultiFolderDialog(QDialog):
                     "Cannot read Finder favorites: grant Full Disk Access to this "
                     "app in System Settings > Privacy & Security > Full Disk Access"
                 )
+                dont_show_file = Path.home() / ".nuxeo-drive" / "dont_show_fda_alert"
+                if not dont_show_file.exists():
+                    MultiFolderDialog._load_fda_alert()
                 return favorites
 
         # NSKeyedArchiver format (sfl3/sfl4): bookmark data is in $objects
