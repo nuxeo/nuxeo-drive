@@ -396,6 +396,23 @@ class TestDirectDownloadCreateZipArchive:
             result = dd._create_zip_archive(batch)
             assert result is None
 
+    def test_archive_empty_batch_returns_none(self):
+        """Test that an empty batch folder (all downloads failed) returns None
+        without creating an empty zip and without logging false success."""
+        dd = DirectDownload(self.manager, self.folder)
+        batch = self.folder / "download_20250101_120000"
+        batch.mkdir()
+        # Batch has only an empty subfolder - no files (all downloads failed)
+        (batch / "empty_subdir").mkdir()
+
+        with patch.object(dd, "_get_download_destination", return_value=self.downloads):
+            result = dd._create_zip_archive(batch)
+            assert result is None
+            # No zip should be created in the downloads folder
+            assert not any(self.downloads.glob("*.zip"))
+            # Batch folder should be cleaned up
+            assert not batch.exists()
+
 
 class TestDirectDownloadCleanupBatchFolder:
     """Test _cleanup_batch_folder method."""
