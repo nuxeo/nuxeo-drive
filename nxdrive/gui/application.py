@@ -1103,7 +1103,11 @@ class Application(QApplication):
     def show_direct_download_window(self) -> None:
         """Display the Direct Transfer window with the Direct Download tab selected."""
         engines = list(self.manager.engines.values())
-        engine = engines[0] if engines else None
+        engine: Optional[Engine] = None
+        if len(engines) > 1:
+            engine = self._select_account(engines)
+        elif engines:
+            engine = engines[0]
         if not engine:
             return
         window = self._window_root(self.direct_transfer_window)
