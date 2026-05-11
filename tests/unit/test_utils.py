@@ -1642,3 +1642,119 @@ class TestShowDirectDownloadWindow:
         app._window_root.assert_not_called()
         app._center_on_screen.assert_not_called()
         assert result is None
+
+
+class TestHandleNxdriveUrlDirectDownload:
+    """Tests for Application._handle_nxdrive_url() direct download branch.
+
+    Covers the account-selection and user-injection logic added to
+    handle multi-account direct download requests.
+    """
+
+    def _make_app(self):
+        app = Mock()
+        app._handle_nxdrive_url = __import__(
+            "nxdrive.gui.application", fromlist=["Application"]
+        ).Application._handle_nxdrive_url.__get__(app)
+        manager = Mock()
+        manager.restart_needed = False
+        app.manager = manager
+        return app
+
+    def _parse_return(self, documents):
+        return {"command": "download_direct", "documents": documents}
+
+    def test_download_direct_injects_selected_user(self):
+        """User from selected engine is injected into documents missing 'user'."""
+        app = self._make_app()
+        engine = Mock()
+        bind = Mock()
+        bind.username = "alice"
+        engine.get_binder.return_value = bind
+        app.show_direct_download_window.return_value = engine
+
+        documents = [
+            {"server_url": "https://s.com/nuxeo/", "doc_id": "d1", "user": None},
+            {"server_url": "https://s.com/nuxeo/", "doc_id": "d2"},
+        ]
+
+        with patch(
+            "nxdrive.gui.application.parse_protocol_url",
+            return_value=self._parse_return(documents),
+        ), patch("nxdrive.gui.application.normalized_path", return_value=""):
+            result = app._handle_nxdrive_url("nxdrive://direct-download/x")
+
+        assert result is True
+        app.manager.directDownload.emit.assert_called_once()
+        emitted = app.manager.directDownload.emit.call_args[0][0]
+        assert all(doc["user"] == "alice" for doc in emitted)
+
+    def test_download_direct_preserves_existing_user(self):
+        """Existing 'user' values in documents are not overwritten."""
+        app = self._make_app()
+        engine = Mock()
+        bind = Mock()
+        bind.username = "alice"
+        engine.get_binder.return_value = bind
+        app.show_direct_download_window.return_value = engine
+
+        documents = [
+            {"server_url": "https://s.com/nuxeo/", "doc_id": "d1", "user": "bob"},
+            {"server_url": "https://s.com/nuxeo/", "doc_id": "d2"},
+        ]
+
+        with patch(
+            "nxdrive.gui.application.parse_protocol_url",
+            return_value=self._parse_return(documents),
+        ), patch("nxdrive.gui.application.normalized_path", return_value=""):
+            result = app._handle_nxdrive_url("nxdrive://direct-download/x")
+
+        assert result is True
+        emitted = app.manager.directDownload.emit.call_args[0][0]
+        assert emitted[0]["user"] == "bob"
+        assert emitted[1]["user"] == "alice"
+
+    def test_download_direct_cancelled_does_not_emit(self):
+        """If user cancels account selection, download is not started."""
+        app = self._make_app()
+        app.show_direct_download_window.return_value = None
+
+        documents = [{"server_url": "https://s.com/nuxeo/", "doc_id": "d1"}]
+        with patch(
+            "nxdrive.gui.application.parse_protocol_url",
+            return_value=self._parse_return(documents),
+        ), patch("nxdrive.gui.application.normalized_path", return_value=""):
+            result = app._handle_nxdrive_url("nxdrive://direct-download/x")
+
+        assert result is False
+        app.manager.directDownload.emit.assert_not_called()
+
+    def test_download_direct_empty_documents(self):
+        """Empty documents list returns False without opening window."""
+        app = self._make_app()
+        with patch(
+            "nxdrive.gui.application.parse_protocol_url",
+            return_value=self._parse_return([]),
+        ), patch("nxdrive.gui.application.normalized_path", return_value=""):
+            result = app._handle_nxdrive_url("nxdrive://direct-download/x")
+
+        assert result is False
+        app.show_direct_download_window.assert_not_called()
+        app.manager.directDownload.emit.assert_not_called()
+
+    def test_download_direct_restart_needed(self):
+        """If a restart is needed, show msgbox and return False."""
+        app = self._make_app()
+        app.manager.restart_needed = True
+
+        documents = [{"server_url": "https://s.com/nuxeo/", "doc_id": "d1"}]
+        with patch(
+            "nxdrive.gui.application.parse_protocol_url",
+            return_value=self._parse_return(documents),
+        ), patch("nxdrive.gui.application.normalized_path", return_value=""):
+            result = app._handle_nxdrive_url("nxdrive://direct-download/x")
+
+        assert result is False
+        app.show_msgbox_restart_needed.assert_called_once()
+        app.show_direct_download_window.assert_not_called()
+        app.manager.directDownload.emit.assert_not_called()
