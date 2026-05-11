@@ -1588,20 +1588,23 @@ class TestShowDirectDownloadWindow:
         mock_window = Mock()
         app._window_root.return_value = mock_window
 
-        app.show_direct_download_window()
+        result = app.show_direct_download_window()
 
         mock_window.setEngine.emit.assert_called_once_with("test-engine-uid")
         mock_window.switchToTab.emit.assert_called_once_with(0)
         app._center_on_screen.assert_called_once_with(app.direct_transfer_window)
+        assert result is not None
+        assert result.uid == "test-engine-uid"
 
     def test_no_engines_does_nothing(self):
         """Test that nothing happens when no engines are configured."""
         app = self._make_app(engines={})
 
-        app.show_direct_download_window()
+        result = app.show_direct_download_window()
 
         app._window_root.assert_not_called()
         app._center_on_screen.assert_not_called()
+        assert result is None
 
     def test_multiple_engines_shows_account_selection(self):
         """Test that account selection dialog is shown when multiple engines exist."""
@@ -1615,12 +1618,13 @@ class TestShowDirectDownloadWindow:
         mock_window = Mock()
         app._window_root.return_value = mock_window
 
-        app.show_direct_download_window()
+        result = app.show_direct_download_window()
 
         app._select_account.assert_called_once()
         mock_window.setEngine.emit.assert_called_once_with("engine-uid-2")
         mock_window.switchToTab.emit.assert_called_once_with(0)
         app._center_on_screen.assert_called_once_with(app.direct_transfer_window)
+        assert result is engine2
 
     def test_multiple_engines_cancelled_does_nothing(self):
         """Test that cancelling account selection does not open the window."""
@@ -1632,8 +1636,9 @@ class TestShowDirectDownloadWindow:
         app = self._make_app(engines=engines)
         app._select_account.return_value = None
 
-        app.show_direct_download_window()
+        result = app.show_direct_download_window()
 
         app._select_account.assert_called_once()
         app._window_root.assert_not_called()
         app._center_on_screen.assert_not_called()
+        assert result is None
