@@ -1600,15 +1600,15 @@ class TestParseProtocolUrlDirectTransfer:
         """Non-compressed web URL with a deep nested path."""
         url = (
             "nxdrive://direct-transfer/https/"
-            "drive-2025.beta.nuxeocloud.com/nuxeo/"
-            "default-domain/UserWorkspaces/nco-admin/Roy/Spaced Folder"
+            "server.com/nuxeo/"
+            "default-domain/UserWorkspaces/admin/Roy/Spaced Folder"
         )
         info = nxdrive.utils.parse_protocol_url(url)
         assert info is not None
         assert info["command"] == "direct-transfer"
         assert (
             info["remote_path"]
-            == "/default-domain/UserWorkspaces/nco-admin/Roy/Spaced Folder"
+            == "/default-domain/UserWorkspaces/admin/Roy/Spaced Folder"
         )
 
     def test_non_compressed_url_case_insensitive_scheme(self):
