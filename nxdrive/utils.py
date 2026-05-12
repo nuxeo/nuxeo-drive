@@ -957,6 +957,23 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
             "command": cmd,
             "remote_path": remote_path,
         }
+    # web ui - non-compressed format (plain URL with http/https scheme)
+    elif cmd == "direct-transfer" and parsed_url.get("path", "").lower().startswith(
+        ("http/", "https/")
+    ):
+        try:
+            path_part = parsed_url["path"]
+            parts = re.split("/nuxeo", path_part, maxsplit=1)
+            if len(parts) < 2:
+                raise ValueError("Missing /nuxeo in URL")
+            remote_path = parts[1]
+        except Exception:
+            log.exception(f"URL is not valid: {url_string}")
+            return None
+        return {
+            "command": cmd,
+            "remote_path": remote_path,
+        }
     return {"command": cmd, "filepath": parsed_url["path"]}
 
 
