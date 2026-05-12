@@ -1619,6 +1619,39 @@ class TestParseProtocolUrlDirectTransfer:
         assert info["command"] == "direct-transfer"
         assert info["remote_path"] == "/default-domain/ws"
 
+    # --- Percent-encoded non-compressed URL tests ---
+
+    def test_non_compressed_url_with_percent_encoded_spaces(self):
+        """Non-compressed web URL with %20 encoded spaces decoded to real spaces."""
+        url = (
+            "nxdrive://direct-transfer/https/server.com/nuxeo/"
+            "default-domain/UserWorkspaces/admin/new%20folder"
+        )
+        info = nxdrive.utils.parse_protocol_url(url)
+        assert info is not None
+        assert info["command"] == "direct-transfer"
+        assert info["remote_path"] == "/default-domain/UserWorkspaces/admin/new folder"
+
+    def test_non_compressed_url_with_multiple_encoded_spaces(self):
+        """Multiple %20 in the path are all decoded."""
+        url = (
+            "nxdrive://direct-transfer/https/server.com/nuxeo/"
+            "default-domain/My%20Workspace/Sub%20Folder"
+        )
+        info = nxdrive.utils.parse_protocol_url(url)
+        assert info is not None
+        assert info["remote_path"] == "/default-domain/My Workspace/Sub Folder"
+
+    def test_non_compressed_url_without_encoding_unchanged(self):
+        """URL without percent-encoding is returned as-is."""
+        url = (
+            "nxdrive://direct-transfer/https/server.com/nuxeo/"
+            "default-domain/plain-folder"
+        )
+        info = nxdrive.utils.parse_protocol_url(url)
+        assert info is not None
+        assert info["remote_path"] == "/default-domain/plain-folder"
+
 
 class TestShowDirectDownloadWindow:
     """Tests for Application.show_direct_download_window()."""

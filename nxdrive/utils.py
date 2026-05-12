@@ -32,7 +32,7 @@ from typing import (
     Tuple,
     Union,
 )
-from urllib.parse import parse_qsl, urlparse, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, unquote, urlparse, urlsplit, urlunsplit
 from uuid import uuid4
 
 from nuxeo.utils import get_digest_algorithm, get_digest_hash
@@ -966,7 +966,7 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
             parts = re.split("/nuxeo", path_part, maxsplit=1)
             if len(parts) < 2:
                 raise ValueError("Missing /nuxeo in URL")
-            remote_path = parts[1]
+            remote_path = unquote(parts[1])
         except Exception:
             log.exception(f"URL is not valid: {url_string}")
             return None
