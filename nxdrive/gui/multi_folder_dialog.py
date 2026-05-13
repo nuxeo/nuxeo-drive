@@ -65,6 +65,58 @@ class CenteredHeaderFileSystemModel(QFileSystemModel):
         return super().headerData(section, orientation, role)
 
 
+class FDAAlert(QDialog):
+    visible = False
+
+    def __init__(self, parent: QDialog | None = None) -> None:
+        super().__init__(parent)
+        self.setFixedSize(QSize(450, 200))
+
+        message = QLabel()
+        message.setWordWrap(True)
+        message.setTextFormat(Qt.TextFormat.RichText)
+
+        text_clause1 = "Cannot view Finder favorites."
+        text_clause2 = "Please enable <b>Full Disk Access:</b> "
+        text_clause3 = "System <b>Settings > Privacy & Security > Full Disk Access</b>"
+        text_clause4 = "then restart Nuxeo Drive."
+        message.setText(
+            f"{text_clause1}<br>{text_clause2}<br>{text_clause3}<br>{text_clause4}"
+        )
+
+        ok_button = QPushButton("OK")
+        ok_button.setFixedSize(QSize(120, 30))
+        ok_button.setStyleSheet("border-radius: 15px; background-color: green;")
+        ok_button.clicked.connect(self.close_alert)
+
+        dont_show_again_button = QPushButton("Don't show again")
+        dont_show_again_button.setFixedSize(QSize(120, 30))
+        dont_show_again_button.setStyleSheet(
+            "border-radius: 15px; background-color: red;"
+        )
+        dont_show_again_button.clicked.connect(self.close_alert_and_remember)
+
+        layout = QVBoxLayout()
+        layout.addWidget(message)
+        layout.addWidget(ok_button, alignment=Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(dont_show_again_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        self.setLayout(layout)
+
+    def close_alert(self):
+        self.close()
+        FDAAlert.visible = False
+
+    def close_alert_and_remember(self):
+        # Check if "dont_show_fda_alert" file exists, if not create it to remember the user's choice
+        dont_show_file = Path.home() / ".nuxeo-drive" / "dont_show_fda_alert"
+        if not dont_show_file.exists():
+            dont_show_file.parent.mkdir(parents=True, exist_ok=True)
+            dont_show_file.touch()
+        self.close()
+        FDAAlert.visible = False
+
+
 class MultiFolderDialog(QDialog):
     # Maps English location names (used as navigation keys) to i18n translation keys
     _STD_LOC_KEYS: dict[str, str] = {
@@ -202,7 +254,7 @@ class MultiFolderDialog(QDialog):
         layout.addLayout(bottom_layout)
 
     def _on_dark_mode_changed(self, enabled: bool) -> None:
-        """Update dark mode property"""
+        """Update dark mode property and icons"""
         self._dark_mode = enabled
         # Update icons
         # Update Home and Go Up button icons
@@ -405,8 +457,7 @@ class MultiFolderDialog(QDialog):
             ):
                 self.path_bar.setText(self._linux_mount_points[location])
 
-    @staticmethod
-    def linux_standard_locations() -> dict[str, str]:
+    def linux_standard_locations(self) -> dict[str, str]:
         """Gets standard folder locations on Linux."""
         home = QDir.homePath()
         return {
@@ -420,8 +471,7 @@ class MultiFolderDialog(QDialog):
             "Videos": home + "/Videos",
         }
 
-    @staticmethod
-    def linux_mount_points() -> dict[str, str]:
+    def linux_mount_points(self) -> dict[str, str]:
         """Gets mountable locations on Linux from /media and /mnt."""
         mounts: dict[str, str] = {}
         for base in ("/media", "/mnt"):
@@ -445,8 +495,7 @@ class MultiFolderDialog(QDialog):
                 pass
         return mounts
 
-    @staticmethod
-    def macos_mount_points() -> dict[str, str]:
+    def macos_mount_points(self) -> dict[str, str]:
         output = subprocess.check_output(["mount"]).decode("utf-8")
         mounts = {}
         for line in output.splitlines():
@@ -476,8 +525,7 @@ class MultiFolderDialog(QDialog):
                 break
         return favorites
 
-    @staticmethod
-    def macos_finder_tags() -> list[str]:
+    def macos_finder_tags(self) -> list[str]:
         """Gets the Finder favorite tag names on macOS."""
         try:
             output = subprocess.check_output(
@@ -541,53 +589,18 @@ class MultiFolderDialog(QDialog):
 
         log.debug("Showing %d files for tag %r", len(paths), tag_name)
 
-    class FDAAlert(QDialog):
-        def __init__(self, parent: QDialog | None = None) -> None:
-            super().__init__(parent)
-            self.setWindowTitle("Finder favorites unavailable")
+    def _load_fda_alert(self) -> None:
+        _fda_alert = FDAAlert(self)
+        dont_show_file = Path.home() / ".nuxeo-drive" / "dont_show_fda_alert"
+        if not dont_show_file.exists():
+            if not FDAAlert.visible:
+                log.warning("Cannot access Finder favorites due to macOS permissions.")
+                _fda_alert.open()
+                FDAAlert.visible = True
+        else:
+            log.warning("User has chosen to hide the Full Disk Access alert.")
 
-            message = QLabel(
-                "You will be unable to view your Finder favorites due to macOS permissions. \
-                                 Please grant Full Disk Access to this app in \
-                                 System Settings > Privacy & Security > Full Disk Access \
-                                 and restart Nuxeo Drive to enable this feature"
-            )
-            message.setWordWrap(True)
-
-            self.setFixedSize(QSize(400, 200))
-
-            ok_button = QPushButton("OK")
-            ok_button.clicked.connect(self.close_alert)
-
-            dont_show_again_button = QPushButton("Don't show again")
-            dont_show_again_button.clicked.connect(self.close_alert_and_remember)
-
-            layout = QVBoxLayout()
-            layout.addWidget(message)
-            layout.addWidget(ok_button)
-            layout.addWidget(dont_show_again_button)
-
-            self.setLayout(layout)
-
-        def close_alert(self):
-            self.close()
-
-        def close_alert_and_remember(self):
-            # Check if "dont_show_fda_alert" file exists, if not create it to remember the user's choice
-            dont_show_file = Path.home() / ".nuxeo-drive" / "dont_show_fda_alert"
-            if not dont_show_file.exists():
-                dont_show_file.parent.mkdir(parents=True, exist_ok=True)
-                dont_show_file.touch()
-            self.close()
-
-    @staticmethod
-    def _load_fda_alert() -> None:
-        log.warning("Cannot access Finder favorites due to macOS permissions.")
-        _fda_alert = MultiFolderDialog.FDAAlert()
-        _fda_alert.exec()
-
-    @staticmethod
-    def _parse_sfl_file(sfl_path: Path) -> dict[str, str]:
+    def _parse_sfl_file(self, sfl_path: Path) -> dict[str, str]:
         """Parse an SFL/SFL2/SFL3/SFL4 file and return {name: path} for valid favorites."""
         favorites: dict[str, str] = {}
         try:
@@ -598,15 +611,13 @@ class MultiFolderDialog(QDialog):
                 "Direct read of %s denied by TCC, trying plutil subprocess",
                 sfl_path,
             )
-            plist_data = MultiFolderDialog._read_plist_via_plutil(sfl_path)
+            plist_data = self._read_plist_via_plutil(sfl_path)
             if plist_data is None:
                 log.error(
                     "Cannot read Finder favorites: grant Full Disk Access to this "
                     "app in System Settings > Privacy & Security > Full Disk Access"
                 )
-                dont_show_file = Path.home() / ".nuxeo-drive" / "dont_show_fda_alert"
-                if not dont_show_file.exists():
-                    MultiFolderDialog._load_fda_alert()
+                self._load_fda_alert()
                 return favorites
 
         # NSKeyedArchiver format (sfl3/sfl4): bookmark data is in $objects
@@ -614,7 +625,7 @@ class MultiFolderDialog(QDialog):
             objects = plist_data["$objects"]
             for obj in objects:
                 if isinstance(obj, bytes) and len(obj) > 48 and obj[:4] == b"book":
-                    path = MultiFolderDialog._path_from_bookmark(obj)
+                    path = self._path_from_bookmark(obj)
                     if path and Path(path).exists():
                         favorites[Path(path).name] = path
         # Older plain plist format (sfl2): items list with Bookmark key
@@ -623,14 +634,13 @@ class MultiFolderDialog(QDialog):
                 bookmark_data = item.get("Bookmark")
                 if not bookmark_data:
                     continue
-                path = MultiFolderDialog._path_from_bookmark(bytes(bookmark_data))
+                path = self._path_from_bookmark(bytes(bookmark_data))
                 if path and Path(path).exists():
                     name = item.get("Name") or Path(path).name
                     favorites[name] = path
         return favorites
 
-    @staticmethod
-    def _read_plist_via_plutil(sfl_path: Path) -> dict | None:
+    def _read_plist_via_plutil(self, sfl_path: Path) -> dict | None:
         """Read a binary plist file via the plutil system binary (TCC workaround)."""
         try:
             xml_bytes = subprocess.check_output(
@@ -642,8 +652,7 @@ class MultiFolderDialog(QDialog):
             log.debug("plutil fallback also failed for %s", sfl_path, exc_info=True)
             return None
 
-    @staticmethod
-    def _path_from_bookmark(data: bytes) -> str | None:
+    def _path_from_bookmark(self, data: bytes) -> str | None:
         """Extract file path from macOS bookmark binary data."""
         try:
             if len(data) < 48 or data[:4] != b"book":
@@ -1045,12 +1054,21 @@ class MultiFolderDialog(QDialog):
         elif LINUX:
             for name, path in self.linux_standard_locations().items():
                 if Path(path).exists():
+                    if locations.item(locations.count() - 1):
+                        locations.item(locations.count() - 1).setIcon(
+                            self.fetch_icon(name)
+                        )
                     self._add_std_loc_item(locations, name)
             # Mountable locations
             self._linux_mount_points = self.linux_mount_points()
             if self._linux_mount_points:
                 self._add_separator(locations)
-                locations.addItems(list(self._linux_mount_points.keys()))
+                for item in list(self._linux_mount_points.keys()):
+                    if locations.item(locations.count() - 1):
+                        locations.item(locations.count() - 1).setIcon(
+                            self.fetch_icon(item)
+                        )
+                    locations.addItem(item)
 
         # Compute width based on longest item text (using bold font for hover/selection)
         bold_font = QFont(locations.font())
@@ -1123,8 +1141,7 @@ class MultiFolderDialog(QDialog):
         item.setData(Qt.ItemDataRole.UserRole, name)
         locations.addItem(item)
 
-    @staticmethod
-    def _add_separator(locations: QListWidget) -> None:
+    def _add_separator(self, locations: QListWidget) -> None:
         """Add a horizontal divider item to the QListWidget."""
         item = QListWidgetItem()
         item.setFlags(Qt.ItemFlag.NoItemFlags)
