@@ -428,7 +428,7 @@ class MultiFolderDialog(QDialog):
                 case loc if loc in self._windows_onedrive_paths:
                     self.path_bar.setText(self._windows_onedrive_paths[loc])
                 case loc if loc in self._windows_drives:
-                    drive_path = self._windows_drives[loc]
+                    drive_path = self._windows_drives[loc][1]
                     try:
                         has_content = Path(drive_path).exists() and any(
                             Path(drive_path).iterdir()
@@ -941,17 +941,16 @@ class MultiFolderDialog(QDialog):
                         )
                         seen_win.add(name)
                 # Fixed, DVD, and USB drives
+                self._add_separator(locations)
                 for name in self._windows_drives:
                     if name not in seen_win:
                         seen_win.add(name)
-                        self._add_separator(locations)
                         locations.addItem(name)
+                        last_item = locations.item(locations.count() - 1)
                         drive_type = self._windows_drives[name][
                             0
                         ]  # drive type for icon
-                        locations.item(locations.count() - 1).setIcon(
-                            self.fetch_icon(f"{drive_type}\\{name}")
-                        )
+                        last_item.setIcon(self.fetch_icon(f"{drive_type}\\{name}"))
                 # OneDrive locations
                 onedrive_items: list[str] = []
                 for name in self._windows_onedrive_paths:
