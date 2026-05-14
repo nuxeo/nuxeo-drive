@@ -1028,21 +1028,21 @@ class MultiFolderDialog(QDialog):
         elif LINUX:
             for name, path in self.linux_standard_locations().items():
                 if Path(path).exists():
+                    self._add_std_loc_item(locations, name)
                     if locations.item(locations.count() - 1):
                         locations.item(locations.count() - 1).setIcon(
                             self.fetch_icon(name)
                         )
-                    self._add_std_loc_item(locations, name)
             # Mountable locations
             self._linux_mount_points = self.linux_mount_points()
             if self._linux_mount_points:
                 self._add_separator(locations)
                 for item in list(self._linux_mount_points.keys()):
+                    locations.addItem(item)
                     if locations.item(locations.count() - 1):
                         locations.item(locations.count() - 1).setIcon(
                             self.fetch_icon(f"Mount/{item}")
                         )
-                    locations.addItem(item)
 
         # Compute width based on longest item text (using bold font for hover/selection)
         bold_font = QFont(locations.font())
