@@ -425,12 +425,10 @@ class MultiFolderDialog(QDialog):
                     self.path_bar.setText(QDir.homePath() + "/Music")
                 case "Videos":
                     self.path_bar.setText(QDir.homePath() + "/Videos")
-                case loc if loc in self._windows_fixed_drives:
-                    self.path_bar.setText(self._windows_fixed_drives[loc])
                 case loc if loc in self._windows_onedrive_paths:
                     self.path_bar.setText(self._windows_onedrive_paths[loc])
-                case loc if loc in self._windows_mountable_drives:
-                    drive_path = self._windows_mountable_drives[loc]
+                case loc if loc in self._windows_drives:
+                    drive_path = self._windows_drives[loc]
                     try:
                         has_content = Path(drive_path).exists() and any(
                             Path(drive_path).iterdir()
@@ -750,42 +748,19 @@ class MultiFolderDialog(QDialog):
             pass
         return onedrive_paths
 
-    def get_windows_fixed_drives(self) -> dict[str, str]:
-        """Gets all available fixed disk drive letters on Windows."""
-        DRIVE_FIXED = 3
-        drives: dict[str, str] = {}
-        try:
-            bitmask = windll.kernel32.GetLogicalDrives()
-            for letter in string.ascii_uppercase:
-                if bitmask & 1:
-                    root = f"{letter}:\\"
-                    if windll.kernel32.GetDriveTypeW(root) == DRIVE_FIXED:
-                        vol_name_buf = ctypes.create_unicode_buffer(261)
-                        result = windll.kernel32.GetVolumeInformationW(
-                            root, vol_name_buf, 261, None, None, None, None, 0
-                        )
-                        vol_label = (
-                            vol_name_buf.value if result and vol_name_buf.value else ""
-                        )
-                        display = f"{vol_label} {root}" if vol_label else root
-                        drives[display] = root
-                bitmask >>= 1
-        except Exception as ex:
-            log.error("Failed to get Windows fixed drives : %s", ex, exc_info=True)
-        return drives
-
-    def get_windows_mountable_drives(self) -> dict[str, str]:
+    def get_windows_drives(self) -> dict[str, list[str]]:
         """Gets all mountable drives (USB, DVD, external SSD) on Windows."""
         DRIVE_REMOVABLE = 2
+        DRIVE_FIXED = 3
         DRIVE_CDROM = 5
-        drives: dict[str, str] = {}
+        drives: dict[str, list[str]] = {}
         try:
             bitmask = windll.kernel32.GetLogicalDrives()
             for letter in string.ascii_uppercase:
                 if bitmask & 1:
                     root = f"{letter}:\\"
                     drive_type = windll.kernel32.GetDriveTypeW(root)
-                    if drive_type in (DRIVE_REMOVABLE, DRIVE_CDROM):
+                    if drive_type in (DRIVE_REMOVABLE, DRIVE_FIXED, DRIVE_CDROM):
                         # Try to get the volume label
                         vol_name_buf = ctypes.create_unicode_buffer(261)
                         result = windll.kernel32.GetVolumeInformationW(
@@ -797,7 +772,13 @@ class MultiFolderDialog(QDialog):
                         display = (
                             f"{vol_label} ({letter}:)" if vol_label else f"{letter}:\\"
                         )
-                        drives[display] = root
+                        if drive_type == DRIVE_REMOVABLE:
+                            drive_type = "Win_removable"
+                        elif drive_type == DRIVE_FIXED:
+                            drive_type = "Win_fixed"
+                        elif drive_type == DRIVE_CDROM:
+                            drive_type = "Win_cdrom"
+                        drives[display] = [drive_type, root]
                 bitmask >>= 1
         except Exception as ex:
             log.error("Failed to get Windows mountable drives : %s", ex, exc_info=True)
@@ -940,16 +921,12 @@ class MultiFolderDialog(QDialog):
             else:
                 self._finder_tags = []
         elif WINDOWS:
-            self._windows_fixed_drives = self.get_windows_fixed_drives()
             self._windows_onedrive_paths = self.get_windows_onedrive_paths()
-            self._windows_mountable_drives = self.get_windows_mountable_drives()
+            self._windows_drives = self.get_windows_drives()
             self._windows_pinned_items = self.get_windows_pinned_items()
             self._windows_network_locations = self.get_windows_network_locations()
             if self._windows_pinned_items:
-                log.debug(
-                    "Using Explorer pinned items for sidebar: %s",
-                    list(self._windows_pinned_items.keys()),
-                )
+                log.debug("Using Explorer pinned items for sidebar")
                 seen_win: set[str] = set()
                 self._add_std_loc_item(locations, "Home")
                 # Add icon for Home
@@ -964,28 +941,23 @@ class MultiFolderDialog(QDialog):
                         )
                         seen_win.add(name)
                 # Fixed, DVD, and USB drives
-                drive_items: list[str] = []
-                for name in self._windows_fixed_drives:
+                for name in self._windows_drives:
                     if name not in seen_win:
-                        drive_items.append(name)
                         seen_win.add(name)
-                for name in self._windows_mountable_drives:
-                    if name not in seen_win:
-                        drive_items.append(name)
-                        seen_win.add(name)
+                        self._add_separator(locations)
+                        locations.addItem(name)
+                        drive_type = self._windows_drives[name][
+                            0
+                        ]  # drive type for icon
+                        locations.item(locations.count() - 1).setIcon(
+                            self.fetch_icon(f"{drive_type}\\{name}")
+                        )
                 # OneDrive locations
                 onedrive_items: list[str] = []
                 for name in self._windows_onedrive_paths:
                     if name not in seen_win:
                         onedrive_items.append(name)
                         seen_win.add(name)
-                if drive_items:
-                    self._add_separator(locations)
-                    for item in drive_items:
-                        locations.addItem(item)
-                        locations.item(locations.count() - 1).setIcon(
-                            self.fetch_icon("Win_drive\\" + item)
-                        )
                 if onedrive_items:
                     self._add_separator(locations)
                     for item in onedrive_items:
@@ -1021,17 +993,20 @@ class MultiFolderDialog(QDialog):
                     "Videos",
                 ]:
                     self._add_std_loc_item(locations, name)
+                    locations.item(locations.count() - 1).setIcon(self.fetch_icon(name))
                 # Fixed, DVD, and USB drives
                 fallback_drives = [
-                    *self._windows_fixed_drives.keys(),
-                    *self._windows_mountable_drives.keys(),
+                    *self._windows_drives.keys(),
                 ]
                 if fallback_drives:
                     self._add_separator(locations)
                     for item in fallback_drives:
                         locations.addItem(item)
+                        drive_type = self._windows_drives[item][
+                            0
+                        ]  # drive type for icon
                         locations.item(locations.count() - 1).setIcon(
-                            self.fetch_icon("Win_drive\\" + item)
+                            self.fetch_icon(f"{drive_type}\\{item}")
                         )
                 # OneDrive locations
                 fallback_onedrive = list(self._windows_onedrive_paths.keys())
@@ -1066,7 +1041,7 @@ class MultiFolderDialog(QDialog):
                 for item in list(self._linux_mount_points.keys()):
                     if locations.item(locations.count() - 1):
                         locations.item(locations.count() - 1).setIcon(
-                            self.fetch_icon(item)
+                            self.fetch_icon(f"Mount/{item}")
                         )
                     locations.addItem(item)
 
@@ -1124,8 +1099,12 @@ class MultiFolderDialog(QDialog):
                 return QIcon(str(find_icon(f"mount_point_{icon_color}.svg")))
             case "tag":
                 return QIcon(str(find_icon(f"tag_{icon_color}.svg")))
-            case loc if loc.startswith("Win_drive\\"):
+            case loc if loc.startswith("Win_removable\\"):
+                return QIcon(str(find_icon(f"win_removable_{icon_color}.svg")))
+            case loc if loc.startswith("Win_fixed\\"):
                 return QIcon(str(find_icon(f"win_drive_{icon_color}.svg")))
+            case loc if loc.startswith("Win_cdrom\\"):
+                return QIcon(str(find_icon(f"win_cdrom_{icon_color}.svg")))
             case loc if loc.startswith("Win_onedrive\\"):
                 return QIcon(str(find_icon(f"win_onedrive_{icon_color}.svg")))
             case loc if loc.startswith("Win_network\\"):
