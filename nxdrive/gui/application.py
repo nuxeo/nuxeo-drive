@@ -1135,16 +1135,24 @@ class Application(QApplication):
         window.setEngine.emit(engine_uid)
         self._center_on_screen(self.direct_transfer_window)
 
-    def show_direct_download_window(self) -> None:
-        """Display the Direct Transfer window with the Direct Download tab selected."""
+    def show_direct_download_window(self) -> Optional[Engine]:
+        """Display the Direct Transfer window with the Direct Download tab selected.
+
+        :return: The selected engine, or None if cancelled or no engines.
+        """
         engines = list(self.manager.engines.values())
-        engine = engines[0] if engines else None
+        engine: Optional[Engine] = None
+        if len(engines) > 1:
+            engine = self._select_account(engines)
+        elif engines:
+            engine = engines[0]
         if not engine:
-            return
+            return None
         window = self._window_root(self.direct_transfer_window)
         window.setEngine.emit(engine.uid)
         window.switchToTab.emit(0)
         self._center_on_screen(self.direct_transfer_window)
+        return engine
 
     @pyqtSlot()
     def close_direct_transfer_window(self) -> None:
@@ -1878,11 +1886,20 @@ class Application(QApplication):
                 log.warning("No documents found in direct download URL")
                 return False
 
+            # Open the Direct Download window and let the user select an account
+            engine = self.show_direct_download_window()
+            if not engine:
+                return False
+
+            # Inject the selected engine's username into documents
+            # so _get_engine() can find the correct engine
+            bind = engine.get_binder()
+            for doc in documents:
+                if not doc.get("user"):
+                    doc["user"] = bind.username
+
             func = manager.directDownload.emit
             args = (documents,)
-
-            # Open the Direct Download window to show progress
-            self.show_direct_download_window()
 
         elif cmd == "authorize":
             func = self.api.continue_oauth2_flow

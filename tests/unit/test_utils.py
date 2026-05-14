@@ -1517,7 +1517,7 @@ class TestDecompressTransferUrl:
 
 
 class TestParseProtocolUrlDirectTransfer:
-    """Tests for parse_protocol_url with compressed direct-transfer URLs."""
+    """Tests for parse_protocol_url with compressed and non-compressed direct-transfer URLs."""
 
     def test_compressed_url_parsed_correctly(self):
         url = _build_compressed_transfer_url(
@@ -1562,6 +1562,96 @@ class TestParseProtocolUrlDirectTransfer:
         info = nxdrive.utils.parse_protocol_url(url)
         assert info is None
 
+    # --- Non-compressed web URL tests ---
+
+    def test_non_compressed_https_url_parsed_correctly(self):
+        """Non-compressed HTTPS web URL extracts remote_path correctly."""
+        url = "nxdrive://direct-transfer/https/server.com/nuxeo/default-domain/UserWorkspaces/admin/MyFolder"
+        info = nxdrive.utils.parse_protocol_url(url)
+        assert info is not None
+        assert info["command"] == "direct-transfer"
+        assert info["remote_path"] == "/default-domain/UserWorkspaces/admin/MyFolder"
+
+    def test_non_compressed_http_url_parsed_correctly(self):
+        """Non-compressed HTTP web URL extracts remote_path correctly."""
+        url = "nxdrive://direct-transfer/http/local.server/nuxeo/default-domain/workspaces"
+        info = nxdrive.utils.parse_protocol_url(url)
+        assert info is not None
+        assert info["command"] == "direct-transfer"
+        assert info["remote_path"] == "/default-domain/workspaces"
+
+    def test_non_compressed_url_with_spaces(self):
+        """Non-compressed web URL with spaces in folder name."""
+        url = "nxdrive://direct-transfer/https/server.com/nuxeo/default-domain/UserWorkspaces/admin/Spaced Folder"
+        info = nxdrive.utils.parse_protocol_url(url)
+        assert info is not None
+        assert info["command"] == "direct-transfer"
+        assert (
+            info["remote_path"] == "/default-domain/UserWorkspaces/admin/Spaced Folder"
+        )
+
+    def test_non_compressed_url_missing_nuxeo_returns_none(self):
+        """Non-compressed web URL without /nuxeo returns None."""
+        url = "nxdrive://direct-transfer/https/server.com/no-nuxeo-here/path"
+        info = nxdrive.utils.parse_protocol_url(url)
+        assert info is None
+
+    def test_non_compressed_url_deep_path(self):
+        """Non-compressed web URL with a deep nested path."""
+        url = (
+            "nxdrive://direct-transfer/https/"
+            "server.com/nuxeo/"
+            "default-domain/UserWorkspaces/admin/Roy/Spaced Folder"
+        )
+        info = nxdrive.utils.parse_protocol_url(url)
+        assert info is not None
+        assert info["command"] == "direct-transfer"
+        assert (
+            info["remote_path"]
+            == "/default-domain/UserWorkspaces/admin/Roy/Spaced Folder"
+        )
+
+    def test_non_compressed_url_case_insensitive_scheme(self):
+        """Non-compressed web URL with mixed-case scheme prefix."""
+        url = "nxdrive://direct-transfer/HTTPS/server.com/nuxeo/default-domain/ws"
+        info = nxdrive.utils.parse_protocol_url(url)
+        assert info is not None
+        assert info["command"] == "direct-transfer"
+        assert info["remote_path"] == "/default-domain/ws"
+
+    # --- Percent-encoded non-compressed URL tests ---
+
+    def test_non_compressed_url_with_percent_encoded_spaces(self):
+        """Non-compressed web URL with %20 encoded spaces decoded to real spaces."""
+        url = (
+            "nxdrive://direct-transfer/https/server.com/nuxeo/"
+            "default-domain/UserWorkspaces/admin/new%20folder"
+        )
+        info = nxdrive.utils.parse_protocol_url(url)
+        assert info is not None
+        assert info["command"] == "direct-transfer"
+        assert info["remote_path"] == "/default-domain/UserWorkspaces/admin/new folder"
+
+    def test_non_compressed_url_with_multiple_encoded_spaces(self):
+        """Multiple %20 in the path are all decoded."""
+        url = (
+            "nxdrive://direct-transfer/https/server.com/nuxeo/"
+            "default-domain/My%20Workspace/Sub%20Folder"
+        )
+        info = nxdrive.utils.parse_protocol_url(url)
+        assert info is not None
+        assert info["remote_path"] == "/default-domain/My Workspace/Sub Folder"
+
+    def test_non_compressed_url_without_encoding_unchanged(self):
+        """URL without percent-encoding is returned as-is."""
+        url = (
+            "nxdrive://direct-transfer/https/server.com/nuxeo/"
+            "default-domain/plain-folder"
+        )
+        info = nxdrive.utils.parse_protocol_url(url)
+        assert info is not None
+        assert info["remote_path"] == "/default-domain/plain-folder"
+
 
 class TestShowDirectDownloadWindow:
     """Tests for Application.show_direct_download_window()."""
@@ -1588,17 +1678,173 @@ class TestShowDirectDownloadWindow:
         mock_window = Mock()
         app._window_root.return_value = mock_window
 
-        app.show_direct_download_window()
+        result = app.show_direct_download_window()
 
         mock_window.setEngine.emit.assert_called_once_with("test-engine-uid")
         mock_window.switchToTab.emit.assert_called_once_with(0)
         app._center_on_screen.assert_called_once_with(app.direct_transfer_window)
+        assert result is not None
+        assert result.uid == "test-engine-uid"
 
     def test_no_engines_does_nothing(self):
         """Test that nothing happens when no engines are configured."""
         app = self._make_app(engines={})
 
-        app.show_direct_download_window()
+        result = app.show_direct_download_window()
 
         app._window_root.assert_not_called()
         app._center_on_screen.assert_not_called()
+        assert result is None
+
+    def test_multiple_engines_shows_account_selection(self):
+        """Test that account selection dialog is shown when multiple engines exist."""
+        engine1 = Mock()
+        engine1.uid = "engine-uid-1"
+        engine2 = Mock()
+        engine2.uid = "engine-uid-2"
+        engines = {"uid1": engine1, "uid2": engine2}
+        app = self._make_app(engines=engines)
+        app._select_account.return_value = engine2
+        mock_window = Mock()
+        app._window_root.return_value = mock_window
+
+        result = app.show_direct_download_window()
+
+        app._select_account.assert_called_once()
+        mock_window.setEngine.emit.assert_called_once_with("engine-uid-2")
+        mock_window.switchToTab.emit.assert_called_once_with(0)
+        app._center_on_screen.assert_called_once_with(app.direct_transfer_window)
+        assert result is engine2
+
+    def test_multiple_engines_cancelled_does_nothing(self):
+        """Test that cancelling account selection does not open the window."""
+        engine1 = Mock()
+        engine1.uid = "engine-uid-1"
+        engine2 = Mock()
+        engine2.uid = "engine-uid-2"
+        engines = {"uid1": engine1, "uid2": engine2}
+        app = self._make_app(engines=engines)
+        app._select_account.return_value = None
+
+        result = app.show_direct_download_window()
+
+        app._select_account.assert_called_once()
+        app._window_root.assert_not_called()
+        app._center_on_screen.assert_not_called()
+        assert result is None
+
+
+class TestHandleNxdriveUrlDirectDownload:
+    """Tests for Application._handle_nxdrive_url() direct download branch.
+
+    Covers the account-selection and user-injection logic added to
+    handle multi-account direct download requests.
+    """
+
+    def _make_app(self):
+        app = Mock()
+        app._handle_nxdrive_url = __import__(
+            "nxdrive.gui.application", fromlist=["Application"]
+        ).Application._handle_nxdrive_url.__get__(app)
+        manager = Mock()
+        manager.restart_needed = False
+        app.manager = manager
+        return app
+
+    def _parse_return(self, documents):
+        return {"command": "download_direct", "documents": documents}
+
+    def test_download_direct_injects_selected_user(self):
+        """User from selected engine is injected into documents missing 'user'."""
+        app = self._make_app()
+        engine = Mock()
+        bind = Mock()
+        bind.username = "alice"
+        engine.get_binder.return_value = bind
+        app.show_direct_download_window.return_value = engine
+
+        documents = [
+            {"server_url": "https://s.com/nuxeo/", "doc_id": "d1", "user": None},
+            {"server_url": "https://s.com/nuxeo/", "doc_id": "d2"},
+        ]
+
+        with patch(
+            "nxdrive.gui.application.parse_protocol_url",
+            return_value=self._parse_return(documents),
+        ), patch("nxdrive.gui.application.normalized_path", return_value=""):
+            result = app._handle_nxdrive_url("nxdrive://direct-download/x")
+
+        assert result is True
+        app.manager.directDownload.emit.assert_called_once()
+        emitted = app.manager.directDownload.emit.call_args[0][0]
+        assert all(doc["user"] == "alice" for doc in emitted)
+
+    def test_download_direct_preserves_existing_user(self):
+        """Existing 'user' values in documents are not overwritten."""
+        app = self._make_app()
+        engine = Mock()
+        bind = Mock()
+        bind.username = "alice"
+        engine.get_binder.return_value = bind
+        app.show_direct_download_window.return_value = engine
+
+        documents = [
+            {"server_url": "https://s.com/nuxeo/", "doc_id": "d1", "user": "bob"},
+            {"server_url": "https://s.com/nuxeo/", "doc_id": "d2"},
+        ]
+
+        with patch(
+            "nxdrive.gui.application.parse_protocol_url",
+            return_value=self._parse_return(documents),
+        ), patch("nxdrive.gui.application.normalized_path", return_value=""):
+            result = app._handle_nxdrive_url("nxdrive://direct-download/x")
+
+        assert result is True
+        emitted = app.manager.directDownload.emit.call_args[0][0]
+        assert emitted[0]["user"] == "bob"
+        assert emitted[1]["user"] == "alice"
+
+    def test_download_direct_cancelled_does_not_emit(self):
+        """If user cancels account selection, download is not started."""
+        app = self._make_app()
+        app.show_direct_download_window.return_value = None
+
+        documents = [{"server_url": "https://s.com/nuxeo/", "doc_id": "d1"}]
+        with patch(
+            "nxdrive.gui.application.parse_protocol_url",
+            return_value=self._parse_return(documents),
+        ), patch("nxdrive.gui.application.normalized_path", return_value=""):
+            result = app._handle_nxdrive_url("nxdrive://direct-download/x")
+
+        assert result is False
+        app.manager.directDownload.emit.assert_not_called()
+
+    def test_download_direct_empty_documents(self):
+        """Empty documents list returns False without opening window."""
+        app = self._make_app()
+        with patch(
+            "nxdrive.gui.application.parse_protocol_url",
+            return_value=self._parse_return([]),
+        ), patch("nxdrive.gui.application.normalized_path", return_value=""):
+            result = app._handle_nxdrive_url("nxdrive://direct-download/x")
+
+        assert result is False
+        app.show_direct_download_window.assert_not_called()
+        app.manager.directDownload.emit.assert_not_called()
+
+    def test_download_direct_restart_needed(self):
+        """If a restart is needed, show msgbox and return False."""
+        app = self._make_app()
+        app.manager.restart_needed = True
+
+        documents = [{"server_url": "https://s.com/nuxeo/", "doc_id": "d1"}]
+        with patch(
+            "nxdrive.gui.application.parse_protocol_url",
+            return_value=self._parse_return(documents),
+        ), patch("nxdrive.gui.application.normalized_path", return_value=""):
+            result = app._handle_nxdrive_url("nxdrive://direct-download/x")
+
+        assert result is False
+        app.show_msgbox_restart_needed.assert_called_once()
+        app.show_direct_download_window.assert_not_called()
+        app.manager.directDownload.emit.assert_not_called()

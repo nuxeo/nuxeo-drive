@@ -343,13 +343,20 @@ class DirectDownload(Worker):
             # Handle duplicate zip filenames
             zip_path = self._get_unique_path(zip_path)
 
+            # Collect files to archive
+            archive_files = [f for f in batch_folder.rglob("*") if f.is_file()]
+
+            if not archive_files:
+                log.warning("No files to archive - all downloads may have failed")
+                self._cleanup_batch_folder(batch_folder)
+                return None
+
             # Create the zip archive
             with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-                for file_path in batch_folder.rglob("*"):
-                    if file_path.is_file():
-                        # Calculate the archive name (relative path from batch folder)
-                        arcname = file_path.relative_to(batch_folder)
-                        zipf.write(file_path, arcname)
+                for file_path in archive_files:
+                    # Calculate the archive name (relative path from batch folder)
+                    arcname = file_path.relative_to(batch_folder)
+                    zipf.write(file_path, arcname)
 
             log.info(
                 f"Selected documents downloaded successfully to {downloads_folder}"

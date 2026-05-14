@@ -77,8 +77,10 @@ QtObject {
         visible: false
 
         signal setEngine(string uid)
+        signal switchToTab(int tabIndex)
 
         onSetEngine: directTransferWin.setEngine(uid)
+        onSwitchToTab: directTransferWin.switchToTab(tabIndex)
 
         DirectTransferWindow { id: directTransferWin }
     }
