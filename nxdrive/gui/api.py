@@ -16,12 +16,19 @@ from urllib3.exceptions import LocationParseError
 from ..auth import OAuthentication, Token, get_auth
 from ..client.proxy import get_proxy
 from ..constants import (
+    ALFRESCO_SERVER_TYPE,
     APP_NAME,
     CONNECTION_ERROR,
     DEFAULT_SERVER_TYPE,
     DT_MONITORING_MAX_ITEMS,
     TransferStatus,
 )
+
+# Alfresco exceptions (may not be installed in all environments)
+try:
+    from alfresco.exceptions import AuthenticationError as AlfrescoAuthError
+except ImportError:
+    AlfrescoAuthError = None  # type: ignore[assignment,misc]
 from ..dao.engine import EngineDAO
 from ..engine.engine import Engine
 from ..exceptions import (
@@ -794,8 +801,9 @@ class QMLDriveApi(QObject):
         # leads to the impossibility to use Direct Transfer right after the account
         # addition (cf NXDRIVE-2643).
         starts = not Feature.synchronization
+        engine_type = self._manager._detect_server_type(url)
         engine = self._manager.bind_engine(
-            DEFAULT_SERVER_TYPE, local_folder, name, binder, starts=starts
+            engine_type, local_folder, name, binder, starts=starts
         )
 
         # Flag to close the settings window when the filters dialog is closed
@@ -884,9 +892,13 @@ class QMLDriveApi(QObject):
                 error = "CONNECTION_REFUSED"
             else:
                 error = "CONNECTION_ERROR"
-        except Exception:
-            log.warning("Unexpected error", exc_info=True)
-            error = "CONNECTION_UNKNOWN"
+        except Exception as exc:
+            # Catch Alfresco authentication errors
+            if AlfrescoAuthError is not None and isinstance(exc, AlfrescoAuthError):
+                error = "UNAUTHORIZED"
+            else:
+                log.warning("Unexpected error", exc_info=True)
+                error = "CONNECTION_UNKNOWN"
 
         log.warning(Translator.get(error))
         self.setMessage.emit(error, "error")

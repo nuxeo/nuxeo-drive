@@ -46,6 +46,7 @@ UNACCESSIBLE_HASH = "TO_COMPUTE"
 TOKEN_PERMISSION = "ReadWrite"
 
 DEFAULT_SERVER_TYPE = "NXDRIVE"
+ALFRESCO_SERVER_TYPE = "ALFRESCO"
 
 SYNC_ROOT = "/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#"
 
