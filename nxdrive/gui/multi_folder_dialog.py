@@ -198,6 +198,14 @@ class MultiFolderDialog(QDialog):
         self.label = QLabel(Translator.get("SELECT_FILES_FOLDERS_LABEL"))
         layout.addWidget(self.label)
 
+        # Show warning if FDA permission not given
+        self.fda_alert_button = QPushButton()
+        self.fda_alert_button.setText("!! Unable to view Finder favorites !!")
+        self.fda_alert_button.setObjectName("fda_alert_button")
+        self.fda_alert_button.setVisible(False)
+        self.fda_alert_button.clicked.connect(self.navigate_to_system_settings)
+        layout.addWidget(self.fda_alert_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
         # File System Model
         self.model = CenteredHeaderFileSystemModel()
         self.model.setRootPath(QDir.homePath())
@@ -598,6 +606,15 @@ class MultiFolderDialog(QDialog):
         else:
             log.warning("User has chosen to hide the Full Disk Access alert.")
 
+    def navigate_to_system_settings(self) -> None:
+        log.warning("Navigating to Full Disk Access system settings page.")
+        subprocess.run(
+            [
+                "open",
+                "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles",
+            ]
+        )
+
     def _parse_sfl_file(self, sfl_path: Path) -> dict[str, str]:
         """Parse an SFL/SFL2/SFL3/SFL4 file and return {name: path} for valid favorites."""
         favorites: dict[str, str] = {}
@@ -616,6 +633,8 @@ class MultiFolderDialog(QDialog):
                     "app in System Settings > Privacy & Security > Full Disk Access"
                 )
                 self._load_fda_alert()
+                # Show warning button
+                self.fda_alert_button.setVisible(True)
                 return favorites
 
         # NSKeyedArchiver format (sfl3/sfl4): bookmark data is in $objects

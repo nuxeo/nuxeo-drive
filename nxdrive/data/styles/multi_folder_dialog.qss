@@ -13,6 +13,17 @@ QLabel {
     padding: 2px 0px;
     margin: 2px 0px;
 }
+QPushButton#fda_alert_button {
+    padding: 2px 0px;
+    margin: 2px 0px;
+    background-color: #E3C976;
+    border-radius: 8px;
+    color: black;
+}
+QPushButton#fda_alert_button:hover {
+    background-color: #E82817;
+    color: white;
+}
 QTreeView {
     padding: 2px;
     margin: 2px;
