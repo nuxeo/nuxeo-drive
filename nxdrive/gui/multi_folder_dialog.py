@@ -202,11 +202,23 @@ class MultiFolderDialog(QDialog):
         self.fda_layout = QHBoxLayout()
 
         self.fda_alert_message = QLabel()
-        self.fda_alert_message.setFixedWidth(400)
+        self.fda_alert_message.setFixedWidth(200)
         self.fda_alert_message.setWordWrap(True)
         self.fda_alert_message.setTextFormat(Qt.TextFormat.RichText)
-        self.fda_alert_message.setText(
-            "Finder Favorites need <b>Full Disk Access</b> permission to be displayed : "
+        self.fda_alert_message.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
+        # Set warning icon
+        icon_color = "light" if self._dark_mode else "dark"
+        icon_path = str(find_icon(f"warning_{icon_color}.svg"))
+        text_message = (
+            f"<img src='{icon_path}' style='vertical-align:middle; margin-right:8px;'> "
+        )
+        text_message = text_message + "Some folders maybe hidden"
+        self.fda_alert_message.setText(text_message)
+        # Show tooltip message - hover effect
+        self.fda_alert_message.setToolTip(
+            "To view all files on your Mac, enable Full Disk Access for this app."
         )
         self.fda_alert_message.setVisible(False)
 
@@ -214,6 +226,7 @@ class MultiFolderDialog(QDialog):
         self.fda_alert_button.setText("Open Settings")
         self.fda_alert_button.setFixedWidth(100)
         self.fda_alert_button.setVisible(False)
+        # Show tooltip message - hover effect
         self.fda_alert_button.setToolTip(
             "Open System Settings > Privacy & Security > Full Disk Access"
         )
