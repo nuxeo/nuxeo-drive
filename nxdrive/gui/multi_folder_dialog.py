@@ -34,6 +34,7 @@ from nxdrive.qt.imports import (
     QSizePolicy,
     QStandardItem,
     QStandardItemModel,
+    QStyle,
     Qt,
     QTreeView,
     QVBoxLayout,
@@ -201,20 +202,27 @@ class MultiFolderDialog(QDialog):
         # Show message and button if FDA permission not given
         self.fda_layout = QHBoxLayout()
 
+        # Set warning icon
+        self.fda_warning_icon = QLabel()
+        style = self.style()
+        if style:
+            icon = style.standardIcon(QStyle.StandardPixmap.SP_MessageBoxWarning)
+            self.fda_warning_icon.setPixmap(icon.pixmap(16, 16))
+        else:
+            log.warning("Failed to load warning icon from style")
+        # Show tooltip message - hover effect
+        self.fda_warning_icon.setToolTip(
+            "To view all files on your Mac, enable Full Disk Access for this app."
+        )
+        self.fda_warning_icon.setVisible(False)
+
         self.fda_alert_message = QLabel()
         self.fda_alert_message.setFixedWidth(200)
         self.fda_alert_message.setWordWrap(True)
-        self.fda_alert_message.setTextFormat(Qt.TextFormat.RichText)
         self.fda_alert_message.setAlignment(
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
         )
-        # Set warning icon
-        icon_color = "light" if self._dark_mode else "dark"
-        icon_path = str(find_icon(f"warning_{icon_color}.svg"))
-        text_message = (
-            f"<img src='{icon_path}' style='vertical-align:middle; margin-right:8px;'> "
-        )
-        text_message = text_message + "Some folders maybe hidden"
+        text_message = "Some folders may be hidden"
         self.fda_alert_message.setText(text_message)
         # Show tooltip message - hover effect
         self.fda_alert_message.setToolTip(
@@ -232,6 +240,7 @@ class MultiFolderDialog(QDialog):
         )
         self.fda_alert_button.clicked.connect(self.navigate_to_system_settings)
 
+        self.fda_layout.addWidget(self.fda_warning_icon)
         self.fda_layout.addWidget(self.fda_alert_message)
         self.fda_layout.addWidget(self.fda_alert_button)
         self.fda_layout.addStretch()
@@ -667,6 +676,7 @@ class MultiFolderDialog(QDialog):
                 )
                 self._load_fda_alert()
                 # Show warning message and button
+                self.fda_warning_icon.setVisible(True)
                 self.fda_alert_message.setVisible(True)
                 self.fda_alert_button.setVisible(True)
                 return favorites
