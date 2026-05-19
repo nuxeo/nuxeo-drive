@@ -198,13 +198,33 @@ class MultiFolderDialog(QDialog):
         self.label = QLabel(Translator.get("SELECT_FILES_FOLDERS_LABEL"))
         layout.addWidget(self.label)
 
-        # Show warning if FDA permission not given
+        # Show message and button if FDA permission not given
+        self.fda_layout = QHBoxLayout()
+
+        self.fda_alert_message = QLabel()
+        self.fda_alert_message.setFixedWidth(400)
+        self.fda_alert_message.setWordWrap(True)
+        self.fda_alert_message.setTextFormat(Qt.TextFormat.RichText)
+        self.fda_alert_message.setText(
+            "Finder Favorites need <b>Full Disk Access</b> permission to be displayed : "
+        )
+        self.fda_alert_message.setVisible(False)
+
         self.fda_alert_button = QPushButton()
-        self.fda_alert_button.setText("!! Unable to view Finder favorites !!")
-        self.fda_alert_button.setObjectName("fda_alert_button")
+        self.fda_alert_button.setText("Open Settings")
+        self.fda_alert_button.setFixedWidth(100)
         self.fda_alert_button.setVisible(False)
+        self.fda_alert_button.setToolTip(
+            "Open System Settings > Privacy & Security > Full Disk Access"
+        )
         self.fda_alert_button.clicked.connect(self.navigate_to_system_settings)
-        layout.addWidget(self.fda_alert_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        self.fda_layout.addWidget(self.fda_alert_message)
+        self.fda_layout.addWidget(self.fda_alert_button)
+        self.fda_layout.addStretch()
+
+        layout.addLayout(self.fda_layout)
+        self.fda_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
         # File System Model
         self.model = CenteredHeaderFileSystemModel()
@@ -633,7 +653,8 @@ class MultiFolderDialog(QDialog):
                     "app in System Settings > Privacy & Security > Full Disk Access"
                 )
                 self._load_fda_alert()
-                # Show warning button
+                # Show warning message and button
+                self.fda_alert_message.setVisible(True)
                 self.fda_alert_button.setVisible(True)
                 return favorites
 
