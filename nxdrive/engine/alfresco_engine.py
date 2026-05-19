@@ -12,6 +12,7 @@ Excluded features: Direct Edit, Direct Transfer, Direct Download.
 from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
+from urllib.parse import urlparse, urlunparse
 
 from alfresco.exceptions import AuthenticationError
 
@@ -141,6 +142,7 @@ class AlfrescoEngine(Engine):
         # Restore subscriber/subscription IDs from the DAO if available
         subscriber_id = self.dao.get_config("alfresco_subscriber_id")
         subscription_id = self.dao.get_config("alfresco_subscription_id")
+        sync_service_url = self.dao.get_config("alfresco_sync_service_url")
 
         remote = self.remote_cls(
             self.server_url,
@@ -152,6 +154,7 @@ class AlfrescoEngine(Engine):
             token=self._remote_token,
             dao=self.dao,
             proxy=self.manager.proxy,
+            sync_service_url=sync_service_url,
         )
 
         if subscriber_id:
@@ -201,6 +204,9 @@ class AlfrescoEngine(Engine):
         self.dao.update_config("remote_user", self.remote_user)
         if self._remote_token:
             self._save_token(self._remote_token)
+
+        # Fetch and store server version info via the Discovery API
+        self._fetch_discovery_info()
 
         # Establish the sync root
         self._check_root()
@@ -257,6 +263,15 @@ class AlfrescoEngine(Engine):
         if not self.remote:
             return
 
+        # Derive the Sync Service URL from the server URL if not already stored
+        sync_service_url = self.dao.get_config("alfresco_sync_service_url")
+        if not sync_service_url:
+            sync_service_url = self._discover_sync_service_url()
+            self.dao.update_config("alfresco_sync_service_url", sync_service_url)
+            # Recreate remote with the sync service URL
+            self.remote = self.init_remote()
+            log.info(f"Alfresco Sync Service URL: {sync_service_url}")
+
         try:
             subscriber_id = self.remote.register_subscriber()
             self.dao.update_config("alfresco_subscriber_id", subscriber_id)
@@ -273,6 +288,82 @@ class AlfrescoEngine(Engine):
             )
 
     # -- Remote watcher override ---------------------------------------------
+
+    def _discover_sync_service_url(self) -> str:
+        """Discover the Alfresco Sync Service URL.
+
+        Tries, in order:
+        1. Health-check on the same host (default Sync Service port 9090)
+        2. Health-check on the same host and port (co-located deployment)
+        3. Fallback to the port-9090 heuristic
+
+        Returns the base URL for the Sync Service (e.g.
+        ``https://host:9090/alfresco``).
+        """
+        import requests as _requests
+
+        parsed = urlparse(self.server_url)
+        candidates = [
+            # Standard standalone sync service on port 9090
+            urlunparse(
+                (
+                    parsed.scheme,
+                    f"{parsed.hostname}:9090",
+                    "/alfresco",
+                    "",
+                    "",
+                    "",
+                )
+            ),
+            # Co-located: sync service on the same port as the repo
+            urlunparse(
+                (
+                    parsed.scheme,
+                    parsed.netloc,
+                    "/alfresco",
+                    "",
+                    "",
+                    "",
+                )
+            ),
+        ]
+
+        for candidate in candidates:
+            health_url = (
+                candidate.rstrip("/")
+                + "/api/-default-/public/sync/versions/1/healthcheck"
+            )
+            try:
+                resp = _requests.get(health_url, timeout=5, verify=True)
+                if resp.ok:
+                    log.info(f"Sync Service health-check passed at {candidate}")
+                    return candidate
+            except Exception:
+                log.debug(
+                    f"Sync Service health-check failed at {candidate}",
+                    exc_info=True,
+                )
+
+        # Fallback: use the first candidate (port 9090)
+        log.warning(
+            "Could not verify Sync Service health; " f"falling back to {candidates[0]}"
+        )
+        return candidates[0]
+
+    def _fetch_discovery_info(self) -> None:
+        """Fetch and persist Alfresco server info via the Discovery API."""
+        if not self.remote:
+            return
+        try:
+            discovery = self.remote.get_discovery()
+            repo = discovery.get("entry", {}).get("repository", {})
+            version = repo.get("version", {}).get("display", "unknown")
+            edition = repo.get("edition", "unknown")
+            self.dao.update_config("alfresco_server_version", version)
+            self.dao.update_config("alfresco_server_edition", edition)
+            log.info(f"Alfresco server: {edition} {version}")
+        except Exception:
+            log.debug("Could not fetch Discovery API info", exc_info=True)
 
     def _create_remote_watcher(self) -> None:
         """Create the Alfresco-specific remote watcher."""

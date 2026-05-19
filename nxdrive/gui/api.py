@@ -13,7 +13,7 @@ import requests
 from nuxeo.exceptions import HTTPError, OAuth2Error, Unauthorized
 from urllib3.exceptions import LocationParseError
 
-from ..auth import OAuthentication, Token, get_auth
+from ..auth import AlfrescoOAuthentication, OAuthentication, Token, get_auth
 from ..client.proxy import get_proxy
 from ..constants import (
     ALFRESCO_SERVER_TYPE,
@@ -656,6 +656,39 @@ class QMLDriveApi(QObject):
             return "ENCRYPTED_CLIENT_SSL_KEY"
         return "CONNECTION_ERROR"
 
+    def _get_ssl_error_alfresco(self, server_url: str, /) -> str:
+        """Validate an Alfresco server URL.
+
+        Instead of probing the Nuxeo login page we hit the Alfresco
+        Discovery API (``/api/discovery``) which is unauthenticated and
+        always available.  SSL certificate errors are handled the same
+        way as for Nuxeo servers.
+        """
+        try:
+            return test_url(
+                server_url, login_page="api/discovery", proxy=self._manager.proxy
+            )
+        except InvalidSSLCertificate as exc:
+            log.warning(exc)
+            parts = urlsplit(server_url)
+            hostname = parts.netloc or parts.path
+            if self.application.accept_unofficial_ssl_cert(hostname):
+                Options.ssl_no_verify = True
+                saved_conf = {
+                    "ssl_no_verify": Options.ssl_no_verify,
+                }
+                if Options.ca_bundle:
+                    saved_conf["ca_bundle"] = Options.ca_bundle
+                save_config(saved_conf)
+                return self._get_ssl_error_alfresco(server_url)
+        except MissingClientSSLCertificate as exc:
+            log.warning(exc)
+            return "MISSING_CLIENT_SSL"
+        except EncryptedSSLCertificateKey as exc:
+            log.warning(exc)
+            return "ENCRYPTED_CLIENT_SSL_KEY"
+        return "CONNECTION_ERROR"
+
     # Settings section
 
     @pyqtSlot(result=str)
@@ -919,9 +952,18 @@ class QMLDriveApi(QObject):
             self.setMessage.emit("CONNECTION_ERROR", "error")
             return
 
+        is_alfresco = (
+            self._manager._detect_server_type(server_url) == ALFRESCO_SERVER_TYPE
+        )
+
         error = ""
         try:
-            error = self._get_ssl_error(server_url)
+            if is_alfresco:
+                # For Alfresco servers the Nuxeo login page does not exist.
+                # Validate connectivity via the Discovery API endpoint instead.
+                error = self._get_ssl_error_alfresco(server_url)
+            else:
+                error = self._get_ssl_error(server_url)
         except (LocationParseError, ValueError, requests.RequestException):
             log.debug(f"Bad URL: {server_url}")
         except Exception:
@@ -931,7 +973,8 @@ class QMLDriveApi(QObject):
             return
 
         # Detect if the server can use the appropriate login webpage
-        if use_legacy_auth:
+        # (Nuxeo-specific; Alfresco uses its own auth flow)
+        if use_legacy_auth and not is_alfresco:
             try:
                 login_type = self._manager.get_server_login_type(server_url)
             except StartupPageConnectionError:
@@ -960,6 +1003,8 @@ class QMLDriveApi(QObject):
                 "server_url": server_url,
                 "engine_type": urlsplit(server_url).fragment or DEFAULT_SERVER_TYPE,
             }
+            engine_type = self._manager._detect_server_type(server_url)
+            callback_params["engine_type"] = engine_type
             # The good authentication class is chosen based on the token type
             crafted_token: Token = "" if use_legacy_auth else {}
             auth = get_auth(
@@ -967,6 +1012,7 @@ class QMLDriveApi(QObject):
                 crafted_token,
                 dao=self._manager.dao,
                 device_id=self._manager.device_id,
+                server_type=engine_type,
             )
             self.openAuthenticationDialog.emit(auth.connect_url(), callback_params)
         except Exception:
@@ -1048,6 +1094,8 @@ class QMLDriveApi(QObject):
             return
 
         # Get required data and add the account
+        engine_type = self.callback_params.get("engine_type", DEFAULT_SERVER_TYPE)
+        is_alfresco = engine_type == ALFRESCO_SERVER_TYPE
         try:
             # A proxy may be needed to fetch the OpenID configuration URL
             subclient_kwargs = {}
@@ -1056,16 +1104,29 @@ class QMLDriveApi(QObject):
                     url=Options.oauth2_openid_configuration_url
                 )
 
-            auth = OAuthentication(
-                stored_url,
-                dao=self._manager.dao,
-                subclient_kwargs=subclient_kwargs,
-            )
+            if is_alfresco:
+                auth = AlfrescoOAuthentication(
+                    stored_url,
+                    dao=self._manager.dao,
+                    subclient_kwargs=subclient_kwargs,
+                )
+            else:
+                auth = OAuthentication(
+                    stored_url,
+                    dao=self._manager.dao,
+                    subclient_kwargs=subclient_kwargs,
+                )
             token = auth.get_token(
                 code_verifier=stored_code_verifier,
                 code=query["code"],
                 state=query["state"],
             )
+            # For Alfresco, build a rich token dict so the remote client
+            # can recreate an OAuth2Auth with refresh capability.
+            if is_alfresco and hasattr(auth, "get_token_dict"):
+                token_dict = auth.get_token_dict()
+                if token_dict:
+                    token = token_dict
         except OAuth2Error:
             log.warning("Unexpected error while trying to get a token", exc_info=True)
             error = "CONNECTION_UNKNOWN"

@@ -40,7 +40,7 @@ NuxeoPopup {
                     lineColor: acceptableInput ? focusedUnderline : errorContent
                     inputMethodHints: Qt.ImhUrlCharactersOnly
                     KeyNavigation.tab: folderInput
-                    placeholderText: "https://server.com/nuxeo"
+                    placeholderText: "https://server.com/nuxeo or https://server.com/alfresco"
                     text: api.default_server_url_value()
                     font.family: "Courier"
                     validator: RegularExpressionValidator { regularExpression: /^https?:\/\/[^\s<"\/]+\/[^\s<"]+$/ }
