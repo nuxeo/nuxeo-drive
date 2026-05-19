@@ -1117,6 +1117,13 @@ class MultiFolderDialog(QDialog):
     def fetch_icon(self, name: str) -> QIcon | None:
         # Detect icon color based on dark mode
         icon_color = "light" if self._dark_mode else "dark"
+        if LINUX:
+            widget_color = self.palette().color(self.backgroundRole())
+            r, g, b = widget_color.red(), widget_color.green(), widget_color.blue()
+            if r <= 99 and g <= 99 and b <= 99:
+                icon_color = "dark"
+            else:
+                icon_color = "light"
         match name:
             case "Home":
                 return QIcon(str(find_icon(f"home_{icon_color}.svg")))
