@@ -10,7 +10,7 @@ import subprocess
 from logging import getLogger
 from pathlib import Path
 
-from PyQt6.QtWidgets import QListWidgetItem
+from PyQt6.QtWidgets import QListWidgetItem, QWidget
 
 from nxdrive.qt.imports import (
     QCheckBox,
@@ -77,24 +77,27 @@ class FDAAlert(QDialog):
         message.setWordWrap(True)
         message.setTextFormat(Qt.TextFormat.RichText)
 
-        text_clause1 = "Cannot view Finder favorites."
-        text_clause2 = "Please enable <b>Full Disk Access:</b> "
-        text_clause3 = "System <b>Settings > Privacy & Security > Full Disk Access</b>"
-        text_clause4 = "then restart Nuxeo Drive."
+        # This message is split into clauses to allow line breaks at desired positions
+        text_clause1 = Translator.get("FDA_POPUP_MESSAGE_PART_1")
+        text_clause2 = Translator.get(
+            "FDA_POPUP_MESSAGE_PART_2", values=["<b>", "</b>"]
+        )
+        text_clause3 = Translator.get(
+            "FDA_POPUP_MESSAGE_PART_3", values=["<b>", "</b>"]
+        )
+        text_clause4 = Translator.get("FDA_POPUP_MESSAGE_PART_4")
         message.setText(
-            f"{text_clause1}<br>{text_clause2}<br>{text_clause3}<br>{text_clause4}"
+            f"{text_clause1}<br><br>{text_clause2}<br><br>{text_clause3}<br><br>{text_clause4}"
         )
 
-        ok_button = QPushButton("OK")
+        ok_button = QPushButton(Translator.get("FDA_POPUP_OK"))
         ok_button.setFixedSize(QSize(120, 30))
-        ok_button.setStyleSheet("border-radius: 15px; background-color: green;")
         ok_button.clicked.connect(self.close_alert)
 
-        dont_show_again_button = QPushButton("Don't show again")
-        dont_show_again_button.setFixedSize(QSize(120, 30))
-        dont_show_again_button.setStyleSheet(
-            "border-radius: 15px; background-color: red;"
+        dont_show_again_button = QPushButton(
+            Translator.get("FDA_POPUP_DONT_SHOW_AGAIN")
         )
+        dont_show_again_button.setFixedSize(QSize(120, 30))
         dont_show_again_button.clicked.connect(self.close_alert_and_remember)
 
         layout = QVBoxLayout()
@@ -198,7 +201,10 @@ class MultiFolderDialog(QDialog):
         layout.addWidget(self.label)
 
         # Show message and button if FDA permission not given
+        self.fda_alert_widget = QWidget()
         self.fda_layout = QHBoxLayout()
+
+        self.fda_alert_widget.setVisible(False)
 
         # Set warning icon
         self.fda_warning_icon = QLabel()
@@ -210,7 +216,6 @@ class MultiFolderDialog(QDialog):
             log.warning("Failed to load warning icon from style")
         # Show tooltip message - hover effect
         self.fda_warning_icon.setToolTip(Translator.get("FDA_WARNING_HOVER"))
-        self.fda_warning_icon.setVisible(False)
 
         self.fda_alert_message = QLabel()
         self.fda_alert_message.setFixedWidth(200)
@@ -221,12 +226,10 @@ class MultiFolderDialog(QDialog):
         self.fda_alert_message.setText(Translator.get("FDA_WARNING_MESSAGE"))
         # Show tooltip message - hover effect
         self.fda_alert_message.setToolTip(Translator.get("FDA_WARNING_HOVER"))
-        self.fda_alert_message.setVisible(False)
 
         self.fda_alert_button = QPushButton()
         self.fda_alert_button.setText(Translator.get("FDA_SETTINGS_BUTTON_TEXT"))
         self.fda_alert_button.setFixedWidth(100)
-        self.fda_alert_button.setVisible(False)
         # Show tooltip message - hover effect
         self.fda_alert_button.setToolTip(Translator.get("FDA_SETTINGS_BUTTON_HOVER"))
         self.fda_alert_button.clicked.connect(self.navigate_to_system_settings)
@@ -235,8 +238,9 @@ class MultiFolderDialog(QDialog):
         self.fda_layout.addWidget(self.fda_alert_message)
         self.fda_layout.addWidget(self.fda_alert_button)
         self.fda_layout.addStretch()
+        self.fda_alert_widget.setLayout(self.fda_layout)
 
-        layout.addLayout(self.fda_layout)
+        layout.addWidget(self.fda_alert_widget)
         self.fda_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
         # File System Model
@@ -669,9 +673,7 @@ class MultiFolderDialog(QDialog):
                 )
                 self._load_fda_alert()
                 # Show warning message and button
-                self.fda_warning_icon.setVisible(True)
-                self.fda_alert_message.setVisible(True)
-                self.fda_alert_button.setVisible(True)
+                self.fda_alert_widget.setVisible(True)
                 return favorites
 
         # NSKeyedArchiver format (sfl3/sfl4): bookmark data is in $objects
