@@ -296,6 +296,9 @@ class MultiFolderDialog(QDialog):
 
     def _on_dark_mode_changed(self, enabled: bool) -> None:
         """Update dark mode property and icons"""
+        # On Linux, the widget color is not updated until the entire widget is loaded
+        # So this function will not work for Linux
+        # For Linux, the user has to close the MFD Dialog and reopen it to see the updated icons
         self._dark_mode = enabled
         # Update icons
         # Update Home and Go Up button icons
@@ -1133,12 +1136,13 @@ class MultiFolderDialog(QDialog):
         if LINUX:
             # For Linux, we also check the background color
             # This is because PyQt6 does not always switch to dark background in dark mode
+            # MFD has to be reloaded for the color to update
             widget_color = self.palette().color(self.backgroundRole())
-            r, g, b = widget_color.red(), widget_color.green(), widget_color.blue()
+            r, g, b = widget_color.red(), widget_color.green(), widget_color.blue()  # type: ignore
             if r <= 99 and g <= 99 and b <= 99:
-                icon_color = "dark"
-            else:
                 icon_color = "light"
+            else:
+                icon_color = "dark"
         match name:
             case "Home":
                 return QIcon(str(find_icon(f"home_{icon_color}.svg")))
