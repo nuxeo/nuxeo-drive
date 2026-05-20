@@ -171,15 +171,13 @@ class MultiFolderDialog(QDialog):
         self.showHidden.checkStateChanged.connect(self.show_hidden_files)
         # Home button
         self.btnHome = QPushButton()
-        icon_color = "light" if self._dark_mode else "dark"
-        self.btnHome.setIcon(QIcon(str(find_icon(f"home_{icon_color}.svg"))))
+        self.btnHome.setIcon(self.fetch_icon("Home"))
         self.btnHome.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.btnHome.setToolTip(Translator.get("HOME"))
         self.btnHome.clicked.connect(self.go_home)
         # Up button
         self.btnUp = QPushButton()
-        icon_color = "light" if self._dark_mode else "dark"
-        self.btnUp.setIcon(QIcon(str(find_icon(f"up_arrow_{icon_color}.svg"))))
+        self.btnUp.setIcon(self.fetch_icon("Up Arrow"))
         self.btnUp.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.btnUp.setToolTip(Translator.get("GO_UP"))
         self.btnUp.clicked.connect(self.go_up)
@@ -301,9 +299,8 @@ class MultiFolderDialog(QDialog):
         self._dark_mode = enabled
         # Update icons
         # Update Home and Go Up button icons
-        icon_color = "light" if self._dark_mode else "dark"
-        self.btnHome.setIcon(QIcon(str(find_icon(f"home_{icon_color}.svg"))))
-        self.btnUp.setIcon(QIcon(str(find_icon(f"up_arrow_{icon_color}.svg"))))
+        self.btnHome.setIcon(self.fetch_icon("Home"))
+        self.btnUp.setIcon(self.fetch_icon("Up Arrow"))
         # Clear panel and re-add to update any icons in the locations panel
         locations_widget = self.panel_layout.takeAt(0)
         if locations_widget:
@@ -1130,10 +1127,12 @@ class MultiFolderDialog(QDialog):
         locations.itemClicked.connect(self.navigate_to_location)
         return locations
 
-    def fetch_icon(self, name: str) -> QIcon | None:
+    def fetch_icon(self, name: str) -> QIcon:
         # Detect icon color based on dark mode
         icon_color = "light" if self._dark_mode else "dark"
         if LINUX:
+            # For Linux, we also check the background color
+            # This is because PyQt6 does not always switch to dark background in dark mode
             widget_color = self.palette().color(self.backgroundRole())
             r, g, b = widget_color.red(), widget_color.green(), widget_color.blue()
             if r <= 99 and g <= 99 and b <= 99:
@@ -1143,6 +1142,8 @@ class MultiFolderDialog(QDialog):
         match name:
             case "Home":
                 return QIcon(str(find_icon(f"home_{icon_color}.svg")))
+            case "Up Arrow":
+                return QIcon(str(find_icon(f"up_arrow_{icon_color}.svg")))
             case "Applications":
                 return QIcon(str(find_icon(f"applications_{icon_color}.svg")))
             case "Desktop":
