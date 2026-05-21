@@ -71,45 +71,57 @@ class FDAAlert(QDialog):
 
     def __init__(self, parent: QDialog | None = None) -> None:
         super().__init__(parent)
-        self.setFixedSize(QSize(450, 200))
+        self.setFixedSize(QSize(570, 240))
+
+        permission_warning = QWidget()
+        permission_warning_layout = QHBoxLayout()
+        permission_warning_icon = QLabel()
+        permission_warning_message = QLabel()
+        permission_warning_message.setObjectName("fda_popup_permission_warning_message")
+
+        style = self.style()
+        if style:
+            icon = style.standardIcon(QStyle.StandardPixmap.SP_MessageBoxWarning)
+            permission_warning_icon.setPixmap(icon.pixmap(16, 16))
+        else:
+            log.warning("Failed to load fda popup warning icon from style")
+
+        permission_warning_message.setText(Translator.get("FDA_POPUP_WARNING_LABEL"))
+
+        permission_warning_layout.addWidget(permission_warning_icon)
+        permission_warning_layout.addWidget(permission_warning_message)
+        permission_warning_layout.addStretch()
+
+        permission_warning.setLayout(permission_warning_layout)
 
         message = QLabel()
-        message.setWordWrap(True)
         message.setTextFormat(Qt.TextFormat.RichText)
 
         # This message is split into clauses to allow line breaks at desired positions
         text_clause1 = Translator.get("FDA_POPUP_MESSAGE_PART_1")
-        text_clause2 = Translator.get(
-            "FDA_POPUP_MESSAGE_PART_2", values=["<b>", "</b>"]
-        )
-        text_clause3 = Translator.get(
-            "FDA_POPUP_MESSAGE_PART_3", values=["<b>", "</b>"]
-        )
-        text_clause4 = Translator.get("FDA_POPUP_MESSAGE_PART_4")
-        message.setText(
-            f"{text_clause1}<br><br>{text_clause2}<br><br>{text_clause3}<br><br>{text_clause4}"
-        )
+        text_clause2 = Translator.get("FDA_POPUP_MESSAGE_PART_2")
+        text_clause3 = Translator.get("FDA_POPUP_MESSAGE_PART_3")
+        message.setText(f"{text_clause1}<br><br>{text_clause2}<br><br>{text_clause3}")
 
-        ok_button = QPushButton(Translator.get("FDA_POPUP_OK"))
-        ok_button.setFixedSize(QSize(120, 30))
-        ok_button.clicked.connect(self.close_alert)
+        ok_button = QPushButton(Translator.get("FDA_POPUP_SYSTEM_SETTINGS"))
+        ok_button.setFixedSize(QSize(150, 30))
+        ok_button.setObjectName("fda_popup_ok_button")
+        ok_button.clicked.connect(MultiFolderDialog.navigate_to_system_settings)
 
-        dont_show_again_button = QPushButton(
-            Translator.get("FDA_POPUP_DONT_SHOW_AGAIN")
-        )
-        dont_show_again_button.setFixedSize(QSize(120, 30))
+        dont_show_again_button = QPushButton(Translator.get("FDA_POPUP_NOT_NOW"))
+        dont_show_again_button.setFixedSize(QSize(150, 30))
+        dont_show_again_button.setObjectName("fda_popup_dont_show_again_button")
         dont_show_again_button.clicked.connect(self.close_alert_and_remember)
 
         layout = QVBoxLayout()
+        layout.addWidget(permission_warning, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(message)
-        layout.addWidget(ok_button, alignment=Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(dont_show_again_button, alignment=Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(ok_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(
+            dont_show_again_button, alignment=Qt.AlignmentFlag.AlignHCenter
+        )
 
         self.setLayout(layout)
-
-    def close_alert(self):
-        self.close()
-        FDAAlert.visible = False
 
     def close_alert_and_remember(self):
         # Check if "dont_show_fda_alert" file exists, if not create it to remember the user's choice
@@ -150,8 +162,11 @@ class MultiFolderDialog(QDialog):
 
         self._dark_mode: bool = dark_mode
 
-        # Load QSS stylesheet
-        qss_path = Options.res_dir / "styles" / "multi_folder_dialog.qss"
+        # Load QSS stylesheet based on dark mode
+        if self._dark_mode:
+            qss_path = Options.res_dir / "styles" / "multi_folder_dialog_dark.qss"
+        else:
+            qss_path = Options.res_dir / "styles" / "multi_folder_dialog_light.qss"
         if qss_path.exists():
             self.setStyleSheet(qss_path.read_text(encoding="utf-8"))
         else:
@@ -169,23 +184,27 @@ class MultiFolderDialog(QDialog):
 
         # Show hidden files checkbox
         self.showHidden = QCheckBox()
+        self.showHidden.setObjectName("showHidden")
         self.showHidden.setText(Translator.get("SHOW_HIDDEN"))
         self.showHidden.setChecked(False)
         self.showHidden.checkStateChanged.connect(self.show_hidden_files)
         # Home button
         self.btnHome = QPushButton()
+        self.btnHome.setObjectName("btnHome")
         self.btnHome.setIcon(self.fetch_icon("Home"))
         self.btnHome.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.btnHome.setToolTip(Translator.get("HOME"))
         self.btnHome.clicked.connect(self.go_home)
         # Up button
         self.btnUp = QPushButton()
+        self.btnUp.setObjectName("btnUp")
         self.btnUp.setIcon(self.fetch_icon("Up Arrow"))
         self.btnUp.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.btnUp.setToolTip(Translator.get("GO_UP"))
         self.btnUp.clicked.connect(self.go_up)
         # Path bar
         self.path_bar = QLineEdit()
+        self.path_bar.setObjectName("pathBar")
         self.path_bar.setText(QDir.homePath())
         self.path_bar.textChanged.connect(self.path_changed)
 
@@ -198,16 +217,19 @@ class MultiFolderDialog(QDialog):
 
         # Add label
         self.label = QLabel(Translator.get("SELECT_FILES_FOLDERS_LABEL"))
+        self.label.setObjectName("selectFilesLabel")
         layout.addWidget(self.label)
 
         # Show message and button if FDA permission not given
         self.fda_alert_widget = QWidget()
+        self.fda_alert_widget.setObjectName("fdaAlertWidget")
         self.fda_layout = QHBoxLayout()
 
         self.fda_alert_widget.setVisible(False)
 
         # Set warning icon
         self.fda_warning_icon = QLabel()
+        self.fda_warning_icon.setObjectName("fdaWarningIcon")
         style = self.style()
         if style:
             icon = style.standardIcon(QStyle.StandardPixmap.SP_MessageBoxWarning)
@@ -218,6 +240,7 @@ class MultiFolderDialog(QDialog):
         self.fda_warning_icon.setToolTip(Translator.get("FDA_WARNING_HOVER"))
 
         self.fda_alert_message = QLabel()
+        self.fda_alert_message.setObjectName("fdaAlertMessage")
         self.fda_alert_message.setFixedWidth(200)
         self.fda_alert_message.setWordWrap(True)
         self.fda_alert_message.setAlignment(
@@ -228,11 +251,14 @@ class MultiFolderDialog(QDialog):
         self.fda_alert_message.setToolTip(Translator.get("FDA_WARNING_HOVER"))
 
         self.fda_alert_button = QPushButton()
+        self.fda_alert_button.setObjectName("fdaSettingsButton")
         self.fda_alert_button.setText(Translator.get("FDA_SETTINGS_BUTTON_TEXT"))
         self.fda_alert_button.setFixedWidth(100)
         # Show tooltip message - hover effect
         self.fda_alert_button.setToolTip(Translator.get("FDA_SETTINGS_BUTTON_HOVER"))
-        self.fda_alert_button.clicked.connect(self.navigate_to_system_settings)
+        self.fda_alert_button.clicked.connect(
+            MultiFolderDialog.navigate_to_system_settings
+        )
 
         self.fda_layout.addWidget(self.fda_warning_icon)
         self.fda_layout.addWidget(self.fda_alert_message)
@@ -263,6 +289,7 @@ class MultiFolderDialog(QDialog):
 
         # Create a tree view and set the model
         self.tree = QTreeView()
+        self.tree.setObjectName("fileTree")
         self.tree.setModel(self.model)
         self.tree.setRootIndex(self.model.index(QDir.homePath()))
         # Allow Shift+Click and Ctrl+Click for multiple selection
@@ -304,6 +331,15 @@ class MultiFolderDialog(QDialog):
         # So this function will not work for Linux
         # For Linux, the user has to close the MFD Dialog and reopen it to see the updated icons
         self._dark_mode = enabled
+        # Update stylesheet
+        if self._dark_mode:
+            qss_path = Options.res_dir / "styles" / "multi_folder_dialog_dark.qss"
+        else:
+            qss_path = Options.res_dir / "styles" / "multi_folder_dialog_light.qss"
+        if qss_path.exists():
+            self.setStyleSheet(qss_path.read_text(encoding="utf-8"))
+        else:
+            log.warning("QSS stylesheet not found (while switching) at %s", qss_path)
         # Update icons
         # Update Home and Go Up button icons
         self.btnHome.setIcon(self.fetch_icon("Home"))
@@ -645,7 +681,8 @@ class MultiFolderDialog(QDialog):
         else:
             log.warning("User has chosen to hide the Full Disk Access alert.")
 
-    def navigate_to_system_settings(self) -> None:
+    @staticmethod
+    def navigate_to_system_settings() -> None:
         log.warning("Navigating to Full Disk Access system settings page.")
         subprocess.run(
             [

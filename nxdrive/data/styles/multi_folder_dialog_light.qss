@@ -1,0 +1,88 @@
+QDialog {
+    padding: 8px;
+}
+QLineEdit {
+    padding: 4px 6px;
+    margin: 2px;
+}
+QCheckBox {
+    padding: 4px;
+    margin: 2px 4px;
+}
+QLabel {
+    padding: 2px 0px;
+    margin: 2px 0px;
+}
+QLabel#fda_popup_permission_warning_message {
+    font-size: 14px;
+}
+QTreeView {
+    padding: 2px;
+    margin: 2px;
+}
+QTreeView::item {
+    padding: 2px 4px;
+}
+QListWidget {
+    padding: 4px;
+    margin: 2px;
+}
+QListWidget::item {
+    padding: 4px 8px;
+}
+QFrame#panelSeparator {
+    margin: 2px 8px;
+    border: none;
+}
+QPushButton#fda_popup_ok_button {
+    background-color: rgba(247, 247, 247, 0.559);
+    color: rgb(0, 0, 0);
+    margin-bottom: 4px;
+}
+QPushButton#fda_popup_dont_show_again_button {
+    background-color: rgba(247, 247, 247, 0.559);
+    color: rgb(0, 0, 0);
+}
+QCheckBox#showHidden {
+    padding: 4px;
+    margin: 2px 4px;
+}
+QPushButton#btnHome, QPushButton#btnUp {
+    padding: 4px 8px;
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.08);
+}
+QPushButton#btnHome:hover, QPushButton#btnUp:hover {
+    background-color: rgba(0, 0, 0, 0.16);
+}
+QLabel#selectFilesLabel {
+    padding: 2px 0px;
+    margin: 2px 0px;
+    font-weight: bold;
+}
+QWidget#fdaAlertWidget {
+    background-color: #fff9e6;
+    border: 1px solid #ffd700;
+    border-radius: 4px;
+    padding: 8px;
+}
+QLabel#fdaWarningIcon {
+    padding: 2px;
+}
+QLabel#fdaAlertMessage {
+    padding: 4px;
+    color: rgb(0, 0, 0);
+}
+QPushButton#fdaSettingsButton {
+    padding: 4px 8px;
+    background-color: #4169E1;
+    color: white;
+    border-radius: 4px;
+}
+QPushButton#fdaSettingsButton:hover {
+    background-color: #315ac1;
+}
+QTreeView#fileTree {
+    padding: 2px;
+    margin: 2px;
+}
