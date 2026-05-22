@@ -39,9 +39,17 @@ QPushButton#fda_popup_ok_button {
     color: rgb(0, 0, 0);
     margin-bottom: 4px;
 }
+QPushButton#fda_popup_ok_button:focus {
+    border: 2px solid palette(highlight);
+    border-color: rgba(49, 47, 47, 0.82);
+}
 QPushButton#fda_popup_dont_show_again_button {
     background-color: rgba(247, 247, 247, 0.559);
     color: rgb(0, 0, 0);
+}
+QPushButton#fda_popup_dont_show_again_button:focus {
+    border: 2px solid palette(highlight);
+    border-color: rgba(49, 47, 47, 0.82);
 }
 QCheckBox#showHidden {
     padding: 4px;

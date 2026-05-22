@@ -105,13 +105,20 @@ class FDAAlert(QDialog):
 
         ok_button = QPushButton(Translator.get("FDA_POPUP_SYSTEM_SETTINGS"))
         ok_button.setFixedSize(QSize(150, 30))
+        ok_button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         ok_button.setObjectName("fda_popup_ok_button")
         ok_button.clicked.connect(MultiFolderDialog.navigate_to_system_settings)
 
         dont_show_again_button = QPushButton(Translator.get("FDA_POPUP_NOT_NOW"))
         dont_show_again_button.setFixedSize(QSize(150, 30))
+        dont_show_again_button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         dont_show_again_button.setObjectName("fda_popup_dont_show_again_button")
         dont_show_again_button.clicked.connect(self.close_alert_and_remember)
+
+        # Set keyboard tab key focus order
+        self.setTabOrder(ok_button, dont_show_again_button)
+        # Starts with default focus
+        ok_button.setFocus()
 
         layout = QVBoxLayout()
         layout.addWidget(permission_warning, alignment=Qt.AlignmentFlag.AlignHCenter)
