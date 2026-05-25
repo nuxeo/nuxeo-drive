@@ -71,10 +71,13 @@ class FDAAlert(QDialog):
 
     def __init__(self, parent: QDialog | None = None) -> None:
         super().__init__(parent)
-        self.setFixedSize(QSize(570, 240))
+        self.setObjectName("fdaAlertDialog")
+        self.setFixedSize(QSize(570, 255))
 
         permission_warning = QWidget()
+        permission_warning.setObjectName("fda_popup_permission_warning")
         permission_warning_layout = QHBoxLayout()
+        permission_warning_layout.setContentsMargins(0, 0, 0, 0)
         permission_warning_icon = QLabel()
         permission_warning_message = QLabel()
         permission_warning_message.setObjectName("fda_popup_permission_warning_message")
@@ -82,7 +85,7 @@ class FDAAlert(QDialog):
         style = self.style()
         if style:
             icon = style.standardIcon(QStyle.StandardPixmap.SP_MessageBoxWarning)
-            permission_warning_icon.setPixmap(icon.pixmap(16, 16))
+            permission_warning_icon.setPixmap(icon.pixmap(20, 20))
         else:
             log.warning("Failed to load fda popup warning icon from style")
 
@@ -95,6 +98,7 @@ class FDAAlert(QDialog):
         permission_warning.setLayout(permission_warning_layout)
 
         message = QLabel()
+        message.setObjectName("fda_popup_message")
         message.setTextFormat(Qt.TextFormat.RichText)
 
         # This message is split into clauses to allow line breaks at desired positions
@@ -120,13 +124,24 @@ class FDAAlert(QDialog):
         # Starts with default focus
         ok_button.setFocus()
 
+        permission_warning.setSizePolicy(
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed
+        )
+        message.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+
         layout = QVBoxLayout()
-        layout.addWidget(permission_warning, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(0)
+        layout.addWidget(permission_warning)
+        layout.addSpacing(20)
         layout.addWidget(message)
+        layout.addSpacing(20)
         layout.addWidget(ok_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addSpacing(8)
         layout.addWidget(
             dont_show_again_button, alignment=Qt.AlignmentFlag.AlignHCenter
         )
+        layout.addStretch()
 
         self.setLayout(layout)
 
@@ -240,7 +255,7 @@ class MultiFolderDialog(QDialog):
         style = self.style()
         if style:
             icon = style.standardIcon(QStyle.StandardPixmap.SP_MessageBoxWarning)
-            self.fda_warning_icon.setPixmap(icon.pixmap(16, 16))
+            self.fda_warning_icon.setPixmap(icon.pixmap(20, 20))
         else:
             log.warning("Failed to load warning icon from style")
         # Show tooltip message - hover effect

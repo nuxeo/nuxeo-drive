@@ -1,6 +1,9 @@
 QDialog {
     padding: 8px;
 }
+QDialog#fdaAlertDialog {
+    padding: 0px;
+}
 QLineEdit {
     padding: 4px 6px;
     margin: 2px;
@@ -35,21 +38,20 @@ QFrame#panelSeparator {
     border: none;
 }
 QPushButton#fda_popup_ok_button {
-    background-color: rgba(247, 247, 247, 60);
-    color: rgb(255, 255, 255);
-    margin-bottom: 4px;
+    background-color: rgba(247, 247, 247, 0.24);
+    color: rgba(255, 255, 255, 1);
+    border-radius: 5px;
 }
 QPushButton#fda_popup_ok_button:focus {
-    border: 2px solid palette(highlight);
-    border-color: rgba(255, 255, 255, 0.82);
+    border: 2px solid rgba(255, 255, 255, 0.82);
 }
 QPushButton#fda_popup_dont_show_again_button {
-    background-color: rgba(247, 247, 247, 60);
-    color: rgb(255, 255, 255);
+    background-color: rgba(247, 247, 247, 0.24);
+    color: rgba(255, 255, 255, 1);
+    border-radius: 5px;
 }
 QPushButton#fda_popup_dont_show_again_button:focus {
-    border: 2px solid palette(highlight);
-    border-color: rgba(255, 255, 255, 0.82);
+    border: 2px solid rgba(255, 255, 255, 0.82);
 }
 QCheckBox#showHidden {
     padding: 4px;
@@ -72,8 +74,8 @@ QLabel#selectFilesLabel {
     color: rgb(255, 255, 255);
 }
 QWidget#fdaAlertWidget {
-    background-color: #3a3a2e;
-    border: 1px solid #665c3e;
+    background-color: rgba(51, 43, 0, 1);
+    border: 1px solid rgba(107, 87, 0, 1);
     border-radius: 4px;
     padding: 8px;
 }
@@ -86,12 +88,12 @@ QLabel#fdaAlertMessage {
 }
 QPushButton#fdaSettingsButton {
     padding: 4px 8px;
-    background-color: #4169E1;
+    background-color: rgba(65, 105, 225, 1);
     color: white;
     border-radius: 4px;
 }
 QPushButton#fdaSettingsButton:hover {
-    background-color: #315ac1;
+    background-color: rgba(49, 90, 193, 1);
 }
 QTreeView#fileTree {
     padding: 2px;
