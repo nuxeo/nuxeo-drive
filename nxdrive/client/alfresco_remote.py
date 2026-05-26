@@ -2,7 +2,7 @@
 Alfresco remote client for Nuxeo Drive.
 
 Wraps the ``alfresco.Alfresco`` client to provide the interface
-expected by the Drive Engine.
+expected by the Drive Engine for account binding and synchronization.
 """
 
 from logging import getLogger
@@ -17,6 +17,7 @@ from ..constants import APP_NAME
 from ..metrics.utils import current_os, user_agent
 from ..objects import RemoteFileInfo
 from ..options import Options
+from ..utils import compute_digest
 
 if TYPE_CHECKING:
     from ..client.proxy import Proxy
@@ -31,7 +32,8 @@ class AlfrescoRemote:
     """Remote client for Alfresco Content Services.
 
     This wraps the ``alfresco.Alfresco`` client and exposes the subset
-    of operations needed by the Drive Engine.
+    of operations needed by the Drive Engine for Phase 1 (account
+    addition and synchronization).
     """
 
     def __init__(
@@ -81,9 +83,16 @@ class AlfrescoRemote:
 
         self.auth = auth
 
+        # The alfresco-python-client prepends ``/alfresco/api/…`` internally,
+        # so strip the trailing ``/alfresco`` from the user-supplied URL to
+        # avoid a doubled path segment.
+        base_url = url.rstrip("/")
+        if base_url.endswith("/alfresco"):
+            base_url = base_url[: -len("/alfresco")]
+
         # Build the Alfresco client
         self.client = Alfresco(
-            url=url,
+            url=base_url,
             auth=auth,
             timeout=self.timeout,
             sync_service_url=sync_service_url,
@@ -100,6 +109,11 @@ class AlfrescoRemote:
         # Subscriber/subscription IDs for sync service (populated during bind)
         self.subscriber_id: Optional[str] = None
         self.subscription_id: Optional[str] = None
+
+        # No-op metrics stub so callers that do ``remote.metrics.send(...)``
+        # or ``remote.metrics.push_sync_event(...)`` don't crash.
+        self.metrics = _NoOpMetrics()
+        self.tasks = _NoOpTasks()
 
     def __repr__(self) -> str:
         return (
@@ -125,7 +139,7 @@ class AlfrescoRemote:
         """Fetch a single node."""
         return self.client.nodes.get(node_id, include=include)
 
-    def get_children(self, node_id: str, *, max_items: int = 10000) -> List[Node]:
+    def get_children(self, node_id: str, *, max_items: int = 100) -> List[Node]:
         return self.client.nodes.list_children(node_id, max_items=max_items)
 
     def get_content(self, node_id: str) -> bytes:
@@ -135,6 +149,37 @@ class AlfrescoRemote:
     def get_content_stream(self, node_id: str) -> Any:
         """Return a streaming response for a node's content."""
         return self.client.nodes.get_content_stream(node_id)
+
+    def download_content(
+        self,
+        node_id: str,
+        target_path: str,
+        *,
+        expected_digest: Optional[str] = None,
+        digest_algorithm: Optional[str] = None,
+    ) -> None:
+        """Download content to *target_path* with optional checksum verification.
+
+        If *expected_digest* and *digest_algorithm* are provided, the digest
+        of the written file is computed and compared.  A mismatch raises
+        ``AlfrescoError``.
+        """
+        from pathlib import Path
+
+        content = self.get_content(node_id)
+        dest = Path(target_path)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(content)
+
+        if expected_digest and digest_algorithm:
+            local_digest = compute_digest(dest, digest_algorithm)
+            if local_digest != expected_digest:
+                dest.unlink(missing_ok=True)
+                raise AlfrescoError(
+                    f"Checksum mismatch for {node_id}: "
+                    f"expected {expected_digest!r} ({digest_algorithm}), "
+                    f"got {local_digest!r}"
+                )
 
     def upload(
         self,
@@ -254,6 +299,31 @@ class AlfrescoRemote:
             )
         return {}
 
+    # -- Folder browsing (used by filters dialog) ---------------------------
+
+    def get_fs_children(
+        self, fs_item_id: str, /, *, filtered: bool = True
+    ) -> List[RemoteFileInfo]:
+        """List children of a node as ``RemoteFileInfo`` objects.
+
+        This mirrors the Nuxeo ``Remote.get_fs_children()`` interface so
+        that the folder-picker dialog ("Choose folders to sync") works
+        with Alfresco servers.
+        """
+        nodes = self.client.nodes.list_children(fs_item_id, include=["path"])
+        infos = [self._node_to_remote_file_info(n) for n in nodes]
+
+        if not filtered or not hasattr(self, "dao"):
+            return infos
+
+        return [info for info in infos if not self.dao.is_filter(info.path)]
+
+    def is_filtered(self, path: str, /, *, filtered: bool = True) -> bool:
+        """Check if a remote path is filtered out."""
+        if not filtered or not hasattr(self, "dao"):
+            return False
+        return self.dao.is_filter(path)
+
     # -- Search --------------------------------------------------------------
 
     def search(self, query: str) -> List[Node]:
@@ -265,16 +335,22 @@ class AlfrescoRemote:
     @staticmethod
     def _node_to_remote_file_info(node: Node) -> RemoteFileInfo:
         """Convert an Alfresco ``Node`` to a Drive ``RemoteFileInfo``."""
-        path_str = ""
+        # The Alfresco REST API ``path.elements`` contains the path *to*
+        # the node (its ancestor chain) but does NOT include the node
+        # itself.  We must append the node's name to get a unique,
+        # hierarchical path suitable for the selective-sync filter.
         if node.path and isinstance(node.path, dict):
             elements = node.path.get("elements", [])
-            path_str = "/" + "/".join(e.get("name", "") for e in elements)
+            parent_path = "/" + "/".join(e.get("name", "") for e in elements)
+            path_str = parent_path.rstrip("/") + "/" + node.name
+        else:
+            path_str = "/" + node.name
 
         return RemoteFileInfo(
             name=node.name,
             uid=node.id,
             parent_uid=node.parent_id or "",
-            path=path_str or f"/{node.name}",
+            path=path_str,
             folderish=node.is_folder,
             last_modification_time=node.modified_at,
             creation_time=node.created_at,
@@ -298,3 +374,60 @@ class AlfrescoRemote:
     def close(self) -> None:
         """Close the underlying HTTP session."""
         self.client.close()
+
+    def revoke_token(self) -> None:
+        """No-op for Alfresco — ticket/basic auth has no token to revoke."""
+        pass
+
+    def get_server_configuration(self) -> Dict[str, Any]:
+        """No-op — Alfresco has no Drive-specific server config endpoint."""
+        return {}
+
+    # -- Discovery API -------------------------------------------------------
+
+    def get_discovery(self) -> Dict[str, Any]:
+        """Call the Alfresco Discovery API (``/api/discovery``).
+
+        Returns the repository information dict containing server
+        version, edition, license details, installed modules, and
+        feature flags.  The response is cached on the instance.
+        """
+        if hasattr(self, "_discovery_cache"):
+            return self._discovery_cache
+
+        url = self.server_url.rstrip("/") + "/api/discovery"
+        resp = self.client.session.get(url, timeout=self.timeout)
+        resp.raise_for_status()
+        data: Dict[str, Any] = resp.json()
+        self._discovery_cache = data
+        return data
+
+    def get_server_version(self) -> str:
+        """Return the ACS version string from the Discovery API."""
+        discovery = self.get_discovery()
+        repo = discovery.get("entry", {}).get("repository", {})
+        version = repo.get("version", {})
+        return version.get("display", "unknown")
+
+
+class _NoOpMetrics:
+    """Stub that silently absorbs all metrics calls."""
+
+    def send(self, metrics: Any = None) -> None:
+        pass
+
+    def push_sync_event(self, metrics: Any = None, /) -> None:
+        pass
+
+    def force_poll(self) -> None:
+        pass
+
+    def start(self) -> None:
+        pass
+
+
+class _NoOpTasks:
+    """Stub so ``application.fetch_pending_tasks()`` works for Alfresco."""
+
+    def get(self, *args: Any, **kwargs: Any) -> list:
+        return []

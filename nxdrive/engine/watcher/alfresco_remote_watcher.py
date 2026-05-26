@@ -192,10 +192,11 @@ class AlfrescoRemoteWatcher(EngineWorker):
         for node in nodes:
             child_info = remote._node_to_remote_file_info(node)
 
-            # Skip filtered paths ("Choose folders to sync" in the GUI)
-            child_path = remote_parent_path + "/" + child_info.uid
-            if self.dao.is_filter(child_path):
-                log.debug(f"Skipping filtered path {child_path}")
+            # Skip filtered paths ("Choose folders to sync" in the GUI).
+            # Use the human-readable Alfresco path (from the node's path
+            # property) which matches the format stored by the filter dialog.
+            if self.dao.is_filter(child_info.path):
+                log.debug(f"Skipping filtered path {child_info.path}")
                 continue
 
             if child_info.uid in children:
@@ -363,6 +364,14 @@ class AlfrescoRemoteWatcher(EngineWorker):
         node_id = change.get("id", "")
         status = change.get("status", "").upper()
         name = change.get("name", "")
+
+        # Skip changes inside filtered folders.
+        # The change may carry a ``path`` from the Sync Service; if so,
+        # check it against the selective-sync filters.
+        change_path = change.get("path", "")
+        if change_path and self.dao.is_filter(change_path):
+            log.debug(f"Skipping filtered change {name!r} at {change_path}")
+            return
 
         if status == "DELETED":
             pair = self.dao.get_normal_state_from_remote(node_id)

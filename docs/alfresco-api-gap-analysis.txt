@@ -1,0 +1,434 @@
+Alfresco API Gap Analysis for Nuxeo Drive Integration
+=====================================================
+Date: May 26, 2026
+Tested against:
+  Nuxeo:    https://drive-2025.beta.nuxeocloud.com/nuxeo
+  Alfresco: https://acs-11756.envalfresco.com/alfresco
+
+
+========================================================================
+SECTION 1: NUXEO AUTH FLOWS (verified)
+========================================================================
+
+Basic Auth (Legacy) Flow
+------------------------
+1. Drive opens browser to:
+   GET {server}/nuxeo/drive_browser_login.jsp
+       ?deviceId=<uuid>
+       &applicationName=Nuxeo+Drive
+       &permission=ReadWrite
+       &deviceDescription=macOS
+       &forceAnonymousLogin=true
+       &useProtocol=true
+
+2. User logs in via the Nuxeo login form (username/password).
+
+3. Server issues a persistent token via:
+   GET /nuxeo/authentication/token
+       ?applicationName=Nuxeo+Drive
+       &deviceId=<uuid>
+       &deviceDescription=macOS
+       &permission=ReadWrite
+   Authorization: Basic <base64(user:pass)>
+
+   Response: 201 Created
+   Content-Type: text/plain
+   Body: <uuid-token>   (e.g. fcfe6dc2-32e1-4d29-b60d-62bd83ed4b1b)
+
+4. Drive stores only the token (password discarded).
+   All subsequent API calls use:
+   X-Authentication-Token: <uuid-token>
+
+5. Token is persistent (survives server restarts, does not expire).
+
+6. Token can be revoked server-side.
+
+
+OAuth2 Flow
+-----------
+1. Drive discovers OpenID configuration (if configured).
+2. Builds authorization URL with PKCE (code_challenge, code_verifier).
+3. Opens browser -> user authenticates -> redirects back with auth code.
+4. Drive exchanges code for JWT access_token + refresh_token.
+5. All API calls use: Authorization: Bearer <jwt>
+6. Refresh token is used to obtain new access tokens before expiry.
+
+
+========================================================================
+SECTION 2: ALFRESCO AUTH CAPABILITIES (verified)
+========================================================================
+
+Basic Auth
+----------
+  Any API endpoint accepts Authorization: Basic <base64(user:pass)>
+  STATUS: WORKS
+
+Ticket API (password -> ticket)
+-------------------------------
+  POST /alfresco/api/-default-/public/authentication/versions/1/tickets
+  Content-Type: application/json
+  {"userId":"admin@alfresco.com","password":"..."}
+
+  Response: 201
+  {"entry":{"id":"TICKET_bb7658dc...","userId":"admin@alfresco.com"}}
+  STATUS: WORKS
+
+Ticket Usage
+------------
+  Append ?alf_ticket=TICKET_xxx to any API URL.
+  STATUS: WORKS
+
+  Using ticket as password in Authorization: Basic header
+  STATUS: DOES NOT WORK (returns 401)
+
+  Using ticket in Authorization: Bearer header
+  STATUS: DOES NOT WORK (returns 401, "Malformed token")
+
+  Using ticket in custom header (X-Authentication-Token, X-Alfresco-Ticket)
+  STATUS: NOT SUPPORTED
+
+Ticket Revocation
+-----------------
+  DELETE /alfresco/api/-default-/public/authentication/versions/1/tickets/-me-
+      ?alf_ticket=TICKET_xxx
+  Response: 204 No Content
+  STATUS: WORKS (subsequent use of ticket returns 401)
+
+Keycloak / AIMS OAuth2
+----------------------
+  OpenID discovery:
+    GET https://<host>/auth/realms/alfresco/.well-known/openid-configuration
+  STATUS: WORKS — full OpenID Connect with "alfresco" client
+
+  Password grant (for testing):
+    POST /auth/realms/alfresco/protocol/openid-connect/token
+    grant_type=password&client_id=alfresco
+    &username=admin%40alfresco.com&password=...
+  STATUS: WORKS — returns access_token (JWT, 300s), refresh_token (1800s)
+
+  JWT Bearer auth against Alfresco APIs:
+    Authorization: Bearer <jwt-from-keycloak>
+  STATUS: WORKS
+
+People API (user info, equivalent of Nuxeo /api/v1/me):
+  GET /alfresco/api/-default-/public/alfresco/versions/1/people/-me-
+  STATUS: WORKS with both Basic auth and Bearer JWT
+
+Discovery API (server version info):
+  GET /alfresco/api/discovery
+  STATUS: WORKS
+
+syncServiceConfiguration (AIMS auto-discovery):
+  GET /alfresco/api/-default-/private/alfresco/versions/1/config/syncServiceConfiguration
+  STATUS: 404 NOT FOUND on this server
+
+Drive configuration endpoint:
+  GET /alfresco/api/v1/drive/configuration
+  STATUS: DOES NOT EXIST (404)
+
+Drive browser login page:
+  GET /alfresco/drive_browser_login.jsp
+  STATUS: DOES NOT EXIST
+
+Token exchange endpoint (Nuxeo-style):
+  GET /alfresco/authentication/token?applicationName=...&deviceId=...
+  STATUS: DOES NOT EXIST (404)
+
+
+========================================================================
+SECTION 3: GAP SUMMARY
+========================================================================
+
++-----+--------------------------------------------+----------+----------+
+| #   | Capability                                 | Nuxeo    | Alfresco |
++-----+--------------------------------------------+----------+----------+
+| 1   | Basic Auth (user/pass on every request)     | YES      | YES      |
+| 2   | Password -> persistent token exchange       | YES      | NO       |
+| 3   | Token usable via HTTP header                | YES      | NO (*)   |
+| 4   | Token revocation                            | YES      | YES (**)|
+| 5   | Browser login page for Drive                | YES      | NO       |
+| 6   | Drive configuration endpoint                | YES      | NO       |
+| 7   | Login type detection page                   | YES      | NO       |
+| 8   | OAuth2 / OpenID Connect                     | YES      | YES      |
+| 9   | AIMS/Keycloak auto-discovery                | N/A      | NO (***)  |
+| 10  | JWT Bearer auth on APIs                     | YES      | YES      |
++-----+--------------------------------------------+----------+----------+
+
+(*)   Alfresco tickets only work via ?alf_ticket= query parameter,
+      not via Authorization header or any custom header.
+(**)  Alfresco tickets can be revoked but are session-scoped (expire).
+      Not persistent across server restarts.
+(***) syncServiceConfiguration endpoint returns 404 on this server.
+
+
+========================================================================
+SECTION 4: RECOMMENDED CHANGES TO REQUEST FROM ALFRESCO TEAM
+========================================================================
+
+----------------------------------------------------------------------
+PRIORITY 1: Persistent Token Exchange Endpoint (Basic Auth flow)
+----------------------------------------------------------------------
+
+WHY THIS IS NEEDED:
+  The Nuxeo Drive basic auth flow works as follows:
+  1. User enters server URL in Drive UI.
+  2. Drive opens a browser-based login page hosted by the server.
+  3. User enters username/password in the browser.
+  4. The server exchanges those credentials for a PERSISTENT TOKEN
+     (a UUID string like "fcfe6dc2-32e1-4d29-b60d-62bd83ed4b1b").
+  5. The browser redirects back to Drive via the nxdrive:// protocol
+     handler, passing the token.
+  6. Drive stores ONLY the token. The password is never saved.
+  7. All subsequent API calls use the token via an HTTP header:
+     X-Authentication-Token: <token>
+
+  This design means:
+  - The password is used exactly ONCE and never stored on disk.
+  - The token is long-lived (survives server restarts).
+  - The token can be revoked without changing the user's password.
+  - The token is sent via a standard HTTP header (not a URL param),
+    so it doesn't leak into access logs, proxies, or browser history.
+
+  Alfresco currently has a ticket API (POST /authentication/versions/1/tickets)
+  but Alfresco tickets have three problems:
+  a) They are SESSION-SCOPED — they expire and don't survive restarts.
+  b) They can only be used via ?alf_ticket= query parameter — not via
+     an HTTP header. This means tickets appear in server access logs,
+     proxy logs, and potentially in browser history — a security concern.
+  c) There is no "applicationName"/"deviceId" concept — you can't manage
+     which devices have access or revoke access per-device.
+
+OPTION A (Preferred): Create a new Drive-specific token endpoint
+
+  Endpoint:
+    GET /alfresco/api/-default-/public/authentication/versions/1/drive-tokens
+        ?applicationName=Nuxeo+Drive
+        &deviceId=<uuid>
+        &deviceDescription=macOS
+        &permission=ReadWrite
+    Authorization: Basic <base64(user:pass)>
+
+  Response:
+    201 Created
+    Content-Type: text/plain
+    <persistent-token-string>
+
+  Requirements for the token:
+  - Must be PERSISTENT (survive server restarts, not expire).
+  - Must work via an HTTP header:
+      Authorization: Bearer <token>
+      OR a custom header like X-Alfresco-Token: <token>
+  - Must be revocable per-device:
+      DELETE /authentication/versions/1/drive-tokens/<token>
+  - Should support multiple tokens per user (one per device).
+
+OPTION B (Alternative): Enhance existing ticket API
+
+  1. Add a "persistent" flag to POST /authentication/versions/1/tickets:
+     {"userId":"...", "password":"...", "persistent": true}
+     The resulting ticket should not expire and survive server restarts.
+
+  2. Allow tickets in an HTTP header. Either:
+     - Authorization: Bearer TICKET_xxx
+     - A custom header: X-Alfresco-Ticket: TICKET_xxx
+     This avoids leaking tickets in URL query parameters.
+
+  3. Add applicationName/deviceId metadata to tickets so they can be
+     managed and revoked per-device.
+
+
+----------------------------------------------------------------------
+PRIORITY 2: Browser Login Page for Drive
+----------------------------------------------------------------------
+
+WHY THIS IS NEEDED:
+  In Nuxeo, Drive NEVER shows username/password fields in its own UI.
+  Instead, it opens a browser page hosted by the server where the user
+  logs in. This has several advantages:
+  - The server controls the login experience (can show SSO, 2FA, etc.).
+  - Drive never handles raw passwords.
+  - The same flow works for basic auth, SAML, Kerberos, and OAuth2.
+  - The server can enforce password policies, lockout rules, etc.
+
+  Currently for Alfresco, we had to add username/password fields
+  directly in the Drive dialog (NewAccountPopup.qml) because there
+  is no server-hosted login page that can redirect back to Drive.
+  This is a security and UX concern.
+
+OPTION A (Preferred): Create a Drive browser login page
+
+  Create a page at /alfresco/drive-login (or similar) that:
+  1. Accepts query parameters: deviceId, applicationName, permission,
+     deviceDescription, useProtocol=true
+  2. Shows the standard Alfresco login form (or redirects to Keycloak
+     if AIMS is configured).
+  3. On successful authentication, creates a persistent token/ticket
+     for the specified device.
+  4. Redirects to: nxdrive://token/<username>/<token>
+     (this is the protocol handler that Drive registers on the OS).
+
+  This makes the Alfresco flow identical to Nuxeo — Drive just opens
+  a URL and waits for the nxdrive:// callback.
+
+OPTION B (Alternative): Use Keycloak authorization_code flow
+
+  Since Keycloak is already available, Drive can:
+  1. Build an OAuth2 authorization URL:
+     https://<host>/auth/realms/alfresco/protocol/openid-connect/auth
+         ?client_id=alfresco
+         &response_type=code
+         &scope=openid profile email
+         &redirect_uri=http://localhost:<port>/nxdrive/authorize
+         &code_challenge=<S256>
+         &code_challenge_method=S256
+  2. Open it in the browser.
+  3. User logs in via Keycloak.
+  4. Keycloak redirects to Drive's local HTTP server with auth code.
+  5. Drive exchanges code for access_token + refresh_token.
+
+  This works TODAY with our existing AlfrescoOAuthentication class,
+  but requires the Keycloak "alfresco" client to have
+  "http://localhost:*" as an allowed redirect URI.
+
+  ISSUE: The "alfresco" Keycloak client currently only allows:
+    - https://acs-11756-apa.envalfresco.com
+    - https://acs-11756.envalfresco.com
+    - http://localhost:4200
+    - http://localhost:3000
+  Drive needs: http://localhost:10000 (or a wildcard localhost pattern).
+
+  ACTION NEEDED: Add "http://localhost:*" or a specific port to the
+  "alfresco" Keycloak client's valid redirect URIs.
+
+
+----------------------------------------------------------------------
+PRIORITY 3: syncServiceConfiguration Endpoint
+----------------------------------------------------------------------
+
+WHY THIS IS NEEDED:
+  The Drive code uses this private API to auto-discover the
+  AIMS/Keycloak endpoints so the user only needs to enter the
+  server URL (not manually configure OAuth2 URLs).
+
+  On the test server, this endpoint returns 404:
+  GET /alfresco/api/-default-/private/alfresco/versions/1/config/syncServiceConfiguration
+
+  Expected response (from Alfresco documentation):
+  {
+    "identityServiceConfig": {
+      "authServerUrl": "https://<host>/auth",
+      "realm": "alfresco",
+      "resource": "alfresco",
+      "credentialsSecret": null,
+      "sslRequired": "all"
+    },
+    "syncServiceUrl": "https://<host>:9090/alfresco"
+  }
+
+  This response allows Drive to:
+  a) Construct the OpenID discovery URL:
+     https://<authServerUrl>/realms/<realm>/.well-known/openid-configuration
+  b) Know the OAuth2 client_id (resource field).
+  c) Know the Sync Service URL for change notifications.
+
+  ACTION NEEDED: Deploy/enable the syncServiceConfiguration endpoint
+  on the Alfresco server, or provide an alternative discovery mechanism.
+
+  WORKAROUND IF NOT AVAILABLE: Drive can hardcode the convention:
+    OpenID URL = https://<same-host>/auth/realms/alfresco/.well-known/openid-configuration
+    client_id = "alfresco"
+  But this breaks for non-standard deployments.
+
+
+----------------------------------------------------------------------
+PRIORITY 4: Drive Configuration Endpoint (nice to have)
+----------------------------------------------------------------------
+
+WHY THIS IS NEEDED:
+  Nuxeo provides a server-side configuration endpoint that tells Drive
+  what settings to use:
+  GET /nuxeo/api/v1/drive/configuration
+
+  Response:
+  {
+    "delay": 30,
+    "ignored_prefixes": [".", "thumbs.db", "desktop.ini", "~$"],
+    "ignored_suffixes": [".tmp", ".part", ".crdownload", ".lock"],
+    "timeout": 30,
+    "handshake_timeout": 60,
+    "beta_channel": false,
+    "update_check_delay": 3600,
+    "ui": "web"
+  }
+
+  This allows administrators to control Drive behavior from the server
+  without requiring users to change local settings. For example:
+  - Polling delay (how often Drive checks for changes).
+  - File patterns to ignore during sync.
+  - Timeout values.
+  - Whether beta updates are enabled.
+
+  ACTION NEEDED: Create a similar endpoint for Alfresco at:
+  GET /alfresco/api/-default-/public/alfresco/versions/1/drive/configuration
+
+  OR: Accept that Drive will use hardcoded defaults for Alfresco.
+  This is acceptable for Phase 1 but limits admin control.
+
+
+----------------------------------------------------------------------
+PRIORITY 5: alfresco-python-client Changes
+----------------------------------------------------------------------
+
+WHY THIS IS NEEDED:
+  If the Alfresco server team cannot add header-based token/ticket
+  authentication (Priority 1), the alfresco-python-client library
+  needs changes to work around the limitation.
+
+  CHANGE 1: TicketAuth class should append ?alf_ticket= to URLs
+    Currently, the alfresco-python-client's TicketAuth (or BasicAuth)
+    sends credentials via the Authorization header. If tickets can
+    only be used via query parameters, the client needs a mode where
+    it appends ?alf_ticket=<ticket> to every request URL.
+
+  CHANGE 2: Add a request_token() method
+    Similar to the nuxeo-python-client's request_token() method,
+    add a method that:
+    - Takes (deviceId, applicationName) as parameters.
+    - Calls the ticket API (or the new drive-token API).
+    - Returns a persistent token/ticket.
+    - Stores it for subsequent requests.
+
+  CHANGE 3: Token refresh support
+    If using Keycloak JWTs (which expire in 300s), the client needs
+    automatic token refresh using the refresh_token. The nuxeo-python-
+    client already does this via its OAuth2 auth handler.
+
+
+========================================================================
+SECTION 5: SUMMARY OF ACTIONS NEEDED
+========================================================================
+
+For Alfresco Server Team:
+  1. Create persistent token exchange endpoint (or enhance ticket API)
+  2. Create Drive browser login page (or configure Keycloak redirect URIs)
+  3. Deploy syncServiceConfiguration endpoint
+  4. (Optional) Create Drive configuration endpoint
+
+For Alfresco Python Client Team:
+  5. Add alf_ticket query parameter auth mode (if no header support)
+  6. Add request_token() method for Drive token exchange
+  7. Add automatic JWT refresh support
+
+For Keycloak Admin (immediate, no code change):
+  8. Add http://localhost:10000 (or http://localhost:*)
+     to the "alfresco" client's valid redirect URIs
+     so Drive can use the OAuth2 authorization_code flow
+
+For Drive Team (our side):
+  - Once Priority 1 is available: Remove username/password fields
+    from NewAccountPopup.qml, use browser login page instead
+  - Once Priority 2 is available: Use identical browser flow for
+    both Nuxeo and Alfresco
+  - Adapt AlfrescoRemote to use the new token mechanism
+  - Remove _save_password/_load_password from AlfrescoEngine
+    (password should never be stored once token exchange exists)

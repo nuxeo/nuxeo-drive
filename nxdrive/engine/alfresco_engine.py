@@ -12,7 +12,7 @@ Excluded features: Direct Edit, Direct Transfer, Direct Download.
 from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse, urlsplit, urlunparse
 
 from alfresco.exceptions import AuthenticationError
 
@@ -205,6 +205,10 @@ class AlfrescoEngine(Engine):
         if self._remote_token:
             self._save_token(self._remote_token)
 
+        # For basic auth, persist the password so it survives restarts
+        if self._remote_password and not self._remote_token:
+            self._save_password(self._remote_password)
+
         # Fetch and store server version info via the Discovery API
         self._fetch_discovery_info()
 
@@ -273,13 +277,20 @@ class AlfrescoEngine(Engine):
             log.info(f"Alfresco Sync Service URL: {sync_service_url}")
 
         try:
-            subscriber_id = self.remote.register_subscriber()
-            self.dao.update_config("alfresco_subscriber_id", subscriber_id)
-            log.info(f"Registered Alfresco subscriber: {subscriber_id}")
+            # Use a short timeout for sync service registration since the
+            # service may be unreachable (port 9090 firewalled, etc.).
+            saved_timeout = self.remote.client.timeout
+            self.remote.client.timeout = 5
+            try:
+                subscriber_id = self.remote.register_subscriber()
+                self.dao.update_config("alfresco_subscriber_id", subscriber_id)
+                log.info(f"Registered Alfresco subscriber: {subscriber_id}")
 
-            subscription_id = self.remote.subscribe_folder(root_node_id)
-            self.dao.update_config("alfresco_subscription_id", subscription_id)
-            log.info(f"Created Alfresco subscription: {subscription_id}")
+                subscription_id = self.remote.subscribe_folder(root_node_id)
+                self.dao.update_config("alfresco_subscription_id", subscription_id)
+                log.info(f"Created Alfresco subscription: {subscription_id}")
+            finally:
+                self.remote.client.timeout = saved_timeout
         except Exception:
             log.warning(
                 "Could not register with Alfresco Sync Service. "
@@ -334,7 +345,7 @@ class AlfrescoEngine(Engine):
                 + "/api/-default-/public/sync/versions/1/healthcheck"
             )
             try:
-                resp = _requests.get(health_url, timeout=5, verify=True)
+                resp = _requests.get(health_url, timeout=2, verify=True)
                 if resp.ok:
                     log.info(f"Sync Service health-check passed at {candidate}")
                     return candidate
@@ -389,6 +400,46 @@ class AlfrescoEngine(Engine):
     def _send_roots_metrics(self) -> None:
         """Skip Nuxeo-specific sync root metrics for Alfresco."""
         pass
+
+    def _load_configuration(self) -> None:
+        """Load engine configuration, restoring basic-auth password if needed."""
+        self._web_authentication = self.dao.get_bool("web_authentication")
+        self.server_url = self.dao.get_config("server_url")
+        self.hostname = urlsplit(self.server_url).hostname if self.server_url else None
+        self.wui = self.dao.get_config("ui", default="web")
+        self.force_ui = self.dao.get_config("force_ui")
+        self.remote_user = self.dao.get_config("remote_user")
+        self._remote_token = self._load_token()
+
+        if not self._remote_token:
+            # For Alfresco basic auth, try to restore the saved password
+            self._remote_password = self._load_password()
+            if not self._remote_password:
+                self.set_invalid_credentials(
+                    reason="found no token or password in engine configuration"
+                )
+
+    def _save_password(self, password: str) -> None:
+        """Store the password encrypted in the DAO."""
+        from ..utils import encrypt, force_decode
+
+        key = f"{self.remote_user}{self.server_url}"
+        secure = force_decode(encrypt(password, key))
+        self.dao.update_config("remote_password", secure)
+
+    def _load_password(self) -> str:
+        """Retrieve and decrypt the stored password, if any."""
+        from ..utils import decrypt, force_decode
+
+        stored = self.dao.get_config("remote_password")
+        if not stored:
+            return ""
+        key = f"{self.remote_user}{self.server_url}"
+        try:
+            return force_decode(decrypt(stored, key))
+        except Exception:
+            log.debug("Could not decrypt stored password", exc_info=True)
+            return ""
 
     def suspend_client(self, uploader: Any = None, /) -> None:
         """Check if the engine is paused or stopped."""

@@ -598,6 +598,14 @@ class QMLDriveApi(QObject):
             if not engine:
                 self.setMessage.emit("CONNECTION_UNKNOWN", "error")
                 return
+
+            # For Alfresco engines, re-open the add-account flow instead
+            # of the Nuxeo browser-login token-update path.
+            is_alfresco = getattr(engine, "type", "") == ALFRESCO_SERVER_TYPE
+            if is_alfresco:
+                self.setMessage.emit("CONNECTION_UNKNOWN", "error")
+                return
+
             params = urlencode({"updateToken": True})
 
             url = engine.server_url
@@ -935,6 +943,22 @@ class QMLDriveApi(QObject):
 
         log.warning(Translator.get(error))
         self.setMessage.emit(error, "error")
+
+    @pyqtSlot(str, str, str, str)
+    def alfresco_basic_auth(
+        self, local_folder: str, server_url: str, username: str, password: str, /
+    ) -> None:
+        """Bind an Alfresco server using basic (username/password) authentication.
+
+        Called directly from the QML ``NewAccountPopup`` when the URL
+        ends with ``/alfresco`` and legacy auth is checked.
+        """
+        self.bind_server(
+            local_folder,
+            server_url,
+            username,
+            password=password,
+        )
 
     @pyqtSlot(str, str, bool)
     def web_authentication(
