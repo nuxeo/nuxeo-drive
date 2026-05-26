@@ -57,6 +57,10 @@ QCheckBox#showHidden {
     padding: 4px;
     margin: 2px 4px;
 }
+QCheckBox#fda_popup_dont_show_checkbox:focus {
+    border: 2px solid rgba(49, 47, 47, 0.82);
+    padding: 2px;
+}
 QPushButton#btnHome, QPushButton#btnUp {
     padding: 4px 8px;
     border-radius: 4px;

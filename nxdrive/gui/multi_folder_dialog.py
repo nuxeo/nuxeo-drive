@@ -24,6 +24,7 @@ from nxdrive.qt.imports import (
     QFrame,
     QHBoxLayout,
     QIcon,
+    QKeyEvent,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -72,7 +73,7 @@ class FDAAlert(QDialog):
     def __init__(self, parent: QDialog | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("fdaAlertDialog")
-        self.setFixedSize(QSize(570, 255))
+        self.setFixedSize(QSize(570, 225))
 
         permission_warning = QWidget()
         permission_warning.setObjectName("fda_popup_permission_warning")
@@ -107,27 +108,42 @@ class FDAAlert(QDialog):
         text_clause3 = Translator.get("FDA_POPUP_MESSAGE_PART_3")
         message.setText(f"{text_clause1}<br><br>{text_clause2}<br><br>{text_clause3}")
 
-        ok_button = QPushButton(Translator.get("FDA_POPUP_SYSTEM_SETTINGS"))
-        ok_button.setFixedSize(QSize(150, 30))
-        ok_button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        ok_button.setObjectName("fda_popup_ok_button")
-        ok_button.clicked.connect(MultiFolderDialog.navigate_to_system_settings)
+        self.ok_button = QPushButton(Translator.get("FDA_POPUP_SYSTEM_SETTINGS"))
+        self.ok_button.setFixedSize(QSize(150, 30))
+        self.ok_button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.ok_button.setObjectName("fda_popup_ok_button")
+        self.ok_button.clicked.connect(MultiFolderDialog.navigate_to_system_settings)
 
-        dont_show_again_button = QPushButton(Translator.get("FDA_POPUP_NOT_NOW"))
-        dont_show_again_button.setFixedSize(QSize(150, 30))
-        dont_show_again_button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        dont_show_again_button.setObjectName("fda_popup_dont_show_again_button")
-        dont_show_again_button.clicked.connect(self.close_alert_and_remember)
+        self.not_now_button = QPushButton(Translator.get("FDA_POPUP_NOT_NOW"))
+        self.not_now_button.setFixedSize(QSize(150, 30))
+        self.not_now_button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.not_now_button.setObjectName("fda_popup_dont_show_again_button")
+        self.not_now_button.clicked.connect(self.close_alert)
+
+        self.dont_show_checkbox = QCheckBox(Translator.get("FDA_POPUP_CHECKBOX_LABEL"))
+        self.dont_show_checkbox.setObjectName("fda_popup_dont_show_checkbox")
+        self.dont_show_checkbox.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.dont_show_checkbox.checkStateChanged.connect(self.remember_close_choice)
 
         # Set keyboard tab key focus order
-        self.setTabOrder(ok_button, dont_show_again_button)
+        self.setTabOrder(self.ok_button, self.not_now_button)
+        self.setTabOrder(self.not_now_button, self.dont_show_checkbox)
         # Starts with default focus
-        ok_button.setFocus()
+        self.ok_button.setFocus()
 
         permission_warning.setSizePolicy(
             QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed
         )
         message.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+
+        buttons_layout = QHBoxLayout()
+        buttons_layout.setSpacing(12)
+        buttons_layout.addStretch()
+        buttons_layout.addWidget(self.ok_button)
+        buttons_layout.addWidget(self.not_now_button)
+        buttons_layout.addSpacing(20)
+        buttons_layout.addWidget(self.dont_show_checkbox)
+        buttons_layout.addStretch()
 
         layout = QVBoxLayout()
         layout.setContentsMargins(20, 20, 20, 20)
@@ -135,24 +151,44 @@ class FDAAlert(QDialog):
         layout.addWidget(permission_warning)
         layout.addSpacing(20)
         layout.addWidget(message)
-        layout.addSpacing(20)
-        layout.addWidget(ok_button, alignment=Qt.AlignmentFlag.AlignHCenter)
-        layout.addSpacing(8)
-        layout.addWidget(
-            dont_show_again_button, alignment=Qt.AlignmentFlag.AlignHCenter
-        )
         layout.addStretch()
+        layout.addLayout(buttons_layout)
 
         self.setLayout(layout)
 
-    def close_alert_and_remember(self):
-        # Check if "dont_show_fda_alert" file exists, if not create it to remember the user's choice
-        dont_show_file = Path.home() / ".nuxeo-drive" / "dont_show_fda_alert"
-        if not dont_show_file.exists():
-            dont_show_file.parent.mkdir(parents=True, exist_ok=True)
-            dont_show_file.touch()
+    def accept(self) -> None:
+        if self.dont_show_checkbox.hasFocus():
+            self.dont_show_checkbox.toggle()
+
+    def reject(self) -> None:
+        FDAAlert.visible = False
+        super().reject()
+
+    def keyPressEvent(self, a0: QKeyEvent | None) -> None:
+        if a0 is None:
+            return
+        if a0.key() == Qt.Key.Key_Escape:
+            self.reject()
+        elif a0.key() == Qt.Key.Key_Enter or a0.key() == Qt.Key.Key_Return:
+            # Enter/Return is not captured for buttons as they override the keyPressEvent
+            # This only works on the checkbox
+            self.accept()
+        else:
+            super().keyPressEvent(a0)
+
+    def close_alert(self):
         self.close()
         FDAAlert.visible = False
+
+    def remember_close_choice(self, checked: int):
+        dont_show_file = Path.home() / ".nuxeo-drive" / "dont_show_fda_alert"
+        if checked == Qt.CheckState.Checked:
+            # Check if "dont_show_fda_alert" file exists, if not create it to remember the user's choice
+            if not dont_show_file.exists():
+                dont_show_file.parent.mkdir(parents=True, exist_ok=True)
+                dont_show_file.touch()
+        else:
+            dont_show_file.unlink(missing_ok=True)
 
 
 class MultiFolderDialog(QDialog):
@@ -263,8 +299,7 @@ class MultiFolderDialog(QDialog):
 
         self.fda_alert_message = QLabel()
         self.fda_alert_message.setObjectName("fdaAlertMessage")
-        self.fda_alert_message.setFixedWidth(200)
-        self.fda_alert_message.setWordWrap(True)
+        self.fda_alert_message.setFixedWidth(250)
         self.fda_alert_message.setAlignment(
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
         )
