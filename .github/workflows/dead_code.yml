@@ -37,6 +37,6 @@ jobs:
         env:
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}
         run: |
-            copilot -p "Fix dead code issues. Remove unused variables and imports." --allow-tool='shell(git:*)' --allow-tool=write --no-ask-user --model="GPT-5 mini"
+            copilot -p "Fix dead code issues. Remove unused variables and imports." --allow-tool='shell(git:*)' --allow-tool=write --no-ask-user --model=gpt-5-mini
       - name: Dead code check
         run: tox -e cleanup
