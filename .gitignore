@@ -49,3 +49,8 @@ tools/jenkins/junit/xml
 squashfs-root
 coverage.xml
 .github/agents
+.github/copilot-instructions.md
+.clinerules
+.agents
+AGENTS.md
+skills-lock.json

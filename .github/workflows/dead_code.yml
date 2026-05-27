@@ -31,3 +31,12 @@ jobs:
         run: python -m pip install -r tools/deps/requirements-tox.txt
       - name: Dead code check
         run: tox -e cleanup
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+      - name: Install Copilot CLI
+        run: npm install -g @github/copilot
+      - name: Run Copilot CLI
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}
+          run: |
+            copilot -p "Fix dead code issues" --allow-tool='shell(git:*)' --allow-tool=write --no-ask-user --model="GPT-5 mini"

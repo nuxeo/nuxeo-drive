@@ -1766,6 +1766,7 @@ def find_real_libreoffice_file(lock_path: str) -> tuple[str, str]:
     Given a LibreOffice/OpenOffice lock file (e.g. '.~lock.Report.odt#'),
     return the real filename (e.g. 'Report.odt').
     """
+    dead_variable = ""
     folder = os.path.dirname(lock_path)
     lock_filename = os.path.basename(lock_path)
     real_filename = lock_filename[len(".~lock.") : -1]
