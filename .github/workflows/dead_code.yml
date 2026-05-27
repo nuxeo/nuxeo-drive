@@ -13,6 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.COPILOT_CLI_TOKEN }}
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -33,12 +36,21 @@ jobs:
         uses: actions/setup-node@v4
       - name: Install Copilot CLI
         run: npm install -g @github/copilot
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
       - name: Run Copilot CLI
         env:
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}
         run: |
-            copilot -p "Fix dead code issues. Remove unused variables and imports. Export all changes done to summary.md" --allow-tool='shell(git:*)' --allow-tool=write --no-ask-user --model=gpt-5-mini
+            copilot -p "Fix dead code issues. Remove unused variables and imports. Ignore #noqa. Export all changes done to summary.md" --allow-tool='shell(git:*)' --allow-tool=write --no-ask-user --model=gpt-5-mini
             cat summary.md >> $GITHUB_STEP_SUMMARY
+      - name: Commit and push changes
+        run: |
+          git add .
+          git commit -m "style: auto-fix dead code" || echo "No changes to commit"
+          git push
       - name: Export Summary File
         uses: actions/upload-artifact@v7
         with:
