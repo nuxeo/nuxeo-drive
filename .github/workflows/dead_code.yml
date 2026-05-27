@@ -38,5 +38,5 @@ jobs:
       - name: Run Copilot CLI
         env:
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}
-          run: |
+        run: |
             copilot -p "Fix dead code issues" --allow-tool='shell(git:*)' --allow-tool=write --no-ask-user --model="GPT-5 mini"
