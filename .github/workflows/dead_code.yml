@@ -39,5 +39,11 @@ jobs:
         run: |
             copilot -p "Fix dead code issues. Remove unused variables and imports. Export all changes done to summary.md" --allow-tool='shell(git:*)' --allow-tool=write --no-ask-user --model=gpt-5-mini
             cat summary.md >> $GITHUB_STEP_SUMMARY
+      - name: Export Summary File
+        uses: actions/upload-artifact@v7
+        with:
+          name: summary.md
+          path: ./summary.md
+          if-no-files-found: error
       - name: Dead code check
         run: tox -e cleanup
