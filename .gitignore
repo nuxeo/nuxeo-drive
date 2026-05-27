@@ -51,6 +51,7 @@ coverage.xml
 
 # AI Agent files (including caveman files)
 .github/agents
+.github/agent-scripts
 .github/copilot-instructions.md
 .agents
 .clinerules
