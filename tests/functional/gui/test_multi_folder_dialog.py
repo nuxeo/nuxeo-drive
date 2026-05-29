@@ -416,6 +416,7 @@ class TestMultiFolderDialog:
             assert res == {}
 
     def test_mfd_path_from_bookmark(self, mfd_setup):
+        # noinspection SpellCheckingInspection
         mfd, _ = mfd_setup
         # Test with invalid data
         assert mfd._path_from_bookmark(b"short") is None

@@ -176,11 +176,11 @@ class FDAAlert(QDialog):
         else:
             super().keyPressEvent(a0)
 
-    def close_alert(self):
+    def close_alert(self) -> None:
         self.close()
         FDAAlert.visible = False
 
-    def remember_close_choice(self, checked: int):
+    def remember_close_choice(self, checked: int) -> None:
         dont_show_file = Path.home() / ".nuxeo-drive" / "dont_show_fda_alert"
         if checked == Qt.CheckState.Checked:
             # Check if "dont_show_fda_alert" file exists, if not create it to remember the user's choice
@@ -1019,15 +1019,17 @@ class MultiFolderDialog(QDialog):
                 seen: set[str] = set()
                 self._add_std_loc_item(locations, "Home")
                 # Add icon for Home
-                locations.item(0).setIcon(self.fetch_icon("Home"))
+                home_item = locations.item(0)
+                if home_item:
+                    home_item.setIcon(self.fetch_icon("Home"))
                 seen.add("Home")
                 for name in self._finder_favorites:
                     if name not in seen:
                         locations.addItem(name)
                         # Add icon for the latest item
-                        locations.item(locations.count() - 1).setIcon(
-                            self.fetch_icon(name)
-                        )
+                        last_item = locations.item(locations.count() - 1)
+                        if last_item:
+                            last_item.setIcon(self.fetch_icon(name))
                         seen.add(name)
                 mount_items: list[str] = []
                 for name in self.macos_mount_points():
@@ -1049,7 +1051,9 @@ class MultiFolderDialog(QDialog):
                 ]:
                     self._add_std_loc_item(locations, name)
                     # Add icon for the latest item
-                    locations.item(locations.count() - 1).setIcon(self.fetch_icon(name))
+                    last_item = locations.item(locations.count() - 1)
+                    if last_item:
+                        last_item.setIcon(self.fetch_icon(name))
                 mount_items = list(self.macos_mount_points().keys())
             # Add mount locations with a divider
             if mount_items:
@@ -1057,7 +1061,9 @@ class MultiFolderDialog(QDialog):
                 for name in mount_items:
                     locations.addItem(name)
                     # Add icon for the latest item
-                    locations.item(locations.count() - 1).setIcon(self.fetch_icon(name))
+                    last_item = locations.item(locations.count() - 1)
+                    if last_item:
+                        last_item.setIcon(self.fetch_icon(name))
             # Add macOS Finder tags with a divider
             tags = self.macos_finder_tags()
             if tags:
@@ -1066,9 +1072,9 @@ class MultiFolderDialog(QDialog):
                 for name in tags:
                     locations.addItem(name)
                     # Add icon for the latest item
-                    locations.item(locations.count() - 1).setIcon(
-                        self.fetch_icon("tag")
-                    )
+                    last_item = locations.item(locations.count() - 1)
+                    if last_item:
+                        last_item.setIcon(self.fetch_icon("tag"))
                 log.debug("Added Finder tags to sidebar: %s", tags)
             else:
                 self._finder_tags = []
@@ -1082,15 +1088,17 @@ class MultiFolderDialog(QDialog):
                 seen_win: set[str] = set()
                 self._add_std_loc_item(locations, "Home")
                 # Add icon for Home
-                locations.item(0).setIcon(self.fetch_icon("Home"))
+                home_item = locations.item(0)
+                if home_item:
+                    home_item.setIcon(self.fetch_icon("Home"))
                 seen_win.add("Home")
                 for name in self._windows_pinned_items:
                     if name not in seen_win:
                         locations.addItem(name)
                         # Add icon for the latest item
-                        locations.item(locations.count() - 1).setIcon(
-                            self.fetch_icon(name)
-                        )
+                        last_item = locations.item(locations.count() - 1)
+                        if last_item:
+                            last_item.setIcon(self.fetch_icon(name))
                         seen_win.add(name)
                 # Fixed, DVD, and USB drives
                 self._add_separator(locations)
@@ -1102,7 +1110,8 @@ class MultiFolderDialog(QDialog):
                         drive_type = self._windows_drives[name][
                             0
                         ]  # drive type for icon
-                        last_item.setIcon(self.fetch_icon(f"{drive_type}\\{name}"))
+                        if last_item:
+                            last_item.setIcon(self.fetch_icon(f"{drive_type}\\{name}"))
                 # OneDrive locations
                 onedrive_items: list[str] = []
                 for name in self._windows_onedrive_paths:
@@ -1113,9 +1122,9 @@ class MultiFolderDialog(QDialog):
                     self._add_separator(locations)
                     for item in onedrive_items:
                         locations.addItem(item)
-                        locations.item(locations.count() - 1).setIcon(
-                            self.fetch_icon("Win_onedrive\\" + item)
-                        )
+                        last_item = locations.item(locations.count() - 1)
+                        if last_item:
+                            last_item.setIcon(self.fetch_icon("Win_onedrive\\" + item))
                 # Add network locations with a divider
                 net_items: list[str] = []
                 for name in self._windows_network_locations:
@@ -1126,9 +1135,9 @@ class MultiFolderDialog(QDialog):
                     self._add_separator(locations)
                     for item in net_items:
                         locations.addItem(item)
-                        locations.item(locations.count() - 1).setIcon(
-                            self.fetch_icon("Win_network\\" + item)
-                        )
+                        last_item = locations.item(locations.count() - 1)
+                        if last_item:
+                            last_item.setIcon(self.fetch_icon("Win_network\\" + item))
             else:
                 log.error(
                     "Explorer pinned items unavailable, using fallback standard paths"
@@ -1144,7 +1153,9 @@ class MultiFolderDialog(QDialog):
                     "Videos",
                 ]:
                     self._add_std_loc_item(locations, name)
-                    locations.item(locations.count() - 1).setIcon(self.fetch_icon(name))
+                    last_item = locations.item(locations.count() - 1)
+                    if last_item:
+                        last_item.setIcon(self.fetch_icon(name))
                 # Fixed, DVD, and USB drives
                 fallback_drives = [
                     *self._windows_drives.keys(),
@@ -1156,45 +1167,43 @@ class MultiFolderDialog(QDialog):
                         drive_type = self._windows_drives[item][
                             0
                         ]  # drive type for icon
-                        locations.item(locations.count() - 1).setIcon(
-                            self.fetch_icon(f"{drive_type}\\{item}")
-                        )
+                        last_item = locations.item(locations.count() - 1)
+                        if last_item:
+                            last_item.setIcon(self.fetch_icon(f"{drive_type}\\{item}"))
                 # OneDrive locations
                 fallback_onedrive = list(self._windows_onedrive_paths.keys())
                 if fallback_onedrive:
                     self._add_separator(locations)
                     for item in fallback_onedrive:
                         locations.addItem(item)
-                        locations.item(locations.count() - 1).setIcon(
-                            self.fetch_icon("Win_onedrive\\" + item)
-                        )
+                        last_item = locations.item(locations.count() - 1)
+                        if last_item:
+                            last_item.setIcon(self.fetch_icon("Win_onedrive\\" + item))
                 # Network locations
                 fallback_network = list(self._windows_network_locations.keys())
                 if fallback_network:
                     self._add_separator(locations)
                     for item in fallback_network:
                         locations.addItem(item)
-                        locations.item(locations.count() - 1).setIcon(
-                            self.fetch_icon("Win_network\\" + item)
-                        )
+                        last_item = locations.item(locations.count() - 1)
+                        if last_item:
+                            last_item.setIcon(self.fetch_icon("Win_network\\" + item))
         elif LINUX:
             for name, path in self.linux_standard_locations().items():
                 if Path(path).exists():
                     self._add_std_loc_item(locations, name)
-                    if locations.item(locations.count() - 1):
-                        locations.item(locations.count() - 1).setIcon(
-                            self.fetch_icon(name)
-                        )
+                    last_item = locations.item(locations.count() - 1)
+                    if last_item:
+                        last_item.setIcon(self.fetch_icon(name))
             # Mountable locations
             self._linux_mount_points = self.linux_mount_points()
             if self._linux_mount_points:
                 self._add_separator(locations)
                 for item in list(self._linux_mount_points.keys()):
                     locations.addItem(item)
-                    if locations.item(locations.count() - 1):
-                        locations.item(locations.count() - 1).setIcon(
-                            self.fetch_icon(f"Mount/{item}")
-                        )
+                    last_item = locations.item(locations.count() - 1)
+                    if last_item:
+                        last_item.setIcon(self.fetch_icon(f"Mount/{item}"))
 
         # Compute width based on longest item text (using bold font for hover/selection)
         bold_font = QFont(locations.font())
@@ -1234,7 +1243,7 @@ class MultiFolderDialog(QDialog):
             # This is because PyQt6 does not always switch to dark background in dark mode
             # MFD has to be reloaded for the color to update
             widget_color = self.palette().color(self.backgroundRole())
-            r, g, b = widget_color.red(), widget_color.green(), widget_color.blue()  # type: ignore
+            r, g, b = widget_color.red(), widget_color.green(), widget_color.blue()
             if r <= 99 and g <= 99 and b <= 99:
                 icon_color = "light"
             else:
