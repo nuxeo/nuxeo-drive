@@ -14,7 +14,6 @@ from ..qt.imports import (
     QDialog,
     QDialogButtonBox,
     QEvent,
-    QFileDialog,
     QFrame,
     QGroupBox,
     QHBoxLayout,
@@ -361,17 +360,6 @@ class FoldersDialog(DialogMixin):
         hlayout.setContentsMargins(10, 10, 10, 10)
         hlayout.addWidget(self.local_path)
         hlayout.addWidget(self.local_paths_size_lbl)
-
-        # -- Disabled in favor of "Add items" button
-        # files_button = QPushButton(Translator.get("ADD_FILES"), self)
-        # files_button.clicked.connect(self._select_more_files)
-        # hlayout.addWidget(files_button)
-
-        # -- Disabled in favor of "Add items" button
-        # if self.engine.have_folder_upload:
-        #     folders_button = QPushButton(Translator.get("ADD_FOLDER"), self)
-        #     folders_button.clicked.connect(self._select_more_folder)
-        #     hlayout.addWidget(folders_button)
 
         upload_button = QPushButton(Translator.get("ADD_ITEMS"))
         upload_button.clicked.connect(self._select_files_and_folders)
@@ -846,24 +834,6 @@ class FoldersDialog(DialogMixin):
             self._process_additionnal_local_paths(path)
         else:
             path = None
-
-    def _select_more_files(self) -> None:
-        """Choose additional local files to upload."""
-        paths, _ = QFileDialog.getOpenFileNames(
-            self,
-            Translator.get("ADD_FILES"),
-            str(self.last_local_selected_location),
-        )
-        self._process_additionnal_local_paths(paths)
-
-    def _select_more_folder(self) -> None:
-        """Choose an additional local folder to upload."""
-        path = QFileDialog.getExistingDirectory(
-            self,
-            Translator.get("ADD_FOLDER"),
-            str(self.last_local_selected_location),
-        )
-        self._process_additionnal_local_paths([path])
 
     def _skipped_items_summary(self, items: list[str]) -> str:
         """Show up to 2 skipped item names with a (+N) and the reason."""

@@ -416,12 +416,13 @@ class TestMultiFolderDialog:
             assert res == {}
 
     def test_mfd_path_from_bookmark(self, mfd_setup):
-        # noinspection SpellCheckingInspection
         mfd, _ = mfd_setup
         # Test with invalid data
         assert mfd._path_from_bookmark(b"short") is None
         # Test with non-bookmark magic
-        assert mfd._path_from_bookmark(b"notbook" + b"0" * 40) is None
+        assert (
+            mfd._path_from_bookmark(b"notbook" + b"0" * 40) is None
+        )  # noinspection SpellCheckingInspection
 
     def test_mfd_get_windows_drives(self, mfd_setup):
         mfd, _ = mfd_setup
