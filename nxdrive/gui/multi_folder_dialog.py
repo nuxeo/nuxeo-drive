@@ -1207,8 +1207,8 @@ class MultiFolderDialog(QDialog):
                 text_width = fm.horizontalAdvance(item.text())
                 if text_width > max_text_width:
                     max_text_width = text_width
-        # Add padding for item padding (8px*2) + list padding (4px*2) + scrollbar margin + extra
-        panel_width = int(max_text_width) + 8 * 2 + 4 * 2 + 20
+        # Item padding (8px*2) + list padding (4px*2) + icon padding (16px + (16/2)px) + scrollbar margin + extra
+        panel_width = int(max_text_width) + 8 * 2 + 4 * 2 + (16 + 8) + 20
         locations.setFixedWidth(max(80, panel_width))
         locations.setSpacing(3)
         # Enable mouse tracking for hover detection
