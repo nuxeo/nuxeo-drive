@@ -542,9 +542,9 @@ class MultiFolderDialog(QDialog):
                     mount_path = self.macos_mount_points().get(location)
                     if mount_path:
                         self.path_bar.setText(mount_path)
-                case loc if hasattr(
-                    self, "_finder_favorites"
-                ) and loc in self._finder_favorites:
+                case loc if (
+                    hasattr(self, "_finder_favorites") and loc in self._finder_favorites
+                ):
                     self.path_bar.setText(self._finder_favorites[loc])
                 case loc if hasattr(self, "_finder_tags") and loc in self._finder_tags:
                     self._show_tagged_files(loc)
