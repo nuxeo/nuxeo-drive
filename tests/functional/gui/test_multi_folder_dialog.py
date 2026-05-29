@@ -179,7 +179,7 @@ class TestMultiFolderDialog:
             selection_model.SelectionFlag.Select | selection_model.SelectionFlag.Rows,
         )
 
-        selected = mfd.selected_paths()
+        selected = [str(Path(p)) for p in mfd.selected_paths()]
         assert file1 in selected
         assert file2 in selected
         assert len(selected) == 2
@@ -193,7 +193,7 @@ class TestMultiFolderDialog:
             selection_model.SelectionFlag.Select | selection_model.SelectionFlag.Rows,
         )
 
-        selected = mfd.selected_paths()
+        selected = [str(Path(p)) for p in mfd.selected_paths()]
         assert folder1 in selected
         assert len(selected) == 1
 
@@ -202,7 +202,7 @@ class TestMultiFolderDialog:
             index1,
             selection_model.SelectionFlag.Select | selection_model.SelectionFlag.Rows,
         )
-        selected = mfd.selected_paths()
+        selected = [str(Path(p)) for p in mfd.selected_paths()]
         assert folder1 in selected
         assert file1 in selected
         assert len(selected) == 2
@@ -226,7 +226,7 @@ class TestMultiFolderDialog:
 
         # Path changed to existing path
         mfd.path_bar.setText(str(tmp_path / "folder1"))
-        assert mfd.model.rootPath() == str(tmp_path / "folder1")
+        assert Path(mfd.model.rootPath()) == tmp_path / "folder1"
 
         # Path changed to non-existing path
         mfd.path_bar.setText(str(tmp_path / "non_existent"))
@@ -420,9 +420,7 @@ class TestMultiFolderDialog:
         # Test with invalid data
         assert mfd._path_from_bookmark(b"short") is None
         # Test with non-bookmark magic
-        assert (
-            mfd._path_from_bookmark(b"notbook" + b"0" * 40) is None
-        )  # noinspection SpellCheckingInspection
+        assert mfd._path_from_bookmark(b"notbook" + b"0" * 40) is None
 
     def test_mfd_get_windows_drives(self, mfd_setup):
         mfd, _ = mfd_setup
