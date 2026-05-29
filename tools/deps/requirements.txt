@@ -273,6 +273,10 @@ dukpy==0.5.0 \
     --hash=sha256:fb7fea246fd5dbb49f8213b952c3317fa0e76e32290808e1d911c9720422d4a7 \
     --hash=sha256:ffb5d0ee55d202c916972d245c7528214a13dac6c407d86b74cb84a088609ca2
     # via pypac
+filelock==3.29.0 \
+    --hash=sha256:96f5f6344709aa1572bbf631c640e4ebeeb519e08da902c39a001882f30ac258 \
+    --hash=sha256:69974355e960702e789734cb4871f884ea6fe50bd8404051a3530bc07809cf90
+    # via tldextract
 idna==3.15 \
     --hash=sha256:048adeaf8c2d788c40fee287673ccaa74c24ffd8dcf09ffa555a2fbb59f10ac8 \
     --hash=sha256:ca962446ea538f7092a95e057da437618e886f4d349216d2b1e294abfdb65fdc
@@ -354,8 +358,8 @@ pyobjc-framework-SystemConfiguration==10.3.1 ; sys_platform == "darwin" \
     --hash=sha256:4e8816524cbb6c6ea9e1c596fc9a16c91f2063eba394135be9437bdbd469e125 \
     --hash=sha256:f38a824261a30dc9961e13a7b9759dd0c77e1c7c4681e3c80c5751c560735289
     # via pypac
-pypac==0.15.0 \
-    --hash=sha256:558779a8f6a40d7f0f18e493b1d6386b3112a3a7874d67197aa723a46ee1744a
+pypac==0.18.3 \
+    --hash=sha256:967d1afadc97ce37fa7a5476e2b7f42284833e8b4951a17244adf569fcf66e9e
 pyparsing==2.4.7 \
     --hash=sha256:c203ec8783bf771a155b207279b9bccb8dea02d8f0c9e5f8ead507bc3246ecc1 \
     --hash=sha256:ef9d7589ef3c200abe66653d3f1ab1033c3c419ae9b9bdb1240a85b024efc88b
@@ -469,6 +473,10 @@ requests==2.33.1 \
     --hash=sha256:18817f8c57c6263968bc123d237e3b8b08ac046f5456bd1e307ee8f4250d3517 \
     --hash=sha256:4e6d1ef462f3626a1f0a0a9c42dd93c63bad33f9f1c1937509b8c5c8718ab56a
     # via nuxeo
+requests-file==3.0.1 \
+    --hash=sha256:d0f5eb94353986d998f80ac63c7f146a307728be051d4d1cd390dbdb59c10fa2 \
+    --hash=sha256:f14243d7796c588f3521bd423c5dea2ee4cc730e54a3cac9574d78aca1272576
+    # via tldextract
 send2trash==1.8.3; sys_platform != "darwin" \
     --hash=sha256:0c31227e0bd08961c7665474a3d1ef7193929fedda4233843689baa056be46c9 \
     --hash=sha256:b18e7a3966d99871aefeb00cfbcfdced55ce4871194810fc71f4aa484b953abf
@@ -485,6 +493,10 @@ six==1.17.0 \
 tld==0.13 \
     --hash=sha256:93dde5e1c04bdf1844976eae440706379d21f4ab235b73c05d7483e074fb5629 \
     --hash=sha256:f75b2be080f767ed17c2338a339eaa4fab5792586319ca819119da252f9f3749
+    # via pypac
+tldextract==5.3.1 \
+    --hash=sha256:6bfe36d518de569c572062b788e16a659ccaceffc486d243af0484e8ecf432d9 \
+    --hash=sha256:a72756ca170b2510315076383ea2993478f7da6f897eef1f4a5400735d5057fb
     # via pypac
 truststore==0.10.1 \
     --hash=sha256:b64e6025a409a43ebdd2807b0c41c8bff49ea7ae6550b5087ac6df6619352d4c
