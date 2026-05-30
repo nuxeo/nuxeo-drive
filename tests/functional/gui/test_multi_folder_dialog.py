@@ -14,6 +14,12 @@ from nxdrive.gui.multi_folder_dialog import (
     MultiFolderDialog,
 )
 
+from ...markers import not_linux
+
+pytestmark = not_linux(
+    reason="Qt GUI tests don't work reliably on Linux",
+)
+
 
 @pytest.fixture(scope="module")
 def qapp():

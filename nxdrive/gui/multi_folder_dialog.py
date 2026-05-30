@@ -1330,9 +1330,20 @@ class MultiFolderDialog(QDialog):
 
     def eventFilter(self, a0: QObject | None, a1: QEvent | None) -> bool:
         # Clear hover bold when mouse leaves the list viewport
+        try:
+            locations_viewport = (
+                self._locations_widget.viewport()
+                if hasattr(self, "_locations_widget") and self._locations_widget
+                else None
+            )
+        except RuntimeError as exc:
+            # The wrapped Qt widget has already been deleted.
+            log.error("Skipping eventFilter on deleted locations widget: %s", exc)
+            locations_viewport = None
+
         if (
-            hasattr(self, "_locations_widget")
-            and a0 is self._locations_widget.viewport()
+            locations_viewport is not None
+            and a0 is locations_viewport
             and a1 is not None
             and a1.type() == QEvent.Type.Leave
         ):
