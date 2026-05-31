@@ -214,7 +214,7 @@ class MultiFolderDialog(QDialog):
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle(Translator.get("SELECT_FILES_FOLDERS"))
-        self._in_tag_mode = False
+        self._using_custom_model = False
         if dark_mode_signal:
             dark_mode_signal.connect(self._on_dark_mode_changed)
 
@@ -408,8 +408,8 @@ class MultiFolderDialog(QDialog):
         self.panel_layout.addWidget(self.panel_locations())
 
     def selected_paths(self) -> list[str]:
-        # Tag mode: paths stored as UserRole data on QStandardItemModel items
-        if self._in_tag_mode:
+        # Custom model mode: paths are stored as UserRole data when available.
+        if self._using_custom_model:
             selection_model = self.tree.selectionModel()
             if not selection_model:
                 return []
@@ -434,9 +434,9 @@ class MultiFolderDialog(QDialog):
         return list(set(paths))  # remove duplicates
 
     def _restore_filesystem_model(self) -> None:
-        """Switch back from tag mode to the normal filesystem model."""
-        if self._in_tag_mode:
-            self._in_tag_mode = False
+        """Switch back from a custom model to the normal filesystem model."""
+        if self._using_custom_model:
+            self._using_custom_model = False
             self.tree.setModel(self.model)
 
     def _show_empty_drive(self, drive_path: str) -> None:
@@ -450,7 +450,7 @@ class MultiFolderDialog(QDialog):
                 Translator.get("DATE_MODIFIED"),
             ]
         )
-        self._in_tag_mode = True
+        self._using_custom_model = True
         self.tree.setModel(empty_model)
         self.path_bar.blockSignals(True)
         self.path_bar.setText(drive_path)
@@ -715,7 +715,7 @@ class MultiFolderDialog(QDialog):
             path_item.setEditable(False)
             tag_model.appendRow([name_item, path_item])
 
-        self._in_tag_mode = True
+        self._using_custom_model = True
         self.tree.setModel(tag_model)
         self.tree.resizeColumnToContents(0)
         self.tree.resizeColumnToContents(1)
@@ -729,11 +729,11 @@ class MultiFolderDialog(QDialog):
         log.debug("Showing %d files for tag %r", len(paths), tag_name)
 
     def _load_fda_alert(self) -> None:
-        _fda_alert = FDAAlert(self)
         dont_show_file = Path.home() / ".nuxeo-drive" / "dont_show_fda_alert"
         if not dont_show_file.exists():
             if not FDAAlert.visible:
                 log.warning("Cannot access Finder favorites due to macOS permissions.")
+                _fda_alert = FDAAlert(self)
                 _fda_alert.open()
                 FDAAlert.visible = True
         else:
@@ -799,8 +799,21 @@ class MultiFolderDialog(QDialog):
                 stderr=subprocess.DEVNULL,
             )
             return plistlib.loads(xml_bytes)
-        except (subprocess.CalledProcessError, Exception):
-            log.debug("plutil fallback also failed for %s", sfl_path, exc_info=True)
+        except subprocess.CalledProcessError as exc:
+            log.debug(
+                "plutil command failed for %s: %s",
+                sfl_path,
+                exc,
+                exc_info=True,
+            )
+            return None
+        except Exception as exc:
+            log.debug(
+                "plutil fallback also failed for %s: %s",
+                sfl_path,
+                exc,
+                exc_info=True,
+            )
             return None
 
     def _path_from_bookmark(self, data: bytes) -> str | None:

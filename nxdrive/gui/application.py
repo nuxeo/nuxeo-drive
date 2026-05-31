@@ -422,9 +422,6 @@ class Application(QApplication):
         self.manager.featureUpdate.connect(self._update_feature_state)
         self.last_engine_uid = ""
 
-        # Detect Dark Mode and set to class variable
-        self._dark_mode_signal.emit(self.is_dark_mode())
-
         # Detect real-time changes for dark mode
         style_hints = self.styleHints()
         if style_hints:
