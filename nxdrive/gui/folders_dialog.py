@@ -832,8 +832,6 @@ class FoldersDialog(DialogMixin):
         if mfd.exec():
             path = mfd.selected_paths()
             self._process_additionnal_local_paths(path)
-        else:
-            path = None
 
     def _skipped_items_summary(self, items: list[str]) -> str:
         """Show up to 2 skipped item names with a (+N) and the reason."""

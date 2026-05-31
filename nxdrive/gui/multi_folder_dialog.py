@@ -332,9 +332,7 @@ class MultiFolderDialog(QDialog):
 
         # Allow files and directories except '.' and '..'
         self.model.setFilter(QDir.Filter.AllEntries | QDir.Filter.NoDotAndDotDot)
-        self.model.directoryLoaded.connect(
-            lambda _: self.tree.resizeColumnToContents(0)
-        )
+        self.model.directoryLoaded.connect(self._resize_column_to_contents)
 
         view_layout = QHBoxLayout()
         view_layout.setSpacing(6)
@@ -357,8 +355,8 @@ class MultiFolderDialog(QDialog):
         self.tree.doubleClicked.connect(self.load_directory)
 
         # Resize the width when the directory is collapsed/expanded
-        self.tree.expanded.connect(lambda _: self.tree.resizeColumnToContents(0))
-        self.tree.collapsed.connect(lambda _: self.tree.resizeColumnToContents(0))
+        self.tree.expanded.connect(self._resize_column_to_contents)
+        self.tree.collapsed.connect(self._resize_column_to_contents)
 
         # Add the tree view to the layout
         view_layout.addWidget(self.tree)
@@ -440,9 +438,6 @@ class MultiFolderDialog(QDialog):
         if self._in_tag_mode:
             self._in_tag_mode = False
             self.tree.setModel(self.model)
-            self.model.directoryLoaded.connect(
-                lambda _: self.tree.resizeColumnToContents(0)
-            )
 
     def _show_empty_drive(self, drive_path: str) -> None:
         """Show an empty QTreeView for a drive with no accessible content."""
@@ -509,6 +504,10 @@ class MultiFolderDialog(QDialog):
             return
 
         self.path_bar.setText(str(parent_path))
+
+    def _resize_column_to_contents(self, *args: object) -> None:
+        """Resize the first column of the tree view to its contents."""
+        self.tree.resizeColumnToContents(0)
 
     def navigate_to_location(self, item: QListWidgetItem) -> None:
         # Use English key stored in UserRole for standard locations; fall back to
@@ -634,14 +633,16 @@ class MultiFolderDialog(QDialog):
         return mounts
 
     def macos_mount_points(self) -> dict[str, str]:
-        output = subprocess.check_output(["mount"]).decode("utf-8")
-        mounts = {}
-        for line in output.splitlines():
-            line = line.split(" on ")[1]
-            if line.startswith("/Volumes/"):
-                name = "Mount/" + (line.split(" (")[0].split("/Volumes/")[1])
-                path = line.split(" (")[0]
-                mounts.update({name: path})
+        output = subprocess.check_output(["mount"]).decode("utf-8", errors="replace")
+        mounts: dict[str, str] = {}
+        for raw in output.splitlines():
+            if " on " not in raw or " (" not in raw:
+                continue
+            _, rhs = raw.rsplit(" on ", 1)
+            path = rhs.split(" (", 1)[0]
+            if path.startswith("/Volumes/"):
+                name = "Mount/" + path.removeprefix("/Volumes/")
+                mounts[name] = path
         return mounts
 
     def macos_finder_favorites(self) -> dict[str, str]:
