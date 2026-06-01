@@ -13,3 +13,6 @@ iam
 # tools/windows/NuxeoDriveShellExtensions/NuxeoDriveUtil/jsoncpp.cpp:465
 alse
 unknwn
+
+# tests/functional/gui/test_multi_folder_dialog.py
+notbook

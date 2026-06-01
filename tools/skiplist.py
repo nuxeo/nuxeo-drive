@@ -123,6 +123,8 @@ registry.create  # Used in test_windows_registry.py
 shortcut.Targetpath  # WindowsIntegration._create_shortcut()
 shortcut.WorkingDirectory  # WindowsIntegration._create_shortcut()
 shortcut.IconLocation  # WindowsIntegration._create_shortcut()
+startupinfo.dwFlags  # subprocess.STARTUPINFO field use for hidden window on Windows
+startupinfo.wShowWindow  # subprocess.STARTUPINFO field use for hidden window on Windows
 TasksModel.loadList  # Used in QML
 TasksModel.self_model  # Used in QML
 Upload.transfer_type  # Used in QML

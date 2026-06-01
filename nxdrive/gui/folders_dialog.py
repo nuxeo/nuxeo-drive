@@ -14,7 +14,6 @@ from ..qt.imports import (
     QDialog,
     QDialogButtonBox,
     QEvent,
-    QFileDialog,
     QFrame,
     QGroupBox,
     QHBoxLayout,
@@ -37,6 +36,7 @@ from ..utils import find_icon, get_tree_list, sizeof_fmt
 from .constants import get_known_types_translations
 from .folders_model import FilteredDocuments, FoldersOnly
 from .folders_treeview import DocumentTreeView, FolderTreeView
+from .multi_folder_dialog import MultiFolderDialog
 
 if TYPE_CHECKING:
     from .application import Application  # noqa
@@ -361,14 +361,9 @@ class FoldersDialog(DialogMixin):
         hlayout.addWidget(self.local_path)
         hlayout.addWidget(self.local_paths_size_lbl)
 
-        files_button = QPushButton(Translator.get("ADD_FILES"), self)
-        files_button.clicked.connect(self._select_more_files)
-        hlayout.addWidget(files_button)
-
-        if self.engine.have_folder_upload:
-            folders_button = QPushButton(Translator.get("ADD_FOLDER"), self)
-            folders_button.clicked.connect(self._select_more_folder)
-            hlayout.addWidget(folders_button)
+        upload_button = QPushButton(Translator.get("ADD_ITEMS"))
+        upload_button.clicked.connect(self._select_files_and_folders)
+        hlayout.addWidget(upload_button)
 
         vlayout.addLayout(hlayout)
         vlayout.addWidget(self.local_path_msg_lbl)
@@ -826,23 +821,17 @@ class FoldersDialog(DialogMixin):
 
         return current_total_size
 
-    def _select_more_files(self) -> None:
-        """Choose additional local files to upload."""
-        paths, _ = QFileDialog.getOpenFileNames(
-            self,
-            Translator.get("ADD_FILES"),
-            str(self.last_local_selected_location),
+    def _select_files_and_folders(self) -> None:
+        """Open a dialog to select multiple files and folders to upload."""
+        # Send the dark mode pyqtSignal
+        mfd = MultiFolderDialog(
+            dark_mode=self.application.is_dark_mode(),
+            dark_mode_signal=self.application.dark_mode_signal,
+            parent=self,
         )
-        self._process_additionnal_local_paths(paths)
-
-    def _select_more_folder(self) -> None:
-        """Choose an additional local folder to upload."""
-        path = QFileDialog.getExistingDirectory(
-            self,
-            Translator.get("ADD_FOLDER"),
-            str(self.last_local_selected_location),
-        )
-        self._process_additionnal_local_paths([path])
+        if mfd.exec():
+            path = mfd.selected_paths()
+            self._process_additionnal_local_paths(path)
 
     def _skipped_items_summary(self, items: list[str]) -> str:
         """Show up to 2 skipped item names with a (+N) and the reason."""

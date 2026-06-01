@@ -64,6 +64,7 @@ from ..qt.imports import (
     QUrl,
     QVBoxLayout,
     QWindow,
+    pyqtSignal,
     pyqtSlot,
 )
 from ..state import State
@@ -129,6 +130,7 @@ class Application(QApplication):
     filters_dlg: Optional[DialogMixin] = None
     _delegator: Optional["NotificationDelegator"] = None
     tray_icon: DriveSystrayIcon
+    dark_mode_signal = pyqtSignal(bool)
 
     def __init__(self, manager: "Manager", *args: Any) -> None:
         # This 1st line is needed to fix:
@@ -420,6 +422,11 @@ class Application(QApplication):
         self.manager.featureUpdate.connect(self._update_feature_state)
         self.last_engine_uid = ""
 
+        # Detect real-time changes for dark mode
+        style_hints = self.styleHints()
+        if style_hints:
+            style_hints.colorSchemeChanged.connect(self._on_color_scheme_changed)
+
     def create_custom_window_for_task_manager(self) -> None:
         # Task Manager
         self.task_manager_window = CustomWindow()
@@ -431,6 +438,31 @@ class Application(QApplication):
                 str(find_resource("qml/tasksManager", file="TaskManager.qml"))
             )
         )
+
+    def is_dark_mode(self) -> bool:
+        # Detect the current scheme
+        style_hints = self.styleHints()
+        if not style_hints:
+            return False
+        scheme = style_hints.colorScheme()
+
+        if scheme == Qt.ColorScheme.Dark:
+            return True
+        elif scheme == Qt.ColorScheme.Light:
+            return False
+        else:
+            log.error("Unable to detect color scheme, defaulting to Light Mode")
+            return False
+
+    def _on_color_scheme_changed(self, scheme: Qt.ColorScheme) -> None:
+        # Called when the system color scheme changes
+        if scheme == Qt.ColorScheme.Dark:
+            self.dark_mode_signal.emit(True)
+        elif scheme == Qt.ColorScheme.Light:
+            self.dark_mode_signal.emit(False)
+        else:
+            log.error("Unable to detect color scheme, defaulting to Light Mode")
+            self.dark_mode_signal.emit(False)
 
     def init_workflow(self) -> None:
         if not self.manager.engines:
@@ -451,7 +483,7 @@ class Application(QApplication):
                             self.workflow.get_pending_tasks(engine)
                         """
         except AttributeError:
-            log.debug("Unalbe to fetch the TASKS")
+            log.debug("Unable to fetch the TASKS")
 
     def update_workflow_user_engine_list(self, delete: bool, uid: str, /) -> None:
         if delete:
