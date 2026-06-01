@@ -214,7 +214,7 @@ class TestMultiFolderDialog:
         assert len(selected) == 2
 
         # Tag mode
-        mfd._in_tag_mode = True
+        mfd._using_custom_model = True
         mock_tag_model = QStandardItemModel()
         mfd.tree.setModel(mock_tag_model)
         with patch.object(mfd.tree, "selectionModel") as mock_sel_model:
@@ -376,12 +376,18 @@ class TestMultiFolderDialog:
             assert "Tag1" in tags
             assert "Tag 2" in tags
 
+    def test_mfd_macos_finder_tags_skips_empty_quoted_entries(self, mfd_setup):
+        mfd, _ = mfd_setup
+        with patch("subprocess.check_output", return_value=b'(\n  ""\n  Tag1,\n)\n'):
+            tags = mfd.macos_finder_tags()
+            assert tags == ["Tag1"]
+
     def test_mfd_show_tagged_files(self, mfd_setup, tmp_path):
         mfd, _ = mfd_setup
         file1 = tmp_path / "file1.txt"
         with patch("subprocess.check_output", return_value=str(file1).encode()):
             mfd._show_tagged_files("Tag1")
-            assert mfd._in_tag_mode
+            assert mfd._using_custom_model
             assert mfd.path_bar.text() == "Tag: Tag1"
 
     def test_mfd_load_fda_alert(self, mfd_setup, tmp_path):
@@ -431,12 +437,10 @@ class TestMultiFolderDialog:
     def test_mfd_get_windows_drives(self, mfd_setup):
         mfd, _ = mfd_setup
         with patch("nxdrive.gui.multi_folder_dialog.WINDOWS", True), patch(
-            "nxdrive.gui.multi_folder_dialog.windll", create=True
-        ) as mock_windll, patch(
             "nxdrive.gui.multi_folder_dialog.ctypes", create=True
         ) as mock_ctypes:
-            mock_windll.kernel32.GetLogicalDrives.return_value = 1
-            mock_windll.kernel32.GetDriveTypeW.return_value = 3
+            mock_ctypes.windll.kernel32.GetLogicalDrives.return_value = 1
+            mock_ctypes.windll.kernel32.GetDriveTypeW.return_value = 3
             mock_ctypes.create_unicode_buffer.return_value = MagicMock(value="Label")
             drives = mfd.get_windows_drives()
             assert "Label (A:)" in drives
@@ -472,5 +476,5 @@ class TestMultiFolderDialog:
     def test_mfd_show_empty_drive(self, mfd_setup):
         mfd, _ = mfd_setup
         mfd._show_empty_drive("E:\\")
-        assert mfd._in_tag_mode
+        assert mfd._using_custom_model
         assert mfd.path_bar.text() == "E:\\"

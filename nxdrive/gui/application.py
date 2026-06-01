@@ -130,7 +130,7 @@ class Application(QApplication):
     filters_dlg: Optional[DialogMixin] = None
     _delegator: Optional["NotificationDelegator"] = None
     tray_icon: DriveSystrayIcon
-    _dark_mode_signal = pyqtSignal(bool)
+    dark_mode_signal = pyqtSignal(bool)
 
     def __init__(self, manager: "Manager", *args: Any) -> None:
         # This 1st line is needed to fix:
@@ -457,12 +457,12 @@ class Application(QApplication):
     def _on_color_scheme_changed(self, scheme: Qt.ColorScheme) -> None:
         # Called when the system color scheme changes
         if scheme == Qt.ColorScheme.Dark:
-            self._dark_mode_signal.emit(True)
+            self.dark_mode_signal.emit(True)
         elif scheme == Qt.ColorScheme.Light:
-            self._dark_mode_signal.emit(False)
+            self.dark_mode_signal.emit(False)
         else:
             log.error("Unable to detect color scheme, defaulting to Light Mode")
-            self._dark_mode_signal.emit(False)
+            self.dark_mode_signal.emit(False)
 
     def init_workflow(self) -> None:
         if not self.manager.engines:

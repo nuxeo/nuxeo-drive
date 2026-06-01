@@ -826,7 +826,7 @@ class FoldersDialog(DialogMixin):
         # Send the dark mode pyqtSignal
         mfd = MultiFolderDialog(
             dark_mode=self.application.is_dark_mode(),
-            dark_mode_signal=self.application._dark_mode_signal,
+            dark_mode_signal=self.application.dark_mode_signal,
             parent=self,
         )
         if mfd.exec():

@@ -10,8 +10,6 @@ import subprocess
 from logging import getLogger
 from pathlib import Path
 
-from PyQt6.QtWidgets import QListWidgetItem, QWidget
-
 from nxdrive.qt.imports import (
     QCheckBox,
     QDialog,
@@ -28,6 +26,7 @@ from nxdrive.qt.imports import (
     QLabel,
     QLineEdit,
     QListWidget,
+    QListWidgetItem,
     QModelIndex,
     QObject,
     QPushButton,
@@ -39,6 +38,7 @@ from nxdrive.qt.imports import (
     Qt,
     QTreeView,
     QVBoxLayout,
+    QWidget,
     pyqtBoundSignal,
 )
 
@@ -50,7 +50,6 @@ from ..utils import find_icon
 if WINDOWS:
     import ctypes
     import winreg
-    from ctypes import windll
 
 log = getLogger(__name__)
 
@@ -624,12 +623,14 @@ class MultiFolderDialog(QDialog):
                                 for sub in sorted(entry.iterdir()):
                                     if sub.is_dir():
                                         mounts[sub.name] = str(sub)
-                            except PermissionError:
-                                pass
+                            except PermissionError as exc:
+                                log.error(
+                                    f"Permission error while fetching mount points in {entry}: {exc}"
+                                )
                         else:
                             mounts[entry.name] = str(entry)
-            except PermissionError:
-                pass
+            except Exception as exc:
+                log.error(f"Error while fetching mount points in Linux : {exc}")
         return mounts
 
     def macos_mount_points(self) -> dict[str, str]:
@@ -675,10 +676,8 @@ class MultiFolderDialog(QDialog):
             tags: list[str] = []
             for line in output.splitlines():
                 line = line.strip().rstrip(",")
-                if (
-                    line in ("(", ")", "")
-                    or line.startswith('"')
-                    and not line.strip('"')
+                if line in ("(", ")", "") or (
+                    line.startswith('"') and not line.strip('"')
                 ):
                     continue
                 tag_name = line.strip('"')
@@ -902,16 +901,24 @@ class MultiFolderDialog(QDialog):
                         if Path(user_folder).exists():
                             folder_name = Path(user_folder).name
                             onedrive_paths[folder_name] = user_folder
-                    except OSError:
-                        pass
+                    except OSError as exc:
+                        log.error(
+                            "Failed to read OneDrive account UserFolder from registry: %s",
+                            exc,
+                            exc_info=True,
+                        )
                     finally:
                         winreg.CloseKey(account_key)
                     i += 1
                 except OSError:
                     break
             winreg.CloseKey(reg_key)
-        except OSError:
-            pass
+        except OSError as exc:
+            log.error(
+                "Failed to enumerate OneDrive accounts from registry: %s",
+                exc,
+                exc_info=True,
+            )
         return onedrive_paths
 
     def get_windows_drives(self) -> dict[str, list[str]]:
@@ -920,6 +927,7 @@ class MultiFolderDialog(QDialog):
         DRIVE_FIXED = 3
         DRIVE_CDROM = 5
         drives: dict[str, list[str]] = {}
+        windll = ctypes.windll
         try:
             bitmask = windll.kernel32.GetLogicalDrives()
             for letter in string.ascii_uppercase:
@@ -960,9 +968,9 @@ class MultiFolderDialog(QDialog):
                     "-NoProfile",
                     "-Command",
                     "(New-Object -ComObject Shell.Application)"
-                    ".Namespace('shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}')"
-                    ".Items() | Where-Object { $_.IsFolder } "
-                    "| ForEach-Object { $_.Path }",
+                    + ".Namespace('shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}')"
+                    + ".Items() | Where-Object { $_.IsFolder } "
+                    + "| ForEach-Object { $_.Path }",
                 ],
                 stderr=subprocess.DEVNULL,
                 timeout=10,
@@ -981,11 +989,11 @@ class MultiFolderDialog(QDialog):
         DRIVE_REMOTE = 4
         try:
             # Mapped network drives (e.g. Z:\)
-            bitmask = windll.kernel32.GetLogicalDrives()
+            bitmask = ctypes.windll.kernel32.GetLogicalDrives()
             for letter in string.ascii_uppercase:
                 if bitmask & 1:
                     root = f"{letter}:\\"
-                    if windll.kernel32.GetDriveTypeW(root) == DRIVE_REMOTE:
+                    if ctypes.windll.kernel32.GetDriveTypeW(root) == DRIVE_REMOTE:
                         locations[f"{letter}:\\"] = root
                 bitmask >>= 1
         except Exception:
@@ -1006,16 +1014,25 @@ class MultiFolderDialog(QDialog):
                         if remote_path:
                             display = f"{drive_letter}: ({remote_path})"
                             locations[display] = f"{drive_letter}:\\"
-                    except OSError:
-                        pass
+                    except OSError as exc:
+                        log.error(
+                            "Failed to read mapped network drive RemotePath for %s: %s",
+                            drive_letter,
+                            exc,
+                            exc_info=True,
+                        )
                     finally:
                         winreg.CloseKey(drive_key)
                     i += 1
                 except OSError:
                     break
             winreg.CloseKey(reg_key)
-        except OSError:
-            pass
+        except OSError as exc:
+            log.error(
+                "Failed to open network mappings registry key: %s",
+                exc,
+                exc_info=True,
+            )
         except Exception:
             log.error("Failed to get network locations from registry", exc_info=True)
         return locations

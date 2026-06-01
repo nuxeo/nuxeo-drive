@@ -69,6 +69,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QLineEdit,
     QListWidget,
+    QListWidgetItem,
     QMenu,
     QMessageBox,
     QPushButton,
@@ -79,6 +80,7 @@ from PyQt6.QtWidgets import (
     QTextEdit,
     QTreeView,
     QVBoxLayout,
+    QWidget,
 )
 
 __all__ = (
@@ -110,6 +112,7 @@ __all__ = (
     "QLabel",
     "QLineEdit",
     "QListWidget",
+    "QListWidgetItem",
     "QLocalServer",
     "QLocalSocket",
     "QMenu",
@@ -148,6 +151,7 @@ __all__ = (
     "QValidator",
     "QVBoxLayout",
     "QVariant",
+    "QWidget",
     "QWindow",
     "Qt",
     "pyqtBoundSignal",
