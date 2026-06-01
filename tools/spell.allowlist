@@ -17,3 +17,6 @@ unknwn
 # tools/windows/AlfrescoDriveShellExtensions/AlfrescoDriveUtil/jsoncpp.cpp:465
 alse
 unknwn
+
+# tests/functional/gui/test_multi_folder_dialog.py
+notbook
