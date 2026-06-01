@@ -969,8 +969,10 @@ class MultiFolderDialog(QDialog):
             startupinfo_cls = getattr(subprocess, "STARTUPINFO", None)
             if startupinfo_cls is not None:
                 startupinfo = startupinfo_cls()
-                startupinfo.dwFlags |= getattr(subprocess, "STARTF_USESHOWWINDOW", 0)
-                startupinfo.wShowWindow = getattr(subprocess, "SW_HIDE", 0)
+                startupinfo.dwFlags |= int(
+                    getattr(subprocess, "STARTF_USESHOWWINDOW", 0)
+                )
+                startupinfo.wShowWindow = int(getattr(subprocess, "SW_HIDE", 0))
             creationflags = int(getattr(subprocess, "CREATE_NO_WINDOW", 0))
             output = subprocess.check_output(
                 [
