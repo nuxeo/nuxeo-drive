@@ -112,6 +112,7 @@ class FDAAlert(QDialog):
         self.ok_button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.ok_button.setObjectName("fda_popup_ok_button")
         self.ok_button.clicked.connect(MultiFolderDialog.navigate_to_system_settings)
+        self.ok_button.clicked.connect(self.close_alert)
 
         self.not_now_button = QPushButton(Translator.get("FDA_POPUP_NOT_NOW"))
         self.not_now_button.setFixedSize(QSize(150, 30))
@@ -962,6 +963,15 @@ class MultiFolderDialog(QDialog):
         """Gets Windows File Explorer Quick Access pinned folder paths."""
         pinned: dict[str, str] = {}
         try:
+            # Prevent a transient console window when launching PowerShell from the GUI app.
+            startupinfo = None
+            creationflags = 0
+            startupinfo_cls = getattr(subprocess, "STARTUPINFO", None)
+            if startupinfo_cls is not None:
+                startupinfo = startupinfo_cls()
+                startupinfo.dwFlags |= getattr(subprocess, "STARTF_USESHOWWINDOW", 0)
+                startupinfo.wShowWindow = getattr(subprocess, "SW_HIDE", 0)
+            creationflags = int(getattr(subprocess, "CREATE_NO_WINDOW", 0))
             output = subprocess.check_output(
                 [
                     "powershell",
@@ -974,6 +984,8 @@ class MultiFolderDialog(QDialog):
                 ],
                 stderr=subprocess.DEVNULL,
                 timeout=10,
+                startupinfo=startupinfo,
+                creationflags=creationflags,
             ).decode("utf-8", errors="replace")
             for line in output.strip().splitlines():
                 path = line.strip()
