@@ -26,7 +26,6 @@ from ..qt.imports import (
     QPushButton,
     QRegularExpression,
     QRegularExpressionValidator,
-    QRunnable,
     QSize,
     Qt,
     QVBoxLayout,
@@ -48,24 +47,6 @@ __all__ = ("DocumentsDialog", "FoldersDialog")
 log = getLogger(__name__)
 
 DOC_URL = "https://doc.nuxeo.com/n/CBX/#duplicates-behavior"
-
-
-class TimerWorker(QRunnable):
-    """Worker thread for scheduling."""
-
-    def __init__(self, duration_seconds: int) -> None:
-        super().__init__()
-        self.duration = duration_seconds
-
-    def run(self) -> None:
-        import time
-        from datetime import datetime
-
-        start_time = datetime.now()
-        log.info(f"Timer started at: {start_time}")
-        time.sleep(self.duration)
-        end_time = datetime.now()
-        print(f"Timer started: {start_time}, Timer ended: {end_time}")
 
 
 def regexp_validator() -> QRegularExpressionValidator:
@@ -311,6 +292,7 @@ class FoldersDialog(DialogMixin):
 
         self.scheduled_time = ""
         self.scheduled_condition = ""
+        self.scheduled_delay = 0
 
         _types = get_known_types_translations()
         self.KNOWN_FOLDER_TYPES = _types.get("FOLDER_TYPES", {})
@@ -646,6 +628,7 @@ class FoldersDialog(DialogMixin):
             last_local_selected_location=self.last_local_selected_location,
             last_local_selected_doc_type=self.last_local_selected_doc_type,
             paused=paused,
+            schedule_delay=self.scheduled_delay,
         )
 
     def button_ok_state(self) -> None:
@@ -902,15 +885,15 @@ class FoldersDialog(DialogMixin):
                         7: 604800,  # 1 week
                     }
                     index = dialog.get_time_index()
-                    seconds = mapping.get(index)
-                    if seconds:
-                        worker = TimerWorker(seconds)
-                        self.engine._threadpool.start(worker)
+                    self.scheduled_delay = mapping.get(index, 0)
+                else:
+                    self.scheduled_delay = 0
 
     def _clear_schedule_action(self) -> None:
         """Clear the scheduled transfer."""
         self.scheduled_time = ""
         self.scheduled_condition = ""
+        self.scheduled_delay = 0
         self.schedule_info_lbl.setText("")
         self.clear_schedule_btn.hide()
 

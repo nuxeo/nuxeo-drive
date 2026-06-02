@@ -544,6 +544,7 @@ class Engine(QObject):
         new_folder: Optional[str] = None,
         new_folder_type: Optional[str] = None,
         paused: bool = False,
+        schedule_delay: Optional[int] = None,
     ) -> None:
         """Plan the Direct Transfer."""
 
@@ -639,6 +640,17 @@ class Engine(QObject):
         if not paused:
             self.dao.queue_many_direct_transfer_items(current_max_row_id)
 
+        if schedule_delay:
+            from .workers import TimerWorker
+
+            worker = TimerWorker(self, session_uid, schedule_delay)
+            if self._threadpool:
+                self._threadpool.start(worker)
+            else:
+                log.warning(
+                    f"Cannot start timer for session {session_uid}, thread pool is not available"
+                )
+
     def handle_session_status(self, session: Optional[Session], /) -> None:
         """Check the session status and send a notification if finished."""
         if not session or session.status is not TransferStatus.DONE:
@@ -706,6 +718,7 @@ class Engine(QObject):
         new_folder: Optional[str] = None,
         new_folder_type: Optional[str] = None,
         paused: bool = False,
+        schedule_delay: Optional[int] = None,
     ) -> None:
         """Plan the Direct Transfer. Async to not freeze the GUI."""
         from .workers import Runner
@@ -724,6 +737,7 @@ class Engine(QObject):
             new_folder=new_folder,
             new_folder_type=new_folder_type,
             paused=paused,
+            schedule_delay=schedule_delay,
         )
         if self._threadpool:
             self._threadpool.start(runner)

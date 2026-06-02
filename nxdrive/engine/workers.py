@@ -14,9 +14,34 @@ if TYPE_CHECKING:
     from ..dao.engine import EngineDAO  # noqa
     from .engine import Engine  # noqa
 
-__all__ = ("EngineWorker", "PollWorker", "Worker")
+__all__ = ("EngineWorker", "PollWorker", "Worker", "TimerWorker")
 
 log = getLogger(__name__)
+
+
+class TimerWorker(QRunnable):
+    """Worker thread for scheduling."""
+
+    def __init__(
+        self, engine: "Engine", session_uid: int, duration_seconds: int
+    ) -> None:
+        super().__init__()
+        self.engine = engine
+        self.session_uid = session_uid
+        self.duration = duration_seconds
+
+    def run(self) -> None:
+        import time
+        from datetime import datetime
+
+        start_time = datetime.now()
+        log.info(f"Timer started at: {start_time} for session {self.session_uid}")
+        time.sleep(self.duration)
+        end_time = datetime.now()
+        log.info(
+            f"Timer ended: {end_time} for session {self.session_uid}. Resuming now."
+        )
+        self.engine.resume_session(self.session_uid)
 
 
 class Runner(QRunnable):
