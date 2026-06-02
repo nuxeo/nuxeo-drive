@@ -143,10 +143,8 @@ Rectangle {
                             try {
                                 if (paused) {
                                     api.resume_session(engine, uid)
-                                    cancel_button.enabled = false
                                 } else {
                                     api.pause_session(engine, uid)
-                                    cancel_button.enabled = true
                                 }
                             } finally {
                                 enabled = true

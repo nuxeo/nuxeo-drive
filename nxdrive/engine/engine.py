@@ -543,6 +543,7 @@ class Engine(QObject):
         last_local_selected_doc_type: Optional[str] = None,
         new_folder: Optional[str] = None,
         new_folder_type: Optional[str] = None,
+        paused: bool = False,
     ) -> None:
         """Plan the Direct Transfer."""
 
@@ -616,8 +617,15 @@ class Engine(QObject):
         description = os.path.basename(items[0][0])
         if len(items) > 1:
             description = f"{description} (+{len(items) - 1:,})"
+
+        status = TransferStatus.PAUSED if paused else TransferStatus.ONGOING
         session_uid = self.dao.create_session(
-            remote_parent_path, remote_parent_ref, len(items), self.uid, description
+            remote_parent_path,
+            remote_parent_ref,
+            len(items),
+            self.uid,
+            description,
+            status=status,
         )
 
         for batch_items in grouper(items, bsize):
@@ -628,7 +636,8 @@ class Engine(QObject):
         log.info(f" ... Planned {len(items):,} item(s) to Direct Transfer, let's gooo!")
 
         # And add new pairs to the queue
-        self.dao.queue_many_direct_transfer_items(current_max_row_id)
+        if not paused:
+            self.dao.queue_many_direct_transfer_items(current_max_row_id)
 
     def handle_session_status(self, session: Optional[Session], /) -> None:
         """Check the session status and send a notification if finished."""
@@ -696,6 +705,7 @@ class Engine(QObject):
         last_local_selected_doc_type: Optional[str] = None,
         new_folder: Optional[str] = None,
         new_folder_type: Optional[str] = None,
+        paused: bool = False,
     ) -> None:
         """Plan the Direct Transfer. Async to not freeze the GUI."""
         from .workers import Runner
@@ -713,6 +723,7 @@ class Engine(QObject):
             last_local_selected_doc_type=last_local_selected_doc_type,
             new_folder=new_folder,
             new_folder_type=new_folder_type,
+            paused=paused,
         )
         if self._threadpool:
             self._threadpool.start(runner)
@@ -841,7 +852,9 @@ class Engine(QObject):
         meth = (
             self.dao.get_download
             if nature == "download"
-            else self.dao.get_dt_upload if is_direct_transfer else self.dao.get_upload
+            else self.dao.get_dt_upload
+            if is_direct_transfer
+            else self.dao.get_upload
         )
         func = partial(meth, uid=uid)  # type: ignore
         self._resume_transfers(nature, func, is_direct_transfer=is_direct_transfer)

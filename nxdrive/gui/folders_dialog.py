@@ -26,6 +26,7 @@ from ..qt.imports import (
     QPushButton,
     QRegularExpression,
     QRegularExpressionValidator,
+    QRunnable,
     QSize,
     Qt,
     QVBoxLayout,
@@ -37,6 +38,7 @@ from .constants import get_known_types_translations
 from .folders_model import FilteredDocuments, FoldersOnly
 from .folders_treeview import DocumentTreeView, FolderTreeView
 from .multi_folder_dialog import MultiFolderDialog
+from .schedule_dialog import ScheduleDialog
 
 if TYPE_CHECKING:
     from .application import Application  # noqa
@@ -46,6 +48,24 @@ __all__ = ("DocumentsDialog", "FoldersDialog")
 log = getLogger(__name__)
 
 DOC_URL = "https://doc.nuxeo.com/n/CBX/#duplicates-behavior"
+
+
+class TimerWorker(QRunnable):
+    """Worker thread for scheduling."""
+
+    def __init__(self, duration_seconds: int) -> None:
+        super().__init__()
+        self.duration = duration_seconds
+
+    def run(self) -> None:
+        import time
+        from datetime import datetime
+
+        start_time = datetime.now()
+        log.info(f"Timer started at: {start_time}")
+        time.sleep(self.duration)
+        end_time = datetime.now()
+        print(f"Timer started: {start_time}, Timer ended: {end_time}")
 
 
 def regexp_validator() -> QRegularExpressionValidator:
@@ -256,6 +276,7 @@ class FoldersDialog(DialogMixin):
     ) -> None:
         """*path* is None when the dialog window is opened from a click on the systray menu icon."""
 
+        self.remote_folder = QLineEdit()
         super().__init__(application, engine, selected_folder)
         self.setWindowFlags(self.windowFlags() & ~qt.WindowStaysOnTopHint)
 
@@ -287,6 +308,9 @@ class FoldersDialog(DialogMixin):
         self.duplicates_behavior = self.engine.dao.get_config(
             "dt_last_duplicates_behavior", default="create"
         )
+
+        self.scheduled_time = ""
+        self.scheduled_condition = ""
 
         _types = get_known_types_translations()
         self.KNOWN_FOLDER_TYPES = _types.get("FOLDER_TYPES", {})
@@ -365,8 +389,24 @@ class FoldersDialog(DialogMixin):
         upload_button.clicked.connect(self._select_files_and_folders)
         hlayout.addWidget(upload_button)
 
+        self.schedule_later_button = QPushButton(Translator.get("SCHEDULE_LATER"))
+        self.schedule_later_button.clicked.connect(self._schedule_later_action)
+        hlayout.addWidget(self.schedule_later_button)
+
         vlayout.addLayout(hlayout)
         vlayout.addWidget(self.local_path_msg_lbl)
+
+        # Schedule display
+        self.schedule_layout = QHBoxLayout()
+        self.schedule_info_lbl = QLabel("")
+        self.clear_schedule_btn = QPushButton(Translator.get("CLEAR_SCHEDULE"))
+        self.clear_schedule_btn.clicked.connect(self._clear_schedule_action)
+        self.clear_schedule_btn.hide()
+
+        self.schedule_layout.addWidget(self.schedule_info_lbl)
+        self.schedule_layout.addWidget(self.clear_schedule_btn)
+        self.schedule_layout.addStretch()
+        vlayout.addLayout(self.schedule_layout)
 
         return groupbox
 
@@ -403,7 +443,6 @@ class FoldersDialog(DialogMixin):
         sublayout = QHBoxLayout()
         layout.addLayout(sublayout)
         label = QLabel(Translator.get("SELECTED_REMOTE_FOLDER"))
-        self.remote_folder = QLineEdit()
         self.remote_folder.setStyleSheet("* { background-color: rgba(0, 0, 0, 0); }")
         self.remote_folder.setReadOnly(True)
         self.remote_folder.setFrame(False)
@@ -595,6 +634,7 @@ class FoldersDialog(DialogMixin):
         )
         doc_type = self.get_known_type_key(False, doc_type)
         cont_type = self.get_known_type_key(True, cont_type)
+        paused = bool(self.scheduled_time or self.scheduled_condition)
         self.engine.direct_transfer_async(
             self.paths,
             self.remote_folder.text(),
@@ -605,6 +645,7 @@ class FoldersDialog(DialogMixin):
             duplicate_behavior=self.cb.currentData(),
             last_local_selected_location=self.last_local_selected_location,
             last_local_selected_doc_type=self.last_local_selected_doc_type,
+            paused=paused,
         )
 
     def button_ok_state(self) -> None:
@@ -616,6 +657,7 @@ class FoldersDialog(DialogMixin):
         ok_button = self.button_box.button(qt.Ok)
         if ok_button:
             ok_button.setEnabled(bool(self.paths))
+        self.schedule_later_button.setEnabled(bool(self.paths))
         self.new_folder_button.setEnabled(
             bool(self.remote_folder_ref) and bool(self.tree_view.current)
         )
@@ -832,6 +874,45 @@ class FoldersDialog(DialogMixin):
         if mfd.exec():
             path = mfd.selected_paths()
             self._process_additionnal_local_paths(path)
+
+    def _schedule_later_action(self) -> None:
+        """Open a dialog to schedule a transfer later."""
+        dialog = ScheduleDialog(self)
+        if dialog.exec():
+            time_val = dialog.get_time()
+            condition_val = dialog.get_condition()
+            none_label = Translator.get("NONE")
+            if time_val != none_label or condition_val != none_label:
+                self.scheduled_time = time_val
+                self.scheduled_condition = condition_val
+                info = time_val if time_val != none_label else condition_val
+                self.schedule_info_lbl.setText(f"Scheduled: {info}")
+                self.clear_schedule_btn.show()
+
+                if time_val != none_label:
+                    # Map indices to seconds
+                    # Index 0 is 'None'
+                    mapping = {
+                        1: 60,  # 1 min
+                        2: 3600,  # 1 hour
+                        3: 7200,  # 2 hours
+                        4: 18000,  # 5 hours
+                        5: 43200,  # 12 hours
+                        6: 86400,  # 1 Day
+                        7: 604800,  # 1 week
+                    }
+                    index = dialog.get_time_index()
+                    seconds = mapping.get(index)
+                    if seconds:
+                        worker = TimerWorker(seconds)
+                        self.engine._threadpool.start(worker)
+
+    def _clear_schedule_action(self) -> None:
+        """Clear the scheduled transfer."""
+        self.scheduled_time = ""
+        self.scheduled_condition = ""
+        self.schedule_info_lbl.setText("")
+        self.clear_schedule_btn.hide()
 
     def _skipped_items_summary(self, items: list[str]) -> str:
         """Show up to 2 skipped item names with a (+N) and the reason."""

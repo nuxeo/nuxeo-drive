@@ -2105,6 +2105,7 @@ class EngineDAO(BaseDAO):
         engine_uid: str,
         description: str,
         /,
+        status: TransferStatus = TransferStatus.ONGOING,
     ) -> int:
         """Create a new session. Return the session ID."""
         with self.lock:
@@ -2116,7 +2117,7 @@ class EngineDAO(BaseDAO):
                     remote_path,
                     remote_ref,
                     total,
-                    TransferStatus.ONGOING.value,
+                    status.value,
                     engine_uid,
                     description,
                     total,
