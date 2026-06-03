@@ -648,7 +648,9 @@ class FoldersDialog(DialogMixin):
         ok_button = self.button_box.button(qt.Ok)
         if ok_button:
             ok_button.setEnabled(bool(self.paths))
-        self.schedule_later_button.setEnabled(bool(self.paths))
+        self.schedule_later_button.setEnabled(
+            bool(self.paths) and not (self.scheduled_time or self.scheduled_condition)
+        )
         self.new_folder_button.setEnabled(
             bool(self.remote_folder_ref) and bool(self.tree_view.current)
         )
@@ -877,7 +879,9 @@ class FoldersDialog(DialogMixin):
                 self.scheduled_time = time_val
                 self.scheduled_condition = condition_val
                 info = time_val if time_val != none_label else condition_val
-                self.schedule_info_lbl.setText(f"Scheduled: {info}")
+                self.schedule_info_lbl.setText(
+                    Translator.get("SCHEDULED", values=[info])
+                )
                 self.clear_schedule_btn.show()
 
                 if time_val != none_label:
@@ -898,6 +902,7 @@ class FoldersDialog(DialogMixin):
                     self.scheduled_delay = mapping.get(index, 0)
                 else:
                     self.scheduled_delay = 0
+            self.button_ok_state()
 
     def _clear_schedule_action(self) -> None:
         """Clear the scheduled transfer."""
@@ -906,6 +911,7 @@ class FoldersDialog(DialogMixin):
         self.scheduled_delay = 0
         self.schedule_info_lbl.setText("")
         self.clear_schedule_btn.hide()
+        self.button_ok_state()
 
     def _skipped_items_summary(self, items: list[str]) -> str:
         """Show up to 2 skipped item names with a (+N) and the reason."""

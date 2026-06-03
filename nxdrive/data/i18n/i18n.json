@@ -19,6 +19,7 @@
     "SCHEDULE_SELECT_TIME": "Select time",
     "SCHEDULE_SELECT_CONDITION": "Select condition",
     "SCHEDULE_WEEKENDS": "During weekends",
+    "SCHEDULED": "Session Scheduled: %1",
     "SCHEDULED_ON": "Scheduled on %1",
     "ADDON_NOT_INSTALLED": "Server module is missing",
     "ADDON_FORBIDDEN": "Server denied access to Nuxeo Drive operations",
