@@ -85,6 +85,11 @@ Rectangle {
                             text: (active ? created_on : completed_on) + tl.tr
                             color: secondaryText
                         }
+                        ScaledText {
+                            visible: active && scheduled_at
+                            text: scheduled_at + tl.tr
+                            color: secondaryText
+                        }
                         RowLayout {
                             Layout.leftMargin: 10
                             RowLayout {

@@ -2,6 +2,7 @@ from datetime import date, datetime
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple
 
+from dateutil import parser
 from dateutil.tz import tzlocal
 
 from ..constants import DT_ACTIVE_SESSIONS_MAX_ITEMS, DT_MONITORING_MAX_ITEMS
@@ -540,6 +541,21 @@ class ActiveSessionModel(QAbstractListModel):
             return f"[{row['uploaded']:,} / {row['total']:,}]"
         elif role == self.SHADOW:
             return row.get("shadow", False)
+        elif role == self.SCHEDULED_AT:
+            scheduled_at = row.get("scheduled_at", 0)
+            if scheduled_at and scheduled_at != "0":
+                label = "SCHEDULED_ON"
+                args = []
+                # scheduled_at is stored as ISO format string from FoldersDialog.accept
+                dt = parser.isoparse(scheduled_at)
+                if dt:
+                    # Adjust to local time
+                    offset = tzlocal().utcoffset(dt)
+                    if offset:
+                        dt += offset
+                    args.append(Translator.format_datetime(dt))
+                return self.tr(label, values=args)
+            return ""
         return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, /, *, role: int = None) -> None:

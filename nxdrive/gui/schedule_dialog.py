@@ -30,6 +30,7 @@ class ScheduleDialog(QDialog):
         self.time_combo.addItems(
             [
                 Translator.get("SCHEDULE_1_MIN"),
+                Translator.get("SCHEDULE_5_MIN"),
                 Translator.get("SCHEDULE_1_HOUR"),
                 Translator.get("SCHEDULE_2_HOURS"),
                 Translator.get("SCHEDULE_5_HOURS"),

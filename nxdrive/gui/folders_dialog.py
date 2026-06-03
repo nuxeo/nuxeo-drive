@@ -885,14 +885,16 @@ class FoldersDialog(DialogMixin):
                     # Index 0 is 'None'
                     mapping = {
                         1: 60,  # 1 min
-                        2: 3600,  # 1 hour
-                        3: 7200,  # 2 hours
-                        4: 18000,  # 5 hours
-                        5: 43200,  # 12 hours
-                        6: 86400,  # 1 Day
-                        7: 604800,  # 1 week
+                        2: 300,  # 5 min
+                        3: 3600,  # 1 hour
+                        4: 7200,  # 2 hours
+                        5: 18000,  # 5 hours
+                        6: 43200,  # 12 hours
+                        7: 86400,  # 1 Day
+                        8: 604800,  # 1 week
                     }
                     index = dialog.get_time_index()
+
                     self.scheduled_delay = mapping.get(index, 0)
                 else:
                     self.scheduled_delay = 0

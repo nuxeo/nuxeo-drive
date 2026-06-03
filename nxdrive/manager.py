@@ -506,9 +506,48 @@ class Manager(QObject):
         if not self.server_config_updater.first_run:
             self.start_engines()
 
+        if Feature.direct_transfer:
+            self._init_direct_transfer_resumption()
+
         # Check only if manager is started
         self._handle_os()
         self.started.emit()
+
+    def _init_direct_transfer_resumption(self) -> None:
+        """Restart timers for scheduled sessions or resume if time passed."""
+        from datetime import datetime, timezone
+
+        from dateutil import parser
+
+        from .engine.workers import TimerWorker
+
+        for engine in self.engines.copy().values():
+            for session in engine.dao.get_active_sessions_raw():
+                scheduled_at = session.get("scheduled_at")
+                if not scheduled_at or scheduled_at in (0, "0"):
+                    continue
+
+                try:
+                    dt_scheduled = parser.isoparse(scheduled_at)
+                    now = datetime.now(timezone.utc)
+                    if now >= dt_scheduled:
+                        log.debug(
+                            f"Schedule passed for session {session['uid']}, resuming."
+                        )
+                        engine.resume_scheduled_session(session["uid"])
+                    else:
+                        delay = int((dt_scheduled - now).total_seconds())
+                        log.debug(
+                            f"Restarting timer for session {session['uid']} ({delay}s left)."
+                        )
+                        worker = TimerWorker(engine, session["uid"], delay)
+                        if engine._threadpool:
+                            engine._threadpool.start(worker)
+                except Exception as exc:
+                    log.error(
+                        f"Failed to resume scheduled session {session['uid']}: {exc}",
+                        exc_info=True,
+                    )
 
     def load(self) -> None:
         self._engine_definitions = self._engine_definitions or self.dao.get_engines()
