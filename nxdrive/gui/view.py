@@ -431,6 +431,7 @@ class ActiveSessionModel(QAbstractListModel):
     DESCRIPTION = qt.UserRole + 10
     PROGRESS = qt.UserRole + 11
     SHADOW = qt.UserRole + 12  # Tell the interface if the row should be visible or not
+    SCHEDULED_AT = qt.UserRole + 13
 
     def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -449,6 +450,7 @@ class ActiveSessionModel(QAbstractListModel):
             self.DESCRIPTION: b"description",
             self.PROGRESS: b"progress",
             self.SHADOW: b"shadow",
+            self.SCHEDULED_AT: b"scheduled_at",
         }
         self.shadow_session: Dict[str, Any] = {}
 
@@ -588,6 +590,7 @@ class CompletedSessionModel(QAbstractListModel):
     PROGRESS = qt.UserRole + 11
     SHADOW = qt.UserRole + 12
     CSV_PATH = qt.UserRole + 13
+    SCHEDULED_AT = qt.UserRole + 14
 
     def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -607,6 +610,7 @@ class CompletedSessionModel(QAbstractListModel):
             self.PROGRESS: b"progress",
             self.SHADOW: b"shadow",
             self.CSV_PATH: b"csv_path",
+            self.SCHEDULED_AT: b"scheduled_at",
         }
 
     def roleNames(self) -> Dict[int, bytes]:

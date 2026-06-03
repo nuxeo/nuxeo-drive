@@ -41,7 +41,7 @@ class TimerWorker(QRunnable):
         log.info(
             f"Timer ended: {end_time} for session {self.session_uid}. Resuming now."
         )
-        self.engine.resume_session(self.session_uid)
+        self.engine.resume_scheduled_session(self.session_uid)
 
 
 class Runner(QRunnable):

@@ -602,6 +602,7 @@ class EngineDAO(BaseDAO):
             "    completed_on   DATETIME,"
             "    description    VARCHAR     DEFAULT '',"
             "    planned_items  INTEGER,"
+            "    scheduled_at   DATETIME    DEFAULT (0),"
             "    PRIMARY KEY (uid)"
             ")"
         )
@@ -2039,6 +2040,7 @@ class EngineDAO(BaseDAO):
                 "completed_on": res.completed_on,
                 "description": res.description,
                 "planned_items": res.planned_items,
+                "scheduled_at": res.scheduled_at,
             }
             for res in c.execute(
                 "SELECT * FROM Sessions WHERE status IN (?, ?)",
@@ -2066,6 +2068,7 @@ class EngineDAO(BaseDAO):
                 "completed_on": res.completed_on,
                 "description": res.description,
                 "planned_items": res.planned_items,
+                "scheduled_at": res.scheduled_at,
             }
             for res in c.execute(
                 "SELECT * FROM Sessions WHERE status IN (?, ?) ORDER BY completed_on DESC LIMIT ?",
@@ -2106,13 +2109,14 @@ class EngineDAO(BaseDAO):
         description: str,
         /,
         status: TransferStatus = TransferStatus.ONGOING,
+        scheduled_at: Union[str, int] = 0,
     ) -> int:
         """Create a new session. Return the session ID."""
         with self.lock:
             c = self._get_write_connection().cursor()
             c.execute(
-                "INSERT INTO Sessions (remote_path, remote_ref, total, status, engine, description, planned_items) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO Sessions (remote_path, remote_ref, total, status, engine, description, planned_items, "
+                "scheduled_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     remote_path,
                     remote_ref,
@@ -2121,6 +2125,7 @@ class EngineDAO(BaseDAO):
                     engine_uid,
                     description,
                     total,
+                    scheduled_at,
                 ),
             )
             self.sessionUpdated.emit(False)
@@ -2159,6 +2164,16 @@ class EngineDAO(BaseDAO):
             c.execute(
                 "UPDATE Sessions SET status = ? WHERE uid = ?",
                 (status.value, session.uid),
+            )
+            self.sessionUpdated.emit(False)
+
+    def reset_session_schedule(self, uid: int, /) -> None:
+        """Reset the scheduled_at column to default value 0."""
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "UPDATE Sessions SET scheduled_at = 0 WHERE uid = ?",
+                (uid,),
             )
             self.sessionUpdated.emit(False)
 

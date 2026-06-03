@@ -1,5 +1,6 @@
 import os
 import webbrowser
+from datetime import datetime, timedelta, timezone
 from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
@@ -617,6 +618,12 @@ class FoldersDialog(DialogMixin):
         doc_type = self.get_known_type_key(False, doc_type)
         cont_type = self.get_known_type_key(True, cont_type)
         paused = bool(self.scheduled_time or self.scheduled_condition)
+        scheduled_at = 0
+        if self.scheduled_delay:
+            scheduled_at = (
+                datetime.now(timezone.utc) + timedelta(seconds=self.scheduled_delay)
+            ).isoformat()
+
         self.engine.direct_transfer_async(
             self.paths,
             self.remote_folder.text(),
@@ -629,6 +636,7 @@ class FoldersDialog(DialogMixin):
             last_local_selected_doc_type=self.last_local_selected_doc_type,
             paused=paused,
             schedule_delay=self.scheduled_delay,
+            scheduled_at=scheduled_at,
         )
 
     def button_ok_state(self) -> None:

@@ -508,6 +508,7 @@ class Session:
     completed_on: str
     description: str
     planned_items: int
+    scheduled_at: str = "0"
 
 
 @dataclass

@@ -10,7 +10,7 @@ from logging import getLogger
 from pathlib import Path
 from threading import Thread
 from time import sleep
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type, Union
 from urllib.parse import urlsplit
 
 import requests
@@ -545,6 +545,7 @@ class Engine(QObject):
         new_folder_type: Optional[str] = None,
         paused: bool = False,
         schedule_delay: Optional[int] = None,
+        scheduled_at: Union[str, int] = 0,
     ) -> None:
         """Plan the Direct Transfer."""
 
@@ -627,6 +628,7 @@ class Engine(QObject):
             self.uid,
             description,
             status=status,
+            scheduled_at=scheduled_at,
         )
 
         for batch_items in grouper(items, bsize):
@@ -719,6 +721,7 @@ class Engine(QObject):
         new_folder_type: Optional[str] = None,
         paused: bool = False,
         schedule_delay: Optional[int] = None,
+        scheduled_at: Union[str, int] = 0,
     ) -> None:
         """Plan the Direct Transfer. Async to not freeze the GUI."""
         from .workers import Runner
@@ -738,6 +741,7 @@ class Engine(QObject):
             new_folder_type=new_folder_type,
             paused=paused,
             schedule_delay=schedule_delay,
+            scheduled_at=scheduled_at,
         )
         if self._threadpool:
             self._threadpool.start(runner)
@@ -895,6 +899,11 @@ class Engine(QObject):
         """Resume all transfers for given session."""
         self.dao.change_session_status(uid, TransferStatus.ONGOING)
         self.dao.resume_session(uid)
+
+    def resume_scheduled_session(self, uid: int, /) -> None:
+        """Reset schedule and resume session."""
+        self.dao.reset_session_schedule(uid)
+        self.resume_session(uid)
 
     def _manage_staled_transfers(self) -> None:
         """
