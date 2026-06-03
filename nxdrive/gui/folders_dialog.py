@@ -294,6 +294,7 @@ class FoldersDialog(DialogMixin):
         self.scheduled_time = ""
         self.scheduled_condition = ""
         self.scheduled_delay = 0
+        self.scheduled_at_iso = ""
 
         _types = get_known_types_translations()
         self.KNOWN_FOLDER_TYPES = _types.get("FOLDER_TYPES", {})
@@ -878,6 +879,8 @@ class FoldersDialog(DialogMixin):
             if time_val != none_label or condition_val != none_label:
                 self.scheduled_time = time_val
                 self.scheduled_condition = condition_val
+                self.scheduled_at_iso = ""
+
                 info = time_val if time_val != none_label else condition_val
                 self.schedule_info_lbl.setText(
                     Translator.get("SCHEDULED", values=[info])
@@ -885,21 +888,34 @@ class FoldersDialog(DialogMixin):
                 self.clear_schedule_btn.show()
 
                 if time_val != none_label:
-                    # Map indices to seconds
-                    # Index 0 is 'None'
-                    mapping = {
-                        1: 60,  # 1 min
-                        2: 300,  # 5 min
-                        3: 3600,  # 1 hour
-                        4: 7200,  # 2 hours
-                        5: 18000,  # 5 hours
-                        6: 43200,  # 12 hours
-                        7: 86400,  # 1 Day
-                        8: 604800,  # 1 week
-                    }
-                    index = dialog.get_time_index()
+                    if getattr(dialog, "custom_datetime", None):
+                        # Custom Date Time selected
+                        custom_dt = dialog.custom_datetime.toPyDateTime()
+                        # Assume local timezone if naive
+                        if custom_dt.tzinfo is None:
+                            custom_dt = custom_dt.astimezone()
+                        self.scheduled_at_iso = custom_dt.isoformat()
 
-                    self.scheduled_delay = mapping.get(index, 0)
+                        now = datetime.now(timezone.utc)
+                        delay = (
+                            custom_dt.astimezone(timezone.utc) - now
+                        ).total_seconds()
+                        self.scheduled_delay = max(0, int(delay))
+                    else:
+                        # Map indices to seconds
+                        # Index 0 is 'None'
+                        mapping = {
+                            1: 60,  # 1 min
+                            2: 300,  # 5 min
+                            3: 3600,  # 1 hour
+                            4: 7200,  # 2 hours
+                            5: 18000,  # 5 hours
+                            6: 43200,  # 12 hours
+                            7: 86400,  # 1 Day
+                            8: 604800,  # 1 week
+                        }
+                        index = dialog.get_time_index()
+                        self.scheduled_delay = mapping.get(index, 0)
                 else:
                     self.scheduled_delay = 0
             self.button_ok_state()
@@ -909,6 +925,7 @@ class FoldersDialog(DialogMixin):
         self.scheduled_time = ""
         self.scheduled_condition = ""
         self.scheduled_delay = 0
+        self.scheduled_at_iso = ""
         self.schedule_info_lbl.setText("")
         self.clear_schedule_btn.hide()
         self.button_ok_state()
