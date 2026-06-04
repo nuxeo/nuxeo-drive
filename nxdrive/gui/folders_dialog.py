@@ -880,12 +880,8 @@ class FoldersDialog(DialogMixin):
                 self.scheduled_time = time_val
                 self.scheduled_condition = condition_val
                 self.scheduled_at_iso = ""
-
-                info = time_val if time_val != none_label else condition_val
-                self.schedule_info_lbl.setText(
-                    Translator.get("SCHEDULED", values=[info])
-                )
-                self.clear_schedule_btn.show()
+                self.scheduled_delay = 0
+                display_info = ""
 
                 if time_val != none_label:
                     if getattr(dialog, "custom_datetime", None):
@@ -894,7 +890,11 @@ class FoldersDialog(DialogMixin):
                         # Assume local timezone if naive
                         if custom_dt.tzinfo is None:
                             custom_dt = custom_dt.astimezone()
-                        self.scheduled_at_iso = custom_dt.isoformat()
+
+                        self.scheduled_at_iso = custom_dt.astimezone(
+                            timezone.utc
+                        ).isoformat()
+                        display_info = Translator.format_datetime(custom_dt)
 
                         now = datetime.now(timezone.utc)
                         delay = (
@@ -916,8 +916,21 @@ class FoldersDialog(DialogMixin):
                         }
                         index = dialog.get_time_index()
                         self.scheduled_delay = mapping.get(index, 0)
-                else:
-                    self.scheduled_delay = 0
+                        if self.scheduled_delay:
+                            local_now = datetime.now().astimezone()
+                            target_local = local_now + timedelta(
+                                seconds=self.scheduled_delay
+                            )
+                            self.scheduled_at_iso = target_local.astimezone(
+                                timezone.utc
+                            ).isoformat()
+                            display_info = Translator.format_datetime(target_local)
+
+                info = display_info if display_info else condition_val
+                self.schedule_info_lbl.setText(
+                    Translator.get("SCHEDULED", values=[info])
+                )
+                self.clear_schedule_btn.show()
             self.button_ok_state()
 
     def _clear_schedule_action(self) -> None:

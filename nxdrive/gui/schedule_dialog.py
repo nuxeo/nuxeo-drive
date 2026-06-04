@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from ..qt.imports import (
     QCalendarWidget,
     QComboBox,
@@ -10,6 +12,7 @@ from ..qt.imports import (
     QLabel,
     QLineEdit,
     QPushButton,
+    Qt,
     QTime,
     QVBoxLayout,
 )
@@ -33,27 +36,39 @@ class CustomDateTimeDialog(QDialog):
 
         # Time input fields
         time_layout = QHBoxLayout()
+        current_datetime = datetime.now()
+        current_datetime = current_datetime + timedelta(
+            minutes=2
+        )  # Default to 2 mins in the future
+        current_hour = current_datetime.hour % 12
+        current_minute = current_datetime.minute
+        current_second = current_datetime.second
+        current_ampm = "PM" if current_datetime.hour >= 12 else "AM"
 
         self.hours_input = QLineEdit()
         self.hours_input.setPlaceholderText("HH")
         self.hours_input.setValidator(QIntValidator(0, 12))
+        self.hours_input.setText(str(current_hour).zfill(2))
         self.hours_input.setMaxLength(2)
         self.hours_input.setFixedWidth(30)
 
         self.minutes_input = QLineEdit()
         self.minutes_input.setPlaceholderText("MM")
         self.minutes_input.setValidator(QIntValidator(0, 59))
+        self.minutes_input.setText(str(current_minute).zfill(2))
         self.minutes_input.setMaxLength(2)
         self.minutes_input.setFixedWidth(30)
 
         self.seconds_input = QLineEdit()
         self.seconds_input.setPlaceholderText("SS")
         self.seconds_input.setValidator(QIntValidator(0, 59))
+        self.seconds_input.setText(str(current_second).zfill(2))
         self.seconds_input.setMaxLength(2)
         self.seconds_input.setFixedWidth(30)
 
         self.ampm_combo = QComboBox()
         self.ampm_combo.addItems(["AM", "PM"])
+        self.ampm_combo.setCurrentText(current_ampm)
 
         time_layout.addWidget(self.hours_input)
         time_layout.addWidget(QLabel(Translator.get("SCHEDULE_HOURS")))
@@ -64,6 +79,12 @@ class CustomDateTimeDialog(QDialog):
         time_layout.addWidget(self.ampm_combo)
 
         layout.addLayout(time_layout)
+
+        # Error label
+        self.error_label = QLabel()
+        self.error_label.setVisible(False)
+
+        layout.addWidget(self.error_label, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
@@ -87,25 +108,54 @@ class CustomDateTimeDialog(QDialog):
         m_str = self.minutes_input.text()
         s_str = self.seconds_input.text()
 
-        # Must be filled
-        if not (h_str and m_str and s_str):
-            self.button_box.button(QDialogButtonBox.StandardButton.Ok).setEnabled(False)
+        ok_button = self.button_box.button(QDialogButtonBox.StandardButton.Ok)
+
+        # Validating hours input
+        if h_str and (int(h_str) < 0 or int(h_str) > 12):
+            self.error_label.setText(Translator.get("SCHEDULE_INVALID_HOURS"))
+            self.error_label.setVisible(True)
+            if ok_button:
+                ok_button.setEnabled(False)
+            return
+
+        # Validating minutes input
+        if m_str and (int(m_str) < 0 or int(m_str) > 59):
+            self.error_label.setText(Translator.get("SCHEDULE_INVALID_MINUTES"))
+            self.error_label.setVisible(True)
+            if ok_button:
+                ok_button.setEnabled(False)
+            return
+
+        # Validating seconds input
+        if s_str and (int(s_str) < 0 or int(s_str) > 59):
+            self.error_label.setText(Translator.get("SCHEDULE_INVALID_SECONDS"))
+            self.error_label.setVisible(True)
+            if ok_button:
+                ok_button.setEnabled(False)
             return
 
         selected_dt = self.get_datetime()
         if not selected_dt.isValid():
-            self.button_box.button(QDialogButtonBox.StandardButton.Ok).setEnabled(False)
+            self.error_label.setText(Translator.get("SCHEDULE_INVALID_DATETIME"))
+            self.error_label.setVisible(True)
+            if ok_button:
+                ok_button.setEnabled(False)
             return
 
         # If today, must be >= 1 min from now
         if selected_dt.date() == QDate.currentDate():
             if selected_dt < QDateTime.currentDateTime().addSecs(60):
-                self.button_box.button(QDialogButtonBox.StandardButton.Ok).setEnabled(
-                    False
-                )
+                self.error_label.setText(Translator.get("SCHEDULE_TIME_FUTURE"))
+                self.error_label.setVisible(True)
+                if ok_button:
+                    ok_button.setEnabled(False)
                 return
 
-        self.button_box.button(QDialogButtonBox.StandardButton.Ok).setEnabled(True)
+        self.error_label.setText("")
+        self.error_label.setVisible(False)
+
+        if ok_button:
+            ok_button.setEnabled(True)
 
     def get_datetime(self) -> QDateTime:
         """Return the selected date and time."""
@@ -221,7 +271,9 @@ class ScheduleDialog(QDialog):
             self.custom_display_label.setText(
                 Translator.get(
                     "SCHEDULE_CUSTOM_DISPLAY",
-                    values=[self.custom_datetime.toString("yyyy-MM-dd HH:mm:ss")],
+                    values=[
+                        Translator.format_datetime(self.custom_datetime.toPyDateTime())
+                    ],
                 )
             )
             self.custom_display_label.show()
