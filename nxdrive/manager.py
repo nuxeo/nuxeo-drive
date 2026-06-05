@@ -22,6 +22,7 @@ from .autolocker import ProcessAutoLockerWorker
 from .client.local import LocalClient
 from .client.proxy import get_proxy, load_proxy, save_proxy, validate_proxy
 from .constants import (
+    ALFRESCO_SERVER_TYPE,
     APP_NAME,
     DEFAULT_CHANNEL,
     DEFAULT_SERVER_TYPE,
@@ -33,6 +34,7 @@ from .constants import (
 from .dao.manager import ManagerDAO
 from .direct_download import DirectDownload
 from .direct_edit import DirectEdit
+from .engine.alfresco_engine import AlfrescoEngine
 from .engine.engine import Engine
 from .engine.tracker import Tracker
 from .engine.workers import Runner
@@ -157,7 +159,10 @@ class Manager(QObject):
 
         self._engine_definitions: List[EngineDef] = []
 
-        self._engine_types: Dict[str, Type[Engine]] = {"NXDRIVE": Engine}
+        self._engine_types: Dict[str, Type[Engine]] = {
+            "NXDRIVE": Engine,
+            ALFRESCO_SERVER_TYPE: AlfrescoEngine,
+        }
         self.engines: Dict[str, Engine] = {}
         self.db_backup_worker: Optional[DatabaseBackupWorker] = None
 
@@ -842,9 +847,22 @@ class Manager(QObject):
             no_fscheck=False,
             url=url,
         )
+        engine_type = self._detect_server_type(url)
         return self.bind_engine(
-            DEFAULT_SERVER_TYPE, local_folder, name, binder, starts=start_engine
+            engine_type, local_folder, name, binder, starts=start_engine
         )
+
+    @staticmethod
+    def _detect_server_type(url: str, /) -> str:
+        """Detect the server type from the URL suffix.
+
+        URLs ending with ``/nuxeo`` map to the Nuxeo engine;
+        everything else defaults to the Alfresco engine.
+        """
+        path = urlparse(url).path.rstrip("/")
+        if path.endswith("/nuxeo") or path == "nuxeo":
+            return DEFAULT_SERVER_TYPE
+        return ALFRESCO_SERVER_TYPE
 
     def _get_engine_name(self, server_url: str, /) -> str:
         urlp = urlparse(server_url)

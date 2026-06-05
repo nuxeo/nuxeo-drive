@@ -120,7 +120,9 @@ class Tracker(PollWorker):
                 engine = engines[0]
                 dimensions["cd6"] = engine.hostname
                 dimensions["cd7"] = engine.server_url
-                dimensions["cd8"] = engine.remote.client.server_version
+                dimensions["cd8"] = getattr(
+                    engine.remote.client, "server_version", "unknown"
+                )
 
         data = {
             # Main data

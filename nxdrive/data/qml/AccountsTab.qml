@@ -97,4 +97,20 @@ Rectangle {
     }
 
     NewAccountPopup { id: newAccountPopup }
+
+    ReLoginPopup {
+        id: reLoginPopup
+        onReloginRequested: function(uid, password) {
+            api.alfresco_relogin(uid, password)
+        }
+    }
+
+    Connections {
+        target: api
+        function onShowReloginPopup(uid, username) {
+            reLoginPopup.engineUid = uid
+            reLoginPopup.username = username
+            reLoginPopup.open()
+        }
+    }
 }

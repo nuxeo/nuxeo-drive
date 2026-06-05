@@ -125,7 +125,7 @@ class BaseUpdater(PollWorker):
 
         for engine in self.manager.engines.copy().values():
             if engine.remote:
-                return engine.remote.client.server_version  # type: ignore
+                return getattr(engine.remote.client, "server_version", None)
         return None
 
     #
