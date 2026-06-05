@@ -1,6 +1,6 @@
 import os
 import webbrowser
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
@@ -303,7 +303,26 @@ class FoldersDialog(DialogMixin):
         self.vertical_layout.addWidget(self._add_group_local())
         self.vertical_layout.addWidget(self._add_group_remote())
         self.vertical_layout.addWidget(self._add_group_options())
-        self.vertical_layout.addWidget(self.button_box)
+
+        # Not using standard buttons from DialogMixin
+        self.button_box.deleteLater()
+
+        h_button_layout = QHBoxLayout()
+        h_button_layout.addStretch(1)
+
+        self.cancel_button = QPushButton(Translator.get("CANCEL"))
+        self.cancel_button.clicked.connect(self.reject)
+        h_button_layout.addWidget(self.cancel_button)
+
+        self.upload_now_button = QPushButton(Translator.get("UPLOAD_NOW"))
+        self.upload_now_button.clicked.connect(self.accept)
+        h_button_layout.addWidget(self.upload_now_button)
+
+        self.upload_later_button = QPushButton(Translator.get("UPLOAD_LATER"))
+        self.upload_later_button.clicked.connect(self._schedule_later_action)
+        h_button_layout.addWidget(self.upload_later_button)
+
+        self.vertical_layout.addLayout(h_button_layout)
 
         # Compute overall size and count, and check the button state
         self._process_additionnal_local_paths([str(path)] if path else [])
@@ -373,10 +392,6 @@ class FoldersDialog(DialogMixin):
         upload_button = QPushButton(Translator.get("ADD_ITEMS"))
         upload_button.clicked.connect(self._select_files_and_folders)
         hlayout.addWidget(upload_button)
-
-        self.schedule_later_button = QPushButton(Translator.get("SCHEDULE_LATER"))
-        self.schedule_later_button.clicked.connect(self._schedule_later_action)
-        hlayout.addWidget(self.schedule_later_button)
 
         vlayout.addLayout(hlayout)
         vlayout.addWidget(self.local_path_msg_lbl)
@@ -608,11 +623,7 @@ class FoldersDialog(DialogMixin):
         doc_type = self.get_known_type_key(False, doc_type)
         cont_type = self.get_known_type_key(True, cont_type)
         paused = bool(self.scheduled_time)
-        scheduled_at = 0
-        if self.scheduled_delay:
-            scheduled_at = (
-                datetime.now(timezone.utc) + timedelta(seconds=self.scheduled_delay)
-            ).isoformat()
+        scheduled_at = self.scheduled_at_iso if self.scheduled_at_iso else 0
 
         self.engine.direct_transfer_async(
             self.paths,
@@ -635,12 +646,12 @@ class FoldersDialog(DialogMixin):
         # Required criteria:
         #   - at least 1 local path or a new folder to create
         #   - a selected remote path
-        ok_button = self.button_box.button(qt.Ok)
-        if ok_button:
-            ok_button.setEnabled(bool(self.paths))
-        self.schedule_later_button.setEnabled(
-            bool(self.paths) and not (self.scheduled_time)
-        )
+        if hasattr(self, "upload_now_button"):
+            self.upload_now_button.setEnabled(bool(self.paths))
+        if hasattr(self, "upload_later_button"):
+            self.upload_later_button.setEnabled(
+                bool(self.paths) and not (self.scheduled_time)
+            )
         self.new_folder_button.setEnabled(
             bool(self.remote_folder_ref) and bool(self.tree_view.current)
         )
@@ -865,15 +876,14 @@ class FoldersDialog(DialogMixin):
             time_val = dialog.get_time()
             if time_val is not None:
                 self.scheduled_time = time_val.toString("yyyy-MM-dd HH:mm:ss")
-                self.scheduled_at_iso = ""
-                self.scheduled_delay = 0
+                time_val_py = time_val.toPyDateTime()
+                self.scheduled_at_iso = time_val_py.astimezone(timezone.utc).isoformat()
 
-                time_val = time_val.toPyDateTime()
                 now = datetime.now(timezone.utc)
-                delay = (time_val.astimezone(timezone.utc) - now).total_seconds()
+                delay = (time_val_py.astimezone(timezone.utc) - now).total_seconds()
                 self.scheduled_delay = max(0, int(delay))
 
-            self.button_ok_state()
+            self.accept()
 
     def _skipped_items_summary(self, items: list[str]) -> str:
         """Show up to 2 skipped item names with a (+N) and the reason."""

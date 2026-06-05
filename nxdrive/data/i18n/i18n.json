@@ -5,6 +5,8 @@
     "ADD_FILES": "Add files",
     "ADD_FOLDER": "Add a folder",
     "ADD_ITEMS": "Add Items",
+    "UPLOAD_NOW": "Upload Now",
+    "UPLOAD_LATER": "Upload Later",
     "SCHEDULE_LATER": "Schedule Later",
     "SCHEDULE_TRANSFER": "Schedule Transfer",
     "SCHEDULE_HOURS": "hours",
