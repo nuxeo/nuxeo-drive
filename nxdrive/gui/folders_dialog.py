@@ -292,7 +292,6 @@ class FoldersDialog(DialogMixin):
         )
 
         self.scheduled_time = ""
-        self.scheduled_condition = ""
         self.scheduled_delay = 0
         self.scheduled_at_iso = ""
 
@@ -618,7 +617,7 @@ class FoldersDialog(DialogMixin):
         )
         doc_type = self.get_known_type_key(False, doc_type)
         cont_type = self.get_known_type_key(True, cont_type)
-        paused = bool(self.scheduled_time or self.scheduled_condition)
+        paused = bool(self.scheduled_time)
         scheduled_at = 0
         if self.scheduled_delay:
             scheduled_at = (
@@ -650,7 +649,7 @@ class FoldersDialog(DialogMixin):
         if ok_button:
             ok_button.setEnabled(bool(self.paths))
         self.schedule_later_button.setEnabled(
-            bool(self.paths) and not (self.scheduled_time or self.scheduled_condition)
+            bool(self.paths) and not (self.scheduled_time)
         )
         self.new_folder_button.setEnabled(
             bool(self.remote_folder_ref) and bool(self.tree_view.current)
@@ -874,11 +873,9 @@ class FoldersDialog(DialogMixin):
         dialog = ScheduleDialog(self)
         if dialog.exec():
             time_val = dialog.get_time()
-            condition_val = dialog.get_condition()
             none_label = Translator.get("NONE")
-            if time_val != none_label or condition_val != none_label:
+            if time_val != none_label:
                 self.scheduled_time = time_val
-                self.scheduled_condition = condition_val
                 self.scheduled_at_iso = ""
                 self.scheduled_delay = 0
                 display_info = ""
@@ -902,9 +899,8 @@ class FoldersDialog(DialogMixin):
                         ).total_seconds()
                         self.scheduled_delay = max(0, int(delay))
 
-                info = display_info if display_info else condition_val
                 self.schedule_info_lbl.setText(
-                    Translator.get("SCHEDULED", values=[info])
+                    Translator.get("SCHEDULED", values=[display_info])
                 )
                 self.clear_schedule_btn.show()
             self.button_ok_state()
@@ -912,7 +908,6 @@ class FoldersDialog(DialogMixin):
     def _clear_schedule_action(self) -> None:
         """Clear the scheduled transfer."""
         self.scheduled_time = ""
-        self.scheduled_condition = ""
         self.scheduled_delay = 0
         self.scheduled_at_iso = ""
         self.schedule_info_lbl.setText("")

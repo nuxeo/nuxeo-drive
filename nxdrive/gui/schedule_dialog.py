@@ -198,26 +198,7 @@ class ScheduleDialog(QDialog):
         btn_vlayout.addWidget(custom_label)
         btn_vlayout.addWidget(self.pick_datetime_btn)
 
-        # Condition selection
-        cond_vlayout = QVBoxLayout()
-        cond_label = QLabel(Translator.get("SCHEDULE_SELECT_CONDITION"))
-        self.condition_combo = QComboBox()
-        self.condition_combo.addItem(Translator.get("NONE"))
-        self.condition_combo.addItems(
-            [
-                Translator.get("SCHEDULE_AFTER_7PM"),
-                Translator.get("SCHEDULE_WEEKENDS"),
-            ]
-        )
-        cond_vlayout.addWidget(cond_label)
-        cond_vlayout.addWidget(self.condition_combo)
-
         hlayout.addLayout(btn_vlayout)
-        hlayout.addLayout(cond_vlayout)
-
-        # Mutual exclusion logic
-        self.condition_combo.currentIndexChanged.connect(self._on_condition_changed)
-
         layout.addLayout(hlayout)
 
         self.custom_display_label = QLabel("")
@@ -237,10 +218,6 @@ class ScheduleDialog(QDialog):
         if dialog.exec():
             self.custom_datetime = dialog.get_datetime()
 
-            self.condition_combo.blockSignals(True)
-            self.condition_combo.setCurrentIndex(0)
-            self.condition_combo.blockSignals(False)
-
             # Update display label
             self.custom_display_label.setText(
                 Translator.get(
@@ -254,20 +231,10 @@ class ScheduleDialog(QDialog):
         else:
             self.custom_datetime = None
 
-    def _on_condition_changed(self, index: int) -> None:
-        """Reset time combo if a condition is selected. Also reset custom datetime."""
-        if index > 0:
-            self.custom_datetime = None
-            self.custom_display_label.hide()
-
     def get_time(self) -> str | None:
         """Return the selected time value. Or custom date time string."""
         if self.custom_datetime is not None:
             return self.custom_datetime.toString("yyyy-MM-dd HH:mm:ss")
-
-    def get_condition(self) -> str:
-        """Return the selected condition value."""
-        return self.condition_combo.currentText()
 
     def accept(self) -> None:
         """Close the dialog."""
