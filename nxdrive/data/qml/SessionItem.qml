@@ -88,6 +88,7 @@ Rectangle {
                         ScaledText {
                             visible: active && scheduled_at
                             text: scheduled_at + tl.tr
+                            font.bold: true
                             color: secondaryText
                         }
                         RowLayout {

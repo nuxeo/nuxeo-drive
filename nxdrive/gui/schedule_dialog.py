@@ -39,7 +39,7 @@ class ScheduleDialog(QDialog):
         current_datetime = current_datetime + timedelta(
             minutes=2
         )  # Default to 2 mins in the future
-        current_hour = current_datetime.hour % 12
+        current_hour = 12 if current_datetime.hour == 12 else current_datetime.hour % 12
         current_minute = current_datetime.minute
         current_second = current_datetime.second
         current_ampm = "PM" if current_datetime.hour >= 12 else "AM"
