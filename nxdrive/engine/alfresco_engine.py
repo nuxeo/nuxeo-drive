@@ -12,7 +12,7 @@ Excluded features: Direct Edit, Direct Transfer, Direct Download.
 from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
-from urllib.parse import urlparse, urlsplit, urlunparse
+from urllib.parse import urlsplit
 
 from alfresco.exceptions import AuthenticationError
 
@@ -25,7 +25,7 @@ from ..exceptions import EngineInitError
 from ..feature import Feature
 from ..objects import Binder, EngineDef
 from ..options import Options
-from ..qt.imports import QObject, QThread, QThreadPool
+from ..qt.imports import QObject, QThread, QThreadPool, pyqtSlot
 from ..utils import set_path_readonly, unset_path_readonly
 from .engine import Engine
 from .watcher.alfresco_remote_watcher import AlfrescoRemoteWatcher
@@ -102,6 +102,7 @@ class AlfrescoEngine(Engine):
         self.dao = EngineDAO(self._get_db_file())
 
         self._remote_password: str = ""
+        self._alfresco_ticket: str = ""
 
         if binder:
             try:
@@ -135,15 +136,21 @@ class AlfrescoEngine(Engine):
         self.noSpaceLeftOnDevice.connect(self.suspend)
         self._threadpool = QThreadPool().globalInstance()
 
+    # -- Sync state tracking -------------------------------------------------
+
+    @pyqtSlot(object)
+    def _check_sync_start(self, *, row_id: str = None) -> None:
+        if not self._sync_started:
+            queue_size = self.queue_manager.get_overall_size()
+            log.info(f"[Alfresco _check_sync_start] queue_size={queue_size}")
+            if queue_size > 0:
+                self._sync_started = True
+                self.syncStarted.emit(queue_size)
+
     # -- Remote client -------------------------------------------------------
 
     def init_remote(self) -> AlfrescoRemote:
         """Create the Alfresco remote client."""
-        # Restore subscriber/subscription IDs from the DAO if available
-        subscriber_id = self.dao.get_config("alfresco_subscriber_id")
-        subscription_id = self.dao.get_config("alfresco_subscription_id")
-        sync_service_url = self.dao.get_config("alfresco_sync_service_url")
-
         remote = self.remote_cls(
             self.server_url,
             self.remote_user,
@@ -152,15 +159,10 @@ class AlfrescoEngine(Engine):
             password=self._remote_password,
             timeout=self.timeout,
             token=self._remote_token,
+            alfresco_ticket=self._alfresco_ticket,
             dao=self.dao,
             proxy=self.manager.proxy,
-            sync_service_url=sync_service_url,
         )
-
-        if subscriber_id:
-            remote.subscriber_id = subscriber_id
-        if subscription_id:
-            remote.subscription_id = subscription_id
 
         return remote
 
@@ -198,16 +200,36 @@ class AlfrescoEngine(Engine):
                 self.remote = None  # type: ignore[assignment]
                 raise
 
+            # After successful auth, extract and persist the ticket
+            # so the password is never stored.
+            if self._remote_password and not self._remote_token:
+                auth = getattr(self.remote, "auth", None)
+                ticket = getattr(auth, "ticket", None)
+                if not ticket:
+                    # Fallback: try from the underlying session
+                    session_auth = getattr(
+                        getattr(getattr(self.remote, "client", None), "session", None),
+                        "auth",
+                        None,
+                    )
+                    ticket = getattr(session_auth, "ticket", None)
+                if ticket:
+                    self._alfresco_ticket = ticket
+                    self._remote_password = ""
+                    self._save_ticket(ticket)
+                    log.info("Alfresco ticket persisted after bind")
+                else:
+                    log.warning(
+                        "Could not extract ticket after successful bind; "
+                        "user will be prompted to re-login on next restart"
+                    )
+
         # Save the configuration
         self.dao.store_bool("web_authentication", self._web_authentication)
         self.dao.update_config("server_url", self.server_url)
         self.dao.update_config("remote_user", self.remote_user)
         if self._remote_token:
             self._save_token(self._remote_token)
-
-        # For basic auth, persist the password so it survives restarts
-        if self._remote_password and not self._remote_token:
-            self._save_password(self._remote_password)
 
         # Fetch and store server version info via the Discovery API
         self._fetch_discovery_info()
@@ -259,108 +281,6 @@ class AlfrescoEngine(Engine):
         self.local.set_remote_id(ROOT, remote_info.uid)
         self.dao.synchronize_state(row)
 
-        # Register with the Sync Service if available
-        self._register_sync_subscription(remote_info.uid)
-
-    def _register_sync_subscription(self, root_node_id: str) -> None:
-        """Register a subscriber and subscription with the Alfresco Sync Service."""
-        if not self.remote:
-            return
-
-        # Derive the Sync Service URL from the server URL if not already stored
-        sync_service_url = self.dao.get_config("alfresco_sync_service_url")
-        if not sync_service_url:
-            sync_service_url = self._discover_sync_service_url()
-            self.dao.update_config("alfresco_sync_service_url", sync_service_url)
-            # Recreate remote with the sync service URL
-            self.remote = self.init_remote()
-            log.info(f"Alfresco Sync Service URL: {sync_service_url}")
-
-        try:
-            # Use a short timeout for sync service registration since the
-            # service may be unreachable (port 9090 firewalled, etc.).
-            saved_timeout = self.remote.client.timeout
-            self.remote.client.timeout = 5
-            try:
-                subscriber_id = self.remote.register_subscriber()
-                self.dao.update_config("alfresco_subscriber_id", subscriber_id)
-                log.info(f"Registered Alfresco subscriber: {subscriber_id}")
-
-                subscription_id = self.remote.subscribe_folder(root_node_id)
-                self.dao.update_config("alfresco_subscription_id", subscription_id)
-                log.info(f"Created Alfresco subscription: {subscription_id}")
-            finally:
-                self.remote.client.timeout = saved_timeout
-        except Exception:
-            log.warning(
-                "Could not register with Alfresco Sync Service. "
-                "Sync will work without change notifications.",
-                exc_info=True,
-            )
-
-    # -- Remote watcher override ---------------------------------------------
-
-    def _discover_sync_service_url(self) -> str:
-        """Discover the Alfresco Sync Service URL.
-
-        Tries, in order:
-        1. Health-check on the same host (default Sync Service port 9090)
-        2. Health-check on the same host and port (co-located deployment)
-        3. Fallback to the port-9090 heuristic
-
-        Returns the base URL for the Sync Service (e.g.
-        ``https://host:9090/alfresco``).
-        """
-        import requests as _requests
-
-        parsed = urlparse(self.server_url)
-        candidates = [
-            # Standard standalone sync service on port 9090
-            urlunparse(
-                (
-                    parsed.scheme,
-                    f"{parsed.hostname}:9090",
-                    "/alfresco",
-                    "",
-                    "",
-                    "",
-                )
-            ),
-            # Co-located: sync service on the same port as the repo
-            urlunparse(
-                (
-                    parsed.scheme,
-                    parsed.netloc,
-                    "/alfresco",
-                    "",
-                    "",
-                    "",
-                )
-            ),
-        ]
-
-        for candidate in candidates:
-            health_url = (
-                candidate.rstrip("/")
-                + "/api/-default-/public/sync/versions/1/healthcheck"
-            )
-            try:
-                resp = _requests.get(health_url, timeout=2, verify=True)
-                if resp.ok:
-                    log.info(f"Sync Service health-check passed at {candidate}")
-                    return candidate
-            except Exception:
-                log.debug(
-                    f"Sync Service health-check failed at {candidate}",
-                    exc_info=True,
-                )
-
-        # Fallback: use the first candidate (port 9090)
-        log.warning(
-            "Could not verify Sync Service health; " f"falling back to {candidates[0]}"
-        )
-        return candidates[0]
-
     def _fetch_discovery_info(self) -> None:
         """Fetch and persist Alfresco server info via the Discovery API."""
         if not self.remote:
@@ -390,6 +310,73 @@ class AlfrescoEngine(Engine):
         self._remote_watcher.updated.connect(self._check_last_sync)
         self._scanPair.connect(self._remote_watcher.scan_pair)
 
+    def _check_last_sync(self) -> None:
+        """Override to add Alfresco-specific diagnostics."""
+        log.info(
+            f"[Alfresco _check_last_sync] called, _sync_started={self._sync_started}"
+        )
+        if not self._sync_started:
+            return
+
+        watcher = self._local_watcher
+        empty_events = watcher.empty_events()
+        qm_size = self.queue_manager.get_overall_size()
+        qm_active = self.queue_manager.active()
+        empty_polls = self._remote_watcher.empty_polls
+        errors = self.queue_manager.get_errors_count()
+
+        log.info(
+            f"Checking sync for Alfresco engine {self.uid}: "
+            f"qm_size={qm_size}, empty_events={empty_events}, "
+            f"qm_active={qm_active}, empty_polls={empty_polls}, "
+            f"errors={errors}, syncing_count={self.dao.get_syncing_count()}"
+        )
+
+        if qm_size > 0 or not empty_events or qm_active:
+            return
+
+        if errors:
+            log.debug(f"Emitting syncPartialCompleted for Alfresco engine {self.uid}")
+            self.syncPartialCompleted.emit()
+        else:
+            self.dao.update_config(
+                "last_sync_date",
+                __import__("datetime").datetime.now(
+                    tz=__import__("datetime").timezone.utc
+                ),
+            )
+            log.info(f"Emitting syncCompleted for Alfresco engine {self.uid}")
+            self._sync_started = False
+            self.syncCompleted.emit()
+
+    def conflict_resolver(self, row_id: int, /, *, emit: bool = True) -> None:
+        """Alfresco-specific conflict resolver.
+
+        Alfresco doesn't expose content digests, so ``remote_digest`` in the
+        DB is always from our own uploads.  A mismatch between
+        ``local_digest`` and ``remote_digest`` therefore means the local
+        file was edited after the last upload — *not* a server-side
+        conflict.  Reset the pair to ``locally_modified`` so the
+        processor uploads the new version.
+        """
+        pair = self.dao.get_state_from_id(row_id)
+        if not pair:
+            return
+
+        if (
+            pair.pair_state == "conflicted"
+            and pair.local_state == "modified"
+            and pair.remote_state == "modified"
+        ):
+            log.info(
+                f"Alfresco conflict resolver: resetting {pair.local_name!r} "
+                f"to locally_modified (not a real conflict)"
+            )
+            self.dao._force_sync(pair, "modified", "synchronized", "locally_modified")
+            return
+
+        super().conflict_resolver(row_id, emit=emit)
+
     # -- Overrides for Nuxeo-specific features (disabled in Phase 1) ---------
 
     @property
@@ -412,33 +399,34 @@ class AlfrescoEngine(Engine):
         self._remote_token = self._load_token()
 
         if not self._remote_token:
-            # For Alfresco basic auth, try to restore the saved password
-            self._remote_password = self._load_password()
-            if not self._remote_password:
-                self.set_invalid_credentials(
-                    reason="found no token or password in engine configuration"
+            # For Alfresco basic auth, restore the saved ticket
+            self._alfresco_ticket = self._load_ticket()
+            if not self._alfresco_ticket:
+                log.warning(
+                    "No token or ticket found in engine configuration; "
+                    "authentication will be checked on first API call"
                 )
 
-    def _save_password(self, password: str) -> None:
-        """Store the password encrypted in the DAO."""
+    def _save_ticket(self, ticket: str) -> None:
+        """Store the Alfresco authentication ticket encrypted in the DAO."""
         from ..utils import encrypt, force_decode
 
         key = f"{self.remote_user}{self.server_url}"
-        secure = force_decode(encrypt(password, key))
-        self.dao.update_config("remote_password", secure)
+        secure = force_decode(encrypt(ticket, key))
+        self.dao.update_config("alfresco_ticket", secure)
 
-    def _load_password(self) -> str:
-        """Retrieve and decrypt the stored password, if any."""
+    def _load_ticket(self) -> str:
+        """Retrieve and decrypt the stored Alfresco ticket, if any."""
         from ..utils import decrypt, force_decode
 
-        stored = self.dao.get_config("remote_password")
+        stored = self.dao.get_config("alfresco_ticket")
         if not stored:
             return ""
         key = f"{self.remote_user}{self.server_url}"
         try:
             return force_decode(decrypt(stored, key))
         except Exception:
-            log.debug("Could not decrypt stored password", exc_info=True)
+            log.debug("Could not decrypt stored ticket", exc_info=True)
             return ""
 
     def suspend_client(self, uploader: Any = None, /) -> None:

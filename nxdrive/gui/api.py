@@ -75,6 +75,7 @@ class QMLDriveApi(QObject):
     openAuthenticationDialog = pyqtSignal(str, object)
     setMessage = pyqtSignal(str, str)
     downloadLocationChanged = pyqtSignal()
+    showReloginPopup = pyqtSignal(str, str)  # (engine_uid, username)
 
     def __init__(self, application: "Application", /) -> None:
         super().__init__()
@@ -591,6 +592,14 @@ class QMLDriveApi(QObject):
     def get_update_url(self) -> str:
         return Options.update_site_url
 
+    @pyqtSlot(result=str)
+    def get_invalid_credentials_engine_uid(self) -> str:
+        """Return the UID of the first engine with invalid credentials."""
+        for engine in self._manager.engines.values():
+            if engine.has_invalid_credentials():
+                return engine.uid
+        return ""
+
     @pyqtSlot(str)
     def web_update_token(self, uid: str, /) -> None:
         try:
@@ -599,11 +608,12 @@ class QMLDriveApi(QObject):
                 self.setMessage.emit("CONNECTION_UNKNOWN", "error")
                 return
 
-            # For Alfresco engines, re-open the add-account flow instead
+            # For Alfresco engines, show the re-login popup instead
             # of the Nuxeo browser-login token-update path.
             is_alfresco = getattr(engine, "type", "") == ALFRESCO_SERVER_TYPE
             if is_alfresco:
-                self.setMessage.emit("CONNECTION_UNKNOWN", "error")
+                self.application.show_settings("Accounts")
+                self.showReloginPopup.emit(uid, engine.remote_user)
                 return
 
             params = urlencode({"updateToken": True})
@@ -960,6 +970,87 @@ class QMLDriveApi(QObject):
             password=password,
         )
 
+    @pyqtSlot(str, str)
+    def alfresco_relogin(self, engine_uid: str, password: str, /) -> None:
+        """Re-authenticate an Alfresco engine using the given password.
+
+        Obtains a new ticket from the Alfresco Authentication API, stores
+        it, and restarts the engine.
+        """
+        engine = self._get_engine(engine_uid)
+        if not engine or getattr(engine, "type", "") != ALFRESCO_SERVER_TYPE:
+            self.setMessage.emit("CONNECTION_UNKNOWN", "error")
+            return
+
+        try:
+            from alfresco.auth import TicketAuth
+
+            auth = TicketAuth(engine.remote_user, password, engine.server_url)
+            # Force ticket acquisition now so we fail fast on bad password
+            auth._obtain_ticket(engine.server_url)
+            ticket = auth.ticket
+            if not ticket:
+                raise RuntimeError("No ticket returned")
+        except Exception:
+            log.warning("Alfresco re-login failed", exc_info=True)
+            self.setMessage.emit("AUTH_EXPIRED", "error")
+            return
+
+        # Persist the new ticket and restart the engine
+        engine._alfresco_ticket = ticket
+        engine._remote_password = ""
+        engine._save_ticket(ticket)
+        engine.set_invalid_credentials(value=False)
+        engine.stop()
+        engine.remote = engine.init_remote()
+        engine.start()
+
+    @pyqtSlot(str, str, str, str)
+    def alfresco_oauth2_auth(
+        self, local_folder: str, server_url: str, username: str, password: str, /
+    ) -> None:
+        """Bind an Alfresco server using OAuth2 Resource Owner Password Grant.
+
+        Discovers the Keycloak token endpoint from the server, performs
+        the password grant to obtain an OAuth2 token, resolves the
+        username via the People API, and binds the engine with the token.
+        """
+        from ..auth.alfresco_oauth2 import AlfrescoOAuthentication
+        from ..utils import get_verify
+
+        if not self._manager.check_local_folder_available(
+            normalized_path(local_folder)
+        ):
+            self.setMessage.emit("FOLDER_USED", "error")
+            return
+
+        try:
+            result = AlfrescoOAuthentication.password_grant(
+                server_url,
+                username,
+                password,
+                verify=get_verify(),
+            )
+        except Exception:
+            log.exception("Alfresco OAuth2 password grant failed")
+            self.setMessage.emit("CONNECTION_REFUSED", "error")
+            return
+
+        token = {
+            "access_token": result["access_token"],
+            "refresh_token": result.get("refresh_token"),
+            "token_url": result.get("token_url"),
+            "client_id": result.get("client_id"),
+        }
+        resolved_username = result.get("username", username)
+
+        self.bind_server(
+            local_folder,
+            server_url,
+            resolved_username,
+            token=token,
+        )
+
     @pyqtSlot(str, str, bool)
     def web_authentication(
         self, server_url: str, local_folder: str, use_legacy_auth: bool, /
@@ -1118,8 +1209,6 @@ class QMLDriveApi(QObject):
             return
 
         # Get required data and add the account
-        engine_type = self.callback_params.get("engine_type", DEFAULT_SERVER_TYPE)
-        is_alfresco = engine_type == ALFRESCO_SERVER_TYPE
         try:
             # A proxy may be needed to fetch the OpenID configuration URL
             subclient_kwargs = {}
@@ -1128,29 +1217,16 @@ class QMLDriveApi(QObject):
                     url=Options.oauth2_openid_configuration_url
                 )
 
-            if is_alfresco:
-                auth = AlfrescoOAuthentication(
-                    stored_url,
-                    dao=self._manager.dao,
-                    subclient_kwargs=subclient_kwargs,
-                )
-            else:
-                auth = OAuthentication(
-                    stored_url,
-                    dao=self._manager.dao,
-                    subclient_kwargs=subclient_kwargs,
-                )
+            auth = OAuthentication(
+                stored_url,
+                dao=self._manager.dao,
+                subclient_kwargs=subclient_kwargs,
+            )
             token = auth.get_token(
                 code_verifier=stored_code_verifier,
                 code=query["code"],
                 state=query["state"],
             )
-            # For Alfresco, build a rich token dict so the remote client
-            # can recreate an OAuth2Auth with refresh capability.
-            if is_alfresco and hasattr(auth, "get_token_dict"):
-                token_dict = auth.get_token_dict()
-                if token_dict:
-                    token = token_dict
         except OAuth2Error:
             log.warning("Unexpected error while trying to get a token", exc_info=True)
             error = "CONNECTION_UNKNOWN"

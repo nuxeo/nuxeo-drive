@@ -856,13 +856,13 @@ class Manager(QObject):
     def _detect_server_type(url: str, /) -> str:
         """Detect the server type from the URL suffix.
 
-        URLs ending with ``/alfresco`` map to the Alfresco engine;
-        everything else defaults to the Nuxeo engine.
+        URLs ending with ``/nuxeo`` map to the Nuxeo engine;
+        everything else defaults to the Alfresco engine.
         """
         path = urlparse(url).path.rstrip("/")
-        if path.endswith("/alfresco") or path == "alfresco":
-            return ALFRESCO_SERVER_TYPE
-        return DEFAULT_SERVER_TYPE
+        if path.endswith("/nuxeo") or path == "nuxeo":
+            return DEFAULT_SERVER_TYPE
+        return ALFRESCO_SERVER_TYPE
 
     def _get_engine_name(self, server_url: str, /) -> str:
         urlp = urlparse(server_url)

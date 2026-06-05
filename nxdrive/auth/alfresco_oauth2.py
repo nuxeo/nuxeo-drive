@@ -82,6 +82,67 @@ def discover_aims_config(server_url: str, /, *, verify: bool = True) -> Dict[str
     return result
 
 
+def _discover_token_endpoint(
+    server_url: str, /, *, verify: bool = True
+) -> Tuple[str, str]:
+    """Discover the Keycloak token endpoint URL and client ID.
+
+    Tries, in order:
+    1. ``syncServiceConfiguration`` (standard Alfresco Sync Service).
+    2. ``/app.config.json`` (Alfresco Digital Workspace config).
+    3. Well-known Keycloak path heuristic.
+
+    Returns ``(token_url, client_id)`` or ``("", "")`` on failure.
+    """
+    # 1) Try syncServiceConfiguration
+    aims = discover_aims_config(server_url, verify=verify)
+    if aims:
+        openid_url = aims["openid_configuration_url"]
+        client_id = aims.get("client_id", _DEFAULT_CLIENT_ID)
+        try:
+            resp = requests.get(openid_url, timeout=10, verify=verify)
+            resp.raise_for_status()
+            token_url = resp.json().get("token_endpoint", "")
+            if token_url:
+                return token_url, client_id
+        except Exception:
+            log.debug(
+                "Failed to fetch OIDC config from syncServiceConfiguration",
+                exc_info=True,
+            )
+
+    # 2) Try app.config.json (ADW config)
+    from urllib.parse import urlparse as _urlparse
+
+    parsed = _urlparse(server_url)
+    base = f"{parsed.scheme}://{parsed.netloc}"
+    for config_path in ("/app.config.json", "/assets/app.config.json"):
+        try:
+            resp = requests.get(base + config_path, timeout=10, verify=verify)
+            if not resp.ok:
+                continue
+            data = resp.json()
+            oauth2 = data.get("oauth2", {})
+            host = oauth2.get("host", "").rstrip("/")
+            client_id = oauth2.get("clientId", _DEFAULT_CLIENT_ID)
+            if host:
+                # Derive token endpoint from the OIDC well-known
+                oidc_url = host + "/.well-known/openid-configuration"
+                oidc_resp = requests.get(oidc_url, timeout=10, verify=verify)
+                oidc_resp.raise_for_status()
+                token_url = oidc_resp.json().get("token_endpoint", "")
+                if token_url:
+                    log.info(
+                        f"Discovered token endpoint from {config_path}: {token_url}"
+                    )
+                    return token_url, client_id
+        except Exception:
+            log.debug(f"Failed to discover from {config_path}", exc_info=True)
+
+    log.warning(f"Could not discover OAuth2 token endpoint for {server_url}")
+    return "", ""
+
+
 class AlfrescoOAuthentication(Authentication):
     """OAuth2 / AIMS authentication for Alfresco servers.
 
@@ -123,21 +184,6 @@ class AlfrescoOAuthentication(Authentication):
             token=self.token,
             subclient_kwargs=subclient_kwargs,
         )
-
-    def connect_url(self) -> str:
-        """Generate an OAuth2 authorization URL with PKCE."""
-        kw: Dict[str, str] = {}
-        if Options.oauth2_scope:
-            kw["scope"] = Options.oauth2_scope
-        auth_details: Tuple[str, str, str] = self.auth.create_authorization_url(**kw)
-        uri, state, code_verifier = auth_details
-
-        if self._dao:
-            self._dao.update_config("tmp_oauth2_url", self.url)
-            self._dao.update_config("tmp_oauth2_code_verifier", code_verifier)
-            self._dao.update_config("tmp_oauth2_state", state)
-
-        return uri
 
     def get_token(self, **kwargs: Any) -> "Token":
         """Exchange authorization code + code_verifier for an access token."""
@@ -188,4 +234,72 @@ class AlfrescoOAuthentication(Authentication):
             "refresh_token": token.get("refresh_token"),
             "token_url": str(self.auth._token_endpoint),
             "client_id": self.auth._client_id,
+        }
+
+    @staticmethod
+    def password_grant(
+        server_url: str,
+        username: str,
+        password: str,
+        /,
+        *,
+        verify: bool = True,
+    ) -> Dict[str, Any]:
+        """Perform an OAuth2 Resource Owner Password Grant against Keycloak.
+
+        Discovers the token endpoint from the server's ``app.config.json``
+        or ``syncServiceConfiguration``, then exchanges *username* +
+        *password* for an access token via the alfresco-python-client
+        ``OAuth2Auth``.
+
+        Returns a dict with ``access_token``, ``refresh_token``,
+        ``token_url``, ``client_id``, and ``username`` (resolved via
+        the People API).
+        """
+        from alfresco.auth import OAuth2Auth as AlfrescoOAuth2Auth
+
+        # 1) Discover token endpoint
+        token_url, client_id = _discover_token_endpoint(server_url, verify=verify)
+        if not token_url:
+            raise RuntimeError(
+                f"Cannot discover OAuth2 token endpoint for {server_url}. "
+                "Ensure the server has AIMS/Keycloak configured."
+            )
+
+        # 2) Password grant via alfresco-python-client
+        oauth = AlfrescoOAuth2Auth(
+            token_url=token_url,
+            client_id=client_id,
+            username=username,
+            password=password,
+            scope="openid",
+            verify=verify,
+        )
+        access_token = oauth.fetch_token()
+        if not access_token:
+            raise RuntimeError("Password grant returned no access token")
+
+        # 3) Resolve username via People API
+        # The People API lives under /alfresco/api/... — ensure the prefix
+        # is present regardless of whether server_url includes /alfresco.
+        base = server_url.rstrip("/")
+        if not base.endswith("/alfresco"):
+            base += "/alfresco"
+        people_url = base + "/api/-default-/public/alfresco/versions/1/people/-me-"
+        resp = requests.get(
+            people_url,
+            headers={"Authorization": f"Bearer {access_token}"},
+            verify=verify,
+            timeout=30,
+        )
+        resp.raise_for_status()
+        resolved_username: str = resp.json().get("entry", {}).get("id", username)
+
+        # 4) Build the token dict that AlfrescoRemote expects
+        return {
+            "access_token": access_token,
+            "refresh_token": oauth.refresh_token,
+            "token_url": token_url,
+            "client_id": client_id,
+            "username": resolved_username,
         }

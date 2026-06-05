@@ -158,11 +158,17 @@ class Processor(EngineWorker):
 
         status = self._digest_status(doc_pair)
         if status is not DigestStatus.OK:
-            # Ignoring the document, it will still be present in the database.
-            # A future Audit event may resolve its state.
-            log.info(f"Skip non-standard remote digest {doc_pair.remote_digest!r}")
-            self.dao.unsynchronize_state(doc_pair, status.name)
-            return
+            # Alfresco nodes do not carry content digests in their
+            # metadata, so a None/empty digest is expected.  Skip
+            # the digest gate for Alfresco engines.
+            from ..constants import ALFRESCO_SERVER_TYPE
+
+            if getattr(self.engine, "type", "") != ALFRESCO_SERVER_TYPE:
+                # Ignoring the document, it will still be present in the database.
+                # A future Audit event may resolve its state.
+                log.info(f"Skip non-standard remote digest {doc_pair.remote_digest!r}")
+                self.dao.unsynchronize_state(doc_pair, status.name)
+                return
 
         self.engine.manager.osi.send_sync_status(
             doc_pair, self.local.abspath(doc_pair.local_path)

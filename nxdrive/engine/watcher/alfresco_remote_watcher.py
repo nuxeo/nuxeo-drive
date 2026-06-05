@@ -1,5 +1,6 @@
 """
-Remote watcher for Alfresco — polls the Alfresco Sync Service for changes.
+Remote watcher for Alfresco — polls the server for changes via full
+remote tree scans.
 
 Replaces the Nuxeo-specific ``RemoteWatcher`` which relies on
 ``GetChangeSummary`` and NuxeoDrive operations.
@@ -7,9 +8,11 @@ Replaces the Nuxeo-specific ``RemoteWatcher`` which relies on
 
 from datetime import datetime, timezone
 from logging import getLogger
+from pathlib import Path
 from time import monotonic, sleep
 from typing import TYPE_CHECKING, Dict, List, Optional
 
+from ...constants import ROOT
 from ...exceptions import ThreadInterrupt
 from ...objects import DocPair, Metrics, RemoteFileInfo
 from ...options import Options
@@ -25,28 +28,13 @@ __all__ = ("AlfrescoRemoteWatcher",)
 
 log = getLogger(__name__)
 
-# Defer reason constants — used for structured logging so operators
-# can grep for "ALFRESCO_DEFER" and see why changes were postponed.
-DEFER_PARENT_NOT_SYNCED = "ParentNotSynced"
-DEFER_MOVE_TARGET_NOT_SYNCED = "MoveTargetNotSynced"
-DEFER_SERVER_OFFLINE = "ServerOffline"
-DEFER_NETWORK_ERROR = "NetworkError"
-DEFER_CHECKED_OUT = "CheckedOut"
-DEFER_SOURCE_LOCKED = "SourceLocked"
-DEFER_NO_WRITE_PERMISSION = "NoWritePermission"
-DEFER_TRANSFER_TIMEOUT = "TransferTimeout"
-DEFER_CONFLICT = "Conflict"
-DEFER_FREE_SPACE = "FreeSpace"
-
 
 class AlfrescoRemoteWatcher(EngineWorker):
-    """Poll the Alfresco Sync Service for remote changes."""
+    """Poll the Alfresco server for remote changes via full tree scans."""
 
     initiate = pyqtSignal()
     updated = pyqtSignal()
     remoteScanFinished = pyqtSignal()
-    changesFound = pyqtSignal(int)
-    noChangesFound = pyqtSignal()
     remoteWatcherStopped = pyqtSignal()
 
     def __init__(self, engine: "AlfrescoEngine", dao: "EngineDAO", /) -> None:
@@ -54,13 +42,6 @@ class AlfrescoRemoteWatcher(EngineWorker):
 
         self.empty_polls = 0
         self._next_check = 0.0
-        # Opaque change cursor from the Alfresco Sync Service
-        self._since_marker: Optional[str] = self.dao.get_config(
-            "alfresco_last_since_marker"
-        )
-        # Deferred changes that could not be processed immediately
-        # (e.g. parent not synced yet).  Retried on the next poll cycle.
-        self._deferred_changes: List[Dict] = []
         # Track last full remote scan timestamp (persisted to DAO)
         self._last_remote_full_scan: Optional[datetime] = self.dao.get_config(
             "remote_last_full_scan"
@@ -68,7 +49,6 @@ class AlfrescoRemoteWatcher(EngineWorker):
 
     def get_metrics(self) -> Metrics:
         metrics = super().get_metrics()
-        metrics["last_since_marker"] = self._since_marker
         metrics["last_remote_full_scan"] = self._last_remote_full_scan
         metrics["next_polling"] = self._next_check
         return metrics
@@ -125,18 +105,23 @@ class AlfrescoRemoteWatcher(EngineWorker):
             log.warning("No root pair found, cannot scan remote tree")
             return
 
-        # Refresh root metadata
+        # Refresh root metadata.
+        # IMPORTANT: we intentionally do NOT call update_remote_state()
+        # for the root pair.  The local folder name (e.g. "Alfresco")
+        # always differs from the Alfresco root node name
+        # (e.g. "Company Home").  update_remote_state's folder-rename
+        # detection treats this mismatch as a rename on every scan,
+        # permanently re-queuing the root pair and blocking sync
+        # completion.
         try:
             root_info = remote._node_to_remote_file_info(
                 remote.get_node(root_pair.remote_ref, include=["path"])
             )
-            self.dao.update_remote_state(
-                root_pair,
-                root_info,
-                remote_parent_path=root_pair.remote_parent_path,
-            )
         except Exception:
-            log.warning("Error refreshing root info", exc_info=True)
+            log.warning("Remote scan failed, credentials may be invalid", exc_info=True)
+            self.engine.set_invalid_credentials(
+                reason="remote scan failed — re-login required"
+            )
             return
 
         # Recursive walk
@@ -202,11 +187,70 @@ class AlfrescoRemoteWatcher(EngineWorker):
             if child_info.uid in children:
                 # Already known — update state
                 child_pair = children.pop(child_info.uid)
-                self.dao.update_remote_state(
-                    child_pair,
-                    child_info,
-                    remote_parent_path=remote_parent_path,
+                # Alfresco does not expose a content hash, so digest is
+                # always None.  Detect content changes by comparing the
+                # modification timestamp instead.
+                # The DB stores timestamps as 'YYYY-MM-DD HH:MM:SS'
+                # (no microseconds/timezone), while the server returns
+                # full datetime objects.  Normalise both sides to the
+                # DB format before comparing.
+                remote_ts = child_info.last_modification_time
+                if hasattr(remote_ts, "strftime"):
+                    remote_ts_str = remote_ts.strftime("%Y-%m-%d %H:%M:%S")
+                else:
+                    remote_ts_str = str(remote_ts)[:19]
+                db_ts_str = str(child_pair.last_remote_updated or "")[:19]
+                content_changed = (
+                    not child_info.folderish
+                    and remote_ts_str
+                    and remote_ts_str != db_ts_str
                 )
+                if content_changed:
+                    # Skip if the pair is currently being processed by the
+                    # Processor (e.g. an upload is in progress).  Forcing
+                    # remotely_modified mid-upload causes a redundant
+                    # download cycle and can create ghost queue items.
+                    if child_pair.pair_state in (
+                        "locally_created",
+                        "locally_modified",
+                    ):
+                        log.debug(
+                            f"Skipping force_remote for {child_info.name!r}: "
+                            f"pair is {child_pair.pair_state!r} (processor active)"
+                        )
+                        self.dao.update_remote_state(
+                            child_pair,
+                            child_info,
+                            remote_parent_path=remote_parent_path,
+                        )
+                    else:
+                        log.info(
+                            f"Content change detected for {child_info.name!r}: "
+                            f"old={child_pair.last_remote_updated!r} "
+                            f"new={child_info.last_modification_time!r}"
+                        )
+                        # Step 1: update metadata (esp. last_remote_updated)
+                        # without bumping version, so force_remote can match
+                        # the current version with its optimistic lock.
+                        self.dao.update_remote_state(
+                            child_pair,
+                            child_info,
+                            remote_parent_path=remote_parent_path,
+                            force_update=True,
+                            versioned=False,
+                        )
+                        # Step 2: set pair to "remotely_modified" and queue.
+                        # update_remote_state's no-change block resets
+                        # remote_state to "synchronized" (because
+                        # None in (local_digest, None)), so we must
+                        # override it with force_remote.
+                        self.dao.force_remote(child_pair)
+                else:
+                    self.dao.update_remote_state(
+                        child_pair,
+                        child_info,
+                        remote_parent_path=remote_parent_path,
+                    )
                 if child_info.folderish:
                     to_scan.append((child_pair, child_info))
             else:
@@ -235,19 +279,10 @@ class AlfrescoRemoteWatcher(EngineWorker):
 
     @tooltip("Remote scanning (Alfresco)")
     def _handle_changes(self, first_pass: bool = False) -> bool:
-        """Fetch and process remote changes from the Alfresco Sync Service."""
+        """Poll for remote changes by performing a full remote scan."""
         remote = self.engine.remote
         if not remote:
             return False
-
-        # If no full scan has ever been done, do one now.
-        # This covers the first pass as well as any scenario where
-        # the persisted timestamp was cleared (e.g. forced re-scan).
-        if not self._last_remote_full_scan:
-            self.scan_remote()
-            if first_pass:
-                self.initiate.emit()
-            return True
 
         # Check for an on-demand re-scan request (mirrors Nuxeo's
         # ``remote_need_full_scan`` config flag).
@@ -255,322 +290,133 @@ class AlfrescoRemoteWatcher(EngineWorker):
         if need_rescan is not None:
             log.info("On-demand full remote re-scan requested")
             self.dao.update_config("remote_need_full_scan", None)
+
+        # Snapshot queue size before scan to detect changes
+        qm_before = self.engine.queue_manager.get_overall_size()
+
+        try:
             self.scan_remote()
-            return False
-
-        try:
-            changes_response = remote.get_changes(
-                since=self._since_marker, max_items=100
-            )
-        except OSError as exc:
-            log.warning(
-                "ALFRESCO_DEFER: reason=%s node=- name=- " "detail='%s'",
-                DEFER_NETWORK_ERROR,
-                exc,
-            )
-            return first_pass
-        except Exception as exc:
-            log.warning(
-                "ALFRESCO_DEFER: reason=%s node=- name=- " "detail='%s'",
-                DEFER_SERVER_OFFLINE,
-                exc,
-            )
-            return first_pass
-
-        changes = changes_response.get("changes", [])
-        new_marker = changes_response.get("since", self._since_marker)
-
-        if not changes:
-            self.empty_polls += 1
-            self.noChangesFound.emit()
-            if first_pass:
-                # Even with no changes, we consider the first pass done
-                self.initiate.emit()
-                return True
-            self.updated.emit()
-            return True
-
-        self.empty_polls = 0
-        log.info(f"Found {len(changes)} remote change(s) from Alfresco")
-        self.changesFound.emit(len(changes))
-
-        # Retry previously deferred changes first
-        still_deferred: List[Dict] = []
-        for deferred in self._deferred_changes:
-            try:
-                self._process_change(deferred)
-            except _DeferChange as exc:
-                log.info(
-                    "ALFRESCO_DEFER: reason=%s node=%s name=%s "
-                    "detail='retry pending'",
-                    exc.reason,
-                    deferred.get("id", "-"),
-                    deferred.get("name", "-"),
-                )
-                still_deferred.append(deferred)
-            except Exception:
-                log.warning(
-                    f"Error retrying deferred change: {deferred}", exc_info=True
-                )
-        self._deferred_changes = still_deferred
-
-        for change in changes:
-            try:
-                self._process_change(change)
-            except _DeferChange as exc:
-                log.info(
-                    "ALFRESCO_DEFER: reason=%s node=%s name=%s "
-                    "detail='deferred for next cycle'",
-                    exc.reason,
-                    change.get("id", "-"),
-                    change.get("name", "-"),
-                )
-                self._deferred_changes.append(change)
-            except Exception:
-                log.warning(f"Error processing change: {change}", exc_info=True)
-
-        # Acknowledge processed changes to the Sync Service so it can
-        # advance its internal cursor.  This mirrors how the Nuxeo
-        # remote watcher reports processed events back to the server.
-        try:
-            remote.sync()
         except Exception:
-            log.warning("Error acknowledging changes to Sync Service", exc_info=True)
-
-        # Persist the cursor for the next poll
-        self._since_marker = new_marker
-        self.dao.update_config("alfresco_last_since_marker", new_marker)
-
-        self.updated.emit()
-        return True
-
-    def _process_change(self, change: Dict) -> None:
-        """Process a single change entry from the Alfresco Sync Service.
-
-        The change dict typically has keys like ``id``, ``name``,
-        ``nodeType``, ``status`` (CREATED / MODIFIED / DELETED / MOVED /
-        RENAMED / LOCKED / UNLOCKED / CHECKOUT / CHECKIN /
-        PERMISSION_CHANGED), etc.
-
-        Move and rename detection follows the same pattern as the Nuxeo
-        remote watcher: the new metadata is pushed into the DAO via
-        ``update_remote_state()``, which sets ``remote_state = 'modified'``.
-        The Processor's ``_synchronize_remotely_modified()`` then detects
-        the path/name difference and performs the local filesystem operation.
-
-        Raises ``_DeferChange`` if the change cannot be processed now
-        (e.g. parent not synced yet) so the caller can retry later.
-        """
-        node_id = change.get("id", "")
-        status = change.get("status", "").upper()
-        name = change.get("name", "")
-
-        # Skip changes inside filtered folders.
-        # The change may carry a ``path`` from the Sync Service; if so,
-        # check it against the selective-sync filters.
-        change_path = change.get("path", "")
-        if change_path and self.dao.is_filter(change_path):
-            log.debug(f"Skipping filtered change {name!r} at {change_path}")
-            return
-
-        if status == "DELETED":
-            pair = self.dao.get_normal_state_from_remote(node_id)
-            if pair:
-                log.info(f"Remote delete detected for {name!r} ({node_id})")
-                self.dao.delete_remote_state(pair)
-
-        elif status == "CREATED":
-            log.info(f"Remote creation detected: {name!r} ({node_id})")
-            remote_info = self._change_to_remote_info(change)
-            parent_pair = self._find_parent_pair(change)
-            if not parent_pair:
-                log.debug(f"Parent not synced yet for {name!r}, deferring")
-                raise _DeferChange(change, DEFER_PARENT_NOT_SYNCED)
-            self.dao.insert_remote_state(
-                remote_info,
-                parent_pair.remote_ref,
-                parent_pair.local_path,
-                parent_pair.local_path / name,
+            log.warning("Remote scan failed, credentials may be invalid", exc_info=True)
+            self.engine.set_invalid_credentials(
+                reason="remote scan failed — re-login required"
             )
+            self.updated.emit()
+            return first_pass
 
-        elif status in ("MODIFIED", "MOVED", "RENAMED"):
-            pair = self.dao.get_normal_state_from_remote(node_id)
-            if pair:
-                log.info(f"Remote {status.lower()} detected for {name!r} ({node_id})")
-                remote_info = self._change_to_remote_info(change)
-                remote_parent_path = pair.remote_parent_path
-                new_parent_id = change.get("parentId", "")
-                if new_parent_id and new_parent_id != pair.remote_parent_ref:
-                    parent_pair = self._find_parent_pair(change)
-                    if parent_pair:
-                        remote_parent_path = (
-                            parent_pair.remote_parent_path
-                            + "/"
-                            + parent_pair.remote_ref
-                        )
-                    else:
-                        log.debug(
-                            f"Move target parent not synced for {name!r}, deferring"
-                        )
-                        raise _DeferChange(change, DEFER_MOVE_TARGET_NOT_SYNCED)
-                self.dao.update_remote_state(
-                    pair,
-                    remote_info,
-                    remote_parent_path=remote_parent_path,
-                )
+        # Detect local changes that the watchdog may have missed
+        # (atomic saves, copies during busy event loop, etc.)
+        try:
+            self._scan_local_changes()
+        except Exception:
+            log.warning("Error during local change scan", exc_info=True)
 
-        elif status in ("LOCKED", "CHECKOUT"):
-            pair = self.dao.get_normal_state_from_remote(node_id)
-            if pair:
-                log.info(f"Remote lock detected for {name!r} ({node_id})")
-                remote_info = self._change_to_remote_info(change)
-                # Mark file as not updatable while locked
-                remote_info = RemoteFileInfo(
-                    name=remote_info.name,
-                    uid=remote_info.uid,
-                    parent_uid=remote_info.parent_uid,
-                    path=remote_info.path,
-                    folderish=remote_info.folderish,
-                    last_modification_time=remote_info.last_modification_time,
-                    creation_time=remote_info.creation_time,
-                    last_contributor=remote_info.last_contributor,
-                    digest=remote_info.digest,
-                    digest_algorithm=remote_info.digest_algorithm,
-                    download_url=remote_info.download_url,
-                    can_rename=False,
-                    can_delete=False,
-                    can_update=False,
-                    can_create_child=remote_info.can_create_child,
-                    lock_owner=change.get("lockOwner", ""),
-                    lock_created=None,
-                    can_scroll_descendants=False,
-                )
-                self.dao.update_remote_state(
-                    pair,
-                    remote_info,
-                    remote_parent_path=pair.remote_parent_path,
-                    force_update=True,
-                )
+        # Track whether the poll found any new work
+        qm_after = self.engine.queue_manager.get_overall_size()
+        if qm_after > qm_before:
+            self.empty_polls = 0
+        else:
+            self.empty_polls += 1
 
-        elif status in ("UNLOCKED", "CHECKIN"):
-            pair = self.dao.get_normal_state_from_remote(node_id)
-            if pair:
-                log.info(f"Remote unlock detected for {name!r} ({node_id})")
-                remote_info = self._change_to_remote_info(change)
-                self.dao.update_remote_state(
-                    pair,
-                    remote_info,
-                    remote_parent_path=pair.remote_parent_path,
-                    force_update=True,
-                )
-
-        elif status == "PERMISSION_CHANGED":
-            pair = self.dao.get_normal_state_from_remote(node_id)
-            if pair:
-                # Fetch fresh node metadata to get current permissions
-                remote = self.engine.remote
-                if remote:
-                    try:
-                        node = remote.get_node(node_id, include=["allowableOperations"])
-                        ops = node._raw.get("allowableOperations", [])
-                        can_delete = "delete" in ops
-                        can_update = "update" in ops
-                        can_create = "create" in ops
-
-                        if not any(
-                            op in ops for op in ("read", "update", "delete", "create")
-                        ):
-                            # User lost all access — treat as deletion
-                            log.info(
-                                f"Access revoked for {name!r} ({node_id}), "
-                                "marking as remotely deleted"
-                            )
-                            self.dao.delete_remote_state(pair)
-                        else:
-                            log.info(
-                                f"Permission change for {name!r} ({node_id}): "
-                                f"ops={ops}"
-                            )
-                            remote_info = self._change_to_remote_info(change)
-                            remote_info = RemoteFileInfo(
-                                name=remote_info.name,
-                                uid=remote_info.uid,
-                                parent_uid=remote_info.parent_uid,
-                                path=remote_info.path,
-                                folderish=remote_info.folderish,
-                                last_modification_time=remote_info.last_modification_time,
-                                creation_time=remote_info.creation_time,
-                                last_contributor=remote_info.last_contributor,
-                                digest=remote_info.digest,
-                                digest_algorithm=remote_info.digest_algorithm,
-                                download_url=remote_info.download_url,
-                                can_rename=can_delete,
-                                can_delete=can_delete,
-                                can_update=can_update,
-                                can_create_child=can_create,
-                                lock_owner=remote_info.lock_owner,
-                                lock_created=remote_info.lock_created,
-                                can_scroll_descendants=False,
-                            )
-                            self.dao.update_remote_state(
-                                pair,
-                                remote_info,
-                                remote_parent_path=pair.remote_parent_path,
-                                force_update=True,
-                            )
-                    except Exception:
-                        log.warning(
-                            f"Error fetching permissions for {node_id}",
-                            exc_info=True,
-                        )
-
-    def _change_to_remote_info(self, change: Dict) -> RemoteFileInfo:
-        """Convert a sync-service change entry to RemoteFileInfo."""
-        node_type = change.get("nodeType", "")
-        is_folder = "folder" in node_type.lower()
-
-        return RemoteFileInfo(
-            name=change.get("name", ""),
-            uid=change.get("id", ""),
-            parent_uid=change.get("parentId", ""),
-            path=change.get("path", ""),
-            folderish=is_folder,
-            last_modification_time=None,
-            creation_time=None,
-            last_contributor=None,
-            digest=change.get("digest"),
-            digest_algorithm=change.get("digestAlgorithm"),
-            download_url=None,
-            can_rename=True,
-            can_delete=True,
-            can_update=not is_folder,
-            can_create_child=is_folder,
-            lock_owner=None,
-            lock_created=None,
-            can_scroll_descendants=False,
-        )
-
-    def _find_parent_pair(self, change: Dict) -> Optional[DocPair]:
-        """Find the DocPair for the parent of a changed node."""
-        parent_id = change.get("parentId", "")
-        if parent_id:
-            return self.dao.get_normal_state_from_remote(parent_id)
-        return None
+        (self.updated, self.initiate)[first_pass].emit()
+        return True
 
     def scan_pair(self, remote_path: str, /) -> None:
         """Schedule a remote path for re-scan on the next poll cycle."""
         self._next_check = 0
 
+    # -- Local change detection ----------------------------------------------
 
-class _DeferChange(Exception):
-    """Raised by ``_process_change`` to signal that a change cannot be
-    processed now and should be retried on the next poll cycle.
+    @tooltip("Local change scan (Alfresco)")
+    def _scan_local_changes(self) -> None:
+        """Walk the local sync folder and detect modifications or new files.
 
-    The *reason* should be one of the ``DEFER_*`` constants defined at
-    module level so that log messages are consistent and grep-friendly.
-    """
+        The watchdog-based local watcher can miss changes when:
+        - An application saves via atomic temp-file + rename (e.g. Word, LibreOffice)
+        - A file is copied while the watchdog event loop is busy
+        - The watchdog ``[modified]`` event fires before the actual write completes
 
-    def __init__(self, change: Dict, reason: str = "Unknown") -> None:
-        self.change = change
-        self.reason = reason
-        super().__init__(f"{change.get('id', '')} ({reason})")
+        This method compensates by doing a periodic digest comparison for
+        existing pairs and discovering new files not yet tracked.
+        """
+        log.info("Starting Alfresco local change scan")
+        start = monotonic()
+        local = self.engine.local
+        dao = self.dao
+
+        if not local.exists(ROOT):
+            log.warning("Local sync root does not exist, skipping local scan")
+            return
+
+        self._scan_local_recursive(ROOT, local, dao)
+
+        log.info(f"Alfresco local change scan finished in {monotonic() - start:.2f}s")
+
+    def _scan_local_recursive(self, path: Path, local, dao) -> None:
+        """Recursively scan *path* for local changes."""
+        self._interact()
+
+        try:
+            children_info = local.get_children_info(path)
+        except OSError:
+            return
+
+        # Build a map of DB children keyed by name
+        db_children = dao.get_local_children(path)
+        db_by_name = {child.local_name: child for child in db_children}
+
+        for child_info in children_info:
+            child_name = child_info.path.name
+
+            if local.is_ignored(path, child_name):
+                continue
+
+            if child_name in db_by_name:
+                child_pair = db_by_name[child_name]
+
+                if child_pair.pair_state != "synchronized":
+                    # Already queued for processing, skip
+                    if child_info.folderish:
+                        self._scan_local_recursive(child_info.path, local, dao)
+                    continue
+
+                if child_pair.processor > 0:
+                    # Being processed, skip
+                    if child_info.folderish:
+                        self._scan_local_recursive(child_info.path, local, dao)
+                    continue
+
+                if not child_info.folderish:
+                    # Compare digest for files
+                    try:
+                        digest = child_info.get_digest()
+                    except Exception:
+                        log.debug(
+                            f"Cannot compute digest for {child_info.path!r}",
+                            exc_info=True,
+                        )
+                        continue
+
+                    if child_pair.local_digest and digest != child_pair.local_digest:
+                        log.info(
+                            f"Local change detected for {child_info.path!r}: "
+                            f"old={child_pair.local_digest!r} new={digest!r}"
+                        )
+                        child_pair.local_digest = digest
+                        child_pair.local_state = "modified"
+                        dao.update_local_state(child_pair, child_info)
+                else:
+                    self._scan_local_recursive(child_info.path, local, dao)
+            else:
+                # New local file/folder not in DB — check it has no remote_id
+                # (if it does, the local watcher should handle it)
+                remote_ref = local.get_remote_id(child_info.path)
+                if not remote_ref:
+                    log.info(
+                        f"New local {'folder' if child_info.folderish else 'file'} "
+                        f"detected: {child_info.path!r}"
+                    )
+                    dao.insert_local_state(child_info, path)
+
+                if child_info.folderish:
+                    self._scan_local_recursive(child_info.path, local, dao)

@@ -359,7 +359,10 @@ Rectangle {
                         color: errorContent
                         text: qsTr("AUTH_EXPIRED") + tl.tr
                         subText: qsTr("AUTH_UPDATE_ACTION") + tl.tr
-                        onClicked: api.web_update_token(accountSelect.getRole("uid"))
+                        onClicked: {
+                            var engineUid = api.get_invalid_credentials_engine_uid()
+                            api.web_update_token(engineUid != "" ? engineUid : accountSelect.getRole("uid"))
+                        }
                     }
                 },
                 State {

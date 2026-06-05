@@ -6,6 +6,7 @@ expected by the Drive Engine for account binding and synchronization.
 """
 
 from logging import getLogger
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 
 from alfresco import Alfresco
@@ -13,8 +14,8 @@ from alfresco.auth import BasicAuth, OAuth2Auth, TicketAuth
 from alfresco.exceptions import AlfrescoError
 from alfresco.models.node import Node
 
-from ..constants import APP_NAME
-from ..metrics.utils import current_os, user_agent
+from ..exceptions import NotFound
+from ..metrics.utils import user_agent
 from ..objects import RemoteFileInfo
 from ..options import Options
 from ..utils import compute_digest
@@ -46,6 +47,7 @@ class AlfrescoRemote:
         *,
         password: str = "",
         token: Any = None,
+        alfresco_ticket: str = "",
         proxy: "Proxy" = None,
         download_callback: Callable = None,
         upload_callback: Callable = None,
@@ -53,7 +55,6 @@ class AlfrescoRemote:
         timeout: int = Options.timeout,
         verify: bool = True,
         cert: Tuple[str] = None,
-        sync_service_url: Optional[str] = None,
     ) -> None:
         self.server_url = url
         self.user_id = user_id
@@ -76,6 +77,8 @@ class AlfrescoRemote:
         elif token and isinstance(token, str):
             # Pre-supplied bearer token string
             auth = OAuth2Auth.from_token(access_token=token)
+        elif alfresco_ticket:
+            auth = TicketAuth.from_ticket(user_id, alfresco_ticket)
         elif password:
             auth = TicketAuth(user_id, password)
         else:
@@ -95,7 +98,6 @@ class AlfrescoRemote:
             url=base_url,
             auth=auth,
             timeout=self.timeout,
-            sync_service_url=sync_service_url,
         )
 
         # Set custom headers on the session
@@ -105,10 +107,6 @@ class AlfrescoRemote:
                 "User-Agent": user_agent(),
             }
         )
-
-        # Subscriber/subscription IDs for sync service (populated during bind)
-        self.subscriber_id: Optional[str] = None
-        self.subscription_id: Optional[str] = None
 
         # No-op metrics stub so callers that do ``remote.metrics.send(...)``
         # or ``remote.metrics.push_sync_event(...)`` don't crash.
@@ -164,8 +162,6 @@ class AlfrescoRemote:
         of the written file is computed and compared.  A mismatch raises
         ``AlfrescoError``.
         """
-        from pathlib import Path
-
         content = self.get_content(node_id)
         dest = Path(target_path)
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -206,16 +202,26 @@ class AlfrescoRemote:
         """Create a folder under *parent_id*."""
         return self.client.nodes.create_folder(parent_id, name)
 
-    def delete(self, node_id: str, *, permanent: bool = False) -> None:
+    def delete(
+        self,
+        node_id: str,
+        /,
+        *,
+        permanent: bool = False,
+        parent_fs_item_id: str = None,
+    ) -> None:
         self.client.nodes.delete(node_id, permanent=permanent)
 
     def move(
         self,
         node_id: str,
         target_parent_id: str,
+        /,
+        *,
         name: Optional[str] = None,
-    ) -> Node:
-        return self.client.nodes.move(node_id, target_parent_id, name=name)
+    ) -> RemoteFileInfo:
+        node = self.client.nodes.move(node_id, target_parent_id, name=name)
+        return self._node_to_remote_file_info(node)
 
     def copy(
         self,
@@ -225,8 +231,9 @@ class AlfrescoRemote:
     ) -> Node:
         return self.client.nodes.copy(node_id, target_parent_id, name=name)
 
-    def rename(self, node_id: str, new_name: str) -> Node:
-        return self.client.nodes.update(node_id, {"name": new_name})
+    def rename(self, node_id: str, new_name: str, /) -> RemoteFileInfo:
+        node = self.client.nodes.update(node_id, {"name": new_name})
+        return self._node_to_remote_file_info(node)
 
     # -- Root info (used during account binding) -----------------------------
 
@@ -242,62 +249,6 @@ class AlfrescoRemote:
         """
         root = self.get_root_node()
         return self._node_to_remote_file_info(root)
-
-    # -- Sync operations -----------------------------------------------------
-
-    def register_subscriber(self, device_os: str = "") -> str:
-        """Register this device as a subscriber with the Sync Service.
-
-        Returns the server-assigned subscriber id.
-        """
-        sub = self.client.sync_service.create_subscriber(
-            device_os=device_os or current_os(),
-            application=APP_NAME,
-        )
-        self.subscriber_id = sub.id
-        return sub.id
-
-    def subscribe_folder(self, target_node_id: str) -> str:
-        """Create a sync subscription for a folder.
-
-        Returns the subscription id.
-        """
-        if not self.subscriber_id:
-            raise AlfrescoError(
-                "No subscriber registered; call register_subscriber() first"
-            )
-        subscription = self.client.sync_service.create_subscription(
-            self.subscriber_id,
-            target_node_id,
-        )
-        self.subscription_id = subscription.id
-        return subscription.id
-
-    def get_changes(self, since: Optional[str] = None, max_items: int = 100) -> Dict:
-        """Fetch remote changes since the given marker.
-
-        Works with either the Sync Service (subscriber/subscription)
-        or the Sync AMP (sync set), depending on what has been configured.
-        """
-        if self.subscriber_id and self.subscription_id:
-            return self.client.sync_service.get_changes(
-                self.subscriber_id,
-                self.subscription_id,
-                since=since,
-                max_items=max_items,
-            )
-        # Fallback: no sync service configured
-        return {}
-
-    def sync(self, sync_request: Optional[Dict] = None) -> Dict:
-        """Push local changes to the sync service."""
-        if self.subscriber_id and self.subscription_id:
-            return self.client.sync_service.sync(
-                self.subscriber_id,
-                self.subscription_id,
-                sync_request=sync_request,
-            )
-        return {}
 
     # -- Folder browsing (used by filters dialog) ---------------------------
 
@@ -370,6 +321,222 @@ class AlfrescoRemote:
             lock_created=None,
             can_scroll_descendants=False,
         )
+
+    # -- Adapter methods (Processor compatibility) ---------------------------
+    #
+    # The shared ``Processor`` class calls ``self.remote.<method>()`` using
+    # the Nuxeo ``Remote`` API surface.  The methods below bridge the
+    # naming/signature gap so that the same Processor works with Alfresco.
+
+    def get_fs_info(
+        self, fs_item_id: str, /, *, parent_fs_item_id: str = None
+    ) -> RemoteFileInfo:
+        """Return ``RemoteFileInfo`` for the given node id.
+
+        Mirrors ``Remote.get_fs_info()`` which the Processor uses to
+        refresh remote state, check digests, etc.
+        """
+        try:
+            node = self.get_node(fs_item_id, include=["path"])
+        except Exception:
+            raise NotFound(f"Could not find {fs_item_id!r} on {self.server_url!r}")
+        info = self._node_to_remote_file_info(node)
+        # Alfresco doesn't expose content digests.  If we previously
+        # stored a digest in the DB (set during upload), carry it
+        # forward so the Processor's conflict check doesn't see a
+        # spurious None-vs-hash mismatch.
+        if info.digest is None and hasattr(self, "dao"):
+            pair = self.dao.get_normal_state_from_remote(fs_item_id)
+            if pair and pair.remote_digest:
+                info.digest = pair.remote_digest
+                info.digest_algorithm = "md5"
+        return info
+
+    def stream_content(
+        self,
+        fs_item_id: str,
+        file_path: Path,
+        file_out: Path,
+        /,
+        *,
+        parent_fs_item_id: str = None,
+        fs_item_info: RemoteFileInfo = None,
+        **kwargs: Any,
+    ) -> Path:
+        """Download content of a node to *file_out*.
+
+        Mirrors ``Remote.stream_content()`` — the Processor calls this
+        to download file content during ``_synchronize_remotely_created``
+        and ``_synchronize_remotely_modified``.
+        """
+        file_out.parent.mkdir(parents=True, exist_ok=True)
+
+        resp = self.get_content_stream(fs_item_id)
+        with open(file_out, "wb") as fh:
+            for chunk in resp.iter_content(chunk_size=65536):
+                if chunk:
+                    fh.write(chunk)
+
+        # Remove the download record if the DAO is available
+        if hasattr(self, "dao"):
+            self.dao.remove_transfer("download", path=file_path)
+
+        return file_out
+
+    def stream_file(
+        self,
+        parent_id: str,
+        file_path: Path,
+        /,
+        *,
+        filename: str = None,
+        overwrite: bool = False,
+        **kwargs: Any,
+    ) -> RemoteFileInfo:
+        """Upload a new file and return ``RemoteFileInfo``.
+
+        Mirrors ``Remote.stream_file()`` — the Processor calls this
+        to create a new file on the server during
+        ``_synchronize_locally_created``.
+
+        Before creating a new node, check if one with the same name
+        already exists in the parent folder.  If so, update its content
+        instead of creating a duplicate (Alfresco auto-renames
+        duplicates by appending ``-1``, ``-2``, etc.).
+        """
+        target_name = filename or Path(str(file_path)).name
+        # Check for an existing node with the same name
+        try:
+            existing = self.client.nodes.list_children(parent_id)
+            for child in existing:
+                if child.name == target_name and child.is_file:
+                    log.info(
+                        f"Node {target_name!r} already exists in {parent_id!r} "
+                        f"(id={child.id!r}), updating content instead of creating"
+                    )
+                    node = self.update_content(child.id, str(file_path))
+                    info = self._node_to_remote_file_info(node)
+                    info.digest = compute_digest(Path(str(file_path)), "md5")
+                    info.digest_algorithm = "md5"
+                    return info
+        except Exception:
+            log.debug(
+                "Could not check for existing node, proceeding with create",
+                exc_info=True,
+            )
+        node = self.upload(parent_id, str(file_path), name=filename)
+        info = self._node_to_remote_file_info(node)
+        info.digest = compute_digest(Path(str(file_path)), "md5")
+        info.digest_algorithm = "md5"
+        return info
+
+    def stream_update(
+        self,
+        fs_item_id: str,
+        file_path: Path,
+        /,
+        *,
+        parent_fs_item_id: str = None,
+        filename: str = None,
+        engine_uid: str = None,
+    ) -> RemoteFileInfo:
+        """Update content of an existing file and return ``RemoteFileInfo``.
+
+        Mirrors ``Remote.stream_update()`` — the Processor calls this
+        to update file content during ``_synchronize_locally_modified``.
+        """
+        node = self.update_content(fs_item_id, str(file_path))
+        info = self._node_to_remote_file_info(node)
+        info.digest = compute_digest(Path(str(file_path)), "md5")
+        info.digest_algorithm = "md5"
+        return info
+
+    def make_folder(
+        self, parent_id: str, name: str, /, *, overwrite: bool = False
+    ) -> RemoteFileInfo:
+        """Create a folder and return ``RemoteFileInfo``.
+
+        Mirrors ``Remote.make_folder()`` — the Processor calls this
+        to create a folder on the server during
+        ``_synchronize_locally_created``.
+        """
+        node = self.create_folder(parent_id, name)
+        return self._node_to_remote_file_info(node)
+
+    def get_info(
+        self,
+        ref: str,
+        /,
+        *,
+        raise_if_missing: bool = True,
+        fetch_parent_uid: bool = True,
+    ) -> Optional[RemoteFileInfo]:
+        """Return ``RemoteFileInfo`` for a node, or ``None``.
+
+        Mirrors ``Remote.get_info()`` — the Processor calls this
+        to check if a document still exists on the server (e.g.
+        before untrashing).
+        """
+        try:
+            node = self.get_node(ref, include=["path"])
+        except Exception:
+            if raise_if_missing:
+                raise NotFound(f"Could not find {ref!r} on {self.server_url!r}")
+            return None
+        info = self._node_to_remote_file_info(node)
+        # Expose is_trashed so the processor can decide to undelete
+        info.is_trashed = getattr(node, "is_trashed", False) or (
+            node._raw.get("archivedAt") is not None if hasattr(node, "_raw") else False
+        )
+        return info
+
+    def fetch(
+        self,
+        ref: str,
+        /,
+        *,
+        headers: Dict[str, str] = None,
+        enrichers: List[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Fetch a node as a raw dict.
+
+        Mirrors ``Remote.fetch()`` — the Processor calls this in
+        ``_synchronize_direct_transfer`` to check if a document
+        already exists.
+        """
+        try:
+            node = self.get_node(ref, include=["path"])
+            return node._raw
+        except Exception:
+            raise NotFound(f"Could not find {ref!r} on {self.server_url!r}")
+
+    def undelete(self, uid: str, /) -> None:
+        """Restore a node from the trashcan.
+
+        Mirrors ``Remote.undelete()``.
+        """
+        try:
+            self.client.trashcan.restore(uid)
+        except Exception:
+            log.warning(f"Could not restore node {uid!r} from trash", exc_info=True)
+
+    def move2(self, fs_item_id: str, parent_ref: str, name: str, /) -> Dict[str, Any]:
+        """Move a node into *parent_ref* and rename it to *name*.
+
+        Mirrors ``Remote.move2()`` — the Processor calls this when
+        renaming + moving in the same operation.
+        """
+        if not parent_ref:
+            log.info("Parent's UID is empty, not performing move2().")
+            return {}
+        node = self.client.nodes.move(fs_item_id, parent_ref, name=name)
+        return node._raw if hasattr(node, "_raw") else {}
+
+    def cancel_batch(self, batch_details: Any, /) -> None:
+        """No-op — Alfresco does not use batch uploads."""
+        pass
+
+    # -- End adapter methods -------------------------------------------------
 
     def close(self) -> None:
         """Close the underlying HTTP session."""

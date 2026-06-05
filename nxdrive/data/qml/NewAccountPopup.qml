@@ -13,7 +13,7 @@ NuxeoPopup {
     title: qsTr("NEW_ENGINE") + tl.tr
 
     // Detect if the URL points to an Alfresco server
-    property bool isAlfresco: urlInput.text.replace(/\/+$/, "").endsWith("/alfresco")
+    property bool isAlfresco: !urlInput.text.replace(/\/+$/, "").endsWith("/nuxeo")
 
     onOpened: {
         folderInput.text = api.default_local_folder()
@@ -43,10 +43,10 @@ NuxeoPopup {
                     lineColor: acceptableInput ? focusedUnderline : errorContent
                     inputMethodHints: Qt.ImhUrlCharactersOnly
                     KeyNavigation.tab: folderInput
-                    placeholderText: "https://server.com/nuxeo or https://server.com/alfresco"
+                    placeholderText: "https://server.com/nuxeo or https://server.com"
                     text: api.default_server_url_value()
                     font.family: "Courier"
-                    validator: RegularExpressionValidator { regularExpression: /^https?:\/\/[^\s<"\/]+\/[^\s<"]+$/ }
+                    validator: RegularExpressionValidator { regularExpression: /^https?:\/\/[^\s<"\/]+(\/[^\s<"]*)?$/ }
                 }
             }
 
@@ -109,10 +109,10 @@ NuxeoPopup {
                 }
             }
 
-            // Username/password fields for Alfresco basic auth
+            // Username/password fields for Alfresco (both basic and OAuth2)
             ColumnLayout {
                 id: alfrescoCredentials
-                visible: control.isAlfresco && useLegacyAuth.checked
+                visible: control.isAlfresco
                 Layout.fillWidth: true
                 spacing: 10
 
@@ -151,8 +151,8 @@ NuxeoPopup {
                 enabled: {
                     if (!urlInput.acceptableInput || !folderInput.text)
                         return false
-                    // For Alfresco basic auth, require username and password
-                    if (control.isAlfresco && useLegacyAuth.checked)
+                    // For Alfresco, always require username and password
+                    if (control.isAlfresco)
                         return usernameInput.text.length > 0 && passwordInput.text.length > 0
                     return true
                 }
@@ -162,6 +162,14 @@ NuxeoPopup {
                     if (control.isAlfresco && useLegacyAuth.checked) {
                         // Alfresco basic auth: bind directly with credentials
                         api.alfresco_basic_auth(
+                            folderInput.text,
+                            urlInput.text,
+                            usernameInput.text,
+                            passwordInput.text
+                        )
+                    } else if (control.isAlfresco && !useLegacyAuth.checked) {
+                        // Alfresco OAuth2: password grant with credentials
+                        api.alfresco_oauth2_auth(
                             folderInput.text,
                             urlInput.text,
                             usernameInput.text,
