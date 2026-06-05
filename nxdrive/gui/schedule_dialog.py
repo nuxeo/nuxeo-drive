@@ -11,7 +11,6 @@ from ..qt.imports import (
     QIntValidator,
     QLabel,
     QLineEdit,
-    QPushButton,
     Qt,
     QTime,
     QVBoxLayout,
@@ -19,7 +18,7 @@ from ..qt.imports import (
 from ..translator import Translator
 
 
-class CustomDateTimeDialog(QDialog):
+class ScheduleDialog(QDialog):
     """Dialog to select a custom date and time."""
 
     def __init__(self, parent=None) -> None:
@@ -134,8 +133,8 @@ class CustomDateTimeDialog(QDialog):
                 ok_button.setEnabled(False)
             return
 
-        selected_dt = self.get_datetime()
-        if not selected_dt.isValid():
+        self.selected_dt = self.get_datetime()
+        if not self.selected_dt.isValid():
             self.error_label.setText(Translator.get("SCHEDULE_INVALID_DATETIME"))
             self.error_label.setVisible(True)
             if ok_button:
@@ -143,8 +142,8 @@ class CustomDateTimeDialog(QDialog):
             return
 
         # If today, must be >= 1 min from now
-        if selected_dt.date() == QDate.currentDate():
-            if selected_dt < QDateTime.currentDateTime().addSecs(60):
+        if self.selected_dt.date() == QDate.currentDate():
+            if self.selected_dt < QDateTime.currentDateTime().addSecs(60):
                 self.error_label.setText(Translator.get("SCHEDULE_TIME_FUTURE"))
                 self.error_label.setVisible(True)
                 if ok_button:
@@ -174,67 +173,10 @@ class CustomDateTimeDialog(QDialog):
 
         return QDateTime(date, QTime(h, m, s))
 
-
-class ScheduleDialog(QDialog):
-    """Dialog for scheduling a transfer later."""
-
-    def __init__(self, parent=None) -> None:
-        super().__init__(parent)
-
-        self.custom_datetime = None
-
-        self.setWindowTitle(Translator.get("SCHEDULE_TRANSFER"))
-        self.resize(400, 180)
-
-        layout = QVBoxLayout(self)
-
-        hlayout = QHBoxLayout()
-
-        # Pick custom date button
-        btn_vlayout = QVBoxLayout()
-        custom_label = QLabel(Translator.get("SCHEDULE_SELECT_CUSTOM_DATETIME"))
-        self.pick_datetime_btn = QPushButton(Translator.get("SCHEDULE_PICK_DATETIME"))
-        self.pick_datetime_btn.clicked.connect(self._open_custom_picker)
-        btn_vlayout.addWidget(custom_label)
-        btn_vlayout.addWidget(self.pick_datetime_btn)
-
-        hlayout.addLayout(btn_vlayout)
-        layout.addLayout(hlayout)
-
-        self.custom_display_label = QLabel("")
-        self.custom_display_label.hide()
-        layout.addWidget(self.custom_display_label)
-
-        self.button_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.reject)
-        layout.addWidget(self.button_box)
-
-    def _open_custom_picker(self) -> None:
-        """Open the custom date time picker."""
-        dialog = CustomDateTimeDialog(self)
-        if dialog.exec():
-            self.custom_datetime = dialog.get_datetime()
-
-            # Update display label
-            self.custom_display_label.setText(
-                Translator.get(
-                    "SCHEDULE_CUSTOM_DISPLAY",
-                    values=[
-                        Translator.format_datetime(self.custom_datetime.toPyDateTime())
-                    ],
-                )
-            )
-            self.custom_display_label.show()
-        else:
-            self.custom_datetime = None
-
-    def get_time(self) -> str | None:
+    def get_time(self) -> QDateTime | None:
         """Return the selected time value. Or custom date time string."""
-        if self.custom_datetime is not None:
-            return self.custom_datetime.toString("yyyy-MM-dd HH:mm:ss")
+        if self.selected_dt is not None:
+            return self.selected_dt
 
     def accept(self) -> None:
         """Close the dialog."""

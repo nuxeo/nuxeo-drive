@@ -314,12 +314,14 @@ class FoldersDialog(DialogMixin):
         self.tree_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree_view.customContextMenuRequested.connect(self.open_menu)
 
-    def keyPressEvent(self, event: QKeyEvent) -> None:
+    def keyPressEvent(self, a0: QKeyEvent | None) -> None:
         # On user Esc keypress event, restore the maximized window. See NXDRIVE-2737 for details.
-        if event.key() == qt.Key_Escape:
+        if a0 is None:
+            return
+        elif a0.key() == qt.Key_Escape:
             self.showNormal()
         else:
-            super().keyPressEvent(event)
+            super().keyPressEvent(a0)
 
     @property
     def overall_count(self) -> int:
@@ -378,18 +380,6 @@ class FoldersDialog(DialogMixin):
 
         vlayout.addLayout(hlayout)
         vlayout.addWidget(self.local_path_msg_lbl)
-
-        # Schedule display
-        self.schedule_layout = QHBoxLayout()
-        self.schedule_info_lbl = QLabel("")
-        self.clear_schedule_btn = QPushButton(Translator.get("CLEAR_SCHEDULE"))
-        self.clear_schedule_btn.clicked.connect(self._clear_schedule_action)
-        self.clear_schedule_btn.hide()
-
-        self.schedule_layout.addWidget(self.schedule_info_lbl)
-        self.schedule_layout.addWidget(self.clear_schedule_btn)
-        self.schedule_layout.addStretch()
-        vlayout.addLayout(self.schedule_layout)
 
         return groupbox
 
@@ -873,46 +863,17 @@ class FoldersDialog(DialogMixin):
         dialog = ScheduleDialog(self)
         if dialog.exec():
             time_val = dialog.get_time()
-            none_label = Translator.get("NONE")
-            if time_val != none_label:
-                self.scheduled_time = time_val
+            if time_val is not None:
+                self.scheduled_time = time_val.toString("yyyy-MM-dd HH:mm:ss")
                 self.scheduled_at_iso = ""
                 self.scheduled_delay = 0
-                display_info = ""
 
-                if time_val != none_label:
-                    if getattr(dialog, "custom_datetime", None):
-                        # Custom Date Time selected
-                        custom_dt = dialog.custom_datetime.toPyDateTime()
-                        # Assume local timezone if naive
-                        if custom_dt.tzinfo is None:
-                            custom_dt = custom_dt.astimezone()
+                time_val = time_val.toPyDateTime()
+                now = datetime.now(timezone.utc)
+                delay = (time_val.astimezone(timezone.utc) - now).total_seconds()
+                self.scheduled_delay = max(0, int(delay))
 
-                        self.scheduled_at_iso = custom_dt.astimezone(
-                            timezone.utc
-                        ).isoformat()
-                        display_info = Translator.format_datetime(custom_dt)
-
-                        now = datetime.now(timezone.utc)
-                        delay = (
-                            custom_dt.astimezone(timezone.utc) - now
-                        ).total_seconds()
-                        self.scheduled_delay = max(0, int(delay))
-
-                self.schedule_info_lbl.setText(
-                    Translator.get("SCHEDULED", values=[display_info])
-                )
-                self.clear_schedule_btn.show()
             self.button_ok_state()
-
-    def _clear_schedule_action(self) -> None:
-        """Clear the scheduled transfer."""
-        self.scheduled_time = ""
-        self.scheduled_delay = 0
-        self.scheduled_at_iso = ""
-        self.schedule_info_lbl.setText("")
-        self.clear_schedule_btn.hide()
-        self.button_ok_state()
 
     def _skipped_items_summary(self, items: list[str]) -> str:
         """Show up to 2 skipped item names with a (+N) and the reason."""
