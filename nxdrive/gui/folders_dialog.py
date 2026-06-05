@@ -308,11 +308,12 @@ class FoldersDialog(DialogMixin):
         self.button_box.deleteLater()
 
         h_button_layout = QHBoxLayout()
-        h_button_layout.addStretch(1)
 
         self.cancel_button = QPushButton(Translator.get("CANCEL"))
         self.cancel_button.clicked.connect(self.reject)
         h_button_layout.addWidget(self.cancel_button)
+
+        h_button_layout.addStretch(1)
 
         self.upload_now_button = QPushButton(Translator.get("UPLOAD_NOW"))
         self.upload_now_button.clicked.connect(self.accept)
