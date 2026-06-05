@@ -901,30 +901,6 @@ class FoldersDialog(DialogMixin):
                             custom_dt.astimezone(timezone.utc) - now
                         ).total_seconds()
                         self.scheduled_delay = max(0, int(delay))
-                    else:
-                        # Map indices to seconds
-                        # Index 0 is 'None'
-                        mapping = {
-                            1: 60,  # 1 min
-                            2: 300,  # 5 min
-                            3: 3600,  # 1 hour
-                            4: 7200,  # 2 hours
-                            5: 18000,  # 5 hours
-                            6: 43200,  # 12 hours
-                            7: 86400,  # 1 Day
-                            8: 604800,  # 1 week
-                        }
-                        index = dialog.get_time_index()
-                        self.scheduled_delay = mapping.get(index, 0)
-                        if self.scheduled_delay:
-                            local_now = datetime.now().astimezone()
-                            target_local = local_now + timedelta(
-                                seconds=self.scheduled_delay
-                            )
-                            self.scheduled_at_iso = target_local.astimezone(
-                                timezone.utc
-                            ).isoformat()
-                            display_info = Translator.format_datetime(target_local)
 
                 info = display_info if display_info else condition_val
                 self.schedule_info_lbl.setText(
