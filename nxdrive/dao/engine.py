@@ -2095,10 +2095,24 @@ class EngineDAO(BaseDAO):
                 res.completed_on,
                 res.description,
                 res.planned_items,
+                res.scheduled_at,
             )
             if res
             else None
         )
+
+    def reset_scheduled_at(self, uid: int, /) -> Optional[Session]:
+        """Reset the scheduled_at value of a session (set it to 0).
+        This is used when a session is launched before its scheduled time."""
+        c = self._get_read_connection().cursor()
+        c.execute(
+            "UPDATE Sessions SET scheduled_at = ? WHERE uid = ?",
+            (
+                0,
+                uid,
+            ),
+        ).fetchone()
+        self.sessionUpdated.emit(True)
 
     def create_session(
         self,

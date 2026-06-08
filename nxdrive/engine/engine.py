@@ -898,6 +898,10 @@ class Engine(QObject):
     def resume_session(self, uid: int, /) -> None:
         """Resume all transfers for given session."""
         self.dao.change_session_status(uid, TransferStatus.ONGOING)
+        # Remove the 'Scheduled on' message
+        session = self.dao.get_session(uid)
+        if session and session.scheduled_at:
+            self.dao.reset_scheduled_at(uid)
         self.dao.resume_session(uid)
 
     def resume_scheduled_session(self, uid: int, /) -> None:
