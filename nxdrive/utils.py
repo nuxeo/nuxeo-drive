@@ -210,7 +210,7 @@ def current_milli_time() -> int:
     return int(round(time() * 1000))
 
 
-def get_default_local_folder() -> Path:
+def get_default_local_folder(name: str = APP_NAME) -> Path:
     """
     Find a reasonable location for the root Nuxeo Drive folder
 
@@ -253,7 +253,7 @@ def get_default_local_folder() -> Path:
     else:
         folder = normalized_path(Options.home)
 
-    return increment_local_folder(folder, APP_NAME)
+    return increment_local_folder(folder, name)
 
 
 def get_tree_list(path: Path, /) -> Generator[Tuple[Path, int], None, None]:

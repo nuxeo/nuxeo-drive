@@ -1199,9 +1199,10 @@ class FileModel(QAbstractListModel):
             if -1 < Options.feature_systray_history < len(files)
             else len(files)
         )
-        self.beginInsertRows(parent, 0, total_rows - 1)
-        self.files.extend(files)
-        self.endInsertRows()
+        if total_rows > 0:
+            self.beginInsertRows(parent, 0, total_rows - 1)
+            self.files.extend(files)
+            self.endInsertRows()
         self.fileChanged.emit()
 
     def data(self, index: QModelIndex, role: int, /) -> Any:

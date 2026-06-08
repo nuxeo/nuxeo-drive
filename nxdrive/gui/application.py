@@ -455,7 +455,10 @@ class Application(QApplication):
 
     def update_workflow_user_engine_list(self, delete: bool, uid: str, /) -> None:
         if delete:
-            self.added_user_engine_list.remove(uid)
+            try:
+                self.added_user_engine_list.remove(uid)
+            except ValueError:
+                pass
         else:
             self.added_user_engine_list.append(uid)
 
@@ -467,7 +470,7 @@ class Application(QApplication):
         feature.enabled = value
         self.manager.reload_client_global_headers()
 
-        if feature.restart_needed:
+        if feature.restart_needed and value:
             self.manager.restartNeeded.emit()
 
         if feature == self.tasks_management_feature_model:
@@ -527,6 +530,8 @@ class Application(QApplication):
 
     def remove_engine(self, uid: str, /) -> None:
         self.engine_model.removeEngine(uid)
+        # Clear the systray file list so stale entries don't linger
+        self.file_model.add_files([])
 
     def _fill_qml_context(self, context: QQmlContext, /) -> None:
         """Fill the context of a QML element with the necessary resources."""
@@ -939,6 +944,8 @@ class Application(QApplication):
     def dropped_engine(self, engine: Engine, /) -> None:
         # Update icon in case the engine dropped was syncing
         self.change_systray_icon()
+        # Clear the systray file list so stale entries don't linger
+        self.file_model.add_files([])
 
     @pyqtSlot()
     def change_systray_icon(self) -> None:
@@ -1066,6 +1073,20 @@ class Application(QApplication):
             delattr(self, "close_settings_too")
 
         self._center_on_screen(self.settings_window)
+        self._show_window(self.filters_dlg)
+
+    def _show_pending_filters(self, engine: Engine, /) -> None:
+        """Show the filters dialog for an Alfresco engine that needs folder selection.
+
+        After the user accepts, mark filters as configured and trigger sync.
+        """
+        if self.filters_dlg:
+            self.filters_dlg.close()
+            self.filters_dlg = None
+
+        self.filters_dlg = DocumentsDialog(self, engine)
+        self.filters_dlg.destroyed.connect(self.destroyed_filters_dialog)
+        self.filters_dlg.accepted.connect(lambda: engine.mark_filters_configured())
         self._show_window(self.filters_dlg)
 
     def show_server_folders(
@@ -1393,6 +1414,17 @@ class Application(QApplication):
                     break
 
         self.manager.start()
+
+        # Show the filters dialog for Alfresco engines that haven't had
+        # folder selection yet (e.g. account added with sync OFF, then
+        # sync enabled and restarted).
+        for engine in self.manager.engines.copy().values():
+            if (
+                hasattr(engine, "needs_filters_selection")
+                and engine.needs_filters_selection()
+            ):
+                self._show_pending_filters(engine)
+                break
 
     @pyqtSlot()
     @if_frozen

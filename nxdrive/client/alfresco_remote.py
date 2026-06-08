@@ -569,13 +569,6 @@ class AlfrescoRemote:
         self._discovery_cache = data
         return data
 
-    def get_server_version(self) -> str:
-        """Return the ACS version string from the Discovery API."""
-        discovery = self.get_discovery()
-        repo = discovery.get("entry", {}).get("repository", {})
-        version = repo.get("version", {})
-        return version.get("display", "unknown")
-
 
 class _NoOpMetrics:
     """Stub that silently absorbs all metrics calls."""

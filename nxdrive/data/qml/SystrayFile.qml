@@ -58,6 +58,7 @@ Rectangle {
                 Layout.rightMargin: 0
                 icon: MdiFont.Icon.openInApp
                 iconColor: secondaryIcon
+                visible: !api.is_alfresco_engine(accountSelect.getRole("uid"))
                 onClicked: api.show_metadata(accountSelect.getRole("uid"), local_path)
                 tooltip: qsTr("OPEN_REMOTE") + tl.tr
             }

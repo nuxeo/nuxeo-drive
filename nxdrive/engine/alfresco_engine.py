@@ -136,6 +136,31 @@ class AlfrescoEngine(Engine):
         self.noSpaceLeftOnDevice.connect(self.suspend)
         self._threadpool = QThreadPool().globalInstance()
 
+    # -- Filter selection tracking -------------------------------------------
+
+    def needs_filters_selection(self) -> bool:
+        """Return True if the user hasn't yet selected folders to sync.
+
+        Backward-compatible: if a root pair already exists (engine was
+        previously configured), treat it as configured even without the flag.
+        """
+        if not Feature.synchronization:
+            return False
+        if self.dao.get_config("filters_configured"):
+            return False
+        # Backward compat: root pair exists → already configured
+        if self.dao.get_state_from_local(ROOT) is not None:
+            self.dao.update_config("filters_configured", "1")
+            return False
+        return True
+
+    def mark_filters_configured(self) -> None:
+        """Mark that the user has selected folders, then create root and scan."""
+        self.dao.update_config("filters_configured", "1")
+        self._check_root()
+        # Trigger a full remote scan on the next watcher cycle
+        self.dao.update_config("remote_need_full_scan", "1")
+
     # -- Sync state tracking -------------------------------------------------
 
     @pyqtSlot(object)
@@ -236,12 +261,20 @@ class AlfrescoEngine(Engine):
 
         # Establish the sync root
         self._check_root()
+        # Mark filters as configured during initial bind with sync ON
+        if Feature.synchronization:
+            self.dao.update_config("filters_configured", "1")
 
     # -- Root establishment --------------------------------------------------
 
     def _check_root(self) -> None:
         """Create the local folder and initial sync state for Alfresco."""
         if not Feature.synchronization:
+            return
+
+        # On restart, don't create the root pair until the user has
+        # selected which folders to sync via the filters dialog.
+        if not self.dao.get_config("filters_configured"):
             return
 
         root = self.dao.get_state_from_local(ROOT)
@@ -310,11 +343,9 @@ class AlfrescoEngine(Engine):
         self._remote_watcher.updated.connect(self._check_last_sync)
         self._scanPair.connect(self._remote_watcher.scan_pair)
 
+    @pyqtSlot()
     def _check_last_sync(self) -> None:
-        """Override to add Alfresco-specific diagnostics."""
-        log.info(
-            f"[Alfresco _check_last_sync] called, _sync_started={self._sync_started}"
-        )
+        """Check whether sync has completed for this Alfresco engine."""
         if not self._sync_started:
             return
 
@@ -322,21 +353,12 @@ class AlfrescoEngine(Engine):
         empty_events = watcher.empty_events()
         qm_size = self.queue_manager.get_overall_size()
         qm_active = self.queue_manager.active()
-        empty_polls = self._remote_watcher.empty_polls
         errors = self.queue_manager.get_errors_count()
-
-        log.info(
-            f"Checking sync for Alfresco engine {self.uid}: "
-            f"qm_size={qm_size}, empty_events={empty_events}, "
-            f"qm_active={qm_active}, empty_polls={empty_polls}, "
-            f"errors={errors}, syncing_count={self.dao.get_syncing_count()}"
-        )
 
         if qm_size > 0 or not empty_events or qm_active:
             return
 
         if errors:
-            log.debug(f"Emitting syncPartialCompleted for Alfresco engine {self.uid}")
             self.syncPartialCompleted.emit()
         else:
             self.dao.update_config(
@@ -345,7 +367,7 @@ class AlfrescoEngine(Engine):
                     tz=__import__("datetime").timezone.utc
                 ),
             )
-            log.info(f"Emitting syncCompleted for Alfresco engine {self.uid}")
+            log.info(f"Sync completed for Alfresco engine {self.uid}")
             self._sync_started = False
             self.syncCompleted.emit()
 

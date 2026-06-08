@@ -552,7 +552,8 @@ class Manager(QObject):
         It is called when a feature state is modified.
         """
         for engine in self.engines.values():
-            engine.remote.reload_global_headers()
+            if engine.remote and hasattr(engine.remote, "reload_global_headers"):
+                engine.remote.reload_global_headers()
 
     def _get_engine_db_file(self, uid: str, /) -> Path:
         return self.home / f"ndrive_{uid}.db"
@@ -1003,7 +1004,8 @@ class Manager(QObject):
             self.workflow = Workflow(engine.remote)
             self.workflow.clean_user_task_data(engine.remote.user_id)
         """
-        self.delete_users_from_tasks_cache.append(engine.remote.user_id)
+        if engine.remote:
+            self.delete_users_from_tasks_cache.append(engine.remote.user_id)
 
         engine.unbind()
         self.dao.delete_engine(uid)

@@ -124,6 +124,7 @@ class ServerOptionsUpdater(PollWorker):
             if (
                 not self.first_run
                 and Options.feature_synchronization != old_feature_sync
+                and Options.feature_synchronization
             ):
                 self.manager.restartNeeded.emit()
 
@@ -131,6 +132,11 @@ class ServerOptionsUpdater(PollWorker):
                 self.firstRunCompleted.emit()
 
             break
+        else:
+            # No engine had a server config (e.g. Alfresco-only setup).
+            # Still complete the first run so engines can start.
+            if self.first_run:
+                self.firstRunCompleted.emit()
 
         return True
 

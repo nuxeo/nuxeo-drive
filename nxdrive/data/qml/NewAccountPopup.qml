@@ -15,8 +15,12 @@ NuxeoPopup {
     // Detect if the URL points to an Alfresco server
     property bool isAlfresco: !urlInput.text.replace(/\/+$/, "").endsWith("/nuxeo")
 
+    onIsAlfrescoChanged: {
+        folderInput.text = control.isAlfresco ? api.default_alfresco_local_folder() : api.default_local_folder()
+    }
+
     onOpened: {
-        folderInput.text = api.default_local_folder()
+        folderInput.text = control.isAlfresco ? api.default_alfresco_local_folder() : api.default_local_folder()
         urlInput.focus = true
     }
 

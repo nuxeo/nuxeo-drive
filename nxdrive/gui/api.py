@@ -714,6 +714,10 @@ class QMLDriveApi(QObject):
         return str(get_default_local_folder())
 
     @pyqtSlot(result=str)
+    def default_alfresco_local_folder(self) -> str:
+        return str(get_default_local_folder("Alfresco"))
+
+    @pyqtSlot(result=str)
     def default_server_url_value(self) -> str:
         """Make daily job better for our developers :)"""
         return getenv("NXDRIVE_TEST_NUXEO_URL", "")
@@ -1345,6 +1349,14 @@ class QMLDriveApi(QObject):
         if engine:
             count = engine.dao.get_syncing_count()
         return count
+
+    @pyqtSlot(str, result=bool)
+    def is_alfresco_engine(self, uid: str, /) -> bool:
+        """Return True if the engine with *uid* is an Alfresco engine."""
+        from ..constants import ALFRESCO_SERVER_TYPE
+
+        engine = self._get_engine(uid)
+        return bool(engine and getattr(engine, "type", "") == ALFRESCO_SERVER_TYPE)
 
     # Conflicts section
 

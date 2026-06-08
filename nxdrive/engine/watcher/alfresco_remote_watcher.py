@@ -12,6 +12,9 @@ from pathlib import Path
 from time import monotonic, sleep
 from typing import TYPE_CHECKING, Dict, List, Optional
 
+from alfresco.exceptions import AuthenticationError as AlfrescoAuthError
+from alfresco.exceptions import NetworkError as AlfrescoNetworkError
+
 from ...constants import ROOT
 from ...exceptions import ThreadInterrupt
 from ...objects import DocPair, Metrics, RemoteFileInfo
@@ -62,8 +65,10 @@ class AlfrescoRemoteWatcher(EngineWorker):
         try:
             while "working":
                 if now() > self._next_check:
-                    if handle_changes(first_pass):
-                        first_pass = False
+                    handle_changes(first_pass)
+                    # Note: @tooltip decorator swallows return values,
+                    # so we always flip first_pass after the first call.
+                    first_pass = False
                     self._next_check = now() + Options.delay
 
                 interact()
@@ -117,11 +122,19 @@ class AlfrescoRemoteWatcher(EngineWorker):
             root_info = remote._node_to_remote_file_info(
                 remote.get_node(root_pair.remote_ref, include=["path"])
             )
-        except Exception:
-            log.warning("Remote scan failed, credentials may be invalid", exc_info=True)
+        except AlfrescoAuthError:
+            log.warning("Remote scan failed, credentials are invalid", exc_info=True)
             self.engine.set_invalid_credentials(
                 reason="remote scan failed — re-login required"
             )
+            return
+        except (AlfrescoNetworkError, OSError):
+            log.warning(
+                "Remote scan failed due to network error, will retry", exc_info=True
+            )
+            return
+        except Exception:
+            log.warning("Remote scan failed unexpectedly", exc_info=True)
             return
 
         # Recursive walk
@@ -319,6 +332,13 @@ class AlfrescoRemoteWatcher(EngineWorker):
             self.empty_polls += 1
 
         (self.updated, self.initiate)[first_pass].emit()
+
+        # Directly call _check_last_sync because the @tooltip decorator
+        # swallows return values, preventing the signal-based path from
+        # working reliably.
+        if not first_pass:
+            self.engine._check_last_sync()
+
         return True
 
     def scan_pair(self, remote_path: str, /) -> None:
@@ -420,3 +440,17 @@ class AlfrescoRemoteWatcher(EngineWorker):
 
                 if child_info.folderish:
                     self._scan_local_recursive(child_info.path, local, dao)
+
+        # Detect files/folders deleted locally while the app was not running.
+        # Remaining db_by_name entries have no corresponding local file.
+        # Only consider pairs that were previously synchronized — skip
+        # pairs still waiting for download (remotely_created, unknown, etc.).
+        for child_name, child_pair in db_by_name.items():
+            if child_pair.pair_state != "synchronized":
+                continue
+            if not local.exists(child_pair.local_path):
+                log.info(
+                    f"Local deletion detected for {child_pair.local_path!r} "
+                    f"(missing on disk)"
+                )
+                self.engine.delete_doc(child_pair.local_path)

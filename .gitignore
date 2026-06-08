@@ -49,3 +49,6 @@ tools/jenkins/junit/xml
 squashfs-root
 coverage.xml
 .github/agents
+alfresco-python-client
+nuxeo-python-client
+alfresco-desktop-sync-master
