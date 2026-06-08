@@ -338,6 +338,7 @@
     "NEW_REMOTE_FOLDER_TOOLTIP": "Create a new target remote folder in the selected path where all files from the session will be uploaded to.",
     "NEW_TRANSFER": "New transfer",
     "NO": "No",
+    "NONE": "None",
     "NOTIF_UPDATE_TITLE": "Update available",
     "NOTIF_UPDATE_DOWNGRADE": "Downgrade to %1 is needed",
     "NOW": "Now",
