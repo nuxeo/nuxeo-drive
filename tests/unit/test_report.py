@@ -1,7 +1,7 @@
 from logging import getLogger
 
-from nxdrive.manager import Manager
-from nxdrive.report import Report
+from nxdrive.drive.manager import Manager
+from nxdrive.drive.report import Report
 
 
 def test_logs(tmp):

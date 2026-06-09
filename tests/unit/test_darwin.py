@@ -6,12 +6,12 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from nxdrive.constants import MAC
-from nxdrive.objects import DocPair
-from nxdrive.options import Options
+from nxdrive.drive.constants import MAC
+from nxdrive.drive.objects import DocPair
+from nxdrive.drive.options import Options
 
 if MAC:
-    from nxdrive.osi.darwin.darwin import DarwinIntegration
+    from nxdrive.drive.osi.darwin.darwin import DarwinIntegration
 
 from tests.markers import mac_only
 
@@ -45,7 +45,7 @@ class TestInit:
     """Test cases for init method."""
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.subprocess.check_call")
+    @patch("nxdrive.drive.osi.darwin.darwin.subprocess.check_call")
     def test_init_success(self, mock_check_call, frozen_app, darwin_integration):
         """Test successful initialization of FinderSync."""
         darwin_integration._finder_sync_loaded = False
@@ -66,7 +66,7 @@ class TestInit:
         assert calls[1][0][0] == ["pluginkit", "-a", darwin_integration.FINDERSYNC_PATH]
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.subprocess.check_call")
+    @patch("nxdrive.drive.osi.darwin.darwin.subprocess.check_call")
     def test_init_already_loaded(self, mock_check_call, frozen_app, darwin_integration):
         """Test init when FinderSync is already loaded."""
         darwin_integration._finder_sync_loaded = True
@@ -76,8 +76,8 @@ class TestInit:
         mock_check_call.assert_not_called()
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.subprocess.check_call")
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.subprocess.check_call")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_init_error(
         self, mock_log, mock_check_call, frozen_app, darwin_integration
     ):
@@ -95,7 +95,7 @@ class TestCleanup:
     """Test cases for cleanup method."""
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.subprocess.check_call")
+    @patch("nxdrive.drive.osi.darwin.darwin.subprocess.check_call")
     def test_cleanup_success(self, mock_check_call, frozen_app, darwin_integration):
         """Test successful cleanup of FinderSync."""
         darwin_integration._finder_sync_loaded = True
@@ -115,7 +115,7 @@ class TestCleanup:
         mock_check_call.assert_called_once_with(expected_cmd)
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.subprocess.check_call")
+    @patch("nxdrive.drive.osi.darwin.darwin.subprocess.check_call")
     def test_cleanup_not_loaded(self, mock_check_call, frozen_app, darwin_integration):
         """Test cleanup when FinderSync is not loaded."""
         darwin_integration._finder_sync_loaded = False
@@ -125,8 +125,8 @@ class TestCleanup:
         mock_check_call.assert_not_called()
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.subprocess.check_call")
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.subprocess.check_call")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_cleanup_error(
         self, mock_log, mock_check_call, frozen_app, darwin_integration
     ):
@@ -147,7 +147,7 @@ class TestOpenLocalFile:
     """Test cases for open_local_file method."""
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.subprocess.Popen")
+    @patch("nxdrive.drive.osi.darwin.darwin.subprocess.Popen")
     def test_open_local_file_without_select(self, mock_popen, darwin_integration):
         """Test opening a local file without selection."""
         file_path = "/Users/test/file.txt"
@@ -156,7 +156,7 @@ class TestOpenLocalFile:
         mock_popen.assert_called_once_with(["open", file_path])
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.subprocess.Popen")
+    @patch("nxdrive.drive.osi.darwin.darwin.subprocess.Popen")
     def test_open_local_file_with_select(self, mock_popen, darwin_integration):
         """Test opening a local file with selection."""
         file_path = "/Users/test/file.txt"
@@ -199,11 +199,11 @@ class TestRegisterStartup:
 
     @mac_only
     @patch(
-        "nxdrive.osi.darwin.darwin.sys.executable",
+        "nxdrive.drive.osi.darwin.darwin.sys.executable",
         "/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
     )
-    @patch("nxdrive.osi.darwin.darwin.os.path.realpath")
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.os.path.realpath")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_register_startup_success(
         self, mock_log, mock_realpath, frozen_app, darwin_integration, tmp_path
     ):
@@ -244,11 +244,11 @@ class TestRegisterStartup:
 
     @mac_only
     @patch(
-        "nxdrive.osi.darwin.darwin.sys.executable",
+        "nxdrive.drive.osi.darwin.darwin.sys.executable",
         "/Applications/Nuxeo Drive.app/Contents/MacOS/ndrive",
     )
-    @patch("nxdrive.osi.darwin.darwin.os.path.realpath")
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.os.path.realpath")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_register_startup_creates_parent_dir(
         self, mock_log, mock_realpath, frozen_app, darwin_integration, tmp_path
     ):
@@ -272,7 +272,7 @@ class TestUnregisterStartup:
     """Test cases for unregister_startup method."""
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_unregister_startup_success(
         self, mock_log, frozen_app, darwin_integration, tmp_path
     ):
@@ -307,9 +307,9 @@ class TestRegisterProtocolHandlers:
     """Test cases for register_protocol_handlers method."""
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.NSBundle")
-    @patch("nxdrive.osi.darwin.darwin.LSSetDefaultHandlerForURLScheme")
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.NSBundle")
+    @patch("nxdrive.drive.osi.darwin.darwin.LSSetDefaultHandlerForURLScheme")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_register_protocol_handlers_success(
         self, mock_log, mock_ls_set, mock_bundle, frozen_app, darwin_integration
     ):
@@ -322,9 +322,9 @@ class TestRegisterProtocolHandlers:
         mock_log.info.assert_called_once()
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.NSBundle")
-    @patch("nxdrive.osi.darwin.darwin.LSSetDefaultHandlerForURLScheme")
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.NSBundle")
+    @patch("nxdrive.drive.osi.darwin.darwin.LSSetDefaultHandlerForURLScheme")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_register_protocol_handlers_python_app(
         self, mock_log, mock_ls_set, mock_bundle, frozen_app, darwin_integration
     ):
@@ -344,7 +344,7 @@ class TestUnwatchFolder:
     """Test cases for unwatch_folder method."""
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_unwatch_folder(self, mock_log, frozen_app, darwin_integration, tmp_path):
         """Test unwatching a folder."""
         folder = tmp_path / "test_folder"
@@ -361,8 +361,8 @@ class TestSendSyncStatus:
     """Test cases for send_sync_status method."""
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.get_formatted_status")
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.get_formatted_status")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_send_sync_status_success(
         self, mock_log, mock_get_status, frozen_app, darwin_integration, tmp_path
     ):
@@ -379,7 +379,7 @@ class TestSendSyncStatus:
         mock_log.debug.assert_called()
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.get_formatted_status")
+    @patch("nxdrive.drive.osi.darwin.darwin.get_formatted_status")
     def test_send_sync_status_no_status(
         self, mock_get_status, frozen_app, darwin_integration, tmp_path
     ):
@@ -394,8 +394,8 @@ class TestSendSyncStatus:
         mock_send.assert_not_called()
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.get_formatted_status")
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.get_formatted_status")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_send_sync_status_error(
         self, mock_log, mock_get_status, frozen_app, darwin_integration, tmp_path
     ):
@@ -415,8 +415,8 @@ class TestSendContentSyncStatus:
     """Test cases for send_content_sync_status method."""
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.get_formatted_status")
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.get_formatted_status")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_send_content_sync_status_success(
         self, mock_log, mock_get_status, frozen_app, darwin_integration, tmp_path
     ):
@@ -439,7 +439,7 @@ class TestSendContentSyncStatus:
         mock_log.debug.assert_called()
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.get_formatted_status")
+    @patch("nxdrive.drive.osi.darwin.darwin.get_formatted_status")
     def test_send_content_sync_status_batching(
         self, mock_get_status, frozen_app, darwin_integration, tmp_path
     ):
@@ -464,7 +464,7 @@ class TestSendContentSyncStatus:
         assert mock_send.call_count == 3
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.get_formatted_status")
+    @patch("nxdrive.drive.osi.darwin.darwin.get_formatted_status")
     def test_send_content_sync_status_file_not_found(
         self, mock_get_status, frozen_app, darwin_integration, tmp_path
     ):
@@ -480,8 +480,8 @@ class TestSendContentSyncStatus:
         darwin_integration.send_content_sync_status(states, path)
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.get_formatted_status")
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.get_formatted_status")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_send_content_sync_status_error(
         self, mock_log, mock_get_status, frozen_app, darwin_integration, tmp_path
     ):
@@ -505,8 +505,8 @@ class TestRegisterContextualMenu:
     """Test cases for register_contextual_menu method."""
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.Translator")
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.Translator")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_register_contextual_menu(
         self, mock_log, mock_translator, frozen_app, darwin_integration
     ):
@@ -530,9 +530,9 @@ class TestRegisterFolderLink:
     """Test cases for register_folder_link method."""
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.LSSharedFileListInsertItemURL")
-    @patch("nxdrive.osi.darwin.darwin.CFURLCreateWithString")
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.LSSharedFileListInsertItemURL")
+    @patch("nxdrive.drive.osi.darwin.darwin.CFURLCreateWithString")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_register_folder_link_success(
         self,
         mock_log,
@@ -559,7 +559,7 @@ class TestRegisterFolderLink:
         mock_log.info.assert_called_once()
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_register_folder_link_already_exists(
         self, mock_log, frozen_app, darwin_integration, tmp_path
     ):
@@ -584,7 +584,7 @@ class TestRegisterFolderLink:
         )
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_register_folder_link_no_favorites(
         self, mock_log, frozen_app, darwin_integration, tmp_path
     ):
@@ -600,8 +600,8 @@ class TestRegisterFolderLink:
         )
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.CFURLCreateWithString")
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.CFURLCreateWithString")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_register_folder_link_invalid_url(
         self, mock_log, mock_create_url, frozen_app, darwin_integration, tmp_path
     ):
@@ -623,9 +623,9 @@ class TestRegisterFolderLink:
         )
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.LSSharedFileListInsertItemURL")
-    @patch("nxdrive.osi.darwin.darwin.CFURLCreateWithString")
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.LSSharedFileListInsertItemURL")
+    @patch("nxdrive.drive.osi.darwin.darwin.CFURLCreateWithString")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_register_folder_link_insert_fails(
         self,
         mock_log,
@@ -659,8 +659,8 @@ class TestUnregisterFolderLink:
     """Test cases for unregister_folder_link method."""
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.LSSharedFileListItemRemove")
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.LSSharedFileListItemRemove")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_unregister_folder_link_success(
         self, mock_log, mock_remove, frozen_app, darwin_integration, tmp_path
     ):
@@ -685,7 +685,7 @@ class TestUnregisterFolderLink:
         )
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_unregister_folder_link_not_found(
         self, mock_log, frozen_app, darwin_integration, tmp_path
     ):
@@ -706,7 +706,7 @@ class TestUnregisterFolderLink:
         )
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_unregister_folder_link_no_favorites(
         self, mock_log, frozen_app, darwin_integration, tmp_path
     ):
@@ -720,8 +720,8 @@ class TestUnregisterFolderLink:
         mock_log.warning.assert_called_once_with("Could not fetch Finder favorites")
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.LSSharedFileListItemRemove")
-    @patch("nxdrive.osi.darwin.darwin.log")
+    @patch("nxdrive.drive.osi.darwin.darwin.LSSharedFileListItemRemove")
+    @patch("nxdrive.drive.osi.darwin.darwin.log")
     def test_unregister_folder_link_error(
         self, mock_log, mock_remove, frozen_app, darwin_integration, tmp_path
     ):
@@ -748,7 +748,7 @@ class TestGetFavoriteList:
     """Test cases for _get_favorite_list method."""
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.LSSharedFileListCreate")
+    @patch("nxdrive.drive.osi.darwin.darwin.LSSharedFileListCreate")
     def test_get_favorite_list(self, mock_create, darwin_integration):
         """Test getting the favorite list."""
         mock_favorites = ["fav1", "fav2", "fav3"]
@@ -764,8 +764,8 @@ class TestFindItemInList:
     """Test cases for _find_item_in_list method."""
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.LSSharedFileListCopySnapshot")
-    @patch("nxdrive.osi.darwin.darwin.LSSharedFileListItemCopyDisplayName")
+    @patch("nxdrive.drive.osi.darwin.darwin.LSSharedFileListCopySnapshot")
+    @patch("nxdrive.drive.osi.darwin.darwin.LSSharedFileListItemCopyDisplayName")
     def test_find_item_in_list_found(
         self, mock_get_name, mock_snapshot, darwin_integration
     ):
@@ -782,8 +782,8 @@ class TestFindItemInList:
         assert mock_get_name.call_count == 2
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.LSSharedFileListCopySnapshot")
-    @patch("nxdrive.osi.darwin.darwin.LSSharedFileListItemCopyDisplayName")
+    @patch("nxdrive.drive.osi.darwin.darwin.LSSharedFileListCopySnapshot")
+    @patch("nxdrive.drive.osi.darwin.darwin.LSSharedFileListItemCopyDisplayName")
     def test_find_item_in_list_not_found(
         self, mock_get_name, mock_snapshot, darwin_integration
     ):
@@ -799,7 +799,7 @@ class TestFindItemInList:
         assert mock_get_name.call_count == 2
 
     @mac_only
-    @patch("nxdrive.osi.darwin.darwin.LSSharedFileListCopySnapshot")
+    @patch("nxdrive.drive.osi.darwin.darwin.LSSharedFileListCopySnapshot")
     def test_find_item_in_list_empty(self, mock_snapshot, darwin_integration):
         """Test finding an item in an empty list."""
         mock_snapshot.return_value = ([], None)

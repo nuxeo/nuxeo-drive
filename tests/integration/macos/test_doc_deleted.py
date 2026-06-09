@@ -5,9 +5,9 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from nxdrive.constants import DelAction
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
+from nxdrive.drive.constants import DelAction
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
 from tests.markers import mac_only
 
 
@@ -41,11 +41,11 @@ class TestDocDeleted:
         app, manager, engine = mock_application
         path = Path("/test/path")
 
-        with patch("nxdrive.gui.application.Behavior") as mock_behavior:
+        with patch("nxdrive.drive.gui.application.Behavior") as mock_behavior:
             mock_behavior.server_deletion = False
 
             # Bind and call the method
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._doc_deleted.__get__(app, Application)
             app.sender = Mock(return_value=engine)
@@ -63,11 +63,11 @@ class TestDocDeleted:
         path = Path("/test/path")
         app.confirm_deletion = Mock(return_value=DelAction.ROLLBACK)
 
-        with patch("nxdrive.gui.application.Behavior") as mock_behavior:
+        with patch("nxdrive.drive.gui.application.Behavior") as mock_behavior:
             mock_behavior.server_deletion = True
 
             # Bind and call the method
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._doc_deleted.__get__(app, Application)
             app.sender = Mock(return_value=engine)
@@ -85,11 +85,11 @@ class TestDocDeleted:
         path = Path("/test/path")
         app.confirm_deletion = Mock(return_value=DelAction.DEL_SERVER)
 
-        with patch("nxdrive.gui.application.Behavior") as mock_behavior:
+        with patch("nxdrive.drive.gui.application.Behavior") as mock_behavior:
             mock_behavior.server_deletion = True
 
             # Bind and call the method
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._doc_deleted.__get__(app, Application)
             app.sender = Mock(return_value=engine)
@@ -107,11 +107,11 @@ class TestDocDeleted:
         path = Path("/test/path")
         app.confirm_deletion = Mock(return_value=DelAction.UNSYNC)
 
-        with patch("nxdrive.gui.application.Behavior") as mock_behavior:
+        with patch("nxdrive.drive.gui.application.Behavior") as mock_behavior:
             mock_behavior.server_deletion = True
 
             # Bind and call the method
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._doc_deleted.__get__(app, Application)
             app.sender = Mock(return_value=engine)

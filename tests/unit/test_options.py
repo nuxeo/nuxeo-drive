@@ -6,7 +6,7 @@ import pytest
 import requests
 from sentry_sdk import get_isolation_scope
 
-from nxdrive.options import (
+from nxdrive.drive.options import (
     Options,
     validate_direct_transfer_file_upper_limit,
     validate_direct_transfer_folder_upper_limit,
@@ -336,7 +336,7 @@ def test_disabled_features(caplog):
     assert Options.feature_auto_update is False
     assert Options.feature_s3 is False
 
-    with patch("nxdrive.options.DisabledFeatures", new=["auto_update"]):
+    with patch("nxdrive.drive.options.DisabledFeatures", new=["auto_update"]):
         options = {"feature_auto_update": False, "feature_s3": True}
         Options.update(options, setter="manual")
 

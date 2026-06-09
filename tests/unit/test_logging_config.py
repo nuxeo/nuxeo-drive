@@ -1,7 +1,7 @@
 import logging
 
-from nxdrive.constants import MAX_LOG_DISPLAYED
-from nxdrive.logging_config import CustomMemoryHandler, configure
+from nxdrive.drive.constants import MAX_LOG_DISPLAYED
+from nxdrive.drive.logging_config import CustomMemoryHandler, configure
 
 
 def test_custom_memory_handler():

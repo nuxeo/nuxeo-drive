@@ -45,3 +45,7 @@ __copyright__ = """
     See the License for the specific language governing permissions and
     limitations under the License.
 """
+
+# Register server-type configurations (must happen before drive/ code uses them)
+import nxdrive.alfresco.registration  # noqa: F401
+import nxdrive.nuxeo.registration  # noqa: F401

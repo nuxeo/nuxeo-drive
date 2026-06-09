@@ -4,9 +4,9 @@ from unittest.mock import patch
 
 import pytest
 
-from nxdrive.osi.extension import ExtensionListener, Status, get_formatted_status
-from nxdrive.qt.constants import IPv4Protocol
-from nxdrive.qt.imports import QHostAddress
+from nxdrive.drive.osi.extension import ExtensionListener, Status, get_formatted_status
+from nxdrive.drive.qt.constants import IPv4Protocol
+from nxdrive.drive.qt.imports import QHostAddress
 
 DocPair = namedtuple(
     "DocPair",

@@ -14,13 +14,13 @@ from types import FrameType
 
 import pip_system_certs.wrapt_requests
 
-from nxdrive.constants import APP_NAME, WINDOWS
-from nxdrive.fatal_error import (
+from nxdrive.drive.constants import APP_NAME, WINDOWS
+from nxdrive.drive.fatal_error import (
     check_executable_path,
     check_os_version,
     show_critical_error,
 )
-from nxdrive.utils import adapt_datetime_iso
+from nxdrive.drive.utils import adapt_datetime_iso
 
 # Set Qt Quick Controls style to "Basic" to avoid loading Windows-specific plugins
 # that may have missing DLL dependencies (the Windows style impl DLL is not shipped with PyQt6)
@@ -33,7 +33,7 @@ pip_system_certs.wrapt_requests.inject_truststore()
 
 def signal_handler(signum: int, _: FrameType, /) -> None:
     """Signal handler."""
-    from nxdrive.qt.imports import QApplication
+    from nxdrive.drive.qt.imports import QApplication
 
     signame = signal.Signals(signum).name
     print("\r", flush=True)
@@ -88,9 +88,9 @@ def main() -> int:
 
         from sentry_sdk import get_isolation_scope
 
-        from nxdrive.commandline import CliHandler
-        from nxdrive.metrics.utils import current_os
-        from nxdrive.tracing import setup_sentry
+        from nxdrive.drive.commandline import CliHandler
+        from nxdrive.drive.metrics.utils import current_os
+        from nxdrive.drive.tracing import setup_sentry
 
         # Setup Sentry even if the user did not allow it because it can be tweaked
         # later via the "use-sentry" parameter. It will be useless if Sentry is not installed first.

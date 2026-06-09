@@ -2,8 +2,8 @@ from time import monotonic_ns
 
 import pytest
 
-from nxdrive.engine.tracker import Tracker
-from nxdrive.options import Options
+from nxdrive.drive.engine.tracker import Tracker
+from nxdrive.drive.options import Options
 
 
 @Options.mock()

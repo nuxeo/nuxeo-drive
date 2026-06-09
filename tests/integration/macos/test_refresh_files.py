@@ -5,9 +5,9 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
-from nxdrive.engine.engine import Engine
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
+from nxdrive.nuxeo.engine.engine import Engine
 from tests.markers import mac_only
 
 
@@ -43,7 +43,7 @@ class TestRefreshFiles:
         app.get_last_files = mock_get_last_files
         app.sender = Mock(return_value=mock_engine)
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.refresh_files.__get__(app, Application)
         bound_method({})
@@ -67,7 +67,7 @@ class TestRefreshFiles:
         app.get_last_files = mock_get_last_files
         app.sender = Mock(return_value=mock_engine)
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.refresh_files.__get__(app, Application)
 
@@ -95,7 +95,7 @@ class TestRefreshFiles:
         app.get_last_files = mock_get_last_files
         app.sender = Mock(return_value=mock_engine)
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.refresh_files.__get__(app, Application)
         bound_method({})
@@ -118,7 +118,7 @@ class TestRefreshFiles:
         app.get_last_files = Mock()
         app.sender = Mock(return_value=mock_engine)
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.refresh_files.__get__(app, Application)
 
@@ -143,7 +143,7 @@ class TestRefreshFiles:
         app.sender = mock_sender
         app.get_last_files = Mock()
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.refresh_files.__get__(app, Application)
         bound_method({})
@@ -166,7 +166,7 @@ class TestRefreshFiles:
         mock_get_last_files = Mock()
         app.get_last_files = mock_get_last_files
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.refresh_files.__get__(app, Application)
         bound_method({})
@@ -188,7 +188,7 @@ class TestRefreshFiles:
         mock_get_last_files = Mock()
         app.get_last_files = mock_get_last_files
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.refresh_files.__get__(app, Application)
         bound_method({})
@@ -209,7 +209,7 @@ class TestRefreshFiles:
         app.sender = Mock(return_value=mock_engine)
         app.get_last_files = Mock()
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.refresh_files.__get__(app, Application)
 

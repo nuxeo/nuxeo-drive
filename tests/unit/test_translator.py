@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from nxdrive.translator import Translator
+from nxdrive.drive.translator import Translator
 
 
 def get_folder(folder) -> Path:

@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import pytest
 
-from nxdrive.constants import ROOT, WINDOWS
+from nxdrive.drive.constants import ROOT, WINDOWS
 
 from .. import env
 

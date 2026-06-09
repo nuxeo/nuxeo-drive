@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from nxdrive.constants import LINUX, MAC
+from nxdrive.drive.constants import LINUX, MAC
 
 from ..markers import not_linux
 from .common import OneUserTest

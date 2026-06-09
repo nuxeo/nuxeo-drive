@@ -6,20 +6,20 @@ from uuid import uuid4
 
 import pytest
 
-from nxdrive.client.remote_client import Remote
-from nxdrive.constants import TransferStatus
-from nxdrive.dao.engine import EngineDAO
-from nxdrive.dao.manager import ManagerDAO
-from nxdrive.engine.engine import Engine
-from nxdrive.engine.processor import Processor
-from nxdrive.gui.view import DirectTransferModel
-from nxdrive.manager import Manager
-from nxdrive.objects import DocPair, Upload
-from nxdrive.osi import AbstractOSIntegration
-from nxdrive.qt import constants as qt
-from nxdrive.qt.imports import QObject
-from nxdrive.updater.darwin import Updater
-from nxdrive.utils import normalized_path
+from nxdrive.drive.constants import TransferStatus
+from nxdrive.drive.dao.engine import EngineDAO
+from nxdrive.drive.dao.manager import ManagerDAO
+from nxdrive.drive.gui.view import DirectTransferModel
+from nxdrive.drive.manager import Manager
+from nxdrive.drive.objects import DocPair, Upload
+from nxdrive.drive.osi import AbstractOSIntegration
+from nxdrive.drive.qt import constants as qt
+from nxdrive.drive.qt.imports import QObject
+from nxdrive.drive.updater.darwin import Updater
+from nxdrive.drive.utils import normalized_path
+from nxdrive.nuxeo.client.remote_client import Remote
+from nxdrive.nuxeo.engine.engine import Engine
+from nxdrive.nuxeo.engine.processor import Processor
 
 
 class MockEngineDAO(EngineDAO):

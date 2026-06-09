@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
 from tests.markers import mac_only
 
 
@@ -32,7 +32,7 @@ class TestForceRefreshFiles:
         # Set initial timestamp
         app._last_refresh_view = 123.456
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         # Create mock for refresh_files
         mock_refresh = Mock()
@@ -50,7 +50,7 @@ class TestForceRefreshFiles:
         """Test force_refresh_files calls refresh_files with empty dict."""
         app, manager = mock_application
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         # Create mock for refresh_files
         mock_refresh = Mock()
@@ -69,7 +69,7 @@ class TestForceRefreshFiles:
         # Set large timestamp
         app._last_refresh_view = 999999.999
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         mock_refresh = Mock()
         app.refresh_files = mock_refresh

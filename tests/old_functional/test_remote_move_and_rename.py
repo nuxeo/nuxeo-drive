@@ -6,9 +6,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from nxdrive.constants import WINDOWS
-from nxdrive.engine.engine import Engine
-from nxdrive.options import Options
+from nxdrive.drive.constants import WINDOWS
+from nxdrive.drive.options import Options
+from nxdrive.nuxeo.engine.engine import Engine
 
 from .. import env
 from ..markers import windows_only
@@ -700,7 +700,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         if WINDOWS:
             self._remote_rename_while_upload()
         else:
-            func = "nxdrive.client.remote_client.os.fstatvfs"
+            func = "nxdrive.nuxeo.client.remote_client.os.fstatvfs"
             with patch(func) as mock_os:
                 mock_os.return_value = Mock()
                 mock_os.return_value.f_bsize = 4096

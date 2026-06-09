@@ -4,9 +4,9 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from nxdrive.engine.engine import Engine
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
+from nxdrive.nuxeo.engine.engine import Engine
 from tests.markers import mac_only
 
 
@@ -37,10 +37,10 @@ class TestUpdateStatus:
 
         not_an_engine = "not_an_engine"
 
-        with patch("nxdrive.gui.application.log") as mock_log, patch.object(
+        with patch("nxdrive.drive.gui.application.log") as mock_log, patch.object(
             app, "_window_root", return_value=app.systray_window
         ):
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.update_status.__get__(app, Application)
             bound_method(not_an_engine)
@@ -65,7 +65,7 @@ class TestUpdateStatus:
         manager.updater.status = ""
 
         with patch.object(app, "_window_root", return_value=app.systray_window):
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.update_status.__get__(app, Application)
             bound_method(mock_engine)
@@ -90,7 +90,7 @@ class TestUpdateStatus:
         manager.updater.status = ""
 
         with patch.object(app, "_window_root", return_value=app.systray_window):
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.update_status.__get__(app, Application)
             bound_method(mock_engine)
@@ -115,7 +115,7 @@ class TestUpdateStatus:
         manager.updater.status = ""
 
         with patch.object(app, "_window_root", return_value=app.systray_window):
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.update_status.__get__(app, Application)
             bound_method(mock_engine)
@@ -140,7 +140,7 @@ class TestUpdateStatus:
         manager.updater.status = ""
 
         with patch.object(app, "_window_root", return_value=app.systray_window):
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.update_status.__get__(app, Application)
             bound_method(mock_engine)
@@ -168,7 +168,7 @@ class TestUpdateStatus:
         app.conflicts_model.count = 5
 
         with patch.object(app, "_window_root", return_value=app.systray_window):
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.update_status.__get__(app, Application)
             bound_method(mock_engine)
@@ -197,7 +197,7 @@ class TestUpdateStatus:
         app.errors_model.count = 3
 
         with patch.object(app, "_window_root", return_value=app.systray_window):
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.update_status.__get__(app, Application)
             bound_method(mock_engine)
@@ -222,7 +222,7 @@ class TestUpdateStatus:
         manager.updater.status = "update_available"
 
         with patch.object(app, "_window_root", return_value=app.systray_window):
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.update_status.__get__(app, Application)
             bound_method(mock_engine)
@@ -247,7 +247,7 @@ class TestUpdateStatus:
         manager.updater.status = ""
 
         with patch.object(app, "_window_root", return_value=app.systray_window):
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.update_status.__get__(app, Application)
             bound_method(mock_engine)
@@ -274,7 +274,7 @@ class TestUpdateStatus:
         app.errors_model.count = 0
 
         with patch.object(app, "_window_root", return_value=app.systray_window):
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.update_status.__get__(app, Application)
             bound_method(mock_engine)
@@ -301,7 +301,7 @@ class TestUpdateStatus:
         manager.updater.status = ""
 
         with patch.object(app, "_window_root", return_value=app.systray_window):
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.update_status.__get__(app, Application)
             bound_method(mock_engine)
@@ -330,7 +330,7 @@ class TestUpdateStatus:
         app.errors_model.count = 0
 
         with patch.object(app, "_window_root", return_value=app.systray_window):
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.update_status.__get__(app, Application)
             bound_method(mock_engine)
@@ -359,7 +359,7 @@ class TestUpdateStatus:
         app.errors_model.count = 3
 
         with patch.object(app, "_window_root", return_value=app.systray_window):
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.update_status.__get__(app, Application)
             bound_method(mock_engine)

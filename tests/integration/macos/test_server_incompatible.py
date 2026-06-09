@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, Mock, PropertyMock, patch
 
 import pytest
 
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
 from tests.markers import mac_only
 
 
@@ -39,8 +39,10 @@ class TestServerIncompatible:
         manager.updater.version = downgrade_version
         manager.updater.available_version = None
 
-        with patch("nxdrive.gui.application.Translator") as mock_translator, patch(
-            "nxdrive.gui.application.APP_NAME", "TestApp"
+        with patch(
+            "nxdrive.drive.gui.application.Translator"
+        ) as mock_translator, patch(
+            "nxdrive.drive.gui.application.APP_NAME", "TestApp"
         ):
 
             mock_translator.get.side_effect = lambda key, values=None: f"{key}_{values}"
@@ -65,7 +67,7 @@ class TestServerIncompatible:
 
             app.question.return_value = mock_dialog
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._server_incompatible.__get__(app, Application)
             bound_method()
@@ -88,8 +90,10 @@ class TestServerIncompatible:
         manager.updater.version = downgrade_version
         manager.updater.available_version = None
 
-        with patch("nxdrive.gui.application.Translator") as mock_translator, patch(
-            "nxdrive.gui.application.APP_NAME", "TestApp"
+        with patch(
+            "nxdrive.drive.gui.application.Translator"
+        ) as mock_translator, patch(
+            "nxdrive.drive.gui.application.APP_NAME", "TestApp"
         ):
 
             mock_translator.get.side_effect = lambda key, values=None: f"{key}_{values}"
@@ -114,7 +118,7 @@ class TestServerIncompatible:
 
             app.question.return_value = mock_dialog
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._server_incompatible.__get__(app, Application)
             bound_method()
@@ -133,8 +137,10 @@ class TestServerIncompatible:
         manager.updater.version = None
         manager.updater.available_version = None
 
-        with patch("nxdrive.gui.application.Translator") as mock_translator, patch(
-            "nxdrive.gui.application.APP_NAME", "TestApp"
+        with patch(
+            "nxdrive.drive.gui.application.Translator"
+        ) as mock_translator, patch(
+            "nxdrive.drive.gui.application.APP_NAME", "TestApp"
         ):
 
             mock_translator.get.side_effect = lambda key, values=None: f"{key}_{values}"
@@ -148,7 +154,7 @@ class TestServerIncompatible:
 
             app.question.return_value = mock_dialog
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._server_incompatible.__get__(app, Application)
             bound_method()
@@ -173,8 +179,10 @@ class TestServerIncompatible:
         manager.updater.version = None
         manager.updater.available_version = available_version
 
-        with patch("nxdrive.gui.application.Translator") as mock_translator, patch(
-            "nxdrive.gui.application.APP_NAME", "TestApp"
+        with patch(
+            "nxdrive.drive.gui.application.Translator"
+        ) as mock_translator, patch(
+            "nxdrive.drive.gui.application.APP_NAME", "TestApp"
         ):
 
             mock_translator.get.side_effect = lambda key, values=None: f"{key}_{values}"
@@ -187,7 +195,7 @@ class TestServerIncompatible:
 
             app.question.return_value = mock_dialog
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._server_incompatible.__get__(app, Application)
             bound_method()

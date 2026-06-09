@@ -1,19 +1,19 @@
+import os
 from unittest.mock import patch
 
-import os
 import pytest
 
-from nxdrive.client.proxy import (
+from nxdrive.drive.client.proxy import (
     AutomaticProxy,
     ManualProxy,
     get_proxy,
     load_proxy,
     save_proxy,
 )
-from nxdrive.constants import WINDOWS
-from nxdrive.dao.base import BaseDAO
-from nxdrive.manager import Manager
-from nxdrive.options import Options
+from nxdrive.drive.constants import WINDOWS
+from nxdrive.drive.dao.base import BaseDAO
+from nxdrive.drive.manager import Manager
+from nxdrive.drive.options import Options
 
 from ..markers import mac_only, windows_only
 

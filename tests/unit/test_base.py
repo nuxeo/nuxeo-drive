@@ -7,10 +7,10 @@ from unittest.mock import patch
 
 import pytest
 
-from nxdrive.client.local import LocalClient
-from nxdrive.constants import ROOT
-from nxdrive.exceptions import DuplicationDisabledError, NotFound, UnknownDigest
-from nxdrive.options import Options
+from nxdrive.drive.client.local import LocalClient
+from nxdrive.drive.constants import ROOT
+from nxdrive.drive.exceptions import DuplicationDisabledError, NotFound, UnknownDigest
+from nxdrive.drive.options import Options
 
 
 @pytest.fixture

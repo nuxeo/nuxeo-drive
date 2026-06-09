@@ -5,8 +5,8 @@ from unittest.mock import patch
 from nuxeo.exceptions import Conflict, HTTPError, Unauthorized
 from requests import ConnectionError
 
-from nxdrive.constants import ROOT, WINDOWS
-from nxdrive.utils import safe_filename
+from nxdrive.drive.constants import ROOT, WINDOWS
+from nxdrive.drive.utils import safe_filename
 
 from .. import ensure_no_exception
 from . import LocalTest

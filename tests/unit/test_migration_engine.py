@@ -6,8 +6,8 @@ from typing import Any, Dict
 
 from pytest import raises
 
-from nxdrive.dao.migrations.migration import MigrationInterface
-from nxdrive.dao.migrations.migration_engine import MigrationEngine
+from nxdrive.drive.dao.migrations.migration import MigrationInterface
+from nxdrive.drive.dao.migrations.migration_engine import MigrationEngine
 
 
 def generate_migration(

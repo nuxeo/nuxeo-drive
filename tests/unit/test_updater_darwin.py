@@ -1,11 +1,11 @@
 import plistlib
 import subprocess
-from types import SimpleNamespace
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
-from nxdrive.updater.darwin import Updater
+from nxdrive.drive.updater.darwin import Updater
 
 
 def make_updater():

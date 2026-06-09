@@ -1,0 +1,26 @@
+import importlib
+from typing import Any, Dict
+
+__migrations_list = [
+    "0021_initial_migration",
+    "0022_initial_migration",
+    "0023_direct_downloads",
+]  # Keep sorted
+
+
+def import_migrations() -> Dict[str, Any]:
+    """Dynamically load all the migrations from the module."""
+    migrations = {}
+
+    for migration_name in __migrations_list:
+        module = getattr(
+            importlib.import_module(
+                f".{migration_name}", package="nxdrive.drive.dao.migrations.engine"
+            ),
+            "migration",
+        )
+        migrations[migration_name] = module
+    return migrations
+
+
+engine_migrations = import_migrations()

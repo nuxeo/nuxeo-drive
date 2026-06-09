@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from nxdrive.gui.constants import get_known_types_translations
+from nxdrive.drive.gui.constants import get_known_types_translations
 
 
 class TestKnownTypesTranslations:
@@ -12,7 +12,7 @@ class TestKnownTypesTranslations:
 
     def test_get_known_types_translations_basic(self):
         """Test basic structure of known types translations."""
-        with patch("nxdrive.gui.constants.Translator") as mock_translator:
+        with patch("nxdrive.drive.gui.constants.Translator") as mock_translator:
             # Mock translation returns
             mock_translator.get.side_effect = lambda key: f"Translated_{key}"
 
@@ -51,7 +51,7 @@ class TestKnownTypesTranslations:
 
     def test_get_known_types_translations_translator_calls(self):
         """Test that translator is called with correct keys."""
-        with patch("nxdrive.gui.constants.Translator") as mock_translator:
+        with patch("nxdrive.drive.gui.constants.Translator") as mock_translator:
             mock_translator.get.return_value = "dummy_translation"
 
             get_known_types_translations()
@@ -76,7 +76,7 @@ class TestKnownTypesTranslations:
     def test_get_known_types_translations_with_real_translations(self):
         """Test with actual translator instance (integration test)."""
         # Mock the Translator to avoid initialization issues
-        with patch("nxdrive.gui.constants.Translator") as mock_translator:
+        with patch("nxdrive.drive.gui.constants.Translator") as mock_translator:
             mock_translator.get.side_effect = lambda label: f"translated_{label}"
 
             # This test verifies the function works with a translator
@@ -112,7 +112,7 @@ class TestKnownTypesTranslations:
 
     def test_get_known_types_translations_immutability(self):
         """Test that function returns a new dict each time (not cached)."""
-        with patch("nxdrive.gui.constants.Translator") as mock_translator:
+        with patch("nxdrive.drive.gui.constants.Translator") as mock_translator:
             mock_translator.get.return_value = "translation"
 
             result1 = get_known_types_translations()
@@ -125,7 +125,7 @@ class TestKnownTypesTranslations:
 
     def test_get_known_types_translations_error_handling(self):
         """Test behavior when translator fails."""
-        with patch("nxdrive.gui.constants.Translator") as mock_translator:
+        with patch("nxdrive.drive.gui.constants.Translator") as mock_translator:
             mock_translator.get.side_effect = Exception("Translation error")
 
             # Should raise the exception
@@ -140,7 +140,7 @@ class TestKnownTypesTranslations:
                 raise Exception("Translation failed")
             return f"Translated_{key}"
 
-        with patch("nxdrive.gui.constants.Translator") as mock_translator:
+        with patch("nxdrive.drive.gui.constants.Translator") as mock_translator:
             mock_translator.get.side_effect = translation_side_effect
 
             # Should raise the exception on first failed translation
@@ -149,7 +149,7 @@ class TestKnownTypesTranslations:
 
     def test_get_known_types_translations_empty_translations(self):
         """Test behavior with empty translation strings."""
-        with patch("nxdrive.gui.constants.Translator") as mock_translator:
+        with patch("nxdrive.drive.gui.constants.Translator") as mock_translator:
             mock_translator.get.return_value = ""
 
             result = get_known_types_translations()

@@ -1,15 +1,15 @@
 import pytest
 
-from nxdrive.options import Options
-from nxdrive.updater.constants import (
+from nxdrive.drive.options import Options
+from nxdrive.drive.updater.constants import (
     UPDATE_STATUS_INCOMPATIBLE_SERVER,
     UPDATE_STATUS_UP_TO_DATE,
     UPDATE_STATUS_UPDATE_AVAILABLE,
     UPDATE_STATUS_WRONG_CHANNEL,
     Login,
 )
-from nxdrive.updater.darwin import Updater
-from nxdrive.updater.utils import get_update_status
+from nxdrive.drive.updater.darwin import Updater
+from nxdrive.drive.updater.utils import get_update_status
 
 VERSIONS = {
     "1.3.0424": {"type": "release", "min": "5.8"},
@@ -218,7 +218,7 @@ def test_app_restart(updater):
     import subprocess
     from unittest.mock import Mock
 
-    from nxdrive.updater.base import BaseUpdater
+    from nxdrive.drive.updater.base import BaseUpdater
 
     BaseUpdater.appUpdated = Mock()
     subprocess.Popen = Mock()

@@ -2,7 +2,7 @@ import os
 import random
 from unittest.mock import patch
 
-from nxdrive.constants import NO_SPACE_ERRORS
+from nxdrive.drive.constants import NO_SPACE_ERRORS
 
 from .common import OneUserTest
 

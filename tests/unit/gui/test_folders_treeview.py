@@ -13,10 +13,13 @@ class TestExpandItem:
 
         Pass root_item=None explicitly to make tree.root_item falsy.
         """
-        from nxdrive.gui.folders_treeview import TreeViewMixin
+        from nxdrive.drive.gui.folders_treeview import TreeViewMixin
 
         with (
-            patch("nxdrive.gui.folders_treeview.QTreeView.__init__", return_value=None),
+            patch(
+                "nxdrive.drive.gui.folders_treeview.QTreeView.__init__",
+                return_value=None,
+            ),
             patch.object(TreeViewMixin, "setHeaderHidden"),
             patch.object(TreeViewMixin, "setModel"),
             patch.object(TreeViewMixin, "load_children"),
@@ -58,7 +61,7 @@ class TestExpandItem:
 
         tree = self._make_tree_view(root_item=mock_root)
 
-        with patch("nxdrive.gui.folders_treeview.log") as mock_log:
+        with patch("nxdrive.drive.gui.folders_treeview.log") as mock_log:
             tree.expand_item(mock_index)
 
         mock_log.error.assert_called_once_with(
@@ -113,10 +116,13 @@ class TestLoadChildren:
 
     def _make_tree_view(self, client=_UNSET):
         """Return a TreeViewMixin instance with mocked Qt internals."""
-        from nxdrive.gui.folders_treeview import TreeViewMixin
+        from nxdrive.drive.gui.folders_treeview import TreeViewMixin
 
         with (
-            patch("nxdrive.gui.folders_treeview.QTreeView.__init__", return_value=None),
+            patch(
+                "nxdrive.drive.gui.folders_treeview.QTreeView.__init__",
+                return_value=None,
+            ),
             patch.object(TreeViewMixin, "setHeaderHidden"),
             patch.object(TreeViewMixin, "setModel"),
             patch.object(TreeViewMixin, "load_children"),
@@ -133,7 +139,7 @@ class TestLoadChildren:
 
     def test_load_children_no_client_calls_set_loading_cursor_false(self):
         """load_children should call set_loading_cursor(False) and return immediately when client is falsy."""
-        from nxdrive.gui.folders_treeview import TreeViewMixin
+        from nxdrive.drive.gui.folders_treeview import TreeViewMixin
 
         tree = self._make_tree_view(client=None)
 
@@ -144,13 +150,13 @@ class TestLoadChildren:
 
     def test_load_children_sets_busy_cursor_when_client_present(self):
         """load_children should call set_loading_cursor(True) when a client exists."""
-        from nxdrive.gui.folders_treeview import TreeViewMixin
+        from nxdrive.drive.gui.folders_treeview import TreeViewMixin
 
         mock_loader_instance = MagicMock()
         tree = self._make_tree_view()
         tree.loader.return_value = mock_loader_instance
 
-        with patch("nxdrive.gui.folders_treeview.QThreadPool") as mock_pool_cls:
+        with patch("nxdrive.drive.gui.folders_treeview.QThreadPool") as mock_pool_cls:
             mock_pool = MagicMock()
             mock_pool_cls.globalInstance.return_value = mock_pool
             TreeViewMixin.load_children(tree)
@@ -159,13 +165,13 @@ class TestLoadChildren:
 
     def test_load_children_creates_loader_and_starts_it(self):
         """load_children should instantiate the loader and submit it to the thread pool."""
-        from nxdrive.gui.folders_treeview import TreeViewMixin
+        from nxdrive.drive.gui.folders_treeview import TreeViewMixin
 
         mock_loader_instance = MagicMock()
         tree = self._make_tree_view()
         tree.loader.return_value = mock_loader_instance
 
-        with patch("nxdrive.gui.folders_treeview.QThreadPool") as mock_pool_cls:
+        with patch("nxdrive.drive.gui.folders_treeview.QThreadPool") as mock_pool_cls:
             mock_pool = MagicMock()
             mock_pool_cls.globalInstance.return_value = mock_pool
             TreeViewMixin.load_children(tree)
@@ -175,14 +181,14 @@ class TestLoadChildren:
 
     def test_load_children_passes_item_argument(self):
         """load_children should forward the item kwarg to the loader."""
-        from nxdrive.gui.folders_treeview import TreeViewMixin
+        from nxdrive.drive.gui.folders_treeview import TreeViewMixin
 
         mock_item = MagicMock()
         mock_loader_instance = MagicMock()
         tree = self._make_tree_view()
         tree.loader.return_value = mock_loader_instance
 
-        with patch("nxdrive.gui.folders_treeview.QThreadPool") as mock_pool_cls:
+        with patch("nxdrive.drive.gui.folders_treeview.QThreadPool") as mock_pool_cls:
             mock_pool = MagicMock()
             mock_pool_cls.globalInstance.return_value = mock_pool
             TreeViewMixin.load_children(tree, item=mock_item)
@@ -191,13 +197,13 @@ class TestLoadChildren:
 
     def test_load_children_passes_force_refresh_argument(self):
         """load_children should forward force_refresh=True to the loader."""
-        from nxdrive.gui.folders_treeview import TreeViewMixin
+        from nxdrive.drive.gui.folders_treeview import TreeViewMixin
 
         mock_loader_instance = MagicMock()
         tree = self._make_tree_view()
         tree.loader.return_value = mock_loader_instance
 
-        with patch("nxdrive.gui.folders_treeview.QThreadPool") as mock_pool_cls:
+        with patch("nxdrive.drive.gui.folders_treeview.QThreadPool") as mock_pool_cls:
             mock_pool = MagicMock()
             mock_pool_cls.globalInstance.return_value = mock_pool
             TreeViewMixin.load_children(tree, force_refresh=True)
@@ -206,15 +212,15 @@ class TestLoadChildren:
 
     def test_load_children_logs_error_when_pool_is_none(self):
         """load_children should log an error when the global thread pool is unavailable."""
-        from nxdrive.gui.folders_treeview import TreeViewMixin
+        from nxdrive.drive.gui.folders_treeview import TreeViewMixin
 
         mock_loader_instance = MagicMock()
         tree = self._make_tree_view()
         tree.loader.return_value = mock_loader_instance
 
         with (
-            patch("nxdrive.gui.folders_treeview.QThreadPool") as mock_pool_cls,
-            patch("nxdrive.gui.folders_treeview.log") as mock_log,
+            patch("nxdrive.drive.gui.folders_treeview.QThreadPool") as mock_pool_cls,
+            patch("nxdrive.drive.gui.folders_treeview.log") as mock_log,
         ):
             mock_pool_cls.globalInstance.return_value = None
             TreeViewMixin.load_children(tree)
@@ -225,13 +231,13 @@ class TestLoadChildren:
 
     def test_load_children_does_not_start_pool_when_pool_is_none(self):
         """load_children should not attempt pool.start when pool is None."""
-        from nxdrive.gui.folders_treeview import TreeViewMixin
+        from nxdrive.drive.gui.folders_treeview import TreeViewMixin
 
         mock_loader_instance = MagicMock()
         tree = self._make_tree_view()
         tree.loader.return_value = mock_loader_instance
 
-        with patch("nxdrive.gui.folders_treeview.QThreadPool") as mock_pool_cls:
+        with patch("nxdrive.drive.gui.folders_treeview.QThreadPool") as mock_pool_cls:
             mock_pool_cls.globalInstance.return_value = None
             # Should not raise AttributeError
             TreeViewMixin.load_children(tree)
@@ -244,10 +250,12 @@ class TestLoadChildren:
 
 def _make_folder_tree(root_item=_UNSET, current=_UNSET, selected_folder=None):
     """Return a FolderTreeView created via __new__ with Qt internals mocked out."""
-    from nxdrive.gui.folders_treeview import FolderTreeView
+    from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
     with (
-        patch("nxdrive.gui.folders_treeview.QTreeView.__init__", return_value=None),
+        patch(
+            "nxdrive.drive.gui.folders_treeview.QTreeView.__init__", return_value=None
+        ),
         patch.object(FolderTreeView, "setHeaderHidden"),
         patch.object(FolderTreeView, "setModel"),
         patch.object(FolderTreeView, "load_children"),
@@ -275,10 +283,13 @@ class TestSetLoadingCursor:
     """Unit tests for TreeViewMixin.set_loading_cursor."""
 
     def _make_tree_view(self):
-        from nxdrive.gui.folders_treeview import TreeViewMixin
+        from nxdrive.drive.gui.folders_treeview import TreeViewMixin
 
         with (
-            patch("nxdrive.gui.folders_treeview.QTreeView.__init__", return_value=None),
+            patch(
+                "nxdrive.drive.gui.folders_treeview.QTreeView.__init__",
+                return_value=None,
+            ),
             patch.object(TreeViewMixin, "setHeaderHidden"),
             patch.object(TreeViewMixin, "setModel"),
             patch.object(TreeViewMixin, "load_children"),
@@ -291,8 +302,8 @@ class TestSetLoadingCursor:
 
     def test_busy_true_calls_set_cursor(self):
         """busy=True should call setCursor with BusyCursor."""
-        from nxdrive.gui.folders_treeview import TreeViewMixin
-        from nxdrive.qt import constants as qt
+        from nxdrive.drive.gui.folders_treeview import TreeViewMixin
+        from nxdrive.drive.qt import constants as qt
 
         tree = self._make_tree_view()
         TreeViewMixin.set_loading_cursor(tree, True)
@@ -302,7 +313,7 @@ class TestSetLoadingCursor:
 
     def test_busy_false_calls_unset_cursor(self):
         """busy=False should call unsetCursor."""
-        from nxdrive.gui.folders_treeview import TreeViewMixin
+        from nxdrive.drive.gui.folders_treeview import TreeViewMixin
 
         tree = self._make_tree_view()
         TreeViewMixin.set_loading_cursor(tree, False)
@@ -312,7 +323,7 @@ class TestSetLoadingCursor:
 
     def test_runtime_error_on_set_cursor_is_swallowed(self):
         """RuntimeError raised inside setCursor should be silently ignored."""
-        from nxdrive.gui.folders_treeview import TreeViewMixin
+        from nxdrive.drive.gui.folders_treeview import TreeViewMixin
 
         tree = self._make_tree_view()
         tree.setCursor.side_effect = RuntimeError("wrapped C/C++ object deleted")
@@ -321,7 +332,7 @@ class TestSetLoadingCursor:
 
     def test_runtime_error_on_unset_cursor_is_swallowed(self):
         """RuntimeError raised inside unsetCursor should be silently ignored."""
-        from nxdrive.gui.folders_treeview import TreeViewMixin
+        from nxdrive.drive.gui.folders_treeview import TreeViewMixin
 
         tree = self._make_tree_view()
         tree.unsetCursor.side_effect = RuntimeError("wrapped C/C++ object deleted")
@@ -339,11 +350,11 @@ class TestOnSelectionChanged:
 
     def test_no_root_item_logs_error(self):
         """on_selection_changed should log an error when root_item is falsy."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree(root_item=None)
 
-        with patch("nxdrive.gui.folders_treeview.log") as mock_log:
+        with patch("nxdrive.drive.gui.folders_treeview.log") as mock_log:
             FolderTreeView.on_selection_changed(tree, MagicMock(), MagicMock())
 
         mock_log.error.assert_called_once_with(
@@ -352,33 +363,33 @@ class TestOnSelectionChanged:
 
     def test_no_standard_item_logs_error(self):
         """on_selection_changed should log an error when itemFromIndex returns None."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree()
         tree.root_item.itemFromIndex.return_value = None
 
-        with patch("nxdrive.gui.folders_treeview.log") as mock_log:
+        with patch("nxdrive.drive.gui.folders_treeview.log") as mock_log:
             FolderTreeView.on_selection_changed(tree, MagicMock(), MagicMock())
 
         mock_log.error.assert_called_once_with("Cannot get item data from selection")
 
     def test_item_with_no_user_role_data_logs_error(self):
         """on_selection_changed should log an error when UserRole data is None."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree()
         mock_item = MagicMock()
         mock_item.data.return_value = None
         tree.root_item.itemFromIndex.return_value = mock_item
 
-        with patch("nxdrive.gui.folders_treeview.log") as mock_log:
+        with patch("nxdrive.drive.gui.folders_treeview.log") as mock_log:
             FolderTreeView.on_selection_changed(tree, MagicMock(), MagicMock())
 
         mock_log.error.assert_called_once_with("Cannot get item data from selection")
 
     def test_happy_path_sets_parent_fields_and_calls_callbacks(self):
         """on_selection_changed should set all parent attributes and call callbacks."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree()
         current_index = MagicMock()
@@ -412,11 +423,11 @@ class TestRefreshSelected:
 
     def test_no_root_item_logs_error(self):
         """refresh_selected should log an error when root_item is falsy."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree(root_item=None)
 
-        with patch("nxdrive.gui.folders_treeview.log") as mock_log:
+        with patch("nxdrive.drive.gui.folders_treeview.log") as mock_log:
             FolderTreeView.refresh_selected(tree)
 
         mock_log.error.assert_called_once_with(
@@ -426,12 +437,12 @@ class TestRefreshSelected:
 
     def test_no_item_at_current_index_logs_error(self):
         """refresh_selected should log an error when itemFromIndex returns None."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree()
         tree.root_item.itemFromIndex.return_value = None
 
-        with patch("nxdrive.gui.folders_treeview.log") as mock_log:
+        with patch("nxdrive.drive.gui.folders_treeview.log") as mock_log:
             FolderTreeView.refresh_selected(tree)
 
         mock_log.error.assert_called_once_with(
@@ -441,7 +452,7 @@ class TestRefreshSelected:
 
     def test_calls_load_children_with_force_refresh(self):
         """refresh_selected should call load_children with force_refresh=True."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree()
         mock_item = MagicMock()
@@ -462,11 +473,11 @@ class TestFindCurrentAndSelectIt:
 
     def test_no_root_item_logs_error(self):
         """_find_current_and_select_it should log an error when root_item is falsy."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree(root_item=None)
 
-        with patch("nxdrive.gui.folders_treeview.log") as mock_log:
+        with patch("nxdrive.drive.gui.folders_treeview.log") as mock_log:
             FolderTreeView._find_current_and_select_it(tree)
 
         mock_log.error.assert_called_once_with(
@@ -475,7 +486,7 @@ class TestFindCurrentAndSelectIt:
 
     def test_no_item_falls_back_to_invisible_root(self):
         """When itemFromIndex returns None, invisibleRootItem should be used."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree()
         tree.root_item.itemFromIndex.return_value = None
@@ -490,20 +501,20 @@ class TestFindCurrentAndSelectIt:
 
     def test_no_item_and_no_invisible_root_logs_error(self):
         """_find_current_and_select_it should log an error when both item sources are None."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree()
         tree.root_item.itemFromIndex.return_value = None
         tree.root_item.invisibleRootItem.return_value = None
 
-        with patch("nxdrive.gui.folders_treeview.log") as mock_log:
+        with patch("nxdrive.drive.gui.folders_treeview.log") as mock_log:
             FolderTreeView._find_current_and_select_it(tree)
 
         mock_log.error.assert_called_once_with("Cannot get item or invisible root item")
 
     def test_child_matching_selected_folder_is_selected(self):
         """A child whose path matches selected_folder should be selected."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree(selected_folder="/remote/target")
         tree.parent.remote_folder.text.return_value = "/other/path"
@@ -529,7 +540,7 @@ class TestFindCurrentAndSelectIt:
 
     def test_child_matching_remote_folder_text_is_selected(self):
         """A child whose path matches parent.remote_folder.text() should be selected."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree(selected_folder=None)
         tree.parent.remote_folder.text.return_value = "/remote/target"
@@ -555,7 +566,7 @@ class TestFindCurrentAndSelectIt:
 
     def test_no_selection_model_logs_error(self):
         """An unavailable selection model should log an error."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree(selected_folder="/remote/target")
         tree.parent.remote_folder.text.return_value = "/other"
@@ -573,7 +584,7 @@ class TestFindCurrentAndSelectIt:
 
         tree.selectionModel = MagicMock(return_value=None)
 
-        with patch("nxdrive.gui.folders_treeview.log") as mock_log:
+        with patch("nxdrive.drive.gui.folders_treeview.log") as mock_log:
             FolderTreeView._find_current_and_select_it(tree)
 
         mock_log.error.assert_called_once_with(
@@ -582,7 +593,7 @@ class TestFindCurrentAndSelectIt:
 
     def test_partial_path_match_sets_longest_parent_and_expands(self):
         """A child whose path is a prefix of the remote folder text becomes longest_parent."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree(selected_folder=None)
         tree.parent.remote_folder.text.return_value = "/remote/target/deep"
@@ -609,7 +620,7 @@ class TestFindCurrentAndSelectIt:
 
     def test_child_with_no_data_is_skipped(self):
         """Children without UserRole data should be skipped without error."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree(selected_folder="/remote/x")
         tree.parent.remote_folder.text.return_value = "/other"
@@ -639,11 +650,11 @@ class TestSelectItemFromPath:
 
     def test_no_root_item_logs_error(self):
         """select_item_from_path should log an error when root_item is falsy."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree(root_item=None)
 
-        with patch("nxdrive.gui.folders_treeview.log") as mock_log:
+        with patch("nxdrive.drive.gui.folders_treeview.log") as mock_log:
             FolderTreeView.select_item_from_path(tree, "/some/path")
 
         mock_log.error.assert_called_once_with(
@@ -652,19 +663,19 @@ class TestSelectItemFromPath:
 
     def test_no_item_at_current_logs_error(self):
         """select_item_from_path should log an error when current index has no item."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree()
         tree.root_item.itemFromIndex.return_value = None
 
-        with patch("nxdrive.gui.folders_treeview.log") as mock_log:
+        with patch("nxdrive.drive.gui.folders_treeview.log") as mock_log:
             FolderTreeView.select_item_from_path(tree, "/some/path")
 
         mock_log.error.assert_called_once_with("Cannot get item from current index")
 
     def test_matching_child_sets_remote_folder_text(self):
         """When a child's path matches new_remote_path, remote_folder.setText is called."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree()
 
@@ -685,7 +696,7 @@ class TestSelectItemFromPath:
 
     def test_no_matching_child_does_nothing(self):
         """When no child matches, remote_folder.setText should not be called."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree()
 
@@ -706,7 +717,7 @@ class TestSelectItemFromPath:
 
     def test_child_with_no_data_is_skipped(self):
         """Children without UserRole data should be skipped without error."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree()
 
@@ -733,12 +744,12 @@ class TestGetItemFromPosition:
 
     def test_no_root_item_logs_error_and_returns_none(self):
         """get_item_from_position should log an error and return None when root_item is falsy."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree(root_item=None)
         tree.indexAt = MagicMock(return_value=MagicMock())
 
-        with patch("nxdrive.gui.folders_treeview.log") as mock_log:
+        with patch("nxdrive.drive.gui.folders_treeview.log") as mock_log:
             result = FolderTreeView.get_item_from_position(tree, MagicMock())
 
         assert result is None
@@ -748,7 +759,7 @@ class TestGetItemFromPosition:
 
     def test_item_found_is_returned(self):
         """get_item_from_position should return the item when found."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree()
         mock_item = MagicMock()
@@ -761,13 +772,13 @@ class TestGetItemFromPosition:
 
     def test_no_item_found_logs_error_and_returns_none(self):
         """get_item_from_position should log an error and return None when no item exists."""
-        from nxdrive.gui.folders_treeview import FolderTreeView
+        from nxdrive.drive.gui.folders_treeview import FolderTreeView
 
         tree = _make_folder_tree()
         tree.root_item.itemFromIndex.return_value = None
         tree.indexAt = MagicMock(return_value=MagicMock())
 
-        with patch("nxdrive.gui.folders_treeview.log") as mock_log:
+        with patch("nxdrive.drive.gui.folders_treeview.log") as mock_log:
             result = FolderTreeView.get_item_from_position(tree, MagicMock())
 
         assert result is None

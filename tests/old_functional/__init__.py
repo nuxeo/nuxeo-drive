@@ -9,11 +9,11 @@ import nuxeo.constants
 import nuxeo.operations
 from nuxeo.models import Blob, FileBlob
 
-from nxdrive.client.local import LocalClient
-from nxdrive.client.remote_client import Remote
-from nxdrive.objects import NuxeoDocumentInfo, RemoteFileInfo
-from nxdrive.options import Options
-from nxdrive.utils import force_encode, safe_filename
+from nxdrive.drive.client.local import LocalClient
+from nxdrive.drive.objects import NuxeoDocumentInfo, RemoteFileInfo
+from nxdrive.drive.options import Options
+from nxdrive.drive.utils import force_encode, safe_filename
+from nxdrive.nuxeo.client.remote_client import Remote
 
 from .. import env
 
@@ -24,11 +24,11 @@ def patch_nxdrive_objects():
     # Need to do this one first because importing Manager will already import
     # nxdrive.dao.utils and so changing the behavior of save_backup()
     # will not work.
-    import nxdrive.dao.utils
+    import nxdrive.drive.dao.utils
 
     nxdrive.dao.utils.save_backup = lambda *args: True
 
-    from nxdrive.poll_workers import ServerOptionsUpdater
+    from nxdrive.drive.poll_workers import ServerOptionsUpdater
 
     @property
     def enable(self) -> bool:
@@ -36,12 +36,12 @@ def patch_nxdrive_objects():
 
     ServerOptionsUpdater.enable = enable
 
-    from nxdrive.gui.application import Application
+    from nxdrive.drive.gui.application import Application
 
     Application.init_nxdrive_listener = lambda *args: None
 
-    from nxdrive.engine.queue_manager import QueueManager
-    from nxdrive.manager import Manager
+    from nxdrive.drive.engine.queue_manager import QueueManager
+    from nxdrive.drive.manager import Manager
 
     def dispose_all(self) -> None:
         for engine in self.engines.copy().values():

@@ -4,9 +4,9 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
-from nxdrive.updater.constants import UPDATE_STATUS_UP_TO_DATE
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
+from nxdrive.drive.updater.constants import UPDATE_STATUS_UP_TO_DATE
 from tests.markers import mac_only
 
 
@@ -31,10 +31,10 @@ class TestChangeSystrayIcon:
         app, manager = mock_application
         manager.updater.status = "update_available"
 
-        with patch("nxdrive.gui.application.Translator") as mock_translator:
+        with patch("nxdrive.drive.gui.application.Translator") as mock_translator:
             mock_translator.get.return_value = "Mocked text"
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.change_systray_icon.__get__(app, Application)
 
@@ -56,12 +56,12 @@ class TestChangeSystrayIcon:
 
         manager.engines = {"engine1": engine}
 
-        with patch("nxdrive.gui.application.Action") as mock_action, patch(
-            "nxdrive.gui.application.Translator"
+        with patch("nxdrive.drive.gui.application.Action") as mock_action, patch(
+            "nxdrive.drive.gui.application.Translator"
         ) as mock_translator:
             mock_translator.get.return_value = "OFFLINE"
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.change_systray_icon.__get__(app, Application)
 
@@ -84,12 +84,12 @@ class TestChangeSystrayIcon:
 
         manager.engines = {"engine1": engine}
 
-        with patch("nxdrive.gui.application.Action") as mock_action, patch(
-            "nxdrive.gui.application.Translator"
+        with patch("nxdrive.drive.gui.application.Action") as mock_action, patch(
+            "nxdrive.drive.gui.application.Translator"
         ) as mock_translator:
             mock_translator.get.return_value = "AUTH_EXPIRED"
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.change_systray_icon.__get__(app, Application)
 
@@ -104,12 +104,12 @@ class TestChangeSystrayIcon:
         manager.engines = {}
         manager.updater.status = UPDATE_STATUS_UP_TO_DATE
 
-        with patch("nxdrive.gui.application.Action") as mock_action, patch(
-            "nxdrive.gui.application.Translator"
+        with patch("nxdrive.drive.gui.application.Action") as mock_action, patch(
+            "nxdrive.drive.gui.application.Translator"
         ) as mock_translator:
             mock_translator.get.return_value = "Mocked text"
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.change_systray_icon.__get__(app, Application)
 
@@ -134,8 +134,8 @@ class TestChangeSystrayIcon:
 
         manager.engines = {"engine1": engine}
 
-        with patch("nxdrive.gui.application.Action") as mock_action:
-            from nxdrive.gui.application import Application as RealApp
+        with patch("nxdrive.drive.gui.application.Action") as mock_action:
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.change_systray_icon.__get__(app, Application)
 
@@ -158,8 +158,8 @@ class TestChangeSystrayIcon:
 
         manager.engines = {"engine1": engine}
 
-        with patch("nxdrive.gui.application.Action"):
-            from nxdrive.gui.application import Application as RealApp
+        with patch("nxdrive.drive.gui.application.Action"):
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.change_systray_icon.__get__(app, Application)
 
@@ -181,8 +181,8 @@ class TestChangeSystrayIcon:
 
         manager.engines = {"engine1": engine}
 
-        with patch("nxdrive.gui.application.Action"):
-            from nxdrive.gui.application import Application as RealApp
+        with patch("nxdrive.drive.gui.application.Action"):
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.change_systray_icon.__get__(app, Application)
 
@@ -204,8 +204,8 @@ class TestChangeSystrayIcon:
 
         manager.engines = {"engine1": engine}
 
-        with patch("nxdrive.gui.application.Action") as mock_action:
-            from nxdrive.gui.application import Application as RealApp
+        with patch("nxdrive.drive.gui.application.Action") as mock_action:
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.change_systray_icon.__get__(app, Application)
 

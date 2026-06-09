@@ -5,7 +5,7 @@ from logging import getLogger
 
 import pytest
 
-from nxdrive.constants import WINDOWS
+from nxdrive.drive.constants import WINDOWS
 
 from ... import env
 

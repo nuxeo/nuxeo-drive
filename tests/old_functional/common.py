@@ -19,13 +19,13 @@ from nuxeo.models import Document, User
 from sentry_sdk import configure_scope
 
 from nxdrive import __version__
-from nxdrive.constants import LINUX, MAC, WINDOWS
-from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
-from nxdrive.manager import Manager
-from nxdrive.options import Options
-from nxdrive.qt.imports import QCoreApplication, QTimer, pyqtSignal, pyqtSlot
-from nxdrive.translator import Translator
-from nxdrive.utils import normalized_path
+from nxdrive.drive.constants import LINUX, MAC, WINDOWS
+from nxdrive.drive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
+from nxdrive.drive.manager import Manager
+from nxdrive.drive.options import Options
+from nxdrive.drive.qt.imports import QCoreApplication, QTimer, pyqtSignal, pyqtSlot
+from nxdrive.drive.translator import Translator
+from nxdrive.drive.utils import normalized_path
 
 from .. import env
 from ..utils import clean_dir, salt

@@ -2,7 +2,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from nxdrive.utils import normalized_path
+from nxdrive.drive.utils import normalized_path
 
 from .common import FILE_CONTENT, OneUserTest
 

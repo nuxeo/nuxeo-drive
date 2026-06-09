@@ -4,8 +4,8 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from nxdrive.constants import APP_NAME
-from nxdrive.fatal_error import (
+from nxdrive.drive.constants import APP_NAME
+from nxdrive.drive.fatal_error import (
     check_executable_path,
     check_executable_path_error_qt,
     check_os_version,
@@ -14,7 +14,7 @@ from nxdrive.fatal_error import (
     fatal_error_win,
     show_critical_error,
 )
-from nxdrive.options import Options
+from nxdrive.drive.options import Options
 from tests.functional.mocked_classes import Mock_Qt
 
 from ..markers import mac_only, not_linux, windows_only
@@ -29,16 +29,16 @@ class TestExecutablePathChecking:
         mock_qt = Mock_Qt()
         test_path = Path("/invalid/path/app.app")
 
-        with patch("nxdrive.qt.imports.QApplication") as mock_app, patch(
-            "nxdrive.qt.imports.QPixmap"
+        with patch("nxdrive.drive.qt.imports.QApplication") as mock_app, patch(
+            "nxdrive.drive.qt.imports.QPixmap"
         ) as mock_pixmap, patch(
-            "nxdrive.qt.imports.QMessageBox"
+            "nxdrive.drive.qt.imports.QMessageBox"
         ) as mock_messagebox, patch(
-            "nxdrive.translator.Translator"
+            "nxdrive.drive.translator.Translator"
         ) as mock_translator, patch(
-            "nxdrive.utils.find_icon"
+            "nxdrive.drive.utils.find_icon"
         ) as mock_find_icon, patch(
-            "nxdrive.utils.find_resource"
+            "nxdrive.drive.utils.find_resource"
         ) as mock_find_resource:
 
             mock_app.return_value = mock_qt
@@ -63,14 +63,14 @@ class TestExecutablePathChecking:
         mock_qt = Mock_Qt()
         test_path = Path("/Applications/WrongName.app")
 
-        with patch("nxdrive.qt.imports.QApplication") as mock_app, patch(
-            "nxdrive.qt.imports.QPixmap"
-        ), patch("nxdrive.qt.imports.QMessageBox") as mock_messagebox, patch(
-            "nxdrive.translator.Translator"
+        with patch("nxdrive.drive.qt.imports.QApplication") as mock_app, patch(
+            "nxdrive.drive.qt.imports.QPixmap"
+        ), patch("nxdrive.drive.qt.imports.QMessageBox") as mock_messagebox, patch(
+            "nxdrive.drive.translator.Translator"
         ) as mock_translator_class, patch(
-            "nxdrive.utils.find_icon"
+            "nxdrive.drive.utils.find_icon"
         ) as mock_find_icon, patch(
-            "nxdrive.utils.find_resource"
+            "nxdrive.drive.utils.find_resource"
         ) as mock_find_resource:
 
             mock_app.return_value = mock_qt
@@ -125,7 +125,7 @@ class TestExecutablePathChecking:
         try:
             Options.set("is_frozen", True, setter="manual")
             with patch("sys.executable", invalid_path), patch(
-                "nxdrive.fatal_error.check_executable_path_error_qt"
+                "nxdrive.drive.fatal_error.check_executable_path_error_qt"
             ) as mock_qt_error:
 
                 result = check_executable_path()
@@ -147,9 +147,9 @@ class TestExecutablePathChecking:
         try:
             Options.set("is_frozen", True, setter="manual")
             with patch("sys.executable", invalid_path), patch(
-                "nxdrive.fatal_error.check_executable_path_error_qt",
+                "nxdrive.drive.fatal_error.check_executable_path_error_qt",
                 side_effect=qt_exception,
-            ), patch("nxdrive.fatal_error.fatal_error_mac") as mock_mac_error:
+            ), patch("nxdrive.drive.fatal_error.fatal_error_mac") as mock_mac_error:
 
                 result = check_executable_path()
 
@@ -164,11 +164,11 @@ class TestExecutablePathChecking:
 
     def test_check_executable_path_not_mac_or_not_frozen(self):
         """Test check_executable_path returns True when not on macOS or not frozen."""
-        with patch("nxdrive.fatal_error.MAC", False):
+        with patch("nxdrive.drive.fatal_error.MAC", False):
             result = check_executable_path()
             assert result is True
 
-        with patch("nxdrive.fatal_error.MAC", True):
+        with patch("nxdrive.drive.fatal_error.MAC", True):
             # Store original value
             original_frozen = Options.is_frozen
             try:
@@ -199,7 +199,7 @@ class TestOSVersionChecking:
     def test_check_os_version_mac_unsupported(self):
         """Test check_os_version returns False for unsupported macOS versions."""
         with patch("platform.mac_ver", return_value=("10.12.6", "", "")), patch(
-            "nxdrive.fatal_error.fatal_error_mac"
+            "nxdrive.drive.fatal_error.fatal_error_mac"
         ) as mock_fatal:
 
             result = check_os_version()
@@ -228,7 +228,7 @@ class TestOSVersionChecking:
         """Test check_os_version returns False for unsupported Windows versions."""
         # Mock Windows 7 (version 6.1)
         with patch("sys.getwindowsversion", return_value=(6, 1, 0, 0, "")), patch(
-            "nxdrive.fatal_error.fatal_error_win"
+            "nxdrive.drive.fatal_error.fatal_error_win"
         ) as mock_fatal:
 
             result = check_os_version()
@@ -238,8 +238,8 @@ class TestOSVersionChecking:
 
     def test_check_os_version_other_platforms(self):
         """Test check_os_version returns True for other platforms (Linux)."""
-        with patch("nxdrive.fatal_error.MAC", False), patch(
-            "nxdrive.fatal_error.WINDOWS", False
+        with patch("nxdrive.drive.fatal_error.MAC", False), patch(
+            "nxdrive.drive.fatal_error.WINDOWS", False
         ):
             result = check_os_version()
             assert result is True
@@ -336,24 +336,24 @@ class TestQtFatalErrorDialog:
         mock_dialog = MagicMock()
         mock_layout = MagicMock()
 
-        with patch("nxdrive.qt.imports.QApplication") as mock_app, patch(
-            "nxdrive.qt.imports.QDialog"
+        with patch("nxdrive.drive.qt.imports.QApplication") as mock_app, patch(
+            "nxdrive.drive.qt.imports.QDialog"
         ) as mock_dialog_class, patch(
-            "nxdrive.qt.imports.QVBoxLayout"
+            "nxdrive.drive.qt.imports.QVBoxLayout"
         ) as mock_layout_class, patch(
-            "nxdrive.qt.imports.QLabel"
+            "nxdrive.drive.qt.imports.QLabel"
         ), patch(
-            "nxdrive.qt.imports.QTextEdit"
+            "nxdrive.drive.qt.imports.QTextEdit"
         ), patch(
-            "nxdrive.qt.imports.QDialogButtonBox"
+            "nxdrive.drive.qt.imports.QDialogButtonBox"
         ), patch(
-            "nxdrive.qt.imports.QIcon"
+            "nxdrive.drive.qt.imports.QIcon"
         ), patch(
-            "nxdrive.translator.Translator"
+            "nxdrive.drive.translator.Translator"
         ) as mock_translator, patch(
-            "nxdrive.utils.find_icon"
+            "nxdrive.drive.utils.find_icon"
         ) as mock_find_icon, patch(
-            "nxdrive.utils.find_resource"
+            "nxdrive.drive.utils.find_resource"
         ) as mock_find_resource:
 
             # Setup mocks
@@ -397,22 +397,24 @@ class TestQtFatalErrorDialog:
             mock_qt = Mock_Qt()
             mock_dialog = MagicMock()
 
-            with patch("nxdrive.qt.imports.QApplication") as mock_app, patch(
-                "nxdrive.qt.imports.QDialog"
-            ) as mock_dialog_class, patch("nxdrive.qt.imports.QVBoxLayout"), patch(
-                "nxdrive.qt.imports.QLabel"
+            with patch("nxdrive.drive.qt.imports.QApplication") as mock_app, patch(
+                "nxdrive.drive.qt.imports.QDialog"
+            ) as mock_dialog_class, patch(
+                "nxdrive.drive.qt.imports.QVBoxLayout"
             ), patch(
-                "nxdrive.qt.imports.QTextEdit"
+                "nxdrive.drive.qt.imports.QLabel"
+            ), patch(
+                "nxdrive.drive.qt.imports.QTextEdit"
             ) as mock_textedit, patch(
-                "nxdrive.qt.imports.QDialogButtonBox"
+                "nxdrive.drive.qt.imports.QDialogButtonBox"
             ), patch(
-                "nxdrive.qt.imports.QIcon"
+                "nxdrive.drive.qt.imports.QIcon"
             ), patch(
-                "nxdrive.translator.Translator"
+                "nxdrive.drive.translator.Translator"
             ) as mock_translator, patch(
-                "nxdrive.utils.find_icon"
+                "nxdrive.drive.utils.find_icon"
             ), patch(
-                "nxdrive.utils.find_resource"
+                "nxdrive.drive.utils.find_resource"
             ):
 
                 mock_app.return_value = mock_qt
@@ -447,24 +449,24 @@ class TestQtFatalErrorDialog:
         mock_qt = Mock_Qt()
         mock_dialog = MagicMock()
 
-        with patch("nxdrive.qt.imports.QApplication") as mock_app, patch(
-            "nxdrive.qt.imports.QDialog"
-        ) as mock_dialog_class, patch("nxdrive.qt.imports.QVBoxLayout"), patch(
-            "nxdrive.qt.imports.QLabel"
+        with patch("nxdrive.drive.qt.imports.QApplication") as mock_app, patch(
+            "nxdrive.drive.qt.imports.QDialog"
+        ) as mock_dialog_class, patch("nxdrive.drive.qt.imports.QVBoxLayout"), patch(
+            "nxdrive.drive.qt.imports.QLabel"
         ), patch(
-            "nxdrive.qt.imports.QTextEdit"
+            "nxdrive.drive.qt.imports.QTextEdit"
         ), patch(
-            "nxdrive.qt.imports.QDialogButtonBox"
+            "nxdrive.drive.qt.imports.QDialogButtonBox"
         ), patch(
-            "nxdrive.qt.imports.QIcon"
+            "nxdrive.drive.qt.imports.QIcon"
         ), patch(
-            "nxdrive.translator.Translator"
+            "nxdrive.drive.translator.Translator"
         ) as mock_translator, patch(
-            "nxdrive.utils.find_icon"
+            "nxdrive.drive.utils.find_icon"
         ), patch(
-            "nxdrive.utils.find_resource"
+            "nxdrive.drive.utils.find_resource"
         ), patch(
-            "nxdrive.report.Report"
+            "nxdrive.drive.report.Report"
         ) as mock_report:
 
             mock_app.return_value = mock_qt
@@ -491,24 +493,24 @@ class TestQtFatalErrorDialog:
         mock_buttonbox = MagicMock()
         mock_copy_button = MagicMock()
 
-        with patch("nxdrive.qt.imports.QApplication") as mock_app, patch(
-            "nxdrive.qt.imports.QDialog"
-        ) as mock_dialog_class, patch("nxdrive.qt.imports.QVBoxLayout"), patch(
-            "nxdrive.qt.imports.QLabel"
+        with patch("nxdrive.drive.qt.imports.QApplication") as mock_app, patch(
+            "nxdrive.drive.qt.imports.QDialog"
+        ) as mock_dialog_class, patch("nxdrive.drive.qt.imports.QVBoxLayout"), patch(
+            "nxdrive.drive.qt.imports.QLabel"
         ), patch(
-            "nxdrive.qt.imports.QTextEdit"
+            "nxdrive.drive.qt.imports.QTextEdit"
         ), patch(
-            "nxdrive.qt.imports.QDialogButtonBox"
+            "nxdrive.drive.qt.imports.QDialogButtonBox"
         ) as mock_buttonbox_class, patch(
-            "nxdrive.qt.imports.QIcon"
+            "nxdrive.drive.qt.imports.QIcon"
         ), patch(
-            "nxdrive.translator.Translator"
+            "nxdrive.drive.translator.Translator"
         ) as mock_translator, patch(
-            "nxdrive.utils.find_icon"
+            "nxdrive.drive.utils.find_icon"
         ), patch(
-            "nxdrive.utils.find_resource"
+            "nxdrive.drive.utils.find_resource"
         ), patch(
-            "nxdrive.osi.AbstractOSIntegration"
+            "nxdrive.drive.osi.AbstractOSIntegration"
         ) as mock_osi:
 
             mock_app.return_value = mock_qt
@@ -537,26 +539,26 @@ class TestQtFatalErrorDialog:
         mock_dialog = MagicMock()
         mock_buttonbox = MagicMock()
 
-        with patch("nxdrive.qt.imports.QApplication") as mock_app, patch(
-            "nxdrive.qt.imports.QDialog"
-        ) as mock_dialog_class, patch("nxdrive.qt.imports.QVBoxLayout"), patch(
-            "nxdrive.qt.imports.QLabel"
+        with patch("nxdrive.drive.qt.imports.QApplication") as mock_app, patch(
+            "nxdrive.drive.qt.imports.QDialog"
+        ) as mock_dialog_class, patch("nxdrive.drive.qt.imports.QVBoxLayout"), patch(
+            "nxdrive.drive.qt.imports.QLabel"
         ), patch(
-            "nxdrive.qt.imports.QTextEdit"
+            "nxdrive.drive.qt.imports.QTextEdit"
         ), patch(
-            "nxdrive.qt.imports.QDialogButtonBox"
+            "nxdrive.drive.qt.imports.QDialogButtonBox"
         ) as mock_buttonbox_class, patch(
-            "nxdrive.qt.imports.QIcon"
+            "nxdrive.drive.qt.imports.QIcon"
         ), patch(
-            "nxdrive.qt.imports.QDesktopServices"
+            "nxdrive.drive.qt.imports.QDesktopServices"
         ), patch(
-            "nxdrive.qt.imports.QUrl"
+            "nxdrive.drive.qt.imports.QUrl"
         ), patch(
-            "nxdrive.translator.Translator"
+            "nxdrive.drive.translator.Translator"
         ) as mock_translator, patch(
-            "nxdrive.utils.find_icon"
+            "nxdrive.drive.utils.find_icon"
         ), patch(
-            "nxdrive.utils.find_resource"
+            "nxdrive.drive.utils.find_resource"
         ):
 
             mock_app.return_value = mock_qt
@@ -592,9 +594,11 @@ class TestCriticalErrorHandling:
         try:
             raise ValueError("Test critical error")
         except ValueError:
-            with patch("nxdrive.fatal_error.fatal_error_qt") as mock_qt_error, patch(
-                "pathlib.Path.home"
-            ) as mock_home, patch("pathlib.Path.mkdir"), patch(
+            with patch(
+                "nxdrive.drive.fatal_error.fatal_error_qt"
+            ) as mock_qt_error, patch("pathlib.Path.home") as mock_home, patch(
+                "pathlib.Path.mkdir"
+            ), patch(
                 "pathlib.Path.write_text"
             ):
 
@@ -618,7 +622,7 @@ class TestCriticalErrorHandling:
             mock_crash_dir = MagicMock()
 
             with patch("pathlib.Path.home") as mock_home, patch(
-                "nxdrive.fatal_error.fatal_error_qt"
+                "nxdrive.drive.fatal_error.fatal_error_qt"
             ) as mock_qt_error:
 
                 # Mock home directory and crash file
@@ -655,8 +659,10 @@ class TestCriticalErrorHandling:
             qt_exception = Exception("Qt not available")
 
             with patch(
-                "nxdrive.fatal_error.fatal_error_qt", side_effect=qt_exception
-            ), patch("nxdrive.fatal_error.fatal_error_win") as mock_win_error, patch(
+                "nxdrive.drive.fatal_error.fatal_error_qt", side_effect=qt_exception
+            ), patch(
+                "nxdrive.drive.fatal_error.fatal_error_win"
+            ) as mock_win_error, patch(
                 "pathlib.Path.home"
             ), patch(
                 "pathlib.Path.mkdir"
@@ -682,8 +688,10 @@ class TestCriticalErrorHandling:
             qt_exception = Exception("Qt initialization error")
 
             with patch(
-                "nxdrive.fatal_error.fatal_error_qt", side_effect=qt_exception
-            ), patch("nxdrive.fatal_error.fatal_error_mac") as mock_mac_error, patch(
+                "nxdrive.drive.fatal_error.fatal_error_qt", side_effect=qt_exception
+            ), patch(
+                "nxdrive.drive.fatal_error.fatal_error_mac"
+            ) as mock_mac_error, patch(
                 "pathlib.Path.home"
             ), patch(
                 "pathlib.Path.mkdir"
@@ -708,9 +716,9 @@ class TestCriticalErrorHandling:
             qt_exception = Exception("Display not available")
 
             with patch(
-                "nxdrive.fatal_error.fatal_error_qt", side_effect=qt_exception
-            ), patch("nxdrive.fatal_error.MAC", False), patch(
-                "nxdrive.fatal_error.WINDOWS", False
+                "nxdrive.drive.fatal_error.fatal_error_qt", side_effect=qt_exception
+            ), patch("nxdrive.drive.fatal_error.MAC", False), patch(
+                "nxdrive.drive.fatal_error.WINDOWS", False
             ), patch(
                 "pathlib.Path.home"
             ), patch(
@@ -731,7 +739,9 @@ class TestCriticalErrorHandling:
         try:
             raise ValueError("Test error for crash file")
         except ValueError:
-            with patch("nxdrive.fatal_error.fatal_error_qt") as mock_qt_error, patch(
+            with patch(
+                "nxdrive.drive.fatal_error.fatal_error_qt"
+            ) as mock_qt_error, patch(
                 "pathlib.Path.home",
                 side_effect=Exception("Home directory access failed"),
             ):
@@ -747,7 +757,7 @@ class TestCriticalErrorHandling:
         # Simulate no exception context
         with patch("sys.exc_info", return_value=(None, None, None)), patch(
             "traceback.format_exception", return_value=["No exception information\n"]
-        ), patch("nxdrive.fatal_error.fatal_error_qt") as mock_qt_error, patch(
+        ), patch("nxdrive.drive.fatal_error.fatal_error_qt") as mock_qt_error, patch(
             "pathlib.Path.home"
         ), patch(
             "pathlib.Path.mkdir"
@@ -770,14 +780,14 @@ class TestIntegrationScenarios:
         original_frozen = Options.is_frozen
         try:
             Options.set("is_frozen", True, setter="manual")
-            with patch("nxdrive.fatal_error.MAC", True), patch(
+            with patch("nxdrive.drive.fatal_error.MAC", True), patch(
                 "sys.executable",
                 "/Users/test/Downloads/Nuxeo Drive.app/Contents/MacOS/Nuxeo Drive",
             ), patch(
-                "nxdrive.fatal_error.check_executable_path_error_qt",
+                "nxdrive.drive.fatal_error.check_executable_path_error_qt",
                 side_effect=Exception("Qt failed"),
             ), patch(
-                "nxdrive.fatal_error.fatal_error_mac"
+                "nxdrive.drive.fatal_error.fatal_error_mac"
             ) as mock_mac_error:
 
                 result = check_executable_path()
@@ -790,10 +800,10 @@ class TestIntegrationScenarios:
     def test_version_compatibility_workflow(self):
         """Test complete version compatibility check workflow."""
         # Test unsupported macOS version
-        with patch("nxdrive.fatal_error.MAC", True), patch(
-            "nxdrive.fatal_error.WINDOWS", False
+        with patch("nxdrive.drive.fatal_error.MAC", True), patch(
+            "nxdrive.drive.fatal_error.WINDOWS", False
         ), patch("platform.mac_ver", return_value=("10.11.6", "", "")), patch(
-            "nxdrive.fatal_error.fatal_error_mac"
+            "nxdrive.drive.fatal_error.fatal_error_mac"
         ) as mock_mac_error:
 
             result = check_os_version()
@@ -815,9 +825,11 @@ class TestIntegrationScenarios:
         try:
             problematic_function()
         except FileNotFoundError:
-            with patch("nxdrive.fatal_error.fatal_error_qt") as mock_qt_error, patch(
-                "pathlib.Path.home"
-            ) as mock_home, patch("pathlib.Path.mkdir"), patch(
+            with patch(
+                "nxdrive.drive.fatal_error.fatal_error_qt"
+            ) as mock_qt_error, patch("pathlib.Path.home") as mock_home, patch(
+                "pathlib.Path.mkdir"
+            ), patch(
                 "pathlib.Path.write_text"
             ) as mock_write:
 

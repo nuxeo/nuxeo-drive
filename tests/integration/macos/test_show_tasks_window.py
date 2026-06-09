@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
 from tests.markers import mac_only
 
 
@@ -42,7 +42,7 @@ class TestShowTasksWindow:
 
         engine_uid = "test-engine-uid-123"
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.show_tasks_window.__get__(app, Application)
         bound_method(engine_uid)
@@ -56,7 +56,7 @@ class TestShowTasksWindow:
 
         engine_uid = "engine-456"
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.show_tasks_window.__get__(app, Application)
         bound_method(engine_uid)
@@ -70,7 +70,7 @@ class TestShowTasksWindow:
 
         engine_uid = "engine-789"
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.show_tasks_window.__get__(app, Application)
         bound_method(engine_uid)
@@ -86,7 +86,7 @@ class TestShowTasksWindow:
 
         engine_uid = "center-test"
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.show_tasks_window.__get__(app, Application)
         bound_method(engine_uid)
@@ -98,7 +98,7 @@ class TestShowTasksWindow:
         """Test show_tasks_window with various engine_uid values."""
         app, manager, mock_window, mock_root = mock_application
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.show_tasks_window.__get__(app, Application)
 
@@ -126,7 +126,7 @@ class TestShowTasksWindow:
         )
         app._center_on_screen.side_effect = lambda x: call_order.append("center")
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.show_tasks_window.__get__(app, Application)
         bound_method(engine_uid)
@@ -141,7 +141,7 @@ class TestShowTasksWindow:
         """Test show_tasks_window always sets section to 0."""
         app, manager, mock_window, mock_root = mock_application
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.show_tasks_window.__get__(app, Application)
 

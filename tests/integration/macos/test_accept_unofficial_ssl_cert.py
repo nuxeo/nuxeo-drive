@@ -5,9 +5,9 @@ from urllib.parse import urlparse
 
 import pytest
 
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
-from nxdrive.qt import constants as qt
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
+from nxdrive.drive.qt import constants as qt
 from tests.markers import mac_only
 
 
@@ -33,10 +33,10 @@ class TestAcceptUnofficialSslCert:
 
         hostname = "example.com"
 
-        with patch("nxdrive.utils.get_certificate_details") as mock_get_cert:
+        with patch("nxdrive.drive.utils.get_certificate_details") as mock_get_cert:
             mock_get_cert.return_value = None
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.accept_unofficial_ssl_cert.__get__(app, Application)
             result = bound_method(hostname)
@@ -61,10 +61,12 @@ class TestAcceptUnofficialSslCert:
             "caIssuers": ["http://ca.example.com/cert"],
         }
 
-        with patch("nxdrive.utils.get_certificate_details") as mock_get_cert, patch(
-            "nxdrive.gui.application.QDialog"
+        with patch(
+            "nxdrive.drive.utils.get_certificate_details"
+        ) as mock_get_cert, patch(
+            "nxdrive.drive.gui.application.QDialog"
         ) as mock_dialog_class, patch(
-            "nxdrive.gui.application.Translator"
+            "nxdrive.drive.gui.application.Translator"
         ) as mock_translator:
             mock_get_cert.return_value = mock_cert
             mock_translator.get.return_value = "Test Message"
@@ -97,18 +99,19 @@ class TestAcceptUnofficialSslCert:
             mock_dialog.exec.side_effect = exec_side_effect
 
             with patch(
-                "nxdrive.gui.application.QTextEdit", return_value=mock_text_edit
+                "nxdrive.drive.gui.application.QTextEdit", return_value=mock_text_edit
             ), patch(
-                "nxdrive.gui.application.QDialogButtonBox", return_value=mock_buttons
+                "nxdrive.drive.gui.application.QDialogButtonBox",
+                return_value=mock_buttons,
             ), patch(
-                "nxdrive.gui.application.QCheckBox", return_value=mock_checkbox
+                "nxdrive.drive.gui.application.QCheckBox", return_value=mock_checkbox
             ), patch(
-                "nxdrive.gui.application.QVBoxLayout"
+                "nxdrive.drive.gui.application.QVBoxLayout"
             ):
                 mock_buttons.button.return_value = mock_ok_button
                 mock_buttons.standardButtons.return_value = qt.Ok | qt.Cancel
 
-                from nxdrive.gui.application import Application as RealApp
+                from nxdrive.drive.gui.application import Application as RealApp
 
                 bound_method = RealApp.accept_unofficial_ssl_cert.__get__(
                     app, Application
@@ -136,10 +139,12 @@ class TestAcceptUnofficialSslCert:
             "caIssuers": [],
         }
 
-        with patch("nxdrive.utils.get_certificate_details") as mock_get_cert, patch(
-            "nxdrive.gui.application.QDialog"
+        with patch(
+            "nxdrive.drive.utils.get_certificate_details"
+        ) as mock_get_cert, patch(
+            "nxdrive.drive.gui.application.QDialog"
         ) as mock_dialog_class, patch(
-            "nxdrive.gui.application.Translator"
+            "nxdrive.drive.gui.application.Translator"
         ) as mock_translator:
             mock_get_cert.return_value = mock_cert
             mock_translator.get.return_value = "Test Message"
@@ -163,17 +168,18 @@ class TestAcceptUnofficialSslCert:
             mock_dialog.exec.side_effect = exec_side_effect
 
             with patch(
-                "nxdrive.gui.application.QTextEdit", return_value=mock_text_edit
+                "nxdrive.drive.gui.application.QTextEdit", return_value=mock_text_edit
             ), patch(
-                "nxdrive.gui.application.QDialogButtonBox", return_value=mock_buttons
+                "nxdrive.drive.gui.application.QDialogButtonBox",
+                return_value=mock_buttons,
             ), patch(
-                "nxdrive.gui.application.QCheckBox", return_value=mock_checkbox
+                "nxdrive.drive.gui.application.QCheckBox", return_value=mock_checkbox
             ), patch(
-                "nxdrive.gui.application.QVBoxLayout"
+                "nxdrive.drive.gui.application.QVBoxLayout"
             ):
                 mock_buttons.button.return_value = mock_ok_button
 
-                from nxdrive.gui.application import Application as RealApp
+                from nxdrive.drive.gui.application import Application as RealApp
 
                 bound_method = RealApp.accept_unofficial_ssl_cert.__get__(
                     app, Application
@@ -197,10 +203,12 @@ class TestAcceptUnofficialSslCert:
             "caIssuers": ["http://ca.example.com"],
         }
 
-        with patch("nxdrive.utils.get_certificate_details") as mock_get_cert, patch(
-            "nxdrive.gui.application.QDialog"
+        with patch(
+            "nxdrive.drive.utils.get_certificate_details"
+        ) as mock_get_cert, patch(
+            "nxdrive.drive.gui.application.QDialog"
         ) as mock_dialog_class, patch(
-            "nxdrive.gui.application.Translator"
+            "nxdrive.drive.gui.application.Translator"
         ) as mock_translator:
             mock_get_cert.return_value = mock_cert
             mock_translator.get.return_value = "Test Message"
@@ -225,17 +233,18 @@ class TestAcceptUnofficialSslCert:
             mock_checkbox.stateChanged.connect = connect_state_changed
 
             with patch(
-                "nxdrive.gui.application.QTextEdit", return_value=mock_text_edit
+                "nxdrive.drive.gui.application.QTextEdit", return_value=mock_text_edit
             ), patch(
-                "nxdrive.gui.application.QDialogButtonBox", return_value=mock_buttons
+                "nxdrive.drive.gui.application.QDialogButtonBox",
+                return_value=mock_buttons,
             ), patch(
-                "nxdrive.gui.application.QCheckBox", return_value=mock_checkbox
+                "nxdrive.drive.gui.application.QCheckBox", return_value=mock_checkbox
             ), patch(
-                "nxdrive.gui.application.QVBoxLayout"
+                "nxdrive.drive.gui.application.QVBoxLayout"
             ):
                 mock_buttons.button.return_value = mock_ok_button
 
-                from nxdrive.gui.application import Application as RealApp
+                from nxdrive.drive.gui.application import Application as RealApp
 
                 bound_method = RealApp.accept_unofficial_ssl_cert.__get__(
                     app, Application
@@ -284,10 +293,12 @@ class TestAcceptUnofficialSslCert:
             ],
         }
 
-        with patch("nxdrive.utils.get_certificate_details") as mock_get_cert, patch(
-            "nxdrive.gui.application.QDialog"
+        with patch(
+            "nxdrive.drive.utils.get_certificate_details"
+        ) as mock_get_cert, patch(
+            "nxdrive.drive.gui.application.QDialog"
         ) as mock_dialog_class, patch(
-            "nxdrive.gui.application.Translator"
+            "nxdrive.drive.gui.application.Translator"
         ) as mock_translator:
             mock_get_cert.return_value = mock_cert
             mock_translator.get.return_value = "Test Message"
@@ -305,17 +316,18 @@ class TestAcceptUnofficialSslCert:
             mock_dialog.exec.return_value = 0
 
             with patch(
-                "nxdrive.gui.application.QTextEdit", return_value=mock_text_edit
+                "nxdrive.drive.gui.application.QTextEdit", return_value=mock_text_edit
             ), patch(
-                "nxdrive.gui.application.QDialogButtonBox", return_value=mock_buttons
+                "nxdrive.drive.gui.application.QDialogButtonBox",
+                return_value=mock_buttons,
             ), patch(
-                "nxdrive.gui.application.QCheckBox", return_value=mock_checkbox
+                "nxdrive.drive.gui.application.QCheckBox", return_value=mock_checkbox
             ), patch(
-                "nxdrive.gui.application.QVBoxLayout"
+                "nxdrive.drive.gui.application.QVBoxLayout"
             ):
                 mock_buttons.button.return_value = mock_ok_button
 
-                from nxdrive.gui.application import Application as RealApp
+                from nxdrive.drive.gui.application import Application as RealApp
 
                 bound_method = RealApp.accept_unofficial_ssl_cert.__get__(
                     app, Application

@@ -3,8 +3,8 @@ from unittest.mock import patch
 
 import pytest
 
-from nxdrive.engine.engine import Engine
-from nxdrive.exceptions import FolderAlreadyUsed
+from nxdrive.drive.exceptions import FolderAlreadyUsed
+from nxdrive.nuxeo.engine.engine import Engine
 
 
 def test_bind_local_folder_already_used(manager_factory, tmp, nuxeo_url, user_factory):
@@ -19,7 +19,7 @@ def test_bind_local_folder_already_used(manager_factory, tmp, nuxeo_url, user_fa
         a string instead of a Path object, causing 'str' object has no attribute 'name'
         error when Action.export() tries to access self.filepath.name.
         """
-        from nxdrive.engine.activity import Action
+        from nxdrive.drive.engine.activity import Action
 
         # Get the original export data
         export_data = Action.export(self)
@@ -38,7 +38,9 @@ def test_bind_local_folder_already_used(manager_factory, tmp, nuxeo_url, user_fa
 
     with manager:
         # Patch Action.export to handle string filepaths gracefully (Windows fix)
-        with patch("nxdrive.engine.activity.FileAction.export", safe_action_export):
+        with patch(
+            "nxdrive.drive.engine.activity.FileAction.export", safe_action_export
+        ):
             # First bind: OK
             manager.bind_server(
                 conf_folder,

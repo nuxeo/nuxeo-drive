@@ -4,9 +4,9 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
-from nxdrive.engine.engine import Engine
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
+from nxdrive.nuxeo.engine.engine import Engine
 from tests.markers import mac_only
 
 
@@ -47,7 +47,7 @@ class TestFetchPendingTasks:
         mock_remote.user_id = "user-abc"
         mock_engine.remote = mock_remote
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.fetch_pending_tasks.__get__(app, Application)
         result = bound_method(mock_engine)
@@ -72,7 +72,7 @@ class TestFetchPendingTasks:
         mock_remote.user_id = "user-xyz"
         mock_engine.remote = mock_remote
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.fetch_pending_tasks.__get__(app, Application)
         bound_method(mock_engine)
@@ -94,7 +94,7 @@ class TestFetchPendingTasks:
         mock_remote.user_id = "user-123"
         mock_engine.remote = mock_remote
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.fetch_pending_tasks.__get__(app, Application)
         result = bound_method(mock_engine)
@@ -117,7 +117,7 @@ class TestFetchPendingTasks:
         mock_remote.user_id = "user-error"
         mock_engine.remote = mock_remote
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.fetch_pending_tasks.__get__(app, Application)
         result = bound_method(mock_engine)
@@ -142,7 +142,7 @@ class TestFetchPendingTasks:
         mock_remote.user_id = "user-log"
         mock_engine.remote = mock_remote
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         # We can't easily verify log.info was called without more complex mocking,
         # but we can verify the method doesn't crash
@@ -167,7 +167,7 @@ class TestFetchPendingTasks:
         mock_remote.user_id = test_user_id
         mock_engine.remote = mock_remote
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.fetch_pending_tasks.__get__(app, Application)
         bound_method(mock_engine)
@@ -196,7 +196,7 @@ class TestFetchPendingTasks:
         mock_remote.user_id = "user-multi"
         mock_engine.remote = mock_remote
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.fetch_pending_tasks.__get__(app, Application)
         result = bound_method(mock_engine)
@@ -209,7 +209,7 @@ class TestFetchPendingTasks:
         """Test fetch_pending_tasks handles different exception types."""
         app, manager = mock_application
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.fetch_pending_tasks.__get__(app, Application)
 
@@ -253,7 +253,7 @@ class TestFetchPendingTasks:
         mock_remote.user_id = "user-error"
         mock_engine.remote = mock_remote
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.fetch_pending_tasks.__get__(app, Application)
         bound_method(mock_engine)
@@ -265,7 +265,7 @@ class TestFetchPendingTasks:
         """Test fetch_pending_tasks successive calls update last_engine_uid."""
         app, manager = mock_application
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.fetch_pending_tasks.__get__(app, Application)
 
@@ -309,7 +309,7 @@ class TestFetchPendingTasks:
         mock_remote.user_id = "user-remote"
         mock_engine.remote = mock_remote
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.fetch_pending_tasks.__get__(app, Application)
         bound_method(mock_engine)

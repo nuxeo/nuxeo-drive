@@ -4,9 +4,9 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
-from nxdrive.dao.engine import EngineDAO
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
+from nxdrive.drive.dao.engine import EngineDAO
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
 from tests.markers import mac_only
 
 
@@ -43,7 +43,7 @@ class TestRefreshDirectTransferItems:
         app.api.get_direct_transfer_items.return_value = mock_transfers
         app.direct_transfer_model.items = []
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.refresh_direct_transfer_items.__get__(app, Application)
         bound_method(mock_dao)
@@ -71,7 +71,7 @@ class TestRefreshDirectTransferItems:
         app.api.get_direct_transfer_items.return_value = mock_transfers
         app.direct_transfer_model.items = mock_transfers
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.refresh_direct_transfer_items.__get__(app, Application)
         bound_method(mock_dao)
@@ -105,7 +105,7 @@ class TestRefreshDirectTransferItems:
         app.api.get_direct_transfer_items.return_value = mock_transfers
         app.direct_transfer_model.items = current_items
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.refresh_direct_transfer_items.__get__(app, Application)
         bound_method(mock_dao)
@@ -145,7 +145,7 @@ class TestRefreshDirectTransferItems:
         app.api.get_direct_transfer_items.return_value = mock_transfers
         app.direct_transfer_model.items = current_items
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.refresh_direct_transfer_items.__get__(app, Application)
         bound_method(mock_dao)
@@ -190,7 +190,7 @@ class TestRefreshDirectTransferItems:
         app.api.get_direct_transfer_items.return_value = mock_transfers
         app.direct_transfer_model.items = current_items
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.refresh_direct_transfer_items.__get__(app, Application)
         bound_method(mock_dao)
@@ -241,7 +241,7 @@ class TestRefreshDirectTransferItems:
         app.api.get_direct_transfer_items.return_value = mock_transfers
         app.direct_transfer_model.items = current_items
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.refresh_direct_transfer_items.__get__(app, Application)
         bound_method(mock_dao)
@@ -285,7 +285,7 @@ class TestRefreshDirectTransferItems:
         app.api.get_direct_transfer_items.return_value = mock_transfers
         app.direct_transfer_model.items = current_items
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.refresh_direct_transfer_items.__get__(app, Application)
         bound_method(mock_dao)
@@ -339,7 +339,7 @@ class TestRefreshDirectTransferItems:
         app.api.get_direct_transfer_items.return_value = mock_transfers
         app.direct_transfer_model.items = current_items
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.refresh_direct_transfer_items.__get__(app, Application)
         bound_method(mock_dao)
@@ -373,7 +373,7 @@ class TestRefreshDirectTransferItems:
 
         app.api.get_direct_transfer_items.return_value = mock_transfers
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.refresh_direct_transfer_items.__get__(app, Application)
         bound_method(mock_dao)
@@ -399,7 +399,7 @@ class TestRefreshDirectTransferItems:
 
         app.api.get_direct_transfer_items.return_value = mock_transfers
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.refresh_direct_transfer_items.__get__(app, Application)
         bound_method(mock_dao)

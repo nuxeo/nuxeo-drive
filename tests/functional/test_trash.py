@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from nxdrive.client.local import LocalClient
-from nxdrive.constants import WINDOWS
+from nxdrive.drive.client.local import LocalClient
+from nxdrive.drive.constants import WINDOWS
 
 
 def create_tree(tmp):

@@ -19,7 +19,7 @@ def get_version(init_file):
 cwd = os.getcwd()
 tools = os.path.join(cwd, "tools")
 nxdrive = os.path.join(cwd, "nxdrive")
-data = os.path.join(nxdrive, "data")
+data = os.path.join(nxdrive, "drive", "data")
 
 icon = {
     "darwin": os.path.join(tools, "osx", "app_icon.icns"),

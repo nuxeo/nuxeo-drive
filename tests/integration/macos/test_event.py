@@ -5,9 +5,9 @@ from urllib.parse import quote_plus
 
 import pytest
 
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
-from nxdrive.qt.imports import QEvent
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
+from nxdrive.drive.qt.imports import QEvent
 from tests.markers import mac_only
 
 
@@ -42,7 +42,7 @@ class TestEvent:
         with patch.object(
             app, "_handle_nxdrive_url", return_value=True
         ) as mock_handle_url:
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.event.__get__(app, Application)
             result = bound_method(mock_event)
@@ -69,7 +69,7 @@ class TestEvent:
         with patch.object(
             app, "_handle_nxdrive_url", return_value=True
         ) as mock_handle_url:
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.event.__get__(app, Application)
             result = bound_method(mock_event)
@@ -91,9 +91,9 @@ class TestEvent:
 
         # Mock the super().event() call
         with patch(
-            "nxdrive.gui.application.QApplication.event", return_value=False
+            "nxdrive.drive.gui.application.QApplication.event", return_value=False
         ) as mock_super_event:
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.event.__get__(app, Application)
             result = bound_method(mock_event)
@@ -119,8 +119,8 @@ class TestEvent:
         # Make _handle_nxdrive_url raise an exception
         with patch.object(
             app, "_handle_nxdrive_url", side_effect=Exception("Test error")
-        ), patch("nxdrive.gui.application.log") as mock_log:
-            from nxdrive.gui.application import Application as RealApp
+        ), patch("nxdrive.drive.gui.application.log") as mock_log:
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.event.__get__(app, Application)
             result = bound_method(mock_event)
@@ -156,7 +156,7 @@ class TestEvent:
             with patch.object(
                 app, "_handle_nxdrive_url", return_value=True
             ) as mock_handle_url:
-                from nxdrive.gui.application import Application as RealApp
+                from nxdrive.drive.gui.application import Application as RealApp
 
                 bound_method = RealApp.event.__get__(app, Application)
                 result = bound_method(mock_event)
@@ -180,7 +180,7 @@ class TestEvent:
         with patch.object(
             app, "_handle_nxdrive_url", return_value=False
         ) as mock_handle_url:
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.event.__get__(app, Application)
             result = bound_method(mock_event)

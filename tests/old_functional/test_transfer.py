@@ -10,10 +10,10 @@ import responses
 from nuxeo.exceptions import HTTPError
 from requests.exceptions import ConnectionError
 
-from nxdrive.client.uploader.sync import SyncUploader
-from nxdrive.constants import FILE_BUFFER_SIZE, TransferStatus
-from nxdrive.options import Options
-from nxdrive.state import State
+from nxdrive.drive.constants import FILE_BUFFER_SIZE, TransferStatus
+from nxdrive.drive.options import Options
+from nxdrive.drive.state import State
+from nxdrive.nuxeo.client.uploader.sync import SyncUploader
 
 from .. import ensure_no_exception
 from ..markers import not_windows

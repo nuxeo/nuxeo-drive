@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
 from tests.markers import mac_only
 
 
@@ -34,13 +34,15 @@ class TestShowFilters:
         """Test showing filters dialog when none exists."""
         app, manager, engine = mock_application
 
-        with patch("nxdrive.gui.application.DocumentsDialog") as mock_dialog_class:
+        with patch(
+            "nxdrive.drive.gui.application.DocumentsDialog"
+        ) as mock_dialog_class:
             mock_dialog = Mock()
             mock_dialog.destroyed = Mock()
             mock_dialog.destroyed.connect = Mock()
             mock_dialog_class.return_value = mock_dialog
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.show_filters.__get__(app, Application)
 
@@ -59,13 +61,15 @@ class TestShowFilters:
         existing_dialog.close = Mock()
         app.filters_dlg = existing_dialog
 
-        with patch("nxdrive.gui.application.DocumentsDialog") as mock_dialog_class:
+        with patch(
+            "nxdrive.drive.gui.application.DocumentsDialog"
+        ) as mock_dialog_class:
             mock_dialog = Mock()
             mock_dialog.destroyed = Mock()
             mock_dialog.destroyed.connect = Mock()
             mock_dialog_class.return_value = mock_dialog
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.show_filters.__get__(app, Application)
 
@@ -79,13 +83,15 @@ class TestShowFilters:
         app, manager, engine = mock_application
         app.close_settings_too = True
 
-        with patch("nxdrive.gui.application.DocumentsDialog") as mock_dialog_class:
+        with patch(
+            "nxdrive.drive.gui.application.DocumentsDialog"
+        ) as mock_dialog_class:
             mock_dialog = Mock()
             mock_dialog.destroyed = Mock()
             mock_dialog.destroyed.connect = Mock()
             mock_dialog_class.return_value = mock_dialog
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.show_filters.__get__(app, Application)
 

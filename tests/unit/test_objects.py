@@ -3,8 +3,13 @@ from typing import Any, Dict
 
 import pytest
 
-from nxdrive.exceptions import DriveError
-from nxdrive.objects import Blob, NuxeoDocumentInfo, RemoteFileInfo, SubTypeEnricher
+from nxdrive.drive.exceptions import DriveError
+from nxdrive.drive.objects import (
+    Blob,
+    NuxeoDocumentInfo,
+    RemoteFileInfo,
+    SubTypeEnricher,
+)
 
 
 @pytest.fixture(scope="session")

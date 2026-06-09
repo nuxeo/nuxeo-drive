@@ -2,9 +2,9 @@ import os
 
 import pytest
 
-from nxdrive.exceptions import FolderAlreadyUsed
-from nxdrive.feature import Feature
-from nxdrive.options import Options
+from nxdrive.drive.exceptions import FolderAlreadyUsed
+from nxdrive.drive.feature import Feature
+from nxdrive.drive.options import Options
 
 from .. import ensure_no_exception
 from ..markers import not_windows

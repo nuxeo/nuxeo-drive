@@ -2,10 +2,14 @@
 
 from unittest.mock import MagicMock, Mock, call, patch
 
-from nxdrive.gui.folders_dialog import DocumentsDialog, FoldersDialog, NewFolderDialog
-from nxdrive.gui.folders_treeview import DocumentTreeView
-from nxdrive.qt import constants as qt
-from nxdrive.qt.imports import QComboBox, QLabel, QMenu, QPoint
+from nxdrive.drive.gui.folders_dialog import (
+    DocumentsDialog,
+    FoldersDialog,
+    NewFolderDialog,
+)
+from nxdrive.drive.gui.folders_treeview import DocumentTreeView
+from nxdrive.drive.qt import constants as qt
+from nxdrive.drive.qt.imports import QComboBox, QLabel, QMenu, QPoint
 
 
 class TestDocumentsDialogHandleNoRoots:
@@ -1177,7 +1181,7 @@ class TestFoldersDialogOpenMenu:
 
         # Test Case 1: Normal execution with enabled tree item
         with patch(
-            "nxdrive.gui.folders_dialog.QMenu", return_value=mock_menu
+            "nxdrive.drive.gui.folders_dialog.QMenu", return_value=mock_menu
         ) as mock_qmenu_class:
             # Call the method
             actual_open_menu(dialog, test_position)
@@ -1232,7 +1236,7 @@ class TestFoldersDialogOpenMenu:
         mock_menu2.addAction = Mock(return_value=mock_action2)
         mock_menu2.exec = Mock()
 
-        with patch("nxdrive.gui.folders_dialog.QMenu", return_value=mock_menu2):
+        with patch("nxdrive.drive.gui.folders_dialog.QMenu", return_value=mock_menu2):
             # Call the method again
             actual_open_menu(dialog, test_position)
 
@@ -1251,7 +1255,7 @@ class TestFoldersDialogOpenMenu:
         mock_menu3.addAction = Mock(return_value=mock_action3)
         mock_menu3.exec = Mock()
 
-        with patch("nxdrive.gui.folders_dialog.QMenu", return_value=mock_menu3):
+        with patch("nxdrive.drive.gui.folders_dialog.QMenu", return_value=mock_menu3):
             # Call with different position
             actual_open_menu(dialog, test_position2)
 
@@ -1270,7 +1274,7 @@ class TestFoldersDialogOpenMenu:
         mock_menu4.addAction = Mock(return_value=mock_action4)
         mock_menu4.exec = Mock()
 
-        with patch("nxdrive.gui.folders_dialog.QMenu", return_value=mock_menu4):
+        with patch("nxdrive.drive.gui.folders_dialog.QMenu", return_value=mock_menu4):
             # Call the method
             actual_open_menu(dialog, test_position)
 
@@ -1301,7 +1305,7 @@ class TestFoldersDialogOpenMenu:
         mock_menu5.addAction = Mock(return_value=mock_action5)
         mock_menu5.exec = Mock()
 
-        with patch("nxdrive.gui.folders_dialog.QMenu", return_value=mock_menu5):
+        with patch("nxdrive.drive.gui.folders_dialog.QMenu", return_value=mock_menu5):
             # Call the method one final time
             actual_open_menu(dialog, final_position)
 
@@ -1862,7 +1866,7 @@ class TestFoldersDialogNewFolderButtonAction:
 
         # Test Case 1: Normal execution - dialog creation and execution
         with patch(
-            "nxdrive.gui.folders_dialog.NewFolderDialog"
+            "nxdrive.drive.gui.folders_dialog.NewFolderDialog"
         ) as mock_new_folder_dialog_class:
             # Create a mock dialog instance
             mock_new_folder_dialog = Mock(spec=NewFolderDialog)
@@ -1883,7 +1887,7 @@ class TestFoldersDialogNewFolderButtonAction:
 
         # Test Case 2: Verify method execution order
         with patch(
-            "nxdrive.gui.folders_dialog.NewFolderDialog"
+            "nxdrive.drive.gui.folders_dialog.NewFolderDialog"
         ) as mock_new_folder_dialog_class:
             # Track call order
             call_order = []
@@ -1908,7 +1912,7 @@ class TestFoldersDialogNewFolderButtonAction:
         dialog3 = Mock(spec=FoldersDialog)
 
         with patch(
-            "nxdrive.gui.folders_dialog.NewFolderDialog"
+            "nxdrive.drive.gui.folders_dialog.NewFolderDialog"
         ) as mock_new_folder_dialog_class:
             mock_new_folder_dialog1 = Mock(spec=NewFolderDialog)
             mock_new_folder_dialog2 = Mock(spec=NewFolderDialog)
@@ -1948,7 +1952,7 @@ class TestFoldersDialogNewFolderButtonAction:
         dialog.attr2 = 42
 
         with patch(
-            "nxdrive.gui.folders_dialog.NewFolderDialog"
+            "nxdrive.drive.gui.folders_dialog.NewFolderDialog"
         ) as mock_new_folder_dialog_class:
             mock_new_folder_dialog = Mock(spec=NewFolderDialog)
             mock_new_folder_dialog_class.return_value = mock_new_folder_dialog
@@ -1962,7 +1966,7 @@ class TestFoldersDialogNewFolderButtonAction:
 
         # Test Case 5: Test exception handling from NewFolderDialog constructor
         with patch(
-            "nxdrive.gui.folders_dialog.NewFolderDialog"
+            "nxdrive.drive.gui.folders_dialog.NewFolderDialog"
         ) as mock_new_folder_dialog_class:
             # Make the constructor raise an exception
             mock_new_folder_dialog_class.side_effect = Exception(
@@ -1981,7 +1985,7 @@ class TestFoldersDialogNewFolderButtonAction:
 
         # Test Case 6: Test exception handling from exec() method
         with patch(
-            "nxdrive.gui.folders_dialog.NewFolderDialog"
+            "nxdrive.drive.gui.folders_dialog.NewFolderDialog"
         ) as mock_new_folder_dialog_class:
             mock_new_folder_dialog = Mock(spec=NewFolderDialog)
             mock_new_folder_dialog.exec.side_effect = Exception(
@@ -2008,7 +2012,7 @@ class TestFoldersDialogNewFolderButtonAction:
         specialized_dialog = Mock(spec=TestFoldersDialog)
 
         with patch(
-            "nxdrive.gui.folders_dialog.NewFolderDialog"
+            "nxdrive.drive.gui.folders_dialog.NewFolderDialog"
         ) as mock_new_folder_dialog_class:
             mock_new_folder_dialog = Mock(spec=NewFolderDialog)
             mock_new_folder_dialog_class.return_value = mock_new_folder_dialog
@@ -2022,7 +2026,7 @@ class TestFoldersDialogNewFolderButtonAction:
 
         # Test Case 8: Verify method can be called multiple times on same dialog
         with patch(
-            "nxdrive.gui.folders_dialog.NewFolderDialog"
+            "nxdrive.drive.gui.folders_dialog.NewFolderDialog"
         ) as mock_new_folder_dialog_class:
             # Create different mock dialog instances for each call
             mock_dialogs = [Mock(spec=NewFolderDialog) for _ in range(3)]
@@ -2044,7 +2048,7 @@ class TestFoldersDialogNewFolderButtonAction:
 
         # Test Case 9: Verify the method signature and return value
         with patch(
-            "nxdrive.gui.folders_dialog.NewFolderDialog"
+            "nxdrive.drive.gui.folders_dialog.NewFolderDialog"
         ) as mock_new_folder_dialog_class:
             mock_new_folder_dialog = Mock(spec=NewFolderDialog)
             mock_new_folder_dialog_class.return_value = mock_new_folder_dialog
@@ -2061,7 +2065,7 @@ class TestFoldersDialogNewFolderButtonAction:
 
         # Test Case 10: Integration test - verify NewFolderDialog gets correct parent reference
         with patch(
-            "nxdrive.gui.folders_dialog.NewFolderDialog"
+            "nxdrive.drive.gui.folders_dialog.NewFolderDialog"
         ) as mock_new_folder_dialog_class:
 
             def verify_parent_dialog(parent):
@@ -2095,7 +2099,7 @@ class TestFoldersDialogFindFoldersDuplicates:
         # Mock the get_config method for remote_folder_ref
         self.mock_dao.get_config.return_value = "/default/remote/folder"
 
-    @patch("nxdrive.gui.folders_dialog.FoldersDialog.__init__", return_value=None)
+    @patch("nxdrive.drive.gui.folders_dialog.FoldersDialog.__init__", return_value=None)
     def test_find_folders_duplicates_comprehensive_functionality(self, mock_init):
         """Test comprehensive functionality covering all aspects of _find_folders_duplicates method.
 
@@ -2359,7 +2363,7 @@ class TestFoldersDialogGetKnownTypeKey:
         # Mock the get_config method
         self.mock_dao.get_config.return_value = "/default/remote/folder"
 
-    @patch("nxdrive.gui.folders_dialog.FoldersDialog.__init__", return_value=None)
+    @patch("nxdrive.drive.gui.folders_dialog.FoldersDialog.__init__", return_value=None)
     def test_get_known_type_key_comprehensive_functionality(self, mock_init):
         """Test comprehensive functionality covering all aspects of get_known_type_key method.
 
@@ -2609,8 +2613,8 @@ class TestFoldersDialogAccept:
         # Mock the get_config method
         self.mock_dao.get_config.return_value = "/default/remote/folder"
 
-    @patch("nxdrive.gui.folders_dialog.FoldersDialog.__init__", return_value=None)
-    @patch("nxdrive.gui.folders_dialog.DialogMixin.accept")  # Mock parent accept
+    @patch("nxdrive.drive.gui.folders_dialog.FoldersDialog.__init__", return_value=None)
+    @patch("nxdrive.drive.gui.folders_dialog.DialogMixin.accept")  # Mock parent accept
     def test_accept_comprehensive_functionality(self, mock_parent_accept, mock_init):
         """Test comprehensive functionality covering all aspects of accept method.
 

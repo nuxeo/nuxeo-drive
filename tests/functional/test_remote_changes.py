@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from nxdrive.options import Options
+from nxdrive.drive.options import Options
 
 
 @pytest.fixture

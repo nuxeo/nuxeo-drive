@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from nxdrive.gui.api import QMLDriveApi
+from nxdrive.drive.gui.api import QMLDriveApi
 
 
 class TestQMLDriveApiJsonDefault:
@@ -176,8 +176,10 @@ class TestQMLDriveApiJsonDefault:
         mock_state.remote_can_rename = False
         mock_state.last_error_details = "Some error details"
 
-        with patch("nxdrive.gui.api.get_date_from_sqlite") as mock_get_date, patch(
-            "nxdrive.gui.api.Translator.format_datetime"
+        with patch(
+            "nxdrive.drive.gui.api.get_date_from_sqlite"
+        ) as mock_get_date, patch(
+            "nxdrive.drive.gui.api.Translator.format_datetime"
         ) as mock_format_datetime:
 
             # Setup mock returns for date functions
@@ -229,7 +231,7 @@ class TestQMLDriveApiJsonDefault:
         mock_state_no_modifier.remote_can_rename = True
         mock_state_no_modifier.last_error_details = None
 
-        with patch("nxdrive.gui.api.get_date_from_sqlite") as mock_get_date:
+        with patch("nxdrive.drive.gui.api.get_date_from_sqlite") as mock_get_date:
             mock_get_date.return_value = None
 
             result = self.api._export_formatted_state(
@@ -258,8 +260,10 @@ class TestQMLDriveApiJsonDefault:
         mock_state_empty_error.remote_can_rename = True
         mock_state_empty_error.last_error_details = ""
 
-        with patch("nxdrive.gui.api.get_date_from_sqlite") as mock_get_date, patch(
-            "nxdrive.gui.api.Translator.format_datetime"
+        with patch(
+            "nxdrive.drive.gui.api.get_date_from_sqlite"
+        ) as mock_get_date, patch(
+            "nxdrive.drive.gui.api.Translator.format_datetime"
         ) as mock_format_datetime:
 
             mock_get_date.return_value = Mock()
@@ -896,7 +900,7 @@ class TestQMLDriveApiJsonDefault:
         from pathlib import Path
         from typing import Optional
 
-        from nxdrive.constants import TransferStatus
+        from nxdrive.drive.constants import TransferStatus
 
         @dataclass
         class MockDownload:
@@ -1188,7 +1192,7 @@ class TestQMLDriveApiJsonDefault:
         transfer_uid = 456
         progress = 0.75
 
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.pause_transfer(nature, engine_uid, transfer_uid, progress)
 
             # Verify logging
@@ -1214,7 +1218,7 @@ class TestQMLDriveApiJsonDefault:
         transfer_uid2 = 789
         progress2 = 0.25
 
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.pause_transfer(nature2, engine_uid2, transfer_uid2, progress2)
 
             # Verify logging with different parameters
@@ -1239,7 +1243,7 @@ class TestQMLDriveApiJsonDefault:
         progress3 = 0.5
         is_direct_transfer = True
 
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.pause_transfer(
                 nature3,
                 engine_uid3,
@@ -1271,7 +1275,7 @@ class TestQMLDriveApiJsonDefault:
         transfer_uid4 = 111
         progress4 = 0.1
 
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.pause_transfer(nature4, engine_uid4, transfer_uid4, progress4)
 
             # Verify logging still occurs
@@ -1293,7 +1297,7 @@ class TestQMLDriveApiJsonDefault:
         self.mock_manager.engines.get.return_value = mock_engine
 
         # Test with progress = 0.0 (starting)
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.pause_transfer("downloads", "edge_engine", 1, 0.0)
             mock_log.info.assert_called_once()
         mock_dao.pause_transfer.assert_called_with(
@@ -1302,7 +1306,7 @@ class TestQMLDriveApiJsonDefault:
 
         # Test with progress = 1.0 (completed)
         mock_dao.reset_mock()
-        with patch("nxdrive.gui.api.log"):
+        with patch("nxdrive.drive.gui.api.log"):
             self.api.pause_transfer("uploads", "edge_engine", 2, 1.0)
         mock_dao.pause_transfer.assert_called_with(
             "uploads", 2, 1.0, is_direct_transfer=False
@@ -1311,7 +1315,7 @@ class TestQMLDriveApiJsonDefault:
         # Test with large transfer_uid
         mock_dao.reset_mock()
         large_uid = 999999999
-        with patch("nxdrive.gui.api.log"):
+        with patch("nxdrive.drive.gui.api.log"):
             self.api.pause_transfer("downloads", "edge_engine", large_uid, 0.33)
         mock_dao.pause_transfer.assert_called_with(
             "downloads", large_uid, 0.33, is_direct_transfer=False
@@ -1322,7 +1326,7 @@ class TestQMLDriveApiJsonDefault:
         mock_dao.reset_mock()
 
         special_engine_uid = "engine-123@domain.com#special"
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.pause_transfer("uploads", special_engine_uid, 777, 0.66)
 
             # Verify logging includes special characters correctly
@@ -1339,7 +1343,7 @@ class TestQMLDriveApiJsonDefault:
         mock_dao.reset_mock()
 
         # Test "downloads" nature
-        with patch("nxdrive.gui.api.log"):
+        with patch("nxdrive.drive.gui.api.log"):
             self.api.pause_transfer("downloads", "test_engine", 10, 0.1)
         mock_dao.pause_transfer.assert_called_with(
             "downloads", 10, 0.1, is_direct_transfer=False
@@ -1348,7 +1352,7 @@ class TestQMLDriveApiJsonDefault:
         mock_dao.reset_mock()
 
         # Test "uploads" nature
-        with patch("nxdrive.gui.api.log"):
+        with patch("nxdrive.drive.gui.api.log"):
             self.api.pause_transfer("uploads", "test_engine", 20, 0.2)
         mock_dao.pause_transfer.assert_called_with(
             "uploads", 20, 0.2, is_direct_transfer=False
@@ -1374,7 +1378,7 @@ class TestQMLDriveApiJsonDefault:
             mock_dao.reset_mock()
             self.mock_manager.reset_mock()
 
-            with patch("nxdrive.gui.api.log") as mock_log:
+            with patch("nxdrive.drive.gui.api.log") as mock_log:
                 self.api.pause_transfer(
                     nature,
                     engine_uid,
@@ -1402,13 +1406,13 @@ class TestQMLDriveApiJsonDefault:
         mock_dao.reset_mock()
 
         # Test with empty string engine_uid
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.pause_transfer("downloads", "", 999, 0.99)
             mock_log.info.assert_called_once_with("Pausing downloads 999 for engine ''")
 
         # Test with transfer_uid = 0
         mock_dao.reset_mock()
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.pause_transfer("uploads", "test_engine", 0, 0.0)
             mock_log.info.assert_called_once_with(
                 "Pausing uploads 0 for engine 'test_engine'"
@@ -1430,7 +1434,7 @@ class TestQMLDriveApiJsonDefault:
         engine_uid = "test_engine_123"
         uid = 456
 
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.resume_transfer(nature, engine_uid, uid)
 
             # Verify logging
@@ -1454,7 +1458,7 @@ class TestQMLDriveApiJsonDefault:
         engine_uid2 = "another_engine_456"
         uid2 = 789
 
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.resume_transfer(nature2, engine_uid2, uid2)
 
             # Verify logging with different parameters
@@ -1477,7 +1481,7 @@ class TestQMLDriveApiJsonDefault:
         uid3 = 999
         is_direct_transfer = True
 
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.resume_transfer(
                 nature3, engine_uid3, uid3, is_direct_transfer=is_direct_transfer
             )
@@ -1503,7 +1507,7 @@ class TestQMLDriveApiJsonDefault:
         engine_uid4 = "nonexistent_engine"
         uid4 = 111
 
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.resume_transfer(nature4, engine_uid4, uid4)
 
             # Verify logging still occurs
@@ -1524,7 +1528,7 @@ class TestQMLDriveApiJsonDefault:
         self.mock_manager.engines.get.return_value = mock_engine
 
         # Test with uid = 0 (edge case)
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.resume_transfer("downloads", "edge_engine", 0)
             mock_log.info.assert_called_once()
         mock_engine.resume_transfer.assert_called_with(
@@ -1534,7 +1538,7 @@ class TestQMLDriveApiJsonDefault:
         # Test with large uid
         mock_engine.reset_mock()
         large_uid = 999999999
-        with patch("nxdrive.gui.api.log"):
+        with patch("nxdrive.drive.gui.api.log"):
             self.api.resume_transfer("uploads", "edge_engine", large_uid)
         mock_engine.resume_transfer.assert_called_with(
             "uploads", large_uid, is_direct_transfer=False
@@ -1543,7 +1547,7 @@ class TestQMLDriveApiJsonDefault:
         # Test with negative uid (edge case)
         mock_engine.reset_mock()
         negative_uid = -1
-        with patch("nxdrive.gui.api.log"):
+        with patch("nxdrive.drive.gui.api.log"):
             self.api.resume_transfer("downloads", "edge_engine", negative_uid)
         mock_engine.resume_transfer.assert_called_with(
             "downloads", negative_uid, is_direct_transfer=False
@@ -1554,7 +1558,7 @@ class TestQMLDriveApiJsonDefault:
         mock_engine.reset_mock()
 
         special_engine_uid = "engine-123@domain.com#special"
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.resume_transfer("uploads", special_engine_uid, 777)
 
             # Verify logging includes special characters correctly
@@ -1571,7 +1575,7 @@ class TestQMLDriveApiJsonDefault:
         mock_engine.reset_mock()
 
         # Test "downloads" nature
-        with patch("nxdrive.gui.api.log"):
+        with patch("nxdrive.drive.gui.api.log"):
             self.api.resume_transfer("downloads", "test_engine", 10)
         mock_engine.resume_transfer.assert_called_with(
             "downloads", 10, is_direct_transfer=False
@@ -1580,7 +1584,7 @@ class TestQMLDriveApiJsonDefault:
         mock_engine.reset_mock()
 
         # Test "uploads" nature
-        with patch("nxdrive.gui.api.log"):
+        with patch("nxdrive.drive.gui.api.log"):
             self.api.resume_transfer("uploads", "test_engine", 20)
         mock_engine.resume_transfer.assert_called_with(
             "uploads", 20, is_direct_transfer=False
@@ -1588,7 +1592,7 @@ class TestQMLDriveApiJsonDefault:
 
         # Test "download" (singular) nature
         mock_engine.reset_mock()
-        with patch("nxdrive.gui.api.log"):
+        with patch("nxdrive.drive.gui.api.log"):
             self.api.resume_transfer("download", "test_engine", 30)
         mock_engine.resume_transfer.assert_called_with(
             "download", 30, is_direct_transfer=False
@@ -1596,7 +1600,7 @@ class TestQMLDriveApiJsonDefault:
 
         # Test "upload" (singular) nature
         mock_engine.reset_mock()
-        with patch("nxdrive.gui.api.log"):
+        with patch("nxdrive.drive.gui.api.log"):
             self.api.resume_transfer("upload", "test_engine", 40)
         mock_engine.resume_transfer.assert_called_with(
             "upload", 40, is_direct_transfer=False
@@ -1622,7 +1626,7 @@ class TestQMLDriveApiJsonDefault:
             mock_engine.reset_mock()
             self.mock_manager.reset_mock()
 
-            with patch("nxdrive.gui.api.log") as mock_log:
+            with patch("nxdrive.drive.gui.api.log") as mock_log:
                 self.api.resume_transfer(
                     nature, engine_uid, uid, is_direct_transfer=is_direct
                 )
@@ -1644,13 +1648,13 @@ class TestQMLDriveApiJsonDefault:
         mock_engine.reset_mock()
 
         # Test with empty string engine_uid
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.resume_transfer("downloads", "", 999)
             mock_log.info.assert_called_once_with("Resume downloads 999 for engine ''")
 
         # Test with uid = 0
         mock_engine.reset_mock()
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.resume_transfer("uploads", "test_engine", 0)
             mock_log.info.assert_called_once_with(
                 "Resume uploads 0 for engine 'test_engine'"
@@ -1665,7 +1669,7 @@ class TestQMLDriveApiJsonDefault:
         self.mock_manager.reset_mock()
 
         # Test positional parameters
-        with patch("nxdrive.gui.api.log"):
+        with patch("nxdrive.drive.gui.api.log"):
             self.api.resume_transfer("downloads", "pos_engine", 123)
 
         mock_engine.resume_transfer.assert_called_with(
@@ -1676,7 +1680,7 @@ class TestQMLDriveApiJsonDefault:
         mock_engine.reset_mock()
         self.mock_manager.reset_mock()
 
-        with patch("nxdrive.gui.api.log"):
+        with patch("nxdrive.drive.gui.api.log"):
             self.api.resume_transfer(
                 "uploads", "kw_engine", 456, is_direct_transfer=True
             )
@@ -1708,7 +1712,7 @@ class TestQMLDriveApiJsonDefault:
         self.mock_manager.engines.get.return_value = mock_engine
 
         # Test basic functionality
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.resume_session("test_engine", 123)
             mock_log.info.assert_called_once_with(
                 "Resume session 123 for engine 'test_engine'"
@@ -1734,7 +1738,7 @@ class TestQMLDriveApiJsonDefault:
         self.mock_manager.engines.get.return_value = mock_engine
 
         # Test basic functionality
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.pause_session("test_engine", 789)
             mock_log.info.assert_called_once_with(
                 "Pausing session 789 for engine 'test_engine'"
@@ -1766,7 +1770,7 @@ class TestQMLDriveApiJsonDefault:
         test_exception = Exception("Report generation failed")
         self.mock_manager.generate_report.side_effect = test_exception
 
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             result = self.api.generate_report()
             assert result == "[ERROR] Report generation failed"
             mock_log.exception.assert_called_once_with("Report error")
@@ -1796,7 +1800,7 @@ class TestQMLDriveApiJsonDefault:
         self.mock_manager.engines.get.return_value = mock_engine
         self.mock_manager.generate_csv.side_effect = Exception("CSV generation failed")
 
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             result = self.api.generate_csv("789", "test_engine")
             assert result is False
             mock_log.exception.assert_called_once_with("CSV export error.")
@@ -1867,7 +1871,7 @@ class TestQMLDriveApiJsonDefault:
         """Comprehensive test covering all functionality of show_settings method."""
         section = "general"
 
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.show_settings(section)
             mock_log.info.assert_called_once_with(f"Show settings on section {section}")
 
@@ -1884,23 +1888,23 @@ class TestQMLDriveApiJsonDefault:
         self.mock_application.reset_mock()
         self.mock_application.quit.side_effect = Exception("Quit failed")
 
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.quit()
             mock_log.exception.assert_called_once_with("Application exit error")
 
     def test_web_update_token_comprehensive_functionality(self):
         """Comprehensive test covering all functionality of web_update_token method."""
 
-        from nxdrive.auth import OAuthentication
-        from nxdrive.updater.constants import Login
+        from nxdrive.drive.auth import OAuthentication
+        from nxdrive.drive.updater.constants import Login
 
         mock_engine = Mock()
         mock_engine.server_url = "https://test.server.com"
         mock_engine.remote.auth = Mock(spec=OAuthentication)
 
         with patch.object(self.api, "_get_engine", return_value=mock_engine), patch(
-            "nxdrive.gui.api.urlencode"
-        ) as mock_urlencode, patch("nxdrive.gui.api.get_auth") as mock_get_auth:
+            "nxdrive.drive.gui.api.urlencode"
+        ) as mock_urlencode, patch("nxdrive.drive.gui.api.get_auth") as mock_get_auth:
 
             mock_urlencode.return_value = "updateToken=True"
             self.mock_manager.get_server_login_type.return_value = Login.NEW
@@ -1927,14 +1931,14 @@ class TestQMLDriveApiJsonDefault:
 
         import pytest
 
-        from nxdrive.exceptions import (
+        from nxdrive.drive.exceptions import (
             EncryptedSSLCertificateKey,
             InvalidSSLCertificate,
             MissingClientSSLCertificate,
         )
 
         # Test successful URL validation
-        with patch("nxdrive.gui.api.test_url") as mock_test_url:
+        with patch("nxdrive.drive.gui.api.test_url") as mock_test_url:
             mock_test_url.return_value = ""
 
             result = self.api._get_ssl_error("https://valid.server.com")
@@ -1944,9 +1948,9 @@ class TestQMLDriveApiJsonDefault:
             )
 
         # Test SSL certificate error with acceptance
-        with patch("nxdrive.gui.api.test_url") as mock_test_url, patch(
-            "nxdrive.gui.api.log"
-        ) as mock_log, patch("nxdrive.gui.api.save_config") as mock_save_config:
+        with patch("nxdrive.drive.gui.api.test_url") as mock_test_url, patch(
+            "nxdrive.drive.gui.api.log"
+        ) as mock_log, patch("nxdrive.drive.gui.api.save_config") as mock_save_config:
 
             ssl_error = InvalidSSLCertificate("SSL cert invalid")
             # First call raises SSL error, second call (after acceptance) returns empty string
@@ -1971,8 +1975,8 @@ class TestQMLDriveApiJsonDefault:
             assert mock_test_url.call_count == 2
 
         # Test SSL certificate error with rejection
-        with patch("nxdrive.gui.api.test_url") as mock_test_url, patch(
-            "nxdrive.gui.api.log"
+        with patch("nxdrive.drive.gui.api.test_url") as mock_test_url, patch(
+            "nxdrive.drive.gui.api.log"
         ) as mock_log:
 
             # Reset the mock from previous test case
@@ -1996,8 +2000,8 @@ class TestQMLDriveApiJsonDefault:
             )
 
         # Test MissingClientSSLCertificate exception
-        with patch("nxdrive.gui.api.test_url") as mock_test_url, patch(
-            "nxdrive.gui.api.log"
+        with patch("nxdrive.drive.gui.api.test_url") as mock_test_url, patch(
+            "nxdrive.drive.gui.api.log"
         ) as mock_log:
 
             ssl_error = MissingClientSSLCertificate("Missing client SSL certificate")
@@ -2010,8 +2014,8 @@ class TestQMLDriveApiJsonDefault:
             mock_log.warning.assert_called_once_with(ssl_error)
 
         # Test EncryptedSSLCertificateKey exception
-        with patch("nxdrive.gui.api.test_url") as mock_test_url, patch(
-            "nxdrive.gui.api.log"
+        with patch("nxdrive.drive.gui.api.test_url") as mock_test_url, patch(
+            "nxdrive.drive.gui.api.log"
         ) as mock_log:
 
             ssl_error = EncryptedSSLCertificateKey("Encrypted SSL certificate key")
@@ -2024,7 +2028,7 @@ class TestQMLDriveApiJsonDefault:
             mock_log.warning.assert_called_once_with(ssl_error)
 
         # Test non-SSL related exception (function lets these bubble up for caller to handle)
-        with patch("nxdrive.gui.api.test_url") as mock_test_url:
+        with patch("nxdrive.drive.gui.api.test_url") as mock_test_url:
             from requests.exceptions import ConnectionError
 
             connection_error = ConnectionError("Connection failed")
@@ -2037,7 +2041,7 @@ class TestQMLDriveApiJsonDefault:
                 )  # Non-SSL errors return CONNECTION_ERROR
 
         # Test with empty URL
-        with patch("nxdrive.gui.api.test_url") as mock_test_url:
+        with patch("nxdrive.drive.gui.api.test_url") as mock_test_url:
             mock_test_url.return_value = ""
 
             result = self.api._get_ssl_error("")
@@ -2045,8 +2049,8 @@ class TestQMLDriveApiJsonDefault:
             mock_test_url.assert_called_once_with("", proxy=self.mock_manager.proxy)
 
         # Test URL parsing for hostname extraction
-        with patch("nxdrive.gui.api.test_url") as mock_test_url, patch(
-            "nxdrive.gui.api.log"
+        with patch("nxdrive.drive.gui.api.test_url") as mock_test_url, patch(
+            "nxdrive.drive.gui.api.log"
         ):
 
             ssl_error = InvalidSSLCertificate("SSL cert invalid")
@@ -2074,7 +2078,7 @@ class TestQMLDriveApiJsonDefault:
         from nuxeo.exceptions import HTTPError, Unauthorized
         from requests.exceptions import ConnectionError
 
-        from nxdrive.exceptions import (
+        from nxdrive.drive.exceptions import (
             AddonForbiddenError,
             AddonNotInstalledError,
             FolderAlreadyUsed,
@@ -2085,7 +2089,7 @@ class TestQMLDriveApiJsonDefault:
 
         # Test successful server binding
         with patch.object(self.api, "_bind_server") as mock_bind_server, patch(
-            "nxdrive.gui.api.normalized_path"
+            "nxdrive.drive.gui.api.normalized_path"
         ) as mock_normalized_path:
 
             mock_normalized_path.return_value = Path("/test/folder")
@@ -2126,9 +2130,11 @@ class TestQMLDriveApiJsonDefault:
 
         # Test RootAlreadyBindWithDifferentAccount exception with user cancellation
         with patch.object(self.api, "_bind_server") as mock_bind_server, patch(
-            "nxdrive.gui.api.normalized_path"
-        ) as mock_normalized_path, patch("nxdrive.gui.api.log") as mock_log, patch(
-            "nxdrive.gui.api.Translator"
+            "nxdrive.drive.gui.api.normalized_path"
+        ) as mock_normalized_path, patch(
+            "nxdrive.drive.gui.api.log"
+        ) as mock_log, patch(
+            "nxdrive.drive.gui.api.Translator"
         ) as mock_translator, patch.object(
             self.api.setMessage, "emit"
         ) as mock_emit:
@@ -2158,9 +2164,9 @@ class TestQMLDriveApiJsonDefault:
 
         # Test RootAlreadyBindWithDifferentAccount exception with user continuation
         with patch.object(self.api, "_bind_server") as mock_bind_server, patch(
-            "nxdrive.gui.api.normalized_path"
+            "nxdrive.drive.gui.api.normalized_path"
         ) as mock_normalized_path, patch(
-            "nxdrive.gui.api.Translator"
+            "nxdrive.drive.gui.api.Translator"
         ) as mock_translator, patch.object(
             self.api, "bind_server"
         ) as mock_bind_server_recursive:
@@ -2202,9 +2208,11 @@ class TestQMLDriveApiJsonDefault:
 
         for exception, expected_error in exceptions_and_errors:
             with patch.object(self.api, "_bind_server") as mock_bind_server, patch(
-                "nxdrive.gui.api.normalized_path"
-            ) as mock_normalized_path, patch("nxdrive.gui.api.log") as mock_log, patch(
-                "nxdrive.gui.api.Translator"
+                "nxdrive.drive.gui.api.normalized_path"
+            ) as mock_normalized_path, patch(
+                "nxdrive.drive.gui.api.log"
+            ) as mock_log, patch(
+                "nxdrive.drive.gui.api.Translator"
             ) as mock_translator, patch.object(
                 self.api.setMessage, "emit"
             ) as mock_emit:
@@ -2223,9 +2231,11 @@ class TestQMLDriveApiJsonDefault:
 
         # Test CONNECTION_ERROR with errno 61 (connection refused)
         with patch.object(self.api, "_bind_server") as mock_bind_server, patch(
-            "nxdrive.gui.api.normalized_path"
-        ) as mock_normalized_path, patch("nxdrive.gui.api.log") as mock_log, patch(
-            "nxdrive.gui.api.Translator"
+            "nxdrive.drive.gui.api.normalized_path"
+        ) as mock_normalized_path, patch(
+            "nxdrive.drive.gui.api.log"
+        ) as mock_log, patch(
+            "nxdrive.drive.gui.api.Translator"
         ) as mock_translator, patch.object(
             self.api.setMessage, "emit"
         ) as mock_emit:
@@ -2244,9 +2254,11 @@ class TestQMLDriveApiJsonDefault:
 
         # Test generic ConnectionError
         with patch.object(self.api, "_bind_server") as mock_bind_server, patch(
-            "nxdrive.gui.api.normalized_path"
-        ) as mock_normalized_path, patch("nxdrive.gui.api.log") as mock_log, patch(
-            "nxdrive.gui.api.Translator"
+            "nxdrive.drive.gui.api.normalized_path"
+        ) as mock_normalized_path, patch(
+            "nxdrive.drive.gui.api.log"
+        ) as mock_log, patch(
+            "nxdrive.drive.gui.api.Translator"
         ) as mock_translator, patch.object(
             self.api.setMessage, "emit"
         ) as mock_emit:
@@ -2264,9 +2276,11 @@ class TestQMLDriveApiJsonDefault:
 
         # Test unexpected exception
         with patch.object(self.api, "_bind_server") as mock_bind_server, patch(
-            "nxdrive.gui.api.normalized_path"
-        ) as mock_normalized_path, patch("nxdrive.gui.api.log") as mock_log, patch(
-            "nxdrive.gui.api.Translator"
+            "nxdrive.drive.gui.api.normalized_path"
+        ) as mock_normalized_path, patch(
+            "nxdrive.drive.gui.api.log"
+        ) as mock_log, patch(
+            "nxdrive.drive.gui.api.Translator"
         ) as mock_translator, patch.object(
             self.api.setMessage, "emit"
         ) as mock_emit:
@@ -2288,14 +2302,14 @@ class TestQMLDriveApiJsonDefault:
 
         from urllib3.exceptions import LocationParseError
 
-        from nxdrive.exceptions import StartupPageConnectionError
-        from nxdrive.updater.constants import Login
+        from nxdrive.drive.exceptions import StartupPageConnectionError
+        from nxdrive.drive.updater.constants import Login
 
         # Test successful web authentication with legacy auth (NEW login type)
         with patch.object(self.api, "_get_ssl_error", return_value=""), patch(
-            "nxdrive.gui.api.get_auth"
+            "nxdrive.drive.gui.api.get_auth"
         ) as mock_get_auth, patch(
-            "nxdrive.gui.api.normalized_path"
+            "nxdrive.drive.gui.api.normalized_path"
         ) as mock_normalized_path:
 
             mock_normalized_path.return_value = "/test/folder"
@@ -2318,9 +2332,9 @@ class TestQMLDriveApiJsonDefault:
 
         # Test successful web authentication without legacy auth (dict token)
         with patch.object(self.api, "_get_ssl_error", return_value=""), patch(
-            "nxdrive.gui.api.get_auth"
+            "nxdrive.drive.gui.api.get_auth"
         ) as mock_get_auth, patch(
-            "nxdrive.gui.api.normalized_path"
+            "nxdrive.drive.gui.api.normalized_path"
         ) as mock_normalized_path:
 
             mock_normalized_path.return_value = "/test/folder"
@@ -2344,7 +2358,7 @@ class TestQMLDriveApiJsonDefault:
             assert call_args[1] == {}  # dict token for non-legacy auth
 
         # Test folder not available
-        with patch("nxdrive.gui.api.normalized_path") as mock_normalized_path:
+        with patch("nxdrive.drive.gui.api.normalized_path") as mock_normalized_path:
 
             mock_normalized_path.return_value = "/used/folder"
             self.mock_manager.check_local_folder_available.return_value = False
@@ -2358,7 +2372,7 @@ class TestQMLDriveApiJsonDefault:
             self.mock_set_message.emit.assert_called_with("FOLDER_USED", "error")
 
         # Test server URL with login.jsp (invalid)
-        with patch("nxdrive.gui.api.normalized_path") as mock_normalized_path:
+        with patch("nxdrive.drive.gui.api.normalized_path") as mock_normalized_path:
 
             mock_normalized_path.return_value = "/test/folder"
             self.mock_manager.check_local_folder_available.return_value = True
@@ -2375,7 +2389,7 @@ class TestQMLDriveApiJsonDefault:
 
         # Test SSL error from _get_ssl_error
         with patch.object(self.api, "_get_ssl_error", return_value="SSL_ERROR"), patch(
-            "nxdrive.gui.api.normalized_path"
+            "nxdrive.drive.gui.api.normalized_path"
         ) as mock_normalized_path:
 
             mock_normalized_path.return_value = "/test/folder"
@@ -2394,10 +2408,12 @@ class TestQMLDriveApiJsonDefault:
         # Test LocationParseError from _get_ssl_error (should continue with auth)
         with patch.object(
             self.api, "_get_ssl_error", side_effect=LocationParseError("Bad URL")
-        ), patch("nxdrive.gui.api.normalized_path") as mock_normalized_path, patch(
-            "nxdrive.gui.api.log"
+        ), patch(
+            "nxdrive.drive.gui.api.normalized_path"
+        ) as mock_normalized_path, patch(
+            "nxdrive.drive.gui.api.log"
         ) as mock_log, patch(
-            "nxdrive.gui.api.get_auth"
+            "nxdrive.drive.gui.api.get_auth"
         ) as mock_get_auth:
 
             mock_normalized_path.return_value = "/test/folder"
@@ -2420,10 +2436,12 @@ class TestQMLDriveApiJsonDefault:
         # Test general exception from _get_ssl_error (should continue with auth)
         with patch.object(
             self.api, "_get_ssl_error", side_effect=Exception("Unexpected error")
-        ), patch("nxdrive.gui.api.normalized_path") as mock_normalized_path, patch(
-            "nxdrive.gui.api.log"
+        ), patch(
+            "nxdrive.drive.gui.api.normalized_path"
+        ) as mock_normalized_path, patch(
+            "nxdrive.drive.gui.api.log"
         ) as mock_log, patch(
-            "nxdrive.gui.api.get_auth"
+            "nxdrive.drive.gui.api.get_auth"
         ) as mock_get_auth:
 
             mock_normalized_path.return_value = "/test/folder"
@@ -2447,7 +2465,7 @@ class TestQMLDriveApiJsonDefault:
 
         # Test StartupPageConnectionError (legacy auth)
         with patch.object(self.api, "_get_ssl_error", return_value=""), patch(
-            "nxdrive.gui.api.normalized_path"
+            "nxdrive.drive.gui.api.normalized_path"
         ) as mock_normalized_path:
 
             mock_normalized_path.return_value = "/test/folder"
@@ -2468,9 +2486,9 @@ class TestQMLDriveApiJsonDefault:
 
         # Test authentication with server URL fragment (custom engine type)
         with patch.object(self.api, "_get_ssl_error", return_value=""), patch(
-            "nxdrive.gui.api.get_auth"
+            "nxdrive.drive.gui.api.get_auth"
         ) as mock_get_auth, patch(
-            "nxdrive.gui.api.normalized_path"
+            "nxdrive.drive.gui.api.normalized_path"
         ) as mock_normalized_path:
 
             mock_normalized_path.return_value = "/test/folder"
@@ -2494,9 +2512,11 @@ class TestQMLDriveApiJsonDefault:
 
         # Test exception during authentication setup
         with patch.object(self.api, "_get_ssl_error", return_value=""), patch(
-            "nxdrive.gui.api.get_auth", side_effect=Exception("Auth setup failed")
-        ), patch("nxdrive.gui.api.normalized_path") as mock_normalized_path, patch(
-            "nxdrive.gui.api.log"
+            "nxdrive.drive.gui.api.get_auth", side_effect=Exception("Auth setup failed")
+        ), patch(
+            "nxdrive.drive.gui.api.normalized_path"
+        ) as mock_normalized_path, patch(
+            "nxdrive.drive.gui.api.log"
         ) as mock_log:
 
             mock_normalized_path.return_value = "/test/folder"
@@ -2551,7 +2571,7 @@ class TestQMLDriveApiJsonDefault:
         # Test successful proxy setting
         mock_proxy = Mock()
         with patch(
-            "nxdrive.gui.api.get_proxy", return_value=mock_proxy
+            "nxdrive.drive.gui.api.get_proxy", return_value=mock_proxy
         ) as mock_get_proxy:
             self.mock_manager.set_proxy.return_value = None  # No error
 
@@ -2565,7 +2585,7 @@ class TestQMLDriveApiJsonDefault:
 
         # Test FileNotFoundError
         with patch(
-            "nxdrive.gui.api.get_proxy",
+            "nxdrive.drive.gui.api.get_proxy",
             side_effect=FileNotFoundError("PAC file not found"),
         ):
             result = self.api.set_proxy_settings("pac", "", "http://pac.url")
@@ -2573,7 +2593,7 @@ class TestQMLDriveApiJsonDefault:
 
         # Test manager error
         self.mock_manager.reset_mock()
-        with patch("nxdrive.gui.api.get_proxy", return_value=mock_proxy):
+        with patch("nxdrive.drive.gui.api.get_proxy", return_value=mock_proxy):
             self.mock_manager.set_proxy.return_value = "PROXY_ERROR"
 
             result = self.api.set_proxy_settings("manual", "http://proxy:8080", "")
@@ -2587,9 +2607,9 @@ class TestQMLDriveApiJsonDefault:
         with patch.object(
             self.api, "create_account", return_value=""
         ) as mock_create_account, patch(
-            "nxdrive.gui.api.OAuthentication"
+            "nxdrive.drive.gui.api.OAuthentication"
         ) as mock_oauth_class, patch(
-            "nxdrive.gui.api.Options"
+            "nxdrive.drive.gui.api.Options"
         ) as mock_options:
 
             # Setup mock manager config
@@ -2644,9 +2664,9 @@ class TestQMLDriveApiJsonDefault:
         with patch.object(
             self.api, "update_token", return_value=""
         ) as mock_update_token, patch(
-            "nxdrive.gui.api.OAuthentication"
+            "nxdrive.drive.gui.api.OAuthentication"
         ) as mock_oauth_class, patch(
-            "nxdrive.gui.api.Options"
+            "nxdrive.drive.gui.api.Options"
         ) as mock_options:
 
             # Setup mock manager config
@@ -2751,9 +2771,9 @@ class TestQMLDriveApiJsonDefault:
 
         # Test OAuth2Error during token retrieval
         with patch.object(self.api, "setMessage") as mock_set_message, patch(
-            "nxdrive.gui.api.OAuthentication"
-        ) as mock_oauth_class, patch("nxdrive.gui.api.log") as mock_log, patch(
-            "nxdrive.gui.api.Options"
+            "nxdrive.drive.gui.api.OAuthentication"
+        ) as mock_oauth_class, patch("nxdrive.drive.gui.api.log") as mock_log, patch(
+            "nxdrive.drive.gui.api.Options"
         ) as mock_options:
 
             self.mock_manager.reset_mock()
@@ -2800,9 +2820,9 @@ class TestQMLDriveApiJsonDefault:
         ) as mock_create_account, patch.object(
             self.api, "setMessage"
         ) as mock_set_message, patch(
-            "nxdrive.gui.api.OAuthentication"
+            "nxdrive.drive.gui.api.OAuthentication"
         ) as mock_oauth_class, patch(
-            "nxdrive.gui.api.Options"
+            "nxdrive.drive.gui.api.Options"
         ) as mock_options:
 
             self.mock_manager.reset_mock()
@@ -2850,9 +2870,9 @@ class TestQMLDriveApiJsonDefault:
         ) as mock_update_token, patch.object(
             self.api, "setMessage"
         ) as mock_set_message, patch(
-            "nxdrive.gui.api.OAuthentication"
+            "nxdrive.drive.gui.api.OAuthentication"
         ) as mock_oauth_class, patch(
-            "nxdrive.gui.api.Options"
+            "nxdrive.drive.gui.api.Options"
         ) as mock_options:
 
             self.mock_manager.reset_mock()
@@ -2898,7 +2918,7 @@ class TestQMLDriveApiJsonDefault:
         # Test successful account creation
         with patch.object(
             self.api, "bind_server", return_value=""
-        ) as mock_bind_server, patch("nxdrive.gui.api.log") as mock_log:
+        ) as mock_bind_server, patch("nxdrive.drive.gui.api.log") as mock_log:
 
             # Setup callback parameters
             self.api.callback_params = {
@@ -2938,7 +2958,7 @@ class TestQMLDriveApiJsonDefault:
         # Test account creation with bind_server error
         with patch.object(
             self.api, "bind_server", return_value="BINDING_ERROR"
-        ) as mock_bind_server, patch("nxdrive.gui.api.log") as mock_log:
+        ) as mock_bind_server, patch("nxdrive.drive.gui.api.log") as mock_log:
 
             # Setup callback parameters
             self.api.callback_params = {
@@ -2977,7 +2997,7 @@ class TestQMLDriveApiJsonDefault:
         # Test exception during account creation
         with patch.object(
             self.api, "bind_server", side_effect=Exception("Unexpected error")
-        ) as mock_bind_server, patch("nxdrive.gui.api.log") as mock_log:
+        ) as mock_bind_server, patch("nxdrive.drive.gui.api.log") as mock_log:
 
             # Setup callback parameters
             self.api.callback_params = {
@@ -3015,7 +3035,7 @@ class TestQMLDriveApiJsonDefault:
             )
 
         # Test with missing callback parameters (exposes UnboundLocalError bug in original code)
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
 
             # Setup incomplete callback parameters (missing required keys)
             self.api.callback_params = {
@@ -3035,7 +3055,7 @@ class TestQMLDriveApiJsonDefault:
                 self.api.create_account(token, username)
 
         # Test with empty callback parameters (exposes UnboundLocalError bug)
-        with patch("nxdrive.gui.api.log") as mock_log:
+        with patch("nxdrive.drive.gui.api.log") as mock_log:
 
             # Setup empty callback parameters
             self.api.callback_params = {}
@@ -3054,7 +3074,7 @@ class TestQMLDriveApiJsonDefault:
         # Test with different token types (string vs dict)
         with patch.object(
             self.api, "bind_server", return_value=""
-        ) as mock_bind_server, patch("nxdrive.gui.api.log") as mock_log:
+        ) as mock_bind_server, patch("nxdrive.drive.gui.api.log") as mock_log:
 
             # Setup callback parameters
             self.api.callback_params = {
@@ -3094,7 +3114,7 @@ class TestQMLDriveApiJsonDefault:
         # Test with special characters in parameters
         with patch.object(
             self.api, "bind_server", return_value=""
-        ) as mock_bind_server, patch("nxdrive.gui.api.log") as mock_log:
+        ) as mock_bind_server, patch("nxdrive.drive.gui.api.log") as mock_log:
 
             # Setup callback parameters with special characters
             self.api.callback_params = {

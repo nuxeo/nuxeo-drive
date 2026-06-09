@@ -3,9 +3,9 @@ from unittest.mock import patch
 
 import pytest
 
-from nxdrive.commandline import DEFAULTSECT, CliHandler
-from nxdrive.options import Options
-from nxdrive.utils import normalized_path
+from nxdrive.drive.commandline import DEFAULTSECT, CliHandler
+from nxdrive.drive.options import Options
+from nxdrive.drive.utils import normalized_path
 
 from ..markers import mac_only, windows_only
 
@@ -15,7 +15,8 @@ def create_ini(
 ) -> Path:
     path = Options.nxdrive_home / "config.ini"
     with open(path, "w", encoding=encoding) as f:
-        f.writelines(f"""
+        f.writelines(
+            f"""
 [{default_section}]
 env = {env}
 
@@ -38,7 +39,8 @@ tmp-file-limit = 0.0105
 log-level-console = DEBUG
  debug = False
 delay = 3
-""")
+"""
+        )
 
     if env != "Inception":
         return path
@@ -47,13 +49,15 @@ delay = 3
     path = Options.nxdrive_home / "drive_home" / "config.ini"
     path.parent.mkdir(exist_ok=True)
     with open(path, "w", encoding=encoding) as f:
-        f.writelines("""
+        f.writelines(
+            """
 [DEFAULT]
 env = français
 
 [français]
 force-locale = fr
-""")
+"""
+        )
 
     return path
 
@@ -124,7 +128,7 @@ def get_conf(_):
 @Options.mock()
 @windows_only
 def test_system_default_windows(cmd):
-    from nxdrive.osi.windows.windows import WindowsIntegration
+    from nxdrive.drive.osi.windows.windows import WindowsIntegration
 
     with patch.object(WindowsIntegration, "get_system_configuration", new=get_conf):
         options = cmd.parse_cli([])
@@ -134,7 +138,7 @@ def test_system_default_windows(cmd):
 @Options.mock()
 @mac_only
 def test_system_default_mac(cmd):
-    from nxdrive.osi.darwin.darwin import DarwinIntegration
+    from nxdrive.drive.osi.darwin.darwin import DarwinIntegration
 
     with patch.object(DarwinIntegration, "get_system_configuration", new=get_conf):
         options = cmd.parse_cli([])
@@ -203,34 +207,34 @@ def test_malformatted_line(cmd, config):
 def test_launch(cmd):
     obj_cli = cmd
     obj_cli.manager = obj_cli.get_manager()
-    with patch("nxdrive.utils.PidLockFile.lock") as mock_lock:
+    with patch("nxdrive.drive.utils.PidLockFile.lock") as mock_lock:
         Options.protocol_url = "dummy_url"
         mock_lock.return_value = 100
         assert obj_cli.launch(None, console=False) == 0
         Options.protocol_url = ""
         assert obj_cli.launch(None, console=False) == 0
 
-    with patch("nxdrive.utils.PidLockFile.lock") as mock_lock:
+    with patch("nxdrive.drive.utils.PidLockFile.lock") as mock_lock:
         mock_lock.return_value = ""
-        with patch("nxdrive.utils.PidLockFile.unlock") as mock_unlock:
+        with patch("nxdrive.drive.utils.PidLockFile.unlock") as mock_unlock:
             mock_unlock.return_value = ""
-            with patch("nxdrive.commandline.CliHandler._get_application"):
+            with patch("nxdrive.drive.commandline.CliHandler._get_application"):
                 assert obj_cli.launch(None, console=False)
 
 
 @windows_only
 def test_clipboard_signal_block(cmd):
-    from nxdrive.gui.application import Application
+    from nxdrive.drive.gui.application import Application
 
     obj_cli = cmd
     obj_cli.manager = obj_cli.get_manager()
     # Test Windows clipboard blocking signals
-    with patch("nxdrive.utils.PidLockFile.lock") as mock_lock, patch(
-        "nxdrive.commandline.CliHandler._get_application"
+    with patch("nxdrive.drive.utils.PidLockFile.lock") as mock_lock, patch(
+        "nxdrive.drive.commandline.CliHandler._get_application"
     ) as mock_application, patch(
-        "nxdrive.gui.application.Application.exec"
+        "nxdrive.drive.gui.application.Application.exec"
     ) as mock_exec, patch(
-        "nxdrive.gui.application.Application.show_metrics_acceptance"
+        "nxdrive.drive.gui.application.Application.show_metrics_acceptance"
     ) as mock_show_metrics:
         mock_lock.return_value = ""
         mock_application.return_value = Application(obj_cli.manager)

@@ -4,9 +4,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from nxdrive.constants import TransferStatus
-from nxdrive.exceptions import NoAssociatedSoftware
-from nxdrive.objects import Session
+from nxdrive.drive.constants import TransferStatus
+from nxdrive.drive.exceptions import NoAssociatedSoftware
+from nxdrive.drive.objects import Session
 
 from ..markers import windows_only
 
@@ -83,7 +83,7 @@ def test_init_workflow_with_app(manager_factory):
 
 #     with pytest.raises(SystemExit):
 #         monkeypatch.setattr(
-#             "nxdrive.dao.migrations.manager.manager_migrations",
+#             "nxdrive.drive.dao.migrations.manager.manager_migrations",
 #             new_migrations,
 #         )
 
@@ -193,7 +193,9 @@ def test_generate_csv_async_exception(manager_factory, caplog):
 
     with manager:
         with patch.object(dao, "get_session_items", return_value=[]):
-            with patch("nxdrive.session_csv.SessionCsv.store_data", new=raise_on_store):
+            with patch(
+                "nxdrive.drive.session_csv.SessionCsv.store_data", new=raise_on_store
+            ):
                 with caplog.at_level(logging.ERROR):
                     manager._generate_csv_async(engine, session)
 

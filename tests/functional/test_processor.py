@@ -10,9 +10,9 @@ from unittest.mock import patch
 import pytest
 from nuxeo.exceptions import HTTPError
 
-from nxdrive.constants import DigestStatus, TransferStatus
-from nxdrive.engine.processor import Processor
-from nxdrive.exceptions import NotFound, UploadCancelled, UploadPaused
+from nxdrive.drive.constants import DigestStatus, TransferStatus
+from nxdrive.drive.exceptions import NotFound, UploadCancelled, UploadPaused
+from nxdrive.nuxeo.engine.processor import Processor
 from tests.functional.mocked_classes import (
     Mock_DAO,
     Mock_Doc_Pair,
@@ -108,7 +108,9 @@ def test_handle_doc_pair_sync():
     mock_engine = Mock_Engine()
     processor = Processor(mock_engine, True)
     processor.local = mock_client
-    with patch("nxdrive.engine.processor.Processor._postpone_pair") as mock_postpone:
+    with patch(
+        "nxdrive.nuxeo.engine.processor.Processor._postpone_pair"
+    ) as mock_postpone:
         mock_postpone.return_value = None
         assert processor._handle_doc_pair_sync(mock_doc_pair, True) is None
     # Covering finder_info and "brokMACS" not in finder_info
@@ -133,7 +135,7 @@ def test_handle_doc_pair_sync():
     processor.local = mock_client
     processor.remote = mock_remote
     with patch(
-        "nxdrive.engine.processor.Processor.check_pair_state"
+        "nxdrive.nuxeo.engine.processor.Processor.check_pair_state"
     ) as mock_pair_state:
         mock_pair_state.return_value = False
         assert processor._handle_doc_pair_sync(mock_doc_pair, True) is None
@@ -155,9 +157,9 @@ def test_handle_doc_pair_sync():
     processor.local = mock_client
     processor.remote = mock_remote
     with patch(
-        "nxdrive.engine.processor.Processor.check_pair_state"
+        "nxdrive.nuxeo.engine.processor.Processor.check_pair_state"
     ) as mock_pair_state, patch(
-        "nxdrive.engine.processor.Processor._get_normal_state_from_remote_ref"
+        "nxdrive.nuxeo.engine.processor.Processor._get_normal_state_from_remote_ref"
     ) as mock_get_normal_state:
         mock_pair_state.return_value = True
         mock_get_normal_state.return_value = mock_doc_pair
@@ -174,7 +176,7 @@ def test_handle_doc_pair_sync():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.Processor._get_normal_state_from_remote_ref"
+        "nxdrive.nuxeo.engine.processor.Processor._get_normal_state_from_remote_ref"
     ) as mock_parent_pair:
         mock_parent_pair.return_value = mock_doc_pair
         assert processor._handle_doc_pair_sync(mock_doc_pair, True) is None
@@ -189,7 +191,7 @@ def test_handle_doc_pair_sync():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.Processor._get_normal_state_from_remote_ref"
+        "nxdrive.nuxeo.engine.processor.Processor._get_normal_state_from_remote_ref"
     ) as mock_parent_pair:
         mock_parent_pair.return_value = mock_doc_pair
         assert processor._handle_doc_pair_sync(mock_doc_pair, True) is None
@@ -205,7 +207,7 @@ def test_handle_doc_pair_sync():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.Processor._get_normal_state_from_remote_ref"
+        "nxdrive.nuxeo.engine.processor.Processor._get_normal_state_from_remote_ref"
     ) as mock_parent_pair:
         mock_parent_pair.return_value = mock_doc_pair
         assert processor._handle_doc_pair_sync(mock_doc_pair, Mock_Local_Client) is None
@@ -221,13 +223,13 @@ def test_handle_doc_pair_dt():
     with patch(
         "tests.functional.mocked_classes.Mock_Local_Client.__call__"
     ) as mock_client_call, patch(
-        "nxdrive.engine.processor.Processor._direct_transfer_cancel"
+        "nxdrive.nuxeo.engine.processor.Processor._direct_transfer_cancel"
     ) as mock_transfer_cancel:
         mock_client_call.side_effect = NotFound("Custom NotFound Exception")
         mock_transfer_cancel.return_value = None
         with pytest.raises(NotFound) as ex:
             processor._handle_doc_pair_dt(mock_doc_pair, mock_client)
-        assert str(ex.exconly()).startswith("nxdrive.exceptions.NotFound")
+        assert str(ex.exconly()).startswith("nxdrive.drive.exceptions.NotFound")
     # Covering HTTPError
     with patch(
         "tests.functional.mocked_classes.Mock_Local_Client.__call__"
@@ -240,7 +242,7 @@ def test_handle_doc_pair_dt():
     with patch(
         "tests.functional.mocked_classes.Mock_Local_Client.__call__"
     ) as mock_client_call, patch(
-        "nxdrive.engine.processor.Processor._postpone_pair"
+        "nxdrive.nuxeo.engine.processor.Processor._postpone_pair"
     ) as mock_postpone:
         mock_client_call.side_effect = HTTPError(status=404)
         mock_postpone.return_value = None
@@ -252,7 +254,7 @@ def test_handle_doc_pair_dt():
         mock_client_call.side_effect = UploadPaused(1)
         with pytest.raises(UploadPaused) as ex:
             processor._handle_doc_pair_dt(mock_doc_pair, mock_client)
-        assert str(ex.exconly()).startswith("nxdrive.exceptions.UploadPaused")
+        assert str(ex.exconly()).startswith("nxdrive.drive.exceptions.UploadPaused")
     # Covering RuntimeError
     with patch(
         "tests.functional.mocked_classes.Mock_Local_Client.__call__"
@@ -265,7 +267,7 @@ def test_handle_doc_pair_dt():
     with patch(
         "tests.functional.mocked_classes.Mock_Local_Client.__call__"
     ) as mock_client_call, patch(
-        "nxdrive.engine.processor.Processor._direct_transfer_cancel"
+        "nxdrive.nuxeo.engine.processor.Processor._direct_transfer_cancel"
     ) as mock_dt_cancel:
         mock_client_call.side_effect = Exception("Custom Exception")
         mock_dt_cancel.return_value = None
@@ -308,7 +310,7 @@ def test_handle_doc_pair_dt():
     with patch(
         "tests.functional.mocked_classes.Mock_Local_Client.__call__"
     ) as mock_client_call, patch(
-        "nxdrive.engine.processor.Processor._direct_transfer_cancel"
+        "nxdrive.nuxeo.engine.processor.Processor._direct_transfer_cancel"
     ) as mock_dt_cancel:
         mock_client_call.side_effect = UploadCancelled(1)
         mock_dt_cancel.return_value = None
@@ -331,7 +333,7 @@ def test_get_next_doc_pair():
     with patch(
         "tests.functional.mocked_classes.Mock_DAO.acquire_state"
     ) as mock_acquire_state, patch(
-        "nxdrive.engine.processor.Processor._postpone_pair"
+        "nxdrive.nuxeo.engine.processor.Processor._postpone_pair"
     ) as mock_postpone_pair:
         mock_acquire_state.side_effect = OperationalError()
         mock_postpone_pair.return_value = None
@@ -345,7 +347,7 @@ def test_check_exists_on_the_server():
     processor = Processor(mock_engine, True)
     # Covering doc_pair.pair_state != "locally_created"
     with patch(
-        "nxdrive.engine.processor.Processor._postpone_pair"
+        "nxdrive.nuxeo.engine.processor.Processor._postpone_pair"
     ) as mock_postpone_pair:
         assert processor._check_exists_on_the_server(mock_doc_pair) is None
     # Covering doc_pair.pair_state == "locally_created"
@@ -355,9 +357,9 @@ def test_check_exists_on_the_server():
     mock_engine = Mock_Engine()
     processor = Processor(mock_engine, True)
     with patch(
-        "nxdrive.engine.processor.Processor._postpone_pair"
+        "nxdrive.nuxeo.engine.processor.Processor._postpone_pair"
     ) as mock_postpone_pair, patch(
-        "nxdrive.engine.processor.Processor.remove_void_transfers"
+        "nxdrive.nuxeo.engine.processor.Processor.remove_void_transfers"
     ) as mock_void_transfer:
         mock_postpone_pair.return_value = None
         mock_void_transfer.return_value = None
@@ -369,9 +371,9 @@ def test_check_exists_on_the_server():
     mock_engine = Mock_Engine()
     processor = Processor(mock_engine, True)
     with patch(
-        "nxdrive.engine.processor.Processor._postpone_pair"
+        "nxdrive.nuxeo.engine.processor.Processor._postpone_pair"
     ) as mock_postpone_pair, patch(
-        "nxdrive.engine.processor.Processor.remove_void_transfers"
+        "nxdrive.nuxeo.engine.processor.Processor.remove_void_transfers"
     ) as mock_void_transfer, patch(
         "tests.functional.mocked_classes.Mock_Remote.fetch"
     ) as mock_fetch:
@@ -390,7 +392,7 @@ def test_handle_pair_handler_exception():
     processor = Processor(mock_engine, True)
     mock_exception = Exception("Custom exception")
     with patch(
-        "nxdrive.engine.processor.Processor.increase_error"
+        "nxdrive.nuxeo.engine.processor.Processor.increase_error"
     ) as mock_increase_error:
         mock_increase_error.return_value = None
         assert (
@@ -407,7 +409,7 @@ def test_handle_pair_handler_exception():
     mock_exception = OSError("Custom OSError")
     mock_exception.errno = errno.ENOMEM
     with patch(
-        "nxdrive.engine.processor.Processor.increase_error"
+        "nxdrive.nuxeo.engine.processor.Processor.increase_error"
     ) as mock_increase_error:
         mock_increase_error.return_value = None
         assert (
@@ -456,7 +458,7 @@ def test_synchronize_if_not_remotely_dirty():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.Processor._synchronize_remotely_modified"
+        "nxdrive.nuxeo.engine.processor.Processor._synchronize_remotely_modified"
     ) as mock_sync_remote:
         mock_sync_remote.return_value = None
         assert (
@@ -475,7 +477,7 @@ def test_synchronize_if_not_remotely_dirty():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.Processor._synchronize_remotely_modified"
+        "nxdrive.nuxeo.engine.processor.Processor._synchronize_remotely_modified"
     ) as mock_sync_remote:
         mock_sync_remote.return_value = None
         assert processor._synchronize_if_not_remotely_dirty(mock_doc_pair) is None
@@ -489,7 +491,7 @@ def test_synchronize_if_not_remotely_dirty():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.Processor._synchronize_remotely_modified"
+        "nxdrive.nuxeo.engine.processor.Processor._synchronize_remotely_modified"
     ) as mock_sync_remote, patch(
         "tests.functional.mocked_classes.Mock_Local_Client.get_info"
     ) as mock_get_info:
@@ -507,7 +509,7 @@ def test_synchronize_locally_modified():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.Processor._postpone_pair"
+        "nxdrive.nuxeo.engine.processor.Processor._postpone_pair"
     ) as mock_postpone_pair:
         mock_postpone_pair.return_value = None
         assert processor._synchronize_locally_modified(mock_doc_pair) is None
@@ -521,7 +523,7 @@ def test_synchronize_locally_modified():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.Processor._synchronize_if_not_remotely_dirty"
+        "nxdrive.nuxeo.engine.processor.Processor._synchronize_if_not_remotely_dirty"
     ) as mock_sync_if_not_remote_dirty:
         mock_sync_if_not_remote_dirty.return_value = None
         assert processor._synchronize_locally_modified(mock_doc_pair) is None
@@ -537,7 +539,7 @@ def test_synchronize_locally_modified():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.Processor._synchronize_if_not_remotely_dirty"
+        "nxdrive.nuxeo.engine.processor.Processor._synchronize_if_not_remotely_dirty"
     ) as mock_sync_if_not_remote_dirty:
         mock_sync_if_not_remote_dirty.return_value = None
         assert processor._synchronize_locally_modified(mock_doc_pair) is None
@@ -554,7 +556,7 @@ def test_synchronize_locally_modified():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.Processor._synchronize_if_not_remotely_dirty"
+        "nxdrive.nuxeo.engine.processor.Processor._synchronize_if_not_remotely_dirty"
     ) as mock_sync_if_not_remote_dirty:
         mock_sync_if_not_remote_dirty.return_value = None
         assert processor._synchronize_locally_modified(mock_doc_pair) is None
@@ -569,7 +571,7 @@ def test_synchronize_locally_modified():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.Processor._synchronize_if_not_remotely_dirty"
+        "nxdrive.nuxeo.engine.processor.Processor._synchronize_if_not_remotely_dirty"
     ) as mock_sync_if_not_remote_dirty, patch(
         "tests.functional.mocked_classes.Mock_Remote.get_fs_info"
     ) as mock_fs_info:
@@ -588,7 +590,7 @@ def test_postpone_pair():
 
 
 def test_synchronize_locally_created():
-    from nxdrive.exceptions import ParentNotSynced
+    from nxdrive.drive.exceptions import ParentNotSynced
 
     mock_client = Mock_Local_Client()
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -606,7 +608,7 @@ def test_synchronize_locally_created():
     mock_engine = Mock_Engine()
     processor = Processor(mock_engine, True)
     processor.local = mock_client
-    with patch("nxdrive.engine.processor.is_generated_tmp_file") as mock_tmp_file:
+    with patch("nxdrive.nuxeo.engine.processor.is_generated_tmp_file") as mock_tmp_file:
         mock_tmp_file.return_value = True, False
         assert (
             processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
@@ -621,9 +623,9 @@ def test_synchronize_locally_created():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.is_generated_tmp_file"
+        "nxdrive.nuxeo.engine.processor.is_generated_tmp_file"
     ) as mock_tmp_file, patch(
-        "nxdrive.engine.processor.Processor.increase_error"
+        "nxdrive.nuxeo.engine.processor.Processor.increase_error"
     ) as mock_increase_error:
         mock_tmp_file.return_value = True, True
         mock_increase_error.return_value = None
@@ -647,7 +649,7 @@ def test_synchronize_locally_created():
     with patch(
         "tests.functional.mocked_classes.Mock_DAO.get_state_from_local"
     ) as mock_get_state, patch(
-        "nxdrive.engine.processor.Processor._get_normal_state_from_remote_ref"
+        "nxdrive.nuxeo.engine.processor.Processor._get_normal_state_from_remote_ref"
     ) as mock_normal_state:
         mock_get_state.return_value = None
         mock_normal_state.return_value = mock_doc_pair
@@ -669,13 +671,13 @@ def test_synchronize_locally_created():
     with patch(
         "tests.functional.mocked_classes.Mock_DAO.get_state_from_local"
     ) as mock_get_state, patch(
-        "nxdrive.engine.processor.Processor._get_normal_state_from_remote_ref"
+        "nxdrive.nuxeo.engine.processor.Processor._get_normal_state_from_remote_ref"
     ) as mock_normal_state:
         mock_get_state.return_value = None
         mock_normal_state.return_value = mock_doc_pair
         with pytest.raises(ParentNotSynced) as ex:
             processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
-        assert str(ex.exconly()).startswith("nxdrive.exceptions.ParentNotSynced")
+        assert str(ex.exconly()).startswith("nxdrive.drive.exceptions.ParentNotSynced")
     # Covering remote_ref and info
     # Covering uid and info.is_trashed
     mock_client = Mock_Local_Client()
@@ -849,7 +851,7 @@ def test_synchronize_locally_created():
     processor.local = mock_client
     processor.remote = mock_remote
     with patch(
-        "nxdrive.engine.processor.Processor._synchronize_if_not_remotely_dirty"
+        "nxdrive.nuxeo.engine.processor.Processor._synchronize_if_not_remotely_dirty"
     ) as mock_sync_not_dirty:
         mock_sync_not_dirty.return_value = None
         assert (
@@ -927,7 +929,7 @@ def test_synchronize_locally_created():
     processor.local = mock_client
     processor.remote = mock_remote
     with patch(
-        "nxdrive.engine.processor.Processor._synchronize_if_not_remotely_dirty"
+        "nxdrive.nuxeo.engine.processor.Processor._synchronize_if_not_remotely_dirty"
     ) as mock_sync_not_remote_dirty:
         mock_sync_not_remote_dirty.return_value = None
         assert (
@@ -937,7 +939,7 @@ def test_synchronize_locally_created():
 
 
 def test_synchronize_locally_deleted():
-    from nxdrive.behavior import Behavior
+    from nxdrive.drive.behavior import Behavior
 
     # Covering doc_pair.remote_can_delete
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -945,9 +947,9 @@ def test_synchronize_locally_deleted():
     mock_engine = Mock_Engine()
     processor = Processor(mock_engine, True)
     with patch(
-        "nxdrive.engine.processor.Processor._search_for_dedup"
+        "nxdrive.nuxeo.engine.processor.Processor._search_for_dedup"
     ) as mock_search_dedup, patch(
-        "nxdrive.engine.processor.Processor.remove_void_transfers"
+        "nxdrive.nuxeo.engine.processor.Processor.remove_void_transfers"
     ) as mock_void_transfers:
         mock_search_dedup.return_value = None
         mock_void_transfers.return_value = None
@@ -959,9 +961,9 @@ def test_synchronize_locally_deleted():
     mock_engine = Mock_Engine()
     processor = Processor(mock_engine, True)
     with patch(
-        "nxdrive.engine.processor.Processor._search_for_dedup"
+        "nxdrive.nuxeo.engine.processor.Processor._search_for_dedup"
     ) as mock_search_dedup, patch(
-        "nxdrive.engine.processor.Processor.remove_void_transfers"
+        "nxdrive.nuxeo.engine.processor.Processor.remove_void_transfers"
     ) as mock_void_transfers:
         mock_search_dedup.return_value = None
         mock_void_transfers.return_value = None
@@ -973,9 +975,9 @@ def test_synchronize_locally_deleted():
     mock_engine = Mock_Engine()
     processor = Processor(mock_engine, True)
     with patch(
-        "nxdrive.engine.processor.Processor._search_for_dedup"
+        "nxdrive.nuxeo.engine.processor.Processor._search_for_dedup"
     ) as mock_search_dedup, patch(
-        "nxdrive.engine.processor.Processor.remove_void_transfers"
+        "nxdrive.nuxeo.engine.processor.Processor.remove_void_transfers"
     ) as mock_void_transfers:
         mock_search_dedup.return_value = None
         mock_void_transfers.return_value = None
@@ -995,9 +997,9 @@ def test_synchronize_locally_moved_remotely_modified():
     mock_engine = Mock_Engine()
     processor = Processor(mock_engine, True)
     with patch(
-        "nxdrive.engine.processor.Processor._synchronize_locally_moved"
+        "nxdrive.nuxeo.engine.processor.Processor._synchronize_locally_moved"
     ) as mock_sync_local_move, patch(
-        "nxdrive.engine.processor.Processor._synchronize_remotely_modified"
+        "nxdrive.nuxeo.engine.processor.Processor._synchronize_remotely_modified"
     ) as mock_sync_remote_modify:
         mock_sync_local_move.return_value = None
         mock_sync_remote_modify.return_value = None
@@ -1013,7 +1015,7 @@ def test_synchronize_locally_moved_created():
     mock_engine = Mock_Engine()
     processor = Processor(mock_engine, True)
     with patch(
-        "nxdrive.engine.processor.Processor._synchronize_locally_created"
+        "nxdrive.nuxeo.engine.processor.Processor._synchronize_locally_created"
     ) as mock_sync_local_create:
         mock_sync_local_create.return_value = None
         assert processor._synchronize_locally_moved_created(mock_doc_pair) is None
@@ -1027,7 +1029,7 @@ def test_synchronize_locally_moved():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.Processor._search_for_dedup"
+        "nxdrive.nuxeo.engine.processor.Processor._search_for_dedup"
     ) as mock_search_dedup:
         mock_search_dedup.return_value = None
         assert processor._synchronize_locally_moved(mock_doc_pair, update=True) is None
@@ -1040,7 +1042,7 @@ def test_synchronize_locally_moved():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.Processor._search_for_dedup"
+        "nxdrive.nuxeo.engine.processor.Processor._search_for_dedup"
     ) as mock_search_dedup:
         mock_search_dedup.return_value = None
         assert processor._synchronize_locally_moved(mock_doc_pair, update=True) is None
@@ -1053,11 +1055,11 @@ def test_synchronize_locally_moved():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.Processor._search_for_dedup"
+        "nxdrive.nuxeo.engine.processor.Processor._search_for_dedup"
     ) as mock_search_dedup, patch(
-        "nxdrive.engine.processor.Processor._handle_failed_remote_rename"
+        "nxdrive.nuxeo.engine.processor.Processor._handle_failed_remote_rename"
     ) as mock_handle_failed_remote, patch(
-        "nxdrive.engine.processor.Processor._refresh_remote"
+        "nxdrive.nuxeo.engine.processor.Processor._refresh_remote"
     ) as mock_refresh_remote:
         mock_search_dedup.return_value = None
         mock_handle_failed_remote.return_value = None
@@ -1072,9 +1074,9 @@ def test_synchronize_locally_moved():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.Processor._search_for_dedup"
+        "nxdrive.nuxeo.engine.processor.Processor._search_for_dedup"
     ) as mock_search_dedup, patch(
-        "nxdrive.engine.processor.Processor._handle_failed_remote_rename"
+        "nxdrive.nuxeo.engine.processor.Processor._handle_failed_remote_rename"
     ) as mcok_failed_remote_name:
         mock_search_dedup.return_value = None
         mcok_failed_remote_name.return_value = None
@@ -1091,9 +1093,9 @@ def test_synchronize_locally_moved():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.Processor._search_for_dedup"
+        "nxdrive.nuxeo.engine.processor.Processor._search_for_dedup"
     ) as mock_search_dedup, patch(
-        "nxdrive.engine.processor.Processor._handle_failed_remote_rename"
+        "nxdrive.nuxeo.engine.processor.Processor._handle_failed_remote_rename"
     ) as mcok_failed_remote_name:
         mock_search_dedup.return_value = None
         mcok_failed_remote_name.return_value = None
@@ -1140,9 +1142,9 @@ def test_update_remotely():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.Processor._download_content"
+        "nxdrive.nuxeo.engine.processor.Processor._download_content"
     ) as mock_download_content, patch("shutil.rmtree") as mock_shutil, patch(
-        "nxdrive.engine.processor.Processor._refresh_local_state"
+        "nxdrive.nuxeo.engine.processor.Processor._refresh_local_state"
     ) as mock_refresh_state:
         mock_download_content.return_value = Path("")
         mock_shutil.return_value = None
@@ -1172,7 +1174,7 @@ def test_synchronize_remotely_modified():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.Processor._update_remotely"
+        "nxdrive.nuxeo.engine.processor.Processor._update_remotely"
     ) as mock_update_remote:
         mock_update_remote.return_value = None
         assert processor._synchronize_remotely_modified(mock_doc_pair) is None
@@ -1189,7 +1191,7 @@ def test_synchronize_remotely_modified():
     processor.local = mock_client
     processor.remote = mock_remote
     with patch(
-        "nxdrive.engine.processor.Processor._update_remotely"
+        "nxdrive.nuxeo.engine.processor.Processor._update_remotely"
     ) as mock_update_remote:
         mock_update_remote.return_value = None
         assert processor._synchronize_remotely_modified(mock_doc_pair) is None
@@ -1207,9 +1209,9 @@ def test_synchronize_remotely_modified():
     processor.local = mock_client
     processor.remote = mock_remote
     with patch(
-        "nxdrive.engine.processor.Processor._postpone_pair"
+        "nxdrive.nuxeo.engine.processor.Processor._postpone_pair"
     ) as mock_postpone, patch(
-        "nxdrive.engine.processor.Processor._is_remote_move"
+        "nxdrive.nuxeo.engine.processor.Processor._is_remote_move"
     ) as mock_is_move:
         mock_postpone.return_value = None
         mock_is_move.return_value = (True, None)
@@ -1228,9 +1230,9 @@ def test_synchronize_remotely_modified():
     processor.local = mock_client
     processor.remote = mock_remote
     with patch(
-        "nxdrive.engine.processor.Processor._postpone_pair"
+        "nxdrive.nuxeo.engine.processor.Processor._postpone_pair"
     ) as mock_postpone, patch(
-        "nxdrive.engine.processor.Processor._is_remote_move"
+        "nxdrive.nuxeo.engine.processor.Processor._is_remote_move"
     ) as mock_is_move:
         mock_postpone.return_value = None
         mock_is_move.return_value = (True, mock_doc_pair)
@@ -1250,9 +1252,9 @@ def test_synchronize_remotely_modified():
     processor.local = mock_client
     processor.remote = mock_remote
     with patch(
-        "nxdrive.engine.processor.Processor._postpone_pair"
+        "nxdrive.nuxeo.engine.processor.Processor._postpone_pair"
     ) as mock_postpone, patch(
-        "nxdrive.engine.processor.Processor._is_remote_move"
+        "nxdrive.nuxeo.engine.processor.Processor._is_remote_move"
     ) as mock_is_move:
         mock_postpone.return_value = None
         mock_doc_pair2 = Mock_Doc_Pair(cursor, ())
@@ -1272,9 +1274,9 @@ def test_synchronize_remotely_modified():
     processor.local = mock_client
     processor.remote = mock_remote
     with patch(
-        "nxdrive.engine.processor.Processor._postpone_pair"
+        "nxdrive.nuxeo.engine.processor.Processor._postpone_pair"
     ) as mock_postpone, patch(
-        "nxdrive.engine.processor.Processor._is_remote_move"
+        "nxdrive.nuxeo.engine.processor.Processor._is_remote_move"
     ) as mock_is_move:
         mock_postpone.return_value = None
         mock_is_move.return_value = (False, mock_doc_pair)
@@ -1282,7 +1284,7 @@ def test_synchronize_remotely_modified():
 
 
 def test_synchronize_remotely_created():
-    from nxdrive.exceptions import ParentNotSynced
+    from nxdrive.drive.exceptions import ParentNotSynced
 
     # Covering parent_pair is None
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
@@ -1291,12 +1293,12 @@ def test_synchronize_remotely_created():
     mock_remote = Mock_Remote()
     processor = Processor(mock_engine, True)
     with patch(
-        "nxdrive.engine.processor.Processor._get_normal_state_from_remote_ref"
+        "nxdrive.nuxeo.engine.processor.Processor._get_normal_state_from_remote_ref"
     ) as mock_normal_state:
         mock_normal_state.return_value = None
         with pytest.raises(ParentNotSynced) as ex:
             processor._synchronize_remotely_created(mock_doc_pair)
-        assert str(ex.exconly()).startswith("nxdrive.exceptions.ParentNotSynced")
+        assert str(ex.exconly()).startswith("nxdrive.drive.exceptions.ParentNotSynced")
     # Covering parent_pair.local_path is None
     cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
     mock_doc_pair = Mock_Doc_Pair(cursor, ())
@@ -1306,7 +1308,7 @@ def test_synchronize_remotely_created():
     mock_remote = Mock_Remote()
     processor = Processor(mock_engine, True)
     with patch(
-        "nxdrive.engine.processor.Processor._get_normal_state_from_remote_ref"
+        "nxdrive.nuxeo.engine.processor.Processor._get_normal_state_from_remote_ref"
     ) as mock_normal_state:
         mock_normal_state.return_value = mock_doc_pair
         assert processor._synchronize_remotely_created(mock_doc_pair) is None
@@ -1319,7 +1321,7 @@ def test_synchronize_remotely_created():
     processor = Processor(mock_engine, True)
     processor.remote = mock_remote
     with patch(
-        "nxdrive.engine.processor.Processor._get_normal_state_from_remote_ref"
+        "nxdrive.nuxeo.engine.processor.Processor._get_normal_state_from_remote_ref"
     ) as mock_normal_state:
         mock_normal_state.return_value = mock_doc_pair
         assert processor._synchronize_remotely_created(mock_doc_pair) is None
@@ -1335,7 +1337,7 @@ def test_synchronize_remotely_created():
     processor.local = mock_client
     processor.remote = mock_remote
     with patch(
-        "nxdrive.engine.processor.Processor._get_normal_state_from_remote_ref"
+        "nxdrive.nuxeo.engine.processor.Processor._get_normal_state_from_remote_ref"
     ) as mock_normal_state:
         mock_normal_state.return_value = mock_doc_pair
         assert processor._synchronize_remotely_created(mock_doc_pair) is None
@@ -1353,11 +1355,11 @@ def test_synchronize_remotely_created():
     processor.local = mock_client
     processor.remote = mock_remote
     with patch(
-        "nxdrive.engine.processor.Processor._get_normal_state_from_remote_ref"
+        "nxdrive.nuxeo.engine.processor.Processor._get_normal_state_from_remote_ref"
     ) as mock_normal_state, patch(
-        "nxdrive.engine.processor.Processor._create_remotely"
+        "nxdrive.nuxeo.engine.processor.Processor._create_remotely"
     ) as mock_create_remotely, patch(
-        "nxdrive.engine.processor.Processor._synchronize_remotely_deleted"
+        "nxdrive.nuxeo.engine.processor.Processor._synchronize_remotely_deleted"
     ) as mock_sync_remote_delete:
         mock_normal_state.return_value = mock_doc_pair
         mock_create_remotely.side_effect = NotFound()
@@ -1376,7 +1378,7 @@ def test_synchronize_remotely_created():
     processor.local = mock_client
     processor.remote = mock_remote
     with patch(
-        "nxdrive.engine.processor.Processor._get_normal_state_from_remote_ref"
+        "nxdrive.nuxeo.engine.processor.Processor._get_normal_state_from_remote_ref"
     ) as mock_normal_state:
         mock_normal_state.return_value = mock_doc_pair
         assert processor._synchronize_remotely_created(mock_doc_pair) is None
@@ -1396,11 +1398,11 @@ def test_synchronize_remotely_created():
     processor.remote = mock_remote
     mock_engine.dao.synchronize = False
     with patch(
-        "nxdrive.engine.processor.Processor._get_normal_state_from_remote_ref"
+        "nxdrive.nuxeo.engine.processor.Processor._get_normal_state_from_remote_ref"
     ) as mock_normal_state, patch(
-        "nxdrive.engine.processor.Processor._create_remotely"
+        "nxdrive.nuxeo.engine.processor.Processor._create_remotely"
     ) as mock_create_remotely, patch(
-        "nxdrive.engine.processor.Processor._synchronize_remotely_modified"
+        "nxdrive.nuxeo.engine.processor.Processor._synchronize_remotely_modified"
     ) as mock_sync_remote_modify:
         mock_normal_state.return_value = mock_doc_pair
         mock_create_remotely.return_value = Path("")
@@ -1419,7 +1421,7 @@ def test_create_remotely():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.Processor._unlock_readonly"
+        "nxdrive.nuxeo.engine.processor.Processor._unlock_readonly"
     ) as mock_unlock_readonly:
         mock_unlock_readonly.return_value = None
         assert processor._create_remotely(
@@ -1436,13 +1438,13 @@ def test_create_remotely():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.Processor._unlock_readonly"
+        "nxdrive.nuxeo.engine.processor.Processor._unlock_readonly"
     ) as mock_unlock_readonly, patch(
-        "nxdrive.engine.processor.Processor._download_content"
+        "nxdrive.nuxeo.engine.processor.Processor._download_content"
     ) as mock_download_content, patch(
         "shutil.rmtree"
     ) as mock_shutil, patch(
-        "nxdrive.engine.processor.Processor._lock_readonly"
+        "nxdrive.nuxeo.engine.processor.Processor._lock_readonly"
     ) as mock_lock_readonly:
         mock_unlock_readonly.return_value = None
         mock_download_content.return_value = Path("")
@@ -1474,7 +1476,7 @@ def test_synchronize_remotely_deleted():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "nxdrive.engine.processor.Processor._search_for_dedup"
+        "nxdrive.nuxeo.engine.processor.Processor._search_for_dedup"
     ) as mock_search_dedup:
         mock_search_dedup.return_value = None
         assert processor._synchronize_remotely_deleted(mock_doc_pair) is None

@@ -1,6 +1,6 @@
 import pytest
 
-from nxdrive.options import Options
+from nxdrive.drive.options import Options
 
 
 def test_ctx_menu_entry_inexistent_file(manager_factory):

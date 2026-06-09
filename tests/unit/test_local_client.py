@@ -2,8 +2,8 @@ import os
 import pathlib
 from time import sleep
 
-from nxdrive.client.local import LocalClient
-from nxdrive.constants import ROOT
+from nxdrive.drive.client.local import LocalClient
+from nxdrive.drive.constants import ROOT
 
 
 def test_get_path(tmp_path):

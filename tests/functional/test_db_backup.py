@@ -5,8 +5,8 @@ from pathlib import Path
 from sqlite3 import DatabaseError
 from time import sleep
 
-import nxdrive.dao.utils
-from nxdrive.dao.base import BaseDAO
+import nxdrive.drive.dao.utils
+from nxdrive.drive.dao.base import BaseDAO
 
 from .. import ensure_no_exception
 
@@ -37,7 +37,7 @@ def test_create_backup(manager_factory, tmp, nuxeo_url, user_factory, monkeypatc
             database.unlink()
             raise DatabaseError("Mock")
 
-    monkeypatch.setattr("nxdrive.dao.base.fix_db", buggy_db)
+    monkeypatch.setattr("nxdrive.drive.dao.base.fix_db", buggy_db)
 
     # Before NXDRIVE-1574, there was an error when restoring the DB:
     #    AttributeError: 'ManagerDAO' object has no attribute '_lock'
@@ -115,7 +115,7 @@ def test_fix_db(manager_factory, tmp, nuxeo_url, user_factory, monkeypatch):
     def mocked_is_healthy(*args, **kwargs):
         return False
 
-    monkeypatch.setattr("nxdrive.dao.utils.is_healthy", mocked_is_healthy)
+    monkeypatch.setattr("nxdrive.drive.dao.utils.is_healthy", mocked_is_healthy)
     nxdrive.dao.utils.fix_db(database)
 
     assert (Path(database_path)).exists()

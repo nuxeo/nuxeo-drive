@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock, Mock, patch
 
-from nxdrive.engine.engine import Engine
+from nxdrive.nuxeo.engine.engine import Engine
 
 
 class TestDialogMixin:
@@ -45,8 +45,8 @@ class TestDialogMixin:
             def get_tree_view(self):
                 return Mock()
 
-        with patch("nxdrive.gui.folders_dialog.QDialog"), patch(
-            "nxdrive.gui.folders_dialog.Translator"
+        with patch("nxdrive.drive.gui.folders_dialog.QDialog"), patch(
+            "nxdrive.drive.gui.folders_dialog.Translator"
         ):
 
             dialog = MockDialogMixin(mock_app, mock_engine, "/test/folder")
@@ -131,8 +131,8 @@ class TestDocumentsDialog:
                 mock_label.setText = Mock()
                 return mock_label
 
-        with patch("nxdrive.gui.folders_dialog.QDialog"), patch(
-            "nxdrive.gui.folders_dialog.Translator"
+        with patch("nxdrive.drive.gui.folders_dialog.QDialog"), patch(
+            "nxdrive.drive.gui.folders_dialog.Translator"
         ):
 
             dialog = MockDocumentsDialog(mock_app, mock_engine)

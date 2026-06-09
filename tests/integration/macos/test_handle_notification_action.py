@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
 from tests.markers import mac_only
 
 
@@ -36,7 +36,7 @@ class TestHandleNotificationAction:
         mock_action_func = Mock()
         app.api.test_action = mock_action_func
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp._handle_notification_action.__get__(app, Application)
         bound_method(action, action_args)
@@ -54,7 +54,7 @@ class TestHandleNotificationAction:
         mock_action_func = Mock()
         app.api.simple_action = mock_action_func
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp._handle_notification_action.__get__(app, Application)
         bound_method(action, action_args)
@@ -72,9 +72,9 @@ class TestHandleNotificationAction:
         # Don't add this action to api
         app.api.nonexistent_action = None
 
-        with patch("nxdrive.gui.application.log") as mock_log:
+        with patch("nxdrive.drive.gui.application.log") as mock_log:
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_notification_action.__get__(app, Application)
             bound_method(action, action_args)
@@ -95,7 +95,7 @@ class TestHandleNotificationAction:
         mock_action_func = Mock()
         app.api.complex_action = mock_action_func
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp._handle_notification_action.__get__(app, Application)
         bound_method(action, action_args)
@@ -115,7 +115,7 @@ class TestHandleNotificationAction:
         mock_action_func = Mock(side_effect=Exception("Action failed"))
         app.api.failing_action = mock_action_func
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp._handle_notification_action.__get__(app, Application)
 
@@ -133,10 +133,10 @@ class TestHandleNotificationAction:
         # Set a non-callable attribute
         app.api.not_callable = "I am not a function"
 
-        with patch("nxdrive.gui.application.log") as mock_log:
+        with patch("nxdrive.drive.gui.application.log") as mock_log:
             mock_log.return_value = None
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_notification_action.__get__(app, Application)
 

@@ -7,8 +7,8 @@ from unittest.mock import patch
 import pytest
 from nuxeo.utils import version_lt
 
-from nxdrive.engine.engine import Engine
-from nxdrive.options import Options
+from nxdrive.drive.options import Options
+from nxdrive.nuxeo.engine.engine import Engine
 
 from .common import OS_STAT_MTIME_RESOLUTION, OneUserTest, TwoUsersTest
 

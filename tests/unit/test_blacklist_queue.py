@@ -3,7 +3,7 @@ from time import sleep
 
 import pytest
 
-from nxdrive.engine.blocklist_queue import BlocklistItem, BlocklistQueue
+from nxdrive.drive.engine.blocklist_queue import BlocklistItem, BlocklistQueue
 
 
 @pytest.mark.randombug("Slow OS")

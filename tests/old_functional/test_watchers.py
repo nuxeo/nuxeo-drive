@@ -5,7 +5,7 @@ from shutil import copyfile
 from time import sleep
 from unittest.mock import patch
 
-from nxdrive.constants import ROOT
+from nxdrive.drive.constants import ROOT
 
 from ..markers import not_windows
 from . import LocalTest

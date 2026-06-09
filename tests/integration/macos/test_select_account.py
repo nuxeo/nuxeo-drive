@@ -4,10 +4,10 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from nxdrive.engine.engine import Engine
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
-from nxdrive.qt import constants as qt
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
+from nxdrive.drive.qt import constants as qt
+from nxdrive.nuxeo.engine.engine import Engine
 from tests.markers import mac_only
 
 
@@ -44,14 +44,14 @@ class TestSelectAccount:
 
         engines = [mock_engine1, mock_engine2]
 
-        with patch("nxdrive.gui.application.QDialog") as mock_dialog_class, patch(
-            "nxdrive.gui.application.Translator"
-        ) as mock_translator, patch("nxdrive.gui.application.QLabel"), patch(
-            "nxdrive.gui.application.QComboBox"
+        with patch("nxdrive.drive.gui.application.QDialog") as mock_dialog_class, patch(
+            "nxdrive.drive.gui.application.Translator"
+        ) as mock_translator, patch("nxdrive.drive.gui.application.QLabel"), patch(
+            "nxdrive.drive.gui.application.QComboBox"
         ) as mock_combo_class, patch(
-            "nxdrive.gui.application.QDialogButtonBox"
+            "nxdrive.drive.gui.application.QDialogButtonBox"
         ) as mock_buttons_class, patch(
-            "nxdrive.gui.application.QVBoxLayout"
+            "nxdrive.drive.gui.application.QVBoxLayout"
         ):
             mock_translator.get.return_value = "Select Account"
 
@@ -78,7 +78,7 @@ class TestSelectAccount:
 
             mock_dialog.exec.side_effect = exec_side_effect
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._select_account.__get__(app, Application)
             result = bound_method(engines)
@@ -107,14 +107,14 @@ class TestSelectAccount:
 
         engines = [mock_engine1]
 
-        with patch("nxdrive.gui.application.QDialog") as mock_dialog_class, patch(
-            "nxdrive.gui.application.Translator"
-        ) as mock_translator, patch("nxdrive.gui.application.QLabel"), patch(
-            "nxdrive.gui.application.QComboBox"
+        with patch("nxdrive.drive.gui.application.QDialog") as mock_dialog_class, patch(
+            "nxdrive.drive.gui.application.Translator"
+        ) as mock_translator, patch("nxdrive.drive.gui.application.QLabel"), patch(
+            "nxdrive.drive.gui.application.QComboBox"
         ) as mock_combo_class, patch(
-            "nxdrive.gui.application.QDialogButtonBox"
+            "nxdrive.drive.gui.application.QDialogButtonBox"
         ) as mock_buttons_class, patch(
-            "nxdrive.gui.application.QVBoxLayout"
+            "nxdrive.drive.gui.application.QVBoxLayout"
         ):
             mock_translator.get.return_value = "Select Account"
 
@@ -140,7 +140,7 @@ class TestSelectAccount:
 
             mock_dialog.exec.side_effect = exec_side_effect
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._select_account.__get__(app, Application)
             result = bound_method(engines)
@@ -160,14 +160,14 @@ class TestSelectAccount:
 
         engines = [mock_engine]
 
-        with patch("nxdrive.gui.application.QDialog") as mock_dialog_class, patch(
-            "nxdrive.gui.application.Translator"
-        ) as mock_translator, patch("nxdrive.gui.application.QLabel"), patch(
-            "nxdrive.gui.application.QComboBox"
+        with patch("nxdrive.drive.gui.application.QDialog") as mock_dialog_class, patch(
+            "nxdrive.drive.gui.application.Translator"
+        ) as mock_translator, patch("nxdrive.drive.gui.application.QLabel"), patch(
+            "nxdrive.drive.gui.application.QComboBox"
         ) as mock_combo_class, patch(
-            "nxdrive.gui.application.QDialogButtonBox"
+            "nxdrive.drive.gui.application.QDialogButtonBox"
         ) as mock_buttons_class, patch(
-            "nxdrive.gui.application.QVBoxLayout"
+            "nxdrive.drive.gui.application.QVBoxLayout"
         ):
             mock_translator.get.return_value = "Select Account"
 
@@ -193,7 +193,7 @@ class TestSelectAccount:
 
             mock_dialog.exec.side_effect = exec_side_effect
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._select_account.__get__(app, Application)
             result = bound_method(engines)
@@ -223,16 +223,16 @@ class TestSelectAccount:
 
         engines = [mock_engine1, mock_engine2]
 
-        with patch("nxdrive.gui.application.QDialog") as mock_dialog_class, patch(
-            "nxdrive.gui.application.Translator"
-        ) as mock_translator, patch("nxdrive.gui.application.QLabel"), patch(
-            "nxdrive.gui.application.QComboBox"
+        with patch("nxdrive.drive.gui.application.QDialog") as mock_dialog_class, patch(
+            "nxdrive.drive.gui.application.Translator"
+        ) as mock_translator, patch("nxdrive.drive.gui.application.QLabel"), patch(
+            "nxdrive.drive.gui.application.QComboBox"
         ) as mock_combo_class, patch(
-            "nxdrive.gui.application.QDialogButtonBox"
+            "nxdrive.drive.gui.application.QDialogButtonBox"
         ) as mock_buttons_class, patch(
-            "nxdrive.gui.application.QVBoxLayout"
+            "nxdrive.drive.gui.application.QVBoxLayout"
         ), patch(
-            "nxdrive.gui.application.log"
+            "nxdrive.drive.gui.application.log"
         ) as mock_log:
             mock_translator.get.return_value = "Select Account"
 
@@ -265,7 +265,7 @@ class TestSelectAccount:
 
             mock_dialog.exec.side_effect = exec_side_effect
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._select_account.__get__(app, Application)
             result = bound_method(engines)
@@ -288,16 +288,16 @@ class TestSelectAccount:
 
         engines = [mock_engine]
 
-        with patch("nxdrive.gui.application.QDialog") as mock_dialog_class, patch(
-            "nxdrive.gui.application.Translator"
-        ) as mock_translator, patch("nxdrive.gui.application.QLabel"), patch(
-            "nxdrive.gui.application.QComboBox"
+        with patch("nxdrive.drive.gui.application.QDialog") as mock_dialog_class, patch(
+            "nxdrive.drive.gui.application.Translator"
+        ) as mock_translator, patch("nxdrive.drive.gui.application.QLabel"), patch(
+            "nxdrive.drive.gui.application.QComboBox"
         ) as mock_combo_class, patch(
-            "nxdrive.gui.application.QDialogButtonBox"
+            "nxdrive.drive.gui.application.QDialogButtonBox"
         ) as mock_buttons_class, patch(
-            "nxdrive.gui.application.QVBoxLayout"
+            "nxdrive.drive.gui.application.QVBoxLayout"
         ), patch(
-            "nxdrive.gui.application.APP_NAME", "TestApp"
+            "nxdrive.drive.gui.application.APP_NAME", "TestApp"
         ):
             mock_translator.get.side_effect = (
                 lambda key, values=None: f"Translated: {key}"
@@ -325,7 +325,7 @@ class TestSelectAccount:
 
             mock_dialog.exec.side_effect = exec_side_effect
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._select_account.__get__(app, Application)
             bound_method(engines)
@@ -347,14 +347,14 @@ class TestSelectAccount:
 
         engines = [mock_engine]
 
-        with patch("nxdrive.gui.application.QDialog") as mock_dialog_class, patch(
-            "nxdrive.gui.application.Translator"
-        ) as mock_translator, patch("nxdrive.gui.application.QLabel"), patch(
-            "nxdrive.gui.application.QComboBox"
+        with patch("nxdrive.drive.gui.application.QDialog") as mock_dialog_class, patch(
+            "nxdrive.drive.gui.application.Translator"
+        ) as mock_translator, patch("nxdrive.drive.gui.application.QLabel"), patch(
+            "nxdrive.drive.gui.application.QComboBox"
         ) as mock_combo_class, patch(
-            "nxdrive.gui.application.QDialogButtonBox"
+            "nxdrive.drive.gui.application.QDialogButtonBox"
         ) as mock_buttons_class, patch(
-            "nxdrive.gui.application.QVBoxLayout"
+            "nxdrive.drive.gui.application.QVBoxLayout"
         ):
             mock_translator.get.return_value = "Select Account"
 
@@ -380,7 +380,7 @@ class TestSelectAccount:
 
             mock_dialog.exec.side_effect = exec_side_effect
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._select_account.__get__(app, Application)
             bound_method(engines)

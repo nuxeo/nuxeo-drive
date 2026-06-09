@@ -1,7 +1,7 @@
-from nxdrive.constants import TransferStatus
-from nxdrive.manager import Manager
-from nxdrive.objects import Session
-from nxdrive.session_csv import SessionCsv
+from nxdrive.drive.constants import TransferStatus
+from nxdrive.drive.manager import Manager
+from nxdrive.drive.objects import Session
+from nxdrive.drive.session_csv import SessionCsv
 
 
 def test_csv_generation(tmp):

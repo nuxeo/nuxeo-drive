@@ -1,7 +1,7 @@
 import os
 from unittest.mock import patch
 
-from nxdrive.constants import WINDOWS
+from nxdrive.drive.constants import WINDOWS
 
 from .common import OneUserTest
 

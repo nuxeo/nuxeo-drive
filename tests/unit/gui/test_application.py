@@ -5,17 +5,17 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from nxdrive.client.workflow import Workflow
-from nxdrive.constants import DelAction
-from nxdrive.engine.activity import Action
-from nxdrive.metrics.constants import CRASHED_HIT, CRASHED_TRACE
-from nxdrive.qt import constants as qt
-from nxdrive.qt.imports import QCheckBox, QMessageBox, QRect
-from nxdrive.translator import Translator
-from nxdrive.updater.constants import (
+from nxdrive.drive.constants import DelAction
+from nxdrive.drive.engine.activity import Action
+from nxdrive.drive.metrics.constants import CRASHED_HIT, CRASHED_TRACE
+from nxdrive.drive.qt import constants as qt
+from nxdrive.drive.qt.imports import QCheckBox, QMessageBox, QRect
+from nxdrive.drive.translator import Translator
+from nxdrive.drive.updater.constants import (
     UPDATE_STATUS_INCOMPATIBLE_SERVER,
     UPDATE_STATUS_UP_TO_DATE,
 )
+from nxdrive.nuxeo.client.workflow import Workflow
 
 
 @pytest.fixture
@@ -80,7 +80,7 @@ class TestUpdateFeatureState:
 
     def test_update_feature_state_existing_feature(self, mock_application):
         """Test updating an existing feature."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None):
             app = Application(None)
@@ -97,7 +97,7 @@ class TestUpdateFeatureState:
 
     def test_update_feature_state_restart_needed(self, mock_application):
         """Test updating a feature that requires restart."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None):
             app = Application(None)
@@ -115,7 +115,7 @@ class TestUpdateFeatureState:
 
     def test_update_feature_state_tasks_management_enabled(self, mock_application):
         """Test enabling tasks management feature."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None):
             app = Application(None)
@@ -134,7 +134,7 @@ class TestUpdateFeatureState:
 
     def test_update_feature_state_tasks_management_disabled(self, mock_application):
         """Test disabling tasks management feature."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None):
             app = Application(None)
@@ -157,7 +157,7 @@ class TestActionProgressing:
 
     def test_action_progressing_not_action_instance(self, mock_application):
         """Test with invalid action object."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None):
             app = Application(None)
@@ -174,7 +174,7 @@ class TestActionProgressing:
 
     def test_action_progressing_direct_transfer(self, mock_application):
         """Test action progressing for direct transfer."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None):
             app = Application(None)
@@ -194,7 +194,7 @@ class TestActionProgressing:
 
     def test_action_progressing_regular_transfer(self, mock_application):
         """Test action progressing for regular transfer."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None):
             app = Application(None)
@@ -218,10 +218,10 @@ class TestQuestion:
 
     def test_question_default_icon(self, mock_application):
         """Test question with default question icon."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None), patch(
-            "nxdrive.gui.application.Application._msgbox"
+            "nxdrive.drive.gui.application.Application._msgbox"
         ) as mock_msgbox:
             app = Application(None)
 
@@ -240,10 +240,10 @@ class TestQuestion:
 
     def test_question_custom_icon(self, mock_application):
         """Test question with custom icon."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None), patch(
-            "nxdrive.gui.application.Application._msgbox"
+            "nxdrive.drive.gui.application.Application._msgbox"
         ) as mock_msgbox:
             app = Application(None)
 
@@ -266,10 +266,10 @@ class TestSendCrashMetrics:
 
     def test_send_crash_metrics_no_crash(self, mock_application):
         """Test when there was no crash."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None), patch(
-            "nxdrive.gui.application.State"
+            "nxdrive.drive.gui.application.State"
         ) as mock_state:
             app = Application(None)
             app.manager = mock_application.manager
@@ -283,10 +283,10 @@ class TestSendCrashMetrics:
 
     def test_send_crash_metrics_crash_without_details(self, mock_application):
         """Test sending crash metrics without details."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None), patch(
-            "nxdrive.gui.application.State"
+            "nxdrive.drive.gui.application.State"
         ) as mock_state:
             app = Application(None)
             app.tasks_management_feature_model = Mock()
@@ -307,10 +307,10 @@ class TestSendCrashMetrics:
 
     def test_send_crash_metrics_crash_with_details(self, mock_application):
         """Test sending crash metrics with details."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None), patch(
-            "nxdrive.gui.application.State"
+            "nxdrive.drive.gui.application.State"
         ) as mock_state:
             app = Application(None)
             app.tasks_management_feature_model = Mock()
@@ -333,10 +333,10 @@ class TestSendCrashMetrics:
 
     def test_send_crash_metrics_no_remote(self, mock_application):
         """Test sending crash metrics when engine has no remote."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None), patch(
-            "nxdrive.gui.application.State"
+            "nxdrive.drive.gui.application.State"
         ) as mock_state:
             app = Application(None)
             app.tasks_management_feature_model = Mock()
@@ -354,10 +354,10 @@ class TestSendCrashMetrics:
 
     def test_send_crash_metrics_multiple_engines(self, mock_application):
         """Test sending crash metrics with multiple engines (only first with remote sends)."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None), patch(
-            "nxdrive.gui.application.State"
+            "nxdrive.drive.gui.application.State"
         ) as mock_state:
             app = Application(None)
             app.tasks_management_feature_model = Mock()
@@ -390,8 +390,8 @@ class TestRootMoved:
 
     def test_root_moved_disconnect(self, mock_application):
         """Test disconnecting when root is moved."""
-        from nxdrive.engine.engine import Engine
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
+        from nxdrive.nuxeo.engine.engine import Engine
 
         with patch.object(Application, "__init__", lambda x, y: None), patch.object(
             Translator, "get", side_effect=lambda x, values=None: x
@@ -423,7 +423,7 @@ class TestConfirmDeletion:
 
     def test_confirm_deletion_del_server_confirm(self, mock_application):
         """Test confirming deletion on server."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None), patch.object(
             Translator, "get", side_effect=lambda x, values=None: x
@@ -442,7 +442,7 @@ class TestConfirmDeletion:
             mock_msg.clickedButton = Mock(return_value=mock_confirm_btn)
 
             with patch.object(app, "question", return_value=mock_msg), patch(
-                "nxdrive.gui.application.QCheckBox", return_value=mock_cb
+                "nxdrive.drive.gui.application.QCheckBox", return_value=mock_cb
             ):
                 result = app.confirm_deletion(Path("/test/path"))
 
@@ -450,7 +450,7 @@ class TestConfirmDeletion:
 
     def test_confirm_deletion_del_server_unsync(self, mock_application):
         """Test choosing unsync instead of deletion on server."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None), patch.object(
             Translator, "get", side_effect=lambda x, values=None: x
@@ -482,7 +482,7 @@ class TestConfirmDeletion:
 
             with patch.object(
                 app, "question", side_effect=[mock_msg, mock_msg2]
-            ), patch("nxdrive.gui.application.QCheckBox", return_value=mock_cb):
+            ), patch("nxdrive.drive.gui.application.QCheckBox", return_value=mock_cb):
                 result = app.confirm_deletion(Path("/test/path"))
 
                 assert result == DelAction.UNSYNC
@@ -492,7 +492,7 @@ class TestConfirmDeletion:
 
     def test_confirm_deletion_unsync_mode(self, mock_application):
         """Test deletion with unsync mode."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None), patch.object(
             Translator, "get", side_effect=lambda x, values=None: x
@@ -512,7 +512,7 @@ class TestConfirmDeletion:
             mock_msg.clickedButton = Mock(return_value=mock_confirm_btn)
 
             with patch.object(app, "question", return_value=mock_msg), patch(
-                "nxdrive.gui.application.QCheckBox", return_value=mock_cb
+                "nxdrive.drive.gui.application.QCheckBox", return_value=mock_cb
             ):
                 result = app.confirm_deletion(Path("/test/path"))
 
@@ -520,7 +520,7 @@ class TestConfirmDeletion:
 
     def test_confirm_deletion_dont_ask_again(self, mock_application):
         """Test deletion with 'don't ask again' checked."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None), patch.object(
             Translator, "get", side_effect=lambda x, values=None: x
@@ -540,7 +540,7 @@ class TestConfirmDeletion:
             mock_msg.clickedButton = Mock(return_value=mock_confirm_btn)
 
             with patch.object(app, "question", return_value=mock_msg), patch(
-                "nxdrive.gui.application.QCheckBox", return_value=mock_cb
+                "nxdrive.drive.gui.application.QCheckBox", return_value=mock_cb
             ):
                 result = app.confirm_deletion(Path("/test/path"))
 
@@ -555,7 +555,7 @@ class TestChangeSystrayIcon:
 
     def test_change_systray_icon_update_available(self, mock_application):
         """Test icon change when update is available."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None):
             app = Application(None)
@@ -570,10 +570,10 @@ class TestChangeSystrayIcon:
 
     def test_change_systray_icon_paused(self, mock_application):
         """Test icon change when engine is paused."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None), patch(
-            "nxdrive.gui.application.Action"
+            "nxdrive.drive.gui.application.Action"
         ) as mock_action_class:
             app = Application(None)
             app.tasks_management_feature_model = Mock()
@@ -596,7 +596,7 @@ class TestChangeSystrayIcon:
 
     def test_change_systray_icon_syncing(self, mock_application):
         """Test icon change when engine is syncing."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None):
             app = Application(None)
@@ -619,7 +619,7 @@ class TestChangeSystrayIcon:
 
     def test_change_systray_icon_conflict(self, mock_application):
         """Test icon change when there are conflicts."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None):
             app = Application(None)
@@ -642,10 +642,10 @@ class TestChangeSystrayIcon:
 
     def test_change_systray_icon_idle(self, mock_application):
         """Test icon change when engine is idle."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None), patch(
-            "nxdrive.gui.application.Action"
+            "nxdrive.drive.gui.application.Action"
         ) as mock_action_class:
             app = Application(None)
             app.tasks_management_feature_model = Mock()
@@ -672,10 +672,10 @@ class TestShowSystray:
 
     def test_show_systray_with_geometry(self, mock_application):
         """Test showing systray with valid geometry."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None), patch(
-            "nxdrive.gui.application.WINDOWS", False
+            "nxdrive.drive.gui.application.WINDOWS", False
         ):
             app = Application(None)
             app.tasks_management_feature_model = Mock()
@@ -695,11 +695,11 @@ class TestShowSystray:
 
     def test_show_systray_empty_geometry(self, mock_application):
         """Test showing systray with empty geometry (fallback to cursor position)."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None), patch(
-            "nxdrive.gui.application.WINDOWS", False
-        ), patch("nxdrive.gui.application.QCursor") as mock_cursor:
+            "nxdrive.drive.gui.application.WINDOWS", False
+        ), patch("nxdrive.drive.gui.application.QCursor") as mock_cursor:
             app = Application(None)
             app.tasks_management_feature_model = Mock()
             app.close_tasks_window = Mock()
@@ -726,10 +726,10 @@ class TestShowSystray:
 
     def test_show_systray_windows_dpi_scaling(self, mock_application):
         """Test showing systray on Windows with DPI scaling."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None), patch(
-            "nxdrive.gui.application.WINDOWS", True
+            "nxdrive.drive.gui.application.WINDOWS", True
         ):
             app = Application(None)
             app.tasks_management_feature_model = Mock()
@@ -753,10 +753,10 @@ class TestShowSystray:
 
     def test_show_systray_negative_y_position(self, mock_application):
         """Test showing systray when calculated y position is negative."""
-        from nxdrive.gui.application import Application
+        from nxdrive.drive.gui.application import Application
 
         with patch.object(Application, "__init__", lambda x, y: None), patch(
-            "nxdrive.gui.application.WINDOWS", False
+            "nxdrive.drive.gui.application.WINDOWS", False
         ):
             app = Application(None)
             app.tasks_management_feature_model = Mock()

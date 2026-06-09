@@ -5,8 +5,8 @@ from pathlib import Path
 from unittest.mock import Mock
 from uuid import uuid4
 
-from nxdrive.constants import TransferStatus
-from nxdrive.objects import Download, Upload
+from nxdrive.drive.constants import TransferStatus
+from nxdrive.drive.objects import Download, Upload
 
 
 class TestSaveDtUpload:

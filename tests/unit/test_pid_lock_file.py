@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from nxdrive.utils import PidLockFile
+from nxdrive.drive.utils import PidLockFile
 
 
 def test_lock_file(tmp):

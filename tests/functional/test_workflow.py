@@ -5,12 +5,12 @@ from uuid import uuid4
 import pytest
 from nuxeo.models import Task
 
-from nxdrive.client.workflow import Workflow
-from nxdrive.feature import Feature
-from nxdrive.gui.api import QMLDriveApi
-from nxdrive.gui.application import Application
-from nxdrive.gui.view import EngineModel
-from nxdrive.poll_workers import WorkflowWorker
+from nxdrive.drive.feature import Feature
+from nxdrive.drive.gui.api import QMLDriveApi
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.gui.view import EngineModel
+from nxdrive.drive.poll_workers import WorkflowWorker
+from nxdrive.nuxeo.client.workflow import Workflow
 
 
 @pytest.fixture()

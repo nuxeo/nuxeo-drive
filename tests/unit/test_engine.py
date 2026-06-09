@@ -7,14 +7,14 @@ from unittest.mock import Mock, call, patch
 
 import pytest
 
-from nxdrive.constants import DelAction, TransferStatus
-from nxdrive.dao.engine import EngineDAO
-from nxdrive.engine.engine import Engine
-from nxdrive.engine.queue_manager import QueueManager
-from nxdrive.engine.watcher.local_watcher import LocalWatcher
-from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
-from nxdrive.feature import Feature
-from nxdrive.objects import Session
+from nxdrive.drive.constants import DelAction, TransferStatus
+from nxdrive.drive.dao.engine import EngineDAO
+from nxdrive.drive.engine.queue_manager import QueueManager
+from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
+from nxdrive.drive.feature import Feature
+from nxdrive.drive.objects import Session
+from nxdrive.nuxeo.engine.engine import Engine
+from nxdrive.nuxeo.engine.watcher.remote_watcher import RemoteWatcher
 
 
 @pytest.fixture
@@ -332,7 +332,7 @@ class TestSetLocalFolderLock:
 
         mock_engine.queue_manager.has_file_processors_on.side_effect = side_effect
 
-        with patch("nxdrive.engine.engine.sleep") as mock_sleep:
+        with patch("nxdrive.nuxeo.engine.engine.sleep") as mock_sleep:
             mock_engine.set_local_folder_lock(test_path)
 
         assert mock_engine._folder_lock == test_path
@@ -610,7 +610,7 @@ class TestDirectTransfer:
         remote_parent_ref = "ref-123"
         remote_parent_title = "Remote Title"
 
-        with patch("nxdrive.engine.engine.Options") as mock_options:
+        with patch("nxdrive.nuxeo.engine.engine.Options") as mock_options:
             mock_options.database_batch_size = 50
 
             mock_engine._direct_transfer(
@@ -642,7 +642,7 @@ class TestDirectTransfer:
         new_folder = "New Folder"
 
         with patch.object(mock_engine, "send_metric") as mock_metric:
-            with patch("nxdrive.engine.engine.Options") as mock_options:
+            with patch("nxdrive.nuxeo.engine.engine.Options") as mock_options:
                 mock_options.database_batch_size = 50
 
                 mock_engine._direct_transfer(
@@ -688,7 +688,7 @@ class TestDirectTransfer:
         remote_parent_ref = "ref-123"
         remote_parent_title = "Remote Title"
 
-        with patch("nxdrive.engine.engine.Options") as mock_options:
+        with patch("nxdrive.nuxeo.engine.engine.Options") as mock_options:
             mock_options.database_batch_size = 50
 
             mock_engine._direct_transfer(
@@ -762,7 +762,7 @@ class TestDirectTransferAsync:
         remote_parent_title = "Remote Title"
 
         # Need to patch where Runner is imported within the function
-        with patch("nxdrive.engine.workers.Runner") as mock_runner_class:
+        with patch("nxdrive.drive.engine.workers.Runner") as mock_runner_class:
             mock_runner_instance = Mock()
             mock_runner_class.return_value = mock_runner_instance
 
@@ -1067,7 +1067,7 @@ class TestManageStaledTransfers:
         mock_engine.dao.get_downloads_with_status.return_value = [mock_download]
         mock_engine.dao.get_uploads_with_status.return_value = [mock_upload]
 
-        with patch("nxdrive.engine.engine.State") as mock_state:
+        with patch("nxdrive.nuxeo.engine.engine.State") as mock_state:
             mock_state.has_crashed = True
             mock_engine._manage_staled_transfers()
 
@@ -1091,7 +1091,7 @@ class TestManageStaledTransfers:
         mock_engine.dao.get_downloads_with_status.return_value = [mock_download]
         mock_engine.dao.get_uploads_with_status.return_value = [mock_upload]
 
-        with patch("nxdrive.engine.engine.State") as mock_state:
+        with patch("nxdrive.nuxeo.engine.engine.State") as mock_state:
             mock_state.has_crashed = False
             mock_engine._manage_staled_transfers()
 
@@ -1207,7 +1207,7 @@ class TestUnbind:
 
         with patch.object(mock_engine, "stop") as mock_stop:
             with patch.object(mock_engine, "dispose_db") as mock_dispose:
-                with patch("nxdrive.engine.engine.shutil"):
+                with patch("nxdrive.nuxeo.engine.engine.shutil"):
                     mock_engine.unbind()
 
         mock_stop.assert_called_once()
@@ -1246,7 +1246,7 @@ class TestCreateThread:
 
     def test_create_thread_with_worker(self, mock_engine):
         """Test creating thread with provided worker."""
-        from nxdrive.engine.workers import Worker
+        from nxdrive.drive.engine.workers import Worker
 
         mock_worker = Mock(spec=Worker)
         mock_worker.thread = Mock()
@@ -1261,7 +1261,7 @@ class TestCreateThread:
 
     def test_create_thread_without_start_connect(self, mock_engine):
         """Test creating thread without start_connect."""
-        from nxdrive.engine.workers import Worker
+        from nxdrive.drive.engine.workers import Worker
 
         mock_worker = Mock(spec=Worker)
         mock_worker.thread = Mock()
@@ -1408,7 +1408,7 @@ class TestCheckLastSync:
         mock_engine.syncCompleted = Mock()
         mock_engine.syncCompleted.emit = Mock()
 
-        with patch("nxdrive.engine.engine.datetime"):
+        with patch("nxdrive.nuxeo.engine.engine.datetime"):
             mock_engine._check_last_sync()
 
         assert mock_engine._sync_started is False
@@ -1466,7 +1466,7 @@ class TestStop:
         mock_engine._stop = Mock()
         mock_engine._stop.emit = Mock()
 
-        with patch("nxdrive.engine.engine.Processor") as mock_processor:
+        with patch("nxdrive.nuxeo.engine.engine.Processor") as mock_processor:
             mock_engine.stop()
 
         assert mock_engine._stopped is True
@@ -1546,7 +1546,7 @@ class TestCancelActionOn:
 
     def test_cancel_action_on(self, mock_engine):
         """Test canceling action on specific pair."""
-        from nxdrive.engine.processor import Processor
+        from nxdrive.nuxeo.engine.processor import Processor
 
         mock_pair = Mock()
         mock_pair.id = 123
@@ -1566,7 +1566,7 @@ class TestCancelActionOn:
 
     def test_cancel_action_on_no_match(self, mock_engine):
         """Test canceling action when pair not found."""
-        from nxdrive.engine.processor import Processor
+        from nxdrive.nuxeo.engine.processor import Processor
 
         mock_pair = Mock()
         mock_pair.id = 456
@@ -1590,7 +1590,7 @@ class TestSuspendClient:
 
     def test_suspend_client_when_paused(self, mock_engine):
         """Test suspend client when engine is paused."""
-        from nxdrive.exceptions import ThreadInterrupt
+        from nxdrive.drive.exceptions import ThreadInterrupt
 
         mock_engine._pause = True
         mock_uploader = Mock()
@@ -1600,7 +1600,7 @@ class TestSuspendClient:
 
     def test_suspend_client_when_stopped(self, mock_engine):
         """Test suspend client when engine is stopped."""
-        from nxdrive.exceptions import ThreadInterrupt
+        from nxdrive.drive.exceptions import ThreadInterrupt
 
         mock_engine._pause = False
         mock_engine._stopped = True
@@ -1611,8 +1611,8 @@ class TestSuspendClient:
 
     def test_suspend_client_with_folder_lock(self, mock_engine):
         """Test suspend client with folder lock."""
-        from nxdrive.engine.activity import FileAction
-        from nxdrive.exceptions import PairInterrupt
+        from nxdrive.drive.engine.activity import FileAction
+        from nxdrive.drive.exceptions import PairInterrupt
 
         mock_engine._pause = False
         mock_engine._stopped = False
@@ -1629,9 +1629,9 @@ class TestSuspendClient:
         with patch.object(mock_engine, "is_paused", return_value=False):
             with patch.object(mock_engine, "is_started", return_value=True):
                 with patch(
-                    "nxdrive.engine.engine.current_thread_id", return_value=12345
+                    "nxdrive.nuxeo.engine.engine.current_thread_id", return_value=12345
                 ):
-                    with patch("nxdrive.engine.engine.Action") as mock_action_cls:
+                    with patch("nxdrive.nuxeo.engine.engine.Action") as mock_action_cls:
                         mock_action_cls.get_current_action.return_value = mock_action
                         with pytest.raises(PairInterrupt):
                             mock_engine.suspend_client(mock_uploader)

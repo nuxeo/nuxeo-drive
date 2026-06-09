@@ -5,10 +5,10 @@ import pytest
 import requests
 
 from nxdrive import __version__
-from nxdrive.feature import Feature
-from nxdrive.options import Options
-from nxdrive.poll_workers import ServerOptionsUpdater
-from nxdrive.updater.base import BaseUpdater
+from nxdrive.drive.feature import Feature
+from nxdrive.drive.options import Options
+from nxdrive.drive.poll_workers import ServerOptionsUpdater
+from nxdrive.drive.updater.base import BaseUpdater
 
 # SHA256 of MockResponse.raw, see below
 _checksum = "be9b795e95c7b4940cc40e023cfda1b4f22ed97d8c44d8ebc45625db532a2b12"

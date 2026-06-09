@@ -7,10 +7,10 @@ from typing import Any, List
 from PyQt6 import QtCore
 from PyQt6.QtCore import Qt
 
-from nxdrive.client.local.base import FileInfo, LocalClientMixin
-from nxdrive.constants import TransferStatus
-from nxdrive.gui.folders_model import FilteredDoc
-from nxdrive.objects import DocPair, RemoteFileInfo
+from nxdrive.drive.client.local.base import FileInfo, LocalClientMixin
+from nxdrive.drive.constants import TransferStatus
+from nxdrive.drive.objects import DocPair, RemoteFileInfo
+from nxdrive.nuxeo.gui.folders_model import FilteredDoc
 
 
 class Mock_Local_Client(LocalClientMixin):

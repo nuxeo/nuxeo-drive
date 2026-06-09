@@ -7,12 +7,12 @@ from unittest.mock import Mock, patch
 import pytest
 from nuxeo.exceptions import CorruptedFile, HTTPError
 
-from nxdrive.constants import ROOT
-from nxdrive.engine.engine import Engine, ServerBindingSettings
-from nxdrive.exceptions import NoAssociatedSoftware
-from nxdrive.objects import DirectEditDetails
-from nxdrive.translator import Translator
-from nxdrive.utils import find_resource
+from nxdrive.drive.constants import ROOT
+from nxdrive.drive.exceptions import NoAssociatedSoftware
+from nxdrive.drive.objects import DirectEditDetails
+from nxdrive.drive.translator import Translator
+from nxdrive.drive.utils import find_resource
+from nxdrive.nuxeo.engine.engine import Engine, ServerBindingSettings
 
 from .. import ensure_no_exception
 

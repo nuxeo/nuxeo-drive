@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock, Mock, patch
 
-from nxdrive.gui.folders_model import FilteredDocuments, FoldersOnly
+from nxdrive.nuxeo.gui.folders_model import FilteredDocuments, FoldersOnly
 
 
 class TestTreeViewMixin:
@@ -49,8 +49,8 @@ class TestTreeViewMixin:
             def connect_expanded_signal(self):
                 self.expanded_signal_connected = True
 
-        with patch("nxdrive.gui.folders_treeview.QTreeView"), patch(
-            "nxdrive.gui.folders_treeview.QStandardItemModel"
+        with patch("nxdrive.drive.gui.folders_treeview.QTreeView"), patch(
+            "nxdrive.drive.gui.folders_treeview.QStandardItemModel"
         ):
 
             tree_view = MockTreeViewMixin(mock_parent, mock_client)

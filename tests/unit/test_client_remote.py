@@ -8,13 +8,13 @@ from unittest.mock import patch
 
 import pytest
 
-from nxdrive.auth.oauth2 import OAuthentication
-from nxdrive.client.remote_client import Remote
-from nxdrive.constants import TransferStatus
-from nxdrive.dao.base import BaseDAO
-from nxdrive.dao.engine import EngineDAO
-from nxdrive.engine.activity import DownloadAction, UploadAction
-from nxdrive.objects import RemoteFileInfo
+from nxdrive.drive.constants import TransferStatus
+from nxdrive.drive.dao.base import BaseDAO
+from nxdrive.drive.dao.engine import EngineDAO
+from nxdrive.drive.engine.activity import DownloadAction, UploadAction
+from nxdrive.drive.objects import RemoteFileInfo
+from nxdrive.nuxeo.auth.oauth2 import OAuthentication
+from nxdrive.nuxeo.client.remote_client import Remote
 
 
 class Mock_Values:
@@ -67,11 +67,11 @@ class Mock_Auth(OAuthentication):
         pass
 
 
-@patch("nxdrive.metrics.poll_metrics.CustomPollMetrics")
-@patch("nxdrive.client.remote_client.Remote.fetch")
+@patch("nxdrive.drive.metrics.poll_metrics.CustomPollMetrics")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.fetch")
 @patch("nuxeo.client.Nuxeo")
-@patch("nxdrive.utils.get_verify")
-@patch("nxdrive.auth.get_auth")
+@patch("nxdrive.drive.utils.get_verify")
+@patch("nxdrive.drive.auth.get_auth")
 def test_init(
     mock_get_auth, mock_get_verify, mock_nuxeo_init, mock_fetch, mock_poll_metrics
 ):
@@ -111,7 +111,7 @@ def test_repr():
 
 
 @patch("nuxeo.handlers.default.Uploader")
-@patch("nxdrive.engine.activity.Action.get_current_action")
+@patch("nxdrive.drive.engine.activity.Action.get_current_action")
 def test_transfer_start_callback(mock_action, mock_uploader):
     remote_obj = Remote(
         "dummy_url",
@@ -128,9 +128,9 @@ def test_transfer_start_callback(mock_action, mock_uploader):
     assert output is None
 
 
-@patch("nxdrive.dao.engine.EngineDAO.get_download")
+@patch("nxdrive.drive.dao.engine.EngineDAO.get_download")
 @patch("nuxeo.handlers.default.Uploader")
-@patch("nxdrive.engine.activity.Action.get_current_action")
+@patch("nxdrive.drive.engine.activity.Action.get_current_action")
 def test_transfer_end_callback_download(mock_action, mock_uploader, mock_dao):
     """
     This test case will only cover DownloadAction scenario
@@ -179,9 +179,9 @@ def test_transfer_end_callback_download(mock_action, mock_uploader, mock_dao):
     assert output is None
 
 
-@patch("nxdrive.dao.engine.EngineDAO.get_download")
+@patch("nxdrive.drive.dao.engine.EngineDAO.get_download")
 @patch("nuxeo.handlers.default.Uploader")
-@patch("nxdrive.engine.activity.Action.get_current_action")
+@patch("nxdrive.drive.engine.activity.Action.get_current_action")
 def test_transfer_end_callback_upload(mock_action, mock_uploader, mock_dao):
     """
     This test case will only cover UploadAction scenario
@@ -235,8 +235,8 @@ def test_escape_carriage_return():
     assert output == "/dummy_path\\\\n\\\\r"
 
 
-@patch("nxdrive.client.remote_client.Remote.query")
-@patch("nxdrive.client.remote_client.Remote.escape")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.query")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.escape")
 def test_exists(mock_escape, mock_query):
     remote_obj = Remote(
         "dummy_url",
@@ -272,7 +272,7 @@ def test_revoke_token():
     assert output is None
 
 
-@patch("nxdrive.auth.Token")
+@patch("nxdrive.drive.auth.Token")
 def test_update_token(mock_token):
     remote_obj = Remote(
         "dummy_url",
@@ -288,13 +288,13 @@ def test_update_token(mock_token):
     assert output is None
 
 
-@patch("nxdrive.client.remote_client.Remote.check_integrity")
-@patch("nxdrive.dao.engine.EngineDAO.set_transfer_status")
-@patch("nxdrive.client.remote_client.Remote.check_integrity")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.check_integrity")
+@patch("nxdrive.drive.dao.engine.EngineDAO.set_transfer_status")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.check_integrity")
 @patch("nuxeo.operations.API.save_to_file")
-@patch("nxdrive.utils.unlock_path")
-@patch("nxdrive.engine.activity.DownloadAction")
-@patch("nxdrive.dao.engine.EngineDAO.get_download")
+@patch("nxdrive.drive.utils.unlock_path")
+@patch("nxdrive.drive.engine.activity.DownloadAction")
+@patch("nxdrive.drive.dao.engine.EngineDAO.get_download")
 @patch("nuxeo.client.NuxeoClient.request")
 def test_download(
     mock_nuxeo,
@@ -353,7 +353,7 @@ def test_download(
     assert isinstance(output, Path)
 
 
-@patch("nxdrive.engine.activity.VerificationAction")
+@patch("nxdrive.drive.engine.activity.VerificationAction")
 def test_check_integrity(mock_verification):
     class Mock_Download(DownloadAction):
         def __init__(self, filepath: Path, size: int) -> None:
@@ -394,7 +394,7 @@ def test_check_integrity(mock_verification):
     assert ex is not None
 
 
-@patch("nxdrive.engine.activity.VerificationAction")
+@patch("nxdrive.drive.engine.activity.VerificationAction")
 def test_check_integrity_simple(mock_verification):
     class Mock_Verification:
         def __init__(self):
@@ -419,9 +419,9 @@ def test_check_integrity_simple(mock_verification):
     assert ex is not None
 
 
-@patch("nxdrive.client.uploader.sync.SyncUploader")
+@patch("nxdrive.nuxeo.client.uploader.sync.SyncUploader")
 def test_upload(mock_sync_uploader):
-    from nxdrive.client.uploader import BaseUploader
+    from nxdrive.nuxeo.client.uploader import BaseUploader
 
     class Mock_Uploader(BaseUploader):
         def __init__(self, remote: Remote) -> None:
@@ -456,7 +456,7 @@ def test_upload(mock_sync_uploader):
 
 
 @patch("json.dumps")
-@patch("nxdrive.client.remote_client.Remote.execute")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.execute")
 def test_upload_folder(mock_execute, mock_json):
     remote_obj = Remote(
         "dummy_url",
@@ -509,10 +509,10 @@ def test_is_sync_root():
     assert output is False
 
 
-@patch("nxdrive.client.remote_client.Remote.expand_sync_root_name")
-@patch("nxdrive.client.remote_client.Remote.is_sync_root")
-@patch("nxdrive.objects.RemoteFileInfo.from_dict")
-@patch("nxdrive.client.remote_client.Remote.get_fs_item")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.expand_sync_root_name")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.is_sync_root")
+@patch("nxdrive.drive.objects.RemoteFileInfo.from_dict")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.get_fs_item")
 def test_get_fs_info(mock_get_item, mock_remote_dict, mock_is_root, mock_expand_root):
     remote_obj = Remote(
         "dummy_url",
@@ -530,9 +530,9 @@ def test_get_fs_info(mock_get_item, mock_remote_dict, mock_is_root, mock_expand_
     assert isinstance(output, RemoteFileInfo)
 
 
-@patch("nxdrive.dao.engine.EngineDAO.remove_transfer")
-@patch("nxdrive.client.remote_client.Remote.download")
-@patch("nxdrive.client.remote_client.Remote.get_fs_info")
+@patch("nxdrive.drive.dao.engine.EngineDAO.remove_transfer")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.download")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.get_fs_info")
 def test_stream_content(mock_fs_info, mock_download, mock_remove_transfer):
     class Mock_FS:
         def __init__(self) -> None:
@@ -555,9 +555,9 @@ def test_stream_content(mock_fs_info, mock_download, mock_remove_transfer):
     assert isinstance(output, Path)
 
 
-@patch("nxdrive.client.remote_client.Remote.is_filtered")
-@patch("nxdrive.objects.RemoteFileInfo.from_dict")
-@patch("nxdrive.client.remote_client.Remote.execute")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.is_filtered")
+@patch("nxdrive.drive.objects.RemoteFileInfo.from_dict")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.execute")
 def test_get_fs_children(mock_execute, mock_remote_dict, mock_filtered):
     class Mock_Info:
         def __init__(self) -> None:
@@ -587,8 +587,8 @@ def test_get_fs_children(mock_execute, mock_remote_dict, mock_filtered):
     assert output == []
 
 
-@patch("nxdrive.objects.RemoteFileInfo.from_dict")
-@patch("nxdrive.client.remote_client.Remote.execute")
+@patch("nxdrive.drive.objects.RemoteFileInfo.from_dict")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.execute")
 def test_scroll_descendants(mock_execute, mock_remote_dict):
     remote_obj = Remote(
         "dummy_url",
@@ -604,8 +604,8 @@ def test_scroll_descendants(mock_execute, mock_remote_dict):
     assert isinstance(output, dict)
 
 
-@patch("nxdrive.objects.RemoteFileInfo.from_dict")
-@patch("nxdrive.client.remote_client.Remote.execute")
+@patch("nxdrive.drive.objects.RemoteFileInfo.from_dict")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.execute")
 def test_make_folder(mock_execute, mock_remote_dict):
     remote_obj = Remote(
         "dummy_url",
@@ -621,8 +621,8 @@ def test_make_folder(mock_execute, mock_remote_dict):
     assert isinstance(output, RemoteFileInfo)
 
 
-@patch("nxdrive.objects.RemoteFileInfo.from_dict")
-@patch("nxdrive.client.remote_client.Remote.upload")
+@patch("nxdrive.drive.objects.RemoteFileInfo.from_dict")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.upload")
 def test_stream_file(mock_upload, mock_remote_dict):
     remote_obj = Remote(
         "dummy_url",
@@ -638,8 +638,8 @@ def test_stream_file(mock_upload, mock_remote_dict):
     assert isinstance(output, RemoteFileInfo)
 
 
-@patch("nxdrive.objects.RemoteFileInfo.from_dict")
-@patch("nxdrive.client.remote_client.Remote.upload")
+@patch("nxdrive.drive.objects.RemoteFileInfo.from_dict")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.upload")
 def test_stream_update(mock_upload, mock_remote_dict):
     remote_obj = Remote(
         "dummy_url",
@@ -655,7 +655,7 @@ def test_stream_update(mock_upload, mock_remote_dict):
     assert isinstance(output, RemoteFileInfo)
 
 
-@patch("nxdrive.client.remote_client.Remote.execute")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.execute")
 def test_delete(mock_execute):
     remote_obj = Remote(
         "dummy_url",
@@ -684,8 +684,8 @@ def test_undelete():
     assert ex is not None
 
 
-@patch("nxdrive.objects.RemoteFileInfo.from_dict")
-@patch("nxdrive.client.remote_client.Remote.execute")
+@patch("nxdrive.drive.objects.RemoteFileInfo.from_dict")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.execute")
 def test_rename(mock_execute, mock_remote_dict):
     remote_obj = Remote(
         "dummy_url",
@@ -701,8 +701,8 @@ def test_rename(mock_execute, mock_remote_dict):
     assert isinstance(output, RemoteFileInfo)
 
 
-@patch("nxdrive.objects.RemoteFileInfo.from_dict")
-@patch("nxdrive.client.remote_client.Remote.execute")
+@patch("nxdrive.drive.objects.RemoteFileInfo.from_dict")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.execute")
 def test_move(mock_execute, mock_remote_dict):
     remote_obj = Remote(
         "dummy_url",
@@ -736,7 +736,7 @@ def test_move2():
     assert output == {}
 
 
-@patch("nxdrive.client.remote_client.Remote.execute")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.execute")
 def test_get_fs_item(mock_execute):
     remote_obj = Remote(
         "dummy_url",
@@ -755,7 +755,7 @@ def test_get_fs_item(mock_execute):
     assert isinstance(output, dict)
 
 
-@patch("nxdrive.client.remote_client.Remote.execute")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.execute")
 def test_get_changes(mock_execute):
     remote_obj = Remote(
         "dummy_url",
@@ -770,7 +770,7 @@ def test_get_changes(mock_execute):
     assert isinstance(output, dict)
 
 
-@patch("nxdrive.client.remote_client.Remote.execute")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.execute")
 def test_fetch(mock_execute):
     remote_obj = Remote(
         "dummy_url",
@@ -785,7 +785,7 @@ def test_fetch(mock_execute):
     assert isinstance(output, dict)
 
 
-@patch("nxdrive.client.remote_client.Remote.fetch")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.fetch")
 def test_check_ref(mock_fetch):
     # if endswith("/") is True
     mock_fetch.return_value = {"uid": "base_uid", "path": "base_path/"}
@@ -815,11 +815,11 @@ def test_check_ref(mock_fetch):
     assert output == "base_path/reference"
 
 
-@patch("nxdrive.objects.NuxeoDocumentInfo.from_dict")
-@patch("nxdrive.client.remote_client.Remote.fetch")
-@patch("nxdrive.client.remote_client.Remote.check_ref")
+@patch("nxdrive.drive.objects.NuxeoDocumentInfo.from_dict")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.fetch")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.check_ref")
 def test_get_info(mock_check_ref, mock_fetch, mock_nxdi_dict):
-    from nxdrive.objects import NuxeoDocumentInfo
+    from nxdrive.drive.objects import NuxeoDocumentInfo
 
     remote_obj = Remote(
         "dummy_url",
@@ -848,10 +848,10 @@ def test_get_info(mock_check_ref, mock_fetch, mock_nxdi_dict):
     assert output.__qualname__ == "NuxeoDocumentInfo"
 
 
-@patch("nxdrive.client.remote_client.Remote.fetch")
-@patch("nxdrive.client.remote_client.Remote.check_ref")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.fetch")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.check_ref")
 def test_get_info_exception(mock_check_ref, mock_fetch):
-    from nxdrive.exceptions import NotFound
+    from nxdrive.drive.exceptions import NotFound
 
     remote_obj = Remote(
         "dummy_url",
@@ -875,7 +875,7 @@ def test_get_info_exception(mock_check_ref, mock_fetch):
 
 
 @patch("pathlib._abc.PathBase.write_bytes")
-@patch("nxdrive.client.remote_client.Remote.fetch")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.fetch")
 def test_get_note(mock_fetch, mock_write):
     class Mock_Fetch:
         def __init__(self, *args) -> None:
@@ -901,10 +901,10 @@ def test_get_note(mock_fetch, mock_write):
     assert isinstance(output, bytes)
 
 
-@patch("nxdrive.client.remote_client.Remote.execute")
-@patch("nxdrive.client.remote_client.Remote.get_note")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.execute")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.get_note")
 def test_get_blob(mock_get_note, mock_execute):
-    from nxdrive.objects import NuxeoDocumentInfo
+    from nxdrive.drive.objects import NuxeoDocumentInfo
 
     remote_obj = Remote(
         "dummy_url",
@@ -950,9 +950,9 @@ def test_get_blob(mock_get_note, mock_execute):
     output = remote_obj.get_blob("string_data")
 
 
-@patch("nxdrive.client.remote_client.Remote.execute")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.execute")
 @patch("json.dumps")
-@patch("nxdrive.client.remote_client.Remote.check_ref")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.check_ref")
 def test_unlock(mock_check_ref, mock_json, mock_execute):
     remote_obj = Remote(
         "dummy_url",
@@ -969,8 +969,8 @@ def test_unlock(mock_check_ref, mock_json, mock_execute):
     assert output is None
 
 
-@patch("nxdrive.client.remote_client.Remote.execute")
-@patch("nxdrive.client.remote_client.Remote.check_ref")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.execute")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.check_ref")
 def test_register_as_root(mock_check_ref, mock_execute):
     remote_obj = Remote(
         "dummy_url",
@@ -986,8 +986,8 @@ def test_register_as_root(mock_check_ref, mock_execute):
     assert output is True
 
 
-@patch("nxdrive.client.remote_client.Remote.execute")
-@patch("nxdrive.client.remote_client.Remote.check_ref")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.execute")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.check_ref")
 def test_unregister_as_root(mock_check_ref, mock_execute):
     remote_obj = Remote(
         "dummy_url",
@@ -1061,9 +1061,9 @@ def test_get_trash_condition(mock_version):
     assert output == "AND ecm:isTrashed = 0"
 
 
-@patch("nxdrive.client.remote_client.Remote.filter_schema")
-@patch("nxdrive.objects.SubTypeEnricher.from_dict")
-@patch("nxdrive.client.remote_client.Remote.fetch")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.filter_schema")
+@patch("nxdrive.drive.objects.SubTypeEnricher.from_dict")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.fetch")
 def test_get_doc_enricher(mock_fetch, mock_enricher_dict, mock_filter_schema):
     class Mock_Enricher:
         def __init__(self) -> None:

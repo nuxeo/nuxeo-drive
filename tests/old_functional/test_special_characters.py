@@ -1,6 +1,6 @@
 import pytest
 
-from nxdrive.constants import MAC
+from nxdrive.drive.constants import MAC
 
 from ..markers import not_windows
 from .common import OneUserTest

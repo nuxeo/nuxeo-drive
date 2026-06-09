@@ -9,8 +9,8 @@ import nuxeo.operations
 import pytest
 from nuxeo.client import Nuxeo
 
-from nxdrive.options import Options
-from nxdrive.utils import adapt_datetime_iso, get_verify
+from nxdrive.drive.options import Options
+from nxdrive.drive.utils import adapt_datetime_iso, get_verify
 
 from . import env
 
@@ -187,7 +187,7 @@ def app():
     Fixture required to be able to process Qt events and quit smoothly the application.
     To use in "functional" and "unit" tests only.
     """
-    from nxdrive.qt.imports import QCoreApplication, QTimer
+    from nxdrive.drive.qt.imports import QCoreApplication, QTimer
 
     app = QCoreApplication.instance() or QCoreApplication([])
 

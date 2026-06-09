@@ -2,9 +2,9 @@ from collections import namedtuple
 from copy import deepcopy
 from unittest.mock import Mock, patch
 
-from nxdrive.gui.api import QMLDriveApi
-from nxdrive.translator import Translator
-from nxdrive.utils import find_resource
+from nxdrive.drive.gui.api import QMLDriveApi
+from nxdrive.drive.translator import Translator
+from nxdrive.drive.utils import find_resource
 
 
 def test_web_authentication(manager_factory, nuxeo_url):

@@ -8,7 +8,7 @@ from ..markers import linux_only
 
 @pytest.fixture
 def localclient(tmp_path):
-    from nxdrive.client.local.linux import LocalClient
+    from nxdrive.drive.client.local.linux import LocalClient
 
     localclient = LocalClient
     localclient.shared_icons = tmp_path

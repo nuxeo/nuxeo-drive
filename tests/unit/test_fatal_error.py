@@ -2,7 +2,7 @@ import platform
 from unittest.mock import Mock, patch
 
 from nxdrive import fatal_error
-from nxdrive.constants import MAC
+from nxdrive.drive.constants import MAC
 
 from ..markers import linux_only, mac_only, windows_only
 
@@ -22,7 +22,7 @@ def test_check_os_version(monkeypatch):
         assert not fatal_error.check_os_version()
 
 
-@patch("nxdrive.fatal_error.fatal_error_qt")
+@patch("nxdrive.drive.fatal_error.fatal_error_qt")
 @patch("traceback.format_exception")
 @patch("sys.exc_info")
 def test_show_critical_error(mock_exc_info, mock_traceback, mock_fatal_error_qt):
@@ -32,8 +32,8 @@ def test_show_critical_error(mock_exc_info, mock_traceback, mock_fatal_error_qt)
 
 
 @windows_only
-@patch("nxdrive.fatal_error.fatal_error_win")
-@patch("nxdrive.fatal_error.fatal_error_qt")
+@patch("nxdrive.drive.fatal_error.fatal_error_win")
+@patch("nxdrive.drive.fatal_error.fatal_error_qt")
 @patch("traceback.format_exception")
 @patch("sys.exc_info")
 def test_show_critical_error_windows(
@@ -46,8 +46,8 @@ def test_show_critical_error_windows(
 
 
 @mac_only
-@patch("nxdrive.fatal_error.fatal_error_mac")
-@patch("nxdrive.fatal_error.fatal_error_qt")
+@patch("nxdrive.drive.fatal_error.fatal_error_mac")
+@patch("nxdrive.drive.fatal_error.fatal_error_qt")
 @patch("traceback.format_exception")
 @patch("sys.exc_info")
 def test_show_critical_error_mac(
@@ -60,7 +60,7 @@ def test_show_critical_error_mac(
 
 
 @linux_only
-@patch("nxdrive.fatal_error.fatal_error_qt")
+@patch("nxdrive.drive.fatal_error.fatal_error_qt")
 @patch("traceback.format_exception")
 @patch("sys.exc_info")
 def test_show_critical_error_linux(mock_exc_info, mock_traceback, mock_fatal_error_qt):

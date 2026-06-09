@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
 from tests.markers import mac_only
 
 
@@ -32,12 +32,12 @@ class TestHandleLanguageChange:
 
         test_locale = "fr"
 
-        with patch("nxdrive.gui.application.Translator") as mock_translator, patch(
-            "nxdrive.gui.application.MAC", False
-        ):
+        with patch(
+            "nxdrive.drive.gui.application.Translator"
+        ) as mock_translator, patch("nxdrive.drive.gui.application.MAC", False):
             mock_translator.locale.return_value = test_locale
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_language_change.__get__(app, Application)
             bound_method()
@@ -54,13 +54,13 @@ class TestHandleLanguageChange:
         test_locale = "en"
         mock_context_menu = Mock()
 
-        with patch("nxdrive.gui.application.Translator") as mock_translator, patch(
-            "nxdrive.gui.application.MAC", False
-        ):
+        with patch(
+            "nxdrive.drive.gui.application.Translator"
+        ) as mock_translator, patch("nxdrive.drive.gui.application.MAC", False):
             mock_translator.locale.return_value = test_locale
             app.tray_icon.get_context_menu.return_value = mock_context_menu
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_language_change.__get__(app, Application)
             bound_method()
@@ -75,12 +75,12 @@ class TestHandleLanguageChange:
 
         test_locale = "de"
 
-        with patch("nxdrive.gui.application.Translator") as mock_translator, patch(
-            "nxdrive.gui.application.MAC", True
-        ):
+        with patch(
+            "nxdrive.drive.gui.application.Translator"
+        ) as mock_translator, patch("nxdrive.drive.gui.application.MAC", True):
             mock_translator.locale.return_value = test_locale
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_language_change.__get__(app, Application)
             bound_method()
@@ -95,13 +95,13 @@ class TestHandleLanguageChange:
 
         test_locale = "es"
 
-        with patch("nxdrive.gui.application.Translator") as mock_translator, patch(
-            "nxdrive.gui.application.MAC", False
-        ):
+        with patch(
+            "nxdrive.drive.gui.application.Translator"
+        ) as mock_translator, patch("nxdrive.drive.gui.application.MAC", False):
             mock_translator.locale.return_value = test_locale
             app.tray_icon.get_context_menu.return_value = Mock()
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_language_change.__get__(app, Application)
             bound_method()
@@ -116,12 +116,12 @@ class TestHandleLanguageChange:
         locales_to_test = ["en", "fr", "de", "es", "ja", "zh_CN"]
 
         for test_locale in locales_to_test:
-            with patch("nxdrive.gui.application.Translator") as mock_translator, patch(
-                "nxdrive.gui.application.MAC", True
-            ):
+            with patch(
+                "nxdrive.drive.gui.application.Translator"
+            ) as mock_translator, patch("nxdrive.drive.gui.application.MAC", True):
                 mock_translator.locale.return_value = test_locale
 
-                from nxdrive.gui.application import Application as RealApp
+                from nxdrive.drive.gui.application import Application as RealApp
 
                 bound_method = RealApp._handle_language_change.__get__(app, Application)
                 bound_method()

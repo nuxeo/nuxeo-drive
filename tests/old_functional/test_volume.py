@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from nxdrive.constants import ROOT
+from nxdrive.drive.constants import ROOT
 
 from ..utils import random_png
 from .common import OneUserTest
@@ -15,7 +15,7 @@ from .common import OneUserTest
 def configure_logs():
     """Configure the logging module to prevent too many data being logged."""
 
-    from nxdrive.logging_config import configure
+    from nxdrive.drive.logging_config import configure
 
     configure(
         console_level="WARNING",

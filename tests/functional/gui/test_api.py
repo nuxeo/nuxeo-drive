@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-from nxdrive.gui.api import QMLDriveApi
+from nxdrive.drive.gui.api import QMLDriveApi
 
 
 class TestQMLDriveApi:
@@ -44,8 +44,8 @@ class TestQMLDriveApi:
                 )
 
         # Patch the class in the module
-        with patch("nxdrive.gui.api.QMLDriveApi", MockQMLDriveApi):
-            from nxdrive.gui.api import QMLDriveApi
+        with patch("nxdrive.drive.gui.api.QMLDriveApi", MockQMLDriveApi):
+            from nxdrive.drive.gui.api import QMLDriveApi
 
             api = QMLDriveApi(mock_app)
 
@@ -71,8 +71,8 @@ class TestQMLDriveApi:
                     return export()
                 return obj
 
-        with patch("nxdrive.gui.api.QMLDriveApi", MockQMLDriveApi):
-            from nxdrive.gui.api import QMLDriveApi
+        with patch("nxdrive.drive.gui.api.QMLDriveApi", MockQMLDriveApi):
+            from nxdrive.drive.gui.api import QMLDriveApi
 
             api = QMLDriveApi(mock_app)
 
@@ -104,8 +104,8 @@ class TestQMLDriveApi:
 
                 return json.dumps(obj, default=self._json_default)
 
-        with patch("nxdrive.gui.api.QMLDriveApi", MockQMLDriveApi):
-            from nxdrive.gui.api import QMLDriveApi
+        with patch("nxdrive.drive.gui.api.QMLDriveApi", MockQMLDriveApi):
+            from nxdrive.drive.gui.api import QMLDriveApi
 
             api = QMLDriveApi(mock_app)
 
@@ -129,8 +129,8 @@ class TestQMLDriveApi:
                     return {"uid": uid, "state": None}
                 return {"uid": uid, "state": "formatted"}
 
-        with patch("nxdrive.gui.api.QMLDriveApi", MockQMLDriveApi):
-            from nxdrive.gui.api import QMLDriveApi
+        with patch("nxdrive.drive.gui.api.QMLDriveApi", MockQMLDriveApi):
+            from nxdrive.drive.gui.api import QMLDriveApi
 
             api = QMLDriveApi(mock_app)
 
@@ -151,8 +151,8 @@ class TestQMLDriveApi:
         # (since instantiation would require Qt objects)
 
         # Check method existence by looking at the class
-        with patch("nxdrive.gui.api.QObject"):  # Mock the base class
-            from nxdrive.gui.api import QMLDriveApi
+        with patch("nxdrive.drive.gui.api.QObject"):  # Mock the base class
+            from nxdrive.drive.gui.api import QMLDriveApi
 
             # Verify important slot methods exist (these actually have @pyqtSlot decorators)
             assert hasattr(QMLDriveApi, "get_last_files")
@@ -184,8 +184,8 @@ class TestQMLDriveApi:
                 self.openAuthenticationDialog.connect = connect_mock
                 connect_mock(application.open_authentication_dialog)
 
-        with patch("nxdrive.gui.api.QMLDriveApi", MockQMLDriveApi):
-            from nxdrive.gui.api import QMLDriveApi
+        with patch("nxdrive.drive.gui.api.QMLDriveApi", MockQMLDriveApi):
+            from nxdrive.drive.gui.api import QMLDriveApi
 
             api = QMLDriveApi(mock_app)
 
@@ -221,7 +221,7 @@ class TestQMLDriveApi:
             def set_engine_uid(self, uid):
                 self.current_engine_uid = uid
 
-        with patch("nxdrive.gui.api.QMLDriveApi", MockQMLDriveApi):
+        with patch("nxdrive.drive.gui.api.QMLDriveApi", MockQMLDriveApi):
             api = MockQMLDriveApi(
                 mock_app
             )  # Use the mock directly to avoid type issues
@@ -255,7 +255,7 @@ class TestQMLDriveApi:
             def clear_callback_params(self):
                 self.callback_params.clear()
 
-        with patch("nxdrive.gui.api.QMLDriveApi", MockQMLDriveApi):
+        with patch("nxdrive.drive.gui.api.QMLDriveApi", MockQMLDriveApi):
             api = MockQMLDriveApi(mock_app)  # Use mock directly
 
             # Test callback params management
@@ -289,7 +289,7 @@ class TestQMLDriveApi:
             def toggle_refresh_button(self):
                 self.hide_refresh_button = not self.hide_refresh_button
 
-        with patch("nxdrive.gui.api.QMLDriveApi", MockQMLDriveApi):
+        with patch("nxdrive.drive.gui.api.QMLDriveApi", MockQMLDriveApi):
             api = MockQMLDriveApi(mock_app)  # Use mock directly
 
             # Test engine changed flag
@@ -325,7 +325,7 @@ class TestAPIIntegration:
             def get_engines_from_manager(self):
                 return self._manager.get_engines()
 
-        with patch("nxdrive.gui.api.QMLDriveApi", MockQMLDriveApi):
+        with patch("nxdrive.drive.gui.api.QMLDriveApi", MockQMLDriveApi):
             api = MockQMLDriveApi(mock_app)  # Use mock directly
 
             # Mock manager responses
@@ -357,7 +357,7 @@ class TestAPIIntegration:
                 except Exception as e:
                     return f"error: {str(e)}"
 
-        with patch("nxdrive.gui.api.QMLDriveApi", MockQMLDriveApi):
+        with patch("nxdrive.drive.gui.api.QMLDriveApi", MockQMLDriveApi):
             api = MockQMLDriveApi(mock_app)  # Use mock directly
 
             # Test successful operation

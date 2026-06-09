@@ -5,9 +5,9 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
-from nxdrive.options import Options
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
+from nxdrive.drive.options import Options
 from tests.markers import mac_only
 
 
@@ -44,16 +44,16 @@ class TestShowReleaseNotes:
 
         try:
             with patch.dict(os.environ, {}, clear=True), patch(
-                "nxdrive.gui.application.Translator"
+                "nxdrive.drive.gui.application.Translator"
             ) as mock_translator, patch(
-                "nxdrive.gui.application.APP_NAME", "TestApp"
+                "nxdrive.drive.gui.application.APP_NAME", "TestApp"
             ), patch(
-                "nxdrive.gui.application.log"
+                "nxdrive.drive.gui.application.log"
             ) as mock_log:
 
                 mock_translator.get.side_effect = lambda key, values=None: f"{key}"
 
-                from nxdrive.gui.application import Application as RealApp
+                from nxdrive.drive.gui.application import Application as RealApp
 
                 bound_method = RealApp._show_release_notes.__get__(app, Application)
                 bound_method(previous_version, current_version)
@@ -87,7 +87,7 @@ class TestShowReleaseNotes:
         # Set CI environment variable
         with patch.dict(os.environ, {"CI": "true"}):
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._show_release_notes.__get__(app, Application)
             bound_method(previous_version, current_version)
@@ -109,7 +109,7 @@ class TestShowReleaseNotes:
         try:
             with patch.dict(os.environ, {}, clear=True):
 
-                from nxdrive.gui.application import Application as RealApp
+                from nxdrive.drive.gui.application import Application as RealApp
 
                 bound_method = RealApp._show_release_notes.__get__(app, Application)
                 bound_method(previous_version, current_version)
@@ -139,16 +139,16 @@ class TestShowReleaseNotes:
                 manager.get_update_channel = Mock(return_value=channel)
 
                 with patch.dict(os.environ, {}, clear=True), patch(
-                    "nxdrive.gui.application.Translator"
+                    "nxdrive.drive.gui.application.Translator"
                 ) as mock_translator, patch(
-                    "nxdrive.gui.application.APP_NAME", "TestApp"
+                    "nxdrive.drive.gui.application.APP_NAME", "TestApp"
                 ), patch(
-                    "nxdrive.gui.application.log"
+                    "nxdrive.drive.gui.application.log"
                 ) as mock_log:
 
                     mock_translator.get.side_effect = lambda key, values=None: f"{key}"
 
-                    from nxdrive.gui.application import Application as RealApp
+                    from nxdrive.drive.gui.application import Application as RealApp
 
                     bound_method = RealApp._show_release_notes.__get__(app, Application)
                     bound_method(previous_version, current_version)
@@ -185,16 +185,16 @@ class TestShowReleaseNotes:
         try:
             for previous, current in test_cases:
                 with patch.dict(os.environ, {}, clear=True), patch(
-                    "nxdrive.gui.application.Translator"
+                    "nxdrive.drive.gui.application.Translator"
                 ) as mock_translator, patch(
-                    "nxdrive.gui.application.APP_NAME", "TestApp"
+                    "nxdrive.drive.gui.application.APP_NAME", "TestApp"
                 ), patch(
-                    "nxdrive.gui.application.log"
+                    "nxdrive.drive.gui.application.log"
                 ):
 
                     mock_translator.get.side_effect = lambda key, values=None: f"{key}"
 
-                    from nxdrive.gui.application import Application as RealApp
+                    from nxdrive.drive.gui.application import Application as RealApp
 
                     bound_method = RealApp._show_release_notes.__get__(app, Application)
                     bound_method(previous, current)
@@ -223,7 +223,7 @@ class TestShowReleaseNotes:
         for ci_value in ci_values:
             with patch.dict(os.environ, {"CI": ci_value}):
 
-                from nxdrive.gui.application import Application as RealApp
+                from nxdrive.drive.gui.application import Application as RealApp
 
                 bound_method = RealApp._show_release_notes.__get__(app, Application)
                 bound_method(previous_version, current_version)

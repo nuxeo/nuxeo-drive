@@ -4,11 +4,11 @@ from unittest.mock import patch
 
 import pytest
 
-from nxdrive.behavior import Behavior
-from nxdrive.feature import Feature
-from nxdrive.options import Options
-from nxdrive.poll_workers import ServerOptionsUpdater
-from nxdrive.utils import get_config_path
+from nxdrive.drive.behavior import Behavior
+from nxdrive.drive.feature import Feature
+from nxdrive.drive.options import Options
+from nxdrive.drive.poll_workers import ServerOptionsUpdater
+from nxdrive.drive.utils import get_config_path
 
 
 def test_behavior(manager_factory):

@@ -1,7 +1,7 @@
 from logging import getLogger
 from time import sleep
 
-from nxdrive.constants import APP_NAME
+from nxdrive.drive.constants import APP_NAME
 
 log = getLogger(__name__)
 

@@ -1,7 +1,7 @@
 import pytest
 
-from nxdrive.gui.folders_dialog import regexp_validator
-from nxdrive.qt.constants import Acceptable, Invalid
+from nxdrive.drive.gui.folders_dialog import regexp_validator
+from nxdrive.drive.qt.constants import Acceptable, Invalid
 
 
 @pytest.mark.parametrize(

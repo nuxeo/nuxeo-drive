@@ -29,8 +29,8 @@ from unittest.mock import patch
 from nuxeo.utils import version_lt
 from requests import ConnectionError
 
-from nxdrive.client.remote_client import Remote
-from nxdrive.objects import RemoteFileInfo
+from nxdrive.drive.objects import RemoteFileInfo
+from nxdrive.nuxeo.client.remote_client import Remote
 
 from .common import TEST_DEFAULT_DELAY, TwoUsersTest
 

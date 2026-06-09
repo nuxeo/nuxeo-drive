@@ -4,12 +4,12 @@ from unittest.mock import Mock
 
 import pytest
 
-from nxdrive.client.workflow import Workflow
-from nxdrive.gui.application import Application
-from nxdrive.gui.view import EngineModel, FileModel, TasksModel
-from nxdrive.qt.imports import QModelIndex
-from nxdrive.translator import Translator
-from nxdrive.utils import find_resource
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.gui.view import EngineModel, FileModel, TasksModel
+from nxdrive.drive.qt.imports import QModelIndex
+from nxdrive.drive.translator import Translator
+from nxdrive.drive.utils import find_resource
+from nxdrive.nuxeo.client.workflow import Workflow
 
 
 def test_foldersDialog():

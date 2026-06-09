@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 
-from nxdrive.constants import ROOT, WINDOWS
-from nxdrive.exceptions import DuplicationDisabledError, NotFound
+from nxdrive.drive.constants import ROOT, WINDOWS
+from nxdrive.drive.exceptions import DuplicationDisabledError, NotFound
 
 from ..markers import not_linux, windows_only
 from ..utils import random_png

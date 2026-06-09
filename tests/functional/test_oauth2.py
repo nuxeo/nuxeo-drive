@@ -1,4 +1,4 @@
-from nxdrive.auth import OAuthentication
+from nxdrive.drive.auth import OAuthentication
 
 
 def test_oauthentication(manager_factory, nuxeo_url):

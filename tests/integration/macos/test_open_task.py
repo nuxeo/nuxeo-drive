@@ -5,9 +5,9 @@ from urllib.parse import urlparse
 
 import pytest
 
-from nxdrive.engine.engine import Engine
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
+from nxdrive.nuxeo.engine.engine import Engine
 from tests.markers import mac_only
 
 
@@ -35,8 +35,8 @@ class TestOpenTask:
         mock_engine.server_url = "https://nuxeo.example.com"
         task_id = "task-123-abc"
 
-        with patch("nxdrive.gui.application.webbrowser") as mock_webbrowser:
-            from nxdrive.gui.application import Application as RealApp
+        with patch("nxdrive.drive.gui.application.webbrowser") as mock_webbrowser:
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.open_task.__get__(app, Application)
             bound_method(mock_engine, task_id)
@@ -53,8 +53,8 @@ class TestOpenTask:
         mock_engine.server_url = "https://server.com"
         task_id = "my-task"
 
-        with patch("nxdrive.gui.application.webbrowser") as mock_webbrowser:
-            from nxdrive.gui.application import Application as RealApp
+        with patch("nxdrive.drive.gui.application.webbrowser") as mock_webbrowser:
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.open_task.__get__(app, Application)
             bound_method(mock_engine, task_id)
@@ -67,7 +67,7 @@ class TestOpenTask:
         """Test open_task with various server URLs."""
         app, manager = mock_application
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.open_task.__get__(app, Application)
 
@@ -85,7 +85,7 @@ class TestOpenTask:
             ),
         ]
 
-        with patch("nxdrive.gui.application.webbrowser") as mock_webbrowser:
+        with patch("nxdrive.drive.gui.application.webbrowser") as mock_webbrowser:
             for server_url, task_id, expected_url in test_cases:
                 mock_webbrowser.reset_mock()
                 mock_engine = Mock(spec=Engine)
@@ -101,7 +101,7 @@ class TestOpenTask:
         mock_engine = Mock(spec=Engine)
         mock_engine.server_url = "https://server.com"
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.open_task.__get__(app, Application)
 
@@ -113,7 +113,7 @@ class TestOpenTask:
             "very-long-task-id-with-many-parts-abc-123-xyz",
         ]
 
-        with patch("nxdrive.gui.application.webbrowser") as mock_webbrowser:
+        with patch("nxdrive.drive.gui.application.webbrowser") as mock_webbrowser:
             for task_id in test_task_ids:
                 mock_webbrowser.reset_mock()
                 bound_method(mock_engine, task_id)
@@ -128,8 +128,8 @@ class TestOpenTask:
         mock_engine.server_url = "https://example.com"
         task_id = "test-task-id"
 
-        with patch("nxdrive.gui.application.webbrowser") as mock_webbrowser:
-            from nxdrive.gui.application import Application as RealApp
+        with patch("nxdrive.drive.gui.application.webbrowser") as mock_webbrowser:
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.open_task.__get__(app, Application)
             bound_method(mock_engine, task_id)
@@ -155,8 +155,8 @@ class TestOpenTask:
         mock_engine.server_url = "https://server.com/"
         task_id = "task-xyz"
 
-        with patch("nxdrive.gui.application.webbrowser") as mock_webbrowser:
-            from nxdrive.gui.application import Application as RealApp
+        with patch("nxdrive.drive.gui.application.webbrowser") as mock_webbrowser:
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.open_task.__get__(app, Application)
             bound_method(mock_engine, task_id)
@@ -178,8 +178,8 @@ class TestOpenTask:
         mock_engine = Mock(spec=Engine)
         mock_engine.server_url = "https://test.com"
 
-        with patch("nxdrive.gui.application.webbrowser") as mock_webbrowser:
-            from nxdrive.gui.application import Application as RealApp
+        with patch("nxdrive.drive.gui.application.webbrowser") as mock_webbrowser:
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.open_task.__get__(app, Application)
             bound_method(mock_engine, "task-abc")
@@ -194,8 +194,8 @@ class TestOpenTask:
         mock_engine = Mock(spec=Engine)
         mock_engine.server_url = "https://multi.com"
 
-        with patch("nxdrive.gui.application.webbrowser") as mock_webbrowser:
-            from nxdrive.gui.application import Application as RealApp
+        with patch("nxdrive.drive.gui.application.webbrowser") as mock_webbrowser:
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.open_task.__get__(app, Application)
 

@@ -2,14 +2,14 @@
 
 from unittest.mock import MagicMock, patch
 
-from nxdrive.gui.folders_model import (
+from nxdrive.drive.qt import constants as qt
+from nxdrive.nuxeo.gui.folders_model import (
     Doc,
     FileInfo,
     FilteredDoc,
     FilteredDocuments,
     FoldersOnly,
 )
-from nxdrive.qt import constants as qt
 
 
 class TestFileInfo:
@@ -123,7 +123,7 @@ class TestDoc:
         """Test Doc enable method with different permissions."""
         mock_document = self.create_mock_document()
 
-        with patch("nxdrive.gui.folders_model.Options") as mock_options:
+        with patch("nxdrive.nuxeo.gui.folders_model.Options") as mock_options:
             mock_options.disallowed_types_for_dt = []
 
             doc = Doc(mock_document)
@@ -263,7 +263,7 @@ class TestFilteredDocuments:
         state = filtered_docs.get_item_state("/test/file.txt")
         assert state == qt.Checked
 
-    @patch("nxdrive.gui.folders_model.FilteredDoc")
+    @patch("nxdrive.nuxeo.gui.folders_model.FilteredDoc")
     def test_get_top_documents(self, mock_filtered_doc_class):
         """Test get_top_documents method."""
         mock_remote = MagicMock()
@@ -291,7 +291,7 @@ class TestFilteredDocuments:
         mock_remote.get_filesystem_root_info.assert_called_once()
         mock_remote.get_fs_children.assert_called_once_with("root123", filtered=False)
 
-    @patch("nxdrive.gui.folders_model.FilteredDoc")
+    @patch("nxdrive.nuxeo.gui.folders_model.FilteredDoc")
     def test_get_children(self, mock_filtered_doc_class):
         """Test get_children method."""
         mock_remote = MagicMock()
@@ -329,8 +329,8 @@ class TestFoldersOnly:
 
         assert folders_only.remote == mock_remote
 
-    @patch("nxdrive.gui.folders_model.Translator")
-    @patch("nxdrive.gui.folders_model.Doc")
+    @patch("nxdrive.nuxeo.gui.folders_model.Translator")
+    @patch("nxdrive.nuxeo.gui.folders_model.Doc")
     def test_get_personal_space(self, mock_doc_class, mock_translator):
         """Test get_personal_space method."""
         mock_remote = MagicMock()
@@ -359,8 +359,8 @@ class TestFoldersOnly:
         mock_translator.get.assert_called_once_with("PERSONAL_SPACE")
         mock_doc_class.assert_called_once_with(mock_personal_space)
 
-    @patch("nxdrive.gui.folders_model.Translator")
-    @patch("nxdrive.gui.folders_model.Doc")
+    @patch("nxdrive.nuxeo.gui.folders_model.Translator")
+    @patch("nxdrive.nuxeo.gui.folders_model.Doc")
     def test_get_personal_space_with_exception(self, mock_doc_class, mock_translator):
         """Test _get_personal_space with exception handling."""
         mock_remote = MagicMock()
@@ -379,7 +379,7 @@ class TestFoldersOnly:
         assert call_args.title == "Personal Space"
         assert call_args.contextParameters["permissions"] == []
 
-    @patch("nxdrive.gui.folders_model.Doc")
+    @patch("nxdrive.nuxeo.gui.folders_model.Doc")
     def test_get_children(self, mock_doc_class):
         """Test get_children method."""
         mock_remote = MagicMock()
@@ -403,7 +403,7 @@ class TestFoldersOnly:
             assert len(children) == 1
             assert mock_doc_instance in children
 
-    @patch("nxdrive.gui.folders_model.Options")
+    @patch("nxdrive.nuxeo.gui.folders_model.Options")
     def test_get_top_documents(self, mock_options):
         """Test get_top_documents method."""
         mock_remote = MagicMock()
@@ -429,7 +429,7 @@ class TestFoldersOnly:
             assert mock_personal_space in top_docs
             assert all(folder in top_docs for folder in mock_root_folders)
 
-    @patch("nxdrive.gui.folders_model.Options")
+    @patch("nxdrive.nuxeo.gui.folders_model.Options")
     def test_get_top_documents_hide_personal_space(self, mock_options):
         """Test get_top_documents with hidden personal space."""
         mock_remote = MagicMock()

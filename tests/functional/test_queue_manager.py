@@ -10,13 +10,13 @@ from unittest.mock import MagicMock, Mock, call, patch
 import pytest
 from nuxeo.exceptions import OngoingRequestError
 
-from nxdrive.constants import WINDOWS
-from nxdrive.engine.queue_manager import (
+from nxdrive.drive.constants import WINDOWS
+from nxdrive.drive.engine.queue_manager import (
     WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE,
     QueueItem,
     QueueManager,
 )
-from nxdrive.options import Options
+from nxdrive.drive.options import Options
 
 
 class MockDocPair:
@@ -466,7 +466,7 @@ class TestErrorHandling:
         doc_pair = MockDocPair(1, False, "locally_modified", error_count=5)
 
         # Create a mock Windows permission error
-        with patch("nxdrive.engine.queue_manager.WINDOWS", True):
+        with patch("nxdrive.drive.engine.queue_manager.WINDOWS", True):
             # Create a subclass of PermissionError with Windows error attributes
             class WindowsPermissionError(PermissionError):
                 def __init__(self, message):
@@ -742,7 +742,7 @@ class TestProcessorCoordination:
 
     def test_is_processing_file_no_current_pair(self):
         """Test is_processing_file with no current pair."""
-        from nxdrive.engine.processor import Processor
+        from nxdrive.nuxeo.engine.processor import Processor
 
         mock_thread = MagicMock()
         mock_processor = MagicMock(spec=Processor)
@@ -754,7 +754,7 @@ class TestProcessorCoordination:
 
     def test_is_processing_file_no_local_path(self):
         """Test is_processing_file with no local path."""
-        from nxdrive.engine.processor import Processor
+        from nxdrive.nuxeo.engine.processor import Processor
 
         mock_thread = MagicMock()
         mock_processor = MagicMock(spec=Processor)
@@ -768,7 +768,7 @@ class TestProcessorCoordination:
 
     def test_is_processing_file_exact_match(self):
         """Test is_processing_file with exact path match."""
-        from nxdrive.engine.processor import Processor
+        from nxdrive.nuxeo.engine.processor import Processor
 
         mock_thread = MagicMock()
         mock_processor = MagicMock(spec=Processor)
@@ -787,7 +787,7 @@ class TestProcessorCoordination:
 
     def test_is_processing_file_parent_match(self):
         """Test is_processing_file with parent path match."""
-        from nxdrive.engine.processor import Processor
+        from nxdrive.nuxeo.engine.processor import Processor
 
         mock_thread = MagicMock()
         mock_processor = MagicMock(spec=Processor)

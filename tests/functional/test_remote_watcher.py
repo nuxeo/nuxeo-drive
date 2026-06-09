@@ -9,9 +9,9 @@ from unittest.mock import patch
 
 import pytest
 
-from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
-from nxdrive.exceptions import ThreadInterrupt
-from nxdrive.objects import DocPair, RemoteFileInfo
+from nxdrive.drive.exceptions import ThreadInterrupt
+from nxdrive.drive.objects import DocPair, RemoteFileInfo
+from nxdrive.nuxeo.engine.watcher.remote_watcher import RemoteWatcher
 from tests.functional.mocked_classes import (
     Mock_DAO,
     Mock_Doc_Pair,
@@ -35,11 +35,11 @@ def test_execute(manager_factory):
     remote_watcher = RemoteWatcher(engine, dao)
     with pytest.raises(ThreadInterrupt) as ex:
         remote_watcher._execute()
-    assert str(ex.exconly()).startswith("nxdrive.exceptions.ThreadInterrupt")
+    assert str(ex.exconly()).startswith("nxdrive.drive.exceptions.ThreadInterrupt")
 
 
 def test_scan_remote(manager_factory):
-    from nxdrive.exceptions import NotFound
+    from nxdrive.drive.exceptions import NotFound
 
     manager, engine = manager_factory()
     dao = engine.dao
@@ -60,9 +60,9 @@ def test_scan_remote(manager_factory):
     remote_watcher.dao = mock_dao
     remote_watcher.engine.remote = mock_remote
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
     ) as mock_remove_void, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
     ) as mock_changes:
         mock_remove_void.return_value = None
         mock_changes.return_value = None
@@ -74,7 +74,7 @@ def test_scan_remote(manager_factory):
     remote_watcher.dao = mock_dao
     remote_watcher.engine.remote = mock_remote
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
     ) as mock_remove_void:
         mock_remove_void.return_value = None
         mock_remove_void.side_effect = NotFound("Custom NotFound Exception")
@@ -123,7 +123,7 @@ def test_scan_pair(manager_factory):
     remote_watcher.dao = mock_dao
     remote_watcher.engine.remote = mock_remote
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._do_scan_remote"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._do_scan_remote"
     ) as mock_scan_remote:
         mock_scan_remote.return_value = None
         assert remote_watcher._scan_pair("tests/resources/files/") is None
@@ -143,7 +143,7 @@ def test_scan_pair(manager_factory):
     remote_watcher.dao = mock_dao
     remote_watcher.engine.remote = mock_remote
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
     ) as mock_scan_remote:
         mock_scan_remote.return_value = None
         assert remote_watcher._scan_pair("tests/resources/files/") is None
@@ -196,11 +196,11 @@ def test_scan_remote_scroll(manager_factory):
     mock_remote_file_info = Mock_Remote_File_Info()
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._init_scan_remote"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._init_scan_remote"
     ) as mock_init_scan, patch(
-        "nxdrive.client.remote_client.Remote.scroll_descendants"
+        "nxdrive.nuxeo.client.remote_client.Remote.scroll_descendants"
     ) as mock_scroll_descendants, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._interact"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._interact"
     ) as mock_interact:
         mock_init_scan.return_value = "dummy_remote_parent_path"
         mock_remote2 = Mock_Remote()
@@ -226,11 +226,11 @@ def test_scan_remote_scroll(manager_factory):
     remote_watcher = RemoteWatcher(engine, dao)
     remote_watcher.engine.remote = mock_remote
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._init_scan_remote"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._init_scan_remote"
     ) as mock_init_scan, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._interact"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._interact"
     ) as mock_interact, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.filtered"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.filtered"
     ) as mock_filtered:
         mock_init_scan.return_value = "dummy_remote_parent_path"
         mock_filtered.return_value = True
@@ -239,7 +239,7 @@ def test_scan_remote_scroll(manager_factory):
             remote_watcher._scan_remote_scroll(
                 mock_doc_pair, mock_remote_file_info, moved=True
             )
-        assert str(ex.exconly()).startswith("nxdrive.exceptions.ThreadInterrupt")
+        assert str(ex.exconly()).startswith("nxdrive.drive.exceptions.ThreadInterrupt")
     # Covering remote_parent_path is not None
     # Covering moved == True
     # Covering dao.is_filter(descendant_info.path) == True
@@ -250,11 +250,11 @@ def test_scan_remote_scroll(manager_factory):
     remote_watcher = RemoteWatcher(engine, dao)
     remote_watcher.engine.remote = mock_remote
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._init_scan_remote"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._init_scan_remote"
     ) as mock_init_scan, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._interact"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._interact"
     ) as mock_interact, patch(
-        "nxdrive.dao.engine.EngineDAO.is_filter"
+        "nxdrive.drive.dao.engine.EngineDAO.is_filter"
     ) as mock_filter:
         mock_init_scan.return_value = "dummy_remote_parent_path"
         mock_interact.side_effect = [None, ThreadInterrupt("Custom thread interrupt")]
@@ -263,7 +263,7 @@ def test_scan_remote_scroll(manager_factory):
             remote_watcher._scan_remote_scroll(
                 mock_doc_pair, mock_remote_file_info, moved=True
             )
-        assert str(ex.exconly()).startswith("nxdrive.exceptions.ThreadInterrupt")
+        assert str(ex.exconly()).startswith("nxdrive.drive.exceptions.ThreadInterrupt")
     # Covering remote_parent_path is not None
     # Covering moved == True
     # Covering descendant_info.digest == "notInBinaryStore"
@@ -275,9 +275,9 @@ def test_scan_remote_scroll(manager_factory):
     remote_watcher = RemoteWatcher(engine, dao)
     remote_watcher.engine.remote = mock_remote
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._init_scan_remote"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._init_scan_remote"
     ) as mock_init_scan, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._interact"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._interact"
     ) as mock_interact:
         mock_init_scan.return_value = "dummy_remote_parent_path"
         mock_interact.side_effect = [None, ThreadInterrupt("Custom thread interrupt")]
@@ -285,7 +285,7 @@ def test_scan_remote_scroll(manager_factory):
             remote_watcher._scan_remote_scroll(
                 mock_doc_pair, mock_remote_file_info, moved=True
             )
-        assert str(ex.exconly()).startswith("nxdrive.exceptions.ThreadInterrupt")
+        assert str(ex.exconly()).startswith("nxdrive.drive.exceptions.ThreadInterrupt")
     # Covering remote_parent_path is not None
     # Covering moved == False
     # Covering descendant_info.uid in descendants
@@ -296,15 +296,15 @@ def test_scan_remote_scroll(manager_factory):
     remote_watcher = RemoteWatcher(engine, dao)
     remote_watcher.engine.remote = mock_remote
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._init_scan_remote"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._init_scan_remote"
     ) as mock_init_scan, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._interact"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._interact"
     ) as mock_interact, patch(
-        "nxdrive.dao.engine.EngineDAO.get_remote_descendants"
+        "nxdrive.drive.dao.engine.EngineDAO.get_remote_descendants"
     ) as mock_remote_descendants, patch(
-        "nxdrive.dao.engine.EngineDAO.update_remote_state"
+        "nxdrive.drive.dao.engine.EngineDAO.update_remote_state"
     ) as mock_remote_state, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
     ) as mock_void_tranfers:
         mock_init_scan.return_value = "dummy_remote_parent_path"
         mock_interact.side_effect = [None, ThreadInterrupt("Custom thread interrupt")]
@@ -317,7 +317,7 @@ def test_scan_remote_scroll(manager_factory):
             remote_watcher._scan_remote_scroll(
                 mock_doc_pair, mock_remote_file_info, moved=False
             )
-        assert str(ex.exconly()).startswith("nxdrive.exceptions.ThreadInterrupt")
+        assert str(ex.exconly()).startswith("nxdrive.drive.exceptions.ThreadInterrupt")
 
 
 def test_init_scan_remote(manager_factory):
@@ -346,7 +346,9 @@ def test_init_scan_remote(manager_factory):
     mock_remote_file_info = Mock_Remote_File_Info()
     mock_remote_file_info.folderish = True
     remote_watcher = RemoteWatcher(engine, dao)
-    with patch("nxdrive.dao.engine.EngineDAO.is_path_scanned") as mock_path_scanned:
+    with patch(
+        "nxdrive.drive.dao.engine.EngineDAO.is_path_scanned"
+    ) as mock_path_scanned:
         mock_path_scanned.return_value = True
         assert (
             remote_watcher._init_scan_remote(mock_doc_pair, mock_remote_file_info)
@@ -446,7 +448,7 @@ def test_find_remote_child_match_or_create(manager_factory):
     remote_watcher.dao = mock_dao
     remote_watcher.engine.local = mock_client
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
     ) as mock_remove_void:
         mock_remove_void.return_value = None
         assert (
@@ -480,7 +482,7 @@ def test_find_remote_child_match_or_create(manager_factory):
     remote_watcher.dao = mock_dao
     remote_watcher.engine.local = mock_client
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
     ) as mock_remove_void:
         mock_remove_void.return_value = None
         assert (
@@ -515,7 +517,7 @@ def test_find_remote_child_match_or_create(manager_factory):
     remote_watcher.dao = mock_dao
     remote_watcher.engine.local = mock_client
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
     ) as mock_remove_void:
         mock_remove_void.return_value = None
         assert (
@@ -548,7 +550,7 @@ def test_find_remote_child_match_or_create(manager_factory):
     remote_watcher.dao = mock_dao
     remote_watcher.engine.local = mock_client
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
     ) as mock_remove_void:
         mock_remove_void.return_value = None
         assert (
@@ -582,14 +584,14 @@ def test_partial_full_scan(manager_factory):
     # Covering path == "/"
     mock_path = "/"
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
     ) as mock_scan_remote:
         mock_scan_remote.return_value = None
         assert remote_watcher._partial_full_scan(mock_path) is None
     # Covering path != "/"
     mock_path = "dummy_path"
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._scan_pair"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._scan_pair"
     ) as mock_scan_pair:
         mock_scan_pair.return_value = None
         assert remote_watcher._partial_full_scan(mock_path) is None
@@ -616,8 +618,8 @@ def test_handle_changes(manager_factory):
 
     from nuxeo.exceptions import BadQuery, HTTPError, Unauthorized
 
-    from nxdrive.exceptions import ScrollDescendantsError
-    from nxdrive.options import Feature
+    from nxdrive.drive.exceptions import ScrollDescendantsError
+    from nxdrive.drive.options import Feature
 
     manager, engine = manager_factory()
     dao = engine.dao
@@ -637,7 +639,7 @@ def test_handle_changes(manager_factory):
     Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
     ) as mock_offline:
         mock_offline.return_value = True
         assert remote_watcher._handle_changes(False) is False
@@ -647,9 +649,9 @@ def test_handle_changes(manager_factory):
     Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
     ) as mock_offline, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
     ) as mock_scan_remote:
         mock_offline.return_value = False
         mock_scan_remote.return_value = None
@@ -662,11 +664,11 @@ def test_handle_changes(manager_factory):
     remote_watcher = RemoteWatcher(engine, dao)
     remote_watcher._last_remote_full_scan = datetime.now()
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
     ) as mock_offline, patch(
-        "nxdrive.dao.engine.EngineDAO.get_config"
+        "nxdrive.drive.dao.engine.EngineDAO.get_config"
     ) as mock_config, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._partial_full_scan"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._partial_full_scan"
     ) as mock_partial_scan:
         mock_offline.return_value = False
         mock_config.return_value = "dummy_config"
@@ -680,13 +682,13 @@ def test_handle_changes(manager_factory):
     remote_watcher = RemoteWatcher(engine, dao)
     remote_watcher._last_remote_full_scan = datetime.now()
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
     ) as mock_offline, patch(
-        "nxdrive.dao.engine.EngineDAO.get_paths_to_scan"
+        "nxdrive.drive.dao.engine.EngineDAO.get_paths_to_scan"
     ) as mock_paths, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._partial_full_scan"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._partial_full_scan"
     ) as mock_partial_scan, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._update_remote_states"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._update_remote_states"
     ) as mock_update_remote_states:
         mock_offline.return_value = False
         mock_paths.side_effect = [["path1"], ["path2"], None]
@@ -697,9 +699,9 @@ def test_handle_changes(manager_factory):
     Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
     ) as mock_offline, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
     ) as mock_scan_remote:
         mock_offline.return_value = False
         mock_scan_remote.side_effect = BadQuery("Custom Bad Query")
@@ -710,9 +712,9 @@ def test_handle_changes(manager_factory):
     Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
     ) as mock_offline, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
     ) as mock_scan_remote:
         mock_offline.return_value = False
         mock_scan_remote.side_effect = ScrollDescendantsError(
@@ -723,9 +725,9 @@ def test_handle_changes(manager_factory):
     Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
     ) as mock_offline, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
     ) as mock_scan_remote:
         mock_offline.return_value = False
         mock_scan_remote.side_effect = Unauthorized()
@@ -734,9 +736,9 @@ def test_handle_changes(manager_factory):
     Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
     ) as mock_offline, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
     ) as mock_scan_remote:
         mock_offline.return_value = False
         mock_scan_remote.side_effect = OSError()
@@ -745,9 +747,9 @@ def test_handle_changes(manager_factory):
     Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
     ) as mock_offline, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
     ) as mock_scan_remote:
         mock_offline.return_value = False
         mock_scan_remote.side_effect = [HTTPError(status=504), HTTPError(status=404)]
@@ -759,22 +761,22 @@ def test_handle_changes(manager_factory):
     # Covering Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
     ) as mock_offline, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
     ) as mock_scan_remote:
         mock_offline.return_value = False
         mock_scan_remote.side_effect = ThreadInterrupt("Custom ThreadInterrupt")
         with pytest.raises(ThreadInterrupt) as ex:
             remote_watcher._handle_changes(False)
-        assert str(ex.exconly()).startswith("nxdrive.exceptions.ThreadInterrupt")
+        assert str(ex.exconly()).startswith("nxdrive.drive.exceptions.ThreadInterrupt")
     # Covering Exception
     Feature.synchronization = True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._check_offline"
     ) as mock_offline, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.scan_remote"
     ) as mock_scan_remote:
         mock_offline.return_value = False
         mock_scan_remote.side_effect = Exception("Custom Exception")
@@ -796,14 +798,14 @@ def test_get_changes(manager_factory):
     # Covering not isinstance(summary, dict)
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._call_and_measure_gcs"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._call_and_measure_gcs"
     ) as mock_measure_gc:
         mock_measure_gc.return_value = []
         assert remote_watcher._get_changes() is None
     # Covering root_defs is None
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._call_and_measure_gcs"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._call_and_measure_gcs"
     ) as mock_measure_gc:
         mock_measure_gc.return_value = {"activeSynchronizationRootDefinitions": None}
         assert remote_watcher._get_changes() is None
@@ -843,21 +845,21 @@ def test_update_remote_states(manager_factory):
     # Covering not summary
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
     ) as mock_summary:
         mock_summary.return_value = None
         assert remote_watcher._update_remote_states() is None
     # Covering summary..get("hasTooManyChanges") == True
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
     ) as mock_summary:
         mock_summary.return_value = {"hasTooManyChanges": True}
         assert remote_watcher._update_remote_states() is None
     # Covering not summary.get("fileSystemChanges")
     remote_watcher = RemoteWatcher(engine, dao)
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
     ) as mock_summary:
         mock_summary.return_value = {"fileSystemChanges": False}
         assert remote_watcher._update_remote_states() is None
@@ -869,13 +871,13 @@ def test_update_remote_states(manager_factory):
     remote_watcher.engine.remote = mock_remote
     remote_watcher.dao = mock_dao
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
     ) as mock_summary, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._interact"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._interact"
     ) as mock_interact, patch(
-        "nxdrive.objects.RemoteFileInfo.from_dict"
+        "nxdrive.drive.objects.RemoteFileInfo.from_dict"
     ) as mock_from_dict, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.filtered"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.filtered"
     ) as mock_filtered:
         mock_summary.return_value = {
             "fileSystemChanges": [
@@ -907,15 +909,15 @@ def test_update_remote_states(manager_factory):
     remote_watcher.engine.remote = mock_remote
     remote_watcher.dao = mock_dao
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
     ) as mock_summary, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._interact"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._interact"
     ) as mock_interact, patch(
-        "nxdrive.objects.RemoteFileInfo.from_dict"
+        "nxdrive.drive.objects.RemoteFileInfo.from_dict"
     ) as mock_from_dict, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.filtered"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.filtered"
     ) as mock_filtered, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
     ) as mock_void_transfers:
         mock_summary.return_value = {
             "fileSystemChanges": [
@@ -947,15 +949,15 @@ def test_update_remote_states(manager_factory):
     remote_watcher.engine.remote = mock_remote
     remote_watcher.dao = mock_dao
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
     ) as mock_summary, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._interact"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._interact"
     ) as mock_interact, patch(
-        "nxdrive.objects.RemoteFileInfo.from_dict"
+        "nxdrive.drive.objects.RemoteFileInfo.from_dict"
     ) as mock_from_dict, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.filtered"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.filtered"
     ) as mock_filtered, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
     ) as mock_void_transfers:
         mock_summary.return_value = {
             "fileSystemChanges": [
@@ -986,15 +988,15 @@ def test_update_remote_states(manager_factory):
     remote_watcher.engine.remote = mock_remote
     remote_watcher.dao = mock_dao
     with patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._get_changes"
     ) as mock_summary, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher._interact"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher._interact"
     ) as mock_interact, patch(
-        "nxdrive.objects.RemoteFileInfo.from_dict"
+        "nxdrive.drive.objects.RemoteFileInfo.from_dict"
     ) as mock_from_dict, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.filtered"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.filtered"
     ) as mock_filtered, patch(
-        "nxdrive.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
+        "nxdrive.nuxeo.engine.watcher.remote_watcher.RemoteWatcher.remove_void_transfers"
     ) as mock_void_transfers:
         mock_summary.return_value = {
             "fileSystemChanges": [

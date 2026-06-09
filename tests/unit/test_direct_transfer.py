@@ -8,11 +8,11 @@ from unittest.mock import patch
 
 import pytest
 
-from nxdrive.client.remote_client import Remote
-from nxdrive.client.uploader.direct_transfer import DirectTransferUploader
-from nxdrive.dao.engine import EngineDAO
-from nxdrive.exceptions import NotFound
-from nxdrive.objects import DocPair
+from nxdrive.drive.dao.engine import EngineDAO
+from nxdrive.drive.exceptions import NotFound
+from nxdrive.drive.objects import DocPair
+from nxdrive.nuxeo.client.remote_client import Remote
+from nxdrive.nuxeo.client.uploader.direct_transfer import DirectTransferUploader
 
 
 class Mock_Doc_Pair(DocPair):
@@ -29,11 +29,11 @@ class Mock_Doc_Pair(DocPair):
         self.size = 10
 
 
-@patch("nxdrive.client.uploader.BaseUploader.upload_impl")
-@patch("nxdrive.client.remote_client.Remote.fetch")
-@patch("nxdrive.client.remote_client.Remote.upload_folder_type")
-@patch("nxdrive.client.remote_client.Remote.upload_folder")
-@patch("nxdrive.client.remote_client.Remote.exists_in_parent")
+@patch("nxdrive.nuxeo.client.uploader.BaseUploader.upload_impl")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.fetch")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.upload_folder_type")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.upload_folder")
+@patch("nxdrive.nuxeo.client.remote_client.Remote.exists_in_parent")
 def test_upload(
     mock_exist_parent,
     mock_upload_folder,

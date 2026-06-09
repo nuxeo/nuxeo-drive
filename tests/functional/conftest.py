@@ -12,7 +12,7 @@ from nuxeo.exceptions import Conflict
 from nuxeo.models import Blob, FileBlob
 from nuxeo.users import User
 
-from nxdrive.manager import Manager
+from nxdrive.drive.manager import Manager
 
 from .. import env
 

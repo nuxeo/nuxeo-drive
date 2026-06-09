@@ -5,8 +5,8 @@ import pytest
 import requests
 from nuxeo.models import FileBlob
 
-from nxdrive.client.remote_client import Remote
-from nxdrive.client.uploader import BaseUploader
+from nxdrive.nuxeo.client.remote_client import Remote
+from nxdrive.nuxeo.client.uploader import BaseUploader
 
 
 @pytest.fixture

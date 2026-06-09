@@ -14,11 +14,11 @@ import pytest
 from nuxeo.exceptions import HTTPError
 from requests.exceptions import ConnectionError
 
-from nxdrive.client.uploader.direct_transfer import DirectTransferUploader
-from nxdrive.constants import TransferStatus
-from nxdrive.exceptions import NotFound
-from nxdrive.options import Options
-from nxdrive.utils import get_tree_list
+from nxdrive.drive.constants import TransferStatus
+from nxdrive.drive.exceptions import NotFound
+from nxdrive.drive.options import Options
+from nxdrive.drive.utils import get_tree_list
+from nxdrive.nuxeo.client.uploader.direct_transfer import DirectTransferUploader
 
 from .. import ensure_no_exception
 from ..markers import not_windows

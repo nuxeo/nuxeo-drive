@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
 from tests.markers import mac_only
 
 
@@ -39,10 +39,10 @@ class TestHandleNxdriveUrl:
 
         invalid_url = "not-a-valid-nxdrive-url"
 
-        with patch("nxdrive.gui.application.parse_protocol_url") as mock_parse:
+        with patch("nxdrive.drive.gui.application.parse_protocol_url") as mock_parse:
             mock_parse.return_value = None
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_nxdrive_url.__get__(app, Application)
             result = bound_method(invalid_url)
@@ -60,15 +60,19 @@ class TestHandleNxdriveUrl:
         test_url = "nxdrive://access-online/filepath=/path/to/file"
         test_path = "/path/to/file"
 
-        with patch("nxdrive.gui.application.parse_protocol_url") as mock_parse, patch(
-            "nxdrive.gui.application.normalized_path", return_value=test_path
-        ), patch("nxdrive.gui.application.log"):
+        with patch(
+            "nxdrive.drive.gui.application.parse_protocol_url"
+        ) as mock_parse, patch(
+            "nxdrive.drive.gui.application.normalized_path", return_value=test_path
+        ), patch(
+            "nxdrive.drive.gui.application.log"
+        ):
             mock_parse.return_value = {
                 "command": "access-online",
                 "filepath": "file:///path/to/file",
             }
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_nxdrive_url.__get__(app, Application)
             result = bound_method(test_url)
@@ -86,15 +90,19 @@ class TestHandleNxdriveUrl:
         test_url = "nxdrive://copy-share-link/filepath=/shared/file"
         test_path = "/shared/file"
 
-        with patch("nxdrive.gui.application.parse_protocol_url") as mock_parse, patch(
-            "nxdrive.gui.application.normalized_path", return_value=test_path
-        ), patch("nxdrive.gui.application.log"):
+        with patch(
+            "nxdrive.drive.gui.application.parse_protocol_url"
+        ) as mock_parse, patch(
+            "nxdrive.drive.gui.application.normalized_path", return_value=test_path
+        ), patch(
+            "nxdrive.drive.gui.application.log"
+        ):
             mock_parse.return_value = {
                 "command": "copy-share-link",
                 "filepath": "file:///shared/file",
             }
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_nxdrive_url.__get__(app, Application)
             result = bound_method(test_url)
@@ -111,9 +119,13 @@ class TestHandleNxdriveUrl:
         test_url = "nxdrive://direct-transfer/filepath=/transfer/file"
         test_path = "/transfer/file"
 
-        with patch("nxdrive.gui.application.parse_protocol_url") as mock_parse, patch(
-            "nxdrive.gui.application.normalized_path", return_value=test_path
-        ), patch("nxdrive.gui.application.log"):
+        with patch(
+            "nxdrive.drive.gui.application.parse_protocol_url"
+        ) as mock_parse, patch(
+            "nxdrive.drive.gui.application.normalized_path", return_value=test_path
+        ), patch(
+            "nxdrive.drive.gui.application.log"
+        ):
             mock_parse.return_value = {
                 "command": "direct-transfer",
                 "filepath": "file:///transfer/file",
@@ -121,7 +133,7 @@ class TestHandleNxdriveUrl:
 
             app.ctx_direct_transfer = Mock()
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_nxdrive_url.__get__(app, Application)
             result = bound_method(test_url)
@@ -138,15 +150,19 @@ class TestHandleNxdriveUrl:
         test_url = "nxdrive://edit-metadata/filepath=/metadata/file"
         test_path = "/metadata/file"
 
-        with patch("nxdrive.gui.application.parse_protocol_url") as mock_parse, patch(
-            "nxdrive.gui.application.normalized_path", return_value=test_path
-        ), patch("nxdrive.gui.application.log"):
+        with patch(
+            "nxdrive.drive.gui.application.parse_protocol_url"
+        ) as mock_parse, patch(
+            "nxdrive.drive.gui.application.normalized_path", return_value=test_path
+        ), patch(
+            "nxdrive.drive.gui.application.log"
+        ):
             mock_parse.return_value = {
                 "command": "edit-metadata",
                 "filepath": "file:///metadata/file",
             }
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_nxdrive_url.__get__(app, Application)
             result = bound_method(test_url)
@@ -163,15 +179,17 @@ class TestHandleNxdriveUrl:
         test_url = "nxdrive://access-online/remote_path=/remote/doc"
         remote_path = "/remote/doc"
 
-        with patch("nxdrive.gui.application.parse_protocol_url") as mock_parse, patch(
-            "nxdrive.gui.application.normalized_path"
-        ), patch("nxdrive.gui.application.log"):
+        with patch(
+            "nxdrive.drive.gui.application.parse_protocol_url"
+        ) as mock_parse, patch("nxdrive.drive.gui.application.normalized_path"), patch(
+            "nxdrive.drive.gui.application.log"
+        ):
             mock_parse.return_value = {
                 "command": "access-online",
                 "remote_path": remote_path,
             }
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_nxdrive_url.__get__(app, Application)
             result = bound_method(test_url)
@@ -187,9 +205,11 @@ class TestHandleNxdriveUrl:
 
         test_url = "nxdrive://edit/server/doc123/user/download"
 
-        with patch("nxdrive.gui.application.parse_protocol_url") as mock_parse, patch(
-            "nxdrive.gui.application.normalized_path"
-        ), patch("nxdrive.gui.application.log"):
+        with patch(
+            "nxdrive.drive.gui.application.parse_protocol_url"
+        ) as mock_parse, patch("nxdrive.drive.gui.application.normalized_path"), patch(
+            "nxdrive.drive.gui.application.log"
+        ):
             mock_parse.return_value = {
                 "command": "edit",
                 "server_url": "http://server.com",
@@ -198,7 +218,7 @@ class TestHandleNxdriveUrl:
                 "download_url": "http://download.url",
             }
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_nxdrive_url.__get__(app, Application)
             result = bound_method(test_url)
@@ -221,10 +241,12 @@ class TestHandleNxdriveUrl:
 
         manager.wait_for_server_config = Mock(return_value=False)
 
-        with patch("nxdrive.gui.application.parse_protocol_url") as mock_parse, patch(
-            "nxdrive.gui.application.normalized_path"
-        ), patch("nxdrive.gui.application.log"), patch(
-            "nxdrive.gui.application.APP_NAME", "TestApp"
+        with patch(
+            "nxdrive.drive.gui.application.parse_protocol_url"
+        ) as mock_parse, patch("nxdrive.drive.gui.application.normalized_path"), patch(
+            "nxdrive.drive.gui.application.log"
+        ), patch(
+            "nxdrive.drive.gui.application.APP_NAME", "TestApp"
         ):
             mock_parse.return_value = {
                 "command": "edit",
@@ -236,7 +258,7 @@ class TestHandleNxdriveUrl:
 
             app.display_warning = Mock()
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_nxdrive_url.__get__(app, Application)
             result = bound_method(test_url)
@@ -258,9 +280,11 @@ class TestHandleNxdriveUrl:
 
         manager.restart_needed = True
 
-        with patch("nxdrive.gui.application.parse_protocol_url") as mock_parse, patch(
-            "nxdrive.gui.application.normalized_path"
-        ), patch("nxdrive.gui.application.log"):
+        with patch(
+            "nxdrive.drive.gui.application.parse_protocol_url"
+        ) as mock_parse, patch("nxdrive.drive.gui.application.normalized_path"), patch(
+            "nxdrive.drive.gui.application.log"
+        ):
             mock_parse.return_value = {
                 "command": "edit",
                 "server_url": "http://server.com",
@@ -271,7 +295,7 @@ class TestHandleNxdriveUrl:
 
             app.show_msgbox_restart_needed = Mock()
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_nxdrive_url.__get__(app, Application)
             result = bound_method(test_url)
@@ -291,16 +315,18 @@ class TestHandleNxdriveUrl:
 
         test_url = "nxdrive://authorize/code=ABC123&state=xyz"
 
-        with patch("nxdrive.gui.application.parse_protocol_url") as mock_parse, patch(
-            "nxdrive.gui.application.normalized_path"
-        ), patch("nxdrive.gui.application.log"):
+        with patch(
+            "nxdrive.drive.gui.application.parse_protocol_url"
+        ) as mock_parse, patch("nxdrive.drive.gui.application.normalized_path"), patch(
+            "nxdrive.drive.gui.application.log"
+        ):
             mock_parse.return_value = {
                 "command": "authorize",
                 "code": "ABC123",
                 "state": "xyz",
             }
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_nxdrive_url.__get__(app, Application)
             result = bound_method(test_url)
@@ -318,16 +344,18 @@ class TestHandleNxdriveUrl:
 
         test_url = "nxdrive://token/mytoken123/myusername"
 
-        with patch("nxdrive.gui.application.parse_protocol_url") as mock_parse, patch(
-            "nxdrive.gui.application.normalized_path"
-        ), patch("nxdrive.gui.application.log"):
+        with patch(
+            "nxdrive.drive.gui.application.parse_protocol_url"
+        ) as mock_parse, patch("nxdrive.drive.gui.application.normalized_path"), patch(
+            "nxdrive.drive.gui.application.log"
+        ):
             mock_parse.return_value = {
                 "command": "token",
                 "token": "mytoken123",
                 "username": "myusername",
             }
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_nxdrive_url.__get__(app, Application)
             result = bound_method(test_url)
@@ -343,15 +371,17 @@ class TestHandleNxdriveUrl:
 
         test_url = "nxdrive://unknown-command/param1/param2"
 
-        with patch("nxdrive.gui.application.parse_protocol_url") as mock_parse, patch(
-            "nxdrive.gui.application.normalized_path"
-        ), patch("nxdrive.gui.application.log") as mock_log:
+        with patch(
+            "nxdrive.drive.gui.application.parse_protocol_url"
+        ) as mock_parse, patch("nxdrive.drive.gui.application.normalized_path"), patch(
+            "nxdrive.drive.gui.application.log"
+        ) as mock_log:
             mock_parse.return_value = {
                 "command": "unknown-command",
                 "param1": "value1",
             }
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_nxdrive_url.__get__(app, Application)
             result = bound_method(test_url)
@@ -374,10 +404,14 @@ class TestHandleNxdriveUrl:
         )
         decoded_path = "/path with spaces/file.txt"
 
-        with patch("nxdrive.gui.application.parse_protocol_url") as mock_parse, patch(
-            "nxdrive.gui.application.normalized_path", return_value=decoded_path
-        ), patch("nxdrive.gui.application.unquote_plus") as mock_unquote, patch(
-            "nxdrive.gui.application.log"
+        with patch(
+            "nxdrive.drive.gui.application.parse_protocol_url"
+        ) as mock_parse, patch(
+            "nxdrive.drive.gui.application.normalized_path", return_value=decoded_path
+        ), patch(
+            "nxdrive.drive.gui.application.unquote_plus"
+        ) as mock_unquote, patch(
+            "nxdrive.drive.gui.application.log"
         ):
             mock_parse.return_value = {
                 "command": "access-online",
@@ -385,7 +419,7 @@ class TestHandleNxdriveUrl:
             }
             mock_unquote.return_value = "/path with spaces/file.txt"
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_nxdrive_url.__get__(app, Application)
             result = bound_method(test_url)

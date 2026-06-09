@@ -4,14 +4,14 @@ from pathlib import Path
 from unittest.mock import patch
 from uuid import uuid4
 
-from nxdrive.client.local import FileInfo
-from nxdrive.constants import DelAction, TransferStatus
-from nxdrive.exceptions import ThreadInterrupt, UnknownDigest
-from nxdrive.manager import Manager
-from nxdrive.objects import RemoteFileInfo, Session
-from nxdrive.session_csv import SessionCsv
-from nxdrive.translator import Translator
-from nxdrive.utils import find_resource
+from nxdrive.drive.client.local import FileInfo
+from nxdrive.drive.constants import DelAction, TransferStatus
+from nxdrive.drive.exceptions import ThreadInterrupt, UnknownDigest
+from nxdrive.drive.manager import Manager
+from nxdrive.drive.objects import RemoteFileInfo, Session
+from nxdrive.drive.session_csv import SessionCsv
+from nxdrive.drive.translator import Translator
+from nxdrive.drive.utils import find_resource
 
 from .. import ensure_no_exception
 

@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from nuxeo.client import Nuxeo
 
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
 from tests.markers import mac_only
 
 
@@ -51,12 +51,12 @@ class TestWebAuthNotFrozen:
         # Mock all Qt components and Nuxeo before calling the method
         # QDialog, QVBoxLayout, QDialogButtonBox are imported at module level in application.py
         # QLineEdit is imported locally in the method, so patch it at qt.imports level
-        with patch("nxdrive.gui.application.QDialog") as mock_dialog_class, patch(
-            "nxdrive.qt.imports.QLineEdit"
+        with patch("nxdrive.drive.gui.application.QDialog") as mock_dialog_class, patch(
+            "nxdrive.drive.qt.imports.QLineEdit"
         ) as mock_lineedit_class, patch(
-            "nxdrive.gui.application.QVBoxLayout"
+            "nxdrive.drive.gui.application.QVBoxLayout"
         ) as mock_layout_class, patch(
-            "nxdrive.gui.application.QDialogButtonBox"
+            "nxdrive.drive.gui.application.QDialogButtonBox"
         ) as mock_buttonbox_class, patch(
             "nuxeo.client.Nuxeo"
         ) as mock_nuxeo_class:
@@ -98,7 +98,7 @@ class TestWebAuthNotFrozen:
             mock_nuxeo_class.return_value = mock_nuxeo_instance
 
             # Bind and call the actual method
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._web_auth_not_frozen.__get__(app, Application)
             bound_method(nuxeo_url)
@@ -126,10 +126,12 @@ class TestWebAuthNotFrozen:
         test_password = "wrong_password"
 
         # Mock all components
-        with patch("nxdrive.gui.application.QDialog") as mock_dialog_class, patch(
-            "nxdrive.qt.imports.QLineEdit"
-        ) as mock_lineedit_class, patch("nxdrive.gui.application.QVBoxLayout"), patch(
-            "nxdrive.gui.application.QDialogButtonBox"
+        with patch("nxdrive.drive.gui.application.QDialog") as mock_dialog_class, patch(
+            "nxdrive.drive.qt.imports.QLineEdit"
+        ) as mock_lineedit_class, patch(
+            "nxdrive.drive.gui.application.QVBoxLayout"
+        ), patch(
+            "nxdrive.drive.gui.application.QDialogButtonBox"
         ) as mock_buttonbox_class, patch(
             "nuxeo.client.Nuxeo"
         ) as mock_nuxeo_class:
@@ -166,7 +168,7 @@ class TestWebAuthNotFrozen:
             mock_nuxeo_class.return_value = mock_nuxeo_instance
 
             # Call the method
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._web_auth_not_frozen.__get__(app, Application)
             bound_method(nuxeo_url)
@@ -183,10 +185,12 @@ class TestWebAuthNotFrozen:
         app, manager, nuxeo_url = mock_application
 
         # Mock all components
-        with patch("nxdrive.gui.application.QDialog") as mock_dialog_class, patch(
-            "nxdrive.qt.imports.QLineEdit"
-        ) as mock_lineedit_class, patch("nxdrive.gui.application.QVBoxLayout"), patch(
-            "nxdrive.gui.application.QDialogButtonBox"
+        with patch("nxdrive.drive.gui.application.QDialog") as mock_dialog_class, patch(
+            "nxdrive.drive.qt.imports.QLineEdit"
+        ) as mock_lineedit_class, patch(
+            "nxdrive.drive.gui.application.QVBoxLayout"
+        ), patch(
+            "nxdrive.drive.gui.application.QDialogButtonBox"
         ) as mock_buttonbox_class:
 
             mock_dialog = Mock()
@@ -211,7 +215,7 @@ class TestWebAuthNotFrozen:
             mock_buttonbox.rejected.connect = capture_rejected_connect
 
             # Call the method
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._web_auth_not_frozen.__get__(app, Application)
             bound_method(nuxeo_url)
@@ -239,12 +243,14 @@ class TestWebAuthNotFrozen:
             },
         ):
             # Mock all components
-            with patch("nxdrive.gui.application.QDialog") as mock_dialog_class, patch(
-                "nxdrive.qt.imports.QLineEdit"
+            with patch(
+                "nxdrive.drive.gui.application.QDialog"
+            ) as mock_dialog_class, patch(
+                "nxdrive.drive.qt.imports.QLineEdit"
             ) as mock_lineedit_class, patch(
-                "nxdrive.gui.application.QVBoxLayout"
+                "nxdrive.drive.gui.application.QVBoxLayout"
             ), patch(
-                "nxdrive.gui.application.QDialogButtonBox"
+                "nxdrive.drive.gui.application.QDialogButtonBox"
             ):
 
                 mock_dialog = Mock()
@@ -256,7 +262,7 @@ class TestWebAuthNotFrozen:
                 mock_lineedit_class.side_effect = [username_widget, password_widget]
 
                 # Call the method
-                from nxdrive.gui.application import Application as RealApp
+                from nxdrive.drive.gui.application import Application as RealApp
 
                 bound_method = RealApp._web_auth_not_frozen.__get__(app, Application)
                 bound_method(nuxeo_url)
@@ -280,16 +286,18 @@ class TestWebAuthNotFrozen:
         manager.proxy.settings = Mock(return_value=test_proxies)
 
         # Mock all components
-        with patch("nxdrive.gui.application.QDialog") as mock_dialog_class, patch(
-            "nxdrive.qt.imports.QLineEdit"
-        ) as mock_lineedit_class, patch("nxdrive.gui.application.QVBoxLayout"), patch(
-            "nxdrive.gui.application.QDialogButtonBox"
+        with patch("nxdrive.drive.gui.application.QDialog") as mock_dialog_class, patch(
+            "nxdrive.drive.qt.imports.QLineEdit"
+        ) as mock_lineedit_class, patch(
+            "nxdrive.drive.gui.application.QVBoxLayout"
+        ), patch(
+            "nxdrive.drive.gui.application.QDialogButtonBox"
         ) as mock_buttonbox_class, patch(
             "nuxeo.client.Nuxeo"
         ) as mock_nuxeo_class, patch(
-            "nxdrive.gui.application.get_verify"
+            "nxdrive.drive.gui.application.get_verify"
         ) as mock_get_verify, patch(
-            "nxdrive.gui.application.client_certificate"
+            "nxdrive.drive.gui.application.client_certificate"
         ) as mock_client_cert:
 
             mock_get_verify.return_value = True
@@ -326,7 +334,7 @@ class TestWebAuthNotFrozen:
             mock_nuxeo_class.return_value = mock_nuxeo_instance
 
             # Call the method
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._web_auth_not_frozen.__get__(app, Application)
             bound_method(nuxeo_url)
@@ -346,12 +354,12 @@ class TestWebAuthNotFrozen:
         app, manager, nuxeo_url = mock_application
 
         # Mock all Qt components
-        with patch("nxdrive.gui.application.QDialog") as mock_dialog_class, patch(
-            "nxdrive.qt.imports.QLineEdit"
+        with patch("nxdrive.drive.gui.application.QDialog") as mock_dialog_class, patch(
+            "nxdrive.drive.qt.imports.QLineEdit"
         ) as mock_lineedit_class, patch(
-            "nxdrive.gui.application.QVBoxLayout"
+            "nxdrive.drive.gui.application.QVBoxLayout"
         ) as mock_layout_class, patch(
-            "nxdrive.gui.application.QDialogButtonBox"
+            "nxdrive.drive.gui.application.QDialogButtonBox"
         ) as mock_buttonbox_class:
 
             mock_dialog = Mock()
@@ -371,7 +379,7 @@ class TestWebAuthNotFrozen:
             mock_buttonbox.rejected.connect = Mock()
 
             # Call the method
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._web_auth_not_frozen.__get__(app, Application)
             bound_method(nuxeo_url)

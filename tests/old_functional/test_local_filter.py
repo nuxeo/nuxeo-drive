@@ -1,4 +1,4 @@
-from nxdrive.constants import SYNC_ROOT
+from nxdrive.drive.constants import SYNC_ROOT
 
 from .common import FS_ITEM_ID_PREFIX, SYNC_ROOT_FAC_ID, OneUserTest
 

@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from nxdrive.notification import (
+from nxdrive.drive.notification import (
     ConcurrentEditingError,
     ConflictNotification,
     DefaultNotificationService,
@@ -32,7 +32,7 @@ from nxdrive.notification import (
 )
 
 # Mock the Translator to avoid initialization issues
-translator_patcher = patch("nxdrive.notification.Translator.get")
+translator_patcher = patch("nxdrive.drive.notification.Translator.get")
 mock_translator = translator_patcher.start()
 mock_translator.return_value = "Mocked translation"
 
@@ -447,7 +447,7 @@ class TestSpecificNotifications:
         """Test ErrorNotification creation."""
         doc_pair = MockDocPair(local_name="error_file.txt")
 
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
             # Cast to DocPair type for testing
             notif = ErrorNotification("engine_123", doc_pair)  # type: ignore
@@ -463,7 +463,7 @@ class TestSpecificNotifications:
 
     def test_lock_notification_lock(self):
         """Test LockNotification for lock action."""
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
             notif = LockNotification("test_file.txt", lock=True)
@@ -474,7 +474,7 @@ class TestSpecificNotifications:
 
     def test_lock_notification_unlock(self):
         """Test LockNotification for unlock action."""
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
             notif = LockNotification("test_file.txt", lock=False)
@@ -485,7 +485,7 @@ class TestSpecificNotifications:
 
     def test_direct_edit_error_lock_notification_lock(self):
         """Test DirectEditErrorLockNotification for lock action."""
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
             notif = DirectEditErrorLockNotification("lock", "test_file.txt", "ref123")
@@ -496,7 +496,7 @@ class TestSpecificNotifications:
 
     def test_direct_edit_error_lock_notification_unlock(self):
         """Test DirectEditErrorLockNotification for unlock action."""
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
             notif = DirectEditErrorLockNotification("unlock", "test_file.txt", "ref123")
@@ -517,7 +517,7 @@ class TestSpecificNotifications:
         """Test ConflictNotification creation."""
         doc_pair = MockDocPair(local_name="conflict_file.txt")
 
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
             # Cast to DocPair type for testing
             notif = ConflictNotification("engine_123", doc_pair)  # type: ignore
@@ -530,7 +530,7 @@ class TestSpecificNotifications:
 
     def test_readonly_notification(self):
         """Test ReadOnlyNotification creation."""
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
             notif = ReadOnlyNotification("engine_123", "readonly_file.txt")
@@ -543,7 +543,7 @@ class TestSpecificNotifications:
 
     def test_readonly_notification_with_parent(self):
         """Test ReadOnlyNotification with parent folder."""
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
             notif = ReadOnlyNotification(
@@ -555,7 +555,7 @@ class TestSpecificNotifications:
 
     def test_direct_edit_readonly_notification(self):
         """Test DirectEditReadOnlyNotification creation."""
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
             notif = DirectEditReadOnlyNotification("readonly_file.txt")
@@ -567,7 +567,7 @@ class TestSpecificNotifications:
 
     def test_direct_edit_forbidden_notification(self):
         """Test DirectEditForbiddenNotification creation."""
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
             notif = DirectEditForbiddenNotification("doc123", "user456", "host789")
@@ -579,7 +579,7 @@ class TestSpecificNotifications:
 
     def test_direct_edit_starting_notification(self):
         """Test DirectEditStartingNotification creation."""
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
             notif = DirectEditStartingNotification("hostname", "starting_file.txt")
@@ -593,7 +593,7 @@ class TestSpecificNotifications:
 
     def test_delete_readonly_notification(self):
         """Test DeleteReadOnlyNotification creation."""
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
             notif = DeleteReadOnlyNotification("engine_123", "delete_file.txt")
@@ -608,7 +608,7 @@ class TestSpecificNotifications:
         """Test LockedNotification creation."""
         lock_created = datetime(2023, 10, 15, 14, 30, 0)
 
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
             notif = LockedNotification(
@@ -625,7 +625,7 @@ class TestSpecificNotifications:
         """Test DirectEditLockedNotification creation."""
         lock_created = datetime(2023, 10, 15, 14, 30, 0)
 
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
             notif = DirectEditLockedNotification(
@@ -639,7 +639,7 @@ class TestSpecificNotifications:
 
     def test_direct_edit_updated_notification(self):
         """Test DirectEditUpdatedNotification creation."""
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
             notif = DirectEditUpdatedNotification("updated_file.txt")
@@ -652,7 +652,7 @@ class TestSpecificNotifications:
         """Test DirectTransferError creation."""
         file_path = Path("transfer_error_file.txt")
 
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
             notif = DirectTransferError(file_path)
@@ -664,7 +664,7 @@ class TestSpecificNotifications:
 
     def test_direct_transfer_session_finished(self):
         """Test DirectTransferSessionFinished creation."""
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
             notif = DirectTransferSessionFinished(
@@ -680,7 +680,7 @@ class TestSpecificNotifications:
 
     def test_error_opened_file_file(self):
         """Test ErrorOpenedFile for a file."""
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
             notif = ErrorOpenedFile("/path/to/file.txt", False)
@@ -692,7 +692,7 @@ class TestSpecificNotifications:
 
     def test_error_opened_file_folder(self):
         """Test ErrorOpenedFile for a folder."""
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
             notif = ErrorOpenedFile("/path/to/folder", True)
@@ -704,7 +704,7 @@ class TestSpecificNotifications:
 
     def test_long_path_error(self):
         """Test LongPathError creation."""
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
             notif = LongPathError("/very/long/path/to/file.txt")
@@ -717,7 +717,7 @@ class TestSpecificNotifications:
 
     def test_invalid_credential_notification(self):
         """Test InvalidCredentialNotification creation."""
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
             notif = InvalidCredentialNotification("engine_123")
@@ -733,7 +733,7 @@ class TestSpecificNotifications:
 
     def test_display_pending_task(self):
         """Test DisplayPendingTask creation."""
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
             notif = DisplayPendingTask(
@@ -749,7 +749,7 @@ class TestSpecificNotifications:
 
     def test_concurrent_editing_error(self):
         """Test ConcurrentEditingError creation."""
-        with patch("nxdrive.notification.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.notification.Translator.get") as mock_translator:
             mock_translator.return_value = "Mocked translation"
 
             notif = ConcurrentEditingError("concurrent_file.txt")

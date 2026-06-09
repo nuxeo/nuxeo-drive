@@ -5,9 +5,9 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from nxdrive.engine.engine import Engine
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
+from nxdrive.nuxeo.engine.engine import Engine
 from tests.markers import mac_only
 
 
@@ -39,7 +39,7 @@ class TestRootMoved:
         app, manager, engine = mock_application
         new_path = Path("/new/path")
 
-        with patch("nxdrive.gui.application.Translator") as mock_translator:
+        with patch("nxdrive.drive.gui.application.Translator") as mock_translator:
             mock_translator.get.return_value = "Mocked text"
 
             # Create the question dialog mock
@@ -64,7 +64,7 @@ class TestRootMoved:
             manager.unbind_engine = Mock()
 
             # Bind and call the method
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._root_moved.__get__(app, Application)
             app.sender = Mock(return_value=engine)
@@ -80,7 +80,7 @@ class TestRootMoved:
         app, manager, engine = mock_application
         new_path = Path("/new/path")
 
-        with patch("nxdrive.gui.application.Translator") as mock_translator:
+        with patch("nxdrive.drive.gui.application.Translator") as mock_translator:
             mock_translator.get.return_value = "Mocked text"
 
             # Create the question dialog mock
@@ -106,7 +106,7 @@ class TestRootMoved:
             engine.start = Mock()
 
             # Bind and call the method
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._root_moved.__get__(app, Application)
             app.sender = Mock(return_value=engine)
@@ -123,7 +123,7 @@ class TestRootMoved:
         app, manager, engine = mock_application
         new_path = Path("/new/path")
 
-        with patch("nxdrive.gui.application.Translator") as mock_translator:
+        with patch("nxdrive.drive.gui.application.Translator") as mock_translator:
             mock_translator.get.return_value = "Mocked text"
 
             # Create the question dialog mock
@@ -147,7 +147,7 @@ class TestRootMoved:
             app.question = Mock(return_value=question_dialog)
 
             # Bind and call the method
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._root_moved.__get__(app, Application)
             app.sender = Mock(return_value=engine)

@@ -7,8 +7,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from nxdrive.constants import TransferStatus
-from nxdrive.gui.view import (
+from nxdrive.drive.constants import TransferStatus
+from nxdrive.drive.gui.view import (
     ActiveSessionModel,
     CompletedSessionModel,
     DirectTransferModel,
@@ -19,7 +19,7 @@ from nxdrive.gui.view import (
     TasksModel,
     TransferModel,
 )
-from nxdrive.qt.imports import QModelIndex
+from nxdrive.drive.qt.imports import QModelIndex
 
 
 @pytest.fixture
@@ -481,7 +481,7 @@ class TestTransferModel:
         index = model.index(0, 0)
         flags = model.flags(index)
         # Check that the flags include editable, enabled, and selectable
-        from nxdrive.qt import constants as qt
+        from nxdrive.drive.qt import constants as qt
 
         assert bool(flags & qt.ItemIsEditable)
         assert bool(flags & qt.ItemIsEnabled)
@@ -530,7 +530,7 @@ class TestDirectTransferModel:
         model.set_items(items)
 
         # Should have shadow items to fill up to DT_MONITORING_MAX_ITEMS
-        from nxdrive.constants import DT_MONITORING_MAX_ITEMS
+        from nxdrive.drive.constants import DT_MONITORING_MAX_ITEMS
 
         assert model.rowCount() == DT_MONITORING_MAX_ITEMS
         assert model.shadow_item != {}
@@ -784,7 +784,7 @@ class TestActiveSessionModel:
         model.set_sessions(sessions)
 
         # Should have shadow sessions to fill up to DT_ACTIVE_SESSIONS_MAX_ITEMS
-        from nxdrive.constants import DT_ACTIVE_SESSIONS_MAX_ITEMS
+        from nxdrive.drive.constants import DT_ACTIVE_SESSIONS_MAX_ITEMS
 
         assert model.rowCount() == DT_ACTIVE_SESSIONS_MAX_ITEMS
         assert model.shadow_session != {}
@@ -911,7 +911,7 @@ class TestActiveSessionModel:
         ]
         model.set_sessions(sessions)
 
-        from nxdrive.constants import DT_ACTIVE_SESSIONS_MAX_ITEMS
+        from nxdrive.drive.constants import DT_ACTIVE_SESSIONS_MAX_ITEMS
 
         assert model.count == DT_ACTIVE_SESSIONS_MAX_ITEMS
         assert model.count_no_shadow == 1
@@ -922,7 +922,7 @@ class TestActiveSessionModel:
         model = ActiveSessionModel(translate_func)
         now = datetime.now().isoformat()
 
-        from nxdrive.constants import DT_ACTIVE_SESSIONS_MAX_ITEMS
+        from nxdrive.drive.constants import DT_ACTIVE_SESSIONS_MAX_ITEMS
 
         sessions = [
             {
@@ -1412,7 +1412,7 @@ class TestTasksModel:
         model = TasksModel(translate_func)
 
         # Mock Translator.get to return string templates
-        with patch("nxdrive.gui.view.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.gui.view.Translator.get") as mock_translator:
             mock_translator.side_effect = lambda key: {
                 "DAYS": "DAYS",
                 "MONTHS": "MONTHS",
@@ -1471,7 +1471,7 @@ class TestTasksModel:
         model = TasksModel(translate_func)
 
         # Mock Translator.get to return string templates
-        with patch("nxdrive.gui.view.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.gui.view.Translator.get") as mock_translator:
             mock_translator.side_effect = lambda key: {
                 "DAYS": "DAYS",
                 "AGO": "AGO",
@@ -1501,7 +1501,7 @@ class TestTasksModel:
         model = TasksModel(translate_func)
 
         # Mock Translator.get to return string templates
-        with patch("nxdrive.gui.view.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.gui.view.Translator.get") as mock_translator:
             mock_translator.side_effect = lambda key: {
                 "MONTHS": "MONTHS",
                 "AGO": "AGO",
@@ -1523,7 +1523,7 @@ class TestTasksModel:
         model = TasksModel(translate_func)
 
         # Mock Translator.get to return string templates
-        with patch("nxdrive.gui.view.Translator.get") as mock_translator:
+        with patch("nxdrive.drive.gui.view.Translator.get") as mock_translator:
             mock_translator.side_effect = lambda key: {
                 "YEARS": "YEARS",
                 "AGO": "AGO",

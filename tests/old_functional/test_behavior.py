@@ -2,7 +2,7 @@
 Test application Behavior.
 """
 
-from nxdrive.behavior import Behavior
+from nxdrive.drive.behavior import Behavior
 
 from .. import ensure_no_exception
 from .common import OneUserTest

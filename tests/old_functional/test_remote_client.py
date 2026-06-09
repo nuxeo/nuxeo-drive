@@ -6,7 +6,7 @@ from tempfile import mkdtemp
 
 import pytest
 
-from nxdrive.exceptions import NotFound
+from nxdrive.drive.exceptions import NotFound
 
 from . import LocalTest, make_tmp_file
 from .common import FS_ITEM_ID_PREFIX, OneUserTest, TwoUsersTest

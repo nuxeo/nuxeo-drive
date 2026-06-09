@@ -10,12 +10,12 @@ from uuid import uuid4
 import pytest
 from nuxeo.exceptions import Forbidden, HTTPError
 
-from nxdrive.constants import FILE_BUFFER_SIZE, WINDOWS
-from nxdrive.direct_edit import DirectEdit
-from nxdrive.exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt
-from nxdrive.objects import Blob, NuxeoDocumentInfo
-from nxdrive.options import Options
-from nxdrive.utils import normalized_path, parse_protocol_url, safe_filename
+from nxdrive.drive.constants import FILE_BUFFER_SIZE, WINDOWS
+from nxdrive.drive.exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt
+from nxdrive.drive.objects import Blob, NuxeoDocumentInfo
+from nxdrive.drive.options import Options
+from nxdrive.drive.utils import normalized_path, parse_protocol_url, safe_filename
+from nxdrive.nuxeo.direct_edit import DirectEdit
 
 from .. import ensure_no_exception, env
 from ..utils import random_png

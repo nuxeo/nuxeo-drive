@@ -6,18 +6,18 @@ import pytest
 from nuxeo.models import Document
 from PyQt6.QtCore import QModelIndex, QObject, Qt
 
-from nxdrive.client.workflow import Workflow
-from nxdrive.constants import WINDOWS
-from nxdrive.dao.engine import EngineDAO
-from nxdrive.engine.engine import Engine
-from nxdrive.feature import Feature
-from nxdrive.gui.api import QMLDriveApi
-from nxdrive.gui.application import Application
-from nxdrive.gui.folders_dialog import FoldersDialog
-from nxdrive.gui.folders_loader import ContentLoaderMixin
-from nxdrive.gui.folders_model import Doc, FilteredDoc, FoldersOnly
-from nxdrive.gui.folders_treeview import FolderTreeView
-from nxdrive.options import Options
+from nxdrive.drive.constants import WINDOWS
+from nxdrive.drive.dao.engine import EngineDAO
+from nxdrive.drive.feature import Feature
+from nxdrive.drive.gui.api import QMLDriveApi
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.gui.folders_dialog import FoldersDialog
+from nxdrive.drive.gui.folders_loader import ContentLoaderMixin
+from nxdrive.drive.gui.folders_treeview import FolderTreeView
+from nxdrive.drive.options import Options
+from nxdrive.nuxeo.client.workflow import Workflow
+from nxdrive.nuxeo.engine.engine import Engine
+from nxdrive.nuxeo.gui.folders_model import Doc, FilteredDoc, FoldersOnly
 from tests.functional.mocked_classes import (
     Mock_Document_API,
     Mock_Engine,
@@ -70,9 +70,9 @@ class TestApplication:
                 self.translator_instance = Mock()
                 manager.application = self
 
-        with patch("nxdrive.gui.application.QApplication"), patch(
-            "nxdrive.gui.application.QTimer"
-        ), patch("nxdrive.gui.application.QIcon"):
+        with patch("nxdrive.drive.gui.application.QApplication"), patch(
+            "nxdrive.drive.gui.application.QTimer"
+        ), patch("nxdrive.drive.gui.application.QIcon"):
 
             app = MockApplication(mock_manager, [])
 
@@ -225,7 +225,7 @@ class TestApplication:
             def create_custom_window_for_task_manager(self):
                 return Mock()  # Simulate window creation
 
-        with patch("nxdrive.gui.application.DriveSystrayIcon"):
+        with patch("nxdrive.drive.gui.application.DriveSystrayIcon"):
             app = MockApplication(mock_manager)
 
             # Test GUI initialization
@@ -446,9 +446,9 @@ class TestApplicationIntegration:
                 if self.tray_icon:
                     self.tray_icon.update_engine_status(uid, status)
 
-        with patch("nxdrive.gui.application.QApplication"), patch(
-            "nxdrive.gui.application.QTimer"
-        ), patch("nxdrive.gui.application.QIcon"):
+        with patch("nxdrive.drive.gui.application.QApplication"), patch(
+            "nxdrive.drive.gui.application.QTimer"
+        ), patch("nxdrive.drive.gui.application.QIcon"):
 
             app = MockApplication(mock_manager, [])
 
@@ -519,19 +519,19 @@ def app_obj(manager_factory):
     ) as mock_root_objects, patch(
         "PyQt6.QtCore.QObject.findChild"
     ) as mock_find_child, patch(
-        "nxdrive.gui.application.Application.init_nxdrive_listener"
+        "nxdrive.drive.gui.application.Application.init_nxdrive_listener"
     ) as mock_listener, patch(
-        "nxdrive.gui.application.Application.show_metrics_acceptance"
+        "nxdrive.drive.gui.application.Application.show_metrics_acceptance"
     ) as mock_show_metrics, patch(
-        "nxdrive.engine.activity.FileAction.__repr__"
+        "nxdrive.drive.engine.activity.FileAction.__repr__"
     ) as mock_download_repr, patch(
-        "nxdrive.engine.workers.PollWorker._execute"
+        "nxdrive.drive.engine.workers.PollWorker._execute"
     ) as mock_execute, patch(
-        "nxdrive.engine.workers.Worker.run"
+        "nxdrive.drive.engine.workers.Worker.run"
     ) as mock_run, patch(
         "PyQt6.QtWidgets.QDialog.exec"
     ) as mock_exec, patch(
-        "nxdrive.gui.application.Application.question"
+        "nxdrive.drive.gui.application.Application.question"
     ) as mock_question:
         mock_root_objects.return_value = [QObject()]
         mock_find_child.return_value = mock_qt
@@ -551,16 +551,16 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     from PyQt6.QtCore import QRect
     from PyQt6.QtWidgets import QMessageBox
 
-    from nxdrive.constants import DelAction
+    from nxdrive.drive.constants import DelAction
 
     app = app_obj
     manager, engine = manager_factory()
     mock_qt = Mock_Qt()
     # Covering create_custom_window_for_task_manager
     with patch(
-        "nxdrive.gui.application.Application._fill_qml_context"
+        "nxdrive.drive.gui.application.Application._fill_qml_context"
     ) as mock_qml_context, patch(
-        "nxdrive.gui.application.CustomWindow"
+        "nxdrive.drive.gui.application.CustomWindow"
     ) as mock_custom_window, patch(
         "tests.functional.mocked_classes.Mock_Qt.rootContext"
     ) as mock_root_context:
@@ -573,7 +573,9 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     # Covering updat_feature_state
     assert app._update_feature_state("auto_update", True) is None
     # Covering _msbox
-    with patch("nxdrive.gui.application.Application._msgbox") as mock_msgbox_method:
+    with patch(
+        "nxdrive.drive.gui.application.Application._msgbox"
+    ) as mock_msgbox_method:
         mock_msgbox_instance = Mock(spec=QMessageBox)
         mock_msgbox_method.return_value = mock_msgbox_instance
         assert isinstance(app._msgbox(), type(mock_msgbox_instance))
@@ -583,7 +585,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
         is None
     )
     # Covering display_warning
-    with patch("nxdrive.gui.application.Application._msgbox") as mock_msgbox:
+    with patch("nxdrive.drive.gui.application.Application._msgbox") as mock_msgbox:
         mock_msgbox.return_value = None
         assert (
             app.display_warning(
@@ -592,7 +594,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
             is None
         )
     # Covering direct_edit_conflict
-    with patch("nxdrive.gui.application.Application.question") as mock_question:
+    with patch("nxdrive.drive.gui.application.Application.question") as mock_question:
         mock_question.return_value = mock_qt
         assert (
             app._direct_edit_conflict(
@@ -603,7 +605,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     if not WINDOWS:  # For some reason, the values don't get mocked on Windows
         # Covering _root_deleted
         with patch("PyQt6.QtCore.QObject.sender") as mock_sender, patch(
-            "nxdrive.gui.application.Application.question"
+            "nxdrive.drive.gui.application.Application.question"
         ) as mock_question:
             mock_question.return_value = mock_qt
             mock_engine = Mock_Engine()
@@ -611,7 +613,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
             assert app._root_deleted() is None
         # Covering root_moved
         with patch(
-            "nxdrive.gui.application.Application.question"
+            "nxdrive.drive.gui.application.Application.question"
         ) as mock_question, patch("PyQt6.QtCore.QObject.sender") as mock_sender:
             mock_question.return_value = mock_qt
             mock_engine = Mock_Engine()
@@ -619,7 +621,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
             assert app._root_moved(Path("tests/resources")) is None
         # Covering doc_deleted
         with patch(
-            "nxdrive.gui.application.Application.question"
+            "nxdrive.drive.gui.application.Application.question"
         ) as mock_question, patch("PyQt6.QtCore.QObject.sender") as mock_sender:
             mock_question.return_value = mock_qt
             mock_engine = Mock_Engine()
@@ -627,7 +629,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
             assert app._doc_deleted(Path("tests/resources/files/testFile.txt")) is None
         # Covering file_already_exists
         with patch(
-            "nxdrive.gui.application.Application.question"
+            "nxdrive.drive.gui.application.Application.question"
         ) as mock_question, patch("PyQt6.QtCore.QObject.sender") as mock_sender, patch(
             "pathlib.Path.unlink"
         ) as mock_unlink:
@@ -650,7 +652,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
             app.open_authentication_dialog("url", {"server_url": "url_value"}) is None
         )
     # Covering confirm_deletion
-    with patch("nxdrive.gui.application.Application.question") as mock_question:
+    with patch("nxdrive.drive.gui.application.Application.question") as mock_question:
         mock_question.return_value = mock_qt
         assert isinstance(app.confirm_deletion(Path("tests/resources")), DelAction)
     # Covering show_systray
@@ -669,13 +671,13 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     duplicates = ["dup1", "dup2", "dup3", "dup4", "dup5"]
     assert app.folder_duplicate_warning(duplicates, "remote_path", "remote_url") is None
     # Covering confirm_cancel_transfer
-    with patch("nxdrive.gui.application.Application.question") as mock_question:
+    with patch("nxdrive.drive.gui.application.Application.question") as mock_question:
         mock_question.return_value = mock_qt
         uid = list(app.manager.engines.keys())[0]
         assert app.confirm_cancel_transfer(uid, 1, "localhost") is None
         assert app.confirm_cancel_transfer("engine_uid", 1, "localhost") is None
     # Covering confirm_cancel_session
-    with patch("nxdrive.gui.application.Application.question") as mock_question:
+    with patch("nxdrive.drive.gui.application.Application.question") as mock_question:
         mock_question.return_value = mock_qt
         uid = list(app.manager.engines.keys())[0]
         assert app.confirm_cancel_session(uid, 1, "localhost", 1) is True
@@ -695,8 +697,8 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     assert app.update_workflow() is None
 
     # Covering open_server_folders in QMLDriveApi
-    with patch("nxdrive.gui.api.QMLDriveApi._get_engine") as mock_engine, patch(
-        "nxdrive.gui.application.Application.hide_systray"
+    with patch("nxdrive.drive.gui.api.QMLDriveApi._get_engine") as mock_engine, patch(
+        "nxdrive.drive.gui.application.Application.hide_systray"
     ) as mock_hide:
         drive_api = QMLDriveApi(app)
         mock_engine.return_value = engine
@@ -739,7 +741,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     Options.direct_transfer_file_upper_limit = 5  # MB
 
     # Mock Translator.get to return a message with the filename included
-    with patch("nxdrive.translator.Translator.get") as mock_translator:
+    with patch("nxdrive.drive.translator.Translator.get") as mock_translator:
         mock_translator.side_effect = lambda key, values=None: (
             f"Size limit exceeded: {values[0]}"
             if key == "SIZE_LIMIT_FILE" and values
@@ -788,7 +790,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     Options.direct_transfer_folder_upper_limit = 10  # MB
 
     # Mock Translator.get to return appropriate messages
-    with patch("nxdrive.translator.Translator.get") as mock_translator:
+    with patch("nxdrive.drive.translator.Translator.get") as mock_translator:
         mock_translator.side_effect = lambda key, values=None: (
             "Size limit reached. Latest document(s) removed."
             if key == "SIZE_LIMIT_FOLDER"
@@ -817,7 +819,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
 
     files = [(dir_path / "file1.txt", 102400), (dir_path / "file2.txt", 204800)]
 
-    with patch("nxdrive.gui.folders_dialog.get_tree_list", return_value=files):
+    with patch("nxdrive.drive.gui.folders_dialog.get_tree_list", return_value=files):
         original_limit = Options.direct_transfer_folder_upper_limit
         Options.direct_transfer_folder_upper_limit = 5  # MB
 
@@ -839,9 +841,9 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     files = [(dir_path / "file.txt", 10 * 1024 * 1024)]
 
     # Mock Translator.get to return a message with the folder name included
-    with patch("nxdrive.gui.folders_dialog.get_tree_list", return_value=files), patch(
-        "nxdrive.translator.Translator.get"
-    ) as mock_translator:
+    with patch(
+        "nxdrive.drive.gui.folders_dialog.get_tree_list", return_value=files
+    ), patch("nxdrive.drive.translator.Translator.get") as mock_translator:
         mock_translator.side_effect = lambda key, values=None: (
             f"Size limit exceeded: {values[0]}"
             if key == "SIZE_LIMIT_FILE" and values
@@ -867,11 +869,11 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
 
     mock_item_model_instance = Mock_Item_Model()
     with patch(
-        "nxdrive.gui.folders_treeview.FolderTreeView.model"
+        "nxdrive.drive.gui.folders_treeview.FolderTreeView.model"
     ) as mock_model, patch(
-        "nxdrive.gui.folders_dialog.FoldersDialog.update_file_group"
+        "nxdrive.drive.gui.folders_dialog.FoldersDialog.update_file_group"
     ) as mock_update_file_group, patch(
-        "nxdrive.gui.folders_treeview.QStandardItemModel"
+        "nxdrive.drive.gui.folders_treeview.QStandardItemModel"
     ) as mock_qstandarditemmodel:
         mock_model.return_value = mock_item_model_instance
         mock_qstandarditemmodel.return_value = mock_item_model_instance
@@ -881,7 +883,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
         )
 
     # Covering run method in ContentLoaderMixin
-    with patch("nxdrive.gui.folders_loader.QStandardItemModel"):
+    with patch("nxdrive.drive.gui.folders_loader.QStandardItemModel"):
         content_loader = ContentLoaderMixin(
             folder_tree_view, item=None, force_refresh=False  # type: ignore[arg-type]
         )
@@ -941,7 +943,9 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     # Covering _get_root_folders method in FoldersOnly
     folders_only = FoldersOnly(engine.remote)
     folders_only.remote.documents = Mock_Document_API()  # type: ignore[assignment]
-    with patch("nxdrive.gui.folders_model.FoldersOnly._get_children") as mock_children:
+    with patch(
+        "nxdrive.nuxeo.gui.folders_model.FoldersOnly._get_children"
+    ) as mock_children:
         mock_children.return_value = [Document()]
         assert isinstance(folders_only._get_root_folders(), list)
 
@@ -954,7 +958,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     folders_only.remote.documents = Mock_Document_API()  # type: ignore[assignment]
     folders_only.remote.fetch = mock_fetch
     Options.shared_folder_navigation = True
-    with patch("nxdrive.gui.folders_model.FoldersOnly.get_roots") as mock_roots:
+    with patch("nxdrive.nuxeo.gui.folders_model.FoldersOnly.get_roots") as mock_roots:
         mock_root = {
             "type": "Folder",
             "path": "/dummy",
@@ -1050,7 +1054,7 @@ def test_msgbox_with_header_message_details(app_obj):
 @not_linux(reason="Qt does not work correctly on linux")
 def test_msgbox_with_title_and_icon(app_obj):
     """_msgbox correctly sets the icon type."""
-    from nxdrive.qt import constants as qt
+    from nxdrive.drive.qt import constants as qt
 
     app = app_obj
     msg = app._msgbox(
@@ -1089,7 +1093,7 @@ def test_root_deleted_disconnect(app_obj):
     mock_msg.clickedButton.return_value = disconnect_btn
 
     with patch("PyQt6.QtCore.QObject.sender", return_value=mock_engine), patch(
-        "nxdrive.gui.application.Application.question", return_value=mock_msg
+        "nxdrive.drive.gui.application.Application.question", return_value=mock_msg
     ), patch.object(app.manager, "unbind_engine") as mock_unbind:
         app._root_deleted()
 
@@ -1112,7 +1116,7 @@ def test_root_deleted_recreate(app_obj):
     mock_msg.clickedButton.return_value = recreate_btn
 
     with patch("PyQt6.QtCore.QObject.sender", return_value=mock_engine), patch(
-        "nxdrive.gui.application.Application.question", return_value=mock_msg
+        "nxdrive.drive.gui.application.Application.question", return_value=mock_msg
     ):
         app._root_deleted()
 
@@ -1128,7 +1132,7 @@ def test_show_metrics_acceptance(app_obj, tmp_path):
     original_home = Options.nxdrive_home
     Options.nxdrive_home = tmp_path
     try:
-        with patch("nxdrive.gui.application.QDialog"):
+        with patch("nxdrive.drive.gui.application.QDialog"):
             _real_show_metrics_acceptance(app)
 
         metrics_file = tmp_path / "metrics.state"
@@ -1147,7 +1151,7 @@ def test_show_metrics_acceptance_content(app_obj, tmp_path):
     Options.nxdrive_home = tmp_path
     Options.use_analytics = True
     try:
-        with patch("nxdrive.gui.application.QDialog"):
+        with patch("nxdrive.drive.gui.application.QDialog"):
             _real_show_metrics_acceptance(app)
 
         metrics_file = tmp_path / "metrics.state"
@@ -1187,8 +1191,8 @@ def test_show_metrics_acceptance_analytics_choice(app_obj, tmp_path):
     dialog_mock.exec = fake_exec
     try:
         with patch(
-            "nxdrive.gui.application.QCheckBox", side_effect=tracking_checkbox
-        ), patch("nxdrive.gui.application.QDialog", return_value=dialog_mock):
+            "nxdrive.drive.gui.application.QCheckBox", side_effect=tracking_checkbox
+        ), patch("nxdrive.drive.gui.application.QDialog", return_value=dialog_mock):
             _real_show_metrics_acceptance(app)
 
         assert Options.use_analytics is True

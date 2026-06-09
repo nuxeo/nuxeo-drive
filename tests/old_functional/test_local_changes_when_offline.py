@@ -5,7 +5,7 @@ later when Drive becomes online.
 
 import pytest
 
-from nxdrive.constants import WINDOWS
+from nxdrive.drive.constants import WINDOWS
 
 from .common import FILE_CONTENT, OneUserTest
 

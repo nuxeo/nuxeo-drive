@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from nuxeo.exceptions import Forbidden
 
-from nxdrive.constants import WINDOWS
+from nxdrive.drive.constants import WINDOWS
 
 from ..markers import windows_only
 from . import LocalTest

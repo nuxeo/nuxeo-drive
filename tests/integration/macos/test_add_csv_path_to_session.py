@@ -4,8 +4,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
 from tests.markers import mac_only
 
 
@@ -34,7 +34,7 @@ class TestAddCsvPathToSession:
             "completed_on": None,
         }
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp._add_csv_path_to_session.__get__(app, Application)
         result = bound_method(session_data)
@@ -61,7 +61,7 @@ class TestAddCsvPathToSession:
         tmp_file = csv_dir / "session_2024-01-15_10-30-00.tmp"
         tmp_file.write_text("id,name,status\n1,file1.txt,success\n")
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp._add_csv_path_to_session.__get__(app, Application)
         result = bound_method(session_data)
@@ -87,7 +87,7 @@ class TestAddCsvPathToSession:
         csv_file = csv_dir / "session_2024-01-15_14-45-00.csv"
         csv_file.write_text("id,name,status\n1,file1.txt,success\n")
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp._add_csv_path_to_session.__get__(app, Application)
         result = bound_method(session_data)
@@ -117,7 +117,7 @@ class TestAddCsvPathToSession:
         csv_file = csv_dir / f"{name_base}.csv"
         csv_file.write_text("id,name,status\n1,file1.txt,success\n")
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp._add_csv_path_to_session.__get__(app, Application)
         result = bound_method(session_data)
@@ -139,7 +139,7 @@ class TestAddCsvPathToSession:
             "completed_on": "2024-01-15 16:00:00",
         }
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp._add_csv_path_to_session.__get__(app, Application)
         result = bound_method(session_data)
@@ -157,7 +157,7 @@ class TestAddCsvPathToSession:
             "completed_on": "2024-01-15 12:15:00",
         }
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp._add_csv_path_to_session.__get__(app, Application)
         result = bound_method(session_data)
@@ -184,7 +184,7 @@ class TestAddCsvPathToSession:
         csv_file = csv_dir / "session_2024-03-22_18-45-30.csv"
         csv_file.write_text("id,name,status\n1,file1.txt,success\n")
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp._add_csv_path_to_session.__get__(app, Application)
         result = bound_method(session_data)
@@ -211,7 +211,7 @@ class TestAddCsvPathToSession:
         csv_file = csv_dir / "session_2024-01-15_11-00-00.csv"
         csv_file.write_text("id,name,status\n1,file1.txt,success\n")
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp._add_csv_path_to_session.__get__(app, Application)
         result = bound_method(session_data)

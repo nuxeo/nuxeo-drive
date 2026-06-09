@@ -3,11 +3,11 @@ from unittest.mock import Mock, patch
 import pytest
 from nuxeo.models import Document
 
-from nxdrive.engine.activity import Action, DownloadAction
-from nxdrive.metrics.constants import GLOBAL_METRICS
-from nxdrive.objects import RemoteFileInfo, SubTypeEnricher
-from nxdrive.options import Options
-from nxdrive.utils import shortify
+from nxdrive.drive.engine.activity import Action, DownloadAction
+from nxdrive.drive.metrics.constants import GLOBAL_METRICS
+from nxdrive.drive.objects import RemoteFileInfo, SubTypeEnricher
+from nxdrive.drive.options import Options
+from nxdrive.drive.utils import shortify
 
 from .. import env
 

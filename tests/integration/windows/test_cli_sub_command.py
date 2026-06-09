@@ -7,7 +7,7 @@ from logging import getLogger
 import pytest
 from nuxeo.documents import Document
 
-from nxdrive.constants import WINDOWS
+from nxdrive.drive.constants import WINDOWS
 
 from ... import env
 from .utils import cb_get, fatal_error_dlg  # , share_metrics_dlg  , get_opened_url

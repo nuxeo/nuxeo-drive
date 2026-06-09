@@ -4,11 +4,11 @@ from unittest.mock import patch
 
 import pytest
 
-from nxdrive.constants import MAC, WINDOWS
-from nxdrive.exceptions import ThreadInterrupt
-from nxdrive.metrics.poll_metrics import CustomPollMetrics
-from nxdrive.metrics.utils import current_os, user_agent
-from nxdrive.options import Options
+from nxdrive.drive.constants import MAC, WINDOWS
+from nxdrive.drive.exceptions import ThreadInterrupt
+from nxdrive.drive.metrics.poll_metrics import CustomPollMetrics
+from nxdrive.drive.metrics.utils import current_os, user_agent
+from nxdrive.drive.options import Options
 
 
 class MockedClient:

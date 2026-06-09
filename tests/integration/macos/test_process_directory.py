@@ -23,7 +23,7 @@ def test_process_directory_zero_byte_files_skipped():
             self, path, current_total_size, file_limit, folder_limit, skipped_items
         ):
             try:
-                from nxdrive.utils import get_tree_list
+                from nxdrive.drive.utils import get_tree_list
 
                 files_with_sizes = list(get_tree_list(path))
 
@@ -44,7 +44,7 @@ def test_process_directory_zero_byte_files_skipped():
     mock_path = Mock()
     skipped_items = []
 
-    with patch("nxdrive.gui.folders_dialog.get_tree_list") as mock_get_tree:
+    with patch("nxdrive.drive.gui.folders_dialog.get_tree_list") as mock_get_tree:
         mock_file = Mock()
         mock_file.is_file.return_value = True
         mock_files = [(mock_file, 0)]
@@ -69,7 +69,7 @@ def test_process_directory_oserror_handling():
             self, path, current_total_size, file_limit, folder_limit, skipped_items
         ):
             try:
-                from nxdrive.utils import get_tree_list
+                from nxdrive.drive.utils import get_tree_list
 
                 list(get_tree_list(path))
             except OSError as e:
@@ -83,7 +83,7 @@ def test_process_directory_oserror_handling():
     mock_path = Mock()
     skipped_items = []
 
-    with patch("nxdrive.gui.folders_dialog.get_tree_list") as mock_get_tree:
+    with patch("nxdrive.drive.gui.folders_dialog.get_tree_list") as mock_get_tree:
         mock_get_tree.side_effect = OSError("Permission denied")
 
         result = dialog._process_directory(mock_path, 100, None, None, skipped_items)
@@ -104,7 +104,7 @@ def test_process_directory_general_exception_handling():
             self, path, current_total_size, file_limit, folder_limit, skipped_items
         ):
             try:
-                from nxdrive.utils import get_tree_list
+                from nxdrive.drive.utils import get_tree_list
 
                 list(get_tree_list(path))
             except OSError as e:
@@ -118,7 +118,7 @@ def test_process_directory_general_exception_handling():
     mock_path = Mock()
     skipped_items = []
 
-    with patch("nxdrive.gui.folders_dialog.get_tree_list") as mock_get_tree:
+    with patch("nxdrive.drive.gui.folders_dialog.get_tree_list") as mock_get_tree:
         mock_get_tree.side_effect = ValueError("Unexpected error")
 
         result = dialog._process_directory(mock_path, 100, None, None, skipped_items)

@@ -2,8 +2,8 @@ import shutil
 
 import pytest
 
-from nxdrive.constants import WINDOWS
-from nxdrive.options import Options
+from nxdrive.drive.constants import WINDOWS
+from nxdrive.drive.options import Options
 
 from .common import OneUserTest
 

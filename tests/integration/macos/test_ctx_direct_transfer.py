@@ -5,9 +5,9 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from nxdrive.engine.engine import Engine
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
+from nxdrive.nuxeo.engine.engine import Engine
 from tests.markers import mac_only
 
 
@@ -36,9 +36,9 @@ class TestCtxDirectTransfer:
         test_path = Path("/test/path/file.txt")
 
         with patch.object(manager, "wait_for_server_config", return_value=False), patch(
-            "nxdrive.gui.application.APP_NAME", "TestApp"
+            "nxdrive.drive.gui.application.APP_NAME", "TestApp"
         ):
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.ctx_direct_transfer.__get__(app, Application)
             bound_method(test_path)
@@ -57,11 +57,11 @@ class TestCtxDirectTransfer:
         test_path = Path("/test/path/file.txt")
 
         with patch.object(manager, "wait_for_server_config", return_value=True), patch(
-            "nxdrive.gui.application.Feature"
-        ) as mock_feature, patch("nxdrive.gui.application.APP_NAME", "TestApp"):
+            "nxdrive.drive.gui.application.Feature"
+        ) as mock_feature, patch("nxdrive.drive.gui.application.APP_NAME", "TestApp"):
             mock_feature.direct_transfer = False
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.ctx_direct_transfer.__get__(app, Application)
             bound_method(test_path)
@@ -86,13 +86,13 @@ class TestCtxDirectTransfer:
         test_path = Path("/sync/folder/subfolder/file.txt")
 
         with patch.object(manager, "wait_for_server_config", return_value=True), patch(
-            "nxdrive.gui.application.Feature"
-        ) as mock_feature, patch("nxdrive.gui.application.log"), patch(
-            "nxdrive.gui.application.APP_NAME", "TestApp"
+            "nxdrive.drive.gui.application.Feature"
+        ) as mock_feature, patch("nxdrive.drive.gui.application.log"), patch(
+            "nxdrive.drive.gui.application.APP_NAME", "TestApp"
         ):
             mock_feature.direct_transfer = True
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.ctx_direct_transfer.__get__(app, Application)
             bound_method(test_path, None, False)
@@ -114,13 +114,13 @@ class TestCtxDirectTransfer:
         test_path = Path("/test/path/file.txt")
 
         with patch.object(manager, "wait_for_server_config", return_value=True), patch(
-            "nxdrive.gui.application.Feature"
-        ) as mock_feature, patch("nxdrive.gui.application.log"), patch(
-            "nxdrive.gui.application.APP_NAME", "TestApp"
+            "nxdrive.drive.gui.application.Feature"
+        ) as mock_feature, patch("nxdrive.drive.gui.application.log"), patch(
+            "nxdrive.drive.gui.application.APP_NAME", "TestApp"
         ):
             mock_feature.direct_transfer = True
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.ctx_direct_transfer.__get__(app, Application)
             bound_method(test_path)
@@ -144,11 +144,11 @@ class TestCtxDirectTransfer:
         test_path = Path("/other/path/file.txt")
 
         with patch.object(manager, "wait_for_server_config", return_value=True), patch(
-            "nxdrive.gui.application.Feature"
-        ) as mock_feature, patch("nxdrive.gui.application.log"):
+            "nxdrive.drive.gui.application.Feature"
+        ) as mock_feature, patch("nxdrive.drive.gui.application.log"):
             mock_feature.direct_transfer = True
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.ctx_direct_transfer.__get__(app, Application)
             bound_method(test_path)
@@ -175,13 +175,13 @@ class TestCtxDirectTransfer:
         test_path = Path("/other/path/file.txt")
 
         with patch.object(manager, "wait_for_server_config", return_value=True), patch(
-            "nxdrive.gui.application.Feature"
-        ) as mock_feature, patch("nxdrive.gui.application.log"), patch.object(
+            "nxdrive.drive.gui.application.Feature"
+        ) as mock_feature, patch("nxdrive.drive.gui.application.log"), patch.object(
             app, "_select_account", return_value=mock_engine1
         ) as mock_select:
             mock_feature.direct_transfer = True
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.ctx_direct_transfer.__get__(app, Application)
             bound_method(test_path)
@@ -208,15 +208,15 @@ class TestCtxDirectTransfer:
         test_path = Path("/other/path/file.txt")
 
         with patch.object(manager, "wait_for_server_config", return_value=True), patch(
-            "nxdrive.gui.application.Feature"
-        ) as mock_feature, patch("nxdrive.gui.application.log"), patch.object(
+            "nxdrive.drive.gui.application.Feature"
+        ) as mock_feature, patch("nxdrive.drive.gui.application.log"), patch.object(
             app, "_select_account", return_value=None
         ) as mock_select, patch(
-            "nxdrive.gui.application.APP_NAME", "TestApp"
+            "nxdrive.drive.gui.application.APP_NAME", "TestApp"
         ):
             mock_feature.direct_transfer = True
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.ctx_direct_transfer.__get__(app, Application)
             bound_method(test_path)
@@ -243,11 +243,11 @@ class TestCtxDirectTransfer:
         folder_path = "/custom/server/path"
 
         with patch.object(manager, "wait_for_server_config", return_value=True), patch(
-            "nxdrive.gui.application.Feature"
-        ) as mock_feature, patch("nxdrive.gui.application.log"):
+            "nxdrive.drive.gui.application.Feature"
+        ) as mock_feature, patch("nxdrive.drive.gui.application.log"):
             mock_feature.direct_transfer = True
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.ctx_direct_transfer.__get__(app, Application)
             bound_method(test_path, folder_path)
@@ -271,11 +271,11 @@ class TestCtxDirectTransfer:
         test_path = Path("/sync/folder/subfolder/file.txt")
 
         with patch.object(manager, "wait_for_server_config", return_value=True), patch(
-            "nxdrive.gui.application.Feature"
-        ) as mock_feature, patch("nxdrive.gui.application.log"):
+            "nxdrive.drive.gui.application.Feature"
+        ) as mock_feature, patch("nxdrive.drive.gui.application.log"):
             mock_feature.direct_transfer = True
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.ctx_direct_transfer.__get__(app, Application)
             bound_method(test_path, None, True)
@@ -304,14 +304,14 @@ class TestCtxDirectTransfer:
         app.filters_dlg = mock_dialog
 
         with patch.object(manager, "wait_for_server_config", return_value=True), patch(
-            "nxdrive.gui.application.Feature"
-        ) as mock_feature, patch("nxdrive.gui.application.log"):
+            "nxdrive.drive.gui.application.Feature"
+        ) as mock_feature, patch("nxdrive.drive.gui.application.log"):
             mock_feature.direct_transfer = True
 
             # Mock dialog type name
             mock_dialog.__class__.__name__ = "FoldersDialog"
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.ctx_direct_transfer.__get__(app, Application)
             bound_method(test_path)
@@ -337,14 +337,14 @@ class TestCtxDirectTransfer:
         app.filters_dlg = mock_dialog
 
         with patch.object(manager, "wait_for_server_config", return_value=True), patch(
-            "nxdrive.gui.application.Feature"
-        ) as mock_feature, patch("nxdrive.gui.application.log"):
+            "nxdrive.drive.gui.application.Feature"
+        ) as mock_feature, patch("nxdrive.drive.gui.application.log"):
             mock_feature.direct_transfer = True
 
             # Mock dialog type name (not FoldersDialog)
             mock_dialog.__class__.__name__ = "DocumentsDialog"
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.ctx_direct_transfer.__get__(app, Application)
             bound_method(test_path)
@@ -366,11 +366,11 @@ class TestCtxDirectTransfer:
         test_path = Path("/other/path/file.txt")
 
         with patch.object(manager, "wait_for_server_config", return_value=True), patch(
-            "nxdrive.gui.application.Feature"
-        ) as mock_feature, patch("nxdrive.gui.application.log") as mock_log:
+            "nxdrive.drive.gui.application.Feature"
+        ) as mock_feature, patch("nxdrive.drive.gui.application.log") as mock_log:
             mock_feature.direct_transfer = True
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp.ctx_direct_transfer.__get__(app, Application)
             bound_method(test_path, None, False)

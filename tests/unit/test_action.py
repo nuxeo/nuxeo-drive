@@ -1,7 +1,7 @@
 import os.path
 from pathlib import Path
 
-from nxdrive.engine.activity import (
+from nxdrive.drive.engine.activity import (
     Action,
     DownloadAction,
     FileAction,

@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
 from tests.markers import mac_only
 
 
@@ -34,7 +34,7 @@ class TestShowHideRefreshButton:
         mock_window.findChild.return_value = mock_refresh_button
         app.task_manager_window = mock_window
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.show_hide_refresh_button.__get__(app, Application)
         height = 50
@@ -55,7 +55,7 @@ class TestShowHideRefreshButton:
 
         from PyQt6.QtCore import QObject
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.show_hide_refresh_button.__get__(app, Application)
         bound_method(100)
@@ -72,7 +72,7 @@ class TestShowHideRefreshButton:
         mock_window.findChild.return_value = mock_refresh_button
         app.task_manager_window = mock_window
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.show_hide_refresh_button.__get__(app, Application)
         bound_method(0)
@@ -89,7 +89,7 @@ class TestShowHideRefreshButton:
         mock_window.findChild.return_value = mock_refresh_button
         app.task_manager_window = mock_window
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.show_hide_refresh_button.__get__(app, Application)
         height = 75
@@ -107,7 +107,7 @@ class TestShowHideRefreshButton:
         mock_window.findChild.return_value = mock_refresh_button
         app.task_manager_window = mock_window
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.show_hide_refresh_button.__get__(app, Application)
 
@@ -125,7 +125,7 @@ class TestShowHideRefreshButton:
         # No window
         app.task_manager_window = None
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.show_hide_refresh_button.__get__(app, Application)
 
@@ -139,7 +139,7 @@ class TestShowHideRefreshButton:
         """Test show_hide_refresh_button only operates when window exists."""
         app, manager = mock_application
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.show_hide_refresh_button.__get__(app, Application)
 
@@ -166,7 +166,7 @@ class TestShowHideRefreshButton:
         mock_window.findChild.return_value = mock_refresh_button
         app.task_manager_window = mock_window
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp.show_hide_refresh_button.__get__(app, Application)
 

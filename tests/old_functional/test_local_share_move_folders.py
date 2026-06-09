@@ -1,8 +1,8 @@
 import shutil
 from unittest.mock import patch
 
-from nxdrive.engine.watcher.constants import SECURITY_UPDATED_EVENT
-from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
+from nxdrive.nuxeo.engine.watcher.constants import SECURITY_UPDATED_EVENT
+from nxdrive.nuxeo.engine.watcher.remote_watcher import RemoteWatcher
 
 from ..utils import random_png
 from .common import TwoUsersTest

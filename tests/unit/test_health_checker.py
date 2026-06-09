@@ -2,7 +2,7 @@ import logging
 import threading
 import time
 
-from nxdrive.commandline import HealthCheck
+from nxdrive.drive.commandline import HealthCheck
 
 
 def test_no_crash(tmp_path):

@@ -4,9 +4,9 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
-from nxdrive.notification import Notification
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
+from nxdrive.drive.notification import Notification
 from tests.markers import mac_only
 
 
@@ -40,7 +40,7 @@ class TestNewNotification:
             flags=Notification.FLAG_PERSISTENT,
         )
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp._new_notification.__get__(app, Application)
         bound_method(notif)
@@ -63,10 +63,10 @@ class TestNewNotification:
         )
 
         with patch(
-            "nxdrive.osi.darwin.pyNotificationCenter.notify"
+            "nxdrive.drive.osi.darwin.pyNotificationCenter.notify"
         ) as mock_notify:  # Patching at the module level
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._new_notification.__get__(app, Application)
             bound_method(notif)
@@ -95,9 +95,11 @@ class TestNewNotification:
             flags=Notification.FLAG_BUBBLE,
         )
 
-        with patch("nxdrive.osi.darwin.pyNotificationCenter.notify") as mock_notify:
+        with patch(
+            "nxdrive.drive.osi.darwin.pyNotificationCenter.notify"
+        ) as mock_notify:
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._new_notification.__get__(app, Application)
             bound_method(notif)
@@ -121,10 +123,10 @@ class TestNewNotification:
             flags=Notification.FLAG_BUBBLE,
         )
 
-        with patch("nxdrive.gui.application.qt") as mock_qt:
+        with patch("nxdrive.drive.gui.application.qt") as mock_qt:
             mock_qt.ST_Warning = "ST_Warning_Icon"
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._new_notification.__get__(app, Application)
             bound_method(notif)
@@ -151,10 +153,10 @@ class TestNewNotification:
             flags=Notification.FLAG_BUBBLE,
         )
 
-        with patch("nxdrive.gui.application.qt") as mock_qt:
+        with patch("nxdrive.drive.gui.application.qt") as mock_qt:
             mock_qt.ST_Critical = "ST_Critical_Icon"
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._new_notification.__get__(app, Application)
             bound_method(notif)
@@ -181,10 +183,10 @@ class TestNewNotification:
             flags=Notification.FLAG_BUBBLE,
         )
 
-        with patch("nxdrive.gui.application.qt") as mock_qt:
+        with patch("nxdrive.drive.gui.application.qt") as mock_qt:
             mock_qt.ST_Information = "ST_Information_Icon"
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._new_notification.__get__(app, Application)
             bound_method(notif)
@@ -211,10 +213,10 @@ class TestNewNotification:
             flags=Notification.FLAG_BUBBLE,
         )
 
-        with patch("nxdrive.gui.application.qt") as mock_qt:
+        with patch("nxdrive.drive.gui.application.qt") as mock_qt:
             mock_qt.ST_Information = "ST_Information_Icon"
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._new_notification.__get__(app, Application)
             bound_method(notif)
@@ -237,9 +239,9 @@ class TestNewNotification:
             flags=Notification.FLAG_BUBBLE,
         )
 
-        with patch("nxdrive.gui.application.qt"):
+        with patch("nxdrive.drive.gui.application.qt"):
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._new_notification.__get__(app, Application)
             bound_method(notif)

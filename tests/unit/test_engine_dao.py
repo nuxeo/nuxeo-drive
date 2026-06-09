@@ -5,8 +5,8 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
-from nxdrive.constants import TransferStatus
-from nxdrive.dao.migrations.migration import MigrationInterface
+from nxdrive.drive.constants import TransferStatus
+from nxdrive.drive.dao.migrations.migration import MigrationInterface
 
 from ..markers import windows_only
 
@@ -290,7 +290,7 @@ def test_manager_db_init_at_v04(tmp_path, engine_dao):
         assert not default_state
 
         # We import the engine_migrations dictionary
-        from nxdrive.dao.migrations.manager import manager_migrations
+        from nxdrive.drive.dao.migrations.manager import manager_migrations
 
         # New migration 04 should be the first one
         migration = list(manager_migrations.values())[0]
@@ -477,7 +477,7 @@ def test_db_init_at_v21(tmp_path, engine_dao):
         assert not default_state
 
         # We import the engine_migrations dictionary
-        from nxdrive.dao.migrations.engine import engine_migrations
+        from nxdrive.drive.dao.migrations.engine import engine_migrations
 
         # New migration 21 should be the first one
         migration = list(engine_migrations.values())[0]
@@ -533,7 +533,7 @@ def test_db_init_at_v22(tmp_path, engine_dao):
         assert not default_state
 
         # We import the engine_migrations dictionary
-        from nxdrive.dao.migrations.engine import engine_migrations
+        from nxdrive.drive.dao.migrations.engine import engine_migrations
 
         # Existing migration 21 should be the first one
         migration21 = list(engine_migrations.values())[0]

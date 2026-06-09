@@ -22,7 +22,7 @@ def test_get_tree_view_basic():
         def get_tree_view(self):
             """Render the folders tree."""
             self.resize(800, 450)
-            from nxdrive.gui.folders_dialog import FoldersOnly, FolderTreeView
+            from nxdrive.drive.gui.folders_dialog import FoldersOnly, FolderTreeView
 
             client = FoldersOnly(self.engine.remote)
             return FolderTreeView(self, client, self.selected_folder)
@@ -30,8 +30,8 @@ def test_get_tree_view_basic():
     dialog = MockFoldersDialog()
 
     with (
-        patch("nxdrive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
-        patch("nxdrive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
+        patch("nxdrive.drive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
+        patch("nxdrive.drive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
     ):
         mock_client = Mock()
         mock_folders_only.return_value = mock_client
@@ -69,7 +69,7 @@ def test_get_tree_view_with_different_selected_folder():
 
         def get_tree_view(self):
             self.resize(800, 450)
-            from nxdrive.gui.folders_dialog import FoldersOnly, FolderTreeView
+            from nxdrive.drive.gui.folders_dialog import FoldersOnly, FolderTreeView
 
             client = FoldersOnly(self.engine.remote)
             return FolderTreeView(self, client, self.selected_folder)
@@ -77,8 +77,8 @@ def test_get_tree_view_with_different_selected_folder():
     dialog = MockFoldersDialog()
 
     with (
-        patch("nxdrive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
-        patch("nxdrive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
+        patch("nxdrive.drive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
+        patch("nxdrive.drive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
     ):
         mock_client = Mock()
         mock_folders_only.return_value = mock_client
@@ -109,7 +109,7 @@ def test_get_tree_view_with_none_selected_folder():
 
         def get_tree_view(self):
             self.resize(800, 450)
-            from nxdrive.gui.folders_dialog import FoldersOnly, FolderTreeView
+            from nxdrive.drive.gui.folders_dialog import FoldersOnly, FolderTreeView
 
             client = FoldersOnly(self.engine.remote)
             return FolderTreeView(self, client, self.selected_folder)
@@ -117,8 +117,8 @@ def test_get_tree_view_with_none_selected_folder():
     dialog = MockFoldersDialog()
 
     with (
-        patch("nxdrive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
-        patch("nxdrive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
+        patch("nxdrive.drive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
+        patch("nxdrive.drive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
     ):
         mock_client = Mock()
         mock_folders_only.return_value = mock_client
@@ -148,7 +148,7 @@ def test_get_tree_view_resize_dimensions():
 
         def get_tree_view(self):
             self.resize(800, 450)
-            from nxdrive.gui.folders_dialog import FoldersOnly, FolderTreeView
+            from nxdrive.drive.gui.folders_dialog import FoldersOnly, FolderTreeView
 
             client = FoldersOnly(self.engine.remote)
             return FolderTreeView(self, client, self.selected_folder)
@@ -156,8 +156,8 @@ def test_get_tree_view_resize_dimensions():
     dialog = MockFoldersDialog()
 
     with (
-        patch("nxdrive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
-        patch("nxdrive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
+        patch("nxdrive.drive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
+        patch("nxdrive.drive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
     ):
         mock_folders_only.return_value = Mock()
         mock_tree_view.return_value = Mock()
@@ -184,7 +184,7 @@ def test_get_tree_view_folders_only_client_creation():
 
         def get_tree_view(self):
             self.resize(800, 450)
-            from nxdrive.gui.folders_dialog import FoldersOnly, FolderTreeView
+            from nxdrive.drive.gui.folders_dialog import FoldersOnly, FolderTreeView
 
             client = FoldersOnly(self.engine.remote)
             return FolderTreeView(self, client, self.selected_folder)
@@ -192,8 +192,8 @@ def test_get_tree_view_folders_only_client_creation():
     dialog = MockFoldersDialog()
 
     with (
-        patch("nxdrive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
-        patch("nxdrive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
+        patch("nxdrive.drive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
+        patch("nxdrive.drive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
     ):
         mock_client = Mock()
         mock_folders_only.return_value = mock_client
@@ -220,7 +220,7 @@ def test_get_tree_view_folder_tree_view_parameters():
 
         def get_tree_view(self):
             self.resize(800, 450)
-            from nxdrive.gui.folders_dialog import FoldersOnly, FolderTreeView
+            from nxdrive.drive.gui.folders_dialog import FoldersOnly, FolderTreeView
 
             client = FoldersOnly(self.engine.remote)
             return FolderTreeView(self, client, self.selected_folder)
@@ -228,8 +228,8 @@ def test_get_tree_view_folder_tree_view_parameters():
     dialog = MockFoldersDialog()
 
     with (
-        patch("nxdrive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
-        patch("nxdrive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
+        patch("nxdrive.drive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
+        patch("nxdrive.drive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
     ):
         mock_client = Mock()
         mock_folders_only.return_value = mock_client
@@ -261,7 +261,7 @@ def test_get_tree_view_return_value():
 
         def get_tree_view(self):
             self.resize(800, 450)
-            from nxdrive.gui.folders_dialog import FoldersOnly, FolderTreeView
+            from nxdrive.drive.gui.folders_dialog import FoldersOnly, FolderTreeView
 
             client = FoldersOnly(self.engine.remote)
             return FolderTreeView(self, client, self.selected_folder)
@@ -269,8 +269,8 @@ def test_get_tree_view_return_value():
     dialog = MockFoldersDialog()
 
     with (
-        patch("nxdrive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
-        patch("nxdrive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
+        patch("nxdrive.drive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
+        patch("nxdrive.drive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
     ):
         mock_folders_only.return_value = Mock()
         expected_tree = Mock()
@@ -299,7 +299,7 @@ def test_get_tree_view_call_order():
         def get_tree_view(self):
             self.resize(800, 450)
             self.call_order.append("before_FoldersOnly")
-            from nxdrive.gui.folders_dialog import FoldersOnly, FolderTreeView
+            from nxdrive.drive.gui.folders_dialog import FoldersOnly, FolderTreeView
 
             client = FoldersOnly(self.engine.remote)
             self.call_order.append("before_FolderTreeView")
@@ -308,8 +308,8 @@ def test_get_tree_view_call_order():
     dialog = MockFoldersDialog()
 
     with (
-        patch("nxdrive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
-        patch("nxdrive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
+        patch("nxdrive.drive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
+        patch("nxdrive.drive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
     ):
         mock_folders_only.return_value = Mock()
         mock_tree_view.return_value = Mock()

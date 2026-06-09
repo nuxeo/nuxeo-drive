@@ -6,13 +6,13 @@ from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
 
-from nxdrive.constants import ROOT
-from nxdrive.exceptions import ThreadInterrupt
+from nxdrive.drive.constants import ROOT
+from nxdrive.drive.exceptions import ThreadInterrupt
 
 
 def test_execute(tmp_path):
     """Test LocalWatcher._execute() method covering all code paths."""
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     # Create mocks
     mock_engine = Mock()
@@ -66,8 +66,8 @@ def test_execute(tmp_path):
     watcher._interact.side_effect = interact_side_effect
 
     # Execute and expect ThreadInterrupt (patch OS to ensure non-Linux, non-Windows)
-    with patch("nxdrive.engine.watcher.local_watcher.LINUX", False), patch(
-        "nxdrive.engine.watcher.local_watcher.WINDOWS", False
+    with patch("nxdrive.drive.engine.watcher.local_watcher.LINUX", False), patch(
+        "nxdrive.drive.engine.watcher.local_watcher.WINDOWS", False
     ):
         with pytest.raises(ThreadInterrupt):
             watcher._execute()
@@ -89,8 +89,8 @@ def test_execute(tmp_path):
     interact_call_count[0] = 0
 
     # Test Case 3: Linux-specific flow with _update_local_status
-    with patch("nxdrive.engine.watcher.local_watcher.LINUX", True), patch(
-        "nxdrive.engine.watcher.local_watcher.WINDOWS", False
+    with patch("nxdrive.drive.engine.watcher.local_watcher.LINUX", True), patch(
+        "nxdrive.drive.engine.watcher.local_watcher.WINDOWS", False
     ):
 
         def interact_side_effect_linux():
@@ -119,9 +119,11 @@ def test_execute(tmp_path):
     interact_call_count[0] = 0
 
     # Test Case 4: Windows-specific flow with delete and folder scan checks
-    with patch("nxdrive.engine.watcher.local_watcher.LINUX", False), patch(
-        "nxdrive.engine.watcher.local_watcher.WINDOWS", True
-    ), patch("nxdrive.engine.watcher.local_watcher.current_milli_time") as mock_time:
+    with patch("nxdrive.drive.engine.watcher.local_watcher.LINUX", False), patch(
+        "nxdrive.drive.engine.watcher.local_watcher.WINDOWS", True
+    ), patch(
+        "nxdrive.drive.engine.watcher.local_watcher.current_milli_time"
+    ) as mock_time:
 
         # Setup time mock to return incrementing values
         time_values = [1000, 1001, 1002, 1003, 1004, 1005]
@@ -163,9 +165,11 @@ def test_execute(tmp_path):
     interact_call_count[0] = 0
 
     # Test Case 5: Multiple watchdog events processing on Windows
-    with patch("nxdrive.engine.watcher.local_watcher.LINUX", False), patch(
-        "nxdrive.engine.watcher.local_watcher.WINDOWS", True
-    ), patch("nxdrive.engine.watcher.local_watcher.current_milli_time") as mock_time:
+    with patch("nxdrive.drive.engine.watcher.local_watcher.LINUX", False), patch(
+        "nxdrive.drive.engine.watcher.local_watcher.WINDOWS", True
+    ), patch(
+        "nxdrive.drive.engine.watcher.local_watcher.current_milli_time"
+    ) as mock_time:
 
         mock_time.side_effect = [2000, 2001, 2002, 2003, 2004, 2005, 2006]
 
@@ -213,8 +217,8 @@ def test_execute(tmp_path):
     interact_call_count[0] = 0
 
     # Test Case 6: Finally block always executes even without ThreadInterrupt
-    with patch("nxdrive.engine.watcher.local_watcher.LINUX", False), patch(
-        "nxdrive.engine.watcher.local_watcher.WINDOWS", False
+    with patch("nxdrive.drive.engine.watcher.local_watcher.LINUX", False), patch(
+        "nxdrive.drive.engine.watcher.local_watcher.WINDOWS", False
     ):
 
         def interact_side_effect_generic_exception():
@@ -240,9 +244,9 @@ def test_execute(tmp_path):
     interact_call_count[0] = 0
 
     # Test Case 7: Empty queue flow (no events, just sleep cycles)
-    with patch("nxdrive.engine.watcher.local_watcher.LINUX", False), patch(
-        "nxdrive.engine.watcher.local_watcher.WINDOWS", False
-    ), patch("nxdrive.engine.watcher.local_watcher.sleep") as mock_sleep:
+    with patch("nxdrive.drive.engine.watcher.local_watcher.LINUX", False), patch(
+        "nxdrive.drive.engine.watcher.local_watcher.WINDOWS", False
+    ), patch("nxdrive.drive.engine.watcher.local_watcher.sleep") as mock_sleep:
 
         watcher.watchdog_queue = Queue()  # Empty queue
 
@@ -267,12 +271,12 @@ def test_execute(tmp_path):
         watcher._stop_watchdog.assert_called_once()
 
     # Test Case 8: Windows checks after queue processing
-    with patch("nxdrive.engine.watcher.local_watcher.LINUX", False), patch(
-        "nxdrive.engine.watcher.local_watcher.WINDOWS", True
+    with patch("nxdrive.drive.engine.watcher.local_watcher.LINUX", False), patch(
+        "nxdrive.drive.engine.watcher.local_watcher.WINDOWS", True
     ), patch(
-        "nxdrive.engine.watcher.local_watcher.current_milli_time"
+        "nxdrive.drive.engine.watcher.local_watcher.current_milli_time"
     ) as mock_time, patch(
-        "nxdrive.engine.watcher.local_watcher.sleep"
+        "nxdrive.drive.engine.watcher.local_watcher.sleep"
     ):
 
         mock_time.side_effect = [3000, 3001, 3002, 3003]
@@ -303,7 +307,7 @@ def test_execute(tmp_path):
 
 def test_update_local_status(tmp_path):
     """Test LocalWatcher._update_local_status() method covering all code paths."""
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     # Create mocks
     mock_engine = Mock()
@@ -444,7 +448,7 @@ def test_update_local_status(tmp_path):
 
 def test_win_delete_check(tmp_path):
     """Test LocalWatcher._win_delete_check() method covering all code paths."""
-    from nxdrive.engine.watcher.local_watcher import (
+    from nxdrive.drive.engine.watcher.local_watcher import (
         WIN_MOVE_RESOLUTION_PERIOD,
         LocalWatcher,
     )
@@ -464,7 +468,9 @@ def test_win_delete_check(tmp_path):
 
     # Test Case 1: Early return when _win_delete_interval >= elapsed
     # _win_delete_interval is recent enough that we shouldn't process
-    with patch("nxdrive.engine.watcher.local_watcher.current_milli_time") as mock_time:
+    with patch(
+        "nxdrive.drive.engine.watcher.local_watcher.current_milli_time"
+    ) as mock_time:
         current_time = 10000
         mock_time.return_value = current_time
 
@@ -487,7 +493,9 @@ def test_win_delete_check(tmp_path):
 
     # Test Case 2: Process deletes when enough time has elapsed
     # _win_delete_interval is old enough that we should process
-    with patch("nxdrive.engine.watcher.local_watcher.current_milli_time") as mock_time:
+    with patch(
+        "nxdrive.drive.engine.watcher.local_watcher.current_milli_time"
+    ) as mock_time:
         current_time = 15000
         # First call for elapsed calculation, second call for updating _win_delete_interval
         mock_time.side_effect = [current_time, current_time + 10]
@@ -508,7 +516,9 @@ def test_win_delete_check(tmp_path):
     watcher._win_dequeue_delete.reset_mock()
 
     # Test Case 3: Exact boundary condition (_win_delete_interval == elapsed)
-    with patch("nxdrive.engine.watcher.local_watcher.current_milli_time") as mock_time:
+    with patch(
+        "nxdrive.drive.engine.watcher.local_watcher.current_milli_time"
+    ) as mock_time:
         current_time = 20000
         mock_time.side_effect = [current_time, current_time + 5]
 
@@ -527,7 +537,9 @@ def test_win_delete_check(tmp_path):
     watcher._win_dequeue_delete.reset_mock()
 
     # Test Case 4: Just past the boundary (_win_delete_interval < elapsed)
-    with patch("nxdrive.engine.watcher.local_watcher.current_milli_time") as mock_time:
+    with patch(
+        "nxdrive.drive.engine.watcher.local_watcher.current_milli_time"
+    ) as mock_time:
         current_time = 25000
         mock_time.side_effect = [current_time, current_time + 15]
 
@@ -546,7 +558,9 @@ def test_win_delete_check(tmp_path):
     watcher._win_dequeue_delete.reset_mock()
 
     # Test Case 5: Verify lock is used when processing (by patching the lock)
-    with patch("nxdrive.engine.watcher.local_watcher.current_milli_time") as mock_time:
+    with patch(
+        "nxdrive.drive.engine.watcher.local_watcher.current_milli_time"
+    ) as mock_time:
         current_time = 30000
         mock_time.side_effect = [current_time, current_time + 20]
 
@@ -573,7 +587,7 @@ def test_win_delete_check(tmp_path):
 
 def test_scan_pair(tmp_path):
     """Test LocalWatcher.scan_pair() method covering all code paths."""
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     # Create mocks
     mock_engine = Mock()
@@ -646,7 +660,7 @@ def test_scan_pair(tmp_path):
 
     # Test Case 3: Queue is NOT paused, folder does NOT exist (non-Windows)
     # Should pause/resume queue, skip scanning
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", False):
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", False):
         mock_queue_manager.is_paused.return_value = False
         test_path3 = Path("nonexistent_folder")
         mock_local.try_get_info.return_value = None  # Folder doesn't exist
@@ -672,7 +686,7 @@ def test_scan_pair(tmp_path):
 
     # Test Case 4: Queue is already paused, folder does NOT exist (non-Windows)
     # Should NOT pause/resume queue, skip scanning
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", False):
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", False):
         mock_queue_manager.is_paused.return_value = True
         test_path4 = Path("another_nonexistent")
         mock_local.try_get_info.return_value = None
@@ -698,7 +712,7 @@ def test_scan_pair(tmp_path):
 
     # Test Case 5: Windows-specific - folder does NOT exist, remove from events
     # Should remove from _folder_scan_events
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", True):
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", True):
         mock_queue_manager.is_paused.return_value = False
         test_path5 = Path("windows_nonexistent")
         mock_local.try_get_info.return_value = None
@@ -733,7 +747,7 @@ def test_scan_pair(tmp_path):
 
     # Test Case 6: Windows-specific - folder does NOT exist, path not in events
     # Should not fail when path not in _folder_scan_events
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", True):
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", True):
         mock_queue_manager.is_paused.return_value = True
         test_path6 = Path("windows_path_not_in_events")
         mock_local.try_get_info.return_value = None
@@ -779,7 +793,7 @@ def test_scan_pair(tmp_path):
 
 def test_get_creation_time(tmp_path):
     """Test LocalWatcher.get_creation_time() method covering all code paths."""
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     # Create mocks
     mock_engine = Mock()
@@ -793,8 +807,8 @@ def test_get_creation_time(tmp_path):
     watcher = LocalWatcher(mock_engine, mock_dao)
 
     # Test Case 1: Windows - returns st_ctime as integer
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", True), patch(
-        "nxdrive.engine.watcher.local_watcher.MAC", False
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", True), patch(
+        "nxdrive.drive.engine.watcher.local_watcher.MAC", False
     ):
 
         # Create a real temp file to get actual stat
@@ -814,8 +828,8 @@ def test_get_creation_time(tmp_path):
         assert abs(result - current_time) < 3600  # Within an hour
 
     # Test Case 2: Mac with st_ino attribute - returns st_ino
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", False), patch(
-        "nxdrive.engine.watcher.local_watcher.MAC", True
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", False), patch(
+        "nxdrive.drive.engine.watcher.local_watcher.MAC", True
     ):
 
         test_file2 = tmp_path / "mac_test.txt"
@@ -829,8 +843,8 @@ def test_get_creation_time(tmp_path):
         assert result > 0
 
     # Test Case 3: Mac without st_ino attribute (mocked stat without st_ino)
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", False), patch(
-        "nxdrive.engine.watcher.local_watcher.MAC", True
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", False), patch(
+        "nxdrive.drive.engine.watcher.local_watcher.MAC", True
     ):
 
         test_file3 = tmp_path / "mac_no_ino.txt"
@@ -849,8 +863,8 @@ def test_get_creation_time(tmp_path):
             assert result == 1234567890
 
     # Test Case 4: Non-Mac, non-Windows with st_birthtime - returns st_birthtime
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", False), patch(
-        "nxdrive.engine.watcher.local_watcher.MAC", False
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", False), patch(
+        "nxdrive.drive.engine.watcher.local_watcher.MAC", False
     ):
 
         test_file4 = tmp_path / "other_os_test.txt"
@@ -867,8 +881,8 @@ def test_get_creation_time(tmp_path):
             assert result == 9876543210
 
     # Test Case 5: Non-Mac, non-Windows without st_birthtime - returns 0
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", False), patch(
-        "nxdrive.engine.watcher.local_watcher.MAC", False
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", False), patch(
+        "nxdrive.drive.engine.watcher.local_watcher.MAC", False
     ):
 
         test_file5 = tmp_path / "no_birthtime.txt"
@@ -885,8 +899,8 @@ def test_get_creation_time(tmp_path):
             assert result == 0
 
     # Test Case 6: Mac with st_ino=0 (edge case)
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", False), patch(
-        "nxdrive.engine.watcher.local_watcher.MAC", True
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", False), patch(
+        "nxdrive.drive.engine.watcher.local_watcher.MAC", True
     ):
 
         test_file6 = tmp_path / "mac_zero_ino.txt"
@@ -903,8 +917,8 @@ def test_get_creation_time(tmp_path):
             assert result == 0
 
     # Test Case 7: Windows with fractional st_ctime - returns integer part
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", True), patch(
-        "nxdrive.engine.watcher.local_watcher.MAC", False
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", True), patch(
+        "nxdrive.drive.engine.watcher.local_watcher.MAC", False
     ):
 
         test_file7 = tmp_path / "windows_fractional.txt"
@@ -926,8 +940,8 @@ def test_scan_recursive(tmp_path):
     """Test LocalWatcher._scan_recursive() method covering all code paths."""
     from datetime import datetime
 
-    from nxdrive.client.local import FileInfo
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.client.local import FileInfo
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     # Create mocks
     mock_engine = Mock()
@@ -1196,7 +1210,7 @@ def test_scan_recursive(tmp_path):
 
 def test_win_dequeue_delete(tmp_path):
     """Test LocalWatcher._win_dequeue_delete() method."""
-    from nxdrive.engine.watcher.local_watcher import (
+    from nxdrive.drive.engine.watcher.local_watcher import (
         WIN_MOVE_RESOLUTION_PERIOD,
         LocalWatcher,
     )
@@ -1215,7 +1229,9 @@ def test_win_dequeue_delete(tmp_path):
     doc_pair1.remote_ref = "ref1"
     doc_pair1.local_path = Path("/test/file1.txt")
 
-    with patch("nxdrive.engine.watcher.local_watcher.current_milli_time") as mock_time:
+    with patch(
+        "nxdrive.drive.engine.watcher.local_watcher.current_milli_time"
+    ) as mock_time:
         current = 10000
         evt_time = current - (WIN_MOVE_RESOLUTION_PERIOD - 100)  # Too recent
         mock_time.return_value = current
@@ -1227,7 +1243,9 @@ def test_win_dequeue_delete(tmp_path):
         assert "ref1" in watcher._delete_events
 
     # Test Case 2: Delete event old enough, file doesn't exist (real delete)
-    with patch("nxdrive.engine.watcher.local_watcher.current_milli_time") as mock_time:
+    with patch(
+        "nxdrive.drive.engine.watcher.local_watcher.current_milli_time"
+    ) as mock_time:
         current = 20000
         evt_time = current - WIN_MOVE_RESOLUTION_PERIOD - 100  # Old enough
         mock_time.return_value = current
@@ -1242,7 +1260,9 @@ def test_win_dequeue_delete(tmp_path):
         watcher._handle_watchdog_delete.assert_called_once_with(doc_pair1)
 
     # Test Case 3: Delete event old enough, file exists with same remote_ref (ignored)
-    with patch("nxdrive.engine.watcher.local_watcher.current_milli_time") as mock_time:
+    with patch(
+        "nxdrive.drive.engine.watcher.local_watcher.current_milli_time"
+    ) as mock_time:
         current = 30000
         evt_time = current - WIN_MOVE_RESOLUTION_PERIOD - 100
         mock_time.return_value = current
@@ -1260,7 +1280,9 @@ def test_win_dequeue_delete(tmp_path):
     doc_pair2.remote_ref = "ref2"
     doc_pair2.local_path = Path("/test/file2.txt")
 
-    with patch("nxdrive.engine.watcher.local_watcher.current_milli_time") as mock_time:
+    with patch(
+        "nxdrive.drive.engine.watcher.local_watcher.current_milli_time"
+    ) as mock_time:
         current = 40000
         evt_time = current - WIN_MOVE_RESOLUTION_PERIOD - 100
         mock_time.return_value = current
@@ -1278,7 +1300,7 @@ def test_win_dequeue_delete(tmp_path):
 
 def test_win_folder_scan_check(tmp_path):
     """Test LocalWatcher._win_folder_scan_check() and _win_dequeue_folder_scan()."""
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     mock_engine = Mock()
     mock_dao = Mock()
@@ -1289,7 +1311,9 @@ def test_win_folder_scan_check(tmp_path):
     watcher._win_dequeue_folder_scan = Mock()
 
     # Test Case 1: Too soon, should return early
-    with patch("nxdrive.engine.watcher.local_watcher.current_milli_time") as mock_time:
+    with patch(
+        "nxdrive.drive.engine.watcher.local_watcher.current_milli_time"
+    ) as mock_time:
         current = 10000
         mock_time.return_value = current
         watcher._win_folder_scan_interval = current - 1000  # Recent
@@ -1301,7 +1325,9 @@ def test_win_folder_scan_check(tmp_path):
 
     # Test Case 2: Enough time passed, should dequeue
     watcher._win_dequeue_folder_scan.reset_mock()
-    with patch("nxdrive.engine.watcher.local_watcher.current_milli_time") as mock_time:
+    with patch(
+        "nxdrive.drive.engine.watcher.local_watcher.current_milli_time"
+    ) as mock_time:
         current = 20000
         mock_time.side_effect = [current, current + 10]
         watcher._win_folder_scan_interval = (
@@ -1317,7 +1343,7 @@ def test_win_folder_scan_check(tmp_path):
 
 def test_scan_handle_deleted_files():
     """Test LocalWatcher._scan_handle_deleted_files()."""
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     mock_engine = Mock()
     mock_dao = Mock()
@@ -1359,7 +1385,7 @@ def test_scan_handle_deleted_files():
 
 def test_get_metrics():
     """Test LocalWatcher.get_metrics()."""
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     mock_engine = Mock()
     mock_dao = Mock()
@@ -1393,7 +1419,7 @@ def test_get_metrics():
 
 def test_suspend_queue():
     """Test LocalWatcher._suspend_queue()."""
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     mock_engine = Mock()
     mock_dao = Mock()
@@ -1429,7 +1455,7 @@ def test_suspend_queue():
 
 def test_empty_events():
     """Test LocalWatcher.empty_events()."""
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     mock_engine = Mock()
     mock_dao = Mock()
@@ -1438,31 +1464,31 @@ def test_empty_events():
     watcher.watchdog_queue = Queue()
 
     # Test Case 1: All empty (non-Windows)
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", False):
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", False):
         assert watcher.empty_events() is True
 
     # Test Case 2: Watchdog queue not empty
     watcher.watchdog_queue.put(Mock())
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", False):
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", False):
         assert watcher.empty_events() is False
 
     # Clean up
     watcher.watchdog_queue.get()
 
     # Test Case 3: Windows with delete events
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", True):
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", True):
         watcher._delete_events = {"ref1": (1000, Mock())}
         watcher._folder_scan_events = {}
         assert watcher.empty_events() is False
 
     # Test Case 4: Windows with folder scan events
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", True):
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", True):
         watcher._delete_events = {}
         watcher._folder_scan_events = {Path("/test"): (1000, Mock())}
         assert watcher.empty_events() is False
 
     # Test Case 5: Windows all empty
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", True):
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", True):
         watcher._delete_events = {}
         watcher._folder_scan_events = {}
         assert watcher.empty_events() is True
@@ -1470,7 +1496,7 @@ def test_empty_events():
 
 def test_handle_watchdog_delete():
     """Test LocalWatcher._handle_watchdog_delete()."""
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     mock_engine = Mock()
     mock_dao = Mock()
@@ -1522,7 +1548,7 @@ def test_handle_watchdog_delete():
 
 def test_handle_delete_on_known_pair():
     """Test LocalWatcher._handle_delete_on_known_pair()."""
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     mock_engine = Mock()
     mock_dao = Mock()
@@ -1538,8 +1564,8 @@ def test_handle_delete_on_known_pair():
     doc_pair.remote_ref = "ref123"
 
     # Test Case 1: Windows - add to delete events
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", True), patch(
-        "nxdrive.engine.watcher.local_watcher.current_milli_time"
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", True), patch(
+        "nxdrive.drive.engine.watcher.local_watcher.current_milli_time"
     ) as mock_time:
         mock_time.return_value = 5000
         watcher._delete_events = {}
@@ -1552,7 +1578,7 @@ def test_handle_delete_on_known_pair():
         watcher._handle_watchdog_delete.assert_not_called()
 
     # Test Case 2: Non-Windows, file doesn't exist
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", False):
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", False):
         mock_local.exists.return_value = False
         watcher._handle_watchdog_delete.reset_mock()
 
@@ -1562,7 +1588,7 @@ def test_handle_delete_on_known_pair():
         watcher._handle_watchdog_delete.assert_called_once_with(doc_pair)
 
     # Test Case 3: Non-Windows, file exists with same remote_id (update case)
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", False):
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", False):
         mock_local.exists.return_value = True
         mock_local.get_remote_id.return_value = "ref123"  # Same as doc_pair
         watcher._handle_watchdog_delete.reset_mock()
@@ -1573,7 +1599,7 @@ def test_handle_delete_on_known_pair():
         watcher._handle_watchdog_delete.assert_not_called()
 
     # Test Case 4: Non-Windows, file exists with different remote_id
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", False):
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", False):
         mock_local.exists.return_value = True
         mock_local.get_remote_id.return_value = "different_ref"
         watcher._handle_watchdog_delete.reset_mock()
@@ -1586,7 +1612,7 @@ def test_handle_delete_on_known_pair():
 
 def test_handle_watchdog_root_event():
     """Test LocalWatcher.handle_watchdog_root_event()."""
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     mock_engine = Mock()
     mock_dao = Mock()
@@ -1612,7 +1638,9 @@ def test_handle_watchdog_root_event():
     evt.event_type = "moved"
     evt.dest_path = "/new/path"
 
-    with patch("nxdrive.engine.watcher.local_watcher.normalize") as mock_normalize:
+    with patch(
+        "nxdrive.drive.engine.watcher.local_watcher.normalize"
+    ) as mock_normalize:
         mock_normalize.return_value = Path("/new/path")
         watcher.handle_watchdog_root_event(evt)
 
@@ -1622,7 +1650,7 @@ def test_handle_watchdog_root_event():
 
 def test_schedule_win_folder_scan():
     """Test LocalWatcher._schedule_win_folder_scan()."""
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     mock_engine = Mock()
     mock_dao = Mock()
@@ -1678,7 +1706,7 @@ def test_schedule_win_folder_scan():
 
 def test_win_queue_methods():
     """Test LocalWatcher.win_queue_empty() and get_win_queue_size()."""
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     mock_engine = Mock()
     mock_dao = Mock()
@@ -1698,7 +1726,7 @@ def test_win_queue_methods():
 
 def test_win_folder_scan_methods():
     """Test LocalWatcher.win_folder_scan_empty() and get_win_folder_scan_size()."""
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     mock_engine = Mock()
     mock_dao = Mock()
@@ -1722,7 +1750,7 @@ def test_win_folder_scan_methods():
 
 def test_handle_move_on_known_pair():
     """Test LocalWatcher._handle_move_on_known_pair()."""
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     mock_engine = Mock()
     mock_dao = Mock()
@@ -1741,7 +1769,7 @@ def test_handle_move_on_known_pair():
     rel_path = Path("/test/file.docx")
 
     with patch(
-        "nxdrive.engine.watcher.local_watcher.is_generated_tmp_file"
+        "nxdrive.drive.engine.watcher.local_watcher.is_generated_tmp_file"
     ) as mock_is_tmp:
         mock_is_tmp.return_value = (True, None)
         watcher._handle_move_on_known_pair(doc_pair, evt, rel_path)
@@ -1762,9 +1790,9 @@ def test_handle_move_on_known_pair():
     existing_pair.local_digest = "olddigest"
 
     with patch(
-        "nxdrive.engine.watcher.local_watcher.is_generated_tmp_file"
+        "nxdrive.drive.engine.watcher.local_watcher.is_generated_tmp_file"
     ) as mock_is_tmp, patch(
-        "nxdrive.engine.watcher.local_watcher.normalize"
+        "nxdrive.drive.engine.watcher.local_watcher.normalize"
     ) as mock_normalize:
         mock_is_tmp.return_value = (False, None)
         mock_normalize.return_value = Path("/test/file2.txt")
@@ -1797,9 +1825,9 @@ def test_handle_move_on_known_pair():
     rel_path = Path("/test/subfolder/file1.txt")
 
     with patch(
-        "nxdrive.engine.watcher.local_watcher.is_generated_tmp_file"
+        "nxdrive.drive.engine.watcher.local_watcher.is_generated_tmp_file"
     ) as mock_is_tmp, patch(
-        "nxdrive.engine.watcher.local_watcher.normalize"
+        "nxdrive.drive.engine.watcher.local_watcher.normalize"
     ) as mock_normalize:
         mock_is_tmp.return_value = (False, None)
         mock_normalize.return_value = Path("/test/subfolder/file1.txt")
@@ -1821,7 +1849,7 @@ def test_handle_move_on_known_pair():
 
 def test_handle_watchdog_event_on_known_pair():
     """Test LocalWatcher._handle_watchdog_event_on_known_pair()."""
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     mock_engine = Mock()
     mock_dao = Mock()
@@ -1878,7 +1906,7 @@ def test_handle_watchdog_event_on_known_pair():
 
 def test_handle_watchdog_event_on_known_acquired_pair():
     """Test LocalWatcher._handle_watchdog_event_on_known_acquired_pair()."""
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     mock_engine = Mock()
     mock_dao = Mock()
@@ -1930,7 +1958,9 @@ def test_handle_watchdog_event_on_known_acquired_pair():
     local_info.get_digest.return_value = "abc123"  # Same digest
     mock_local.try_get_info.return_value = local_info
 
-    with patch("nxdrive.engine.watcher.local_watcher.is_large_file") as mock_large:
+    with patch(
+        "nxdrive.drive.engine.watcher.local_watcher.is_large_file"
+    ) as mock_large:
         mock_large.return_value = False
 
         watcher._handle_watchdog_event_on_known_acquired_pair(doc_pair, evt, rel_path)
@@ -1956,7 +1986,9 @@ def test_handle_watchdog_event_on_known_acquired_pair():
     local_info.remote_ref = "ref123"
     mock_local.try_get_info.return_value = local_info
 
-    with patch("nxdrive.engine.watcher.local_watcher.is_large_file") as mock_large:
+    with patch(
+        "nxdrive.drive.engine.watcher.local_watcher.is_large_file"
+    ) as mock_large:
         mock_large.return_value = False
         evt = Mock()
         evt.event_type = "modified"
@@ -1970,7 +2002,7 @@ def test_handle_watchdog_event_on_known_acquired_pair():
 
 def test_handle_watchdog_event():
     """Test LocalWatcher.handle_watchdog_event() - basic scenarios."""
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     mock_engine = Mock()
     mock_dao = Mock()
@@ -1997,7 +2029,9 @@ def test_handle_watchdog_event():
     evt.src_path = "/test/root"
     evt.event_type = "deleted"
 
-    with patch("nxdrive.engine.watcher.local_watcher.normalize") as mock_normalize:
+    with patch(
+        "nxdrive.drive.engine.watcher.local_watcher.normalize"
+    ) as mock_normalize:
         mock_normalize.return_value = Path("/test/root")
         mock_local.get_path.return_value = ROOT
 
@@ -2011,7 +2045,9 @@ def test_handle_watchdog_event():
     evt.src_path = "/test/folder/.hidden"
     evt.event_type = "created"
 
-    with patch("nxdrive.engine.watcher.local_watcher.normalize") as mock_normalize:
+    with patch(
+        "nxdrive.drive.engine.watcher.local_watcher.normalize"
+    ) as mock_normalize:
         mock_normalize.return_value = Path("/test/folder/.hidden")
         mock_local.get_path.side_effect = [Path("/folder/.hidden"), Path("/folder")]
         mock_local.is_ignored.return_value = True
@@ -2030,7 +2066,9 @@ def test_handle_watchdog_event():
     doc_pair.pair_state = "synchronized"
     doc_pair.local_path = Path("/folder/file.txt")
 
-    with patch("nxdrive.engine.watcher.local_watcher.normalize") as mock_normalize:
+    with patch(
+        "nxdrive.drive.engine.watcher.local_watcher.normalize"
+    ) as mock_normalize:
         mock_normalize.side_effect = [
             Path("/test/folder/file.txt"),
             Path("/test/folder/file.txt"),
@@ -2055,7 +2093,9 @@ def test_handle_watchdog_event():
     evt.src_path = "/test/folder/newfile.txt"
     evt.event_type = "deleted"
 
-    with patch("nxdrive.engine.watcher.local_watcher.normalize") as mock_normalize:
+    with patch(
+        "nxdrive.drive.engine.watcher.local_watcher.normalize"
+    ) as mock_normalize:
         mock_normalize.side_effect = [
             Path("/test/folder/newfile.txt"),
             Path("/test/folder/newfile.txt"),
@@ -2083,7 +2123,9 @@ def test_handle_watchdog_event():
     local_info.remote_ref = None
     local_info.folderish = False
 
-    with patch("nxdrive.engine.watcher.local_watcher.normalize") as mock_normalize:
+    with patch(
+        "nxdrive.drive.engine.watcher.local_watcher.normalize"
+    ) as mock_normalize:
         mock_normalize.side_effect = [
             Path("/test/folder/newfile.txt"),
             Path("/test/folder/newfile.txt"),
@@ -2108,7 +2150,7 @@ def test_drive_fs_event_handler():
     """Test DriveFSEventHandler class."""
     from watchdog.events import FileCreatedEvent
 
-    from nxdrive.engine.watcher.local_watcher import DriveFSEventHandler
+    from nxdrive.drive.engine.watcher.local_watcher import DriveFSEventHandler
 
     mock_watcher = Mock()
     mock_watcher.watchdog_queue = Queue()
@@ -2150,7 +2192,7 @@ def test_drive_fs_event_handler():
 
 def test_setup_and_stop_watchdog():
     """Test LocalWatcher._setup_watchdog() and _stop_watchdog()."""
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     mock_engine = Mock()
     mock_dao = Mock()
@@ -2163,9 +2205,9 @@ def test_setup_and_stop_watchdog():
 
     # Test Case 1: Setup watchdog with synchronization enabled
     with patch(
-        "nxdrive.engine.watcher.local_watcher.Observer"
+        "nxdrive.drive.engine.watcher.local_watcher.Observer"
     ) as mock_observer_class, patch(
-        "nxdrive.engine.watcher.local_watcher.Feature"
+        "nxdrive.drive.engine.watcher.local_watcher.Feature"
     ) as mock_feature:
         mock_observer = Mock()
         mock_observer_class.return_value = mock_observer
@@ -2180,8 +2222,8 @@ def test_setup_and_stop_watchdog():
         mock_observer.schedule.assert_called_once()
 
     # Test Case 2: Stop watchdog with synchronization enabled
-    with patch("nxdrive.engine.watcher.local_watcher.Observer"), patch(
-        "nxdrive.engine.watcher.local_watcher.Feature"
+    with patch("nxdrive.drive.engine.watcher.local_watcher.Observer"), patch(
+        "nxdrive.drive.engine.watcher.local_watcher.Feature"
     ) as mock_feature:
         mock_feature.synchronization = True
         mock_observer = Mock()
@@ -2196,7 +2238,7 @@ def test_setup_and_stop_watchdog():
 
 def test_scan_method():
     """Test LocalWatcher._scan()."""
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     mock_engine = Mock()
     mock_dao = Mock()
@@ -2215,10 +2257,10 @@ def test_scan_method():
     mock_engine.queue_manager.resume = Mock()
 
     # Test Case 1: Basic scan with Windows
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", True), patch(
-        "nxdrive.engine.watcher.local_watcher.current_milli_time"
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", True), patch(
+        "nxdrive.drive.engine.watcher.local_watcher.current_milli_time"
     ) as mock_time, patch(
-        "nxdrive.engine.watcher.local_watcher.Feature"
+        "nxdrive.drive.engine.watcher.local_watcher.Feature"
     ) as mock_feature:
         mock_feature.synchronization = True
         start_time = 10000
@@ -2240,10 +2282,10 @@ def test_scan_method():
     watcher._scan_recursive.reset_mock()
     watcher._scan_handle_deleted_files.reset_mock()
 
-    with patch("nxdrive.engine.watcher.local_watcher.WINDOWS", False), patch(
-        "nxdrive.engine.watcher.local_watcher.current_milli_time"
+    with patch("nxdrive.drive.engine.watcher.local_watcher.WINDOWS", False), patch(
+        "nxdrive.drive.engine.watcher.local_watcher.current_milli_time"
     ) as mock_time, patch(
-        "nxdrive.engine.watcher.local_watcher.Feature"
+        "nxdrive.drive.engine.watcher.local_watcher.Feature"
     ) as mock_feature:
         mock_feature.synchronization = True
         start_time = 20000
@@ -2265,7 +2307,7 @@ def test_win_dequeue_folder_scan():
     """Test LocalWatcher._win_dequeue_folder_scan()."""
     from datetime import datetime
 
-    from nxdrive.engine.watcher.local_watcher import LocalWatcher
+    from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 
     mock_engine = Mock()
     mock_dao = Mock()
@@ -2291,8 +2333,10 @@ def test_win_dequeue_folder_scan():
     mock_local.try_get_info.return_value = local_info1
 
     with patch(
-        "nxdrive.engine.watcher.local_watcher.current_milli_time"
-    ) as mock_time, patch("nxdrive.engine.watcher.local_watcher.mktime") as mock_mktime:
+        "nxdrive.drive.engine.watcher.local_watcher.current_milli_time"
+    ) as mock_time, patch(
+        "nxdrive.drive.engine.watcher.local_watcher.mktime"
+    ) as mock_mktime:
         mock_time.return_value = 16000  # Current time
         mock_mktime.return_value = 4999  # Older than event time, so don't reschedule
 
@@ -2311,7 +2355,9 @@ def test_win_dequeue_folder_scan():
         Path("/test/folder2"): (15000, doc_pair2)  # Too recent
     }
 
-    with patch("nxdrive.engine.watcher.local_watcher.current_milli_time") as mock_time:
+    with patch(
+        "nxdrive.drive.engine.watcher.local_watcher.current_milli_time"
+    ) as mock_time:
         mock_time.return_value = 16000  # Not enough time passed
 
         watcher._win_dequeue_folder_scan()

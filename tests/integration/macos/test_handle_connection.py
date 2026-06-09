@@ -4,9 +4,9 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
-from nxdrive.qt import constants as qt
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
+from nxdrive.drive.qt import constants as qt
 from tests.markers import mac_only
 
 
@@ -45,11 +45,11 @@ class TestHandleConnection:
         app._nxdrive_listener.nextPendingConnection.return_value = mock_connection
 
         with patch.object(app, "_handle_nxdrive_url") as mock_handle_url, patch(
-            "nxdrive.gui.application.force_decode"
-        ) as mock_decode, patch("nxdrive.gui.application.log"):
+            "nxdrive.drive.gui.application.force_decode"
+        ) as mock_decode, patch("nxdrive.drive.gui.application.log"):
             mock_decode.return_value = test_url
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_connection.__get__(app, Application)
             bound_method()
@@ -79,9 +79,9 @@ class TestHandleConnection:
         app._nxdrive_listener.nextPendingConnection.return_value = mock_connection
 
         with patch.object(app, "_handle_nxdrive_url") as mock_handle_url, patch(
-            "nxdrive.gui.application.log"
+            "nxdrive.drive.gui.application.log"
         ) as mock_log:
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_connection.__get__(app, Application)
             bound_method()
@@ -107,9 +107,9 @@ class TestHandleConnection:
         app._nxdrive_listener.nextPendingConnection.return_value = mock_connection
 
         with patch.object(app, "_handle_nxdrive_url") as mock_handle_url, patch(
-            "nxdrive.gui.application.log"
+            "nxdrive.drive.gui.application.log"
         ) as mock_log:
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_connection.__get__(app, Application)
             bound_method()
@@ -139,9 +139,9 @@ class TestHandleConnection:
         app._nxdrive_listener.nextPendingConnection.return_value = mock_connection
 
         with patch.object(app, "_handle_nxdrive_url") as mock_handle_url, patch(
-            "nxdrive.gui.application.log"
+            "nxdrive.drive.gui.application.log"
         ):
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_connection.__get__(app, Application)
             bound_method()
@@ -176,9 +176,9 @@ class TestHandleConnection:
         app._nxdrive_listener.nextPendingConnection.return_value = mock_connection
 
         with patch.object(app, "_handle_nxdrive_url"), patch(
-            "nxdrive.gui.application.force_decode", return_value=test_url
-        ), patch("nxdrive.gui.application.log"):
-            from nxdrive.gui.application import Application as RealApp
+            "nxdrive.drive.gui.application.force_decode", return_value=test_url
+        ), patch("nxdrive.drive.gui.application.log"):
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_connection.__get__(app, Application)
             bound_method()
@@ -207,9 +207,9 @@ class TestHandleConnection:
         app._nxdrive_listener.nextPendingConnection.return_value = mock_connection
 
         with patch.object(app, "_handle_nxdrive_url"), patch(
-            "nxdrive.gui.application.force_decode", return_value=test_url
-        ), patch("nxdrive.gui.application.log"):
-            from nxdrive.gui.application import Application as RealApp
+            "nxdrive.drive.gui.application.force_decode", return_value=test_url
+        ), patch("nxdrive.drive.gui.application.log"):
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_connection.__get__(app, Application)
             bound_method()
@@ -231,8 +231,8 @@ class TestHandleConnection:
 
         app._nxdrive_listener.nextPendingConnection.return_value = mock_connection
 
-        with patch("nxdrive.gui.application.log"):
-            from nxdrive.gui.application import Application as RealApp
+        with patch("nxdrive.drive.gui.application.log"):
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_connection.__get__(app, Application)
 
@@ -261,9 +261,9 @@ class TestHandleConnection:
         app._nxdrive_listener.nextPendingConnection.return_value = mock_connection
 
         with patch.object(app, "_handle_nxdrive_url"), patch(
-            "nxdrive.gui.application.force_decode", return_value=test_url
-        ), patch("nxdrive.gui.application.log") as mock_log:
-            from nxdrive.gui.application import Application as RealApp
+            "nxdrive.drive.gui.application.force_decode", return_value=test_url
+        ), patch("nxdrive.drive.gui.application.log") as mock_log:
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._handle_connection.__get__(app, Application)
             bound_method()
@@ -299,9 +299,9 @@ class TestHandleConnection:
             app._nxdrive_listener.nextPendingConnection.return_value = mock_connection
 
             with patch.object(app, "_handle_nxdrive_url") as mock_handle_url, patch(
-                "nxdrive.gui.application.force_decode", return_value=test_url
-            ), patch("nxdrive.gui.application.log"):
-                from nxdrive.gui.application import Application as RealApp
+                "nxdrive.drive.gui.application.force_decode", return_value=test_url
+            ), patch("nxdrive.drive.gui.application.log"):
+                from nxdrive.drive.gui.application import Application as RealApp
 
                 bound_method = RealApp._handle_connection.__get__(app, Application)
                 bound_method()

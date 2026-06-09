@@ -2,7 +2,7 @@
 Functional test cases for nxdrive/client/uploader/direct_transfer.py
 """
 
-from nxdrive.client.uploader.direct_transfer import DirectTransferUploader
+from nxdrive.nuxeo.client.uploader.direct_transfer import DirectTransferUploader
 
 
 def test_get_upload(manager_factory):

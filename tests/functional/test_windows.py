@@ -1,7 +1,7 @@
 import pytest
 
 try:
-    from nxdrive.osi.windows import registry
+    from nxdrive.drive.osi.windows import registry
 except ImportError:
     pytestmark = pytest.mark.skip("Windows only.")
 

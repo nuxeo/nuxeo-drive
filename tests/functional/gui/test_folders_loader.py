@@ -2,12 +2,12 @@
 
 from unittest.mock import MagicMock, patch
 
-from nxdrive.gui.folders_loader import (
+from nxdrive.drive.gui.folders_loader import (
     ContentLoaderMixin,
     DocumentContentLoader,
     FolderContentLoader,
 )
-from nxdrive.qt import constants as qt
+from nxdrive.drive.qt import constants as qt
 
 
 class TestContentLoaderMixin:
@@ -134,9 +134,9 @@ class TestContentLoaderMixin:
         mock_item = MagicMock()
 
         with patch(
-            "nxdrive.gui.folders_loader.QStandardItem"
+            "nxdrive.drive.gui.folders_loader.QStandardItem"
         ) as mock_qstandarditem, patch(
-            "nxdrive.gui.folders_loader.Translator"
+            "nxdrive.drive.gui.folders_loader.Translator"
         ) as mock_translator:
 
             mock_loading_item = MagicMock()
@@ -224,9 +224,9 @@ class TestContentLoaderMixin:
         mock_tree.client.get_children.side_effect = Exception("Network error")
 
         with patch(
-            "nxdrive.gui.folders_loader.QStandardItem"
+            "nxdrive.drive.gui.folders_loader.QStandardItem"
         ) as mock_qstandarditem, patch(
-            "nxdrive.gui.folders_loader.Translator"
+            "nxdrive.drive.gui.folders_loader.Translator"
         ) as mock_translator:
 
             mock_error_item = MagicMock()
@@ -283,9 +283,9 @@ class TestDocumentContentLoader:
         mock_child.selectable.return_value = True
 
         with patch(
-            "nxdrive.gui.folders_loader.QStandardItem"
+            "nxdrive.drive.gui.folders_loader.QStandardItem"
         ) as mock_qstandarditem, patch(
-            "nxdrive.gui.folders_loader.QVariant"
+            "nxdrive.drive.gui.folders_loader.QVariant"
         ) as mock_qvariant:
 
             mock_subitem = MagicMock()
@@ -318,7 +318,9 @@ class TestDocumentContentLoader:
         mock_child.enable.return_value = True
         mock_child.selectable.return_value = True
 
-        with patch("nxdrive.gui.folders_loader.QStandardItem") as mock_qstandarditem:
+        with patch(
+            "nxdrive.drive.gui.folders_loader.QStandardItem"
+        ) as mock_qstandarditem:
             mock_subitem = MagicMock()
             mock_qstandarditem.return_value = mock_subitem
 
@@ -376,9 +378,9 @@ class TestFolderContentLoader:
         mock_child.selectable.return_value = True
 
         with patch(
-            "nxdrive.gui.folders_loader.QStandardItem"
+            "nxdrive.drive.gui.folders_loader.QStandardItem"
         ) as mock_qstandarditem, patch(
-            "nxdrive.gui.folders_loader.QVariant"
+            "nxdrive.drive.gui.folders_loader.QVariant"
         ) as mock_qvariant:
 
             mock_subitem = MagicMock()
@@ -435,18 +437,20 @@ class TestLoaderIntegration:
         mock_model_class.return_value.invisibleRootItem.return_value = (
             mock_invisible_root
         )
-        with patch("nxdrive.gui.folders_loader.QStandardItemModel", mock_model_class):
+        with patch(
+            "nxdrive.drive.gui.folders_loader.QStandardItemModel", mock_model_class
+        ):
             loader = DocumentContentLoader(mock_tree, item=mock_item)
 
         # Simulate network error
         mock_tree.client.get_children.side_effect = Exception("Connection timeout")
 
         with patch(
-            "nxdrive.gui.folders_loader.QStandardItem"
+            "nxdrive.drive.gui.folders_loader.QStandardItem"
         ) as mock_qstandarditem, patch(
-            "nxdrive.gui.folders_loader.Translator"
+            "nxdrive.drive.gui.folders_loader.Translator"
         ) as mock_translator, patch(
-            "nxdrive.gui.folders_loader.log"
+            "nxdrive.drive.gui.folders_loader.log"
         ) as mock_log:
 
             mock_error_item = MagicMock()

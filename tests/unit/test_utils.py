@@ -9,10 +9,10 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-import nxdrive.utils
-from nxdrive.constants import APP_NAME, MAC, WINDOWS, DigestStatus
-from nxdrive.dao.utils import dump
-from nxdrive.options import Options
+import nxdrive.drive.utils
+from nxdrive.drive.constants import APP_NAME, MAC, WINDOWS, DigestStatus
+from nxdrive.drive.dao.utils import dump
+from nxdrive.drive.options import Options
 
 from ..markers import linux_only, not_windows, windows_only
 
@@ -102,7 +102,7 @@ def test_compute_digest(tmp, size, digest_func, result):
 
 
 def test_compute_digest_with_callback(tmp):
-    from nxdrive.constants import FILE_BUFFER_SIZE
+    from nxdrive.drive.constants import FILE_BUFFER_SIZE
 
     folder = tmp()
     folder.mkdir()
@@ -121,14 +121,14 @@ def test_compute_digest_with_callback(tmp):
 
 
 def test_compute_digest_unknown():
-    from nxdrive.exceptions import UnknownDigest
+    from nxdrive.drive.exceptions import UnknownDigest
 
     with pytest.raises(UnknownDigest):
         nxdrive.utils.compute_digest("no_file", "unknown_digest_func")
 
 
 def test_compute_digest_error(tmp):
-    from nxdrive.constants import UNACCESSIBLE_HASH
+    from nxdrive.drive.constants import UNACCESSIBLE_HASH
 
     folder = tmp()
     folder.mkdir()
@@ -1280,7 +1280,7 @@ def test_save_config(default_config, config_dump, tmp_path):
 
 @linux_only
 def test_url_bad_ssl():
-    from nxdrive.exceptions import InvalidSSLCertificate
+    from nxdrive.drive.exceptions import InvalidSSLCertificate
 
     if not Options.ssl_no_verify:
         with pytest.raises(InvalidSSLCertificate):
@@ -1659,7 +1659,7 @@ class TestShowDirectDownloadWindow:
     def _make_app(self, engines=None):
         app = Mock()
         app.show_direct_download_window = __import__(
-            "nxdrive.gui.application", fromlist=["Application"]
+            "nxdrive.drive.gui.application", fromlist=["Application"]
         ).Application.show_direct_download_window.__get__(app)
 
         manager = Mock()
@@ -1744,7 +1744,7 @@ class TestHandleNxdriveUrlDirectDownload:
     def _make_app(self):
         app = Mock()
         app._handle_nxdrive_url = __import__(
-            "nxdrive.gui.application", fromlist=["Application"]
+            "nxdrive.drive.gui.application", fromlist=["Application"]
         ).Application._handle_nxdrive_url.__get__(app)
         manager = Mock()
         manager.restart_needed = False
@@ -1769,9 +1769,9 @@ class TestHandleNxdriveUrlDirectDownload:
         ]
 
         with patch(
-            "nxdrive.gui.application.parse_protocol_url",
+            "nxdrive.drive.gui.application.parse_protocol_url",
             return_value=self._parse_return(documents),
-        ), patch("nxdrive.gui.application.normalized_path", return_value=""):
+        ), patch("nxdrive.drive.gui.application.normalized_path", return_value=""):
             result = app._handle_nxdrive_url("nxdrive://direct-download/x")
 
         assert result is True
@@ -1794,9 +1794,9 @@ class TestHandleNxdriveUrlDirectDownload:
         ]
 
         with patch(
-            "nxdrive.gui.application.parse_protocol_url",
+            "nxdrive.drive.gui.application.parse_protocol_url",
             return_value=self._parse_return(documents),
-        ), patch("nxdrive.gui.application.normalized_path", return_value=""):
+        ), patch("nxdrive.drive.gui.application.normalized_path", return_value=""):
             result = app._handle_nxdrive_url("nxdrive://direct-download/x")
 
         assert result is True
@@ -1811,9 +1811,9 @@ class TestHandleNxdriveUrlDirectDownload:
 
         documents = [{"server_url": "https://s.com/nuxeo/", "doc_id": "d1"}]
         with patch(
-            "nxdrive.gui.application.parse_protocol_url",
+            "nxdrive.drive.gui.application.parse_protocol_url",
             return_value=self._parse_return(documents),
-        ), patch("nxdrive.gui.application.normalized_path", return_value=""):
+        ), patch("nxdrive.drive.gui.application.normalized_path", return_value=""):
             result = app._handle_nxdrive_url("nxdrive://direct-download/x")
 
         assert result is False
@@ -1823,9 +1823,9 @@ class TestHandleNxdriveUrlDirectDownload:
         """Empty documents list returns False without opening window."""
         app = self._make_app()
         with patch(
-            "nxdrive.gui.application.parse_protocol_url",
+            "nxdrive.drive.gui.application.parse_protocol_url",
             return_value=self._parse_return([]),
-        ), patch("nxdrive.gui.application.normalized_path", return_value=""):
+        ), patch("nxdrive.drive.gui.application.normalized_path", return_value=""):
             result = app._handle_nxdrive_url("nxdrive://direct-download/x")
 
         assert result is False
@@ -1839,9 +1839,9 @@ class TestHandleNxdriveUrlDirectDownload:
 
         documents = [{"server_url": "https://s.com/nuxeo/", "doc_id": "d1"}]
         with patch(
-            "nxdrive.gui.application.parse_protocol_url",
+            "nxdrive.drive.gui.application.parse_protocol_url",
             return_value=self._parse_return(documents),
-        ), patch("nxdrive.gui.application.normalized_path", return_value=""):
+        ), patch("nxdrive.drive.gui.application.normalized_path", return_value=""):
             result = app._handle_nxdrive_url("nxdrive://direct-download/x")
 
         assert result is False

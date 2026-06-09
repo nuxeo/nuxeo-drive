@@ -11,19 +11,19 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from nxdrive.constants import DirectDownloadStatus
-from nxdrive.dao.engine import EngineDAO
-from nxdrive.gui.view import (
+from nxdrive.drive.constants import DirectDownloadStatus
+from nxdrive.drive.dao.engine import EngineDAO
+from nxdrive.drive.gui.view import (
     ActiveDirectDownloadModel,
     CompletedDirectDownloadModel,
     DirectDownloadMonitoringModel,
     format_file_names_for_display,
 )
-from nxdrive.objects import DirectDownload as DirectDownloadRecord
-from nxdrive.options import Options
-from nxdrive.qt.imports import QModelIndex
-from nxdrive.translator import Translator
-from nxdrive.utils import find_resource
+from nxdrive.drive.objects import DirectDownload as DirectDownloadRecord
+from nxdrive.drive.options import Options
+from nxdrive.drive.qt.imports import QModelIndex
+from nxdrive.drive.translator import Translator
+from nxdrive.drive.utils import find_resource
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -1184,7 +1184,7 @@ class TestGUIApiDirectDownload:
 
     def test_get_active_direct_downloads_items(self, dao):
         """Test API wrapper for active downloads."""
-        from nxdrive.gui.api import QMLDriveApi
+        from nxdrive.drive.gui.api import QMLDriveApi
 
         api = Mock(spec=QMLDriveApi)
         api.get_active_direct_downloads_items = (
@@ -1195,7 +1195,7 @@ class TestGUIApiDirectDownload:
 
     def test_get_completed_direct_downloads_items(self, dao):
         """Test API wrapper for completed downloads."""
-        from nxdrive.gui.api import QMLDriveApi
+        from nxdrive.drive.gui.api import QMLDriveApi
 
         api = Mock(spec=QMLDriveApi)
         api.get_completed_direct_downloads_items = (
@@ -1206,7 +1206,7 @@ class TestGUIApiDirectDownload:
 
     def test_get_direct_downloads_for_monitoring(self, dao):
         """Test API wrapper for monitoring."""
-        from nxdrive.gui.api import QMLDriveApi
+        from nxdrive.drive.gui.api import QMLDriveApi
 
         api = Mock(spec=QMLDriveApi)
         api.get_direct_downloads_for_monitoring = (
@@ -1217,7 +1217,7 @@ class TestGUIApiDirectDownload:
 
     def test_get_download_location_default(self):
         """Test get_download_location returns default."""
-        from nxdrive.gui.api import QMLDriveApi
+        from nxdrive.drive.gui.api import QMLDriveApi
 
         api = Mock(spec=QMLDriveApi)
         api.get_download_location = QMLDriveApi.get_download_location.__get__(api)
@@ -1231,20 +1231,20 @@ class TestGUIApiDirectDownload:
 
     def test_get_download_location_custom(self, tmp_path):
         """Test get_download_location returns custom path."""
-        from nxdrive.gui.api import QMLDriveApi
+        from nxdrive.drive.gui.api import QMLDriveApi
 
         api = Mock(spec=QMLDriveApi)
         api.get_download_location = QMLDriveApi.get_download_location.__get__(api)
         # Options metaclass prevents resetting to None once set to str.
         # Use a mock to avoid side effects.
-        with patch("nxdrive.gui.api.Options") as mock_opts:
+        with patch("nxdrive.drive.gui.api.Options") as mock_opts:
             mock_opts.download_folder = str(tmp_path)
             result = api.get_download_location()
             assert result == str(tmp_path)
 
     def test_pause_direct_download(self, dao):
         """Test pause_direct_download API."""
-        from nxdrive.gui.api import QMLDriveApi
+        from nxdrive.drive.gui.api import QMLDriveApi
 
         uid = dao.save_direct_download(
             _make_record(status=DirectDownloadStatus.IN_PROGRESS)
@@ -1265,7 +1265,7 @@ class TestGUIApiDirectDownload:
 
     def test_resume_direct_download(self, dao):
         """Test resume_direct_download API."""
-        from nxdrive.gui.api import QMLDriveApi
+        from nxdrive.drive.gui.api import QMLDriveApi
 
         uid = dao.save_direct_download(_make_record(status=DirectDownloadStatus.PAUSED))
 
@@ -1284,7 +1284,7 @@ class TestGUIApiDirectDownload:
 
     def test_cancel_direct_download(self, dao):
         """Test cancel_direct_download API."""
-        from nxdrive.gui.api import QMLDriveApi
+        from nxdrive.drive.gui.api import QMLDriveApi
 
         uid = dao.save_direct_download(
             _make_record(status=DirectDownloadStatus.IN_PROGRESS)
@@ -1305,7 +1305,7 @@ class TestGUIApiDirectDownload:
 
     def test_pause_no_engine(self):
         """Test pause_direct_download with unknown engine."""
-        from nxdrive.gui.api import QMLDriveApi
+        from nxdrive.drive.gui.api import QMLDriveApi
 
         manager = Mock()
         manager.engines = {}
@@ -1317,7 +1317,7 @@ class TestGUIApiDirectDownload:
 
     def test_open_download_folder(self, tmp_path):
         """Test open_download_folder calls open_local_file."""
-        from nxdrive.gui.api import QMLDriveApi
+        from nxdrive.drive.gui.api import QMLDriveApi
 
         api = Mock(spec=QMLDriveApi)
         api.get_download_location = Mock(return_value=str(tmp_path))
@@ -1330,7 +1330,7 @@ class TestGUIApiDirectDownload:
 
     def test_change_download_location(self, tmp_path):
         """Test change_download_location with a selected folder."""
-        from nxdrive.gui.api import QMLDriveApi
+        from nxdrive.drive.gui.api import QMLDriveApi
 
         new_folder = str(tmp_path / "new_downloads")
         api = Mock(spec=QMLDriveApi)
@@ -1338,10 +1338,10 @@ class TestGUIApiDirectDownload:
         api.change_download_location = QMLDriveApi.change_download_location.__get__(api)
 
         with (
-            patch("nxdrive.qt.imports.QFileDialog") as mock_dialog,
-            patch("nxdrive.gui.api.Options") as mock_opts,
-            patch("nxdrive.gui.api.save_config") as mock_save,
-            patch("nxdrive.gui.api.Translator") as mock_tr,
+            patch("nxdrive.drive.qt.imports.QFileDialog") as mock_dialog,
+            patch("nxdrive.drive.gui.api.Options") as mock_opts,
+            patch("nxdrive.drive.gui.api.save_config") as mock_save,
+            patch("nxdrive.drive.gui.api.Translator") as mock_tr,
         ):
             mock_dialog.getExistingDirectory.return_value = new_folder
             mock_dialog.Option.ShowDirsOnly = 1
@@ -1358,17 +1358,17 @@ class TestGUIApiDirectDownload:
 
     def test_change_download_location_cancelled(self, tmp_path):
         """Test change_download_location when user cancels dialog."""
-        from nxdrive.gui.api import QMLDriveApi
+        from nxdrive.drive.gui.api import QMLDriveApi
 
         api = Mock(spec=QMLDriveApi)
         api.get_download_location = Mock(return_value=str(tmp_path))
         api.change_download_location = QMLDriveApi.change_download_location.__get__(api)
 
         with (
-            patch("nxdrive.qt.imports.QFileDialog") as mock_dialog,
-            patch("nxdrive.gui.api.Options") as mock_opts,
-            patch("nxdrive.gui.api.save_config") as mock_save,
-            patch("nxdrive.gui.api.Translator") as mock_tr,
+            patch("nxdrive.drive.qt.imports.QFileDialog") as mock_dialog,
+            patch("nxdrive.drive.gui.api.Options") as mock_opts,
+            patch("nxdrive.drive.gui.api.save_config") as mock_save,
+            patch("nxdrive.drive.gui.api.Translator") as mock_tr,
         ):
             mock_dialog.getExistingDirectory.return_value = ""
             mock_dialog.Option.ShowDirsOnly = 1

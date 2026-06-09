@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, Mock, PropertyMock, patch
 
 import pytest
 
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
 from tests.markers import mac_only
 
 
@@ -45,7 +45,7 @@ class TestWrongChannel:
         manager.updater.get_version_channel = Mock(return_value=version_channel)
         manager.get_update_channel = Mock(return_value=current_channel)
 
-        with patch("nxdrive.gui.application.Translator") as mock_translator:
+        with patch("nxdrive.drive.gui.application.Translator") as mock_translator:
 
             mock_translator.get.side_effect = lambda key, values=None: f"{key}_{values}"
 
@@ -69,7 +69,7 @@ class TestWrongChannel:
 
             app.question.return_value = mock_dialog
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._wrong_channel.__get__(app, Application)
             bound_method()
@@ -100,7 +100,7 @@ class TestWrongChannel:
         manager.updater.get_version_channel = Mock(return_value=version_channel)
         manager.get_update_channel = Mock(return_value=current_channel)
 
-        with patch("nxdrive.gui.application.Translator") as mock_translator:
+        with patch("nxdrive.drive.gui.application.Translator") as mock_translator:
 
             mock_translator.get.side_effect = lambda key, values=None: f"{key}_{values}"
 
@@ -124,7 +124,7 @@ class TestWrongChannel:
 
             app.question.return_value = mock_dialog
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._wrong_channel.__get__(app, Application)
             bound_method()
@@ -149,7 +149,7 @@ class TestWrongChannel:
         # Set flag to True
         manager.prompted_wrong_channel = True
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound_method = RealApp._wrong_channel.__get__(app, Application)
         bound_method()
@@ -170,7 +170,7 @@ class TestWrongChannel:
         manager.updater.get_version_channel = Mock(return_value=version_channel)
         manager.get_update_channel = Mock(return_value=current_channel)
 
-        with patch("nxdrive.gui.application.Translator") as mock_translator:
+        with patch("nxdrive.drive.gui.application.Translator") as mock_translator:
 
             mock_translator.get.side_effect = lambda key, values=None: f"{key}_{values}"
 
@@ -195,7 +195,7 @@ class TestWrongChannel:
 
             app.question.return_value = mock_dialog
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._wrong_channel.__get__(app, Application)
             bound_method()
@@ -221,7 +221,7 @@ class TestWrongChannel:
         manager.updater.get_version_channel = Mock(return_value=version_channel)
         manager.get_update_channel = Mock(return_value=current_channel)
 
-        with patch("nxdrive.gui.application.Translator") as mock_translator:
+        with patch("nxdrive.drive.gui.application.Translator") as mock_translator:
 
             mock_translator.get.side_effect = lambda key, values=None: f"{key}_{values}"
 
@@ -239,7 +239,7 @@ class TestWrongChannel:
 
             app.question.return_value = mock_dialog
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound_method = RealApp._wrong_channel.__get__(app, Application)
             bound_method()

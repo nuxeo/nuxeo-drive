@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
 from tests.markers import windows_only
 
 
@@ -42,7 +42,7 @@ class TestDirectDownloadUrl:
             "https/server.com/11111111-1111-1111-1111-111111111111"
         )
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound = RealApp._handle_nxdrive_url.__get__(app, Application)
         result = bound(url)
@@ -63,7 +63,7 @@ class TestDirectDownloadUrl:
             " || 22222222-2222-2222-2222-222222222222"
         )
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound = RealApp._handle_nxdrive_url.__get__(app, Application)
         result = bound(url)
@@ -76,13 +76,13 @@ class TestDirectDownloadUrl:
         """Test direct download URL with no valid documents returns False."""
         app, manager = mock_application
 
-        with patch("nxdrive.gui.application.parse_protocol_url") as mock_parse:
+        with patch("nxdrive.drive.gui.application.parse_protocol_url") as mock_parse:
             mock_parse.return_value = {
                 "command": "download_direct",
                 "documents": [],
             }
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound = RealApp._handle_nxdrive_url.__get__(app, Application)
             result = bound("nxdrive://direct-download/invalid")
@@ -95,13 +95,13 @@ class TestDirectDownloadUrl:
         app, manager = mock_application
         manager.restart_needed = True
 
-        with patch("nxdrive.gui.application.parse_protocol_url") as mock_parse:
+        with patch("nxdrive.drive.gui.application.parse_protocol_url") as mock_parse:
             mock_parse.return_value = {
                 "command": "download_direct",
                 "documents": [{"doc_id": "uuid-1", "server_url": "https://s.com"}],
             }
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound = RealApp._handle_nxdrive_url.__get__(app, Application)
             result = bound("nxdrive://direct-download/test")
@@ -113,15 +113,19 @@ class TestDirectDownloadUrl:
         """Test unknown command returns False."""
         app, manager = mock_application
 
-        with patch("nxdrive.gui.application.parse_protocol_url") as mock_parse, patch(
-            "nxdrive.gui.application.normalized_path", return_value=""
-        ), patch("nxdrive.gui.application.log"):
+        with patch(
+            "nxdrive.drive.gui.application.parse_protocol_url"
+        ) as mock_parse, patch(
+            "nxdrive.drive.gui.application.normalized_path", return_value=""
+        ), patch(
+            "nxdrive.drive.gui.application.log"
+        ):
             mock_parse.return_value = {
                 "command": "unknown_cmd",
                 "filepath": "",
             }
 
-            from nxdrive.gui.application import Application as RealApp
+            from nxdrive.drive.gui.application import Application as RealApp
 
             bound = RealApp._handle_nxdrive_url.__get__(app, Application)
             result = bound("nxdrive://unknown/test")
@@ -160,7 +164,7 @@ class TestDirectDownloadEndToEnd:
             " || ffffffff-1111-2222-3333-444444444444"
         )
 
-        from nxdrive.gui.application import Application as RealApp
+        from nxdrive.drive.gui.application import Application as RealApp
 
         bound = RealApp._handle_nxdrive_url.__get__(app, Application)
         result = bound(url)

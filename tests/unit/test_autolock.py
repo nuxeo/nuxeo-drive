@@ -8,9 +8,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-import nxdrive.autolocker
-from nxdrive.constants import WINDOWS
-from nxdrive.dao.manager import ManagerDAO
+import nxdrive.drive.autolocker
+from nxdrive.drive.constants import WINDOWS
+from nxdrive.drive.dao.manager import ManagerDAO
 
 from .. import ensure_no_exception
 

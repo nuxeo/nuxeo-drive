@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import psutil
 
-from nxdrive.autolocker import MONITORED_PROCESSES, get_open_files
+from nxdrive.drive.autolocker import MONITORED_PROCESSES, get_open_files
 
 from ..markers import windows_only
 

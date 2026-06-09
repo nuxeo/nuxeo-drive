@@ -1,12 +1,7 @@
 import pytest
-from sentry_sdk import (
-    Client,
-    capture_exception,
-    get_current_scope,
-    transport,
-)
+from sentry_sdk import Client, capture_exception, get_current_scope, transport
 
-import nxdrive.tracing
+import nxdrive.drive.tracing
 
 #
 # Start Sentry internals.

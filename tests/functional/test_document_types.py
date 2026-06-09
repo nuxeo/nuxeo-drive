@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from nxdrive.gui.constants import get_known_types_translations
-from nxdrive.translator import Translator
+from nxdrive.drive.gui.constants import get_known_types_translations
+from nxdrive.drive.translator import Translator
 
 
 def get_folder(folder) -> Path:

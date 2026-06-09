@@ -4,10 +4,10 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from nxdrive.gui.application import Application
-from nxdrive.manager import Manager
-from nxdrive.options import Options
-from nxdrive.updater.constants import UPDATE_STATUS_INCOMPATIBLE_SERVER
+from nxdrive.drive.gui.application import Application
+from nxdrive.drive.manager import Manager
+from nxdrive.drive.options import Options
+from nxdrive.drive.updater.constants import UPDATE_STATUS_INCOMPATIBLE_SERVER
 from tests.markers import mac_only
 
 
@@ -42,10 +42,12 @@ class TestUpdateNotification:
         Options.is_frozen = True
 
         try:
-            with patch("nxdrive.gui.application.Translator") as mock_translator, patch(
-                "nxdrive.gui.application.Notification"
+            with patch(
+                "nxdrive.drive.gui.application.Translator"
+            ) as mock_translator, patch(
+                "nxdrive.drive.gui.application.Notification"
             ) as mock_notification_class, patch(
-                "nxdrive.gui.application.log"
+                "nxdrive.drive.gui.application.log"
             ) as mock_log:
 
                 mock_translator.get.return_value = "Update available"
@@ -53,7 +55,7 @@ class TestUpdateNotification:
                 mock_notification_class.return_value = mock_notification
 
                 # Call the method
-                from nxdrive.gui.application import Application as RealApp
+                from nxdrive.drive.gui.application import Application as RealApp
 
                 bound_method = RealApp._update_notification.__get__(app, Application)
 
@@ -80,17 +82,19 @@ class TestUpdateNotification:
         Options.is_frozen = True
 
         try:
-            with patch("nxdrive.gui.application.Translator") as mock_translator, patch(
-                "nxdrive.gui.application.Notification"
+            with patch(
+                "nxdrive.drive.gui.application.Translator"
+            ) as mock_translator, patch(
+                "nxdrive.drive.gui.application.Notification"
             ) as mock_notification_class, patch(
-                "nxdrive.gui.application.log"
+                "nxdrive.drive.gui.application.log"
             ) as mock_log:
 
                 mock_translator.get.return_value = "Downgrade required"
                 mock_notification = Mock()
                 mock_notification_class.return_value = mock_notification
 
-                from nxdrive.gui.application import Application as RealApp
+                from nxdrive.drive.gui.application import Application as RealApp
 
                 bound_method = RealApp._update_notification.__get__(app, Application)
 
@@ -120,16 +124,20 @@ class TestUpdateNotification:
         Options.is_frozen = True
 
         try:
-            with patch("nxdrive.gui.application.Translator") as mock_translator, patch(
-                "nxdrive.gui.application.Notification"
-            ) as mock_notification_class, patch("nxdrive.gui.application.log"):
+            with patch(
+                "nxdrive.drive.gui.application.Translator"
+            ) as mock_translator, patch(
+                "nxdrive.drive.gui.application.Notification"
+            ) as mock_notification_class, patch(
+                "nxdrive.drive.gui.application.log"
+            ):
 
                 mock_translator.get.return_value = "Update available"
                 # Mock FLAG constants as integers
                 mock_notification_class.FLAG_BUBBLE = 32
                 mock_notification_class.FLAG_UNIQUE = 2
 
-                from nxdrive.gui.application import Application as RealApp
+                from nxdrive.drive.gui.application import Application as RealApp
 
                 bound_method = RealApp._update_notification.__get__(app, Application)
 
@@ -155,14 +163,18 @@ class TestUpdateNotification:
         Options.is_frozen = True
 
         try:
-            with patch("nxdrive.gui.application.Translator") as mock_translator, patch(
-                "nxdrive.gui.application.Notification"
-            ), patch("nxdrive.gui.application.log") as mock_log:
+            with patch(
+                "nxdrive.drive.gui.application.Translator"
+            ) as mock_translator, patch(
+                "nxdrive.drive.gui.application.Notification"
+            ), patch(
+                "nxdrive.drive.gui.application.log"
+            ) as mock_log:
 
                 description = "Update available to version 1.2.3"
                 mock_translator.get.return_value = description
 
-                from nxdrive.gui.application import Application as RealApp
+                from nxdrive.drive.gui.application import Application as RealApp
 
                 bound_method = RealApp._update_notification.__get__(app, Application)
 
@@ -184,13 +196,17 @@ class TestUpdateNotification:
         Options.is_frozen = True
 
         try:
-            with patch("nxdrive.gui.application.Translator") as mock_translator, patch(
-                "nxdrive.gui.application.Notification"
-            ), patch("nxdrive.gui.application.log"):
+            with patch(
+                "nxdrive.drive.gui.application.Translator"
+            ) as mock_translator, patch(
+                "nxdrive.drive.gui.application.Notification"
+            ), patch(
+                "nxdrive.drive.gui.application.log"
+            ):
 
                 mock_translator.get.return_value = f"Update to {test_version}"
 
-                from nxdrive.gui.application import Application as RealApp
+                from nxdrive.drive.gui.application import Application as RealApp
 
                 bound_method = RealApp._update_notification.__get__(app, Application)
 

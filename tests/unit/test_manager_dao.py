@@ -1,4 +1,4 @@
-from nxdrive.manager import Manager
+from nxdrive.drive.manager import Manager
 
 
 def test_autolock(tmp):
@@ -27,7 +27,7 @@ def test_autolock(tmp):
 
 
 def test_notifications(tmp):
-    from nxdrive.notification import Notification
+    from nxdrive.drive.notification import Notification
 
     notif = Notification(uid="warning", flags=Notification.FLAG_DISCARDABLE)
     notif2 = Notification(uid="plop")

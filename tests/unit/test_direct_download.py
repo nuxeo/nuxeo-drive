@@ -11,10 +11,10 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from nxdrive.constants import DirectDownloadStatus
-from nxdrive.direct_download import DirectDownload
-from nxdrive.engine.engine import ServerBindingSettings
-from nxdrive.objects import DirectDownload as DirectDownloadRecord
+from nxdrive.drive.constants import DirectDownloadStatus
+from nxdrive.drive.objects import DirectDownload as DirectDownloadRecord
+from nxdrive.nuxeo.direct_download import DirectDownload
+from nxdrive.nuxeo.engine.engine import ServerBindingSettings
 
 
 class MockUrlTestEngine:
@@ -290,7 +290,7 @@ class TestDirectDownloadGetDownloadDestination:
     def test_default_downloads_folder(self):
         """Test falls back to ~/Downloads when no custom folder configured."""
         dd = DirectDownload(self.manager, self.folder)
-        with patch("nxdrive.direct_download.Options") as mock_opts:
+        with patch("nxdrive.nuxeo.direct_download.Options") as mock_opts:
             mock_opts.download_folder = None
             result = dd._get_download_destination()
             assert result == Path.home() / "Downloads"
@@ -300,7 +300,7 @@ class TestDirectDownloadGetDownloadDestination:
         dd = DirectDownload(self.manager, self.folder)
         custom = self.folder / "custom_downloads"
         custom.mkdir()
-        with patch("nxdrive.direct_download.Options") as mock_opts:
+        with patch("nxdrive.nuxeo.direct_download.Options") as mock_opts:
             mock_opts.download_folder = str(custom)
             result = dd._get_download_destination()
             assert result == custom
@@ -308,7 +308,7 @@ class TestDirectDownloadGetDownloadDestination:
     def test_custom_folder_not_writable(self):
         """Test falls back when custom folder not writable."""
         dd = DirectDownload(self.manager, self.folder)
-        with patch("nxdrive.direct_download.Options") as mock_opts:
+        with patch("nxdrive.nuxeo.direct_download.Options") as mock_opts:
             mock_opts.download_folder = "/nonexistent/path"
             result = dd._get_download_destination()
             assert result == Path.home() / "Downloads"
@@ -1306,8 +1306,8 @@ class TestDirectDownloadGetDownloadDestinationFallback:
         """Test creates ~/Downloads if it doesn't exist."""
         dd = DirectDownload(self.manager, self.folder)
         with (
-            patch("nxdrive.direct_download.Options") as mock_opts,
-            patch("nxdrive.direct_download.Path") as mock_path_cls,
+            patch("nxdrive.nuxeo.direct_download.Options") as mock_opts,
+            patch("nxdrive.nuxeo.direct_download.Path") as mock_path_cls,
         ):
             mock_opts.download_folder = None
             mock_home = Mock()
@@ -1407,7 +1407,7 @@ class TestParseDownloadProtocol:
 
     def test_single_doc_super_simple_format(self):
         """Test super-simple format: https/server/UUID."""
-        from nxdrive.utils import parse_download_protocol
+        from nxdrive.drive.utils import parse_download_protocol
 
         url = "nxdrive://direct-download/https/drive.nuxeocloud.com/3eebfb90-4e2c-4aa9-bf3f-b657c02572e1"
         result = parse_download_protocol({}, url)
@@ -1419,7 +1419,7 @@ class TestParseDownloadProtocol:
 
     def test_batch_download(self):
         """Test batch download with multiple UUIDs."""
-        from nxdrive.utils import parse_download_protocol
+        from nxdrive.drive.utils import parse_download_protocol
 
         url = (
             "nxdrive://direct-download/"
@@ -1437,7 +1437,7 @@ class TestParseDownloadProtocol:
 
     def test_simplified_format_with_nxdocid(self):
         """Test legacy format: https/server/nuxeo/nxdocid/UUID."""
-        from nxdrive.utils import parse_download_protocol
+        from nxdrive.drive.utils import parse_download_protocol
 
         url = "nxdrive://direct-download/https/server.com/nuxeo/nxdocid/11111111-1111-1111-1111-111111111111"
         result = parse_download_protocol({}, url)
@@ -1447,7 +1447,7 @@ class TestParseDownloadProtocol:
 
     def test_full_format_legacy(self):
         """Test full legacy format with user/repo/downloadUrl."""
-        from nxdrive.utils import parse_download_protocol
+        from nxdrive.drive.utils import parse_download_protocol
 
         url = (
             "nxdrive://direct-download/"
@@ -1464,7 +1464,7 @@ class TestParseDownloadProtocol:
 
     def test_empty_url(self):
         """Test URL with no valid documents."""
-        from nxdrive.utils import parse_download_protocol
+        from nxdrive.drive.utils import parse_download_protocol
 
         url = "nxdrive://direct-download/"
         result = parse_download_protocol({}, url)
@@ -1472,14 +1472,14 @@ class TestParseDownloadProtocol:
 
     def test_uuid_without_server(self):
         """Test bare UUID without server URL from first doc."""
-        from nxdrive.utils import _parse_single_document_path
+        from nxdrive.drive.utils import _parse_single_document_path
 
         result = _parse_single_document_path("11111111-1111-1111-1111-111111111111")
         assert result is None
 
     def test_uuid_with_server(self):
         """Test bare UUID with server URL from previous document."""
-        from nxdrive.utils import _parse_single_document_path
+        from nxdrive.drive.utils import _parse_single_document_path
 
         result = _parse_single_document_path(
             "11111111-1111-1111-1111-111111111111",
@@ -1491,14 +1491,14 @@ class TestParseDownloadProtocol:
 
     def test_invalid_path(self):
         """Test completely invalid path."""
-        from nxdrive.utils import _parse_single_document_path
+        from nxdrive.drive.utils import _parse_single_document_path
 
         result = _parse_single_document_path("totally-invalid-gibberish")
         assert result is None
 
     def test_simplified_without_nuxeo_prefix(self):
         """Test simplified format where server doesn't include /nuxeo."""
-        from nxdrive.utils import _parse_single_document_path
+        from nxdrive.drive.utils import _parse_single_document_path
 
         result = _parse_single_document_path(
             "https/server.com/nxdocid/11111111-1111-1111-1111-111111111111"
@@ -1508,7 +1508,7 @@ class TestParseDownloadProtocol:
 
     def test_full_format_without_nuxeo_prefix(self):
         """Test full format where server doesn't include /nuxeo."""
-        from nxdrive.utils import _parse_single_document_path
+        from nxdrive.drive.utils import _parse_single_document_path
 
         result = _parse_single_document_path(
             "https/server.com/user/admin/repo/default/"
@@ -1520,7 +1520,7 @@ class TestParseDownloadProtocol:
 
     def test_batch_with_empty_parts(self):
         """Test batch URL with empty parts after split."""
-        from nxdrive.utils import parse_download_protocol
+        from nxdrive.drive.utils import parse_download_protocol
 
         url = (
             "nxdrive://direct-download/"
@@ -1536,7 +1536,7 @@ class TestParseProtocolUrlDirectDownload:
 
     def test_full_parsing_flow(self):
         """Test the complete parse_protocol_url flow for direct-download."""
-        from nxdrive.utils import parse_protocol_url
+        from nxdrive.drive.utils import parse_protocol_url
 
         url = "nxdrive://direct-download/https/server.com/11111111-1111-1111-1111-111111111111"
         result = parse_protocol_url(url)
@@ -1573,7 +1573,7 @@ class TestDecompressDownloadUrl:
 
     def test_compressed_single_uuid(self):
         """Test decompression of a single UUID payload."""
-        from nxdrive.utils import decompress_download_url
+        from nxdrive.drive.utils import decompress_download_url
 
         uid = "3eebfb90-4e2c-4aa9-bf3f-b657c02572e1"
         url = self._build_compressed_url("https", "server.com", [uid])
@@ -1583,7 +1583,7 @@ class TestDecompressDownloadUrl:
 
     def test_compressed_batch_uuids(self):
         """Test decompression of multiple UUIDs."""
-        from nxdrive.utils import decompress_download_url
+        from nxdrive.drive.utils import decompress_download_url
 
         uuids = [
             "11111111-1111-1111-1111-111111111111",
@@ -1597,7 +1597,7 @@ class TestDecompressDownloadUrl:
 
     def test_compressed_http_scheme(self):
         """Test decompression with HTTP (not HTTPS) scheme."""
-        from nxdrive.utils import decompress_download_url
+        from nxdrive.drive.utils import decompress_download_url
 
         uid = "11111111-1111-1111-1111-111111111111"
         url = self._build_compressed_url("http", "server.local", [uid])
@@ -1607,7 +1607,7 @@ class TestDecompressDownloadUrl:
 
     def test_compressed_malformed_payload(self):
         """Test that malformed compressed payload falls back gracefully."""
-        from nxdrive.utils import parse_download_protocol
+        from nxdrive.drive.utils import parse_download_protocol
 
         # Garbage base64 that decodes to too-short binary
         url = "nxdrive://direct-download/AQID"
@@ -1617,7 +1617,7 @@ class TestDecompressDownloadUrl:
 
     def test_compressed_end_to_end(self):
         """Test compressed URL through full parse_download_protocol flow."""
-        from nxdrive.utils import parse_download_protocol
+        from nxdrive.drive.utils import parse_download_protocol
 
         uuids = [
             "11111111-1111-1111-1111-111111111111",

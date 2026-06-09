@@ -5,7 +5,7 @@ from time import sleep
 
 import pytest
 
-from nxdrive.constants import WINDOWS
+from nxdrive.drive.constants import WINDOWS
 
 from .utils import fatal_error_dlg, main_window, share_metrics_dlg
 
@@ -120,9 +120,7 @@ def test_argument_log_filename(exe, tmp, file):
     assert log.is_file()
 
 
-@pytest.mark.parametrize(
-    "folder", ["azerty", "$alice", "léa", "mi Kaël", "こん ツリ ^^"]
-)
+@pytest.mark.parametrize("folder", ["azerty", "$alice", "léa", "mi Kaël", "こん ツリ ^^"])
 def test_argument_nxdrive_home(exe, tmp, folder):
     print(f"test_argument_nxdrive_home called with folder={folder}")
     path = tmp()

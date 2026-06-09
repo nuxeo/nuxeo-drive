@@ -1,6 +1,6 @@
 import pytest
 
-from nxdrive.engine.watcher.constants import (
+from nxdrive.nuxeo.engine.watcher.constants import (
     DELETED_EVENT,
     DOCUMENT_LOCKED,
     DOCUMENT_UNLOCKED,
