@@ -11,11 +11,14 @@ from ..qt.imports import (
     QIntValidator,
     QLabel,
     QLineEdit,
+    QPushButton,
     Qt,
     QTime,
     QVBoxLayout,
 )
 from ..translator import Translator
+
+__all__ = ["ScheduleDialog", "ResumeScheduledSessionPopup"]
 
 
 class ScheduleDialog(QDialog):
@@ -181,3 +184,47 @@ class ScheduleDialog(QDialog):
     def accept(self) -> None:
         """Close the dialog."""
         super().accept()
+
+
+class ResumeScheduledSessionPopup(QDialog):
+    """Popup to ask the user if they want to resume a scheduled session."""
+
+    def __init__(self, parent=None, scheduled_datetime: str | None = None) -> None:
+        super().__init__(parent)
+
+        self.setWindowTitle("Resuming Scheduled Session")
+
+        layout = QVBoxLayout(self)
+
+        formatted_dt = ""
+        if scheduled_datetime:
+            try:
+                dt = datetime.fromisoformat(scheduled_datetime)
+                formatted_dt = dt.astimezone().strftime("%Y-%m-%d %H:%M:%S")
+            except Exception:
+                formatted_dt = scheduled_datetime
+
+        message = QLabel()
+        message.setTextFormat(Qt.TextFormat.RichText)
+        message.setText(
+            f"<p style='line-height: 150%;'>"
+            f"Start transfer now ?<br>"
+            f"This transfer is scheduled for {formatted_dt}."
+            f"</p>"
+        )
+
+        button_layout = QHBoxLayout()
+
+        cancel_button = QPushButton()
+        cancel_button.setText("Cancel")
+        cancel_button.clicked.connect(self.reject)
+
+        start_button = QPushButton()
+        start_button.setText("Start Now")
+        start_button.clicked.connect(self.accept)
+
+        button_layout.addWidget(cancel_button)
+        button_layout.addWidget(start_button)
+
+        layout.addWidget(message)
+        layout.addLayout(button_layout)

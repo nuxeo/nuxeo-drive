@@ -34,6 +34,7 @@ from ..exceptions import (
     UnknownDigest,
 )
 from ..feature import Feature
+from ..gui.schedule_dialog import ResumeScheduledSessionPopup
 from ..metrics.constants import (
     DT_NEW_FOLDER,
     DT_SESSION_FILE_COUNT,
@@ -897,12 +898,20 @@ class Engine(QObject):
 
     def resume_session(self, uid: int, /) -> None:
         """Resume all transfers for given session."""
+
         self.dao.change_session_status(uid, TransferStatus.ONGOING)
-        # Remove the 'Scheduled on' message
         session = self.dao.get_session(uid)
         if session and session.scheduled_at:
-            self.dao.reset_scheduled_at(uid)
-        self.dao.resume_session(uid)
+            popup = ResumeScheduledSessionPopup(
+                parent=None, scheduled_datetime=session.scheduled_at
+            )
+            if popup.exec():
+                # Reset the schedule to avoid resuming again if the session is paused and resumed again later
+                self.dao.reset_session_schedule(uid)
+                self.dao.resume_session(uid)
+            else:
+                # Pause the session again if the user cancels the resume action from the popup
+                self.dao.pause_session(uid)
 
     def resume_scheduled_session(self, uid: int, /) -> None:
         """Reset schedule and resume session."""
