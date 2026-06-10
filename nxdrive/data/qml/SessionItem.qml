@@ -85,11 +85,20 @@ Rectangle {
                             text: (active ? created_on : completed_on) + tl.tr
                             color: secondaryText
                         }
-                        ScaledText {
+                        RowLayout {
                             visible: active && scheduled_at
-                            text: scheduled_at + tl.tr
-                            font.bold: true
-                            color: secondaryText
+                            spacing: 4
+                            Image {
+                                source: "../icons/schedule_clock_dark.svg"
+                                fillMode: Image.PreserveAspectFit
+                                sourceSize.width: 16
+                                sourceSize.height: 16
+                            }
+                            ScaledText {
+                                text: scheduled_at + tl.tr
+                                font.bold: true
+                                color: secondaryText
+                            }
                         }
                         RowLayout {
                             Layout.leftMargin: 10

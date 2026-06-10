@@ -553,7 +553,7 @@ class ActiveSessionModel(QAbstractListModel):
                     offset = tzlocal().utcoffset(dt)
                     if offset:
                         dt += offset
-                    args.append(Translator.format_datetime(dt))
+                    args.append(dt.strftime("%d %b %Y, %H:%M:%S"))
                 return self.tr(label, values=args)
             return ""
         return row[self.names[role].decode()]

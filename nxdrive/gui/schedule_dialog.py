@@ -192,7 +192,7 @@ class ResumeScheduledSessionPopup(QDialog):
     def __init__(self, parent=None, scheduled_datetime: str | None = None) -> None:
         super().__init__(parent)
 
-        self.setWindowTitle("Resuming Scheduled Session")
+        self.setWindowTitle(Translator.get("RESUMING_SCHEDULED_SESSION_TITLE"))
 
         layout = QVBoxLayout(self)
 
@@ -206,21 +206,19 @@ class ResumeScheduledSessionPopup(QDialog):
 
         message = QLabel()
         message.setTextFormat(Qt.TextFormat.RichText)
-        message.setText(
-            f"<p style='line-height: 150%;'>"
-            f"Start transfer now ?<br>"
-            f"This transfer is scheduled for {formatted_dt}."
-            f"</p>"
+        raw_msg = Translator.get(
+            "RESUMING_SCHEDULED_SESSION_MSG", values=[formatted_dt]
         )
+        message.setText(f"<p style='line-height: 150%;'>{raw_msg}</p>")
 
         button_layout = QHBoxLayout()
 
         cancel_button = QPushButton()
-        cancel_button.setText("Cancel")
+        cancel_button.setText(Translator.get("CANCEL"))
         cancel_button.clicked.connect(self.reject)
 
         start_button = QPushButton()
-        start_button.setText("Start Now")
+        start_button.setText(Translator.get("START_NOW"))
         start_button.clicked.connect(self.accept)
 
         button_layout.addWidget(cancel_button)
