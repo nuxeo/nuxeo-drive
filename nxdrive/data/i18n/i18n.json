@@ -22,7 +22,7 @@
     "SCHEDULE_PICK_DATETIME": "Pick date and time",
     "SCHEDULED_ON": "Starts at: %1",
     "RESUMING_SCHEDULED_SESSION_TITLE": "Resuming Scheduled Session",
-    "RESUMING_SCHEDULED_SESSION_MSG": "Start transfer now ?<br>This transfer is scheduled for %1.",
+    "RESUMING_SCHEDULED_SESSION_MSG": "Start transfer now ?<br>This transfer is scheduled for %1.<br>Starting now will ignore the scheduled time.",
     "START_NOW": "Start Now",
     "ADDON_NOT_INSTALLED": "Server module is missing",
     "ADDON_FORBIDDEN": "Server denied access to Nuxeo Drive operations",
