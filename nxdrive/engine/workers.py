@@ -35,10 +35,10 @@ class TimerWorker(QRunnable):
         from datetime import datetime
 
         start_time = datetime.now()
-        log.info(f"Timer started at: {start_time} for session {self.session_uid}")
+        log.debug(f"Timer started at: {start_time} for session {self.session_uid}")
         time.sleep(self.duration)
         end_time = datetime.now()
-        log.info(
+        log.debug(
             f"Timer ended: {end_time} for session {self.session_uid}. Resuming now."
         )
         self.engine.resume_scheduled_session(self.session_uid)
