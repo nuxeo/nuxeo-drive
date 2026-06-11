@@ -36,7 +36,17 @@ class TimerWorker(QRunnable):
 
         start_time = datetime.now()
         log.debug(f"Timer started at: {start_time} for session {self.session_uid}")
-        time.sleep(self.duration)
+
+        slept = 0
+        while slept < self.duration:
+            if self.engine.is_stopped():
+                log.debug(
+                    f"Timer aborted for session {self.session_uid} because engine stopped."
+                )
+                return
+            time.sleep(5)
+            slept += 5
+
         end_time = datetime.now()
         log.debug(
             f"Timer ended: {end_time} for session {self.session_uid}. Resuming now."
