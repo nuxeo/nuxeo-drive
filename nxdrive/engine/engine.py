@@ -899,7 +899,6 @@ class Engine(QObject):
     def resume_session(self, uid: int, /) -> None:
         """Resume all transfers for given session."""
 
-        self.dao.change_session_status(uid, TransferStatus.ONGOING)
         session = self.dao.get_session(uid)
         if session and session.scheduled_at:
             popup = ResumeScheduledSessionPopup(
@@ -907,16 +906,18 @@ class Engine(QObject):
             )
             if popup.exec():
                 # Reset the schedule to avoid resuming again if the session is paused and resumed again later
+                self.dao.change_session_status(uid, TransferStatus.ONGOING)
                 self.dao.reset_session_schedule(uid)
                 self.dao.resume_session(uid)
             else:
                 # Pause the session again if the user cancels the resume action from the popup
+                self.dao.change_session_status(uid, TransferStatus.PAUSED)
                 self.dao.pause_session(uid)
 
     def resume_scheduled_session(self, uid: int, /) -> None:
         """Reset schedule and resume session."""
-        self.dao.reset_session_schedule(uid)
-        self.resume_session(uid)
+        self.dao.change_session_status(uid, TransferStatus.ONGOING)
+        self.dao.resume_session(uid)
 
     def _manage_staled_transfers(self) -> None:
         """
