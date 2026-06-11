@@ -9,7 +9,7 @@ def _nuxeo_auth_factory(host, token, **kwargs):
         from nxdrive.nuxeo.auth.oauth2 import OAuthentication
 
         return OAuthentication(host, token=token, **kwargs)
-    from nxdrive.nuxeo.auth.token import TokenAuthentication
+    from nxdrive.drive.auth.token import TokenAuthentication
 
     return TokenAuthentication(host, token=token, **kwargs)
 
@@ -22,6 +22,11 @@ register(
         db_prefix="ndrive_",
         engine_type="NXDRIVE",
         engine_class_path="nxdrive.nuxeo.engine.engine.Engine",
+        direct_edit_class_path="nxdrive.nuxeo.direct_edit.DirectEdit",
+        direct_download_class_path="nxdrive.nuxeo.direct_download.DirectDownload",
+        workflow_class_path="nxdrive.nuxeo.client.workflow.Workflow",
+        oauth2_class_path="nxdrive.nuxeo.auth.oauth2.OAuthentication",
+        folders_only_class_path="nxdrive.nuxeo.gui.folders_model.FoldersOnly",
         disabled_features=[],
         auth_factory=_nuxeo_auth_factory,
         app_name="Nuxeo Drive",

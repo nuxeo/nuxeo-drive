@@ -1,4 +1,3 @@
-import hashlib
 import unicodedata
 from collections import namedtuple
 from dataclasses import dataclass, field
@@ -8,7 +7,6 @@ from sqlite3 import Row
 from time import time
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 
-from dateutil import parser
 from dateutil.tz import tzlocal
 from nuxeo.models import Batch
 from nuxeo.utils import get_digest_algorithm
@@ -68,6 +66,23 @@ def _to_date(timestamp: Optional[int]) -> Optional[datetime]:
         # OSError: [Errno 22] Invalid argument (Windows 7, see NXDRIVE-1600)
         # OverflowError: timestamp out of range for platform time_t
         return None
+
+
+# Data Transfer Object for document info on a remote repository.
+# Server-specific subclasses (e.g. NuxeoDocumentInfo) extend this
+# with additional fields.
+@dataclass
+class DocumentInfo:
+    name: str  # title of the document
+    uid: str  # unique id of the document
+    parent_uid: Optional[str]  # id of the parent document
+    path: str  # remote path (useful for ordering)
+    folderish: bool  # True if can host child documents
+    last_modification_time: Optional[datetime]  # last update time
+    last_contributor: Optional[str]  # last contributor
+    lock_owner: Optional[str]  # lock owner
+    lock_created: Optional[datetime]  # lock creation time
+    permissions: Optional[List[str]]  # permissions
 
 
 # Data Transfer Object for remote file info
@@ -172,156 +187,6 @@ class Blob:
         mimetype = blob.get("mime-type") or ""
         data = blob.get("data") or ""
         return Blob(name, digest, digest_algorithm, size, mimetype, data)
-
-
-# Data Transfer Object for doc info on the Remote Nuxeo repository
-@dataclass
-class NuxeoDocumentInfo:
-    root: str  # ref of the document that serves as sync root
-    name: str  # title of the document (not guaranteed to be locally unique)
-    uid: str  # ref of the document
-    parent_uid: Optional[str]  # ref of the parent document
-    path: str  # remote path (useful for ordering)
-    folderish: bool  # True is can host child documents
-    last_modification_time: Optional[datetime]  # last update time
-    last_contributor: str  # last contributor
-    repository: str  # server repository name
-    doc_type: Optional[str]  # Nuxeo document type
-    version: Optional[str]  # Nuxeo version
-    state: Optional[str]  # Nuxeo lifecycle state
-    is_trashed: bool  # Nuxeo trashed status
-    is_proxy: bool  # Is a proxy of a document
-    is_version: bool  # is it a version of a document
-    lock_owner: Optional[str]  # lock owner
-    lock_created: Optional[datetime]  # lock creation time
-    permissions: List[str]  # permissions
-    properties: Dict[str, Any]  # properties
-
-    @staticmethod
-    def from_dict(
-        doc: Dict[str, Any], /, *, parent_uid: str = None
-    ) -> "NuxeoDocumentInfo":
-        """Convert Automation document description to NuxeoDocumentInfo"""
-        try:
-            root = doc["root"]
-            uid = doc["uid"]
-            path = doc["path"]
-            props = doc["properties"]
-            name = unicodedata.normalize("NFC", props["dc:title"])
-            folderish = "Folderish" in doc["facets"]
-            modified = doc["lastModified"]
-        except (KeyError, TypeError):
-            raise DriveError(f"This document is missing mandatory information: {doc}")
-
-        last_update = parser.parse(modified)
-
-        # Lock info
-        lock_owner = doc.get("lockOwner")
-        lock_created = doc.get("lockCreated")
-        if lock_created:
-            lock_created = parser.parse(lock_created)
-
-        # Permissions
-        permissions = doc.get("contextParameters", {}).get("permissions", None)
-
-        # Trashed
-        is_trashed = doc.get("isTrashed", doc.get("state") == "deleted")
-
-        # Is version of document
-        is_version = doc.get("isVersion", False)
-
-        # Is a proxy
-        is_proxy = doc.get("isProxy", False)
-
-        # XXX: we need another roundtrip just to fetch the parent uid...
-
-        # Normalize using NFC to make the tests more intuitive
-        version = None
-        if "uid:major_version" in props and "uid:minor_version" in props:
-            version = (
-                str(props["uid:major_version"]) + "." + str(props["uid:minor_version"])
-            )
-        return NuxeoDocumentInfo(
-            root,
-            name,
-            uid,
-            parent_uid,
-            path,
-            folderish,
-            last_update,
-            props.get("dc:lastContributor"),
-            doc.get("repository", "default"),
-            doc.get("type"),
-            version,
-            doc.get("state"),
-            is_trashed,
-            is_proxy,
-            is_version,
-            lock_owner,
-            lock_created,
-            permissions,
-            props,
-        )
-
-    def get_blob(self, xpath: str, /) -> Optional[Blob]:
-        """Retrieve blob details from a given *xpath*.
-        There is no real limitation on the *xpath*.
-        Those are all valid if they are present in the *properties* attribute
-        (given "s" for string and "n" for number):
-
-            - s:s (file:content, foo:bar, note:note)
-            - s:s/n (files:files/0, foo:bar/0)
-            - s:s/n/s (files:files/0/file)
-            - s:s/n/n/n/n/s/n/s/... (foo:baz/0/0/0/0/file/0/real:file...)
-
-        Notes handling is stricter, only "note:note" *xpath* is taken into account.
-        """
-        props = self.properties
-
-        # Note is a special case
-        if xpath == "note:note" and self.doc_type == "Note":
-            note = props.get("note:note")
-            if not note:
-                return None
-
-            digest = hashlib.md5()
-            digest.update(note.encode("utf-8"))
-            return Blob.from_dict(
-                {
-                    "name": props["dc:title"],
-                    "digest": digest.hexdigest(),
-                    "digestAlgorithm": "md5",
-                    "length": len(note),
-                    "mime-type": props.get("note:mime_type"),
-                    "data": note,
-                }
-            )
-
-        # Attachments are in a specific array
-        attachment: Optional[Dict[str, Any]] = None
-
-        parts = xpath.split("/")
-        while parts:
-            part = parts.pop(0)
-
-            # Handle numeric values: "0" -> 0
-            key = int(part) if part.isnumeric() else part
-
-            if attachment is None:
-                # The first "get" is from the *properties* dict
-                attachment = props.get(key)  # type: ignore
-            else:
-                # Then we iterate over the structure (either a list or a dict)
-                try:
-                    attachment = attachment[key]  # type: ignore
-                except (IndexError, KeyError):
-                    attachment = None
-
-            if not attachment:
-                # Malformed data
-                break
-
-        return Blob.from_dict(attachment) if attachment else None
 
 
 class DocPair(Row):

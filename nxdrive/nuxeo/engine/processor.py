@@ -5,9 +5,8 @@ import sys
 from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
-from threading import Lock
 from time import monotonic_ns, sleep
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple
 
 from nuxeo.exceptions import (
     Conflict,
@@ -32,7 +31,7 @@ from nxdrive.drive.constants import (
     DigestStatus,
     TransferStatus,
 )
-from nxdrive.drive.engine.workers import EngineWorker
+from nxdrive.drive.engine.processor import Processor as _ProcessorBase
 from nxdrive.drive.exceptions import (
     DownloadPaused,
     DuplicationDisabledError,
@@ -45,7 +44,6 @@ from nxdrive.drive.exceptions import (
     UploadPaused,
 )
 from nxdrive.drive.objects import DocPair, RemoteFileInfo
-from nxdrive.drive.qt.imports import pyqtSignal
 from nxdrive.drive.utils import (
     digest_status,
     is_generated_tmp_file,
@@ -63,21 +61,9 @@ __all__ = ("Processor",)
 log = getLogger(__name__)
 
 
-class Processor(EngineWorker):
-    pairSyncStarted = pyqtSignal(object)
-    pairSyncEnded = pyqtSignal(object)
-    path_locker = Lock()
-    soft_locks: Dict[str, Dict[Path, bool]] = {}
-    readonly_locks: Dict[str, Dict[Path, List[int]]] = {}
-    readonly_locker = Lock()
-
+class Processor(_ProcessorBase):
     def __init__(self, engine: "Engine", item_getter: Callable, /) -> None:
-        super().__init__(engine, engine.dao, "Processor")
-        self._get_item = item_getter
-        self.engine = engine
-        self.local = self.engine.local
-        self.remote = self.engine.remote
-        self._current_doc_pair: Optional[DocPair] = None
+        super().__init__(engine, item_getter)
         self._current_metrics: Dict[str, Any] = {}
 
     def _unlock_soft_path(self, path: Path, /) -> None:
@@ -131,9 +117,6 @@ class Processor(EngineWorker):
                 raise PairInterrupt
             Processor.soft_locks[self.engine.uid][path] = True
             return path
-
-    def get_current_pair(self) -> Optional[DocPair]:
-        return self._current_doc_pair
 
     @staticmethod
     def check_pair_state(doc_pair: DocPair, /) -> bool:

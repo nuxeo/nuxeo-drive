@@ -7,17 +7,13 @@ import "icon-font/Icon.js" as MdiFont
 NuxeoPopup {
     id: control
     width: 480
-    height: 180 + server_url.height + local_folder.height + (alfrescoCredentials.visible ? alfrescoCredentials.height + 20 : 0)
+    height: 180 + server_url.height + local_folder.height + legacyAuthRow.height + (control.isAlfresco ? alfrescoCredentials.height + 20 : 0)
     padding: 20
 
     title: qsTr("NEW_ENGINE") + tl.tr
 
-    // Detect if the URL points to an Alfresco server
-    property bool isAlfresco: !urlInput.text.replace(/\/+$/, "").endsWith("/nuxeo")
-
-    onIsAlfrescoChanged: {
-        folderInput.text = control.isAlfresco ? api.default_alfresco_local_folder() : api.default_local_folder()
-    }
+    // Use the server type selected at startup
+    property bool isAlfresco: SERVER_TYPE === "ALFRESCO"
 
     onOpened: {
         folderInput.text = control.isAlfresco ? api.default_alfresco_local_folder() : api.default_local_folder()
@@ -98,8 +94,9 @@ NuxeoPopup {
                 }
             }
 
-            // Authentication method
+            // Authentication method (Alfresco only)
             RowLayout {
+                id: legacyAuthRow
                 spacing: 10
 
                 ScaledText {

@@ -15,11 +15,20 @@ class ServerTypeConfig:
     """Configuration contributed by a server-type package."""
 
     key: str  # e.g. "NUXEO", "ALFRESCO"
-    home_dir: str  # e.g. ".nuxeo-drive", ".alfresco"
+    home_dir: str  # e.g. ".nuxeo-drive", ".alfresco-drive"
     log_file: str  # e.g. "nxdrive.log", "aldrive.log"
     db_prefix: str  # e.g. "ndrive_", "adrive_"
     engine_type: str  # engine type key e.g. "NXDRIVE", "ALFRESCO"
     engine_class_path: str = ""  # e.g. "nxdrive.nuxeo.engine.engine.Engine"
+    direct_edit_class_path: str = ""  # e.g. "nxdrive.nuxeo.direct_edit.DirectEdit"
+    direct_download_class_path: str = (
+        ""  # e.g. "nxdrive.nuxeo.direct_download.DirectDownload"
+    )
+    workflow_class_path: str = ""  # e.g. "nxdrive.nuxeo.client.workflow.Workflow"
+    oauth2_class_path: str = ""  # e.g. "nxdrive.nuxeo.auth.oauth2.OAuthentication"
+    folders_only_class_path: str = (
+        ""  # e.g. "nxdrive.nuxeo.gui.folders_model.FoldersOnly"
+    )
     disabled_features: List[str] = field(default_factory=list)
     auth_factory: Optional[Callable[..., Any]] = None
 
@@ -124,3 +133,17 @@ def detect_by_url(url: str) -> ServerTypeConfig:
         if config.is_url_fallback:
             return config
     return _registry[_default_key]
+
+
+def load_class(class_path: str) -> Optional[type]:
+    """Import and return the class at *class_path*, or ``None`` on failure."""
+    if not class_path:
+        return None
+    import importlib
+
+    module_path, class_name = class_path.rsplit(".", 1)
+    try:
+        module = importlib.import_module(module_path)
+        return getattr(module, class_name)
+    except (ImportError, AttributeError):
+        return None

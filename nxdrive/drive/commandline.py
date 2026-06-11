@@ -515,7 +515,7 @@ class CliHandler:
         if not filename:
             from nxdrive.drive import server_type as st
 
-            config = st.get(getattr(options, "server_type", st.get_default_key()))
+            config = st.get(getattr(Options, "server_type", st.get_default_key()))
             filename = os.path.join(folder_log, config.log_file)
 
         configure(
@@ -539,6 +539,17 @@ class CliHandler:
             else:
                 print(self.get_version())
             return 0
+
+        # On fresh install, ask the user to pick a server type FIRST.
+        # This must happen before logging, config loading, or Manager creation
+        # because all of those depend on Options.nxdrive_home which is
+        # determined by the server type.
+        if self._is_fresh_install():
+            self._pick_server_type()
+        else:
+            # Existing install: infer server type from the home directory
+            # so that logging, branding, etc. are correct before Manager loads.
+            self._restore_server_type()
 
         # Pre-configure the logging to catch early errors
         early_options = Namespace(
@@ -590,6 +601,158 @@ class CliHandler:
 
         ret_code: int = handler(options)
         return ret_code
+
+    def _is_fresh_install(self) -> bool:
+        """Return True if no known server-type home directory exists yet."""
+        from nxdrive.drive import server_type as _st
+
+        home = Path.home()
+        for config in _st.all_configs().values():
+            if (home / config.home_dir).is_dir():
+                return False
+        return True
+
+    def _restore_server_type(self) -> None:
+        """Infer server type from the existing home directory on subsequent launches.
+
+        This sets Options.server_type, refreshes branding, and applies
+        feature restrictions before the Manager or logger is created.
+        Checks non-default home dirs first (mirrors _get_nxdrive_home logic).
+        """
+        from nxdrive.drive import server_type as _st
+        from nxdrive.drive.constants import refresh_branding
+        from nxdrive.drive.feature import apply_server_type_restrictions
+
+        home = Path.home()
+        default_key = _st.get_default_key()
+
+        # Check non-default home dirs first (explicit user choice)
+        for config in _st.all_configs().values():
+            if config.key == default_key:
+                continue
+            if (home / config.home_dir).is_dir():
+                Options.server_type = config.key
+                apply_server_type_restrictions(config.key)
+                refresh_branding(config.key)
+                log.info(f"Restored server type from home dir: {config.key}")
+                return
+
+        # Fall back to default if its dir exists
+        default_config = _st.get(default_key)
+        if (home / default_config.home_dir).is_dir():
+            Options.server_type = default_key
+            apply_server_type_restrictions(default_key)
+            refresh_branding(default_key)
+
+    def _pick_server_type(self) -> None:
+        """Show a combined first-run dialog: server type + metrics consent.
+
+        This must run BEFORE the Manager is created, because the Manager
+        creates the home directory and database.  The chosen server type
+        determines which home directory to use.
+        """
+        from nxdrive.drive import server_type as _st
+        from nxdrive.drive.constants import COMPANY, refresh_branding
+        from nxdrive.drive.feature import apply_server_type_restrictions
+
+        use_analytics = False
+        use_sentry = False
+
+        try:
+            from nxdrive.drive.qt import constants as qt
+            from nxdrive.drive.qt.imports import (
+                QApplication,
+                QCheckBox,
+                QComboBox,
+                QDialog,
+                QDialogButtonBox,
+                QHBoxLayout,
+                QLabel,
+                QVBoxLayout,
+            )
+
+            _app = QApplication.instance() or QApplication([])  # noqa: F841
+
+            dialog = QDialog()
+            dialog.setWindowTitle("Drive — First Run Setup")
+            layout = QVBoxLayout()
+
+            # --- Server type section ---
+            combo_layout = QHBoxLayout()
+            combo_label = QLabel("Server type:")
+            combo = QComboBox()
+            for key in _st.all_keys():
+                combo.addItem(key, key)
+            combo_layout.addWidget(combo_label)
+            combo_layout.addWidget(combo)
+            layout.addLayout(combo_layout)
+
+            # --- Spacer ---
+            layout.addSpacing(10)
+
+            # --- Metrics section ---
+            metrics_label = QLabel(
+                f"To improve your experience, in case of crash or bug, "
+                f"technical reports can be shared with {COMPANY} developers "
+                f"and support automatically. <b>No personal data will ever "
+                f"be shared</b>."
+            )
+            metrics_label.setWordWrap(True)
+            layout.addWidget(metrics_label)
+
+            cb_sentry = QCheckBox(
+                "Allow anonymous bug reports "
+                "(might include username and document paths)"
+            )
+            layout.addWidget(cb_sentry)
+
+            cb_analytics = QCheckBox("Allow advanced analytics")
+            layout.addWidget(cb_analytics)
+
+            # --- Apply button ---
+            buttons = QDialogButtonBox()
+            buttons.setStandardButtons(qt.Apply)
+            buttons.clicked.connect(dialog.accept)
+            layout.addWidget(buttons)
+
+            dialog.setLayout(layout)
+            dialog.resize(450, 280)
+            dialog.exec()
+
+            server_type = combo.currentData()
+            use_sentry = cb_sentry.isChecked()
+            use_analytics = cb_analytics.isChecked()
+        except Exception:
+            log.warning("Could not show first-run dialog, using defaults")
+            server_type = _st.get_default_key()
+
+        # Apply server type selection
+        Options.server_type = server_type
+        config = _st.get(server_type)
+        Options.nxdrive_home = Path.home() / config.home_dir
+
+        apply_server_type_restrictions(server_type)
+        refresh_branding(server_type)
+
+        # Apply metrics selection
+        Options.use_analytics = use_analytics
+        Options.use_sentry = use_sentry
+
+        # Write metrics.state so show_metrics_acceptance() is skipped later
+        home = Options.nxdrive_home
+        home.mkdir(parents=True, exist_ok=True)
+        states = []
+        if use_analytics:
+            states.append("analytics")
+        if use_sentry:
+            states.append("sentry")
+        (home / "metrics.state").write_text("\n".join(states), encoding="utf-8")
+
+        log.info(
+            f"First-run setup: server_type={server_type}, "
+            f"home={Options.nxdrive_home}, "
+            f"analytics={use_analytics}, sentry={use_sentry}"
+        )
 
     def get_manager(self) -> "Manager":
         from nxdrive.drive.manager import Manager  # noqa

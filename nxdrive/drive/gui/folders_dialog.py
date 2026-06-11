@@ -4,8 +4,9 @@ from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
-from nxdrive.nuxeo.engine.engine import Engine
-from nxdrive.nuxeo.gui.folders_model import FilteredDocuments, FoldersOnly
+from nxdrive.drive import server_type as _st
+from nxdrive.drive.engine.engine import Engine
+from nxdrive.drive.gui.folders_model import FilteredDocuments
 
 from ..constants import APP_NAME, INVALID_CHARS
 from ..feature import Feature
@@ -649,7 +650,9 @@ class FoldersDialog(DialogMixin):
     def get_tree_view(self) -> FolderTreeView:
         """Render the folders tree."""
         self.resize(800, 450)
-        client = FoldersOnly(self.engine.remote)
+        config = _st.get_by_engine_type(self.engine.type)
+        folders_cls = _st.load_class(config.folders_only_class_path)
+        client = folders_cls(self.engine.remote)
         return FolderTreeView(self, client, self.selected_folder)
 
     def _files_display(self) -> str:

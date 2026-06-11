@@ -17,11 +17,10 @@ from alfresco.exceptions import NetworkError as AlfrescoNetworkError
 
 from nxdrive.drive.constants import ROOT
 from nxdrive.drive.engine.activity import tooltip
-from nxdrive.drive.engine.workers import EngineWorker
+from nxdrive.drive.engine.watcher.remote_watcher_base import RemoteWatcherBase
 from nxdrive.drive.exceptions import ThreadInterrupt
 from nxdrive.drive.objects import DocPair, Metrics, RemoteFileInfo
 from nxdrive.drive.options import Options
-from nxdrive.drive.qt.imports import pyqtSignal
 
 if TYPE_CHECKING:
     from nxdrive.alfresco.engine.engine import AlfrescoEngine
@@ -32,19 +31,12 @@ __all__ = ("AlfrescoRemoteWatcher",)
 log = getLogger(__name__)
 
 
-class AlfrescoRemoteWatcher(EngineWorker):
+class AlfrescoRemoteWatcher(RemoteWatcherBase):
     """Poll the Alfresco server for remote changes via full tree scans."""
-
-    initiate = pyqtSignal()
-    updated = pyqtSignal()
-    remoteScanFinished = pyqtSignal()
-    remoteWatcherStopped = pyqtSignal()
 
     def __init__(self, engine: "AlfrescoEngine", dao: "EngineDAO", /) -> None:
         super().__init__(engine, dao, "AlfrescoRemoteWatcher")
 
-        self.empty_polls = 0
-        self._next_check = 0.0
         # Track last full remote scan timestamp (persisted to DAO)
         self._last_remote_full_scan: Optional[datetime] = self.dao.get_config(
             "remote_last_full_scan"
@@ -66,8 +58,8 @@ class AlfrescoRemoteWatcher(EngineWorker):
             while "working":
                 if now() > self._next_check:
                     handle_changes(first_pass)
-                    # Note: @tooltip decorator swallows return values,
-                    # so we always flip first_pass after the first call.
+                    # @tooltip decorator swallows return values,
+                    # so always flip first_pass after the first call.
                     first_pass = False
                     self._next_check = now() + Options.delay
 

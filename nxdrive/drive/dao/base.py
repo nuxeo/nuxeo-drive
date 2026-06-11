@@ -88,6 +88,7 @@ class BaseDAO(QObject):
         try:
             self._migrate_db(schema_version)
         except Exception:
+            log.exception(f"Database migration failed for {self.db!r}")
             self.migration_success = False
         else:
             self.migration_success = True

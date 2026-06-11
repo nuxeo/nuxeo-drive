@@ -31,6 +31,7 @@ from nxdrive.drive.constants import (
     DelAction,
 )
 from nxdrive.drive.dao.manager import ManagerDAO
+from nxdrive.drive.engine.engine import Engine
 from nxdrive.drive.engine.tracker import Tracker
 from nxdrive.drive.engine.workers import Runner
 from nxdrive.drive.exceptions import (
@@ -69,9 +70,6 @@ from nxdrive.drive.utils import (
     requests_verify,
     save_config,
 )
-from nxdrive.nuxeo.direct_download import DirectDownload
-from nxdrive.nuxeo.direct_edit import DirectEdit
-from nxdrive.nuxeo.engine.engine import Engine
 
 if TYPE_CHECKING:
     from nxdrive.drive.client.proxy import Proxy  # noqa
@@ -276,7 +274,10 @@ class Manager(QObject):
                 module = importlib.import_module(module_path)
                 types[config.engine_type] = getattr(module, class_name)
             except (ImportError, AttributeError):
-                log.warning(f"Could not load engine class {config.engine_class_path}")
+                log.warning(
+                    f"Could not load engine class {config.engine_class_path}",
+                    exc_info=True,
+                )
         return types
 
     def __enter__(self) -> "Manager":
@@ -364,6 +365,10 @@ class Manager(QObject):
             from nxdrive.drive.constants import refresh_branding
 
             refresh_branding(server_type)
+        elif Options.server_type:
+            # First launch: server_type was set by the first-run dialog
+            # but not yet persisted to the DB.
+            self.set_config("server_type", Options.server_type)
 
     @if_frozen
     def _handle_os(self) -> None:
@@ -418,8 +423,14 @@ class Manager(QObject):
 
         return worker
 
-    def _create_direct_edit(self) -> "DirectEdit":
-        worker = DirectEdit(self, self.direct_edit_folder)
+    def _create_direct_edit(self) -> Any:
+        """Create the Direct Edit worker using the default server-type's class."""
+        cls = st.load_class(st.get(st.get_default_key()).direct_edit_class_path)
+        if cls is None:
+            log.warning("No DirectEdit class registered for the default server type")
+            return None
+
+        worker = cls(self, self.direct_edit_folder)
         self.autolock_service.direct_edit = worker
 
         # Start only when the configuration has been retrieved
@@ -433,12 +444,19 @@ class Manager(QObject):
 
         return worker
 
-    def _create_direct_download(self) -> "DirectDownload":
-        """Create the Direct Download worker."""
+    def _create_direct_download(self) -> Any:
+        """Create the Direct Download worker using the default server-type's class."""
+        cls = st.load_class(st.get(st.get_default_key()).direct_download_class_path)
+        if cls is None:
+            log.warning(
+                "No DirectDownload class registered for the default server type"
+            )
+            return None
+
         # Use the dedicated folder for downloads (defined in __init__)
         self.direct_download_folder.mkdir(exist_ok=True)
 
-        worker = DirectDownload(self, self.direct_download_folder)
+        worker = cls(self, self.direct_download_folder)
 
         # Start only when the configuration has been retrieved
         self.server_config_updater.firstRunCompleted.connect(worker.thread.start)
@@ -553,7 +571,9 @@ class Manager(QObject):
                 log.error(f"Cannot find {engine.engine} engine type anymore")
                 self._engine_definitions.remove(engine)
                 continue
-            elif not self._get_engine_db_file(engine.uid).is_file():
+            elif not self._get_engine_db_file(
+                engine.uid, engine_type=engine.engine
+            ).is_file():
                 log.warning(f"Cannot find {engine.uid} engine database file anymore")
                 self._engine_definitions.remove(engine)
                 continue
@@ -584,8 +604,8 @@ class Manager(QObject):
             if engine.remote and hasattr(engine.remote, "reload_global_headers"):
                 engine.remote.reload_global_headers()
 
-    def _get_engine_db_file(self, uid: str, /) -> Path:
-        config = st.get(Options.server_type)
+    def _get_engine_db_file(self, uid: str, /, *, engine_type: str = "") -> Path:
+        config = st.get(engine_type or Options.server_type)
         return self.home / f"{config.db_prefix}{uid}.db"
 
     def _force_autoupdate(self) -> None:
@@ -991,7 +1011,7 @@ class Manager(QObject):
 
             self.engines.pop(uid, None)
             self.dao.delete_engine(uid)
-            self.remove_engine_dbs(uid)
+            self.remove_engine_dbs(uid, engine_type)
             raise exc
 
         self._engine_definitions.append(engine_def)
@@ -1059,16 +1079,16 @@ class Manager(QObject):
         if self.db_backup_worker:
             self.db_backup_worker.force_poll()
 
-    def get_engine_db(self, uid: str) -> Path:
+    def get_engine_db(self, uid: str, engine_type: str = "") -> Path:
         """Return the full path to the Engine database file.
         Note: It is defined here to be able to delete databases on failed account addition.
         """
-        config = st.get(Options.server_type)
+        config = st.get(engine_type or Options.server_type)
         return self.home / f"{config.db_prefix}{uid}.db"
 
-    def remove_engine_dbs(self, uid: str) -> None:
+    def remove_engine_dbs(self, uid: str, engine_type: str = "") -> None:
         """Remove all databases files related to the Engine *uid*."""
-        main_db = self.get_engine_db(uid)
+        main_db = self.get_engine_db(uid, engine_type)
         for file in (
             main_db,
             main_db.with_suffix(".db-shm"),

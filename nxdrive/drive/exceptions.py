@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from nxdrive.nuxeo.engine.engine import Engine  # noqa
+    from nxdrive.drive.engine.engine import Engine  # noqa
 
 
 class DriveError(Exception):

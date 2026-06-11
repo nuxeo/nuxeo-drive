@@ -24,7 +24,7 @@ def get_auth(host: str, token: Token, **kwargs: Any) -> Any:
         return config.auth_factory(host, token, **kwargs)
 
     # Fallback for server types without a registered auth factory
-    from nxdrive.nuxeo.auth.token import TokenAuthentication
+    from nxdrive.drive.auth.token import TokenAuthentication
 
     return TokenAuthentication(host, token=token, **kwargs)
 

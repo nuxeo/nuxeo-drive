@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timezone
 from logging import getLogger
 from operator import attrgetter, itemgetter
-from time import monotonic, sleep
+from time import monotonic
 from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Tuple
 
 from nuxeo.exceptions import BadQuery, HTTPError, Unauthorized
@@ -16,11 +16,10 @@ from nxdrive.drive.constants import (
     WORKSPACE_ROOT,
 )
 from nxdrive.drive.engine.activity import Action, tooltip
-from nxdrive.drive.engine.workers import EngineWorker
+from nxdrive.drive.engine.watcher.remote_watcher_base import RemoteWatcherBase
 from nxdrive.drive.exceptions import NotFound, ScrollDescendantsError, ThreadInterrupt
 from nxdrive.drive.feature import Feature
 from nxdrive.drive.objects import DocPair, DocPairs, Metrics, RemoteFileInfo
-from nxdrive.drive.options import Options
 from nxdrive.drive.qt.imports import pyqtSignal, pyqtSlot
 from nxdrive.drive.utils import get_date_from_sqlite, safe_filename
 from nxdrive.nuxeo.engine.watcher.constants import (
@@ -42,19 +41,13 @@ log = getLogger(__name__)
 COLLECTION_SYNC_ROOT_FACTORY_NAME = "collectionSyncRootFolderItemFactory"
 
 
-class RemoteWatcher(EngineWorker):
-    initiate = pyqtSignal()
-    updated = pyqtSignal()
-    remoteScanFinished = pyqtSignal()
+class RemoteWatcher(RemoteWatcherBase):
     changesFound = pyqtSignal(int)
     noChangesFound = pyqtSignal()
-    remoteWatcherStopped = pyqtSignal()
 
     def __init__(self, engine: "Engine", dao: "EngineDAO", /) -> None:
         super().__init__(engine, dao, "RemoteWatcher")
 
-        self.empty_polls = 0
-        self._next_check = 0.0
         self._last_sync_date: int = self.dao.get_int("remote_last_sync_date")
         self._last_event_log_id: int = self.dao.get_int("remote_last_event_log_id")
         self._last_root_definitions = self.dao.get_config(
@@ -72,27 +65,6 @@ class RemoteWatcher(EngineWorker):
         metrics["last_remote_full_scan"] = self._last_remote_full_scan
         metrics["next_polling"] = self._next_check
         return metrics
-
-    def _execute(self) -> None:
-        first_pass = True
-        now = monotonic
-        handle_changes = self._handle_changes
-        interact = self._interact
-
-        try:
-            while "working":
-                if now() > self._next_check:
-                    if handle_changes(first_pass):
-                        first_pass = False
-
-                    # Plan the next execution
-                    self._next_check = now() + Options.delay
-
-                interact()
-                sleep(0.5)
-        except ThreadInterrupt:
-            self.remoteWatcherStopped.emit()
-            raise
 
     @tooltip("Remote scanning")
     def scan_remote(self, *, from_state: DocPair = None) -> None:

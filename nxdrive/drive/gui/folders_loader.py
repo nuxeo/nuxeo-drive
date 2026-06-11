@@ -1,7 +1,7 @@
 from logging import getLogger
 from typing import TYPE_CHECKING, List, Optional
 
-from nxdrive.nuxeo.gui.folders_model import Doc, Documents, FilteredDoc
+from nxdrive.drive.gui.folders_model import Doc, Documents, FilteredDoc
 
 from ..constants import USER_WORKSPACE
 from ..qt import constants as qt

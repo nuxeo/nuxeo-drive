@@ -9,7 +9,7 @@ def _alfresco_auth_factory(host, token, **kwargs):
         from nxdrive.alfresco.auth.oauth2 import AlfrescoOAuthentication
 
         return AlfrescoOAuthentication(host, token=token, **kwargs)
-    from nxdrive.nuxeo.auth.token import TokenAuthentication
+    from nxdrive.drive.auth.token import TokenAuthentication
 
     return TokenAuthentication(host, token=token, **kwargs)
 
@@ -17,11 +17,16 @@ def _alfresco_auth_factory(host, token, **kwargs):
 register(
     ServerTypeConfig(
         key="ALFRESCO",
-        home_dir=".alfresco",
+        home_dir=".alfresco-drive",
         log_file="aldrive.log",
         db_prefix="adrive_",
         engine_type="ALFRESCO",
         engine_class_path="nxdrive.alfresco.engine.engine.AlfrescoEngine",
+        direct_edit_class_path="",  # not yet implemented
+        direct_download_class_path="",  # not yet implemented
+        workflow_class_path="",  # not yet implemented
+        oauth2_class_path="nxdrive.alfresco.auth.oauth2.AlfrescoOAuthentication",
+        folders_only_class_path="",  # not yet implemented
         disabled_features=[
             "direct_edit",
             "direct_transfer",
@@ -33,7 +38,7 @@ register(
         app_name="Alfresco Drive",
         company="Hyland",
         bundle_identifier="com.alfresco.drive",
-        url_scheme="aldrive",
+        url_scheme="nxdrive",
         config_registry_key="Software\\Alfresco\\Drive",
         emblem_name="emblem-alfresco",
         local_folder_name="Alfresco",

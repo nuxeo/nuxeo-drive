@@ -46,10 +46,48 @@ excludes = [
 ]
 
 data = [(data, "data")]
-migrations = Path(nxdrive, "dao", "migrations")
+migrations = Path(nxdrive, "drive", "dao", "migrations")
 hiddenimports = [
     migration.relative_to(cwd).with_suffix("").as_posix().replace("/", ".")
     for migration in migrations.glob("**/[0-9]*.py")
+]
+
+# Classes loaded dynamically via importlib.import_module() or auto-discovery
+# in __init__.py / server_type.load_class(), so PyInstaller cannot trace them.
+hiddenimports += [
+    # Registration modules (auto-discovered at startup)
+    "nxdrive.nuxeo.registration",
+    "nxdrive.alfresco.registration",
+    # Nuxeo dynamic classes
+    "nxdrive.nuxeo.engine.engine",
+    "nxdrive.nuxeo.direct_edit",
+    "nxdrive.nuxeo.direct_download",
+    "nxdrive.nuxeo.client.workflow",
+    "nxdrive.nuxeo.auth.oauth2",
+    "nxdrive.nuxeo.gui.folders_model",
+    # Alfresco dynamic classes
+    "nxdrive.alfresco.engine.engine",
+    "nxdrive.alfresco.auth.oauth2",
+    "nxdrive.alfresco.engine.processor",
+    "nxdrive.alfresco.client.remote",
+    "nxdrive.alfresco.engine.watcher.remote_watcher",
+    "alfresco",
+    "alfresco._utils",
+    "alfresco.client",
+    "alfresco.auth",
+    "alfresco.exceptions",
+    "alfresco.api",
+    "alfresco.api.base",
+    "alfresco.api.nodes",
+    "alfresco.api.people",
+    "alfresco.api.search",
+    "alfresco.api.sites",
+    "alfresco.api.sync_service",
+    "alfresco.models",
+    "alfresco.models.node",
+    "alfresco.models.person",
+    "alfresco.models.site",
+    "alfresco.models.search",
 ]
 
 version = get_version(os.path.join(nxdrive, "__init__.py"))

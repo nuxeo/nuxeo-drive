@@ -12,6 +12,7 @@ from time import monotonic
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import unquote_plus, urlparse
 
+from nxdrive.drive import server_type as _st
 from nxdrive.drive.behavior import Behavior
 from nxdrive.drive.constants import (
     APP_NAME,
@@ -25,6 +26,7 @@ from nxdrive.drive.constants import (
 )
 from nxdrive.drive.dao.engine import EngineDAO
 from nxdrive.drive.engine.activity import Action
+from nxdrive.drive.engine.engine import Engine
 from nxdrive.drive.feature import Beta, DisabledFeatures, Feature
 from nxdrive.drive.gui.api import QMLDriveApi
 from nxdrive.drive.gui.custom_window import CustomWindow
@@ -59,7 +61,6 @@ from nxdrive.drive.qt.imports import (
     QEvent,
     QFont,
     QFontMetricsF,
-    QHBoxLayout,
     QIcon,
     QLabel,
     QLocalServer,
@@ -102,8 +103,6 @@ from nxdrive.drive.utils import (
     sizeof_fmt,
     today_is_special,
 )
-from nxdrive.nuxeo.client.workflow import Workflow
-from nxdrive.nuxeo.engine.engine import Engine
 
 if MAC:
     from nxdrive.drive.osi.darwin.pyNotificationCenter import (
@@ -439,7 +438,14 @@ class Application(QApplication):
         if not self.manager.engines:
             return
         if Feature.tasks_management:
-            self.workflow = Workflow()
+            workflow_cls = _st.load_class(
+                _st.get(_st.get_default_key()).workflow_class_path
+            )
+            if workflow_cls is None:
+                log.debug("No Workflow class registered; skipping task init")
+                return
+            self.workflow = workflow_cls()
+            self._workflow_cls = workflow_cls
             self.update_workflow()
 
     def update_workflow(self) -> None:
@@ -484,7 +490,8 @@ class Application(QApplication):
             else:
                 # clean user_task_list if we are disabling the tasks_management feature
                 self.added_user_engine_list = []
-                Workflow.user_task_list = {}
+                if hasattr(self, "_workflow_cls") and self._workflow_cls:
+                    self._workflow_cls.user_task_list = {}
                 self.manager.stop_workflow_worker()
 
     def _center_on_screen(self, window: QQuickView, /) -> None:
@@ -572,6 +579,7 @@ class Application(QApplication):
         context.setContextProperty("isAlpha", Options.is_alpha)
         context.setContextProperty("isFrozen", Options.is_frozen)
         context.setContextProperty("APP_NAME", APP_NAME)
+        context.setContextProperty("SERVER_TYPE", Options.server_type)
         context.setContextProperty("LINUX", LINUX)
         context.setContextProperty("WINDOWS", WINDOWS)
         context.setContextProperty(
@@ -595,9 +603,15 @@ class Application(QApplication):
         context.setContextProperty("beta_features", Beta)
         context.setContextProperty("disabled_features", DisabledFeatures)
         context.setContextProperty("tl", Translator.singleton)
-        context.setContextProperty(
-            "nuxeoVersionText", f"{APP_NAME} {self.manager.version}"
+
+        from nxdrive import __alfresco_version__
+
+        display_version = (
+            __alfresco_version__
+            if Options.server_type == "ALFRESCO"
+            else self.manager.version
         )
+        context.setContextProperty("nuxeoVersionText", f"{APP_NAME} {display_version}")
         metrics = self.manager.get_metrics()
         versions = (
             f"Python {metrics['python_version']}"
@@ -2223,7 +2237,11 @@ class Application(QApplication):
         return None
 
     def show_metrics_acceptance(self) -> None:
-        """Display a "friendly" dialog box to ask user for metrics approval."""
+        """Display a "friendly" dialog box to ask user for metrics approval.
+
+        Server type selection is handled earlier (in commandline.py before
+        Manager creation), so this dialog only handles metrics consent.
+        """
 
         tr = Translator.get
 
@@ -2231,18 +2249,6 @@ class Application(QApplication):
         dialog.setWindowTitle(tr("SHARE_METRICS_TITLE", values=[APP_NAME]))
         dialog.setWindowIcon(self.icon)
         layout = QVBoxLayout()
-
-        # Server type selection
-        from nxdrive.drive import server_type as _st
-
-        server_type_layout = QHBoxLayout()
-        server_type_label = QLabel(tr("SERVER_TYPE_LABEL"))
-        server_type_combo = QComboBox()
-        for key in _st.all_keys():
-            server_type_combo.addItem(tr(f"SERVER_TYPE_{key}"), key)
-        server_type_layout.addWidget(server_type_label)
-        server_type_layout.addWidget(server_type_combo)
-        layout.addLayout(server_type_layout)
 
         info = QLabel(tr("SHARE_METRICS_MSG", values=[COMPANY]))
         info.setTextFormat(qt.RichText)
@@ -2276,29 +2282,9 @@ class Application(QApplication):
         dialog.show()
         dialog.exec()
 
-        # Persist server type selection to Options and the config DB
-        server_type = server_type_combo.currentData()
-        Options.server_type = server_type
+        # Persist the server type (already selected before Manager creation)
+        server_type = Options.server_type
         self.manager.dao.update_config("server_type", server_type)
-
-        # Apply feature restrictions based on the selected server type
-        from nxdrive.drive.feature import apply_server_type_restrictions
-
-        apply_server_type_restrictions(server_type)
-
-        # Update branding globals (APP_NAME, COMPANY, etc.)
-        from nxdrive.drive.constants import refresh_branding
-
-        refresh_branding(server_type)
-
-        # Rename the home directory if needed for the selected server type
-        config = _st.get(server_type)
-        current_home = Options.nxdrive_home
-        new_home = current_home.parent / config.home_dir
-        if current_home != new_home and not new_home.exists():
-            current_home.rename(new_home)
-            Options.nxdrive_home = new_home
-            self.manager.home = new_home
 
         states = []
         if Options.use_analytics:

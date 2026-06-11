@@ -14,14 +14,10 @@ from logging import getLogger
 from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
 import requests
-from nuxeo.auth import OAuth2
 
-from nxdrive.drive.auth.base import Authentication
-from nxdrive.drive.options import Options
-from nxdrive.drive.utils import get_verify
+from nxdrive.drive.auth.oauth2 import OAuthenticationBase
 
 if TYPE_CHECKING:
-    from nxdrive.drive.auth import Token
     from nxdrive.drive.dao.base import BaseDAO
 
 __all__ = ("AlfrescoOAuthentication",)
@@ -143,7 +139,7 @@ def _discover_token_endpoint(
     return "", ""
 
 
-class AlfrescoOAuthentication(Authentication):
+class AlfrescoOAuthentication(OAuthenticationBase):
     """OAuth2 / AIMS authentication for Alfresco servers.
 
     Uses the same ``nuxeo.auth.OAuth2`` PKCE flow as the Nuxeo
@@ -153,47 +149,20 @@ class AlfrescoOAuthentication(Authentication):
     """
 
     def __init__(self, *args: Any, dao: "BaseDAO" = None, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-
-        self.verification_needed = get_verify()
-        self._dao = dao
-        subclient_kwargs = kwargs.get("subclient_kwargs", {})
-        subclient_kwargs["verify"] = self.verification_needed
+        super().__init__(*args, dao=dao, **kwargs)
 
         # Auto-discover AIMS/Keycloak endpoints from the Alfresco server
         # if no explicit OpenID configuration URL has been provided.
-        openid_url = Options.oauth2_openid_configuration_url
-        client_id = Options.oauth2_client_id
-        client_secret = Options.oauth2_client_secret
-
-        if not openid_url:
+        if not self._oauth2_openid_configuration_url:
             aims = discover_aims_config(self.url, verify=self.verification_needed)
             if aims:
-                openid_url = aims["openid_configuration_url"]
-                client_id = aims.get("client_id", _DEFAULT_CLIENT_ID)
-                client_secret = aims.get("client_secret") or client_secret
+                self._oauth2_openid_configuration_url = aims["openid_configuration_url"]
+                self._oauth2_client_id = aims.get("client_id", _DEFAULT_CLIENT_ID)
+                self._oauth2_client_secret = (
+                    aims.get("client_secret") or self._oauth2_client_secret
+                )
 
-        self.auth = OAuth2(
-            self.url,
-            client_id=client_id,
-            client_secret=client_secret,
-            authorization_endpoint=Options.oauth2_authorization_endpoint,
-            openid_configuration_url=openid_url,
-            redirect_uri=Options.oauth2_redirect_uri,
-            token_endpoint=Options.oauth2_token_endpoint,
-            token=self.token,
-            subclient_kwargs=subclient_kwargs,
-        )
-
-    def get_token(self, **kwargs: Any) -> "Token":
-        """Exchange authorization code + code_verifier for an access token."""
-        token: str = self.auth.request_token(
-            code_verifier=kwargs["code_verifier"],
-            code=kwargs["code"],
-            state=kwargs["state"],
-        )
-        self.token = token
-        return token
+        self._build_oauth2()
 
     def get_username(self) -> str:
         """Resolve the authenticated user's ID via the Alfresco People API."""

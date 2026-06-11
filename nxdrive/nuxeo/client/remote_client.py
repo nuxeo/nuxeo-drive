@@ -69,13 +69,7 @@ from nxdrive.drive.metrics.constants import (
 )
 from nxdrive.drive.metrics.poll_metrics import CustomPollMetrics
 from nxdrive.drive.metrics.utils import current_os, user_agent
-from nxdrive.drive.objects import (
-    Download,
-    Metrics,
-    NuxeoDocumentInfo,
-    RemoteFileInfo,
-    SubTypeEnricher,
-)
+from nxdrive.drive.objects import Download, Metrics, RemoteFileInfo, SubTypeEnricher
 from nxdrive.drive.options import Options
 from nxdrive.drive.qt.imports import QApplication
 from nxdrive.drive.utils import (
@@ -91,6 +85,7 @@ from nxdrive.drive.utils import (
 )
 from nxdrive.nuxeo.client.uploader import BaseUploader
 from nxdrive.nuxeo.client.uploader.sync import SyncUploader
+from nxdrive.nuxeo.objects import NuxeoDocumentInfo
 
 if TYPE_CHECKING:
     from nxdrive.drive.dao.engine import EngineDAO  # noqa

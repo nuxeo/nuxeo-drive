@@ -27,6 +27,7 @@ from nxdrive.drive.exceptions import (
     AddonForbiddenError,
     AddonNotInstalledError,
     EncryptedSSLCertificateKey,
+    EngineTypeMissing,
     FolderAlreadyUsed,
     InvalidSSLCertificate,
     MissingClientSSLCertificate,
@@ -54,8 +55,9 @@ from nxdrive.drive.utils import (
     sizeof_fmt,
     test_url,
 )
-from nxdrive.nuxeo.auth.oauth2 import OAuthentication
-from nxdrive.nuxeo.engine.engine import Engine
+from nxdrive.drive import server_type as _st
+from nxdrive.drive.auth.oauth2 import OAuthenticationBase
+from nxdrive.drive.engine.engine import Engine
 
 if TYPE_CHECKING:
     from nxdrive.drive.gui.application import Application  # noqa
@@ -622,7 +624,7 @@ class QMLDriveApi(QObject):
 
             # The good authentication class is chosen following the type of the token
             crafted_token: Token = (
-                {} if isinstance(engine.remote.auth, OAuthentication) else ""
+                {} if isinstance(engine.remote.auth, OAuthenticationBase) else ""
             )
             auth = get_auth(
                 url,
@@ -707,7 +709,8 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(result=str)
     def default_local_folder(self) -> str:
-        return str(get_default_local_folder())
+        config = st.get("NUXEO")
+        return str(get_default_local_folder(config.local_folder_name))
 
     @pyqtSlot(str, result=str)
     def default_local_folder_for_server(self, server_type_key: str, /) -> str:
@@ -940,6 +943,9 @@ class QMLDriveApi(QObject):
             error = "ADDON_NOT_INSTALLED"
         except Unauthorized:
             error = "UNAUTHORIZED"
+        except EngineTypeMissing:
+            log.error("Engine type not available for this server")
+            error = "CONNECTION_ERROR"
         except FolderAlreadyUsed:
             error = "FOLDER_USED"
         except PermissionError:
@@ -1024,6 +1030,10 @@ class QMLDriveApi(QObject):
         engine.stop()
         engine.remote = engine.init_remote()
         engine.start()
+        # Ensure the queue manager is accepting items and trigger a fresh
+        # remote scan so that pending sync work resumes immediately.
+        engine.queue_manager.resume()
+        engine.dao.update_config("remote_need_full_scan", "1")
 
     @pyqtSlot(str, str, str, str)
     def alfresco_oauth2_auth(
@@ -1035,7 +1045,7 @@ class QMLDriveApi(QObject):
         the password grant to obtain an OAuth2 token, resolves the
         username via the People API, and binds the engine with the token.
         """
-        from nxdrive.alfresco.auth.oauth2 import AlfrescoOAuthentication
+        from nxdrive.drive.server_type import detect_by_url, load_class
         from nxdrive.drive.utils import get_verify
 
         if not self._manager.check_local_folder_available(
@@ -1044,8 +1054,16 @@ class QMLDriveApi(QObject):
             self.setMessage.emit("FOLDER_USED", "error")
             return
 
+        # Dynamically load the OAuth2 class for the detected server type
+        detected = detect_by_url(server_url)
+        oauth2_cls = load_class(detected.oauth2_class_path)
+        if not oauth2_cls or not hasattr(oauth2_cls, "password_grant"):
+            log.error("No password_grant support for server type %s", detected.key)
+            self.setMessage.emit("CONNECTION_REFUSED", "error")
+            return
+
         try:
-            result = AlfrescoOAuthentication.password_grant(
+            result = oauth2_cls.password_grant(
                 server_url,
                 username,
                 password,
@@ -1233,7 +1251,16 @@ class QMLDriveApi(QObject):
                     url=Options.oauth2_openid_configuration_url
                 )
 
-            auth = OAuthentication(
+            # Resolve the OAuth2 class from the server-type config
+            config = _st.detect_by_url(stored_url)
+            oauth2_cls = _st.load_class(config.oauth2_class_path)
+            if oauth2_cls is None:
+                log.warning("No OAuth2 class registered for %s", config.key)
+                error = "CONNECTION_UNKNOWN"
+                self.setMessage.emit(error, "error")
+                return
+
+            auth = oauth2_cls(
                 stored_url,
                 dao=self._manager.dao,
                 subclient_kwargs=subclient_kwargs,

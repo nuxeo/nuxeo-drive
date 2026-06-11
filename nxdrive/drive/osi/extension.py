@@ -5,7 +5,7 @@ from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, Optional
 
-from nxdrive.nuxeo.engine.engine import Engine
+from nxdrive.drive.engine.engine import Engine
 
 from ..objects import DocPair
 from ..qt import constants as qt

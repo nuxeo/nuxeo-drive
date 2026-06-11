@@ -19,7 +19,7 @@ COMPANY = "Hyland"
 # The constants below are also overwritten by refresh_branding() but need
 # initial values so that early imports succeed.
 BUNDLE_IDENTIFIER = "com.hyland.drive"
-NXDRIVE_SCHEME = "drive"
+NXDRIVE_SCHEME = "nxdrive"
 CONFIG_REGISTRY_KEY = "Software\\Hyland\\Drive"
 
 TIMEOUT = 20  # Seconds

@@ -13,7 +13,7 @@ from .utils import short_name
 
 if TYPE_CHECKING:
     from nxdrive.drive.manager import Manager  # noqa
-    from nxdrive.nuxeo.engine.engine import Engine  # noqa
+    from nxdrive.drive.engine.engine import Engine  # noqa
 
 __all__ = ("DefaultNotificationService", "Notification")
 

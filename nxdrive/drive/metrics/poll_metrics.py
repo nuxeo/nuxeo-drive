@@ -2,7 +2,7 @@ import json
 from logging import getLogger
 from queue import Empty, Queue
 from time import monotonic_ns
-from typing import TYPE_CHECKING
+from typing import Any
 
 from ..constants import TIMEOUT
 from ..engine.workers import PollWorker
@@ -15,12 +15,8 @@ from .constants import ENDPOINT, REQUEST_METRICS, SYNC_ACTION, SYNC_TIME
 log = getLogger(__name__)
 
 
-if TYPE_CHECKING:
-    from nxdrive.nuxeo.client.remote_client import Remote
-
-
 class CustomPollMetrics(PollWorker):
-    def __init__(self, remote: "Remote") -> None:
+    def __init__(self, remote: Any) -> None:
         super().__init__(Options.custom_metrics_poll_interval, "CustomMetrics")
 
         self._remote = remote

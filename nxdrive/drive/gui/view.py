@@ -23,7 +23,7 @@ from ..utils import force_decode, get_date_from_sqlite, sizeof_fmt
 
 if TYPE_CHECKING:
     from nxdrive.drive.gui.application import Application  # noqa
-    from nxdrive.nuxeo.engine.engine import Engine  # noqa
+    from nxdrive.drive.engine.engine import Engine  # noqa
 
 __all__ = (
     "ActiveDirectDownloadModel",

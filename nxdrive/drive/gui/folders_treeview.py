@@ -1,7 +1,7 @@
 from logging import getLogger
-from typing import TYPE_CHECKING, List, Union
+from typing import TYPE_CHECKING, Any, List, Union
 
-from nxdrive.nuxeo.gui.folders_model import FilteredDocuments, FoldersOnly
+from nxdrive.drive.gui.folders_model import FilteredDocuments
 
 from ..qt import constants as qt
 from ..qt.imports import (
@@ -29,7 +29,7 @@ class TreeViewMixin(QTreeView):
     """The base class of a tree view."""
 
     def __init__(
-        self, parent: "DialogMixin", client: Union[FoldersOnly, FilteredDocuments], /
+        self, parent: "DialogMixin", client: Union[Any, FilteredDocuments], /
     ) -> None:
         super().__init__(parent)
         self.setHeaderHidden(True)
@@ -186,7 +186,7 @@ class FolderTreeView(TreeViewMixin):
     def __init__(
         self,
         parent: "FoldersDialog",
-        client: FoldersOnly,
+        client: Any,
         selected_folder: str = None,
         /,
     ) -> None:

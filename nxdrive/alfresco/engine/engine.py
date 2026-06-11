@@ -1,8 +1,8 @@
 """
 Alfresco Engine — sync engine for Alfresco Content Services.
 
-Subclasses the Nuxeo Drive ``Engine`` and overrides the parts that are
-Nuxeo-specific: remote client creation, credential validation, root
+Subclasses the generic Drive ``Engine`` and overrides the parts that are
+Alfresco-specific: remote client creation, credential validation, root
 establishment, and the remote watcher.
 
 Phase 1 scope: account addition + synchronization only.
@@ -10,26 +10,24 @@ Excluded features: Direct Edit, Direct Transfer, Direct Download.
 """
 
 from logging import getLogger
-from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
+from typing import TYPE_CHECKING, Any, Type
 from urllib.parse import urlsplit
 
 from alfresco.exceptions import AuthenticationError
 
 from nxdrive.alfresco.client.remote import AlfrescoRemote
+from nxdrive.alfresco.engine.processor import AlfrescoProcessor
 from nxdrive.alfresco.engine.watcher.remote_watcher import AlfrescoRemoteWatcher
 from nxdrive.drive import server_type as _st
 from nxdrive.drive.client.local import LocalClient
 from nxdrive.drive.client.local.base import LocalClientMixin
 from nxdrive.drive.constants import ROOT
-from nxdrive.drive.dao.engine import EngineDAO
-from nxdrive.drive.exceptions import EngineInitError
+from nxdrive.drive.engine.engine import Engine
 from nxdrive.drive.feature import Feature
 from nxdrive.drive.objects import Binder, EngineDef
 from nxdrive.drive.options import Options
-from nxdrive.drive.qt.imports import QObject, QThread, QThreadPool, pyqtSlot
+from nxdrive.drive.qt.imports import pyqtSlot
 from nxdrive.drive.utils import set_path_readonly, unset_path_readonly
-from nxdrive.nuxeo.engine.engine import Engine
 
 if TYPE_CHECKING:
     from nxdrive.drive.manager import Manager
@@ -64,78 +62,18 @@ class AlfrescoEngine(Engine):
         remote_cls: Type[AlfrescoRemote] = AlfrescoRemote,
         local_cls: Type[LocalClientMixin] = LocalClient,
     ) -> None:
-        # We must NOT call Engine.__init__ because it hardcodes Remote as the
-        # remote_cls default. Instead, we replicate the relevant init steps.
-        QObject.__init__(self)
-
-        self.version = manager.version
-        self.remote: Optional[AlfrescoRemote] = None  # type: ignore[assignment]
-        self._remote_token: Any = None
-
-        self.remote_cls = remote_cls
-        self.local_cls = local_cls
-        self.download_dir: Path = ROOT
-
-        self.doc_container_type = "Automatic"
-
-        self._threads: List[QThread] = []
-
-        self.invalidAuthentication.connect(self.stop)
-        self.timeout = Options.handshake_timeout
-        self.manager = manager
-
-        self.local_folder = Path(definition.local_folder)
-        self.folder = str(self.local_folder)
-        self.local = self.local_cls(
-            self.local_folder,
-            digest_callback=self.suspend_client,
-            download_dir=self.download_dir,
-        )
-
-        self.uid = definition.uid
-        self.name = definition.name
-        self._proc_count = processors
-        self._stopped = True
-        self._pause: bool = Options.debug
-        self._sync_started = False
-        self._invalid_credentials = False
-        self._offline_state = False
-        self.dao = EngineDAO(self._get_db_file())
-
-        self._remote_password: str = ""
+        # Must be set before super().__init__() because the base class
+        # calls self.bind() which triggers init_remote() which reads this.
         self._alfresco_ticket: str = ""
 
-        if binder:
-            try:
-                self.bind(binder)
-            except Exception:
-                self.dispose_db()
-                raise
-
-        self._load_configuration()
-
-        self.download_dir = self._set_download_dir()
-        self.csv_dir = self._set_csv_dir_or_cleanup()
-
-        if not binder:
-            self._setup_local_folder(not Options.nofscheck)
-            if not self.server_url:
-                raise EngineInitError(self)
-            self.remote = self.init_remote()
-
-        self._create_queue_manager()
-        if Feature.synchronization:
-            self._create_remote_watcher()
-            self._create_local_watcher()
-
-        self.newQueueItem.connect(self._check_sync_start)
-        self.dao.newConflict.connect(self.conflict_resolver)
-
-        self._set_root_icon()
-        self._user_cache: Dict[str, str] = {}
-
-        self.noSpaceLeftOnDevice.connect(self.suspend)
-        self._threadpool = QThreadPool().globalInstance()
+        super().__init__(
+            manager,
+            definition,
+            binder=binder,
+            processors=processors,
+            remote_cls=remote_cls,
+            local_cls=local_cls,
+        )
 
     # -- Filter selection tracking -------------------------------------------
 
@@ -172,6 +110,11 @@ class AlfrescoEngine(Engine):
             if queue_size > 0:
                 self._sync_started = True
                 self.syncStarted.emit(queue_size)
+
+    # -- Processor -----------------------------------------------------------
+
+    def create_processor(self, item_getter, /) -> AlfrescoProcessor:
+        return AlfrescoProcessor(self, item_getter)
 
     # -- Remote client -------------------------------------------------------
 
@@ -260,11 +203,13 @@ class AlfrescoEngine(Engine):
         # Fetch and store server version info via the Discovery API
         self._fetch_discovery_info()
 
-        # Establish the sync root
-        self._check_root()
-        # Mark filters as configured during initial bind with sync ON
+        # Mark filters as configured before _check_root() so the guard
+        # inside _check_root() doesn't skip root pair creation.
         if Feature.synchronization:
             self.dao.update_config("filters_configured", "1")
+
+        # Establish the sync root
+        self._check_root()
 
     # -- Root establishment --------------------------------------------------
 

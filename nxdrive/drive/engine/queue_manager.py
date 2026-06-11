@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
 from nuxeo.exceptions import OngoingRequestError
 
-from nxdrive.nuxeo.engine.processor import Processor
+from nxdrive.drive.engine.processor import Processor
 
 from ..constants import WINDOWS
 from ..objects import DocPair, Metrics
@@ -16,7 +16,7 @@ from ..options import Options
 from ..qt.imports import QObject, QThread, QTimer, pyqtSignal, pyqtSlot
 
 if TYPE_CHECKING:
-    from nxdrive.nuxeo.engine.engine import Engine  # noqa
+    from nxdrive.drive.engine.engine import Engine  # noqa
 
     from ..dao.engine import EngineDAO  # noqa
 

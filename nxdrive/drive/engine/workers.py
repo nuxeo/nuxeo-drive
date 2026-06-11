@@ -11,7 +11,7 @@ from ..utils import current_thread_id
 from .activity import Action, IdleAction
 
 if TYPE_CHECKING:
-    from nxdrive.nuxeo.engine.engine import Engine  # noqa
+    from nxdrive.drive.engine.engine import Engine  # noqa
 
     from ..dao.engine import EngineDAO  # noqa
 

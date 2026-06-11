@@ -225,6 +225,18 @@ def check_executable_path() -> bool:
     ):
         return True
 
+    # Also accept any registered server type's app name
+    # (at startup, APP_NAME is the generic default "Drive" which may not
+    # match the installed bundle name like "Nuxeo Drive.app")
+    from nxdrive.drive import server_type as _st
+
+    for cfg in _st.all_configs().values():
+        if path in (
+            Path(f"/Applications/{cfg.app_name}.app"),
+            Path.home() / "Applications" / f"{cfg.app_name}.app",
+        ):
+            return True
+
     try:
         check_executable_path_error_qt(path)
     except Exception as exc:

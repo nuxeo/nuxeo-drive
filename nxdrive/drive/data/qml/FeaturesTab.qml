@@ -29,6 +29,8 @@ Rectangle {
         Repeater {
             model: features_layout.features_lst.length
             delegate : GridLayout {
+                property var item: features_layout.features_lst[index]
+                visible: !disabled_features.includes(item[1])
                 columns: 1
                 rowSpacing: 20
 

@@ -1,38 +1,21 @@
 from typing import TYPE_CHECKING, Any, Tuple
 
-from nuxeo.auth import OAuth2
 from nuxeo.client import Nuxeo
 
-from nxdrive.drive.auth.base import Authentication
+from nxdrive.drive.auth.oauth2 import OAuthenticationBase
 from nxdrive.drive.options import Options
 from nxdrive.drive.utils import get_verify
 
 if TYPE_CHECKING:
-    from nxdrive.drive.auth import Token
     from nxdrive.drive.dao.base import BaseDAO
 
 
-class OAuthentication(Authentication):
+class OAuthentication(OAuthenticationBase):
     """Use the OAuth2 mechanism."""
 
     def __init__(self, *args: Any, dao: "BaseDAO" = None, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-
-        self.verification_needed = get_verify()
-        self._dao = dao
-        subclient_kwargs = kwargs.get("subclient_kwargs", {})
-        subclient_kwargs["verify"] = self.verification_needed
-        self.auth = OAuth2(
-            self.url,
-            client_id=Options.oauth2_client_id,
-            client_secret=Options.oauth2_client_secret,
-            authorization_endpoint=Options.oauth2_authorization_endpoint,
-            openid_configuration_url=Options.oauth2_openid_configuration_url,
-            redirect_uri=Options.oauth2_redirect_uri,
-            token_endpoint=Options.oauth2_token_endpoint,
-            token=self.token,
-            subclient_kwargs=subclient_kwargs,
-        )
+        super().__init__(*args, dao=dao, **kwargs)
+        self._build_oauth2()
 
     def connect_url(self) -> str:
         kw = {"scope": Options.oauth2_scope} if Options.oauth2_scope else {}
@@ -46,16 +29,6 @@ class OAuthentication(Authentication):
             self._dao.update_config("tmp_oauth2_state", state)
 
         return uri
-
-    def get_token(self, **kwargs: Any) -> "Token":
-        token: str = self.auth.request_token(
-            code_verifier=kwargs["code_verifier"],
-            code=kwargs["code"],
-            state=kwargs["state"],
-        )
-
-        self.token = token
-        return token
 
     def get_username(self) -> str:
         verification_needed = get_verify()

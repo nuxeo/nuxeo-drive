@@ -28,6 +28,7 @@ To declare a beta, use this schema:
 
 __author__ = "Nuxeo"
 __version__ = "7.1.0"
+__alfresco_version__ = "1.0.0"
 __copyright__ = """
     Copyright © 2025 Hyland Software, Inc. and its affiliates. All rights reserved.
     All Hyland product names are registered or unregistered trademarks of Hyland Software, Inc. or its affiliates
@@ -46,6 +47,31 @@ __copyright__ = """
     limitations under the License.
 """
 
-# Register server-type configurations (must happen before drive/ code uses them)
-import nxdrive.alfresco.registration  # noqa: F401
-import nxdrive.nuxeo.registration  # noqa: F401
+# Auto-discover and register server-type configurations.
+# Each server-type package (nuxeo/, alfresco/, …) has a registration.py that
+# calls ``nxdrive.drive.server_type.register()``.  We discover them here so
+# that drive/ never hard-codes which packages exist.
+#
+# Note: pkgutil.iter_modules() does not work in frozen (PyInstaller) builds,
+# so we fall back to importing known packages when iter_modules yields nothing.
+import importlib
+import pkgutil
+import sys
+
+_discovered = set()
+if not getattr(sys, "frozen", False):
+    for _finder, _name, _ispkg in pkgutil.iter_modules(__path__):
+        if _ispkg and _name not in ("drive",):
+            try:
+                importlib.import_module(f"nxdrive.{_name}.registration")
+                _discovered.add(_name)
+            except ModuleNotFoundError:
+                pass  # package has no registration – skip
+
+# Frozen fallback: if iter_modules found nothing, try known packages directly.
+if not _discovered:
+    for _name in ("nuxeo", "alfresco"):
+        try:
+            importlib.import_module(f"nxdrive.{_name}.registration")
+        except ModuleNotFoundError:
+            pass

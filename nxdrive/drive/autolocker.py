@@ -3,7 +3,7 @@ from copy import deepcopy
 from logging import getLogger
 from pathlib import Path
 from time import sleep
-from typing import TYPE_CHECKING, Dict, Iterable, Iterator
+from typing import TYPE_CHECKING, Any, Dict, Iterable, Iterator
 
 import psutil
 
@@ -16,7 +16,6 @@ from .qt.imports import QTimer, pyqtSignal
 
 if TYPE_CHECKING:
     from nxdrive.drive.manager import Manager  # noqa
-    from nxdrive.nuxeo.direct_edit import DirectEdit  # noqa
 
 if LINUX:
     from .osi.linux.files import get_other_opened_files
@@ -85,7 +84,7 @@ class ProcessAutoLockerWorker(PollWorker):
         self._folder = folder
 
         self._autolocked: Dict[Path, int] = {}
-        self._lockers: Dict[Path, "DirectEdit"] = {}
+        self._lockers: Dict[Path, Any] = {}
         self._to_lock: Items = []
         self._first = True
 
@@ -96,7 +95,7 @@ class ProcessAutoLockerWorker(PollWorker):
         self.documentLocked.connect(manager.notification_service._lockDocument)
         self.documentUnlocked.connect(manager.notification_service._unlockDocument)
 
-    def set_autolock(self, filepath: Path, locker: "DirectEdit", /) -> None:
+    def set_autolock(self, filepath: Path, locker: Any, /) -> None:
         """Schedule the document lock."""
 
         if self._autolocked.get(filepath):
