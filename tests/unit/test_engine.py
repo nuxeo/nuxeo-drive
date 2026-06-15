@@ -129,6 +129,8 @@ def mock_engine(mock_manager, mock_dao, mock_remote, mock_queue_manager, tmp_pat
     engine._threads = []
     engine._threadpool = Mock()
     engine._threadpool.start = Mock()
+    engine.shutdown_event = Mock()
+    engine.shutdown_event.set = Mock()
     engine.doc_container_type = "Automatic"
     engine._folder_lock = None
 
@@ -1040,6 +1042,9 @@ class TestResumeSession:
     def test_resume_session(self, mock_engine):
         """Test resuming a session."""
         session_uid = 123
+        session = Mock(spec=Session)
+        session.scheduled_at = "0"
+        mock_engine.dao.get_session.return_value = session
 
         mock_engine.resume_session(session_uid)
 
@@ -1463,6 +1468,8 @@ class TestStop:
         mock_thread.wait.return_value = True
         mock_thread.isRunning.return_value = False
         mock_engine._threads = [mock_thread]
+        mock_engine.shutdown_event = Mock()
+        mock_engine.shutdown_event.set = Mock()
         mock_engine._stop = Mock()
         mock_engine._stop.emit = Mock()
 

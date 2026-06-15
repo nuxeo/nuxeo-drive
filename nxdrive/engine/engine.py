@@ -34,7 +34,6 @@ from ..exceptions import (
     UnknownDigest,
 )
 from ..feature import Feature
-from ..gui.schedule_dialog import ResumeScheduledSessionPopup
 from ..metrics.constants import (
     DT_NEW_FOLDER,
     DT_SESSION_FILE_COUNT,
@@ -872,7 +871,9 @@ class Engine(QObject):
         meth = (
             self.dao.get_download
             if nature == "download"
-            else self.dao.get_dt_upload if is_direct_transfer else self.dao.get_upload
+            else self.dao.get_dt_upload
+            if is_direct_transfer
+            else self.dao.get_upload
         )
         func = partial(meth, uid=uid)  # type: ignore
         self._resume_transfers(nature, func, is_direct_transfer=is_direct_transfer)
@@ -900,6 +901,8 @@ class Engine(QObject):
 
         session = self.dao.get_session(uid)
         if session and session.scheduled_at and session.scheduled_at not in (0, "0"):
+            from ..gui.schedule_dialog import ResumeScheduledSessionPopup
+
             popup = ResumeScheduledSessionPopup(
                 parent=None, scheduled_datetime=session.scheduled_at
             )

@@ -547,12 +547,12 @@ class ActiveSessionModel(QAbstractListModel):
                 label = "SCHEDULED_ON"
                 args = []
                 # scheduled_at is stored as ISO format string from FoldersDialog.accept
-                dt = parser.isoparse(scheduled_at)
-                if dt:
-                    # Adjust to local time
-                    dt = dt.astimezone(tzlocal())
+                try:
+                    dt = parser.isoparse(str(scheduled_at)).astimezone(tzlocal())
                     args.append(dt.strftime("%d %b %Y, %H:%M:%S"))
-                return self.tr(label, values=args)
+                except Exception:
+                    args.append(str(scheduled_at))
+                return self.tr(label, values=args)  # type: ignore
             return ""
         return row[self.names[role].decode()]
 

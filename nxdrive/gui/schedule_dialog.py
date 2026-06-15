@@ -222,6 +222,10 @@ class ResumeScheduledSessionPopup(QDialog):
                 formatted_dt = dt.astimezone().strftime("%Y-%m-%d %H:%M:%S")
             except Exception:
                 formatted_dt = scheduled_datetime
+        if formatted_dt:
+            import html
+
+            formatted_dt = html.escape(formatted_dt)
 
         message = QLabel()
         message.setTextFormat(Qt.TextFormat.RichText)

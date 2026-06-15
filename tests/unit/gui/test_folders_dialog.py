@@ -2637,6 +2637,7 @@ class TestFoldersDialogAccept:
         dialog.remote_folder_ref = "/test/remote/folder"
         dialog.remote_folder_title = "Test Folder"
         dialog.paths = {Path("/local/test.txt"): 1024}
+        dialog.scheduled_time = None
         dialog.last_local_selected_location = "/local"
 
         # Set up UI components
@@ -2651,6 +2652,19 @@ class TestFoldersDialogAccept:
             side_effect=lambda is_folder, type_val: f"key_{type_val}"
         )
 
+        def _accept():
+            original_getattribute = FoldersDialog.__getattribute__
+
+            def _safe_getattribute(obj, name):
+                if name in {"scheduled_time", "scheduled_at_iso"}:
+                    return None
+                if name == "scheduled_delay":
+                    return 0
+                return original_getattribute(obj, name)
+
+            with patch.object(FoldersDialog, "__getattribute__", _safe_getattribute):
+                return dialog.accept()
+
         # Test 1: Normal execution without duplicates
         # Set up combo box states
         self.mock_cb_doc_type.currentIndex.return_value = 1  # Not default
@@ -2664,7 +2678,7 @@ class TestFoldersDialogAccept:
         self.mock_remote_folder.text.return_value = "/remote/target"
 
         # Call the method
-        dialog.accept()
+        _accept()
 
         # Verify parent accept was called
         mock_parent_accept.assert_called_once()
@@ -2698,7 +2712,7 @@ class TestFoldersDialogAccept:
         dialog._find_folders_duplicates.return_value = ["duplicate_folder"]
 
         # Call the method
-        dialog.accept()
+        _accept()
 
         # Verify parent accept was called
         mock_parent_accept.assert_called()
@@ -2723,7 +2737,7 @@ class TestFoldersDialogAccept:
         self.mock_cb_doc_type.currentData.return_value = "default_doc_data"
 
         # Call the method
-        dialog.accept()
+        _accept()
 
         # Verify last_local_selected_doc_type uses currentData() for index 0
         assert dialog.last_local_selected_doc_type == "default_doc_data"
@@ -2737,7 +2751,7 @@ class TestFoldersDialogAccept:
         self.mock_cb_container_type.currentIndex.return_value = 0
 
         # Call the method
-        dialog.accept()
+        _accept()
 
         # Verify get_known_type_key was called with empty string for cont_type
         dialog.get_known_type_key.assert_any_call(True, "")
@@ -2749,7 +2763,7 @@ class TestFoldersDialogAccept:
         dialog._find_folders_duplicates.return_value = ["test_duplicate"]
 
         # Call the method
-        dialog.accept()
+        _accept()
 
         # Should still call folder_duplicate_warning even with None ref
         self.mock_engine.get_metadata_url.assert_called_with(None)
@@ -2775,7 +2789,7 @@ class TestFoldersDialogAccept:
         self.mock_remote_folder.text.return_value = "/clean/remote/target"
 
         # Call the method
-        dialog.accept()
+        _accept()
 
         # Verify all parameters in direct_transfer_async call
         self.mock_engine.direct_transfer_async.assert_called_once_with(
@@ -2788,6 +2802,9 @@ class TestFoldersDialogAccept:
             duplicate_behavior="overwrite",
             last_local_selected_location="/clean/local",
             last_local_selected_doc_type="CustomDoc",
+            paused=False,
+            schedule_delay=0,
+            scheduled_at=0,
         )
 
         # Test 7: Multiple consecutive calls (state consistency)
@@ -2799,7 +2816,7 @@ class TestFoldersDialogAccept:
             self.mock_cb_doc_type.currentText.return_value = f"Doc{i}"
             dialog.last_local_selected_doc_type = f"LastDoc{i}"
 
-            dialog.accept()
+            _accept()
 
             # Each call should work independently
             mock_parent_accept.assert_called_once()
@@ -2815,7 +2832,7 @@ class TestFoldersDialogAccept:
 
         # The method should propagate the exception (no exception handling in accept)
         try:
-            dialog.accept()
+            _accept()
             assert False, "Expected exception was not raised"
         except Exception as e:
             assert str(e) == "Duplicate check failed"
@@ -2825,12 +2842,12 @@ class TestFoldersDialogAccept:
         dialog._find_folders_duplicates.side_effect = None
         dialog._find_folders_duplicates.return_value = []
 
-        result = dialog.accept()
+        result = _accept()
         assert result is None  # Method should return None
 
         # Test with early return due to duplicates
         dialog._find_folders_duplicates.return_value = ["duplicate"]
-        result = dialog.accept()
+        result = _accept()
         assert result is None  # Method should return None even on early return
 
         # Test 10: Comprehensive UI state verification
@@ -2844,7 +2861,7 @@ class TestFoldersDialogAccept:
         self.mock_cb_duplicate.currentData.return_value = "final_behavior"
         self.mock_remote_folder.text.return_value = "/final/remote"
 
-        dialog.accept()
+        _accept()
 
         # Verify all UI components were called
         self.mock_cb_doc_type.currentIndex.assert_called()
