@@ -24,7 +24,7 @@ __all__ = ["ScheduleDialog", "ResumeScheduledSessionPopup"]
 class ScheduleDialog(QDialog):
     """Dialog to select a custom date and time."""
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent: QDialog | None = None) -> None:
         super().__init__(parent)
         self.selected_dt: QDateTime | None = None
         self.setWindowTitle(Translator.get("SCHEDULE_PICK_DATETIME"))
@@ -196,6 +196,7 @@ class ScheduleDialog(QDialog):
         """Return the selected time value. Or custom date time string."""
         if self.selected_dt is not None:
             return self.selected_dt
+        return None
 
     def accept(self) -> None:
         """Close the dialog."""
@@ -205,7 +206,9 @@ class ScheduleDialog(QDialog):
 class ResumeScheduledSessionPopup(QDialog):
     """Popup to ask the user if they want to resume a scheduled session."""
 
-    def __init__(self, parent=None, scheduled_datetime: str | None = None) -> None:
+    def __init__(
+        self, parent: QDialog | None = None, scheduled_datetime: str | None = None
+    ) -> None:
         super().__init__(parent)
 
         self.setWindowTitle(Translator.get("RESUMING_SCHEDULED_SESSION_TITLE"))
