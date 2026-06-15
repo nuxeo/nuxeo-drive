@@ -319,7 +319,7 @@ class QMLDriveApi(QObject):
 
     def cancel_session(self, engine_uid: str, uid: int, /) -> None:
         """Cancel a given session and it's transfers."""
-        log.info(f"Cancelling session {uid} for engine {engine_uid!r}")
+        log.debug(f"Cancelling session {uid} for engine {engine_uid!r}")
         engine = self._manager.engines.get(engine_uid)
         if not engine:
             return

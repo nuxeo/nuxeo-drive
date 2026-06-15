@@ -8,6 +8,7 @@ Rectangle {
     id: control
     property bool active: status == "PAUSED" || status == "ONGOING"
     property bool paused: status == "PAUSED"
+    property var sessionUid: uid
     visible: !shadow
     width: parent ? parent.width : 0
     height: shadow ? 0: 116
@@ -170,13 +171,22 @@ Rectangle {
                     // Stop icon
                     IconLabel {
                         id: cancel_button
-                        enabled: paused
+                        property bool isCancelling: false
+                        enabled: paused && !isCancelling
                         icon: MdiFont.Icon.close
                         tooltip: qsTr("CANCEL") + tl.tr
                         iconColor: iconFailure
+                        Connections {
+                            target: control
+                            function onSessionUidChanged() {
+                                cancel_button.isCancelling = false
+                            }
+                        }
                         onClicked: {
-                            enabled = false
-                            enabled = !application.confirm_cancel_session(engine, uid, remote_path, total - uploaded)
+                            isCancelling = true
+                            if (!application.confirm_cancel_session(engine, uid, remote_path, total - uploaded)) {
+                                isCancelling = false
+                            }
                         }
                     }
                 }
