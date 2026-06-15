@@ -5,8 +5,11 @@ from pathlib import Path
 from sqlite3 import DatabaseError
 from time import sleep
 
+import pytest
+
 import nxdrive.dao.utils
 from nxdrive.dao.base import BaseDAO
+from nxdrive.exceptions import AddonNotInstalledError
 
 from .. import ensure_no_exception
 
@@ -20,13 +23,16 @@ def test_create_backup(manager_factory, tmp, nuxeo_url, user_factory, monkeypatc
 
     # Start and stop a manager
     with manager_factory(home=home, with_engine=False) as manager:
-        manager.bind_server(
-            conf_folder,
-            nuxeo_url,
-            user.uid,
-            password=user.properties["password"],
-            start_engine=False,
-        )
+        try:
+            manager.bind_server(
+                conf_folder,
+                nuxeo_url,
+                user.uid,
+                password=user.properties["password"],
+                start_engine=False,
+            )
+        except AddonNotInstalledError:
+            pytest.skip("Nuxeo Drive addon not installed on server")
     # Check DB and backup exist
     assert (home / "manager.db").exists()
     assert len(list((home / "backups").glob("manager.db_*"))) == 1
@@ -95,13 +101,16 @@ def test_fix_db(manager_factory, tmp, nuxeo_url, user_factory, monkeypatch):
     user = user_factory()
 
     with manager_factory(home=home, with_engine=False) as manager:
-        manager.bind_server(
-            conf_folder,
-            nuxeo_url,
-            user.uid,
-            password=user.properties["password"],
-            start_engine=False,
-        )
+        try:
+            manager.bind_server(
+                conf_folder,
+                nuxeo_url,
+                user.uid,
+                password=user.properties["password"],
+                start_engine=False,
+            )
+        except AddonNotInstalledError:
+            pytest.skip("Nuxeo Drive addon not installed on server")
 
     available_databases = list((home).glob("*.db"))
     assert len(available_databases) == 2
