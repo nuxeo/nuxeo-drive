@@ -26,6 +26,7 @@ class ScheduleDialog(QDialog):
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
+        self.selected_dt: QDateTime | None = None
         self.setWindowTitle(Translator.get("SCHEDULE_PICK_DATETIME"))
         self.resize(300, 350)
 
@@ -113,28 +114,43 @@ class ScheduleDialog(QDialog):
         ok_button = self.button_box.button(QDialogButtonBox.StandardButton.Ok)
 
         # Validating hours input
-        if h_str and (int(h_str) < 0 or int(h_str) > 12):
-            self.error_label.setText(Translator.get("SCHEDULE_INVALID_HOURS"))
-            self.error_label.setVisible(True)
-            if ok_button:
-                ok_button.setEnabled(False)
-            return
+        if h_str:
+            try:
+                h_val = int(h_str)
+            except ValueError:
+                h_val = None
+            if h_val is None or h_val < 0 or h_val > 12:
+                self.error_label.setText(Translator.get("SCHEDULE_INVALID_HOURS"))
+                self.error_label.setVisible(True)
+                if ok_button:
+                    ok_button.setEnabled(False)
+                return
 
         # Validating minutes input
-        if m_str and (int(m_str) < 0 or int(m_str) > 59):
-            self.error_label.setText(Translator.get("SCHEDULE_INVALID_MINUTES"))
-            self.error_label.setVisible(True)
-            if ok_button:
-                ok_button.setEnabled(False)
-            return
+        if m_str:
+            try:
+                m_val = int(m_str)
+            except ValueError:
+                m_val = None
+            if m_val is None or m_val < 0 or m_val > 59:
+                self.error_label.setText(Translator.get("SCHEDULE_INVALID_MINUTES"))
+                self.error_label.setVisible(True)
+                if ok_button:
+                    ok_button.setEnabled(False)
+                return
 
         # Validating seconds input
-        if s_str and (int(s_str) < 0 or int(s_str) > 59):
-            self.error_label.setText(Translator.get("SCHEDULE_INVALID_SECONDS"))
-            self.error_label.setVisible(True)
-            if ok_button:
-                ok_button.setEnabled(False)
-            return
+        if s_str:
+            try:
+                s_val = int(s_str)
+            except ValueError:
+                s_val = None
+            if s_val is None or s_val < 0 or s_val > 59:
+                self.error_label.setText(Translator.get("SCHEDULE_INVALID_SECONDS"))
+                self.error_label.setVisible(True)
+                if ok_button:
+                    ok_button.setEnabled(False)
+                return
 
         self.selected_dt = self.get_datetime()
         if not self.selected_dt.isValid():

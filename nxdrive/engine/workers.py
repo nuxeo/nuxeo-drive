@@ -31,21 +31,17 @@ class TimerWorker(QRunnable):
         self.duration = duration_seconds
 
     def run(self) -> None:
-        import time
         from datetime import datetime
 
         start_time = datetime.now()
         log.debug(f"Timer started at: {start_time} for session {self.session_uid}")
 
-        slept = 0
-        while slept < self.duration:
-            if self.engine.is_stopped():
-                log.debug(
-                    f"Timer aborted for session {self.session_uid} because engine stopped."
-                )
-                return
-            time.sleep(5)
-            slept += 5
+        aborted = self.engine.shutdown_event.wait(self.duration)
+        if aborted or self.engine.is_stopped():
+            log.debug(
+                f"Timer aborted for session {self.session_uid} because engine stopped."
+            )
+            return
 
         end_time = datetime.now()
         log.debug(

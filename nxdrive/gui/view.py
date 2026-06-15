@@ -550,9 +550,7 @@ class ActiveSessionModel(QAbstractListModel):
                 dt = parser.isoparse(scheduled_at)
                 if dt:
                     # Adjust to local time
-                    offset = tzlocal().utcoffset(dt)
-                    if offset:
-                        dt += offset
+                    dt = dt.astimezone(tzlocal())
                     args.append(dt.strftime("%d %b %Y, %H:%M:%S"))
                 return self.tr(label, values=args)
             return ""

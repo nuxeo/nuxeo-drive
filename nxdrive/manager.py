@@ -500,14 +500,14 @@ class Manager(QObject):
             except Exception:
                 log.exception(f"Could not start {engine}")
 
+        if Feature.direct_transfer:
+            self._init_direct_transfer_resumption()
+
     def start(self) -> None:
         self._started = True
 
         if not self.server_config_updater.first_run:
             self.start_engines()
-
-        if Feature.direct_transfer:
-            self._init_direct_transfer_resumption()
 
         # Check only if manager is started
         self._handle_os()

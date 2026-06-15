@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from functools import partial
 from logging import getLogger
 from pathlib import Path
-from threading import Thread
+from threading import Event, Thread
 from time import sleep
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type, Union
 from urllib.parse import urlsplit
@@ -150,6 +150,7 @@ class Engine(QObject):
         # Initialize those attributes first to be sure .stop()
         # can be called without missing ones
         self._threads: List[QThread] = []
+        self.shutdown_event = Event()
 
         # Stop if invalid credentials
         self.invalidAuthentication.connect(self.stop)
@@ -911,7 +912,6 @@ class Engine(QObject):
                 self.dao.resume_session(uid)
             else:
                 # Pause the session again if the user cancels the resume action from the popup
-                self.dao.change_session_status(uid, TransferStatus.PAUSED)
                 self.dao.pause_session(uid)
         else:
             self.dao.change_session_status(uid, TransferStatus.ONGOING)
@@ -1355,6 +1355,7 @@ class Engine(QObject):
             self.remote.metrics.force_poll()
 
         self._stopped = True
+        self.shutdown_event.set()
 
         # The signal will propagate to all Workers. Each Worker being a QThread,
         # the stop() method will be called on each one that will trigger QThread.stop().
