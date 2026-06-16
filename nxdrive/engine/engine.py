@@ -942,10 +942,14 @@ class Engine(QObject):
                 chunk = min(remaining, max_ms)
                 timer.setInterval(chunk)
                 timer.start()
-                log.debug(f"Timer rescheduled for session {session_uid}: {chunk}ms remaining")
+                log.debug(
+                    f"Timer rescheduled for session {session_uid}: {chunk}ms remaining"
+                )
             else:
                 self.cancel_scheduled_timer(session_uid)
-                log.debug(f"Timer expired for session {session_uid}. Resuming now.")
+                log.debug(
+                    f"Timer started: session {session_uid} scheduled in {delay_seconds}s (chunk: {chunk}ms)"
+                )
                 self.resume_scheduled_session(session_uid)
 
         timer.timeout.connect(on_timeout)
