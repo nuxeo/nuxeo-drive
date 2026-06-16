@@ -2,9 +2,12 @@
 Migration to add the scheduled_at column to the Sessions table.
 """
 
+from logging import getLogger
 from sqlite3 import Cursor
 
 from ..migration import MigrationInterface
+
+log = getLogger(__name__)
 
 
 class MigrationAddScheduledAt(MigrationInterface):
@@ -14,9 +17,20 @@ class MigrationAddScheduledAt(MigrationInterface):
         """
         Add the scheduled_at column to the Sessions table.
         """
-        cursor.execute(
-            "ALTER TABLE Sessions ADD COLUMN scheduled_at DATETIME DEFAULT (0)"
-        )
+        try:
+            columns = {
+                row[1]
+                for row in cursor.execute("PRAGMA table_info('Sessions')").fetchall()
+            }
+            if "scheduled_at" in columns:
+                return
+
+            cursor.execute(
+                "ALTER TABLE Sessions ADD COLUMN scheduled_at DATETIME DEFAULT (0)"
+            )
+        except Exception as exc:
+            log.error("MigrationAddScheduledAt failed: %s", exc)
+            raise
 
     def downgrade(self, cursor: Cursor) -> None:
         """

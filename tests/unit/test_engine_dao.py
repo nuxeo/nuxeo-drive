@@ -399,7 +399,7 @@ def test_migration_db_v10(engine_dao):
         bad_digest_file = dao.get_state_from_local(
             Path("/Tests Drive/Live Connect/Test document Live Connect")
         )
-        assert bad_digest_file is None or bad_digest_file
+        assert not bad_digest_file
 
 
 def test_migration_db_v15(engine_dao):

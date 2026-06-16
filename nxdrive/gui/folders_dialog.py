@@ -258,9 +258,9 @@ class FoldersDialog(DialogMixin):
     ) -> None:
         """*path* is None when the dialog window is opened from a click on the systray menu icon."""
 
-        self.remote_folder = QLineEdit()
         super().__init__(application, engine, selected_folder)
         self.setWindowFlags(self.windowFlags() & ~qt.WindowStaysOnTopHint)
+        self.remote_folder = QLineEdit(self)
 
         self.path: Optional[Path] = None
         self.paths: Dict[Path, int] = {}
