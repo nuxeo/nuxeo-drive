@@ -925,7 +925,7 @@ class Engine(QObject):
         timer.setSingleShot(True)
         timer.setInterval(delay_seconds * 1000)
 
-        def on_timeout():
+        def on_timeout() -> None:
             self.cancel_scheduled_timer(session_uid)
             log.debug(f"Timer expired for session {session_uid}. Resuming now.")
             self.resume_scheduled_session(session_uid)

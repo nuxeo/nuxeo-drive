@@ -2,6 +2,7 @@
 For file nxdrive/client/remote_client.py
 """
 
+import shutil
 from pathlib import Path
 from typing import Any, Dict
 from unittest.mock import patch
@@ -15,6 +16,14 @@ from nxdrive.dao.base import BaseDAO
 from nxdrive.dao.engine import EngineDAO
 from nxdrive.engine.activity import DownloadAction, UploadAction
 from nxdrive.objects import RemoteFileInfo
+
+
+@pytest.fixture()
+def isolated_test_engine_db(tmp_path: Path) -> Path:
+    src = Path("tests") / "resources" / "databases" / "test_engine.db"
+    dst = tmp_path / "test_engine.db"
+    shutil.copy(src, dst)
+    return dst
 
 
 class Mock_Values:
@@ -129,9 +138,16 @@ def test_transfer_start_callback(mock_action, mock_uploader):
 
 
 @patch("nxdrive.dao.engine.EngineDAO.get_download")
+@patch("nxdrive.dao.engine.EngineDAO.set_transfer_progress")
 @patch("nuxeo.handlers.default.Uploader")
 @patch("nxdrive.engine.activity.Action.get_current_action")
-def test_transfer_end_callback_download(mock_action, mock_uploader, mock_dao):
+def test_transfer_end_callback_download(
+    mock_action,
+    mock_uploader,
+    mock_set_transfer_progress,
+    mock_dao,
+    isolated_test_engine_db,
+):
     """
     This test case will only cover DownloadAction scenario
     """
@@ -166,23 +182,29 @@ def test_transfer_end_callback_download(mock_action, mock_uploader, mock_dao):
     mock_uploader.return_value = mock_values.mock_uploader()
     mock_action.return_value = mock_download
     mock_dao.return_value = mock_download
+    mock_set_transfer_progress.return_value = None
     remote_obj = Remote(
         "dummy_url",
         "dummy_user_id",
         "dummy_device_id",
         "dummy_version",
-        dao=EngineDAO(Path() / "tests" / "resources" / "databases" / "test_engine.db"),
+        dao=EngineDAO(isolated_test_engine_db),
         token="dummy_token",
         repository="dummy_repository",
     )
-    output = remote_obj.transfer_end_callback(mock_uploader)
-    assert output is None
+    try:
+        output = remote_obj.transfer_end_callback(mock_uploader)
+        assert output is None
+    finally:
+        remote_obj.dao.dispose()
 
 
-@patch("nxdrive.dao.engine.EngineDAO.get_download")
+@patch("nxdrive.dao.engine.EngineDAO.get_upload")
 @patch("nuxeo.handlers.default.Uploader")
 @patch("nxdrive.engine.activity.Action.get_current_action")
-def test_transfer_end_callback_upload(mock_action, mock_uploader, mock_dao):
+def test_transfer_end_callback_upload(
+    mock_action, mock_uploader, mock_get_upload, isolated_test_engine_db
+):
     """
     This test case will only cover UploadAction scenario
     """
@@ -216,18 +238,21 @@ def test_transfer_end_callback_upload(mock_action, mock_uploader, mock_dao):
     mock_upload = Mock_Upload(Path(), 2000)
     mock_uploader.return_value = mock_values.mock_uploader()
     mock_action.return_value = mock_upload
-    mock_dao.return_value = mock_upload
+    mock_get_upload.return_value = mock_upload
     remote_obj = Remote(
         "dummy_url",
         "dummy_user_id",
         "dummy_device_id",
         "dummy_version",
-        dao=EngineDAO(Path() / "tests" / "resources" / "databases" / "test_engine.db"),
+        dao=EngineDAO(isolated_test_engine_db),
         token="dummy_token",
         repository="dummy_repository",
     )
-    output = remote_obj.transfer_end_callback(mock_uploader)
-    assert output is None
+    try:
+        output = remote_obj.transfer_end_callback(mock_uploader)
+        assert output is None
+    finally:
+        remote_obj.dao.dispose()
 
 
 def test_escape_carriage_return():
@@ -305,6 +330,7 @@ def test_download(
     mock_integrity,
     mock_set_transfer_status,
     mock_integrity_simple,
+    isolated_test_engine_db,
 ):
     class Mock_Download_Action:
         def __init__(self):
@@ -317,7 +343,7 @@ def test_download(
         "dummy_user_id",
         "dummy_device_id",
         "dummy_version",
-        dao=EngineDAO(Path() / "tests" / "resources" / "databases" / "test_engine.db"),
+        dao=EngineDAO(isolated_test_engine_db),
         token="dummy_token",
         repository="dummy_repository",
     )
@@ -330,27 +356,30 @@ def test_download(
     mock_save.return_value = None
     mock_integrity.return_value = None
     mock_set_transfer_status.return_value = None
-    output = remote_obj.download(
-        "dummy_url", Path(), Path(), "digest", kwargs={"callback": "10"}
-    )
-    assert isinstance(output, Path)
-    # if not chunked
-    mock_values.headers = {"Content-Length": 10000000}
-    mock_nuxeo.return_value = mock_values
-    mock_dao.return_value = mock_values
-    mock_download_action.return_value = Mock_Download_Action()
-    mock_unlock.return_value = 0
-    mock_save.return_value = None
-    mock_integrity.return_value = None
-    mock_integrity_simple.return_value = None
-    output = remote_obj.download(
-        "dummy_url",
-        Path(),
-        Path() / "tests" / "resources" / "files" / "testFile.txt",
-        "digest",
-        kwargs={"callback": "10"},
-    )
-    assert isinstance(output, Path)
+    try:
+        output = remote_obj.download(
+            "dummy_url", Path(), Path(), "digest", kwargs={"callback": "10"}
+        )
+        assert isinstance(output, Path)
+        # if not chunked
+        mock_values.headers = {"Content-Length": 10000000}
+        mock_nuxeo.return_value = mock_values
+        mock_dao.return_value = mock_values
+        mock_download_action.return_value = Mock_Download_Action()
+        mock_unlock.return_value = 0
+        mock_save.return_value = None
+        mock_integrity.return_value = None
+        mock_integrity_simple.return_value = None
+        output = remote_obj.download(
+            "dummy_url",
+            Path(),
+            Path() / "tests" / "resources" / "files" / "testFile.txt",
+            "digest",
+            kwargs={"callback": "10"},
+        )
+        assert isinstance(output, Path)
+    finally:
+        remote_obj.dao.dispose()
 
 
 @patch("nxdrive.engine.activity.VerificationAction")
@@ -420,7 +449,7 @@ def test_check_integrity_simple(mock_verification):
 
 
 @patch("nxdrive.client.uploader.sync.SyncUploader")
-def test_upload(mock_sync_uploader):
+def test_upload(mock_sync_uploader, isolated_test_engine_db):
     from nxdrive.client.uploader import BaseUploader
 
     class Mock_Uploader(BaseUploader):
@@ -443,16 +472,19 @@ def test_upload(mock_sync_uploader):
         "dummy_user_id",
         "dummy_device_id",
         "dummy_version",
-        dao=EngineDAO(Path() / "tests" / "resources" / "databases" / "test_engine.db"),
+        dao=EngineDAO(isolated_test_engine_db),
         token="dummy_token",
         repository="dummy_repository",
     )
-    mock_sync_uploader.return_value = Mock_Uploader(remote_obj)
-    output = remote_obj.upload(
-        Path() / "tests" / "resources" / "files" / "testFile.txt",
-        uploader=type(Mock_Uploader(remote_obj)),
-    )
-    assert output == {"dummy": "dummy"}
+    try:
+        mock_sync_uploader.return_value = Mock_Uploader(remote_obj)
+        output = remote_obj.upload(
+            Path() / "tests" / "resources" / "files" / "testFile.txt",
+            uploader=type(Mock_Uploader(remote_obj)),
+        )
+        assert output == {"dummy": "dummy"}
+    finally:
+        remote_obj.dao.dispose()
 
 
 @patch("json.dumps")
@@ -533,7 +565,9 @@ def test_get_fs_info(mock_get_item, mock_remote_dict, mock_is_root, mock_expand_
 @patch("nxdrive.dao.engine.EngineDAO.remove_transfer")
 @patch("nxdrive.client.remote_client.Remote.download")
 @patch("nxdrive.client.remote_client.Remote.get_fs_info")
-def test_stream_content(mock_fs_info, mock_download, mock_remove_transfer):
+def test_stream_content(
+    mock_fs_info, mock_download, mock_remove_transfer, isolated_test_engine_db
+):
     class Mock_FS:
         def __init__(self) -> None:
             self.download_url = "download_url"
@@ -544,15 +578,18 @@ def test_stream_content(mock_fs_info, mock_download, mock_remove_transfer):
         "dummy_user_id",
         "dummy_device_id",
         "dummy_version",
-        dao=EngineDAO(Path() / "tests" / "resources" / "databases" / "test_engine.db"),
+        dao=EngineDAO(isolated_test_engine_db),
         token="dummy_token",
         repository="dummy_repository",
     )
-    mock_fs_info.return_value = Mock_FS()
-    mock_download.return_value = Path()
-    mock_remove_transfer.return_value = None
-    output = remote_obj.stream_content("item_id", Path(), Path())
-    assert isinstance(output, Path)
+    try:
+        mock_fs_info.return_value = Mock_FS()
+        mock_download.return_value = Path()
+        mock_remove_transfer.return_value = None
+        output = remote_obj.stream_content("item_id", Path(), Path())
+        assert isinstance(output, Path)
+    finally:
+        remote_obj.dao.dispose()
 
 
 @patch("nxdrive.client.remote_client.Remote.is_filtered")
