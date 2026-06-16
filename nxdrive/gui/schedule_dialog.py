@@ -34,7 +34,7 @@ class ScheduleDialog(QDialog):
 
         self.calendar = QCalendarWidget()
         self.calendar.setMinimumDate(QDate.currentDate())
-        self.calendar.setMaximumDate(QDate.currentDate().addDays(365))
+        self.calendar.setMaximumDate(QDate.currentDate().addMonths(1))
         layout.addWidget(self.calendar)
 
         # Time input fields
