@@ -34,7 +34,9 @@ def faker() -> Callable[[], Faker]:
 
 
 @pytest.fixture()
-def manager_factory(request, tmp, nuxeo_url, user_factory) -> Callable[[], Manager]:
+def manager_factory(
+    request, tmp, nuxeo_url, user_factory, app
+) -> Callable[[], Manager]:
     """Manager instance with automatic clean-up."""
 
     def _make_manager(
