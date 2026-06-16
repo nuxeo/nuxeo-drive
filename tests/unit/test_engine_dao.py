@@ -358,7 +358,7 @@ def test_migration_db_v1_with_duplicates(engine_dao):
     with engine_dao("engine_migration_duplicate.db") as dao:
         c = dao._get_read_connection().cursor()
         rows = c.execute("SELECT * FROM States").fetchall()
-        assert rows is not None
+        assert rows
 
         cols = c.execute("PRAGMA table_info('States')").fetchall()
         assert len(cols) >= 29

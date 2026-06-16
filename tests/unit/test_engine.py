@@ -129,8 +129,6 @@ def mock_engine(mock_manager, mock_dao, mock_remote, mock_queue_manager, tmp_pat
     engine._threads = []
     engine._threadpool = Mock()
     engine._threadpool.start = Mock()
-    engine.shutdown_event = Mock()
-    engine.shutdown_event.set = Mock()
     engine.doc_container_type = "Automatic"
     engine._folder_lock = None
 
@@ -1468,8 +1466,6 @@ class TestStop:
         mock_thread.wait.return_value = True
         mock_thread.isRunning.return_value = False
         mock_engine._threads = [mock_thread]
-        mock_engine.shutdown_event = Mock()
-        mock_engine.shutdown_event.set = Mock()
         mock_engine._stop = Mock()
         mock_engine._stop.emit = Mock()
 

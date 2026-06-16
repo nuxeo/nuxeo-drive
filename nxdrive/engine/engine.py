@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from functools import partial
 from logging import getLogger
 from pathlib import Path
-from threading import Event, Thread
+from threading import Thread
 from time import sleep
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type, Union
 from urllib.parse import urlsplit
@@ -45,7 +45,7 @@ from ..metrics.constants import (
 )
 from ..objects import Binder, DocPairs, EngineDef, Metrics, Session
 from ..options import Options
-from ..qt.imports import QObject, QThread, QThreadPool, pyqtSignal, pyqtSlot
+from ..qt.imports import QObject, QThread, QThreadPool, QTimer, pyqtSignal, pyqtSlot
 from ..state import State
 from ..utils import (
     client_certificate,
@@ -117,6 +117,8 @@ class Engine(QObject):
     directTransferNewFolderSuccess = pyqtSignal(str)
     directTransferSessionFinished = pyqtSignal(str, str, str)
     displayPendingTask = pyqtSignal(str, str, str, str)
+    startTimerSignal = pyqtSignal(int, int)
+    cancelTimerSignal = pyqtSignal(int)
 
     type = "NXDRIVE"
     # Folder locker - LocalFolder processor can prevent
@@ -149,7 +151,9 @@ class Engine(QObject):
         # Initialize those attributes first to be sure .stop()
         # can be called without missing ones
         self._threads: List[QThread] = []
-        self.shutdown_event = Event()
+        self._scheduled_timers: Dict[int, QTimer] = {}
+        self.startTimerSignal.connect(self.start_scheduled_timer)
+        self.cancelTimerSignal.connect(self.cancel_scheduled_timer)
 
         # Stop if invalid credentials
         self.invalidAuthentication.connect(self.stop)
@@ -644,15 +648,7 @@ class Engine(QObject):
             self.dao.queue_many_direct_transfer_items(current_max_row_id)
 
         if schedule_delay:
-            from .workers import TimerWorker
-
-            worker = TimerWorker(self, session_uid, schedule_delay)
-            if self._threadpool:
-                self._threadpool.start(worker)
-            else:
-                log.warning(
-                    f"Cannot start timer for session {session_uid}, thread pool is not available"
-                )
+            self.startTimerSignal.emit(session_uid, schedule_delay)
 
     def handle_session_status(self, session: Optional[Session], /) -> None:
         """Check the session status and send a notification if finished."""
@@ -871,9 +867,7 @@ class Engine(QObject):
         meth = (
             self.dao.get_download
             if nature == "download"
-            else self.dao.get_dt_upload
-            if is_direct_transfer
-            else self.dao.get_upload
+            else self.dao.get_dt_upload if is_direct_transfer else self.dao.get_upload
         )
         func = partial(meth, uid=uid)  # type: ignore
         self._resume_transfers(nature, func, is_direct_transfer=is_direct_transfer)
@@ -922,6 +916,31 @@ class Engine(QObject):
         """Reset schedule and resume session."""
         self.dao.reset_session_schedule(uid)
         self.resume_session(uid)
+
+    def start_scheduled_timer(self, session_uid: int, delay_seconds: int, /) -> None:
+        """Start a non-blocking QTimer for scheduled session."""
+        self.cancel_scheduled_timer(session_uid)
+
+        timer = QTimer(self)
+        timer.setSingleShot(True)
+        timer.setInterval(delay_seconds * 1000)
+
+        def on_timeout():
+            self.cancel_scheduled_timer(session_uid)
+            log.debug(f"Timer expired for session {session_uid}. Resuming now.")
+            self.resume_scheduled_session(session_uid)
+
+        timer.timeout.connect(on_timeout)
+        self._scheduled_timers[session_uid] = timer
+        timer.start()
+        log.debug(f"Timer started: session {session_uid} scheduled in {delay_seconds}s")
+
+    def cancel_scheduled_timer(self, session_uid: int, /) -> None:
+        """Cancel and clean up an active scheduled timer."""
+        timer = self._scheduled_timers.pop(session_uid, None)
+        if timer:
+            timer.stop()
+            timer.deleteLater()
 
     def _manage_staled_transfers(self) -> None:
         """
@@ -987,6 +1006,7 @@ class Engine(QObject):
 
     def cancel_session(self, uid: int, /) -> None:
         """Cancel all transfers for given session."""
+        self.cancelTimerSignal.emit(uid)
         self.dao.reset_session_schedule(uid)
         self.dao.cancel_session(uid)
 
@@ -1356,7 +1376,6 @@ class Engine(QObject):
             self.remote.metrics.force_poll()
 
         self._stopped = True
-        self.shutdown_event.set()
 
         # The signal will propagate to all Workers. Each Worker being a QThread,
         # the stop() method will be called on each one that will trigger QThread.stop().

@@ -519,8 +519,6 @@ class Manager(QObject):
 
         from dateutil import parser
 
-        from .engine.workers import TimerWorker
-
         for engine in self.engines.copy().values():
             for session in engine.dao.get_active_sessions_raw():
                 scheduled_at = session.get("scheduled_at")
@@ -540,9 +538,7 @@ class Manager(QObject):
                         log.debug(
                             f"Restarting timer for session {session['uid']} ({delay}s left)."
                         )
-                        worker = TimerWorker(engine, session["uid"], delay)
-                        if engine._threadpool:
-                            engine._threadpool.start(worker)
+                        engine.startTimerSignal.emit(session["uid"], delay)
                 except Exception as exc:
                     log.error(
                         f"Failed to resume scheduled session {session['uid']}: {exc}",

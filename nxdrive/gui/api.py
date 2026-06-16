@@ -310,7 +310,7 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, int)
     def pause_session(self, engine_uid: str, uid: int, /) -> None:
-        """Pause a given session and it's transfers."""
+        """Pause a given session and its transfers."""
         log.debug(f"Pausing session {uid} for engine {engine_uid!r}")
         engine = self._manager.engines.get(engine_uid)
         if not engine:
@@ -318,7 +318,7 @@ class QMLDriveApi(QObject):
         engine.dao.pause_session(uid)
 
     def cancel_session(self, engine_uid: str, uid: int, /) -> None:
-        """Cancel a given session and it's transfers."""
+        """Cancel a given session and its transfers."""
         log.debug(f"Cancelling session {uid} for engine {engine_uid!r}")
         engine = self._manager.engines.get(engine_uid)
         if not engine:
