@@ -919,22 +919,42 @@ class Engine(QObject):
         self.resume_session(uid)
 
     def start_scheduled_timer(self, session_uid: int, delay_seconds: int, /) -> None:
-        """Start a non-blocking QTimer for scheduled session."""
+        """Start a non-blocking QTimer for scheduled session, chunking delay to avoid 32-bit overflow."""
         self.cancel_scheduled_timer(session_uid)
+
+        max_ms = 2147483647
+        total_ms = delay_seconds * 1000
 
         timer = QTimer(self)
         timer.setSingleShot(True)
-        timer.setInterval(delay_seconds * 1000)
+
+        # We need to track the remaining ms to wait across ticks.
+        # Store as dynamic property on the QTimer instance to keep it clean.
+        timer.setProperty("remaining_ms", total_ms)
 
         def on_timeout() -> None:
-            self.cancel_scheduled_timer(session_uid)
-            log.debug(f"Timer expired for session {session_uid}. Resuming now.")
-            self.resume_scheduled_session(session_uid)
+            remaining = timer.property("remaining_ms")
+            if remaining is None:
+                remaining = 0
+            if remaining > max_ms:
+                remaining -= max_ms
+                timer.setProperty("remaining_ms", remaining)
+                chunk = min(remaining, max_ms)
+                timer.setInterval(chunk)
+                timer.start()
+                log.debug(f"Timer rescheduled for session {session_uid}: {chunk}ms remaining")
+            else:
+                self.cancel_scheduled_timer(session_uid)
+                log.debug(f"Timer expired for session {session_uid}. Resuming now.")
+                self.resume_scheduled_session(session_uid)
 
         timer.timeout.connect(on_timeout)
         self._scheduled_timers[session_uid] = timer
+
+        chunk = min(total_ms, max_ms)
+        timer.setInterval(chunk)
         timer.start()
-        log.debug(f"Timer started: session {session_uid} scheduled in {delay_seconds}s")
+        log.debug(f"Timer started: session {session_uid} scheduled in {delay_seconds}s (chunk: {chunk}ms)")
 
     def cancel_scheduled_timer(self, session_uid: int, /) -> None:
         """Cancel and clean up an active scheduled timer."""

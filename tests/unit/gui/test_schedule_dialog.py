@@ -47,7 +47,7 @@ def test_schedule_dialog_initialization_defaults(qapp, translator_patch):
     assert dialog.windowTitle() == "SCHEDULE_PICK_DATETIME"
     assert dialog.selected_dt is not None
     assert dialog.calendar.minimumDate() == QDate.currentDate()
-    assert dialog.calendar.maximumDate() == QDate.currentDate().addDays(365)
+    assert dialog.calendar.maximumDate() == QDate.currentDate().addMonths(1)
     assert dialog.error_label.isVisible() is False
     assert _ok_button(dialog).isEnabled() is True
 

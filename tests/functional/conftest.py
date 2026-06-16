@@ -1,3 +1,4 @@
+import platform
 from logging import getLogger
 from pathlib import Path
 from random import randint
@@ -18,6 +19,16 @@ from nxdrive.manager import Manager
 from .. import env
 
 log = getLogger(__name__)
+
+
+def pytest_collection_modifyitems(items):
+    """Mark GUI tests to enforce serial execution on macOS."""
+    if platform.system() != "Darwin":
+        return
+
+    for item in items:
+        if "gui" in str(item.fspath):
+            item.add_marker(pytest.mark.gui_serial)
 
 
 @pytest.fixture(scope="session")
