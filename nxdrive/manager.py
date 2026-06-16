@@ -526,7 +526,9 @@ class Manager(QObject):
                     continue
 
                 try:
-                    dt_scheduled = parser.isoparse(scheduled_at)
+                    dt_scheduled = parser.isoparse(str(scheduled_at))
+                    if dt_scheduled.tzinfo is None:
+                        dt_scheduled = dt_scheduled.replace(tzinfo=timezone.utc)
                     now = datetime.now(timezone.utc)
                     if now >= dt_scheduled:
                         log.debug(

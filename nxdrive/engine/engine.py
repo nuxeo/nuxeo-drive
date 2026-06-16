@@ -902,6 +902,7 @@ class Engine(QObject):
             )
             if popup.exec():
                 # Reset the schedule to avoid resuming again if the session is paused and resumed again later
+                self.cancel_scheduled_timer(uid)
                 self.dao.change_session_status(uid, TransferStatus.ONGOING)
                 self.dao.reset_session_schedule(uid)
                 self.dao.resume_session(uid)
