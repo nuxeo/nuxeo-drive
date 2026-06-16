@@ -958,7 +958,9 @@ class Engine(QObject):
         chunk = min(total_ms, max_ms)
         timer.setInterval(chunk)
         timer.start()
-        log.debug(f"Timer started: session {session_uid} scheduled in {delay_seconds}s (chunk: {chunk}ms)")
+        log.debug(
+            f"Timer started: session {session_uid} scheduled in {delay_seconds}s (chunk: {chunk}ms)"
+        )
 
     def cancel_scheduled_timer(self, session_uid: int, /) -> None:
         """Cancel and clean up an active scheduled timer."""
