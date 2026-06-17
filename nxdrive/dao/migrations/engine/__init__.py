@@ -5,6 +5,7 @@ __migrations_list = [
     "0021_initial_migration",
     "0022_initial_migration",
     "0023_direct_downloads",
+    "0024_add_scheduled_at",
 ]  # Keep sorted
 
 

@@ -1,5 +1,6 @@
 import os
 import webbrowser
+from datetime import datetime, timezone
 from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
@@ -37,6 +38,7 @@ from .constants import get_known_types_translations
 from .folders_model import FilteredDocuments, FoldersOnly
 from .folders_treeview import DocumentTreeView, FolderTreeView
 from .multi_folder_dialog import MultiFolderDialog
+from .schedule_dialog import ScheduleDialog
 
 if TYPE_CHECKING:
     from .application import Application  # noqa
@@ -258,6 +260,7 @@ class FoldersDialog(DialogMixin):
 
         super().__init__(application, engine, selected_folder)
         self.setWindowFlags(self.windowFlags() & ~qt.WindowStaysOnTopHint)
+        self.remote_folder = QLineEdit(self)
 
         self.path: Optional[Path] = None
         self.paths: Dict[Path, int] = {}
@@ -288,6 +291,10 @@ class FoldersDialog(DialogMixin):
             "dt_last_duplicates_behavior", default="create"
         )
 
+        self.scheduled_time = ""
+        self.scheduled_delay = 0
+        self.scheduled_at_iso = ""
+
         _types = get_known_types_translations()
         self.KNOWN_FOLDER_TYPES = _types.get("FOLDER_TYPES", {})
         self.KNOWN_FILE_TYPES = _types.get("FILE_TYPES", {})
@@ -296,7 +303,27 @@ class FoldersDialog(DialogMixin):
         self.vertical_layout.addWidget(self._add_group_local())
         self.vertical_layout.addWidget(self._add_group_remote())
         self.vertical_layout.addWidget(self._add_group_options())
-        self.vertical_layout.addWidget(self.button_box)
+
+        # Not using standard buttons from DialogMixin
+        self.button_box.deleteLater()
+
+        h_button_layout = QHBoxLayout()
+
+        self.cancel_button = QPushButton(Translator.get("CANCEL"))
+        self.cancel_button.clicked.connect(self.reject)
+        h_button_layout.addWidget(self.cancel_button)
+
+        h_button_layout.addStretch(1)
+
+        self.upload_now_button = QPushButton(Translator.get("UPLOAD_NOW"))
+        self.upload_now_button.clicked.connect(self.accept)
+        h_button_layout.addWidget(self.upload_now_button)
+
+        self.upload_later_button = QPushButton(Translator.get("UPLOAD_LATER"))
+        self.upload_later_button.clicked.connect(self._schedule_later_action)
+        h_button_layout.addWidget(self.upload_later_button)
+
+        self.vertical_layout.addLayout(h_button_layout)
 
         # Compute overall size and count, and check the button state
         self._process_additionnal_local_paths([str(path)] if path else [])
@@ -307,12 +334,14 @@ class FoldersDialog(DialogMixin):
         self.tree_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree_view.customContextMenuRequested.connect(self.open_menu)
 
-    def keyPressEvent(self, event: QKeyEvent) -> None:
+    def keyPressEvent(self, a0: QKeyEvent | None) -> None:
         # On user Esc keypress event, restore the maximized window. See NXDRIVE-2737 for details.
-        if event.key() == qt.Key_Escape:
+        if a0 is None:
+            return
+        elif a0.key() == qt.Key_Escape:
             self.showNormal()
         else:
-            super().keyPressEvent(event)
+            super().keyPressEvent(a0)
 
     @property
     def overall_count(self) -> int:
@@ -403,7 +432,6 @@ class FoldersDialog(DialogMixin):
         sublayout = QHBoxLayout()
         layout.addLayout(sublayout)
         label = QLabel(Translator.get("SELECTED_REMOTE_FOLDER"))
-        self.remote_folder = QLineEdit()
         self.remote_folder.setStyleSheet("* { background-color: rgba(0, 0, 0, 0); }")
         self.remote_folder.setReadOnly(True)
         self.remote_folder.setFrame(False)
@@ -595,6 +623,9 @@ class FoldersDialog(DialogMixin):
         )
         doc_type = self.get_known_type_key(False, doc_type)
         cont_type = self.get_known_type_key(True, cont_type)
+        paused = bool(self.scheduled_time)
+        scheduled_at = self.scheduled_at_iso if self.scheduled_at_iso else 0
+
         self.engine.direct_transfer_async(
             self.paths,
             self.remote_folder.text(),
@@ -605,6 +636,9 @@ class FoldersDialog(DialogMixin):
             duplicate_behavior=self.cb.currentData(),
             last_local_selected_location=self.last_local_selected_location,
             last_local_selected_doc_type=self.last_local_selected_doc_type,
+            paused=paused,
+            schedule_delay=self.scheduled_delay,
+            scheduled_at=scheduled_at,
         )
 
     def button_ok_state(self) -> None:
@@ -613,9 +647,12 @@ class FoldersDialog(DialogMixin):
         # Required criteria:
         #   - at least 1 local path or a new folder to create
         #   - a selected remote path
-        ok_button = self.button_box.button(qt.Ok)
-        if ok_button:
-            ok_button.setEnabled(bool(self.paths))
+        if hasattr(self, "upload_now_button"):
+            self.upload_now_button.setEnabled(bool(self.paths))
+        if hasattr(self, "upload_later_button"):
+            self.upload_later_button.setEnabled(
+                bool(self.paths) and not (self.scheduled_time)
+            )
         self.new_folder_button.setEnabled(
             bool(self.remote_folder_ref) and bool(self.tree_view.current)
         )
@@ -832,6 +869,22 @@ class FoldersDialog(DialogMixin):
         if mfd.exec():
             path = mfd.selected_paths()
             self._process_additionnal_local_paths(path)
+
+    def _schedule_later_action(self) -> None:
+        """Open a dialog to schedule a transfer later."""
+        dialog = ScheduleDialog(self)
+        if dialog.exec():
+            time_val = dialog.get_time()
+            if time_val is not None:
+                self.scheduled_time = time_val.toString("yyyy-MM-dd HH:mm:ss")
+                time_val_py = time_val.toPyDateTime()
+                self.scheduled_at_iso = time_val_py.astimezone(timezone.utc).isoformat()
+
+                now = datetime.now(timezone.utc)
+                delay = (time_val_py.astimezone(timezone.utc) - now).total_seconds()
+                self.scheduled_delay = max(0, int(delay))
+
+            self.accept()
 
     def _skipped_items_summary(self, items: list[str]) -> str:
         """Show up to 2 skipped item names with a (+N) and the reason."""

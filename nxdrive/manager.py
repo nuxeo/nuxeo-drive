@@ -500,6 +500,9 @@ class Manager(QObject):
             except Exception:
                 log.exception(f"Could not start {engine}")
 
+        if Feature.direct_transfer:
+            self._init_direct_transfer_resumption()
+
     def start(self) -> None:
         self._started = True
 
@@ -509,6 +512,40 @@ class Manager(QObject):
         # Check only if manager is started
         self._handle_os()
         self.started.emit()
+
+    def _init_direct_transfer_resumption(self) -> None:
+        """Restart timers for scheduled sessions or resume if time passed."""
+        from datetime import datetime, timezone
+
+        from dateutil import parser
+
+        for engine in self.engines.copy().values():
+            for session in engine.dao.get_active_sessions_raw():
+                scheduled_at = session.get("scheduled_at")
+                if not scheduled_at or scheduled_at in (0, "0"):
+                    continue
+
+                try:
+                    dt_scheduled = parser.isoparse(str(scheduled_at))
+                    if dt_scheduled.tzinfo is None:
+                        dt_scheduled = dt_scheduled.replace(tzinfo=timezone.utc)
+                    now = datetime.now(timezone.utc)
+                    if now >= dt_scheduled:
+                        log.debug(
+                            f"Schedule passed for session {session['uid']}, resuming."
+                        )
+                        engine.resume_scheduled_session(session["uid"])
+                    else:
+                        delay = int((dt_scheduled - now).total_seconds())
+                        log.debug(
+                            f"Restarting timer for session {session['uid']} ({delay}s left)."
+                        )
+                        engine.startTimerSignal.emit(session["uid"], delay)
+                except Exception as exc:
+                    log.error(
+                        f"Failed to resume scheduled session {session['uid']}: {exc}",
+                        exc_info=True,
+                    )
 
     def load(self) -> None:
         self._engine_definitions = self._engine_definitions or self.dao.get_engines()

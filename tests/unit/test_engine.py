@@ -189,6 +189,14 @@ def mock_engine(mock_manager, mock_dao, mock_remote, mock_queue_manager, tmp_pat
     engine._resume_transfers = Engine._resume_transfers.__get__(engine, Engine)
     engine.resume_transfer = Engine.resume_transfer.__get__(engine, Engine)
     engine.resume_session = Engine.resume_session.__get__(engine, Engine)
+    engine.resume_scheduled_session = Engine.resume_scheduled_session.__get__(
+        engine, Engine
+    )
+    engine.start_scheduled_timer = Engine.start_scheduled_timer.__get__(engine, Engine)
+    engine.cancel_scheduled_timer = Engine.cancel_scheduled_timer.__get__(
+        engine, Engine
+    )
+    engine._scheduled_timers = {}
     engine._manage_staled_transfers = Engine._manage_staled_transfers.__get__(
         engine, Engine
     )
@@ -1040,6 +1048,9 @@ class TestResumeSession:
     def test_resume_session(self, mock_engine):
         """Test resuming a session."""
         session_uid = 123
+        session = Mock(spec=Session)
+        session.scheduled_at = "0"
+        mock_engine.dao.get_session.return_value = session
 
         mock_engine.resume_session(session_uid)
 
@@ -1047,6 +1058,179 @@ class TestResumeSession:
             session_uid, TransferStatus.ONGOING
         )
         mock_engine.dao.resume_session.assert_called_once_with(session_uid)
+
+    def test_resume_session_with_schedule_popup_accept(self, mock_engine):
+        """Test resuming scheduled session when popup is accepted."""
+        session_uid = 456
+        session = Mock(spec=Session)
+        session.scheduled_at = "2026-06-20T09:30:00"
+        mock_engine.dao.get_session.return_value = session
+
+        popup = Mock()
+        popup.exec.return_value = True
+
+        mock_engine.cancel_scheduled_timer = Mock()
+
+        with patch(
+            "nxdrive.gui.schedule_dialog.ResumeScheduledSessionPopup",
+            return_value=popup,
+        ) as popup_cls:
+            mock_engine.resume_session(session_uid)
+
+        popup_cls.assert_called_once_with(
+            parent=None, scheduled_datetime=session.scheduled_at
+        )
+        mock_engine.cancel_scheduled_timer.assert_called_once_with(session_uid)
+        mock_engine.dao.change_session_status.assert_called_once_with(
+            session_uid, TransferStatus.ONGOING
+        )
+        mock_engine.dao.reset_session_schedule.assert_called_once_with(session_uid)
+        mock_engine.dao.resume_session.assert_called_once_with(session_uid)
+        mock_engine.dao.pause_session.assert_not_called()
+
+    def test_resume_session_with_schedule_popup_cancel(self, mock_engine):
+        """Test resuming scheduled session when popup is canceled."""
+        session_uid = 789
+        session = Mock(spec=Session)
+        session.scheduled_at = "2026-06-20T09:30:00"
+        mock_engine.dao.get_session.return_value = session
+
+        popup = Mock()
+        popup.exec.return_value = False
+
+        with patch(
+            "nxdrive.gui.schedule_dialog.ResumeScheduledSessionPopup",
+            return_value=popup,
+        ):
+            mock_engine.resume_session(session_uid)
+
+        mock_engine.dao.pause_session.assert_called_once_with(session_uid)
+        mock_engine.dao.change_session_status.assert_not_called()
+        mock_engine.dao.reset_session_schedule.assert_not_called()
+        mock_engine.dao.resume_session.assert_not_called()
+
+
+class _FakeTimeoutSignal:
+    def __init__(self):
+        self.callback = None
+
+    def connect(self, callback):
+        self.callback = callback
+
+
+class _FakeQTimer:
+    def __init__(self, _parent=None):
+        self.timeout = _FakeTimeoutSignal()
+        self._properties = {}
+        self.single_shot = False
+        self.interval = None
+        self.start_count = 0
+        self.stopped = False
+        self.deleted = False
+
+    def setSingleShot(self, value):
+        self.single_shot = value
+
+    def setProperty(self, key, value):
+        self._properties[key] = value
+
+    def property(self, key):
+        return self._properties.get(key)
+
+    def setInterval(self, value):
+        self.interval = value
+
+    def start(self):
+        self.start_count += 1
+
+    def stop(self):
+        self.stopped = True
+
+    def deleteLater(self):
+        self.deleted = True
+
+
+class TestScheduledSessionTimers:
+    """Test cases for scheduled session timer methods."""
+
+    def test_resume_scheduled_session(self, mock_engine):
+        """Test reset schedule then resume session."""
+        session_uid = 321
+        mock_engine.resume_session = Mock()
+
+        mock_engine.resume_scheduled_session(session_uid)
+
+        mock_engine.dao.reset_session_schedule.assert_called_once_with(session_uid)
+        mock_engine.resume_session.assert_called_once_with(session_uid)
+
+    def test_cancel_scheduled_timer_when_present(self, mock_engine):
+        """Test cancel and cleanup when timer exists."""
+        timer = Mock()
+        mock_engine._scheduled_timers[11] = timer
+
+        mock_engine.cancel_scheduled_timer(11)
+
+        timer.stop.assert_called_once()
+        timer.deleteLater.assert_called_once()
+        assert 11 not in mock_engine._scheduled_timers
+
+    def test_cancel_scheduled_timer_when_missing(self, mock_engine):
+        """Test cancel is no-op when no timer exists."""
+        mock_engine.cancel_scheduled_timer(99)
+
+        assert 99 not in mock_engine._scheduled_timers
+
+    def test_start_scheduled_timer_initializes_timer(self, mock_engine):
+        """Test timer setup and first chunk start."""
+        mock_engine.cancel_scheduled_timer = Mock()
+
+        with patch("nxdrive.engine.engine.QTimer", _FakeQTimer):
+            mock_engine.start_scheduled_timer(10, 2)
+
+        timer = mock_engine._scheduled_timers[10]
+        mock_engine.cancel_scheduled_timer.assert_called_once_with(10)
+        assert timer.single_shot is True
+        assert timer.property("remaining_ms") == 2000
+        assert timer.interval == 2000
+        assert timer.start_count == 1
+
+    def test_start_scheduled_timer_reschedules_then_resumes(self, mock_engine):
+        """Test timeout callback handles large delay chunks then resumes session."""
+        mock_engine.cancel_scheduled_timer = Mock()
+        mock_engine.resume_scheduled_session = Mock()
+
+        with patch("nxdrive.engine.engine.QTimer", _FakeQTimer):
+            mock_engine.start_scheduled_timer(20, 2147484)
+
+        timer = mock_engine._scheduled_timers[20]
+        timer.timeout.callback()
+
+        assert timer.property("remaining_ms") == 353
+        assert timer.interval == 353
+        assert timer.start_count == 2
+
+        timer.timeout.callback()
+
+        assert mock_engine.cancel_scheduled_timer.call_count == 2
+        mock_engine.resume_scheduled_session.assert_called_once_with(20)
+
+    def test_start_scheduled_timer_handles_missing_remaining_property(
+        self, mock_engine
+    ):
+        """Test timeout callback handles missing remaining_ms property."""
+        mock_engine.cancel_scheduled_timer = Mock()
+        mock_engine.resume_scheduled_session = Mock()
+
+        with patch("nxdrive.engine.engine.QTimer", _FakeQTimer):
+            mock_engine.start_scheduled_timer(30, 1)
+
+        timer = mock_engine._scheduled_timers[30]
+        timer.setProperty("remaining_ms", None)
+
+        timer.timeout.callback()
+
+        assert mock_engine.cancel_scheduled_timer.call_count == 2
+        mock_engine.resume_scheduled_session.assert_called_once_with(30)
 
 
 class TestManageStaledTransfers:

@@ -66,6 +66,7 @@ def translate_func():
     return tr
 
 
+@pytest.mark.usefixtures("app")
 class TestEngineModel:
     """Test cases for EngineModel class."""
 

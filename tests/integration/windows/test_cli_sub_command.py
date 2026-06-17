@@ -18,6 +18,12 @@ if not WINDOWS:
 log = getLogger(__name__)
 
 
+def _requires_set_synchronization(server) -> None:
+    """Skip tests relying on sync root registration when endpoint is unavailable."""
+    if "NuxeoDrive.SetSynchronization" not in server.operations.operations:
+        pytest.skip("Server does not expose NuxeoDrive.SetSynchronization")
+
+
 def launch(exe, args: str, wait: int = 0) -> None | bool:
     try:
         with exe(args=args, wait=wait) as app:
@@ -118,6 +124,8 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
     - unbind the server
     """
 
+    _requires_set_synchronization(server)
+
     folder = tempfile.TemporaryDirectory(prefix="sync_test")
     expanded_folder = folder.name
     local_folder = f'--local-folder="{str(expanded_folder)}"'
@@ -193,6 +201,8 @@ def test_ctx_menu_entries(nuxeo_url, exe, server, tmp):
     - copy-share-link
     - edit-metadata
     """
+
+    _requires_set_synchronization(server)
 
     folder = tmp()
     assert not folder.is_dir()
