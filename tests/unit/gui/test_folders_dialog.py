@@ -1,11 +1,105 @@
 """Unit tests for DocumentsDialog._handle_no_roots function."""
 
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, Mock, call, patch
 
 from nxdrive.gui.folders_dialog import DocumentsDialog, FoldersDialog, NewFolderDialog
 from nxdrive.gui.folders_treeview import DocumentTreeView
 from nxdrive.qt import constants as qt
 from nxdrive.qt.imports import QComboBox, QLabel, QMenu, QPoint
+
+
+class TestFoldersDialogScheduleLaterAction:
+    """Test cases for FoldersDialog._schedule_later_action method."""
+
+    def test_schedule_later_action_when_dialog_canceled(self):
+        """No action when schedule dialog is canceled."""
+        dialog = Mock(spec=FoldersDialog)
+
+        schedule_dialog = Mock()
+        schedule_dialog.exec.return_value = False
+
+        with patch(
+            "nxdrive.gui.folders_dialog.ScheduleDialog", return_value=schedule_dialog
+        ) as schedule_cls:
+            FoldersDialog._schedule_later_action(dialog)
+
+        schedule_cls.assert_called_once_with(dialog)
+        schedule_dialog.get_time.assert_not_called()
+        dialog.accept.assert_not_called()
+
+    def test_schedule_later_action_accept_with_no_time(self):
+        """Accepts dialog even if user did not pick time value."""
+        dialog = Mock(spec=FoldersDialog)
+        dialog.scheduled_time = "unchanged"
+        dialog.scheduled_at_iso = "unchanged_iso"
+        dialog.scheduled_delay = 12
+
+        schedule_dialog = Mock()
+        schedule_dialog.exec.return_value = True
+        schedule_dialog.get_time.return_value = None
+
+        with patch(
+            "nxdrive.gui.folders_dialog.ScheduleDialog", return_value=schedule_dialog
+        ):
+            FoldersDialog._schedule_later_action(dialog)
+
+        assert dialog.scheduled_time == "unchanged"
+        assert dialog.scheduled_at_iso == "unchanged_iso"
+        assert dialog.scheduled_delay == 12
+        dialog.accept.assert_called_once()
+
+    def test_schedule_later_action_accept_with_future_time(self):
+        """Stores schedule values and positive delay for future datetime."""
+        dialog = Mock(spec=FoldersDialog)
+
+        now = datetime(2026, 6, 17, 10, 0, 0, tzinfo=timezone.utc)
+        future = datetime(2026, 6, 17, 10, 5, 30, tzinfo=timezone.utc)
+
+        time_value = Mock()
+        time_value.toString.return_value = "2026-06-17 10:05:30"
+        time_value.toPyDateTime.return_value = future
+
+        schedule_dialog = Mock()
+        schedule_dialog.exec.return_value = True
+        schedule_dialog.get_time.return_value = time_value
+
+        with patch(
+            "nxdrive.gui.folders_dialog.ScheduleDialog", return_value=schedule_dialog
+        ), patch("nxdrive.gui.folders_dialog.datetime") as mock_datetime:
+            mock_datetime.now.return_value = now
+            FoldersDialog._schedule_later_action(dialog)
+
+        assert dialog.scheduled_time == "2026-06-17 10:05:30"
+        assert dialog.scheduled_at_iso == future.isoformat()
+        assert dialog.scheduled_delay == 330
+        dialog.accept.assert_called_once()
+
+    def test_schedule_later_action_accept_with_past_time_sets_zero_delay(self):
+        """Delay should be clamped to zero when schedule time is in past."""
+        dialog = Mock(spec=FoldersDialog)
+
+        now = datetime(2026, 6, 17, 10, 0, 0, tzinfo=timezone.utc)
+        past = datetime(2026, 6, 17, 9, 59, 0, tzinfo=timezone.utc)
+
+        time_value = Mock()
+        time_value.toString.return_value = "2026-06-17 09:59:00"
+        time_value.toPyDateTime.return_value = past
+
+        schedule_dialog = Mock()
+        schedule_dialog.exec.return_value = True
+        schedule_dialog.get_time.return_value = time_value
+
+        with patch(
+            "nxdrive.gui.folders_dialog.ScheduleDialog", return_value=schedule_dialog
+        ), patch("nxdrive.gui.folders_dialog.datetime") as mock_datetime:
+            mock_datetime.now.return_value = now
+            FoldersDialog._schedule_later_action(dialog)
+
+        assert dialog.scheduled_time == "2026-06-17 09:59:00"
+        assert dialog.scheduled_at_iso == past.isoformat()
+        assert dialog.scheduled_delay == 0
+        dialog.accept.assert_called_once()
 
 
 class TestDocumentsDialogHandleNoRoots:

@@ -114,7 +114,7 @@ class ScheduleDialog(QDialog):
         ok_button = self.button_box.button(QDialogButtonBox.StandardButton.Ok)
 
         # Validating hours input
-        if h_str:
+        if h_str and h_str != "":
             try:
                 h_val = int(h_str)
             except ValueError:
@@ -125,9 +125,15 @@ class ScheduleDialog(QDialog):
                 if ok_button:
                     ok_button.setEnabled(False)
                 return
+        else:
+            self.error_label.setText(Translator.get("SCHEDULE_INVALID_HOURS"))
+            self.error_label.setVisible(True)
+            if ok_button:
+                ok_button.setEnabled(False)
+            return
 
         # Validating minutes input
-        if m_str:
+        if m_str and m_str != "":
             try:
                 m_val = int(m_str)
             except ValueError:
@@ -138,9 +144,15 @@ class ScheduleDialog(QDialog):
                 if ok_button:
                     ok_button.setEnabled(False)
                 return
+        else:
+            self.error_label.setText(Translator.get("SCHEDULE_INVALID_MINUTES"))
+            self.error_label.setVisible(True)
+            if ok_button:
+                ok_button.setEnabled(False)
+            return
 
         # Validating seconds input
-        if s_str:
+        if s_str and s_str != "":
             try:
                 s_val = int(s_str)
             except ValueError:
@@ -151,6 +163,12 @@ class ScheduleDialog(QDialog):
                 if ok_button:
                     ok_button.setEnabled(False)
                 return
+        else:
+            self.error_label.setText(Translator.get("SCHEDULE_INVALID_SECONDS"))
+            self.error_label.setVisible(True)
+            if ok_button:
+                ok_button.setEnabled(False)
+            return
 
         self.selected_dt = self.get_datetime()
         if not self.selected_dt.isValid():
