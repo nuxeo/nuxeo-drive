@@ -12,9 +12,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 from urllib.parse import urlparse, urlsplit, urlunsplit
 from weakref import CallableProxyType, proxy
 
-import nuxeo
 import requests
-from nuxeo.utils import version_le
 
 from nxdrive import __version__
 from nxdrive.drive import server_type as st
@@ -70,6 +68,7 @@ from nxdrive.drive.utils import (
     requests_verify,
     save_config,
 )
+from nxdrive.drive.version import version_le
 
 if TYPE_CHECKING:
     from nxdrive.drive.client.proxy import Proxy  # noqa
@@ -328,7 +327,7 @@ class Manager(QObject):
             "sentry": Options.use_sentry,
             "qt_version": QT_VERSION_STR,
             "python_version": platform.python_version(),
-            "python_client_version": nuxeo.__version__,
+            "python_client_version": st.get(st.get_default_key()).client_version,
             "os": current_os(full=True),
             "machine": machine(),
             "appname": APP_NAME,
@@ -867,8 +866,16 @@ class Manager(QObject):
         else:
             log.info(f"Status code for {url} = {status}")
             if status == 404:
-                # We know the new endpoint is unavailable,
-                # so we need to use the old login.
+                # drive_browser_login.jsp is missing.  This could mean the
+                # server is truly old *or* it is a modern server that no
+                # longer ships the Drive-specific JSP pages.  Probe a REST
+                # endpoint to tell the two apart.
+                if self._is_modern_server(parts, headers):
+                    log.info(
+                        "Server lacks Drive JSP pages but exposes a "
+                        "modern REST API — treating as Login.NEW"
+                    )
+                    return Login.NEW
                 return Login.OLD
             if status < 400 or status in {401, 403}:
                 # We can access the new login page, or we are unauthorized
@@ -877,6 +884,30 @@ class Manager(QObject):
         # The server returned an unexpected status code, or it was unreachable
         # for some reason, so the login endpoint is unknown.
         return Login.UNKNOWN
+
+    def _is_modern_server(self, parts: Any, headers: Dict[str, str]) -> bool:
+        """Return True if the server exposes a modern REST API (api/v1)."""
+        fallback_url = urlunsplit(
+            (
+                parts.scheme,
+                parts.netloc,
+                f"{parts.path.rstrip('/')}/api/v1/me",
+                parts.query,
+                parts.fragment,
+            )
+        )
+        try:
+            with requests.get(
+                fallback_url,
+                headers=headers,
+                proxies=self.proxy.settings(url=fallback_url),
+                timeout=STARTUP_PAGE_CONNECTION_TIMEOUT,
+                verify=requests_verify(Options.ca_bundle, Options.ssl_no_verify),
+                cert=client_certificate(),
+            ) as resp:
+                return resp.status_code < 400 or resp.status_code in {401, 403}
+        except Exception:
+            return False
 
     def bind_server(
         self,

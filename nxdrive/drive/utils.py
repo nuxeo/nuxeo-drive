@@ -7,6 +7,8 @@ Each *maxsize* is adjusted depending of the heavy use of the decorated function.
 """
 
 import base64
+import hashlib
+import mimetypes
 import os
 import os.path
 import re
@@ -34,8 +36,6 @@ from typing import (
 )
 from urllib.parse import parse_qsl, unquote, urlparse, urlsplit, urlunsplit
 from uuid import uuid4
-
-from nuxeo.utils import get_digest_algorithm, get_digest_hash
 
 from .constants import (
     APP_NAME,
@@ -71,6 +71,54 @@ DEFAULTS_CERT_DETAILS = {
 }
 
 log = getLogger(__name__)
+
+_WIN32_PATCHED_MIME_TYPES = {
+    "image/pjpeg": "image/jpeg",
+    "image/x-png": "image/png",
+    "image/bmp": "image/x-ms-bmp",
+    "audio/x-mpg": "audio/mpeg",
+    "video/x-mpeg2a": "video/mpeg",
+    "application/x-javascript": "application/javascript",
+    "application/x-msexcel": "application/vnd.ms-excel",
+    "application/x-mspowerpoint": "application/vnd.ms-powerpoint",
+    "application/x-mspowerpoint.12": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+}
+
+
+def get_digest_algorithm(digest):
+    # type: (str) -> Optional[str]
+    """Return the digest algorithm name based on the hex digest string length."""
+    digesters = {
+        32: "md5",
+        40: "sha1",
+        56: "sha224",
+        64: "sha256",
+        96: "sha384",
+        128: "sha512",
+    }
+    try:
+        int(digest, 16) >= 0
+    except (TypeError, ValueError):
+        return None
+    return digesters.get(len(digest), None)
+
+
+def get_digest_hash(algorithm):
+    # type: (str) -> Optional[Any]
+    """Return the hashlib hash object for the given *algorithm*, or None."""
+    func = getattr(hashlib, algorithm, None)
+    return func() if func else None
+
+
+def guess_mimetype(filename):
+    # type: (str) -> str
+    """Guess the mimetype of a given file."""
+    mime_type, _ = mimetypes.guess_type(str(filename))
+    if mime_type:
+        if sys.platform == "win32":
+            mime_type = _WIN32_PATCHED_MIME_TYPES.get(mime_type, mime_type)
+        return mime_type
+    return "application/octet-stream"
 
 
 @lru_cache(maxsize=2048)
@@ -1653,8 +1701,9 @@ def test_url(
             raise EncryptedSSLCertificateKey()
 
     except requests.HTTPError as exc:
-        if exc.response.status_code in (401, 403):
-            # When there is only Web-UI installed, the code is 401.
+        if exc.response.status_code in (401, 403, 404):
+            # 401/403: Web-UI only (no JSF login page).
+            # 404: Newer servers that no longer serve drive_login.jsp.
             log.debug(f"Valid URL: {url}")
             return ""
     return "CONNECTION_ERROR"

@@ -1,5 +1,7 @@
 """Nuxeo server-type registration."""
 
+import nuxeo
+
 from nxdrive.drive.server_type import ServerTypeConfig, register
 
 
@@ -9,9 +11,84 @@ def _nuxeo_auth_factory(host, token, **kwargs):
         from nxdrive.nuxeo.auth.oauth2 import OAuthentication
 
         return OAuthentication(host, token=token, **kwargs)
-    from nxdrive.drive.auth.token import TokenAuthentication
+    from nxdrive.nuxeo.auth.token import TokenAuthentication
 
     return TokenAuthentication(host, token=token, **kwargs)
+
+
+def _nuxeo_debug_init():
+    """Enable parameter checking in the nuxeo-python-client."""
+    import nuxeo.constants
+
+    nuxeo.constants.CHECK_PARAMS = True
+
+
+def _nuxeo_debug_auth_handler(url, manager, api):
+    """Non-frozen debug auth dialog for Nuxeo servers."""
+    import os
+
+    from nuxeo.client import Nuxeo
+
+    from nxdrive.drive.constants import APP_NAME, TOKEN_PERMISSION
+    from nxdrive.drive.metrics.utils import current_os
+    from nxdrive.drive.qt import constants as qt
+    from nxdrive.drive.qt.imports import (
+        QDialog,
+        QDialogButtonBox,
+        QLineEdit,
+        QVBoxLayout,
+    )
+    from nxdrive.drive.utils import client_certificate, get_verify
+
+    dialog = QDialog()
+    dialog.setWindowTitle("Authentication")
+    dialog.resize(250, 100)
+
+    layout = QVBoxLayout()
+
+    default_user = os.getenv("NXDRIVE_TEST_USERNAME", "Administrator")
+    default_pwd = os.getenv("NXDRIVE_TEST_PASSWORD", "Administrator")
+    username = QLineEdit(default_user, parent=dialog)
+    password = QLineEdit(default_pwd, parent=dialog)
+    password.setEchoMode(qt.Password)
+    layout.addWidget(username)
+    layout.addWidget(password)
+
+    def auth():
+        user = str(username.text())
+        pwd = str(password.text())
+        verification_needed = get_verify()
+        nuxeo_client = Nuxeo(
+            host=url,
+            auth=(user, pwd),
+            proxies=manager.proxy.settings(url=url),
+            verify=verification_needed,
+            cert=client_certificate(),
+        )
+        try:
+            token = nuxeo_client.client.request_auth_token(
+                manager.device_id,
+                TOKEN_PERMISSION,
+                app_name=APP_NAME,
+                device=current_os(full=True),
+            )
+        except Exception as exc:
+            import logging
+
+            logging.getLogger(__name__).error(f"Connection error: {exc}")
+            token = ""
+        finally:
+            del nuxeo_client
+        api.handle_token(token, user)
+        dialog.close()
+
+    buttons = QDialogButtonBox()
+    buttons.setStandardButtons(qt.Cancel | qt.Ok)
+    buttons.accepted.connect(auth)
+    buttons.rejected.connect(dialog.close)
+    layout.addWidget(buttons)
+    dialog.setLayout(layout)
+    dialog.exec()
 
 
 register(
@@ -41,6 +118,9 @@ register(
         download_appimage="nuxeo-drive-x86_64.AppImage",
         sync_root="/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#",
         url_patterns=["nuxeo"],
+        client_version=nuxeo.__version__,
+        debug_init_hook=_nuxeo_debug_init,
+        debug_auth_handler=_nuxeo_debug_auth_handler,
     ),
     default=True,
 )

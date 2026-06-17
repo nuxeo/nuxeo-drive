@@ -14,10 +14,13 @@ from logging import getLogger
 from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
 import requests
+from nuxeo.exceptions import OAuth2Error
 
 from nxdrive.drive.auth.oauth2 import OAuthenticationBase
+from nxdrive.drive.exceptions import RemoteOAuth2Error
 
 if TYPE_CHECKING:
+    from nxdrive.drive.auth import Token
     from nxdrive.drive.dao.base import BaseDAO
 
 __all__ = ("AlfrescoOAuthentication",)
@@ -164,6 +167,24 @@ class AlfrescoOAuthentication(OAuthenticationBase):
 
         self._build_oauth2()
 
+    def _build_oauth2(self) -> None:
+        """Construct the ``nuxeo.auth.OAuth2`` auth object for Alfresco."""
+        from nuxeo.auth import OAuth2
+
+        from nxdrive.drive.options import Options
+
+        self.auth = OAuth2(
+            self.url,
+            client_id=self._oauth2_client_id,
+            client_secret=self._oauth2_client_secret,
+            authorization_endpoint=Options.oauth2_authorization_endpoint,
+            openid_configuration_url=self._oauth2_openid_configuration_url,
+            redirect_uri=Options.oauth2_redirect_uri,
+            token_endpoint=Options.oauth2_token_endpoint,
+            token=self.token,
+            subclient_kwargs=self._subclient_kwargs,
+        )
+
     def get_username(self) -> str:
         """Resolve the authenticated user's ID via the Alfresco People API."""
         token = self.auth.token
@@ -187,6 +208,12 @@ class AlfrescoOAuthentication(OAuthenticationBase):
         data = resp.json()
         username: str = data.get("entry", {}).get("id", "")
         return username
+
+    def get_token(self, **kwargs: Any) -> "Token":
+        try:
+            return super().get_token(**kwargs)
+        except OAuth2Error as exc:
+            raise RemoteOAuth2Error(message=getattr(exc, "message", str(exc))) from exc
 
     def get_token_dict(self) -> Optional[Dict[str, Any]]:
         """Return the full token dict for storage.

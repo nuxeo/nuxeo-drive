@@ -8,14 +8,12 @@ from time import time
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 
 from dateutil.tz import tzlocal
-from nuxeo.models import Batch
-from nuxeo.utils import get_digest_algorithm
 
 from .auth import Token
 from .constants import DirectDownloadStatus, TransferStatus
 from .exceptions import DriveError
 from .translator import Translator
-from .utils import get_date_from_sqlite, get_timestamp_from_date
+from .utils import get_date_from_sqlite, get_digest_algorithm, get_timestamp_from_date
 
 
 class Binder(NamedTuple):
@@ -350,11 +348,11 @@ class Upload(Transfer):
     chunk_size: int = 0
     remote_parent_path: str = ""
     remote_parent_ref: str = ""
-    batch_obj: Batch = None
+    batch_obj: Any = None
     request_uid: Optional[str] = None
     is_dirty: bool = field(init=False, default=False)
 
-    def token_callback(self, batch: Batch, _: Dict[str, Any]) -> None:
+    def token_callback(self, batch: Any, _: Dict[str, Any]) -> None:
         """Callback triggered when token is refreshed."""
         self.batch = batch.as_dict()
         self.is_dirty = True

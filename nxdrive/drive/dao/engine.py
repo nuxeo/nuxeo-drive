@@ -23,17 +23,13 @@ from typing import (
     Union,
 )
 
-from nuxeo.utils import get_digest_algorithm
-
 from .. import __version__
 from ..client.local import FileInfo
-from ..constants import (
-    ROOT,
-    UNACCESSIBLE_HASH,
-    WINDOWS,
-    DirectDownloadStatus,
-    TransferStatus,
-)
+from ..constants import DirectDownloadStatus
+from ..constants import ROOT
+from ..constants import TransferStatus
+from ..constants import UNACCESSIBLE_HASH
+from ..constants import WINDOWS
 from ..exceptions import UnknownPairState
 from ..objects import (
     DirectDownload,
@@ -47,7 +43,7 @@ from ..objects import (
 )
 from ..options import Options
 from ..qt.imports import pyqtSignal
-from ..utils import is_large_file
+from ..utils import get_digest_algorithm, is_large_file
 from . import SCHEMA_VERSION, versions_history
 from .adapters import adapt_path
 from .base import BaseDAO

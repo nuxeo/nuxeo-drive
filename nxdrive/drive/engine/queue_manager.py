@@ -6,14 +6,12 @@ from queue import Empty, Queue
 from threading import Lock
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
-from nuxeo.exceptions import OngoingRequestError
-
-from nxdrive.drive.engine.processor import Processor
-
 from ..constants import WINDOWS
+from ..exceptions import RemoteOngoingRequestError
 from ..objects import DocPair, Metrics
 from ..options import Options
 from ..qt.imports import QObject, QThread, QTimer, pyqtSignal, pyqtSlot
+from .processor import Processor
 
 if TYPE_CHECKING:
     from nxdrive.drive.engine.engine import Engine  # noqa
@@ -260,7 +258,7 @@ class QueueManager(QObject):
                 f" (error n°{err_code}: {exception.strerror!r})"
             )
             error_count = 1
-        elif isinstance(exception, OngoingRequestError):
+        elif isinstance(exception, RemoteOngoingRequestError):
             emit_sig = False  # No notification as it is not an error on its own
 
         if error_count > self._error_threshold:

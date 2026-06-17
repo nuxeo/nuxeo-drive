@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from nxdrive.drive.engine.engine import Engine  # noqa
@@ -9,6 +9,58 @@ class DriveError(Exception):
     """Mother exception."""
 
     pass
+
+
+# ---------------------------------------------------------------------------
+# Remote / HTTP exceptions — server-type packages catch library-specific
+# errors and re-raise as one of these so that ``drive/`` never imports
+# from ``nuxeo.*`` or ``alfresco.*``.
+# ---------------------------------------------------------------------------
+
+
+class RemoteError(DriveError):
+    """Base class for errors originating from a remote server."""
+
+    pass
+
+
+class RemoteHTTPError(RemoteError):
+    """A generic HTTP error from the server (maps to nuxeo.HTTPError, alfresco.AlfrescoError, etc.)."""
+
+    def __init__(
+        self, status: int = -1, message: Optional[str] = None, **kwargs: Any
+    ) -> None:
+        self.status = status
+        self.message = message
+        super().__init__(message)
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.status}): {self.message!r}"
+
+    def __str__(self) -> str:
+        return repr(self)
+
+
+class RemoteUnauthorized(RemoteHTTPError):
+    """401 — invalid or missing credentials."""
+
+    def __init__(self, message: Optional[str] = None, **kwargs: Any) -> None:
+        super().__init__(status=401, message=message, **kwargs)
+
+
+class RemoteOAuth2Error(RemoteHTTPError):
+    """An OAuth2-specific error."""
+
+    def __init__(self, message: Optional[str] = None, **kwargs: Any) -> None:
+        super().__init__(status=400, message=message, **kwargs)
+
+
+class RemoteOngoingRequestError(RemoteError):
+    """A duplicate idempotent request is already being processed."""
+
+    def __init__(self, request_uid: str = "", **kwargs: Any) -> None:
+        self.request_uid = request_uid
+        super().__init__(request_uid)
 
 
 class AddonForbiddenError(DriveError):
@@ -128,7 +180,7 @@ class NoAssociatedSoftware(OSError):
     """
 
     def __init__(self, file_path: Path) -> None:
-        from nuxeo.utils import guess_mimetype
+        from nxdrive.drive.utils import guess_mimetype
 
         self.filename = file_path.name
         self.mimetype = guess_mimetype(file_path)

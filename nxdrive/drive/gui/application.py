@@ -20,7 +20,6 @@ from nxdrive.drive.constants import (
     COMPANY,
     LINUX,
     MAC,
-    TOKEN_PERMISSION,
     WINDOWS,
     DelAction,
 )
@@ -47,7 +46,6 @@ from nxdrive.drive.gui.view import (
     TransferModel,
 )
 from nxdrive.drive.metrics.constants import CRASHED_HIT, CRASHED_TRACE
-from nxdrive.drive.metrics.utils import current_os
 from nxdrive.drive.notification import Notification
 from nxdrive.drive.options import Options
 from nxdrive.drive.qt import constants as qt
@@ -90,11 +88,9 @@ from nxdrive.drive.updater.constants import (
     UPDATE_STATUS_UP_TO_DATE,
 )
 from nxdrive.drive.utils import (
-    client_certificate,
     find_icon,
     find_resource,
     force_decode,
-    get_verify,
     if_frozen,
     normalize_event_filename,
     normalized_path,
@@ -1258,75 +1254,27 @@ class Application(QApplication):
             finally:
                 QApplication.restoreOverrideCursor()
         else:
-            self._web_auth_not_frozen(callback_params["server_url"])
+            self._web_auth_not_frozen(callback_params["server_url"], callback_params)
 
-    def _web_auth_not_frozen(self, url: str, /) -> None:
+    def _web_auth_not_frozen(
+        self, url: str, callback_params: Dict[str, str], /
+    ) -> None:
+        """Non-frozen debug auth dialog.
+
+        Delegates to the server-type's ``debug_auth_handler`` hook if
+        available, otherwise logs a warning.
         """
-        Open a dialog box to fill the credentials.
-        Then a request will be done using the Python client to
-        get a token.
+        from nxdrive.drive import server_type as _st
 
-        This is used when the application is not frozen as there is no custom
-        protocol handler in this case.
-        """
-
-        from nuxeo.client import Nuxeo
-
-        from nxdrive.drive.qt.imports import QLineEdit
-
-        dialog = QDialog()
-        dialog.setWindowTitle(self.translate("WEB_AUTHENTICATION_WINDOW_TITLE"))
-        dialog.setWindowIcon(self.icon)
-        dialog.resize(250, 100)
-
-        layout = QVBoxLayout()
-
-        default_user = os.getenv("NXDRIVE_TEST_USERNAME", "Administrator")
-        default_pwd = os.getenv("NXDRIVE_TEST_PASSWORD", "Administrator")
-        username = QLineEdit(default_user, parent=dialog)
-        password = QLineEdit(default_pwd, parent=dialog)
-        password.setEchoMode(qt.Password)
-        layout.addWidget(username)
-        layout.addWidget(password)
-
-        def auth() -> None:
-            """Retrieve a token and create the account."""
-            user = str(username.text())
-            pwd = str(password.text())
-
-            verification_needed = get_verify()
-
-            nuxeo = Nuxeo(
-                host=url,
-                auth=(user, pwd),
-                proxies=self.manager.proxy.settings(url=url),
-                verify=verification_needed,
-                cert=client_certificate(),
+        config = _st.detect_by_url(url)
+        if config.debug_auth_handler:
+            config.debug_auth_handler(url, self.manager, self.api)
+        else:
+            log.warning(
+                "No debug_auth_handler registered for %s, cannot authenticate "
+                "in non-frozen mode",
+                config.key,
             )
-            try:
-                token = nuxeo.client.request_auth_token(
-                    self.manager.device_id,
-                    TOKEN_PERMISSION,
-                    app_name=APP_NAME,
-                    device=current_os(full=True),
-                )
-            except Exception as exc:
-                log.error(f"Connection error: {exc}")
-                token = ""
-            finally:
-                del nuxeo
-
-            self.api.handle_token(token, user)
-            dialog.close()
-
-        buttons = QDialogButtonBox()
-        buttons.setStandardButtons(qt.Cancel | qt.Ok)
-        buttons.accepted.connect(auth)
-        buttons.rejected.connect(dialog.close)
-        layout.addWidget(buttons)
-
-        dialog.setLayout(layout)
-        dialog.exec()
 
     @pyqtSlot(object)
     def _connect_engine(self, engine: Engine, /) -> None:

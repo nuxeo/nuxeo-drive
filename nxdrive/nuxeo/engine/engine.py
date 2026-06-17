@@ -25,6 +25,8 @@ from nxdrive.drive.exceptions import (
     AddonForbiddenError,
     AddonNotInstalledError,
     PairInterrupt,
+    RemoteHTTPError,
+    RemoteUnauthorized,
     ThreadInterrupt,
 )
 from nxdrive.drive.feature import Feature
@@ -350,12 +352,20 @@ class Engine(_EngineBase):
         if check_fs:
             self._setup_local_folder(check_fs)
 
-        if check_credentials:
-            self.remote = self.init_remote()
-            if not self._remote_token:
-                self._remote_token = self.remote.request_token()
-            if not self._remote_token:
-                self.remote = None  # type: ignore
+        try:
+            if check_credentials:
+                self.remote = self.init_remote()
+                if not self._remote_token:
+                    self._remote_token = self.remote.request_token()
+                if not self._remote_token:
+                    self.remote = None  # type: ignore
+        except Unauthorized as exc:
+            raise RemoteUnauthorized(message=getattr(exc, "message", str(exc))) from exc
+        except HTTPError as exc:
+            raise RemoteHTTPError(
+                status=getattr(exc, "status", -1),
+                message=getattr(exc, "message", str(exc)),
+            ) from exc
 
         # Save the configuration
         self.dao.store_bool("web_authentication", self._web_authentication)

@@ -23,6 +23,7 @@ from nxdrive.drive.client.local import LocalClient
 from nxdrive.drive.client.local.base import LocalClientMixin
 from nxdrive.drive.constants import ROOT
 from nxdrive.drive.engine.engine import Engine
+from nxdrive.drive.exceptions import RemoteUnauthorized
 from nxdrive.drive.feature import Feature
 from nxdrive.drive.objects import Binder, EngineDef
 from nxdrive.drive.options import Options
@@ -160,10 +161,10 @@ class AlfrescoEngine(Engine):
             # Validate credentials by calling the People API
             try:
                 self.remote.check_credentials()
-            except AuthenticationError:
+            except AuthenticationError as exc:
                 log.warning("Alfresco authentication failed")
                 self.remote = None  # type: ignore[assignment]
-                raise
+                raise RemoteUnauthorized(message=str(exc)) from exc
             except Exception:
                 log.warning("Error validating Alfresco credentials", exc_info=True)
                 self.remote = None  # type: ignore[assignment]

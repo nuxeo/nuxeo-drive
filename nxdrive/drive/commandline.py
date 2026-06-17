@@ -407,9 +407,11 @@ class CliHandler:
                 pdb = ipdb
 
             # Automatically check all operations done with the Python client
-            import nuxeo.constants
+            from nxdrive.drive import server_type as _st
 
-            nuxeo.constants.CHECK_PARAMS = True
+            for _cfg in _st.all_configs().values():
+                if _cfg.debug_init_hook:
+                    _cfg.debug_init_hook()
 
             # Install Post-Mortem debugger hook
 

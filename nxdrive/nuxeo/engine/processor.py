@@ -38,6 +38,7 @@ from nxdrive.drive.exceptions import (
     NotFound,
     PairInterrupt,
     ParentNotSynced,
+    RemoteOngoingRequestError,
     ThreadInterrupt,
     UnknownDigest,
     UploadCancelled,
@@ -363,7 +364,13 @@ class Processor(_ProcessorBase):
             except OngoingRequestError as exc:
                 # The idempotent request is being processed, just recheck later
                 log.info(exc)
-                self._postpone_pair(doc_pair, "OngoingRequest", exception=exc)
+                self._postpone_pair(
+                    doc_pair,
+                    "OngoingRequest",
+                    exception=RemoteOngoingRequestError(
+                        getattr(exc, "request_uid", "")
+                    ),
+                )
             except Conflict:
                 # It could happen on multiple files drag'n drop
                 # starting with identical characters.

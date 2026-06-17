@@ -1,9 +1,6 @@
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
-from nuxeo.auth import TokenAuth
-from nuxeo.client import NuxeoClient
-
 from nxdrive.drive.auth.base import Authentication
 from nxdrive.drive.constants import APP_NAME, TOKEN_PERMISSION
 from nxdrive.drive.metrics.utils import current_os
@@ -14,13 +11,21 @@ if TYPE_CHECKING:
 
 
 class TokenAuthentication(Authentication):
-    """Use the Nuxeo token."""
+    """Token-based authentication.
+
+    Subclasses must implement ``_create_auth_handler()`` and
+    ``_request_token()`` to provide server-type-specific behaviour.
+    """
 
     def __init__(self, *args: Any, device_id: str = "", **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-        self.auth = TokenAuth(self.token)
+        self.auth = self._create_auth_handler(self.token)
         self._device_id = device_id
+
+    def _create_auth_handler(self, token: "Token") -> Any:
+        """Create the underlying auth handler object.  Must be overridden."""
+        raise NotImplementedError
 
     def connect_url(self) -> str:
         params = urlencode(
@@ -41,19 +46,9 @@ class TokenAuthentication(Authentication):
         params = f"{parts.query}&{params}" if parts.query else params
         return urlunsplit((parts.scheme, parts.netloc, path, params, parts.fragment))
 
-    def get_token(self, **kwargs: Any) -> "Token":
-        client: NuxeoClient = kwargs["client"]
-        token: str = self.auth.request_token(
-            client,
-            client.headers["X-Device-Id"],
-            TOKEN_PERMISSION,
-            app_name=APP_NAME,
-            device=current_os(full=True),
-            revoke=kwargs.get("revoke", False),
-        )
-        token = "" if "\n" in token else token
-        self.token = self.auth.token = token
-        return token
+    def get_token(self, **kwargs: Any) -> "Token":  # type: ignore[empty-body]
+        """Request a token.  Must be overridden by server-type subclasses."""
+        raise NotImplementedError
 
     def revoke_token(self, **kwargs: Any) -> None:
         self.get_token(client=kwargs["client"], revoke=True)

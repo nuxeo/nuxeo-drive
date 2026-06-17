@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from urllib.parse import urlencode, urlparse, urlsplit, urlunsplit
 
 import requests
-from nuxeo.exceptions import HTTPError, OAuth2Error, Unauthorized
 from urllib3.exceptions import LocationParseError
 
 from nxdrive.drive import server_type as st
@@ -33,6 +32,9 @@ from nxdrive.drive.exceptions import (
     MissingClientSSLCertificate,
     MissingXattrSupport,
     NotFound,
+    RemoteHTTPError,
+    RemoteOAuth2Error,
+    RemoteUnauthorized,
     RootAlreadyBindWithDifferentAccount,
     StartupPageConnectionError,
 )
@@ -941,7 +943,7 @@ class QMLDriveApi(QObject):
             error = "ADDON_FORBIDDEN"
         except AddonNotInstalledError:
             error = "ADDON_NOT_INSTALLED"
-        except Unauthorized:
+        except RemoteUnauthorized:
             error = "UNAUTHORIZED"
         except EngineTypeMissing:
             log.error("Engine type not available for this server")
@@ -950,25 +952,16 @@ class QMLDriveApi(QObject):
             error = "FOLDER_USED"
         except PermissionError:
             error = "FOLDER_PERMISSION_ERROR"
-        except HTTPError:
+        except RemoteHTTPError:
             error = "CONNECTION_ERROR"
         except CONNECTION_ERROR as e:
             if getattr(e, "errno") == 61:
                 error = "CONNECTION_REFUSED"
             else:
                 error = "CONNECTION_ERROR"
-        except Exception as exc:
-            # Check for server-type-specific authentication errors
-            try:
-                from alfresco.exceptions import AuthenticationError as AlfrescoAuthError
-
-                if isinstance(exc, AlfrescoAuthError):
-                    error = "UNAUTHORIZED"
-                else:
-                    raise
-            except ImportError:
-                log.warning("Unexpected error", exc_info=True)
-                error = "CONNECTION_UNKNOWN"
+        except Exception:
+            log.warning("Unexpected error", exc_info=True)
+            error = "CONNECTION_UNKNOWN"
 
         log.warning(Translator.get(error))
         self.setMessage.emit(error, "error")
@@ -991,10 +984,9 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, str)
     def alfresco_relogin(self, engine_uid: str, password: str, /) -> None:
-        """Re-authenticate an Alfresco engine using the given password.
+        """Re-authenticate an engine using a server-type-specific handler.
 
-        Obtains a new ticket from the Alfresco Authentication API, stores
-        it, and restarts the engine.
+        Delegates to ``ServerTypeConfig.relogin_handler`` if available.
         """
         engine = self._get_engine(engine_uid)
         engine_config = (
@@ -1008,32 +1000,16 @@ class QMLDriveApi(QObject):
             self.setMessage.emit("CONNECTION_UNKNOWN", "error")
             return
 
-        try:
-            from alfresco.auth import TicketAuth
-
-            auth = TicketAuth(engine.remote_user, password, engine.server_url)
-            # Force ticket acquisition now so we fail fast on bad password
-            auth._obtain_ticket(engine.server_url)
-            ticket = auth.ticket
-            if not ticket:
-                raise RuntimeError("No ticket returned")
-        except Exception:
-            log.warning("Alfresco re-login failed", exc_info=True)
-            self.setMessage.emit("AUTH_EXPIRED", "error")
+        if not engine_config.relogin_handler:
+            log.warning("No relogin_handler for %s", engine_config.key)
+            self.setMessage.emit("CONNECTION_UNKNOWN", "error")
             return
 
-        # Persist the new ticket and restart the engine
-        engine._alfresco_ticket = ticket
-        engine._remote_password = ""
-        engine._save_ticket(ticket)
-        engine.set_invalid_credentials(value=False)
-        engine.stop()
-        engine.remote = engine.init_remote()
-        engine.start()
-        # Ensure the queue manager is accepting items and trigger a fresh
-        # remote scan so that pending sync work resumes immediately.
-        engine.queue_manager.resume()
-        engine.dao.update_config("remote_need_full_scan", "1")
+        try:
+            engine_config.relogin_handler(engine, password)
+        except Exception:
+            log.warning("Re-login failed", exc_info=True)
+            self.setMessage.emit("AUTH_EXPIRED", "error")
 
     @pyqtSlot(str, str, str, str)
     def alfresco_oauth2_auth(
@@ -1270,7 +1246,7 @@ class QMLDriveApi(QObject):
                 code=query["code"],
                 state=query["state"],
             )
-        except OAuth2Error:
+        except RemoteOAuth2Error:
             log.warning("Unexpected error while trying to get a token", exc_info=True)
             error = "CONNECTION_UNKNOWN"
         else:

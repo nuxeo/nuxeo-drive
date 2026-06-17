@@ -618,7 +618,7 @@ def validate_client_version(value: str, /) -> str:
     """The minimum version which implements the Centralized channel is 4.2.0,
     downgrades below this version are not allowed.
     """
-    from nuxeo.utils import version_lt
+    from nxdrive.drive.version import version_lt
 
     if not version_lt(value, "4.2.0"):
         return value

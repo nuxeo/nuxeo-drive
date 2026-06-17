@@ -57,6 +57,20 @@ class ServerTypeConfig:
     # If True, this config is returned by detect_by_url when no url_patterns match
     is_url_fallback: bool = False
 
+    # Version string of the underlying Python client library (e.g. nuxeo.__version__)
+    client_version: str = ""
+
+    # Hook called when debug mode is enabled (e.g. to set nuxeo.constants.CHECK_PARAMS)
+    debug_init_hook: Optional[Callable[[], None]] = None
+
+    # Hook to re-authenticate when browser-based token update is not supported
+    # Signature: relogin_handler(engine, password) -> None
+    relogin_handler: Optional[Callable[..., None]] = None
+
+    # Hook for the non-frozen debug auth dialog (server-type specific)
+    # Signature: debug_auth_handler(url, manager, api) -> None
+    debug_auth_handler: Optional[Callable[..., None]] = None
+
 
 # ---- internal state --------------------------------------------------------
 

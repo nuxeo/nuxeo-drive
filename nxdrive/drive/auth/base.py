@@ -1,14 +1,23 @@
-from typing import TYPE_CHECKING, Any
-
-from nuxeo.auth.base import AuthBase
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from . import Token
 
 
+@runtime_checkable
+class AuthHandler(Protocol):
+    """Protocol for objects that sign HTTP requests and manage tokens."""
+
+    def __call__(self, r: Any) -> Any:
+        ...
+
+    def set_token(self, token: Any) -> None:
+        ...
+
+
 class Authentication:
     def __init__(self, url: str, /, *, token: "Token" = None, **kwargs: Any) -> None:
-        self.auth: AuthBase = None
+        self.auth: Any = None
         self.token = token
         self.url = url
 

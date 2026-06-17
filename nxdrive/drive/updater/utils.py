@@ -2,11 +2,11 @@ import re
 from logging import getLogger
 from typing import Any, Dict, Optional, Tuple
 
-from nuxeo.utils import version_le, version_lt
 from packaging.version import parse
 
 from ..feature import Feature
 from ..options import Options
+from ..version import version_le, version_lt
 from .constants import (
     UPDATE_STATUS_INCOMPATIBLE_SERVER,
     UPDATE_STATUS_UP_TO_DATE,

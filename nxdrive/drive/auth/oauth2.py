@@ -2,8 +2,6 @@
 
 from typing import TYPE_CHECKING, Any
 
-from nuxeo.auth import OAuth2
-
 from nxdrive.drive.auth.base import Authentication
 from nxdrive.drive.options import Options
 from nxdrive.drive.utils import get_verify
@@ -18,8 +16,8 @@ class OAuthenticationBase(Authentication):
 
     Handles the common initialisation (SSL verification, DAO reference,
     subclient kwargs) and the ``get_token()`` exchange that is identical
-    for every server type.  Subclasses must implement ``connect_url()``
-    and ``get_username()``.
+    for every server type.  Subclasses must implement ``connect_url()``,
+    ``get_username()``, and ``_build_oauth2()``.
     """
 
     def __init__(self, *args: Any, dao: "BaseDAO" = None, **kwargs: Any) -> None:
@@ -37,21 +35,15 @@ class OAuthenticationBase(Authentication):
         self._subclient_kwargs = subclient_kwargs
 
     def _build_oauth2(self) -> None:
-        """Construct the ``OAuth2`` auth object from current settings.
+        """Construct the auth object from current settings.
 
-        Called at the end of ``__init__`` (or by a subclass after
-        overriding discovery attributes).
+        Subclasses **must** call this at the end of ``__init__``
+        (or after overriding discovery attributes).  The default
+        implementation stores an ``OAuth2`` handler into ``self.auth``
+        using attributes set by the subclass.
         """
-        self.auth = OAuth2(
-            self.url,
-            client_id=self._oauth2_client_id,
-            client_secret=self._oauth2_client_secret,
-            authorization_endpoint=Options.oauth2_authorization_endpoint,
-            openid_configuration_url=self._oauth2_openid_configuration_url,
-            redirect_uri=Options.oauth2_redirect_uri,
-            token_endpoint=Options.oauth2_token_endpoint,
-            token=self.token,
-            subclient_kwargs=self._subclient_kwargs,
+        raise NotImplementedError(
+            "Subclasses must implement _build_oauth2() to create self.auth"
         )
 
     def get_token(self, **kwargs: Any) -> "Token":

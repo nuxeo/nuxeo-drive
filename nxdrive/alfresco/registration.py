@@ -1,5 +1,12 @@
 """Alfresco server-type registration."""
 
+try:
+    import alfresco
+
+    _client_version = alfresco.__version__
+except ImportError:
+    _client_version = ""
+
 from nxdrive.drive.server_type import ServerTypeConfig, register
 
 
@@ -12,6 +19,27 @@ def _alfresco_auth_factory(host, token, **kwargs):
     from nxdrive.drive.auth.token import TokenAuthentication
 
     return TokenAuthentication(host, token=token, **kwargs)
+
+
+def _alfresco_relogin_handler(engine, password):
+    """Re-authenticate an Alfresco engine using TicketAuth."""
+    from alfresco.auth import TicketAuth
+
+    auth = TicketAuth(engine.remote_user, password, engine.server_url)
+    auth._obtain_ticket(engine.server_url)
+    ticket = auth.ticket
+    if not ticket:
+        raise RuntimeError("No ticket returned")
+
+    engine._alfresco_ticket = ticket
+    engine._remote_password = ""
+    engine._save_ticket(ticket)
+    engine.set_invalid_credentials(value=False)
+    engine.stop()
+    engine.remote = engine.init_remote()
+    engine.start()
+    engine.queue_manager.resume()
+    engine.dao.update_config("remote_need_full_scan", "1")
 
 
 register(
@@ -50,5 +78,7 @@ register(
         ssl_login_page="api/discovery",
         supports_browser_token_update=False,
         is_url_fallback=True,
+        client_version=_client_version,
+        relogin_handler=_alfresco_relogin_handler,
     ),
 )

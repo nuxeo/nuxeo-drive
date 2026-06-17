@@ -13,14 +13,13 @@ from tempfile import mkdtemp
 from time import mktime, strptime
 from typing import Any, Callable, List, Optional, Tuple, Type, Union
 
-from nuxeo.utils import get_digest_algorithm
-
 from ...constants import LINUX, MAC, ROOT
 from ...exceptions import DuplicationDisabledError, NotFound, UnknownDigest
 from ...options import Options
 from ...utils import (
     compute_digest,
     force_decode,
+    get_digest_algorithm,
     lock_path,
     path_is_unc_name,
     safe_filename,
