@@ -42,6 +42,20 @@ def pytest_configure(config):
             config.option.numprocesses = 1
 
 
+@pytest.hookimpl(trylast=True)
+def pytest_sessionfinish(session, exitstatus):
+    """
+    Force immediate process exit after session ends.
+
+    Qt objects (QApplication, widgets) left alive at interpreter shutdown
+    trigger a segfault (SIGSEGV / exit -11) during Python GC/cleanup.
+    os._exit() skips interpreter teardown and avoids the crash while
+    preserving the correct exit code. pytest-cov and other trylast hooks
+    have already run by this point, so coverage reports are intact.
+    """
+    os._exit(int(exitstatus))
+
+
 @pytest.hookimpl(trylast=True, hookwrapper=True)
 def pytest_runtest_makereport():
     """

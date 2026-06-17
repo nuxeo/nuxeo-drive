@@ -946,6 +946,7 @@ class Engine(QObject):
                     f"Timer rescheduled for session {session_uid}: {chunk}ms remaining"
                 )
             else:
+                chunk = int(remaining or 0)
                 self.cancel_scheduled_timer(session_uid)
                 log.debug(
                     f"Timer started: session {session_uid} scheduled in {delay_seconds}s (chunk: {chunk}ms)"
