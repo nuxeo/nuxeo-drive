@@ -13,11 +13,14 @@ class Updater(BaseUpdater):
     """Windows updater."""
 
     ext = "exe-admin" if Options.system_wide else "exe"
-    release_file = (
-        "nuxeo-drive-{version}-admin.exe"
-        if Options.system_wide
-        else "nuxeo-drive-{version}.exe"
-    )
+    release_file = "drive.exe"
+
+    def __init__(self, manager, /) -> None:
+        super().__init__(manager)
+        from nxdrive.drive import server_type as st
+
+        config = st.get(Options.server_type or st.get_default_key())
+        self.release_file = config.download_exe
 
     def install(self, filename: str, /) -> None:
         """

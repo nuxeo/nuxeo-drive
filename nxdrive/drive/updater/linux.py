@@ -6,6 +6,7 @@ from logging import getLogger
 from pathlib import Path
 
 from ..constants import APP_NAME
+from ..options import Options
 from .base import BaseUpdater
 
 __all__ = ("Updater",)
@@ -17,7 +18,14 @@ class Updater(BaseUpdater):
     """GNU/Linux updater."""
 
     ext = "appimage"
-    release_file = "nuxeo-drive-{version}-x86_64.AppImage"
+    release_file = "drive-x86_64.AppImage"
+
+    def __init__(self, manager, /) -> None:
+        super().__init__(manager)
+        from nxdrive.drive import server_type as st
+
+        config = st.get(Options.server_type or st.get_default_key())
+        self.release_file = config.download_appimage
 
     def install(self, filename: str, /) -> None:
         """

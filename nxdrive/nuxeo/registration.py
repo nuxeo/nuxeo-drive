@@ -91,6 +91,18 @@ def _nuxeo_debug_auth_handler(url, manager, api):
     dialog.exec()
 
 
+def _nuxeo_parse_direct_transfer_remote_path(value: str) -> str:
+    from nxdrive.nuxeo.protocol import parse_direct_transfer_remote_path
+
+    return parse_direct_transfer_remote_path(value)
+
+
+def _nuxeo_normalize_download_server_path(server_part: str) -> str:
+    from nxdrive.nuxeo.protocol import normalize_download_server_path
+
+    return normalize_download_server_path(server_part)
+
+
 register(
     ServerTypeConfig(
         key="NUXEO",
@@ -118,9 +130,13 @@ register(
         download_appimage="nuxeo-drive-x86_64.AppImage",
         sync_root="/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#",
         url_patterns=["nuxeo"],
+        startup_page="drive_login.jsp",
+        browser_startup_page="drive_browser_login.jsp",
         client_version=nuxeo.__version__,
         debug_init_hook=_nuxeo_debug_init,
         debug_auth_handler=_nuxeo_debug_auth_handler,
+        parse_direct_transfer_remote_path=_nuxeo_parse_direct_transfer_remote_path,
+        normalize_download_server_path=_nuxeo_normalize_download_server_path,
     ),
     default=True,
 )

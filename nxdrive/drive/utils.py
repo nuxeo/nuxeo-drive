@@ -894,6 +894,31 @@ def simplify_url(url: str, /) -> str:
     return urlunsplit(new_parts).rstrip("/")
 
 
+def _active_server_type_config():
+    from nxdrive.drive import server_type as st
+
+    return st.get(Options.server_type or st.get_default_key())
+
+
+def _extract_direct_transfer_remote_path(value: str, /) -> str:
+    config = _active_server_type_config()
+    if config.parse_direct_transfer_remote_path:
+        return config.parse_direct_transfer_remote_path(value)
+
+    decoded = unquote(value.strip())
+    parsed = urlparse(decoded.replace("/", "://", 1))
+    if not parsed.path:
+        raise ValueError("Invalid direct-transfer URL")
+    return parsed.path
+
+
+def _normalize_download_server_path(server_part: str, /) -> str:
+    config = _active_server_type_config()
+    if config.normalize_download_server_path:
+        return config.normalize_download_server_path(server_part)
+    return server_part.rstrip("/")
+
+
 @lru_cache(maxsize=16)
 def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
     """
@@ -1003,10 +1028,7 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
     elif cmd == "direct-transfer" and _is_compressed_direct_transfer(url_string):
         try:
             decompressed = decompress_transfer_url(url_string)
-            parts = re.split("/nuxeo", decompressed.strip(), maxsplit=1)
-            if len(parts) < 2:
-                raise ValueError("Missing /nuxeo in decompressed URL")
-            remote_path = parts[1]
+            remote_path = _extract_direct_transfer_remote_path(decompressed)
         except Exception:
             log.exception(f"URL is not valid: {url_string}")
             return None
@@ -1020,10 +1042,7 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
     ):
         try:
             path_part = parsed_url["path"]
-            parts = re.split("/nuxeo", path_part, maxsplit=1)
-            if len(parts) < 2:
-                raise ValueError("Missing /nuxeo in URL")
-            remote_path = unquote(parts[1])
+            remote_path = _extract_direct_transfer_remote_path(path_part)
         except Exception:
             log.exception(f"URL is not valid: {url_string}")
             return None
@@ -1169,11 +1188,11 @@ def parse_download_protocol(
     parsed_url: Dict[str, str], url_string: str, /
 ) -> Dict[str, Any]:
     """
-    Parse a `nxdrive://direct-download` URL for downloading Nuxeo documents.
+    Parse a `nxdrive://direct-download` URL for downloading documents.
     Supports batch downloads with multiple documents separated by ' || '.
 
     Format:
-    - First document: https/server/UUID (automatically appends /nuxeo/ to server)
+    - First document: https/server/UUID
     - Subsequent documents: just UUID (inherits server from first)
 
     Example:
@@ -1235,9 +1254,9 @@ def _parse_single_document_path(
 
     Supports multiple formats (checked in this order):
     1. Simple UID: just a UUID (requires server_url parameter)
-    2. Simplified format: https/server/nuxeo/nxdocid/UUID (legacy, still supported)
+    2. Simplified format: https/server/nxdocid/UUID
     3. Full format (legacy): https/server/.../user/.../nxdocid/UUID/filename/.../downloadUrl/...
-    4. Super-simple format: https/server/UUID (auto-appends /nuxeo/ to server)
+    4. Super-simple format: https/server/UUID
 
     :param path: The document path or UID to parse
     :param server_url: Server URL from previous document (for simple UID format)
@@ -1267,7 +1286,7 @@ def _parse_single_document_path(
             "download_url": None,
         }
 
-    # Try simplified format (legacy): https/server/nuxeo/nxdocid/UUID
+    # Try simplified format (legacy): https/server/nxdocid/UUID
     # Must be checked before super-simple to avoid greedy match on /nxdocid/ path
     simple_regex = (
         r"(?P<scheme>https?)/(?P<server>.*?)/"
@@ -1278,10 +1297,7 @@ def _parse_single_document_path(
     if match:
         parsed = match.groupdict()
         scheme = parsed["scheme"]
-        # Server may include /nuxeo, ensure it ends with /nuxeo/
-        server_part = parsed["server"].rstrip("/")
-        if not server_part.endswith("/nuxeo"):
-            server_part = f"{server_part}/nuxeo"
+        server_part = _normalize_download_server_path(parsed["server"])
         extracted_server_url = f"{scheme}://{server_part}/"
 
         return {
@@ -1305,9 +1321,7 @@ def _parse_single_document_path(
     if match:
         parsed = match.groupdict()
         scheme = parsed["scheme"]
-        server_part = parsed["server"].rstrip("/")
-        if not server_part.endswith("/nuxeo"):
-            server_part = f"{server_part}/nuxeo"
+        server_part = _normalize_download_server_path(parsed["server"])
         extracted_server_url = f"{scheme}://{server_part}/"
 
         return {
@@ -1322,7 +1336,7 @@ def _parse_single_document_path(
     # Try super-simple format: https/server/UUID or https/server/path/UUID
     # This matches:
     #   https/drive-2025.beta.nuxeocloud.com/3eebfb90-4e2c-4aa9-bf3f-b657c02572e1
-    #   https/drive-2025.beta.nuxeocloud.com/nuxeo/3eebfb90-4e2c-4aa9-bf3f-b657c02572e1
+    #   https/drive-2025.beta.nuxeocloud.com/path/3eebfb90-4e2c-4aa9-bf3f-b657c02572e1
     super_simple_regex = (
         rf"(?P<scheme>https?)/(?P<server_and_path>.+)/(?P<docid>{uuid_pattern})$"
     )
@@ -1331,9 +1345,7 @@ def _parse_single_document_path(
     if match:
         parsed = match.groupdict()
         scheme = parsed["scheme"]
-        server_and_path = parsed["server_and_path"].rstrip("/")
-        if not server_and_path.endswith("/nuxeo"):
-            server_and_path = f"{server_and_path}/nuxeo"
+        server_and_path = _normalize_download_server_path(parsed["server_and_path"])
         extracted_server_url = f"{scheme}://{server_and_path}/"
         log.debug(
             f"Super-simple format: server_url={extracted_server_url}, doc_id={parsed['docid']}"

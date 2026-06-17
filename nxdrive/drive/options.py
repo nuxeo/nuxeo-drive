@@ -99,27 +99,22 @@ def _get_home() -> Path:
 def _get_nxdrive_home(home: Path) -> Path:
     """Detect the correct home directory based on which folder exists.
 
-    On first run neither folder exists, so we fall back to the default
-    server type's home directory.  On subsequent runs, the folder that
-    was created during first-run is detected automatically.
+    On first run neither folder exists, so we fall back to ``.drive``.
+    On subsequent runs, the folder created during first-run is detected
+    automatically.
 
     The list of known home directories is read from the server-type
     registry so that this module has no hard-coded server-type knowledge.
     """
     from nxdrive.drive import server_type as st
 
-    default_config = st.get(st.get_default_key())
-
-    # Check non-default home dirs first (explicit user choice)
+    # Check known home dirs first (explicit user choice).
     for config in st.all_configs().values():
-        if config.key == default_config.key:
-            continue
         candidate = home / config.home_dir
         if candidate.is_dir():
             return candidate
 
-    # Fall back to the default
-    return home / default_config.home_dir
+    return home / ".drive"
 
 
 def _get_resources_dir() -> Path:
@@ -234,7 +229,8 @@ class MetaOptions(type):
         "log_filename",
         # From the CLI: bind-server sub-command
         "password",
-        "nuxeo_url",
+        "server_url",
+        "nuxeo_url",  # backward compatibility alias
         "local_folder",
         "remote_root",
         "username",
@@ -247,7 +243,7 @@ class MetaOptions(type):
     # Default options
     options: Dict[str, Tuple[Any, str]] = {
         "big_file": (300, "default"),
-        "browser_startup_page": ("drive_browser_login.jsp", "default"),
+        "browser_startup_page": ("", "default"),
         "ca_bundle": (None, "default"),
         "cert_file": (None, "default"),
         "cert_key_file": (None, "default"),
@@ -288,7 +284,7 @@ class MetaOptions(type):
         "nxdrive_home": (_get_nxdrive_home(__home), "default"),
         "nofscheck": (False, "default"),
         "oauth2_authorization_endpoint": (None, "default"),
-        "oauth2_client_id": ("nuxeo-drive", "default"),
+        "oauth2_client_id": ("drive", "default"),
         "oauth2_client_secret": (None, "default"),
         "oauth2_openid_configuration_url": (None, "default"),
         "oauth2_scope": (None, "default"),
@@ -301,7 +297,7 @@ class MetaOptions(type):
         "session_uid": (str(uuid4()), "default"),
         "shared_folder_navigation": (False, "default"),
         "ssl_no_verify": (False, "default"),
-        "startup_page": ("drive_login.jsp", "default"),
+        "startup_page": ("", "default"),
         "sync_and_quit": (False, "default"),
         "sync_root_max_level": (2, "default"),
         "total_download_history": (30, "default"),
@@ -311,15 +307,8 @@ class MetaOptions(type):
         "timeout": (30, "default"),
         "tmp_file_limit": (10.0, "default"),
         "update_check_delay": (3600, "default"),
-        "update_site_url": (
-            "https://community.nuxeo.com/static/drive-updates",
-            "default",
-        ),
-        # Default must match the key registered with default=True in
-        # nuxeo/registration.py.  Cannot call st.get_default_key() here because
-        # Options class body is parsed before the registrations in __init__.py
-        # have executed (circular import timing).
-        "server_type": ("NUXEO", "default"),
+        "update_site_url": ("", "default"),
+        "server_type": (None, "default"),
         "use_analytics": (False, "default"),
         "use_idempotent_requests": (True, "default"),
         "use_sentry": (True, "default"),

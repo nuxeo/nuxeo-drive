@@ -8,6 +8,7 @@ from logging import getLogger
 from pathlib import Path
 
 from ..constants import APP_NAME
+from ..options import Options
 from .base import BaseUpdater
 
 __all__ = ("Updater",)
@@ -25,7 +26,14 @@ class Updater(BaseUpdater):
     """
 
     ext = "dmg"
-    release_file = "nuxeo-drive-{version}.dmg"
+    release_file = "drive.dmg"
+
+    def __init__(self, manager, /) -> None:
+        super().__init__(manager)
+        from nxdrive.drive import server_type as st
+
+        config = st.get(Options.server_type or st.get_default_key())
+        self.release_file = config.download_dmg
 
     def install(self, filename: str, /) -> None:
         """

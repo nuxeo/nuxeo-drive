@@ -5,6 +5,7 @@ import os
 import sys
 from argparse import ArgumentParser, Namespace
 from configparser import DEFAULTSECT, ConfigParser
+from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
 from pathlib import Path
@@ -69,6 +70,28 @@ MAX_RETRIES = 3
 
 class CliHandler:
     """Set default arguments."""
+
+    @staticmethod
+    def _load_supported_server_keys() -> List[str]:
+        """Load supported server keys from nxdrive/supported_server_list.txt."""
+        from nxdrive.drive import server_type as _st
+
+        supported_file = (
+            Path(__file__).resolve().parents[1] / "supported_server_list.txt"
+        )
+        known = set(_st.all_keys())
+
+        with suppress(Exception):
+            keys = [
+                line.strip().upper()
+                for line in supported_file.read_text(encoding="utf-8").splitlines()
+                if line.strip() and not line.strip().startswith("#")
+            ]
+            filtered = [key for key in keys if key in known]
+            if filtered:
+                return filtered
+
+        return list(_st.all_keys())
 
     def get_version(self) -> str:
         return __version__
@@ -212,43 +235,39 @@ class CliHandler:
 
         subparsers = parser.add_subparsers(title="Commands")
 
-        # Link to a remote Nuxeo server
+        # Link to a remote server
         bind_server_parser = subparsers.add_parser(
             "bind-server",
-            help="Attach a local folder to a Nuxeo server.",
+            help="Attach a local folder to a server.",
             parents=[common_parser],
         )
         bind_server_parser.set_defaults(command="bind_server")
-        bind_server_parser.add_argument(
-            "--password", help="Password for the Nuxeo account"
-        )
+        bind_server_parser.add_argument("--password", help="Password for the account")
         bind_server_parser.add_argument(
             "--local-folder",
             help="Local folder that will host the list of synchronized "
-            "workspaces with a remote Nuxeo server.",
+            "workspaces with a remote server.",
             default=DEFAULT_LOCAL_FOLDER,
         )
-        bind_server_parser.add_argument(
-            "username", help="User account to connect to Nuxeo"
-        )
-        bind_server_parser.add_argument("nuxeo_url", help="URL of the Nuxeo server.")
+        bind_server_parser.add_argument("username", help="User account to connect")
+        bind_server_parser.add_argument("server_url", help="URL of the server.")
         bind_server_parser.add_argument(
             "--remote-repo",
             default=Options.remote_repo,
             help="Name of the remote repository.",
         )
 
-        # Unlink from a remote Nuxeo server
+        # Unlink from a remote server
         unbind_server_parser = subparsers.add_parser(
             "unbind-server",
-            help="Detach from a remote Nuxeo server.",
+            help="Detach from a remote server.",
             parents=[common_parser],
         )
         unbind_server_parser.set_defaults(command="unbind_server")
         unbind_server_parser.add_argument(
             "--local-folder",
             help="Local folder that hosts the list of synchronized "
-            "workspaces with a remote Nuxeo server.",
+            "workspaces with a remote server.",
             type=str,
             default=DEFAULT_LOCAL_FOLDER,
         )
@@ -267,7 +286,7 @@ class CliHandler:
         bind_root_parser.add_argument(
             "--local-folder",
             help="Local folder that will host the list of synchronized "
-            "workspaces with a remote Nuxeo server. Must be bound with the "
+            "workspaces with a remote server. Must be bound with the "
             '"bind-server" command.',
             default=DEFAULT_LOCAL_FOLDER,
         )
@@ -292,7 +311,7 @@ class CliHandler:
         unbind_root_parser.add_argument(
             "--local-folder",
             help="Local folder that will host the list of synchronized "
-            "workspaces with a remote Nuxeo server. Must be bound with the "
+            "workspaces with a remote server. Must be bound with the "
             '"bind-server" command.',
             default=DEFAULT_LOCAL_FOLDER,
         )
@@ -626,25 +645,15 @@ class CliHandler:
         from nxdrive.drive.feature import apply_server_type_restrictions
 
         home = Path.home()
-        default_key = _st.get_default_key()
 
-        # Check non-default home dirs first (explicit user choice)
+        # Check known home dirs and infer the server type from the first match.
         for config in _st.all_configs().values():
-            if config.key == default_key:
-                continue
             if (home / config.home_dir).is_dir():
                 Options.server_type = config.key
                 apply_server_type_restrictions(config.key)
                 refresh_branding(config.key)
                 log.info(f"Restored server type from home dir: {config.key}")
                 return
-
-        # Fall back to default if its dir exists
-        default_config = _st.get(default_key)
-        if (home / default_config.home_dir).is_dir():
-            Options.server_type = default_key
-            apply_server_type_restrictions(default_key)
-            refresh_branding(default_key)
 
     def _pick_server_type(self) -> None:
         """Show a combined first-run dialog: server type + metrics consent.
@@ -683,7 +692,7 @@ class CliHandler:
             combo_layout = QHBoxLayout()
             combo_label = QLabel("Server type:")
             combo = QComboBox()
-            for key in _st.all_keys():
+            for key in self._load_supported_server_keys():
                 combo.addItem(key, key)
             combo_layout.addWidget(combo_label)
             combo_layout.addWidget(combo)
@@ -726,7 +735,8 @@ class CliHandler:
             use_analytics = cb_analytics.isChecked()
         except Exception:
             log.warning("Could not show first-run dialog, using defaults")
-            server_type = _st.get_default_key()
+            supported = self._load_supported_server_keys()
+            server_type = supported[0] if supported else _st.get_default_key()
 
         # Apply server type selection
         Options.server_type = server_type
@@ -928,9 +938,13 @@ class CliHandler:
         if not options.local_folder:
             options.local_folder = DEFAULT_LOCAL_FOLDER
 
+        server_url = getattr(options, "server_url", None) or getattr(
+            options, "nuxeo_url", ""
+        )
+
         self.manager.bind_server(
             options.local_folder,
-            options.nuxeo_url,
+            server_url,
             options.username,
             password=password,
             start_engine=False,

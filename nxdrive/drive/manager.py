@@ -826,13 +826,19 @@ class Manager(QObject):
     def get_server_login_type(
         self, server_url: str, /, *, _raise: bool = True
     ) -> Login:
+        config = st.detect_by_url(server_url)
+        browser_startup_page = config.browser_startup_page
+
+        if not browser_startup_page:
+            return Login.OLD
+
         # Take into account URL parameters
         parts = urlsplit(server_url)
         url = urlunsplit(
             (
                 parts.scheme,
                 parts.netloc,
-                f"{parts.path.rstrip('/')}/{Options.browser_startup_page}",
+                f"{parts.path.rstrip('/')}/{browser_startup_page}",
                 parts.query,
                 parts.fragment,
             )

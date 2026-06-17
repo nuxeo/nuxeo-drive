@@ -600,14 +600,11 @@ class Application(QApplication):
         context.setContextProperty("disabled_features", DisabledFeatures)
         context.setContextProperty("tl", Translator.singleton)
 
-        from nxdrive import __alfresco_version__
-
-        display_version = (
-            __alfresco_version__
-            if Options.server_type == "ALFRESCO"
-            else self.manager.version
-        )
-        context.setContextProperty("nuxeoVersionText", f"{APP_NAME} {display_version}")
+        config = _st.get(Options.server_type or _st.get_default_key())
+        display_version = config.client_version or self.manager.version
+        version_text = f"{APP_NAME} {display_version}"
+        context.setContextProperty("driveVersionText", version_text)
+        context.setContextProperty("nuxeoVersionText", version_text)
         metrics = self.manager.get_metrics()
         versions = (
             f"Python {metrics['python_version']}"

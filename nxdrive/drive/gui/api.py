@@ -711,7 +711,7 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(result=str)
     def default_local_folder(self) -> str:
-        config = st.get("NUXEO")
+        config = st.get(Options.server_type or st.get_default_key())
         return str(get_default_local_folder(config.local_folder_name))
 
     @pyqtSlot(str, result=str)
@@ -723,13 +723,12 @@ class QMLDriveApi(QObject):
     @pyqtSlot(result=str)
     def default_alfresco_local_folder(self) -> str:
         """Backward-compat slot called from QML."""
-        config = st.get("ALFRESCO")
-        return str(get_default_local_folder(config.local_folder_name))
+        return self.default_local_folder()
 
     @pyqtSlot(result=str)
     def default_server_url_value(self) -> str:
         """Make daily job better for our developers :)"""
-        return getenv("NXDRIVE_TEST_NUXEO_URL", "")
+        return getenv("NXDRIVE_TEST_SERVER_URL", getenv("NXDRIVE_TEST_NUXEO_URL", ""))
 
     @pyqtSlot(str, str, int, result=list)
     def get_disk_space_info_to_width(
@@ -970,11 +969,14 @@ class QMLDriveApi(QObject):
     def alfresco_basic_auth(
         self, local_folder: str, server_url: str, username: str, password: str, /
     ) -> None:
-        """Bind an Alfresco server using basic (username/password) authentication.
+        """Backward-compat slot for server-specific password authentication."""
+        detected = st.detect_by_url(server_url)
+        if detected.password_auth_handler:
+            detected.password_auth_handler(
+                self, local_folder, server_url, username, password
+            )
+            return
 
-        Called directly from the QML ``NewAccountPopup`` when the URL
-        ends with ``/alfresco`` and legacy auth is checked.
-        """
         self.bind_server(
             local_folder,
             server_url,
@@ -1015,55 +1017,15 @@ class QMLDriveApi(QObject):
     def alfresco_oauth2_auth(
         self, local_folder: str, server_url: str, username: str, password: str, /
     ) -> None:
-        """Bind an Alfresco server using OAuth2 Resource Owner Password Grant.
-
-        Discovers the Keycloak token endpoint from the server, performs
-        the password grant to obtain an OAuth2 token, resolves the
-        username via the People API, and binds the engine with the token.
-        """
-        from nxdrive.drive.server_type import detect_by_url, load_class
-        from nxdrive.drive.utils import get_verify
-
-        if not self._manager.check_local_folder_available(
-            normalized_path(local_folder)
-        ):
-            self.setMessage.emit("FOLDER_USED", "error")
-            return
-
-        # Dynamically load the OAuth2 class for the detected server type
-        detected = detect_by_url(server_url)
-        oauth2_cls = load_class(detected.oauth2_class_path)
-        if not oauth2_cls or not hasattr(oauth2_cls, "password_grant"):
-            log.error("No password_grant support for server type %s", detected.key)
-            self.setMessage.emit("CONNECTION_REFUSED", "error")
-            return
-
-        try:
-            result = oauth2_cls.password_grant(
-                server_url,
-                username,
-                password,
-                verify=get_verify(),
+        """Backward-compat slot for server-specific OAuth2 password flow."""
+        detected = st.detect_by_url(server_url)
+        if detected.oauth2_password_auth_handler:
+            detected.oauth2_password_auth_handler(
+                self, local_folder, server_url, username, password
             )
-        except Exception:
-            log.exception("Alfresco OAuth2 password grant failed")
-            self.setMessage.emit("CONNECTION_REFUSED", "error")
             return
 
-        token = {
-            "access_token": result["access_token"],
-            "refresh_token": result.get("refresh_token"),
-            "token_url": result.get("token_url"),
-            "client_id": result.get("client_id"),
-        }
-        resolved_username = result.get("username", username)
-
-        self.bind_server(
-            local_folder,
-            server_url,
-            resolved_username,
-            token=token,
-        )
+        self.setMessage.emit("CONNECTION_REFUSED", "error")
 
     @pyqtSlot(str, str, bool)
     def web_authentication(

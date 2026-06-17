@@ -51,6 +51,10 @@ class ServerTypeConfig:
     # SSL validation page to probe when checking server connectivity
     ssl_login_page: str = ""  # e.g. "" (Nuxeo default), "api/discovery" (Alfresco)
 
+    # Startup pages used by authentication flows.
+    startup_page: str = ""
+    browser_startup_page: str = ""
+
     # Whether the server type supports browser-based token update (OAuth2 redirect)
     supports_browser_token_update: bool = True
 
@@ -70,6 +74,24 @@ class ServerTypeConfig:
     # Hook for the non-frozen debug auth dialog (server-type specific)
     # Signature: debug_auth_handler(url, manager, api) -> None
     debug_auth_handler: Optional[Callable[..., None]] = None
+
+    # Hook for server-specific username/password binding flow.
+    # Signature: password_auth_handler(api, local_folder, server_url, username, password) -> None
+    password_auth_handler: Optional[Callable[..., None]] = None
+
+    # Hook for server-specific OAuth2 password-grant flow.
+    # Signature: oauth2_password_auth_handler(api, local_folder, server_url, username, password) -> None
+    oauth2_password_auth_handler: Optional[Callable[..., None]] = None
+
+    # Hook used by protocol URL parsing to extract a remote path from a
+    # direct-transfer URL payload.
+    # Signature: parse_direct_transfer_remote_path(value: str) -> str
+    parse_direct_transfer_remote_path: Optional[Callable[[str], str]] = None
+
+    # Hook used by protocol URL parsing to normalize the server segment for
+    # direct-download URLs.
+    # Signature: normalize_download_server_path(server_part: str) -> str
+    normalize_download_server_path: Optional[Callable[[str], str]] = None
 
 
 # ---- internal state --------------------------------------------------------

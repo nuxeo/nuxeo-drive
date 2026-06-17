@@ -1,0 +1,4 @@
+# One server key per line.
+# These keys must match registered ServerTypeConfig.key values.
+NUXEO
+ALFRESCO

@@ -42,6 +42,22 @@ def _alfresco_relogin_handler(engine, password):
     engine.dao.update_config("remote_need_full_scan", "1")
 
 
+def _alfresco_password_auth_handler(
+    api, local_folder: str, server_url: str, username: str, password: str
+) -> None:
+    from nxdrive.alfresco.gui.auth import basic_auth
+
+    basic_auth(api, local_folder, server_url, username, password)
+
+
+def _alfresco_oauth2_password_auth_handler(
+    api, local_folder: str, server_url: str, username: str, password: str
+) -> None:
+    from nxdrive.alfresco.gui.auth import oauth2_password_auth
+
+    oauth2_password_auth(api, local_folder, server_url, username, password)
+
+
 register(
     ServerTypeConfig(
         key="ALFRESCO",
@@ -76,9 +92,13 @@ register(
         sync_root="",
         url_patterns=[],
         ssl_login_page="api/discovery",
+        startup_page="",
+        browser_startup_page="",
         supports_browser_token_update=False,
         is_url_fallback=True,
         client_version=_client_version,
         relogin_handler=_alfresco_relogin_handler,
+        password_auth_handler=_alfresco_password_auth_handler,
+        oauth2_password_auth_handler=_alfresco_oauth2_password_auth_handler,
     ),
 )
