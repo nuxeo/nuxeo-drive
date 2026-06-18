@@ -49,6 +49,12 @@ tools/jenkins/junit/xml
 squashfs-root
 coverage.xml
 .github/agents
+.github/agent-scripts
+.github/copilot-instructions.md
+AGENTS.md
+skills-lock.json
+.agents
+.clinerules
 alfresco-python-client
 nuxeo-python-client
 alfresco-desktop-sync-master
