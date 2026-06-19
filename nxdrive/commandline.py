@@ -10,6 +10,8 @@ from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
+import sentry_sdk
+
 from . import __version__
 from .constants import APP_NAME, BUNDLE_IDENTIFIER, DEFAULT_CHANNEL, LINUX, WINDOWS
 from .logging_config import configure
@@ -27,7 +29,8 @@ from .utils import (
 
 try:
     from .qt.imports import QSslSocket
-except ImportError:
+except ImportError as e:
+    sentry_sdk.capture_exception(e)
     QSslSocket = None
 
 if TYPE_CHECKING:
@@ -400,7 +403,8 @@ class CliHandler:
 
             try:
                 import ipdb
-            except ImportError:
+            except ImportError as e:
+                sentry_sdk.capture_exception(e)
                 import pdb
             else:
                 pdb = ipdb
@@ -446,7 +450,8 @@ class CliHandler:
             with conf_file.open(encoding="utf-8") as fh:
                 try:
                     config.read_file(fh)
-                except Exception:
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
                     log.warning("Skipped malformed file", exc_info=True)
                     continue
 
@@ -827,14 +832,16 @@ class HealthCheck:
                 State.crash_details = self.crash_file.read_text(
                     encoding="utf-8", errors="ignore"
                 )
-            except FileNotFoundError:
+            except FileNotFoundError as e:
+                sentry_sdk.capture_exception(e)
                 # Create the file for the next run
                 self.crash_file.touch()
             else:
                 log.warning("It seems the application crashed at the previous run 😮")
                 log.warning(f"Crash trace:\n{State.crash_details}")
                 State.has_crashed = True
-        except Exception:
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             log.exception("Cannot get or create the crash file")
 
         return self
@@ -848,5 +855,6 @@ class HealthCheck:
         # Be careful for any error, so using a broad try/catch block.
         try:
             self.crash_file.unlink(missing_ok=True)
-        except Exception:
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             log.exception("Cannot clean-up the crash file")
