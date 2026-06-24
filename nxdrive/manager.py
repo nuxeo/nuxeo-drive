@@ -500,6 +500,9 @@ class Manager(QObject):
             except Exception:
                 log.exception(f"Could not start {engine}")
 
+        if self.direct_download:
+            self.direct_download.resume_persisted_downloads()
+
     def start(self) -> None:
         self._started = True
 

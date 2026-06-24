@@ -2671,6 +2671,9 @@ class EngineDAO(BaseDAO):
             if status == DirectDownloadStatus.IN_PROGRESS:
                 sql = "UPDATE DirectDownloads SET status = ?, started_at = ? WHERE uid = ?"
                 c.execute(sql, (status.value, now, uid))
+            elif status == DirectDownloadStatus.PAUSED:
+                sql = "UPDATE DirectDownloads SET status = ? WHERE uid = ?"
+                c.execute(sql, (status.value, uid))
             elif status == DirectDownloadStatus.COMPLETED:
                 sql = (
                     "UPDATE DirectDownloads SET status = ?, completed_at = ?, "

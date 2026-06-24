@@ -70,6 +70,12 @@ class DirectDownload(Worker):
         # List to track all download batch folders (download_<timestamp>)
         self._download_folders: List[str] = []
 
+        # Global variable to hold engine
+        self.global_engine: Optional["Engine"] = None
+
+        # Ensure persisted active downloads are requeued only once per app run.
+        self._resumed_persisted_downloads = False
+
         # Ensure the download folder exists
         self._folder.mkdir(parents=True, exist_ok=True)
         log.info(f"Direct Download folder: {self._folder}")
@@ -120,6 +126,14 @@ class DirectDownload(Worker):
             self._download_folders.clear()
             return
 
+        # Check for active direct download sessions upon application shutdown
+        if self._stop:
+            if self.global_engine and self.global_engine.dao:
+                active_downloads = self.global_engine.dao.get_active_direct_downloads()
+                if len(active_downloads) > 0:
+                    log.info("Active downloads detected, skipping cleanup")
+                    return  # Skip cleanup if there are active downloads
+
         # Remove all contents of the download folder
         for item in self._folder.iterdir():
             try:
@@ -157,6 +171,71 @@ class DirectDownload(Worker):
 
         # Queue the entire batch as a single entry
         self._download_queue.put(documents)
+
+    def resume_persisted_downloads(self) -> None:
+        """
+        Requeue active downloads stored in databases after an application restart.
+        Active records (PENDING / IN_PROGRESS / PAUSED) are grouped by their
+        original batch identifier and pushed back into the in-memory queue.
+        Existing records are reused to preserve history, status and progress.
+        """
+        if self._resumed_persisted_downloads:
+            return
+
+        self._resumed_persisted_downloads = True
+
+        batches: Dict[str, List[Dict[str, Any]]] = {}
+        resumed_count = 0
+
+        for engine in self._manager.engines.copy().values():
+            if not engine.dao:
+                continue
+
+            try:
+                user = engine.get_binder().username
+            except Exception:
+                user = ""
+
+            for record in engine.dao.get_direct_downloads():
+                if record.status not in (
+                    DirectDownloadStatus.PENDING,
+                    DirectDownloadStatus.IN_PROGRESS,
+                    DirectDownloadStatus.PAUSED,
+                ):
+                    continue
+
+                if record.uid is None:
+                    continue
+
+                # After a restart, an in-progress transfer must be restarted.
+                if record.status == DirectDownloadStatus.IN_PROGRESS:
+                    engine.dao.update_direct_download_status(
+                        record.uid, DirectDownloadStatus.PENDING
+                    )
+
+                # Group single-item downloads by UID to avoid merging unrelated rows.
+                batch_key = record.zip_file or f"single:{record.uid}"
+                batches.setdefault(batch_key, []).append(
+                    {
+                        "server_url": record.server_url,
+                        "user": user,
+                        "doc_id": record.doc_uid,
+                        "filename": record.doc_name,
+                        "_record_uid": record.uid,
+                        # Carry the original temp folder name so _process_batch
+                        # can reuse it instead of creating a fresh one.
+                        "_batch_folder": record.zip_file,
+                    }
+                )
+                resumed_count += 1
+
+        for documents in batches.values():
+            self._download_queue.put(documents)
+
+        if resumed_count:
+            log.info(
+                f"Requeued {resumed_count} persisted direct download(s) in {len(batches)} batch(es)"
+            )
 
     def _get_engine(
         self, server_url: str, /, *, user: str = None
@@ -215,8 +294,21 @@ class DirectDownload(Worker):
         """
         batch_size = len(documents)
 
-        # Create a timestamped folder for this batch
-        batch_folder = self._create_batch_folder()
+        # Reuse the original temp folder when resuming persisted downloads so
+        # that already-downloaded files are not fetched again.
+        old_batch_folder_name: Optional[str] = (
+            documents[0].get("_batch_folder") if documents else None
+        )
+        if old_batch_folder_name:
+            candidate = self._folder / old_batch_folder_name
+            if candidate.is_dir():
+                batch_folder = candidate
+                if old_batch_folder_name not in self._download_folders:
+                    self._download_folders.append(old_batch_folder_name)
+            else:
+                batch_folder = self._create_batch_folder()
+        else:
+            batch_folder = self._create_batch_folder()
 
         # Collect selected item names for display
         # Use doc_id as fallback if filename is None or empty
@@ -243,18 +335,32 @@ class DirectDownload(Worker):
                 log.info("Batch cancelled, stopping further downloads")
                 break
 
-            # Create database record for this download with batch_id for grouping
-            record_uid = self._create_download_record(
-                doc, selected_items=selected_items_str, batch_id=batch_id
-            )
+            # Reuse persisted database record on restart; else create a new one.
+            existing_record_uid = doc.get("_record_uid")
+            if existing_record_uid:
+                record_uid = int(existing_record_uid)
+            else:
+                # Create database record for this download with batch_id for grouping
+                record_uid = self._create_download_record(
+                    doc, selected_items=selected_items_str, batch_id=batch_id
+                )
+
             if record_uid:
                 download_records.append(record_uid)
+
+                # Respect paused/cancelled state for persisted records.
+                if self._is_single_download_cancelled(record_uid):
+                    log.info(f"Download {record_uid} cancelled, skipping")
+                    continue
 
             try:
                 # Update status to IN_PROGRESS
                 if record_uid:
                     self._update_download_status(
                         record_uid, DirectDownloadStatus.IN_PROGRESS
+                    )
+                    self._update_download_path(
+                        record_uid, str(self._get_download_destination())
                     )
 
                 doc["_record_uid"] = record_uid
@@ -455,6 +561,32 @@ class DirectDownload(Worker):
             folder_count = 0
             file_count = 1
 
+            # Creating a record instantly with PENDING status
+            record = DirectDownloadRecord(
+                uid=None,
+                doc_uid=doc_id,
+                doc_name=doc_name,
+                doc_size=doc_size,
+                download_path=None,
+                server_url=server_url,
+                status=DirectDownloadStatus.PENDING,
+                bytes_downloaded=0,
+                total_bytes=doc_size,
+                progress_percent=0.0,
+                created_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                started_at=None,
+                completed_at=None,
+                is_folder=is_folder,
+                folder_count=folder_count,
+                file_count=file_count,
+                retry_count=0,
+                last_error=None,
+                engine=engine.uid,
+                zip_file=batch_id,  # Use batch_id for grouping downloads
+                selected_items=selected_items,
+            )
+            uid = engine.dao.save_direct_download(record)
+
             try:
                 doc_info = engine.remote.fetch(doc_id)
                 is_folder = "Folderish" in doc_info.get("facets", [])
@@ -479,32 +611,15 @@ class DirectDownload(Worker):
             except Exception as e:
                 log.exception(f"Could not fetch doc info for {doc_id}: {e}")
 
-            # Create the download record
-            record = DirectDownloadRecord(
-                uid=None,
-                doc_uid=doc_id,
-                doc_name=doc_name,
-                doc_size=doc_size,
-                download_path=None,
-                server_url=server_url,
-                status=DirectDownloadStatus.PENDING,
-                bytes_downloaded=0,
-                total_bytes=doc_size,
-                progress_percent=0.0,
-                created_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-                started_at=None,
-                completed_at=None,
-                is_folder=is_folder,
-                folder_count=folder_count,
-                file_count=file_count,
-                retry_count=0,
-                last_error=None,
-                engine=engine.uid,
-                zip_file=batch_id,  # Use batch_id for grouping downloads
-                selected_items=selected_items,
-            )
+            # Update the record with the fetched details
+            record.doc_name = doc_name
+            record.doc_size = doc_size
+            record.is_folder = is_folder
+            record.folder_count = folder_count
+            record.file_count = file_count
+            engine.dao.update_direct_download(record)
 
-            return engine.dao.save_direct_download(record)
+            return uid
 
         except Exception:
             log.exception("Failed to create download record")
@@ -652,7 +767,11 @@ class DirectDownload(Worker):
                     record = engine.dao.get_direct_download(uid)
                     if record:
                         record.download_path = download_path
-                        record.zip_file = zip_file
+                        # Only overwrite zip_file when explicitly provided;
+                        # otherwise the original batch-folder name is lost and
+                        # restart-resume cannot locate the old temp folder.
+                        if zip_file is not None:
+                            record.zip_file = zip_file
                         engine.dao.update_direct_download(record)
                         return
         except Exception:
@@ -664,6 +783,7 @@ class DirectDownload(Worker):
         bytes_downloaded: int,
         total_bytes: int,
         /,
+        filename: Optional[str] = None,
     ) -> None:
         """
         Update the progress of a download.
@@ -688,6 +808,7 @@ class DirectDownload(Worker):
                         self.downloadProgress.emit(
                             {
                                 "uid": uid,
+                                "doc_name": filename,
                                 "progress": progress,
                                 "bytes_downloaded": bytes_downloaded,
                                 "total_bytes": total_bytes,
@@ -716,6 +837,7 @@ class DirectDownload(Worker):
 
         # Get engine for authentication
         engine = self._get_engine(server_url, user=user)
+        self.global_engine = engine
         if not engine:
             error_msg = f"No engine found for server {server_url}"
             self.downloadError.emit(filename or doc_id, error_msg)
@@ -758,7 +880,13 @@ class DirectDownload(Worker):
 
         if is_folderish:
             # Handle folder: create folder and download contents recursively
-            self._download_folder(engine, doc_id, safe_name, batch_folder)
+            self._download_folder(
+                engine,
+                doc_id,
+                safe_name,
+                batch_folder,
+                record_uid=doc.get("_record_uid"),
+            )
         else:
             # Handle file: download directly
             self._download_file(
@@ -779,6 +907,7 @@ class DirectDownload(Worker):
         folder_name: str,
         parent_path: Path,
         /,
+        record_uid: Optional[int] = None,
     ) -> None:
         """
         Download a folder and all its contents recursively.
@@ -789,9 +918,15 @@ class DirectDownload(Worker):
         :param parent_path: The local parent path where to create the folder
         :raises RuntimeError: If listing children fails
         """
-        # Create the local folder
-        folder_path = self._get_unique_path(parent_path / folder_name)
-        folder_path.mkdir(parents=True, exist_ok=True)
+        # Reuse the existing folder when resuming an interrupted run so that
+        # already-downloaded children are not fetched again.  Only generate a
+        # deduplicated name when the folder does not yet exist.
+        expected_path = parent_path / folder_name
+        if expected_path.exists():
+            folder_path = expected_path
+        else:
+            folder_path = self._get_unique_path(expected_path)
+            folder_path.mkdir(parents=True, exist_ok=True)
 
         # Query for children documents
         children = self._get_children(engine, folder_id)
@@ -805,14 +940,25 @@ class DirectDownload(Worker):
 
             if child_is_folderish:
                 # Recursively download subfolder
-                self._download_folder(engine, child_id, safe_child_name, folder_path)
+                self._download_folder(
+                    engine,
+                    child_id,
+                    safe_child_name,
+                    folder_path,
+                    record_uid=record_uid,
+                )
             else:
                 # Download file
                 download_url = self._get_download_url(child)
                 if download_url:
                     server_url = engine.server_url
                     self._download_file(
-                        engine, server_url, download_url, safe_child_name, folder_path
+                        engine,
+                        server_url,
+                        download_url,
+                        safe_child_name,
+                        folder_path,
+                        record_uid=record_uid,
                     )
 
     def _get_children(
@@ -906,8 +1052,14 @@ class DirectDownload(Worker):
         :param target_folder: The folder to save the file in
         :param record_uid: Optional DB record UID for progress tracking
         """
+        # Skip if the file was already downloaded in a previous run.
+        expected_path = target_folder / filename
+        if expected_path.exists():
+            log.debug(f"File already present from previous run, skipping: {filename}")
+            return
+
         # Calculate the target file path (handle duplicates)
-        target_path = self._get_unique_path(target_folder / filename)
+        target_path = self._get_unique_path(expected_path)
 
         # Build the full download URL
         if download_url.startswith("http"):
@@ -941,6 +1093,8 @@ class DirectDownload(Worker):
 
                     # Check for cancellation during download
                     if record_uid and self._is_single_download_cancelled(record_uid):
+                        if self._stop:
+                            return
                         log.info(f"Download cancelled for {filename}")
                         raise RuntimeError(f"Download cancelled for {filename}")
 
@@ -950,9 +1104,12 @@ class DirectDownload(Worker):
                     # Update progress
                     if record_uid and total_bytes > 0:
                         self._update_download_progress(
-                            record_uid, bytes_downloaded, total_bytes
+                            record_uid, bytes_downloaded, total_bytes, filename=filename
                         )
 
+        except RuntimeError as e:
+            if not str(e).startswith("Download cancelled"):
+                raise
         except Exception:
             log.exception(f"Download failed for {filename}")
             raise

@@ -519,7 +519,7 @@ class QMLDriveApi(QObject):
         engine = self._manager.engines.get(engine_uid)
         if not engine:
             return
-        engine.dao.update_direct_download_status(uid, DirectDownloadStatus.PENDING)
+        engine.dao.update_direct_download_status(uid, DirectDownloadStatus.IN_PROGRESS)
 
     @pyqtSlot(str, int)
     def cancel_direct_download(self, engine_uid: str, uid: int, /) -> None:

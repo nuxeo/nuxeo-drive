@@ -13,6 +13,7 @@ import pytest
 
 from nxdrive.constants import DirectDownloadStatus
 from nxdrive.dao.engine import EngineDAO
+from nxdrive.direct_download import DirectDownload as DirectDownloadWorker
 from nxdrive.gui.view import (
     ActiveDirectDownloadModel,
     CompletedDirectDownloadModel,
@@ -189,6 +190,107 @@ class TestDAODirectDownloadCRUD:
         remaining = list(dao.get_direct_downloads())
         assert len(remaining) == 1
         assert remaining[0].doc_uid == "c"
+
+
+class TestDirectDownloadWorkerResumption:
+    """Test persisted direct-download resumption behavior."""
+
+    def test_resume_persisted_downloads_requeues_active_batches(self):
+        """Active DB records are requeued by batch and in-progress is reset."""
+        engine = Mock()
+        engine.get_binder.return_value.username = "alice"
+
+        r1 = _make_record(
+            doc_uid="doc-1",
+            doc_name="one.txt",
+            status=DirectDownloadStatus.PENDING,
+            zip_file="batch-a",
+        )
+        r1.uid = 11
+
+        r2 = _make_record(
+            doc_uid="doc-2",
+            doc_name="two.txt",
+            status=DirectDownloadStatus.PAUSED,
+            zip_file="batch-a",
+        )
+        r2.uid = 12
+
+        r3 = _make_record(
+            doc_uid="doc-3",
+            doc_name="three.txt",
+            status=DirectDownloadStatus.IN_PROGRESS,
+            zip_file=None,
+        )
+        r3.uid = 13
+
+        engine.dao.get_direct_downloads.return_value = [r1, r2, r3]
+
+        manager = Mock()
+        manager.engines = {"engine-1": engine}
+
+        worker = DirectDownloadWorker.__new__(DirectDownloadWorker)
+        worker._manager = manager
+        worker._download_queue = Mock()
+        worker._resumed_persisted_downloads = False
+
+        worker.resume_persisted_downloads()
+
+        # One grouped batch + one single-item batch
+        assert worker._download_queue.put.call_count == 2
+
+        engine.dao.update_direct_download_status.assert_called_once_with(
+            13, DirectDownloadStatus.PENDING
+        )
+
+        # Ensure rerun protection
+        worker.resume_persisted_downloads()
+        assert worker._download_queue.put.call_count == 2
+
+    def test_process_batch_reuses_existing_record_uid(self, tmp_path):
+        """Resumed documents should not create duplicate DB rows."""
+        manager = Mock()
+        manager.engines = {}
+
+        worker = DirectDownloadWorker.__new__(DirectDownloadWorker)
+        worker._manager = manager
+        worker._download_queue = Mock()
+        worker._download_folders = []
+        worker._create_download_record = Mock()
+        worker._is_download_cancelled = Mock(return_value=False)
+        worker._is_single_download_cancelled = Mock(return_value=False)
+        worker._update_download_status = Mock()
+        worker._update_download_path = Mock()
+        worker._process_download = Mock()
+        worker._create_zip_archive = Mock(return_value=None)
+        worker._get_download_record = Mock(return_value=None)
+        worker._get_download_destination = Mock(return_value=tmp_path)
+        worker.batchStarting = Mock()
+        worker.batchStarting.emit = Mock()
+        worker.batchCompleted = Mock()
+        worker.batchCompleted.emit = Mock()
+
+        batch_folder = tmp_path / "download_20260101_000000_000001_abcd1234"
+        batch_folder.mkdir(parents=True, exist_ok=True)
+        worker._create_batch_folder = Mock(return_value=batch_folder)
+
+        docs = [
+            {
+                "server_url": "https://example.com",
+                "user": "alice",
+                "doc_id": "uid-123",
+                "filename": "file.txt",
+                "_record_uid": 42,
+            }
+        ]
+
+        worker._process_batch(docs)
+
+        worker._create_download_record.assert_not_called()
+        worker._update_download_status.assert_called_with(
+            42, DirectDownloadStatus.IN_PROGRESS
+        )
+        worker._process_download.assert_called_once()
 
 
 class TestDAODirectDownloadStatus:
@@ -1280,7 +1382,9 @@ class TestGUIApiDirectDownload:
         api.resume_direct_download("engine-1", uid)
 
         record = dao.get_direct_download(uid)
-        assert record.status == DirectDownloadStatus.PENDING
+        # Manual resume from UI sets to IN_PROGRESS (ready to download immediately).
+        # PENDING is only used after app restart when IN_PROGRESS downloads are restarted.
+        assert record.status == DirectDownloadStatus.IN_PROGRESS
 
     def test_cancel_direct_download(self, dao):
         """Test cancel_direct_download API."""
