@@ -48,4 +48,12 @@ yacctab.py
 tools/jenkins/junit/xml
 squashfs-root
 coverage.xml
+
+# AI Agent files (including caveman files)
 .github/agents
+.github/agent-scripts
+.github/copilot-instructions.md
+.agents
+.clinerules
+AGENTS.md
+skills-lock.json
