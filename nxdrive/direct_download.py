@@ -113,6 +113,16 @@ class DirectDownload(Worker):
 
         return batch_folder
 
+    def check_active_sessions(self) -> bool:
+        """Check if any engine still has active direct download sessions."""
+        for engine in self._manager.engines.copy().values():
+            if not engine.dao:
+                continue
+            active_downloads = engine.dao.get_active_direct_downloads()
+            if active_downloads:
+                return True
+        return False
+
     def cleanup(self) -> None:
         """
         Clean up the download folder by removing all downloaded files and folders.
@@ -128,11 +138,9 @@ class DirectDownload(Worker):
 
         # Check for active direct download sessions upon application shutdown
         if self._stop:
-            if self.global_engine and self.global_engine.dao:
-                active_downloads = self.global_engine.dao.get_active_direct_downloads()
-                if len(active_downloads) > 0:
-                    log.info("Active downloads detected, skipping cleanup")
-                    return  # Skip cleanup if there are active downloads
+            if self.check_active_sessions():
+                log.info("Active downloads detected, skipping cleanup")
+                return  # Skip cleanup if there are active downloads
 
         # Remove all contents of the download folder
         for item in self._folder.iterdir():
@@ -377,16 +385,23 @@ class DirectDownload(Worker):
                         record_uid, DirectDownloadStatus.FAILED, last_error=str(exc)
                     )
 
-        # Create zip file of the batch folder in user's Downloads folder
-        archive_path = self._create_zip_archive(batch_folder)
+        # Create zip file only when no active sessions remain.
+        archive_path: Optional[Path] = None
+        can_finalize_batch = not self.check_active_sessions()
+        if can_finalize_batch:
+            archive_path = self._create_zip_archive(batch_folder)
 
         # Mark successful downloads as COMPLETED only after archive is created
         for record_uid in download_records:
             record = self._get_download_record(record_uid)
-            if record and record.status in (
-                DirectDownloadStatus.IN_PROGRESS,
-                DirectDownloadStatus.PENDING,
-                DirectDownloadStatus.PAUSED,
+            if (
+                can_finalize_batch
+                and record
+                and record.status
+                in (
+                    DirectDownloadStatus.IN_PROGRESS,
+                    DirectDownloadStatus.PENDING,
+                )
             ):
                 self._update_download_status(
                     record_uid,

@@ -195,6 +195,22 @@ class TestDAODirectDownloadCRUD:
 class TestDirectDownloadWorkerResumption:
     """Test persisted direct-download resumption behavior."""
 
+    def test_check_active_sessions_scans_all_engines(self):
+        """Active session detection should not rely on a single global engine."""
+        engine_1 = Mock()
+        engine_1.dao.get_active_direct_downloads.return_value = []
+        engine_2 = Mock()
+        engine_2.dao.get_active_direct_downloads.return_value = [{"uid": 1}]
+
+        manager = Mock()
+        manager.engines = {"engine-1": engine_1, "engine-2": engine_2}
+
+        worker = DirectDownloadWorker.__new__(DirectDownloadWorker)
+        worker._manager = manager
+        worker.global_engine = None
+
+        assert worker.check_active_sessions() is True
+
     def test_resume_persisted_downloads_requeues_active_batches(self):
         """Active DB records are requeued by batch and in-progress is reset."""
         engine = Mock()
@@ -410,6 +426,58 @@ class TestDirectDownloadWorkerResumption:
         assert kwargs["headers"] == {"Range": "bytes=8-"}
         response.raise_for_status.assert_not_called()
         assert target_file.read_bytes() == b"complete"
+
+    def test_process_batch_does_not_finalize_when_active_sessions_exist(self, tmp_path):
+        """Paused/in-progress sessions must not be archived or marked completed."""
+        manager = Mock()
+        manager.engines = {}
+
+        worker = DirectDownloadWorker.__new__(DirectDownloadWorker)
+        worker._manager = manager
+        worker._download_queue = Mock()
+        worker._download_folders = []
+        worker._create_download_record = Mock()
+        worker._is_download_cancelled = Mock(return_value=False)
+        worker._is_single_download_cancelled = Mock(return_value=False)
+        worker._update_download_status = Mock()
+        worker._update_download_path = Mock()
+        worker._process_download = Mock()
+        worker._create_zip_archive = Mock(
+            return_value=tmp_path / "should_not_exist.zip"
+        )
+        worker._get_download_record = Mock(
+            return_value=_make_record(status=DirectDownloadStatus.PAUSED)
+        )
+        worker._get_download_destination = Mock(return_value=tmp_path)
+        worker.check_active_sessions = Mock(return_value=True)
+        worker.batchStarting = Mock()
+        worker.batchStarting.emit = Mock()
+        worker.batchCompleted = Mock()
+        worker.batchCompleted.emit = Mock()
+
+        batch_folder = tmp_path / "download_20260101_000000_000001_abcd1234"
+        batch_folder.mkdir(parents=True, exist_ok=True)
+        worker._create_batch_folder = Mock(return_value=batch_folder)
+
+        docs = [
+            {
+                "server_url": "https://example.com",
+                "user": "alice",
+                "doc_id": "uid-123",
+                "filename": "file.txt",
+                "_record_uid": 42,
+            }
+        ]
+
+        worker._process_batch(docs)
+
+        worker._create_zip_archive.assert_not_called()
+        completed_calls = [
+            call
+            for call in worker._update_download_status.call_args_list
+            if len(call.args) >= 2 and call.args[1] == DirectDownloadStatus.COMPLETED
+        ]
+        assert completed_calls == []
 
 
 class TestDAODirectDownloadStatus:
