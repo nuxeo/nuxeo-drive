@@ -70,9 +70,6 @@ class DirectDownload(Worker):
         # List to track all download batch folders (download_<timestamp>)
         self._download_folders: List[str] = []
 
-        # Global variable to hold engine
-        self.global_engine: Optional["Engine"] = None
-
         # Ensure persisted active downloads are requeued only once per app run.
         self._resumed_persisted_downloads = False
 
@@ -852,7 +849,6 @@ class DirectDownload(Worker):
 
         # Get engine for authentication
         engine = self._get_engine(server_url, user=user)
-        self.global_engine = engine
         if not engine:
             error_msg = f"No engine found for server {server_url}"
             self.downloadError.emit(filename or doc_id, error_msg)

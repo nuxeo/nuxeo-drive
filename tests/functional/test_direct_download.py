@@ -207,7 +207,6 @@ class TestDirectDownloadWorkerResumption:
 
         worker = DirectDownloadWorker.__new__(DirectDownloadWorker)
         worker._manager = manager
-        worker.global_engine = None
 
         assert worker.check_active_sessions() is True
 
