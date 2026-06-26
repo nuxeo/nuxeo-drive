@@ -292,6 +292,125 @@ class TestDirectDownloadWorkerResumption:
         )
         worker._process_download.assert_called_once()
 
+    def test_download_file_resumes_from_partial_file(self, tmp_path):
+        """Resume should continue partial files instead of skipping them."""
+        manager = Mock()
+        manager.engines = {}
+
+        worker = DirectDownloadWorker.__new__(DirectDownloadWorker)
+        worker._manager = manager
+        worker._stop = False
+        worker._is_single_download_cancelled = Mock(return_value=False)
+        worker._update_download_progress = Mock()
+        worker._get_download_record = Mock(
+            return_value=_make_record(total_bytes=10, bytes_downloaded=4)
+        )
+
+        target_folder = tmp_path
+        target_file = target_folder / "file.txt"
+        target_file.write_bytes(b"abcd")
+
+        response = Mock()
+        response.status_code = 206
+        response.headers = {"Content-Length": "6"}
+        response.iter_content.return_value = [b"ef", b"gh", b"ij"]
+        response.raise_for_status = Mock()
+        response.close = Mock()
+
+        engine = Mock()
+        engine.remote.client.host = "https://server.test"
+        engine.remote.verification_needed = True
+        engine.remote.client.request.return_value = response
+
+        worker._download_file(
+            engine,
+            "https://server.test",
+            "/nuxeo/download/file.txt",
+            "file.txt",
+            target_folder,
+            record_uid=1,
+        )
+
+        _, kwargs = engine.remote.client.request.call_args
+        assert kwargs["headers"] == {"Range": "bytes=4-"}
+        assert target_file.read_bytes() == b"abcdefghij"
+
+    def test_download_file_skips_when_existing_file_is_complete(self, tmp_path):
+        """Resume should skip when existing file size already matches total bytes."""
+        manager = Mock()
+        manager.engines = {}
+
+        worker = DirectDownloadWorker.__new__(DirectDownloadWorker)
+        worker._manager = manager
+        worker._stop = False
+        worker._is_single_download_cancelled = Mock(return_value=False)
+        worker._update_download_progress = Mock()
+        worker._get_download_record = Mock(
+            return_value=_make_record(total_bytes=10, bytes_downloaded=10)
+        )
+
+        target_folder = tmp_path
+        target_file = target_folder / "file.txt"
+        target_file.write_bytes(b"0123456789")
+
+        engine = Mock()
+        engine.remote.client.host = "https://server.test"
+        engine.remote.verification_needed = True
+
+        worker._download_file(
+            engine,
+            "https://server.test",
+            "/nuxeo/download/file.txt",
+            "file.txt",
+            target_folder,
+            record_uid=1,
+        )
+
+        engine.remote.client.request.assert_not_called()
+
+    def test_download_file_folder_child_416_treated_as_complete(self, tmp_path):
+        """Folder child file resume should treat 416 range EOF as complete."""
+        manager = Mock()
+        manager.engines = {}
+
+        worker = DirectDownloadWorker.__new__(DirectDownloadWorker)
+        worker._manager = manager
+        worker._stop = False
+        worker._is_single_download_cancelled = Mock(return_value=False)
+        worker._update_download_progress = Mock()
+
+        folder_record = _make_record(is_folder=True, total_bytes=1024)
+        worker._get_download_record = Mock(return_value=folder_record)
+
+        target_folder = tmp_path
+        target_file = target_folder / "child.txt"
+        target_file.write_bytes(b"complete")
+
+        response = Mock()
+        response.status_code = 416
+        response.headers = {}
+        response.raise_for_status = Mock()
+        response.close = Mock()
+
+        engine = Mock()
+        engine.remote.client.host = "https://server.test"
+        engine.remote.verification_needed = True
+        engine.remote.client.request.return_value = response
+
+        worker._download_file(
+            engine,
+            "https://server.test",
+            "/nuxeo/download/child.txt",
+            "child.txt",
+            target_folder,
+            record_uid=1,
+        )
+
+        _, kwargs = engine.remote.client.request.call_args
+        assert kwargs["headers"] == {"Range": "bytes=8-"}
+        response.raise_for_status.assert_not_called()
+        assert target_file.read_bytes() == b"complete"
+
 
 class TestDAODirectDownloadStatus:
     """Test DAO status update methods."""

@@ -1052,14 +1052,35 @@ class DirectDownload(Worker):
         :param target_folder: The folder to save the file in
         :param record_uid: Optional DB record UID for progress tracking
         """
-        # Skip if the file was already downloaded in a previous run.
         expected_path = target_folder / filename
-        if expected_path.exists():
+        target_path = expected_path
+
+        existing_size = expected_path.stat().st_size if expected_path.exists() else 0
+        persisted_total_bytes = 0
+        is_folder_record = False
+        if record_uid:
+            record = self._get_download_record(record_uid)
+            if record:
+                persisted_total_bytes = int(record.total_bytes or 0)
+                is_folder_record = bool(record.is_folder)
+
+        # For folder downloads, persisted total_bytes tracks the whole folder batch,
+        # not each child file. Do not use it for per-file completion checks.
+        if is_folder_record:
+            persisted_total_bytes = 0
+
+        # Only skip when we are sure the file is already complete.
+        # A mere file presence can be an interrupted partial download.
+        if expected_path.exists() and persisted_total_bytes > 0:
+            if existing_size >= persisted_total_bytes:
+                log.debug(
+                    f"File already complete from previous run, skipping: {filename}"
+                )
+                return
+        elif expected_path.exists() and persisted_total_bytes == 0 and not record_uid:
+            # Fresh (non-resumed) duplicate request: keep previous behavior by avoiding overwrite.
             log.debug(f"File already present from previous run, skipping: {filename}")
             return
-
-        # Calculate the target file path (handle duplicates)
-        target_path = self._get_unique_path(expected_path)
 
         # Build the full download URL
         if download_url.startswith("http"):
@@ -1069,24 +1090,55 @@ class DirectDownload(Worker):
 
         resp = None
         try:
+            headers = None
+            file_mode = "wb"
+
+            # Resume interrupted files when possible.
+            if existing_size > 0:
+                headers = {"Range": f"bytes={existing_size}-"}
+                file_mode = "ab"
+
             # Use the engine's remote client to make the request with streaming
             resp = engine.remote.client.request(
                 "GET",
                 full_url.replace(engine.remote.client.host, ""),
                 ssl_verify=engine.remote.verification_needed,
                 stream=True,
+                headers=headers,
             )
+
+            # Resuming from EOF can return 416 (Range Not Satisfiable), which means
+            # the local file is already complete for this child.
+            if existing_size > 0 and getattr(resp, "status_code", None) == 416:
+                log.debug(
+                    f"File already complete from previous run (range EOF), skipping: {filename}"
+                )
+                return
+
             resp.raise_for_status()
+
+            # If server ignored Range and returned full payload, restart from scratch.
+            if existing_size > 0 and getattr(resp, "status_code", None) != 206:
+                file_mode = "wb"
+                existing_size = 0
 
             # Try to get total size from Content-Length header
             try:
-                total_bytes = int(resp.headers.get("Content-Length", 0))
+                content_length = int(resp.headers.get("Content-Length", 0))
             except (TypeError, ValueError):
-                total_bytes = 0
-            bytes_downloaded = 0
+                content_length = 0
+
+            if existing_size > 0 and getattr(resp, "status_code", None) == 206:
+                total_bytes = existing_size + content_length
+            elif persisted_total_bytes > 0:
+                total_bytes = persisted_total_bytes
+            else:
+                total_bytes = content_length
+
+            bytes_downloaded = existing_size
 
             # Write the content to file using streaming to avoid loading all into memory
-            with open(target_path, "wb") as f:
+            with open(target_path, file_mode) as f:
                 for chunk in resp.iter_content(chunk_size=64 * 1024):
                     if not chunk:
                         continue
