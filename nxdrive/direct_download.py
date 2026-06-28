@@ -642,6 +642,7 @@ class DirectDownload(Worker):
             # Update the record with the fetched details
             record.doc_name = doc_name
             record.doc_size = doc_size
+            record.total_bytes = doc_size
             record.is_folder = is_folder
             record.folder_count = folder_count
             record.file_count = file_count
@@ -690,10 +691,28 @@ class DirectDownload(Worker):
                     # Add file size
                     props = child.get("properties", {})
                     file_content = props.get("file:content")
+                    file_size = 0
                     if file_content and isinstance(file_content, dict):
                         # length is returned as string, convert to int
                         file_size = int(file_content.get("length", 0) or 0)
-                        total_size += file_size
+                    if file_size <= 0:
+                        child_id = child.get("uid", "")
+                        if child_id:
+                            try:
+                                child_info = engine.remote.get_info(child_id)
+                                blob = (
+                                    child_info.get_blob("file:content")
+                                    if child_info
+                                    else None
+                                )
+                                if blob:
+                                    file_size = int(getattr(blob, "size", 0) or 0)
+                            except Exception:
+                                log.debug(
+                                    f"Could not fetch blob size fallback for {child_id}",
+                                    exc_info=True,
+                                )
+                    total_size += file_size
                     file_count += 1
 
         except Exception:
@@ -812,6 +831,8 @@ class DirectDownload(Worker):
         total_bytes: int,
         /,
         filename: Optional[str] = None,
+        emitted_bytes_downloaded: Optional[int] = None,
+        emitted_total_bytes: Optional[int] = None,
     ) -> None:
         """
         Update the progress of a download.
@@ -832,14 +853,29 @@ class DirectDownload(Worker):
                         engine.dao.update_direct_download_progress(
                             uid, bytes_downloaded, total_bytes, progress
                         )
+                        signal_bytes_downloaded = (
+                            emitted_bytes_downloaded
+                            if emitted_bytes_downloaded is not None
+                            else bytes_downloaded
+                        )
+                        signal_total_bytes = (
+                            emitted_total_bytes
+                            if emitted_total_bytes is not None
+                            else total_bytes
+                        )
+                        signal_progress = (
+                            (signal_bytes_downloaded / signal_total_bytes * 100)
+                            if signal_total_bytes > 0
+                            else 0.0
+                        )
                         # Emit progress signal for real-time UI updates
                         self.downloadProgress.emit(
                             {
                                 "uid": uid,
                                 "doc_name": filename,
-                                "progress": progress,
-                                "bytes_downloaded": bytes_downloaded,
-                                "total_bytes": total_bytes,
+                                "progress": signal_progress,
+                                "bytes_downloaded": signal_bytes_downloaded,
+                                "total_bytes": signal_total_bytes,
                             }
                         )
                         return
@@ -1084,12 +1120,19 @@ class DirectDownload(Worker):
 
         existing_size = expected_path.stat().st_size if expected_path.exists() else 0
         persisted_total_bytes = 0
+        folder_total_bytes = 0
         is_folder_record = False
+        folder_progress_offset = 0
         if record_uid:
             record = self._get_download_record(record_uid)
             if record:
                 persisted_total_bytes = int(record.total_bytes or 0)
+                folder_total_bytes = persisted_total_bytes
                 is_folder_record = bool(record.is_folder)
+                if is_folder_record:
+                    folder_progress_offset = max(
+                        0, int(record.bytes_downloaded or 0) - existing_size
+                    )
 
         # For folder downloads, persisted total_bytes tracks the whole folder batch,
         # not each child file. Do not use it for per-file completion checks.
@@ -1182,8 +1225,20 @@ class DirectDownload(Worker):
 
                     # Update progress
                     if record_uid and total_bytes > 0:
+                        reported_bytes_downloaded = bytes_downloaded
+                        reported_total_bytes = total_bytes
+                        if is_folder_record and folder_total_bytes > 0:
+                            reported_bytes_downloaded = (
+                                folder_progress_offset + bytes_downloaded
+                            )
+                            reported_total_bytes = folder_total_bytes
                         self._update_download_progress(
-                            record_uid, bytes_downloaded, total_bytes, filename=filename
+                            record_uid,
+                            reported_bytes_downloaded,
+                            reported_total_bytes,
+                            filename=filename,
+                            emitted_bytes_downloaded=bytes_downloaded,
+                            emitted_total_bytes=total_bytes,
                         )
 
         except RuntimeError as e:
