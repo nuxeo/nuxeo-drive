@@ -120,6 +120,20 @@ class DirectDownload(Worker):
                 return True
         return False
 
+    def _can_finalize_batch(self, record_uids: List[int], /) -> bool:
+        """Return True when the current batch is safe to archive/finalize."""
+        for uid in record_uids:
+            record = self._get_download_record(uid)
+            if not record:
+                continue
+            if record.status in (
+                DirectDownloadStatus.PENDING,
+                DirectDownloadStatus.PAUSED,
+                DirectDownloadStatus.CANCELLED,
+            ):
+                return False
+        return True
+
     def cleanup(self) -> None:
         """
         Clean up the download folder by removing all downloaded files and folders.
@@ -382,9 +396,11 @@ class DirectDownload(Worker):
                         record_uid, DirectDownloadStatus.FAILED, last_error=str(exc)
                     )
 
-        # Create zip file only when no active sessions remain.
+        # Finalize based on the current batch state. Global active-session checks
+        # are still used during shutdown cleanup, but they must not block a batch
+        # from archiving itself once its own downloads are done.
         archive_path: Optional[Path] = None
-        can_finalize_batch = not self.check_active_sessions()
+        can_finalize_batch = self._can_finalize_batch(download_records)
         if can_finalize_batch:
             archive_path = self._create_zip_archive(batch_folder)
 

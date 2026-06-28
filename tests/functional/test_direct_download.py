@@ -427,7 +427,7 @@ class TestDirectDownloadWorkerResumption:
         assert target_file.read_bytes() == b"complete"
 
     def test_process_batch_does_not_finalize_when_active_sessions_exist(self, tmp_path):
-        """Paused/in-progress sessions must not be archived or marked completed."""
+        """Paused current-batch sessions must not be archived or marked completed."""
         manager = Mock()
         manager.engines = {}
 
@@ -448,7 +448,6 @@ class TestDirectDownloadWorkerResumption:
             return_value=_make_record(status=DirectDownloadStatus.PAUSED)
         )
         worker._get_download_destination = Mock(return_value=tmp_path)
-        worker.check_active_sessions = Mock(return_value=True)
         worker.batchStarting = Mock()
         worker.batchStarting.emit = Mock()
         worker.batchCompleted = Mock()
@@ -477,6 +476,60 @@ class TestDirectDownloadWorkerResumption:
             if len(call.args) >= 2 and call.args[1] == DirectDownloadStatus.COMPLETED
         ]
         assert completed_calls == []
+
+    def test_process_batch_finalizes_successful_batch(self, tmp_path):
+        """A successful current batch should archive and complete its records."""
+        manager = Mock()
+        manager.engines = {}
+
+        worker = DirectDownloadWorker.__new__(DirectDownloadWorker)
+        worker._manager = manager
+        worker._download_queue = Mock()
+        worker._download_folders = []
+        worker._create_download_record = Mock()
+        worker._is_download_cancelled = Mock(return_value=False)
+        worker._is_single_download_cancelled = Mock(return_value=False)
+        worker._update_download_status = Mock()
+        worker._update_download_path = Mock()
+        worker._process_download = Mock()
+        worker._get_download_destination = Mock(return_value=tmp_path)
+        worker.batchStarting = Mock()
+        worker.batchStarting.emit = Mock()
+        worker.batchCompleted = Mock()
+        worker.batchCompleted.emit = Mock()
+
+        archive_path = tmp_path / "download_20260101_000000_000001_abcd1234.zip"
+        worker._create_zip_archive = Mock(return_value=archive_path)
+
+        def get_record(uid):
+            record = _make_record(status=DirectDownloadStatus.IN_PROGRESS)
+            record.uid = uid
+            return record
+
+        worker._get_download_record = Mock(side_effect=get_record)
+
+        batch_folder = tmp_path / "download_20260101_000000_000001_abcd1234"
+        batch_folder.mkdir(parents=True, exist_ok=True)
+        worker._create_batch_folder = Mock(return_value=batch_folder)
+
+        docs = [
+            {
+                "server_url": "https://example.com",
+                "user": "alice",
+                "doc_id": "uid-123",
+                "filename": "file.txt",
+                "_record_uid": 42,
+            }
+        ]
+
+        worker._process_batch(docs)
+
+        worker._create_zip_archive.assert_called_once_with(batch_folder)
+        worker._update_download_status.assert_any_call(
+            42,
+            DirectDownloadStatus.COMPLETED,
+            download_path=str(archive_path),
+        )
 
 
 class TestDAODirectDownloadStatus:
