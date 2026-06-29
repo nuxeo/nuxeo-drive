@@ -697,11 +697,16 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     # Covering open_server_folders in QMLDriveApi
     with patch("nxdrive.gui.api.QMLDriveApi._get_engine") as mock_engine, patch(
         "nxdrive.gui.application.Application.hide_systray"
-    ) as mock_hide:
+    ) as mock_hide, patch(
+        "nxdrive.gui.application.Application.show_server_folders"
+    ) as mock_show_server_folders:
         drive_api = QMLDriveApi(app)
         mock_engine.return_value = engine
         mock_hide.return_value = None
+        mock_show_server_folders.return_value = None
         assert drive_api.open_server_folders("engine.uid") is None
+        mock_show_server_folders.assert_called_once()
+        assert mock_show_server_folders.call_args.args[0] is engine
 
     # Covers the changes made for Direct Transfer with workspace path specified from WebUI
     # Compressed format: base64-encoded payload [scheme:1][server_len:1][server:N]
