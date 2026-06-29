@@ -500,6 +500,8 @@ class Manager(QObject):
             except Exception:
                 log.exception(f"Could not start {engine}")
 
+        if self.direct_download:
+            self.direct_download.resume_persisted_downloads()
         if Feature.direct_transfer:
             self._init_direct_transfer_resumption()
 

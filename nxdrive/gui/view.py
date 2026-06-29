@@ -1143,13 +1143,16 @@ class DirectDownloadMonitoringModel(QAbstractListModel):
             if item.get("uid") != action.get("uid"):
                 continue
             # Update item data directly
+            item["doc_name"] = action.get("doc_name", item.get("doc_name", ""))
             item["progress"] = action.get("progress", 0.0)
             item["bytes_downloaded"] = action.get("bytes_downloaded", 0)
             item["total_bytes"] = action.get("total_bytes", item.get("total_bytes", 0))
             # Emit data changed for the row
             idx = self.createIndex(i, 0)
             self.dataChanged.emit(
-                idx, idx, [self.PROGRESS, self.TRANSFERRED, self.FILESIZE]
+                idx,
+                idx,
+                [self.DOC_NAME, self.PROGRESS, self.TRANSFERRED, self.FILESIZE],
             )
             break
 
