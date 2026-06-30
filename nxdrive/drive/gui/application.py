@@ -117,6 +117,11 @@ class Application(QApplication):
     icon_state = None
     use_light_icons = None
     filters_dlg: Optional[DialogMixin] = None
+    # Queue of engines awaiting first-time folder selection. Populated at
+    # startup; drained one-by-one as the user closes each dialog so several
+    # newly-bound accounts can be configured in a single session without
+    # restarting the app.
+    _pending_filter_engines: List[Engine] = []
     _delegator: Optional["NotificationDelegator"] = None
     tray_icon: DriveSystrayIcon
 
@@ -1142,9 +1147,12 @@ class Application(QApplication):
         self._show_window(self.filters_dlg)
 
     def _show_pending_filters(self, engine: Engine, /) -> None:
-        """Show the filters dialog for an Alfresco engine that needs folder selection.
+        """Show the filters dialog for an engine that needs folder selection.
 
         After the user accepts, mark filters as configured and trigger sync.
+        When this dialog closes (accept *or* cancel), the next engine in
+        ``_pending_filter_engines`` is presented automatically, so multiple
+        newly-bound accounts can be configured in a single session.
         """
         if self.filters_dlg:
             self.filters_dlg.close()
@@ -1152,8 +1160,24 @@ class Application(QApplication):
 
         self.filters_dlg = DocumentsDialog(self, engine)
         self.filters_dlg.destroyed.connect(self.destroyed_filters_dialog)
+        # Drain the queue regardless of accept/reject so a Cancel does not
+        # leave the remaining pending engines stuck behind it.
+        self.filters_dlg.destroyed.connect(self._show_next_pending_filter)
         self.filters_dlg.accepted.connect(lambda: engine.mark_filters_configured())
         self._show_window(self.filters_dlg)
+
+    @pyqtSlot()
+    def _show_next_pending_filter(self) -> None:
+        """Pop the next pending engine off the queue and show its filter dialog.
+
+        No-op when the queue is empty. Connected to the current filter
+        dialog's ``destroyed`` signal so the next account is offered as soon
+        as the user closes the current one.
+        """
+        if not self._pending_filter_engines:
+            return
+        engine = self._pending_filter_engines.pop(0)
+        self._show_pending_filters(engine)
 
     def show_server_folders(
         self, engine: Engine, path: Optional[Path], selected_folder: str = None, /
@@ -1433,16 +1457,17 @@ class Application(QApplication):
 
         self.manager.start()
 
-        # Show the filters dialog for Alfresco engines that haven't had
-        # folder selection yet (e.g. account added with sync OFF, then
-        # sync enabled and restarted).
-        for engine in self.manager.engines.copy().values():
-            if (
-                hasattr(engine, "needs_filters_selection")
-                and engine.needs_filters_selection()
-            ):
-                self._show_pending_filters(engine)
-                break
+        # Collect every engine that still needs first-time folder selection
+        # (e.g. account added with sync OFF, then sync enabled and
+        # restarted) and queue them up. The first dialog is shown now; the
+        # rest are shown one after the other as the user closes each.
+        self._pending_filter_engines = [
+            engine
+            for engine in self.manager.engines.copy().values()
+            if hasattr(engine, "needs_filters_selection")
+            and engine.needs_filters_selection()
+        ]
+        self._show_next_pending_filter()
 
     @pyqtSlot()
     @if_frozen

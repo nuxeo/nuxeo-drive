@@ -74,7 +74,13 @@ class DialogMixin(QDialog):
         # Customize the window
         self.setAttribute(qt.WA_DeleteOnClose)
         self.setWindowIcon(application.icon)
-        self.setWindowTitle(Translator.get(self.title_label, values=[APP_NAME]))
+        # Append the account username to disambiguate when several engines are
+        # configured at the same time (sequential first-time selection flow).
+        title = Translator.get(self.title_label, values=[APP_NAME])
+        username = getattr(engine, "remote_user", "") or ""
+        if username:
+            title = f"{title} \u2014 {username}"
+        self.setWindowTitle(title)
 
         # The window doesn't raise on Windows when the app is not in focus,
         # so after the login in the browser, we open the filters window with
