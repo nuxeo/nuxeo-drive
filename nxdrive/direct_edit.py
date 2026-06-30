@@ -317,10 +317,18 @@ class DirectEdit(Worker):
             if user:
                 simplified = simplify_url(server_url)
                 for eng in self._manager.engines.copy().values():
-                    if eng.remote and simplify_url(eng.get_binder().server_url.rstrip("/")) == simplified:
+                    if (
+                        eng.remote
+                        and simplify_url(eng.get_binder().server_url.rstrip("/"))
+                        == simplified
+                    ):
                         display_user = eng.remote.client.resolve_username(user)
                         break
-            values = [force_decode(display_user) if display_user else "Unknown", server_url, APP_NAME]
+            values = [
+                force_decode(display_user) if display_user else "Unknown",
+                server_url,
+                APP_NAME,
+            ]
             log.warning(
                 f"No engine found for user {user!r} on server {server_url!r}, "
                 f"doc_id={doc_id!r}"
