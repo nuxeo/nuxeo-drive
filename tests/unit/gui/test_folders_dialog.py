@@ -1,11 +1,105 @@
 """Unit tests for DocumentsDialog._handle_no_roots function."""
 
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, Mock, call, patch
 
 from nxdrive.gui.folders_dialog import DocumentsDialog, FoldersDialog, NewFolderDialog
 from nxdrive.gui.folders_treeview import DocumentTreeView
 from nxdrive.qt import constants as qt
 from nxdrive.qt.imports import QComboBox, QLabel, QMenu, QPoint
+
+
+class TestFoldersDialogScheduleLaterAction:
+    """Test cases for FoldersDialog._schedule_later_action method."""
+
+    def test_schedule_later_action_when_dialog_canceled(self):
+        """No action when schedule dialog is canceled."""
+        dialog = Mock(spec=FoldersDialog)
+
+        schedule_dialog = Mock()
+        schedule_dialog.exec.return_value = False
+
+        with patch(
+            "nxdrive.gui.folders_dialog.ScheduleDialog", return_value=schedule_dialog
+        ) as schedule_cls:
+            FoldersDialog._schedule_later_action(dialog)
+
+        schedule_cls.assert_called_once_with(dialog)
+        schedule_dialog.get_time.assert_not_called()
+        dialog.accept.assert_not_called()
+
+    def test_schedule_later_action_accept_with_no_time(self):
+        """Accepts dialog even if user did not pick time value."""
+        dialog = Mock(spec=FoldersDialog)
+        dialog.scheduled_time = "unchanged"
+        dialog.scheduled_at_iso = "unchanged_iso"
+        dialog.scheduled_delay = 12
+
+        schedule_dialog = Mock()
+        schedule_dialog.exec.return_value = True
+        schedule_dialog.get_time.return_value = None
+
+        with patch(
+            "nxdrive.gui.folders_dialog.ScheduleDialog", return_value=schedule_dialog
+        ):
+            FoldersDialog._schedule_later_action(dialog)
+
+        assert dialog.scheduled_time == "unchanged"
+        assert dialog.scheduled_at_iso == "unchanged_iso"
+        assert dialog.scheduled_delay == 12
+        dialog.accept.assert_called_once()
+
+    def test_schedule_later_action_accept_with_future_time(self):
+        """Stores schedule values and positive delay for future datetime."""
+        dialog = Mock(spec=FoldersDialog)
+
+        now = datetime(2026, 6, 17, 10, 0, 0, tzinfo=timezone.utc)
+        future = datetime(2026, 6, 17, 10, 5, 30, tzinfo=timezone.utc)
+
+        time_value = Mock()
+        time_value.toString.return_value = "2026-06-17 10:05:30"
+        time_value.toPyDateTime.return_value = future
+
+        schedule_dialog = Mock()
+        schedule_dialog.exec.return_value = True
+        schedule_dialog.get_time.return_value = time_value
+
+        with patch(
+            "nxdrive.gui.folders_dialog.ScheduleDialog", return_value=schedule_dialog
+        ), patch("nxdrive.gui.folders_dialog.datetime") as mock_datetime:
+            mock_datetime.now.return_value = now
+            FoldersDialog._schedule_later_action(dialog)
+
+        assert dialog.scheduled_time == "2026-06-17 10:05:30"
+        assert dialog.scheduled_at_iso == future.isoformat()
+        assert dialog.scheduled_delay == 330
+        dialog.accept.assert_called_once()
+
+    def test_schedule_later_action_accept_with_past_time_sets_zero_delay(self):
+        """Delay should be clamped to zero when schedule time is in past."""
+        dialog = Mock(spec=FoldersDialog)
+
+        now = datetime(2026, 6, 17, 10, 0, 0, tzinfo=timezone.utc)
+        past = datetime(2026, 6, 17, 9, 59, 0, tzinfo=timezone.utc)
+
+        time_value = Mock()
+        time_value.toString.return_value = "2026-06-17 09:59:00"
+        time_value.toPyDateTime.return_value = past
+
+        schedule_dialog = Mock()
+        schedule_dialog.exec.return_value = True
+        schedule_dialog.get_time.return_value = time_value
+
+        with patch(
+            "nxdrive.gui.folders_dialog.ScheduleDialog", return_value=schedule_dialog
+        ), patch("nxdrive.gui.folders_dialog.datetime") as mock_datetime:
+            mock_datetime.now.return_value = now
+            FoldersDialog._schedule_later_action(dialog)
+
+        assert dialog.scheduled_time == "2026-06-17 09:59:00"
+        assert dialog.scheduled_at_iso == past.isoformat()
+        assert dialog.scheduled_delay == 0
+        dialog.accept.assert_called_once()
 
 
 class TestDocumentsDialogHandleNoRoots:
@@ -2637,6 +2731,7 @@ class TestFoldersDialogAccept:
         dialog.remote_folder_ref = "/test/remote/folder"
         dialog.remote_folder_title = "Test Folder"
         dialog.paths = {Path("/local/test.txt"): 1024}
+        dialog.scheduled_time = None
         dialog.last_local_selected_location = "/local"
 
         # Set up UI components
@@ -2651,6 +2746,19 @@ class TestFoldersDialogAccept:
             side_effect=lambda is_folder, type_val: f"key_{type_val}"
         )
 
+        def _accept():
+            original_getattribute = FoldersDialog.__getattribute__
+
+            def _safe_getattribute(obj, name):
+                if name in {"scheduled_time", "scheduled_at_iso"}:
+                    return None
+                if name == "scheduled_delay":
+                    return 0
+                return original_getattribute(obj, name)
+
+            with patch.object(FoldersDialog, "__getattribute__", _safe_getattribute):
+                return dialog.accept()
+
         # Test 1: Normal execution without duplicates
         # Set up combo box states
         self.mock_cb_doc_type.currentIndex.return_value = 1  # Not default
@@ -2664,7 +2772,7 @@ class TestFoldersDialogAccept:
         self.mock_remote_folder.text.return_value = "/remote/target"
 
         # Call the method
-        dialog.accept()
+        _accept()
 
         # Verify parent accept was called
         mock_parent_accept.assert_called_once()
@@ -2698,7 +2806,7 @@ class TestFoldersDialogAccept:
         dialog._find_folders_duplicates.return_value = ["duplicate_folder"]
 
         # Call the method
-        dialog.accept()
+        _accept()
 
         # Verify parent accept was called
         mock_parent_accept.assert_called()
@@ -2723,7 +2831,7 @@ class TestFoldersDialogAccept:
         self.mock_cb_doc_type.currentData.return_value = "default_doc_data"
 
         # Call the method
-        dialog.accept()
+        _accept()
 
         # Verify last_local_selected_doc_type uses currentData() for index 0
         assert dialog.last_local_selected_doc_type == "default_doc_data"
@@ -2737,7 +2845,7 @@ class TestFoldersDialogAccept:
         self.mock_cb_container_type.currentIndex.return_value = 0
 
         # Call the method
-        dialog.accept()
+        _accept()
 
         # Verify get_known_type_key was called with empty string for cont_type
         dialog.get_known_type_key.assert_any_call(True, "")
@@ -2749,7 +2857,7 @@ class TestFoldersDialogAccept:
         dialog._find_folders_duplicates.return_value = ["test_duplicate"]
 
         # Call the method
-        dialog.accept()
+        _accept()
 
         # Should still call folder_duplicate_warning even with None ref
         self.mock_engine.get_metadata_url.assert_called_with(None)
@@ -2775,7 +2883,7 @@ class TestFoldersDialogAccept:
         self.mock_remote_folder.text.return_value = "/clean/remote/target"
 
         # Call the method
-        dialog.accept()
+        _accept()
 
         # Verify all parameters in direct_transfer_async call
         self.mock_engine.direct_transfer_async.assert_called_once_with(
@@ -2788,6 +2896,9 @@ class TestFoldersDialogAccept:
             duplicate_behavior="overwrite",
             last_local_selected_location="/clean/local",
             last_local_selected_doc_type="CustomDoc",
+            paused=False,
+            schedule_delay=0,
+            scheduled_at=0,
         )
 
         # Test 7: Multiple consecutive calls (state consistency)
@@ -2799,7 +2910,7 @@ class TestFoldersDialogAccept:
             self.mock_cb_doc_type.currentText.return_value = f"Doc{i}"
             dialog.last_local_selected_doc_type = f"LastDoc{i}"
 
-            dialog.accept()
+            _accept()
 
             # Each call should work independently
             mock_parent_accept.assert_called_once()
@@ -2815,7 +2926,7 @@ class TestFoldersDialogAccept:
 
         # The method should propagate the exception (no exception handling in accept)
         try:
-            dialog.accept()
+            _accept()
             assert False, "Expected exception was not raised"
         except Exception as e:
             assert str(e) == "Duplicate check failed"
@@ -2825,12 +2936,12 @@ class TestFoldersDialogAccept:
         dialog._find_folders_duplicates.side_effect = None
         dialog._find_folders_duplicates.return_value = []
 
-        result = dialog.accept()
+        result = _accept()
         assert result is None  # Method should return None
 
         # Test with early return due to duplicates
         dialog._find_folders_duplicates.return_value = ["duplicate"]
-        result = dialog.accept()
+        result = _accept()
         assert result is None  # Method should return None even on early return
 
         # Test 10: Comprehensive UI state verification
@@ -2844,7 +2955,7 @@ class TestFoldersDialogAccept:
         self.mock_cb_duplicate.currentData.return_value = "final_behavior"
         self.mock_remote_folder.text.return_value = "/final/remote"
 
-        dialog.accept()
+        _accept()
 
         # Verify all UI components were called
         self.mock_cb_doc_type.currentIndex.assert_called()

@@ -2,6 +2,7 @@ from datetime import date, datetime
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple
 
+from dateutil import parser
 from dateutil.tz import tzlocal
 
 from ..constants import DT_ACTIVE_SESSIONS_MAX_ITEMS, DT_MONITORING_MAX_ITEMS
@@ -431,6 +432,7 @@ class ActiveSessionModel(QAbstractListModel):
     DESCRIPTION = qt.UserRole + 10
     PROGRESS = qt.UserRole + 11
     SHADOW = qt.UserRole + 12  # Tell the interface if the row should be visible or not
+    SCHEDULED_AT = qt.UserRole + 13
 
     def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -449,6 +451,7 @@ class ActiveSessionModel(QAbstractListModel):
             self.DESCRIPTION: b"description",
             self.PROGRESS: b"progress",
             self.SHADOW: b"shadow",
+            self.SCHEDULED_AT: b"scheduled_at",
         }
         self.shadow_session: Dict[str, Any] = {}
 
@@ -538,6 +541,19 @@ class ActiveSessionModel(QAbstractListModel):
             return f"[{row['uploaded']:,} / {row['total']:,}]"
         elif role == self.SHADOW:
             return row.get("shadow", False)
+        elif role == self.SCHEDULED_AT:
+            scheduled_at = row.get("scheduled_at", 0)
+            if scheduled_at and scheduled_at != "0":
+                label = "SCHEDULED_ON"
+                args = []
+                # scheduled_at is stored as ISO format string from FoldersDialog.accept
+                try:
+                    dt = parser.isoparse(str(scheduled_at)).astimezone(tzlocal())
+                    args.append(dt.strftime("%d %b %Y, %H:%M:%S"))
+                except Exception:
+                    args.append(str(scheduled_at))
+                return self.tr(label, values=args)  # type: ignore
+            return ""
         return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, /, *, role: int = None) -> None:
@@ -588,6 +604,7 @@ class CompletedSessionModel(QAbstractListModel):
     PROGRESS = qt.UserRole + 11
     SHADOW = qt.UserRole + 12
     CSV_PATH = qt.UserRole + 13
+    SCHEDULED_AT = qt.UserRole + 14
 
     def __init__(self, translate: Callable, /, *, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -607,6 +624,7 @@ class CompletedSessionModel(QAbstractListModel):
             self.PROGRESS: b"progress",
             self.SHADOW: b"shadow",
             self.CSV_PATH: b"csv_path",
+            self.SCHEDULED_AT: b"scheduled_at",
         }
 
     def roleNames(self) -> Dict[int, bytes]:
@@ -1125,13 +1143,16 @@ class DirectDownloadMonitoringModel(QAbstractListModel):
             if item.get("uid") != action.get("uid"):
                 continue
             # Update item data directly
+            item["doc_name"] = action.get("doc_name", item.get("doc_name", ""))
             item["progress"] = action.get("progress", 0.0)
             item["bytes_downloaded"] = action.get("bytes_downloaded", 0)
             item["total_bytes"] = action.get("total_bytes", item.get("total_bytes", 0))
             # Emit data changed for the row
             idx = self.createIndex(i, 0)
             self.dataChanged.emit(
-                idx, idx, [self.PROGRESS, self.TRANSFERRED, self.FILESIZE]
+                idx,
+                idx,
+                [self.DOC_NAME, self.PROGRESS, self.TRANSFERRED, self.FILESIZE],
             )
             break
 

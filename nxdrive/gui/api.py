@@ -301,8 +301,8 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, int)
     def resume_session(self, engine_uid: str, uid: int, /) -> None:
-        """Resume a given session and it's transfers."""
-        log.info(f"Resume session {uid} for engine {engine_uid!r}")
+        """Resume a given session and its transfers."""
+        log.debug(f"Resume session {uid} for engine {engine_uid!r}")
         engine = self._manager.engines.get(engine_uid)
         if not engine:
             return
@@ -310,16 +310,16 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, int)
     def pause_session(self, engine_uid: str, uid: int, /) -> None:
-        """Pause a given session and it's transfers."""
-        log.info(f"Pausing session {uid} for engine {engine_uid!r}")
+        """Pause a given session and its transfers."""
+        log.debug(f"Pausing session {uid} for engine {engine_uid!r}")
         engine = self._manager.engines.get(engine_uid)
         if not engine:
             return
         engine.dao.pause_session(uid)
 
     def cancel_session(self, engine_uid: str, uid: int, /) -> None:
-        """Cancel a given session and it's transfers."""
-        log.info(f"Cancelling session {uid} for engine {engine_uid!r}")
+        """Cancel a given session and its transfers."""
+        log.debug(f"Cancelling session {uid} for engine {engine_uid!r}")
         engine = self._manager.engines.get(engine_uid)
         if not engine:
             return
@@ -519,7 +519,7 @@ class QMLDriveApi(QObject):
         engine = self._manager.engines.get(engine_uid)
         if not engine:
             return
-        engine.dao.update_direct_download_status(uid, DirectDownloadStatus.PENDING)
+        engine.dao.update_direct_download_status(uid, DirectDownloadStatus.IN_PROGRESS)
 
     @pyqtSlot(str, int)
     def cancel_direct_download(self, engine_uid: str, uid: int, /) -> None:

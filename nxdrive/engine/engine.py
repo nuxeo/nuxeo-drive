@@ -10,7 +10,7 @@ from logging import getLogger
 from pathlib import Path
 from threading import Thread
 from time import sleep
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type, Union
 from urllib.parse import urlsplit
 
 import requests
@@ -45,7 +45,7 @@ from ..metrics.constants import (
 )
 from ..objects import Binder, DocPairs, EngineDef, Metrics, Session
 from ..options import Options
-from ..qt.imports import QObject, QThread, QThreadPool, pyqtSignal, pyqtSlot
+from ..qt.imports import QObject, QThread, QThreadPool, QTimer, pyqtSignal, pyqtSlot
 from ..state import State
 from ..utils import (
     client_certificate,
@@ -117,6 +117,8 @@ class Engine(QObject):
     directTransferNewFolderSuccess = pyqtSignal(str)
     directTransferSessionFinished = pyqtSignal(str, str, str)
     displayPendingTask = pyqtSignal(str, str, str, str)
+    startTimerSignal = pyqtSignal(int, int)
+    cancelTimerSignal = pyqtSignal(int)
 
     type = "NXDRIVE"
     # Folder locker - LocalFolder processor can prevent
@@ -149,6 +151,9 @@ class Engine(QObject):
         # Initialize those attributes first to be sure .stop()
         # can be called without missing ones
         self._threads: List[QThread] = []
+        self._scheduled_timers: Dict[int, QTimer] = {}
+        self.startTimerSignal.connect(self.start_scheduled_timer)
+        self.cancelTimerSignal.connect(self.cancel_scheduled_timer)
 
         # Stop if invalid credentials
         self.invalidAuthentication.connect(self.stop)
@@ -544,6 +549,9 @@ class Engine(QObject):
         last_local_selected_doc_type: Optional[str] = None,
         new_folder: Optional[str] = None,
         new_folder_type: Optional[str] = None,
+        paused: bool = False,
+        schedule_delay: Optional[int] = None,
+        scheduled_at: Union[str, int] = 0,
     ) -> None:
         """Plan the Direct Transfer."""
 
@@ -617,8 +625,16 @@ class Engine(QObject):
         description = os.path.basename(items[0][0])
         if len(items) > 1:
             description = f"{description} (+{len(items) - 1:,})"
+
+        status = TransferStatus.PAUSED if paused else TransferStatus.ONGOING
         session_uid = self.dao.create_session(
-            remote_parent_path, remote_parent_ref, len(items), self.uid, description
+            remote_parent_path,
+            remote_parent_ref,
+            len(items),
+            self.uid,
+            description,
+            status=status,
+            scheduled_at=scheduled_at,
         )
 
         for batch_items in grouper(items, bsize):
@@ -629,7 +645,11 @@ class Engine(QObject):
         log.info(f" ... Planned {len(items):,} item(s) to Direct Transfer, let's gooo!")
 
         # And add new pairs to the queue
-        self.dao.queue_many_direct_transfer_items(current_max_row_id)
+        if not paused:
+            self.dao.queue_many_direct_transfer_items(current_max_row_id)
+
+        if schedule_delay:
+            self.startTimerSignal.emit(session_uid, schedule_delay)
 
     def handle_session_status(self, session: Optional[Session], /) -> None:
         """Check the session status and send a notification if finished."""
@@ -697,6 +717,9 @@ class Engine(QObject):
         last_local_selected_doc_type: Optional[str] = None,
         new_folder: Optional[str] = None,
         new_folder_type: Optional[str] = None,
+        paused: bool = False,
+        schedule_delay: Optional[int] = None,
+        scheduled_at: Union[str, int] = 0,
     ) -> None:
         """Plan the Direct Transfer. Async to not freeze the GUI."""
         from .workers import Runner
@@ -714,6 +737,9 @@ class Engine(QObject):
             last_local_selected_doc_type=last_local_selected_doc_type,
             new_folder=new_folder,
             new_folder_type=new_folder_type,
+            paused=paused,
+            schedule_delay=schedule_delay,
+            scheduled_at=scheduled_at,
         )
         if self._threadpool:
             self._threadpool.start(runner)
@@ -867,8 +893,83 @@ class Engine(QObject):
 
     def resume_session(self, uid: int, /) -> None:
         """Resume all transfers for given session."""
-        self.dao.change_session_status(uid, TransferStatus.ONGOING)
-        self.dao.resume_session(uid)
+
+        session = self.dao.get_session(uid)
+        if session and session.scheduled_at and session.scheduled_at not in (0, "0"):
+            from ..gui.schedule_dialog import ResumeScheduledSessionPopup
+
+            popup = ResumeScheduledSessionPopup(
+                parent=None, scheduled_datetime=session.scheduled_at
+            )
+            if popup.exec():
+                # Reset the schedule to avoid resuming again if the session is paused and resumed again later
+                self.cancel_scheduled_timer(uid)
+                self.dao.change_session_status(uid, TransferStatus.ONGOING)
+                self.dao.reset_session_schedule(uid)
+                self.dao.resume_session(uid)
+            else:
+                # Pause the session again if the user cancels the resume action from the popup
+                self.dao.pause_session(uid)
+        else:
+            self.dao.change_session_status(uid, TransferStatus.ONGOING)
+            self.dao.resume_session(uid)
+
+    def resume_scheduled_session(self, uid: int, /) -> None:
+        """Reset schedule and resume session."""
+        self.dao.reset_session_schedule(uid)
+        self.resume_session(uid)
+
+    def start_scheduled_timer(self, session_uid: int, delay_seconds: int, /) -> None:
+        """Start a non-blocking QTimer for scheduled session, chunking delay to avoid 32-bit overflow."""
+        self.cancel_scheduled_timer(session_uid)
+
+        max_ms = 2147483647
+        total_ms = delay_seconds * 1000
+
+        timer = QTimer(self)
+        timer.setSingleShot(True)
+
+        # We need to track the remaining ms to wait across ticks.
+        # Store as dynamic property on the QTimer instance to keep it clean.
+        timer.setProperty("remaining_ms", total_ms)
+
+        def on_timeout() -> None:
+            remaining = timer.property("remaining_ms")
+            if remaining is None:
+                remaining = 0
+            if remaining > max_ms:
+                remaining -= max_ms
+                timer.setProperty("remaining_ms", remaining)
+                chunk = min(remaining, max_ms)
+                timer.setInterval(chunk)
+                timer.start()
+                log.debug(
+                    f"Timer rescheduled for session {session_uid}: {chunk}ms remaining"
+                )
+            else:
+                chunk = int(remaining or 0)
+                self.cancel_scheduled_timer(session_uid)
+                log.debug(
+                    f"Timer started: session {session_uid} scheduled in {delay_seconds}s (chunk: {chunk}ms)"
+                )
+                self.resume_scheduled_session(session_uid)
+
+        timer.timeout.connect(on_timeout)
+        self._scheduled_timers[session_uid] = timer
+
+        chunk = min(total_ms, max_ms)
+        timer.setInterval(chunk)
+        timer.start()
+        log.debug(
+            f"Timer started: session {session_uid} scheduled in {delay_seconds}s (chunk: {chunk}ms)"
+        )
+
+    def cancel_scheduled_timer(self, session_uid: int, /) -> None:
+        """Cancel and clean up an active scheduled timer."""
+        timer = self._scheduled_timers.pop(session_uid, None)
+        if timer:
+            timer.stop()
+            timer.deleteLater()
 
     def _manage_staled_transfers(self) -> None:
         """
@@ -934,7 +1035,8 @@ class Engine(QObject):
 
     def cancel_session(self, uid: int, /) -> None:
         """Cancel all transfers for given session."""
-        self.dao.change_session_status(uid, TransferStatus.CANCELLED)
+        self.cancelTimerSignal.emit(uid)
+        self.dao.reset_session_schedule(uid)
         self.dao.cancel_session(uid)
 
         docs = self.dao.get_session_items(uid)

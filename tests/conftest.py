@@ -1,4 +1,5 @@
 import os
+import platform
 import shutil
 import sqlite3
 import sys
@@ -26,6 +27,33 @@ sqlite3.register_adapter(datetime, adapt_datetime_iso)
 # Check __main.py__ for explanation
 if sys.platform == "win32":
     os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_configure(config):
+    """
+    Disable xdist on macOS to prevent worker crashes with GUI tests.
+    Qt event loop is not thread-safe; parallelism causes segfaults.
+    """
+    if platform.system() == "Darwin":
+        # Prevent xdist from spawning workers
+        config.option.dist = "no"
+        if hasattr(config.option, "numprocesses"):
+            config.option.numprocesses = 1
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_sessionfinish(session, exitstatus):
+    """
+    Force immediate process exit after session ends.
+
+    Qt objects (QApplication, widgets) left alive at interpreter shutdown
+    trigger a segfault (SIGSEGV / exit -11) during Python GC/cleanup.
+    os._exit() skips interpreter teardown and avoids the crash while
+    preserving the correct exit code. pytest-cov and other trylast hooks
+    have already run by this point, so coverage reports are intact.
+    """
+    os._exit(int(exitstatus))
 
 
 @pytest.hookimpl(trylast=True, hookwrapper=True)

@@ -13,6 +13,7 @@ import pytest
 
 from nxdrive.constants import DirectDownloadStatus
 from nxdrive.dao.engine import EngineDAO
+from nxdrive.direct_download import DirectDownload as DirectDownloadWorker
 from nxdrive.gui.view import (
     ActiveDirectDownloadModel,
     CompletedDirectDownloadModel,
@@ -189,6 +190,479 @@ class TestDAODirectDownloadCRUD:
         remaining = list(dao.get_direct_downloads())
         assert len(remaining) == 1
         assert remaining[0].doc_uid == "c"
+
+
+class TestDirectDownloadWorkerResumption:
+    """Test persisted direct-download resumption behavior."""
+
+    def test_create_download_record_updates_total_bytes_from_doc_info(self):
+        """Resolved document size should be persisted into total_bytes for UI size display."""
+        dao = Mock()
+        dao.save_direct_download.return_value = 42
+
+        engine = Mock()
+        engine.uid = "engine-1"
+        engine.dao = dao
+        engine.remote.fetch.return_value = {
+            "facets": [],
+            "properties": {
+                "dc:title": "Archive.zip",
+                "file:content": {"length": "2048"},
+            },
+        }
+
+        manager = Mock()
+        manager.engines = {"engine-1": engine}
+
+        worker = DirectDownloadWorker.__new__(DirectDownloadWorker)
+        worker._manager = manager
+        worker._get_engine = Mock(return_value=engine)
+        worker._calculate_folder_size = Mock()
+
+        uid = worker._create_download_record(
+            {
+                "server_url": "https://example.com",
+                "user": "alice",
+                "doc_id": "uid-123",
+                "filename": None,
+            },
+            selected_items="Archive.zip",
+            batch_id="batch-1",
+        )
+
+        assert uid == 42
+        updated_record = dao.update_direct_download.call_args.args[0]
+        assert updated_record.doc_size == 2048
+        assert updated_record.total_bytes == 2048
+
+    def test_calculate_folder_size_falls_back_to_blob_size(self):
+        """Folder total should use get_info blob size when child query lacks length."""
+        manager = Mock()
+        manager.engines = {}
+
+        worker = DirectDownloadWorker.__new__(DirectDownloadWorker)
+        worker._manager = manager
+        worker._get_children = Mock(
+            return_value=[
+                {
+                    "uid": "child-1",
+                    "facets": [],
+                    "properties": {"file:content": {"data": "/nuxeo/file/child-1"}},
+                }
+            ]
+        )
+
+        blob = Mock()
+        blob.size = 3145728
+        child_info = Mock()
+        child_info.get_blob.return_value = blob
+
+        engine = Mock()
+        engine.remote.get_info.return_value = child_info
+
+        total_size, folder_count, file_count = worker._calculate_folder_size(
+            engine, "folder-1"
+        )
+
+        assert total_size == 3145728
+        assert folder_count == 0
+        assert file_count == 1
+
+    def test_check_active_sessions_scans_all_engines(self):
+        """Active session detection should not rely on a single global engine."""
+        engine_1 = Mock()
+        engine_1.dao.get_active_direct_downloads.return_value = []
+        engine_2 = Mock()
+        engine_2.dao.get_active_direct_downloads.return_value = [{"uid": 1}]
+
+        manager = Mock()
+        manager.engines = {"engine-1": engine_1, "engine-2": engine_2}
+
+        worker = DirectDownloadWorker.__new__(DirectDownloadWorker)
+        worker._manager = manager
+
+        assert worker.check_active_sessions() is True
+
+    def test_resume_persisted_downloads_requeues_active_batches(self):
+        """Active DB records are requeued by batch and in-progress is reset."""
+        engine = Mock()
+        engine.get_binder.return_value.username = "alice"
+
+        r1 = _make_record(
+            doc_uid="doc-1",
+            doc_name="one.txt",
+            status=DirectDownloadStatus.PENDING,
+            zip_file="batch-a",
+        )
+        r1.uid = 11
+
+        r2 = _make_record(
+            doc_uid="doc-2",
+            doc_name="two.txt",
+            status=DirectDownloadStatus.PAUSED,
+            zip_file="batch-a",
+        )
+        r2.uid = 12
+
+        r3 = _make_record(
+            doc_uid="doc-3",
+            doc_name="three.txt",
+            status=DirectDownloadStatus.IN_PROGRESS,
+            zip_file=None,
+        )
+        r3.uid = 13
+
+        engine.dao.get_direct_downloads.return_value = [r1, r2, r3]
+
+        manager = Mock()
+        manager.engines = {"engine-1": engine}
+
+        worker = DirectDownloadWorker.__new__(DirectDownloadWorker)
+        worker._manager = manager
+        worker._download_queue = Mock()
+        worker._resumed_persisted_downloads = False
+
+        worker.resume_persisted_downloads()
+
+        # One grouped batch + one single-item batch
+        assert worker._download_queue.put.call_count == 2
+
+        engine.dao.update_direct_download_status.assert_called_once_with(
+            13, DirectDownloadStatus.PENDING
+        )
+
+        # Ensure rerun protection
+        worker.resume_persisted_downloads()
+        assert worker._download_queue.put.call_count == 2
+
+    def test_process_batch_reuses_existing_record_uid(self, tmp_path):
+        """Resumed documents should not create duplicate DB rows."""
+        manager = Mock()
+
+        worker = DirectDownloadWorker.__new__(DirectDownloadWorker)
+        worker._manager = manager
+        worker._download_queue = Mock()
+        worker._download_folders = []
+        worker._create_download_record = Mock()
+        worker._is_download_cancelled = Mock(return_value=False)
+        worker._is_single_download_cancelled = Mock(return_value=False)
+        worker._update_download_status = Mock()
+        worker._update_download_path = Mock()
+        worker._process_download = Mock()
+        worker._create_zip_archive = Mock(return_value=None)
+        worker._get_download_record = Mock(return_value=None)
+        worker._get_download_destination = Mock(return_value=tmp_path)
+        worker.batchStarting = Mock()
+        worker.batchStarting.emit = Mock()
+        worker.batchCompleted = Mock()
+        worker.batchCompleted.emit = Mock()
+
+        batch_folder = tmp_path / "download_20260101_000000_000001_abcd1234"
+        batch_folder.mkdir(parents=True, exist_ok=True)
+        worker._create_batch_folder = Mock(return_value=batch_folder)
+
+        docs = [
+            {
+                "server_url": "https://example.com",
+                "user": "alice",
+                "doc_id": "uid-123",
+                "filename": "file.txt",
+                "_record_uid": 42,
+            }
+        ]
+
+        worker._process_batch(docs)
+
+        worker._create_download_record.assert_not_called()
+        worker._update_download_status.assert_called_with(
+            42, DirectDownloadStatus.IN_PROGRESS
+        )
+        worker._process_download.assert_called_once()
+
+    def test_download_file_resumes_from_partial_file(self, tmp_path):
+        """Resume should continue partial files instead of skipping them."""
+        manager = Mock()
+        manager.engines = {}
+
+        worker = DirectDownloadWorker.__new__(DirectDownloadWorker)
+        worker._manager = manager
+        worker._stop = False
+        worker._is_single_download_cancelled = Mock(return_value=False)
+        worker._update_download_progress = Mock()
+        worker._get_download_record = Mock(
+            return_value=_make_record(total_bytes=10, bytes_downloaded=4)
+        )
+
+        target_folder = tmp_path
+        target_file = target_folder / "file.txt"
+        target_file.write_bytes(b"abcd")
+
+        response = Mock()
+        response.status_code = 206
+        response.headers = {"Content-Length": "6"}
+        response.iter_content.return_value = [b"ef", b"gh", b"ij"]
+        response.raise_for_status = Mock()
+        response.close = Mock()
+
+        engine = Mock()
+        engine.remote.client.host = "https://server.test"
+        engine.remote.verification_needed = True
+        engine.remote.client.request.return_value = response
+        manager.engines = {"engine-1": engine}
+
+        worker._download_file(
+            engine,
+            "https://server.test",
+            "/nuxeo/download/file.txt",
+            "file.txt",
+            target_folder,
+            record_uid=1,
+        )
+
+        _, kwargs = engine.remote.client.request.call_args
+        assert kwargs["headers"] == {"Range": "bytes=4-"}
+        assert target_file.read_bytes() == b"abcdefghij"
+
+    def test_download_file_skips_when_existing_file_is_complete(self, tmp_path):
+        """Resume should skip when existing file size already matches total bytes."""
+        manager = Mock()
+        manager.engines = {}
+
+        worker = DirectDownloadWorker.__new__(DirectDownloadWorker)
+        worker._manager = manager
+        worker._stop = False
+        worker._is_single_download_cancelled = Mock(return_value=False)
+        worker._update_download_progress = Mock()
+        worker._get_download_record = Mock(
+            return_value=_make_record(total_bytes=10, bytes_downloaded=10)
+        )
+
+        target_folder = tmp_path
+        target_file = target_folder / "file.txt"
+        target_file.write_bytes(b"0123456789")
+
+        engine = Mock()
+        engine.remote.client.host = "https://server.test"
+        engine.remote.verification_needed = True
+
+        worker._download_file(
+            engine,
+            "https://server.test",
+            "/nuxeo/download/file.txt",
+            "file.txt",
+            target_folder,
+            record_uid=1,
+        )
+
+        engine.remote.client.request.assert_not_called()
+
+    def test_download_file_folder_child_416_treated_as_complete(self, tmp_path):
+        """Folder child file resume should treat 416 range EOF as complete."""
+        manager = Mock()
+        manager.engines = {}
+
+        worker = DirectDownloadWorker.__new__(DirectDownloadWorker)
+        worker._manager = manager
+        worker._stop = False
+        worker._is_single_download_cancelled = Mock(return_value=False)
+        worker._update_download_progress = Mock()
+
+        folder_record = _make_record(is_folder=True, total_bytes=1024)
+        worker._get_download_record = Mock(return_value=folder_record)
+
+        target_folder = tmp_path
+        target_file = target_folder / "child.txt"
+        target_file.write_bytes(b"complete")
+
+        response = Mock()
+        response.status_code = 416
+        response.headers = {}
+        response.raise_for_status = Mock()
+        response.close = Mock()
+
+        engine = Mock()
+        engine.remote.client.host = "https://server.test"
+        engine.remote.verification_needed = True
+        engine.remote.client.request.return_value = response
+
+        worker._download_file(
+            engine,
+            "https://server.test",
+            "/nuxeo/download/child.txt",
+            "child.txt",
+            target_folder,
+            record_uid=1,
+        )
+
+        _, kwargs = engine.remote.client.request.call_args
+        assert kwargs["headers"] == {"Range": "bytes=8-"}
+        response.raise_for_status.assert_not_called()
+        assert target_file.read_bytes() == b"complete"
+
+    def test_download_file_folder_progress_uses_aggregate_total(self, tmp_path):
+        """Folder child progress should preserve aggregate DB totals and emit per-file monitoring totals."""
+        manager = Mock()
+        manager.engines = {}
+
+        worker = DirectDownloadWorker.__new__(DirectDownloadWorker)
+        worker._manager = manager
+        worker._stop = False
+        worker._is_single_download_cancelled = Mock(return_value=False)
+        worker._update_download_progress = Mock()
+        worker.downloadProgress = Mock()
+        worker.downloadProgress.emit = Mock()
+
+        folder_record = _make_record(
+            is_folder=True,
+            total_bytes=100,
+            bytes_downloaded=30,
+        )
+        worker._get_download_record = Mock(return_value=folder_record)
+
+        response = Mock()
+        response.status_code = 200
+        response.headers = {"Content-Length": "10"}
+        response.iter_content.return_value = [b"12345", b"67890"]
+        response.raise_for_status = Mock()
+        response.close = Mock()
+
+        engine = Mock()
+        engine.remote.client.host = "https://server.test"
+        engine.remote.verification_needed = True
+        engine.remote.client.request.return_value = response
+        manager.engines = {"engine-1": engine}
+
+        original_update_progress = (
+            DirectDownloadWorker._update_download_progress.__get__(
+                worker, DirectDownloadWorker
+            )
+        )
+        worker._update_download_progress = original_update_progress
+
+        worker._download_file(
+            engine,
+            "https://server.test",
+            "/nuxeo/download/child.txt",
+            "child.txt",
+            tmp_path,
+            record_uid=1,
+        )
+
+        engine.dao.update_direct_download_progress.assert_any_call(1, 40, 100, 40.0)
+        worker.downloadProgress.emit.assert_any_call(
+            {
+                "uid": 1,
+                "doc_name": "child.txt",
+                "progress": 100.0,
+                "bytes_downloaded": 10,
+                "total_bytes": 10,
+            }
+        )
+
+    def test_process_batch_does_not_finalize_when_active_sessions_exist(self, tmp_path):
+        """Paused current-batch sessions must not be archived or marked completed."""
+        manager = Mock()
+        manager.engines = {}
+
+        worker = DirectDownloadWorker.__new__(DirectDownloadWorker)
+        worker._manager = manager
+        worker._download_queue = Mock()
+        worker._download_folders = []
+        worker._create_download_record = Mock()
+        worker._is_download_cancelled = Mock(return_value=False)
+        worker._is_single_download_cancelled = Mock(return_value=False)
+        worker._update_download_status = Mock()
+        worker._update_download_path = Mock()
+        worker._process_download = Mock()
+        worker._create_zip_archive = Mock(
+            return_value=tmp_path / "should_not_exist.zip"
+        )
+        worker._get_download_record = Mock(
+            return_value=_make_record(status=DirectDownloadStatus.PAUSED)
+        )
+        worker._get_download_destination = Mock(return_value=tmp_path)
+        worker.batchStarting = Mock()
+        worker.batchStarting.emit = Mock()
+        worker.batchCompleted = Mock()
+        worker.batchCompleted.emit = Mock()
+
+        batch_folder = tmp_path / "download_20260101_000000_000001_abcd1234"
+        batch_folder.mkdir(parents=True, exist_ok=True)
+        worker._create_batch_folder = Mock(return_value=batch_folder)
+
+        docs = [
+            {
+                "server_url": "https://example.com",
+                "user": "alice",
+                "doc_id": "uid-123",
+                "filename": "file.txt",
+                "_record_uid": 42,
+            }
+        ]
+
+        worker._process_batch(docs)
+
+        worker._create_zip_archive.assert_not_called()
+        completed_calls = [
+            call
+            for call in worker._update_download_status.call_args_list
+            if len(call.args) >= 2 and call.args[1] == DirectDownloadStatus.COMPLETED
+        ]
+        assert completed_calls == []
+
+    def test_process_batch_finalizes_successful_batch(self, tmp_path):
+        """A successful current batch should archive and complete its records."""
+        manager = Mock()
+        manager.engines = {}
+
+        worker = DirectDownloadWorker.__new__(DirectDownloadWorker)
+        worker._manager = manager
+        worker._download_queue = Mock()
+        worker._download_folders = []
+        worker._create_download_record = Mock()
+        worker._is_download_cancelled = Mock(return_value=False)
+        worker._is_single_download_cancelled = Mock(return_value=False)
+        worker._update_download_status = Mock()
+        worker._update_download_path = Mock()
+        worker._process_download = Mock()
+        worker._get_download_destination = Mock(return_value=tmp_path)
+        worker.batchStarting = Mock()
+        worker.batchStarting.emit = Mock()
+        worker.batchCompleted = Mock()
+        worker.batchCompleted.emit = Mock()
+
+        archive_path = tmp_path / "download_20260101_000000_000001_abcd1234.zip"
+        worker._create_zip_archive = Mock(return_value=archive_path)
+
+        def get_record(uid):
+            record = _make_record(status=DirectDownloadStatus.IN_PROGRESS)
+            record.uid = uid
+            return record
+
+        worker._get_download_record = Mock(side_effect=get_record)
+
+        batch_folder = tmp_path / "download_20260101_000000_000001_abcd1234"
+        batch_folder.mkdir(parents=True, exist_ok=True)
+        worker._create_batch_folder = Mock(return_value=batch_folder)
+
+        docs = [
+            {
+                "server_url": "https://example.com",
+                "user": "alice",
+                "doc_id": "uid-123",
+                "filename": "file.txt",
+                "_record_uid": 42,
+            }
+        ]
+
+        worker._process_batch(docs)
+
+        worker._create_zip_archive.assert_called_once_with(batch_folder)
+        worker._update_download_status.assert_any_call(
+            42,
+            DirectDownloadStatus.COMPLETED,
+            download_path=str(archive_path),
+        )
 
 
 class TestDAODirectDownloadStatus:
@@ -1280,7 +1754,9 @@ class TestGUIApiDirectDownload:
         api.resume_direct_download("engine-1", uid)
 
         record = dao.get_direct_download(uid)
-        assert record.status == DirectDownloadStatus.PENDING
+        # Manual resume from UI sets to IN_PROGRESS (ready to download immediately).
+        # PENDING is only used after app restart when IN_PROGRESS downloads are restarted.
+        assert record.status == DirectDownloadStatus.IN_PROGRESS
 
     def test_cancel_direct_download(self, dao):
         """Test cancel_direct_download API."""
