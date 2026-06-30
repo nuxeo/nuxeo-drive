@@ -126,6 +126,7 @@ def mock_engine(mock_manager, mock_dao, mock_remote, mock_queue_manager, tmp_pat
     engine.force_ui = ""
     engine.server_url = "https://test.nuxeo.com"
     engine.remote_user = "testuser"
+    engine._NO_UUID_SUPPORT = Engine._NO_UUID_SUPPORT
     engine._threads = []
     engine._threadpool = Mock()
     engine._threadpool.start = Mock()
@@ -1846,23 +1847,25 @@ class TestRefreshUserUuid:
         mock_engine.dao.update_config.assert_not_called()
 
     def test_refresh_uuid_no_uuid_returned(self, mock_engine):
-        """Test when resolve_username succeeds but no UUID in mapper."""
+        """Test sentinel persistence when no UUID is available in mapper."""
         mock_engine.remote.client.resolve_username = Mock()
         mock_engine.remote.client.userid_mapper = {}
 
         mock_engine._refresh_user_uuid()
 
         mock_engine.remote.client.resolve_username.assert_called_once_with("testuser")
-        mock_engine.dao.update_config.assert_not_called()
+        mock_engine.dao.update_config.assert_called_once_with(
+            "user_uuid", Engine._NO_UUID_SUPPORT
+        )
 
     def test_refresh_uuid_exception(self, mock_engine):
-        """Test that exceptions are caught and logged without propagation."""
+        """Test that exceptions are propagated to caller."""
         mock_engine.remote.client.resolve_username = Mock(
             side_effect=Exception("network error")
         )
 
-        # Should not raise
-        mock_engine._refresh_user_uuid()
+        with pytest.raises(Exception, match="network error"):
+            mock_engine._refresh_user_uuid()
 
         mock_engine.dao.update_config.assert_not_called()
 
