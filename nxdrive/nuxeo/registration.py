@@ -103,6 +103,43 @@ def _nuxeo_normalize_download_server_path(server_part: str) -> str:
     return normalize_download_server_path(server_part)
 
 
+def _nuxeo_normalize_protocol_url(value: str) -> str:
+    from nxdrive.nuxeo.protocol import normalize_protocol_url
+
+    return normalize_protocol_url(value)
+
+
+def _nuxeo_protocol_token_pattern() -> str:
+    from nxdrive.nuxeo.protocol import TOKEN_PATTERN
+
+    return TOKEN_PATTERN
+
+
+def _nuxeo_get_test_server_url() -> str:
+    """Return the Nuxeo-specific test server URL from the environment."""
+    from os import getenv
+
+    return getenv("NXDRIVE_TEST_NUXEO_URL", "")
+
+
+def _nuxeo_save_auth_callback_params(api, params) -> None:
+    from nxdrive.nuxeo.gui.auth_callback_store import save_auth_callback_params
+
+    save_auth_callback_params(api, params)
+
+
+def _nuxeo_load_auth_callback_params(api):
+    from nxdrive.nuxeo.gui.auth_callback_store import load_auth_callback_params
+
+    return load_auth_callback_params(api)
+
+
+def _nuxeo_clear_auth_callback_params(api) -> None:
+    from nxdrive.nuxeo.gui.auth_callback_store import clear_auth_callback_params
+
+    clear_auth_callback_params(api)
+
+
 register(
     ServerTypeConfig(
         key="NUXEO",
@@ -114,8 +151,11 @@ register(
         direct_edit_class_path="nxdrive.nuxeo.direct_edit.DirectEdit",
         direct_download_class_path="nxdrive.nuxeo.direct_download.DirectDownload",
         workflow_class_path="nxdrive.nuxeo.client.workflow.Workflow",
+        document_info_class_path="nxdrive.nuxeo.objects.NuxeoDocumentInfo",
         oauth2_class_path="nxdrive.nuxeo.auth.oauth2.OAuthentication",
         folders_only_class_path="nxdrive.nuxeo.gui.folders_model.FoldersOnly",
+        new_account_popup_qml_path="nuxeo/gui/qml/NewAccountPopup.qml",
+        relogin_popup_qml_path="drive/data/qml/ReLoginPopup.qml",
         disabled_features=[],
         auth_factory=_nuxeo_auth_factory,
         app_name="Nuxeo Drive",
@@ -132,11 +172,34 @@ register(
         url_patterns=["nuxeo"],
         startup_page="drive_login.jsp",
         browser_startup_page="drive_browser_login.jsp",
+        findersync_agent_template='<?xml version="1.0" encoding="UTF-8"?>'
+        '<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN"'
+        '"http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
+        '<plist version="1.0">'
+        "<dict>"
+        "<key>Label</key>"
+        "<string>org.nuxeo.drive.agentlauncher</string>"
+        "<key>RunAtLoad</key>"
+        "<true/>"
+        "<key>Program</key>"
+        "<string>%s</string>"
+        "</dict>"
+        "</plist>",
+        findersync_bundle_id_suffix="NuxeoFinderSync",
+        findersync_appex_name="NuxeoFinderSync.appex",
+        addon_installer_name="nuxeo-drive-addons.exe",
+        update_site_url="https://community.nuxeo.com/static/drive-updates",
         client_version=nuxeo.__version__,
         debug_init_hook=_nuxeo_debug_init,
         debug_auth_handler=_nuxeo_debug_auth_handler,
         parse_direct_transfer_remote_path=_nuxeo_parse_direct_transfer_remote_path,
         normalize_download_server_path=_nuxeo_normalize_download_server_path,
+        normalize_protocol_url=_nuxeo_normalize_protocol_url,
+        protocol_token_pattern=_nuxeo_protocol_token_pattern(),
+        test_server_url_getter=_nuxeo_get_test_server_url,
+        save_auth_callback_params_hook=_nuxeo_save_auth_callback_params,
+        load_auth_callback_params_hook=_nuxeo_load_auth_callback_params,
+        clear_auth_callback_params_hook=_nuxeo_clear_auth_callback_params,
     ),
     default=True,
 )

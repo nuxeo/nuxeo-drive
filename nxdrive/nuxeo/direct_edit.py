@@ -17,12 +17,15 @@ from nuxeo.exceptions import CorruptedFile, Forbidden, HTTPError, Unauthorized
 from nuxeo.handlers.default import Uploader
 from nuxeo.models import Blob
 from requests import codes
+from watchdog.observers import Observer
 
 from nxdrive.drive.constants import CONNECTION_ERROR
 from nxdrive.drive.direct_edit import DirectEdit as _DirectEditBase
+from nxdrive.drive.direct_edit import DriveFSEventHandler
 from nxdrive.drive.direct_edit import _is_lock_file
 from nxdrive.drive.engine.activity import tooltip
 from nxdrive.drive.exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt
+from nxdrive.drive.feature import Feature
 from nxdrive.drive.metrics.constants import (
     DE_CONFLICT_HIT,
     DE_ERROR_COUNT,
@@ -243,11 +246,26 @@ class DirectEdit(_DirectEditBase):
             )
         except HTTPError as exc:
             if exc.status == 404:
+                info_name = doc_id
+                engine = self._get_engine(server_url, doc_id=doc_id, user=user)
+                if engine:
+                    info = self._get_info(engine, doc_id)
+                    if info:
+                        info_name = info.name
                 self.directEditError[str, list, str].emit(
-                    "DIRECT_EDIT_DOC_NOT_FOUND", [], str(exc.message)
+                    "DIRECT_EDIT_DOC_NOT_FOUND", [info_name], str(exc.message)
                 )
                 return None
             raise exc
+
+    @tooltip("Setup watchdog")
+    def _setup_watchdog(self) -> None:
+        """Nuxeo override for backward-compatible monkeypatch targets."""
+        log.info(f"Watching FS modification on {self._folder!r}")
+        self._event_handler = DriveFSEventHandler(self)
+        self._observer = Observer()
+        self._observer.schedule(self._event_handler, str(self._folder), recursive=True)
+        self._observer.start()
 
     def _lock(self, remote: Remote, uid: str, ref: Any = None, /) -> Any:
         """Lock a document."""

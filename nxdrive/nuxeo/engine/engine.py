@@ -4,11 +4,13 @@ and Nuxeo-specific credential handling.
 """
 
 import os
+import shutil
 from contextlib import suppress
 from datetime import datetime, timezone
 from logging import getLogger
 from pathlib import Path
 from threading import Thread
+from time import sleep
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Type
 
 from nuxeo.exceptions import Forbidden, HTTPError, Unauthorized
@@ -20,6 +22,7 @@ from nxdrive.drive.client.local.base import LocalClientMixin
 from nxdrive.drive.constants import ROOT, WINDOWS, TransferStatus
 from nxdrive.drive.engine.activity import Action, FileAction
 from nxdrive.drive.engine.engine import Engine as _EngineBase
+from nxdrive.drive.engine.engine import State
 from nxdrive.drive.engine.engine import ServerBindingSettings  # noqa: F401 – re-export
 from nxdrive.drive.exceptions import (
     AddonForbiddenError,
@@ -110,6 +113,37 @@ class Engine(_EngineBase):
         )
         self._remote_watcher.updated.connect(self._check_last_sync)
         self._scanPair.connect(self._remote_watcher.scan_pair)
+
+    def set_local_folder_lock(self, path: Path, /) -> None:
+        """Nuxeo override for backward-compatible monkeypatch targets."""
+        self._folder_lock = path
+        log.info(f"Local Folder locking on {path!r}")
+        while self.queue_manager.has_file_processors_on(path):
+            log.debug("Local folder locking wait for file processor to finish")
+            sleep(1)
+        log.info(f"Local Folder lock setup completed on {path!r}")
+
+    def _manage_staled_transfers(self) -> None:
+        """Nuxeo override for backward-compatible monkeypatch targets."""
+        app_has_crashed = State.has_crashed
+        dao = self.dao
+        for nature in ("download", "upload"):
+            meth = getattr(dao, f"get_{nature}s_with_status")
+            for transfer in meth(TransferStatus.ONGOING):
+                if app_has_crashed:
+                    transfer.status = TransferStatus.SUSPENDED
+                    dao.set_transfer_status(nature, transfer)
+                    log.info(f"Updated status of staled {transfer}")
+                else:
+                    is_direct_transfer = (
+                        nature == "upload" and transfer.is_direct_transfer
+                    )
+                    dao.remove_transfer(
+                        nature,
+                        path=transfer.path,
+                        is_direct_transfer=is_direct_transfer,
+                    )
+                    log.info(f"Removed staled {transfer}")
 
     @pyqtSlot()
     def _check_last_sync(self) -> None:

@@ -20,6 +20,9 @@ cwd = os.getcwd()
 tools = os.path.join(cwd, "tools")
 nxdrive = os.path.join(cwd, "nxdrive")
 data = os.path.join(nxdrive, "drive", "data")
+alfresco_qml = os.path.join(nxdrive, "alfresco", "gui", "qml")
+nuxeo_qml = os.path.join(nxdrive, "nuxeo", "gui", "qml")
+supported_server_list = os.path.join(nxdrive, "supported_server_list.txt")
 
 icon = {
     "darwin": os.path.join(tools, "osx", "app_icon.icns"),
@@ -45,7 +48,13 @@ excludes = [
     "yappi",
 ]
 
-data = [(data, "data")]
+data = [
+    (data, "data"),
+    (data, "nxdrive/drive/data"),
+    (supported_server_list, "nxdrive"),
+    (alfresco_qml, "nxdrive/alfresco/gui/qml"),
+    (nuxeo_qml, "nxdrive/nuxeo/gui/qml"),
+]
 migrations = Path(nxdrive, "drive", "dao", "migrations")
 hiddenimports = [
     migration.relative_to(cwd).with_suffix("").as_posix().replace("/", ".")
@@ -65,6 +74,8 @@ hiddenimports += [
     "nxdrive.nuxeo.client.workflow",
     "nxdrive.nuxeo.auth.oauth2",
     "nxdrive.nuxeo.gui.folders_model",
+    "nxdrive.nuxeo.gui.auth_callback_store",
+    "nxdrive.nuxeo.protocol",
     # Alfresco dynamic classes
     "nxdrive.alfresco.engine.engine",
     "nxdrive.alfresco.auth.oauth2",
@@ -139,11 +150,17 @@ coll = COLLECT(exe, a.binaries, a.zipfiles, a.datas, name="ndrive")
 info_plist = {
     "CFBundleName": "NuxeoDrive",
     "CFBundleShortVersionString": version,
-    "CFBundleURLTypes": {
-        "CFBundleURLName": "org.nuxeo.nxdrive.direct-edit",
-        "CFBundleTypeRole": "Editor",
-        "CFBundleURLSchemes": ["nxdrive"],
-    },
+    # CFBundleURLTypes MUST be an array of dicts per Apple's spec
+    # (https://developer.apple.com/documentation/bundleresources/information-property-list/cfbundleurltypes).
+    # If declared as a single dict, macOS LaunchServices silently fails to
+    # deliver nxdrive:// URLs as QFileOpenEvent to the running app.
+    "CFBundleURLTypes": [
+        {
+            "CFBundleURLName": "org.nuxeo.nxdrive.direct-edit",
+            "CFBundleTypeRole": "Editor",
+            "CFBundleURLSchemes": ["nxdrive"],
+        },
+    ],
     "LSUIElement": True,  # Implies LSBackgroundOnly, no icon in the Dock
 }
 

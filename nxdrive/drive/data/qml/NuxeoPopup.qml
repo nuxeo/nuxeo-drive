@@ -5,10 +5,10 @@ Popup {
     id: control
     property string title
 
-    x: (parent.width - width) / 2
-    y: (parent.height - height) / 2
+    anchors.centerIn: Overlay.overlay
+    modal: true
     focus: true
-    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+    closePolicy: Popup.CloseOnEscape
 
     background: ShadowRectangle {
         Rectangle {

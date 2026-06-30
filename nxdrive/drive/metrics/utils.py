@@ -50,6 +50,7 @@ def current_os(*, full: bool = False) -> str:
 @lru_cache(maxsize=1)
 def user_agent() -> str:
     """Minimal user agent for all HTTP requests.
-    Example: Nuxeo-Drive/5.1.0 (macOS 10.15)
+    Example: Drive/5.1.0 (macOS 10.15)
     """
-    return f"{APP_NAME.replace(' ', '-')}/{__version__} ({current_os()})"
+    app_name = APP_NAME.replace(" ", "-")
+    return f"{app_name}/{__version__} ({current_os()})"

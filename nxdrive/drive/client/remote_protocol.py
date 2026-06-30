@@ -1,9 +1,8 @@
 """Protocol (structural type) for remote sync clients.
 
-Both ``nxdrive.nuxeo.client.remote_client.Remote`` and
-``nxdrive.alfresco.client.remote.AlfrescoRemote`` implement this
-interface so that the ``Processor``, ``Engine``, and watcher code
-can work with either without caring about the server type.
+Each server-type package provides an implementation of this interface
+so that the ``Processor``, ``Engine``, and watcher code
+can work with any server type without caring about specifics.
 """
 
 from pathlib import Path

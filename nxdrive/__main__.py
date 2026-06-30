@@ -3,6 +3,8 @@ In this file we cannot use a relative import here, else Drive will not start whe
 See https://github.com/pyinstaller/pyinstaller/issues/2560
 """
 
+import nxdrive  # noqa: F401  # Ensure server-type registrations run before startup checks.
+
 import locale
 import os
 import platform

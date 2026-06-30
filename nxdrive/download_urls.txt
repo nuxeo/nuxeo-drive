@@ -1,0 +1,6 @@
+# Download and update URLs per server type
+# Format: server_key = url
+# Used by options.py at runtime to set the default update site URL
+
+nuxeo_update_site_url = https://community.nuxeo.com/static/drive-updates
+alfresco_update_site_url = https://community.nuxeo.com/static/drive-updates

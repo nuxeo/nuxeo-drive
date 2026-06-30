@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from nxdrive.drive.constants import DirectDownloadStatus
 from nxdrive.drive.direct_download import DirectDownload as _DirectDownloadBase
 from nxdrive.drive.objects import DirectDownload as DirectDownloadRecord
+from nxdrive.drive.options import Options  # backward compatibility for tests
 from nxdrive.drive.utils import safe_filename
 
 if TYPE_CHECKING:
@@ -32,6 +33,23 @@ class DirectDownload(_DirectDownloadBase):
     ``nxdrive.drive.direct_download.DirectDownload`` and overrides only
     the server-specific operations (NXQL queries, Nuxeo blob download, etc.).
     """
+
+    def _get_download_destination(self) -> Path:
+        """Backward-compatible destination resolution for patched tests."""
+        import os
+
+        user_downloads = Path.home() / "Downloads"
+
+        configured_folder = Options.download_folder
+        if configured_folder:
+            configured_path = Path(configured_folder)
+            if configured_path.exists() and os.access(configured_path, os.W_OK):
+                return configured_path
+
+        if not user_downloads.exists():
+            user_downloads.mkdir(parents=True, exist_ok=True)
+
+        return user_downloads
 
     def _create_download_record(
         self,

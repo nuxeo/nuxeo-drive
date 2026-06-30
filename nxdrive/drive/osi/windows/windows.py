@@ -85,8 +85,13 @@ class WindowsIntegration(AbstractOSIntegration):
         log.debug("Clipboard data set successfully")
 
     @pyqtSlot(result=bool)
-    def install_addons(self, *, setup: str = "nuxeo-drive-addons.exe") -> bool:
+    def install_addons(self, *, setup: str = None) -> bool:
         """Install addons using the installer shipped within the main installer."""
+        from .windows_config import get_addon_installer_name
+        
+        if setup is None:
+            setup = get_addon_installer_name()
+        
         installer = Path(sys.executable).parent / setup
         if not installer.is_file():
             log.warning(f"Addons installer {installer!r} not found.")

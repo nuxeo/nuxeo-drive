@@ -25,10 +25,13 @@ class ServerTypeConfig:
         ""  # e.g. "nxdrive.nuxeo.direct_download.DirectDownload"
     )
     workflow_class_path: str = ""  # e.g. "nxdrive.nuxeo.client.workflow.Workflow"
+    document_info_class_path: str = ""  # e.g. "nxdrive.nuxeo.objects.NuxeoDocumentInfo"
     oauth2_class_path: str = ""  # e.g. "nxdrive.nuxeo.auth.oauth2.OAuthentication"
     folders_only_class_path: str = (
         ""  # e.g. "nxdrive.nuxeo.gui.folders_model.FoldersOnly"
     )
+    new_account_popup_qml_path: str = ""  # e.g. "nuxeo/gui/qml/NewAccountPopup.qml"
+    relogin_popup_qml_path: str = ""  # e.g. "alfresco/gui/qml/ReLoginPopup.qml"
     disabled_features: List[str] = field(default_factory=list)
     auth_factory: Optional[Callable[..., Any]] = None
 
@@ -64,6 +67,13 @@ class ServerTypeConfig:
     # Version string of the underlying Python client library (e.g. nuxeo.__version__)
     client_version: str = ""
 
+    # Platform-specific configurations
+    findersync_agent_template: str = ""  # macOS launch agent plist template
+    findersync_bundle_id_suffix: str = ""  # e.g. "NuxeoFinderSync", "AlfrescoFinderSync"
+    findersync_appex_name: str = ""  # e.g. "NuxeoFinderSync.appex", "AlfrescoFinderSync.appex"
+    addon_installer_name: str = ""  # Windows addon installer exe name
+    update_site_url: str = ""  # Update server URL for this server type
+
     # Hook called when debug mode is enabled (e.g. to set nuxeo.constants.CHECK_PARAMS)
     debug_init_hook: Optional[Callable[[], None]] = None
 
@@ -93,6 +103,29 @@ class ServerTypeConfig:
     # Signature: normalize_download_server_path(server_part: str) -> str
     normalize_download_server_path: Optional[Callable[[str], str]] = None
 
+    # Hook used by protocol URL parsing to normalize/repair incoming protocol
+    # callback URLs before regex matching.
+    # Signature: normalize_protocol_url(url: str) -> str
+    normalize_protocol_url: Optional[Callable[[str], str]] = None
+
+    # Regex fragment used for token callback payload matching.
+    # Example: r"[0-9a-fA-F\\-]+" or r"[^/]+"
+    protocol_token_pattern: str = ""
+
+    # Hook that returns the server-type-specific test server URL env-var value.
+    # Used by QMLDriveApi.default_server_url_value() for developer convenience.
+    # Signature: test_server_url_getter() -> str
+    test_server_url_getter: Optional[Callable[[], str]] = None
+
+    # Hooks to persist/recover browser-auth callback context.
+    # Signatures:
+    #   save_auth_callback_params(api, params: Dict[str, str]) -> None
+    #   load_auth_callback_params(api) -> Dict[str, str]
+    #   clear_auth_callback_params(api) -> None
+    save_auth_callback_params_hook: Optional[Callable[..., None]] = None
+    load_auth_callback_params_hook: Optional[Callable[..., Dict[str, str]]] = None
+    clear_auth_callback_params_hook: Optional[Callable[..., None]] = None
+
 
 # ---- internal state --------------------------------------------------------
 
@@ -113,7 +146,7 @@ def register(config: ServerTypeConfig, *, default: bool = False) -> None:
 
 def get(key: str) -> ServerTypeConfig:
     """Return the config for *key*, falling back to the default."""
-    return _registry.get(key, _registry[_default_key])
+    return _registry.get(key, _registry[get_default_key()])
 
 
 def get_default_key() -> str:
@@ -146,7 +179,7 @@ def get_by_engine_type(engine_type: str) -> ServerTypeConfig:
     for config in _registry.values():
         if config.engine_type == engine_type:
             return config
-    return _registry[_default_key]
+    return _registry[get_default_key()]
 
 
 def detect_by_url(url: str) -> ServerTypeConfig:
@@ -168,7 +201,7 @@ def detect_by_url(url: str) -> ServerTypeConfig:
     for config in _registry.values():
         if config.is_url_fallback:
             return config
-    return _registry[_default_key]
+    return _registry[get_default_key()]
 
 
 def load_class(class_path: str) -> Optional[type]:

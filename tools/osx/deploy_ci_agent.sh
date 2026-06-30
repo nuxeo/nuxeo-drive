@@ -79,6 +79,62 @@ build_extension() {
     rm -rf "${extension_path}/build"
 }
 
+cleanup_local_lsdb_state() {
+    # Local-build only: prevent LaunchServices from routing nxdrive:// to
+    # stale `org.nuxeo.drive` bundles left over from prior test installs
+    # (mounted /Volumes/Nuxeo Drive*, ~/.Trash copies, old DMG mounts, etc.).
+    # This does NOT touch the DMG/.app being built, signing, or notarization.
+    # CI is skipped: ephemeral runners have no stale state.
+
+    if [ "${GITHUB_WORKSPACE:-unset}" != "unset" ]; then
+        return
+    fi
+
+    local app="/Applications/Nuxeo Drive.app"
+    local lsreg="/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
+
+    if [ ! -x "${lsreg}" ]; then
+        return
+    fi
+
+    echo ">>> [local] Cleaning LaunchServices state for org.nuxeo.drive"
+
+    # Quit any running instance to release its Apple Event registration.
+    pkill -f "Nuxeo Drive.app/Contents/MacOS/ndrive" 2>/dev/null || true
+    sleep 1
+
+    # Detach any mounted Nuxeo Drive DMG volumes.
+    for v in /Volumes/Nuxeo\ Drive*; do
+        [ -d "${v}" ] || continue
+        hdiutil detach "${v}" -force >/dev/null 2>&1 \
+            && echo ">>> [local]   detached: ${v}"
+    done
+
+    # Prune every stale org.nuxeo.drive bundle from the LaunchServices DB,
+    # keeping only the canonical /Applications/Nuxeo Drive.app (if installed).
+    local pass cnt
+    for pass in 1 2 3; do
+        "${lsreg}" -dump 2>/dev/null | awk '
+            /^[ \t]*path:[ \t]*(.+)\(0x[0-9a-f]+\)$/ {
+                match($0, /path:[ \t]*/); raw=substr($0, RSTART+RLENGTH);
+                sub(/[ \t]*\(0x[0-9a-f]+\)[ \t]*$/, "", raw); p=raw; next
+            }
+            /CFBundleIdentifier = "org\.nuxeo\.drive"/ { if (p) print p }
+        ' | sort -u | grep -v "^${app}$" > /tmp/nxd_stale.txt || true
+        cnt=$(wc -l < /tmp/nxd_stale.txt | tr -d ' ')
+        [ "${cnt}" -eq 0 ] && break
+        echo ">>> [local]   pass ${pass}: ${cnt} stale LSDB entries"
+        while IFS= read -r p; do "${lsreg}" -u "${p}" >/dev/null 2>&1 || true; done < /tmp/nxd_stale.txt
+    done
+    rm -f /tmp/nxd_stale.txt
+
+    # Re-register the canonical install (if present) so it's the preferred handler.
+    if [ -d "${app}" ]; then
+        "${lsreg}" -f "${app}" >/dev/null 2>&1 || true
+        echo ">>> [local]   re-registered: ${app}"
+    fi
+}
+
 create_package() {
     # Create the final DMG
     local app_name="Nuxeo Drive"
@@ -92,6 +148,10 @@ create_package() {
     local entitlements="${extension_path}/NuxeoFinderSync/NuxeoFinderSync.entitlements"
     local generated_ds_store="${WORKSPACE_DRIVE}/tools/osx/generated_DS_Store"
     local app_version
+
+    # Local-build only: prune stale LaunchServices state before producing
+    # the new DMG. No-op on CI. See cleanup_local_lsdb_state().
+    cleanup_local_lsdb_state
 
     build_extension
     echo ">>> [package] Adding the extension to the package"

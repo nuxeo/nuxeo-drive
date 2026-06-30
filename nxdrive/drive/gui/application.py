@@ -14,15 +14,7 @@ from urllib.parse import unquote_plus, urlparse
 
 from nxdrive.drive import server_type as _st
 from nxdrive.drive.behavior import Behavior
-from nxdrive.drive.constants import (
-    APP_NAME,
-    BUNDLE_IDENTIFIER,
-    COMPANY,
-    LINUX,
-    MAC,
-    WINDOWS,
-    DelAction,
-)
+from nxdrive.drive.constants import APP_NAME, COMPANY, LINUX, MAC, WINDOWS, DelAction
 from nxdrive.drive.dao.engine import EngineDAO
 from nxdrive.drive.engine.activity import Action
 from nxdrive.drive.engine.engine import Engine
@@ -475,7 +467,7 @@ class Application(QApplication):
         feature.enabled = value
         self.manager.reload_client_global_headers()
 
-        if feature.restart_needed and value:
+        if feature.restart_needed:
             self.manager.restartNeeded.emit()
 
         if feature == self.tasks_management_feature_model:
@@ -486,8 +478,13 @@ class Application(QApplication):
             else:
                 # clean user_task_list if we are disabling the tasks_management feature
                 self.added_user_engine_list = []
-                if hasattr(self, "_workflow_cls") and self._workflow_cls:
-                    self._workflow_cls.user_task_list = {}
+                workflow_cls = self.__dict__.get("_workflow_cls")
+                if workflow_cls:
+                    workflow_cls.user_task_list = {}
+                else:
+                    from nxdrive.drive.client.workflow import Workflow
+
+                    Workflow.user_task_list = {}
                 self.manager.stop_workflow_worker()
 
     def _center_on_screen(self, window: QQuickView, /) -> None:
@@ -542,6 +539,11 @@ class Application(QApplication):
     def _fill_qml_context(self, context: QQmlContext, /) -> None:
         """Fill the context of a QML element with the necessary resources."""
 
+        log.info(
+            "Registered server types: %s (default: %s)",
+            list(_st.all_keys()),
+            _st.get_default_key(),
+        )
         context.setContextProperty(
             "ActiveDirectDownloadModel", self.active_direct_download_model
         )
@@ -576,6 +578,12 @@ class Application(QApplication):
         context.setContextProperty("isFrozen", Options.is_frozen)
         context.setContextProperty("APP_NAME", APP_NAME)
         context.setContextProperty("SERVER_TYPE", Options.server_type)
+        context.setContextProperty(
+            "serverNewAccountPopupUrl", self._resolve_server_qml_url("new_account")
+        )
+        context.setContextProperty(
+            "serverReloginPopupUrl", self._resolve_server_qml_url("relogin")
+        )
         context.setContextProperty("LINUX", LINUX)
         context.setContextProperty("WINDOWS", WINDOWS)
         context.setContextProperty(
@@ -668,6 +676,54 @@ class Application(QApplication):
 
         for name, value in colors.items():
             context.setContextProperty(name, value)
+
+    def _resolve_server_qml_url(self, popup_type: str, /) -> str:
+        """Resolve a server-specific popup QML file URL, with drive fallback."""
+        config = _st.get(Options.server_type or _st.get_default_key())
+        log.info(
+            "Resolving %s popup: server_type=%s, config.key=%s, "
+            "configured path=%r",
+            popup_type,
+            Options.server_type,
+            config.key,
+            (
+                config.new_account_popup_qml_path
+                if popup_type == "new_account"
+                else config.relogin_popup_qml_path
+            ),
+        )
+        rel_path = (
+            config.new_account_popup_qml_path
+            if popup_type == "new_account"
+            else config.relogin_popup_qml_path
+        )
+        if rel_path:
+            nxdrive_root = Path(__file__).resolve().parents[2]
+            path = nxdrive_root / rel_path
+            log.info(
+                "Checking for server-specific %s popup at %s (exists=%s)",
+                popup_type,
+                path,
+                path.is_file(),
+            )
+            if path.is_file():
+                url = QUrl.fromLocalFile(str(path)).toString()
+                log.info("Using server-specific %s popup: %s", popup_type, url)
+                return url
+            log.error(
+                "Configured %s popup not found for server_type=%s at %s",
+                popup_type,
+                Options.server_type,
+                path,
+            )
+            if popup_type == "new_account":
+                # Do not fall back to the generic drive popup for account creation.
+                return ""
+
+        fallback = "NewAccountPopup.qml" if popup_type == "new_account" else "ReLoginPopup.qml"
+        fallback_path = find_resource("qml", file=fallback)
+        log.info("Using fallback %s popup: %s", popup_type, fallback_path)
+        return QUrl.fromLocalFile(str(fallback_path)).toString()
 
     def _window_root(self, window: QWindow, /) -> QWindow:
         if WINDOWS:
@@ -1762,12 +1818,32 @@ class Application(QApplication):
 
     def event(self, event: QEvent, /) -> bool:
         """Handle URL scheme events under macOS."""
-        url = getattr(event, "url", None)
-        if not url:
+        raw_url = ""
+        raw_file = ""
+
+        # For macOS URL-scheme callbacks, Qt can expose the payload either
+        # as event.url() or event.file() depending on how LaunchServices
+        # delivered the QFileOpenEvent.
+        with suppress(Exception):
+            if callable(getattr(event, "url", None)):
+                raw_url = event.url().toString()
+
+        with suppress(Exception):
+            if callable(getattr(event, "file", None)):
+                raw_file = event.file()
+
+        candidate = raw_url or raw_file
+        if not candidate:
             # This is not an event for us!
             return super().event(event)
 
-        final_url = unquote_plus(event.url().toString())
+        final_url = unquote_plus(candidate)
+        log.info(
+            "Received macOS FileOpen event: url=%r file=%r final=%r",
+            raw_url,
+            raw_file,
+            final_url,
+        )
         try:
             return self._handle_nxdrive_url(final_url)
         except Exception:
@@ -1788,8 +1864,16 @@ class Application(QApplication):
     def _handle_nxdrive_url(self, url: str, /) -> bool:
         """Handle an nxdrive protocol URL."""
 
-        info = parse_protocol_url(url)
+        log.info(f"Received protocol callback URL={url!r}")
+
+        try:
+            info = parse_protocol_url(url)
+        except Exception:
+            log.exception(f"Failed to parse protocol callback URL={url!r}")
+            return False
+
         if not info:
+            log.info(f"Ignoring unsupported protocol callback URL={url!r}")
             return False
 
         # Handle "file://" and regular path
@@ -1886,7 +1970,8 @@ class Application(QApplication):
         pipes. We just need to connect a handler to the newConnection signal
         to process the URLs.
         """
-        named_pipe = f"{BUNDLE_IDENTIFIER}.protocol.{os.getpid()}"
+        config = _st.get(Options.server_type or _st.get_default_key())
+        named_pipe = f"{config.bundle_identifier}.protocol.{os.getpid()}"
         server = QLocalServer()
         server.setSocketOptions(qt.WorldAccessOption)
         server.newConnection.connect(self._handle_connection)

@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 from . import __version__
-from .constants import APP_NAME, BUNDLE_IDENTIFIER, DEFAULT_CHANNEL, LINUX, WINDOWS
+from .constants import APP_NAME, DEFAULT_CHANNEL, LINUX, WINDOWS
 from .logging_config import configure
 from .options import DEFAULT_LOG_LEVEL_CONSOLE, DEFAULT_LOG_LEVEL_FILE, Options
 from .osi import AbstractOSIntegration
@@ -397,7 +397,8 @@ class CliHandler:
 
         filtered_args = []
         for arg in argv:
-            if arg.startswith("nxdrive://"):
+            # Browsers may invoke callbacks as nxdrive://..., nxdrive:/..., or nxdrive:...
+            if arg.lower().startswith("nxdrive:"):
                 Options.set("protocol_url", arg, setter="cli")
                 continue
             if not arg.startswith("-"):
@@ -656,24 +657,125 @@ class CliHandler:
                 return
 
     def _pick_server_type(self) -> None:
-        """Show a combined first-run dialog: server type + metrics consent.
+        """Prompt the user for a server type on a fresh install, then bootstrap.
 
-        This must run BEFORE the Manager is created, because the Manager
-        creates the home directory and database.  The chosen server type
-        determines which home directory to use.
+        Platform notes
+        --------------
+        On macOS, this MUST NOT create a temporary ``QApplication``. Qt
+        registers its ``NSAppleEventManager`` handler for
+        ``kInternetEventClass/kAEGetURL`` during
+        ``_QCocoaApplicationDelegate.applicationWillFinishLaunching:``,
+        which fires only the **first** time ``NSApp`` runs. A throwaway
+        ``QApplication`` here would consume that one-shot setup; when
+        the real ``Application`` is constructed afterwards the handler
+        is gone and ``nxdrive://`` callbacks never reach
+        ``Application.event()``. We therefore drive the picker via
+        ``osascript`` (a separate process) on macOS, keeping the
+        eventual ``QApplication`` in the real ``Application`` instance
+        the one and only one in this process.
+
+        On Windows/Linux the Qt dialog stays — those platforms don't
+        share the AppKit handoff issue.
+
+        Metrics consent (sentry/analytics) is intentionally NOT prompted
+        here. It is already prompted by
+        ``Application.show_metrics_acceptance()`` inside the real
+        ``QApplication`` event loop on first launch, exactly like
+        before the restructuring.
         """
         from nxdrive.drive import server_type as _st
-        from nxdrive.drive.constants import COMPANY, refresh_branding
+        from nxdrive.drive.constants import refresh_branding
         from nxdrive.drive.feature import apply_server_type_restrictions
 
-        use_analytics = False
-        use_sentry = False
+        supported = self._load_supported_server_keys()
+        if not supported:
+            supported = [_st.get_default_key()]
 
+        if sys.platform == "darwin":
+            chosen = self._pick_server_type_macos(supported)
+        else:
+            chosen = self._pick_server_type_qt(supported)
+
+        server_type = chosen if chosen in supported else supported[0]
+
+        Options.server_type = server_type
+        config = _st.get(server_type)
+        Options.nxdrive_home = Path.home() / config.home_dir
+
+        apply_server_type_restrictions(server_type)
+        refresh_branding(server_type)
+
+        Options.nxdrive_home.mkdir(parents=True, exist_ok=True)
+
+        log.info(
+            f"First-run setup: server_type={server_type}, "
+            f"home={Options.nxdrive_home}"
+        )
+
+    @staticmethod
+    def _pick_server_type_macos(choices: List[str]) -> Optional[str]:
+        """macOS picker using ``osascript`` — no ``QApplication`` created.
+
+        Returns the chosen key, or ``None`` if the user cancelled or the
+        AppleScript failed. The caller falls back to ``choices[0]`` in
+        that case.
+        """
+        import subprocess
+
+        if not choices:
+            return None
+
+        items = ", ".join(f'"{c}"' for c in choices)
+        default = f'"{choices[0]}"'
+        # ``choose from list`` returns the selected text, or boolean
+        # ``false`` if the user clicked Cancel. We coerce that into an
+        # empty string so the caller can fall back to the default.
+        script = (
+            f"set chosen to choose from list {{{items}}} "
+            f'with prompt "Select server type:" '
+            f"default items {{{default}}} "
+            f'OK button name "Apply" '
+            f'cancel button name "Cancel"\n'
+            f"if chosen is false then\n"
+            f'    return ""\n'
+            f"else\n"
+            f"    return item 1 of chosen as text\n"
+            f"end if"
+        )
+        try:
+            result = subprocess.run(
+                ["/usr/bin/osascript", "-e", script],
+                capture_output=True,
+                text=True,
+                timeout=600,
+            )
+        except Exception:
+            log.exception("osascript server-type picker failed to launch")
+            return None
+
+        out = (result.stdout or "").strip()
+        if not out:
+            log.info("Server-type picker cancelled or returned empty")
+            return None
+        if out not in choices:
+            log.warning(
+                f"osascript returned unexpected server type {out!r}; "
+                f"expected one of {choices!r}"
+            )
+            return None
+        return out
+
+    @staticmethod
+    def _pick_server_type_qt(choices: List[str]) -> Optional[str]:
+        """Windows/Linux picker using a Qt dialog.
+
+        Safe on non-macOS because those platforms do not rely on
+        ``applicationWillFinishLaunching:`` for URL scheme dispatch.
+        """
         try:
             from nxdrive.drive.qt import constants as qt
             from nxdrive.drive.qt.imports import (
                 QApplication,
-                QCheckBox,
                 QComboBox,
                 QDialog,
                 QDialogButtonBox,
@@ -688,83 +790,28 @@ class CliHandler:
             dialog.setWindowTitle("Drive — First Run Setup")
             layout = QVBoxLayout()
 
-            # --- Server type section ---
-            combo_layout = QHBoxLayout()
-            combo_label = QLabel("Server type:")
+            row = QHBoxLayout()
+            row.addWidget(QLabel("Server type:"))
             combo = QComboBox()
-            for key in self._load_supported_server_keys():
+            for key in choices:
                 combo.addItem(key, key)
-            combo_layout.addWidget(combo_label)
-            combo_layout.addWidget(combo)
-            layout.addLayout(combo_layout)
+            row.addWidget(combo)
+            layout.addLayout(row)
 
-            # --- Spacer ---
-            layout.addSpacing(10)
-
-            # --- Metrics section ---
-            metrics_label = QLabel(
-                f"To improve your experience, in case of crash or bug, "
-                f"technical reports can be shared with {COMPANY} developers "
-                f"and support automatically. <b>No personal data will ever "
-                f"be shared</b>."
-            )
-            metrics_label.setWordWrap(True)
-            layout.addWidget(metrics_label)
-
-            cb_sentry = QCheckBox(
-                "Allow anonymous bug reports "
-                "(might include username and document paths)"
-            )
-            layout.addWidget(cb_sentry)
-
-            cb_analytics = QCheckBox("Allow advanced analytics")
-            layout.addWidget(cb_analytics)
-
-            # --- Apply button ---
             buttons = QDialogButtonBox()
             buttons.setStandardButtons(qt.Apply)
             buttons.clicked.connect(dialog.accept)
             layout.addWidget(buttons)
 
             dialog.setLayout(layout)
-            dialog.resize(450, 280)
+            dialog.resize(380, 120)
             dialog.exec()
 
-            server_type = combo.currentData()
-            use_sentry = cb_sentry.isChecked()
-            use_analytics = cb_analytics.isChecked()
+            value = combo.currentData()
+            return str(value) if value else None
         except Exception:
-            log.warning("Could not show first-run dialog, using defaults")
-            supported = self._load_supported_server_keys()
-            server_type = supported[0] if supported else _st.get_default_key()
-
-        # Apply server type selection
-        Options.server_type = server_type
-        config = _st.get(server_type)
-        Options.nxdrive_home = Path.home() / config.home_dir
-
-        apply_server_type_restrictions(server_type)
-        refresh_branding(server_type)
-
-        # Apply metrics selection
-        Options.use_analytics = use_analytics
-        Options.use_sentry = use_sentry
-
-        # Write metrics.state so show_metrics_acceptance() is skipped later
-        home = Options.nxdrive_home
-        home.mkdir(parents=True, exist_ok=True)
-        states = []
-        if use_analytics:
-            states.append("analytics")
-        if use_sentry:
-            states.append("sentry")
-        (home / "metrics.state").write_text("\n".join(states), encoding="utf-8")
-
-        log.info(
-            f"First-run setup: server_type={server_type}, "
-            f"home={Options.nxdrive_home}, "
-            f"analytics={use_analytics}, sentry={use_sentry}"
-        )
+            log.exception("Qt server-type picker failed; falling back to default")
+            return None
 
     def get_manager(self) -> "Manager":
         from nxdrive.drive.manager import Manager  # noqa
@@ -861,8 +908,10 @@ class CliHandler:
     def _send_to_running_instance(self, payload: bytes, pid: int, /) -> bool:
         from .qt import constants as qt
         from .qt.imports import QByteArray, QLocalSocket
+        from nxdrive.drive import server_type as _st
 
-        named_pipe = f"{BUNDLE_IDENTIFIER}.protocol.{pid}"
+        config = _st.get(Options.server_type or _st.get_default_key())
+        named_pipe = f"{config.bundle_identifier}.protocol.{pid}"
         log.debug(
             f"Opening a local socket to the running instance on {named_pipe} "
             f"(payload={self.redact_payload(payload)!r})"

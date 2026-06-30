@@ -83,6 +83,22 @@ class DocumentInfo:
     permissions: Optional[List[str]]  # permissions
 
 
+def __getattr__(name: str) -> Any:
+    """Lazy compatibility exports for legacy imports.
+
+    ``NuxeoDocumentInfo`` is resolved from the default server-type config
+    instead of importing any server package directly from ``drive``.
+    """
+    if name != "NuxeoDocumentInfo":
+        raise AttributeError(name)
+
+    from nxdrive.drive import server_type as _st
+
+    config = _st.get(_st.get_default_key())
+    klass = _st.load_class(config.document_info_class_path)
+    return klass or DocumentInfo
+
+
 # Data Transfer Object for remote file info
 @dataclass
 class RemoteFileInfo:
@@ -436,3 +452,4 @@ class SubTypeEnricher:
             )
 
         return SubTypeEnricher(uid, parent_uid, path, facets, props)
+

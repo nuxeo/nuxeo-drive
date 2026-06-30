@@ -57,6 +57,9 @@ __copyright__ = """
 import importlib
 import pkgutil
 import sys
+from contextlib import suppress
+from pathlib import Path
+from typing import Any
 
 _discovered = set()
 if not getattr(sys, "frozen", False):
@@ -68,10 +71,59 @@ if not getattr(sys, "frozen", False):
             except ModuleNotFoundError:
                 pass  # package has no registration – skip
 
+
+def _supported_packages() -> tuple[str, ...]:
+    """Return server package names from supported_server_list.txt.
+
+    Keys in the file are uppercase server keys (e.g. NUXEO, ALFRESCO).
+    They map to lowercase package names in nxdrive/.
+    """
+
+    supported_file = Path(__file__).resolve().with_name("supported_server_list.txt")
+    with suppress(OSError):
+        keys = [
+            line.strip().lower()
+            for line in supported_file.read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.strip().startswith("#")
+        ]
+        if keys:
+            return tuple(keys)
+
+    # Generic fallback: discover packages next to this module that expose registration.py.
+    package_root = Path(__file__).resolve().parent
+    candidates = []
+    with suppress(OSError):
+        for child in package_root.iterdir():
+            if (
+                child.is_dir()
+                and child.name != "drive"
+                and (child / "__init__.py").is_file()
+                and (child / "registration.py").is_file()
+            ):
+                candidates.append(child.name)
+    return tuple(sorted(candidates))
+
 # Frozen fallback: if iter_modules found nothing, try known packages directly.
 if not _discovered:
-    for _name in ("nuxeo", "alfresco"):
+    for _name in _supported_packages():
         try:
             importlib.import_module(f"nxdrive.{_name}.registration")
         except ModuleNotFoundError:
             pass
+
+
+def __getattr__(name: str) -> Any:
+    """Backward-compatible lazy attribute access for legacy imports."""
+    if name == "utils":
+        from nxdrive.drive import utils as _utils
+
+        return _utils
+    if name == "autolocker":
+        from nxdrive.drive import autolocker as _autolocker
+
+        return _autolocker
+    if name == "fatal_error":
+        from nxdrive.drive import fatal_error as _fatal_error
+
+        return _fatal_error
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

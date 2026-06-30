@@ -6,6 +6,39 @@ import "icon-font/Icon.js" as MdiFont
 Rectangle {
     id: control
 
+    function openNewAccountPopup() {
+        api.log_qml("Add account clicked")
+        if (!serverNewAccountPopupUrl) {
+            api.log_qml("Add account source is empty")
+            console.error("Add account popup source is empty for current server type")
+            return
+        }
+
+        api.log_qml("Add account source=" + serverNewAccountPopupUrl)
+
+        if (!newAccountPopupLoader.item || !newAccountPopupLoader.item.open) {
+            api.log_qml(
+                "Add account popup unavailable status="
+                + newAccountPopupLoader.status
+                + " source="
+                + newAccountPopupLoader.source
+            )
+            console.error(
+                "Add account popup not available. status=",
+                newAccountPopupLoader.status,
+                "source=",
+                newAccountPopupLoader.source
+            )
+            return
+        }
+
+        api.log_qml("Add account popup open() requested")
+        Qt.callLater(function() {
+            newAccountPopupLoader.item.open()
+            api.log_qml("Add account popup open() executed")
+        })
+    }
+
     GridLayout {
         id: accountCreation
         columns: 2
@@ -22,7 +55,7 @@ Rectangle {
         NuxeoButton {
             Layout.alignment: Qt.AlignRight
             text: qsTr("NEW_ENGINE") + tl.tr
-            onClicked: newAccountPopup.open()
+            onClicked: control.openNewAccountPopup()
         }
     }
 
@@ -71,7 +104,7 @@ Rectangle {
                     icon: MdiFont.Icon.accountPlus
                     size: 128;
                     Layout.alignment: Qt.AlignHCenter
-                    onClicked: newAccountPopup.open()
+                    onClicked: control.openNewAccountPopup()
                 }
 
                 ScaledText {
@@ -96,21 +129,37 @@ Rectangle {
         }
     }
 
-    NewAccountPopup { id: newAccountPopup }
+    Loader {
+        id: newAccountPopupLoader
+        source: serverNewAccountPopupUrl
+        asynchronous: false
+        active: true
 
-    ReLoginPopup {
-        id: reLoginPopup
-        onReloginRequested: function(uid, password) {
-            api.alfresco_relogin(uid, password)
+        onStatusChanged: {
+            if (status === Loader.Error) {
+                api.log_qml("Add account loader error source=" + source)
+                console.error(
+                    "Add account popup failed to load. source=",
+                    source
+                )
+            }
         }
+    }
+
+    Loader {
+        id: reLoginPopupLoader
+        source: serverReloginPopupUrl
+        asynchronous: false
     }
 
     Connections {
         target: api
         function onShowReloginPopup(uid, username) {
-            reLoginPopup.engineUid = uid
-            reLoginPopup.username = username
-            reLoginPopup.open()
+            if (!reLoginPopupLoader.item)
+                return
+            reLoginPopupLoader.item.engineUid = uid
+            reLoginPopupLoader.item.username = username
+            reLoginPopupLoader.item.open()
         }
     }
 }

@@ -22,6 +22,23 @@ class Translator(QTranslator):
         super().__init__()
         self._labels: Dict[str, Dict[str, str]] = {}
 
+        if not path.exists():
+            compat_path = Path(__file__).resolve().parent / "data" / "i18n"
+            if path.name == "i18n" and compat_path.exists():
+                try:
+                    path.mkdir(parents=True, exist_ok=True)
+                    for source in compat_path.glob("*.json"):
+                        target = path / source.name
+                        if not target.exists():
+                            target.write_text(
+                                source.read_text(encoding="utf-8"),
+                                encoding="utf-8",
+                            )
+                except OSError:
+                    path = compat_path
+            else:
+                raise OSError(f"Path does not exist: {path!r}")
+
         # Load from JSON
         for translation in path.iterdir():
             label = self.guess_label(translation.name)

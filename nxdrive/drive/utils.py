@@ -928,8 +928,17 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
     ValueError is the URL structure is invalid.
     """
 
+    config = _active_server_type_config()
+    if config.normalize_protocol_url:
+        normalized = config.normalize_protocol_url(url_string)
+        if normalized != url_string:
+            log.info(f"Normalizing protocol URL {url_string!r} -> {normalized!r}")
+            url_string = normalized
+
     if not url_string.startswith("nxdrive://"):
         return None
+
+    token_pattern = config.protocol_token_pattern or DOC_UID_REG
 
     if url_string == "nxdrive://trigger-watch":
         log.warning(
@@ -961,7 +970,7 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
                 # Event to acquire the login token from the server
                 (
                     r"nxdrive://(?P<cmd>token)/"
-                    rf"(?P<token>{DOC_UID_REG})/"
+                    rf"(?P<token>{token_pattern})/"
                     r"user/(?P<username>.*)"
                 ),
                 # Event to continue the OAuth2 login flow
@@ -988,7 +997,7 @@ def parse_protocol_url(url_string: str, /) -> Optional[Dict[str, str]]:
                 # Event to acquire the login token from the server
                 (
                     r"nxdrive://(?P<cmd>token)/"
-                    rf"(?P<token>{DOC_UID_REG})/"
+                    rf"(?P<token>{token_pattern})/"
                     r"user/(?P<username>.*)"
                 ),
                 # Event to continue the OAuth2 login flow

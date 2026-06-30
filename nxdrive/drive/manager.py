@@ -340,6 +340,8 @@ class Manager(QObject):
         self.restart_needed = True
 
     def open_help(self) -> None:
+        # TODO: make URL dynamic from ServerTypeConfig (e.g. config.help_url) so
+        # Alfresco users are pointed to Alfresco documentation instead.
         self.open_local_file("https://doc.nuxeo.com/nxdoc/nuxeo-drive/")
 
     def check_metrics_preferences(self) -> None:
@@ -1120,6 +1122,11 @@ class Manager(QObject):
         """Return the full path to the Engine database file.
         Note: It is defined here to be able to delete databases on failed account addition.
         """
+        if not engine_type:
+            for definition in self._engine_definitions:
+                if definition.uid == uid:
+                    engine_type = definition.engine
+                    break
         config = st.get(engine_type or Options.server_type)
         return self.home / f"{config.db_prefix}{uid}.db"
 
@@ -1167,7 +1174,7 @@ class Manager(QObject):
             url = self.get_metadata_infos(path)
         except ValueError:
             log.warning(
-                f"The document {path!r} is not handled by the Nuxeo server "
+                f"The document {path!r} is not handled by the server "
                 "or is not synchronized yet."
             )
         else:
@@ -1195,7 +1202,7 @@ class Manager(QObject):
             url = self.get_metadata_infos(path, edit=True)
         except ValueError:
             log.warning(
-                f"The document {path!r} is not handled by the Nuxeo server "
+                f"The document {path!r} is not handled by the server "
                 "or is not synchronized yet."
             )
         else:

@@ -39,9 +39,14 @@ class TokenAuthentication(Authentication):
             }
         )
 
+        from nxdrive.drive import server_type as st
+
+        config = st.detect_by_url(self.url)
+        browser_startup_page = config.browser_startup_page or Options.browser_startup_page
+
         # Handle URL parameters
         parts = urlsplit(self.url)
-        path = f"{parts.path}/{Options.browser_startup_page}".replace("//", "/")
+        path = f"{parts.path}/{browser_startup_page}".replace("//", "/")
 
         params = f"{parts.query}&{params}" if parts.query else params
         return urlunsplit((parts.scheme, parts.netloc, path, params, parts.fragment))

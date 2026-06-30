@@ -6,6 +6,8 @@ from unittest.mock import MagicMock, patch
 
 from nxdrive.drive.constants import APP_NAME
 from nxdrive.drive.fatal_error import (
+    _accepted_app_names,
+    _app_name_from_server_key,
     check_executable_path,
     check_executable_path_error_qt,
     check_os_version,
@@ -116,6 +118,52 @@ class TestExecutablePathChecking:
                 assert result is True
         finally:
             Options.set("is_frozen", original_frozen, setter="manual")
+
+    @mac_only
+    def test_check_executable_path_valid_branded_bundle_without_registry(self):
+        """Accept branded bundle names even if the registry is not populated yet."""
+        from nxdrive.drive import server_type as st
+
+        branded_name = _app_name_from_server_key("NUXEO")
+        valid_path = f"/Applications/{branded_name}.app/Contents/MacOS/{branded_name}"
+        original_frozen = Options.is_frozen
+        original_registry = st._registry.copy()
+        original_default_key = st._default_key
+        try:
+            Options.set("is_frozen", True, setter="manual")
+            st._registry.clear()
+            st._default_key = None
+
+            with patch("sys.executable", valid_path):
+                result = check_executable_path()
+                assert result is True
+        finally:
+            st._registry.clear()
+            st._registry.update(original_registry)
+            st._default_key = original_default_key
+            Options.set("is_frozen", original_frozen, setter="manual")
+
+    def test_accepted_app_names_from_supported_server_list(self):
+        """Derive branded app names from supported_server_list.txt at runtime."""
+        from nxdrive.drive import server_type as st
+
+        original_registry = st._registry.copy()
+        original_default_key = st._default_key
+        try:
+            st._registry.clear()
+            st._default_key = None
+
+            mocked_file = "# comment\nNUXEO\nALFRESCO\nMY_CUSTOM_SERVER\n"
+            with patch.object(Path, "read_text", return_value=mocked_file):
+                names = _accepted_app_names()
+
+            assert _app_name_from_server_key("NUXEO") in names
+            assert _app_name_from_server_key("ALFRESCO") in names
+            assert _app_name_from_server_key("MY_CUSTOM_SERVER") in names
+        finally:
+            st._registry.clear()
+            st._registry.update(original_registry)
+            st._default_key = original_default_key
 
     @mac_only
     def test_check_executable_path_invalid_path_qt_success(self):

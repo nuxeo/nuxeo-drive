@@ -30,6 +30,7 @@ from ...translator import Translator
 from ...utils import if_frozen
 from .. import AbstractOSIntegration
 from ..extension import get_formatted_status
+from .darwin_config import get_agent_template, get_findersync_ids
 from .extension import DarwinExtensionListener
 
 __all__ = ("DarwinIntegration",)
@@ -47,28 +48,27 @@ def _get_app() -> str:
 class DarwinIntegration(AbstractOSIntegration):
     nature = "macOS"
 
-    NDRIVE_AGENT_TEMPLATE = (
-        '<?xml version="1.0" encoding="UTF-8"?>'
-        '<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN"'
-        '"http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
-        '<plist version="1.0">'
-        "<dict>"
-        "<key>Label</key>"
-        "<string>org.nuxeo.drive.agentlauncher</string>"
-        "<key>RunAtLoad</key>"
-        "<true/>"
-        "<key>Program</key>"
-        "<string>%s</string>"
-        "</dict>"
-        "</plist>"
-    )
-    FINDERSYNC_ID = f"{BUNDLE_IDENTIFIER}.NuxeoFinderSync"
-    FINDERSYNC_PATH = f"{_get_app()}/Contents/PlugIns/NuxeoFinderSync.appex/"
-
     # Used to know when the FinderSync extension is loaded
     # to prevent errors when it failed to start or when
     # trying to stop it twice from the auto-updater.
     _finder_sync_loaded = False
+
+    @property
+    def NDRIVE_AGENT_TEMPLATE(self) -> str:
+        """Get the launch agent plist template for the current server type."""
+        return get_agent_template()
+
+    @property
+    def FINDERSYNC_ID(self) -> str:
+        """Get the FinderSync bundle ID for the current server type."""
+        suffix, _ = get_findersync_ids()
+        return f"{BUNDLE_IDENTIFIER}.{suffix}"
+
+    @property
+    def FINDERSYNC_PATH(self) -> str:
+        """Get the FinderSync app extension path for the current server type."""
+        _, appex_name = get_findersync_ids()
+        return f"{_get_app()}/Contents/PlugIns/{appex_name}/"
 
     @if_frozen
     def init(self) -> None:
@@ -179,6 +179,67 @@ class DarwinIntegration(AbstractOSIntegration):
         agent.unlink()
 
     @if_frozen
+    def _prune_competing_url_handlers(self) -> None:
+        """
+        Detach leftover Nuxeo Drive install DMGs and prune their stale
+        LaunchServices registrations.
+
+        macOS routes ``nxdrive://`` URLs via LaunchServices. If two
+        bundles claim ``org.nuxeo.drive`` at the same time (typically
+        ``/Applications/Nuxeo Drive.app`` AND ``/Volumes/Nuxeo Drive/
+        Nuxeo Drive.app`` because the user forgot to eject the install
+        DMG), routing becomes ambiguous and URLs are silently dropped
+        — the running app never receives the ``QFileOpenEvent``. This
+        method removes those competing claimants so the canonical
+        ``/Applications`` install is the only handler.
+
+        Only touches paths under ``/Volumes/Nuxeo Drive*``. Never the
+        running app's own bundle path. Best-effort: failures are logged
+        and ignored.
+        """
+        canonical = _get_app()
+        lsregister = (
+            "/System/Library/Frameworks/CoreServices.framework/Versions/A"
+            "/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
+        )
+
+        try:
+            volumes = sorted(Path("/Volumes").glob("Nuxeo Drive*"))
+        except Exception:
+            log.exception("Failed to enumerate /Volumes for Nuxeo Drive mounts")
+            return
+
+        for vol in volumes:
+            vol_str = str(vol)
+            # Never detach the volume the app itself is running from.
+            if canonical == vol_str or canonical.startswith(vol_str + "/"):
+                continue
+            if not vol.is_dir():
+                continue
+            try:
+                subprocess.run(
+                    ["/usr/bin/hdiutil", "detach", vol_str, "-force"],
+                    check=False,
+                    capture_output=True,
+                    timeout=10,
+                )
+                log.info(f"Detached competing Nuxeo Drive volume {vol_str!r}")
+            except Exception:
+                log.exception(f"Failed to detach {vol_str!r}")
+
+            # Drop any stale LSDB entry that pointed at the just-detached
+            # mount; otherwise LaunchServices may keep routing to it.
+            try:
+                subprocess.run(
+                    [lsregister, "-u", str(vol / "Nuxeo Drive.app")],
+                    check=False,
+                    capture_output=True,
+                    timeout=10,
+                )
+            except Exception:
+                pass  # lsregister cleanup is purely best-effort
+
+    @if_frozen
     def register_protocol_handlers(self) -> None:
         """Register the URL scheme listener using PyObjC"""
         bundle_id = NSBundle.mainBundle().bundleIdentifier()
@@ -188,6 +249,9 @@ class DarwinIntegration(AbstractOSIntegration):
                 " was launched from the Python OSX app bundle"
             )
             return
+        # Remove competing /Volumes/Nuxeo Drive* claimants before we
+        # declare ourselves the default handler; see method docstring.
+        self._prune_competing_url_handlers()
         LSSetDefaultHandlerForURLScheme(NXDRIVE_SCHEME, bundle_id)
         log.info(f"Registered bundle {bundle_id!r} for URL scheme {NXDRIVE_SCHEME!r}")
 

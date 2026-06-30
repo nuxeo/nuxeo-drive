@@ -47,6 +47,8 @@ __all__ = ("DocumentsDialog", "FoldersDialog")
 
 log = getLogger(__name__)
 
+# TODO: make URL dynamic from ServerTypeConfig (e.g. config.doc_url) so
+# Alfresco users are pointed to Alfresco documentation instead.
 DOC_URL = "https://doc.nuxeo.com/n/CBX/#duplicates-behavior"
 
 

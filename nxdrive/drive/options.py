@@ -130,6 +130,26 @@ def _is_system_wide() -> bool:
     )
 
 
+def _get_default_update_site_url() -> str:
+    """Get the default update site URL from the server-type registry.
+
+    The URL is stored on ``ServerTypeConfig.update_site_url`` for each registered
+    server type.  The default server type's value is returned here so that
+    ``Options.update_site_url`` is pre-populated at startup without reading any
+    server-specific hard-coded string in the drive layer.
+
+    Falls back to a generic community URL if the registry is not yet populated.
+    """
+    fallback_url = "https://community.nuxeo.com/static/drive-updates"
+    try:
+        from nxdrive.drive import server_type as st
+
+        config = st.get(st.get_default_key())
+        return config.update_site_url or fallback_url
+    except Exception:
+        return fallback_url
+
+
 class CallableFeatureHandler:
     """
     All features callbacks in Options will be an instance of this object.
@@ -297,7 +317,7 @@ class MetaOptions(type):
         "session_uid": (str(uuid4()), "default"),
         "shared_folder_navigation": (False, "default"),
         "ssl_no_verify": (False, "default"),
-        "startup_page": ("", "default"),
+        "startup_page": ("drive_login.jsp", "default"),
         "sync_and_quit": (False, "default"),
         "sync_root_max_level": (2, "default"),
         "total_download_history": (30, "default"),
@@ -307,7 +327,7 @@ class MetaOptions(type):
         "timeout": (30, "default"),
         "tmp_file_limit": (10.0, "default"),
         "update_check_delay": (3600, "default"),
-        "update_site_url": ("", "default"),
+        "update_site_url": (_get_default_update_site_url(), "default"),
         "server_type": (None, "default"),
         "use_analytics": (False, "default"),
         "use_idempotent_requests": (True, "default"),

@@ -12,6 +12,70 @@ from nxdrive.drive.options import Options
 __all__ = ("check_executable_path", "check_os_version", "show_critical_error")
 
 
+def _app_name_from_server_key(server_key: str) -> str:
+    """Build the branded app name from a server key.
+
+    Example: ``NUXEO`` -> ``Nuxeo Drive``.
+    """
+
+    label = server_key.strip().replace("_", " ").title()
+    return f"{label} Drive"
+
+
+def _accepted_app_names() -> set[str]:
+    """Return allowed macOS app bundle names for startup path validation.
+
+    The check runs very early during startup. In frozen installs, the
+    server-type registry may not be populated yet, so keep a small fallback
+    derived from supported_server_list.txt.
+    """
+
+    names = {APP_NAME}
+
+    from nxdrive.drive import server_type as _st
+
+    configs = _st.all_configs()
+    if configs:
+        names.update(cfg.app_name for cfg in configs.values() if cfg.app_name)
+        return names
+
+    supported_file = Path(__file__).resolve().parents[1] / "supported_server_list.txt"
+
+    with suppress(OSError):
+        for line in supported_file.read_text(encoding="utf-8").splitlines():
+            key = line.strip().upper()
+            if not key or key.startswith("#"):
+                continue
+            names.add(_app_name_from_server_key(key))
+
+    if names != {APP_NAME}:
+        return names
+
+    package_root = Path(__file__).resolve().parents[1]
+    with suppress(OSError):
+        for child in package_root.iterdir():
+            if (
+                child.is_dir()
+                and child.name != "drive"
+                and (child / "__init__.py").is_file()
+                and (child / "registration.py").is_file()
+            ):
+                names.add(_app_name_from_server_key(child.name.upper()))
+
+    return names
+
+
+def _accepted_app_paths() -> set[Path]:
+    """Return allowed macOS bundle paths for startup path validation."""
+
+    paths = set()
+    home_apps = Path.home() / "Applications"
+    for app_name in _accepted_app_names():
+        paths.add(Path(f"/Applications/{app_name}.app"))
+        paths.add(home_apps / f"{app_name}.app")
+    return paths
+
+
 def check_executable_path_error_qt(path: Path, /) -> None:
     """Display an error using Qt about the app not running from the right path."""
 
@@ -219,23 +283,8 @@ def check_executable_path() -> bool:
     m = re.match(r"(.*\.app).*", exe_path)
     path = Path(m.group(1) if m else exe_path)
 
-    if path in (
-        Path(f"/Applications/{APP_NAME}.app"),
-        Path.home() / "Applications" / f"{APP_NAME}.app",
-    ):
+    if path in _accepted_app_paths():
         return True
-
-    # Also accept any registered server type's app name
-    # (at startup, APP_NAME is the generic default "Drive" which may not
-    # match the installed bundle name like "Nuxeo Drive.app")
-    from nxdrive.drive import server_type as _st
-
-    for cfg in _st.all_configs().values():
-        if path in (
-            Path(f"/Applications/{cfg.app_name}.app"),
-            Path.home() / "Applications" / f"{cfg.app_name}.app",
-        ):
-            return True
 
     try:
         check_executable_path_error_qt(path)

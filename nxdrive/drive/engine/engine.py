@@ -580,7 +580,7 @@ class Engine(QObject):
         self.manager.osi.unwatch_folder(self.local_folder)
         self.manager.osi.unregister_folder_link(self.local_folder)
         self.dispose_db()
-        self.manager.remove_engine_dbs(self.uid, self.type)
+        self.manager.remove_engine_dbs(self.uid)
         try:
             shutil.rmtree(self.download_dir)
         except FileNotFoundError:

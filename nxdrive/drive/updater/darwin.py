@@ -153,6 +153,10 @@ class Updater(BaseUpdater):
         """Copy the new application content to /Applications."""
 
         src = f"{mount_dir}/{APP_NAME}.app"
+        if not Path(src).exists():
+            legacy_src = f"{mount_dir}/Nuxeo Drive.app"
+            if Path(legacy_src).exists():
+                src = legacy_src
         log.info(f"Copying {src!r} -> {self.final_app!r}")
         # shutil.copytree(src, self.final_app)
 

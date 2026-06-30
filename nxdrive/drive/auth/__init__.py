@@ -1,6 +1,7 @@
 from typing import Any, Dict, Union
 
 from .base import Authentication  # noqa: F401
+from .oauth2 import OAuthenticationBase
 
 # Authentication token
 #   - dict for OAuth2
@@ -31,6 +32,23 @@ def get_auth(host: str, token: Token, **kwargs: Any) -> Any:
 
 __all__ = (
     "Authentication",
+    "OAuthentication",
     "Token",
     "get_auth",
 )
+
+
+def __getattr__(name: str) -> Any:
+    """Lazy compatibility exports for legacy imports.
+
+    Keep drive-level imports server-agnostic by resolving classes through
+    the server-type registry at runtime.
+    """
+    if name != "OAuthentication":
+        raise AttributeError(name)
+
+    from nxdrive.drive import server_type as _st
+
+    config = _st.get(_st.get_default_key())
+    klass = _st.load_class(config.oauth2_class_path)
+    return klass or OAuthenticationBase

@@ -89,6 +89,43 @@ class QMLDriveApi(QObject):
         self.engine_changed = False
         self.hide_refresh_button = True
 
+    def _save_pending_auth_callback_params(
+        self, callback_params: Dict[str, str], /
+    ) -> None:
+        """Persist callback params through the active server-type hook if any."""
+        config = st.get(Options.server_type or st.get_default_key())
+        hook = config.save_auth_callback_params_hook
+        if not hook:
+            return
+        try:
+            hook(self, callback_params)
+        except Exception:
+            log.debug("Cannot persist pending auth callback params", exc_info=True)
+
+    def _load_pending_auth_callback_params(self) -> Dict[str, str]:
+        """Load callback params through the active server-type hook if any."""
+        config = st.get(Options.server_type or st.get_default_key())
+        hook = config.load_auth_callback_params_hook
+        if not hook:
+            return {}
+        try:
+            loaded = hook(self)
+        except Exception:
+            log.debug("Cannot decode pending auth callback params", exc_info=True)
+            return {}
+        return loaded if isinstance(loaded, dict) else {}
+
+    def _clear_pending_auth_callback_params(self) -> None:
+        """Clear callback params through the active server-type hook if any."""
+        config = st.get(Options.server_type or st.get_default_key())
+        hook = config.clear_auth_callback_params_hook
+        if not hook:
+            return
+        try:
+            hook(self)
+        except Exception:
+            log.debug("Cannot clear pending auth callback params", exc_info=True)
+
     def _json_default(self, obj: Any, /) -> Any:
         export = getattr(obj, "export", None)
         if callable(export):
@@ -100,6 +137,21 @@ class QMLDriveApi(QObject):
     def _json(self, obj: Any) -> Any:
         # Avoid to fail on non serializable object
         return json.dumps(obj, default=self._json_default)
+
+    def _resolve_server_config(self, server_url: str, /):
+        """Resolve server config while keeping neutral URLs on the default type."""
+        selected_key = Options.server_type
+        if selected_key:
+            selected = st.get(selected_key)
+            # In branded/non-default builds (e.g. ALFRESCO), prefer the explicitly
+            # selected server type over URL fallback detection.
+            if selected.key != st.get_default_key():
+                return selected
+
+        detected = st.detect_by_url(server_url)
+        if getattr(detected, "is_url_fallback", False):
+            return st.get(st.get_default_key())
+        return detected
 
     def _export_formatted_state(
         self, uid: str, /, *, state: DocPair = None
@@ -638,6 +690,7 @@ class QMLDriveApi(QObject):
             if Options.is_frozen and crafted_token == "":  # Only for Nuxeo token
                 url = f"{url}&{params}"
             callback_params = {"engine": uid, "server_url": engine.server_url}
+            self._save_pending_auth_callback_params(callback_params)
             log.info(f"Opening login window for token update with URL {url}")
             self.application.open_authentication_dialog(url, callback_params)
         except Exception:
@@ -721,14 +774,19 @@ class QMLDriveApi(QObject):
         return str(get_default_local_folder(config.local_folder_name))
 
     @pyqtSlot(result=str)
-    def default_alfresco_local_folder(self) -> str:
-        """Backward-compat slot called from QML."""
+    def default_server_local_folder(self) -> str:
+        """Return default local folder for the active server type."""
         return self.default_local_folder()
 
     @pyqtSlot(result=str)
     def default_server_url_value(self) -> str:
         """Make daily job better for our developers :)"""
-        return getenv("NXDRIVE_TEST_SERVER_URL", getenv("NXDRIVE_TEST_NUXEO_URL", ""))
+        url = getenv("NXDRIVE_TEST_SERVER_URL", "")
+        if not url:
+            config = st.get(st.get_default_key())
+            if config.test_server_url_getter:
+                url = config.test_server_url_getter()
+        return url
 
     @pyqtSlot(str, str, int, result=list)
     def get_disk_space_info_to_width(
@@ -864,7 +922,8 @@ class QMLDriveApi(QObject):
         # leads to the impossibility to use Direct Transfer right after the account
         # addition (cf NXDRIVE-2643).
         starts = not Feature.synchronization
-        engine_type = self._manager._detect_server_type(url)
+        detected_config = self._resolve_server_config(url)
+        engine_type = detected_config.engine_type
         engine = self._manager.bind_engine(
             engine_type, local_folder, name, binder, starts=starts
         )
@@ -966,11 +1025,11 @@ class QMLDriveApi(QObject):
         self.setMessage.emit(error, "error")
 
     @pyqtSlot(str, str, str, str)
-    def alfresco_basic_auth(
+    def password_auth(
         self, local_folder: str, server_url: str, username: str, password: str, /
     ) -> None:
-        """Backward-compat slot for server-specific password authentication."""
-        detected = st.detect_by_url(server_url)
+        """Server-type-specific username/password authentication flow."""
+        detected = self._resolve_server_config(server_url)
         if detected.password_auth_handler:
             detected.password_auth_handler(
                 self, local_folder, server_url, username, password
@@ -985,7 +1044,7 @@ class QMLDriveApi(QObject):
         )
 
     @pyqtSlot(str, str)
-    def alfresco_relogin(self, engine_uid: str, password: str, /) -> None:
+    def relogin(self, engine_uid: str, password: str, /) -> None:
         """Re-authenticate an engine using a server-type-specific handler.
 
         Delegates to ``ServerTypeConfig.relogin_handler`` if available.
@@ -1014,11 +1073,11 @@ class QMLDriveApi(QObject):
             self.setMessage.emit("AUTH_EXPIRED", "error")
 
     @pyqtSlot(str, str, str, str)
-    def alfresco_oauth2_auth(
+    def oauth2_password_auth(
         self, local_folder: str, server_url: str, username: str, password: str, /
     ) -> None:
-        """Backward-compat slot for server-specific OAuth2 password flow."""
-        detected = st.detect_by_url(server_url)
+        """Server-type-specific OAuth2 password-grant authentication flow."""
+        detected = self._resolve_server_config(server_url)
         if detected.oauth2_password_auth_handler:
             detected.oauth2_password_auth_handler(
                 self, local_folder, server_url, username, password
@@ -1043,14 +1102,17 @@ class QMLDriveApi(QObject):
             self.setMessage.emit("CONNECTION_ERROR", "error")
             return
 
-        detected_config = st.detect_by_url(server_url)
+        detected_config = self._resolve_server_config(server_url)
 
         error = ""
         try:
-            # Use the server type's SSL validation page (empty = default Nuxeo page)
-            error = self._get_ssl_error_for_server(
-                server_url, detected_config.ssl_login_page
-            )
+            # Keep legacy behavior for default login page checks.
+            if detected_config.ssl_login_page:
+                error = self._get_ssl_error_for_server(
+                    server_url, detected_config.ssl_login_page
+                )
+            else:
+                error = self._get_ssl_error(server_url)
         except (LocationParseError, ValueError, requests.RequestException):
             log.debug(f"Bad URL: {server_url}")
         except Exception:
@@ -1089,7 +1151,9 @@ class QMLDriveApi(QObject):
                 "server_url": server_url,
                 "engine_type": urlsplit(server_url).fragment or st.get_default_key(),
             }
-            engine_type = self._manager._detect_server_type(server_url)
+            engine_type = callback_params["engine_type"]
+            if engine_type == st.get_default_key():
+                engine_type = detected_config.engine_type
             callback_params["engine_type"] = engine_type
             # The good authentication class is chosen based on the token type
             crafted_token: Token = "" if use_legacy_auth else {}
@@ -1101,7 +1165,14 @@ class QMLDriveApi(QObject):
                 device_id=self._manager.device_id,
                 server_type=server_type_key,
             )
-            self.openAuthenticationDialog.emit(auth.connect_url(), callback_params)
+            connect_url = auth.connect_url()
+            log.info(
+                "Opening browser authentication URL for %s: %s",
+                server_type_key,
+                connect_url,
+            )
+            self._save_pending_auth_callback_params(callback_params)
+            self.openAuthenticationDialog.emit(connect_url, callback_params)
         except Exception:
             log.warning(
                 "Unexpected error while trying to open web authentication window",
@@ -1190,14 +1261,13 @@ class QMLDriveApi(QObject):
                 )
 
             # Resolve the OAuth2 class from the server-type config
-            config = _st.detect_by_url(stored_url)
+            config = self._resolve_server_config(stored_url)
             oauth2_cls = _st.load_class(config.oauth2_class_path)
             if oauth2_cls is None:
                 log.warning("No OAuth2 class registered for %s", config.key)
                 error = "CONNECTION_UNKNOWN"
                 self.setMessage.emit(error, "error")
                 return
-
             auth = oauth2_cls(
                 stored_url,
                 dao=self._manager.dao,
@@ -1209,6 +1279,9 @@ class QMLDriveApi(QObject):
                 state=query["state"],
             )
         except RemoteOAuth2Error:
+            log.warning("Unexpected error while trying to get a token", exc_info=True)
+            error = "CONNECTION_UNKNOWN"
+        except Exception:
             log.warning("Unexpected error while trying to get a token", exc_info=True)
             error = "CONNECTION_UNKNOWN"
         else:
@@ -1228,8 +1301,10 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, str)
     def handle_token(self, token: str, username: str, /) -> None:
-        """Handle a Nuxeo token to create an account."""
+        """Handle an authentication token to create an account."""
         error = ""
+        if not self.callback_params:
+            self.callback_params = self._load_pending_auth_callback_params()
         if not token:
             error = "CONNECTION_REFUSED"
         elif "engine" in self.callback_params:
@@ -1240,6 +1315,7 @@ class QMLDriveApi(QObject):
             log.warning(
                 f"Cannot handle connection token, invalid callback parameters {self.callback_params!r}"
             )
+        self._clear_pending_auth_callback_params()
         if error:
             self.setMessage.emit(error, "error")
 
@@ -1328,13 +1404,13 @@ class QMLDriveApi(QObject):
         return count
 
     @pyqtSlot(str, result=bool)
-    def is_alfresco_engine(self, uid: str, /) -> bool:
-        """Return True if the engine with *uid* uses a non-default server type."""
+    def can_open_remote_metadata(self, uid: str, /) -> bool:
+        """Return True if remote metadata/open-remote action is supported."""
         engine = self._get_engine(uid)
         if not engine:
             return False
         engine_config = st.get_by_engine_type(getattr(engine, "type", ""))
-        return engine_config.key != st.get_default_key()
+        return engine_config.supports_browser_token_update
 
     # Conflicts section
 
@@ -1500,3 +1576,8 @@ class QMLDriveApi(QObject):
                 engine.open_remote(url=url)
         except Exception as exec:
             log.exception(f"Remote task cannot be opened: {exec}")
+
+    @pyqtSlot(str)
+    def log_qml(self, message: str, /) -> None:
+        """Persist debug messages emitted from QML into the main app log."""
+        log.info(f"[QML] {message}")

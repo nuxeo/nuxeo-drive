@@ -12,8 +12,6 @@ NuxeoPopup {
     property string engineUid: ""
     property string username: ""
 
-    signal reloginRequested(string uid, string password)
-
     onOpened: {
         passwordInput.text = ""
         passwordInput.focus = true
@@ -74,7 +72,7 @@ NuxeoPopup {
                 text: qsTr("LOGIN") + tl.tr
 
                 onClicked: {
-                    control.reloginRequested(control.engineUid, passwordInput.text)
+                    api.relogin(control.engineUid, passwordInput.text)
                     control.close()
                 }
             }

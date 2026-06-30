@@ -71,6 +71,8 @@ register(
         workflow_class_path="",  # not yet implemented
         oauth2_class_path="nxdrive.alfresco.auth.oauth2.AlfrescoOAuthentication",
         folders_only_class_path="",  # not yet implemented
+        new_account_popup_qml_path="alfresco/gui/qml/NewAccountPopup.qml",
+        relogin_popup_qml_path="drive/data/qml/ReLoginPopup.qml",
         disabled_features=[
             "direct_edit",
             "direct_transfer",
@@ -96,6 +98,23 @@ register(
         browser_startup_page="",
         supports_browser_token_update=False,
         is_url_fallback=True,
+        findersync_agent_template='<?xml version="1.0" encoding="UTF-8"?>'
+        '<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN"'
+        '"http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
+        '<plist version="1.0">'
+        "<dict>"
+        "<key>Label</key>"
+        "<string>org.alfresco.drive.agentlauncher</string>"
+        "<key>RunAtLoad</key>"
+        "<true/>"
+        "<key>Program</key>"
+        "<string>%s</string>"
+        "</dict>"
+        "</plist>",
+        findersync_bundle_id_suffix="AlfrescoFinderSync",
+        findersync_appex_name="AlfrescoFinderSync.appex",
+        addon_installer_name="alfresco-drive-addons.exe",
+        update_site_url="https://community.nuxeo.com/static/drive-updates",
         client_version=_client_version,
         relogin_handler=_alfresco_relogin_handler,
         password_auth_handler=_alfresco_password_auth_handler,

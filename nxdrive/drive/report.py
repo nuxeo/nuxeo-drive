@@ -53,7 +53,9 @@ class Report:
 
         from nxdrive.drive import server_type as _st
 
-        _log_files = {cfg.log_file for cfg in _st.all_configs()} | {"segfault.log"}
+        configs = _st.all_configs()
+        config_iter = configs.values() if isinstance(configs, dict) else configs
+        _log_files = {cfg.log_file for cfg in config_iter} | {"segfault.log"}
 
         folder = self._manager.home / "logs"
         if not folder.is_dir():
@@ -80,12 +82,13 @@ class Report:
         """
 
         # Lock to avoid inconsistence
+        db_path = Path(dao.db)
         with dao.lock:
             try:
                 dao.force_commit()
-                myzip.write(dao.db, dao.db.name, compress_type=ZIP_DEFLATED)
+                myzip.write(db_path, db_path.name, compress_type=ZIP_DEFLATED)
             except Exception:
-                log.exception(f"Impossible to copy the database {dao.db.name!r}")
+                log.exception(f"Impossible to copy the database {db_path.name!r}")
 
     def get_path(self) -> Path:
         return self._zipfile
