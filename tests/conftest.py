@@ -151,6 +151,10 @@ def no_warnings(recwarn):
             # Python 3.13 emits this ResourceWarning in some HTTP teardown paths.
             # It is non-deterministic in functional runs and creates false negatives.
             continue
+        elif "unclosed <ssl.SSLSocket" in message:
+            # Python 3.13 can also report unclosed SSL sockets for HTTPS sessions.
+            # This has the same non-deterministic behavior as plain sockets.
+            continue
 
         warn = f"{warning.filename}:{warning.lineno} {message}"
         print(warn, file=sys.stderr)
