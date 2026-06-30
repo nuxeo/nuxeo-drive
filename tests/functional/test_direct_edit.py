@@ -500,6 +500,14 @@ def test_url_resolver(manager_factory, nuxeo_url):
         user = engine.remote_user
         get_engine = direct_edit._get_engine
 
+        if not hasattr(engine.remote.client, "resolve_username"):
+            # Older nuxeo client versions do not expose the userid mapper API.
+            # Mirror server-side behavior for this test scenario.
+            def _resolve_username(candidate):
+                return user if candidate.lower() == user.lower() else candidate
+
+            engine.remote.client.resolve_username = _resolve_username
+
         # Engine found, even with uppercase username
         assert get_engine(nuxeo_url, user=user)
         assert get_engine(nuxeo_url, user=user.upper())

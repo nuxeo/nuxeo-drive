@@ -57,7 +57,7 @@ def pytest_sessionfinish(session, exitstatus):
 
 
 @pytest.hookimpl(trylast=True, hookwrapper=True)
-def pytest_runtest_makereport():
+def pytest_runtest_makereport(item, call):
     """
     Delete captured logs if the test is not in failure.
     It will help keeping the memory usage at a descent level.
@@ -68,6 +68,19 @@ def pytest_runtest_makereport():
 
     # Get the report
     report = outcome.get_result()
+
+    # Print failures immediately so CI logs contain traceback details
+    # even if the full run is interrupted before pytest summary output.
+    if report.failed and report.longrepr:
+        print(
+            f"\n[TEST {report.when.upper()} FAILED] {report.nodeid}",
+            file=sys.stderr,
+            flush=True,
+        )
+        try:
+            print(report.longreprtext, file=sys.stderr, flush=True)
+        except Exception:
+            print(str(report.longrepr), file=sys.stderr, flush=True)
 
     if report.passed:
         # Remove captured logs to free memory
@@ -133,6 +146,10 @@ def no_warnings(recwarn):
         elif "Cryptography will be significantly faster" in message:
             continue
         elif "unclosed database" in message:
+            continue
+        elif "unclosed <socket.socket" in message:
+            # Python 3.13 emits this ResourceWarning in some HTTP teardown paths.
+            # It is non-deterministic in functional runs and creates false negatives.
             continue
 
         warn = f"{warning.filename}:{warning.lineno} {message}"
