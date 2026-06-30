@@ -5582,9 +5582,7 @@ class TestGetEngineServerUrlFiltering(TestDirectEditBasicFunctionality):
         direct_edit.directEditError.emit = Mock()
 
         # Request an engine for server-b with unknown user
-        direct_edit._get_engine(
-            "https://server-b.com/nuxeo", user="unknown-uuid"
-        )
+        direct_edit._get_engine("https://server-b.com/nuxeo", user="unknown-uuid")
 
         # server-a should never be consulted (wrong server_url)
         eng_a.remote.client.resolve_username.assert_not_called()
@@ -5600,9 +5598,7 @@ class TestGetEngineServerUrlFiltering(TestDirectEditBasicFunctionality):
         direct_edit.directEditError = Mock()
         direct_edit.directEditError.emit = Mock()
 
-        direct_edit._get_engine(
-            "https://other-server.com/nuxeo", user="some-uuid"
-        )
+        direct_edit._get_engine("https://other-server.com/nuxeo", user="some-uuid")
 
         # No engine matches other-server, so resolve should not be called
         eng_a.remote.client.resolve_username.assert_not_called()
@@ -5622,9 +5618,7 @@ class TestGetEngineServerUrlFiltering(TestDirectEditBasicFunctionality):
         direct_edit.directEditError = Mock()
         direct_edit.directEditError.emit = Mock()
 
-        direct_edit._get_engine(
-            "https://server.com/nuxeo", user="some-uuid"
-        )
+        direct_edit._get_engine("https://server.com/nuxeo", user="some-uuid")
 
         # No resolution attempted since engine has no remote
         args = direct_edit.directEditError.emit.call_args[0]
