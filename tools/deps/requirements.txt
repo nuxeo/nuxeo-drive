@@ -289,9 +289,9 @@ jwt==1.3.1 \
     --hash=sha256:61c9170f92e736b530655e75374681d4fcca9cfa8763ab42be57353b2b203494
     # via nuxeo
 # -i https://packages.nuxeo.com/repository/pypi-nuxeopublic/simple
-nuxeo==7.0.0 \
-    --hash=sha256:5dfcd7f8ce742c1fd2fcb802bf66666946ed19bd083225f63464347e7eca56bc \
-    --hash=sha256:829a65265af46cfdd263a3883e1374290b9b273061fd84c48114b7ebb3828eca
+nuxeo==7.1.0 \
+    --hash=sha256:c87139b3f6f6a6b691440ca278705869be0b84042307d3aed29253e467d463b6 \
+    --hash=sha256:24dcc2b83ae87359c6d0028e06b534ed1843a39f90d1026feedce32c72c6e08f
     # via -r requirements.txt
 packaging==26.2 \
     --hash=sha256:5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e \
