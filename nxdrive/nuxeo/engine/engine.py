@@ -98,6 +98,43 @@ class Engine(_EngineBase):
 
     # ------------------------------------------------------------------ overrides
 
+    # -- Filter selection tracking -------------------------------------------
+
+    def needs_filters_selection(self) -> bool:
+        """Return True if the user hasn't yet selected folders to sync.
+
+        Mirrors the Alfresco behavior so that when a Nuxeo account is added
+        with sync disabled and the user later enables sync and restarts,
+        the folder selection dialog is shown before any data is downloaded.
+
+        Backward-compatible: if a root pair already exists (engine was
+        previously configured and has been syncing), treat it as configured
+        even without the explicit flag.
+        """
+        if not Feature.synchronization:
+            return False
+        if self.dao.get_config("filters_configured"):
+            return False
+        # Backward compat: existing root pair means the user already went
+        # through the selection (or pre-dates this gate) — don't re-prompt.
+        if self.dao.get_state_from_local(ROOT) is not None:
+            self.dao.update_config("filters_configured", "1")
+            return False
+        return True
+
+    def mark_filters_configured(self) -> None:
+        """Mark that the user has selected folders, then create root and scan."""
+        self.dao.update_config("filters_configured", "1")
+        self._check_root()
+        # Trigger a full remote scan on the next watcher cycle so that the
+        # newly-applied filters are honored from the very first sync pass.
+        # Nuxeo's watcher interprets the ``remote_need_full_scan`` value as a
+        # *path* (``"/"`` -> full scan, anything else -> ``_scan_pair(value)``)
+        # so we explicitly use ``"/"``. Using a sentinel like ``"1"`` would
+        # send the watcher into a poll loop trying to scan a bogus path,
+        # keeping the systray stuck on "syncing".
+        self.dao.update_config("remote_need_full_scan", "/")
+
     def export(self) -> Dict[str, Any]:
         result = super().export()
         result["syncing"] = self.is_syncing()
@@ -218,6 +255,13 @@ class Engine(_EngineBase):
 
     def _check_root(self) -> None:
         if not Feature.synchronization:
+            return
+
+        # On restart, don't create the root pair until the user has
+        # selected which folders to sync via the filters dialog. This
+        # mirrors the Alfresco flow so that enabling sync on an existing
+        # account does not silently start downloading the entire server.
+        if not self.dao.get_config("filters_configured"):
             return
 
         root = self.dao.get_state_from_local(ROOT)
@@ -406,6 +450,15 @@ class Engine(_EngineBase):
         self.dao.update_config("server_url", self.server_url)
         self.dao.update_config("remote_user", self.remote_user)
         self._save_token(self._remote_token)
+
+        # If sync is enabled at bind time, mark filters as configured so the
+        # account-wizard's own filters dialog handles selection (current
+        # behavior). When sync is disabled at bind time we deliberately leave
+        # the flag unset: enabling sync later and restarting will then trigger
+        # the pending-filters dialog (see ``needs_filters_selection`` and
+        # ``Application.init_checks``).
+        if Feature.synchronization:
+            self.dao.update_config("filters_configured", "1")
 
         # Check for the root
         # If the top level state for the server binding doesn't exist,

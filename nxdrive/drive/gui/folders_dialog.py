@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 from nxdrive.drive import server_type as _st
 from nxdrive.drive.engine.engine import Engine
-from nxdrive.drive.gui.folders_model import FilteredDocuments
+from nxdrive.drive.gui.folders_model import FilteredDoc, FilteredDocuments
 
 from ..constants import APP_NAME, INVALID_CHARS
 from ..feature import Feature
@@ -188,9 +188,14 @@ class DocumentsDialog(DialogMixin):
     def accept(self) -> None:
         """Action to do when the OK button is clicked."""
 
-        # Apply filters if the user has made changes
+        # Apply filters if the user has made changes. Defensively guard so
+        # that any failure inside ``apply_filters`` cannot prevent the
+        # dialog from closing (the OK button must always dismiss it).
         if isinstance(self.tree_view, DocumentTreeView):
-            self.apply_filters()
+            try:
+                self.apply_filters()
+            except Exception:
+                log.exception("apply_filters() raised; dialog will still close")
 
         super().accept()
 
@@ -203,20 +208,44 @@ class DocumentsDialog(DialogMixin):
                 self.engine.add_filter(path)
             elif item.state == qt.Checked:
                 self.engine.remove_filter(path)
-            elif item.old_state == qt.Unchecked:
-                # Now partially checked and was before a filter
+            elif item.state == qt.PartiallyChecked:
+                # Folder is partially checked. Two valid transitions land here:
+                #   1) old_state == Unchecked   -> the folder WAS filtered and the
+                #      user expanded it and re-checked some children. We must
+                #      remove the parent filter and re-filter the children the
+                #      user kept unchecked.
+                #   2) old_state == Checked     -> the folder was fully synced
+                #      and the user unchecked some descendants. No parent filter
+                #      to remove, but we still need to push add_filter() down
+                #      onto every unchecked descendant.
+                if item.old_state == qt.Unchecked:
+                    self.engine.remove_filter(path)
 
-                # Remove current parent filter and need to commit to enable the add
-                self.engine.remove_filter(path)
-
-                # We need to browse every child and create a filter for
-                # unchecked as they are not dirty but has become root filter
-                for child in item.get_children():
-                    if child.state == qt.Unchecked:
-                        self.engine.add_filter(child.get_path())
+                # Walk descendants and add a filter for every Unchecked branch.
+                # We recurse through PartiallyChecked folders so deeper
+                # unchecks are also captured even if their leaf items were
+                # never individually added to dirty_items (lazy loading).
+                self._apply_partial_children(item)
 
         if not self.engine.is_started():
             self.engine.start()
+
+    def _apply_partial_children(self, item: FilteredDoc) -> None:
+        """Walk the descendants of a *PartiallyChecked* item and persist filters.
+
+        For every Unchecked branch we call ``engine.add_filter``. For deeper
+        PartiallyChecked folders we recurse so that nested user choices are
+        captured even if the underlying model items were never put into the
+        tree view's ``dirty_items`` (this is the case when children are loaded
+        lazily and the user only interacted with intermediate folders).
+        """
+        for child in item.get_children():
+            child_path = child.get_path()
+            if child.state == qt.Unchecked:
+                self.engine.add_filter(child_path)
+            elif child.state == qt.PartiallyChecked:
+                self._apply_partial_children(child)
+            # Checked children: nothing to do, they remain synced.
 
     def _select_unselect_all_roots(self, _: Qt.CheckState, /) -> None:
         """The Select/Unselect all roots button."""
