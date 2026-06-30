@@ -1310,13 +1310,14 @@ def test_shortify(text, shortened):
         (True, False),
     ],
 )
-# @Options.mock()
-def test_get_verify(raw_value, expected_value):
-    old_ssl_no_verify = Options.ssl_no_verify
+@Options.mock()
+def test_get_verify(raw_value, expected_value, monkeypatch):
     Options.ssl_no_verify = raw_value
+    monkeypatch.setattr(
+        nxdrive.utils, "get_config_path", lambda: Path("/tmp/nxdrive-config.ini")
+    )
     verify = nxdrive.utils.get_verify()
     assert verify is expected_value
-    Options.ssl_no_verify = old_ssl_no_verify
 
 
 def test_get_date():

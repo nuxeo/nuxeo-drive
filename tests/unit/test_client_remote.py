@@ -4,6 +4,7 @@ For file nxdrive/client/remote_client.py
 
 import shutil
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Dict
 from unittest.mock import patch
 
@@ -826,46 +827,25 @@ def test_fetch(mock_execute):
 def test_check_ref(mock_fetch):
     # if endswith("/") is True
     mock_fetch.return_value = {"uid": "base_uid", "path": "base_path/"}
-    remote_obj = Remote(
-        "dummy_url",
-        "dummy_user_id",
-        "dummy_device_id",
-        "dummy_version",
-        token="dummy_token",
-        base_folder="base_folder",
-        repository="dummy_repository",
-    )
+    remote_obj = Remote.__new__(Remote)
+    remote_obj._base_folder_path = mock_fetch.return_value["path"]
     output = remote_obj.check_ref("/reference")
     assert output == "base_path/reference"
     # if endswith("/") is False
     mock_fetch.return_value = {"uid": "base_uid", "path": "base_path"}
-    remote_obj = Remote(
-        "dummy_url",
-        "dummy_user_id",
-        "dummy_device_id",
-        "dummy_version",
-        token="dummy_token",
-        base_folder="base_folder",
-        repository="dummy_repository",
-    )
+    remote_obj = Remote.__new__(Remote)
+    remote_obj._base_folder_path = mock_fetch.return_value["path"]
     output = remote_obj.check_ref("/reference")
     assert output == "base_path/reference"
 
 
-@patch("nxdrive.objects.NuxeoDocumentInfo.from_dict")
+@patch("nxdrive.client.remote_client.NuxeoDocumentInfo.from_dict")
 @patch("nxdrive.client.remote_client.Remote.fetch")
 @patch("nxdrive.client.remote_client.Remote.check_ref")
 def test_get_info(mock_check_ref, mock_fetch, mock_nxdi_dict):
-    from nxdrive.objects import NuxeoDocumentInfo
-
-    remote_obj = Remote(
-        "dummy_url",
-        "dummy_user_id",
-        "dummy_device_id",
-        "dummy_version",
-        token="dummy_token",
-        repository="dummy_repository",
-    )
+    remote_obj = Remote.__new__(Remote)
+    remote_obj.base_folder_ref = None
+    remote_obj.client = SimpleNamespace(repository="dummy_repository")
     # Success condition
 
     class Mock_Fetch:
@@ -880,9 +860,10 @@ def test_get_info(mock_check_ref, mock_fetch, mock_nxdi_dict):
 
     mock_check_ref.return_value = "check_ref"
     mock_fetch.return_value = Mock_Fetch()
-    mock_nxdi_dict.return_value = NuxeoDocumentInfo
+    expected = object()
+    mock_nxdi_dict.return_value = expected
     output = remote_obj.get_info("reference")
-    assert output.__qualname__ == "NuxeoDocumentInfo"
+    assert output is expected
 
 
 @patch("nxdrive.client.remote_client.Remote.fetch")
