@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="24px" height="24px" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 63.1 (92452) - https://sketch.com -->
+    <title>Icons/Filled/Nuxeo/X-filled</title>
+    <desc>Created with Sketch.</desc>
+    <g id="Icons/Filled/Nuxeo/X-filled" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <rect id="Rectangle" x="0" y="0" width="24" height="24"></rect>
+        <path d="M12.0000572,24 C18.627486,24 24,18.6274347 24,11.9999428 C24,5.3725653 18.627486,0 12.0000572,0 C5.37251404,0 0,5.3725653 0,11.9999428 C0,18.6274347 5.37251404,24 12.0000572,24" id="Fill-1" fill="#0066FF"></path>
+        <polygon id="Fill-3" fill="#FFFFFF" points="5 5 5 7.84392599 9.15596776 12 5 16.156074 5 19 7.84392599 19 12 14.843926 16.1559678 19 19 19 19 16.156074 14.843926 12 19 7.84392599 19 5 16.1559678 5 12 9.15607401 7.84392599 5"></polygon>
+    </g>
+</svg>
