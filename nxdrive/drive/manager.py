@@ -14,7 +14,6 @@ from weakref import CallableProxyType, proxy
 
 import requests
 
-from nxdrive import __version__
 from nxdrive.drive import server_type as st
 from nxdrive.drive.auth import Token
 from nxdrive.drive.autolocker import ProcessAutoLockerWorker
@@ -22,6 +21,7 @@ from nxdrive.drive.client.local import LocalClient
 from nxdrive.drive.client.proxy import get_proxy, load_proxy, save_proxy, validate_proxy
 from nxdrive.drive.constants import (
     APP_NAME,
+    APP_VERSION,
     DEFAULT_CHANNEL,
     NO_SPACE_ERRORS,
     STARTUP_PAGE_CONNECTION_TIMEOUT,
@@ -134,7 +134,7 @@ class Manager(QObject):
 
         # Handle failed ManagerDAO migrations
         if not self.dao.migration_success:
-            self.set_config("xxx_broken_update", __version__)
+            self.set_config("xxx_broken_update", APP_VERSION)
             self.set_feature_state("auto_update", False)
 
             # Raise a SystemExit exception to gracefully exit the application
@@ -1149,7 +1149,7 @@ class Manager(QObject):
 
     @property
     def version(self) -> str:
-        return __version__
+        return APP_VERSION
 
     def is_started(self) -> bool:  # TODO: Remove
         return self._started

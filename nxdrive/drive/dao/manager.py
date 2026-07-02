@@ -7,7 +7,7 @@ from pathlib import Path
 from sqlite3 import Cursor, IntegrityError, Row
 from typing import List
 
-from .. import __version__
+from ..constants import APP_VERSION
 from ..notification import Notification
 from ..objects import EngineDef
 from . import SCHEMA_VERSION, versions_history
@@ -132,12 +132,12 @@ class ManagerDAO(BaseDAO):
         try:
             self.in_tx = current_thread_id()
             if (
-                __version__ in versions_history
-                and version > versions_history[__version__]
+                APP_VERSION in versions_history
+                and version > versions_history[APP_VERSION]
             ):
                 migration_engine.execute_database_donwgrade(
                     version,
-                    versions_history[__version__],
+                    versions_history[APP_VERSION],
                     self.old_migrations_max_schema_version,
                 )
             else:

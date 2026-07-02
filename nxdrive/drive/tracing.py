@@ -64,12 +64,12 @@ def setup_sentry() -> None:
 
     import sentry_sdk
 
-    from . import __version__
+    from .constants import APP_VERSION
 
     sentry_sdk.init(
         dsn=sentry_dsn,
         environment=os.getenv("SENTRY_ENV", "production"),
-        release=__version__,
+        release=APP_VERSION,
         attach_stacktrace=True,
         before_send=before_send,
         # Set traces_sample_rate to 1.0 to capture 100%

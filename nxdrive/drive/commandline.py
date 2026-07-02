@@ -11,10 +11,17 @@ from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
-from . import __version__
-from .constants import APP_NAME, DEFAULT_CHANNEL, LINUX, WINDOWS
+from . import __alfresco_version__, __version__
+from .constants import (
+    APP_NAME,
+    DEFAULT_CHANNEL,
+    LINUX,
+    WINDOWS,
+    set_app_server,
+    set_app_version,
+)
 from .logging_config import configure
-from .options import DEFAULT_LOG_LEVEL_CONSOLE, DEFAULT_LOG_LEVEL_FILE, Options
+from .options import DEFAULT_LOG_LEVEL_CONSOLE, Options, set_log_level_file
 from .osi import AbstractOSIntegration
 from .state import State
 from .utils import (
@@ -94,12 +101,18 @@ class CliHandler:
         return list(_st.all_keys())
 
     def get_version(self) -> str:
-        return __version__
+        """Return the current version of the application, based on the supported server type."""
+
+        from .constants import APP_VERSION
+
+        return APP_VERSION
 
     def make_cli_parser(self, *, add_subparsers: bool = True) -> ArgumentParser:
         """
         Parse commandline arguments using a git-like subcommands scheme.
         """
+
+        from .options import DEFAULT_LOG_LEVEL_FILE
 
         common_parser = ArgumentParser(add_help=False)
         common_parser.add_argument(
@@ -560,14 +573,6 @@ class CliHandler:
 
         from ..drive.utils import find_resource
 
-        # Short-circuit for --version / -v: print cleanly with no logs or config loading.
-        if any(a in ("-v", "--version") for a in argv):
-            if WINDOWS:
-                print(self.get_version(), end="")
-            else:
-                print(self.get_version())
-            return 0
-
         supported_server_list = find_resource(
             "server_list", file="supported_server_list.txt"
         )  # Ensure the file is present
@@ -585,6 +590,31 @@ class CliHandler:
             return 1
 
         Options.server_type = supported_server
+        # Updating the constant APP_SERVER
+        set_app_server(supported_server)
+        # Updating the constant APP_VERSION
+        is_alpha = False
+        if supported_server == "ALFRESCO":
+            set_app_version(__alfresco_version__)
+            # Check if version number is alpha
+            is_alpha = __alfresco_version__.count(".") != 2
+        else:
+            set_app_version(__version__)
+            # Check if version number is alpha
+            is_alpha = __version__.count(".") != 2
+
+        if is_alpha:
+            set_log_level_file("DEBUG")
+            Options.is_alpha = True
+
+        # Short-circuit for --version / -v: print cleanly with no logs or config loading.
+        if any(a in ("-v", "--version") for a in argv):
+            if WINDOWS:
+                print(self.get_version(), end="")
+            else:
+                print(self.get_version())
+            return 0
+
         config = _st.get(supported_server)
         Options.nxdrive_home = Path.home() / config.home_dir
 
