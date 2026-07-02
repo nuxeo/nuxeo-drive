@@ -554,6 +554,12 @@ class CliHandler:
     def handle(self, argv: List[str], /) -> int:
         """Parse options, setup logs and manager and dispatch execution."""
 
+        from nxdrive.drive import server_type as _st
+        from nxdrive.drive.constants import refresh_branding
+        from nxdrive.drive.feature import apply_server_type_restrictions
+
+        from ..drive.utils import find_resource
+
         # Short-circuit for --version / -v: print cleanly with no logs or config loading.
         if any(a in ("-v", "--version") for a in argv):
             if WINDOWS:
@@ -562,16 +568,30 @@ class CliHandler:
                 print(self.get_version())
             return 0
 
-        # On fresh install, ask the user to pick a server type FIRST.
-        # This must happen before logging, config loading, or Manager creation
-        # because all of those depend on Options.nxdrive_home which is
-        # determined by the server type.
-        if self._is_fresh_install():
-            self._pick_server_type()
-        else:
-            # Existing install: infer server type from the home directory
-            # so that logging, branding, etc. are correct before Manager loads.
-            self._restore_server_type()
+        supported_server_list = find_resource(
+            "server_list", file="supported_server_list.txt"
+        )  # Ensure the file is present
+        supported_server_keys = []
+        with open(supported_server_list, "r", encoding="utf-8") as f:
+            supported_server_keys = [
+                line.strip().upper()
+                for line in f
+                if line.strip() and not line.strip().startswith("#")
+            ]
+        supported_server = supported_server_keys[0] if supported_server_keys else None
+
+        if not supported_server:
+            log.error("No supported server type found in supported_server_list.txt")
+            return 1
+
+        Options.server_type = supported_server
+        config = _st.get(supported_server)
+        Options.nxdrive_home = Path.home() / config.home_dir
+
+        apply_server_type_restrictions(supported_server)
+        refresh_branding(supported_server)
+
+        Options.nxdrive_home.mkdir(parents=True, exist_ok=True)
 
         # Pre-configure the logging to catch early errors
         early_options = Namespace(
@@ -906,9 +926,11 @@ class CliHandler:
         return payload
 
     def _send_to_running_instance(self, payload: bytes, pid: int, /) -> bool:
+
+        from nxdrive.drive import server_type as _st
+
         from .qt import constants as qt
         from .qt.imports import QByteArray, QLocalSocket
-        from nxdrive.drive import server_type as _st
 
         config = _st.get(Options.server_type or _st.get_default_key())
         named_pipe = f"{config.bundle_identifier}.protocol.{pid}"

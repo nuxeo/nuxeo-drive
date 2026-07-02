@@ -12,12 +12,13 @@ def get_version(init_file):
 
     with io.open(init_file, encoding="utf-8") as handler:
         for line in handler.readlines():
-            if line.startswith("__version__"):
+            if line.startswith("__alfresco_version__"):
                 return re.findall(r"\"(.+)\"", line)[0]
 
 def update_supported_server_list(file_path):
     with open(file_path, "w") as f:
-        f.write("# One server key per line.\n# These keys must match registered ServerTypeConfig.key values.\nNUXEO")
+        f.write("# One server key per line.\n# These keys must match registered ServerTypeConfig.key values.\nALFRESCO")
+
 
 cwd = os.getcwd()
 tools = os.path.join(cwd, "tools")
@@ -142,7 +143,7 @@ exe = EXE(
     pyz,
     a.scripts,
     exclude_binaries=True,
-    name="ndrive",
+    name="alfresco-drive",
     console=False,
     debug=False,
     strip=False,
@@ -151,10 +152,10 @@ exe = EXE(
     version=properties_rc,
 )
 
-coll = COLLECT(exe, a.binaries, a.zipfiles, a.datas, name="ndrive")
+coll = COLLECT(exe, a.binaries, a.zipfiles, a.datas, name="alfresco-drive")
 
 info_plist = {
-    "CFBundleName": "NuxeoDrive",
+    "CFBundleName": "AlfrescoDrive",
     "CFBundleShortVersionString": version,
     # CFBundleURLTypes MUST be an array of dicts per Apple's spec
     # (https://developer.apple.com/documentation/bundleresources/information-property-list/cfbundleurltypes).
@@ -162,7 +163,7 @@ info_plist = {
     # deliver nxdrive:// URLs as QFileOpenEvent to the running app.
     "CFBundleURLTypes": [
         {
-            "CFBundleURLName": "org.nuxeo.nxdrive.direct-edit",
+            "CFBundleURLName": "org.alfresco.nxdrive.direct-edit",
             "CFBundleTypeRole": "Editor",
             "CFBundleURLSchemes": ["nxdrive"],
         },
@@ -172,8 +173,8 @@ info_plist = {
 
 app = BUNDLE(
     coll,
-    name="Nuxeo Drive.app",
+    name="Alfresco Drive.app",
     icon=icon,
     info_plist=info_plist,
-    bundle_identifier="org.nuxeo.drive",
+    bundle_identifier="org.alfresco.drive",
 )
