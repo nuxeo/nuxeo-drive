@@ -204,18 +204,22 @@ class Application(QApplication):
         self.manager.reloadIconsSet.connect(self.load_icons_set)
 
         # Direct Edit
-        self.manager.direct_edit.directEditConflict.connect(self._direct_edit_conflict)
-        self.manager.direct_edit.directEditError[str, list].connect(
-            self._direct_edit_error
-        )
-        self.manager.direct_edit.directEditError[str, list, str].connect(
-            self._direct_edit_error
-        )
+        if getattr(self.manager, "direct_edit", None):
+            self.manager.direct_edit.directEditConflict.connect(
+                self._direct_edit_conflict
+            )
+            self.manager.direct_edit.directEditError[str, list].connect(
+                self._direct_edit_error
+            )
+            self.manager.direct_edit.directEditError[str, list, str].connect(
+                self._direct_edit_error
+            )
 
         # Direct Download - connect progress signal to monitoring model
-        self.manager.direct_download.downloadProgress.connect(
-            self.direct_download_monitoring_model.set_progress
-        )
+        if getattr(self.manager, "direct_download", None):
+            self.manager.direct_download.downloadProgress.connect(
+                self.direct_download_monitoring_model.set_progress
+            )
 
         # Check if actions is required, separate method so it can be overridden
         self.init_checks()
@@ -686,8 +690,7 @@ class Application(QApplication):
         """Resolve a server-specific popup QML file URL, with drive fallback."""
         config = _st.get(Options.server_type or _st.get_default_key())
         log.info(
-            "Resolving %s popup: server_type=%s, config.key=%s, "
-            "configured path=%r",
+            "Resolving %s popup: server_type=%s, config.key=%s, " "configured path=%r",
             popup_type,
             Options.server_type,
             config.key,
@@ -725,7 +728,9 @@ class Application(QApplication):
                 # Do not fall back to the generic drive popup for account creation.
                 return ""
 
-        fallback = "NewAccountPopup.qml" if popup_type == "new_account" else "ReLoginPopup.qml"
+        fallback = (
+            "NewAccountPopup.qml" if popup_type == "new_account" else "ReLoginPopup.qml"
+        )
         fallback_path = find_resource("qml", file=fallback)
         log.info("Using fallback %s popup: %s", popup_type, fallback_path)
         return QUrl.fromLocalFile(str(fallback_path)).toString()

@@ -15,6 +15,9 @@ def get_version(init_file):
             if line.startswith("__version__"):
                 return re.findall(r"\"(.+)\"", line)[0]
 
+def update_supported_server_list(file_path):
+    with open(file_path, "w") as f:
+        f.write("# One server key per line.\n# These keys must match registered ServerTypeConfig.key values.\nNUXEO")
 
 cwd = os.getcwd()
 tools = os.path.join(cwd, "tools")
@@ -23,6 +26,8 @@ data = os.path.join(nxdrive, "drive", "data")
 alfresco_qml = os.path.join(nxdrive, "alfresco", "gui", "qml")
 nuxeo_qml = os.path.join(nxdrive, "nuxeo", "gui", "qml")
 supported_server_list = os.path.join(nxdrive, "supported_server_list.txt")
+
+update_supported_server_list(supported_server_list)
 
 icon = {
     "darwin": os.path.join(tools, "osx", "app_icon.icns"),
@@ -52,6 +57,7 @@ data = [
     (data, "data"),
     (data, "nxdrive/drive/data"),
     (supported_server_list, "nxdrive"),
+    (supported_server_list, "data/server_list"),
     (alfresco_qml, "nxdrive/alfresco/gui/qml"),
     (nuxeo_qml, "nxdrive/nuxeo/gui/qml"),
 ]

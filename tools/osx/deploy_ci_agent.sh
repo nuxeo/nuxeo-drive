@@ -71,12 +71,21 @@ prepare_signing_from_scratch() {
 
 build_extension() {
     # Create the FinderSync extension, if not already done
-    local extension_path="${WORKSPACE_DRIVE}/tools/osx/drive"
+    local project_path="${WORKSPACE_DRIVE}/tools/osx/drive/"
+    if [ "$1" = "NuxeoFinderSync" ]; then
+        local extension_path="${WORKSPACE_DRIVE}/tools/osx/drive/drive.xcodeproj"
+    else
+        local extension_path="${WORKSPACE_DRIVE}/tools/osx/drive/alfresco-drive.xcodeproj"
+    fi
+
+    local entitlement_name="$1"
+
+    echo ">>> [package] Target entitlement ${entitlement_name}"
 
     echo ">>> [package] Building the FinderSync extension"
-    xcodebuild -project "${extension_path}/drive.xcodeproj" -target "NuxeoFinderSync" -configuration Release build
-    mv -fv "${extension_path}/build/Release/NuxeoFinderSync.appex" "${WORKSPACE_DRIVE}/NuxeoFinderSync.appex"
-    rm -rf "${extension_path}/build"
+    xcodebuild -project "${extension_path}" -target "${entitlement_name}" -configuration Release build
+    mv -fv "${project_path}/build/Release/${entitlement_name}.appex" "${WORKSPACE_DRIVE}/${entitlement_name}.appex"
+    rm -rf "${project_path}/build"
 }
 
 cleanup_local_lsdb_state() {
@@ -136,27 +145,39 @@ cleanup_local_lsdb_state() {
 }
 
 create_package() {
+    # local app_name=""
+    if [ "$1" = "nuxeo" ]; then
+        echo ">>> [package] Creating Nuxeo Drive package"
+        local app_name="Nuxeo Drive"
+        local entitlement_name="NuxeoFinderSync"
+    else
+        echo ">>> [package] Creating Alfresco Drive package"
+        local app_name="Alfresco Drive"
+        local entitlement_name="AlfrescoFinderSync"
+    fi
+
     # Create the final DMG
-    local app_name="Nuxeo Drive"
     local bundle_name="${app_name}.app"
     local output_dir="${WORKSPACE_DRIVE}/dist"
     local pkg_path="${output_dir}/${bundle_name}"
     local src_folder_tmp="${WORKSPACE}/dmg_src_folder.tmp"
-    local dmg_tmp="${WORKSPACE}/nuxeo-drive.tmp.dmg"
+    local dmg_tmp="${WORKSPACE}/${1}-drive.tmp.dmg"
     local background_file="${WORKSPACE_DRIVE}/tools/osx/dmgbackground.png"
     local extension_path="${WORKSPACE_DRIVE}/tools/osx/drive"
-    local entitlements="${extension_path}/NuxeoFinderSync/NuxeoFinderSync.entitlements"
+    local entitlements="${extension_path}/${entitlement_name}/${entitlement_name}.entitlements"
     local generated_ds_store="${WORKSPACE_DRIVE}/tools/osx/generated_DS_Store"
     local app_version
 
     # Local-build only: prune stale LaunchServices state before producing
     # the new DMG. No-op on CI. See cleanup_local_lsdb_state().
-    cleanup_local_lsdb_state
+    if [ "$1" = "nuxeo" ]; then
+        cleanup_local_lsdb_state
+    fi
 
-    build_extension
+    build_extension $entitlement_name
     echo ">>> [package] Adding the extension to the package"
     mkdir "${pkg_path}/Contents/PlugIns"
-    mv -fv "${WORKSPACE_DRIVE}/NuxeoFinderSync.appex" "${pkg_path}/Contents/PlugIns/"
+    mv -fv "${WORKSPACE_DRIVE}/${entitlement_name}.appex" "${pkg_path}/Contents/PlugIns/"
 
     if [ "${GITHUB_WORKSPACE:-unset}" != "unset" ]; then
         prepare_signing_from_scratch
@@ -184,7 +205,7 @@ create_package() {
                     --force                          \
                     --deep                           \
                     --entitlements "${entitlements}" \
-                    "${pkg_path}/Contents/PlugIns/NuxeoFinderSync.appex"
+                    "${pkg_path}/Contents/PlugIns/${entitlement_name}.appex"
 
         # And we shallow sign the .app
         ${CODESIGN} "${SIGNING_ID}" "${pkg_path}" --force
@@ -196,8 +217,12 @@ create_package() {
 
     echo ">>> [package] Creating the DMG file"
 
-    app_version="$(grep __version__ nxdrive/__init__.py | cut -d'"' -f2)"
-    local dmg_path="${output_dir}/nuxeo-drive-${app_version}.dmg"
+    if [ "$app_name" = "Nuxeo Drive" ]; then
+        app_version="$(grep __version__ nxdrive/__init__.py | cut -d'"' -f2)"
+    else
+        app_version="$(grep __alfresco_version__ nxdrive/__init__.py | cut -d'"' -f2)"
+    fi
+    local dmg_path="${output_dir}/${1}-drive-${app_version}.dmg"
 
     # Clean-up
     rm -fv "${dmg_path}"

@@ -30,7 +30,7 @@ __author__ = "Nuxeo"
 __version__ = "7.1.0"
 __alfresco_version__ = "1.0.0"
 __copyright__ = """
-    Copyright © 2025 Hyland Software, Inc. and its affiliates. All rights reserved.
+    Copyright © 2026 Hyland Software, Inc. and its affiliates. All rights reserved.
     All Hyland product names are registered or unregistered trademarks of Hyland Software, Inc. or its affiliates
     (https://www.hyland.com/products/nuxeo-platform) and others.
 
@@ -102,6 +102,7 @@ def _supported_packages() -> tuple[str, ...]:
             ):
                 candidates.append(child.name)
     return tuple(sorted(candidates))
+
 
 # Frozen fallback: if iter_modules found nothing, try known packages directly.
 if not _discovered:
