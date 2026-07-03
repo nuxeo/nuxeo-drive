@@ -216,3 +216,25 @@ def load_class(class_path: str) -> Optional[type]:
         return getattr(module, class_name)
     except (ImportError, AttributeError):
         return None
+
+
+def first_class_path(attr_name: str) -> str:
+    """Return the first non-empty ``attr_name`` class path across registered
+    configs, preferring the default.  Returns an empty string if none of the
+    registered server types contribute an implementation for *attr_name*.
+
+    Used by manager-level singletons (DirectEdit, DirectDownload, Workflow)
+    that must gracefully degrade when the default backend doesn't provide
+    an implementation (e.g. Alfresco-only build).
+    """
+    default_key = get_default_key()
+    default_cfg = _registry.get(default_key)
+    if default_cfg is not None:
+        path = getattr(default_cfg, attr_name, "")
+        if path:
+            return path
+    for cfg in _registry.values():
+        path = getattr(cfg, attr_name, "")
+        if path:
+            return path
+    return ""

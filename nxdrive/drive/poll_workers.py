@@ -202,6 +202,9 @@ class WorkflowWorker(PollWorker):
         if self.manager.engines:
             self.app = self.manager.application
             self.workflow = self.app.workflow
+            if self.workflow is None:
+                # No backend registered a Workflow class; nothing to poll.
+                return True
             for id in self.manager.delete_users_from_tasks_cache:
                 self.workflow.clean_user_task_data(id)
             self.manager.delete_users_from_tasks_cache = []

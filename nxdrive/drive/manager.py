@@ -425,19 +425,27 @@ class Manager(QObject):
         return worker
 
     def _create_direct_edit(self) -> Any:
-        """Create the Direct Edit worker using the default server-type's class."""
-        cls = st.load_class(st.get(st.get_default_key()).direct_edit_class_path)
+        """Create the Direct Edit worker.
+
+        Skips creation entirely when ``Feature.direct_edit`` is disabled
+        (typical for backends that don't support it, e.g. Alfresco).
+        Falls back to the first registered server-type that contributes
+        a ``direct_edit_class_path`` when the default backend has none.
+        """
+        if not Feature.direct_edit:
+            log.info("Feature.direct_edit is disabled; skipping DirectEdit worker")
+            return None
+
+        cls = st.load_class(st.first_class_path("direct_edit_class_path"))
         if cls is None:
-            log.warning("No DirectEdit class registered for the default server type")
+            log.warning("No DirectEdit class registered by any server type")
             return None
 
         worker = cls(self, self.direct_edit_folder)
         self.autolock_service.direct_edit = worker
 
         # Start only when the configuration has been retrieved
-        # and only if the direct_edit feature is enabled
-        if Feature.direct_edit:
-            self.server_config_updater.firstRunCompleted.connect(worker.thread.start)
+        self.server_config_updater.firstRunCompleted.connect(worker.thread.start)
 
         # Connect to the Tracker metrics
         worker.openDocument.connect(self.tracker.send_directedit_open)
@@ -446,12 +454,16 @@ class Manager(QObject):
         return worker
 
     def _create_direct_download(self) -> Any:
-        """Create the Direct Download worker using the default server-type's class."""
-        cls = st.load_class(st.get(st.get_default_key()).direct_download_class_path)
+        """Create the Direct Download worker.
+
+        Falls back to the first registered server-type that contributes
+        a ``direct_download_class_path`` when the default backend has none.
+        Returns ``None`` when no backend implements Direct Download so
+        callers must guard against a ``None`` ``self.direct_download``.
+        """
+        cls = st.load_class(st.first_class_path("direct_download_class_path"))
         if cls is None:
-            log.warning(
-                "No DirectDownload class registered for the default server type"
-            )
+            log.warning("No DirectDownload class registered by any server type")
             return None
 
         # Use the dedicated folder for downloads (defined in __init__)

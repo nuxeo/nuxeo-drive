@@ -28,6 +28,7 @@ from ...objects import DocPair
 from ...options import Options
 from ...translator import Translator
 from ...utils import if_frozen
+from ... import constants as _constants
 from .. import AbstractOSIntegration
 from ..extension import get_formatted_status
 from .darwin_config import get_agent_template, get_findersync_ids
@@ -153,7 +154,7 @@ class DarwinIntegration(AbstractOSIntegration):
     @if_frozen
     def register_startup(self) -> None:
         """
-        Register the Nuxeo Drive.app as a user Launch Agent.
+        Register the ``<APP_NAME>.app`` as a user Launch Agent.
         http://developer.apple.com/library/mac/#documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html
         """
         if self.startup_enabled():
@@ -181,32 +182,34 @@ class DarwinIntegration(AbstractOSIntegration):
     @if_frozen
     def _prune_competing_url_handlers(self) -> None:
         """
-        Detach leftover Nuxeo Drive install DMGs and prune their stale
-        LaunchServices registrations.
+        Detach leftover install DMGs and prune their stale LaunchServices
+        registrations.
 
         macOS routes ``nxdrive://`` URLs via LaunchServices. If two
-        bundles claim ``org.nuxeo.drive`` at the same time (typically
-        ``/Applications/Nuxeo Drive.app`` AND ``/Volumes/Nuxeo Drive/
-        Nuxeo Drive.app`` because the user forgot to eject the install
-        DMG), routing becomes ambiguous and URLs are silently dropped
-        — the running app never receives the ``QFileOpenEvent``. This
-        method removes those competing claimants so the canonical
-        ``/Applications`` install is the only handler.
+        bundles claim the same ``bundle_identifier`` at the same time
+        (typically ``/Applications/<APP_NAME>.app`` AND
+        ``/Volumes/<APP_NAME>/<APP_NAME>.app`` because the user forgot
+        to eject the install DMG), routing becomes ambiguous and URLs
+        are silently dropped — the running app never receives the
+        ``QFileOpenEvent``. This method removes those competing
+        claimants so the canonical ``/Applications`` install is the
+        only handler.
 
-        Only touches paths under ``/Volumes/Nuxeo Drive*``. Never the
+        Only touches paths under ``/Volumes/<APP_NAME>*``. Never the
         running app's own bundle path. Best-effort: failures are logged
         and ignored.
         """
         canonical = _get_app()
+        app_name = _constants.APP_NAME
         lsregister = (
             "/System/Library/Frameworks/CoreServices.framework/Versions/A"
             "/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
         )
 
         try:
-            volumes = sorted(Path("/Volumes").glob("Nuxeo Drive*"))
+            volumes = sorted(Path("/Volumes").glob(f"{app_name}*"))
         except Exception:
-            log.exception("Failed to enumerate /Volumes for Nuxeo Drive mounts")
+            log.exception(f"Failed to enumerate /Volumes for {app_name} mounts")
             return
 
         for vol in volumes:
@@ -223,7 +226,7 @@ class DarwinIntegration(AbstractOSIntegration):
                     capture_output=True,
                     timeout=10,
                 )
-                log.info(f"Detached competing Nuxeo Drive volume {vol_str!r}")
+                log.info(f"Detached competing {app_name} volume {vol_str!r}")
             except Exception:
                 log.exception(f"Failed to detach {vol_str!r}")
 
@@ -231,7 +234,7 @@ class DarwinIntegration(AbstractOSIntegration):
             # mount; otherwise LaunchServices may keep routing to it.
             try:
                 subprocess.run(
-                    [lsregister, "-u", str(vol / "Nuxeo Drive.app")],
+                    [lsregister, "-u", str(vol / f"{app_name}.app")],
                     check=False,
                     capture_output=True,
                     timeout=10,
@@ -249,7 +252,7 @@ class DarwinIntegration(AbstractOSIntegration):
                 " was launched from the Python OSX app bundle"
             )
             return
-        # Remove competing /Volumes/Nuxeo Drive* claimants before we
+        # Remove competing /Volumes/<APP_NAME>* claimants before we
         # declare ourselves the default handler; see method docstring.
         self._prune_competing_url_handlers()
         LSSetDefaultHandlerForURLScheme(NXDRIVE_SCHEME, bundle_id)

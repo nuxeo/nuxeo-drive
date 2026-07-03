@@ -15,7 +15,7 @@ log = getLogger(__name__)
 
 
 class ConsoleApplication(QCoreApplication):
-    """Console mode Nuxeo Drive application"""
+    """Console mode Drive application"""
 
     def __init__(self, manager: "Manager", *args: Any) -> None:
         # Little fix here! See Application.__init__() for details.

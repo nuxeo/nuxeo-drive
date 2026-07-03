@@ -18,7 +18,7 @@ from queue import Empty, Queue
 from threading import Lock
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from nxdrive.drive.constants import DirectDownloadStatus
+from nxdrive.drive.constants import APP_NAME, DirectDownloadStatus
 from nxdrive.drive.engine.workers import Worker
 from nxdrive.drive.objects import DirectDownload as DirectDownloadRecord
 from nxdrive.drive.options import Options
@@ -419,7 +419,7 @@ class DirectDownload(Worker):
                 return configured_path
             else:
                 log.info(
-                    f"Unable to download to {configured_path} because Nuxeo Drive does not have access to it. "
+                    f"Unable to download to {configured_path} because {APP_NAME} does not have access to it. "
                     f"Downloading to {user_downloads}"
                 )
 
