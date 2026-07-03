@@ -83,6 +83,11 @@ class ProcessAutoLockerWorker(PollWorker):
         self.dao = manager.dao
         self._folder = folder
 
+        # Set by ``Manager._create_direct_edit`` when a DirectEdit worker is
+        # created. Stays ``None`` when the feature is disabled (Alfresco)
+        # or no backend registers a DirectEdit class.
+        self.direct_edit: Any = None
+
         self._autolocked: Dict[Path, int] = {}
         self._lockers: Dict[Path, Any] = {}
         self._to_lock: Items = []
@@ -163,7 +168,8 @@ class ProcessAutoLockerWorker(PollWorker):
                 # The document has been found but not locked, this is the case when the application
                 # that opens the document does not use identifiable temporary files.
                 # Such as Photoshop and Illustrator.
-                self.set_autolock(path, self.direct_edit)
+                if self.direct_edit is not None:
+                    self.set_autolock(path, self.direct_edit)
         sleep(10)
 
         # Lock new documents

@@ -110,7 +110,7 @@ log = getLogger(__name__)
 
 
 class Application(QApplication):
-    """Main Nuxeo Drive application controlled by a system tray icon + menu"""
+    """Main Drive application controlled by a system tray icon + menu"""
 
     icon = QIcon(str(find_icon("app_icon.svg")))
     icons: Dict[str, QIcon] = {}
@@ -203,8 +203,9 @@ class Application(QApplication):
         self.setup_systray()
         self.manager.reloadIconsSet.connect(self.load_icons_set)
 
-        # Direct Edit
-        if getattr(self.manager, "direct_edit", None):
+        # Direct Edit (may be None when Feature.direct_edit is disabled
+        # or the default backend does not register a DirectEdit class).
+        if self.manager.direct_edit is not None:
             self.manager.direct_edit.directEditConflict.connect(
                 self._direct_edit_conflict
             )
@@ -215,8 +216,9 @@ class Application(QApplication):
                 self._direct_edit_error
             )
 
-        # Direct Download - connect progress signal to monitoring model
-        if getattr(self.manager, "direct_download", None):
+        # Direct Download - connect progress signal to monitoring model.
+        # (may be None when no backend registers a DirectDownload class.)
+        if self.manager.direct_download is not None:
             self.manager.direct_download.downloadProgress.connect(
                 self.direct_download_monitoring_model.set_progress
             )
@@ -436,7 +438,7 @@ class Application(QApplication):
             return
         if Feature.tasks_management:
             workflow_cls = _st.load_class(
-                _st.get(_st.get_default_key()).workflow_class_path
+                _st.first_class_path("workflow_class_path")
             )
             if workflow_cls is None:
                 log.debug("No Workflow class registered; skipping task init")
@@ -1992,7 +1994,7 @@ class Application(QApplication):
         Set up a QLocalServer to listen to nxdrive protocol calls.
 
         On Windows, when an nxdrive:// URL is opened, it creates a new
-        instance of Nuxeo Drive. As we want the already running instance to
+        instance of Drive. As we want the already running instance to
         receive this call (particularly during the login process), we set
         up a QLocalServer in that instance to listen to the new ones who will
         send their data.

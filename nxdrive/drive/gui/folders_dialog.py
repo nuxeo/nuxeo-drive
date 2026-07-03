@@ -685,10 +685,26 @@ class FoldersDialog(DialogMixin):
         )
 
     def get_tree_view(self) -> FolderTreeView:
-        """Render the folders tree."""
+        """Render the folders tree.
+
+        The ``folders_only_class_path`` is looked up per-engine so each
+        backend contributes its own tree-view client. When the engine's
+        backend does not provide one (e.g. Alfresco does not currently
+        implement a folder tree client), raise a clear error rather than
+        crashing with ``NoneType`` further down the call stack.
+        """
         self.resize(800, 450)
         config = _st.get_by_engine_type(self.engine.type)
         folders_cls = _st.load_class(config.folders_only_class_path)
+        if folders_cls is None:
+            log.warning(
+                f"No folder tree client registered for engine type "
+                f"{self.engine.type!r}; folders dialog cannot be rendered"
+            )
+            raise RuntimeError(
+                f"Folder tree browsing is not available for engine type "
+                f"{self.engine.type!r}"
+            )
         client = folders_cls(self.engine.remote)
         return FolderTreeView(self, client, self.selected_folder)
 

@@ -163,8 +163,8 @@ Rectangle {
                         anchors.fill: parent
                     }
                     color: "#FFFFFF"
+                    visible: feat_tasks_management.enabled
                     enabled: feat_tasks_management.enabled
-                    opacity: feat_tasks_management.enabled ? 1.0 : 0.2
                     onClicked: {
                             tasks_model.loadList(api.get_Tasks_list(accountSelect.getRole("uid"), false, true), api.get_username(accountSelect.getRole("uid")))
                             api.open_tasks_window(accountSelect.getRole("uid"))
@@ -197,8 +197,8 @@ Rectangle {
                     iconColor: secondaryIcon
                     onClicked: feat_direct_transfer.enabled ? api.open_direct_transfer(accountSelect.getRole("uid")) : null
                     tooltip: qsTr("CONTEXT_MENU_4") + tl.tr
+                    visible: feat_direct_transfer.enabled
                     enabled: feat_direct_transfer.enabled
-                    opacity: feat_direct_transfer.enabled ? 1.0 : 0.5
                 }
 
                 // Icon 6: sub-menu
