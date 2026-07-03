@@ -112,7 +112,7 @@ properties_rc = None
 
 if sys.platform == "win32":
     # Set executable properties
-    properties_tpl = tools + "\\windows\\properties_tpl.rc"
+    properties_tpl = tools + "\\windows\\properties_tpl_nuxeo.rc"
     properties_rc = tools + "\\windows\\properties.rc"
     if os.path.isfile(properties_rc):
         os.remove(properties_rc)

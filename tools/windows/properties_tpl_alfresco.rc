@@ -15,12 +15,12 @@ VSVersionInfo(
       StringTable(
         '040904B0',
         [StringStruct('CompanyName', 'Hyland Software'),
-        StringStruct('FileDescription', 'Nuxeo Drive'),
+        StringStruct('FileDescription', 'Alfresco Drive'),
         StringStruct('FileVersion', '{version}'),
-        StringStruct('InternalName', 'ndrive'),
-        StringStruct('LegalCopyright', '\xa9 2025 Hyland Software, Inc. and its affiliates. All rights reserved. All Hyland product names are registered or unregistered trademarks of Hyland Software, Inc. or its affiliates.'),
-        StringStruct('OriginalFilename', 'ndrive.exe'),
-        StringStruct('ProductName', 'Nuxeo Drive'),
+        StringStruct('InternalName', 'alfresco-drive'),
+        StringStruct('LegalCopyright', '\xa9 2026 Hyland Software, Inc. and its affiliates. All rights reserved. All Hyland product names are registered or unregistered trademarks of Hyland Software, Inc. or its affiliates.'),
+        StringStruct('OriginalFilename', 'alfresco-drive.exe'),
+        StringStruct('ProductName', 'Alfresco Drive'),
         StringStruct('ProductVersion', '{version}')])
       ]),
     VarFileInfo([VarStruct('Translation', [0, 0])])

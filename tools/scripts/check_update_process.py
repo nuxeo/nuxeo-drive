@@ -125,7 +125,7 @@ def gen_exe():
 def get_last_version_number():
     """Get the latest GA release version from the update website."""
 
-    from nxdrive.updater.utils import get_latest_version
+    from ...nxdrive.drive.updater.utils import get_latest_version
 
     url = "https://community.nuxeo.com/static/drive-updates/versions.yml"
     headers = {"User-Agent": f"check-updater/{__version__}"}
@@ -231,79 +231,74 @@ def launch_drive(executable, args=None):
     subprocess.check_call(cmd)
 
 
-"""
-def cat_log():
-    ""Cat the log file.""
+# def cat_log():
+#     ""Cat the log file.""
 
-    if EXT == "exe":
-        src = expandvars("C:\\Users\\%username%\\.nuxeo-drive\\logs\\nxdrive.log")
-    else:
-        src = expanduser("~/.nuxeo-drive/logs/nxdrive.log")
+#     if EXT == "exe":
+#         src = expandvars("C:\\Users\\%username%\\.nuxeo-drive\\logs\\nxdrive.log")
+#     else:
+#         src = expanduser("~/.nuxeo-drive/logs/nxdrive.log")
 
-    print("", flush=True)
-    print("", flush=True)
-    print(">>> $ cat", src, flush=True)
-    with open(src, encoding="utf-8") as fh:
-        print(fh.read(), flush=True)
-        print("", flush=True)
-        print("", flush=True)
-"""
-"""
-def cat_log():
-    ""Cat the log file.""
+#     print("", flush=True)
+#     print("", flush=True)
+#     print(">>> $ cat", src, flush=True)
+#     with open(src, encoding="utf-8") as fh:
+#         print(fh.read(), flush=True)
+#         print("", flush=True)
+#         print("", flush=True)
 
-    if EXT == "exe":
-        src = expandvars("C:\\Users\\%username%\\.nuxeo-drive\\logs\\nxdrive.log")
-    else:
-        src = expanduser("~/.nuxeo-drive/logs/nxdrive.log")
+# def cat_log():
+#     ""Cat the log file.""
 
-    print("", flush=True)
-    print("", flush=True)
-    print(">>> $ cat", src, flush=True)
-    print(f"src: {src!r}")
+#     if EXT == "exe":
+#         src = expandvars("C:\\Users\\%username%\\.nuxeo-drive\\logs\\nxdrive.log")
+#     else:
+#         src = expanduser("~/.nuxeo-drive/logs/nxdrive.log")
 
-    src_path = src
-    dir_list = []
+#     print("", flush=True)
+#     print("", flush=True)
+#     print(">>> $ cat", src, flush=True)
+#     print(f"src: {src!r}")
 
-    while True:
-        print(f">>>> inside whule; dir_list: {dir_list!r}")
-        if not os.path.exists(src_path):
-            head, tail = os.path.split(src_path)
-            if "nxdrive.log" not in src_path:
-                dir_list.append(src_path)
-            if not head:
-                break
-            src_path = head
-        else:
-            break
-    print(">>>> outside while")
-    if dir_list:
-        dir_list.reverse()
-        for directory in dir_list:
-            print(f">>>> creating {directory!r}")
-            os.mkdir(directory)
-            print(f">>>> {directory!r} created")
-    print(">>>> All dirs created")
-    with open(src, "a") as f:
-        f.write("")
-        f.close()
-    print(">>>> file operation completed")
-    ""
-    if not os.path.exists(src):
-        dirs = [".nuxeo-drive", ".nuxeo-drive/logs"]
-        for directory in dirs:
-            if not os.path.isdir(directory):
-                os.mkdir(directory)
-        with open(src, "w") as f:
-            f.write("")
-        f.close()
-    ""
-    with open(src, "r", encoding="utf-8") as fh:
-        print(fh.read(), flush=True)
-        print("", flush=True)
-        print("", flush=True)
-    print(">>>> end of function")
-"""
+#     src_path = src
+#     dir_list = []
+
+#     while True:
+#         print(f">>>> inside whule; dir_list: {dir_list!r}")
+#         if not os.path.exists(src_path):
+#             head, tail = os.path.split(src_path)
+#             if "nxdrive.log" not in src_path:
+#                 dir_list.append(src_path)
+#             if not head:
+#                 break
+#             src_path = head
+#         else:
+#             break
+#     print(">>>> outside while")
+#     if dir_list:
+#         dir_list.reverse()
+#         for directory in dir_list:
+#             print(f">>>> creating {directory!r}")
+#             os.mkdir(directory)
+#             print(f">>>> {directory!r} created")
+#     print(">>>> All dirs created")
+#     with open(src, "a") as f:
+#         f.write("")
+#         f.close()
+#     print(">>>> file operation completed")
+#     if not os.path.exists(src):
+#         dirs = [".nuxeo-drive", ".nuxeo-drive/logs"]
+#         for directory in dirs:
+#             if not os.path.isdir(directory):
+#                 os.mkdir(directory)
+#         with open(src, "w") as f:
+#             f.write("")
+#         f.close()
+#     with open(src, "r", encoding="utf-8") as fh:
+#         print(fh.read(), flush=True)
+#         print("", flush=True)
+#         print("", flush=True)
+#     print(">>>> end of function")
 
 
 def set_options():

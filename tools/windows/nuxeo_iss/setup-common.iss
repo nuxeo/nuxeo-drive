@@ -13,7 +13,7 @@ AppCopyright="© 2025 {#MyAppPublisher}, Inc. and its affiliates. All rights res
 ; Outputs
 OutputDir=..\..\dist
 
-; Startup menu entry: "Publisher/Application Name", i.e.: "Nuxeo/Nuxeo Drive"
+; Startup menu entry: "Publisher/Application Name", i.e.: "Hyland/Nuxeo Drive"
 DefaultGroupName={#MyAppPublisher}
 DisableProgramGroupPage=yes
 
