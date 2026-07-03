@@ -439,7 +439,9 @@ class Application(QApplication):
         if not self.manager.engines:
             return
         if Feature.tasks_management:
-            workflow_cls = _st.load_class(_st.first_class_path("workflow_class_path"))
+            workflow_cls = _st.load_class(
+                _st.first_class_path("workflow_class_path")
+            )
             if workflow_cls is None:
                 log.debug("No Workflow class registered; skipping task init")
                 return
