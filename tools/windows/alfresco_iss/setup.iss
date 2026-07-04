@@ -28,7 +28,7 @@ DefaultDirName={param:targetdir|{localappdata}\{#MyAppName}}
 
 
 [Files]
-Source: "..\..\dist\alfresco-drive-addons.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\..\dist\alfresco-drive-addons.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 
 [Registry]

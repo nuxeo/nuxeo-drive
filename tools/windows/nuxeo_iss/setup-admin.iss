@@ -26,7 +26,7 @@ UsedUserAreasWarning=no
 
 
 [Files]
-Source: "system-wide.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\system-wide.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 
 [Registry]

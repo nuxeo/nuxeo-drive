@@ -11,14 +11,14 @@ AppUpdatesURL={#MyAppUpdatesURL}
 AppCopyright="© 2026 {#MyAppPublisher}, Inc. and its affiliates. All rights reserved. All Hyland product names are registered or unregistered trademarks of Hyland Software, Inc. or its affiliates."
 
 ; Outputs
-OutputDir=..\..\dist
+OutputDir=..\..\..\dist
 
 ; Startup menu entry: "Publisher/Application Name", i.e.: "Hyland/Alfresco Drive"
 DefaultGroupName={#MyAppPublisher}
 DisableProgramGroupPage=yes
 
 ; License file
-LicenseFile=..\..\LICENSE.txt
+LicenseFile=..\..\..\LICENSE.txt
 
 ; Icons
 UninstallDisplayIcon={app}\{#MyAppExeName}
@@ -79,7 +79,7 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 
 
 [Files]
-Source: "..\..\dist\alfresco\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\..\dist\alfresco-drive\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 
 [Languages]
@@ -93,9 +93,9 @@ Name: "polish"; MessagesFile: "compiler:Languages\Polish.isl"
 Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 
 ; Waiting for official support: http://www.jrsoftware.org/files/istrans/
-Name: "basque"; MessagesFile: "unofficial_i18n\Basque.isl"
-Name: "indonesian"; MessagesFile: "unofficial_i18n\Indonesian.isl"
-Name: "swedish"; MessagesFile: "unofficial_i18n\Swedish.isl"
+Name: "basque"; MessagesFile: "..\unofficial_i18n\Basque.isl"
+Name: "indonesian"; MessagesFile: "..\unofficial_i18n\Indonesian.isl"
+Name: "swedish"; MessagesFile: "..\unofficial_i18n\Swedish.isl"
 
 
 [Tasks]

@@ -16,7 +16,7 @@ DisableDirPage=yes
 DefaultDirName={param:targetdir|{localappdata}\{#MyAppParent}}
 
 ArchitecturesInstallIn64BitMode=x64
-OutputDir=..\..\dist
+OutputDir=..\..\..\dist
 OutputBaseFilename=alfresco-drive-addons
 Compression=lzma
 SolidCompression=yes
@@ -34,4 +34,4 @@ WizardStyle=modern
 Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\FileSystem"; ValueType: dword; ValueName: "LongPathsEnabled"; ValueData: "1"; Flags: createvalueifdoesntexist
 
 [Files]
-Source: "addons-installed.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\addons-installed.txt"; DestDir: "{app}"; Flags: ignoreversion

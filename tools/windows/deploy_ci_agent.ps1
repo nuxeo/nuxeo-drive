@@ -71,7 +71,7 @@ function add_missing_dlls($server_name) {
 			Get-ChildItem $folder | Copy -Verbose -Force -Destination "dist\ndrive"
 		}
 		elseif ($server_name -eq "alfresco") {
-			Get-ChildItem $folder | Copy -Verbose -Force -Destination "dist\alfresco"
+			Get-ChildItem $folder | Copy -Verbose -Force -Destination "dist\alfresco-drive"
 		}
 	}
 }
@@ -83,9 +83,11 @@ function build($app_version, $script) {
 	if (-Not (Test-Path "$Env:ISCC_PATH")) {
 		$filename = "innosetup-$Env:INNO_SETUP_VERSION.exe"
 		$output = "$Env:WORKSPACE\$filename"
-		$url = "https://mlaan2.home.xs4all.nl/ispack/$filename"
+		$url = "https://github.com/jrsoftware/issrc/releases/download/is-6_1_2/$filename"
 		download $url $output
 		Write-Output ">>> Installing Inno Setup $Env:INNO_SETUP_VERSION"
+		Write-Output ">>> On Local Machine, powershell session must be run as Administrator"
+		Write-Output ">>> On GitHub-CI, the runner is already Administrator"
 		# https://jrsoftware.org/ishelp/index.php?topic=setupcmdline
 		Start-Process $output -argumentlist "`
 			/SP- `
@@ -169,10 +171,10 @@ function build_alfresco_installer {
 	freeze_pyinstaller "alfresco"
 
 	# Do some clean-up
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\cleanup_application_tree.py "dist\alfresco"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\cleanup_application_tree.py "dist\alfresco-drive"
 
 	# Remove compiled QML files
-	Get-ChildItem -Path "dist\alfresco" -Recurse -File -Include *.qmlc | Foreach ($_) { Remove-Item -Verbose $_.Fullname }
+	Get-ChildItem -Path "dist\alfresco-drive" -Recurse -File -Include *.qmlc | Foreach ($_) { Remove-Item -Verbose $_.Fullname }
 
 	add_missing_dlls "alfresco"
 
@@ -182,7 +184,7 @@ function build_alfresco_installer {
 	}
 
 	if ($Env:ZIP_NEEDED) {
-		zip_files "dist\alfresco-drive-windows-$app_version.zip" "dist\alfresco"
+		zip_files "dist\alfresco-drive-windows-$app_version.zip" "dist\alfresco-drive"
 	}
 
 	if (-Not ($Env:SKIP_ADDONS)) {
@@ -464,7 +466,7 @@ function install_python {
 	catch {
 		$pythonArch = $false
 	}
-	if (($pythonVersion -and $pythonArch) -and ($pythonVersion -match [regex]::Escape($Env:PYTHON_DRIVE_VERSION) -and $pythonArch -eq 64)) {
+	if (($pythonVersion -and $pythonArch) -and ($pythonVersion -match $Env:PYTHON_DRIVE_VERSION -and $pythonArch -eq 64)) {
 		Write-Output ">>> Required Python version $Env:PYTHON_DRIVE_VERSION ($pythonArch bits) already installed on the system."
 		try {
 			# Split PATH into individual directories
@@ -476,7 +478,7 @@ function install_python {
 			# Check for python.exe in those directories
 			foreach ($path in $pythonPaths) {
 				$pythonExe = Join-Path -Path $path -ChildPath "python.exe"
-				if ((Test-Path $pythonExe) -and ($path -like "*\$Env:PYTHON_DRIVE_VERSION\*")) {
+				if (Test-Path $pythonExe) {
 					Write-Output "Found python.exe in: $path"
 					$Env:PYTHON_DIR = $path
 				} else {
@@ -826,13 +828,13 @@ function build_alfresco_installer_and_sign {
 	freeze_pyinstaller "alfresco"
 
 	# Do some clean-up
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\cleanup_application_tree.py "dist\alfresco"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\cleanup_application_tree.py "dist\alfresco-drive"
 
 	# Remove compiled QML files
-	Get-ChildItem -Path "dist\alfresco" -Recurse -File -Include *.qmlc | Foreach ($_) { Remove-Item -Verbose $_.Fullname }
+	Get-ChildItem -Path "dist\alfresco-drive" -Recurse -File -Include *.qmlc | Foreach ($_) { Remove-Item -Verbose $_.Fullname }
 
 	add_missing_dlls "alfresco"
-	sign "dist\alfresco\alfresco-drive.exe"
+	sign "dist\alfresco-drive\alfresco-drive.exe"
 
 	# Stop now if we only want the application to be frozen (for integration tests)
 	if ($Env:FREEZE_ONLY) {
@@ -840,7 +842,7 @@ function build_alfresco_installer_and_sign {
 	}
 
 	if ($Env:ZIP_NEEDED) {
-		zip_files "dist\alfresco-drive-windows-$app_version.zip" "dist\alfresco"
+		zip_files "dist\alfresco-drive-windows-$app_version.zip" "dist\alfresco-drive"
 	}
 
 	if (-Not ($Env:SKIP_ADDONS)) {
