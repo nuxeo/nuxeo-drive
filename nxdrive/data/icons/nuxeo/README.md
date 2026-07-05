@@ -27,7 +27,7 @@ Specifically, for the systray status icon:
 Note: [ICO](https://www.axialis.com/tutorials/tutorial-vistaicons.html) and [ICNS, rev ic14](https://en.wikipedia.org/wiki/Apple_Icon_Image_format) are multi-resolution "package" icons that must fill all sizes (retina included).
 
 - macOS
-  - app_icon.icns
+  - nuxeo_app_icon.icns
   - folder_mac.icns
 - Windows
   - app_icon.ico

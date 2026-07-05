@@ -31,7 +31,7 @@ supported_server_list = os.path.join(nxdrive, "supported_server_list.txt")
 update_supported_server_list(supported_server_list)
 
 icon = {
-    "darwin": os.path.join(tools, "osx", "app_icon.icns"),
+    "darwin": os.path.join(tools, "osx", "alfresco_app_icon.icns"),
     "linux": os.path.join(tools, "linux", "app_icon.png"),
     "win32": os.path.join(tools, "windows", "alfresco_iss/app_icon.ico"),
 }[sys.platform]
