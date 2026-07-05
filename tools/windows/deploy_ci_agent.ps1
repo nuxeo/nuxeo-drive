@@ -118,6 +118,9 @@ function build_dll($server_name, $msbuild_exe, $project, $platform) {
 }
 
 function build_nuxeo_installer {
+	# Move icons from nxdrive/data/icons/nuxeo to nxdrive/drive/data/icons
+	xcopy "nxdrive\data\icons\nuxeo\*" "nxdrive\drive\data\icons" /e /y /i
+
 	# Build the installer
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""
 
@@ -159,6 +162,9 @@ function build_nuxeo_installer {
 }
 
 function build_alfresco_installer {
+	# Move icons from nxdrive/data/icons/alfresco to nxdrive/drive/data/icons
+	xcopy "nxdrive\data\icons\alfresco\*" "nxdrive\drive\data\icons" /e /y /i
+
 	# Build the installer
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__alfresco_version__" -replace '"', "" -replace "__alfresco_version__ = ", ""
 
@@ -764,6 +770,9 @@ function sign($file) {
 }
 
 function build_nuxeo_installer_and_sign {
+	# Move icons from nxdrive/data/icons/nuxeo to nxdrive/drive/data/icons
+	xcopy "nxdrive\data\icons\nuxeo\*" "nxdrive\drive\data\icons" /e /y /i
+
 	# Build the installer
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""
 	# Setting environment variables
@@ -811,6 +820,9 @@ function build_nuxeo_installer_and_sign {
 }
 
 function build_alfresco_installer_and_sign {
+	# Move icons from nxdrive/data/icons/alfresco to nxdrive/drive/data/icons
+	xcopy "nxdrive\data\icons\alfresco\*" "nxdrive\drive\data\icons" /e /y /i
+
 	# Build the installer
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__alfresco_version__" -replace '"', "" -replace "__alfresco_version__ = ", ""
 	# Setting environment variables
