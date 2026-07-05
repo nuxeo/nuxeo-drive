@@ -113,8 +113,13 @@ function build_dll($server_name, $msbuild_exe, $project, $platform) {
 	elseif ($server_name -eq "alfresco") {
 		$server_name = "Alfresco"
 	}
-	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\${server_name}DriveShellExtensions"
-	& $msbuild_exe "$folder\${server_name}DriveShellExtensions.sln" /t:$project /p:Configuration=Release /p:Platform=$platform
+	try {
+		$folder = "$Env:WORKSPACE_DRIVE\tools\windows\${server_name}DriveShellExtensions"
+		& $msbuild_exe "$folder\${server_name}DriveShellExtensions.sln" /t:$project /p:Configuration=Release /p:Platform=$platform
+	}
+	catch {
+		Write-Error ">>> Failed to build $folder : $_"
+	}
 }
 
 function build_nuxeo_installer {
@@ -124,7 +129,7 @@ function build_nuxeo_installer {
 	# Build the installer
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""
 
-	# Build DDLs only on GitHub-CI, no need to lose time on the local dev machine
+	# Build DLLs only on GitHub-CI, no need to lose time on the local dev machine
 	if ($Env:GITHUB_WORKSPACE) {
 		build_overlays "nuxeo"
 	}
@@ -168,7 +173,7 @@ function build_alfresco_installer {
 	# Build the installer
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__alfresco_version__" -replace '"', "" -replace "__alfresco_version__ = ", ""
 
-	# Build DDLs only on GitHub-CI, no need to lose time on the local dev machine
+	# Build DLLs only on GitHub-CI, no need to lose time on the local dev machine
 	if ($Env:GITHUB_WORKSPACE) {
 		build_overlays "alfresco"
 	}
