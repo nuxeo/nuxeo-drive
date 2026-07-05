@@ -223,6 +223,7 @@ function build_overlays($server_name) {
 	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\${server_name}DriveShellExtensions"
 	$util_dll = "${server_name}DriveUtil"
 	$overlay_dll = "${server_name}DriveOverlays"
+	$installer_dll_folder = "$Env:WORKSPACE_DRIVE\tools\windows\$($server_name.ToLower())_iss\dll"
 
 	# Remove old DLLs on GitHub-CI to prevent such errors:
 	#	Rename-Item : Cannot create a file when that file already exists.
@@ -285,6 +286,18 @@ function build_overlays($server_name) {
 
 	# Delete everything that is not a DLL
 	Get-ChildItem -Path $folder\Release -Recurse -File -Exclude *.dll | Foreach ($_) { Remove-Item $_.Fullname }
+
+	# Copy built DLLs to installer folders while keeping architecture-specific paths.
+	$source_x64 = "$folder\Release\x64"
+	$source_x86 = "$folder\Release\Win32"
+	$target_x64 = "$installer_dll_folder\x64"
+	$target_x86 = "$installer_dll_folder\x86"
+
+	New-Item -ItemType Directory -Force -Path $target_x64 | Out-Null
+	New-Item -ItemType Directory -Force -Path $target_x86 | Out-Null
+
+	Copy-Item -Path "$source_x64\*.dll" -Destination $target_x64 -Force
+	Copy-Item -Path "$source_x86\*.dll" -Destination $target_x86 -Force
 }
 
 function check_import($import) {
@@ -789,7 +802,7 @@ function build_nuxeo_installer_and_sign {
 		build_overlays "nuxeo"
 	}
 
-	sign_dlls
+	sign_dlls "nuxeo"
 
 	Write-Output ">>> [$app_version] Freezing the application"
 	freeze_pyinstaller "nuxeo"
@@ -839,7 +852,7 @@ function build_alfresco_installer_and_sign {
 		build_overlays "alfresco"
 	}
 
-	sign_dlls
+	sign_dlls "alfresco"
 
 	Write-Output ">>> [$app_version] Freezing the application"
 	freeze_pyinstaller "alfresco"
@@ -874,9 +887,15 @@ function build_alfresco_installer_and_sign {
 	sign "dist\alfresco-drive-$app_version-admin.exe"
 }
 
-function sign_dlls {
-	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\dll"
-	Get-ChildItem $folder -Recurse -Include *.dll | Foreach-Object {
+function sign_dlls($server_name) {
+	$server_name = $server_name.ToLower()
+	if ($server_name -ne "nuxeo" -and $server_name -ne "alfresco") {
+		Write-Output ">>> Unknown server name for DLL signing: $server_name"
+		ExitWithCode 1
+	}
+
+	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\${server_name}_iss\dll"
+	Get-ChildItem $folder -Recurse -File -Include *.dll | Foreach-Object {
 		sign $_.FullName
 	}
 }
