@@ -155,7 +155,10 @@ check_import() {
 
 check_upgrade() {
     # Ensure a new version can be released by checking the auto-update process.
-    ${PYTHON_VENV} tools/scripts/check_update_process.py
+    if [ $# -eq 1 ]; then
+        local server_name="$1"
+    fi
+    ${PYTHON_VENV} tools/scripts/check_update_process.py --server="$server_name"
 }
 
 check_vars() {
@@ -484,7 +487,8 @@ main() {
         case "$1" in
             "--build-nuxeo") build_nuxeo_installer ;;
             "--build-alfresco") build_alfresco_installer ;;
-            "--check-upgrade") check_upgrade ;;
+            "--check-upgrade-nuxeo") check_upgrade "nuxeo" ;;
+            "--check-upgrade-alfresco") check_upgrade "alfresco" ;;
             "--install" | "--install-release")
                 install_deps
                 if ! check_import "import PyQt6" >/dev/null; then

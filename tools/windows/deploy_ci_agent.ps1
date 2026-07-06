@@ -27,7 +27,8 @@ param (
 	[switch]$build_alfresco = $false,
 	[switch]$build_nuxeo_dlls = $false,
 	[switch]$build_alfresco_dlls = $false,
-	[switch]$check_upgrade = $false,
+	[switch]$check_upgrade_nuxeo = $false,
+	[switch]$check_upgrade_alfresco = $false,
 	[switch]$build_nuxeo_installer_and_sign = $false,
 	[switch]$build_alfresco_installer_and_sign = $false,
 	[switch]$install = $false,
@@ -311,9 +312,9 @@ function check_import($import) {
 	return 0
 }
 
-function check_upgrade {
+function check_upgrade($server_name) {
 	# Ensure a new version can be released by checking the auto-update process.
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\scripts\check_update_process.py
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\scripts\check_update_process.py --server=$server_name
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -944,8 +945,11 @@ function main {
 	elseif ($build_alfresco_installer_and_sign) {
 		build_alfresco_installer_and_sign
 	}
- 	elseif ($check_upgrade) {
-		check_upgrade
+ 	elseif ($check_upgrade_nuxeo) {
+		check_upgrade "nuxeo"
+	}
+	elseif ($check_upgrade_alfresco) {
+		check_upgrade "alfresco"
 	}
  	elseif ($install -or $install_release) {
 		install_deps
