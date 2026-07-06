@@ -3,13 +3,14 @@ FROM rockylinux:9
 ARG VERSION=unknown
 ARG SCM_REF=unknown
 ARG SCM_REPOSITORY=https://github.com/nuxeo/nuxeo-drive.git
-ARG DESCRIPTION="Image to build the Nuxeo Drive GNU/Linux binary."
+ARG BRANCH_NAME=master
+ARG DESCRIPTION="Image to build the Alfresco Drive GNU/Linux binary."
 
 LABEL description=${DESCRIPTION}
 LABEL version=${VERSION}
 LABEL scm-ref=${SCM_REF}
 LABEL scm-url=${SCM_REPOSITORY}
-LABEL maintainer="mschoentgen@nuxeo.com"
+LABEL maintainer="kacper.magdziarz@hyland.com"
 
 ENV BUILD_VERSION=${VERSION}
 ENV GIT_URL=${SCM_REPOSITORY}
@@ -47,14 +48,14 @@ RUN dnf install -y \
     ln -s /usr/bin/python3 /usr/bin/python && \
     dnf clean all
 
-# Install the Python version needed by Nuxeo Drive
-RUN git clone -b master $GIT_URL sources && \
+# Install the Python version needed by Alfresco Drive
+RUN git clone -b ${BRANCH_NAME} $GIT_URL sources && \
     cd sources && \
     #git reset --hard ${SCM_REF} && \
     # Install Python
     WORKSPACE=/opt ./tools/linux/deploy_ci_agent.sh --install-python && \
     # Copy the entry point script
-    cp tools/linux/entrypoint.sh / && \
+    cp tools/linux/alfresco/entrypoint.sh / && \
     # Clean-up
     cd /opt && \
         # Delete the repository

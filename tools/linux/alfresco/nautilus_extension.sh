@@ -9,4 +9,3 @@ nautilus -q
 cp doc/nautilus/contextual_menu.py ~/.local/share/nautilus-python/extensions
 
 nautilus&
-

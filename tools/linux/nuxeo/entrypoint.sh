@@ -9,5 +9,5 @@ else
 
     cd "${WORKSPACE_DRIVE}"
     ./tools/linux/deploy_ci_agent.sh --install-release
-    ./tools/linux/deploy_ci_agent.sh --build
+    ./tools/linux/deploy_ci_agent.sh --build-nuxeo
 fi

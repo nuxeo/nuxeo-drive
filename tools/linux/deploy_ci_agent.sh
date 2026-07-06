@@ -126,27 +126,42 @@ verify_sign() {
 
 create_package() {
     # Create the final AppImage
-    local app_name="nuxeo-drive"
-    local app_id="org.nuxeo.drive"
-    local app_version="$(grep __version__ nxdrive/__init__.py | cut -d'"' -f2)"
-    local app_dir="dist/AppRun"
-    local output="dist/${app_name}-${app_version}-x86_64.AppImage"
+    if [ "$1" = "nuxeo" ]; then
+        local app_name="nuxeo-drive"
+        local app_id="org.nuxeo.drive"
+        app_version="$(grep __version__ nxdrive/__init__.py | cut -d'"' -f2)"
+    else
+        local app_name="alfresco-drive"
+        local app_id="org.alfresco.drive"
+        app_version="$(grep __alfresco_version__ nxdrive/__init__.py | cut -d'"' -f2)"
+    fi
+    app_dir="dist/AppRun"
+    output="dist/${app_name}-${app_version}-x86_64.AppImage"
 
     echo ">>> [AppImage ${app_version}] Adjusting file names to fit in the AppImage"
     # Taken from https://gitlab.com/scottywz/ezpyi/blob/master/ezpyi
     [ -d "${app_dir}" ] && rm -rf "${app_dir}"
-    mv -v "dist/ndrive" "${app_dir}"
-    mv -v "${app_dir}/ndrive" "${app_dir}/AppRun"
+    # Move dist/ndrive or dist/alfresco folder to dist/AppRun and rename the executable to AppRun
+    if [ "$1" = "nuxeo" ]; then
+        mv -v "dist/ndrive" "${app_dir}"
+        mv -v "${app_dir}/ndrive" "${app_dir}/AppRun"
+    else
+        mv -v "dist/alfresco" "${app_dir}"
+        mv -v "${app_dir}/alfresco" "${app_dir}/AppRun"
+    fi
 
     echo ">>> [AppImage ${app_version}] Copying icons"
-    cp -v "tools/linux/DirIcon.png" "${app_dir}/.DirIcon"
-    cp -v "nxdrive/data/icons/app_icon.svg" "${app_dir}/${app_name}.svg"
+    # Copy icons based on server name to the AppRun folder
+    cp -v "tools/linux/${1}/DirIcon.png" "${app_dir}/.DirIcon"
+    cp -v "nxdrive/drive/data/icons/app_icon.svg" "${app_dir}/${app_name}.svg"
 
     echo ">>> [AppImage ${app_version}] Copying metadata files"
     mkdir -pv "${app_dir}/usr/share/metainfo"
-    cp -v "tools/linux/${app_id}.appdata.xml" "${app_dir}/usr/share/metainfo"
+    # Copy appdata xml file based on server name to the AppRun folder
+    cp -v "tools/linux/${1}/${app_id}.appdata.xml" "${app_dir}/usr/share/metainfo"
     mkdir -pv "${app_dir}/usr/share/applications"
-    cp -v "tools/linux/${app_id}.desktop" "${app_dir}/usr/share/applications"
+    # Copy appdata desktop file based on server name to the AppRun folder
+    cp -v "tools/linux/${1}/${app_id}.desktop" "${app_dir}/usr/share/applications"
     ln -srv "${app_dir}/usr/share/applications/${app_id}.desktop" "${app_dir}/${app_id}.desktop"
 
     more_compatibility

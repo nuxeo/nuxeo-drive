@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Alfresco Drive
+GenericName=Alfresco Drive
+Comment=Desktop synchronization client for the Alfresco platform
+Exec=false
+Icon=alfresco-drive
+Type=Application
+StartupNotify=false
+Terminal=false
+Categories=Office;
+MimeType=application/alfresco-drive;
