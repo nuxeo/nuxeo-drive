@@ -27,7 +27,8 @@ param (
 	[switch]$build_alfresco = $false,
 	[switch]$build_nuxeo_dlls = $false,
 	[switch]$build_alfresco_dlls = $false,
-	[switch]$check_upgrade = $false,
+	[switch]$check_upgrade_nuxeo = $false,
+	[switch]$check_upgrade_alfresco = $false,
 	[switch]$build_nuxeo_installer_and_sign = $false,
 	[switch]$build_alfresco_installer_and_sign = $false,
 	[switch]$install = $false,
@@ -113,8 +114,13 @@ function build_dll($server_name, $msbuild_exe, $project, $platform) {
 	elseif ($server_name -eq "alfresco") {
 		$server_name = "Alfresco"
 	}
-	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\${server_name}DriveShellExtensions"
-	& $msbuild_exe "$folder\${server_name}DriveShellExtensions.sln" /t:$project /p:Configuration=Release /p:Platform=$platform
+	try {
+		$folder = "$Env:WORKSPACE_DRIVE\tools\windows\${server_name}DriveShellExtensions"
+		& $msbuild_exe "$folder\${server_name}DriveShellExtensions.sln" /t:$project /p:Configuration=Release /p:Platform=$platform
+	}
+	catch {
+		Write-Error ">>> Failed to build $folder : $_"
+	}
 }
 
 function build_nuxeo_installer {
@@ -124,7 +130,7 @@ function build_nuxeo_installer {
 	# Build the installer
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""
 
-	# Build DDLs only on GitHub-CI, no need to lose time on the local dev machine
+	# Build DLLs only on GitHub-CI, no need to lose time on the local dev machine
 	if ($Env:GITHUB_WORKSPACE) {
 		build_overlays "nuxeo"
 	}
@@ -168,7 +174,7 @@ function build_alfresco_installer {
 	# Build the installer
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__alfresco_version__" -replace '"', "" -replace "__alfresco_version__ = ", ""
 
-	# Build DDLs only on GitHub-CI, no need to lose time on the local dev machine
+	# Build DLLs only on GitHub-CI, no need to lose time on the local dev machine
 	if ($Env:GITHUB_WORKSPACE) {
 		build_overlays "alfresco"
 	}
@@ -218,6 +224,7 @@ function build_overlays($server_name) {
 	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\${server_name}DriveShellExtensions"
 	$util_dll = "${server_name}DriveUtil"
 	$overlay_dll = "${server_name}DriveOverlays"
+	$installer_dll_folder = "$Env:WORKSPACE_DRIVE\tools\windows\$($server_name.ToLower())_iss\dll"
 
 	# Remove old DLLs on GitHub-CI to prevent such errors:
 	#	Rename-Item : Cannot create a file when that file already exists.
@@ -280,6 +287,18 @@ function build_overlays($server_name) {
 
 	# Delete everything that is not a DLL
 	Get-ChildItem -Path $folder\Release -Recurse -File -Exclude *.dll | Foreach ($_) { Remove-Item $_.Fullname }
+
+	# Copy built DLLs to installer folders while keeping architecture-specific paths.
+	$source_x64 = "$folder\Release\x64"
+	$source_x86 = "$folder\Release\Win32"
+	$target_x64 = "$installer_dll_folder\x64"
+	$target_x86 = "$installer_dll_folder\x86"
+
+	New-Item -ItemType Directory -Force -Path $target_x64 | Out-Null
+	New-Item -ItemType Directory -Force -Path $target_x86 | Out-Null
+
+	Copy-Item -Path "$source_x64\*.dll" -Destination $target_x64 -Force
+	Copy-Item -Path "$source_x86\*.dll" -Destination $target_x86 -Force
 }
 
 function check_import($import) {
@@ -293,9 +312,9 @@ function check_import($import) {
 	return 0
 }
 
-function check_upgrade {
+function check_upgrade($server_name) {
 	# Ensure a new version can be released by checking the auto-update process.
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\scripts\check_update_process.py
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\scripts\check_update_process.py --server=$server_name
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -784,7 +803,7 @@ function build_nuxeo_installer_and_sign {
 		build_overlays "nuxeo"
 	}
 
-	sign_dlls
+	sign_dlls "nuxeo"
 
 	Write-Output ">>> [$app_version] Freezing the application"
 	freeze_pyinstaller "nuxeo"
@@ -834,7 +853,7 @@ function build_alfresco_installer_and_sign {
 		build_overlays "alfresco"
 	}
 
-	sign_dlls
+	sign_dlls "alfresco"
 
 	Write-Output ">>> [$app_version] Freezing the application"
 	freeze_pyinstaller "alfresco"
@@ -869,9 +888,15 @@ function build_alfresco_installer_and_sign {
 	sign "dist\alfresco-drive-$app_version-admin.exe"
 }
 
-function sign_dlls {
-	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\dll"
-	Get-ChildItem $folder -Recurse -Include *.dll | Foreach-Object {
+function sign_dlls($server_name) {
+	$server_name = $server_name.ToLower()
+	if ($server_name -ne "nuxeo" -and $server_name -ne "alfresco") {
+		Write-Output ">>> Unknown server name for DLL signing: $server_name"
+		ExitWithCode 1
+	}
+
+	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\${server_name}_iss\dll"
+	Get-ChildItem $folder -Recurse -File -Include *.dll | Foreach-Object {
 		sign $_.FullName
 	}
 }
@@ -920,8 +945,11 @@ function main {
 	elseif ($build_alfresco_installer_and_sign) {
 		build_alfresco_installer_and_sign
 	}
- 	elseif ($check_upgrade) {
-		check_upgrade
+ 	elseif ($check_upgrade_nuxeo) {
+		check_upgrade "nuxeo"
+	}
+	elseif ($check_upgrade_alfresco) {
+		check_upgrade "alfresco"
 	}
  	elseif ($install -or $install_release) {
 		install_deps

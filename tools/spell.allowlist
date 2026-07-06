@@ -13,3 +13,7 @@ iam
 # tools/windows/NuxeoDriveShellExtensions/NuxeoDriveUtil/jsoncpp.cpp:465
 alse
 unknwn
+
+# tools/windows/AlfrescoDriveShellExtensions/AlfrescoDriveUtil/jsoncpp.cpp:465
+alse
+unknwn
