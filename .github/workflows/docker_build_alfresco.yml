@@ -24,11 +24,14 @@ on:
         description: "The namespace (personal account name or organization name) where the docker image will be pushed."
         required: true
         default: ""
+  # Remove push trigger before merge
+  # https://stackoverflow.com/questions/63362126/github-actions-how-can-i-run-a-workflow-created-on-a-non-master-branch-from-t?noredirect=1&lq=1#comment125886357_71057825
+  push:
 
 env:
   REGISTRY: ghcr.io
   REPOSITORY: alfresco-drive-build
-  CR_PAT: ${{ secrets.GIT_DOCKER_REGISTRY_TOKEN }}
+  # CR_PAT: ${{ secrets.GIT_DOCKER_REGISTRY_TOKEN }}
 
 jobs:
   docker-linux:
@@ -39,8 +42,12 @@ jobs:
       - uses: docker/setup-buildx-action@v4
         with:
           driver: docker
-      - name: Login to GitHub Container Registry
-        run: echo ${{ env.CR_PAT }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: GHCR Login
+        uses: docker/login-action@v2.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GIT_DOCKER_REGISTRY_TOKEN }}
       - name: Build the image
         uses: docker/build-push-action@v7
         with:
