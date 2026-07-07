@@ -262,8 +262,8 @@ create_package() {
     rm -rf "${src_folder_tmp}" "${dmg_tmp}" "${pkg_path}"
 
     if [ "${SIGNING_ID:-unset}" != "unset" ]; then
-        ${CODESIGN} "${SIGNING_ID}" --verbose "dist/nuxeo-drive-${app_version}.dmg"
-        ${PYTHON_VENV} tools/osx/notarize.py "dist/nuxeo-drive-${app_version}.dmg"
+        ${CODESIGN} "${SIGNING_ID}" --verbose "dist/${1}-drive-${app_version}.dmg"
+        ${PYTHON_VENV} tools/osx/notarize.py "dist/${1}-drive-${app_version}.dmg"
     fi
 }
 

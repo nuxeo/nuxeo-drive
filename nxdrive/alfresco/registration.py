@@ -3,7 +3,8 @@
 try:
     import alfresco
 
-    _client_version = alfresco.__alfresco_version__
+    # Alfresco Python Client version
+    _client_version = alfresco.__version__
 except ImportError:
     _client_version = ""
 
