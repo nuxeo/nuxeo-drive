@@ -11,7 +11,6 @@ on:
       pythonVersion:
         description: "The Python version in-use for the current Alfresco Drive version."
         required: true
-        default: "x.y.z"
       buildVersion:
         description: "Image build number."
         required: true
@@ -21,17 +20,12 @@ on:
         required: false
         default: "master"
       namespace:
-        description: "The namespace (personal account name or organization name) where the docker image will be pushed."
+        description: "The namespace (personal account name or organization name) in LOWERCASE, where the docker image will be pushed."
         required: true
-        default: ""
-  # Remove push trigger before merge
-  # https://stackoverflow.com/questions/63362126/github-actions-how-can-i-run-a-workflow-created-on-a-non-master-branch-from-t?noredirect=1&lq=1#comment125886357_71057825
-  push:
 
 env:
   REGISTRY: ghcr.io
   REPOSITORY: alfresco-drive-build
-  # CR_PAT: ${{ secrets.GIT_DOCKER_REGISTRY_TOKEN }}
 
 jobs:
   docker-linux:
