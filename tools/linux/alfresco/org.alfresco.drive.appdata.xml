@@ -10,6 +10,17 @@
 		<p>Multi-platform desktop synchronization client for the Alfresco content management platform.</p>
 	</description>
 	<launchable type="desktop-id">org.alfresco.drive.desktop</launchable>
+	<url type="homepage">https://github.com/nuxeo/nuxeo-drive</url>
+	<url type="bugtracker">https://hyland.atlassian.net/browse/NXDRIVE</url>
+	<url type="faq">https://doc.nuxeo.com/client-apps/nuxeo-drive-faq/</url>
+	<url type="help">https://doc.nuxeo.com/client-apps/nuxeo-drive/</url>
+	<url type="translate">https://crowdin.com/project/nuxeo-drive</url>
+	<screenshots>
+		<screenshot type="default">
+			<caption>The settings dialog</caption>
+			<image type="source" width="975" height="548">https://raw.githubusercontent.com/nuxeo/nuxeo-drive/master/preview.png</image>
+		</screenshot>
+	</screenshots>
 	<developer_name>Hyland</developer_name>
 	<update_contact>kacper.magdziarz@hyland.com</update_contact>
 	<provides>
