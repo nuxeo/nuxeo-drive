@@ -28,7 +28,7 @@ on:
 env:
   REGISTRY: ghcr.io
   REPOSITORY: alfresco-drive-build
-  CR_PAT: ${{ secrets.CR_PAT }}
+  CR_PAT: ${{ secrets.GIT_DOCKER_REGISTRY_TOKEN }}
 
 jobs:
   docker-linux:
