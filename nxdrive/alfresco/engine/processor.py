@@ -252,7 +252,7 @@ class AlfrescoProcessor(_ProcessorBase):
 
         self.pairSyncEnded.emit(self._current_metrics)
 
-    # -- Soft locks (from Nuxeo processor) -----------------------------------
+    # -- Soft locks ----------------------------------------------------------
 
     def _unlock_soft_path(self, path: Path, /) -> None:
         path = Path(str(path).lower())

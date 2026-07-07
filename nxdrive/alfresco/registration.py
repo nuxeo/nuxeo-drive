@@ -27,8 +27,7 @@ def _alfresco_relogin_handler(engine, password):
     from alfresco.auth import TicketAuth
 
     auth = TicketAuth(engine.remote_user, password, engine.server_url)
-    auth._obtain_ticket(engine.server_url)
-    ticket = auth.ticket
+    ticket = auth.authenticate(engine.server_url)
     if not ticket:
         raise RuntimeError("No ticket returned")
 
@@ -51,12 +50,81 @@ def _alfresco_password_auth_handler(
     basic_auth(api, local_folder, server_url, username, password)
 
 
-def _alfresco_oauth2_password_auth_handler(
-    api, local_folder: str, server_url: str, username: str, password: str
-) -> None:
-    from nxdrive.alfresco.gui.auth import oauth2_password_auth
+def _alfresco_debug_auth_handler(url, manager, api):
+    """Non-frozen debug auth dialog for Alfresco servers.
 
-    oauth2_password_auth(api, local_folder, server_url, username, password)
+    Presents a simple username/password dialog and binds the account
+    directly (Alfresco tickets are obtained transparently by
+    ``TicketAuth`` on the first request). Used only when
+    ``Options.is_frozen`` is False, i.e. during local development.
+    """
+    import os
+
+    from nxdrive.drive.qt import constants as qt
+    from nxdrive.drive.qt.imports import (
+        QDialog,
+        QDialogButtonBox,
+        QLineEdit,
+        QVBoxLayout,
+    )
+
+    dialog = QDialog()
+    dialog.setWindowTitle("Authentication")
+    dialog.resize(250, 100)
+
+    layout = QVBoxLayout()
+
+    default_user = os.getenv("NXDRIVE_TEST_USERNAME", "admin")
+    default_pwd = os.getenv("NXDRIVE_TEST_PASSWORD", "admin")
+    username = QLineEdit(default_user, parent=dialog)
+    password = QLineEdit(default_pwd, parent=dialog)
+    password.setEchoMode(qt.Password)
+    layout.addWidget(username)
+    layout.addWidget(password)
+
+    def auth():
+        user = str(username.text())
+        pwd = str(password.text())
+        params = api.callback_params or {}
+        if not params:
+            params = api._load_pending_auth_callback_params()
+        local_folder = params.get("local_folder", "")
+        server_url = params.get("server_url", url)
+        try:
+            api.bind_server(local_folder, server_url, user, password=pwd)
+        except Exception as exc:
+            import logging
+
+            logging.getLogger(__name__).error(f"Alfresco debug auth failed: {exc}")
+            api.setMessage.emit("CONNECTION_REFUSED", "error")
+        api._clear_pending_auth_callback_params()
+        dialog.close()
+
+    buttons = QDialogButtonBox()
+    buttons.setStandardButtons(qt.Cancel | qt.Ok)
+    buttons.accepted.connect(auth)
+    buttons.rejected.connect(dialog.close)
+    layout.addWidget(buttons)
+    dialog.setLayout(layout)
+    dialog.exec()
+
+
+def _alfresco_save_auth_callback_params(api, params) -> None:
+    from nxdrive.alfresco.gui.auth_callback_store import save_auth_callback_params
+
+    save_auth_callback_params(api, params)
+
+
+def _alfresco_load_auth_callback_params(api):
+    from nxdrive.alfresco.gui.auth_callback_store import load_auth_callback_params
+
+    return load_auth_callback_params(api)
+
+
+def _alfresco_clear_auth_callback_params(api) -> None:
+    from nxdrive.alfresco.gui.auth_callback_store import clear_auth_callback_params
+
+    clear_auth_callback_params(api)
 
 
 register(
@@ -119,6 +187,9 @@ register(
         client_version=_client_version,
         relogin_handler=_alfresco_relogin_handler,
         password_auth_handler=_alfresco_password_auth_handler,
-        oauth2_password_auth_handler=_alfresco_oauth2_password_auth_handler,
+        debug_auth_handler=_alfresco_debug_auth_handler,
+        save_auth_callback_params_hook=_alfresco_save_auth_callback_params,
+        load_auth_callback_params_hook=_alfresco_load_auth_callback_params,
+        clear_auth_callback_params_hook=_alfresco_clear_auth_callback_params,
     ),
 )

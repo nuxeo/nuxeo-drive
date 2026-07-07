@@ -1,9 +1,9 @@
 """
 OAuth2 / AIMS authentication for Alfresco Content Services.
 
-Re-uses the ``nuxeo.auth.OAuth2`` class (which is an OpenID Connect /
-authlib wrapper that supports PKCE) but resolves the authenticated
-username via the Alfresco People API instead of the Nuxeo Users API.
+Uses ``alfresco.OAuth2`` (an OpenID Connect / authlib wrapper that
+supports PKCE) and resolves the authenticated username via the
+Alfresco People API.
 
 The AIMS/Keycloak endpoints are auto-discovered from the Alfresco
 server via the ``syncServiceConfiguration`` API so the user only
@@ -11,10 +11,10 @@ needs to enter the server URL.
 """
 
 from logging import getLogger
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import requests
-from nuxeo.exceptions import OAuth2Error
+from alfresco.exceptions import OAuth2Error
 
 from nxdrive.drive.auth.oauth2 import OAuthenticationBase
 from nxdrive.drive.exceptions import RemoteOAuth2Error
@@ -34,130 +34,170 @@ _DEFAULT_CLIENT_ID = "alfresco"
 def discover_aims_config(server_url: str, /, *, verify: bool = True) -> Dict[str, str]:
     """Discover AIMS/Keycloak configuration from an Alfresco server.
 
-    Calls the ``syncServiceConfiguration`` endpoint which returns the
-    ``identityServiceConfig`` block containing the Keycloak auth server
-    URL, realm name, client id, and optionally client secret.
+    Tries the following in order and returns the first that yields a
+    usable OpenID configuration URL:
+
+    1. ``syncServiceConfiguration`` — standard Alfresco Sync Service
+       ``identityServiceConfig`` block (returns ``authServerUrl`` /
+       ``realm`` / ``resource``).
+    2. ``/app.config.json`` and ``/assets/app.config.json`` — Alfresco
+       Digital Workspace config (``oauth2.host`` / ``oauth2.clientId``).
+    3. Well-known Keycloak heuristic — ``<server>/auth/realms/alfresco``.
 
     Returns a dict with keys ``openid_configuration_url``, ``client_id``,
     and optionally ``client_secret``.  Returns an empty dict on failure.
     """
-    url = (
-        server_url.rstrip("/")
+    from urllib.parse import urlparse as _urlparse
+
+    base = server_url.rstrip("/")
+    parsed = _urlparse(base)
+    origin = f"{parsed.scheme}://{parsed.netloc}"
+
+    # 1) syncServiceConfiguration
+    # ACS mounts its REST API under ``/alfresco/api/…``. The user-supplied
+    # URL is the site root, so the ``/alfresco`` context prefix must be
+    # added explicitly. If the user already supplied a URL ending in
+    # ``/alfresco``, avoid doubling it.
+    sync_base = base if base.endswith("/alfresco") else base + "/alfresco"
+    sync_url = (
+        sync_base
         + "/api/-default-/private/alfresco/versions/1/config/syncServiceConfiguration"
     )
     try:
-        resp = requests.get(url, timeout=10, verify=verify)
-        resp.raise_for_status()
-        data = resp.json()
-    except Exception:
-        log.debug(f"Could not fetch syncServiceConfiguration from {url}", exc_info=True)
-        return {}
-
-    isc = data.get("identityServiceConfig") or data.get("entry", {}).get(
-        "identityServiceConfig", {}
-    )
-    if not isc:
-        log.debug("No identityServiceConfig found in syncServiceConfiguration response")
-        return {}
-
-    auth_server = isc.get("authServerUrl", "").rstrip("/")
-    realm = isc.get("realm", "alfresco")
-    client_id = isc.get("resource", _DEFAULT_CLIENT_ID)
-    client_secret = isc.get("credentialsSecret")
-
-    if not auth_server:
-        log.warning("identityServiceConfig has no authServerUrl")
-        return {}
-
-    openid_url = f"{auth_server}/realms/{realm}/.well-known/openid-configuration"
-    log.info(f"Discovered AIMS OpenID config: {openid_url} (client_id={client_id})")
-
-    result: Dict[str, str] = {
-        "openid_configuration_url": openid_url,
-        "client_id": client_id,
-    }
-    if client_secret:
-        result["client_secret"] = client_secret
-    return result
-
-
-def _discover_token_endpoint(
-    server_url: str, /, *, verify: bool = True
-) -> Tuple[str, str]:
-    """Discover the Keycloak token endpoint URL and client ID.
-
-    Tries, in order:
-    1. ``syncServiceConfiguration`` (standard Alfresco Sync Service).
-    2. ``/app.config.json`` (Alfresco Digital Workspace config).
-    3. Well-known Keycloak path heuristic.
-
-    Returns ``(token_url, client_id)`` or ``("", "")`` on failure.
-    """
-    # 1) Try syncServiceConfiguration
-    aims = discover_aims_config(server_url, verify=verify)
-    if aims:
-        openid_url = aims["openid_configuration_url"]
-        client_id = aims.get("client_id", _DEFAULT_CLIENT_ID)
-        try:
-            resp = requests.get(openid_url, timeout=10, verify=verify)
-            resp.raise_for_status()
-            token_url = resp.json().get("token_endpoint", "")
-            if token_url:
-                return token_url, client_id
-        except Exception:
-            log.debug(
-                "Failed to fetch OIDC config from syncServiceConfiguration",
-                exc_info=True,
+        resp = requests.get(sync_url, timeout=10, verify=verify)
+        if resp.ok:
+            data = resp.json()
+            isc = data.get("identityServiceConfig") or data.get("entry", {}).get(
+                "identityServiceConfig", {}
             )
+            auth_server = (isc.get("authServerUrl") or "").rstrip("/")
+            if auth_server:
+                realm = isc.get("realm", "alfresco")
+                client_id = isc.get("resource", _DEFAULT_CLIENT_ID)
+                openid_url = (
+                    f"{auth_server}/realms/{realm}/.well-known/openid-configuration"
+                )
+                log.info(
+                    f"Discovered AIMS OpenID config via syncServiceConfiguration:"
+                    f" {openid_url} (client_id={client_id})"
+                )
+                result: Dict[str, str] = {
+                    "openid_configuration_url": openid_url,
+                    "client_id": client_id,
+                }
+                secret = isc.get("credentialsSecret")
+                if secret:
+                    result["client_secret"] = secret
+                return result
+    except Exception:
+        log.debug(
+            f"Could not fetch syncServiceConfiguration from {sync_url}",
+            exc_info=True,
+        )
 
-    # 2) Try app.config.json (ADW config)
-    from urllib.parse import urlparse as _urlparse
-
-    parsed = _urlparse(server_url)
-    base = f"{parsed.scheme}://{parsed.netloc}"
+    # 2) app.config.json (ADW / Digital Workspace)
     for config_path in ("/app.config.json", "/assets/app.config.json"):
         try:
-            resp = requests.get(base + config_path, timeout=10, verify=verify)
+            resp = requests.get(origin + config_path, timeout=10, verify=verify)
             if not resp.ok:
                 continue
             data = resp.json()
-            oauth2 = data.get("oauth2", {})
-            host = oauth2.get("host", "").rstrip("/")
+            oauth2 = data.get("oauth2") or {}
+            host = (oauth2.get("host") or "").rstrip("/")
+            if not host:
+                continue
             client_id = oauth2.get("clientId", _DEFAULT_CLIENT_ID)
-            if host:
-                # Derive token endpoint from the OIDC well-known
-                oidc_url = host + "/.well-known/openid-configuration"
-                oidc_resp = requests.get(oidc_url, timeout=10, verify=verify)
-                oidc_resp.raise_for_status()
-                token_url = oidc_resp.json().get("token_endpoint", "")
-                if token_url:
-                    log.info(
-                        f"Discovered token endpoint from {config_path}: {token_url}"
-                    )
-                    return token_url, client_id
+            openid_url = host + "/.well-known/openid-configuration"
+            log.info(
+                f"Discovered AIMS OpenID config via {config_path}:"
+                f" {openid_url} (client_id={client_id})"
+            )
+            return {
+                "openid_configuration_url": openid_url,
+                "client_id": client_id,
+            }
         except Exception:
             log.debug(f"Failed to discover from {config_path}", exc_info=True)
 
-    log.warning(f"Could not discover OAuth2 token endpoint for {server_url}")
-    return "", ""
+    # 3) Well-known Keycloak heuristic
+    heuristic_url = origin + "/auth/realms/alfresco/.well-known/openid-configuration"
+    try:
+        resp = requests.get(heuristic_url, timeout=10, verify=verify)
+        if resp.ok and resp.json().get("authorization_endpoint"):
+            log.info(
+                f"Discovered AIMS OpenID config via well-known heuristic:"
+                f" {heuristic_url} (client_id={_DEFAULT_CLIENT_ID})"
+            )
+            return {
+                "openid_configuration_url": heuristic_url,
+                "client_id": _DEFAULT_CLIENT_ID,
+            }
+    except Exception:
+        log.debug(f"Well-known heuristic failed for {heuristic_url}", exc_info=True)
+
+    log.warning(
+        f"Could not discover AIMS/Keycloak configuration for {server_url!r}. "
+        "Tried syncServiceConfiguration, app.config.json and well-known Keycloak "
+        "path. Configure oauth2_openid_configuration_url manually or ensure the "
+        "server exposes one of these endpoints."
+    )
+    return {}
+
+
+def _release_loopback_state(api: Any) -> None:
+    """Shut down and forget the loopback state pinned to ``api``.
+
+    ``api._alfresco_loopback_state`` is a ``(bridge, server)`` tuple set
+    by :meth:`AlfrescoOAuthentication._start_loopback_flow`. Called when
+    a new auth attempt starts or when the current one completes.
+    Safe to call when nothing is pinned.
+    """
+    state = getattr(api, "_alfresco_loopback_state", None)
+    log.info(  # DELETE_LATER
+        "[DELETE_LATER] _release_loopback_state api=%r had_state=%s",
+        api,
+        state is not None,
+    )
+    if state is None:
+        return
+    _bridge, server = state
+    try:
+        server.shutdown()
+    except Exception:
+        log.debug("Loopback: shutdown failed", exc_info=True)
+    try:
+        api._alfresco_loopback_state = None
+    except Exception:
+        log.debug("Loopback: clearing api state failed", exc_info=True)
 
 
 class AlfrescoOAuthentication(OAuthenticationBase):
     """OAuth2 / AIMS authentication for Alfresco servers.
 
-    Uses the same ``nuxeo.auth.OAuth2`` PKCE flow as the Nuxeo
-    ``OAuthentication`` but fetches the current user's identity via
-    ``/alfresco/api/-default-/public/alfresco/versions/1/people/-me-``
-    instead of the Nuxeo Users API.
+    Uses ``alfresco.OAuth2`` (PKCE) for the browser flow and fetches
+    the current user's identity via
+    ``/alfresco/api/-default-/public/alfresco/versions/1/people/-me-``.
     """
 
     def __init__(self, *args: Any, dao: "BaseDAO" = None, **kwargs: Any) -> None:
         super().__init__(*args, dao=dao, **kwargs)
+        log.info(  # DELETE_LATER
+            "[DELETE_LATER] AlfrescoOAuthentication.__init__ url=%r has_token=%s"
+            " openid_url=%r client_id=%r",
+            getattr(self, "url", None),
+            bool(getattr(self, "token", None)),
+            self._oauth2_openid_configuration_url,
+            self._oauth2_client_id,
+        )
 
         # Auto-discover AIMS/Keycloak endpoints from the Alfresco server
         # if no explicit OpenID configuration URL has been provided.
         if not self._oauth2_openid_configuration_url:
             aims = discover_aims_config(self.url, verify=self.verification_needed)
+            log.info(  # DELETE_LATER
+                "[DELETE_LATER] __init__ discover_aims_config -> keys=%s",
+                sorted(aims.keys()) if aims else None,
+            )
             if aims:
                 self._oauth2_openid_configuration_url = aims["openid_configuration_url"]
                 self._oauth2_client_id = aims.get("client_id", _DEFAULT_CLIENT_ID)
@@ -166,61 +206,318 @@ class AlfrescoOAuthentication(OAuthenticationBase):
                 )
 
         self._build_oauth2()
+        log.info(  # DELETE_LATER
+            "[DELETE_LATER] __init__ done; auth.authorization_endpoint=%r"
+            " auth.token_endpoint=%r auth.redirect_uri=%r",
+            getattr(self.auth, "authorization_endpoint", None),
+            getattr(self.auth, "token_endpoint", None),
+            getattr(self.auth, "redirect_uri", None),
+        )
 
-    def _build_oauth2(self) -> None:
-        """Construct the ``nuxeo.auth.OAuth2`` auth object for Alfresco."""
-        from nuxeo.auth import OAuth2
+    def _build_oauth2(self, *, redirect_uri_override: Optional[str] = None) -> None:
+        """Construct the ``alfresco.OAuth2`` auth object for Alfresco.
+
+        When called a second time (e.g. to swap in a loopback
+        ``redirect_uri``), the previously-discovered authorization and
+        token endpoints are reused so we don't re-hit the OpenID
+        ``.well-known`` document.
+        """
+        from alfresco import OAuth2
 
         from nxdrive.drive.options import Options
+
+        existing = getattr(self, "auth", None)
+        authz_ep = (
+            getattr(existing, "authorization_endpoint", None)
+            or Options.oauth2_authorization_endpoint
+        )
+        token_ep = (
+            getattr(existing, "token_endpoint", None) or Options.oauth2_token_endpoint
+        )
+        # Skip re-discovery if we already have both endpoints.
+        openid_url = (
+            None if (authz_ep and token_ep) else self._oauth2_openid_configuration_url
+        )
+        effective_redirect = redirect_uri_override or Options.oauth2_redirect_uri
+        log.info(  # DELETE_LATER
+            "[DELETE_LATER] _build_oauth2 redirect_uri=%r override=%r"
+            " authz_ep=%r token_ep=%r openid_url=%r",
+            effective_redirect,
+            redirect_uri_override,
+            authz_ep,
+            token_ep,
+            openid_url,
+        )
 
         self.auth = OAuth2(
             self.url,
             client_id=self._oauth2_client_id,
             client_secret=self._oauth2_client_secret,
-            authorization_endpoint=Options.oauth2_authorization_endpoint,
-            openid_configuration_url=self._oauth2_openid_configuration_url,
-            redirect_uri=Options.oauth2_redirect_uri,
-            token_endpoint=Options.oauth2_token_endpoint,
+            authorization_endpoint=authz_ep,
+            openid_configuration_url=openid_url,
+            redirect_uri=effective_redirect,
+            token_endpoint=token_ep,
             token=self.token,
             subclient_kwargs=self._subclient_kwargs,
         )
 
+    def connect_url(self) -> str:
+        """Build the IdP authorization URL for the PKCE browser flow.
+
+        Starts a short-lived loopback HTTP server on ``127.0.0.1`` to
+        catch the IdP redirect (Keycloak / AIMS does not accept the
+        ``nxdrive://`` custom scheme), rebuilds :attr:`auth` so both the
+        authorize hop and the token exchange use the loopback URL, then
+        generates a fresh ``state`` and ``code_verifier`` via
+        ``alfresco.OAuth2.create_authorization_url()``. The verifier
+        and state are persisted in the DAO so that
+        ``QMLDriveApi.continue_oauth2_flow()`` can validate the
+        callback and swap the code for a token.
+        """
+        from nxdrive.drive.options import Options
+
+        log.info("[DELETE_LATER] connect_url ENTER url=%r", self.url)  # DELETE_LATER
+
+        # If discovery failed at __init__ time (server unreachable at that
+        # point, network flap, etc.) retry now so the user gets a fresh
+        # attempt instead of a stale None.
+        if not self.auth.authorization_endpoint:
+            aims = discover_aims_config(self.url, verify=self.verification_needed)
+            if aims:
+                self._oauth2_openid_configuration_url = aims["openid_configuration_url"]
+                self._oauth2_client_id = aims.get("client_id", _DEFAULT_CLIENT_ID)
+                self._oauth2_client_secret = (
+                    aims.get("client_secret") or self._oauth2_client_secret
+                )
+                self._build_oauth2()
+            if not self.auth.authorization_endpoint:
+                raise OAuth2Error(
+                    "Could not discover the Alfresco AIMS/Keycloak configuration "
+                    f"for {self.url!r}. Verify the server URL is correct and that "
+                    "AIMS is enabled, or set 'oauth2_openid_configuration_url' "
+                    "manually."
+                )
+
+        # Bring up the loopback listener + Qt bridge, then rebuild self.auth
+        # so both the authorize URL and the subsequent token exchange use
+        # the same loopback redirect_uri (Keycloak requires exact match).
+        loopback_uri = self._start_loopback_flow()
+        log.info(  # DELETE_LATER
+            "[DELETE_LATER] connect_url loopback_uri=%r", loopback_uri
+        )
+        self._build_oauth2(redirect_uri_override=loopback_uri)
+
+        scope = Options.oauth2_scope or "openid"
+        uri, state, code_verifier = self.auth.create_authorization_url(scope=scope)
+        log.info(  # DELETE_LATER
+            "[DELETE_LATER] connect_url authorize_uri=%r state=%r cv_len=%d",
+            uri,
+            state,
+            len(code_verifier or ""),
+        )
+
+        if self._dao:
+            self._dao.update_config("tmp_oauth2_url", self.url)
+            self._dao.update_config("tmp_oauth2_code_verifier", code_verifier)
+            self._dao.update_config("tmp_oauth2_state", state)
+            # Persist the loopback redirect_uri: the token exchange in
+            # ``get_token()`` must use the exact same value (Keycloak
+            # enforces RFC 6749 §4.1.3 redirect_uri match).
+            self._dao.update_config("tmp_oauth2_redirect_uri", loopback_uri)
+            log.info(  # DELETE_LATER
+                "[DELETE_LATER] connect_url stored DAO tmp_oauth2_* keys"
+            )
+
+        log.info("[DELETE_LATER] connect_url RETURN")  # DELETE_LATER
+        return uri
+
+    # ------------------------------------------------------------------
+    # Loopback callback plumbing
+    # ------------------------------------------------------------------
+
+    def _start_loopback_flow(self) -> str:
+        """Boot the loopback HTTP server and wire it to Qt.
+
+        Creates a lightweight :class:`QObject` bridge on the Qt main
+        thread and connects its ``pyqtSignal(dict)`` to
+        ``QMLDriveApi.continue_oauth2_flow``. The signal is emitted
+        from the loopback server's worker thread — Qt's automatic
+        connection upgrades this to a queued call so the OAuth2 flow
+        finalises on the GUI thread.
+
+        The bridge and server are pinned to the ``QMLDriveApi``
+        instance (a long-lived ``QObject``) so they survive after
+        ``connect_url()`` returns and this ``AlfrescoOAuthentication``
+        instance is garbage-collected — otherwise the loopback thread
+        would later emit on a freed ``QObject`` and crash the process.
+
+        Returns the ``http://127.0.0.1:<port>/callback`` URL to hand
+        to the IdP as ``redirect_uri``.
+        """
+        from PyQt6.QtCore import QObject, pyqtSignal
+
+        from nxdrive.alfresco.auth.loopback import LoopbackAuthServer
+        from nxdrive.drive.qt.imports import QApplication
+
+        app = QApplication.instance()
+        api = getattr(app, "api", None) if app is not None else None
+        log.info(  # DELETE_LATER
+            "[DELETE_LATER] _start_loopback_flow app=%r api=%r", app, api
+        )
+        if api is None:
+            raise OAuth2Error(
+                "Qt application is not initialised; cannot start the loopback "
+                "OAuth2 callback server."
+            )
+
+        # Tear down any previous attempt (user cancelled + retried).
+        _release_loopback_state(api)
+
+        class _CallbackBridge(QObject):
+            callback_received = pyqtSignal(dict)
+
+        bridge = _CallbackBridge()
+        # AutoConnection → QueuedConnection at emit time because the
+        # signal will be emitted from the HTTP server's worker thread
+        # while the receiver (api) lives on the Qt main thread.
+        bridge.callback_received.connect(api.continue_oauth2_flow)
+        log.info(  # DELETE_LATER
+            "[DELETE_LATER] _start_loopback_flow bridge connected to"
+            " api.continue_oauth2_flow"
+        )
+
+        def _emit_from_thread(query: Dict[str, str]) -> None:  # DELETE_LATER
+            log.info(  # DELETE_LATER
+                "[DELETE_LATER] Loopback callback thread invoking bridge.emit"
+                " keys=%s",
+                sorted(query.keys()),
+            )
+            try:
+                bridge.callback_received.emit(query)
+                log.info(  # DELETE_LATER
+                    "[DELETE_LATER] bridge.emit returned (signal posted)"
+                )
+            except Exception:
+                log.exception("[DELETE_LATER] bridge.emit raised")
+                raise
+
+        server = LoopbackAuthServer()
+        try:
+            redirect_uri = server.start(on_callback=_emit_from_thread)
+        except RuntimeError as exc:
+            raise OAuth2Error(str(exc)) from exc
+
+        # Pin to the API instance so both objects outlive `self`.
+        api._alfresco_loopback_state = (bridge, server)
+        log.info(  # DELETE_LATER
+            "[DELETE_LATER] _start_loopback_flow pinned state on api;"
+            " redirect_uri=%r",
+            redirect_uri,
+        )
+        return redirect_uri
+
+    def get_token(self, **kwargs: Any) -> "Token":
+        log.info(  # DELETE_LATER
+            "[DELETE_LATER] get_token ENTER kwargs_keys=%s",
+            sorted(kwargs.keys()),
+        )
+        # The token exchange must use the exact ``redirect_uri`` that
+        # was sent on the authorize hop (Keycloak enforces RFC 6749
+        # §4.1.3). ``connect_url()`` stashed it in the DAO; rebuild
+        # ``self.auth`` with it before delegating to the base class.
+        stored_uri = (
+            self._dao.get_config("tmp_oauth2_redirect_uri") if self._dao else None
+        )
+        log.info(  # DELETE_LATER
+            "[DELETE_LATER] get_token stored_redirect_uri=%r", stored_uri
+        )
+        if stored_uri:
+            self._build_oauth2(redirect_uri_override=stored_uri)
+        try:
+            log.info(  # DELETE_LATER
+                "[DELETE_LATER] get_token calling super().get_token();"
+                " auth.redirect_uri=%r token_endpoint=%r",
+                getattr(self.auth, "redirect_uri", None),
+                getattr(self.auth, "token_endpoint", None),
+            )
+            result = super().get_token(**kwargs)
+            log.info(  # DELETE_LATER
+                "[DELETE_LATER] get_token SUCCESS keys=%s",
+                sorted(result.keys())
+                if isinstance(result, dict)
+                else type(result).__name__,
+            )
+            return result
+        except OAuth2Error as exc:
+            log.exception(  # DELETE_LATER
+                "[DELETE_LATER] get_token OAuth2Error: %s", exc
+            )
+            raise RemoteOAuth2Error(message=getattr(exc, "message", str(exc))) from exc
+        except Exception:  # DELETE_LATER
+            log.exception(  # DELETE_LATER
+                "[DELETE_LATER] get_token unexpected exception"
+            )
+            raise
+        finally:
+            # Release the pinned loopback state and the extra DAO key.
+            # Nothing else needs the server once the code has been
+            # exchanged (or the exchange has failed).
+            try:
+                from nxdrive.drive.qt.imports import QApplication
+
+                app = QApplication.instance()
+                api = getattr(app, "api", None) if app is not None else None
+                if api is not None:
+                    _release_loopback_state(api)
+            except Exception:
+                log.debug("Loopback: release failed", exc_info=True)
+            if self._dao:
+                self._dao.delete_config("tmp_oauth2_redirect_uri")
+            log.info("[DELETE_LATER] get_token EXIT")  # DELETE_LATER
+
     def get_username(self) -> str:
         """Resolve the authenticated user's ID via the Alfresco People API."""
+        log.info("[DELETE_LATER] get_username ENTER")  # DELETE_LATER
         token = self.auth.token
         if not token:
+            log.info("[DELETE_LATER] get_username no token → return ''")  # DELETE_LATER
             return ""
 
         access_token = (
             token.get("access_token", "") if isinstance(token, dict) else token
         )
-        url = (
-            self.url.rstrip("/")
-            + "/api/-default-/public/alfresco/versions/1/people/-me-"
-        )
+        # ACS mounts its REST API under ``/alfresco/api/…``. The user-supplied
+        # URL is the site root (e.g. ``https://host/``), so the ``/alfresco``
+        # context prefix must be added explicitly. If the user already
+        # supplied a URL ending in ``/alfresco``, avoid doubling it.
+        base = self.url.rstrip("/")
+        if not base.endswith("/alfresco"):
+            base += "/alfresco"
+        url = base + "/api/-default-/public/alfresco/versions/1/people/-me-"
+        log.info("[DELETE_LATER] get_username GET %s", url)  # DELETE_LATER
         resp = requests.get(
             url,
             headers={"Authorization": f"Bearer {access_token}"},
             verify=self.verification_needed,
             timeout=30,
         )
+        log.info(  # DELETE_LATER
+            "[DELETE_LATER] get_username http_status=%s", resp.status_code
+        )
         resp.raise_for_status()
         data = resp.json()
         username: str = data.get("entry", {}).get("id", "")
+        log.info("[DELETE_LATER] get_username RETURN %r", username)  # DELETE_LATER
         return username
-
-    def get_token(self, **kwargs: Any) -> "Token":
-        try:
-            return super().get_token(**kwargs)
-        except OAuth2Error as exc:
-            raise RemoteOAuth2Error(message=getattr(exc, "message", str(exc))) from exc
 
     def get_token_dict(self) -> Optional[Dict[str, Any]]:
         """Return the full token dict for storage.
 
-        Includes ``access_token``, ``refresh_token``, ``token_url``,
-        and ``client_id`` so that ``AlfrescoRemote`` can recreate an
-        ``OAuth2Auth`` with refresh capability.
+        Includes ``access_token``, ``refresh_token``, ``expires_at``,
+        ``token_url``, and ``client_id`` so that ``AlfrescoRemote`` can
+        recreate an ``OAuth2Auth`` with proactive-refresh capability.
+        ``expires_at`` is a POSIX timestamp (float, seconds since epoch),
+        matching authlib's convention.
         """
         token = self.auth.token
         if not token or not isinstance(token, dict):
@@ -228,74 +525,7 @@ class AlfrescoOAuthentication(OAuthenticationBase):
         return {
             "access_token": token.get("access_token", ""),
             "refresh_token": token.get("refresh_token"),
-            "token_url": str(self.auth._token_endpoint),
-            "client_id": self.auth._client_id,
-        }
-
-    @staticmethod
-    def password_grant(
-        server_url: str,
-        username: str,
-        password: str,
-        /,
-        *,
-        verify: bool = True,
-    ) -> Dict[str, Any]:
-        """Perform an OAuth2 Resource Owner Password Grant against Keycloak.
-
-        Discovers the token endpoint from the server's ``app.config.json``
-        or ``syncServiceConfiguration``, then exchanges *username* +
-        *password* for an access token via the alfresco-python-client
-        ``OAuth2Auth``.
-
-        Returns a dict with ``access_token``, ``refresh_token``,
-        ``token_url``, ``client_id``, and ``username`` (resolved via
-        the People API).
-        """
-        from alfresco.auth import OAuth2Auth as AlfrescoOAuth2Auth
-
-        # 1) Discover token endpoint
-        token_url, client_id = _discover_token_endpoint(server_url, verify=verify)
-        if not token_url:
-            raise RuntimeError(
-                f"Cannot discover OAuth2 token endpoint for {server_url}. "
-                "Ensure the server has AIMS/Keycloak configured."
-            )
-
-        # 2) Password grant via alfresco-python-client
-        oauth = AlfrescoOAuth2Auth(
-            token_url=token_url,
-            client_id=client_id,
-            username=username,
-            password=password,
-            scope="openid",
-            verify=verify,
-        )
-        access_token = oauth.fetch_token()
-        if not access_token:
-            raise RuntimeError("Password grant returned no access token")
-
-        # 3) Resolve username via People API
-        # The People API lives under /alfresco/api/... — ensure the prefix
-        # is present regardless of whether server_url includes /alfresco.
-        base = server_url.rstrip("/")
-        if not base.endswith("/alfresco"):
-            base += "/alfresco"
-        people_url = base + "/api/-default-/public/alfresco/versions/1/people/-me-"
-        resp = requests.get(
-            people_url,
-            headers={"Authorization": f"Bearer {access_token}"},
-            verify=verify,
-            timeout=30,
-        )
-        resp.raise_for_status()
-        resolved_username: str = resp.json().get("entry", {}).get("id", username)
-
-        # 4) Build the token dict that AlfrescoRemote expects
-        return {
-            "access_token": access_token,
-            "refresh_token": oauth.refresh_token,
-            "token_url": token_url,
-            "client_id": client_id,
-            "username": resolved_username,
+            "expires_at": token.get("expires_at"),
+            "token_url": str(self.auth.token_endpoint),
+            "client_id": self.auth.client_id,
         }

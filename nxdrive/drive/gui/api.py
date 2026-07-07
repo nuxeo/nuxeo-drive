@@ -659,9 +659,13 @@ class QMLDriveApi(QObject):
                 return
 
             # If the server type does not support browser-based token update
-            # (e.g. Alfresco), show the re-login popup instead.
+            # (e.g. Alfresco), show the re-login popup instead — UNLESS the
+            # account was originally bound via a browser/OAuth flow, in which
+            # case we must send the user back through that same flow (a
+            # password re-entry popup would be meaningless for OAuth users).
             engine_config = st.get_by_engine_type(getattr(engine, "type", ""))
-            if not engine_config.supports_browser_token_update:
+            web_bound = bool(getattr(engine, "_web_authentication", False))
+            if not engine_config.supports_browser_token_update and not web_bound:
                 self.application.show_settings("Accounts")
                 self.showReloginPopup.emit(uid, engine.remote_user)
                 return

@@ -60,5 +60,8 @@ skills-lock.json
 .agents
 .clinerules
 alfresco-python-client
+alfresco-python-client-main
 nuxeo-python-client
 alfresco-desktop-sync-master
+alfresco-python-client-feature
+nuxeo-python-client
