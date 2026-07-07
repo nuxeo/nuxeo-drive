@@ -20,7 +20,6 @@ on:
       dockerNamespace:
         description: "The namespace (personal account name or organization name) in LOWERCASE, from where the docker image will be pulled."
         required: true
-  push:
 
 env:
   GITHUB_USERNAME: "nuxeodrive"
