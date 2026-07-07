@@ -1,19 +1,21 @@
 """
-Alfresco remote client for Nuxeo Drive.
+Alfresco remote client for the Drive engine.
 
 Wraps the ``alfresco.Alfresco`` client to provide the interface
 expected by the Drive Engine for account binding and synchronization.
 """
 
+import time
 from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 
 from alfresco import Alfresco
 from alfresco.auth import BasicAuth, OAuth2Auth, TicketAuth
-from alfresco.exceptions import AlfrescoError
+from alfresco.exceptions import AlfrescoError, CorruptedFile
 from alfresco.models.node import Node
 
+from nxdrive.alfresco.auth.refresh import RefreshingOAuth2Auth
 from nxdrive.drive.exceptions import NotFound
 from nxdrive.drive.metrics.utils import user_agent
 from nxdrive.drive.objects import RemoteFileInfo
@@ -67,10 +69,23 @@ class AlfrescoRemote:
 
         # Build the authentication handler
         if token and isinstance(token, dict):
-            # OAuth2 token dict
-            auth = OAuth2Auth.from_token(
+            # OAuth2 token dict.
+            # ``expires_at`` is a POSIX timestamp persisted by
+            # ``AlfrescoOAuthentication.get_token_dict()``. Convert it to a
+            # remaining-lifetime (``expires_in``) so ``OAuth2Auth`` can decide
+            # when to proactively refresh. If the token is already past its
+            # expiry, pass ``expires_in=1`` — that flags it as expired
+            # (accounting for the built-in 30-second skew) so the very first
+            # request triggers a refresh instead of sending a stale token.
+            expires_at = token.get("expires_at")
+            expires_in: Optional[int] = None
+            if expires_at:
+                remaining = int(float(expires_at) - time.time())
+                expires_in = remaining if remaining > 0 else 1
+            auth = RefreshingOAuth2Auth.from_token(
                 access_token=token.get("access_token", ""),
                 refresh_token=token.get("refresh_token"),
+                expires_in=expires_in,
                 token_url=token.get("token_url"),
                 client_id=token.get("client_id"),
             )
@@ -257,9 +272,9 @@ class AlfrescoRemote:
     ) -> List[RemoteFileInfo]:
         """List children of a node as ``RemoteFileInfo`` objects.
 
-        This mirrors the Nuxeo ``Remote.get_fs_children()`` interface so
-        that the folder-picker dialog ("Choose folders to sync") works
-        with Alfresco servers.
+        Provides the ``get_fs_children()`` interface expected by the
+        folder-picker dialog ("Choose folders to sync") so that it
+        works with Alfresco servers.
         """
         nodes = self.client.nodes.list_children(fs_item_id, include=["path"])
         infos = [self._node_to_remote_file_info(n) for n in nodes]
@@ -325,7 +340,7 @@ class AlfrescoRemote:
     # -- Adapter methods (Processor compatibility) ---------------------------
     #
     # The shared ``Processor`` class calls ``self.remote.<method>()`` using
-    # the Nuxeo ``Remote`` API surface.  The methods below bridge the
+    # the generic ``Remote`` API surface.  The methods below bridge the
     # naming/signature gap so that the same Processor works with Alfresco.
 
     def get_fs_info(
@@ -341,15 +356,19 @@ class AlfrescoRemote:
         except Exception:
             raise NotFound(f"Could not find {fs_item_id!r} on {self.server_url!r}")
         info = self._node_to_remote_file_info(node)
-        # Alfresco doesn't expose content digests.  If we previously
-        # stored a digest in the DB (set during upload), carry it
-        # forward so the Processor's conflict check doesn't see a
-        # spurious None-vs-hash mismatch.
-        if info.digest is None and hasattr(self, "dao"):
-            pair = self.dao.get_normal_state_from_remote(fs_item_id)
-            if pair and pair.remote_digest:
-                info.digest = pair.remote_digest
-                info.digest_algorithm = "md5"
+        # Prefer the server-provided digest (``Node.digest`` /
+        # ``Node.digest_algorithm``) when Alfresco returns one.  Fall back
+        # to whatever we stored in the DB during upload so the Processor's
+        # conflict check doesn't see a spurious None-vs-hash mismatch.
+        if info.digest is None:
+            if node.digest:
+                info.digest = node.digest
+                info.digest_algorithm = (node.digest_algorithm or "md5").lower()
+            elif hasattr(self, "dao"):
+                pair = self.dao.get_normal_state_from_remote(fs_item_id)
+                if pair and pair.remote_digest:
+                    info.digest = pair.remote_digest
+                    info.digest_algorithm = "md5"
         return info
 
     def stream_content(
@@ -368,14 +387,23 @@ class AlfrescoRemote:
         Mirrors ``Remote.stream_content()`` — the Processor calls this
         to download file content during ``_synchronize_remotely_created``
         and ``_synchronize_remotely_modified``.
+
+        Uses the ``client.nodes.download_to()`` helper for the chunked
+        read/write loop.  When the caller supplies a ``fs_item_info``
+        with a non-empty ``digest``, verify the downloaded file matches
+        and raise :class:`CorruptedFile` on mismatch.
         """
         file_out.parent.mkdir(parents=True, exist_ok=True)
 
-        resp = self.get_content_stream(fs_item_id)
-        with open(file_out, "wb") as fh:
-            for chunk in resp.iter_content(chunk_size=65536):
-                if chunk:
-                    fh.write(chunk)
+        self.client.nodes.download_to(fs_item_id, str(file_out), chunk_size=65536)
+
+        # Server-side digest verification (opt-in: only when caller
+        # provided the expected digest via fs_item_info).
+        if fs_item_info and fs_item_info.digest:
+            algo = (fs_item_info.digest_algorithm or "md5").lower()
+            local_digest = compute_digest(file_out, algo)
+            if local_digest and local_digest.lower() != fs_item_info.digest.lower():
+                raise CorruptedFile(str(file_out), fs_item_info.digest, local_digest)
 
         # Remove the download record if the DAO is available
         if hasattr(self, "dao"):

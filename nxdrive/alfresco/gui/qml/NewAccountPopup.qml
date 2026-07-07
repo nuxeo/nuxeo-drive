@@ -120,6 +120,10 @@ NuxeoPopup {
                 Layout.fillWidth: true
                 width: parent.width
                 spacing: 10
+                // Only shown for legacy (ticket/basic) authentication.
+                // For modern OAuth2 the credentials are entered in the
+                // browser, so the fields are hidden here.
+                visible: useLegacyAuth.checked
 
                 ScaledText { text: qsTr("USERNAME") + tl.tr; color: secondaryText }
                 NuxeoInput {
@@ -159,6 +163,11 @@ NuxeoPopup {
                 enabled: {
                     if (!urlInput.acceptableInput || !folderInput.text)
                         return false
+                    // Browser OAuth2 flow: URL + folder are enough,
+                    // credentials are entered in the browser.
+                    if (!useLegacyAuth.checked)
+                        return true
+                    // Legacy ticket auth: require username + password here.
                     return usernameInput.text.length > 0 && passwordInput.text.length > 0
                 }
                 text: qsTr("CONNECT") + tl.tr
@@ -172,11 +181,14 @@ NuxeoPopup {
                             passwordInput.text
                         )
                     } else {
-                        api.oauth2_password_auth(
-                            folderInput.text,
+                        // OAuth2 PKCE browser flow — opens the IdP login
+                        // page in the default browser; the token is
+                        // returned via the ``nxdrive://authorize`` URL
+                        // scheme handler.
+                        api.web_authentication(
                             urlInput.text,
-                            usernameInput.text,
-                            passwordInput.text
+                            folderInput.text,
+                            false
                         )
                     }
                     control.close()

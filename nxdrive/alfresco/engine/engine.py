@@ -46,7 +46,7 @@ class AlfrescoEngine(Engine):
 
     * ``init_remote()`` → creates an ``AlfrescoRemote`` instead of ``Remote``
     * ``bind()`` → validates credentials via the Alfresco People API
-    * ``_check_root()`` → uses the Nodes API instead of NuxeoDrive operations
+    * ``_check_root()`` → uses the Alfresco Nodes API
     * ``_create_remote_watcher()`` → uses ``AlfrescoRemoteWatcher``
     """
 
@@ -346,7 +346,7 @@ class AlfrescoEngine(Engine):
 
         super().conflict_resolver(row_id, emit=emit)
 
-    # -- Overrides for Nuxeo-specific features (disabled in Phase 1) ---------
+    # -- Overrides for engine-generic features (disabled in Phase 1) ---------
 
     @property
     def have_folder_upload(self) -> bool:
@@ -354,7 +354,7 @@ class AlfrescoEngine(Engine):
         return True
 
     def _send_roots_metrics(self) -> None:
-        """Skip Nuxeo-specific sync root metrics for Alfresco."""
+        """Skip sync-root metrics for Alfresco (no equivalent endpoint)."""
         pass
 
     def _load_configuration(self) -> None:

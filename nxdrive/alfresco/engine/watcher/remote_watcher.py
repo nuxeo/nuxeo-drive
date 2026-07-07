@@ -2,8 +2,8 @@
 Remote watcher for Alfresco — polls the server for changes via full
 remote tree scans.
 
-Replaces the Nuxeo-specific ``RemoteWatcher`` which relies on
-``GetChangeSummary`` and NuxeoDrive operations.
+Alfresco has no direct equivalent of the ``GetChangeSummary`` /
+change-log endpoint, so this watcher does full remote tree diffing.
 """
 
 from datetime import datetime, timezone
