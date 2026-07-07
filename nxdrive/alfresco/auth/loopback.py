@@ -72,35 +72,20 @@ class _CallbackHandler(BaseHTTPRequestHandler):
     server: "_LoopbackHTTPServer"  # type: ignore[assignment]
 
     def do_GET(self) -> None:  # noqa: N802 — required by BaseHTTPRequestHandler
-        log.info("[DELETE_LATER] Loopback do_GET path=%r", self.path)  # DELETE_LATER
         parsed = urlparse(self.path)
         if parsed.path.rstrip("/") != "/callback":
-            log.info(  # DELETE_LATER
-                "[DELETE_LATER] Loopback rejecting path=%r (not /callback)",
-                parsed.path,
-            )
             self._reply(404, _ERROR_HTML)
             return
 
         raw = parse_qs(parsed.query, keep_blank_values=False)
         query: Dict[str, str] = {k: v[0] for k, v in raw.items() if v}
-        log.info(  # DELETE_LATER
-            "[DELETE_LATER] Loopback parsed query keys=%s",
-            sorted(query.keys()),
-        )
 
         if "code" not in query or "state" not in query:
-            log.info(  # DELETE_LATER
-                "[DELETE_LATER] Loopback missing code/state; replying 400"
-            )
             self._reply(400, _ERROR_HTML)
             return
 
         # Send the success page *before* dispatching so the browser
         # sees the confirmation even if the delivery hook is slow.
-        log.info(  # DELETE_LATER
-            "[DELETE_LATER] Loopback replying 200 then dispatching to deliver()"
-        )
         self._reply(200, _SUCCESS_HTML)
         self.server.deliver(query)
 
@@ -137,26 +122,14 @@ class _LoopbackHTTPServer(HTTPServer):
 
     def deliver(self, query: Dict[str, str]) -> None:
         """Invoke the user callback (once) and trigger async shutdown."""
-        log.info(  # DELETE_LATER
-            "[DELETE_LATER] LoopbackHTTPServer.deliver() called; delivered=%s",
-            self._delivered.is_set(),
-        )
         if self._delivered.is_set():
             return
         self._delivered.set()
         try:
-            log.info(  # DELETE_LATER
-                "[DELETE_LATER] Loopback invoking on_callback(%r)",
-                sorted(query.keys()),
-            )
             self._on_callback(query)
-            log.info("[DELETE_LATER] Loopback on_callback returned OK")  # DELETE_LATER
         except Exception:
             log.exception("Loopback: on_callback raised")
         try:
-            log.info(
-                "[DELETE_LATER] Loopback triggering async shutdown"
-            )  # DELETE_LATER
             self._on_delivered()
         except Exception:
             log.exception("Loopback: on_delivered raised")

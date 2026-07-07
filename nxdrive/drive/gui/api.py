@@ -658,14 +658,24 @@ class QMLDriveApi(QObject):
                 self.setMessage.emit("CONNECTION_UNKNOWN", "error")
                 return
 
-            # If the server type does not support browser-based token update
-            # (e.g. Alfresco), show the re-login popup instead — UNLESS the
-            # account was originally bound via a browser/OAuth flow, in which
-            # case we must send the user back through that same flow (a
-            # password re-entry popup would be meaningless for OAuth users).
+            # Detect an OAuth-only server-type (e.g. Alfresco): no legacy
+            # ``browser_startup_page`` but an ``oauth2_class_path`` is
+            # registered. For such servers the standard Nuxeo
+            # login-type probe + relogin popup are meaningless — the OAuth
+            # authorize URL is the only re-auth path.
             engine_config = st.get_by_engine_type(getattr(engine, "type", ""))
             web_bound = bool(getattr(engine, "_web_authentication", False))
-            if not engine_config.supports_browser_token_update and not web_bound:
+            oauth_only = not engine_config.browser_startup_page and bool(
+                engine_config.oauth2_class_path
+            )
+
+            # If the server type does not support browser-based token update
+            # (e.g. Alfresco basic-auth accounts), show the re-login popup.
+            # OAuth-only + web-bound accounts fall through to the OAuth
+            # redirect flow below instead of the password popup.
+            if not engine_config.supports_browser_token_update and not (
+                oauth_only and web_bound
+            ):
                 self.application.show_settings("Accounts")
                 self.showReloginPopup.emit(uid, engine.remote_user)
                 return
@@ -673,17 +683,30 @@ class QMLDriveApi(QObject):
             params = urlencode({"updateToken": True})
 
             url = engine.server_url
-            login_type = self._manager.get_server_login_type(url)
-            if login_type is Login.OLD:
-                # We might have to downgrade because the
-                # browser login is not available.
-                self._manager.updater.force_downgrade()
-                return
+            # Skip the Nuxeo login-type probe for OAuth-only server types:
+            # with an empty ``browser_startup_page`` the probe short-circuits
+            # to ``Login.OLD`` and would incorrectly trigger a "downgrade
+            # needed" banner.
+            if not oauth_only:
+                login_type = self._manager.get_server_login_type(url)
+                if login_type is Login.OLD:
+                    # We might have to downgrade because the
+                    # browser login is not available.
+                    self._manager.updater.force_downgrade()
+                    return
 
-            # The good authentication class is chosen following the type of the token
-            crafted_token: Token = (
-                {} if isinstance(engine.remote.auth, OAuthenticationBase) else ""
-            )
+            # The good authentication class is chosen following the type of
+            # the token. For OAuth-only server types, force the dict form so
+            # ``get_auth`` returns the OAuth2 handler registered via
+            # ``oauth2_class_path``. Otherwise preserve the legacy behaviour
+            # (Nuxeo OAuth handlers subclass ``OAuthenticationBase``; the
+            # Nuxeo browser-token flow uses a plain string token).
+            if oauth_only:
+                crafted_token: Token = {}
+            else:
+                crafted_token = (
+                    {} if isinstance(engine.remote.auth, OAuthenticationBase) else ""
+                )
             auth = get_auth(
                 url,
                 crafted_token,
