@@ -90,7 +90,7 @@ build_alfresco_installer() {
     alfresco_icon_folder="${PWD}/nxdrive/data/icons/alfresco/"
     destination_folder="${PWD}/nxdrive/drive/data/icons/"
     if [ ! -d "${alfresco_icon_folder}" ]; then
-        echo ">>> WARNING: Nuxeo icon folder missing : ${alfresco_icon_folder}. Skipping icons copy."
+        echo ">>> WARNING: Alfresco icon folder missing : ${alfresco_icon_folder}. Skipping icons copy."
     else
         # Cleaning the destination folder before copying the icons
         echo ">>> INFO: Copying Alfresco icons from ${alfresco_icon_folder} to ${destination_folder}"
@@ -100,12 +100,15 @@ build_alfresco_installer() {
     echo ">>> Building the release package"
     ${PYTHON_VENV} -m PyInstaller alfresco.spec --clean --noconfirm
 
+    echo ">>> Cleaning the dist folder"
     # Do some clean-up
-    ${PYTHON_VENV} tools/cleanup_application_tree.py dist/alfresco
+    ${PYTHON_VENV} tools/cleanup_application_tree.py dist/alfresco-drive
 
+    echo ">>> Removing compiled QML files"
     # Remove compiled QML files
     find dist -depth -type f -name "*.qmlc" -delete
 
+    echo ">>> Removing empty folders"
     # Remove empty folders
     find dist -depth -type d -empty -delete
 
@@ -119,7 +122,7 @@ build_alfresco_installer() {
         # Remove broken symlinks pointing to an inexistent target
         find dist/*.app/Contents/MacOS -type l -exec sh -c 'for x; do [ -e "$x" ] || rm -v "$x"; done' _ {} +
     elif [ "${OSI}" = "linux" ]; then
-        remove_excluded_files dist/alfresco
+        remove_excluded_files dist/alfresco-drive
     fi
 
     # Stop now if we only want the application to be frozen (for integration tests)
@@ -130,6 +133,7 @@ build_alfresco_installer() {
     if [ "${ZIP_NEEDED:-0}" = "1" ]; then
         version="$(grep __alfresco_version__ nxdrive/__init__.py | cut -d'"' -f2)"
         cd dist
+        echo ">>> Creating zip archive: alfresco-drive-${OSI}-${version}.zip"
         zip -9 -q -r "alfresco-drive-${OSI}-${version}.zip" "alfresco-drive"
         cd -
     fi

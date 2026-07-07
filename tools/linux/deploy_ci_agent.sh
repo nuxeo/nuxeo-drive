@@ -146,8 +146,8 @@ create_package() {
         mv -v "dist/ndrive" "${app_dir}"
         mv -v "${app_dir}/ndrive" "${app_dir}/AppRun"
     else
-        mv -v "dist/alfresco" "${app_dir}"
-        mv -v "${app_dir}/alfresco" "${app_dir}/AppRun"
+        mv -v "dist/alfresco-drive" "${app_dir}"
+        mv -v "${app_dir}/alfresco-drive" "${app_dir}/AppRun"
     fi
 
     echo ">>> [AppImage ${app_version}] Copying icons"
