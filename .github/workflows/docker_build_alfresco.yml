@@ -37,7 +37,7 @@ jobs:
         with:
           driver: docker
       - name: GHCR Login
-        uses: docker/login-action@v2.2.0
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
