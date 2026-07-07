@@ -153,11 +153,6 @@ def _release_loopback_state(api: Any) -> None:
     Safe to call when nothing is pinned.
     """
     state = getattr(api, "_alfresco_loopback_state", None)
-    log.info(  # DELETE_LATER
-        "[DELETE_LATER] _release_loopback_state api=%r had_state=%s",
-        api,
-        state is not None,
-    )
     if state is None:
         return
     _bridge, server = state
@@ -181,23 +176,11 @@ class AlfrescoOAuthentication(OAuthenticationBase):
 
     def __init__(self, *args: Any, dao: "BaseDAO" = None, **kwargs: Any) -> None:
         super().__init__(*args, dao=dao, **kwargs)
-        log.info(  # DELETE_LATER
-            "[DELETE_LATER] AlfrescoOAuthentication.__init__ url=%r has_token=%s"
-            " openid_url=%r client_id=%r",
-            getattr(self, "url", None),
-            bool(getattr(self, "token", None)),
-            self._oauth2_openid_configuration_url,
-            self._oauth2_client_id,
-        )
 
         # Auto-discover AIMS/Keycloak endpoints from the Alfresco server
         # if no explicit OpenID configuration URL has been provided.
         if not self._oauth2_openid_configuration_url:
             aims = discover_aims_config(self.url, verify=self.verification_needed)
-            log.info(  # DELETE_LATER
-                "[DELETE_LATER] __init__ discover_aims_config -> keys=%s",
-                sorted(aims.keys()) if aims else None,
-            )
             if aims:
                 self._oauth2_openid_configuration_url = aims["openid_configuration_url"]
                 self._oauth2_client_id = aims.get("client_id", _DEFAULT_CLIENT_ID)
@@ -206,13 +189,6 @@ class AlfrescoOAuthentication(OAuthenticationBase):
                 )
 
         self._build_oauth2()
-        log.info(  # DELETE_LATER
-            "[DELETE_LATER] __init__ done; auth.authorization_endpoint=%r"
-            " auth.token_endpoint=%r auth.redirect_uri=%r",
-            getattr(self.auth, "authorization_endpoint", None),
-            getattr(self.auth, "token_endpoint", None),
-            getattr(self.auth, "redirect_uri", None),
-        )
 
     def _build_oauth2(self, *, redirect_uri_override: Optional[str] = None) -> None:
         """Construct the ``alfresco.OAuth2`` auth object for Alfresco.
@@ -239,15 +215,6 @@ class AlfrescoOAuthentication(OAuthenticationBase):
             None if (authz_ep and token_ep) else self._oauth2_openid_configuration_url
         )
         effective_redirect = redirect_uri_override or Options.oauth2_redirect_uri
-        log.info(  # DELETE_LATER
-            "[DELETE_LATER] _build_oauth2 redirect_uri=%r override=%r"
-            " authz_ep=%r token_ep=%r openid_url=%r",
-            effective_redirect,
-            redirect_uri_override,
-            authz_ep,
-            token_ep,
-            openid_url,
-        )
 
         self.auth = OAuth2(
             self.url,
@@ -276,8 +243,6 @@ class AlfrescoOAuthentication(OAuthenticationBase):
         """
         from nxdrive.drive.options import Options
 
-        log.info("[DELETE_LATER] connect_url ENTER url=%r", self.url)  # DELETE_LATER
-
         # If discovery failed at __init__ time (server unreachable at that
         # point, network flap, etc.) retry now so the user gets a fresh
         # attempt instead of a stale None.
@@ -302,19 +267,10 @@ class AlfrescoOAuthentication(OAuthenticationBase):
         # so both the authorize URL and the subsequent token exchange use
         # the same loopback redirect_uri (Keycloak requires exact match).
         loopback_uri = self._start_loopback_flow()
-        log.info(  # DELETE_LATER
-            "[DELETE_LATER] connect_url loopback_uri=%r", loopback_uri
-        )
         self._build_oauth2(redirect_uri_override=loopback_uri)
 
         scope = Options.oauth2_scope or "openid"
         uri, state, code_verifier = self.auth.create_authorization_url(scope=scope)
-        log.info(  # DELETE_LATER
-            "[DELETE_LATER] connect_url authorize_uri=%r state=%r cv_len=%d",
-            uri,
-            state,
-            len(code_verifier or ""),
-        )
 
         if self._dao:
             self._dao.update_config("tmp_oauth2_url", self.url)
@@ -324,11 +280,7 @@ class AlfrescoOAuthentication(OAuthenticationBase):
             # ``get_token()`` must use the exact same value (Keycloak
             # enforces RFC 6749 §4.1.3 redirect_uri match).
             self._dao.update_config("tmp_oauth2_redirect_uri", loopback_uri)
-            log.info(  # DELETE_LATER
-                "[DELETE_LATER] connect_url stored DAO tmp_oauth2_* keys"
-            )
 
-        log.info("[DELETE_LATER] connect_url RETURN")  # DELETE_LATER
         return uri
 
     # ------------------------------------------------------------------
@@ -361,9 +313,6 @@ class AlfrescoOAuthentication(OAuthenticationBase):
 
         app = QApplication.instance()
         api = getattr(app, "api", None) if app is not None else None
-        log.info(  # DELETE_LATER
-            "[DELETE_LATER] _start_loopback_flow app=%r api=%r", app, api
-        )
         if api is None:
             raise OAuth2Error(
                 "Qt application is not initialised; cannot start the loopback "
@@ -381,24 +330,11 @@ class AlfrescoOAuthentication(OAuthenticationBase):
         # signal will be emitted from the HTTP server's worker thread
         # while the receiver (api) lives on the Qt main thread.
         bridge.callback_received.connect(api.continue_oauth2_flow)
-        log.info(  # DELETE_LATER
-            "[DELETE_LATER] _start_loopback_flow bridge connected to"
-            " api.continue_oauth2_flow"
-        )
 
-        def _emit_from_thread(query: Dict[str, str]) -> None:  # DELETE_LATER
-            log.info(  # DELETE_LATER
-                "[DELETE_LATER] Loopback callback thread invoking bridge.emit"
-                " keys=%s",
-                sorted(query.keys()),
-            )
+        def _emit_from_thread(query: Dict[str, str]) -> None:
             try:
                 bridge.callback_received.emit(query)
-                log.info(  # DELETE_LATER
-                    "[DELETE_LATER] bridge.emit returned (signal posted)"
-                )
             except Exception:
-                log.exception("[DELETE_LATER] bridge.emit raised")
                 raise
 
         server = LoopbackAuthServer()
@@ -409,18 +345,9 @@ class AlfrescoOAuthentication(OAuthenticationBase):
 
         # Pin to the API instance so both objects outlive `self`.
         api._alfresco_loopback_state = (bridge, server)
-        log.info(  # DELETE_LATER
-            "[DELETE_LATER] _start_loopback_flow pinned state on api;"
-            " redirect_uri=%r",
-            redirect_uri,
-        )
         return redirect_uri
 
     def get_token(self, **kwargs: Any) -> "Token":
-        log.info(  # DELETE_LATER
-            "[DELETE_LATER] get_token ENTER kwargs_keys=%s",
-            sorted(kwargs.keys()),
-        )
         # The token exchange must use the exact ``redirect_uri`` that
         # was sent on the authorize hop (Keycloak enforces RFC 6749
         # §4.1.3). ``connect_url()`` stashed it in the DAO; rebuild
@@ -428,35 +355,29 @@ class AlfrescoOAuthentication(OAuthenticationBase):
         stored_uri = (
             self._dao.get_config("tmp_oauth2_redirect_uri") if self._dao else None
         )
-        log.info(  # DELETE_LATER
-            "[DELETE_LATER] get_token stored_redirect_uri=%r", stored_uri
-        )
         if stored_uri:
             self._build_oauth2(redirect_uri_override=stored_uri)
         try:
-            log.info(  # DELETE_LATER
-                "[DELETE_LATER] get_token calling super().get_token();"
-                " auth.redirect_uri=%r token_endpoint=%r",
-                getattr(self.auth, "redirect_uri", None),
-                getattr(self.auth, "token_endpoint", None),
-            )
             result = super().get_token(**kwargs)
-            log.info(  # DELETE_LATER
-                "[DELETE_LATER] get_token SUCCESS keys=%s",
-                sorted(result.keys())
-                if isinstance(result, dict)
-                else type(result).__name__,
-            )
+            # Enrich the token dict with the metadata ``AlfrescoRemote`` needs
+            # to rebuild an ``OAuth2Auth`` capable of proactive/reactive
+            # refresh. ``super().get_token()`` only returns the raw fields
+            # from the token endpoint (``access_token``, ``refresh_token``,
+            # ``expires_at``, ...) — the caller (``continue_oauth2_flow``)
+            # persists this exact dict, so we must attach ``token_url`` and
+            # ``client_id`` here or refresh will fail later with
+            # "token_url not configured".
+            if isinstance(result, dict):
+                token_endpoint = getattr(self.auth, "token_endpoint", None)
+                if token_endpoint and "token_url" not in result:
+                    result["token_url"] = str(token_endpoint)
+                client_id = getattr(self.auth, "client_id", None)
+                if client_id and "client_id" not in result:
+                    result["client_id"] = client_id
             return result
         except OAuth2Error as exc:
-            log.exception(  # DELETE_LATER
-                "[DELETE_LATER] get_token OAuth2Error: %s", exc
-            )
             raise RemoteOAuth2Error(message=getattr(exc, "message", str(exc))) from exc
-        except Exception:  # DELETE_LATER
-            log.exception(  # DELETE_LATER
-                "[DELETE_LATER] get_token unexpected exception"
-            )
+        except Exception:
             raise
         finally:
             # Release the pinned loopback state and the extra DAO key.
@@ -473,14 +394,11 @@ class AlfrescoOAuthentication(OAuthenticationBase):
                 log.debug("Loopback: release failed", exc_info=True)
             if self._dao:
                 self._dao.delete_config("tmp_oauth2_redirect_uri")
-            log.info("[DELETE_LATER] get_token EXIT")  # DELETE_LATER
 
     def get_username(self) -> str:
         """Resolve the authenticated user's ID via the Alfresco People API."""
-        log.info("[DELETE_LATER] get_username ENTER")  # DELETE_LATER
         token = self.auth.token
         if not token:
-            log.info("[DELETE_LATER] get_username no token → return ''")  # DELETE_LATER
             return ""
 
         access_token = (
@@ -494,20 +412,15 @@ class AlfrescoOAuthentication(OAuthenticationBase):
         if not base.endswith("/alfresco"):
             base += "/alfresco"
         url = base + "/api/-default-/public/alfresco/versions/1/people/-me-"
-        log.info("[DELETE_LATER] get_username GET %s", url)  # DELETE_LATER
         resp = requests.get(
             url,
             headers={"Authorization": f"Bearer {access_token}"},
             verify=self.verification_needed,
             timeout=30,
         )
-        log.info(  # DELETE_LATER
-            "[DELETE_LATER] get_username http_status=%s", resp.status_code
-        )
         resp.raise_for_status()
         data = resp.json()
         username: str = data.get("entry", {}).get("id", "")
-        log.info("[DELETE_LATER] get_username RETURN %r", username)  # DELETE_LATER
         return username
 
     def get_token_dict(self) -> Optional[Dict[str, Any]]:

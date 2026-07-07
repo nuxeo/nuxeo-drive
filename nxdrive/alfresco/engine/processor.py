@@ -75,13 +75,20 @@ class AlfrescoProcessor(_ProcessorBase):
     def increase_error(
         self, doc_pair: DocPair, error: str, /, *, exception: Exception = None
     ) -> None:
-        self.dao.increase_error(doc_pair, error, "error")
+        details = str(exception) if exception else None
+        self.dao.increase_error(doc_pair, error, details=details)
         self._postpone_pair(doc_pair, error, exception=exception)
 
     def giveup_error(
         self, doc_pair: DocPair, error: str, /, *, exception: Exception = None
     ) -> None:
-        self.dao.increase_error(doc_pair, error, "error")
+        details = str(exception) if exception else None
+        self.dao.increase_error(
+            doc_pair,
+            error,
+            details=details,
+            incr=self.engine.queue_manager.get_error_threshold() + 1,
+        )
         self.engine.queue_manager.push_error(doc_pair, exception=exception)
 
     def _refresh_local_state(self, doc_pair: DocPair, local_info: FileInfo, /) -> None:
