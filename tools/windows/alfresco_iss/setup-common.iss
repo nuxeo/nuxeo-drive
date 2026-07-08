@@ -13,7 +13,7 @@ AppCopyright="© 2026 {#MyAppPublisher}, Inc. and its affiliates. All rights res
 ; Outputs
 OutputDir=..\..\..\dist
 
-; Startup menu entry: "Publisher/Application Name", i.e.: "Hyland/Alfresco Drive"
+; Startup menu entry: "Publisher/Application Name", i.e.: "Hyland/Hyland Drive for Alfresco"
 DefaultGroupName={#MyAppPublisher}
 DisableProgramGroupPage=yes
 
@@ -114,7 +114,7 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 ;    /TARGETURL="http://localhost:8080/alfresco" (mandatory)
 ;    /TARGETUSERNAME="username"               (mandatory)
 ;    /TARGETPASSWORD="password"
-;    /TARGETDRIVEFOLDER="%USERPROFILE%\Documents\Alfresco Drive"
+;    /TARGETDRIVEFOLDER="%USERPROFILE%\Documents\Hyland Drive for Alfresco"
 Filename: "{app}\{#MyAppExeName}"; Parameters: "bind-server --password ""{param:TARGETPASSWORD}"" --local-folder ""{param:TARGETDRIVEFOLDER}"" ""{param:TARGETUSERNAME}"" ""{param:TARGETURL}"""; Flags: nowait postinstall skipifnotsilent; Check: NeedEngineBinding
 
 
@@ -165,9 +165,9 @@ begin
     if IsAlfrescoDriveRunning() then
     begin
         UserChoice := MsgBox(
-            'Alfresco Drive is currently running.' + #13#10 +
+            'Hyland Drive for Alfresco is currently running.' + #13#10 +
             'It must be closed before continuing with the installation.' + #13#10#13#10 +
-            'Would you like to close Alfresco Drive now and proceed with the installation?',
+            'Would you like to close Hyland Drive for Alfresco now and proceed with the installation?',
             mbConfirmation,
             MB_YESNO
         );
@@ -188,7 +188,7 @@ begin
             else
             begin
                 MsgBox(
-                    'Unable to close Alfresco Drive. Please close the application manually and retry the installation.',
+                    'Unable to close Hyland Drive for Alfresco. Please close the application manually and retry the installation.',
                     mbError,
                     MB_OK
                 );

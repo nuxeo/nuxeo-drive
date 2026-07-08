@@ -845,7 +845,7 @@ function build_alfresco_installer_and_sign {
 	# Build the installer
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__alfresco_version__" -replace '"', "" -replace "__alfresco_version__ = ", ""
 	# Setting environment variables
-	$Env:APP_NAME = "Alfresco Drive"
+	$Env:APP_NAME = "Hyland Drive for Alfresco"
 	$Env:SIGNING_ID = "Alfresco"
 
 	# Build DDLs only on GitHub-CI, no need to loose time on the local dev machine

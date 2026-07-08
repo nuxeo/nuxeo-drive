@@ -4,7 +4,7 @@
 	<id>org.alfresco.drive.desktop</id>
 	<metadata_license>MIT</metadata_license>
 	<project_license>LGPL-2.1-only</project_license>
-	<name>Alfresco Drive</name>
+	<name>Hyland Drive for Alfresco</name>
 	<summary>Desktop synchronization client for the Alfresco platform</summary>
 	<description>
 		<p>Multi-platform desktop synchronization client for the Alfresco content management platform.</p>

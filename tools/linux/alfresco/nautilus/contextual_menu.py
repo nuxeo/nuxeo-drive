@@ -11,7 +11,9 @@ class AlfrescoDriveMenuProvider(GObject.GObject, Nautilus.MenuProvider):
     def get_file_items(self, _, files):
         # Access online
         access_item = Nautilus.MenuItem(
-            name="Nautilus::alfresco-drive", label="Access online", tip="Alfresco Drive"
+            name="Nautilus::alfresco-drive",
+            label="Access online",
+            tip="Hyland Drive for Alfresco",
         )
         access_item.connect("activate", self.access_online, files)
 
@@ -19,13 +21,15 @@ class AlfrescoDriveMenuProvider(GObject.GObject, Nautilus.MenuProvider):
         share_item = Nautilus.MenuItem(
             name="Nautilus::alfresco-drive",
             label="Copy share-link",
-            tip="Alfresco Drive",
+            tip="Hyland Drive for Alfresco",
         )
         share_item.connect("activate", self.copy_share_link, files)
 
         # Edit metadata
         metadata = Nautilus.MenuItem(
-            name="Nautilus::alfresco-drive", label="Edit metadata", tip="Alfresco Drive"
+            name="Nautilus::alfresco-drive",
+            label="Edit metadata",
+            tip="Hyland Drive for Alfresco",
         )
         metadata.connect("activate", self.edit_metadata, files)
 

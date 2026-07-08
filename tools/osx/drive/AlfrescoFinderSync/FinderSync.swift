@@ -22,7 +22,7 @@ class FinderSync: FIFinderSync {
     let syncStatusNotif = NSNotification.Name("org.alfresco.drive.syncStatus")
     let setConfigNotif = NSNotification.Name("org.alfresco.drive.setConfig")
 
-    let app_name = "Alfresco Drive - "
+    let app_name = "Hyland Drive for Alfresco - "
 
     var title1 = "Access online"
     var title2 = "Copy share-link"
@@ -165,11 +165,11 @@ class FinderSync: FIFinderSync {
 
     /*
     override var toolbarItemName: String {
-        return "Alfresco Drive"
+        return "Hyland Drive for Alfresco"
     }
 
     override var toolbarItemToolTip: String {
-        return "Alfresco Drive: Click the button for a menu"
+        return "Hyland Drive for Alfresco: Click the button for a menu"
     }
 
     override var toolbarItemImage: NSImage {
@@ -211,7 +211,7 @@ class FinderSync: FIFinderSync {
 
     func menu_for_unsynced_items() -> NSMenu {
         // Produce the menu for unsynced files and folders.
-        let menu = NSMenu(title: "Alfresco Drive")
+        let menu = NSMenu(title: "Hyland Drive for Alfresco")
 
         // Direct Transfer
         let item1 = NSMenuItem(title: self.title4,
@@ -225,7 +225,7 @@ class FinderSync: FIFinderSync {
 
     func menu_for_synced_items() -> NSMenu {
         // Produce a menu for synced files and folders.
-        let menu = NSMenu(title: "Alfresco Drive")
+        let menu = NSMenu(title: "Hyland Drive for Alfresco")
 
         // Access online
         let item1 = NSMenuItem(title: self.title1,

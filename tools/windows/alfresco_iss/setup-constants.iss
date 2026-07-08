@@ -1,6 +1,6 @@
 ﻿; Constants for all installers.
 
-#define MyAppName "Alfresco Drive"
+#define MyAppName "Hyland Drive for Alfresco"
 #define MyAppPublisher "Hyland Software"
 #define MyAppURL "https://www.nuxeo.com/products/drive-desktop-sync/"
 #define MyAppUpdatesURL "https://github.com/nuxeo/nuxeo-drive/releases"

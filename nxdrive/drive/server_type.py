@@ -36,7 +36,7 @@ class ServerTypeConfig:
     auth_factory: Optional[Callable[..., Any]] = None
 
     # Branding
-    app_name: str = "Drive"  # e.g. "Nuxeo Drive", "Alfresco Drive"
+    app_name: str = "Drive"  # e.g. "Nuxeo Drive", "Hyland Drive for Alfresco"
     company: str = "Hyland"
     bundle_identifier: str = "com.hyland.drive"  # macOS bundle id
     url_scheme: str = "drive"  # custom URL protocol
@@ -69,8 +69,12 @@ class ServerTypeConfig:
 
     # Platform-specific configurations
     findersync_agent_template: str = ""  # macOS launch agent plist template
-    findersync_bundle_id_suffix: str = ""  # e.g. "NuxeoFinderSync", "AlfrescoFinderSync"
-    findersync_appex_name: str = ""  # e.g. "NuxeoFinderSync.appex", "AlfrescoFinderSync.appex"
+    findersync_bundle_id_suffix: str = (
+        ""  # e.g. "NuxeoFinderSync", "AlfrescoFinderSync"
+    )
+    findersync_appex_name: str = (
+        ""  # e.g. "NuxeoFinderSync.appex", "AlfrescoFinderSync.appex"
+    )
     addon_installer_name: str = ""  # Windows addon installer exe name
     update_site_url: str = ""  # Update server URL for this server type
 

@@ -143,7 +143,7 @@ exe = EXE(
 coll = COLLECT(exe, a.binaries, a.zipfiles, a.datas, name="alfresco-drive")
 
 info_plist = {
-    "CFBundleName": "AlfrescoDrive",
+    "CFBundleName": "Hyland Drive for Alfresco",
     "CFBundleShortVersionString": version,
     # CFBundleURLTypes MUST be an array of dicts per Apple's spec
     # (https://developer.apple.com/documentation/bundleresources/information-property-list/cfbundleurltypes).
@@ -161,7 +161,7 @@ info_plist = {
 
 app = BUNDLE(
     coll,
-    name="Alfresco Drive.app",
+    name="Hyland Drive for Alfresco.app",
     icon=icon,
     info_plist=info_plist,
     bundle_identifier="org.alfresco.drive",

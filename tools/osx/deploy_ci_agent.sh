@@ -152,7 +152,7 @@ create_package() {
         local entitlement_name="NuxeoFinderSync"
     else
         echo ">>> [package] Creating Alfresco Drive package"
-        local app_name="Alfresco Drive"
+        local app_name="Hyland Drive for Alfresco"
         local entitlement_name="AlfrescoFinderSync"
     fi
 

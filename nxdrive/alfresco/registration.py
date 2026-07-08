@@ -150,7 +150,7 @@ register(
             "s3",
         ],
         auth_factory=_alfresco_auth_factory,
-        app_name="Alfresco Drive",
+        app_name="Hyland Drive for Alfresco",
         company="Hyland",
         bundle_identifier="com.alfresco.drive",
         url_scheme="nxdrive",

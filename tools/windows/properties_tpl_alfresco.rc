@@ -15,12 +15,12 @@ VSVersionInfo(
       StringTable(
         '040904B0',
         [StringStruct('CompanyName', 'Hyland Software'),
-        StringStruct('FileDescription', 'Alfresco Drive'),
+        StringStruct('FileDescription', 'Hyland Drive for Alfresco'),
         StringStruct('FileVersion', '{version}'),
         StringStruct('InternalName', 'alfresco-drive'),
         StringStruct('LegalCopyright', '\xa9 2026 Hyland Software, Inc. and its affiliates. All rights reserved. All Hyland product names are registered or unregistered trademarks of Hyland Software, Inc. or its affiliates.'),
         StringStruct('OriginalFilename', 'alfresco-drive.exe'),
-        StringStruct('ProductName', 'Alfresco Drive'),
+        StringStruct('ProductName', 'Hyland Drive for Alfresco'),
         StringStruct('ProductVersion', '{version}')])
       ]),
     VarFileInfo([VarStruct('Translation', [0, 0])])

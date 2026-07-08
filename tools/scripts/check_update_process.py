@@ -239,7 +239,7 @@ def launch_drive(executable, server_name: str = "nuxeo", args=None):
         else:
             cmd = [
                 expandvars(
-                    "C:\\Users\\%username%\\AppData\\Local\\Alfresco Drive\\alfresco-drive.exe"
+                    "C:\\Users\\%username%\\AppData\\Local\\Hyland Drive for Alfresco\\alfresco-drive.exe"
                 ),
                 *args,
             ]

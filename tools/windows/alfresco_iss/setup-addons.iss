@@ -1,6 +1,6 @@
 ; Create the Windows installer for add-ons.
-#define MyAppName "Alfresco Drive Addons"
-#define MyAppParent "Alfresco Drive"
+#define MyAppName "Hyland Drive for Alfresco Addons"
+#define MyAppParent "Hyland Drive for Alfresco"
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "Hyland Software"
 
