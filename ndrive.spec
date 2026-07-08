@@ -23,7 +23,6 @@ cwd = os.getcwd()
 tools = os.path.join(cwd, "tools")
 nxdrive = os.path.join(cwd, "nxdrive")
 data = os.path.join(nxdrive, "drive", "data")
-alfresco_qml = os.path.join(nxdrive, "alfresco", "gui", "qml")
 nuxeo_qml = os.path.join(nxdrive, "nuxeo", "gui", "qml")
 supported_server_list = os.path.join(nxdrive, "supported_server_list.txt")
 
@@ -58,7 +57,6 @@ data = [
     (data, "nxdrive/drive/data"),
     (supported_server_list, "nxdrive"),
     (supported_server_list, "data/server_list"),
-    (alfresco_qml, "nxdrive/alfresco/gui/qml"),
     (nuxeo_qml, "nxdrive/nuxeo/gui/qml"),
 ]
 migrations = Path(nxdrive, "drive", "dao", "migrations")
@@ -72,7 +70,6 @@ hiddenimports = [
 hiddenimports += [
     # Registration modules (auto-discovered at startup)
     "nxdrive.nuxeo.registration",
-    "nxdrive.alfresco.registration",
     # Nuxeo dynamic classes
     "nxdrive.nuxeo.engine.engine",
     "nxdrive.nuxeo.direct_edit",
@@ -82,29 +79,6 @@ hiddenimports += [
     "nxdrive.nuxeo.gui.folders_model",
     "nxdrive.nuxeo.gui.auth_callback_store",
     "nxdrive.nuxeo.protocol",
-    # Alfresco dynamic classes
-    "nxdrive.alfresco.engine.engine",
-    "nxdrive.alfresco.auth.oauth2",
-    "nxdrive.alfresco.engine.processor",
-    "nxdrive.alfresco.client.remote",
-    "nxdrive.alfresco.engine.watcher.remote_watcher",
-    "alfresco",
-    "alfresco._utils",
-    "alfresco.client",
-    "alfresco.auth",
-    "alfresco.exceptions",
-    "alfresco.api",
-    "alfresco.api.base",
-    "alfresco.api.nodes",
-    "alfresco.api.people",
-    "alfresco.api.search",
-    "alfresco.api.sites",
-    "alfresco.api.sync_service",
-    "alfresco.models",
-    "alfresco.models.node",
-    "alfresco.models.person",
-    "alfresco.models.site",
-    "alfresco.models.search",
 ]
 
 version = get_version(os.path.join(nxdrive, "__init__.py"))

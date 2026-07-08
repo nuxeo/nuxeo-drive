@@ -25,7 +25,6 @@ tools = os.path.join(cwd, "tools")
 nxdrive = os.path.join(cwd, "nxdrive")
 data = os.path.join(nxdrive, "drive", "data")
 alfresco_qml = os.path.join(nxdrive, "alfresco", "gui", "qml")
-nuxeo_qml = os.path.join(nxdrive, "nuxeo", "gui", "qml")
 supported_server_list = os.path.join(nxdrive, "supported_server_list.txt")
 
 update_supported_server_list(supported_server_list)
@@ -60,7 +59,6 @@ data = [
     (supported_server_list, "nxdrive"),
     (supported_server_list, "data/server_list"),
     (alfresco_qml, "nxdrive/alfresco/gui/qml"),
-    (nuxeo_qml, "nxdrive/nuxeo/gui/qml"),
 ]
 migrations = Path(nxdrive, "drive", "dao", "migrations")
 hiddenimports = [
@@ -72,17 +70,7 @@ hiddenimports = [
 # in __init__.py / server_type.load_class(), so PyInstaller cannot trace them.
 hiddenimports += [
     # Registration modules (auto-discovered at startup)
-    "nxdrive.nuxeo.registration",
     "nxdrive.alfresco.registration",
-    # Nuxeo dynamic classes
-    "nxdrive.nuxeo.engine.engine",
-    "nxdrive.nuxeo.direct_edit",
-    "nxdrive.nuxeo.direct_download",
-    "nxdrive.nuxeo.client.workflow",
-    "nxdrive.nuxeo.auth.oauth2",
-    "nxdrive.nuxeo.gui.folders_model",
-    "nxdrive.nuxeo.gui.auth_callback_store",
-    "nxdrive.nuxeo.protocol",
     # Alfresco dynamic classes
     "nxdrive.alfresco.engine.engine",
     "nxdrive.alfresco.auth.oauth2",
