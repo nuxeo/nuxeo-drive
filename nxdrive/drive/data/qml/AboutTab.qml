@@ -28,7 +28,7 @@ Rectangle {
 
             ColumnLayout {
                 ScaledText {
-                    text: nuxeoVersionText
+                    text: driveVersionText
                     color: primaryText
                     font {
                         pointSize: point_size * 1.8
