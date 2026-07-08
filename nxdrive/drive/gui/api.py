@@ -707,11 +707,17 @@ class QMLDriveApi(QObject):
                 crafted_token = (
                     {} if isinstance(engine.remote.auth, OAuthenticationBase) else ""
                 )
+            # Route through the engine's own server-type registry entry so
+            # ``get_auth`` picks the correct auth factory (e.g. the Alfresco
+            # loopback OAuth flow, not the default Nuxeo one). Without this,
+            # OAuth-only re-auth builds a ``client_id=drive`` +
+            # ``nxdrive://authorize`` URL that ACS 404s.
             auth = get_auth(
                 url,
                 crafted_token,
                 dao=self._manager.dao,
                 device_id=self._manager.device_id,
+                server_type=engine_config.key,
             )
             url = auth.connect_url()
             if Options.is_frozen and crafted_token == "":  # Only for Nuxeo token

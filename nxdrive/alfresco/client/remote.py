@@ -6,6 +6,7 @@ expected by the Drive Engine for account binding and synchronization.
 """
 
 import time
+from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
@@ -145,6 +146,59 @@ class AlfrescoRemote:
         """
         person = self.client.people.get("-me-")
         return person._raw
+
+    def update_token(self, token: Any, /) -> None:
+        """Rebuild the auth handler in place after a token refresh.
+
+        Called by :meth:`nxdrive.drive.engine.engine.Engine.update_token`
+        after the re-authentication browser flow completes. Without this
+        method the base ``Engine.update_token`` raises ``AttributeError``
+        on ``self.remote.update_token(token)``, which is silently caught
+        higher up as ``CONNECTION_UNKNOWN`` and leaves the systray banner
+        stuck on "Authentication expired".
+
+        Supports the two token shapes the constructor accepts:
+
+        * ``dict`` — an OAuth2 token dict enriched with ``token_url`` and
+          ``client_id`` (produced by
+          :meth:`nxdrive.alfresco.auth.oauth2.AlfrescoOAuthentication.get_token`).
+          Rebuilds a :class:`RefreshingOAuth2Auth` so proactive refresh
+          keeps working.
+        * ``str`` — a bare bearer access token (legacy path). Rebuilds a
+          plain :class:`OAuth2Auth`.
+
+        Other shapes are ignored (basic-auth / ticket accounts do not
+        flow through the OAuth browser re-auth).
+        """
+        if isinstance(token, dict):
+            expires_at = token.get("expires_at")
+            expires_in: Optional[int] = None
+            if expires_at:
+                remaining = int(float(expires_at) - time.time())
+                expires_in = remaining if remaining > 0 else 1
+            new_auth: Any = RefreshingOAuth2Auth.from_token(
+                access_token=token.get("access_token", ""),
+                refresh_token=token.get("refresh_token"),
+                expires_in=expires_in,
+                token_url=token.get("token_url"),
+                client_id=token.get("client_id"),
+            )
+        elif isinstance(token, str) and token:
+            new_auth = OAuth2Auth.from_token(access_token=token)
+        else:
+            return
+
+        self.auth = new_auth
+        # The underlying ``alfresco.Alfresco`` client dispatches HTTP
+        # requests via ``self.client.session``; ``requests.Session.auth``
+        # is applied to every subsequent request. Swap both so cached
+        # references (e.g. the client's own ``auth`` attribute if any)
+        # stay consistent.
+        with suppress(AttributeError):
+            self.client.auth = new_auth
+        session = getattr(self.client, "session", None)
+        if session is not None:
+            session.auth = new_auth
 
     # -- Node operations (used by processor) ---------------------------------
 
