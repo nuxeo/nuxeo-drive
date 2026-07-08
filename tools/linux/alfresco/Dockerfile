@@ -41,6 +41,7 @@ RUN dnf install -y \
     mesa-libGL \
     dbus \
     patch \
+    xcb-util-cursor \
     python3 \
     python3-devel \
     glibc-langpack-en \

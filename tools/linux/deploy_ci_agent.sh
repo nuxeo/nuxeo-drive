@@ -188,6 +188,9 @@ more_compatibility() {
     # Needed on Fedora 30+ (see https://github.com/slic3r/Slic3r/issues/4798)
     cp -v /usr/lib64/libcrypt-2.17.so "${app_dir}/libcrypt.so.1" || true
 
+    # Needed for Qt 6.5.0+ xcb platform plugin (xcb-cursor0 / libxcb-cursor0)
+    cp -v /usr/lib64/libxcb-cursor.so.0 "${app_dir}/libxcb-cursor.so.0" || true
+
     return 0  # <-- Needed, do not remove!
 }
 
