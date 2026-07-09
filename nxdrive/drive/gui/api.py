@@ -821,6 +821,58 @@ class QMLDriveApi(QObject):
                 url = config.test_server_url_getter()
         return url
 
+    @pyqtSlot(str, result=str)
+    def alfresco_probe_capabilities(self, server_url: str, /) -> str:
+        """Return the Alfresco Drive auth capabilities as a JSON string.
+
+        Called from the Alfresco NewAccountPopup so the UI can hide the
+        legacy username / password fields when the server advertises
+        ``enableBasicAuth: false`` via its Device Sync ``/config``
+        webscript. Returns permissive defaults (basic auth allowed,
+        PKCE allowed) when the URL is empty or discovery fails, so the
+        popup never breaks on a pre-1.0 server or an offline probe.
+        """
+        import json
+
+        if not server_url or not server_url.strip():
+            return json.dumps(
+                {
+                    "discovered": False,
+                    "enable_basic_auth": True,
+                    "enable_pkce": True,
+                    "public_client": True,
+                    "audience": "",
+                }
+            )
+        try:
+            from nxdrive.alfresco.auth.oauth2 import probe_capabilities
+
+            caps = probe_capabilities(server_url.strip(), verify=True)
+        except Exception:
+            log.warning(
+                f"alfresco_probe_capabilities failed for {server_url!r}",
+                exc_info=True,
+            )
+            return json.dumps(
+                {
+                    "discovered": False,
+                    "enable_basic_auth": True,
+                    "enable_pkce": True,
+                    "public_client": True,
+                    "audience": "",
+                }
+            )
+        # Trim to the fields the UI cares about.
+        return json.dumps(
+            {
+                "discovered": bool(caps.get("discovered")),
+                "enable_basic_auth": bool(caps.get("enable_basic_auth", True)),
+                "enable_pkce": bool(caps.get("enable_pkce", True)),
+                "public_client": bool(caps.get("public_client", True)),
+                "audience": caps.get("audience", ""),
+            }
+        )
+
     @pyqtSlot(str, str, int, result=list)
     def get_disk_space_info_to_width(
         self, uid: str, path: str, width: int, /
