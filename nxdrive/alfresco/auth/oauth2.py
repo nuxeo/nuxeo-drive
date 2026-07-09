@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from nxdrive.drive.auth import Token
     from nxdrive.drive.dao.base import BaseDAO
 
-__all__ = ("AlfrescoOAuthentication",)
+__all__ = ("AlfrescoOAuthentication", "discover_aims_config", "probe_capabilities")
 
 log = getLogger(__name__)
 
@@ -31,12 +31,34 @@ log = getLogger(__name__)
 _DEFAULT_CLIENT_ID = "alfresco"
 
 
-def discover_aims_config(server_url: str, /, *, verify: bool = True) -> Dict[str, str]:
+class _NoAuth(requests.auth.AuthBase):
+    """No-op ``requests`` auth handler.
+
+    The Alfresco Device Sync ``/config`` webscript is intentionally
+    unauthenticated so that a fresh installer can discover the AIMS
+    endpoints before the user logs in. The Alfresco Python client
+    still requires *some* ``auth`` object though — this is the
+    zero-credential shim we hand it.
+    """
+
+    def __call__(
+        self, r: "requests.PreparedRequest", /
+    ) -> "requests.PreparedRequest":  # pragma: no cover - trivial
+        return r
+
+
+def discover_aims_config(server_url: str, /, *, verify: bool = True) -> Dict[str, Any]:
     """Discover AIMS/Keycloak configuration from an Alfresco server.
 
     Tries the following in order and returns the first that yields a
     usable OpenID configuration URL:
 
+    0. ``/alfresco/service/devicesync/config`` — Alfresco Device Sync
+       ``IdentityServiceConfig`` (available since ACS with the Device
+       Sync webscript; unauthenticated). This is the preferred source
+       because it also carries the ``audience`` / ``publicClient`` /
+       ``enablePkce`` / ``enableBasicAuth`` capability flags that
+       Alfresco Drive 1.0 relies on.
     1. ``syncServiceConfiguration`` — standard Alfresco Sync Service
        ``identityServiceConfig`` block (returns ``authServerUrl`` /
        ``realm`` / ``resource``).
@@ -45,13 +67,56 @@ def discover_aims_config(server_url: str, /, *, verify: bool = True) -> Dict[str
     3. Well-known Keycloak heuristic — ``<server>/auth/realms/alfresco``.
 
     Returns a dict with keys ``openid_configuration_url``, ``client_id``,
-    and optionally ``client_secret``.  Returns an empty dict on failure.
+    and — when the source knows them — ``client_secret``, ``audience``,
+    ``public_client`` (bool), ``enable_pkce`` (bool) and
+    ``enable_basic_auth`` (bool).  Returns an empty dict on failure.
     """
     from urllib.parse import urlparse as _urlparse
 
     base = server_url.rstrip("/")
     parsed = _urlparse(base)
     origin = f"{parsed.scheme}://{parsed.netloc}"
+
+    # 0) Device Sync /config (v0.0.3+ Alfresco Python client)
+    try:
+        from alfresco import Alfresco
+
+        client = Alfresco(url=base, auth=_NoAuth())
+        try:
+            if not verify:
+                try:
+                    client.session.verify = False
+                except Exception:  # pragma: no cover - defensive
+                    log.debug("Could not disable TLS verification on probe client")
+            isc = client.device_sync.get_identity_service_config()
+        finally:
+            try:
+                client.close()
+            except Exception:  # pragma: no cover - defensive
+                pass
+        openid_url = isc.openid_configuration_url()
+        if openid_url:
+            client_id = isc.client_id or _DEFAULT_CLIENT_ID
+            log.info(
+                f"Discovered AIMS OpenID config via /alfresco/service/devicesync"
+                f"/config: {openid_url} (client_id={client_id})"
+            )
+            result: Dict[str, Any] = {
+                "openid_configuration_url": openid_url,
+                "client_id": client_id,
+                "audience": isc.audience or "",
+                "public_client": bool(isc.public_client),
+                "enable_pkce": bool(isc.enable_pkce),
+                "enable_basic_auth": bool(isc.enable_basic_auth),
+            }
+            if isc.client_secret:
+                result["client_secret"] = isc.client_secret
+            return result
+    except Exception:
+        log.debug(
+            "Device Sync /config bootstrap failed, falling back to legacy discovery",
+            exc_info=True,
+        )
 
     # 1) syncServiceConfiguration
     # ACS mounts its REST API under ``/alfresco/api/…``. The user-supplied
@@ -81,14 +146,20 @@ def discover_aims_config(server_url: str, /, *, verify: bool = True) -> Dict[str
                     f"Discovered AIMS OpenID config via syncServiceConfiguration:"
                     f" {openid_url} (client_id={client_id})"
                 )
-                result: Dict[str, str] = {
+                legacy_result: Dict[str, Any] = {
                     "openid_configuration_url": openid_url,
                     "client_id": client_id,
+                    # Legacy sources don't expose these; assume permissive
+                    # defaults matching pre-1.0 Alfresco Drive behaviour.
+                    "audience": "",
+                    "public_client": True,
+                    "enable_pkce": True,
+                    "enable_basic_auth": True,
                 }
                 secret = isc.get("credentialsSecret")
                 if secret:
-                    result["client_secret"] = secret
-                return result
+                    legacy_result["client_secret"] = secret
+                return legacy_result
     except Exception:
         log.debug(
             f"Could not fetch syncServiceConfiguration from {sync_url}",
@@ -115,6 +186,10 @@ def discover_aims_config(server_url: str, /, *, verify: bool = True) -> Dict[str
             return {
                 "openid_configuration_url": openid_url,
                 "client_id": client_id,
+                "audience": "",
+                "public_client": True,
+                "enable_pkce": True,
+                "enable_basic_auth": True,
             }
         except Exception:
             log.debug(f"Failed to discover from {config_path}", exc_info=True)
@@ -131,17 +206,41 @@ def discover_aims_config(server_url: str, /, *, verify: bool = True) -> Dict[str
             return {
                 "openid_configuration_url": heuristic_url,
                 "client_id": _DEFAULT_CLIENT_ID,
+                "audience": "",
+                "public_client": True,
+                "enable_pkce": True,
+                "enable_basic_auth": True,
             }
     except Exception:
         log.debug(f"Well-known heuristic failed for {heuristic_url}", exc_info=True)
 
     log.warning(
         f"Could not discover AIMS/Keycloak configuration for {server_url!r}. "
-        "Tried syncServiceConfiguration, app.config.json and well-known Keycloak "
-        "path. Configure oauth2_openid_configuration_url manually or ensure the "
-        "server exposes one of these endpoints."
+        "Tried Device Sync /config, syncServiceConfiguration, app.config.json "
+        "and well-known Keycloak path. Configure oauth2_openid_configuration_url "
+        "manually or ensure the server exposes one of these endpoints."
     )
     return {}
+
+
+def probe_capabilities(server_url: str, /, *, verify: bool = True) -> Dict[str, Any]:
+    """Return the Alfresco Drive auth capabilities advertised by ``server_url``.
+
+    Thin wrapper around :func:`discover_aims_config` that keeps only
+    the auth-capability keys the UI cares about. When discovery fails
+    entirely, falls back to permissive defaults (basic auth allowed,
+    PKCE allowed) so the existing legacy popup stays functional.
+    """
+    aims = discover_aims_config(server_url, verify=verify)
+    return {
+        "discovered": bool(aims),
+        "enable_basic_auth": bool(aims.get("enable_basic_auth", True)),
+        "enable_pkce": bool(aims.get("enable_pkce", True)),
+        "public_client": bool(aims.get("public_client", True)),
+        "audience": aims.get("audience", ""),
+        "client_id": aims.get("client_id", _DEFAULT_CLIENT_ID),
+        "openid_configuration_url": aims.get("openid_configuration_url", ""),
+    }
 
 
 def _release_loopback_state(api: Any) -> None:
@@ -177,18 +276,34 @@ class AlfrescoOAuthentication(OAuthenticationBase):
     def __init__(self, *args: Any, dao: "BaseDAO" = None, **kwargs: Any) -> None:
         super().__init__(*args, dao=dao, **kwargs)
 
+        # AIMS capability flags surfaced by Device Sync /config. Legacy
+        # (pre-1.0) Alfresco servers don't expose these, so default to
+        # the historic permissive values.
+        self._oauth2_audience: str = ""
+        self._oauth2_public_client: bool = True
+        self._oauth2_enable_pkce: bool = True
+        self._oauth2_enable_basic_auth: bool = True
+
         # Auto-discover AIMS/Keycloak endpoints from the Alfresco server
         # if no explicit OpenID configuration URL has been provided.
         if not self._oauth2_openid_configuration_url:
             aims = discover_aims_config(self.url, verify=self.verification_needed)
             if aims:
-                self._oauth2_openid_configuration_url = aims["openid_configuration_url"]
-                self._oauth2_client_id = aims.get("client_id", _DEFAULT_CLIENT_ID)
-                self._oauth2_client_secret = (
-                    aims.get("client_secret") or self._oauth2_client_secret
-                )
+                self._apply_aims_discovery(aims)
 
         self._build_oauth2()
+
+    def _apply_aims_discovery(self, aims: Dict[str, Any], /) -> None:
+        """Copy fields from a :func:`discover_aims_config` result onto self."""
+        self._oauth2_openid_configuration_url = aims["openid_configuration_url"]
+        self._oauth2_client_id = aims.get("client_id", _DEFAULT_CLIENT_ID)
+        self._oauth2_client_secret = (
+            aims.get("client_secret") or self._oauth2_client_secret
+        )
+        self._oauth2_audience = aims.get("audience", "") or ""
+        self._oauth2_public_client = bool(aims.get("public_client", True))
+        self._oauth2_enable_pkce = bool(aims.get("enable_pkce", True))
+        self._oauth2_enable_basic_auth = bool(aims.get("enable_basic_auth", True))
 
     def _build_oauth2(self, *, redirect_uri_override: Optional[str] = None) -> None:
         """Construct the ``alfresco.OAuth2`` auth object for Alfresco.
@@ -249,11 +364,7 @@ class AlfrescoOAuthentication(OAuthenticationBase):
         if not self.auth.authorization_endpoint:
             aims = discover_aims_config(self.url, verify=self.verification_needed)
             if aims:
-                self._oauth2_openid_configuration_url = aims["openid_configuration_url"]
-                self._oauth2_client_id = aims.get("client_id", _DEFAULT_CLIENT_ID)
-                self._oauth2_client_secret = (
-                    aims.get("client_secret") or self._oauth2_client_secret
-                )
+                self._apply_aims_discovery(aims)
                 self._build_oauth2()
             if not self.auth.authorization_endpoint:
                 raise OAuth2Error(
@@ -270,7 +381,14 @@ class AlfrescoOAuthentication(OAuthenticationBase):
         self._build_oauth2(redirect_uri_override=loopback_uri)
 
         scope = Options.oauth2_scope or "openid"
-        uri, state, code_verifier = self.auth.create_authorization_url(scope=scope)
+        # AIMS/Keycloak requires the ``audience`` request parameter when
+        # the client is configured with an explicit audience mapper.
+        extra: Dict[str, Any] = {}
+        if self._oauth2_audience:
+            extra["audience"] = self._oauth2_audience
+        uri, state, code_verifier = self.auth.create_authorization_url(
+            scope=scope, **extra
+        )
 
         if self._dao:
             self._dao.update_config("tmp_oauth2_url", self.url)
@@ -357,6 +475,11 @@ class AlfrescoOAuthentication(OAuthenticationBase):
         )
         if stored_uri:
             self._build_oauth2(redirect_uri_override=stored_uri)
+        # Some AIMS/Keycloak deployments enforce that the ``audience``
+        # request parameter sent on the authorize hop is echoed back on
+        # the token exchange (RFC 8707-style resource-audience binding).
+        if self._oauth2_audience and "audience" not in kwargs:
+            kwargs["audience"] = self._oauth2_audience
         try:
             result = super().get_token(**kwargs)
             # Enrich the token dict with the metadata ``AlfrescoRemote`` needs

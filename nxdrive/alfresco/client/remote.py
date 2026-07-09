@@ -329,8 +329,16 @@ class AlfrescoRemote:
         Provides the ``get_fs_children()`` interface expected by the
         folder-picker dialog ("Choose folders to sync") so that it
         works with Alfresco servers.
+
+        Uses ``iter_children`` (server-side pagination handled by the
+        Alfresco Python client) so folders with more than 100 items
+        are fully enumerated. This matches what the remote watcher
+        actually syncs — otherwise the selective-sync dialog would
+        show only the first 100 children of a folder while the scan
+        would still pull the rest and sync them unconditionally
+        (root cause of NXDRIVE-3186 "selected 2 files but all synced").
         """
-        nodes = self.client.nodes.list_children(fs_item_id, include=["path"])
+        nodes = list(self.client.nodes.iter_children(fs_item_id, include=["path"]))
         infos = [self._node_to_remote_file_info(n) for n in nodes]
 
         if not filtered or not hasattr(self, "dao"):
@@ -487,10 +495,13 @@ class AlfrescoRemote:
         duplicates by appending ``-1``, ``-2``, etc.).
         """
         target_name = filename or Path(str(file_path)).name
-        # Check for an existing node with the same name
+        # Check for an existing node with the same name.
+        # ``iter_children`` walks the server-side pagination automatically
+        # and short-circuits at the first match; ``list_children`` would
+        # only see the first 100 children and miss duplicates in larger
+        # folders (same class of bug as NXDRIVE-3186).
         try:
-            existing = self.client.nodes.list_children(parent_id)
-            for child in existing:
+            for child in self.client.nodes.iter_children(parent_id):
                 if child.name == target_name and child.is_file:
                     log.info(
                         f"Node {target_name!r} already exists in {parent_id!r} "

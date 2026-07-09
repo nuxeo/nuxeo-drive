@@ -301,11 +301,19 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
         try:
             self.scan_remote()
-        except Exception:
-            log.warning("Remote scan failed, credentials may be invalid", exc_info=True)
+        except AlfrescoAuthError:
+            log.warning("Remote scan failed, credentials are invalid", exc_info=True)
             self.engine.set_invalid_credentials(
                 reason="remote scan failed — re-login required"
             )
+            self.updated.emit()
+            return first_pass
+        except Exception:
+            # Anything that is NOT an auth error is a bug or transient
+            # infra issue — log it, but do NOT force the user through a
+            # re-authentication cycle (the "Authentication expired"
+            # banner is misleading and blocks recovery on the next poll).
+            log.exception("Remote scan failed unexpectedly")
             self.updated.emit()
             return first_pass
 

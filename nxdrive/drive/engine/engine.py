@@ -951,10 +951,23 @@ class Engine(QObject):
 
     def cancel_action_on(self, pair_id: int, /) -> None:
         for thread in self._threads:
-            if hasattr(thread, "worker"):
-                pair = thread.worker.get_current_pair()
-                if pair is not None and pair.id == pair_id:
-                    thread.worker.quit()
+            if not hasattr(thread, "worker"):
+                continue
+            worker = thread.worker
+            # Only Processor workers track a "current pair"; watchers and
+            # poll workers don't define ``get_current_pair()``. Guard the
+            # call so an unrelated Python ``AttributeError`` doesn't
+            # propagate up through ``delete_remote_state`` → queue push
+            # and get mis-classified as an authentication failure by the
+            # watcher's exception handler (NXDRIVE-3186 root cause of the
+            # spurious "Authentication expired" banner on server-side
+            # file deletes for Alfresco engines).
+            get_current_pair = getattr(worker, "get_current_pair", None)
+            if get_current_pair is None:
+                continue
+            pair = get_current_pair()
+            if pair is not None and pair.id == pair_id:
+                worker.quit()
 
     @if_frozen
     def _set_root_icon(self) -> None:

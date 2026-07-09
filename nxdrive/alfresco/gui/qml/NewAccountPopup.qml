@@ -12,6 +12,40 @@ NuxeoPopup {
 
     title: qsTr("NEW_ENGINE") + tl.tr
 
+    // Set to false once the server's Device Sync /config webscript
+    // advertises ``enableBasicAuth: false``. Defaults to true so that
+    // legacy Alfresco servers (which don't expose the capability at
+    // all) keep working exactly like before.
+    property bool serverAllowsBasicAuth: true
+    // Guard so we don't spam the probe on every keystroke.
+    property string _lastProbedUrl: ""
+
+    function _refreshAuthCapabilities() {
+        var url = urlInput.text
+        if (!url || url === _lastProbedUrl)
+            return
+        // Only probe when the URL is syntactically valid — the input
+        // has its own RegularExpressionValidator so ``acceptableInput``
+        // is a cheap gate before hitting the network.
+        if (!urlInput.acceptableInput)
+            return
+        _lastProbedUrl = url
+        try {
+            var raw = api.alfresco_probe_capabilities(url)
+            if (!raw)
+                return
+            var caps = JSON.parse(raw)
+            serverAllowsBasicAuth = caps.enable_basic_auth !== false
+            if (!serverAllowsBasicAuth && useLegacyAuth.checked) {
+                // Server refuses basic auth — force the browser flow.
+                useLegacyAuth.checked = false
+            }
+        } catch (e) {
+            // Never let a probe failure block the dialog.
+            serverAllowsBasicAuth = true
+        }
+    }
+
     Component.onCompleted: {
         height = Qt.binding(function() {
             return popupContent.implicitHeight + topPadding + bottomPadding
@@ -51,7 +85,15 @@ NuxeoPopup {
                     placeholderText: "https://server.com"
                     text: api.default_server_url_value()
                     font.family: "Courier"
-                    onAccepted: connectButton.clicked()
+                    onAccepted: {
+                        control._refreshAuthCapabilities()
+                        connectButton.clicked()
+                    }
+                    onEditingFinished: control._refreshAuthCapabilities()
+                    onActiveFocusChanged: {
+                        if (!activeFocus)
+                            control._refreshAuthCapabilities()
+                    }
                     validator: RegularExpressionValidator { regularExpression: /^https?:\/\/[^\s<"\/]+(\/[^\s<"]*)?$/ }
                 }
             }
@@ -103,6 +145,13 @@ NuxeoPopup {
             RowLayout {
                 id: authMethodRow
                 spacing: 10
+                // The legacy ticket/basic auth path is only offered when
+                // the Alfresco server advertises ``enableBasicAuth: true``
+                // via its Device Sync /config webscript. On Alfresco Drive
+                // 1.0-only deployments the server will report false and
+                // the checkbox is hidden entirely — the browser flow is
+                // then the sole option.
+                visible: control.serverAllowsBasicAuth
 
                 ScaledText {
                     text: qsTr("USE_LEGACY_AUTH") + tl.tr
@@ -122,8 +171,9 @@ NuxeoPopup {
                 spacing: 10
                 // Only shown for legacy (ticket/basic) authentication.
                 // For modern OAuth2 the credentials are entered in the
-                // browser, so the fields are hidden here.
-                visible: useLegacyAuth.checked
+                // browser, so the fields are hidden here. Also hidden
+                // when the server disallows basic auth altogether.
+                visible: control.serverAllowsBasicAuth && useLegacyAuth.checked
 
                 ScaledText { text: qsTr("USERNAME") + tl.tr; color: secondaryText }
                 NuxeoInput {
@@ -164,8 +214,11 @@ NuxeoPopup {
                     if (!urlInput.acceptableInput || !folderInput.text)
                         return false
                     // Browser OAuth2 flow: URL + folder are enough,
-                    // credentials are entered in the browser.
-                    if (!useLegacyAuth.checked)
+                    // credentials are entered in the browser. This
+                    // also covers the case where the server disallows
+                    // basic auth (the legacy checkbox is hidden and
+                    // useLegacyAuth is forced off).
+                    if (!control.serverAllowsBasicAuth || !useLegacyAuth.checked)
                         return true
                     // Legacy ticket auth: require username + password here.
                     return usernameInput.text.length > 0 && passwordInput.text.length > 0
@@ -173,7 +226,11 @@ NuxeoPopup {
                 text: qsTr("CONNECT") + tl.tr
 
                 onClicked: {
-                    if (useLegacyAuth.checked) {
+                    // Ensure we've probed at least once before deciding
+                    // which flow to run — protects against the user
+                    // hitting Enter before onEditingFinished fires.
+                    control._refreshAuthCapabilities()
+                    if (control.serverAllowsBasicAuth && useLegacyAuth.checked) {
                         api.password_auth(
                             folderInput.text,
                             urlInput.text,
