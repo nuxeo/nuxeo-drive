@@ -1,0 +1,56 @@
+# Build and deploy a new docker image for Alfresco Drive GNU/Linux binary builds
+# For info on namespace : https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#pushing-container-images
+name: Docker build Alfresco Drive
+permissions:
+  contents: read
+  pull-requests: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      pythonVersion:
+        description: "The Python version in-use for the current Alfresco Drive version."
+        required: true
+      buildVersion:
+        description: "Image build number."
+        required: true
+        default: "0"
+      branchName:
+        description: "The branch name to generate the docker image from."
+        required: false
+        default: "master"
+      namespace:
+        description: "The namespace (personal account name or organization name) in LOWERCASE, where the docker image will be pushed."
+        required: true
+
+env:
+  REGISTRY: ghcr.io
+  REPOSITORY: alfresco-drive-build
+
+jobs:
+  docker-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v4
+        with:
+          driver: docker
+      - name: GHCR Login
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GIT_DOCKER_REGISTRY_TOKEN }}
+      - name: Build the image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: tools/linux/alfresco/Dockerfile
+          build-args: |
+            VERSION=${{ github.event.inputs.buildVersion }}
+            SCM_REF=${{ env.GITHUB_SHA }}
+            BRANCH_NAME=${{ github.event.inputs.branchName }}
+          # tag is the name of the image to be pushed to the registry
+          tags: ${{ env.REGISTRY }}/${{ github.event.inputs.namespace }}/${{ env.REPOSITORY }}:py-${{ github.event.inputs.pythonVersion }}
+          push: true

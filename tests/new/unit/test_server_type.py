@@ -259,7 +259,7 @@ def test_alfresco_config_values():
     assert cfg.home_dir == ".alfresco-drive"
     assert cfg.db_prefix == "adrive_"
     assert cfg.engine_type == "ALFRESCO"
-    assert cfg.app_name == "Alfresco Drive"
+    assert cfg.app_name == "Hyland Drive for Alfresco"
     assert cfg.is_url_fallback is True
     assert cfg.supports_browser_token_update is False
     assert cfg.ssl_login_page == "api/discovery"

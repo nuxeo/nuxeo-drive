@@ -1,0 +1,53 @@
+# Build and deploy a new docker image for Nuxeo Drive GNU/Linux binary builds
+name: Docker build Nuxeo Drive
+permissions:
+  contents: read
+  pull-requests: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      pythonVersion:
+        description: "The Python version in-use for the current Nuxeo Drive version."
+        required: true
+        default: "x.y.z"
+      buildVersion:
+        description: "Image build number."
+        required: true
+        default: "0"
+      branchName:
+        description: "The branch name to generate the docker image from."
+        required: false
+        default: "master"
+
+env:
+  REGISTRY: docker-private.packages.nuxeo.com
+  REPOSITORY: nuxeo-drive-build
+
+jobs:
+  docker-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v4
+        with:
+          driver: docker
+      - name: Login to the registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build the image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: tools/linux/nuxeo/Dockerfile
+          build-args: |
+            VERSION=${{ github.event.inputs.buildVersion }}
+            SCM_REF=${{ env.GITHUB_SHA }}
+            BRANCH_NAME=${{ github.event.inputs.branchName }}
+          tags: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:py-${{ github.event.inputs.pythonVersion }}
+      - name: Push the image
+        run: docker push ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:py-${{ github.event.inputs.pythonVersion }}

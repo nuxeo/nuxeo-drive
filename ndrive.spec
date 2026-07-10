@@ -15,19 +15,23 @@ def get_version(init_file):
             if line.startswith("__version__"):
                 return re.findall(r"\"(.+)\"", line)[0]
 
+def update_supported_server_list(file_path):
+    with open(file_path, "w") as f:
+        f.write("# One server key per line.\n# These keys must match registered ServerTypeConfig.key values.\nNUXEO")
 
 cwd = os.getcwd()
 tools = os.path.join(cwd, "tools")
 nxdrive = os.path.join(cwd, "nxdrive")
 data = os.path.join(nxdrive, "drive", "data")
-alfresco_qml = os.path.join(nxdrive, "alfresco", "gui", "qml")
 nuxeo_qml = os.path.join(nxdrive, "nuxeo", "gui", "qml")
 supported_server_list = os.path.join(nxdrive, "supported_server_list.txt")
 
+update_supported_server_list(supported_server_list)
+
 icon = {
-    "darwin": os.path.join(tools, "osx", "app_icon.icns"),
+    "darwin": os.path.join(tools, "osx", "nuxeo_app_icon.icns"),
     "linux": os.path.join(tools, "linux", "app_icon.png"),
-    "win32": os.path.join(tools, "windows", "app_icon.ico"),
+    "win32": os.path.join(tools, "windows", "nuxeo_iss/app_icon.ico"),
 }[sys.platform]
 
 excludes = [
@@ -52,7 +56,7 @@ data = [
     (data, "data"),
     (data, "nxdrive/drive/data"),
     (supported_server_list, "nxdrive"),
-    (alfresco_qml, "nxdrive/alfresco/gui/qml"),
+    (supported_server_list, "data/server_list"),
     (nuxeo_qml, "nxdrive/nuxeo/gui/qml"),
 ]
 migrations = Path(nxdrive, "drive", "dao", "migrations")
@@ -66,7 +70,6 @@ hiddenimports = [
 hiddenimports += [
     # Registration modules (auto-discovered at startup)
     "nxdrive.nuxeo.registration",
-    "nxdrive.alfresco.registration",
     # Nuxeo dynamic classes
     "nxdrive.nuxeo.engine.engine",
     "nxdrive.nuxeo.direct_edit",
@@ -76,31 +79,6 @@ hiddenimports += [
     "nxdrive.nuxeo.gui.folders_model",
     "nxdrive.nuxeo.gui.auth_callback_store",
     "nxdrive.nuxeo.protocol",
-    # Alfresco dynamic classes
-    "nxdrive.alfresco.engine.engine",
-    "nxdrive.alfresco.auth.oauth2",
-    "nxdrive.alfresco.engine.processor",
-    "nxdrive.alfresco.client.remote",
-    "nxdrive.alfresco.engine.watcher.remote_watcher",
-    "alfresco",
-    "alfresco._utils",
-    "alfresco.client",
-    "alfresco.auth",
-    "alfresco.exceptions",
-    "alfresco.api",
-    "alfresco.api.base",
-    "alfresco.api.nodes",
-    "alfresco.api.people",
-    "alfresco.api.search",
-    "alfresco.api.sites",
-    "alfresco.api.sync_service",
-    "alfresco.api.device_sync",
-    "alfresco.models",
-    "alfresco.models.node",
-    "alfresco.models.person",
-    "alfresco.models.site",
-    "alfresco.models.search",
-    "alfresco.models.device_sync",
 ]
 
 version = get_version(os.path.join(nxdrive, "__init__.py"))
@@ -108,7 +86,7 @@ properties_rc = None
 
 if sys.platform == "win32":
     # Set executable properties
-    properties_tpl = tools + "\\windows\\properties_tpl.rc"
+    properties_tpl = tools + "\\windows\\properties_tpl_nuxeo.rc"
     properties_rc = tools + "\\windows\\properties.rc"
     if os.path.isfile(properties_rc):
         os.remove(properties_rc)

@@ -23,13 +23,15 @@ from typing import (
     Union,
 )
 
-from .. import __version__
 from ..client.local import FileInfo
-from ..constants import DirectDownloadStatus
-from ..constants import ROOT
-from ..constants import TransferStatus
-from ..constants import UNACCESSIBLE_HASH
-from ..constants import WINDOWS
+from ..constants import (
+    APP_VERSION,
+    ROOT,
+    UNACCESSIBLE_HASH,
+    WINDOWS,
+    DirectDownloadStatus,
+    TransferStatus,
+)
 from ..exceptions import UnknownPairState
 from ..objects import (
     DirectDownload,
@@ -147,12 +149,12 @@ class EngineDAO(BaseDAO):
             self.in_tx = current_thread_id()
 
             if (
-                __version__ in versions_history
-                and version > versions_history[__version__]
+                APP_VERSION in versions_history
+                and version > versions_history[APP_VERSION]
             ):
                 migration_engine.execute_database_donwgrade(
                     version,
-                    versions_history[__version__],
+                    versions_history[APP_VERSION],
                     self.old_migrations_max_schema_version,
                 )
             else:

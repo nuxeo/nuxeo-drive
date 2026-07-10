@@ -37,6 +37,66 @@ qt.network.ssl: QSslSocket: cannot resolve OpenSSL_version_num
 qt.network.ssl: QSslSocket: cannot resolve OpenS
 ```
 
-## No Systray Icon on Fedora 29
+## No Systray Icon on GNOME (Ubuntu 24+, Fedora, Arch)
 
-You will have to enable the system tray notification area.
+GNOME Shell dropped the legacy XEmbed systray protocol in GNOME 3.26.
+As a result, `QSystemTrayIcon` (used by Nuxeo Drive) has no tray protocol to connect to on a
+default GNOME desktop, and the systray icon will not appear.
+
+The fix is to install and enable the
+[AppIndicator and KStatusNotifierItem Support](https://github.com/ubuntu/gnome-shell-extension-appindicator)
+GNOME Shell extension, then log out and back in.
+
+### Ubuntu / Debian
+
+Ubuntu often ships with the AppIndicator extension pre-installed but not enabled.
+Check first before installing:
+
+```bash
+gnome-extensions list | grep -i appindicator
+```
+
+You may see one of two extension IDs:
+
+- `ubuntu-appindicators@ubuntu.com` — Ubuntu's built-in version (pre-installed, just needs enabling)
+- `appindicatorsupport@rgcjonas.gmail.com` — upstream version
+
+Enable whichever is listed:
+
+```bash
+# If you see ubuntu-appindicators@ubuntu.com:
+gnome-extensions enable ubuntu-appindicators@ubuntu.com
+
+# If you see appindicatorsupport@rgcjonas.gmail.com:
+gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com
+```
+
+If neither appears, install the package first, then enable:
+
+```bash
+sudo apt install gnome-shell-extension-appindicator
+gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com
+```
+
+### Fedora
+
+```bash
+sudo dnf install gnome-shell-extension-appindicator
+gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com
+```
+
+### Arch Linux
+
+```bash
+sudo pacman -S gnome-shell-extension-appindicator
+gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com
+```
+
+After running the commands for your distribution, **log out and log back in** for the extension to take effect.
+
+Verify it is active with:
+
+```bash
+gnome-extensions list --enabled | grep -i appindicator
+# expected: appindicatorsupport@rgcjonas.gmail.com
+```

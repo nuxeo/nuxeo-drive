@@ -49,7 +49,7 @@ def before_send(event: _Event, _: _Hint, /) -> Any:
     return event
 
 
-def setup_sentry() -> None:
+def setup_sentry(app_version: str) -> None:
     """Setup Sentry."""
 
     if os.getenv("SKIP_SENTRY", "0") == "1":
@@ -62,17 +62,27 @@ def setup_sentry() -> None:
     if not sentry_dsn:
         return
 
+    import platform
+
     import sentry_sdk
 
-    from . import __version__
+    from .metrics.utils import current_os
 
     sentry_sdk.init(
         dsn=sentry_dsn,
         environment=os.getenv("SENTRY_ENV", "production"),
-        release=__version__,
+        release=app_version,
         attach_stacktrace=True,
         before_send=before_send,
         # Set traces_sample_rate to 1.0 to capture 100%
         # of transactions for performance monitoring.
         traces_sample_rate=1.0,
+    )
+
+    scope = sentry_sdk.get_isolation_scope()
+    scope._contexts.update(
+        {
+            "runtime": {"name": "Python", "version": platform.python_version()},
+            "os": {"name": current_os(full=True)},
+        }
     )

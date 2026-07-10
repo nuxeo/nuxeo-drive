@@ -40,6 +40,10 @@ pypi*
 target*
 test_*.zip
 tools/windows/properties.rc
+tools/windows/AlfrescoDriveShellExtensions/AlfrescoDriveOverlays/Release
+tools/windows/AlfrescoDriveShellExtensions/AlfrescoDriveUtil/Release
+tools/windows/NuxeoDriveShellExtensions/NuxeoDriveOverlays/Release
+tools/windows/NuxeoDriveShellExtensions/NuxeoDriveUtil/Release
 .tox
 venv
 .vscode
