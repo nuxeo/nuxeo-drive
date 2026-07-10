@@ -595,12 +595,12 @@ class CliHandler:
         set_app_server(supported_server)
         # Updating the constant APP_VERSION
         app_version = ""
-        if supported_server == "ALFRESCO":
-            set_app_version(__alfresco_version__)
-            app_version = __alfresco_version__
-        else:
+        if supported_server == "NUXEO":
             set_app_version(__version__)
             app_version = __version__
+        else:
+            set_app_version(__alfresco_version__)
+            app_version = __alfresco_version__
 
         # Check if version number is alpha
         is_alpha = app_version.count(".") != 2

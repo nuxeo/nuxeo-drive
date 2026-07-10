@@ -16,7 +16,7 @@ def set_app_server(server_type: str) -> None:
     APP_SERVER = server_type
 
 
-APP_VERSION = __alfresco_version__ if APP_SERVER == "ALFRESCO" else __version__
+APP_VERSION = __version__ if APP_SERVER == "NUXEO" else __alfresco_version__
 
 
 def set_app_version(version: str) -> None:

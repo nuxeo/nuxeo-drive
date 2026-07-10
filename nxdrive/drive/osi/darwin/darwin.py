@@ -77,23 +77,11 @@ class DarwinIntegration(AbstractOSIntegration):
             return
 
         log.info("Telling plugInKit to use the FinderSync")
-        finder_sync_id = ""
-        finder_sync_path = ""
-        if Options.server_type == "ALFRESCO":
-            finder_sync_id = "com.alfresco.drive.AlfrescoFinderSync"
-            finder_sync_path = (
-                f"{_get_app()}/Contents/PlugIns/AlfrescoFinderSync.appex/"
-            )
-        elif Options.server_type == "NUXEO":
-            finder_sync_id = "com.nuxeo.drive.NuxeoFinderSync"
-            finder_sync_path = f"{_get_app()}/Contents/PlugIns/NuxeoFinderSync.appex/"
-        else:
-            log.warning(
-                f"Unknown server type {Options.server_type!r}, "
-                "using default FinderSync ID and path"
-            )
-            finder_sync_id = self.FINDERSYNC_ID
-            finder_sync_path = self.FINDERSYNC_PATH
+        server_name = Options.server_type
+        finder_sync_id = f"com.{server_name}.drive.{server_name.capitalize()}FinderSync"
+        finder_sync_path = (
+            f"{_get_app()}/Contents/PlugIns/{server_name.capitalize()}FinderSync.appex/"
+        )
         cmd_use_plugin = ["pluginkit", "-e", "use", "-i", finder_sync_id]
         cmd_add_plugin_location = ["pluginkit", "-a", finder_sync_path]
         try:
