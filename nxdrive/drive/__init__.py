@@ -1,1 +1,1 @@
-from nxdrive import __version__  # noqa: F401
+from nxdrive import __alfresco_version__, __version__  # noqa: F401

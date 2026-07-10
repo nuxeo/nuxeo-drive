@@ -11,10 +11,17 @@ from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
-from . import __version__
-from .constants import APP_NAME, DEFAULT_CHANNEL, LINUX, WINDOWS
+from . import __alfresco_version__, __version__
+from .constants import (
+    APP_NAME,
+    DEFAULT_CHANNEL,
+    LINUX,
+    WINDOWS,
+    set_app_server,
+    set_app_version,
+)
 from .logging_config import configure
-from .options import DEFAULT_LOG_LEVEL_CONSOLE, DEFAULT_LOG_LEVEL_FILE, Options
+from .options import DEFAULT_LOG_LEVEL_CONSOLE, Options, set_log_level_file
 from .osi import AbstractOSIntegration
 from .state import State
 from .utils import (
@@ -94,12 +101,18 @@ class CliHandler:
         return list(_st.all_keys())
 
     def get_version(self) -> str:
-        return __version__
+        """Return the current version of the application, based on the supported server type."""
+
+        from .constants import APP_VERSION
+
+        return APP_VERSION
 
     def make_cli_parser(self, *, add_subparsers: bool = True) -> ArgumentParser:
         """
         Parse commandline arguments using a git-like subcommands scheme.
         """
+
+        from .options import DEFAULT_LOG_LEVEL_FILE
 
         common_parser = ArgumentParser(add_help=False)
         common_parser.add_argument(
@@ -554,6 +567,51 @@ class CliHandler:
     def handle(self, argv: List[str], /) -> int:
         """Parse options, setup logs and manager and dispatch execution."""
 
+        from nxdrive.drive import server_type as _st
+        from nxdrive.drive.constants import refresh_branding
+        from nxdrive.drive.feature import apply_server_type_restrictions
+
+        from ..drive.utils import find_resource
+        from .tracing import setup_sentry
+
+        supported_server_list = find_resource(
+            "server_list", file="supported_server_list.txt"
+        )  # Ensure the file is present
+        supported_server_keys = []
+        with open(supported_server_list, "r", encoding="utf-8") as f:
+            supported_server_keys = [
+                line.strip().upper()
+                for line in f
+                if line.strip() and not line.strip().startswith("#")
+            ]
+        supported_server = supported_server_keys[0] if supported_server_keys else None
+
+        if not supported_server:
+            log.error("No supported server type found in supported_server_list.txt")
+            return 1
+
+        Options.server_type = supported_server
+        # Updating the constant APP_SERVER
+        set_app_server(supported_server)
+        # Updating the constant APP_VERSION
+        app_version = ""
+        if supported_server == "ALFRESCO":
+            set_app_version(__alfresco_version__)
+            app_version = __alfresco_version__
+        else:
+            set_app_version(__version__)
+            app_version = __version__
+
+        # Check if version number is alpha
+        is_alpha = app_version.count(".") != 2
+        if is_alpha:
+            set_log_level_file("DEBUG")
+            Options.is_alpha = True
+
+        # Setup Sentry even if the user did not allow it because it can be tweaked
+        # later via the "use-sentry" parameter. It will be useless if Sentry is not installed first.
+        setup_sentry(app_version)
+
         # Short-circuit for --version / -v: print cleanly with no logs or config loading.
         if any(a in ("-v", "--version") for a in argv):
             if WINDOWS:
@@ -562,16 +620,13 @@ class CliHandler:
                 print(self.get_version())
             return 0
 
-        # On fresh install, ask the user to pick a server type FIRST.
-        # This must happen before logging, config loading, or Manager creation
-        # because all of those depend on Options.nxdrive_home which is
-        # determined by the server type.
-        if self._is_fresh_install():
-            self._pick_server_type()
-        else:
-            # Existing install: infer server type from the home directory
-            # so that logging, branding, etc. are correct before Manager loads.
-            self._restore_server_type()
+        config = _st.get(supported_server)
+        Options.nxdrive_home = Path.home() / config.home_dir
+
+        apply_server_type_restrictions(supported_server)
+        refresh_branding(supported_server)
+
+        Options.nxdrive_home.mkdir(parents=True, exist_ok=True)
 
         # Pre-configure the logging to catch early errors
         early_options = Namespace(
@@ -906,9 +961,11 @@ class CliHandler:
         return payload
 
     def _send_to_running_instance(self, payload: bytes, pid: int, /) -> bool:
+
+        from nxdrive.drive import server_type as _st
+
         from .qt import constants as qt
         from .qt.imports import QByteArray, QLocalSocket
-        from nxdrive.drive import server_type as _st
 
         config = _st.get(Options.server_type or _st.get_default_key())
         named_pipe = f"{config.bundle_identifier}.protocol.{pid}"

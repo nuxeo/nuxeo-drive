@@ -1,0 +1,316 @@
+# Generate a new release (alpha or beta)
+name: Release Alfresco Drive
+permissions:
+  contents: write
+  pull-requests: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      # Note: `releaseType` will be set to an empty string when automatically run without human action (via the cronjob).
+      #       In that case, it means we want to generate an alpha.
+      releaseType:
+        description: 'Set to "release" for a beta release.'
+        required: false
+        default: "alpha"
+      signExe:
+        description: 'Set to "true" to generate sign .exe on Windows.'
+        required: false
+        default: "false"
+      dockerNamespace:
+        description: "The namespace (personal account name or organization name) in LOWERCASE, from where the docker image will be pulled."
+        required: true
+
+env:
+  GITHUB_USERNAME: "nuxeodrive"
+  GITHUB_EMAILID: "drive@hyland.com"
+
+jobs:
+  release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, 'macos-15-intel']
+
+    steps:
+      - name: Inputs Received
+        run: |
+          echo "releaseType=${{ github.event.inputs.releaseType }}" >> $GITHUB_OUTPUT
+          echo "signExe=${{ github.event.inputs.signExe }}" >> $GITHUB_OUTPUT
+          echo "dockerNamespace=${{ github.event.inputs.dockerNamespace }}" >> $GITHUB_OUTPUT
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      #
+      # Global
+      #
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIV_KEY }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOST_DEPLOY }}
+
+      - name: Setup git
+        if: github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == ''
+        run: |
+          git config user.email ${{ env.GITHUB_EMAILID }}
+          git config user.name ${{ env.GITHUB_USERNAME }}
+
+      #
+      # GNU/Linux
+      #
+
+      - name: "[GNU/Linux] Install AppImage checkers"
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt install --yes appstream desktop-file-utils
+
+      - name: "[GNU/Linux] Login to the docker registry"
+        if: matrix.os == 'ubuntu-latest'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GIT_DOCKER_REGISTRY_TOKEN }}
+
+      - name: "[GNU/Linux] Set appropriate volume folders"
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          mkdir build dist venv
+          chmod 777 build dist venv
+
+      - name: "[GNU/Linux] Generate the .AppImage"
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          REGISTRY: "ghcr.io"
+          REPOSITORY: "alfresco-drive-build"
+        run: docker run -v "$(pwd)":/opt/sources "${REGISTRY}/${{ github.event.inputs.dockerNamespace }}/${REPOSITORY}:py-3.13.1" # XXX_PYTHON
+
+      # - name: "[GNU/Linux] Ensure the AppImage is correct"
+      #   if: matrix.os == 'ubuntu-latest'
+      #   run: bash tools/linux/deploy_ci_agent.sh --check
+
+      - name: "[GNU/Linux] Sign the .AppImage"
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: bash tools/linux/deploy_ci_agent.sh --sign
+
+      - name: "[GNU/Linux] Verify the .AppImage signature"
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          GPG_KEY_FPR: ${{ secrets.GPG_KEY_FPR }}
+        run: bash tools/linux/deploy_ci_agent.sh --verify-sign
+
+        #
+        # Windows
+        #
+      - name: "[Windows] Unlock PowerShell"
+        if: matrix.os == 'windows-latest'
+        run: powershell Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
+
+      - name: "[Windows] Setup the environment"
+        if: matrix.os == 'windows-latest'
+        run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
+
+      - name: Setup Certificate
+        if: matrix.os == 'windows-latest'
+        run: |
+           echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
+           cat  /d/Certificate_pkcs12.p12
+        shell: bash
+
+      - name: Set variables
+        if: matrix.os == 'windows-latest'
+        id: variables
+        run: |
+          dir
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          echo "KEYPAIR_NAME=gt-standard-keypair"  >> $GITHUB_OUTPUT
+          echo "CERTIFICATE_NAME=gt-certificate"  >> $GITHUB_OUTPUT
+          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV"
+          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV"
+          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV"
+          echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "SM_KEYPAIR_ALIAS=${{ secrets.SM_KEYPAIR_ALIAS }}" >> "$GITHUB_ENV"
+          echo "SM_CODE_SIGNING_CERT_SHA1_HASH=${{ secrets.SM_CODE_SIGNING_CERT_SHA1_HASH }}" >> "$GITHUB_ENV"
+          echo "C:\Program Files (x86)\Windows Kits\10\App Certification Kit" >> $GITHUB_PATH
+          echo "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8 Tools" >> $GITHUB_PATH
+          echo "C:\Program Files\DigiCert\DigiCert Keylocker Tools" >> $GITHUB_PATH
+        shell: bash
+
+      - name: Setup Keylocker KSP on windows
+        if: matrix.os == 'windows-latest'
+        run: |
+          curl -X GET  https://one.digicert.com/signingmanager/api-ui/v1/releases/Keylockertools-windows-x64.msi/download -H "x-api-key:%SM_API_KEY%" -o Keylockertools-windows-x64.msi
+          msiexec /i Keylockertools-windows-x64.msi /quiet /qn
+          smksp_registrar.exe list
+          smctl.exe keypair ls
+          C:\Windows\System32\certutil.exe -csp "DigiCert Signing Manager KSP" -key -user
+        shell: cmd
+
+      - name: Certificates Sync
+        if: matrix.os == 'windows-latest'
+        run: |
+           smctl windows certsync --keypair-alias=${{ secrets.SM_KEYPAIR_ALIAS }}
+        shell: cmd
+
+      - name: Health status
+        if: matrix.os == 'windows-latest'
+        run: |
+           smctl healthcheck
+        shell: cmd
+
+      - name: "[Windows] Generate the .exe and validate against 2023"
+        timeout-minutes: 15
+        if: matrix.os == 'windows-latest'
+        env:
+          SIGN_EXE: ${{ github.event.inputs.signExe }}
+          KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
+          SIGNING_ID: "Alfresco"
+          SIGNING_ID_NEW: "Hyland Software, Inc."
+        run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade_alfresco
+
+      - name: "[Windows] Generate the .exe and validate against 2025"
+        timeout-minutes: 15
+        if: matrix.os == 'windows-latest'
+        env:
+          SIGN_EXE: ${{ github.event.inputs.signExe }}
+          KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
+          SIGNING_ID: "Alfresco"
+          SIGNING_ID_NEW: "Hyland Software, Inc."
+        run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -build_alfresco_installer_and_sign
+
+      #
+      # macOS
+      #
+
+      - name: "[macOS] Setup certificates"
+        # Using nuxeo drive certificate for macOS notarization, as Alfresco Drive is not notarized yet.
+        if: matrix.os == 'macos-15-intel'
+        run: |
+          wget https://www.apple.com/appleca/AppleIncRootCertificate.cer
+          echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.p12
+          echo "${{ secrets.PRIV_APP_MACOS }}" | base64 --decode > nuxeo-drive.priv
+
+      - name: "[macOS] Setup the environment"
+        if: matrix.os == 'macos-15-intel'
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "11.3"
+          SYSTEM_VERSION_COMPAT: 0
+        run: bash tools/osx/deploy_ci_agent.sh --install-release
+
+      - name: "[macOS] Generate the .dmg and validate against 2023"
+        if: matrix.os == 'macos-15-intel'
+        timeout-minutes: 25
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "11.3"
+          KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
+          NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
+          NOTARIZATION_TEAMID: ${{ secrets.NOTARIZATION_TEAMID }}
+          SIGNING_ID: "NUXEO CORP"
+          SIGNING_ID_NEW: "Hyland Software, Inc."
+          SYSTEM_VERSION_COMPAT: 0
+        run: bash tools/osx/deploy_ci_agent.sh --check-upgrade-alfresco
+
+      - name: "[macOS] Generate the .dmg and validate against 2025"
+        if: matrix.os == 'macos-15-intel'
+        timeout-minutes: 25
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "11.3"
+          KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
+          NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
+          NOTARIZATION_TEAMID: ${{ secrets.NOTARIZATION_TEAMID }}
+          SIGNING_ID: "NUXEO CORP"
+          SIGNING_ID_NEW: "Hyland Software, Inc."
+          SYSTEM_VERSION_COMPAT: 0
+        run: bash tools/osx/deploy_ci_agent.sh --check-upgrade-alfresco
+
+      - name: "Upload artifacts"
+        uses: actions/upload-artifact@v7
+        with:
+          name: package-distributions-${{ matrix.os }}
+          path: |
+            ./dist/*.exe
+            ./dist/*.dmg
+            ./dist/*.AppImage
+          if-no-files-found: error
+
+  # deploy:
+  #   runs-on: ubuntu-latest
+  #   needs: [release]
+
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v6
+  #       with:
+  #         ref: ${{ github.event.inputs.branch }}
+
+  #     - name: Extract branch name
+  #       shell: bash
+  #       run: echo "branch=$(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_OUTPUT
+  #       id: extract_branch
+
+  #     - name: Install SSH key for Bastion
+  #       uses: shimataro/ssh-key-action@v2
+  #       with:
+  #         key: ${{ secrets.DEV_TOOLS_BASTION_PRIVATE_KEY }}
+  #         name: id_rsa-bastion
+  #         known_hosts: ${{ secrets.KNOWN_HOSTS_OF_BASTION }}
+  #         config: ${{ secrets.CONFIG }}
+
+  #     - name: Install SSH key of target
+  #       uses: shimataro/ssh-key-action@v2
+  #       with:
+  #         key: ${{ secrets.DEV_TOOLS_EC2_PRIVATE_KEY }}
+  #         name: id_rsa-target
+  #         known_hosts: ${{ secrets.KNOWN_HOSTS_OF_TARGET }}
+  #         config: ${{ secrets.CONFIG }}
+  #     - name: Setup git
+  #       run: |
+  #         git config user.email ${{ env.GITHUB_EMAILID }}
+  #         git config user.name ${{ env.GITHUB_USERNAME }}
+  #         git fetch --unshallow --tags
+  #         git remote set-url origin "https://${{ env.GITHUB_USERNAME }}:${{ secrets.NXDRIVE_GIT_TOKEN }}@github.com/nuxeo/nuxeo-drive.git"
+
+  #     - name: Download artifacts
+  #       uses: actions/download-artifact@v8
+  #       with:
+  #         pattern: package-distributions*
+  #         path: dist/
+  #         merge-multiple: true
+
+  #     - name: Upload artifacts to the staging server
+  #       run: |
+  #         for f in dist/*; do
+  #           bash tools/upload.sh staging "${f}"
+  #         done
+
+  #     - name: Bump the version number
+  #       if: github.event.inputs.releaseType == 'alpha' || github.event.inputs.releaseType == ''
+  #       run: |
+  #         # It will fail on the git stuff, but it is not important here
+  #         bash tools/bump-alpha-version.sh || true
+
+  #     - name: Do the release
+  #       if: steps.extract_branch.outputs.branch == 'master'
+  #       run: |
+  #         release_type="${{ github.event.inputs.releaseType }}"
+  #         if [ "${release_type}" = "" ]; then
+  #             release_type="alpha"
+  #         fi
+  #         bash tools/release.sh --publish "${release_type}" || exit 1
+  #         bash tools/release.sh --create "${release_type}" || exit 1
+  #       env:
+  #         GIT_TOKEN: ${{ secrets.NXDRIVE_GIT_TOKEN }}
+  #     - name: Cancel the release
+  #       if: failure() || cancelled()
+  #       run: bash tools/release.sh --cancel

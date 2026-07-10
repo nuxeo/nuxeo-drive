@@ -5,6 +5,26 @@ from sys import platform
 
 from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 
+from . import __alfresco_version__, __version__
+
+APP_SERVER = "NUXEO"
+
+
+def set_app_server(server_type: str) -> None:
+    """Set the APP_SERVER constant"""
+    global APP_SERVER
+    APP_SERVER = server_type
+
+
+APP_VERSION = __alfresco_version__ if APP_SERVER == "ALFRESCO" else __version__
+
+
+def set_app_version(version: str) -> None:
+    """Set the APP_VERSION constant"""
+    global APP_VERSION
+    APP_VERSION = version
+
+
 LINUX = platform == "linux"
 MAC = platform == "darwin"
 WINDOWS = platform == "win32"

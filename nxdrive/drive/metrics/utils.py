@@ -3,8 +3,7 @@ import re
 from functools import lru_cache
 from typing import Tuple
 
-from .. import __version__
-from ..constants import APP_NAME, MAC, WINDOWS
+from ..constants import APP_NAME, APP_VERSION, MAC, WINDOWS
 
 
 @lru_cache(maxsize=1)
@@ -53,4 +52,4 @@ def user_agent() -> str:
     Example: Drive/5.1.0 (macOS 10.15)
     """
     app_name = APP_NAME.replace(" ", "-")
-    return f"{app_name}/{__version__} ({current_os()})"
+    return f"{app_name}/{APP_VERSION} ({current_os()})"

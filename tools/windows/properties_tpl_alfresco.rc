@@ -1,0 +1,28 @@
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers={version_tuple},
+    prodvers={version_tuple},
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+    ),
+  kids=[
+    StringFileInfo(
+      [
+      StringTable(
+        '040904B0',
+        [StringStruct('CompanyName', 'Hyland Software'),
+        StringStruct('FileDescription', 'Hyland Drive for Alfresco'),
+        StringStruct('FileVersion', '{version}'),
+        StringStruct('InternalName', 'alfresco-drive'),
+        StringStruct('LegalCopyright', '\xa9 2026 Hyland Software, Inc. and its affiliates. All rights reserved. All Hyland product names are registered or unregistered trademarks of Hyland Software, Inc. or its affiliates.'),
+        StringStruct('OriginalFilename', 'alfresco-drive.exe'),
+        StringStruct('ProductName', 'Hyland Drive for Alfresco'),
+        StringStruct('ProductVersion', '{version}')])
+      ]),
+    VarFileInfo([VarStruct('Translation', [0, 0])])
+  ]
+)

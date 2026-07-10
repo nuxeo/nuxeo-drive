@@ -92,6 +92,8 @@ from nxdrive.drive.utils import (
     today_is_special,
 )
 
+from ..constants import APP_VERSION
+
 if MAC:
     from nxdrive.drive.osi.darwin.pyNotificationCenter import (
         NotificationDelegator,
@@ -619,11 +621,8 @@ class Application(QApplication):
         context.setContextProperty("disabled_features", DisabledFeatures)
         context.setContextProperty("tl", Translator.singleton)
 
-        config = _st.get(Options.server_type or _st.get_default_key())
-        display_version = config.client_version or self.manager.version
-        version_text = f"{APP_NAME} {display_version}"
+        version_text = f"{APP_NAME} {APP_VERSION}"
         context.setContextProperty("driveVersionText", version_text)
-        context.setContextProperty("nuxeoVersionText", version_text)
         metrics = self.manager.get_metrics()
         versions = (
             f"Python {metrics['python_version']}"
@@ -692,8 +691,7 @@ class Application(QApplication):
         """Resolve a server-specific popup QML file URL, with drive fallback."""
         config = _st.get(Options.server_type or _st.get_default_key())
         log.info(
-            "Resolving %s popup: server_type=%s, config.key=%s, "
-            "configured path=%r",
+            "Resolving %s popup: server_type=%s, config.key=%s, " "configured path=%r",
             popup_type,
             Options.server_type,
             config.key,
@@ -731,7 +729,9 @@ class Application(QApplication):
                 # Do not fall back to the generic drive popup for account creation.
                 return ""
 
-        fallback = "NewAccountPopup.qml" if popup_type == "new_account" else "ReLoginPopup.qml"
+        fallback = (
+            "NewAccountPopup.qml" if popup_type == "new_account" else "ReLoginPopup.qml"
+        )
         fallback_path = find_resource("qml", file=fallback)
         log.info("Using fallback %s popup: %s", popup_type, fallback_path)
         return QUrl.fromLocalFile(str(fallback_path)).toString()

@@ -50,7 +50,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Set, Tuple, Union
 from uuid import uuid4
 
-from . import __version__
+from .constants import APP_VERSION
 from .feature import DisabledFeatures, Feature
 
 __all__ = ("Options",)
@@ -59,14 +59,20 @@ log = logging.getLogger(__name__)
 
 
 # True if the current version is considered alpha
-_IS_ALPHA = __version__.count(".") != 2
+_IS_ALPHA = APP_VERSION.count(".") != 2
 
 # Current state of the application (supports only PyInstaller)
 _IS_FROZEN = hasattr(sys, "frozen")
 
 # Determine desired defaults for logging level
 DEFAULT_LOG_LEVEL_CONSOLE = "WARNING"
-DEFAULT_LOG_LEVEL_FILE = "DEBUG" if _IS_ALPHA or not _IS_FROZEN else "INFO"
+DEFAULT_LOG_LEVEL_FILE = "INFO"
+
+
+def set_log_level_file(level: str) -> None:
+    """Set the default log level for file logging."""
+    global DEFAULT_LOG_LEVEL_FILE
+    DEFAULT_LOG_LEVEL_FILE = level
 
 
 def _get_home() -> Path:
@@ -294,7 +300,7 @@ class MetaOptions(type):
         "ignored_prefixes": (__prefixes, "default"),
         "ignored_suffixes": (__suffixes, "default"),
         "include_process": ((), "default"),  # See autolocker.py for default values
-        "is_alpha": (_IS_ALPHA, "default"),
+        "is_alpha": (False, "default"),
         "is_frozen": (_IS_FROZEN, "default"),
         "light_icons": (False, "default"),
         "locale": ("en", "default"),
