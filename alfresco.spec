@@ -89,11 +89,13 @@ hiddenimports += [
     "alfresco.api.search",
     "alfresco.api.sites",
     "alfresco.api.sync_service",
+    "alfresco.api.device_sync",
     "alfresco.models",
     "alfresco.models.node",
     "alfresco.models.person",
     "alfresco.models.site",
     "alfresco.models.search",
+    "alfresco.models.device_sync",
 ]
 
 version = get_version(os.path.join(nxdrive, "__init__.py"))

@@ -153,7 +153,7 @@ jobs:
           SIGNING_ID: "NUXEO CORP"
           SIGNING_ID_NEW: "Hyland Software, Inc."
           SYSTEM_VERSION_COMPAT: 0
-        run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
+        run: bash tools/osx/deploy_ci_agent.sh --check-upgrade-nuxeo
 
       - name: "[macOS] Generate the .dmg and validate against 2025"
         if: matrix.os == 'macos-15-intel'
@@ -171,7 +171,7 @@ jobs:
           SIGNING_ID: "NUXEO CORP"
           SIGNING_ID_NEW: "Hyland Software, Inc."
           SYSTEM_VERSION_COMPAT: 0
-        run: bash tools/osx/deploy_ci_agent.sh --check-upgrade
+        run: bash tools/osx/deploy_ci_agent.sh --check-upgrade-nuxeo
 
       #
       # Windows
@@ -244,7 +244,7 @@ jobs:
           SIGNING_ID: "Nuxeo"
           SIGNING_ID_NEW: "Hyland Software, Inc."
           # SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
-        run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade
+        run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade_nuxeo
 
       - name: "[Windows] Generate the .exe and validate against 2025"
         timeout-minutes: 15
@@ -258,7 +258,7 @@ jobs:
           SIGNING_ID: "Nuxeo"
           SIGNING_ID_NEW: "Hyland Software, Inc."
           # SIGNTOOL_PATH: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86'
-        run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -build_installer_and_sign
+        run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -build_nuxeo_installer_and_sign
 
       - name: "Upload artifacts"
         uses: actions/upload-artifact@v7
