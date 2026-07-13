@@ -48,9 +48,12 @@ Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
 
-                    // Title: zip_file or doc_name
+                    // Title: user-facing names for active downloads.
+                    // zip_file can contain an internal batch-folder identifier
+                    // used for restart resumption (e.g. download_YYYY...), so
+                    // do not use it as the visible title here.
                     ScaledText {
-                        text: zip_file ? zip_file : doc_name
+                        text: all_file_names && all_file_names.length > 0 ? all_file_names : doc_name
                         Layout.fillWidth: true
                         elide: Text.ElideMiddle
                         font.pointSize: point_size * 1.2
@@ -70,7 +73,7 @@ Rectangle {
                             size: 20
                         }
                         Link {
-                            text: download_path || qsTr("PENDING_DOWNLOAD") + tl.tr
+                            text: (inProgress || paused) ? download_path : qsTr("PENDING_DOWNLOAD") + tl.tr
                             elide: Text.ElideMiddle
                             Layout.fillWidth: true
                             enabled: download_path && download_path.length > 0
