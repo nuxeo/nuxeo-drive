@@ -70,5 +70,6 @@ WA_DeleteOnClose = Qt.WidgetAttribute.WA_DeleteOnClose
 WaitCursor = Qt.CursorShape.WaitCursor
 Warning = QMessageBox.Icon.Warning
 WhatsThisCursor = Qt.CursorShape.WhatsThisCursor
+WindowModal = Qt.WindowModality.WindowModal
 WindowStaysOnTopHint = Qt.WindowType.WindowStaysOnTopHint
 WorldAccessOption = QLocalServer.SocketOption.WorldAccessOption

@@ -266,6 +266,17 @@ class Application(QApplication):
     def exit_app(self) -> None:
         """Initiate the application exit."""
         State.about_to_quit = True
+        # Close every top-level widget first. If a modal QDialog.exec()
+        # loop is currently running (e.g. MultiFolderDialog), a plain
+        # QApplication.quit() only posts a QEvent::Quit to the main
+        # event loop and is ignored until the nested exec() returns.
+        # Closing the dialogs makes their exec() loop exit so the
+        # application can actually terminate.
+        for widget in self.topLevelWidgets():
+            try:
+                widget.close()
+            except Exception:
+                pass
         self.quit()
 
     def _shutdown(self) -> None:

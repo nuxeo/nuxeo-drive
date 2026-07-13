@@ -886,6 +886,11 @@ class FoldersDialog(DialogMixin):
             dark_mode_signal=self.application.dark_mode_signal,
             parent=self,
         )
+        # Use window-level modality so the dialog blocks its parent only,
+        # not the whole application. Application-modal (the QDialog.exec()
+        # default) would freeze the QML systray window on macOS and prevent
+        # the user from clicking Quit / Settings while this dialog is open.
+        mfd.setWindowModality(qt.WindowModal)
         if mfd.exec():
             path = mfd.selected_paths()
             self._process_additionnal_local_paths(path)
