@@ -109,6 +109,8 @@ class FileAction(Action):
         # Is it already on the server?
         self.uploaded = False
 
+        self._finalizing_status = ""
+
         # Used to compute the transfer speed, updated by the Remote client
         self.chunk_size = 0
         # Used to compute the transfer speed, updated by the Remote client at each (down|up)loaded chunk

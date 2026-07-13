@@ -8,6 +8,7 @@ Rectangle {
     id: control
     property bool active: status == "PAUSED" || status == "ONGOING"
     property bool paused: status == "PAUSED"
+    property var sessionUid: uid
     visible: !shadow
     width: parent ? parent.width : 0
     height: shadow ? 0: 116
@@ -86,6 +87,21 @@ Rectangle {
                             color: secondaryText
                         }
                         RowLayout {
+                            visible: active && scheduled_at
+                            spacing: 4
+                            Image {
+                                source: "../icons/schedule_clock_dark.svg"
+                                fillMode: Image.PreserveAspectFit
+                                sourceSize.width: 16
+                                sourceSize.height: 16
+                            }
+                            ScaledText {
+                                text: scheduled_at + tl.tr
+                                font.bold: true
+                                color: secondaryText
+                            }
+                        }
+                        RowLayout {
                             Layout.leftMargin: 10
                             RowLayout {
                                 id: csvRow
@@ -143,10 +159,8 @@ Rectangle {
                             try {
                                 if (paused) {
                                     api.resume_session(engine, uid)
-                                    cancel_button.enabled = false
                                 } else {
                                     api.pause_session(engine, uid)
-                                    cancel_button.enabled = true
                                 }
                             } finally {
                                 enabled = true
@@ -157,13 +171,22 @@ Rectangle {
                     // Stop icon
                     IconLabel {
                         id: cancel_button
-                        enabled: paused
+                        property bool isCancelling: false
+                        enabled: paused && !isCancelling
                         icon: MdiFont.Icon.close
                         tooltip: qsTr("CANCEL") + tl.tr
                         iconColor: iconFailure
+                        Connections {
+                            target: control
+                            function onSessionUidChanged() {
+                                cancel_button.isCancelling = false
+                            }
+                        }
                         onClicked: {
-                            enabled = false
-                            enabled = !application.confirm_cancel_session(engine, uid, remote_path, total - uploaded)
+                            isCancelling = true
+                            if (!application.confirm_cancel_session(engine, uid, remote_path, total - uploaded)) {
+                                isCancelling = false
+                            }
                         }
                     }
                 }

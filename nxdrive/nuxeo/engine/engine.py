@@ -4,14 +4,13 @@ and Nuxeo-specific credential handling.
 """
 
 import os
-import shutil
 from contextlib import suppress
 from datetime import datetime, timezone
 from logging import getLogger
 from pathlib import Path
 from threading import Thread
 from time import sleep
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Type
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Type, Union
 
 from nuxeo.exceptions import Forbidden, HTTPError, Unauthorized
 from nuxeo.handlers.default import Uploader
@@ -22,8 +21,10 @@ from nxdrive.drive.client.local.base import LocalClientMixin
 from nxdrive.drive.constants import ROOT, WINDOWS, TransferStatus
 from nxdrive.drive.engine.activity import Action, FileAction
 from nxdrive.drive.engine.engine import Engine as _EngineBase
-from nxdrive.drive.engine.engine import State
-from nxdrive.drive.engine.engine import ServerBindingSettings  # noqa: F401 – re-export
+from nxdrive.drive.engine.engine import (  # noqa: F401 -- re-export
+    ServerBindingSettings,
+    State,
+)
 from nxdrive.drive.exceptions import (
     AddonForbiddenError,
     AddonNotInstalledError,
@@ -238,7 +239,8 @@ class Engine(_EngineBase):
 
     def cancel_session(self, uid: int, /) -> None:
         """Cancel all transfers for given session, with Nuxeo metrics."""
-        self.dao.change_session_status(uid, TransferStatus.CANCELLED)
+        self.cancelTimerSignal.emit(uid)
+        self.dao.reset_session_schedule(uid)
         self.dao.cancel_session(uid)
 
         docs = self.dao.get_session_items(uid)
@@ -588,6 +590,9 @@ class Engine(_EngineBase):
         last_local_selected_doc_type: Optional[str] = None,
         new_folder: Optional[str] = None,
         new_folder_type: Optional[str] = None,
+        paused: bool = False,
+        schedule_delay: Optional[int] = None,
+        scheduled_at: Union[str, int] = 0,
     ) -> None:
         """Plan the Direct Transfer."""
 
@@ -661,8 +666,16 @@ class Engine(_EngineBase):
         description = os.path.basename(items[0][0])
         if len(items) > 1:
             description = f"{description} (+{len(items) - 1:,})"
+
+        status = TransferStatus.PAUSED if paused else TransferStatus.ONGOING
         session_uid = self.dao.create_session(
-            remote_parent_path, remote_parent_ref, len(items), self.uid, description
+            remote_parent_path,
+            remote_parent_ref,
+            len(items),
+            self.uid,
+            description,
+            status=status,
+            scheduled_at=scheduled_at,
         )
 
         for batch_items in grouper(items, bsize):
@@ -673,7 +686,11 @@ class Engine(_EngineBase):
         log.info(f" ... Planned {len(items):,} item(s) to Direct Transfer, let's gooo!")
 
         # And add new pairs to the queue
-        self.dao.queue_many_direct_transfer_items(current_max_row_id)
+        if not paused:
+            self.dao.queue_many_direct_transfer_items(current_max_row_id)
+
+        if schedule_delay:
+            self.startTimerSignal.emit(session_uid, schedule_delay)
 
     def handle_session_status(self, session: Optional[Session], /) -> None:
         """Check the session status and send a notification if finished."""
@@ -739,6 +756,9 @@ class Engine(_EngineBase):
         last_local_selected_doc_type: Optional[str] = None,
         new_folder: Optional[str] = None,
         new_folder_type: Optional[str] = None,
+        paused: bool = False,
+        schedule_delay: Optional[int] = None,
+        scheduled_at: Union[str, int] = 0,
     ) -> None:
         """Plan the Direct Transfer. Async to not freeze the GUI."""
         from nxdrive.drive.engine.workers import Runner
@@ -756,6 +776,9 @@ class Engine(_EngineBase):
             last_local_selected_doc_type=last_local_selected_doc_type,
             new_folder=new_folder,
             new_folder_type=new_folder_type,
+            paused=paused,
+            schedule_delay=schedule_delay,
+            scheduled_at=scheduled_at,
         )
         if self._threadpool:
             self._threadpool.start(runner)

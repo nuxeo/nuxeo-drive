@@ -41,7 +41,14 @@ from nxdrive.drive.exceptions import (
 from nxdrive.drive.feature import Feature
 from nxdrive.drive.objects import Binder, DocPairs, EngineDef, Metrics, Session
 from nxdrive.drive.options import Options
-from nxdrive.drive.qt.imports import QObject, QThread, QThreadPool, pyqtSignal, pyqtSlot
+from nxdrive.drive.qt.imports import (
+    QObject,
+    QThread,
+    QThreadPool,
+    QTimer,
+    pyqtSignal,
+    pyqtSlot,
+)
 from nxdrive.drive.state import State
 from nxdrive.drive.utils import (
     decrypt,
@@ -111,6 +118,8 @@ class Engine(QObject):
     directTransferNewFolderSuccess = pyqtSignal(str)
     directTransferSessionFinished = pyqtSignal(str, str, str)
     displayPendingTask = pyqtSignal(str, str, str, str)
+    startTimerSignal = pyqtSignal(int, int)
+    cancelTimerSignal = pyqtSignal(int)
 
     type = "NXDRIVE"
     _folder_lock: Optional[Path] = None
@@ -140,6 +149,9 @@ class Engine(QObject):
         self.doc_container_type = "Automatic"
 
         self._threads: List[QThread] = []
+        self._scheduled_timers: Dict[int, QTimer] = {}
+        self.startTimerSignal.connect(self.start_scheduled_timer)
+        self.cancelTimerSignal.connect(self.cancel_scheduled_timer)
 
         self.invalidAuthentication.connect(self.stop)
         self.timeout = Options.handshake_timeout
@@ -515,8 +527,82 @@ class Engine(QObject):
         self._check_sync_start()
 
     def resume_session(self, uid: int, /) -> None:
-        self.dao.change_session_status(uid, TransferStatus.ONGOING)
-        self.dao.resume_session(uid)
+        session = self.dao.get_session(uid)
+        if session and session.scheduled_at and session.scheduled_at not in (0, "0"):
+            from nxdrive.drive.gui.schedule_dialog import ResumeScheduledSessionPopup
+
+            popup = ResumeScheduledSessionPopup(
+                parent=None, scheduled_datetime=session.scheduled_at
+            )
+            if popup.exec():
+                # Reset the schedule to avoid resuming again if the session is paused and resumed again later
+                self.cancel_scheduled_timer(uid)
+                self.dao.change_session_status(uid, TransferStatus.ONGOING)
+                self.dao.reset_session_schedule(uid)
+                self.dao.resume_session(uid)
+            else:
+                # Pause the session again if the user cancels the resume action from the popup
+                self.dao.pause_session(uid)
+        else:
+            self.dao.change_session_status(uid, TransferStatus.ONGOING)
+            self.dao.resume_session(uid)
+
+    def resume_scheduled_session(self, uid: int, /) -> None:
+        """Reset schedule and resume session."""
+        self.dao.reset_session_schedule(uid)
+        self.resume_session(uid)
+
+    def start_scheduled_timer(self, session_uid: int, delay_seconds: int, /) -> None:
+        """Start a non-blocking QTimer for scheduled session, chunking delay to avoid 32-bit overflow."""
+        self.cancel_scheduled_timer(session_uid)
+
+        max_ms = 2147483647
+        total_ms = delay_seconds * 1000
+
+        timer = QTimer(self)
+        timer.setSingleShot(True)
+
+        # We need to track the remaining ms to wait across ticks.
+        # Store as dynamic property on the QTimer instance to keep it clean.
+        timer.setProperty("remaining_ms", total_ms)
+
+        def on_timeout() -> None:
+            remaining = timer.property("remaining_ms")
+            if remaining is None:
+                remaining = 0
+            if remaining > max_ms:
+                remaining -= max_ms
+                timer.setProperty("remaining_ms", remaining)
+                chunk = min(remaining, max_ms)
+                timer.setInterval(chunk)
+                timer.start()
+                log.debug(
+                    f"Timer rescheduled for session {session_uid}: {chunk}ms remaining"
+                )
+            else:
+                chunk = int(remaining or 0)
+                self.cancel_scheduled_timer(session_uid)
+                log.debug(
+                    f"Timer started: session {session_uid} scheduled in {delay_seconds}s (chunk: {chunk}ms)"
+                )
+                self.resume_scheduled_session(session_uid)
+
+        timer.timeout.connect(on_timeout)
+        self._scheduled_timers[session_uid] = timer
+
+        chunk = min(total_ms, max_ms)
+        timer.setInterval(chunk)
+        timer.start()
+        log.debug(
+            f"Timer started: session {session_uid} scheduled in {delay_seconds}s (chunk: {chunk}ms)"
+        )
+
+    def cancel_scheduled_timer(self, session_uid: int, /) -> None:
+        """Cancel and clean up an active scheduled timer."""
+        timer = self._scheduled_timers.pop(session_uid, None)
+        if timer:
+            timer.stop()
+            timer.deleteLater()
 
     def _manage_staled_transfers(self) -> None:
         app_has_crashed = State.has_crashed
@@ -561,7 +647,8 @@ class Engine(QObject):
         """Handle session lifecycle.  Override for metrics/notifications."""
 
     def cancel_session(self, uid: int, /) -> None:
-        self.dao.change_session_status(uid, TransferStatus.CANCELLED)
+        self.cancelTimerSignal.emit(uid)
+        self.dao.reset_session_schedule(uid)
         self.dao.cancel_session(uid)
 
     def suspend(self) -> None:
