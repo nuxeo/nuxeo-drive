@@ -19,13 +19,11 @@ from nuxeo.models import Blob
 from requests import codes
 from watchdog.observers import Observer
 
-from nxdrive.drive.constants import CONNECTION_ERROR
+from nxdrive.drive.constants import APP_NAME, CONNECTION_ERROR
 from nxdrive.drive.direct_edit import DirectEdit as _DirectEditBase
-from nxdrive.drive.direct_edit import DriveFSEventHandler
-from nxdrive.drive.direct_edit import _is_lock_file
+from nxdrive.drive.direct_edit import DriveFSEventHandler, _is_lock_file
 from nxdrive.drive.engine.activity import tooltip
 from nxdrive.drive.exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt
-from nxdrive.drive.feature import Feature
 from nxdrive.drive.metrics.constants import (
     DE_CONFLICT_HIT,
     DE_ERROR_COUNT,
@@ -36,6 +34,7 @@ from nxdrive.drive.utils import (
     current_milli_time,
     force_decode,
     normalize_event_filename,
+    simplify_url,
     unset_path_readonly,
 )
 from nxdrive.nuxeo.client.remote_client import Remote
@@ -59,6 +58,90 @@ class DirectEdit(_DirectEditBase):
     """
 
     # ------------------------------------------------------------------ Nuxeo overrides
+
+    def __get_engine(self, url: str, /, *, user: str = None) -> Optional["Engine"]:
+        """Nuxeo override — after the standard exact-match and
+        case-insensitive lookups, also try to resolve *user* as a UUID
+        via ``client.resolve_username`` and match the resulting
+        username against each engine's bound account.
+        """
+        if not url:
+            return None
+
+        url = simplify_url(url)
+        for engine in self._manager.engines.copy().values():
+            bind = engine.get_binder()
+            server_url = simplify_url(bind.server_url.rstrip("/"))
+            if server_url == url and (not user or user == bind.username):
+                return engine
+
+        # Resolve user through the userid mapper (UUID → username)
+        if user:
+            for engine in self._manager.engines.copy().values():
+                bind = engine.get_binder()
+                server_url = simplify_url(bind.server_url.rstrip("/"))
+                if server_url == url and engine.remote:
+                    resolved = engine.remote.client.resolve_username(user)
+                    if resolved == bind.username:
+                        return engine
+
+        # Some backend are case insensitive
+        if not user:
+            return None
+
+        user = user.lower()
+        for engine in self._manager.engines.copy().values():
+            bind = engine.get_binder()
+            server_url = simplify_url(bind.server_url)
+            if server_url == url and user == bind.username.lower():
+                return engine
+
+        return None
+
+    def _get_engine(
+        self,
+        server_url: str,
+        /,
+        *,
+        doc_id: str = None,
+        user: str = None,
+    ) -> Optional["Engine"]:
+        """Nuxeo override — resolves a potential UUID to a human-readable
+        username before surfacing the "No engine found" error dialog so
+        the UI never exposes raw UUIDs to users.
+        """
+        engine = self.__get_engine(server_url, user=user)
+
+        if not engine:
+            # Resolve a potential UUID to a human-readable username
+            # so the error dialog never exposes raw UUIDs to users.
+            display_user = user
+            if user:
+                simplified = simplify_url(server_url)
+                for eng in self._manager.engines.copy().values():
+                    if (
+                        eng.remote
+                        and simplify_url(eng.get_binder().server_url.rstrip("/"))
+                        == simplified
+                    ):
+                        display_user = eng.remote.client.resolve_username(user)
+                        break
+            values = [
+                force_decode(display_user) if display_user else "Unknown",
+                server_url,
+                APP_NAME,
+            ]
+            log.warning(
+                f"No engine found for user {user!r} on server {server_url!r}, "
+                f"doc_id={doc_id!r}"
+            )
+            self.directEditError.emit("DIRECT_EDIT_CANT_FIND_ENGINE", values)
+        elif engine.has_invalid_credentials():
+            # Ping again the user in case it is not obvious
+            engine.invalidAuthentication.emit()
+            engine = None
+
+        return engine
 
     def stop_client(self, uploader: Uploader, /) -> None:
         if self._stop:
