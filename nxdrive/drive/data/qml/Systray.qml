@@ -175,7 +175,8 @@ Rectangle {
 
                 // Icon 3: open remote server's URL
                 IconLabel {
-                    icon: MdiFont.Icon.nuxeo
+                    // Generic cloud icon for non-nuxeo servers
+                    icon: APP_SERVER == "NUXEO" ? MdiFont.Icon.nuxeo : MdiFont.Icon.cloud
                     iconColor: secondaryIcon
                     onClicked: api.open_remote_server(accountSelect.getRole("uid"))
                     tooltip: api.get_hostname_from_url(accountSelect.getRole("server_url"))

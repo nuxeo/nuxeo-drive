@@ -14,7 +14,15 @@ from urllib.parse import unquote_plus, urlparse
 
 from nxdrive.drive import server_type as _st
 from nxdrive.drive.behavior import Behavior
-from nxdrive.drive.constants import APP_NAME, COMPANY, LINUX, MAC, WINDOWS, DelAction
+from nxdrive.drive.constants import (
+    APP_NAME,
+    APP_SERVER,
+    COMPANY,
+    LINUX,
+    MAC,
+    WINDOWS,
+    DelAction,
+)
 from nxdrive.drive.dao.engine import EngineDAO
 from nxdrive.drive.engine.activity import Action
 from nxdrive.drive.engine.engine import Engine
@@ -631,6 +639,7 @@ class Application(QApplication):
         context.setContextProperty("isAlpha", Options.is_alpha)
         context.setContextProperty("isFrozen", Options.is_frozen)
         context.setContextProperty("APP_NAME", APP_NAME)
+        context.setContextProperty("APP_SERVER", APP_SERVER)
         context.setContextProperty("SERVER_TYPE", Options.server_type)
         context.setContextProperty(
             "serverNewAccountPopupUrl", self._resolve_server_qml_url("new_account")
