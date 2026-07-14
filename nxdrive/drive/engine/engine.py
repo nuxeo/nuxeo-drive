@@ -28,6 +28,7 @@ from nxdrive.drive.client.local import LocalClient
 from nxdrive.drive.client.local.base import LocalClientMixin
 from nxdrive.drive.constants import LINUX, MAC, ROOT, DelAction, TransferStatus
 from nxdrive.drive.dao.engine import EngineDAO
+from nxdrive.drive.engine.processor import Processor
 from nxdrive.drive.engine.queue_manager import QueueManager
 from nxdrive.drive.engine.watcher.local_watcher import LocalWatcher
 from nxdrive.drive.engine.workers import Worker
@@ -776,6 +777,12 @@ class Engine(QObject):
     ) -> QThread:
         if worker is None:
             worker = Worker(self, name=name)
+        # Relay per-file sync signals from processors up to the engine so the
+        # GUI (systray recent-files list, "Remaining items" counter) refreshes
+        # live during sync, regardless of server type.
+        if isinstance(worker, Processor):
+            worker.pairSyncStarted.connect(self.newSyncStarted)
+            worker.pairSyncEnded.connect(self.newSyncEnded)
         thread = worker.thread
         if start_connect:
             thread.started.connect(worker.run)

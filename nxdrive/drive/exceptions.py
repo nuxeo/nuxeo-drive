@@ -63,6 +63,18 @@ class RemoteOngoingRequestError(RemoteError):
         super().__init__(request_uid)
 
 
+class RemoteConflict(RemoteError):
+    """A concurrent-modification / version-conflict response from the server.
+
+    Server-type packages (``nxdrive.alfresco``, ``nxdrive.nuxeo``) catch
+    the library-specific 409/412 exception and re-raise this so the
+    processor can treat it as a conflict without importing from
+    ``alfresco.*`` or ``nuxeo.*``.
+    """
+
+    pass
+
+
 class AddonForbiddenError(DriveError):
     """The nuxeo-drive addon access is not allowed to the current user."""
 

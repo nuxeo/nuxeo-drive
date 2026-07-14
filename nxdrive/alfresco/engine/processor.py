@@ -24,10 +24,13 @@ from nxdrive.drive.constants import (
 )
 from nxdrive.drive.engine.processor import Processor as _ProcessorBase
 from nxdrive.drive.exceptions import (
+    DownloadPaused,
     NotFound,
     PairInterrupt,
     ParentNotSynced,
+    RemoteConflict,
     ThreadInterrupt,
+    UploadPaused,
 )
 from nxdrive.drive.objects import DocPair, RemoteFileInfo
 from nxdrive.drive.utils import (
@@ -43,6 +46,23 @@ if TYPE_CHECKING:
 __all__ = ("AlfrescoProcessor",)
 
 log = getLogger(__name__)
+
+
+def _fmt_remote_ts(ts: Any) -> str:
+    """Normalise a remote modification timestamp to ``YYYY-MM-DD HH:MM:SS``.
+
+    Alfresco stores ``last_remote_updated`` in the DB as
+    ``YYYY-MM-DD HH:MM:SS`` (no microseconds / timezone) while the
+    server returns full ``datetime`` objects.  Normalise both sides
+    so equality comparisons don't spuriously fail on formatting alone.
+    Kept in sync with the same helper inline in
+    ``AlfrescoRemoteWatcher._scan_remote_recursive``.
+    """
+    if ts is None:
+        return ""
+    if hasattr(ts, "strftime"):
+        return ts.strftime("%Y-%m-%d %H:%M:%S")
+    return str(ts)[:19]
 
 
 class AlfrescoProcessor(_ProcessorBase):
@@ -93,6 +113,58 @@ class AlfrescoProcessor(_ProcessorBase):
 
     def _refresh_local_state(self, doc_pair: DocPair, local_info: FileInfo, /) -> None:
         self.dao.update_local_state(doc_pair, local_info, versioned=False, queue=False)
+
+    def _remote_has_drifted(self, doc_pair: DocPair, /) -> bool:
+        """Return ``True`` when the server-side node has been modified
+        since ``doc_pair.last_remote_updated``.
+
+        Alfresco doesn't expose a content digest, so we compare the
+        server's ``modifiedAt`` timestamp against the value recorded on
+        the pair when the watcher last saw it.  Mirrors Nuxeo's
+        pre-upload freshness check in
+        ``NuxeoProcessor._handle_doc_pair_sync()`` (which uses digest
+        comparison instead).  Returns ``False`` if the remote can't be
+        reached — the caller falls through and the normal error path
+        handles connectivity issues.
+        """
+        if not doc_pair.remote_ref:
+            return False
+        try:
+            remote_info = self.remote.get_fs_info(doc_pair.remote_ref)
+        except NotFound:
+            # Remote is gone; let the normal handler decide what to do.
+            return False
+        except Exception:
+            log.debug(
+                f"Freshness check failed for {doc_pair!r}; proceeding",
+                exc_info=True,
+            )
+            return False
+        if remote_info is None:
+            return False
+        remote_ts = _fmt_remote_ts(remote_info.last_modification_time)
+        db_ts = str(doc_pair.last_remote_updated or "")[:19]
+        # Folder renames on the server also count as drift, but folder
+        # renames are handled by the watcher path already; scope this
+        # check to files.
+        if doc_pair.folderish:
+            return False
+        return bool(remote_ts) and remote_ts != db_ts
+
+    def _mark_conflicted(self, doc_pair: DocPair, /) -> None:
+        """Atomically flip a pair to ``pair_state='conflicted'`` and fire
+        the ``newConflict`` signal via ``_queue_pair_state``.
+
+        Uses ``_force_sync`` so ``local_state`` and ``remote_state`` are
+        also set to ``modified`` — otherwise the next
+        ``update_remote_state`` call would recompute ``pair_state`` from
+        ``PAIR_STATES`` and undo the conflict marking.
+        """
+        log.info(
+            f"Marking pair as conflicted: {doc_pair.local_name!r} "
+            f"(remote={doc_pair.remote_ref!r})"
+        )
+        self.dao._force_sync(doc_pair, "modified", "modified", "conflicted")
 
     def _refresh_remote(
         self, doc_pair: DocPair, remote_info: RemoteFileInfo = None, /
@@ -185,6 +257,25 @@ class AlfrescoProcessor(_ProcessorBase):
                 log.info(f"{type(exc).__name__}, wait 1s and requeue")
                 sleep(1)
                 self.engine.queue_manager.push(doc_pair)
+            except RemoteConflict as exc:
+                # The server rejected the write because the node has
+                # been modified since we last read it (HTTP 409 /
+                # concurrent-modification).  Flip the pair to
+                # ``conflicted`` so the systray surfaces it and the
+                # user can pick keep-local / keep-remote / keep-both.
+                log.warning(f"Remote conflict on {doc_pair!r}: {exc}")
+                self._mark_conflicted(doc_pair)
+            except (DownloadPaused, UploadPaused) as exc:
+                # The user paused (or cancelled/suspended) the transfer
+                # from the systray while a chunk-loop was mid-flight.
+                # The Download/Upload row has already been persisted with
+                # the appropriate status, so just tag it with the doc_pair
+                # link and let the processor move on to the next item.
+                nature = "download" if isinstance(exc, DownloadPaused) else "upload"
+                log.info(f"Pausing {nature} {exc.transfer_id!r}")
+                self.engine.dao.set_transfer_doc(
+                    nature, exc.transfer_id, self.engine.uid, doc_pair.id
+                )
             except CONNECTION_ERROR:
                 log.debug("Connection issue", exc_info=True)
                 self._postpone_pair(doc_pair, "CONNECTION_ERROR")
@@ -241,6 +332,24 @@ class AlfrescoProcessor(_ProcessorBase):
             TransferStatus.DONE,
         ):
             log.info(f"Upload is paused for {doc_pair!r}")
+            return
+
+        # Pre-upload freshness check: for any ``locally_*`` pair with a
+        # remote counterpart, ask the server whether the node has
+        # changed since we last saw it.  If it has, this is a genuine
+        # both-sides-modified conflict; flip the pair to ``conflicted``
+        # so the systray surfaces it and abort the upload instead of
+        # silently overwriting remote changes.  Mirrors Nuxeo's L172
+        # pre-check (which uses digest comparison instead of timestamp).
+        if doc_pair.pair_state in (
+            "locally_modified",
+            "locally_moved",
+        ) and self._remote_has_drifted(doc_pair):
+            log.warning(
+                f"Pre-upload freshness check: remote drifted for "
+                f"{doc_pair.local_name!r}, marking as conflicted"
+            )
+            self._mark_conflicted(doc_pair)
             return
 
         self.pairSyncStarted.emit(self._current_metrics)
@@ -376,6 +485,8 @@ class AlfrescoProcessor(_ProcessorBase):
             file_path,
             file_out,
             parent_fs_item_id=doc_pair.remote_parent_ref,
+            doc_pair_id=doc_pair.id,
+            engine_uid=self.engine.uid,
         )
 
     def _synchronize_remotely_modified(self, doc_pair: DocPair, /) -> None:
@@ -586,6 +697,8 @@ class AlfrescoProcessor(_ProcessorBase):
                 parent_ref,
                 self.local.abspath(doc_pair.local_path),
                 filename=name,
+                doc_pair_id=doc_pair.id,
+                engine_uid=self.engine.uid,
             )
             remote_ref = fs_item_info.uid
             self.dao.update_last_transfer(doc_pair.id, "upload")
@@ -624,6 +737,8 @@ class AlfrescoProcessor(_ProcessorBase):
                     doc_pair.remote_ref,
                     self.local.abspath(doc_pair.local_path),
                     filename=doc_pair.remote_name,
+                    doc_pair_id=doc_pair.id,
+                    engine_uid=self.engine.uid,
                 )
                 self.dao.update_last_transfer(doc_pair.id, "upload")
                 self.dao.update_remote_state(doc_pair, fs_item_info, versioned=False)
@@ -697,11 +812,51 @@ class AlfrescoProcessor(_ProcessorBase):
         self.dao.synchronize_state(doc_pair)
 
     def _synchronize_conflicted(self, doc_pair: DocPair, /) -> None:
-        # Auto-resolve if digests match
-        if self.local.is_equal_digests(
-            doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path
+        """Alfresco conflict resolution.
+
+        Mirrors ``NuxeoProcessor._synchronize_conflicted`` with two
+        adaptations for Alfresco:
+
+        - Alfresco has no content digest, so file auto-resolve uses a
+          server-timestamp freshness check instead of digest comparison.
+        - When we can't prove the remote is unchanged, we fall through
+          to ``set_conflict_state`` so ``newConflict`` fires and the
+          systray surfaces the row (previously the handler did nothing
+          and the pair silently stayed in ``conflicted`` with no user
+          notification).
+        """
+        # Both sides moved → manual resolution.
+        if doc_pair.local_state == "moved" and doc_pair.remote_state in (
+            "moved",
+            "unknown",
         ):
+            self.dao.set_conflict_state(doc_pair)
+            return
+
+        # Files: auto-resolve only if we can prove the remote is
+        # unchanged since our last known state.
+        if not doc_pair.folderish:
+            if doc_pair.remote_ref and not self._remote_has_drifted(doc_pair):
+                log.info(
+                    f"Auto-resolve conflict as remote is unchanged: "
+                    f"{doc_pair.local_name!r}"
+                )
+                self.dao.synchronize_state(doc_pair)
+                return
+            # Otherwise: surface to the user.
+            self.dao.set_conflict_state(doc_pair)
+            return
+
+        # Folders: auto-resolve if the local xattr remote_id matches
+        # (same node, no real conflict).  Otherwise surface.
+        if self.local.get_remote_id(doc_pair.local_path) == doc_pair.remote_ref:
+            log.info(
+                f"Auto-resolve conflict as folder has same remote UID: "
+                f"{doc_pair.local_name!r}"
+            )
             self.dao.synchronize_state(doc_pair)
+            return
+        self.dao.set_conflict_state(doc_pair)
 
     def _synchronize_unknown_deleted(self, doc_pair: DocPair, /) -> None:
         log.info(f"Removing inconsistent pair: {doc_pair!r}")

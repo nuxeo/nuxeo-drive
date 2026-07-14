@@ -60,9 +60,7 @@ from nxdrive.nuxeo.engine.processor import Processor
 from nxdrive.nuxeo.engine.watcher.remote_watcher import RemoteWatcher
 
 if TYPE_CHECKING:
-    from nxdrive.drive.engine.workers import Worker
     from nxdrive.drive.manager import Manager  # noqa
-    from nxdrive.drive.qt.imports import QThread
 
 SYNC_ROOT = _st.get("NUXEO").sync_root
 
@@ -226,14 +224,6 @@ class Engine(_EngineBase):
             log.debug(f"Emitting syncCompleted for engine {self.uid}")
             self._sync_started = False
             self.syncCompleted.emit()
-
-    def create_thread(
-        self, worker: "Worker", name: str, /, *, start_connect: bool = True
-    ) -> "QThread":
-        if isinstance(worker, Processor):
-            worker.pairSyncStarted.connect(self.newSyncStarted)
-            worker.pairSyncEnded.connect(self.newSyncEnded)
-        return super().create_thread(worker, name, start_connect=start_connect)
 
     def cancel_action_on(self, pair_id: int, /) -> None:
         for thread in self._threads:

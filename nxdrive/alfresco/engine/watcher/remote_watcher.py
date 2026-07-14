@@ -211,11 +211,23 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                     and remote_ts_str != db_ts_str
                 )
                 if content_changed:
+                    # Pair is already flagged as conflicted: don't touch
+                    # remote state, don't re-queue.  ``update_remote_state``
+                    # would recompute ``pair_state`` from PAIR_STATES and
+                    # (because Alfresco digests are ``None``) the "similar"
+                    # short-circuit would demote the row back to
+                    # ``locally_modified`` — undoing the conflict marking
+                    # and hiding the row from the systray Conflicts panel.
+                    if child_pair.pair_state == "conflicted":
+                        log.debug(
+                            f"Skipping update for {child_info.name!r}: "
+                            "pair is already conflicted (awaiting user)"
+                        )
                     # Skip if the pair is currently being processed by the
                     # Processor (e.g. an upload is in progress).  Forcing
                     # remotely_modified mid-upload causes a redundant
                     # download cycle and can create ghost queue items.
-                    if child_pair.pair_state in (
+                    elif child_pair.pair_state in (
                         "locally_created",
                         "locally_modified",
                     ):

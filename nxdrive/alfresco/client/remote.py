@@ -13,13 +13,14 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 
 from alfresco import Alfresco
 from alfresco.auth import BasicAuth, OAuth2Auth, TicketAuth
-from alfresco.exceptions import AlfrescoError, CorruptedFile
+from alfresco.exceptions import AlfrescoError, ConflictError, CorruptedFile
 from alfresco.models.node import Node
 
 from nxdrive.alfresco.auth.refresh import RefreshingOAuth2Auth
-from nxdrive.drive.exceptions import NotFound
+from nxdrive.drive.constants import TransferStatus
+from nxdrive.drive.exceptions import DownloadPaused, NotFound, RemoteConflict
 from nxdrive.drive.metrics.utils import user_agent
-from nxdrive.drive.objects import RemoteFileInfo
+from nxdrive.drive.objects import Download, RemoteFileInfo, Upload
 from nxdrive.drive.options import Options
 from nxdrive.drive.utils import compute_digest
 
@@ -454,10 +455,81 @@ class AlfrescoRemote:
         read/write loop.  When the caller supplies a ``fs_item_info``
         with a non-empty ``digest``, verify the downloaded file matches
         and raise :class:`CorruptedFile` on mismatch.
+
+        When a ``dao`` is available a ``Download`` row is registered
+        before the transfer starts and updated on every chunk so the
+        systray transfer list and "Remaining items" counter refresh in
+        real time.  The row is removed on successful completion or on
+        error.  If the user pauses the transfer through the systray, a
+        :class:`DownloadPaused` is raised so the Processor can move on
+        to the next queue item; the row stays in the database with
+        ``PAUSED`` status ready to be resumed.
         """
         file_out.parent.mkdir(parents=True, exist_ok=True)
 
-        self.client.nodes.download_to(fs_item_id, str(file_out), chunk_size=65536)
+        dao = getattr(self, "dao", None)
+        doc_pair_id = kwargs.get("doc_pair_id")
+        engine_uid = kwargs.get("engine_uid")
+
+        # Register a Download row so the systray can render a progress
+        # bar and honour pause/resume.  ``save_download`` does not
+        # populate ``uid`` on the object it receives, so re-fetch to
+        # obtain the row identifier used for progress/status updates.
+        download: Optional[Download] = None
+        if dao is not None:
+            download = dao.get_download(path=file_path)
+            if download is None:
+                dao.save_download(
+                    Download(
+                        None,
+                        path=file_path,
+                        status=TransferStatus.ONGOING,
+                        engine=engine_uid,
+                        doc_pair=doc_pair_id,
+                        filesize=0,
+                        tmpname=file_out,
+                        url=None,
+                    )
+                )
+                download = dao.get_download(path=file_path)
+
+        def _on_progress(written: int, total: Optional[int]) -> None:
+            if dao is None or download is None or download.uid is None:
+                return
+            # Capture the real file size the first time the server sends
+            # Content-Length so the progress bar has a denominator.
+            if total and not download.filesize:
+                download.filesize = total
+            download.progress = (written * 100.0 / total) if total else 0.0
+            dao.set_transfer_progress("download", download)
+            # Check pause/cancel by re-reading the row every chunk.
+            current = dao.get_download(uid=download.uid)
+            if current and current.status in (
+                TransferStatus.PAUSED,
+                TransferStatus.SUSPENDED,
+                TransferStatus.CANCELLED,
+            ):
+                raise DownloadPaused(download.uid or -1)
+
+        try:
+            self.client.nodes.download_to(
+                fs_item_id,
+                str(file_out),
+                chunk_size=65536,
+                progress=_on_progress if dao is not None else None,
+            )
+        except DownloadPaused:
+            # Leave the row in place with PAUSED status so the systray
+            # keeps showing the item.  The Alfresco download endpoint
+            # does not honour ``Range: bytes=X-``, so when the user
+            # resumes we will refetch from byte 0 -- acceptable trade-off.
+            raise
+        except Exception:
+            # Any real failure: clean the row so we don't leak stale
+            # transfer entries in the systray.
+            if dao is not None:
+                dao.remove_transfer("download", path=file_path)
+            raise
 
         # Server-side digest verification (opt-in: only when caller
         # provided the expected digest via fs_item_info).
@@ -465,13 +537,58 @@ class AlfrescoRemote:
             algo = (fs_item_info.digest_algorithm or "md5").lower()
             local_digest = compute_digest(file_out, algo)
             if local_digest and local_digest.lower() != fs_item_info.digest.lower():
+                if dao is not None:
+                    dao.remove_transfer("download", path=file_path)
                 raise CorruptedFile(str(file_out), fs_item_info.digest, local_digest)
 
         # Remove the download record if the DAO is available
-        if hasattr(self, "dao"):
-            self.dao.remove_transfer("download", path=file_path)
+        if dao is not None:
+            dao.remove_transfer("download", path=file_path)
 
         return file_out
+
+    def _register_upload(
+        self,
+        file_path: Path,
+        *,
+        doc_pair_id: Optional[int] = None,
+        engine_uid: Optional[str] = None,
+    ) -> None:
+        """Insert an ``Upload`` row so the systray shows the transfer.
+
+        Alfresco's multipart POST is a single blocking call with no
+        per-byte hook, so we cannot animate a filling progress bar for
+        uploads. Registering the row still gives the user visible
+        feedback: the file appears in the systray's transfer list while
+        the POST is in flight, then vanishes on completion (see
+        :meth:`_finish_upload`).
+        """
+        dao = getattr(self, "dao", None)
+        if dao is None:
+            return
+        if dao.get_upload(path=file_path):
+            return
+        try:
+            filesize = Path(str(file_path)).stat().st_size
+        except OSError:
+            filesize = 0
+        dao.save_upload(
+            Upload(
+                None,
+                path=file_path,
+                status=TransferStatus.ONGOING,
+                engine=engine_uid,
+                doc_pair=doc_pair_id,
+                filesize=filesize,
+            )
+        )
+
+    def _finish_upload(self, file_path: Path) -> None:
+        """Remove the ``Upload`` row registered by :meth:`_register_upload`."""
+        dao = getattr(self, "dao", None)
+        if dao is None:
+            return
+        dao.remove_transfer("upload", path=file_path)
 
     def stream_file(
         self,
@@ -494,34 +611,53 @@ class AlfrescoRemote:
         instead of creating a duplicate (Alfresco auto-renames
         duplicates by appending ``-1``, ``-2``, etc.).
         """
-        target_name = filename or Path(str(file_path)).name
-        # Check for an existing node with the same name.
-        # ``iter_children`` walks the server-side pagination automatically
-        # and short-circuits at the first match; ``list_children`` would
-        # only see the first 100 children and miss duplicates in larger
-        # folders (same class of bug as NXDRIVE-3186).
+        doc_pair_id = kwargs.get("doc_pair_id")
+        engine_uid = kwargs.get("engine_uid")
+        self._register_upload(file_path, doc_pair_id=doc_pair_id, engine_uid=engine_uid)
         try:
-            for child in self.client.nodes.iter_children(parent_id):
-                if child.name == target_name and child.is_file:
-                    log.info(
-                        f"Node {target_name!r} already exists in {parent_id!r} "
-                        f"(id={child.id!r}), updating content instead of creating"
-                    )
-                    node = self.update_content(child.id, str(file_path))
-                    info = self._node_to_remote_file_info(node)
-                    info.digest = compute_digest(Path(str(file_path)), "md5")
-                    info.digest_algorithm = "md5"
-                    return info
-        except Exception:
-            log.debug(
-                "Could not check for existing node, proceeding with create",
-                exc_info=True,
-            )
-        node = self.upload(parent_id, str(file_path), name=filename)
-        info = self._node_to_remote_file_info(node)
-        info.digest = compute_digest(Path(str(file_path)), "md5")
-        info.digest_algorithm = "md5"
-        return info
+            target_name = filename or Path(str(file_path)).name
+            # Check for an existing node with the same name.
+            # ``iter_children`` walks the server-side pagination automatically
+            # and short-circuits at the first match; ``list_children`` would
+            # only see the first 100 children and miss duplicates in larger
+            # folders (same class of bug as NXDRIVE-3186).
+            try:
+                for child in self.client.nodes.iter_children(parent_id):
+                    if child.name == target_name and child.is_file:
+                        log.info(
+                            f"Node {target_name!r} already exists in "
+                            f"{parent_id!r} (id={child.id!r}), updating "
+                            "content instead of creating"
+                        )
+                        node = self.update_content(child.id, str(file_path))
+                        info = self._node_to_remote_file_info(node)
+                        info.digest = compute_digest(Path(str(file_path)), "md5")
+                        info.digest_algorithm = "md5"
+                        return info
+            except Exception:
+                log.debug(
+                    "Could not check for existing node, proceeding with create",
+                    exc_info=True,
+                )
+            try:
+                node = self.upload(parent_id, str(file_path), name=filename)
+            except ConflictError as exc:
+                # Someone else created a node with the same name in
+                # this folder between our iter_children check and the
+                # upload call.  Surface as a conflict so the processor
+                # can flip the pair to ``conflicted`` instead of
+                # retrying blindly.
+                log.warning(
+                    f"Alfresco returned 409 uploading {filename!r} "
+                    f"to {parent_id!r}: {exc}"
+                )
+                raise RemoteConflict(str(exc)) from exc
+            info = self._node_to_remote_file_info(node)
+            info.digest = compute_digest(Path(str(file_path)), "md5")
+            info.digest_algorithm = "md5"
+            return info
+        finally:
+            self._finish_upload(file_path)
 
     def stream_update(
         self,
@@ -532,17 +668,32 @@ class AlfrescoRemote:
         parent_fs_item_id: str = None,
         filename: str = None,
         engine_uid: str = None,
+        **kwargs: Any,
     ) -> RemoteFileInfo:
         """Update content of an existing file and return ``RemoteFileInfo``.
 
         Mirrors ``Remote.stream_update()`` — the Processor calls this
         to update file content during ``_synchronize_locally_modified``.
         """
-        node = self.update_content(fs_item_id, str(file_path))
-        info = self._node_to_remote_file_info(node)
-        info.digest = compute_digest(Path(str(file_path)), "md5")
-        info.digest_algorithm = "md5"
-        return info
+        doc_pair_id = kwargs.get("doc_pair_id")
+        self._register_upload(file_path, doc_pair_id=doc_pair_id, engine_uid=engine_uid)
+        try:
+            try:
+                node = self.update_content(fs_item_id, str(file_path))
+            except ConflictError as exc:
+                # The server refused the update because the node has
+                # been modified since we last read it (version /
+                # concurrent-modification conflict).  Surface as a
+                # conflict so the processor flips the pair to
+                # ``conflicted`` and the user is notified.
+                log.warning(f"Alfresco returned 409 updating {fs_item_id!r}: {exc}")
+                raise RemoteConflict(str(exc)) from exc
+            info = self._node_to_remote_file_info(node)
+            info.digest = compute_digest(Path(str(file_path)), "md5")
+            info.digest_algorithm = "md5"
+            return info
+        finally:
+            self._finish_upload(file_path)
 
     def make_folder(
         self, parent_id: str, name: str, /, *, overwrite: bool = False

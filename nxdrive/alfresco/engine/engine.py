@@ -321,30 +321,76 @@ class AlfrescoEngine(Engine):
     def conflict_resolver(self, row_id: int, /, *, emit: bool = True) -> None:
         """Alfresco-specific conflict resolver.
 
-        Alfresco doesn't expose content digests, so ``remote_digest`` in the
-        DB is always from our own uploads.  A mismatch between
-        ``local_digest`` and ``remote_digest`` therefore means the local
-        file was edited after the last upload — *not* a server-side
-        conflict.  Reset the pair to ``locally_modified`` so the
-        processor uploads the new version.
+        Alfresco doesn't expose a content digest, so the base resolver's
+        digest-based auto-resolve (``local_digest == remote_digest``)
+        would silently synchronise every pair that reached this method
+        because both digests are always ``None``.  Override with:
+
+        - **Files:** fetch the current remote and compare its
+          ``modifiedAt`` timestamp against the pair's
+          ``last_remote_updated``.  Only if the remote is unchanged do
+          we reset to ``locally_modified`` (the conflict was spurious —
+          typically a stale watcher poll or a same-content re-upload).
+          Otherwise we emit ``newConflict`` so the systray surfaces it.
+        - **Folders:** auto-resolve when the local xattr ``remote_id``
+          matches ``pair.remote_ref`` (same node, no real conflict).
+
+        Never falls back to the base implementation because base's
+        ``same_digests`` check is unsafe when both digests are ``None``.
         """
         pair = self.dao.get_state_from_id(row_id)
         if not pair:
+            log.debug("Alfresco conflict resolver: empty pair, skipping")
             return
 
-        if (
-            pair.pair_state == "conflicted"
-            and pair.local_state == "modified"
-            and pair.remote_state == "modified"
-        ):
-            log.info(
-                f"Alfresco conflict resolver: resetting {pair.local_name!r} "
-                f"to locally_modified (not a real conflict)"
+        # File path: timestamp-based freshness check.
+        if not pair.folderish and pair.remote_ref:
+            remote_info = None
+            try:
+                remote_info = self.remote.get_fs_info(pair.remote_ref)
+            except Exception:
+                log.warning(
+                    f"Alfresco conflict resolver: could not fetch remote "
+                    f"for {pair.local_name!r}, keeping conflict",
+                    exc_info=True,
+                )
+            if remote_info is not None:
+                from nxdrive.alfresco.engine.processor import _fmt_remote_ts
+
+                remote_ts = _fmt_remote_ts(remote_info.last_modification_time)
+                db_ts = str(pair.last_remote_updated or "")[:19]
+                if remote_ts and remote_ts == db_ts:
+                    log.info(
+                        f"Alfresco conflict resolver: remote unchanged for "
+                        f"{pair.local_name!r}, resetting to locally_modified"
+                    )
+                    self.dao._force_sync(
+                        pair, "modified", "synchronized", "locally_modified"
+                    )
+                    return
+
+        # Folder path: match local xattr remote_id.
+        if pair.folderish and pair.remote_ref:
+            try:
+                local_remote_id = self.local.get_remote_id(pair.local_path)
+            except Exception:
+                local_remote_id = None
+            if local_remote_id == pair.remote_ref:
+                log.info(
+                    f"Alfresco conflict resolver: folder {pair.local_name!r} "
+                    "has matching remote UID, auto-resolving"
+                )
+                self.dao.synchronize_state(pair)
+                return
+
+        # Cannot auto-resolve — surface the conflict to the user.
+        if emit:
+            log.warning(
+                f"Alfresco conflict resolver: surfacing conflict for "
+                f"{pair.local_name!r}"
             )
-            self.dao._force_sync(pair, "modified", "synchronized", "locally_modified")
-            return
-
-        super().conflict_resolver(row_id, emit=emit)
+            self.newConflict.emit(row_id)
+            self.manager.osi.send_sync_status(pair, self.local.abspath(pair.local_path))
 
     # -- Overrides for engine-generic features (disabled in Phase 1) ---------
 
