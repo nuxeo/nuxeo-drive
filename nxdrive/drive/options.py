@@ -310,7 +310,7 @@ class MetaOptions(type):
         "nxdrive_home": (_get_nxdrive_home(__home), "default"),
         "nofscheck": (False, "default"),
         "oauth2_authorization_endpoint": (None, "default"),
-        "oauth2_client_id": ("drive", "default"),
+        "oauth2_client_id": ("nuxeo-drive", "default"),
         "oauth2_client_secret": (None, "default"),
         "oauth2_openid_configuration_url": (None, "default"),
         "oauth2_scope": (None, "default"),

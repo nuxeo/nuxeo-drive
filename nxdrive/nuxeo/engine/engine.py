@@ -419,8 +419,18 @@ class Engine(_EngineBase):
         """
         if not self.remote:
             return
-        self.remote.client.resolve_username(self.remote_user)
-        user_uuid = self.remote.client.userid_mapper.get(self.remote_user)
+        client = self.remote.client
+        # Guard against older nuxeo lib versions (no ``resolve_username`` /
+        # ``userid_mapper``) and against servers that do not yet expose the
+        # UUID endpoint: in either case we simply persist the sentinel so the
+        # engine keeps working without UUIDs.
+        if not hasattr(client, "resolve_username") or not hasattr(
+            client, "userid_mapper"
+        ):
+            self.dao.update_config("user_uuid", self._NO_UUID_SUPPORT)
+            return
+        client.resolve_username(self.remote_user)
+        user_uuid = client.userid_mapper.get(self.remote_user)
         if user_uuid:
             self.dao.update_config("user_uuid", user_uuid)
         else:
@@ -469,13 +479,16 @@ class Engine(_EngineBase):
                 self._refresh_user_uuid()
             except Exception:
                 log.warning(
-                    "Failed to fetch user UUID for %r, re-login required",
+                    "Failed to fetch user UUID for %r, continuing without UUID",
                     self.remote_user,
                     exc_info=True,
                 )
-                self.set_invalid_credentials(
-                    value=True, reason="failed to fetch user_uuid, re-login required"
-                )
+                # Persist the sentinel so we don't re-hit the server on every
+                # startup during the transitional period where the server
+                # does not yet support UUID.  Do NOT invalidate credentials
+                # here: today's Nuxeo servers legitimately don't expose the
+                # endpoint yet, and re-login would not help.
+                self.dao.update_config("user_uuid", self._NO_UUID_SUPPORT)
                 return
             user_uuid = self.dao.get_config("user_uuid")
 
