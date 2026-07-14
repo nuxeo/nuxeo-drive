@@ -88,10 +88,10 @@ class WindowsIntegration(AbstractOSIntegration):
     def install_addons(self, *, setup: str = None) -> bool:
         """Install addons using the installer shipped within the main installer."""
         from .windows_config import get_addon_installer_name
-        
+
         if setup is None:
             setup = get_addon_installer_name()
-        
+
         installer = Path(sys.executable).parent / setup
         if not installer.is_file():
             log.warning(f"Addons installer {installer!r} not found.")
@@ -128,6 +128,14 @@ class WindowsIntegration(AbstractOSIntegration):
 
     @if_frozen
     def register_contextual_menu(self) -> None:
+        """Register the contextual menu in Windows Explorer."""
+
+        from ...constants import APP_SERVER
+
+        if APP_SERVER != "NUXEO":
+            log.info("Contextual menu is not available at this time")
+            return
+
         log.info("Registering contextual menu")
 
         # Register a submenu for both files (*) and folders (directory)

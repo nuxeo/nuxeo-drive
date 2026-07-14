@@ -347,6 +347,15 @@ class DarwinIntegration(AbstractOSIntegration):
 
     @if_frozen
     def register_contextual_menu(self) -> None:
+        """Register the contextual menu in MacOS Finder."""
+
+        from ...constants import APP_SERVER
+
+        if APP_SERVER != "NUXEO":
+            log.info("Contextual menu is not available at this time")
+            return
+
+        log.info("Registering contextual menu")
         name = f"{BUNDLE_IDENTIFIER}.setConfig"
 
         entries = [Translator.get(f"CONTEXT_MENU_{i}") for i in range(1, 5)]
