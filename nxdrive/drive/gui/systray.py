@@ -8,6 +8,7 @@ from ..qt.imports import (
     QMenu,
     QQuickView,
     QQuickWindow,
+    QSize,
     QSystemTrayIcon,
     QWindow,
 )
@@ -106,6 +107,8 @@ class SystrayWindow(inherited_base_class):  # type: ignore
     def __init__(self, parent: Optional[QWindow] = None) -> None:
         super().__init__(parent)
         self.activeChanged.connect(self._on_active_changed)
+        self.setMinimumSize(QSize(365, 370))
+        self.setMaximumSize(QSize(365, 370))
 
     def _on_active_changed(self) -> None:
         """Hide the window when it loses focus."""
