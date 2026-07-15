@@ -266,7 +266,12 @@ jobs:
 
       - name: Upload artifacts to software channel
         run: |
-          aws s3 cp dist/ s3://test-hyland-software-channel-dist/alfresco/drive-updates/ --recursive
+          release=${{ github.event.inputs.releaseType }}
+          if [ "$release" = "alpha" ] || [ "$release" = "" ]; then
+            aws s3 cp dist/ s3://test-hyland-software-channel-dist/alfresco/drive-updates/alpha/ --recursive
+          elif [ "$release" = "release" ]; then
+            aws s3 cp dist/ s3://test-hyland-software-channel-dist/alfresco/drive-updates/beta/ --recursive
+          fi
   # deploy:
   #   runs-on: ubuntu-latest
   #   needs: [release]
