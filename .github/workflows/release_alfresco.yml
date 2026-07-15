@@ -235,7 +235,7 @@ jobs:
         run: bash tools/osx/deploy_ci_agent.sh --check-upgrade-alfresco
 
       - name: "Upload artifacts"
-        uses: actions/upload-artifact@v8
+        uses: actions/upload-artifact@v7
         with:
           name: package-distributions-${{ matrix.os }}
           path: |
