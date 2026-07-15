@@ -189,6 +189,11 @@ class FinderSync: FIFinderSync {
         // only menu entries related to synced files should be displayed.
         // Else there is another menu for unsynced files and folders.
 
+        // Return empty menu
+        // Context Menu is disabled for both synced and unsynced items to prevent disparity
+        // Re-enable when Direct Transfer is implemented for Alfresco Drive, remove NSMenu()
+        return NSMenu()
+
         // Get selected items
         let items = FIFinderSyncController.default().selectedItemURLs()
 
