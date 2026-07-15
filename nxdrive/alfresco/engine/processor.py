@@ -289,6 +289,13 @@ class AlfrescoProcessor(_ProcessorBase):
                 log.exception("Unhandled error")
                 self.increase_error(doc_pair, "UNKNOWN")
             finally:
+                # Release the row-level lock so the next queue pull
+                # can re-acquire it.  Without this, ``processor``
+                # stays set to this thread's id in the DB and the
+                # row bounces forever with "Pair in use" 3s
+                # postpones (Nuxeo does the same in
+                # ``NuxeoProcessor._execute``).
+                self.dao.release_state(self.thread_id)
                 self._current_doc_pair = None
 
     def _handle_doc_pair_sync(
@@ -604,6 +611,14 @@ class AlfrescoProcessor(_ProcessorBase):
         doc_pair.local_digest = updated_info.get_digest()
         self.dao.update_last_transfer(doc_pair.id, "download")
         self._refresh_local_state(doc_pair, updated_info)
+        # After downloading fresh remote content, our stored
+        # ``remote_digest`` may be stale (e.g. after a "Use remote"
+        # conflict resolution where the server was modified between
+        # our last poll and the download).  Refresh it now so the
+        # next remote poll doesn't spuriously re-mark the pair as
+        # ``remotely_modified``.
+        with suppress(Exception):
+            self._refresh_remote(doc_pair)
 
     def _synchronize_remotely_deleted(self, doc_pair: DocPair, /) -> None:
         remote_id = self.local.get_remote_id(doc_pair.local_path)
@@ -753,6 +768,28 @@ class AlfrescoProcessor(_ProcessorBase):
             fs_item_info = self.remote.get_fs_info(doc_pair.remote_ref)
             self.dao.update_remote_state(doc_pair, fs_item_info, versioned=False)
         self.dao.synchronize_state(doc_pair)
+
+    def _synchronize_locally_resolved(self, doc_pair: DocPair, /) -> None:
+        """Handle a user-resolved conflict where the local copy wins.
+
+        Triggered when the user clicks "Use local" in the Conflicts UI:
+        ``dao.force_local()`` flips the pair to ``locally_resolved``
+        (``local_state='resolved'``, ``remote_state='unknown'``) and
+        the processor lands here.  Push the local content to the
+        server, overwriting whatever is there.
+
+        Mirrors Nuxeo's NXDRIVE-766 handler.  Refresh the local digest
+        first because the local file may have been re-edited between
+        the conflict being surfaced and the user resolving it.
+        """
+        if self.local.exists(doc_pair.local_path):
+            info = self.local.get_info(doc_pair.local_path)
+            doc_pair.local_digest = info.get_digest()
+            self.dao.update_local_state(doc_pair, info, versioned=False, queue=False)
+        if doc_pair.remote_ref:
+            self._synchronize_locally_modified(doc_pair)
+        else:
+            self._synchronize_locally_created(doc_pair)
 
     def _synchronize_locally_deleted(self, doc_pair: DocPair, /) -> None:
         if not doc_pair.remote_ref:

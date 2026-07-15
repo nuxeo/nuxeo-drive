@@ -154,7 +154,7 @@ class EngineModel(QAbstractListModel):
         engine.uiChanged.connect(self.uiChanged)
         engine.authChanged.connect(self.authChanged)
 
-    def _relay_engine_events(self) -> None:
+    def _relay_engine_events(self, *_args: object) -> None:
         engine = self.sender()
         self.statusChanged.emit(engine)
 

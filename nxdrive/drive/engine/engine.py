@@ -885,6 +885,15 @@ class Engine(QObject):
     def get_conflicts(self) -> DocPairs:
         return self.dao.get_conflicts()
 
+    def get_user_full_name(self, userid: str, /, *, cache_only: bool = False) -> str:
+        """Return the display name for *userid*.
+
+        Base implementation returns the cached name if present, otherwise
+        the raw *userid*.  Server-specific subclasses (e.g. Nuxeo) may
+        override this to fetch and cache the full name from the server.
+        """
+        return self._user_cache.get(userid, userid)
+
     def conflict_resolver(self, row_id: int, /, *, emit: bool = True) -> None:
         pair = self.dao.get_state_from_id(row_id)
         if not pair:

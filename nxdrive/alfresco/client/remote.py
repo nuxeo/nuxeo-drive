@@ -59,6 +59,7 @@ class AlfrescoRemote:
         timeout: int = Options.timeout,
         verify: bool = True,
         cert: Tuple[str] = None,
+        on_token_refreshed: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> None:
         self.server_url = url
         self.user_id = user_id
@@ -68,6 +69,10 @@ class AlfrescoRemote:
 
         if dao:
             self.dao = dao
+
+        # Retained so ``update_token()`` can re-attach the same callback
+        # when it rebuilds the auth object after a UI re-auth.
+        self._on_token_refreshed = on_token_refreshed
 
         # Build the authentication handler
         if token and isinstance(token, dict):
@@ -90,6 +95,9 @@ class AlfrescoRemote:
                 expires_in=expires_in,
                 token_url=token.get("token_url"),
                 client_id=token.get("client_id"),
+                # ``None`` for public / PKCE clients — vendor accepts it.
+                client_secret=token.get("client_secret"),
+                on_refresh=on_token_refreshed,
             )
         elif token and isinstance(token, str):
             # Pre-supplied bearer token string
@@ -183,6 +191,11 @@ class AlfrescoRemote:
                 expires_in=expires_in,
                 token_url=token.get("token_url"),
                 client_id=token.get("client_id"),
+                client_secret=token.get("client_secret"),
+                # Re-attach the same persistence callback the engine
+                # supplied at construction time; without this, silent
+                # refreshes after a UI re-auth stop being persisted.
+                on_refresh=self._on_token_refreshed,
             )
         elif isinstance(token, str) and token:
             new_auth = OAuth2Auth.from_token(access_token=token)

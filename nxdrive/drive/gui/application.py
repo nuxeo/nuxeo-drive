@@ -1419,6 +1419,7 @@ class Application(QApplication):
         engine.syncResumed.connect(self.change_systray_icon)
         engine.offline.connect(self.change_systray_icon)
         engine.online.connect(self.change_systray_icon)
+        engine.newConflict.connect(self.change_systray_icon)
         engine.rootDeleted.connect(self._root_deleted)
         engine.rootMoved.connect(self._root_moved)
         engine.docDeleted.connect(self._doc_deleted)

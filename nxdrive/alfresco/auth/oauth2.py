@@ -497,6 +497,15 @@ class AlfrescoOAuthentication(OAuthenticationBase):
                 client_id = getattr(self.auth, "client_id", None)
                 if client_id and "client_id" not in result:
                     result["client_id"] = client_id
+                # Persist ``client_secret`` when the AIMS client is
+                # configured as *confidential*. Keycloak rejects the
+                # refresh POST with ``invalid_client`` if the secret is
+                # missing, so we must round-trip it through the DAO.
+                # For public / PKCE clients this attribute is ``None``
+                # and we intentionally leave the key absent.
+                client_secret = getattr(self.auth, "client_secret", None)
+                if client_secret and "client_secret" not in result:
+                    result["client_secret"] = client_secret
             return result
         except OAuth2Error as exc:
             raise RemoteOAuth2Error(message=getattr(exc, "message", str(exc))) from exc
@@ -550,18 +559,24 @@ class AlfrescoOAuthentication(OAuthenticationBase):
         """Return the full token dict for storage.
 
         Includes ``access_token``, ``refresh_token``, ``expires_at``,
-        ``token_url``, and ``client_id`` so that ``AlfrescoRemote`` can
-        recreate an ``OAuth2Auth`` with proactive-refresh capability.
-        ``expires_at`` is a POSIX timestamp (float, seconds since epoch),
-        matching authlib's convention.
+        ``token_url``, ``client_id``, and (when configured)
+        ``client_secret`` so that ``AlfrescoRemote`` can recreate an
+        ``OAuth2Auth`` with proactive-refresh capability. ``expires_at``
+        is a POSIX timestamp (float, seconds since epoch), matching
+        authlib's convention.
         """
         token = self.auth.token
         if not token or not isinstance(token, dict):
             return None
-        return {
+        result: Dict[str, Any] = {
             "access_token": token.get("access_token", ""),
             "refresh_token": token.get("refresh_token"),
             "expires_at": token.get("expires_at"),
             "token_url": str(self.auth.token_endpoint),
             "client_id": self.auth.client_id,
         }
+        # Confidential clients only; ``None`` for public / PKCE clients.
+        client_secret = getattr(self.auth, "client_secret", None)
+        if client_secret:
+            result["client_secret"] = client_secret
+        return result

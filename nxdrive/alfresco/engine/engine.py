@@ -132,9 +132,35 @@ class AlfrescoEngine(Engine):
             alfresco_ticket=self._alfresco_ticket,
             dao=self.dao,
             proxy=self.manager.proxy,
+            on_token_refreshed=self._on_remote_token_refreshed,
         )
 
         return remote
+
+    def _on_remote_token_refreshed(self, new_token: dict) -> None:
+        """Persist a silently-refreshed OAuth2 token back to the DAO.
+
+        Invoked by :class:`RefreshingOAuth2Auth._token_request` after every
+        successful token exchange (initial fetch or refresh). Runs on a
+        worker thread while holding the vendor ``OAuth2Auth._lock``, so
+        keep this cheap and never let it raise \u2014 a DAO write failure
+        must not masquerade as an auth failure.
+
+        Without this hook, Keycloak refresh-token rotation invalidates
+        the on-disk token immediately after the first in-memory refresh,
+        and the next auth-object rebuild (thread restart, ``update_token``,
+        or a full app restart) fails with ``RuntimeError: Cannot acquire
+        a fresh access token...``, which is then surfaced to the user as
+        "Authentication expired" within minutes of login.
+        """
+        try:
+            self._remote_token = new_token
+            self._save_token(new_token)
+        except Exception:
+            log.warning(
+                "Could not persist refreshed OAuth2 token to DAO",
+                exc_info=True,
+            )
 
     # -- Account binding -----------------------------------------------------
 
@@ -402,6 +428,29 @@ class AlfrescoEngine(Engine):
     def _send_roots_metrics(self) -> None:
         """Skip sync-root metrics for Alfresco (no equivalent endpoint)."""
         pass
+
+    def get_metadata_url(self, remote_ref: str, /, *, edit: bool = False) -> str:
+        """Build the Alfresco Share document-details URL for ``remote_ref``.
+
+        The ``server_url`` may point at the repository root
+        (``http://host:8080/``) or include the ``/alfresco`` context
+        (``http://host:8080/alfresco/``).  Strip the trailing
+        ``/alfresco`` if present so the resulting URL lands on the
+        Share app at ``/share/page/document-details``.
+        """
+        from urllib.parse import urlsplit, urlunsplit
+
+        parts = urlsplit(self.server_url or "")
+        path = parts.path or "/"
+        stripped = path.rstrip("/")
+        if stripped.endswith("/alfresco"):
+            stripped = stripped[: -len("/alfresco")]
+        path = stripped + "/" if stripped else "/"
+        base = urlunsplit((parts.scheme, parts.netloc, path, "", ""))
+        return (
+            f"{base}share/page/document-details"
+            f"?nodeRef=workspace://SpacesStore/{remote_ref}"
+        )
 
     def _load_configuration(self) -> None:
         """Load engine configuration, restoring basic-auth password if needed."""
