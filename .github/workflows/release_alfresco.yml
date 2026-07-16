@@ -332,7 +332,7 @@ jobs:
           python tools/versions.py --merge || exit 1
           echo ">>> Versions file after merge:"
           cat versions.yml
-          aws s3 cp versions.yml "s3://$S3_BUCKET/alfresco/drive-updates/"
+          aws s3 cp versions.yml "s3://$S3_BUCKET/alfresco/drive-updates/" --cache-control "no-cache, max-age=0, must-revalidate"
           python tools/versions.py --delete "$drive_version" || exit 1
           rm versions.yml
   # deploy:
