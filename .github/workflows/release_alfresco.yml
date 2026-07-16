@@ -285,15 +285,31 @@ jobs:
         run: |
           bucket="$S3_BUCKET"
           key="alfresco/drive-updates/versions.yml"
+          aws_err_file="$(mktemp)"
 
-          if aws s3api head-object --bucket "$bucket" --key "$key" >/dev/null 2>&1; then
-            echo ">>> versions.yml found in S3, downloading"
-            aws s3api get-object --bucket "$bucket" --key "$key" versions.yml
+          if aws s3api get-object --bucket "$bucket" --key "$key" versions.yml 2>"$aws_err_file"; then
+            echo ">>> versions.yml found in S3 and downloaded"
           else
-            echo ">>> versions.yml not found in S3, creating an empty one"
-            : > versions.yml
-            aws s3 cp versions.yml "s3://$bucket/$key"
+            aws_error="$(cat "$aws_err_file")"
+
+            if echo "$aws_error" | grep -Eq 'NoSuchKey|404|Not Found'; then
+              echo ">>> versions.yml not found in S3, creating an empty one"
+              : > versions.yml
+              aws s3 cp versions.yml "s3://$bucket/$key"
+            elif echo "$aws_error" | grep -q 'AccessDenied'; then
+              echo ">>> Access denied while reading s3://$bucket/$key"
+              echo "$aws_error"
+              rm -f "$aws_err_file"
+              exit 1
+            else
+              echo ">>> Unexpected AWS error while reading s3://$bucket/$key"
+              echo "$aws_error"
+              rm -f "$aws_err_file"
+              exit 1
+            fi
           fi
+
+          rm -f "$aws_err_file"
 
       - name: Upload artifacts to software channel
         run: |
