@@ -31,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, 'macos-15-intel']
+        os: [ubuntu-latest]
 
     steps:
       - name: Inputs Received
@@ -239,8 +239,6 @@ jobs:
         with:
           name: package-distributions-${{ matrix.os }}
           path: |
-            ./dist/*.exe
-            ./dist/*.dmg
             ./dist/*.AppImage
           if-no-files-found: error
 
@@ -282,7 +280,6 @@ jobs:
           aws-region: us-east-1
 
       - name: Fetch/Create versions.yml
-        description: Fetch the versions.yml file from S3, or create it if it doesn't exist.
         run: |
           bash tools/fetch_versions_yml_s3.sh development
           exit_code=$?
@@ -301,7 +298,6 @@ jobs:
           fi
 
       - name: Update versions.yml
-        description: Update the versions.yml file with the new release version and type, then upload it to S3. Do cleanup of the local versions.yml file after upload.
         run: |
           drive_version="$(grep __alfresco_version__ nxdrive/__init__.py | cut -d'"' -f2)"
           python tools/versions.py --add "$drive_version" --type "${{ github.event.inputs.releaseType }}" || exit 1
