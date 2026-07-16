@@ -286,7 +286,7 @@ jobs:
       - name: Upload artifacts to software channel
         run: |
           release=${{ github.event.inputs.releaseType }}
-          if [ "$release" = "alpha" ] || [ "$release" = "" ]; then
+          if [ "$release" = "alpha" ]; then
             aws s3 cp dist/ s3://test-hyland-software-channel-dist/alfresco/drive-updates/alpha/ --recursive
           elif [ "$release" = "release" ]; then
             aws s3 cp dist/ s3://test-hyland-software-channel-dist/alfresco/drive-updates/beta/ --recursive
@@ -294,19 +294,13 @@ jobs:
 
       - name: Update versions.yml
         run: |
+          export SERVER="alfresco"
           drive_version="$(grep __alfresco_version__ nxdrive/__init__.py | cut -d'"' -f2)"
           python tools/versions.py --add "$drive_version" --type "${{ github.event.inputs.releaseType }}" || exit 1
           python tools/versions.py --merge || exit 1
           aws s3 cp versions.yml s3://test-hyland-software-channel-dist/alfresco/drive-updates/
-          # python tools/versions.py --delete "$drive_version" || exit 1
-          # rm versions.yml
-      - name: "Upload artifacts"
-        uses: actions/upload-artifact@v7
-        with:
-          name: yaml-files
-          path: |
-            ./*.yml
-          if-no-files-found: error
+          python tools/versions.py --delete "$drive_version" || exit 1
+          rm versions.yml
   # deploy:
   #   runs-on: ubuntu-latest
   #   needs: [release]
