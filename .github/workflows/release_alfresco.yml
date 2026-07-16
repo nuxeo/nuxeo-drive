@@ -297,7 +297,11 @@ jobs:
           export SERVER="alfresco"
           drive_version="$(grep __alfresco_version__ nxdrive/__init__.py | cut -d'"' -f2)"
           python tools/versions.py --add "$drive_version" --type "${{ github.event.inputs.releaseType }}" || exit 1
+          echo ">>> Versions file before merge:"
+          cat versions.yml
           python tools/versions.py --merge || exit 1
+          echo ">>> Versions file after merge:"
+          cat versions.yml
           aws s3 cp versions.yml s3://test-hyland-software-channel-dist/alfresco/drive-updates/
           python tools/versions.py --delete "$drive_version" || exit 1
           rm versions.yml
