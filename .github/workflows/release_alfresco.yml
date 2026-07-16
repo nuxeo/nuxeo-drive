@@ -298,8 +298,15 @@ jobs:
           python tools/versions.py --add "$drive_version" --type "${{ github.event.inputs.releaseType }}" || exit 1
           python tools/versions.py --merge || exit 1
           aws s3 cp versions.yml s3://test-hyland-software-channel-dist/alfresco/drive-updates/
-          python tools/versions.py --delete "$drive_version" || exit 1
-          rm versions.yml
+          # python tools/versions.py --delete "$drive_version" || exit 1
+          # rm versions.yml
+      - name: "Upload artifacts"
+        uses: actions/upload-artifact@v7
+        with:
+          name: yaml-files
+          path: |
+            ./*.yml
+          if-no-files-found: error
   # deploy:
   #   runs-on: ubuntu-latest
   #   needs: [release]

@@ -72,8 +72,6 @@ def create(version, category):
 
         with open(path, "rb") as installer:
             checksum = hashlib.sha256(installer.read()).hexdigest()
-            if checksum == "":
-                exit(1)
             if path.endswith("AppImage"):
                 checksum_appimage = checksum
             elif path.endswith("dmg"):
