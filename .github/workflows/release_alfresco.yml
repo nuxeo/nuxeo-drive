@@ -282,11 +282,6 @@ jobs:
       - name: Fetch/Create versions.yml
         run: |
           bash tools/fetch_versions_yml_s3.sh development
-          exit_code=$?
-          if [ $exit_code -eq 1 ]; then
-            echo "Creating empty versions.yml file as it does not exist in S3."
-            touch versions.yml
-            aws s3 cp versions.yml s3://test-hyland-software-channel-dist/alfresco/drive-updates/
 
       - name: Upload artifacts to software channel
         run: |
