@@ -31,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest, 'macos-15-intel']
 
     steps:
       - name: Inputs Received
@@ -106,139 +106,141 @@ jobs:
           GPG_KEY_FPR: ${{ secrets.GPG_KEY_FPR }}
         run: bash tools/linux/deploy_ci_agent.sh --verify-sign
 
-        #
-        # Windows
-        #
-        # - name: "[Windows] Unlock PowerShell"
-        #   if: matrix.os == 'windows-latest'
-        #   run: powershell Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
+      #
+      # Windows
+      #
+      - name: "[Windows] Unlock PowerShell"
+        if: matrix.os == 'windows-latest'
+        run: powershell Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
 
-        # - name: "[Windows] Setup the environment"
-        #   if: matrix.os == 'windows-latest'
-        #   run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
+      - name: "[Windows] Setup the environment"
+        if: matrix.os == 'windows-latest'
+        run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
 
-        # - name: Setup Certificate
-        #   if: matrix.os == 'windows-latest'
-        #   run: |
-        #      echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
-        #      cat  /d/Certificate_pkcs12.p12
-        #   shell: bash
+      - name: Setup Certificate
+        if: matrix.os == 'windows-latest'
+        run: |
+           echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
+           cat  /d/Certificate_pkcs12.p12
+        shell: bash
 
-        # - name: Set variables
-        #   if: matrix.os == 'windows-latest'
-        #   id: variables
-        #   run: |
-        #     dir
-        #     echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-        #     echo "KEYPAIR_NAME=gt-standard-keypair"  >> $GITHUB_OUTPUT
-        #     echo "CERTIFICATE_NAME=gt-certificate"  >> $GITHUB_OUTPUT
-        #     echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV"
-        #     echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV"
-        #     echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV"
-        #     echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV"
-        #     echo "SM_KEYPAIR_ALIAS=${{ secrets.SM_KEYPAIR_ALIAS }}" >> "$GITHUB_ENV"
-        #     echo "SM_CODE_SIGNING_CERT_SHA1_HASH=${{ secrets.SM_CODE_SIGNING_CERT_SHA1_HASH }}" >> "$GITHUB_ENV"
-        #     echo "C:\Program Files (x86)\Windows Kits\10\App Certification Kit" >> $GITHUB_PATH
-        #     echo "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8 Tools" >> $GITHUB_PATH
-        #     echo "C:\Program Files\DigiCert\DigiCert Keylocker Tools" >> $GITHUB_PATH
-        #   shell: bash
+      - name: Set variables
+        if: matrix.os == 'windows-latest'
+        id: variables
+        run: |
+          dir
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          echo "KEYPAIR_NAME=gt-standard-keypair"  >> $GITHUB_OUTPUT
+          echo "CERTIFICATE_NAME=gt-certificate"  >> $GITHUB_OUTPUT
+          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV"
+          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV"
+          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV"
+          echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "SM_KEYPAIR_ALIAS=${{ secrets.SM_KEYPAIR_ALIAS }}" >> "$GITHUB_ENV"
+          echo "SM_CODE_SIGNING_CERT_SHA1_HASH=${{ secrets.SM_CODE_SIGNING_CERT_SHA1_HASH }}" >> "$GITHUB_ENV"
+          echo "C:\Program Files (x86)\Windows Kits\10\App Certification Kit" >> $GITHUB_PATH
+          echo "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8 Tools" >> $GITHUB_PATH
+          echo "C:\Program Files\DigiCert\DigiCert Keylocker Tools" >> $GITHUB_PATH
+        shell: bash
 
-        # - name: Setup Keylocker KSP on windows
-        #   if: matrix.os == 'windows-latest'
-        #   run: |
-        #     curl -X GET  https://one.digicert.com/signingmanager/api-ui/v1/releases/Keylockertools-windows-x64.msi/download -H "x-api-key:%SM_API_KEY%" -o Keylockertools-windows-x64.msi
-        #     msiexec /i Keylockertools-windows-x64.msi /quiet /qn
-        #     smksp_registrar.exe list
-        #     smctl.exe keypair ls
-        #     C:\Windows\System32\certutil.exe -csp "DigiCert Signing Manager KSP" -key -user
-        #   shell: cmd
+      - name: Setup Keylocker KSP on windows
+        if: matrix.os == 'windows-latest'
+        run: |
+          curl -X GET  https://one.digicert.com/signingmanager/api-ui/v1/releases/Keylockertools-windows-x64.msi/download -H "x-api-key:%SM_API_KEY%" -o Keylockertools-windows-x64.msi
+          msiexec /i Keylockertools-windows-x64.msi /quiet /qn
+          smksp_registrar.exe list
+          smctl.exe keypair ls
+          C:\Windows\System32\certutil.exe -csp "DigiCert Signing Manager KSP" -key -user
+        shell: cmd
 
-        # - name: Certificates Sync
-        #   if: matrix.os == 'windows-latest'
-        #   run: |
-        #      smctl windows certsync --keypair-alias=${{ secrets.SM_KEYPAIR_ALIAS }}
-        #   shell: cmd
+      - name: Certificates Sync
+        if: matrix.os == 'windows-latest'
+        run: |
+           smctl windows certsync --keypair-alias=${{ secrets.SM_KEYPAIR_ALIAS }}
+        shell: cmd
 
-        # - name: Health status
-        #   if: matrix.os == 'windows-latest'
-        #   run: |
-        #      smctl healthcheck
-        #   shell: cmd
+      - name: Health status
+        if: matrix.os == 'windows-latest'
+        run: |
+           smctl healthcheck
+        shell: cmd
 
-        # - name: "[Windows] Generate the .exe and validate against 2023"
-        #   timeout-minutes: 15
-        #   if: matrix.os == 'windows-latest'
-        #   env:
-        #     SIGN_EXE: ${{ github.event.inputs.signExe }}
-        #     KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
-        #     SIGNING_ID: "Alfresco"
-        #     SIGNING_ID_NEW: "Hyland Software, Inc."
-        #   run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade_alfresco
+      - name: "[Windows] Generate the .exe and validate against 2023"
+        timeout-minutes: 15
+        if: matrix.os == 'windows-latest'
+        env:
+          SIGN_EXE: ${{ github.event.inputs.signExe }}
+          KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
+          SIGNING_ID: "Alfresco"
+          SIGNING_ID_NEW: "Hyland Software, Inc."
+        run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade_alfresco
 
-        # - name: "[Windows] Generate the .exe and validate against 2025"
-        #   timeout-minutes: 15
-        #   if: matrix.os == 'windows-latest'
-        #   env:
-        #     SIGN_EXE: ${{ github.event.inputs.signExe }}
-        #     KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
-        #     SIGNING_ID: "Alfresco"
-        #     SIGNING_ID_NEW: "Hyland Software, Inc."
-        #   run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -build_alfresco_installer_and_sign
+      - name: "[Windows] Generate the .exe and validate against 2025"
+        timeout-minutes: 15
+        if: matrix.os == 'windows-latest'
+        env:
+          SIGN_EXE: ${{ github.event.inputs.signExe }}
+          KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
+          SIGNING_ID: "Alfresco"
+          SIGNING_ID_NEW: "Hyland Software, Inc."
+        run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -build_alfresco_installer_and_sign
 
-        #
-        # macOS
-        #
+      #
+      # macOS
+      #
 
-        # - name: "[macOS] Setup certificates"
-        #   # Using nuxeo drive certificate for macOS notarization, as Alfresco Drive is not notarized yet.
-        #   if: matrix.os == 'macos-15-intel'
-        #   run: |
-        #     wget https://www.apple.com/appleca/AppleIncRootCertificate.cer
-        #     echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.p12
-        #     echo "${{ secrets.PRIV_APP_MACOS }}" | base64 --decode > nuxeo-drive.priv
+      - name: "[macOS] Setup certificates"
+        # Using nuxeo drive certificate for macOS notarization, as Alfresco Drive is not notarized yet.
+        if: matrix.os == 'macos-15-intel'
+        run: |
+          wget https://www.apple.com/appleca/AppleIncRootCertificate.cer
+          echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.p12
+          echo "${{ secrets.PRIV_APP_MACOS }}" | base64 --decode > nuxeo-drive.priv
 
-        # - name: "[macOS] Setup the environment"
-        #   if: matrix.os == 'macos-15-intel'
-        #   env:
-        #     MACOSX_DEPLOYMENT_TARGET: "11.3"
-        #     SYSTEM_VERSION_COMPAT: 0
-        #   run: bash tools/osx/deploy_ci_agent.sh --install-release
+      - name: "[macOS] Setup the environment"
+        if: matrix.os == 'macos-15-intel'
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "11.3"
+          SYSTEM_VERSION_COMPAT: 0
+        run: bash tools/osx/deploy_ci_agent.sh --install-release
 
-        # - name: "[macOS] Generate the .dmg and validate against 2023"
-        #   if: matrix.os == 'macos-15-intel'
-        #   timeout-minutes: 25
-        #   env:
-        #     MACOSX_DEPLOYMENT_TARGET: "11.3"
-        #     KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
-        #     KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-        #     NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
-        #     NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
-        #     NOTARIZATION_TEAMID: ${{ secrets.NOTARIZATION_TEAMID }}
-        #     SIGNING_ID: "NUXEO CORP"
-        #     SIGNING_ID_NEW: "Hyland Software, Inc."
-        #     SYSTEM_VERSION_COMPAT: 0
-        #   run: bash tools/osx/deploy_ci_agent.sh --check-upgrade-alfresco
+      - name: "[macOS] Generate the .dmg and validate against 2023"
+        if: matrix.os == 'macos-15-intel'
+        timeout-minutes: 25
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "11.3"
+          KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
+          NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
+          NOTARIZATION_TEAMID: ${{ secrets.NOTARIZATION_TEAMID }}
+          SIGNING_ID: "NUXEO CORP"
+          SIGNING_ID_NEW: "Hyland Software, Inc."
+          SYSTEM_VERSION_COMPAT: 0
+        run: bash tools/osx/deploy_ci_agent.sh --check-upgrade-alfresco
 
-        # - name: "[macOS] Generate the .dmg and validate against 2025"
-        #   if: matrix.os == 'macos-15-intel'
-        #   timeout-minutes: 25
-        #   env:
-        #     MACOSX_DEPLOYMENT_TARGET: "11.3"
-        #     KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
-        #     KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-        #     NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
-        #     NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
-        #     NOTARIZATION_TEAMID: ${{ secrets.NOTARIZATION_TEAMID }}
-        #     SIGNING_ID: "NUXEO CORP"
-        #     SIGNING_ID_NEW: "Hyland Software, Inc."
-        #     SYSTEM_VERSION_COMPAT: 0
-        #   run: bash tools/osx/deploy_ci_agent.sh --check-upgrade-alfresco
+      - name: "[macOS] Generate the .dmg and validate against 2025"
+        if: matrix.os == 'macos-15-intel'
+        timeout-minutes: 25
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "11.3"
+          KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
+          NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
+          NOTARIZATION_TEAMID: ${{ secrets.NOTARIZATION_TEAMID }}
+          SIGNING_ID: "NUXEO CORP"
+          SIGNING_ID_NEW: "Hyland Software, Inc."
+          SYSTEM_VERSION_COMPAT: 0
+        run: bash tools/osx/deploy_ci_agent.sh --check-upgrade-alfresco
 
       - name: "Upload artifacts"
         uses: actions/upload-artifact@v7
         with:
           name: package-distributions-${{ matrix.os }}
           path: |
+            ./dist/*.exe
+            ./dist/*.dmg
             ./dist/*.AppImage
           if-no-files-found: error
 
@@ -281,7 +283,7 @@ jobs:
           role-to-assume: arn:aws:iam::372466110691:role/AlfrescoCI/nuxeo-drive-software-channel-upload
           aws-region: us-east-1
 
-      - name: Fetch/Create versions.yml
+      - name: Fetch versions.yml
         run: |
           bucket="$S3_BUCKET"
           key="alfresco/drive-updates/versions.yml"
