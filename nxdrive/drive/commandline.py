@@ -601,6 +601,21 @@ class CliHandler:
         else:
             set_app_version(__alfresco_version__)
             app_version = __alfresco_version__
+        # Setting app download URL
+        update_site_url = supported_server.lower() + "_update_site_url"
+        with open(
+            find_resource("server_list", file="download_urls.txt"),
+            mode="r",
+            encoding="utf-8",
+        ) as url_file:
+            url_keys = [
+                line.strip().lower()
+                for line in url_file
+                if line.strip() and not line.strip().startswith("#")
+            ]
+            Options.update_site_url = [
+                url.split("=")[1] for url in url_keys if url.startswith(update_site_url)
+            ][0].strip()
 
         # Check if version number is alpha
         is_alpha = app_version.count(".") != 2

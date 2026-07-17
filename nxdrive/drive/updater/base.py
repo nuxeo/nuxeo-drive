@@ -118,7 +118,7 @@ class BaseUpdater(PollWorker):
     @property
     def server_ver(self) -> Optional[str]:
         """
-        Get the current Nuxeo version.
+        Get the current Drive version.
         It will take the server version of the first found engine.
         `None` if no bound engine.
         """
@@ -154,6 +154,8 @@ class BaseUpdater(PollWorker):
         self._set_status(UPDATE_STATUS_UPDATING, version=version, progress=10)
         try:
             self._install(version, self._download(version))
+        except CONNECTION_ERROR:
+            log.warning("Error during update request", exc_info=True)
         except OSError as exc:
             self._set_status(UPDATE_STATUS_UPDATE_AVAILABLE, version=version)
             if exc.errno in NO_SPACE_ERRORS:
@@ -161,8 +163,6 @@ class BaseUpdater(PollWorker):
                 self.noSpaceLeftOnDevice.emit()
             else:
                 raise
-        except CONNECTION_ERROR:
-            log.warning("Error during update request", exc_info=True)
         except UpdateIntegrityError as exc:
             log.warning(exc)
         except Exception:

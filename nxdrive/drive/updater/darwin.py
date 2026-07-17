@@ -154,7 +154,7 @@ class Updater(BaseUpdater):
 
         src = f"{mount_dir}/{APP_NAME}.app"
         if not Path(src).exists():
-            legacy_src = f"{mount_dir}/Nuxeo Drive.app"
+            legacy_src = f"{mount_dir}/{APP_NAME}.app"
             if Path(legacy_src).exists():
                 src = legacy_src
         log.info(f"Copying {src!r} -> {self.final_app!r}")
