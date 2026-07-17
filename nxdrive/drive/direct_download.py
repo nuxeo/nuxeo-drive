@@ -416,6 +416,14 @@ class DirectDownload(Worker):
                 log.exception("Document download failed")
                 failed += 1
 
+                # Surface the per-doc failure to the UI. Without this,
+                # ``_process_download``'s early ``except`` around
+                # ``get_info`` is the *only* place ``downloadError``
+                # fires, so downstream failures (e.g. a document with no
+                # resolvable blob) silently vanish from the user's view.
+                error_name = doc.get("filename") or doc.get("doc_id") or "unknown"
+                self.downloadError.emit(str(error_name), str(exc))
+
                 # Update status to FAILED
                 if record_uid:
                     self._update_download_status(

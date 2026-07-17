@@ -250,13 +250,37 @@ class DirectDownload(_DirectDownloadBase):
             is_folderish = doc_info.folderish
             doc_title = doc_info.name
 
-            # Get download URL if not provided (for simplified URL format)
+            # Get download URL if not provided (for simplified URL format).
+            # Try each xpath in order of likelihood; prefer ``blob.data``
+            # (a fully-formed ``nxfile`` URL with ``changeToken``) so the
+            # server-issued version pin is preserved. Reconstruct the
+            # path from ``blob.name`` only when ``data`` is absent
+            # (older Nuxeo responses). Notes are excluded here because
+            # their ``blob.data`` is the note *content* rather than a
+            # URL — they are inline documents and cannot be streamed
+            # over HTTP via this path.
             if not download_url and not is_folderish:
-                # Construct download URL from document info
-                blob = doc_info.get_blob("file:content")
-                if blob:
-                    # Build the download URL path
-                    download_url = f"nxfile/default/{doc_id}/file:content/{blob.name}"
+                for xpath in (
+                    "file:content",
+                    "files:files/0/file",
+                    "picture:views/0/content",
+                ):
+                    blob = doc_info.get_blob(xpath)
+                    if blob:
+                        download_url = blob.data or (
+                            f"nxfile/default/{doc_id}/{xpath}/{blob.name}"
+                        )
+                        break
+
+            # Note documents keep their content inline in ``note:note``
+            # rather than as a downloadable blob. Detect and route them
+            # to the Note-specific write path below.
+            is_note = (
+                not download_url
+                and not is_folderish
+                and doc_info.doc_type == "Note"
+                and bool(doc_info.properties.get("note:note"))
+            )
 
             # Use fetched filename if not provided
             if not filename:
@@ -279,6 +303,15 @@ class DirectDownload(_DirectDownloadBase):
         if is_folderish:
             # Handle folder: create folder and download contents recursively
             self._download_folder(
+                engine,
+                doc_id,
+                safe_name,
+                batch_folder,
+                record_uid=doc.get("_record_uid"),
+            )
+        elif is_note:
+            # Handle Note: write the inline text content directly to disk.
+            self._download_note(
                 engine,
                 doc_id,
                 safe_name,
@@ -413,21 +446,76 @@ class DirectDownload(_DirectDownloadBase):
         """
         props = doc.get("properties", {})
 
-        # Try file:content first (most common)
-        file_content = props.get("file:content")
-        if file_content and isinstance(file_content, dict):
-            data = file_content.get("data")
-            if data:
-                return data
+        # Try common content xpaths in order. ``data`` holds the full
+        # ``nxfile`` URL (with ``changeToken``) when the property is
+        # populated.
+        for xpath in ("file:content", "files:files/0/file", "picture:views/0/content"):
+            container = props
+            value: Any = None
+            for part in xpath.split("/"):
+                key: Any = int(part) if part.isnumeric() else part
+                if isinstance(container, dict):
+                    value = container.get(key)
+                elif isinstance(container, list):
+                    try:
+                        value = container[key]
+                    except (IndexError, TypeError):
+                        value = None
+                else:
+                    value = None
+                if value is None:
+                    break
+                container = value
+            if isinstance(value, dict):
+                data = value.get("data")
+                if data:
+                    return data
 
-        # Try note:note for Note documents
+        # Notes are inline: their content lives in ``note:note`` and is
+        # not an HTTP-streamable blob — caller must handle separately.
         if doc.get("type") == "Note":
-            note = props.get("note:note")
-            if note:
-                # Notes are inline, we'll handle them differently
+            if props.get("note:note"):
                 return None
 
         return None
+
+    def _download_note(
+        self,
+        engine: "Engine",
+        doc_id: str,
+        filename: str,
+        target_folder: Path,
+        /,
+        *,
+        record_uid: Optional[int] = None,
+    ) -> None:
+        """
+        Write a Nuxeo Note document's inline content to disk.
+
+        Notes do not expose a downloadable blob under ``file:content``;
+        their text lives in ``properties["note:note"]``. The remote
+        client's :meth:`NuxeoRemote.get_note` fetches the doc, decodes
+        the URL-encoded body, and writes UTF-8 bytes to *file_out*.
+
+        :param engine: The engine to use for API calls
+        :param doc_id: The document ID of the Note
+        :param filename: The target filename (uses the doc title with
+            any user-provided extension preserved)
+        :param target_folder: The batch folder to write into
+        :param record_uid: Optional DB record UID for progress tracking
+        """
+        target_path = target_folder / filename
+
+        # ``get_note(file_out=...)`` writes the note bytes directly and
+        # returns them. If the note is empty we still create an empty
+        # file so the batch finalizer sees a member for this record.
+        content = engine.remote.get_note(doc_id, file_out=target_path)
+        if not target_path.exists():
+            target_path.write_bytes(content or b"")
+
+        if record_uid:
+            size = target_path.stat().st_size
+            self._update_download_progress(record_uid, size, size)
 
     def _download_file(
         self,
@@ -450,6 +538,15 @@ class DirectDownload(_DirectDownloadBase):
         :param target_folder: The folder to save the file in
         :param record_uid: Optional DB record UID for progress tracking
         """
+        # Defensive guard: ``_process_download`` and ``_download_folder``
+        # can hand us ``None`` when a document has no resolvable blob
+        # under any of the known xpaths (empty ``File`` doc, Note,
+        # unsupported doc-type, etc.). Fail fast with a clear message
+        # so ``_process_batch``'s per-doc ``except`` records ``FAILED``
+        # with a useful reason and emits ``downloadError`` to the UI.
+        if not download_url:
+            raise RuntimeError(f"No downloadable content found for {filename!r}")
+
         expected_path = target_folder / filename
         target_path = expected_path
 
