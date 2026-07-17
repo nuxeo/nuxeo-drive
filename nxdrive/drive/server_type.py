@@ -43,9 +43,9 @@ class ServerTypeConfig:
     config_registry_key: str = "Software\\\\Hyland\\\\Drive"  # Windows registry
     emblem_name: str = "emblem-drive"  # Linux folder emblem icon name
     local_folder_name: str = "Drive"  # default sync folder name
-    download_exe: str = "drive.exe"  # fatal error download filename (Windows)
-    download_dmg: str = "drive.dmg"  # fatal error download filename (macOS)
-    download_appimage: str = "drive-x86_64.AppImage"  # fatal error download (Linux)
+    download_exe: str = "drive-{}.exe"  # fatal error download filename (Windows)
+    download_dmg: str = "drive-{}.dmg"  # fatal error download filename (macOS)
+    download_appimage: str = "drive-{}-x86_64.AppImage"  # fatal error download (Linux)
 
     # Nuxeo-specific (empty for non-Nuxeo server types)
     sync_root: str = ""  # e.g. "/org.nuxeo.drive.service.impl..."

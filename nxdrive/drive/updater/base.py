@@ -118,7 +118,7 @@ class BaseUpdater(PollWorker):
     @property
     def server_ver(self) -> Optional[str]:
         """
-        Get the current Drive version.
+        Get the current server version.
         It will take the server version of the first found engine.
         `None` if no bound engine.
         """
@@ -176,7 +176,7 @@ class BaseUpdater(PollWorker):
     def _download(self, version: str, /) -> str:
         """Download a given version to a temporary file."""
 
-        name = self.release_file.format(version=version)
+        name = self.release_file.format(version)
         url = "/".join([self.update_site, self.versions[version]["type"], name])
         path = os.path.join(gettempdir(), uuid.uuid4().hex + "_" + name)
         headers = {"User-Agent": user_agent()}

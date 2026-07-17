@@ -151,8 +151,11 @@ def get_update_status(
         )
         return "", ""
 
-    # Filter versions based on their compatibility with the server
-    versions = get_compatible_versions(versions, server_version, has_browser_login)
+    # Filter versions based on their compatibility with the server (only for Nuxeo)
+    from ..options import Options
+
+    if Options.server_type == "NUXEO":
+        versions = get_compatible_versions(versions, server_version, has_browser_login)
 
     # If the update channel is Centralized, we do not filter anything more
     # and just return the desired version.
