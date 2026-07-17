@@ -39,7 +39,7 @@ _SUCCESS_HTML = (
     b"<!DOCTYPE html>"
     b"<html lang='en'><head>"
     b"<meta charset='utf-8'>"
-    b"<title>Nuxeo Drive</title>"
+    b"<title>HYLAND</title>"
     b"<style>"
     b"body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;"
     b"text-align:center;padding:4em 1em;color:#222;background:#f7f7f7;}"
@@ -47,14 +47,14 @@ _SUCCESS_HTML = (
     b"p{color:#555;font-size:1.05em;}"
     b"</style></head><body>"
     b"<h1>Authentication complete</h1>"
-    b"<p>You can close this browser tab and return to Nuxeo Drive.</p>"
+    b"<p>You can close this browser tab and return to the application.</p>"
     b"</body></html>"
 )
 
 _ERROR_HTML = (
     b"<!DOCTYPE html>"
     b"<html lang='en'><head><meta charset='utf-8'>"
-    b"<title>Nuxeo Drive</title></head>"
+    b"<title>HYLAND</title></head>"
     b"<body><h1>Not a valid redirect.</h1></body></html>"
 )
 
