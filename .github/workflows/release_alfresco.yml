@@ -206,18 +206,31 @@ jobs:
         env:
           P12_PWD: ${{ secrets.HYLAND_DEVELOPER_ID_APPLICATION_CERT_PASSWORD }}
         run: |
+          set -x
           OPENSSL="$(brew --prefix openssl@3)/bin/openssl"
           "$OPENSSL" version
           "$OPENSSL" pkcs12 -in developerID_application.p12 -nodes -legacy \
-            -passin "pass:${P12_PWD}" \
+            -passin env:P12_PWD \
             -out developerID_application.pem
           "$OPENSSL" pkcs12 -export \
             -in developerID_application.pem \
             -keypbe AES-256-CBC -certpbe AES-256-CBC -macalg SHA256 \
-            -passout "pass:${P12_PWD}" \
+            -iter 100000 \
+            -passout env:P12_PWD \
             -out developerID_application.modern.p12
           rm -f developerID_application.pem
           mv developerID_application.modern.p12 developerID_application.p12
+          echo "--- modernized .p12 summary ---"
+          wc -c developerID_application.p12
+          shasum -a 256 developerID_application.p12
+          "$OPENSSL" pkcs12 -info -in developerID_application.p12 -nokeys -noout \
+            -passin env:P12_PWD || echo "openssl -info failed"
+          echo "--- security import dry-run ---"
+          security import developerID_application.p12 \
+            -k "$HOME/Library/Keychains/login.keychain-db" \
+            -P "${P12_PWD}" -A -T /usr/bin/codesign \
+            && echo ">>> security import OK" \
+            || echo ">>> security import FAILED (exit $?)"
 
       - name: "[macOS] Setup the environment"
         if: matrix.os == 'macos-15-intel'
