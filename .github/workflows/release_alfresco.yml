@@ -31,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, 'macos-15-intel']
+        os: [ubuntu-latest, windows-latest, 'macos-14']
 
     steps:
       - name: Inputs Received
@@ -190,63 +190,21 @@ jobs:
 
       - name: "[macOS] Setup certificates"
         # Using nuxeo drive certificate for macOS notarization, as Alfresco Drive is not notarized yet.
-        if: matrix.os == 'macos-15-intel'
+        if: matrix.os == 'macos-14'
         run: |
           wget https://www.apple.com/appleca/AppleIncRootCertificate.cer
           echo "${{ secrets.HYLAND_DEVELOPER_ID_APPLICATION_CERT }}" | base64 --decode > developerID_application.p12
           echo "${{ secrets.HYLAND_DEVELOPER_ID_APPLICATION_PKEY }}" | base64 --decode > drive.priv
 
-      # macOS 15 (Sequoia) `security import` rejects legacy PKCS#12 archives
-      # (RC2 / PBE-SHA1 / SHA-1 MAC) with "MAC verification failed". The
-      # Hyland-provided .p12 is still in the legacy format, so we re-export
-      # it in place with AES-256-CBC + SHA-256 MAC using Homebrew's OpenSSL 3
-      # (the `openssl` in PATH is LibreSSL and does not support `-legacy`).
-      - name: "[macOS] Normalize .p12 to modern PKCS#12"
-        if: matrix.os == 'macos-15-intel'
-        env:
-          P12_PWD: ${{ secrets.HYLAND_DEVELOPER_ID_APPLICATION_CERT_PASSWORD }}
-        run: |
-          set -x
-          # Strip any stray CR/LF/tab/space introduced by the GitHub secret
-          # store so that `openssl -passin env:P12_PWD` (which reads the raw
-          # env value) and `security -P "$P12_PWD"` (bash expansion) see the
-          # same byte sequence.
-          P12_PWD="$(printf '%s' "$P12_PWD" | tr -d '\r\n\t ')"
-          export P12_PWD
-          OPENSSL="$(brew --prefix openssl@3)/bin/openssl"
-          "$OPENSSL" version
-          "$OPENSSL" pkcs12 -in developerID_application.p12 -nodes -legacy \
-            -passin env:P12_PWD \
-            -out developerID_application.pem
-          "$OPENSSL" pkcs12 -export \
-            -in developerID_application.pem \
-            -keypbe AES-256-CBC -certpbe AES-256-CBC -macalg SHA256 \
-            -iter 100000 \
-            -passout env:P12_PWD \
-            -out developerID_application.modern.p12
-          rm -f developerID_application.pem
-          mv developerID_application.modern.p12 developerID_application.p12
-          echo "--- modernized .p12 summary ---"
-          wc -c developerID_application.p12
-          shasum -a 256 developerID_application.p12
-          "$OPENSSL" pkcs12 -info -in developerID_application.p12 -nokeys -noout \
-            -passin env:P12_PWD || echo "openssl -info failed"
-          echo "--- security import dry-run ---"
-          security import developerID_application.p12 \
-            -k "$HOME/Library/Keychains/login.keychain-db" \
-            -P "${P12_PWD}" -A -T /usr/bin/codesign \
-            && echo ">>> security import OK" \
-            || echo ">>> security import FAILED (exit $?)"
-
       - name: "[macOS] Setup the environment"
-        if: matrix.os == 'macos-15-intel'
+        if: matrix.os == 'macos-14'
         env:
           MACOSX_DEPLOYMENT_TARGET: "11.3"
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --install-release
 
       - name: "[macOS] Generate the .dmg and validate against 2023"
-        if: matrix.os == 'macos-15-intel'
+        if: matrix.os == 'macos-14'
         timeout-minutes: 25
         env:
           MACOSX_DEPLOYMENT_TARGET: "11.3"
@@ -261,7 +219,7 @@ jobs:
         run: bash tools/osx/deploy_ci_agent.sh --check-upgrade-alfresco
 
       - name: "[macOS] Generate the .dmg and validate against 2025"
-        if: matrix.os == 'macos-15-intel'
+        if: matrix.os == 'macos-14'
         timeout-minutes: 25
         env:
           MACOSX_DEPLOYMENT_TARGET: "11.3"
