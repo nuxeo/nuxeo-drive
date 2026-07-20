@@ -196,6 +196,27 @@ jobs:
           echo "${{ secrets.HYLAND_DEVELOPER_ID_APPLICATION_CERT }}" | base64 --decode > developerID_application.p12
           echo "${{ secrets.HYLAND_DEVELOPER_ID_APPLICATION_PKEY }}" | base64 --decode > drive.priv
 
+      # TODO: remove once macOS signing is confirmed working.
+      - name: "[macOS] Debug — verify decoded certificate"
+        if: matrix.os == 'macos-15-intel'
+        env:
+          CERT_B64: ${{ secrets.HYLAND_DEVELOPER_ID_APPLICATION_CERT }}
+          PKEY_B64: ${{ secrets.HYLAND_DEVELOPER_ID_APPLICATION_PKEY }}
+          P12_PWD:  ${{ secrets.HYLAND_DEVELOPER_ID_APPLICATION_CERT_PASSWORD }}
+        run: |
+          echo "CERT base64 length : $(printf '%s' "$CERT_B64" | wc -c | tr -d ' ')"
+          echo "PKEY base64 length : $(printf '%s' "$PKEY_B64" | wc -c | tr -d ' ')"
+          echo "P12  password length: $(printf '%s' "$P12_PWD"  | wc -c | tr -d ' ')"
+          echo "developerID_application.p12 size : $(wc -c < developerID_application.p12 | tr -d ' ') bytes"
+          echo "developerID_application.p12 sha256: $(shasum -a 256 developerID_application.p12 | awk '{print $1}')"
+          echo "drive.priv size : $(wc -c < drive.priv | tr -d ' ') bytes"
+          echo "drive.priv sha256: $(shasum -a 256 drive.priv | awk '{print $1}')"
+          file developerID_application.p12 drive.priv
+          echo "--- openssl integrity check (should print 'MAC verified OK') ---"
+          openssl pkcs12 -info -in developerID_application.p12 -nokeys -legacy \
+            -passin "pass:$P12_PWD" -noout && echo ">>> p12 decrypts OK" \
+            || echo ">>> p12 decrypt FAILED with this password"
+
       - name: "[macOS] Setup the environment"
         if: matrix.os == 'macos-15-intel'
         env:
