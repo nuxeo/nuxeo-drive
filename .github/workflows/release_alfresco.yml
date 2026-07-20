@@ -210,10 +210,13 @@ jobs:
           "$OPENSSL" version
           "$OPENSSL" pkcs12 -in developerID_application.p12 -nodes -legacy \
             -passin "pass:${P12_PWD}" \
-          | "$OPENSSL" pkcs12 -export \
-              -keypbe AES-256-CBC -certpbe AES-256-CBC -macalg SHA256 \
-              -passout "pass:${P12_PWD}" \
-              -out developerID_application.modern.p12
+            -out developerID_application.pem
+          "$OPENSSL" pkcs12 -export \
+            -in developerID_application.pem \
+            -keypbe AES-256-CBC -certpbe AES-256-CBC -macalg SHA256 \
+            -passout "pass:${P12_PWD}" \
+            -out developerID_application.modern.p12
+          rm -f developerID_application.pem
           mv developerID_application.modern.p12 developerID_application.p12
 
       - name: "[macOS] Setup the environment"
