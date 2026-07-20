@@ -417,7 +417,7 @@
 				INFOPLIST_FILE = drive/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 11.3;
-				PRODUCT_BUNDLE_IDENTIFIER = org.nuxeo.drive;
+				PRODUCT_BUNDLE_IDENTIFIER = org.alfresco.drive;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 4.0;
@@ -436,7 +436,7 @@
 				INFOPLIST_FILE = drive/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 11.3;
-				PRODUCT_BUNDLE_IDENTIFIER = org.nuxeo.drive;
+				PRODUCT_BUNDLE_IDENTIFIER = org.alfresco.drive;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 4.0;
@@ -459,7 +459,7 @@
 				INFOPLIST_FILE = AlfrescoFinderSync/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @executable_path/../../../../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 11.3;
-				PRODUCT_BUNDLE_IDENTIFIER = org.nuxeo.drive.AlfrescoFinderSync;
+				PRODUCT_BUNDLE_IDENTIFIER = org.alfresco.drive.AlfrescoFinderSync;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
@@ -483,7 +483,7 @@
 				INFOPLIST_FILE = AlfrescoFinderSync/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @executable_path/../../../../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 11.3;
-				PRODUCT_BUNDLE_IDENTIFIER = org.nuxeo.drive.AlfrescoFinderSync;
+				PRODUCT_BUNDLE_IDENTIFIER = org.alfresco.drive.AlfrescoFinderSync;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;

@@ -62,10 +62,14 @@ prepare_signing_from_scratch() {
     security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
 
     echo ">>> [sign] Add certificates to keychain and allow codesign to access them"
+    echo ">>> [sign] Import - AppleIncRootCertificate.cer"
     security import ./AppleIncRootCertificate.cer -t cert -A -k "${KEYCHAIN_PATH}"
+    echo ">>> [sign] Import - developerID_application.p12"
     security import ./developerID_application.p12 -k "${KEYCHAIN_PATH}" -P "${KEYCHAIN_PASSWORD}" -A -T /usr/bin/codesign
-    security import ./nuxeo-drive.priv -t priv -A -T /usr/bin/codesign -k "${KEYCHAIN_PATH}"
+    echo ">>> [sign] Import - drive.priv"
+    security import ./drive.priv -t priv -A -T /usr/bin/codesign -k "${KEYCHAIN_PATH}"
 
+    echo ">>> [sign] Prepare Signing"
     prepare_signing
 }
 
