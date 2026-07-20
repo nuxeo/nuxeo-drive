@@ -207,6 +207,12 @@ jobs:
           P12_PWD: ${{ secrets.HYLAND_DEVELOPER_ID_APPLICATION_CERT_PASSWORD }}
         run: |
           set -x
+          # Strip any stray CR/LF/tab/space introduced by the GitHub secret
+          # store so that `openssl -passin env:P12_PWD` (which reads the raw
+          # env value) and `security -P "$P12_PWD"` (bash expansion) see the
+          # same byte sequence.
+          P12_PWD="$(printf '%s' "$P12_PWD" | tr -d '\r\n\t ')"
+          export P12_PWD
           OPENSSL="$(brew --prefix openssl@3)/bin/openssl"
           "$OPENSSL" version
           "$OPENSSL" pkcs12 -in developerID_application.p12 -nodes -legacy \

@@ -53,6 +53,10 @@ prepare_signing_from_scratch() {
     fi
 
     echo ">>> [sign] Create the keychain"
+    # Strip any stray CR/LF/tab/space that may have been introduced by the
+    # GitHub secret store — `security` reads the -P argument literally, so a
+    # trailing character would cause "MAC verification failed" on p12 import.
+    KEYCHAIN_PASSWORD="$(printf '%s' "${KEYCHAIN_PASSWORD}" | tr -d '\r\n\t ')"
     security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
 
     echo ">>> [sign] Make the custom keychain default, so xcodebuild will use it for signing"
