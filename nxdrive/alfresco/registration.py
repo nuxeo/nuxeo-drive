@@ -152,7 +152,7 @@ register(
         auth_factory=_alfresco_auth_factory,
         app_name="Hyland Drive for Alfresco",
         company="Hyland",
-        bundle_identifier="com.alfresco.drive",
+        bundle_identifier="org.alfresco.drive",
         url_scheme="nxdrive",
         config_registry_key="Software\\Alfresco\\Drive",
         emblem_name="emblem-alfresco",
