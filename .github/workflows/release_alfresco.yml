@@ -212,8 +212,8 @@ jobs:
           NOTARIZATION_USERNAME: ${{ vars.HYLAND_APPLE_ID_NOTARISATION }}
           NOTARIZATION_PASSWORD: ${{ secrets.HYLAND_APPLE_ID_PASS_NOTARISATION }}
           NOTARIZATION_TEAMID: ${{ vars.HYLAND_TEAM_ID }}
-          SIGNING_ID: "Hyland Software, Inc."
-          SIGNING_ID_NEW: "Hyland Software, Inc."
+          SIGNING_ID: "Hyland Software Inc."
+          SIGNING_ID_NEW: "Hyland Software Inc."
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --check-upgrade-alfresco
 
@@ -227,8 +227,8 @@ jobs:
           NOTARIZATION_USERNAME: ${{ vars.HYLAND_APPLE_ID_NOTARISATION }}
           NOTARIZATION_PASSWORD: ${{ secrets.HYLAND_APPLE_ID_PASS_NOTARISATION }}
           NOTARIZATION_TEAMID: ${{ vars.HYLAND_TEAM_ID }}
-          SIGNING_ID: "Hyland Software, Inc."
-          SIGNING_ID_NEW: "Hyland Software, Inc."
+          SIGNING_ID: "Hyland Software Inc."
+          SIGNING_ID_NEW: "Hyland Software Inc."
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --check-upgrade-alfresco
 
