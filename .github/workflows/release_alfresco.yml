@@ -31,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, 'macos-14']
+        os: [ubuntu-latest, windows-latest, 'macos-15-intel']
 
     steps:
       - name: Inputs Received
@@ -190,21 +190,20 @@ jobs:
 
       - name: "[macOS] Setup certificates"
         # Using nuxeo drive certificate for macOS notarization, as Alfresco Drive is not notarized yet.
-        if: matrix.os == 'macos-14'
+        if: matrix.os == 'macos-15-intel'
         run: |
           wget https://www.apple.com/appleca/AppleIncRootCertificate.cer
           echo "${{ secrets.HYLAND_DEVELOPER_ID_APPLICATION_CERT }}" | base64 --decode > developerID_application.p12
-          echo "${{ secrets.HYLAND_DEVELOPER_ID_APPLICATION_PKEY }}" | base64 --decode > drive.priv
 
       - name: "[macOS] Setup the environment"
-        if: matrix.os == 'macos-14'
+        if: matrix.os == 'macos-15-intel'
         env:
           MACOSX_DEPLOYMENT_TARGET: "11.3"
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --install-release
 
       - name: "[macOS] Generate the .dmg and validate against 2023"
-        if: matrix.os == 'macos-14'
+        if: matrix.os == 'macos-15-intel'
         timeout-minutes: 25
         env:
           MACOSX_DEPLOYMENT_TARGET: "11.3"
@@ -219,7 +218,7 @@ jobs:
         run: bash tools/osx/deploy_ci_agent.sh --check-upgrade-alfresco
 
       - name: "[macOS] Generate the .dmg and validate against 2025"
-        if: matrix.os == 'macos-14'
+        if: matrix.os == 'macos-15-intel'
         timeout-minutes: 25
         env:
           MACOSX_DEPLOYMENT_TARGET: "11.3"
