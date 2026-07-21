@@ -262,7 +262,16 @@ create_package() {
 
         codesign --display --verbose "${pkg_path}"
         codesign --verbose=4 --deep --strict "${pkg_path}"
-        spctl --assess --verbose "${pkg_path}"
+        # Diagnostic only. `spctl --assess` runs Gatekeeper against the
+        # bundle, which at this point is signed with a valid Developer ID
+        # but has not yet been submitted to Apple's notary service (that
+        # happens later, against the .dmg produced below). Gatekeeper
+        # therefore reports `source=Unnotarized Developer ID` and exits
+        # with code 3 -- which under `set -e` would abort the whole
+        # pipeline before we ever get a chance to notarize. Swallow the
+        # exit code so the output remains visible as a diagnostic without
+        # being fatal.
+        spctl --assess --verbose "${pkg_path}" || true
     fi
 
     echo ">>> [package] Creating the DMG file"
