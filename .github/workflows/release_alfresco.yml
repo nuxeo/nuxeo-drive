@@ -113,6 +113,45 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: powershell Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
 
+      # TEMPORARY: verifies that every Keylocker-related secret/var is populated in
+      # this environment. Prints PRESENT/MISSING (never the values themselves) and
+      # fails the job early if any are missing. Remove once the release is stable.
+      - name: "[Windows] Verify Keylocker secrets & vars are present"
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        env:
+          ALFRESCO_SM_CLIENT_CERT_FILE_B64: ${{ secrets.ALFRESCO_SM_CLIENT_CERT_FILE_B64 }}
+          ALFRESCO_SM_API_KEY: ${{ secrets.ALFRESCO_SM_API_KEY }}
+          ALFRESCO_SM_CLIENT_CERT_PASSWORD: ${{ secrets.ALFRESCO_SM_CLIENT_CERT_PASSWORD }}
+          ALFRESCO_SM_HOST: ${{ vars.ALFRESCO_SM_HOST }}
+          ALFRESCO_SM_KEYPAIR_ALIAS: ${{ vars.ALFRESCO_SM_KEYPAIR_ALIAS }}
+          ALFRESCO_SM_CODE_SIGNING_CERT_SHA1_HASH: ${{ vars.ALFRESCO_SM_CODE_SIGNING_CERT_SHA1_HASH }}
+        run: |
+          missing=0
+          check() {
+            local name="$1"
+            local value="$2"
+            if [ -z "$value" ]; then
+              echo "  [MISSING] $name"
+              missing=$((missing + 1))
+            else
+              echo "  [PRESENT] $name (length=${#value})"
+            fi
+          }
+          echo ">>> Verifying Keylocker secrets"
+          check "secrets.ALFRESCO_SM_CLIENT_CERT_FILE_B64" "$ALFRESCO_SM_CLIENT_CERT_FILE_B64"
+          check "secrets.ALFRESCO_SM_API_KEY"              "$ALFRESCO_SM_API_KEY"
+          check "secrets.ALFRESCO_SM_CLIENT_CERT_PASSWORD" "$ALFRESCO_SM_CLIENT_CERT_PASSWORD"
+          echo ">>> Verifying Keylocker repository variables"
+          check "vars.ALFRESCO_SM_HOST"                            "$ALFRESCO_SM_HOST"
+          check "vars.ALFRESCO_SM_KEYPAIR_ALIAS"                   "$ALFRESCO_SM_KEYPAIR_ALIAS"
+          check "vars.ALFRESCO_SM_CODE_SIGNING_CERT_SHA1_HASH"     "$ALFRESCO_SM_CODE_SIGNING_CERT_SHA1_HASH"
+          if [ "$missing" -gt 0 ]; then
+            echo ">>> $missing value(s) missing; aborting."
+            exit 1
+          fi
+          echo ">>> All Keylocker values present."
+
       - name: "[Windows] Setup the environment"
         if: matrix.os == 'windows-latest'
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -install_release
@@ -120,7 +159,7 @@ jobs:
       - name: Setup Certificate
         if: matrix.os == 'windows-latest'
         run: |
-           echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
+           echo "${{ secrets.ALFRESCO_SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
         shell: bash
 
       - name: Set variables
@@ -131,12 +170,12 @@ jobs:
           echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
           echo "KEYPAIR_NAME=gt-standard-keypair"  >> $GITHUB_OUTPUT
           echo "CERTIFICATE_NAME=gt-certificate"  >> $GITHUB_OUTPUT
-          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV"
-          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV"
+          echo "SM_HOST=${{ vars.ALFRESCO_SM_HOST }}" >> "$GITHUB_ENV"
+          echo "SM_API_KEY=${{ secrets.ALFRESCO_SM_API_KEY }}" >> "$GITHUB_ENV"
           echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV"
-          echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV"
-          echo "SM_KEYPAIR_ALIAS=${{ secrets.SM_KEYPAIR_ALIAS }}" >> "$GITHUB_ENV"
-          echo "SM_CODE_SIGNING_CERT_SHA1_HASH=${{ secrets.SM_CODE_SIGNING_CERT_SHA1_HASH }}" >> "$GITHUB_ENV"
+          echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.ALFRESCO_SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "SM_KEYPAIR_ALIAS=${{ vars.ALFRESCO_SM_KEYPAIR_ALIAS }}" >> "$GITHUB_ENV"
+          echo "SM_CODE_SIGNING_CERT_SHA1_HASH=${{ vars.ALFRESCO_SM_CODE_SIGNING_CERT_SHA1_HASH }}" >> "$GITHUB_ENV"
           echo "C:\Program Files (x86)\Windows Kits\10\App Certification Kit" >> $GITHUB_PATH
           echo "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8 Tools" >> $GITHUB_PATH
           echo "C:\Program Files\DigiCert\DigiCert Keylocker Tools" >> $GITHUB_PATH
@@ -155,7 +194,7 @@ jobs:
       - name: Certificates Sync
         if: matrix.os == 'windows-latest'
         run: |
-           smctl windows certsync --keypair-alias=${{ secrets.SM_KEYPAIR_ALIAS }}
+           smctl windows certsync --keypair-alias=${{ vars.ALFRESCO_SM_KEYPAIR_ALIAS }}
         shell: cmd
 
       - name: Health status
@@ -169,7 +208,7 @@ jobs:
         if: matrix.os == 'windows-latest'
         env:
           SIGN_EXE: ${{ github.event.inputs.signExe }}
-          KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.ALFRESCO_SM_CLIENT_CERT_PASSWORD }}
           SIGNING_ID: "Alfresco"
           SIGNING_ID_NEW: "Hyland Software, Inc."
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -check_upgrade_alfresco
@@ -179,7 +218,7 @@ jobs:
         if: matrix.os == 'windows-latest'
         env:
           SIGN_EXE: ${{ github.event.inputs.signExe }}
-          KEYCHAIN_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.ALFRESCO_SM_CLIENT_CERT_PASSWORD }}
           SIGNING_ID: "Alfresco"
           SIGNING_ID_NEW: "Hyland Software, Inc."
         run: powershell ".\\tools\\windows\\deploy_ci_agent.ps1" -build_alfresco_installer_and_sign
