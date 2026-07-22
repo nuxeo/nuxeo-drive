@@ -310,7 +310,15 @@ class Manager(QObject):
             self.dao.delete_config("synchronization_enabled")
             return
 
-        # Backward-compatibility after an upgrade
+        # Backward-compatibility after an upgrade from a Nuxeo Drive
+        # version older than 5.2.1, where ``synchronization`` was
+        # implicitly enabled.  This migration is Nuxeo-Drive-specific:
+        # skip it for other server types (e.g. Alfresco Drive, whose
+        # version numbers start at 1.x and would otherwise always
+        # match ``<= 5.2.1`` and re-enable sync on every restart,
+        # overwriting the user's choice in ``config.ini``).
+        if Options.server_type != "NUXEO":
+            return
         old_version = self.get_config("client_version")
         if old_version is not None and version_le(old_version, "5.2.1"):
             self.set_feature_state("synchronization", True)
