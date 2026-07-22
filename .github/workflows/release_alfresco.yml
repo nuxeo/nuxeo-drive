@@ -153,7 +153,7 @@ jobs:
 
       - name: Setup Keylocker KSP on windows
         # Remove `continue-on-error: true` once the Keylocker KSP is stable and the Windows signing pipeline is reliable. This step is currently failing intermittently with "403 Invalid credentials" even when the API key and P12 are correct, so we allow it to fail without failing the whole job.
-        conitnue-on-error: true
+        continue-on-error: true
         if: matrix.os == 'windows-latest'
         run: |
           curl -X GET  https://one.digicert.com/signingmanager/api-ui/v1/releases/Keylockertools-windows-x64.msi/download -H "x-api-key:%SM_API_KEY%" -o Keylockertools-windows-x64.msi
