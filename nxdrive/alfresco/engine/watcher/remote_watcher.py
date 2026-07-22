@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional
 from alfresco.exceptions import AuthenticationError as AlfrescoAuthError
 from alfresco.exceptions import NetworkError as AlfrescoNetworkError
 
+from nxdrive.alfresco.sync_filters import is_top_folder_excluded
 from nxdrive.drive.constants import ROOT
 from nxdrive.drive.engine.activity import tooltip
 from nxdrive.drive.engine.watcher.remote_watcher_base import RemoteWatcherBase
@@ -181,6 +182,16 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
         for node in nodes:
             child_info = remote._node_to_remote_file_info(node)
+
+            # Skip Alfresco system folders (Data Dictionary, IMAP Home,
+            # Guest Home, IMAP Attachments, Sites/rm) that must never
+            # be synced by default.  Admins can override via the
+            # ``alfresco_force_sync_top_folders`` and
+            # ``alfresco_excluded_top_folders`` options in ``config.ini``.
+            # See ``nxdrive/alfresco/sync_filters.py`` for the exact rule.
+            if is_top_folder_excluded(child_info.path):
+                log.debug(f"Skipping Alfresco system folder {child_info.path!r}")
+                continue
 
             # Skip filtered paths ("Choose folders to sync" in the GUI).
             # Use the human-readable Alfresco path (from the node's path

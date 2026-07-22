@@ -268,6 +268,8 @@ class MetaOptions(type):
 
     # Default options
     options: Dict[str, Tuple[Any, str]] = {
+        "alfresco_excluded_top_folders": ("", "default"),
+        "alfresco_force_sync_top_folders": ("", "default"),
         "big_file": (300, "default"),
         "browser_startup_page": ("", "default"),
         "ca_bundle": (None, "default"),

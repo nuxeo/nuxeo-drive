@@ -17,6 +17,7 @@ from alfresco.exceptions import AlfrescoError, ConflictError, CorruptedFile
 from alfresco.models.node import Node
 
 from nxdrive.alfresco.auth.refresh import RefreshingOAuth2Auth
+from nxdrive.alfresco.sync_filters import is_top_folder_excluded
 from nxdrive.drive.constants import TransferStatus
 from nxdrive.drive.exceptions import DownloadPaused, NotFound, RemoteConflict
 from nxdrive.drive.metrics.utils import user_agent
@@ -354,6 +355,11 @@ class AlfrescoRemote:
         """
         nodes = list(self.client.nodes.iter_children(fs_item_id, include=["path"]))
         infos = [self._node_to_remote_file_info(n) for n in nodes]
+
+        # Always hide Alfresco system folders from the folder-picker
+        # dialog so the user cannot accidentally re-enable them.
+        # See ``nxdrive/alfresco/sync_filters.py`` for the rule.
+        infos = [info for info in infos if not is_top_folder_excluded(info.path)]
 
         if not filtered or not hasattr(self, "dao"):
             return infos
