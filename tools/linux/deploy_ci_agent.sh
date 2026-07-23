@@ -69,11 +69,33 @@ find_appimage() {
     appimage_file="${appimage_files[0]}"
 }
 
+# Locate the file offset and size of the .sha256_sig section reserved by the
+# AppImage type-2 runtime. Populates $sig_offset and $sig_size.
+locate_sig_section() {
+    if ! command -v objdump >/dev/null 2>&1; then
+        echo ">>> [AppImage] 'objdump' not found; installing binutils"
+        sudo apt-get update && sudo apt-get install -y binutils
+    fi
+
+    # objdump -h columns: Idx Name Size VMA LMA File-off Algn
+    read sig_offset sig_size < <(
+        objdump -h "$appimage_file" \
+            | awk '$2==".sha256_sig"{printf "%d %d\n", strtonum("0x"$6), strtonum("0x"$3)}'
+    )
+
+    if [ -z "$sig_offset" ] || [ -z "$sig_size" ] || [ "$sig_size" -eq 0 ]; then
+        echo ">>> [AppImage] AppImage has no .sha256_sig section; cannot embed signature"
+        exit 1
+    fi
+}
+
 sign() {
-    # Import GPG Private Key for signing the AppImage
+    # Import GPG Private Key for signing the AppImage.
+    # Feed the key on stdin and silence GPG's stderr so no key UID / key ID
+    # metadata is written to CI logs.
     if [ -n "$GPG_PRIVATE_KEY" ]; then
-        echo "$GPG_PRIVATE_KEY" | gpg --batch --import
-        if [ $? -ne 0 ]; then
+        if ! printf '%s\n' "$GPG_PRIVATE_KEY" \
+                | gpg --batch --quiet --import >/dev/null 2>&1; then
             echo ">>> [AppImage] Failed to import GPG private key from GitHub Secrets"
             exit 1
         fi
@@ -86,37 +108,104 @@ sign() {
     fi
 
     find_appimage
+    locate_sig_section
 
-    # Sign the AppImage with a detached signature
-    gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --output "${appimage_file}.sig" --detach-sign "$appimage_file"
+    # The .sha256_sig section is pre-allocated (zero-filled) by appimagetool,
+    # so we sign the AppImage as-is; the signature will then be embedded into
+    # that same section without changing the file size.
+    #
+    # The passphrase is passed via stdin (--passphrase-fd 0) instead of argv,
+    # so it never appears in process listings even on shared runners.
+    local detached_sig="${appimage_file}.sig"
+    if ! printf '%s' "$GPG_PASSPHRASE" \
+            | gpg --batch --yes --quiet --pinentry-mode loopback \
+                  --passphrase-fd 0 --armor \
+                  --output "$detached_sig" --detach-sign "$appimage_file" \
+                  >/dev/null 2>&1; then
+        echo ">>> [AppImage] Failed to create detached signature"
+        rm -f "$detached_sig"
+        exit 1
+    fi
 
-    echo ">>> [AppImage] AppImage signed: ${appimage_file}.sig"
+    local sig_bytes
+    sig_bytes=$(wc -c < "$detached_sig")
+    if [ "$sig_bytes" -gt "$sig_size" ]; then
+        echo ">>> [AppImage] Signature (${sig_bytes} bytes) exceeds .sha256_sig section (${sig_size} bytes)"
+        rm -f "$detached_sig"
+        exit 1
+    fi
+
+    echo ">>> [AppImage] Embedding signature into ${appimage_file} at offset ${sig_offset} (section size ${sig_size})"
+    # dd conv=notrunc writes in place at the exact offset, preserving file size
+    # and every other byte of the AppImage.
+    dd if="$detached_sig" of="$appimage_file" bs=1 seek="$sig_offset" count="$sig_bytes" conv=notrunc status=none
+    if [ $? -ne 0 ]; then
+        echo ">>> [AppImage] Failed to embed signature into ${appimage_file}"
+        rm -f "$detached_sig"
+        exit 1
+    fi
+
+    # Embedded-only distribution: drop the standalone detached signature.
+    rm -f "$detached_sig"
+    chmod +x "$appimage_file"
+
+    echo ">>> [AppImage] Signature embedding successful"
     return 0  # <-- Needed, do not remove!
 }
 
 verify_sign() {
-    # Check if GPG_PASSPHRASE is set
+    # Check if GPG_KEY_FPR is set
     if [ -z "$GPG_KEY_FPR" ]; then
         echo ">>> [AppImage] GPG_KEY_FPR is not set in GitHub Secrets"
         exit 1
     fi
 
-    # Import GPG Public Key from keyserver
+    # Import GPG Public Key from keyserver. Silence stderr so signer identity
+    # (UID / email associated with the key) is not written to CI logs.
     echo ">>> [AppImage] Importing GPG public key from keys.openpgp.org"
-    gpg --keyserver hkps://keys.openpgp.org --recv-keys "$GPG_KEY_FPR"
-    if [ $? -ne 0 ]; then
+    if ! gpg --keyserver hkps://keys.openpgp.org --recv-keys "$GPG_KEY_FPR" \
+            >/dev/null 2>&1; then
         echo ">>> [AppImage] Failed to import GPG public key"
         exit 1
     fi
 
-    # Set trust level to ultimate
-    echo "$GPG_KEY_FPR:6:" | gpg --batch --yes --import-ownertrust
+    # Set trust level to ultimate (silence GPG chatter).
+    printf '%s:6:\n' "$GPG_KEY_FPR" \
+        | gpg --batch --yes --quiet --import-ownertrust >/dev/null 2>&1
 
     find_appimage
+    locate_sig_section
 
-    # Verify the signature
-    gpg --verify "${appimage_file}.sig" "$appimage_file"
-    if [ $? -eq 0 ]; then
+    # Extract the embedded signature block from the .sha256_sig section.
+    # The section may contain trailing zero padding after the ASCII-armored
+    # signature; keep everything up to and including the END marker.
+    local section_dump extracted_sig appimage_zeroed
+    section_dump="$(mktemp)"
+    extracted_sig="$(mktemp)"
+    appimage_zeroed="$(mktemp)"
+
+    dd if="$appimage_file" of="$section_dump" bs=1 skip="$sig_offset" count="$sig_size" status=none
+    awk '/^-----END PGP SIGNATURE-----/{print; found=1; exit} {print}' "$section_dump" > "$extracted_sig"
+
+    if [ ! -s "$extracted_sig" ] || ! grep -q -- "-----END PGP SIGNATURE-----" "$extracted_sig"; then
+        echo ">>> [AppImage] No embedded PGP signature found in ${appimage_file}"
+        rm -f "$section_dump" "$extracted_sig" "$appimage_zeroed"
+        exit 1
+    fi
+
+    # Reconstruct the bytes that were originally signed: the AppImage with the
+    # .sha256_sig section zero-filled (the state before embedding).
+    cp "$appimage_file" "$appimage_zeroed"
+    dd if=/dev/zero of="$appimage_zeroed" bs=1 seek="$sig_offset" count="$sig_size" conv=notrunc status=none
+
+    # Verify silently; we only need the exit code. Emitting a generic pass/fail
+    # message avoids leaking the signer UID that gpg would otherwise print.
+    gpg --batch --quiet --verify "$extracted_sig" "$appimage_zeroed" >/dev/null 2>&1
+    local verify_rc=$?
+
+    rm -f "$section_dump" "$extracted_sig" "$appimage_zeroed"
+
+    if [ $verify_rc -eq 0 ]; then
         echo ">>> [AppImage] Signature verification successful"
     else
         echo ">>> [AppImage] Signature verification failed"
