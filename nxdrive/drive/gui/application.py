@@ -1075,6 +1075,27 @@ class Application(QApplication):
         self.file_model.add_files([])
 
     @pyqtSlot()
+    def _on_engine_state_cleared(self) -> None:
+        """Refresh QML models after an engine wiped its DAO state.
+
+        Emitted by :attr:`Engine.syncStateCleared` after a subclass
+        (currently ``AlfrescoEngine``) has cleared its ``States`` and
+        ``Filters`` tables — typically when the user disables the
+        synchronisation feature.  We must drop any cached views that
+        still reference the rows we just deleted, otherwise the
+        systray keeps showing stale filenames and the conflicts /
+        errors dialog keeps showing stale entries.
+        """
+        engine = self.sender()
+        # Recently-Synchronised list
+        self.file_model.add_files([])
+        # Conflicts / errors / ignoreds windows
+        if isinstance(engine, Engine):
+            self.refresh_conflicts(engine.uid)
+        # Icon (syncing → idle/disabled) and syncing counter
+        self.change_systray_icon()
+
+    @pyqtSlot()
     def change_systray_icon(self) -> None:
         # Update status has the precedence over other ones
         if self.manager.updater.status not in (
@@ -1427,6 +1448,7 @@ class Application(QApplication):
         engine.noSpaceLeftOnDevice.connect(self._no_space_left)
         engine.newSyncStarted.connect(self.refresh_files)
         engine.newSyncEnded.connect(self.refresh_files)
+        engine.syncStateCleared.connect(self._on_engine_state_cleared)
 
         # Refresh the systray files list on each database update
         engine.dao.transferUpdated.connect(partial(self.refresh_transfers, engine.dao))
@@ -1820,6 +1842,15 @@ class Application(QApplication):
         if self.use_light_icons is use_light_icons:
             return
 
+        # Non-Nuxeo builds (Alfresco) ship grayscale tray icons that render
+        # nearly-invisible on the black macOS menu bar because Qt does not
+        # know to treat them as template images.  Marking the icon as a
+        # template lets macOS repaint it in the system foreground colour
+        # (white on dark menu bars, black on light ones) and matches the
+        # native platform convention.  Nuxeo icons stay coloured — flipping
+        # the mask flag would flatten the multi-colour "N" to a silhouette.
+        is_mac_template = MAC and Options.server_type != "NUXEO"
+
         suffix = ("", "_light")[use_light_icons]
         mask = str(find_icon("active.svg"))  # Icon mask for macOS
         for state in {
@@ -1841,6 +1872,8 @@ class Application(QApplication):
             icon.addFile(str(find_icon(file)))
             if MAC:
                 icon.addFile(mask, mode=qt.Selected)
+            if is_mac_template:
+                icon.setIsMask(True)
             self.icons[state] = icon
 
         self.use_light_icons = use_light_icons

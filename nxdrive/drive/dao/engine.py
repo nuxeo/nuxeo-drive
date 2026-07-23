@@ -714,8 +714,12 @@ class EngineDAO(BaseDAO):
             return bool(c.rowcount == 1)
 
     def _reinit_states(self, cursor: Cursor, /) -> None:
-        cursor.execute("DROP TABLE States")
-        self._create_state_table(cursor, force=True)
+        # Clear all state rows without dropping the table so that columns
+        # added by later migrations (e.g. doc_type from migration 22) remain
+        # present. DROP TABLE + _create_state_table would recreate the base
+        # schema only and break subsequent DocPair.export() calls with
+        # IndexError: No item with that key.
+        cursor.execute("DELETE FROM States")
         for config in (
             "remote_last_sync_date",
             "remote_last_event_log_id",

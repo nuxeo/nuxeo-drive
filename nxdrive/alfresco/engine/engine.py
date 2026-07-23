@@ -101,6 +101,62 @@ class AlfrescoEngine(Engine):
         # Trigger a full remote scan on the next watcher cycle
         self.dao.update_config("remote_need_full_scan", "1")
 
+    # -- Sync-disable cleanup ------------------------------------------------
+
+    def start(self) -> None:
+        """Override to clean up stale sync state when the user has
+        disabled the synchronisation feature.
+
+        Behaviour on restart with ``Feature.synchronization`` off:
+
+        * clear the DAO ``States`` table so the systray "Recently
+          synchronised" history is empty;
+        * remove every entry from the DAO ``Filters`` table so a later
+          re-enable starts from a clean selection;
+        * clear the ``filters_configured`` flag so the folder-picker
+          dialog is shown again the first time the user re-enables sync
+          and restarts.
+
+        The local sync folder is **left untouched** on disk so any
+        unuploaded user work is preserved.  Only runs once per
+        disable transition (guarded by the ``filters_configured`` flag).
+        """
+        if not Feature.synchronization and self.dao.get_config("filters_configured"):
+            self._cleanup_after_sync_disabled()
+        super().start()
+
+    def _cleanup_after_sync_disabled(self) -> None:
+        """Wipe DB-level sync state after the user disables sync.
+
+        See :meth:`start` for the full rationale.  This method is
+        intentionally non-destructive on disk.
+        """
+        log.info(f"Alfresco sync disabled — clearing DB state for engine {self.uid}")
+        try:
+            self.dao.reinit_states()
+        except Exception:
+            log.warning("Failed to reinit States table", exc_info=True)
+
+        try:
+            for path in list(self.dao.get_filters()):
+                self.dao.remove_filter(path)
+        except Exception:
+            log.warning("Failed to clear Filters table", exc_info=True)
+
+        try:
+            self.dao.delete_config("filters_configured")
+        except Exception:
+            log.warning("Failed to clear filters_configured flag", exc_info=True)
+
+        # Tell the GUI to drop any cached views (Recently Synchronised
+        # list, conflicts/errors/ignoreds panels, syncing counter) that
+        # still reference the rows we just deleted.  Emitted last so
+        # receivers observe a fully-consistent DAO.
+        try:
+            self.syncStateCleared.emit()
+        except Exception:
+            log.warning("Failed to emit syncStateCleared signal", exc_info=True)
+
     # -- Sync state tracking -------------------------------------------------
 
     @pyqtSlot(object)

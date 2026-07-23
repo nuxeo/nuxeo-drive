@@ -94,6 +94,12 @@ class Engine(QObject):
     syncPartialCompleted = pyqtSignal()
     syncSuspended = pyqtSignal()
     syncResumed = pyqtSignal()
+    # Emitted after the DAO ``States`` / ``Filters`` tables have been
+    # wiped programmatically (e.g. by ``AlfrescoEngine`` when the user
+    # disables the synchronisation feature).  Receivers should clear
+    # any QML models that mirror DAO rows so the systray does not show
+    # entries for pairs that no longer exist.
+    syncStateCleared = pyqtSignal()
     rootDeleted = pyqtSignal()
     rootMoved = pyqtSignal(Path)
     docDeleted = pyqtSignal(Path)
