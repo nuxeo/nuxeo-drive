@@ -1842,15 +1842,6 @@ class Application(QApplication):
         if self.use_light_icons is use_light_icons:
             return
 
-        # Non-Nuxeo builds (Alfresco) ship grayscale tray icons that render
-        # nearly-invisible on the black macOS menu bar because Qt does not
-        # know to treat them as template images.  Marking the icon as a
-        # template lets macOS repaint it in the system foreground colour
-        # (white on dark menu bars, black on light ones) and matches the
-        # native platform convention.  Nuxeo icons stay coloured — flipping
-        # the mask flag would flatten the multi-colour "N" to a silhouette.
-        is_mac_template = MAC and Options.server_type != "NUXEO"
-
         suffix = ("", "_light")[use_light_icons]
         mask = str(find_icon("active.svg"))  # Icon mask for macOS
         for state in {
@@ -1872,8 +1863,7 @@ class Application(QApplication):
             icon.addFile(str(find_icon(file)))
             if MAC:
                 icon.addFile(mask, mode=qt.Selected)
-            if is_mac_template:
-                icon.setIsMask(True)
+
             self.icons[state] = icon
 
         self.use_light_icons = use_light_icons
