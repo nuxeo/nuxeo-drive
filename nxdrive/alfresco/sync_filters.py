@@ -1,16 +1,16 @@
 """
 Top-level path filtering for the Alfresco sync scope.
 
-Certain Alfresco system folders (``/Data Dictionary``, ``/Guest Home``,
-``/IMAP Home``, ``/IMAP Attachments``, ``/Sites/rm``) must never be
+Certain Alfresco system folders under ``/Company Home`` must never be
 synchronised to end-user machines by default:
 
-* ``/Data Dictionary`` — administrative content / client update payloads.
-* ``/Guest Home`` — guest-user landing folder.
-* ``/IMAP Home`` and ``/IMAP Attachments`` — internal storage for the
-  Alfresco IMAP subsystem.
-* ``/Sites/rm`` — Records Management site (compliance / legal-hold rules
-  forbid pulling these documents outside the server).
+* ``/Company Home/Data Dictionary`` — administrative content /
+  client update payloads.
+* ``/Company Home/Guest Home`` — guest-user landing folder.
+* ``/Company Home/IMAP Home`` and ``/Company Home/IMAP Attachments`` —
+  internal storage for the Alfresco IMAP subsystem.
+* ``/Company Home/Sites/rm`` — Records Management site (compliance /
+  legal-hold rules forbid pulling these documents outside the server).
 
 This mirrors the behaviour of the legacy Alfresco Desktop Sync client
 (``alfresco-desktop-sync-master/SyncCoreLib/source/CMISAPI.cpp``), which
@@ -23,6 +23,10 @@ from ``config.ini`` (neither is present by default):
   hard-coded exclusion list that should be re-enabled.
 * ``alfresco_excluded_top_folders`` — comma-separated *additional* paths
   the administrator wants to exclude on top of the hard-coded list.
+
+Paths in both overrides may be written **with or without** the leading
+``/Company Home`` segment — the matcher normalises both forms before
+comparing.
 
 Runtime rule for a path *P*:
 
@@ -47,41 +51,72 @@ __all__ = (
 )
 
 
+#: Alfresco repository root under which every user-visible folder lives.
+#: Node paths returned by the Alfresco REST API (``path.elements`` +
+#: ``node.name``) are always rooted here — e.g. ``/Company Home/Sites``.
+_ALFRESCO_ROOT: str = "/Company Home"
+
+
 #: Hard-coded system folders that are excluded from Alfresco sync by
 #: default.  Paths are stored without a trailing slash and are matched
-#: as prefixes (so a listed folder covers all its descendants).
+#: as prefixes (so a listed folder covers all its descendants).  They
+#: are stored in the fully-qualified form the Alfresco REST API returns
+#: so the matcher is a plain string comparison at runtime.
 HARDCODED_EXCLUDED_TOP_FOLDERS: Tuple[str, ...] = (
-    "/Data Dictionary",
-    "/Guest Home",
-    "/IMAP Home",
-    "/IMAP Attachments",
-    "/Sites/rm",
+    f"{_ALFRESCO_ROOT}/Data Dictionary",
+    f"{_ALFRESCO_ROOT}/Guest Home",
+    f"{_ALFRESCO_ROOT}/IMAP Home",
+    f"{_ALFRESCO_ROOT}/IMAP Attachments",
+    f"{_ALFRESCO_ROOT}/Sites/rm",
 )
+
+
+def _normalise(path: str) -> str:
+    """Strip the trailing slash and prepend the ``/Company Home`` root
+    if the caller supplied the shorter admin-friendly form.
+    """
+    if not path:
+        return ""
+    path = path.strip().rstrip("/")
+    if not path:
+        return ""
+    if not path.startswith("/"):
+        path = "/" + path
+    if path == _ALFRESCO_ROOT or path.startswith(_ALFRESCO_ROOT + "/"):
+        return path
+    return _ALFRESCO_ROOT + path
 
 
 def _parse_paths(value: str) -> Tuple[str, ...]:
     """Split a comma-separated ``config.ini`` value into a tuple of
-    normalised paths.  Empty entries and surrounding whitespace are
-    stripped; trailing slashes are removed so prefix matching is stable.
+    normalised, fully-qualified paths.  Empty entries and surrounding
+    whitespace are stripped.
     """
     if not value:
         return ()
-    return tuple(
-        entry.strip().rstrip("/") for entry in value.split(",") if entry.strip()
-    )
+    return tuple(_normalise(entry) for entry in value.split(",") if entry.strip())
 
 
 def _covered_by(path: str, prefixes: Iterable[str]) -> bool:
     """Return ``True`` if ``path`` equals or is a descendant of any
     prefix in ``prefixes``.
+
+    Comparison is **case-insensitive** because Alfresco deployments
+    routinely differ on the casing of the system-folder names — e.g.
+    ``/Company Home/IMAP Attachments`` vs ``/Company Home/Imap
+    Attachments``.  Alfresco itself treats sibling names as
+    case-sensitive at the storage layer, but the exclusion list
+    should match either spelling so admins do not have to hand-tune
+    it per server.
     """
     if not path:
         return False
-    normalised = path.rstrip("/")
+    normalised = path.rstrip("/").casefold()
     for prefix in prefixes:
         if not prefix:
             continue
-        if normalised == prefix or normalised.startswith(prefix + "/"):
+        lowered = prefix.casefold()
+        if normalised == lowered or normalised.startswith(lowered + "/"):
             return True
     return False
 

@@ -722,9 +722,52 @@ class AlfrescoRemote:
         Mirrors ``Remote.make_folder()`` — the Processor calls this
         to create a folder on the server during
         ``_synchronize_locally_created``.
+
+        Reconciliation: if a folder with *name* already exists under
+        *parent_id* (HTTP 409 "Duplicate child name"), adopt the
+        existing remote folder instead of failing.  This mirrors the
+        behaviour of :meth:`stream_file` for files and lets the
+        processor recover when the local disk still holds a folder
+        that was previously synchronised but whose DAO state has been
+        wiped (e.g. after the user disables + re-enables the
+        synchronisation feature).  Without this, the parent folder
+        stays stuck in ``locally_created`` forever and every child
+        file below it raises ``ParentNotSynced`` on every processor
+        tick.
         """
-        node = self.create_folder(parent_id, name)
+        try:
+            node = self.create_folder(parent_id, name)
+        except ConflictError as exc:
+            log.info(
+                f"Folder {name!r} already exists under {parent_id!r} "
+                f"({exc}); adopting the existing remote folder"
+            )
+            existing = self._find_child_folder(parent_id, name)
+            if existing is None:
+                # Conflict reported but child not found — surface the
+                # original error so it is not silently swallowed.
+                raise
+            node = existing
         return self._node_to_remote_file_info(node)
+
+    def _find_child_folder(self, parent_id: str, name: str, /) -> Optional[Node]:
+        """Return the existing child folder *name* under *parent_id*,
+        or ``None`` if no matching folder is found.
+
+        Uses ``iter_children`` to walk server-side pagination so that
+        matches beyond the first 100 children are still found (same
+        rationale as the file-reconciliation path in :meth:`stream_file`).
+        """
+        try:
+            for child in self.client.nodes.iter_children(parent_id):
+                if child.name == name and child.is_folder:
+                    return child
+        except Exception:
+            log.debug(
+                f"Could not scan {parent_id!r} for existing folder " f"{name!r}",
+                exc_info=True,
+            )
+        return None
 
     def get_info(
         self,
