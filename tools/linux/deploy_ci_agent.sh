@@ -110,6 +110,15 @@ sign() {
     find_appimage
     locate_sig_section
 
+    # The AppImage was produced inside a Docker container running as root,
+    # so on the host it is owned by root and not writable by the CI user.
+    # Take ownership (or at least grant write) before we try to embed the
+    # signature in place with dd conv=notrunc.
+    if [ ! -w "$appimage_file" ]; then
+        sudo chown "$(id -u):$(id -g)" "$appimage_file" 2>/dev/null \
+            || sudo chmod u+w "$appimage_file"
+    fi
+
     # The .sha256_sig section is pre-allocated (zero-filled) by appimagetool,
     # so we sign the AppImage as-is; the signature will then be embedded into
     # that same section without changing the file size.
