@@ -31,6 +31,34 @@ PYTHON_VENV="./venv/bin/python -Xutf8 -E -s"
 PYTHON_OPT="${PYTHON_VENV} -OO"
 PIP="${PYTHON_OPT} -m pip install --no-cache-dir --upgrade --progress-bar=off"
 
+cleanup_copied_icons() {
+    # Local-build only: remove icons that were copied from
+    # nxdrive/data/icons/<server>/ into nxdrive/drive/data/icons/ before the
+    # build, so they don't appear as changes in `git status`. Only files
+    # whose relative path also exists in the server-specific source folder
+    # are removed; shared icons that don't come from that folder are kept.
+    # No-op on CI (GITHUB_WORKSPACE set): CI runners are ephemeral.
+    if [ "${GITHUB_WORKSPACE:-unset}" != "unset" ]; then
+        return 0
+    fi
+
+    local server_name="$1"
+    local source_folder="${PWD}/nxdrive/data/icons/${server_name}"
+    local destination_folder="${PWD}/nxdrive/drive/data/icons"
+
+    if [ ! -d "${source_folder}" ] || [ ! -d "${destination_folder}" ]; then
+        return 0
+    fi
+
+    echo ">>> [local] Removing copied ${server_name} icons from ${destination_folder}"
+    ( cd "${source_folder}" && find . -type f -print0 ) \
+        | while IFS= read -r -d '' rel; do
+            rm -f "${destination_folder}/${rel#./}"
+        done
+
+    return 0
+}
+
 build_nuxeo_installer() {
     local version
 
@@ -82,6 +110,8 @@ build_nuxeo_installer() {
     fi
 
     create_package "nuxeo"
+
+    cleanup_copied_icons "nuxeo"
 }
 
 build_alfresco_installer() {
@@ -139,6 +169,8 @@ build_alfresco_installer() {
     fi
 
     create_package "alfresco"
+
+    cleanup_copied_icons "alfresco"
 }
 
 check_import() {

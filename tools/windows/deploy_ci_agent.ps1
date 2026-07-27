@@ -106,6 +106,35 @@ function build($app_version, $script) {
 	}
 }
 
+function cleanup_copied_icons($server_name) {
+	# Local-build only: remove icons that were copied from
+	# nxdrive\data\icons\<server>\ into nxdrive\drive\data\icons\ before the
+	# build, so they don't appear as changes in `git status`. Only files
+	# whose relative path also exists in the server-specific source folder
+	# are removed; shared icons that don't come from that folder are kept.
+	# No-op on CI (GITHUB_WORKSPACE set): CI runners are ephemeral.
+	if ($Env:GITHUB_WORKSPACE) {
+		return
+	}
+
+	$source_folder = "nxdrive\data\icons\$server_name"
+	$destination_folder = "nxdrive\drive\data\icons"
+
+	if (-Not (Test-Path $source_folder) -Or -Not (Test-Path $destination_folder)) {
+		return
+	}
+
+	Write-Output ">>> [local] Removing copied $server_name icons from $destination_folder"
+	$source_root = (Resolve-Path $source_folder).Path
+	Get-ChildItem -Path $source_folder -Recurse -File | ForEach-Object {
+		$rel = $_.FullName.Substring($source_root.Length).TrimStart('\')
+		$target = Join-Path $destination_folder $rel
+		if (Test-Path -LiteralPath $target -PathType Leaf) {
+			Remove-Item -LiteralPath $target -Force
+		}
+	}
+}
+
 function build_dll($server_name, $msbuild_exe, $project, $platform) {
 	$server_name = $server_name.ToLower()
 	if ($server_name -eq "nuxeo") {
@@ -165,6 +194,8 @@ function build_nuxeo_installer {
 
 	build "$app_version" "tools\windows\nuxeo_iss\setup-admin.iss"
 	#sign "dist\nuxeo-drive-$app_version-admin.exe"
+
+	cleanup_copied_icons "nuxeo"
 }
 
 function build_alfresco_installer {
@@ -206,6 +237,8 @@ function build_alfresco_installer {
 	build "$app_version" "tools\windows\alfresco_iss\setup.iss"
 
 	build "$app_version" "tools\windows\alfresco_iss\setup-admin.iss"
+
+	cleanup_copied_icons "alfresco"
 }
 
 function build_overlays($server_name) {
@@ -836,6 +869,8 @@ function build_nuxeo_installer_and_sign {
 
 	build "$app_version" "tools\windows\nuxeo_iss\setup-admin.iss"
 	sign "dist\nuxeo-drive-$app_version-admin.exe"
+
+	cleanup_copied_icons "nuxeo"
 }
 
 function build_alfresco_installer_and_sign {
@@ -886,6 +921,8 @@ function build_alfresco_installer_and_sign {
 
 	build "$app_version" "tools\windows\alfresco_iss\setup-admin.iss"
 	sign "dist\alfresco-drive-$app_version-admin.exe"
+
+	cleanup_copied_icons "alfresco"
 }
 
 function sign_dlls($server_name) {

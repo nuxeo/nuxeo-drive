@@ -116,13 +116,13 @@ class CliHandler:
 
         common_parser = ArgumentParser(add_help=False)
 
-        global USAGE
         if Options.server_type == "NUXEO":
-            USAGE = USAGE.format("ndrive")
+            cmd_name = "ndrive"
         elif Options.server_type == "ALFRESCO":
-            USAGE = USAGE.format("alfresco-drive")
+            cmd_name = "alfresco-drive"
         else:
-            USAGE = USAGE.format("drive")
+            cmd_name = "drive"
+        usage = USAGE.format(cmd_name, cmd_name)
 
         # Common options accessed by shared code paths (must exist for every
         # server type, otherwise parse_cli / _configure_logger / handle would
@@ -257,7 +257,7 @@ class CliHandler:
         parser = ArgumentParser(
             parents=[common_parser],
             description=f"Command line interface for {APP_NAME} operations.",
-            usage=USAGE,
+            usage=usage,
         )
 
         if not add_subparsers:
