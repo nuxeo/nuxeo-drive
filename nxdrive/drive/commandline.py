@@ -64,6 +64,7 @@ Possible commands:
 - edit-metadata
 - unbind-root
 - unbind-server
+- uninstall
 
 To get options for a specific command:
 
@@ -302,6 +303,12 @@ class CliHandler:
             default=DEFAULT_LOCAL_FOLDER,
         )
 
+        # Uninstall (available for all server types, invoked by the installer)
+        uninstall_parser = subparsers.add_parser(
+            "uninstall", help="Remove app data", parents=[common_parser]
+        )
+        uninstall_parser.set_defaults(command="uninstall")
+
         if Options.server_type == "NUXEO":
             # Bind root folders
             bind_root_parser = subparsers.add_parser(
@@ -351,12 +358,6 @@ class CliHandler:
                 default=Options.remote_repo,
                 help="Name of the remote repository.",
             )
-
-            # Uninstall
-            uninstall_parser = subparsers.add_parser(
-                "uninstall", help="Remove app data", parents=[common_parser]
-            )
-            uninstall_parser.set_defaults(command="uninstall")
 
             # Run in console mode
             console_parser = subparsers.add_parser(

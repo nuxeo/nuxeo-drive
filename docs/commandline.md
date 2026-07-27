@@ -249,11 +249,14 @@ ndrive clean-folder --local-folder ~/NuxeoDrive
 
 ---
 
-### `uninstall` — remove app data *(Nuxeo only)*
+### `uninstall` — remove app data *(all builds)*
 
 Delegates to the platform integration's `uninstall()` (see
 `AbstractOSIntegration.uninstall`). This does **not** stop other engines or
 touch synced files; it clears Drive's own app data.
+
+Invoked by the platform installer during uninstallation, so it is
+registered for every server type (Nuxeo, Alfresco, …).
 
 ```bash
 ndrive uninstall
@@ -359,6 +362,7 @@ A restart is required for the change to take effect. See
 
 - `bind-server`
 - `unbind-server`
+- `uninstall`
 - *(no subcommand)* → GUI launch
 
 **Common flags available**
@@ -378,7 +382,6 @@ A restart is required for the change to take effect. See
 - `bind-root`, `unbind-root`
 - `console`
 - `clean-folder`
-- `uninstall`
 - `access-online`, `copy-share-link`, `edit-metadata`, `direct-transfer`
 
 **Common flags**
