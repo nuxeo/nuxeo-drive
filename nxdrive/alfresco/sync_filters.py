@@ -67,6 +67,7 @@ HARDCODED_EXCLUDED_TOP_FOLDERS: Tuple[str, ...] = (
     f"{_ALFRESCO_ROOT}/Guest Home",
     f"{_ALFRESCO_ROOT}/IMAP Home",
     f"{_ALFRESCO_ROOT}/IMAP Attachments",
+    f"{_ALFRESCO_ROOT}/User Homes",
     f"{_ALFRESCO_ROOT}/Sites/rm",
 )
 
