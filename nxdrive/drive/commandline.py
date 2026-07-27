@@ -48,7 +48,7 @@ __all__ = ("CliHandler",)
 
 log = getLogger(__name__)
 
-USAGE = """ndrive [command]
+USAGE = """{} [command]
 
 If no command is provided, the graphical application is
 started along with a synchronization process.
@@ -64,10 +64,11 @@ Possible commands:
 - edit-metadata
 - unbind-root
 - unbind-server
+- uninstall
 
 To get options for a specific command:
 
-  ndrive command --help
+  {} command --help
 
 """
 DEFAULT_LOCAL_FOLDER = get_default_local_folder()
@@ -112,20 +113,25 @@ class CliHandler:
         Parse commandline arguments using a git-like subcommands scheme.
         """
 
-        from .options import DEFAULT_LOG_LEVEL_FILE
+        from .options import DEFAULT_LOG_LEVEL_FILE, Options
 
         common_parser = ArgumentParser(add_help=False)
+
+        if Options.server_type == "NUXEO":
+            cmd_name = "ndrive"
+        elif Options.server_type == "ALFRESCO":
+            cmd_name = "alfresco-drive"
+        else:
+            cmd_name = "drive"
+        usage = USAGE.format(cmd_name, cmd_name)
+
+        # Common options accessed by shared code paths (must exist for every
+        # server type, otherwise parse_cli / _configure_logger / handle would
+        # raise AttributeError on the parsed Namespace).
         common_parser.add_argument(
             "--nxdrive-home",
             default=Options.nxdrive_home,
             help=f"Folder to store the {APP_NAME} configuration",
-        )
-
-        common_parser.add_argument(
-            "--log-level-file",
-            default=DEFAULT_LOG_LEVEL_FILE,
-            choices=("DEBUG", "INFO", "WARNING", "ERROR"),
-            help="Minimum log level for the file log",
         )
 
         common_parser.add_argument(
@@ -138,45 +144,100 @@ class CliHandler:
         common_parser.add_argument("--log-filename", help="File used to store the logs")
 
         common_parser.add_argument(
-            "--locale", default=Options.locale, help="Select the default language"
-        )
-
-        common_parser.add_argument("--force-locale", help="Force the language")
-
-        common_parser.add_argument(
-            "--update-site-url",
-            default=Options.update_site_url,
-            help="Website for client auto-update",
-        )
-
-        common_parser.add_argument(
-            "--channel",
-            default=DEFAULT_CHANNEL,
-            choices=("alpha", "beta", "release", "centralized"),
-            help="Update channel",
-        )
-
-        common_parser.add_argument(
             "--debug",
             default=Options.debug,
             action="store_true",
             help="Fire a debugger one uncaught error and enable REST API parameter checks.",
         )
 
-        common_parser.add_argument(
-            "--nofscheck",
-            default=Options.nofscheck,
-            action="store_true",
-            help="Disable the standard check for binding, to allow installation on network filesystem.",
-        )
+        # Commands available only for Nuxeo
+        if Options.server_type == "NUXEO":
+            common_parser.add_argument(
+                "--locale",
+                default=Options.locale,
+                help="Select the default language",
+            )
 
-        common_parser.add_argument("--proxy-server", help="Define proxy server")
+            common_parser.add_argument("--force-locale", help="Force the language")
 
+            common_parser.add_argument(
+                "--update-site-url",
+                default=Options.update_site_url,
+                help="Website for client auto-update",
+            )
+
+            common_parser.add_argument(
+                "--channel",
+                default=DEFAULT_CHANNEL,
+                choices=("alpha", "beta", "release", "centralized"),
+                help="Update channel",
+            )
+
+            common_parser.add_argument(
+                "--nofscheck",
+                default=Options.nofscheck,
+                action="store_true",
+                help="Disable the standard check for binding, to allow installation on network filesystem.",
+            )
+
+            common_parser.add_argument("--proxy-server", help="Define proxy server")
+
+            common_parser.add_argument(
+                "--ssl-no-verify",
+                default=Options.ssl_no_verify,
+                action="store_true",
+                help="Allows invalid/custom certificates. Highly unadvised to enable this option.",
+            )
+
+            common_parser.add_argument(
+                "--debug-pydev",
+                default=Options.debug_pydev,
+                action="store_true",
+                help="Allow debugging with a PyDev server",
+            )
+
+            common_parser.add_argument(
+                "--delay",
+                default=Options.delay,
+                type=int,
+                help="Delay in seconds for remote polling",
+            )
+
+            common_parser.add_argument(
+                "--handshake-timeout",
+                default=Options.handshake_timeout,
+                type=int,
+                help="HTTP request timeout in seconds for the handshake",
+            )
+
+            common_parser.add_argument(
+                "--timeout",
+                default=Options.timeout,
+                type=int,
+                help="HTTP request timeout in seconds for sync Automation call",
+            )
+
+            common_parser.add_argument(
+                "--update-check-delay",
+                default=Options.update_check_delay,
+                type=int,
+                help="Delay in seconds between checks for application update",
+            )
+
+            common_parser.add_argument(
+                "--max-errors",
+                default=Options.max_errors,
+                type=int,
+                help="Maximum number of tries before giving up synchronization of "
+                "a file in error",
+            )
+
+        # Common options for all server types
         common_parser.add_argument(
-            "--ssl-no-verify",
-            default=Options.ssl_no_verify,
-            action="store_true",
-            help="Allows invalid/custom certificates. Highly unadvised to enable this option.",
+            "--log-level-file",
+            default=DEFAULT_LOG_LEVEL_FILE,
+            choices=("DEBUG", "INFO", "WARNING", "ERROR"),
+            help="Minimum log level for the file log",
         )
 
         common_parser.add_argument(
@@ -184,49 +245,6 @@ class CliHandler:
             default=Options.sync_and_quit,
             action="store_true",
             help="Launch the synchronization and then exit the application.",
-        )
-
-        common_parser.add_argument(
-            "--debug-pydev",
-            default=Options.debug_pydev,
-            action="store_true",
-            help="Allow debugging with a PyDev server",
-        )
-
-        common_parser.add_argument(
-            "--delay",
-            default=Options.delay,
-            type=int,
-            help="Delay in seconds for remote polling",
-        )
-
-        common_parser.add_argument(
-            "--handshake-timeout",
-            default=Options.handshake_timeout,
-            type=int,
-            help="HTTP request timeout in seconds for the handshake",
-        )
-
-        common_parser.add_argument(
-            "--timeout",
-            default=Options.timeout,
-            type=int,
-            help="HTTP request timeout in seconds for sync Automation call",
-        )
-
-        common_parser.add_argument(
-            "--update-check-delay",
-            default=Options.update_check_delay,
-            type=int,
-            help="Delay in seconds between checks for application update",
-        )
-
-        common_parser.add_argument(
-            "--max-errors",
-            default=Options.max_errors,
-            type=int,
-            help="Maximum number of tries before giving up synchronization of "
-            "a file in error",
         )
 
         common_parser.add_argument(
@@ -240,7 +258,7 @@ class CliHandler:
         parser = ArgumentParser(
             parents=[common_parser],
             description=f"Command line interface for {APP_NAME} operations.",
-            usage=USAGE,
+            usage=usage,
         )
 
         if not add_subparsers:
@@ -285,111 +303,112 @@ class CliHandler:
             default=DEFAULT_LOCAL_FOLDER,
         )
 
-        # Bind root folders
-        bind_root_parser = subparsers.add_parser(
-            "bind-root",
-            help="Register a folder as a synchronization root.",
-            parents=[common_parser],
-        )
-        bind_root_parser.set_defaults(command="bind_root")
-        bind_root_parser.add_argument(
-            "remote_root",
-            help="Remote path or id reference of a folder to synchronize.",
-        )
-        bind_root_parser.add_argument(
-            "--local-folder",
-            help="Local folder that will host the list of synchronized "
-            "workspaces with a remote server. Must be bound with the "
-            '"bind-server" command.',
-            default=DEFAULT_LOCAL_FOLDER,
-        )
-        bind_root_parser.add_argument(
-            "--remote-repo",
-            default=Options.remote_repo,
-            help="Name of the remote repository.",
-        )
-
-        # Unlink from a remote Nuxeo root
-        unbind_root_parser = subparsers.add_parser(
-            "unbind-root",
-            help="Unregister a folder as a synchronization root.",
-            parents=[common_parser],
-        )
-        unbind_root_parser.set_defaults(command="unbind_root")
-
-        unbind_root_parser.add_argument(
-            "remote_root",
-            help="Remote path or id reference of a folder to synchronize.",
-        )
-        unbind_root_parser.add_argument(
-            "--local-folder",
-            help="Local folder that will host the list of synchronized "
-            "workspaces with a remote server. Must be bound with the "
-            '"bind-server" command.',
-            default=DEFAULT_LOCAL_FOLDER,
-        )
-        unbind_root_parser.add_argument(
-            "--remote-repo",
-            default=Options.remote_repo,
-            help="Name of the remote repository.",
-        )
-
-        # Uninstall
+        # Uninstall (available for all server types, invoked by the installer)
         uninstall_parser = subparsers.add_parser(
             "uninstall", help="Remove app data", parents=[common_parser]
         )
         uninstall_parser.set_defaults(command="uninstall")
 
-        # Run in console mode
-        console_parser = subparsers.add_parser(
-            "console", help="Start in GUI-less mode.", parents=[common_parser]
-        )
-        console_parser.set_defaults(command="console")
+        if Options.server_type == "NUXEO":
+            # Bind root folders
+            bind_root_parser = subparsers.add_parser(
+                "bind-root",
+                help="Register a folder as a synchronization root.",
+                parents=[common_parser],
+            )
+            bind_root_parser.set_defaults(command="bind_root")
+            bind_root_parser.add_argument(
+                "remote_root",
+                help="Remote path or id reference of a folder to synchronize.",
+            )
+            bind_root_parser.add_argument(
+                "--local-folder",
+                help="Local folder that will host the list of synchronized "
+                "workspaces with a remote server. Must be bound with the "
+                '"bind-server" command.',
+                default=DEFAULT_LOCAL_FOLDER,
+            )
+            bind_root_parser.add_argument(
+                "--remote-repo",
+                default=Options.remote_repo,
+                help="Name of the remote repository.",
+            )
 
-        # Clean the folder
-        clean_parser = subparsers.add_parser(
-            "clean-folder",
-            help="Remove recursively extended attributes from a given folder.",
-            parents=[common_parser],
-        )
-        clean_parser.add_argument("--local-folder", help="Local folder to clean.")
-        clean_parser.set_defaults(command="clean_folder")
+            # Unlink from a remote Nuxeo root
+            unbind_root_parser = subparsers.add_parser(
+                "unbind-root",
+                help="Unregister a folder as a synchronization root.",
+                parents=[common_parser],
+            )
+            unbind_root_parser.set_defaults(command="unbind_root")
 
-        # Context menu: Access online
-        ctx_item1 = subparsers.add_parser(
-            "access-online",
-            help="Open the document in the browser.",
-            parents=[common_parser],
-        )
-        ctx_item1.set_defaults(command="ctx_access_online")
-        ctx_item1.add_argument("--file", default="", help="File path.")
+            unbind_root_parser.add_argument(
+                "remote_root",
+                help="Remote path or id reference of a folder to synchronize.",
+            )
+            unbind_root_parser.add_argument(
+                "--local-folder",
+                help="Local folder that will host the list of synchronized "
+                "workspaces with a remote server. Must be bound with the "
+                '"bind-server" command.',
+                default=DEFAULT_LOCAL_FOLDER,
+            )
+            unbind_root_parser.add_argument(
+                "--remote-repo",
+                default=Options.remote_repo,
+                help="Name of the remote repository.",
+            )
 
-        # Context menu: Copy the share-link
-        ctx_item2 = subparsers.add_parser(
-            "copy-share-link",
-            help="Copy the document's share-link to the clipboard.",
-            parents=[common_parser],
-        )
-        ctx_item2.set_defaults(command="ctx_copy_share_link")
-        ctx_item2.add_argument("--file", default="", help="File path.")
+            # Run in console mode
+            console_parser = subparsers.add_parser(
+                "console", help="Start in GUI-less mode.", parents=[common_parser]
+            )
+            console_parser.set_defaults(command="console")
 
-        # Context menu: Edit metadata
-        ctx_item3 = subparsers.add_parser(
-            "edit-metadata",
-            help="Display the metadata window for a given file.",
-            parents=[common_parser],
-        )
-        ctx_item3.set_defaults(command="ctx_edit_metadata")
-        ctx_item3.add_argument("--file", default="", help="File path.")
+            # Clean the folder
+            clean_parser = subparsers.add_parser(
+                "clean-folder",
+                help="Remove recursively extended attributes from a given folder.",
+                parents=[common_parser],
+            )
+            clean_parser.add_argument("--local-folder", help="Local folder to clean.")
+            clean_parser.set_defaults(command="clean_folder")
 
-        # Context menu: Direct Transfer
-        ctx_item4 = subparsers.add_parser(
-            "direct-transfer",
-            help="Direct Transfer of a given file to anywhere on the server.",
-            parents=[common_parser],
-        )
-        ctx_item4.set_defaults(command="ctx_direct_transfer")
-        ctx_item4.add_argument("--file", default="", help="File path.")
+            # Context menu: Access online
+            ctx_item1 = subparsers.add_parser(
+                "access-online",
+                help="Open the document in the browser.",
+                parents=[common_parser],
+            )
+            ctx_item1.set_defaults(command="ctx_access_online")
+            ctx_item1.add_argument("--file", default="", help="File path.")
+
+            # Context menu: Copy the share-link
+            ctx_item2 = subparsers.add_parser(
+                "copy-share-link",
+                help="Copy the document's share-link to the clipboard.",
+                parents=[common_parser],
+            )
+            ctx_item2.set_defaults(command="ctx_copy_share_link")
+            ctx_item2.add_argument("--file", default="", help="File path.")
+
+            # Context menu: Edit metadata
+            ctx_item3 = subparsers.add_parser(
+                "edit-metadata",
+                help="Display the metadata window for a given file.",
+                parents=[common_parser],
+            )
+            ctx_item3.set_defaults(command="ctx_edit_metadata")
+            ctx_item3.add_argument("--file", default="", help="File path.")
+
+            # Context menu: Direct Transfer
+            ctx_item4 = subparsers.add_parser(
+                "direct-transfer",
+                help="Direct Transfer of a given file to anywhere on the server.",
+                parents=[common_parser],
+            )
+            ctx_item4.set_defaults(command="ctx_direct_transfer")
+            ctx_item4.add_argument("--file", default="", help="File path.")
 
         return parser
 

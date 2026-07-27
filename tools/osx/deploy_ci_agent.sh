@@ -45,6 +45,18 @@ prepare_signing_from_scratch() {
     # Create and get the identity for code signing the app
     # http://www.tiger-222.fr/?d=2019/11/06/09/40/43-installer-un-certificat-pour-la-signature-de-code-automatique-macos
     # https://docs.travis-ci.com/user/common-build-problems/#mac-macos-sierra-1012-code-signing-errors
+    #
+    # $1 selects the certificate-import flow, matching the convention used by
+    # create_package() and the callers in tools/posix/deploy_ci_agent.sh:
+    #   "nuxeo"    -> historical flow: import the .p12 directly with
+    #                 `security import` plus the separate drive.priv key.
+    #   "alfresco" -> split the .p12 with Homebrew OpenSSL 3 (`-legacy`) into
+    #                 individual PEM cert + PKCS#8 key and import each one.
+    #                 Required because SecPKCS12Import cannot parse the
+    #                 Hyland-provided legacy PKCS#12 archive on macOS 14/15
+    #                 ("MAC verification failed" even with the correct
+    #                 password).
+    local flavor="${1:-nuxeo}"
 
     if security list-keychains | grep -q "$(basename "${KEYCHAIN_PATH}")"; then
         # Already created at a previous run
@@ -53,6 +65,10 @@ prepare_signing_from_scratch() {
     fi
 
     echo ">>> [sign] Create the keychain"
+    # Strip any stray CR/LF/tab/space that may have been introduced by the
+    # GitHub secret store — `security` reads the -P argument literally, so a
+    # trailing character would cause "MAC verification failed" on p12 import.
+    KEYCHAIN_PASSWORD="$(printf '%s' "${KEYCHAIN_PASSWORD}" | tr -d '\r\n\t ')"
     security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
 
     echo ">>> [sign] Make the custom keychain default, so xcodebuild will use it for signing"
@@ -62,10 +78,44 @@ prepare_signing_from_scratch() {
     security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
 
     echo ">>> [sign] Add certificates to keychain and allow codesign to access them"
+    echo ">>> [sign] Import - AppleIncRootCertificate.cer"
     security import ./AppleIncRootCertificate.cer -t cert -A -k "${KEYCHAIN_PATH}"
-    security import ./developerID_application.p12 -k "${KEYCHAIN_PATH}" -P "${KEYCHAIN_PASSWORD}" -A -T /usr/bin/codesign
-    security import ./nuxeo-drive.priv -t priv -A -T /usr/bin/codesign -k "${KEYCHAIN_PATH}"
 
+    if [ "${flavor}" = "alfresco" ]; then
+        # Apple's `security import` (SecPKCS12Import) cannot parse the legacy
+        # PKCS#12 archive shipped by Hyland's signing pipeline and fails with
+        # "MAC verification failed" on both macOS 14 and macOS 15 even when
+        # the password is correct (OpenSSL accepts the same archive +
+        # password with no issue). Work around this by using Homebrew's
+        # OpenSSL 3 with the `-legacy` provider to split the .p12 into
+        # individual PEM cert and unencrypted PKCS#8 key files, then import
+        # each one separately - `security import` handles individual PEM
+        # files without issue.
+        local OPENSSL
+        OPENSSL="$(brew --prefix openssl@3)/bin/openssl"
+        echo ">>> [sign] Extract cert from developerID_application.p12 using ${OPENSSL}"
+        "${OPENSSL}" pkcs12 -in ./developerID_application.p12 -nokeys -clcerts -legacy \
+            -passin "pass:${KEYCHAIN_PASSWORD}" \
+            -out ./developerID_application.cert.pem
+        echo ">>> [sign] Import - developerID_application.cert.pem"
+        security import ./developerID_application.cert.pem -t cert -A -k "${KEYCHAIN_PATH}" -T /usr/bin/codesign
+        rm -f ./developerID_application.cert.pem
+
+        echo ">>> [sign] Extract private key from developerID_application.p12 using ${OPENSSL}"
+        "${OPENSSL}" pkcs12 -in ./developerID_application.p12 -nocerts -nodes -legacy \
+            -passin "pass:${KEYCHAIN_PASSWORD}" \
+            | "${OPENSSL}" pkcs8 -topk8 -nocrypt -out ./developerID_application.key.pem
+        echo ">>> [sign] Import - developerID_application.key.pem"
+        security import ./developerID_application.key.pem -t priv -A -T /usr/bin/codesign -k "${KEYCHAIN_PATH}"
+        rm -f ./developerID_application.key.pem
+    else
+        echo ">>> [sign] Import - developerID_application.p12"
+        security import ./developerID_application.p12 -k "${KEYCHAIN_PATH}" -P "${KEYCHAIN_PASSWORD}" -A -T /usr/bin/codesign
+        echo ">>> [sign] Import - drive.priv"
+        security import ./drive.priv -t priv -A -T /usr/bin/codesign -k "${KEYCHAIN_PATH}"
+    fi
+
+    echo ">>> [sign] Prepare Signing"
     prepare_signing
 }
 
@@ -180,7 +230,7 @@ create_package() {
     mv -fv "${WORKSPACE_DRIVE}/${entitlement_name}.appex" "${pkg_path}/Contents/PlugIns/"
 
     if [ "${GITHUB_WORKSPACE:-unset}" != "unset" ]; then
-        prepare_signing_from_scratch
+        prepare_signing_from_scratch "$1"
     else
         prepare_signing
     fi
@@ -212,7 +262,16 @@ create_package() {
 
         codesign --display --verbose "${pkg_path}"
         codesign --verbose=4 --deep --strict "${pkg_path}"
-        spctl --assess --verbose "${pkg_path}"
+        # Diagnostic only. `spctl --assess` runs Gatekeeper against the
+        # bundle, which at this point is signed with a valid Developer ID
+        # but has not yet been submitted to Apple's notary service (that
+        # happens later, against the .dmg produced below). Gatekeeper
+        # therefore reports `source=Unnotarized Developer ID` and exits
+        # with code 3 -- which under `set -e` would abort the whole
+        # pipeline before we ever get a chance to notarize. Swallow the
+        # exit code so the output remains visible as a diagnostic without
+        # being fatal.
+        spctl --assess --verbose "${pkg_path}" || true
     fi
 
     echo ">>> [package] Creating the DMG file"

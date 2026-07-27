@@ -77,11 +77,27 @@ class DarwinIntegration(AbstractOSIntegration):
             return
 
         log.info("Telling plugInKit to use the FinderSync")
-        server_name = Options.server_type
-        finder_sync_id = f"com.{server_name}.drive.{server_name.capitalize()}FinderSync"
-        finder_sync_path = (
-            f"{_get_app()}/Contents/PlugIns/{server_name.capitalize()}FinderSync.appex/"
-        )
+        # Prefer the server-type registry (via the FINDERSYNC_ID /
+        # FINDERSYNC_PATH properties) so the bundle ID matches exactly
+        # what the .appex was built with (see PRODUCT_BUNDLE_IDENTIFIER
+        # in tools/osx/drive/*.xcodeproj/project.pbxproj). Fall back to
+        # the historical hard-coded formula if the properties are
+        # unavailable for any reason (e.g. registry not initialised yet).
+        try:
+            finder_sync_id = self.FINDERSYNC_ID
+            finder_sync_path = self.FINDERSYNC_PATH
+        except Exception:
+            log.warning(
+                "Falling back to hard-coded FinderSync identifiers", exc_info=True
+            )
+            server_name = Options.server_type
+            finder_sync_id = (
+                f"org.{server_name}.drive.{server_name.capitalize()}FinderSync"
+            )
+            finder_sync_path = (
+                f"{_get_app()}/Contents/PlugIns/"
+                f"{server_name.capitalize()}FinderSync.appex/"
+            )
         cmd_use_plugin = ["pluginkit", "-e", "use", "-i", finder_sync_id]
         cmd_add_plugin_location = ["pluginkit", "-a", finder_sync_path]
         try:

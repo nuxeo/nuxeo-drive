@@ -120,7 +120,7 @@ jobs:
         run: |
           wget https://www.apple.com/appleca/AppleIncRootCertificate.cer
           echo "${{ secrets.CERT_APP_MACOS }}" | base64 --decode > developerID_application.p12
-          echo "${{ secrets.PRIV_APP_MACOS }}" | base64 --decode > nuxeo-drive.priv
+          echo "${{ secrets.PRIV_APP_MACOS }}" | base64 --decode > drive.priv
 
       #- name: "[macOS] Downloading Python"
       #  if: matrix.os == 'macos-15-intel'
