@@ -8,56 +8,16 @@ from typing import TYPE_CHECKING, Dict, List, Optional
 
 from ...constants import APP_NAME, NXDRIVE_SCHEME
 from ...objects import DocPair
-from ...utils import find_icon, if_frozen
+from ...utils import find_icon, host_env, if_frozen
 from .. import AbstractOSIntegration
 from ..extension import Status, get_formatted_status, icon_status
 
-__all__ = ("LinuxIntegration", "host_env")
+__all__ = ("LinuxIntegration",)
 
 log = getLogger(__name__)
 
 if TYPE_CHECKING:
     from nxdrive.drive.manager import Manager  # noqa
-
-# PyInstaller (and most AppImage runtimes) prepend the bundled library
-# location to LD_LIBRARY_PATH and save the caller's original value in
-# LD_LIBRARY_PATH_ORIG. When we exec host tools like `gio`, `xdg-open`,
-# `xdg-mime` or `xclip`, they must see the host loader environment,
-# otherwise they try to load the app's bundled libs and fail (exit 127).
-# See NXDRIVE-3221.
-_HOST_ENV_LOADER_KEYS = (
-    "LD_LIBRARY_PATH",
-    "LD_PRELOAD",
-    "PYTHONPATH",
-    "PYTHONHOME",
-    "GIO_MODULE_DIR",
-    "GI_TYPELIB_PATH",
-    "GSETTINGS_SCHEMA_DIR",
-    "XDG_DATA_DIRS",
-)
-
-_HOST_ENV_CACHE: Optional[Dict[str, str]] = None
-
-
-def host_env() -> Dict[str, str]:
-    """Return an environment suitable for executing host binaries.
-
-    Restores PyInstaller/AppImage-saved *_ORIG values and drops the
-    bundled loader vars that would otherwise poison host tools.
-    """
-    global _HOST_ENV_CACHE
-    if _HOST_ENV_CACHE is not None:
-        return _HOST_ENV_CACHE
-
-    env = os.environ.copy()
-    for key in _HOST_ENV_LOADER_KEYS:
-        orig = env.pop(f"{key}_ORIG", None)
-        if orig is not None:
-            env[key] = orig
-        else:
-            env.pop(key, None)
-    _HOST_ENV_CACHE = env
-    return env
 
 
 class LinuxIntegration(AbstractOSIntegration):

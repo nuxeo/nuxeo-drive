@@ -12,8 +12,7 @@ from typing import Union
 
 from send2trash import send2trash
 
-from ...osi.linux.linux import host_env
-from ...utils import lock_path, unlock_path
+from ...utils import host_env, lock_path, unlock_path
 from .base import LocalClientMixin
 
 __all__ = ("LocalClient",)
