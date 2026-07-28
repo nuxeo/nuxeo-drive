@@ -166,18 +166,18 @@ def host_env() -> Dict[str, str]:
     bundled loader vars that would otherwise poison host tools.
     """
     global _HOST_ENV_CACHE
-    if _HOST_ENV_CACHE is not None:
-        return _HOST_ENV_CACHE
-
-    env = os.environ.copy()
-    for key in _HOST_ENV_LOADER_KEYS:
-        orig = env.pop(f"{key}_ORIG", None)
-        if orig is not None:
-            env[key] = orig
-        else:
-            env.pop(key, None)
-    _HOST_ENV_CACHE = env
-    return env
+    if _HOST_ENV_CACHE is None:
+        env = os.environ.copy()
+        for key in _HOST_ENV_LOADER_KEYS:
+            orig = env.pop(f"{key}_ORIG", None)
+            if orig is not None:
+                env[key] = orig
+            else:
+                env.pop(key, None)
+        _HOST_ENV_CACHE = env
+    # Return a copy so callers can freely mutate the result without
+    # poisoning the shared cache for later subprocess calls.
+    return _HOST_ENV_CACHE.copy()
 
 
 def current_thread_id() -> int:

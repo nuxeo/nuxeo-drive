@@ -20,7 +20,7 @@ DMG_TEMP="$SCRIPT_LOCATION/alfresco-drive.tmp.dmg"
 PACKAGE_PATH="$SCRIPT_LOCATION/../../dist/Hyland Drive for Alfresco.app"
 SRC_FOLDER=$(dirname "$PACKAGE_PATH")
 PACKAGE_NAME=$(basename "$PACKAGE_PATH")
-BACKGROUND_FILE_NAME="$(basename $BACKGROUND_FILE)"
+BACKGROUND_FILE_NAME="$(basename "$BACKGROUND_FILE")"
 
 # Create the image
 echo "Creating disk image..."
