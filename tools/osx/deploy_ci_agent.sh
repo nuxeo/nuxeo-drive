@@ -195,7 +195,6 @@ cleanup_local_lsdb_state() {
 }
 
 create_package() {
-    # local app_name=""
     if [ "$1" = "nuxeo" ]; then
         echo ">>> [package] Creating Nuxeo Drive package"
         local app_name="Nuxeo Drive"
@@ -212,10 +211,10 @@ create_package() {
     local pkg_path="${output_dir}/${bundle_name}"
     local src_folder_tmp="${WORKSPACE}/dmg_src_folder.tmp"
     local dmg_tmp="${WORKSPACE}/${1}-drive.tmp.dmg"
-    local background_file="${WORKSPACE_DRIVE}/tools/osx/dmgbackground.png"
+    local background_file="${WORKSPACE_DRIVE}/tools/osx/dmgbackground_${1}.png"
     local extension_path="${WORKSPACE_DRIVE}/tools/osx/drive"
     local entitlements="${extension_path}/${entitlement_name}/${entitlement_name}.entitlements"
-    local generated_ds_store="${WORKSPACE_DRIVE}/tools/osx/generated_DS_Store"
+    local generated_ds_store="${WORKSPACE_DRIVE}/tools/osx/generated_DS_Store_${1}"
     local app_version
 
     # Local-build only: prune stale LaunchServices state before producing
