@@ -1,6 +1,7 @@
 name: Beta to production for Alfresco
 permissions:
   contents: read
+  id-token: write # Required for OIDC authentication with AWS
   pull-requests: read
 
 on:
@@ -9,8 +10,6 @@ on:
       betaVersion:
         description: "The beta version to promote as official release. Ex: 1.0.0"
         required: true
-  # To be removed once the workflow run history is updated in GitHub
-  push:
 
 jobs:
   beta-to-prod:
@@ -22,6 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.inputs.branch }}
 
       - name: Setup Python
         uses: actions/setup-python@v6
