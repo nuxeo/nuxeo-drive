@@ -71,14 +71,14 @@ jobs:
       - name: Move beta packages to release
         run: |
           beta_version="${{ github.event.inputs.betaVersion }}"
-          move_output=$(aws s3 mv s3://$S3_BUCKET/alfresco/drive-updates/beta/alfresco-drive-$beta_version* s3://$S3_BUCKET/alfresco/drive-updates/release/ --recursive 2>&1)
+          move_output=$(aws s3 mv s3://$S3_BUCKET/alfresco/drive-updates/beta/alfresco-drive-"$beta_version"* s3://$S3_BUCKET/alfresco/drive-updates/release/ --recursive 2>&1)
           move_exit_code=$?
 
           if [ $move_exit_code -ne 0 ]; then
             echo ">>> !! Error moving beta packages to release !!"
             echo "$move_output"
             echo ">>> Attempting copy of beta packages to release instead"
-            copy_output=$(aws s3 cp s3://$S3_BUCKET/alfresco/drive-updates/beta/alfresco-drive-$beta_version* s3://$S3_BUCKET/alfresco/drive-updates/release/ --recursive 2>&1)
+            copy_output=$(aws s3 cp s3://$S3_BUCKET/alfresco/drive-updates/beta/alfresco-drive-"$beta_version"* s3://$S3_BUCKET/alfresco/drive-updates/release/ --recursive 2>&1)
             copy_exit_code=$?
             if [ $copy_exit_code -ne 0 ]; then
               echo ">>> !! Error copying beta packages to release !!"
