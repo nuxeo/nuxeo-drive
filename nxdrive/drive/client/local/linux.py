@@ -12,7 +12,7 @@ from typing import Union
 
 from send2trash import send2trash
 
-from ...utils import lock_path, unlock_path
+from ...utils import host_env, lock_path, unlock_path
 from .base import LocalClientMixin
 
 __all__ = ("LocalClient",)
@@ -43,7 +43,7 @@ class LocalClient(LocalClientMixin):
         folder = self.abspath(ref)
         cmd = ["gio", "info", "-a", "metadata", str(folder)]
         try:
-            output = subprocess.check_output(cmd, encoding="utf-8")
+            output = subprocess.check_output(cmd, encoding="utf-8", env=host_env())
         except Exception:
             log.warning(f"Could not check the metadata of {folder!r}", exc_info=True)
             return False
@@ -101,7 +101,7 @@ class LocalClient(LocalClientMixin):
             name,
         ]
         try:
-            subprocess.check_call(cmd)
+            subprocess.check_call(cmd, env=host_env())
         except Exception:
             log.warning(f"Could not set the folder emblem on {folder!r}", exc_info=True)
 

@@ -139,6 +139,47 @@ def compute_fake_pid_from_path(path: str, /) -> int:
     return crc32(path_b)
 
 
+# PyInstaller (and most AppImage runtimes) prepend the bundled library
+# location to LD_LIBRARY_PATH and save the caller's original value in
+# LD_LIBRARY_PATH_ORIG. When we exec host tools like `gio`, `xdg-open`,
+# `xdg-mime` or `xclip`, they must see the host loader environment,
+# otherwise they try to load the app's bundled libs and fail (exit 127).
+# See NXDRIVE-3221.
+_HOST_ENV_LOADER_KEYS = (
+    "LD_LIBRARY_PATH",
+    "LD_PRELOAD",
+    "PYTHONPATH",
+    "PYTHONHOME",
+    "GIO_MODULE_DIR",
+    "GI_TYPELIB_PATH",
+    "GSETTINGS_SCHEMA_DIR",
+    "XDG_DATA_DIRS",
+)
+
+_HOST_ENV_CACHE: Optional[Dict[str, str]] = None
+
+
+def host_env() -> Dict[str, str]:
+    """Return an environment suitable for executing host binaries.
+
+    Restores PyInstaller/AppImage-saved *_ORIG values and drops the
+    bundled loader vars that would otherwise poison host tools.
+    """
+    global _HOST_ENV_CACHE
+    if _HOST_ENV_CACHE is None:
+        env = os.environ.copy()
+        for key in _HOST_ENV_LOADER_KEYS:
+            orig = env.pop(f"{key}_ORIG", None)
+            if orig is not None:
+                env[key] = orig
+            else:
+                env.pop(key, None)
+        _HOST_ENV_CACHE = env
+    # Return a copy so callers can freely mutate the result without
+    # poisoning the shared cache for later subprocess calls.
+    return _HOST_ENV_CACHE.copy()
+
+
 def current_thread_id() -> int:
     """Return the thread identifier of the current thread. This is a nonzero integer.
 

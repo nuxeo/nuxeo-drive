@@ -60,6 +60,12 @@ log = getLogger(__name__)
 # Windows 2s between resolution of delete event
 WIN_MOVE_RESOLUTION_PERIOD = 2000
 
+# Watchdog 3.x emits FileOpenedEvent / FileClosedEvent / FileClosedNoWriteEvent
+# on Linux (inotify) that represent no filesystem mutation. Processing them
+# for every file access causes massive log/subprocess spam (see NXDRIVE-3221)
+# and slows the queue drain enough to race with periodic scans.
+MUTATION_EVENT_TYPES = frozenset({"created", "modified", "moved", "deleted"})
+
 TEXT_EDIT_TMP_FILE_PATTERN = r".*\.rtf\.sb\-(\w)+\-(\w)+$"
 
 
@@ -1333,6 +1339,14 @@ class DriveFSEventHandler(PatternMatchingEventHandler):
         )
 
     def on_any_event(self, event: FileSystemEvent, /) -> None:
+        # Skip read-only inotify events (opened, closed, closed_no_write) that
+        # some watchdog backends surface but that carry no filesystem change.
+        # Processing them for every file access floods the queue, blocks the
+        # local watcher thread with subprocess/DAO calls, and starves the real
+        # mutation events (see NXDRIVE-3221).
+        if event.event_type not in MUTATION_EVENT_TYPES:
+            return
+
         self.counter += 1
         log.debug(f"Queueing watchdog: {event!r}")
 

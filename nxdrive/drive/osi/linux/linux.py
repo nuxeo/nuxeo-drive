@@ -4,11 +4,11 @@ import shutil
 import subprocess
 from logging import getLogger
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from ...constants import APP_NAME, NXDRIVE_SCHEME
 from ...objects import DocPair
-from ...utils import find_icon, if_frozen
+from ...utils import find_icon, host_env, if_frozen
 from .. import AbstractOSIntegration
 from ..extension import Status, get_formatted_status, icon_status
 
@@ -26,13 +26,23 @@ class LinuxIntegration(AbstractOSIntegration):
     def __init__(self, manager: Optional["Manager"], /):
         super().__init__(manager)
         self._icons_to_emblems()
+        # Resolve `gio` once. If missing, all subsequent emblem calls are
+        # skipped so we never spam the log with FileNotFoundError tracebacks.
+        self._gio_path: Optional[str] = shutil.which("gio")
+        if not self._gio_path:
+            log.info("`gio` not found on PATH; folder emblems will be disabled")
+        # Cache the last emblem written per path to avoid redundant subprocess
+        # invocations when the sync status has not changed.
+        self._last_emblem: Dict[str, str] = {}
 
     @staticmethod
     def cb_get() -> str:
         """Get the text data from the clipboard. The xclip tool needs to be installed.
         Emulate: xclip -selection c -o
         """
-        data = subprocess.check_output(["xclip", "-selection", "c", "-o"])
+        data = subprocess.check_output(
+            ["xclip", "-selection", "c", "-o"], env=host_env()
+        )
         return data.decode("utf-8")
 
     @staticmethod
@@ -40,7 +50,9 @@ class LinuxIntegration(AbstractOSIntegration):
         """Copy some *text* into the clipboard. The xclip tool needs to be installed.
         Emulate: echo "blablabla" | xclip -selection c
         """
-        with subprocess.Popen(["xclip", "-selection", "c"], stdin=subprocess.PIPE) as p:
+        with subprocess.Popen(
+            ["xclip", "-selection", "c"], stdin=subprocess.PIPE, env=host_env()
+        ) as p:
             # See https://github.com/python/typeshed/pull/3652#issuecomment-598122198
             # if this "if" is still needed
             if p.stdin:
@@ -57,7 +69,7 @@ class LinuxIntegration(AbstractOSIntegration):
             )
 
         # xdg-open should be supported by recent Gnome, KDE, Xfce
-        subprocess.Popen(["xdg-open", file_path])
+        subprocess.Popen(["xdg-open", file_path], env=host_env())
 
     @if_frozen
     def register_protocol_handlers(self) -> None:
@@ -105,7 +117,8 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
                     "default",
                     f"{NXDRIVE_SCHEME}.desktop",
                     f"x-scheme-handler/{NXDRIVE_SCHEME}",
-                ]
+                ],
+                env=host_env(),
             )
         except Exception:
             log.warning("Error while registering the URL scheme", exc_info=True)
@@ -132,11 +145,18 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
 
     def _set_icon(self, status: Dict[str, str], /) -> None:
         """Call gio command to set folder emblem metadata."""
-        value = Status(int(status["value"]))
+        if not self._gio_path:
+            return
+
         path = status["path"]
-        emblem = icon_status[value]
-        cmd = [
-            "gio",
+        emblem = icon_status[Status(int(status["value"]))]
+
+        # Avoid a fork+exec if the emblem has not changed for this path.
+        if self._last_emblem.get(path) == emblem:
+            return
+
+        cmd: List[str] = [
+            self._gio_path,
             "set",
             "-t",
             "stringv",
@@ -145,9 +165,22 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
             emblem,
         ]
         try:
-            subprocess.check_call(cmd)
+            subprocess.check_call(cmd, env=host_env())
+        except FileNotFoundError:
+            # `gio` disappeared between init and now; disable permanently.
+            log.info("`gio` is no longer available; disabling folder emblems")
+            self._gio_path = None
+            return
+        except subprocess.CalledProcessError as exc:
+            # A gio failure is not fatal — log once at DEBUG level (this used
+            # to spam WARNING with a full traceback for every event).
+            log.debug(f"gio metadata emblem failed ({exc.returncode}) for {path!r}")
+            return
         except Exception:
             log.warning(f"Could not set the {emblem} emblem on {path!r}", exc_info=True)
+            return
+
+        self._last_emblem[path] = emblem
 
     def _icons_to_emblems(self) -> None:
         """

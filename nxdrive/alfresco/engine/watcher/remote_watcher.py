@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from logging import getLogger
 from pathlib import Path
 from time import monotonic, sleep
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional, Set
 
 from alfresco.exceptions import AuthenticationError as AlfrescoAuthError
 from alfresco.exceptions import NetworkError as AlfrescoNetworkError
@@ -391,11 +391,62 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             log.warning("Local sync root does not exist, skipping local scan")
             return
 
-        self._scan_local_recursive(ROOT, local, dao)
+        # Two aggregators threaded through the recursion.
+        #   seen_remote_refs: every ``remote_id`` xattr encountered while
+        #     walking the tree. Used to distinguish a genuine local
+        #     deletion from a rename/move whose watchdog event has not
+        #     yet been processed (NXDRIVE-3221).
+        #   pending_deletions: pairs whose local path is missing on disk.
+        #     Deletion is *deferred* until the full tree walk completes so
+        #     we can consult ``seen_remote_refs`` for the whole workspace,
+        #     not just the current directory.
+        seen_remote_refs: Set[str] = set()
+        pending_deletions: List[DocPair] = []
+        self._scan_local_recursive(
+            ROOT, local, dao, seen_remote_refs, pending_deletions
+        )
+        self._process_pending_deletions(pending_deletions, seen_remote_refs)
 
         log.info(f"Alfresco local change scan finished in {monotonic() - start:.2f}s")
 
-    def _scan_local_recursive(self, path: Path, local, dao) -> None:
+    def _process_pending_deletions(
+        self,
+        pending_deletions: List[DocPair],
+        seen_remote_refs: Set[str],
+        /,
+    ) -> None:
+        """Finalize deletion detection after the full tree walk.
+
+        A pair whose original local path is missing on disk is only a
+        genuine deletion if its ``remote_ref`` did not resurface on disk
+        elsewhere. If it did, the file was renamed or moved and the
+        local watcher's ``moved`` event will handle it — invoking
+        ``delete_doc`` here would destroy the pair state and cause the
+        renamed file to be duplicated on the server and re-downloaded.
+        """
+        for child_pair in pending_deletions:
+            if child_pair.remote_ref and child_pair.remote_ref in seen_remote_refs:
+                log.debug(
+                    f"Skip local deletion of {child_pair.local_path!r}: "
+                    f"remote_ref {child_pair.remote_ref!r} still present on disk "
+                    "(likely a rename/move — deferring to watchdog)"
+                )
+                continue
+            log.info(
+                f"Local deletion detected for {child_pair.local_path!r} "
+                f"(missing on disk)"
+            )
+            self.engine.delete_doc(child_pair.local_path)
+
+    def _scan_local_recursive(
+        self,
+        path: Path,
+        local,
+        dao,
+        seen_remote_refs: Set[str],
+        pending_deletions: List[DocPair],
+        /,
+    ) -> None:
         """Recursively scan *path* for local changes."""
         self._interact()
 
@@ -414,19 +465,37 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             if local.is_ignored(path, child_name):
                 continue
 
+            # Record the ``remote_id`` xattr for every visited child so a
+            # deferred deletion candidate can be recognised as a rename.
+            remote_ref = local.get_remote_id(child_info.path)
+            if remote_ref:
+                seen_remote_refs.add(remote_ref)
+
             if child_name in db_by_name:
                 child_pair = db_by_name[child_name]
 
                 if child_pair.pair_state != "synchronized":
                     # Already queued for processing, skip
                     if child_info.folderish:
-                        self._scan_local_recursive(child_info.path, local, dao)
+                        self._scan_local_recursive(
+                            child_info.path,
+                            local,
+                            dao,
+                            seen_remote_refs,
+                            pending_deletions,
+                        )
                     continue
 
                 if child_pair.processor > 0:
                     # Being processed, skip
                     if child_info.folderish:
-                        self._scan_local_recursive(child_info.path, local, dao)
+                        self._scan_local_recursive(
+                            child_info.path,
+                            local,
+                            dao,
+                            seen_remote_refs,
+                            pending_deletions,
+                        )
                     continue
 
                 if not child_info.folderish:
@@ -449,11 +518,16 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                         child_pair.local_state = "modified"
                         dao.update_local_state(child_pair, child_info)
                 else:
-                    self._scan_local_recursive(child_info.path, local, dao)
+                    self._scan_local_recursive(
+                        child_info.path,
+                        local,
+                        dao,
+                        seen_remote_refs,
+                        pending_deletions,
+                    )
             else:
                 # New local file/folder not in DB — check it has no remote_id
                 # (if it does, the local watcher should handle it)
-                remote_ref = local.get_remote_id(child_info.path)
                 if not remote_ref:
                     log.info(
                         f"New local {'folder' if child_info.folderish else 'file'} "
@@ -462,18 +536,23 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                     dao.insert_local_state(child_info, path)
 
                 if child_info.folderish:
-                    self._scan_local_recursive(child_info.path, local, dao)
+                    self._scan_local_recursive(
+                        child_info.path,
+                        local,
+                        dao,
+                        seen_remote_refs,
+                        pending_deletions,
+                    )
 
         # Detect files/folders deleted locally while the app was not running.
         # Remaining db_by_name entries have no corresponding local file.
         # Only consider pairs that were previously synchronized — skip
         # pairs still waiting for download (remotely_created, unknown, etc.).
+        # Actual delete_doc() is deferred to _process_pending_deletions()
+        # so we can distinguish deletions from renames after the full
+        # tree walk has collected every surviving remote_id xattr.
         for child_name, child_pair in db_by_name.items():
             if child_pair.pair_state != "synchronized":
                 continue
             if not local.exists(child_pair.local_path):
-                log.info(
-                    f"Local deletion detected for {child_pair.local_path!r} "
-                    f"(missing on disk)"
-                )
-                self.engine.delete_doc(child_pair.local_path)
+                pending_deletions.append(child_pair)

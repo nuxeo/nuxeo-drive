@@ -1,0 +1,121 @@
+name: Beta to production for Alfresco
+permissions:
+  contents: read
+  id-token: write # Required for OIDC authentication with AWS
+  pull-requests: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      betaVersion:
+        description: "The beta version to promote as official release. Ex: 1.0.0"
+        required: true
+
+jobs:
+  beta-to-prod:
+    runs-on: ubuntu-latest
+    environment: development
+    env:
+      S3_BUCKET: test-hyland-software-channel-dist
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: 3.13 # XXX_PYTHON
+
+      - name: Install python dependencies
+        run: python -m pip install pyyaml
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@517a711dbcd0e402f90c77e7e2f81e849156e31d # v6.2.2
+        with:
+          role-to-assume: arn:aws:iam::372466110691:role/AlfrescoCI/nuxeo-drive-software-channel-upload
+          aws-region: us-east-1
+
+      - name: Fetch versions.yml
+        run: |
+          bucket="$S3_BUCKET"
+          key="alfresco/drive-updates/versions.yml"
+          aws_err_file="$(mktemp)"
+
+          if aws s3api get-object --bucket "$bucket" --key "$key" versions.yml 2>"$aws_err_file"; then
+            echo ">>> versions.yml found in S3 and downloaded"
+          else
+            aws_error="$(cat "$aws_err_file")"
+
+            if echo "$aws_error" | grep -Eq 'NoSuchKey|404|Not Found'; then
+              echo ">>> versions.yml not found in S3, creating an empty one"
+              : > versions.yml
+              aws s3 cp versions.yml "s3://$bucket/$key"
+            elif echo "$aws_error" | grep -q 'AccessDenied'; then
+              echo ">>> Access denied while reading s3://$bucket/$key"
+              echo "$aws_error"
+              rm -f "$aws_err_file"
+              exit 1
+            else
+              echo ">>> Unexpected AWS error while reading s3://$bucket/$key"
+              echo "$aws_error"
+              rm -f "$aws_err_file"
+              exit 1
+            fi
+          fi
+
+          rm -f "$aws_err_file"
+
+      - name: Move beta packages to release
+        shell: bash --noprofile --norc -o pipefail {0} # Required to capture exit codes and messages
+        run: |
+          beta_version="${{ github.event.inputs.betaVersion }}"
+          files=(
+            "alfresco-drive-$beta_version.exe"
+            "alfresco-drive-$beta_version.dmg"
+            "alfresco-drive-$beta_version-x86_64.AppImage"
+            "alfresco-drive-addons.exe"
+          )
+
+          failed=0
+          for file in "${files[@]}"; do
+            src="s3://$S3_BUCKET/alfresco/drive-updates/beta/$file"
+            dst="s3://$S3_BUCKET/alfresco/drive-updates/release/$file"
+
+            echo ">>> Moving $file from beta to release"
+            output=$(aws s3 mv "$src" "$dst" 2>&1)
+            exit_code=$?
+
+            if [ $exit_code -ne 0 ]; then
+              echo ">>> !! Error moving $file, attempting copy instead !!"
+              echo "$output"
+              output=$(aws s3 cp "$src" "$dst" 2>&1)
+              exit_code=$?
+              if [ $exit_code -ne 0 ]; then
+                echo ">>> !! Error copying $file to release !!"
+                echo "$output"
+                failed=1
+              else
+                echo ">>> $file copied to release successfully"
+                echo ">>> !! Make sure to clean-up $file in beta S3 manually !!"
+              fi
+            else
+              echo ">>> $file moved to release successfully"
+            fi
+          done
+
+          if [ $failed -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Promote beta version in versions.yml
+        run: |
+          beta_version="${{ github.event.inputs.betaVersion }}"
+          echo ">>> Promoting beta version $beta_version to release in versions.yml"
+          python tools/versions.py --promote "$beta_version" --type "release"
+          echo ">>> Copying updated versions.yml to S3"
+          aws s3 cp versions.yml "s3://$S3_BUCKET/alfresco/drive-updates/" --cache-control "no-cache, max-age=0, must-revalidate"
+          echo ">>> Removing versions.yml from local workspace"
+          rm -f versions.yml
