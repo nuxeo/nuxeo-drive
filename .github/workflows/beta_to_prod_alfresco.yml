@@ -69,16 +69,17 @@ jobs:
           rm -f "$aws_err_file"
 
       - name: Move beta packages to release
+        shell: bash --noprofile --norc -o pipefail {0} # Required to capture exit codes and messages
         run: |
           beta_version="${{ github.event.inputs.betaVersion }}"
-          move_output=$(aws s3 mv s3://$S3_BUCKET/alfresco/drive-updates/beta/alfresco-drive-"$beta_version"* s3://$S3_BUCKET/alfresco/drive-updates/release/ --recursive 2>&1) || true
+          move_output=$(aws s3 mv s3://$S3_BUCKET/alfresco/drive-updates/beta/alfresco-drive-$beta_version* s3://$S3_BUCKET/alfresco/drive-updates/release/ --recursive 2>&1)
           move_exit_code=$?
 
           if [ $move_exit_code -ne 0 ]; then
             echo ">>> !! Error moving beta packages to release !!"
             echo "$move_output"
             echo ">>> Attempting copy of beta packages to release instead"
-            copy_output=$(aws s3 cp s3://$S3_BUCKET/alfresco/drive-updates/beta/alfresco-drive-"$beta_version"* s3://$S3_BUCKET/alfresco/drive-updates/release/ --recursive 2>&1) || true
+            copy_output=$(aws s3 cp s3://$S3_BUCKET/alfresco/drive-updates/beta/alfresco-drive-$beta_version* s3://$S3_BUCKET/alfresco/drive-updates/release/ --recursive 2>&1)
             copy_exit_code=$?
             if [ $copy_exit_code -ne 0 ]; then
               echo ">>> !! Error copying beta packages to release !!"
@@ -86,10 +87,11 @@ jobs:
               exit 1
             else
               echo ">>> Copying alfresco-drive-addons.exe from beta to release"
-              aws s3 cp s3://$S3_BUCKET/alfresco/drive-updates/beta/alfresco-drive-addons.exe s3://$S3_BUCKET/alfresco/drive-updates/release/ || true
+              addons_output=$(aws s3 cp s3://$S3_BUCKET/alfresco/drive-updates/beta/alfresco-drive-addons.exe s3://$S3_BUCKET/alfresco/drive-updates/release/ 2>&1)
               exit_code=$?
               if [ $exit_code -ne 0 ]; then
                 echo ">>> !! Error copying alfresco-drive-addons.exe from beta to release !!"
+                echo "$addons_output"
                 exit 1
               fi
               echo ">>> Beta packages copied to release successfully"
@@ -98,10 +100,11 @@ jobs:
             fi
           else
             echo ">>> Moving alfresco-drive-addons.exe from beta to release"
-            aws s3 mv s3://$S3_BUCKET/alfresco/drive-updates/beta/alfresco-drive-addons.exe s3://$S3_BUCKET/alfresco/drive-updates/release/alfresco-drive-addons.exe || true
+            addons_output=$(aws s3 mv s3://$S3_BUCKET/alfresco/drive-updates/beta/alfresco-drive-addons.exe s3://$S3_BUCKET/alfresco/drive-updates/release/alfresco-drive-addons.exe 2>&1)
             exit_code=$?
             if [ $exit_code -ne 0 ]; then
               echo ">>> !! Error moving alfresco-drive-addons.exe from beta to release !!"
+              echo "$addons_output"
               exit 1
             fi
             echo ">>> Beta packages moved to release successfully"
