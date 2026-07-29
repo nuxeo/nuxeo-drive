@@ -23,6 +23,7 @@ ShadowRectangle {
             }
         }
         SystrayMenuItem {
+            visible: SERVER_TYPE !== "ALFRESCO"
             text: qsTr("HELP") + tl.tr
             onClicked: {
                 api.open_help()
