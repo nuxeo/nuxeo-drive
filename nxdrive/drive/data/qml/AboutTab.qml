@@ -47,6 +47,7 @@ Rectangle {
         }
 
         IconLink {
+            visible: SERVER_TYPE !== "ALFRESCO"
             text: qsTr("SOURCE_LINK") + tl.tr
             icon: MdiFont.Icon.codeTags
             url: "https://github.com/nuxeo/nuxeo-drive"
@@ -59,6 +60,7 @@ Rectangle {
         }
 
         IconLink {
+            visible: SERVER_TYPE !== "ALFRESCO"
             text: qsTr("FEEDBACK_LINK") + tl.tr
             icon: MdiFont.Icon.messageReplyText
             url: "https://portal.prodpad.com/089ed2a6-c892-11e7-aea6-0288f735e5b9"
@@ -82,14 +84,15 @@ Rectangle {
             wrapMode: Text.WordWrap
             font.family: "Courier"
             color: primaryText
-            text: "The source code of Nuxeo Drive is available under the LGPL 2.1." +
+            property string appName: SERVER_TYPE === "ALFRESCO" ? "Hyland Drive for Alfresco" : "Nuxeo Drive"
+            text: "The source code of " + appName + " is available under the LGPL 2.1." +
                   "https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html\n\n" +
-                  "Nuxeo Drive depends on those components:" +
+                  appName + " depends on those components:" +
                   "- Qt: GNU Lesser General Public License, version 3" +
                   "- PyQt: GNU General Public License, version 2 or 3\n\n" +
-                  "Thus any code written on the top of Nuxeo Drive must be distributed" +
+                  "Thus any code written on the top of " + appName + " must be distributed" +
                   "under the terms of a GPL compliant license.\n\n" +
-                  "©2025 Hyland Software, Inc. and its affiliates. All rights reserved. " +
+                  "©2026 Hyland Software, Inc. and its affiliates. All rights reserved. " +
                   "All Hyland product names are registered or unregistered trademarks of Hyland Software, Inc. or its affiliates."
         }
     }

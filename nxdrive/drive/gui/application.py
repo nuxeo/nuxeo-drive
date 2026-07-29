@@ -1729,9 +1729,14 @@ class Application(QApplication):
 
         channel = self.manager.get_update_channel()
         log.info(f"Showing release notes, {previous=} {current=} {channel=}")
+        msg_key = (
+            "RELEASE_NOTES_MSG_ALFRESCO"
+            if Options.server_type == "ALFRESCO"
+            else "RELEASE_NOTES_MSG"
+        )
         self.display_info(
             Translator.get("RELEASE_NOTES_TITLE", values=[APP_NAME]),
-            "RELEASE_NOTES_MSG",
+            msg_key,
             [APP_NAME, current],
         )
 
