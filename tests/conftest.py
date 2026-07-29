@@ -12,9 +12,12 @@ from nuxeo.client import Nuxeo
 from nxdrive.drive.options import Options
 from nxdrive.drive.utils import adapt_datetime_iso, get_verify
 
-from . import env
+from . import env_nuxeo as env
 
 pytest_plugins = "tests.pytest_random"
+
+# Frozen legacy tree — never collected by pytest.
+collect_ignore = ["old_tests"]
 
 
 # Operations cache
