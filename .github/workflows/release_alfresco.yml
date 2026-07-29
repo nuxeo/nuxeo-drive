@@ -255,9 +255,9 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    environment: development
+    environment: production
     env:
-      S3_BUCKET: test-hyland-software-channel-dist
+      S3_BUCKET: drive.software-channels.hyland.com
     needs: [release]
     permissions:
       id-token: write   # required for requesting the OIDC token
