@@ -10,14 +10,14 @@
 #   - Nuxeo:    VOLUME_NAME="Nuxeo Drive"                 GENERATED_DS_STORE=generated_DS_Store_nuxeo
 #   - Alfresco: VOLUME_NAME="Hyland Drive for Alfresco"    GENERATED_DS_STORE=generated_DS_Store_alfresco
 set -ex
-VOLUME_NAME="Hyland Drive for Alfresco"  # "Nuxeo Drive" for the Nuxeo flavor
+VOLUME_NAME="Nuxeo Drive"  # "Hyland Drive for Alfresco" for the Alfresco flavor
 
 SCRIPT_LOCATION="`dirname \"$0\"`"
-BACKGROUND_FILE=$SCRIPT_LOCATION/dmgbackground_alfresco.png
-GENERATED_DS_STORE="$SCRIPT_LOCATION/generated_DS_Store_alfresco"  # generated_DS_Store_nuxeo for the Nuxeo flavor
-DMG_TEMP="$SCRIPT_LOCATION/alfresco-drive.tmp.dmg"
+BACKGROUND_FILE=$SCRIPT_LOCATION/dmgbackground_nuxeo.png
+GENERATED_DS_STORE="$SCRIPT_LOCATION/generated_DS_Store_nuxeo"  # generated_DS_Store_alfresco for the Alfresco flavor
+DMG_TEMP="$SCRIPT_LOCATION/nuxeo-drive.tmp.dmg"
 
-PACKAGE_PATH="$SCRIPT_LOCATION/../../dist/Hyland Drive for Alfresco.app"
+PACKAGE_PATH="$SCRIPT_LOCATION/../../dist/Nuxeo Drive.app"
 SRC_FOLDER=$(dirname "$PACKAGE_PATH")
 PACKAGE_NAME=$(basename "$PACKAGE_PATH")
 BACKGROUND_FILE_NAME="$(basename "$BACKGROUND_FILE")"
@@ -48,13 +48,13 @@ echo '
 	       set current view of container window to icon view
 	       set toolbar visible of container window to false
 	       set statusbar visible of container window to false
-	       set the bounds of container window to {100, 100, 700, 350}
+	       set the bounds of container window to {100, 100, 700, 380}
 	       set theViewOptions to the icon view options of container window
 	       set arrangement of theViewOptions to not arranged
 	       set icon size of theViewOptions to 128
 	       set background picture of theViewOptions to file ".background:'"${BACKGROUND_FILE_NAME}"'"
-	       set position of item "'"${PACKAGE_NAME}"'" of container window to {150, 100}
-	       set position of item "Applications" of container window to {450, 100}
+	       set position of item "'"${PACKAGE_NAME}"'" of container window to {150, 125}
+	       set position of item "Applications" of container window to {450, 125}
 	       close
 	       open
 	       update without registering applications
