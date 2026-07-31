@@ -142,7 +142,9 @@ def _page(title, body):
 def _render_root(root_url, prefix, folders, extra_files):
     items = []
     for folder in folders:
-        href = f"{root_url}/{prefix}{folder}/"
+        # Link straight to the folder's index.html so the page works even
+        # when the bucket has no default index document configured.
+        href = f"{root_url}/{prefix}{folder}/index.html"
         items.append(
             f'    <li>&#128193; <a href="{html.escape(href)}">'
             f"{html.escape(folder)}/</a></li>"
@@ -171,7 +173,7 @@ def _render_folder(folder, root_url, prefix, files):
             "</tr>"
         )
 
-    parent = f"{root_url}/{prefix}"
+    parent = f"{root_url}/{prefix}index.html"
     if not rows:
         table = "  <p><em>No files.</em></p>"
     else:
