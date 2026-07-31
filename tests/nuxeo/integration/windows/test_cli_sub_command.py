@@ -8,7 +8,7 @@ import pytest
 from nuxeo.documents import Document
 
 from nxdrive.drive.constants import WINDOWS
-from tests.common.integration.windows.utils import (  # , share_metrics_dlg  , get_opened_url
+from tests.common.integration.windows.utils import (
     cb_get,
     fatal_error_dlg,
 )
