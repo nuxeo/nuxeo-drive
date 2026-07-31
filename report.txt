@@ -1,23 +1,11 @@
 Run tox -e integration-windows
-  tox -e integration-windows
-  shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
-  env:
-    SENTRY_DSN: 
-    FREEZE_ONLY: 1
-    NXDRIVE_TEST_NUXEO_URL: https://drive-2025.beta.nuxeocloud.com/nuxeo
-    NXDRIVE_TEST_USERNAME: ***
-    NXDRIVE_TEST_PASSWORD: ***
-    pythonLocation: C:\hostedtoolcache\windows\Python\3.13.1\x64
-    PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.13.1\x64/lib/pkgconfig
-    Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.13.1\x64
-    Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.13.1\x64
-    Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.13.1\x64
 integration-windows: install_deps> python -I -m pip install -r tools/deps/requirements-pip.txt -r tools/deps/requirements-tests.txt
 integration-windows: freeze> python -m pip freeze --all
 integration-windows: alfresco-rest-client==1.0.0,apipkg==3.0.2,appdirs==1.4.4,atomicwrites==1.4.1,attrs==25.4.0,Authlib==1.6.12,black==26.3.1,boto3==1.42.45,botocore==1.42.45,build==1.2.2.post1,cachetools==7.1.1,certifi==2026.2.25,cffi==2.0.0,cfgv==3.4.0,chardet==5.2.0,charset-normalizer==2.1.1,click==8.1.7,codespell==2.4.2,colorama==0.4.6,comtypes==1.4.8,coverage==7.6.9,cryptography==46.0.7,distlib==0.3.8,docutils==0.21.2,dukpy==0.5.0,exceptiongroup==1.2.2,execnet==2.1.1,Faker==40.1.2,filelock==3.29.0,flake8==7.3.0,future==1.0.0,identify==2.5.36,idna==3.15,importlib-metadata==7.0.1,iniconfig==2.0.0,jmespath==1.0.1,junitparser==5.0.0,jwt==1.3.1,mccabe==0.7.0,more-itertools==10.6.0,mypy==1.11.2,mypy-extensions==1.0.0,nodeenv==1.9.1,nuxeo==7.1.0,packaging==26.2,pathspec==1.0.4,pep517==0.13.1,pip==26.1.1,pip-tools==7.4.1,pip_system_certs==5.0,platformdirs==4.9.6,pluggy==1.6.0,pre_commit==4.5.1,psutil==7.0.0,pycodestyle==2.14.0,pycparser==2.22,pyfakefs==5.10.2,pyflakes==3.4.0,Pygments==2.20.0,PyPAC==0.18.3,pyparsing==2.4.7,pyproject-api==1.10.0,pyproject_hooks==1.0.0,PyQt6==6.10.1,PyQt6-Qt6==6.10.1,PyQt6-stubs==20250824,PyQt6_sip==13.10.3,pytest==9.0.3,pytest-cov==6.0.0,pytest-timeout==2.3.1,pytest-xdist==3.6.1,python-dateutil==2.9.0.post0,python-discovery==1.2.2,pytokens==0.4.1,pywin32==308,pywinauto==0.6.8,PyYAML==6.0.1,regex==2026.2.28,requests==2.33.1,requests-file==3.0.1,responses==0.26.1,s3transfer==0.16.0,selenium==3.141.0,Send2Trash==1.8.3,sentry-sdk==2.22.0,setuptools==80.9.0,six==1.17.0,text-unidecode==1.3,tld==0.13,tldextract==5.3.1,toml==0.10.2,tomli==2.2.1,tomli_w==1.2.0,tox==4.53.1,truststore==0.10.1,types-certifi==2021.10.8.3,types-python-dateutil==2.9.0.20240906,types-PyYAML==6.0.12.12,types-requests==2.26.1,typing_extensions==4.12.2,tzdata==2025.2,urllib3==2.7.0,virtualenv==21.3.0,vulture==2.11,watchdog==5.0.2,wcwidth==0.6.0,wheel==0.46.2,zipp==3.23.0
 integration-windows: commands[0]> pip-sync tools/deps/requirements-pip.txt tools/deps/requirements-tests.txt
 Everything up-to-date
-integration-windows: commands[1]> python -m pytest -n0 --timeout=120 tests/common/integration tests/nuxeo/integration tests/alfresco/integration --ignore=tests/common/integration/macos --ignore=tests/nuxeo/integration/macos --ignore=tests/alfresco/integration/macos
+integration-windows: commands[1]> python -m pytest -n0 -s --timeout=120 tests/common/integration tests/nuxeo/integration tests/alfresco/integration --ignore=tests/common/integration/macos --ignore=tests/nuxeo/integration/macos --ignore=tests/alfresco/integration/macos
+2026-07-31 20:28:40 3216 7136 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.address`.
 ============================= test session starts =============================
 platform win32 -- Python 3.13.1, pytest-9.0.3, pluggy-1.6.0
 cachedir: .tox\base\.pytest_cache
@@ -27,76 +15,27 @@ plugins: Faker-40.1.2, pyfakefs-5.10.2, cov-6.0.0, timeout-2.3.1, xdist-3.6.1
 timeout: 120.0s
 timeout method: thread
 timeout func_only: False
-pytest_addoption called with parser=<_pytest.config.argparsing.Parser object at 0x0000021F9D283230>
+pytest_addoption called with parser=<_pytest.config.argparsing.Parser object at 0x0000022A2A07F230>
 collected 78 items
 run-last-failure: no previously failed tests, not deselecting items.
 
-tests\common\integration\windows\test_cli.py F.....FFFFFFFFFFFFFFFFFFFFF [ 34%]
-FFFF..FFFFFFFFFF......                                                   [ 62%]
-tests\common\integration\windows\test_direct_download.py ......          [ 70%]
-tests\nuxeo\integration\windows\test_cli_sub_command.py FFF.....FFFF..FF [ 91%]
-FFF.                                                                     [ 96%]
-tests\alfresco\integration\windows\test_cli_sub_command.py ...           [100%]
-
-================================== FAILURES ===================================
-_______________________________ test_start_app ________________________________
-
-exe = <function exe.<locals>.execute at 0x0000021FA2BC4180>
-
-    def test_start_app(exe):
-        print("test_start_app called")
-        with exe() as app:
-            # Add additional time for app to fully initialize (CI environments can be slower)
-            sleep(2)
->           assert not fatal_error_dlg(app)
-E           assert not True
-E            +  where True = fatal_error_dlg(<pywinauto.application.Application object at 0x0000021FA347F620>)
-
-app        = <pywinauto.application.Application object at 0x0000021FA347F620>
-exe        = <function exe.<locals>.execute at 0x0000021FA2BC4180>
-
-tests\common\integration\windows\test_cli.py:21: AssertionError
----------------------------- Captured stdout setup ----------------------------
-final_exe fixture called with request=<SubRequest 'final_exe' for <Function test_start_app>>
-exe fixture called with final_exe=dist\ndrive\ndrive.exe, tmp=<function tmp.<locals>._make_folder at 0x0000021FA2BC4040>
----------------------------- Captured stderr setup ----------------------------
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.address`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Provider `faker.providers.address` has been localized to `en_US`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.automotive`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Provider `faker.providers.automotive` has been localized to `en_US`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.bank`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Specified locale `en_US` is not available for provider `faker.providers.bank`. Locale reset to `en_GB` for this provider.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.barcode`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Provider `faker.providers.barcode` has been localized to `en_US`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.color`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Provider `faker.providers.color` has been localized to `en_US`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.company`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Provider `faker.providers.company` has been localized to `en_US`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.credit_card`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Provider `faker.providers.credit_card` has been localized to `en_US`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.currency`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Provider `faker.providers.currency` has been localized to `en_US`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.date_time`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Provider `faker.providers.date_time` has been localized to `en_US`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Provider `faker.providers.doi` does not feature localization. Specified locale `en_US` is not used for this provider.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Provider `faker.providers.emoji` does not feature localization. Specified locale `en_US` is not used for this provider.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Provider `faker.providers.file` does not feature localization. Specified locale `en_US` is not used for this provider.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.geo`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Provider `faker.providers.geo` has been localized to `en_US`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.internet`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Provider `faker.providers.internet` has been localized to `en_US`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.isbn`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Provider `faker.providers.isbn` has been localized to `en_US`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.job`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Provider `faker.providers.job` has been localized to `en_US`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.lorem`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Provider `faker.providers.lorem` has been localized to `en_US`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.misc`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Provider `faker.providers.misc` has been localized to `en_US`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.passport`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Provider `faker.providers.passport` has been localized to `en_US`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.person`.
-2026-07-31 18:15:58 1020 2408 DEBUG    faker.factory      Provider `faker.providers.person` has been localized to `en_US`.
+2026-07-31 20:28:40 3216 7136 DEBUG    faker.factory      Provider `faker.providers.address` has been localized to `en_US`.
+2026-07-31 20:28:40 3216 7136 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.automotive`.
+2026-07-31 20:28:40 3216 7136 DEBUG    faker.factory      Provider `faker.providers.automotive` has been localized to `en_US`.
+2026-07-31 20:28:40 3216 7136 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.bank`.
+2026-07-31 20:28:40 3216 7136 DEBUG    faker.factory      Specified locale `en_US` is not available for provider `faker.providers.bank`. Locale reset to `en_GB` for this provider.
+2026-07-31 20:28:40 3216 7136 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.barcode`.
+2026-07-31 20:28:40 3216 7136 DEBUG    faker.factory      Provider `faker.providers.barcode` has been localized to `en_US`.
+2026-07-31 20:28:40 3216 7136 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.color`.
+2026-07-31 20:28:40 3216 7136 DEBUG    faker.factory      Provider `faker.providers.color` has been localized to `en_US`.
+2026-07-31 20:28:40 3216 7136 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.company`.
+2026-07-31 20:28:40 3216 7136 DEBUG    faker.factory      Provider `faker.providers.company` has been localized to `en_US`.
+2026-07-31 20:28:40 3216 7136 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.credit_card`.
+2026-07-31 20:28:40 3216 7136 DEBUG    faker.factory      Provider `faker.providers.credit_card` has been localized to `en_US`.
+2026-07-31 20:28:40 3216 7136 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.currency`.
+2026-07-31 20:28:40 3216 7136 DEBUG    faker.factory      Provider `faker.providers.currency` has been localized to `en_US`.
+FAILED tests/common/integration/windows/test_cli.py::test_valid_argument_value[--handshake-timeout=42]
+FAILED tests/common/integration/windows/test_cli.py::test_valid_argument_value[--log-level-file=DEBUG]
 FAILED tests/common/integration/windows/test_cli.py::test_valid_argument_value[--log-level-file=INFO]
 FAILED tests/common/integration/windows/test_cli.py::test_valid_argument_value[--log-level-file=WARNING]
 FAILED tests/common/integration/windows/test_cli.py::test_valid_argument_value[--log-level-file=ERROR]
@@ -135,8 +74,8 @@ FAILED tests/nuxeo/integration/windows/test_cli_sub_command.py::test_ctx_menu_ac
 FAILED tests/nuxeo/integration/windows/test_cli_sub_command.py::test_ctx_menu_copy_share_link_inexistant
 FAILED tests/nuxeo/integration/windows/test_cli_sub_command.py::test_ctx_menu_edit_metadata_inexistant
 FAILED tests/nuxeo/integration/windows/test_cli_sub_command.py::test_ctx_menu_entries
-============ 48 failed, 30 passed, 2 warnings in 308.84s (0:05:08) ============
-integration-windows: exit 1 (311.63 seconds) D:\a\nuxeo-drive\nuxeo-drive> python -m pytest -n0 --timeout=120 tests/common/integration tests/nuxeo/integration tests/alfresco/integration --ignore=tests/common/integration/macos --ignore=tests/nuxeo/integration/macos --ignore=tests/alfresco/integration/macos pid=8432
-  integration-windows: FAIL code 1 (347.45=setup[34.71]+cmd[1.12,311.63] seconds)
-  evaluation failed :( (347.48 seconds)
+============ 48 failed, 30 passed, 2 warnings in 318.89s (0:05:18) ============
+integration-windows: exit 1 (321.63 seconds) D:\a\nuxeo-drive\nuxeo-drive> python -m pytest -n0 -s --timeout=120 tests/common/integration tests/nuxeo/integration tests/alfresco/integration --ignore=tests/common/integration/macos --ignore=tests/nuxeo/integration/macos --ignore=tests/alfresco/integration/macos pid=9628
+  integration-windows: FAIL code 1 (358.08=setup[34.83]+cmd[1.62,321.63] seconds)
+  evaluation failed :( (358.11 seconds)
 Error: Process completed with exit code 1.
