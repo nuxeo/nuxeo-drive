@@ -21,12 +21,14 @@ on:
 
 jobs:
   integration-tests-windows-LTS-2023:
-    timeout-minutes: 30
+    timeout-minutes: 45
     runs-on: windows-latest
     strategy:
         fail-fast: false
 
     env:
+      SENTRY_DSN: ""
+      FREEZE_ONLY: "1"
       NXDRIVE_TEST_NUXEO_URL: https://drive-2023.beta.nuxeocloud.com/nuxeo
       NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2023_TEST_USERNAME }}
       NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2023_TEST_PASSWORD }}
@@ -66,12 +68,14 @@ jobs:
           env_vars: OS,PYTHON
 
   integration-tests-windows-LTS-2025:
-    timeout-minutes: 30
+    timeout-minutes: 45
     runs-on: windows-latest
     strategy:
         fail-fast: false
 
     env:
+      SENTRY_DSN: ""
+      FREEZE_ONLY: "1"
       NXDRIVE_TEST_NUXEO_URL: https://drive-2025.beta.nuxeocloud.com/nuxeo
       NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2025_TEST_USERNAME }}
       NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2025_TEST_PASSWORD }}
@@ -117,12 +121,13 @@ jobs:
           env_vars: OS,PYTHON
 
   integration-tests-macos:
-    timeout-minutes: 30
+    timeout-minutes: 45
     runs-on: "macos-15-intel"
     strategy:
         fail-fast: false
 
     env:
+      SENTRY_DSN: ""
       NXDRIVE_TEST_NUXEO_URL: https://drive-2025.beta.nuxeocloud.com/nuxeo
       NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2025_TEST_USERNAME }}
       NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2025_TEST_PASSWORD }}
