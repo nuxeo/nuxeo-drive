@@ -112,6 +112,7 @@ def test_unbind_root_doc_not_found(nuxeo_url, exe, server, tmp):
     assert not launch(exe, args)
 
 
+@pytest.mark.timeout(300)
 def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp):
     """Automate things:
     - bind a server
