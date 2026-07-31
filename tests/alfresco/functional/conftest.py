@@ -3,7 +3,7 @@
 Session-scoped fixtures build one authenticated
 :class:`alfresco.Alfresco` client per test session.  Function-scoped
 fixtures build ephemeral test folders / files under
-``env.ALFRESCO_TEST_PATH`` and delete them on tear-down.
+the repository root and delete them on tear-down.
 
 All fixtures raise ``pytest.skip`` when
 ``env.ALFRESCO_URL / _USER / _PASSWORD`` are not set, so the whole
@@ -37,12 +37,9 @@ def unique_name() -> Callable[[str], str]:
 
 @pytest.fixture()
 def temp_folder(alfresco_client, alfresco_test_folder, unique_name):
-    """Create a scratch folder under ``env.ALFRESCO_TEST_PATH`` and delete it
-    on tear-down.
-    """
+    """Create a scratch folder under the test root and delete it on tear-down."""
     name = unique_name("ndt-folder")
-    parent = alfresco_client.nodes.get_by_path(env.ALFRESCO_TEST_PATH)
-    folder = alfresco_client.nodes.create_folder(parent.id, name)
+    folder = alfresco_client.nodes.create_folder(alfresco_test_folder.id, name)
     log.info("[FIXTURE] Created scratch folder %s (%s)", name, folder.id)
     try:
         yield folder

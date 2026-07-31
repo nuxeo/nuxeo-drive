@@ -74,16 +74,20 @@ def alfresco_client(alfresco_url: str, alfresco_auth):
 
 @pytest.fixture()
 def alfresco_test_folder(alfresco_client):
-    """Ensure ``env.ALFRESCO_TEST_PATH`` exists and return its node ref."""
-    # Best-effort creation; if the folder already exists the API returns
-    # the existing node.
-    path = env.ALFRESCO_TEST_PATH
-    log.info("[FIXTURE] Ensuring Alfresco test folder exists at %s", path)
+    """Create a temporary test folder under the repository root and delete it
+    after tests complete."""
+    import uuid
+
+    folder_name = f"nxdrive-func-tests-{uuid.uuid4().hex[:8]}"
+    log.info("[FIXTURE] Creating test folder %s under -root-", folder_name)
+    node = alfresco_client.nodes.create_folder("-root-", folder_name)
+    yield node
+    # Cleanup: delete the folder and all its contents.
     try:
-        node = alfresco_client.nodes.get_by_path(path)
-    except Exception:
-        node = alfresco_client.nodes.create_folder_by_path(path)
-    return node
+        alfresco_client.nodes.delete(node.id, permanent=True)
+        log.info("[FIXTURE] Deleted test folder %s", folder_name)
+    except Exception as exc:
+        log.warning("[FIXTURE] Cleanup of %s failed: %s", folder_name, exc)
 
 
 def pytest_collection_modifyitems(config, items):
