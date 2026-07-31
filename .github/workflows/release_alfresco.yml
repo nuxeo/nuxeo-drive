@@ -335,7 +335,18 @@ jobs:
         run: |
           export SERVER="alfresco"
           drive_version="$(grep __alfresco_version__ nxdrive/__init__.py | cut -d'"' -f2)"
-          python tools/versions.py --add "$drive_version" --type "${{ github.event.inputs.releaseType }}" || exit 1
+          type="${{ github.event.inputs.releaseType }}"
+          echo ">>> drive_version=$drive_version"
+          if [ "$type" = "alpha" ]; then
+            type="alpha"
+          elif [ "$type" = "release" ]; then
+            type="beta"
+          else
+            echo ">>> Invalid release type: $type"
+            exit 1
+          fi
+          echo ">>> type=$type"
+          python tools/versions.py --add "$drive_version" --type "$type" || exit 1
           python tools/versions.py --merge || exit 1
           aws s3 cp versions.yml "s3://$S3_BUCKET/alfresco/drive-updates/" --cache-control "no-cache, max-age=0, must-revalidate"
           python tools/versions.py --delete "$drive_version" || exit 1
