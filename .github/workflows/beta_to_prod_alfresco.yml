@@ -79,6 +79,7 @@ jobs:
           beta_version="${{ github.event.inputs.betaVersion }}"
           files=(
             "alfresco-drive-$beta_version.exe"
+            "alfresco-drive-$beta_version-admin.exe"
             "alfresco-drive-$beta_version.dmg"
             "alfresco-drive-$beta_version-x86_64.AppImage"
             "alfresco-drive-addons.exe"
