@@ -114,9 +114,10 @@ class DirectDownload(Worker):
     def check_active_sessions(self) -> bool:
         """Check if any engine still has active direct download sessions."""
         for engine in self._manager.engines.copy().values():
-            if not engine.dao:
+            dao = getattr(engine, "dao", None)
+            if not dao:
                 continue
-            active_downloads = engine.dao.get_active_direct_downloads()
+            active_downloads = dao.get_active_direct_downloads()
             if active_downloads:
                 return True
         return False
