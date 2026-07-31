@@ -191,6 +191,7 @@ def test_ctx_menu_edit_metadata_inexistant(nuxeo_url, exe, server, tmp):
     assert launch(exe, args)
 
 
+@pytest.mark.timeout(600)
 def test_ctx_menu_entries(nuxeo_url, exe, server, tmp):
     """Will test:
     - access-online

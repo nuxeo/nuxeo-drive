@@ -1,27 +1,12 @@
 Run tox -e integration-windows
-  tox -e integration-windows
-  shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
-  env:
-    SENTRY_DSN: 
-    FREEZE_ONLY: 1
-    NXDRIVE_TEST_NUXEO_URL: https://drive-2025.beta.nuxeocloud.com/nuxeo
-    NXDRIVE_TEST_USERNAME: ***
-    NXDRIVE_TEST_PASSWORD: ***
-    pythonLocation: C:\hostedtoolcache\windows\Python\3.13.1\x64
-    PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.13.1\x64/lib/pkgconfig
-    Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.13.1\x64
-    Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.13.1\x64
-    Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.13.1\x64
 integration-windows: install_deps> python -I -m pip install -r tools/deps/requirements-pip.txt -r tools/deps/requirements-tests.txt
 integration-windows: freeze> python -m pip freeze --all
-integration-windows: alfresco-rest-client==1.0.0,apipkg==3.0.2,appdirs==1.4.4,atomicwrites==1.4.1,attrs==25.4.0,Authlib==1.6.12,black==26.3.1,boto3==1.42.45,botocore==1.42.45,build==1.2.2.post1,cachetools==7.1.1,certifi==2026.2.25,cffi==2.0.0,cfgv==3.4.0,chardet==5.2.0,charset-normalizer==2.1.1,click==8.1.7,codespell==2.4.2,colorama==0.4.6,comtypes==1.4.8,coverage==7.6.9,cryptography==46.0.7,distlib==0.3.8,docutils==0.21.2,dukpy==0.5.0,exceptiongroup==1.2.2,execnet==2.1.1,Faker==40.1.2,filelock==3.29.0,flake8==7.3.0,future==1.0.0,identify==2.5.36,idna==3.15,importlib-metadata==7.0.1,iniconfig==2.0.0,jmespath==1.0.1,junitparser==5.0.0,jwt==1.3.1,mccabe==0.7.0,more-itertools==10.6.0,mypy==1.11.2,mypy-extensions==1.0.0,nodeenv==1.9.1,nuxeo==7.1.0,packaging==26.2,pathspec==1.0.4,pep517==0.13.1,pip==26.1.1,pip-tools==7.4.1,pip_system_certs==5.0,platformdirs==4.9.6,pluggy==1.6.0,pre_commit==4.5.1,psutil==7.0.0,pycodestyle==2.14.0,pycparser==2.22,pyfakefs==5.10.2,pyflakes==3.4.0,Pygments==2.20.0,PyPAC==0.18.3,pyparsing==2.4.7,pyproject-api==1.10.0,pyproject_hooks==1.0.0,PyQt6==6.10.1,PyQt6-Qt6==6.10.1,PyQt6-stubs==20250824,PyQt6_sip==13.10.3,pytest==9.0.3,pytest-cov==6.0.0,pytest-timeout==2.3.1,pytest-xdist==3.6.1,python-dateutil==2.9.0.post0,python-discovery==1.2.2,pytokens==0.4.1,pywin32==308,pywinauto==0.6.8,PyYAML==6.0.1,regex==2026.2.28,requests==2.33.1,requests-file==3.0.1,responses==0.26.1,s3transfer==0.16.0,selenium==3.141.0,Send2Trash==1.8.3,sentry-sdk==2.22.0,setuptools==80.9.0,six==1.17.0,text-unidecode==1.3,tld==0.13,tldextract==5.3.1,toml==0.10.2,tomli==2.2.1,tomli_w==1.2.0,tox==4.53.1,truststore==0.10.1,types-certifi==2021.10.8.3,types-python-dateutil==2.9.0.20240906,types-PyYAML==6.0.12.12,types-requests==2.26.1,typing_extensions==4.12.2,tzdata==2025.2,urllib3==2.7.0,virtualenv==21.3.0,vulture==2.11,watchdog==5.0.2,wcwidth==0.6.0,wheel==0.46.2,zipp==3.23.0
+integration-windows: alfresco-rest-client==1.0.0,apipkg==3.0.2,appdirs==1.4.4,atomicwrites==1.4.1,attrs==25.4.0,Authlib==1.6.12,black==26.3.1,boto3==1.42.45,botocore==1.42.45,build==1.2.2.post1,cachetools==7.1.1,certifi==2026.2.25,cffi==2.0.0,cfgv==3.4.0,chardet==5.2.0,charset-normalizer==2.1.1,click==8.1.7,codespell==2.4.2,colorama==0.4.6,comtypes==1.4.8,coverage==7.6.9,cryptography==46.0.7,distlib==0.3.8,docutils==0.21.2,dukpy==0.5.0,exceptiongroup==1.2.2,execnet==2.1.1,Faker==40.1.2,filelock==3.29.0,flake8==7.3.0,future==1.0.0,identify==2.5.36,idna==3.15,importlib-metadata==7.0.1,iniconfig==2.0.0,jmespath==1.0.1,junitparser==5.0.0,jwt==1.3.1,mccabe==0.7.0,more-itertools==10.6.0,mypy==1.11.2,mypy-extensions==1.0.0,nodeenv==1.9.1,nuxeo==7.1.0,packaging==26.2,pathspec==1.0.4,pep517==0.13.1,pip==26.1.1,pip-tools==7.4.1,pip_system_certs==5.0,platformdirs==4.9.6,pluggy==1.6.0,pre_commit==4.5.1,psutil==7.0.0,pycodestyle==2.14.0,pycparser==2.22,pyfakefs==5.10.2,pyflakes==3.4.0,Pygments==2.20.0,PyPAC==0.18.3,pypars
 integration-windows: commands[0]> pip-sync tools/deps/requirements-pip.txt tools/deps/requirements-tests.txt
 Everything up-to-date
-integration-windows: commands[1]> python -m pytest -n0 -s --timeout=120 tests/common/integration tests/nuxeo/integration tests/alfresco/integration --ignore=tests/common/integration/macos --ignore=tests/nuxeo/integration/macos --ignore=tests/alfresco/integration/macos
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.address`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.address` has been localized to `en_US`.
+integration-windows: commands[1]> python -m pytest -n0 -v --tb=short --timeout=120 tests/common/integration tests/nuxeo/integration tests/alfresco/integration --ignore=tests/common/integration/macos --ignore=tests/nuxeo/integration/macos --ignore=tests/alfresco/integration/macos
 ============================= test session starts =============================
-platform win32 -- Python 3.13.1, pytest-9.0.3, pluggy-1.6.0
+platform win32 -- Python 3.13.1, pytest-9.0.3, pluggy-1.6.0 -- D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Scripts\python.EXE
 cachedir: .tox\base\.pytest_cache
 rootdir: D:\a\nuxeo-drive\nuxeo-drive
 configfile: setup.cfg
@@ -29,74 +14,277 @@ plugins: Faker-40.1.2, pyfakefs-5.10.2, cov-6.0.0, timeout-2.3.1, xdist-3.6.1
 timeout: 120.0s
 timeout method: thread
 timeout func_only: False
-pytest_addoption called with parser=<_pytest.config.argparsing.Parser object at 0x0000019D8565ABA0>
+collecting ... pytest_addoption called with parser=<_pytest.config.argparsing.Parser object at 0x0000024B3CB1ABA0>
 collected 78 items
 run-last-failure: no previously failed tests, not deselecting items.
-
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.automotive`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.automotive` has been localized to `en_US`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.bank`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Specified locale `en_US` is not available for provider `faker.providers.bank`. Locale reset to `en_GB` for this provider.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.barcode`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.barcode` has been localized to `en_US`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.color`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.color` has been localized to `en_US`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.company`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.company` has been localized to `en_US`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.credit_card`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.credit_card` has been localized to `en_US`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.currency`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.currency` has been localized to `en_US`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.date_time`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.date_time` has been localized to `en_US`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.doi` does not feature localization. Specified locale `en_US` is not used for this provider.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.emoji` does not feature localization. Specified locale `en_US` is not used for this provider.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.file` does not feature localization. Specified locale `en_US` is not used for this provider.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.geo`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.geo` has been localized to `en_US`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.internet`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.internet` has been localized to `en_US`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.isbn`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.isbn` has been localized to `en_US`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.job`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.job` has been localized to `en_US`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.lorem`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.lorem` has been localized to `en_US`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.misc`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.misc` has been localized to `en_US`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.passport`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.passport` has been localized to `en_US`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.person`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.person` has been localized to `en_US`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.phone_number`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.phone_number` has been localized to `en_US`.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.profile` does not feature localization. Specified locale `en_US` is not used for this provider.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.python` does not feature localization. Specified locale `en_US` is not used for this provider.
-2026-07-31 21:13:30 5912 3892 DEBUG    faker.factory      Provider `faker.providers.sbn` does not feature localization. Specified locale `en_US` is not used for this provider.
-2026-07-31 21:13:31 5912 3892 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.ssn`.
-2026-07-31 21:13:31 5912 3892 DEBUG    faker.factory      Provider `faker.providers.ssn` has been localized to `en_US`.
-2026-07-31 21:13:31 5912 3892 DEBUG    faker.factory      Provider `faker.providers.user_agent` does not feature localization. Specified locale `en_US` is not used for this provider.
-2026-07-31 21:13:31 5912 3892 INFO     nxdrive.drive.utils Exception when trying to read config file: FileNotFoundError(2, 'No such file or directory')
-2026-07-31 21:13:31 5912 3892 INFO     nxdrive.drive.options Option 'ssl_no_verify' updated: False -> True [manual]
-2026-07-31 21:13:31 5912 3892 INFO     nxdrive.drive.options Options(ssl_no_verify[manual]=True)
-2026-07-31 21:13:31 5912 3892 INFO     tests.common.integration.windows.conftest Starting 'dist\\ndrive\\ndrive.exe' with args='--nxdrive-home="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_start_app0\\0\\config" --log-level-file=DEBUG --ssl-no-verify'
-2026-07-31 21:13:36 5912 3892 INFO     tests.common.integration.windows.utils Error Window exists: False
-2026-07-31 21:13:41 5912 3892 WARNING  tests.common.integration.windows.utils Window can not be closed!
-2026-07-31 21:13:52 5912 3892 INFO     nxdrive.drive.options Option 'ssl_no_verify' updated: True -> False [manual]
-2026-07-31 21:13:52 5912 3892 INFO     nxdrive.drive.options Options(ssl_no_verify[manual]=False)
-2026-07-31 21:13:52 5912 3892 INFO     tests.common.integration.windows.conftest Starting 'dist\\ndrive\\ndrive.exe' with args='invalid_AgUmeNt --nxdrive-home="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_invalid_argument_invalid_0\\0\\config" --log-level-file=DEBUG --ssl-no-verify'
-tests\common\integration\windows\test_cli.py final_exe fixture called with request=<SubRequest 'final_exe' for <Function test_start_app>>
-exe fixture called with final_exe=dist\ndrive\ndrive.exe, tmp=<function tmp.<locals>._make_folder at 0x0000019D8AF53F60>
-test_start_app called
-execute called with cmd=dist\ndrive\ndrive.exe, args=, wait=0
-Starting 'dist\\ndrive\\ndrive.exe' with args='--nxdrive-home="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_start_app0\\0\\config" --log-level-file=DEBUG --ssl-no-verify'
-fatal_error_dlg called with app=<pywinauto.application.Application object at 0x0000019D8BA81550>, with_details=True, wait_timeout_multiplier=0
-window_exists called with dlg=<pywinauto.application.WindowSpecification object at 0x0000019D8BA816A0>, with_details=True
-share_metrics_dlg called with app=<pywinauto.application.Application object at 0x0000019D8BA81550>
-main_window called with app=<pywinauto.application.Application object at 0x0000019D8BA81550>
-
+tests/common/integration/windows/test_cli.py::test_start_app PASSED      [  1%]
+tests/common/integration/windows/test_cli.py::test_invalid_argument[invalid_AgUmeNt] PASSED [  2%]
+tests/common/integration/windows/test_cli.py::test_invalid_argument[--invalid_AgUmeNt] PASSED [  3%]
+tests/common/integration/windows/test_cli.py::test_invalid_argument[--invalid_AgUmeNt=42] PASSED [  5%]
+tests/common/integration/windows/test_cli.py::test_invalid_argument_value[--log-level-file=42] PASSED [  6%]
+tests/common/integration/windows/test_cli.py::test_invalid_argument_value[--delay=foo] PASSED [  7%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--channel=alpha] PASSED [  8%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--channel=beta] PASSED [ 10%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--channel=release] PASSED [ 11%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--debug] PASSED [ 12%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--debug-pydev] PASSED [ 14%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--delay=42] PASSED [ 15%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--force-locale=es] PASSED [ 16%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--handshake-timeout=42] PASSED [ 17%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--log-level-file=DEBUG] PASSED [ 19%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--log-level-file=INFO] PASSED [ 20%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--log-level-file=WARNING] PASSED [ 21%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--log-level-file=ERROR] PASSED [ 23%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--log-level-console=DEBUG] PASSED [ 24%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--log-level-console=INFO] PASSED [ 25%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--log-level-console=WARNING] PASSED [ 26%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--log-level-console=ERROR] PASSED [ 28%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--locale=es] PASSED [ 29%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--max-errors=42] PASSED [ 30%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--nofscheck] PASSED [ 32%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--proxy-server=***example.org:8888] PASSED [ 33%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--ssl-no-verify] PASSED [ 34%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--sync-and-quit] PASSED [ 35%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--timeout=42] PASSED [ 37%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--update-check-delay=42] PASSED [ 38%]
+tests/common/integration/windows/test_cli.py::test_valid_argument_value[--update-site-url='https://example.org'] PASSED [ 39%]
+tests/common/integration/windows/test_cli.py::test_check_drive_version[-v] PASSED [ 41%]
+tests/common/integration/windows/test_cli.py::test_check_drive_version[--version] PASSED [ 42%]
+tests/common/integration/windows/test_cli.py::test_argument_log_filename[azerty.log] PASSED [ 43%]
+tests/common/integration/windows/test_cli.py::test_argument_log_filename[$alice.log] PASSED [ 44%]
+tests/common/integration/windows/test_cli.py::test_argument_log_filename[l\xe9a.log] PASSED [ 46%]
+tests/common/integration/windows/test_cli.py::test_argument_log_filename[mi Ka\xebl.log] PASSED [ 47%]
+tests/common/integration/windows/test_cli.py::test_argument_log_filename[\u3053\u3093 \u30c4\u30ea ^^.log] PASSED [ 48%]
+tests/common/integration/windows/test_cli.py::test_argument_nxdrive_home[azerty] PASSED [ 50%]
+tests/common/integration/windows/test_cli.py::test_argument_nxdrive_home[$alice] PASSED [ 51%]
+tests/common/integration/windows/test_cli.py::test_argument_nxdrive_home[l\xe9a] PASSED [ 52%]
+tests/common/integration/windows/test_cli.py::test_argument_nxdrive_home[mi Ka\xebl] PASSED [ 53%]
+tests/common/integration/windows/test_cli.py::test_argument_nxdrive_home[\u3053\u3093 \u30c4\u30ea ^^] PASSED [ 55%]
+tests/common/integration/windows/test_cli.py::test_removed_argument[--beta-update-site-url='http://example.org'] PASSED [ 56%]
+tests/common/integration/windows/test_cli.py::test_removed_argument[--beta-channel] PASSED [ 57%]
+tests/common/integration/windows/test_cli.py::test_removed_argument[--consider-ssl-errors] PASSED [ 58%]
+tests/common/integration/windows/test_cli.py::test_removed_argument[--max-sync-step=42] PASSED [ 60%]
+tests/common/integration/windows/test_cli.py::test_removed_argument[--proxy-exceptions=unknown] PASSED [ 61%]
+tests/common/integration/windows/test_cli.py::test_removed_argument[--proxy-type=none] PASSED [ 62%]
+tests/common/integration/windows/test_direct_download.py::TestDirectDownloadUrl::test_handle_direct_download_url PASSED [ 64%]
+tests/common/integration/windows/test_direct_download.py::TestDirectDownloadUrl::test_handle_direct_download_batch_url PASSED [ 65%]
+tests/common/integration/windows/test_direct_download.py::TestDirectDownloadUrl::test_handle_direct_download_empty_docs PASSED [ 66%]
+tests/common/integration/windows/test_direct_download.py::TestDirectDownloadUrl::test_handle_direct_download_restart_needed PASSED [ 67%]
+tests/common/integration/windows/test_direct_download.py::TestDirectDownloadUrl::test_handle_unknown_command PASSED [ 69%]
+tests/common/integration/windows/test_direct_download.py::TestDirectDownloadEndToEnd::test_url_parsing_to_signal_emission PASSED [ 70%]
+tests/nuxeo/integration/windows/test_cli_sub_command.py::test_console PASSED [ 71%]
+tests/nuxeo/integration/windows/test_cli_sub_command.py::test_bind_server[{user} {url}] PASSED [ 73%]
+tests/nuxeo/integration/windows/test_cli_sub_command.py::test_bind_server[{user} {url} --*** PASSED [ 74%]
+tests/nuxeo/integration/windows/test_cli_sub_command.py::test_bind_server_missing_arguments[] PASSED [ 75%]
+tests/nuxeo/integration/windows/test_cli_sub_command.py::test_bind_server_missing_arguments[***] PASSED [ 76%]
+tests/nuxeo/integration/windows/test_cli_sub_command.py::test_bind_server_missing_arguments[https://drive-2025.beta.nuxeocloud.com/nuxeo] PASSED [ 78%]
+tests/nuxeo/integration/windows/test_cli_sub_command.py::test_bind_server_missing_arguments[--*** PASSED [ 79%]
+tests/nuxeo/integration/windows/test_cli_sub_command.py::test_bind_server_missing_arguments[--local-folder=foo] PASSED [ 80%]
+tests/nuxeo/integration/windows/test_cli_sub_command.py::test_unbind_server[L\xe9a$] PASSED [ 82%]
+tests/nuxeo/integration/windows/test_cli_sub_command.py::test_unbind_server[this folder is good enough \u3053\u3093 \u30c4\u30ea ^^] PASSED [ 83%]
+tests/nuxeo/integration/windows/test_cli_sub_command.py::test_unbind_server_missing_argument[] PASSED [ 84%]
+tests/nuxeo/integration/windows/test_cli_sub_command.py::test_unbind_server_missing_argument[this folder does not exist \u3053\u3093 \u30c4\u30ea ^^ L\xe9a$] PASSED [ 85%]
+tests/nuxeo/integration/windows/test_cli_sub_command.py::test_bind_root_doc_not_found PASSED [ 87%]
+tests/nuxeo/integration/windows/test_cli_sub_command.py::test_unbind_root_doc_not_found PASSED [ 88%]
+tests/nuxeo/integration/windows/test_cli_sub_command.py::test_complete_scenario_synchronization_from_zero PASSED [ 89%]
+tests/nuxeo/integration/windows/test_cli_sub_command.py::test_ctx_menu_access_online_inexistant PASSED [ 91%]
+tests/nuxeo/integration/windows/test_cli_sub_command.py::test_ctx_menu_copy_share_link_inexistant PASSED [ 92%]
+tests/nuxeo/integration/windows/test_cli_sub_command.py::test_ctx_menu_edit_metadata_inexistant PASSED [ 93%]
+tests/nuxeo/integration/windows/test_cli_sub_command.py::test_ctx_menu_entries +++++++++++++++++++++++++++++++++++ Timeout +++++++++++++++++++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Captured stdout ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+execute called with cmd=dist\ndrive\ndrive.exe, args=bind-server *** https://drive-2025.beta.nuxeocloud.com/nuxeo --local-folder="C:\Users\runneradmin\AppData\Local\Temp\pytest-of-runneradmin\pytest-0\test_ctx_menu_entries0\1" --password ***, wait=0
+Starting 'dist\\ndrive\\ndrive.exe' with args='bind-server *** https://drive-2025.beta.nuxeocloud.com/nuxeo --local-folder="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\1" --password *** --nxdrive-home="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\0\\config" --log-level-file=DEBUG --ssl-no-verify'
+fatal_error_dlg called with app=<pywinauto.application.Application object at 0x0000024B43B43450>, with_details=True, wait_timeout_multiplier=1
+window_exists called with dlg=<pywinauto.application.WindowSpecification object at 0x0000024B43B07460>, with_details=True
 ============================================================
 CRASH STATE FILE FOUND at C:\Users\runneradmin\.nuxeo-drive\crash.state:
+Traceback (most recent call last):
+  File "nxdrive\__main__.py", line 91, in main
+    ret = CliHandler().handle(sys.argv[1:])
+  File "nxdrive\drive\commandline.py", line 674, in handle
+    options = self.parse_cli(argv)
+  File "nxdrive\drive\commandline.py", line 446, in parse_cli
+    options = parser.parse_args(filtered_args)
+  File "argparse.py", line 1893, in parse_args
+  File "argparse.py", line 2645, in error
+  File "argparse.py", line 2632, in exit
+SystemExit: 2
+============================================================
+execute called with cmd=dist\ndrive\ndrive.exe, args=bind-root "/default-domain/workspaces/my workspace" --local-folder="C:\Users\runneradmin\AppData\Local\Temp\pytest-of-runneradmin\pytest-0\test_ctx_menu_entries0\1", wait=5
+Starting 'dist\\ndrive\\ndrive.exe' with args='bind-root "/default-domain/workspaces/my workspace" --local-folder="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\1" --nxdrive-home="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\0\\config" --log-level-file=DEBUG --ssl-no-verify'
+fatal_error_dlg called with app=<pywinauto.application.Application object at 0x0000024B427B3750>, with_details=True, wait_timeout_multiplier=1
+window_exists called with dlg=<pywinauto.application.WindowSpecification object at 0x0000024B43B07150>, with_details=True
+============================================================
+CRASH STATE FILE FOUND at C:\Users\runneradmin\.nuxeo-drive\crash.state:
+Traceback (most recent call last):
+  File "nxdrive\__main__.py", line 91, in main
+    ret = CliHandler().handle(sys.argv[1:])
+  File "nxdrive\drive\commandline.py", line 674, in handle
+    options = self.parse_cli(argv)
+  File "nxdrive\drive\commandline.py", line 446, in parse_cli
+    options = parser.parse_args(filtered_args)
+  File "argparse.py", line 1893, in parse_args
+  File "argparse.py", line 2645, in error
+  File "argparse.py", line 2632, in exit
+SystemExit: 2
+============================================================
+execute called with cmd=dist\ndrive\ndrive.exe, args=console --sync-and-quit, wait=40
+Starting 'dist\\ndrive\\ndrive.exe' with args='console --sync-and-quit --nxdrive-home="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\0\\config" --log-level-file=DEBUG --ssl-no-verify'
+fatal_error_dlg called with app=<pywinauto.application.Application object at 0x0000024B439F0250>, with_details=True, wait_timeout_multiplier=1
+window_exists called with dlg=<pywinauto.application.WindowSpecification object at 0x0000024B43B07070>, with_details=True
+============================================================
+CRASH STATE FILE FOUND at C:\Users\runneradmin\.nuxeo-drive\crash.state:
+Traceback (most recent call last):
+  File "nxdrive\__main__.py", line 91, in main
+    ret = CliHandler().handle(sys.argv[1:])
+  File "nxdrive\drive\commandline.py", line 674, in handle
+    options = self.parse_cli(argv)
+  File "nxdrive\drive\commandline.py", line 446, in parse_cli
+    options = parser.parse_args(filtered_args)
+  File "argparse.py", line 1893, in parse_args
+  File "argparse.py", line 2645, in error
+  File "argparse.py", line 2632, in exit
+SystemExit: 2
+============================================================
+execute called with cmd=dist\ndrive\ndrive.exe, args=copy-share-link --file="C:\Users\runneradmin\AppData\Local\Temp\pytest-of-runneradmin\pytest-0\test_ctx_menu_entries0\1\my workspace", wait=0
+Starting 'dist\\ndrive\\ndrive.exe' with args='copy-share-link --file="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\1\\my workspace" --nxdrive-home="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\0\\config" --log-level-file=DEBUG --ssl-no-verify'
+fatal_error_dlg called with app=<pywinauto.application.Application object at 0x0000024B43933A50>, with_details=True, wait_timeout_multiplier=1
+window_exists called with dlg=<pywinauto.application.WindowSpecification object at 0x0000024B43B07B60>, with_details=True
+============================================================
+CRASH STATE FILE FOUND at C:\Users\runneradmin\.nuxeo-drive\crash.state:
+Traceback (most recent call last):
+  File "nxdrive\__main__.py", line 91, in main
+    ret = CliHandler().handle(sys.argv[1:])
+  File "nxdrive\drive\commandline.py", line 674, in handle
+    options = self.parse_cli(argv)
+  File "nxdrive\drive\commandline.py", line 446, in parse_cli
+    options = parser.parse_args(filtered_args)
+  File "argparse.py", line 1893, in parse_args
+  File "argparse.py", line 2645, in error
+  File "argparse.py", line 2632, in exit
+SystemExit: 2
+============================================================
+execute called with cmd=dist\ndrive\ndrive.exe, args=access-online --file="C:\Users\runneradmin\AppData\Local\Temp\pytest-of-runneradmin\pytest-0\test_ctx_menu_entries0\1\my workspace", wait=0
+Starting 'dist\\ndrive\\ndrive.exe' with args='access-online --file="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\1\\my workspace" --nxdrive-home="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\0\\config" --log-level-file=DEBUG --ssl-no-verify'
+fatal_error_dlg called with app=<pywinauto.application.Application object at 0x0000024B4279AC50>, with_details=True, wait_timeout_multiplier=1
+window_exists called with dlg=<pywinauto.application.WindowSpecification object at 0x0000024B43B06CF0>, with_details=True
+============================================================
+CRASH STATE FILE FOUND at C:\Users\runneradmin\.nuxeo-drive\crash.state:
+Traceback (most recent call last):
+  File "nxdrive\__main__.py", line 91, in main
+    ret = CliHandler().handle(sys.argv[1:])
+  File "nxdrive\drive\commandline.py", line 674, in handle
+    options = self.parse_cli(argv)
+  File "nxdrive\drive\commandline.py", line 446, in parse_cli
+    options = parser.parse_args(filtered_args)
+  File "argparse.py", line 1893, in parse_args
+  File "argparse.py", line 2645, in error
+  File "argparse.py", line 2632, in exit
+SystemExit: 2
+============================================================
+execute called with cmd=dist\ndrive\ndrive.exe, args=edit-metadata --file="C:\Users\runneradmin\AppData\Local\Temp\pytest-of-runneradmin\pytest-0\test_ctx_menu_entries0\1\my workspace", wait=0
+Starting 'dist\\ndrive\\ndrive.exe' with args='edit-metadata --file="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\1\\my workspace" --nxdrive-home="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\0\\config" --log-level-file=DEBUG --ssl-no-verify'
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Captured stderr ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2026-07-31 21:55:05 7480 2884 INFO     tests.common.integration.windows.conftest Starting 'dist\\ndrive\\ndrive.exe' with args='bind-server *** https://drive-2025.beta.nuxeocloud.com/nuxeo --local-folder="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\1" --password *** --nxdrive-home="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\0\\config" --log-level-file=DEBUG --ssl-no-verify'
+2026-07-31 21:55:07 7480 2884 INFO     tests.common.integration.windows.utils Error Window exists: False
+2026-07-31 21:55:19 7480 2884 ERROR    tests.common.integration.windows.utils Fatal error dialog did not appear within 10 seconds.
+2026-07-31 21:55:19 7480 2884 DEBUG    nuxeo.client       Calling GET 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' with headers={'Content-Type': 'application/json', 'X-NXDocumentProperties': 'dublincore', 'X-NXRepository': 'default', 'X-Application-Name': 'Python client', 'X-Client-Version': '7.1.0', 'User-Agent': 'Python client/7.1.0', 'Accept': 'application/json, */*'}, params=None, kwargs={'verify': False, 'timeout': (10, 600)}
+2026-07-31 21:55:19 7480 2884 DEBUG    nuxeo.utils        Response from 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' [200]: '<CMIS details saved into the *server_info* attr>' with headers {'Date': 'Fri, 31 Jul 2026 21:55:19 GMT', 'Content-Type': 'application/json;charset=UTF-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Set-Cookie': '*********, 'Server': 'Apache-Chemistry-OpenCMIS/2.0.0', 'Referrer-Policy': 'same-origin, strict-origin-when-cross-origin', 'Strict-Transport-Security': 'max-age=63072000; includeSubdomains;', 'X-Frame-Options': 'SAMEORIGIN', 'X-UA-Compatible': 'IE=10; IE=11', 'Cache-Control': 'no-cache, private, max-age=0', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "img-src data: blob: *; default-src blob: *; script-src 'unsafe-inline' 'unsafe-eval' data: *; style-src 'unsafe-inline' *; font-src data: *", 'X-XSS-Protection': '1; mode=block'}
+2026-07-31 21:55:19 7480 2884 DEBUG    nuxeo.client       Calling GET 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' with headers={'Content-Type': 'application/json', 'X-NXDocumentProperties': 'dublincore', 'X-NXRepository': 'default', 'X-Application-Name': 'Python client', 'X-Client-Version': '7.1.0', 'User-Agent': 'Python client/7.1.0', 'Accept': 'application/json, */*'}, params=None, kwargs={'verify': False, 'timeout': (10, 600)}
+2026-07-31 21:55:19 7480 2884 DEBUG    nuxeo.utils        Response from 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' [200]: '<CMIS details saved into the *server_info* attr>' with headers {'Date': 'Fri, 31 Jul 2026 21:55:19 GMT', 'Content-Type': 'application/json;charset=UTF-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Set-Cookie': '*********, 'Server': 'Apache-Chemistry-OpenCMIS/2.0.0', 'Referrer-Policy': 'same-origin, strict-origin-when-cross-origin', 'Strict-Transport-Security': 'max-age=63072000; includeSubdomains;', 'X-Frame-Options': 'SAMEORIGIN', 'X-UA-Compatible': 'IE=10; IE=11', 'Cache-Control': 'no-cache, private, max-age=0', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "img-src data: blob: *; default-src blob: *; script-src 'unsafe-inline' 'unsafe-eval' data: *; style-src 'unsafe-inline' *; font-src data: *", 'X-XSS-Protection': '1; mode=block'}
+2026-07-31 21:55:19 7480 2884 DEBUG    nuxeo.client       Calling GET 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' with headers={'Content-Type': 'application/json', 'X-NXDocumentProperties': 'dublincore', 'X-NXRepository': 'default', 'X-Application-Name': 'Python client', 'X-Client-Version': '7.1.0', 'User-Agent': 'Python client/7.1.0', 'Accept': 'application/json, */*'}, params=None, kwargs={'verify': False, 'timeout': (10, 600)}
+2026-07-31 21:55:19 7480 2884 DEBUG    nuxeo.utils        Response from 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' [200]: '<CMIS details saved into the *server_info* attr>' with headers {'Date': 'Fri, 31 Jul 2026 21:55:19 GMT', 'Content-Type': 'application/json;charset=UTF-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Set-Cookie': '*********, 'Server': 'Apache-Chemistry-OpenCMIS/2.0.0', 'Referrer-Policy': 'same-origin, strict-origin-when-cross-origin', 'Strict-Transport-Security': 'max-age=63072000; includeSubdomains;', 'X-Frame-Options': 'SAMEORIGIN', 'X-UA-Compatible': 'IE=10; IE=11', 'Cache-Control': 'no-cache, private, max-age=0', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "img-src data: blob: *; default-src blob: *; script-src 'unsafe-inline' 'unsafe-eval' data: *; style-src 'unsafe-inline' *; font-src data: *", 'X-XSS-Protection': '1; mode=block'}
+2026-07-31 21:55:19 7480 2884 DEBUG    nuxeo.client       Calling POST 'https://drive-2025.beta.nuxeocloud.com/nuxeo/api/v1/repo/default/path/default-domain/workspaces' with headers={'Content-Type': 'application/json', 'X-NXDocumentProperties': 'dublincore', 'X-NXRepository': 'default', 'X-Application-Name': 'Python client', 'X-Client-Version': '7.1.0', 'User-Agent': 'Python client/7.1.0', 'Accept': 'application/json, */*'}, params='{"contextParameters": {}, "entity-type": "document", "facets": [], "isCheckedOut": false, "isProxy": false, "isTrashed": false, "isVersion": false, "name": "my workspace", "properties": {"dc:title": "my workspace"}, "repository": "default", "type": "Workspace"}', kwargs={'verify': False, 'timeout': (10, 600)}
+2026-07-31 21:55:19 7480 2884 DEBUG    nuxeo.utils        Response from 'https://drive-2025.beta.nuxeocloud.com/nuxeo/api/v1/repo/default/path/default-domain/workspaces' [201]: '{"entity-type":"document","repository":"default","uid":"f85d1dc2-4a3e-4b63-80cf-04b9d3de6e93","path":"/default-domain/workspaces/my workspace","type":"Workspace","state":"project","parentRef":"40c0c797-13ea-4308-b5fc-f90371558d18","isCheckedOut":true,"isRecord":false,"retainUntil":null,"hasLegalHold":false,"isUnderRetentionOrLegalHold":false,"isVersion":false,"isProxy":false,"changeToken":"0-0","isTrashed":false,"title":"my workspace","lastModified":"2026-07-31T21:55:19.842Z","properties":{"dc:description":null,"dc:language":null,"dc:coverage":null,"dc:valid":null,"dc:creator":"***","dc:modified":"2026-07-31T21:55:19.842Z","dc:lastContributor":"***","dc:rights":null,"dc:expired":null,"dc:format":null,"dc:created":"2026-07-31T21:55:19.842Z","dc:title":"my workspace","dc:issued":null,"dc:nature":null,"dc:subjects":[],"dc:contributors":[
+2026-07-31 21:55:19 7480 2884 INFO     tests.common.integration.windows.conftest Starting 'dist\\ndrive\\ndrive.exe' with args='bind-root "/default-domain/workspaces/my workspace" --local-folder="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\1" --nxdrive-home="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\0\\config" --log-level-file=DEBUG --ssl-no-verify'
+2026-07-31 21:55:22 7480 2884 INFO     tests.common.integration.windows.utils Error Window exists: False
+2026-07-31 21:55:34 7480 2884 ERROR    tests.common.integration.windows.utils Fatal error dialog did not appear within 10 seconds.
+2026-07-31 21:55:34 7480 2884 DEBUG    nuxeo.client       Calling GET 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' with headers={'Content-Type': 'application/json', 'X-NXDocumentProperties': 'dublincore', 'X-NXRepository': 'default', 'X-Application-Name': 'Python client', 'X-Client-Version': '7.1.0', 'User-Agent': 'Python client/7.1.0', 'Accept': 'application/json, */*'}, params=None, kwargs={'verify': False, 'timeout': (10, 600)}
+2026-07-31 21:55:34 7480 2884 DEBUG    nuxeo.utils        Response from 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' [200]: '<CMIS details saved into the *server_info* attr>' with headers {'Date': 'Fri, 31 Jul 2026 21:55:34 GMT', 'Content-Type': 'application/json;charset=UTF-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Set-Cookie': '*********, 'Server': 'Apache-Chemistry-OpenCMIS/2.0.0', 'Referrer-Policy': 'same-origin, strict-origin-when-cross-origin', 'Strict-Transport-Security': 'max-age=63072000; includeSubdomains;', 'X-Frame-Options': 'SAMEORIGIN', 'X-UA-Compatible': 'IE=10; IE=11', 'Cache-Control': 'no-cache, private, max-age=0', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "img-src data: blob: *; default-src blob: *; script-src 'unsafe-inline' 'unsafe-eval' data: *; style-src 'unsafe-inline' *; font-src data: *", 'X-XSS-Protection': '1; mode=block'}
+2026-07-31 21:55:34 7480 2884 DEBUG    nuxeo.client       Calling GET 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' with headers={'Content-Type': 'application/json', 'X-NXDocumentProperties': 'dublincore', 'X-NXRepository': 'default', 'X-Application-Name': 'Python client', 'X-Client-Version': '7.1.0', 'User-Agent': 'Python client/7.1.0', 'Accept': 'application/json, */*'}, params=None, kwargs={'verify': False, 'timeout': (10, 600)}
+2026-07-31 21:55:34 7480 2884 DEBUG    nuxeo.utils        Response from 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' [200]: '<CMIS details saved into the *server_info* attr>' with headers {'Date': 'Fri, 31 Jul 2026 21:55:34 GMT', 'Content-Type': 'application/json;charset=UTF-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Set-Cookie': '*********, 'Server': 'Apache-Chemistry-OpenCMIS/2.0.0', 'Referrer-Policy': 'same-origin, strict-origin-when-cross-origin', 'Strict-Transport-Security': 'max-age=63072000; includeSubdomains;', 'X-Frame-Options': 'SAMEORIGIN', 'X-UA-Compatible': 'IE=10; IE=11', 'Cache-Control': 'no-cache, private, max-age=0', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "img-src data: blob: *; default-src blob: *; script-src 'unsafe-inline' 'unsafe-eval' data: *; style-src 'unsafe-inline' *; font-src data: *", 'X-XSS-Protection': '1; mode=block'}
+2026-07-31 21:55:34 7480 2884 DEBUG    nuxeo.client       Calling GET 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' with headers={'Content-Type': 'application/json', 'X-NXDocumentProperties': 'dublincore', 'X-NXRepository': 'default', 'X-Application-Name': 'Python client', 'X-Client-Version': '7.1.0', 'User-Agent': 'Python client/7.1.0', 'Accept': 'application/json, */*'}, params=None, kwargs={'verify': False, 'timeout': (10, 600)}
+2026-07-31 21:55:34 7480 2884 DEBUG    nuxeo.utils        Response from 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' [200]: '<CMIS details saved into the *server_info* attr>' with headers {'Date': 'Fri, 31 Jul 2026 21:55:34 GMT', 'Content-Type': 'application/json;charset=UTF-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Set-Cookie': '*********, 'Server': 'Apache-Chemistry-OpenCMIS/2.0.0', 'Referrer-Policy': 'same-origin, strict-origin-when-cross-origin', 'Strict-Transport-Security': 'max-age=63072000; includeSubdomains;', 'X-Frame-Options': 'SAMEORIGIN', 'X-UA-Compatible': 'IE=10; IE=11', 'Cache-Control': 'no-cache, private, max-age=0', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "img-src data: blob: *; default-src blob: *; script-src 'unsafe-inline' 'unsafe-eval' data: *; style-src 'unsafe-inline' *; font-src data: *", 'X-XSS-Protection': '1; mode=block'}
+2026-07-31 21:55:39 7480 2884 INFO     tests.common.integration.windows.conftest Starting 'dist\\ndrive\\ndrive.exe' with args='console --sync-and-quit --nxdrive-home="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\0\\config" --log-level-file=DEBUG --ssl-no-verify'
+2026-07-31 21:55:42 7480 2884 INFO     tests.common.integration.windows.utils Error Window exists: False
+2026-07-31 21:55:53 7480 2884 ERROR    tests.common.integration.windows.utils Fatal error dialog did not appear within 10 seconds.
+2026-07-31 21:55:53 7480 2884 DEBUG    nuxeo.client       Calling GET 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' with headers={'Content-Type': 'application/json', 'X-NXDocumentProperties': 'dublincore', 'X-NXRepository': 'default', 'X-Application-Name': 'Python client', 'X-Client-Version': '7.1.0', 'User-Agent': 'Python client/7.1.0', 'Accept': 'application/json, */*'}, params=None, kwargs={'verify': False, 'timeout': (10, 600)}
+2026-07-31 21:55:54 7480 2884 DEBUG    nuxeo.utils        Response from 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' [200]: '<CMIS details saved into the *server_info* attr>' with headers {'Date': 'Fri, 31 Jul 2026 21:55:54 GMT', 'Content-Type': 'application/json;charset=UTF-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Set-Cookie': '*********, 'Server': 'Apache-Chemistry-OpenCMIS/2.0.0', 'Referrer-Policy': 'same-origin, strict-origin-when-cross-origin', 'Strict-Transport-Security': 'max-age=63072000; includeSubdomains;', 'X-Frame-Options': 'SAMEORIGIN', 'X-UA-Compatible': 'IE=10; IE=11', 'Cache-Control': 'no-cache, private, max-age=0', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "img-src data: blob: *; default-src blob: *; script-src 'unsafe-inline' 'unsafe-eval' data: *; style-src 'unsafe-inline' *; font-src data: *", 'X-XSS-Protection': '1; mode=block'}
+2026-07-31 21:55:54 7480 2884 DEBUG    nuxeo.client       Calling GET 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' with headers={'Content-Type': 'application/json', 'X-NXDocumentProperties': 'dublincore', 'X-NXRepository': 'default', 'X-Application-Name': 'Python client', 'X-Client-Version': '7.1.0', 'User-Agent': 'Python client/7.1.0', 'Accept': 'application/json, */*'}, params=None, kwargs={'verify': False, 'timeout': (10, 600)}
+2026-07-31 21:55:54 7480 2884 DEBUG    nuxeo.utils        Response from 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' [200]: '<CMIS details saved into the *server_info* attr>' with headers {'Date': 'Fri, 31 Jul 2026 21:55:54 GMT', 'Content-Type': 'application/json;charset=UTF-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Set-Cookie': '*********, 'Server': 'Apache-Chemistry-OpenCMIS/2.0.0', 'Referrer-Policy': 'same-origin, strict-origin-when-cross-origin', 'Strict-Transport-Security': 'max-age=63072000; includeSubdomains;', 'X-Frame-Options': 'SAMEORIGIN', 'X-UA-Compatible': 'IE=10; IE=11', 'Cache-Control': 'no-cache, private, max-age=0', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "img-src data: blob: *; default-src blob: *; script-src 'unsafe-inline' 'unsafe-eval' data: *; style-src 'unsafe-inline' *; font-src data: *", 'X-XSS-Protection': '1; mode=block'}
+2026-07-31 21:55:54 7480 2884 DEBUG    nuxeo.client       Calling GET 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' with headers={'Content-Type': 'application/json', 'X-NXDocumentProperties': 'dublincore', 'X-NXRepository': 'default', 'X-Application-Name': 'Python client', 'X-Client-Version': '7.1.0', 'User-Agent': 'Python client/7.1.0', 'Accept': 'application/json, */*'}, params=None, kwargs={'verify': False, 'timeout': (10, 600)}
+2026-07-31 21:55:54 7480 2884 DEBUG    nuxeo.utils        Response from 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' [200]: '<CMIS details saved into the *server_info* attr>' with headers {'Date': 'Fri, 31 Jul 2026 21:55:54 GMT', 'Content-Type': 'application/json;charset=UTF-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Set-Cookie': '*********, 'Server': 'Apache-Chemistry-OpenCMIS/2.0.0', 'Referrer-Policy': 'same-origin, strict-origin-when-cross-origin', 'Strict-Transport-Security': 'max-age=63072000; includeSubdomains;', 'X-Frame-Options': 'SAMEORIGIN', 'X-UA-Compatible': 'IE=10; IE=11', 'Cache-Control': 'no-cache, private, max-age=0', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "img-src data: blob: *; default-src blob: *; script-src 'unsafe-inline' 'unsafe-eval' data: *; style-src 'unsafe-inline' *; font-src data: *", 'X-XSS-Protection': '1; mode=block'}
+2026-07-31 21:56:34 7480 2884 INFO     tests.common.integration.windows.conftest Starting 'dist\\ndrive\\ndrive.exe' with args='copy-share-link --file="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\1\\my workspace" --nxdrive-home="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\0\\config" --log-level-file=DEBUG --ssl-no-verify'
+2026-07-31 21:56:37 7480 2884 INFO     tests.common.integration.windows.utils Error Window exists: False
+2026-07-31 21:56:48 7480 2884 ERROR    tests.common.integration.windows.utils Fatal error dialog did not appear within 10 seconds.
+2026-07-31 21:56:48 7480 2884 DEBUG    nuxeo.client       Calling GET 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' with headers={'Content-Type': 'application/json', 'X-NXDocumentProperties': 'dublincore', 'X-NXRepository': 'default', 'X-Application-Name': 'Python client', 'X-Client-Version': '7.1.0', 'User-Agent': 'Python client/7.1.0', 'Accept': 'application/json, */*'}, params=None, kwargs={'verify': False, 'timeout': (10, 600)}
+2026-07-31 21:56:48 7480 2884 DEBUG    nuxeo.utils        Response from 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' [200]: '<CMIS details saved into the *server_info* attr>' with headers {'Date': 'Fri, 31 Jul 2026 21:56:48 GMT', 'Content-Type': 'application/json;charset=UTF-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Set-Cookie': '*********, 'Server': 'Apache-Chemistry-OpenCMIS/2.0.0', 'Referrer-Policy': 'same-origin, strict-origin-when-cross-origin', 'Strict-Transport-Security': 'max-age=63072000; includeSubdomains;', 'X-Frame-Options': 'SAMEORIGIN', 'X-UA-Compatible': 'IE=10; IE=11', 'Cache-Control': 'no-cache, private, max-age=0', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "img-src data: blob: *; default-src blob: *; script-src 'unsafe-inline' 'unsafe-eval' data: *; style-src 'unsafe-inline' *; font-src data: *", 'X-XSS-Protection': '1; mode=block'}
+2026-07-31 21:56:48 7480 2884 DEBUG    nuxeo.client       Calling GET 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' with headers={'Content-Type': 'application/json', 'X-NXDocumentProperties': 'dublincore', 'X-NXRepository': 'default', 'X-Application-Name': 'Python client', 'X-Client-Version': '7.1.0', 'User-Agent': 'Python client/7.1.0', 'Accept': 'application/json, */*'}, params=None, kwargs={'verify': False, 'timeout': (10, 600)}
+2026-07-31 21:56:48 7480 2884 DEBUG    nuxeo.utils        Response from 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' [200]: '<CMIS details saved into the *server_info* attr>' with headers {'Date': 'Fri, 31 Jul 2026 21:56:48 GMT', 'Content-Type': 'application/json;charset=UTF-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Set-Cookie': '*********, 'Server': 'Apache-Chemistry-OpenCMIS/2.0.0', 'Referrer-Policy': 'same-origin, strict-origin-when-cross-origin', 'Strict-Transport-Security': 'max-age=63072000; includeSubdomains;', 'X-Frame-Options': 'SAMEORIGIN', 'X-UA-Compatible': 'IE=10; IE=11', 'Cache-Control': 'no-cache, private, max-age=0', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "img-src data: blob: *; default-src blob: *; script-src 'unsafe-inline' 'unsafe-eval' data: *; style-src 'unsafe-inline' *; font-src data: *", 'X-XSS-Protection': '1; mode=block'}
+2026-07-31 21:56:48 7480 2884 DEBUG    nuxeo.client       Calling GET 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' with headers={'Content-Type': 'application/json', 'X-NXDocumentProperties': 'dublincore', 'X-NXRepository': 'default', 'X-Application-Name': 'Python client', 'X-Client-Version': '7.1.0', 'User-Agent': 'Python client/7.1.0', 'Accept': 'application/json, */*'}, params=None, kwargs={'verify': False, 'timeout': (10, 600)}
+2026-07-31 21:56:49 7480 2884 DEBUG    nuxeo.utils        Response from 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' [200]: '<CMIS details saved into the *server_info* attr>' with headers {'Date': 'Fri, 31 Jul 2026 21:56:49 GMT', 'Content-Type': 'application/json;charset=UTF-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Set-Cookie': '*********, 'Server': 'Apache-Chemistry-OpenCMIS/2.0.0', 'Referrer-Policy': 'same-origin, strict-origin-when-cross-origin', 'Strict-Transport-Security': 'max-age=63072000; includeSubdomains;', 'X-Frame-Options': 'SAMEORIGIN', 'X-UA-Compatible': 'IE=10; IE=11', 'Cache-Control': 'no-cache, private, max-age=0', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "img-src data: blob: *; default-src blob: *; script-src 'unsafe-inline' 'unsafe-eval' data: *; style-src 'unsafe-inline' *; font-src data: *", 'X-XSS-Protection': '1; mode=block'}
+2026-07-31 21:56:49 7480 2884 INFO     tests.common.integration.windows.conftest Starting 'dist\\ndrive\\ndrive.exe' with args='access-online --file="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\1\\my workspace" --nxdrive-home="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\0\\config" --log-level-file=DEBUG --ssl-no-verify'
+2026-07-31 21:56:51 7480 2884 INFO     tests.common.integration.windows.utils Error Window exists: False
+2026-07-31 21:57:03 7480 2884 ERROR    tests.common.integration.windows.utils Fatal error dialog did not appear within 10 seconds.
+2026-07-31 21:57:03 7480 2884 DEBUG    nuxeo.client       Calling GET 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' with headers={'Content-Type': 'application/json', 'X-NXDocumentProperties': 'dublincore', 'X-NXRepository': 'default', 'X-Application-Name': 'Python client', 'X-Client-Version': '7.1.0', 'User-Agent': 'Python client/7.1.0', 'Accept': 'application/json, */*'}, params=None, kwargs={'verify': False, 'timeout': (10, 600)}
+2026-07-31 21:57:03 7480 2884 DEBUG    nuxeo.utils        Response from 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' [200]: '<CMIS details saved into the *server_info* attr>' with headers {'Date': 'Fri, 31 Jul 2026 21:57:03 GMT', 'Content-Type': 'application/json;charset=UTF-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Set-Cookie': '*********, 'Server': 'Apache-Chemistry-OpenCMIS/2.0.0', 'Referrer-Policy': 'same-origin, strict-origin-when-cross-origin', 'Strict-Transport-Security': 'max-age=63072000; includeSubdomains;', 'X-Frame-Options': 'SAMEORIGIN', 'X-UA-Compatible': 'IE=10; IE=11', 'Cache-Control': 'no-cache, private, max-age=0', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "img-src data: blob: *; default-src blob: *; script-src 'unsafe-inline' 'unsafe-eval' data: *; style-src 'unsafe-inline' *; font-src data: *", 'X-XSS-Protection': '1; mode=block'}
+2026-07-31 21:57:03 7480 2884 DEBUG    nuxeo.client       Calling GET 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' with headers={'Content-Type': 'application/json', 'X-NXDocumentProperties': 'dublincore', 'X-NXRepository': 'default', 'X-Application-Name': 'Python client', 'X-Client-Version': '7.1.0', 'User-Agent': 'Python client/7.1.0', 'Accept': 'application/json, */*'}, params=None, kwargs={'verify': False, 'timeout': (10, 600)}
+2026-07-31 21:57:03 7480 2884 DEBUG    nuxeo.utils        Response from 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' [200]: '<CMIS details saved into the *server_info* attr>' with headers {'Date': 'Fri, 31 Jul 2026 21:57:03 GMT', 'Content-Type': 'application/json;charset=UTF-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Set-Cookie': '*********, 'Server': 'Apache-Chemistry-OpenCMIS/2.0.0', 'Referrer-Policy': 'same-origin, strict-origin-when-cross-origin', 'Strict-Transport-Security': 'max-age=63072000; includeSubdomains;', 'X-Frame-Options': 'SAMEORIGIN', 'X-UA-Compatible': 'IE=10; IE=11', 'Cache-Control': 'no-cache, private, max-age=0', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "img-src data: blob: *; default-src blob: *; script-src 'unsafe-inline' 'unsafe-eval' data: *; style-src 'unsafe-inline' *; font-src data: *", 'X-XSS-Protection': '1; mode=block'}
+2026-07-31 21:57:03 7480 2884 DEBUG    nuxeo.client       Calling GET 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' with headers={'Content-Type': 'application/json', 'X-NXDocumentProperties': 'dublincore', 'X-NXRepository': 'default', 'X-Application-Name': 'Python client', 'X-Client-Version': '7.1.0', 'User-Agent': 'Python client/7.1.0', 'Accept': 'application/json, */*'}, params=None, kwargs={'verify': False, 'timeout': (10, 600)}
+2026-07-31 21:57:03 7480 2884 DEBUG    nuxeo.utils        Response from 'https://drive-2025.beta.nuxeocloud.com/nuxeo/json/cmis' [200]: '<CMIS details saved into the *server_info* attr>' with headers {'Date': 'Fri, 31 Jul 2026 21:57:03 GMT', 'Content-Type': 'application/json;charset=UTF-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Set-Cookie': '*********, 'Server': 'Apache-Chemistry-OpenCMIS/2.0.0', 'Referrer-Policy': 'same-origin, strict-origin-when-cross-origin', 'Strict-Transport-Security': 'max-age=63072000; includeSubdomains;', 'X-Frame-Options': 'SAMEORIGIN', 'X-UA-Compatible': 'IE=10; IE=11', 'Cache-Control': 'no-cache, private, max-age=0', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "img-src data: blob: *; default-src blob: *; script-src 'unsafe-inline' 'unsafe-eval' data: *; style-src 'unsafe-inline' *; font-src data: *", 'X-XSS-Protection': '1; mode=block'}
+2026-07-31 21:57:03 7480 2884 INFO     tests.common.integration.windows.conftest Starting 'dist\\ndrive\\ndrive.exe' with args='edit-metadata --file="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\1\\my workspace" --nxdrive-home="C:\\Users\\runneradmin\\AppData\\Local\\Temp\\pytest-of-runneradmin\\pytest-0\\test_ctx_menu_entries0\\0\\config" --log-level-file=DEBUG --ssl-no-verify'
+~~~~~~~~~~~~~~~~~~~~~~~~~ Stack of MainThread (2884) ~~~~~~~~~~~~~~~~~~~~~~~~~~
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\pytest\__main__.py", line 9, in <module>
+    raise SystemExit(pytest.console_main())
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\_pytest\config\__init__.py", line 223, in console_main
+    code = main()
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\_pytest\config\__init__.py", line 199, in main
+    ret: ExitCode | int = config.hook.pytest_cmdline_main(config=config)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\pluggy\_hooks.py", line 512, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\pluggy\_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\pluggy\_callers.py", line 121, in _multicall
+    res = hook_impl.function(*args)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\_pytest\main.py", line 365, in pytest_cmdline_main
+    return wrap_session(config, _main)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\_pytest\main.py", line 318, in wrap_session
+    session.exitstatus = doit(config, session) or 0
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\_pytest\main.py", line 372, in _main
+    config.hook.pytest_runtestloop(session=session)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\pluggy\_hooks.py", line 512, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\pluggy\_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\pluggy\_callers.py", line 121, in _multicall
+    res = hook_impl.function(*args)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\_pytest\main.py", line 396, in pytest_runtestloop
+    item.config.hook.pytest_runtest_protocol(item=item, nextitem=nextitem)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\pluggy\_hooks.py", line 512, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\pluggy\_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\pluggy\_callers.py", line 121, in _multicall
+    res = hook_impl.function(*args)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\_pytest\runner.py", line 118, in pytest_runtest_protocol
+    runtestprotocol(item, nextitem=nextitem)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\_pytest\runner.py", line 137, in runtestprotocol
+    reports.append(call_and_report(item, "call", log))
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\_pytest\runner.py", line 244, in call_and_report
+    call = CallInfo.from_call(
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\_pytest\runner.py", line 353, in from_call
+    result: TResult | None = func()
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\_pytest\runner.py", line 245, in <lambda>
+    lambda: runtest_hook(item=item, **kwds),
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\pluggy\_hooks.py", line 512, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\pluggy\_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\pluggy\_callers.py", line 121, in _multicall
+    res = hook_impl.function(*args)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\_pytest\runner.py", line 179, in pytest_runtest_call
     item.runtest()
   File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\_pytest\python.py", line 1720, in runtest
     self.ihook.pytest_pyfunc_call(pyfuncitem=self)
@@ -108,8 +296,8 @@ CRASH STATE FILE FOUND at C:\Users\runneradmin\.nuxeo-drive\crash.state:
     res = hook_impl.function(*args)
   File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\_pytest\python.py", line 166, in pytest_pyfunc_call
     result = testfunction(**testargs)
-  File "D:\a\nuxeo-drive\nuxeo-drive\tests\nuxeo\integration\windows\test_cli_sub_command.py", line 166, in test_complete_scenario_synchronization_from_zero
-    assert launch(exe, f"clean-folder {local_folder}")
+  File "D:\a\nuxeo-drive\nuxeo-drive\tests\nuxeo\integration\windows\test_cli_sub_command.py", line 245, in test_ctx_menu_entries
+    assert launch(exe, args)
   File "D:\a\nuxeo-drive\nuxeo-drive\tests\nuxeo\integration\windows\test_cli_sub_command.py", line 26, in launch
     with exe(args=args, wait=wait) as app:
   File "C:\hostedtoolcache\windows\Python\3.13.1\x64\Lib\contextlib.py", line 141, in __enter__
@@ -117,14 +305,13 @@ CRASH STATE FILE FOUND at C:\Users\runneradmin\.nuxeo-drive\crash.state:
   File "D:\a\nuxeo-drive\nuxeo-drive\tests\common\integration\windows\conftest.py", line 55, in execute
     sleep(2)
 +++++++++++++++++++++++++++++++++++ Timeout +++++++++++++++++++++++++++++++++++
-integration-windows: exit 1 (658.87 seconds) D:\a\nuxeo-drive\nuxeo-drive> python -m pytest -n0 -s --timeout=120 tests/common/integration tests/nuxeo/integration tests/alfresco/integration --ignore=tests/common/integration/macos --ignore=tests/nuxeo/integration/macos --ignore=tests/alfresco/integration/macos pid=4756
-  integration-windows: FAIL code 1 (691.09=setup[31.05]+cmd[1.16,658.87] seconds)
-  evaluation failed :( (691.12 seconds)
-
-
-
-
-  Run Write-Host "Searching for crash.state files..."
+integration-windows: exit 1 (830.97 seconds) D:\a\nuxeo-drive\nuxeo-drive> python -m pytest -n0 -v --tb=short --timeout=120 tests/common/integration tests/nuxeo/integration tests/alfresco/integration --ignore=tests/common/integration/macos --ignore=tests/nuxeo/integration/macos --ignore=tests/alfresco/integration/macos pid=5192
+  integration-windows: FAIL code 1 (862.92=setup[30.78]+cmd[1.16,830.97] seconds)
+  evaluation failed :( (862.95 seconds)
+Error: Process completed with exit code 1.
+1s
+Run Write-Host "Searching for crash.state files..."
+  
 Searching for crash.state files...
 ============================================================
 Found crash.state at: C:\Users\runneradmin\.nuxeo-drive\crash.state
@@ -139,3 +326,4 @@ Traceback (most recent call last):
   File "argparse.py", line 2645, in error
   File "argparse.py", line 2632, in exit
 SystemExit: 2
+============================================================
