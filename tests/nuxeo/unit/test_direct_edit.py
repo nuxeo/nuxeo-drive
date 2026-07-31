@@ -13,8 +13,8 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 from nxdrive.drive.constants import DOC_UID_REG, LINUX, WINDOWS
-from nxdrive.drive.direct_edit import DirectEdit, _is_lock_file
 from nxdrive.drive.exceptions import ThreadInterrupt
+from nxdrive.nuxeo.direct_edit import DirectEdit, _is_lock_file
 
 log = getLogger(__name__)
 
@@ -471,7 +471,7 @@ class TestDirectEditBasicFunctionality:
         mock_engine.local.abspath.return_value = existing_file2
 
         with patch(
-            "nxdrive.drive.direct_edit.unset_path_readonly"
+            "nxdrive.nuxeo.direct_edit.unset_path_readonly"
         ) as mock_unset_readonly:
             result2 = direct_edit._download(
                 mock_engine, mock_info, file_path, file_out2, mock_blob, xpath
@@ -562,7 +562,7 @@ class TestDirectEditBasicFunctionality:
         direct_edit.directEditError = Mock()
         direct_edit.directEditError.emit = Mock()
 
-        with patch("nxdrive.drive.direct_edit.sleep") as mock_sleep:
+        with patch("nxdrive.nuxeo.direct_edit.sleep") as mock_sleep:
             result6 = direct_edit._download(
                 mock_engine,
                 mock_info,
@@ -599,7 +599,7 @@ class TestDirectEditBasicFunctionality:
         direct_edit.directEditError = Mock()
         direct_edit.directEditError.emit = Mock()
 
-        with patch("nxdrive.drive.direct_edit.sleep") as mock_sleep:
+        with patch("nxdrive.nuxeo.direct_edit.sleep") as mock_sleep:
             result7 = direct_edit._download(
                 mock_engine,
                 mock_info,
@@ -3657,7 +3657,7 @@ class TestDirectEditBasicFunctionality:
         ), patch.object(
             direct_edit, "_stop_watchdog"
         ), patch(
-            "nxdrive.drive.direct_edit.sleep"
+            "nxdrive.nuxeo.direct_edit.sleep"
         ):
             with pytest.raises(ThreadInterrupt):
                 direct_edit._execute()
@@ -3693,7 +3693,7 @@ class TestDirectEditBasicFunctionality:
         ), patch.object(
             direct_edit, "_stop_watchdog"
         ), patch(
-            "nxdrive.drive.direct_edit.sleep"
+            "nxdrive.nuxeo.direct_edit.sleep"
         ):
             with pytest.raises(ThreadInterrupt):
                 direct_edit._execute()
@@ -3734,7 +3734,7 @@ class TestDirectEditBasicFunctionality:
         ), patch.object(
             direct_edit, "_stop_watchdog"
         ), patch(
-            "nxdrive.drive.direct_edit.sleep"
+            "nxdrive.nuxeo.direct_edit.sleep"
         ) as mock_sleep:
             with pytest.raises(ThreadInterrupt):
                 direct_edit._execute()
@@ -3769,7 +3769,7 @@ class TestDirectEditBasicFunctionality:
         ), patch.object(
             direct_edit, "_stop_watchdog"
         ), patch(
-            "nxdrive.drive.direct_edit.sleep"
+            "nxdrive.nuxeo.direct_edit.sleep"
         ):
             with pytest.raises(ThreadInterrupt):
                 direct_edit._execute()
@@ -3853,7 +3853,7 @@ class TestDirectEditBasicFunctionality:
         ), patch.object(
             direct_edit, "_stop_watchdog"
         ), patch(
-            "nxdrive.drive.direct_edit.sleep"
+            "nxdrive.nuxeo.direct_edit.sleep"
         ):
             with pytest.raises(ThreadInterrupt):
                 direct_edit._execute()
@@ -3891,7 +3891,7 @@ class TestDirectEditBasicFunctionality:
         ), patch.object(
             direct_edit, "_stop_watchdog"
         ), patch(
-            "nxdrive.drive.direct_edit.sleep"
+            "nxdrive.nuxeo.direct_edit.sleep"
         ):
             with pytest.raises(ThreadInterrupt):
                 direct_edit._execute()
@@ -3909,9 +3909,9 @@ class TestDirectEditBasicFunctionality:
 
         # Scenario 1: Normal setup - creates event handler and observer
         with patch(
-            "nxdrive.drive.direct_edit.DriveFSEventHandler"
+            "nxdrive.nuxeo.direct_edit.DriveFSEventHandler"
         ) as mock_handler_class, patch(
-            "nxdrive.drive.direct_edit.Observer"
+            "nxdrive.nuxeo.direct_edit.Observer"
         ) as mock_observer_class:
             mock_handler = Mock(spec=DriveFSEventHandler)
             mock_handler_class.return_value = mock_handler
@@ -3941,9 +3941,9 @@ class TestDirectEditBasicFunctionality:
 
         # Scenario 2: Verify folder path is converted to string
         with patch(
-            "nxdrive.drive.direct_edit.DriveFSEventHandler"
+            "nxdrive.nuxeo.direct_edit.DriveFSEventHandler"
         ) as mock_handler_class, patch(
-            "nxdrive.drive.direct_edit.Observer"
+            "nxdrive.nuxeo.direct_edit.Observer"
         ) as mock_observer_class:
             mock_handler = Mock()
             mock_handler_class.return_value = mock_handler
@@ -3962,9 +3962,9 @@ class TestDirectEditBasicFunctionality:
 
         # Scenario 3: Verify recursive=True is always set
         with patch(
-            "nxdrive.drive.direct_edit.DriveFSEventHandler"
+            "nxdrive.nuxeo.direct_edit.DriveFSEventHandler"
         ) as mock_handler_class, patch(
-            "nxdrive.drive.direct_edit.Observer"
+            "nxdrive.nuxeo.direct_edit.Observer"
         ) as mock_observer_class:
             mock_handler = Mock()
             mock_handler_class.return_value = mock_handler
@@ -3980,9 +3980,9 @@ class TestDirectEditBasicFunctionality:
 
         # Scenario 4: Multiple calls to _setup_watchdog (replacing previous observer)
         with patch(
-            "nxdrive.drive.direct_edit.DriveFSEventHandler"
+            "nxdrive.nuxeo.direct_edit.DriveFSEventHandler"
         ) as mock_handler_class, patch(
-            "nxdrive.drive.direct_edit.Observer"
+            "nxdrive.nuxeo.direct_edit.Observer"
         ) as mock_observer_class:
             # First setup
             mock_handler_1 = Mock()
@@ -4011,8 +4011,8 @@ class TestDirectEditBasicFunctionality:
 
         # Scenario 5: Verify event handler receives direct_edit instance
         with patch(
-            "nxdrive.drive.direct_edit.DriveFSEventHandler"
-        ) as mock_handler_class, patch("nxdrive.drive.direct_edit.Observer"):
+            "nxdrive.nuxeo.direct_edit.DriveFSEventHandler"
+        ) as mock_handler_class, patch("nxdrive.nuxeo.direct_edit.Observer"):
             mock_handler_class.return_value = Mock()
 
             direct_edit._setup_watchdog()
@@ -4023,9 +4023,9 @@ class TestDirectEditBasicFunctionality:
 
         # Scenario 6: Observer schedule and start are called in correct order
         with patch(
-            "nxdrive.drive.direct_edit.DriveFSEventHandler"
+            "nxdrive.nuxeo.direct_edit.DriveFSEventHandler"
         ) as mock_handler_class, patch(
-            "nxdrive.drive.direct_edit.Observer"
+            "nxdrive.nuxeo.direct_edit.Observer"
         ) as mock_observer_class:
             mock_handler = Mock()
             mock_handler_class.return_value = mock_handler
@@ -4170,7 +4170,7 @@ class TestDirectEditBasicFunctionality:
         mock_event.event_type = "modified"
 
         with patch(
-            "nxdrive.drive.direct_edit.normalize_event_filename", return_value=test_dir
+            "nxdrive.nuxeo.direct_edit.normalize_event_filename", return_value=test_dir
         ):
             direct_edit.handle_watchdog_event(mock_event)
             # Should return early without processing
@@ -4184,7 +4184,7 @@ class TestDirectEditBasicFunctionality:
         mock_event_temp.event_type = "modified"
 
         with patch(
-            "nxdrive.drive.direct_edit.normalize_event_filename",
+            "nxdrive.nuxeo.direct_edit.normalize_event_filename",
             return_value=test_temp_file,
         ), patch.object(direct_edit.local, "is_temp_file", return_value=True):
             direct_edit.handle_watchdog_event(mock_event_temp)
@@ -4202,7 +4202,7 @@ class TestDirectEditBasicFunctionality:
         ref = test_file
 
         with patch(
-            "nxdrive.drive.direct_edit.normalize_event_filename", return_value=test_file
+            "nxdrive.nuxeo.direct_edit.normalize_event_filename", return_value=test_file
         ), patch.object(
             direct_edit.local, "is_temp_file", return_value=False
         ), patch.object(
@@ -4252,7 +4252,7 @@ class TestDirectEditBasicFunctionality:
                 return test_file_dest
 
         with patch(
-            "nxdrive.drive.direct_edit.normalize_event_filename",
+            "nxdrive.nuxeo.direct_edit.normalize_event_filename",
             side_effect=normalize_side_effect,
         ), patch.object(
             direct_edit.local, "is_temp_file", return_value=False
@@ -4287,7 +4287,7 @@ class TestDirectEditBasicFunctionality:
         mock_event_no_name.event_type = "modified"
 
         with patch(
-            "nxdrive.drive.direct_edit.normalize_event_filename",
+            "nxdrive.nuxeo.direct_edit.normalize_event_filename",
             return_value=test_file_no_name,
         ), patch.object(
             direct_edit.local, "is_temp_file", return_value=False
@@ -4316,7 +4316,7 @@ class TestDirectEditBasicFunctionality:
         mock_event_lock_created.event_type = "created"
 
         with patch(
-            "nxdrive.drive.direct_edit.normalize_event_filename",
+            "nxdrive.nuxeo.direct_edit.normalize_event_filename",
             return_value=test_lock_file,
         ), patch.object(
             direct_edit.local, "is_temp_file", return_value=False
@@ -4350,7 +4350,7 @@ class TestDirectEditBasicFunctionality:
         dir_path = test_file_lock_del.parent
 
         with patch(
-            "nxdrive.drive.direct_edit.normalize_event_filename",
+            "nxdrive.nuxeo.direct_edit.normalize_event_filename",
             return_value=test_lock_file_del,
         ), patch.object(
             direct_edit.local, "is_temp_file", return_value=False
@@ -4381,7 +4381,7 @@ class TestDirectEditBasicFunctionality:
         mock_event_deleted.event_type = "deleted"
 
         with patch(
-            "nxdrive.drive.direct_edit.normalize_event_filename",
+            "nxdrive.nuxeo.direct_edit.normalize_event_filename",
             return_value=test_file_deleted,
         ), patch.object(
             direct_edit.local, "is_temp_file", return_value=False
@@ -4417,7 +4417,7 @@ class TestDirectEditBasicFunctionality:
         mock_event_autolock.event_type = "modified"
 
         with patch(
-            "nxdrive.drive.direct_edit.normalize_event_filename",
+            "nxdrive.nuxeo.direct_edit.normalize_event_filename",
             return_value=test_file_autolock,
         ), patch.object(
             direct_edit.local, "is_temp_file", return_value=False
@@ -4455,7 +4455,7 @@ class TestDirectEditBasicFunctionality:
         mock_event_editing.event_type = "modified"
 
         with patch(
-            "nxdrive.drive.direct_edit.normalize_event_filename",
+            "nxdrive.nuxeo.direct_edit.normalize_event_filename",
             return_value=test_file_editing,
         ), patch.object(
             direct_edit.local, "is_temp_file", return_value=False
@@ -4494,7 +4494,7 @@ class TestDirectEditBasicFunctionality:
         mock_event_diff.event_type = "created"
 
         with patch(
-            "nxdrive.drive.direct_edit.normalize_event_filename",
+            "nxdrive.nuxeo.direct_edit.normalize_event_filename",
             return_value=test_lock_diff,
         ), patch.object(
             direct_edit.local, "is_temp_file", return_value=False
@@ -4527,7 +4527,7 @@ class TestDirectEditBasicFunctionality:
         mock_event_multi.event_type = "modified"
 
         with patch(
-            "nxdrive.drive.direct_edit.normalize_event_filename",
+            "nxdrive.nuxeo.direct_edit.normalize_event_filename",
             return_value=test_file_multi,
         ), patch.object(
             direct_edit.local, "is_temp_file", return_value=False
@@ -4567,7 +4567,7 @@ class TestDirectEditBasicFunctionality:
         mock_event_lock_edit.event_type = "created"
 
         with patch(
-            "nxdrive.drive.direct_edit.normalize_event_filename",
+            "nxdrive.nuxeo.direct_edit.normalize_event_filename",
             return_value=test_lock_edit,
         ), patch.object(
             direct_edit.local, "is_temp_file", return_value=False
@@ -4601,7 +4601,7 @@ class TestDirectEditBasicFunctionality:
         mock_event_no_auto.event_type = "created"
 
         with patch(
-            "nxdrive.drive.direct_edit.normalize_event_filename",
+            "nxdrive.nuxeo.direct_edit.normalize_event_filename",
             return_value=test_lock_no_auto,
         ), patch.object(
             direct_edit.local, "is_temp_file", return_value=False

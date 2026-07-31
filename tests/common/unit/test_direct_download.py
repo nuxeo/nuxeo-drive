@@ -12,9 +12,9 @@ from unittest.mock import Mock, patch
 import pytest
 
 from nxdrive.drive.constants import DirectDownloadStatus
-from nxdrive.drive.direct_download import DirectDownload
 from nxdrive.drive.engine.engine import ServerBindingSettings
 from nxdrive.drive.objects import DirectDownload as DirectDownloadRecord
+from nxdrive.nuxeo.direct_download import DirectDownload
 
 
 class MockUrlTestEngine:
@@ -290,7 +290,7 @@ class TestDirectDownloadGetDownloadDestination:
     def test_default_downloads_folder(self):
         """Test falls back to ~/Downloads when no custom folder configured."""
         dd = DirectDownload(self.manager, self.folder)
-        with patch("nxdrive.drive.direct_download.Options") as mock_opts:
+        with patch("nxdrive.nuxeo.direct_download.Options") as mock_opts:
             mock_opts.download_folder = None
             result = dd._get_download_destination()
             assert result == Path.home() / "Downloads"
@@ -300,7 +300,7 @@ class TestDirectDownloadGetDownloadDestination:
         dd = DirectDownload(self.manager, self.folder)
         custom = self.folder / "custom_downloads"
         custom.mkdir()
-        with patch("nxdrive.drive.direct_download.Options") as mock_opts:
+        with patch("nxdrive.nuxeo.direct_download.Options") as mock_opts:
             mock_opts.download_folder = str(custom)
             result = dd._get_download_destination()
             assert result == custom
@@ -308,7 +308,7 @@ class TestDirectDownloadGetDownloadDestination:
     def test_custom_folder_not_writable(self):
         """Test falls back when custom folder not writable."""
         dd = DirectDownload(self.manager, self.folder)
-        with patch("nxdrive.drive.direct_download.Options") as mock_opts:
+        with patch("nxdrive.nuxeo.direct_download.Options") as mock_opts:
             mock_opts.download_folder = "/nonexistent/path"
             result = dd._get_download_destination()
             assert result == Path.home() / "Downloads"
@@ -1306,8 +1306,8 @@ class TestDirectDownloadGetDownloadDestinationFallback:
         """Test creates ~/Downloads if it doesn't exist."""
         dd = DirectDownload(self.manager, self.folder)
         with (
-            patch("nxdrive.drive.direct_download.Options") as mock_opts,
-            patch("nxdrive.drive.direct_download.Path") as mock_path_cls,
+            patch("nxdrive.nuxeo.direct_download.Options") as mock_opts,
+            patch("nxdrive.nuxeo.direct_download.Path") as mock_path_cls,
         ):
             mock_opts.download_folder = None
             mock_home = Mock()

@@ -9,13 +9,15 @@ on:
       - ".github/workflows/integration_tests.yml"
       - "nxdrive/**/*.py"
       - "tests/*.py"
-      - "tests/integration/**/*.py"
+      - "tests/common/integration/**/*.py"
+      - "tests/nuxeo/integration/**/*.py"
       - "tools/deps/*.txt"
   push:
     branches: [master]
     paths:
       - "nxdrive/**/*.py"
-      - "tests/integration/**/*.py"
+      - "tests/common/integration/**/*.py"
+      - "tests/nuxeo/integration/**/*.py"
 
 jobs:
   integration-tests-windows-LTS-2023:
