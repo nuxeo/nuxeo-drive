@@ -1,5 +1,4 @@
 import subprocess
-import sys
 from logging import getLogger
 from time import sleep
 
@@ -92,12 +91,13 @@ def test_valid_argument_value(exe, arg):
     "arg",
     ["-v", "--version"],
 )
-def test_check_drive_version(version, arg):
+def test_check_drive_version(final_exe, version, arg):
     """Test the Drive version"""
     result = subprocess.run(
-        [sys.executable, "-m", "nxdrive", arg],
+        [final_exe, arg],
         capture_output=True,
         text=True,
+        timeout=30,
     )
     assert result.stdout.strip() == version
 
