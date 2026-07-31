@@ -69,7 +69,7 @@ class _CallbackHandler(BaseHTTPRequestHandler):
     """
 
     # Set by BaseHTTPRequestHandler; typed here for clarity.
-    server: "_LoopbackHTTPServer"  # type: ignore[assignment]
+    server: "_LoopbackHTTPServer"
 
     def do_GET(self) -> None:  # noqa: N802 — required by BaseHTTPRequestHandler
         parsed = urlparse(self.path)

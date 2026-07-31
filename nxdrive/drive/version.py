@@ -9,15 +9,14 @@ from functools import lru_cache
 from packaging.version import Version
 
 
-def _cmp(a, b):
+def _cmp(a: object, b: object) -> int:
     if str(a) == "0":
         return 0 if str(b) == "0" else -1
     return 1 if str(b) == "0" else (a > b) - (a < b)
 
 
 @lru_cache(maxsize=128)
-def version_compare(x, y):
-    # type: (str, str) -> int
+def version_compare(x: str, y: str) -> int:
     # Handle None values
     if x == y == "0":
         return _cmp(x, y)

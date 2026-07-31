@@ -41,7 +41,7 @@ log = getLogger(__name__)
 class AlfrescoEngine(Engine):
     """Sync engine for Alfresco servers.
 
-    Re-uses the local watcher, queue manager and processor infrastructure
+    Reuses the local watcher, queue manager and processor infrastructure
     from the base ``Engine``, but replaces:
 
     * ``init_remote()`` → creates an ``AlfrescoRemote`` instead of ``Remote``
@@ -170,7 +170,7 @@ class AlfrescoEngine(Engine):
 
     # -- Processor -----------------------------------------------------------
 
-    def create_processor(self, item_getter, /) -> AlfrescoProcessor:
+    def create_processor(self, item_getter: Any, /) -> AlfrescoProcessor:
         return AlfrescoProcessor(self, item_getter)
 
     # -- Remote client -------------------------------------------------------
@@ -245,11 +245,11 @@ class AlfrescoEngine(Engine):
                 self.remote.check_credentials()
             except AuthenticationError as exc:
                 log.warning("Alfresco authentication failed")
-                self.remote = None  # type: ignore[assignment]
+                self.remote = None
                 raise RemoteUnauthorized(message=str(exc)) from exc
             except Exception:
                 log.warning("Error validating Alfresco credentials", exc_info=True)
-                self.remote = None  # type: ignore[assignment]
+                self.remote = None
                 raise
 
             # After successful auth, extract and persist the ticket

@@ -54,7 +54,7 @@ def get_digest_hash(algorithm: str) -> Optional[HASH]:
 # ── Version comparison ──────────────────────────────────────────────────
 
 
-def _cmp(a, b):
+def _cmp(a: object, b: object) -> int:
     if str(a) == "0":
         return 0 if str(b) == "0" else -1
     return 1 if str(b) == "0" else (a > b) - (a < b)

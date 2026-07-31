@@ -3,7 +3,6 @@
 import re
 from urllib.parse import unquote, urlparse
 
-
 TOKEN_PATTERN = r"[^/]+"
 
 

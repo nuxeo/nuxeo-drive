@@ -13,7 +13,7 @@ def get_agent_template() -> str:
 
 def get_findersync_ids() -> Tuple[str, str]:
     """Get the FinderSync bundle ID suffix and app extension name for the current server type.
-    
+
     Returns:
         Tuple of (bundle_id_suffix, appex_name)
     """
