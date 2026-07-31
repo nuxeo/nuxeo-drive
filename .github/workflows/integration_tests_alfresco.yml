@@ -46,7 +46,7 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
           & .\tools\windows\deploy_ci_agent.ps1 -install_release
-          & .\tools\windows\deploy_ci_agent.ps1 -build
+          & .\tools\windows\deploy_ci_agent.ps1 -build_alfresco
       - name: Install tox
         run: python -m pip install -r tools/deps/requirements-tox.txt
       - name: Alfresco integration tests

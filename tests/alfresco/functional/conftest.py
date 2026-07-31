@@ -20,8 +20,6 @@ import pytest
 
 from nxdrive.drive.manager import Manager
 
-from ... import env_alfresco as env
-
 log = getLogger(__name__)
 
 
