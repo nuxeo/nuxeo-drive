@@ -28,9 +28,6 @@ jobs:
     runs-on: windows-latest
     strategy:
       fail-fast: false
-    env:
-      SENTRY_DSN: ""
-      FREEZE_ONLY: "1"
     steps:
       - uses: actions/checkout@v6
       - name: Set up Python
