@@ -56,8 +56,47 @@ jobs:
           & .\tools\windows\deploy_ci_agent.ps1 -build_nuxeo
       - name: Install tox
         run: python -m pip install -r tools/deps/requirements-tox.txt
+      - name: Smoke test frozen exe
+        if: ${{ success() }}
+        shell: pwsh
+        run: |
+          Write-Host "Testing frozen exe with --version..."
+          $proc = Start-Process -FilePath "dist\ndrive\ndrive.exe" -ArgumentList "--version" -PassThru -Wait -NoNewWindow
+          Write-Host "Exit code: $($proc.ExitCode)"
+          Write-Host ""
+          Write-Host "Testing frozen exe normal startup (5s timeout)..."
+          $proc2 = Start-Process -FilePath "dist\ndrive\ndrive.exe" -ArgumentList "--ssl-no-verify" -PassThru
+          Start-Sleep -Seconds 5
+          if (!$proc2.HasExited) {
+            Write-Host "App is still running after 5s - good (no immediate crash)"
+            $proc2.Kill()
+          } else {
+            Write-Host "App exited with code: $($proc2.ExitCode) - potential crash"
+          }
+          Write-Host "Checking for crash.state files..."
+          Get-ChildItem -Path "$env:USERPROFILE" -Filter "crash.state" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Host "Found crash.state at: $($_.FullName)"
+            Get-Content $_.FullName
+          }
       - name: Integration tests
         run: tox -e integration-windows
+      - name: Dump crash.state files
+        if: ${{ failure() }}
+        shell: pwsh
+        run: |
+          Write-Host "Searching for crash.state files..."
+          Get-ChildItem -Path "$env:USERPROFILE" -Filter "crash.state" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Host "============================================================"
+            Write-Host "Found crash.state at: $($_.FullName)"
+            Get-Content $_.FullName
+            Write-Host "============================================================"
+          }
+          Get-ChildItem -Path "." -Filter "crash.state" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Host "============================================================"
+            Write-Host "Found crash.state at: $($_.FullName)"
+            Get-Content $_.FullName
+            Write-Host "============================================================"
+          }
       - name: Upload coverage to Codecov
         if: ${{ success() || failure() }}
         uses: codecov/codecov-action@v6
@@ -109,8 +148,47 @@ jobs:
           & .\tools\windows\deploy_ci_agent.ps1 -build_nuxeo
       - name: Install tox
         run: python -m pip install -r tools/deps/requirements-tox.txt
+      - name: Smoke test frozen exe
+        if: ${{ success() }}
+        shell: pwsh
+        run: |
+          Write-Host "Testing frozen exe with --version..."
+          $proc = Start-Process -FilePath "dist\ndrive\ndrive.exe" -ArgumentList "--version" -PassThru -Wait -NoNewWindow
+          Write-Host "Exit code: $($proc.ExitCode)"
+          Write-Host ""
+          Write-Host "Testing frozen exe normal startup (5s timeout)..."
+          $proc2 = Start-Process -FilePath "dist\ndrive\ndrive.exe" -ArgumentList "--ssl-no-verify" -PassThru
+          Start-Sleep -Seconds 5
+          if (!$proc2.HasExited) {
+            Write-Host "App is still running after 5s - good (no immediate crash)"
+            $proc2.Kill()
+          } else {
+            Write-Host "App exited with code: $($proc2.ExitCode) - potential crash"
+          }
+          Write-Host "Checking for crash.state files..."
+          Get-ChildItem -Path "$env:USERPROFILE" -Filter "crash.state" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Host "Found crash.state at: $($_.FullName)"
+            Get-Content $_.FullName
+          }
       - name: Integration tests
         run: tox -e integration-windows
+      - name: Dump crash.state files
+        if: ${{ failure() }}
+        shell: pwsh
+        run: |
+          Write-Host "Searching for crash.state files..."
+          Get-ChildItem -Path "$env:USERPROFILE" -Filter "crash.state" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Host "============================================================"
+            Write-Host "Found crash.state at: $($_.FullName)"
+            Get-Content $_.FullName
+            Write-Host "============================================================"
+          }
+          Get-ChildItem -Path "." -Filter "crash.state" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Host "============================================================"
+            Write-Host "Found crash.state at: $($_.FullName)"
+            Get-Content $_.FullName
+            Write-Host "============================================================"
+          }
       - name: Upload coverage to Codecov
         if: ${{ success() || failure() }}
         uses: codecov/codecov-action@v6

@@ -43,6 +43,8 @@ def exe(final_exe, tmp):
             args += f' --nxdrive-home="{path}"'
         if "--log-level-file" not in args:
             args += " --log-level-file=DEBUG"
+        if "--ssl-no-verify" not in args:
+            args += " --ssl-no-verify"
         args = args.strip()
 
         log.info(f"Starting {cmd!r} with args={args!r}")
@@ -56,22 +58,22 @@ def exe(final_exe, tmp):
             if wait > 0:
                 sleep(wait)
         finally:
-            # Check for crash.state file and print its contents if it exists
-            crash_file = Path.home() / ".nuxeo-drive" / "crash.state"
-            if crash_file.exists():
-                try:
-                    print(f"CRASH STATE FILE FOUND at {crash_file}:")
-                    print(crash_file.read_text(encoding="utf-8", errors="replace"))
-                except Exception as e:
-                    print(f"Could not read crash.state: {e}")
-            # Also check the nxdrive-home path for crash.state
-            home_crash_file = path / "crash.state"
-            if home_crash_file.exists():
-                try:
-                    print(f"CRASH STATE FILE FOUND at {home_crash_file}:")
-                    print(home_crash_file.read_text(encoding="utf-8", errors="replace"))
-                except Exception as e:
-                    print(f"Could not read crash.state from home: {e}")
+            # Check for crash.state file in all possible locations
+            crash_locations = [
+                Path.home() / ".nuxeo-drive" / "crash.state",
+                Path.home() / ".drive" / "crash.state",
+                path / "crash.state",
+            ]
+            for crash_file in crash_locations:
+                if crash_file.exists():
+                    try:
+                        content = crash_file.read_text(encoding="utf-8", errors="replace")
+                        print(f"\n{'=' * 60}")
+                        print(f"CRASH STATE FILE FOUND at {crash_file}:")
+                        print(content)
+                        print(f"{'=' * 60}\n")
+                    except Exception as e:
+                        print(f"Could not read crash.state at {crash_file}: {e}")
             app.kill()
 
     return execute
