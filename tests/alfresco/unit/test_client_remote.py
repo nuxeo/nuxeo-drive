@@ -120,10 +120,13 @@ class TestRepr:
     """`__repr__` should be a stable one-liner containing url + user_id."""
 
     def test_repr_contains_url_and_user(self, _client_patch) -> None:
+        from urllib.parse import urlparse
+
         from nxdrive.alfresco.client.remote import AlfrescoRemote
 
+        url = "https://alfresco.example.com/alfresco"
         remote = AlfrescoRemote(
-            "https://alfresco.example.com/alfresco",
+            url,
             "admin",
             "device-1",
             "1.2.3",
@@ -131,7 +134,11 @@ class TestRepr:
         rendered = repr(remote)
         assert rendered.startswith("<AlfrescoRemote ")
         assert "admin" in rendered
-        assert "alfresco.example.com" in rendered
+        # Validate the full hostname from the URL appears in the repr
+        expected_host = urlparse(url).hostname
+        assert expected_host is not None
+        assert expected_host == "alfresco.example.com"
+        assert expected_host in rendered
 
 
 class TestNoOpMetricsAndTasks:
