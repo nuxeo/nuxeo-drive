@@ -131,15 +131,15 @@ jobs:
         # artifact produced by the next step.
         continue-on-error: true
         run: |
-          # Regenerate the root index.html and one index.html per folder
-          # (alpha/, beta/, release/) reflecting the current bucket contents,
-          # then upload each one with no-cache headers so browsers always
-          # pick up the latest listing (same policy as versions.yml).
+          # Promotion moves files out of beta/ into release/, so both
+          # folder listings need to be refreshed. The root index is always
+          # regenerated to keep its timestamp current.
           python tools/generate_s3_index.py \
             --bucket "$S3_BUCKET" \
             --prefix "$S3_PREFIX" \
             --root-url "$ROOT_URL" \
             --folders alpha beta release \
+            --update-folders beta release \
             --extra-files versions.yml \
             --output-dir index_pages
 
@@ -150,7 +150,7 @@ jobs:
             --content-type "text/html; charset=utf-8" \
             --cache-control "$cache_ctl"
 
-          for folder in alpha beta release; do
+          for folder in beta release; do
             aws s3 cp "index_pages/${folder}/index.html" \
               "s3://$S3_BUCKET/${S3_PREFIX}${folder}/index.html" \
               --content-type "text/html; charset=utf-8" \

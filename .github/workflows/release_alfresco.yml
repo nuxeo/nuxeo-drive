@@ -362,15 +362,26 @@ jobs:
         # artifact produced by the next step.
         continue-on-error: true
         run: |
-          # Regenerate the root index.html and one index.html per folder
-          # (alpha/, beta/, release/) reflecting the current bucket contents,
-          # then upload each one with no-cache headers so browsers always
-          # pick up the latest listing (same policy as versions.yml).
+          # Only the folder that was just written to needs its listing
+          # refreshed: alpha releases update alpha/, beta releases update
+          # beta/. The root index is always refreshed so its "generated on"
+          # timestamp stays current.
+          release="${{ github.event.inputs.releaseType }}"
+          case "$release" in
+            alpha) update_folder="alpha" ;;
+            release) update_folder="beta" ;;
+            *)
+              echo ">>> Unknown releaseType '$release', skipping index update"
+              exit 0
+              ;;
+          esac
+
           python tools/generate_s3_index.py \
             --bucket "$S3_BUCKET" \
             --prefix "$S3_PREFIX" \
             --root-url "$ROOT_URL" \
             --folders alpha beta release \
+            --update-folders "$update_folder" \
             --extra-files versions.yml \
             --output-dir index_pages
 
@@ -381,12 +392,10 @@ jobs:
             --content-type "text/html; charset=utf-8" \
             --cache-control "$cache_ctl"
 
-          for folder in alpha beta release; do
-            aws s3 cp "index_pages/${folder}/index.html" \
-              "s3://$S3_BUCKET/${S3_PREFIX}${folder}/index.html" \
-              --content-type "text/html; charset=utf-8" \
-              --cache-control "$cache_ctl"
-          done
+          aws s3 cp "index_pages/${update_folder}/index.html" \
+            "s3://$S3_BUCKET/${S3_PREFIX}${update_folder}/index.html" \
+            --content-type "text/html; charset=utf-8" \
+            --cache-control "$cache_ctl"
 
       - name: Upload generated index.html pages as artifact
         # Run even if the previous step failed so we always have a copy that

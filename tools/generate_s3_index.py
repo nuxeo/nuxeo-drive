@@ -203,7 +203,16 @@ def main():
         "--folders",
         nargs="+",
         default=["alpha", "beta", "release"],
-        help="Folders to list under the prefix.",
+        help="Folders to link from the root index.html.",
+    )
+    parser.add_argument(
+        "--update-folders",
+        nargs="*",
+        default=None,
+        help=(
+            "Subset of --folders whose per-folder index.html should be"
+            " (re)generated. Defaults to all of --folders."
+        ),
     )
     parser.add_argument(
         "--extra-files",
@@ -229,7 +238,19 @@ def main():
         _render_root(root_url, prefix, args.folders, args.extra_files),
     )
 
-    for folder in args.folders:
+    update_folders = args.update_folders
+    if update_folders is None:
+        update_folders = args.folders
+
+    unknown = [f for f in update_folders if f not in args.folders]
+    if unknown:
+        print(
+            f">>> --update-folders contains folders not in --folders: {unknown}",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    for folder in update_folders:
         files = _list_folder(args.bucket, f"{prefix}{folder}")
         _write(
             os.path.join(args.output_dir, folder, "index.html"),
