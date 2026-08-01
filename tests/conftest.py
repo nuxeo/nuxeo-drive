@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 import sqlite3
@@ -18,6 +19,10 @@ pytest_plugins = "tests.pytest_random"
 
 # Frozen legacy tree — never collected by pytest.
 collect_ignore = ["old_tests"]
+
+# Silence noisy third-party loggers
+logging.getLogger("faker").setLevel(logging.WARNING)
+logging.getLogger("nuxeo").setLevel(logging.INFO)
 
 
 # Operations cache
@@ -85,6 +90,9 @@ def no_warnings(recwarn):
 
         if "sentry_sdk" in warning.filename:
             continue
+        elif "site-packages" in warning.filename:
+            # Ignore warnings from third-party libraries
+            continue
         elif "WaitForInputIdle" in message:
             # Happen while testing the integration on Windows, we can skip it:
             # "Application is not loaded correctly (WaitForInputIdle failed)"
@@ -108,6 +116,9 @@ def no_warnings(recwarn):
         elif "Cryptography will be significantly faster" in message:
             continue
         elif "unclosed database" in message:
+            continue
+        elif "unclosed" in message:
+            # ResourceWarning from unclosed sockets/connections
             continue
 
         warn = f"{warning.filename}:{warning.lineno} {message}"

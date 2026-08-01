@@ -1,0 +1,370 @@
+nuxeo 
+
+
+functional tests linux:
+
+Run tox -e ft
+ft: recreate env because env type changed from {'name': 'alfresco-ft', 'type': 'VirtualEnvRunner'} to {'name': 'ft', 'type': 'VirtualEnvRunner'}
+ft: remove tox env folder /home/runner/work/nuxeo-drive/nuxeo-drive/.tox/base
+ft: install_deps> python -I -m pip install -r tools/deps/requirements-pip.txt -r tools/deps/requirements-tests.txt
+ft: commands[0]> pip-sync tools/deps/requirements-pip.txt tools/deps/requirements-tests.txt
+Everything up-to-date
+ft: commands[1]> python -m pytest tests/common/functional tests/nuxeo/functional tests/alfresco/functional --dist=loadscope
+============================= test session starts ==============================
+platform linux -- Python 3.13.14, pytest-9.0.3, pluggy-1.6.0
+cachedir: .tox/base/.pytest_cache
+rootdir: /home/runner/work/nuxeo-drive/nuxeo-drive
+configfile: setup.cfg
+plugins: Faker-40.1.2, xdist-3.6.1, cov-6.0.0, timeout-2.3.1, pyfakefs-5.10.2
+created: 2/2 workers
+2 workers [710 items]
+
+E.E.E.E.E.EE.E.E.E.E.EE.E.E.E.E.E.E.E.E..E.E.E.E.E.E.E.E.E.E.E..E.E.E.EE [ 10%]
+EEssssssssEEEEEsEEFEEEEEEEEEEsFFF.FFFFFFFFFFFFFFFFFFFFFFFFFFsFF.F....... [ 20%]
+........................................................................ [ 30%]
+.....................E..E....E...E..E.E...E.E.E...E...F.......E..E..E.E. [ 38%]
+.E.E...E...E....E....................EE..E.E...E...E.E....E....E........ [ 46%]
+....................sF...........................F.....ssssssssssss..... [ 56%]
+.....ssssssssss.......................................................EE [ 67%]
+EEEEEEEEEEEEEE....E..E...E.E...E.E..E......ssssss...ss...sEEEEEE........ [ 76%]
+................FF.........................F..ssss.ssssssssss...ss...... [ 86%]
+...................................EEEEEEEE........sss.EE......EE....... [ 96%]
+Sentry is attempting to send 1 pending events
+Waiting up to 2 seconds
+Press Ctrl-C to quit
+F.E....ssssss..E..s.s.ssFss                                              [100%]
+==================================== ERRORS ====================================
+______________ ERROR at setup of test_tracker_instance_and_attrs _______________
+[gw0] linux -- Python 3.13.14 /home/runner/work/nuxeo-drive/nuxeo-drive/.tox/base/bin/python
+file /home/runner/work/nuxeo-drive/nuxeo-drive/tests/common/functional/test_tracker.py, line 9
+  @Options.mock()
+  def test_tracker_instance_and_attrs(manager_factory):
+ERROR tests/nuxeo/functional/test_api.py::test_on_clicked_open_task - assert ...
+ERROR tests/nuxeo/functional/test_api.py::test_get_last_files_count - assert ...
+ERROR tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_length[4]
+ERROR tests/nuxeo/functional/test_api.py::test_get_unsynchronizeds - assert n...
+ERROR tests/nuxeo/functional/test_remote_watcher.py::test_get_metrics - asser...
+ERROR tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_length[6]
+ERROR tests/nuxeo/functional/test_remote_client.py::test_upload_folder_type
+ERROR tests/nuxeo/functional/test_remote_watcher.py::test_scan_remote - asser...
+ERROR tests/nuxeo/functional/test_remote_client.py::test_filter_schema - asse...
+ERROR tests/nuxeo/functional/test_remote_watcher.py::test_scan_remote_scroll
+ERROR tests/nuxeo/functional/test_remote_client.py::test_is_filtered - assert...
+ERROR tests/nuxeo/functional/test_remote_client.py::test_transfer_end_callback
+ERROR tests/nuxeo/functional/test_queue_manager.py::TestProcessorCoordination::test_is_processing_file_wrong_worker_type
+ERROR tests/common/functional/test_server_options.py::test_behavior - file /h...
+ERROR tests/common/functional/test_server_options.py::test_behavior_not_good
+ERROR tests/common/functional/test_server_options.py::test_features[auto-update-auto_update-False]
+ERROR tests/common/functional/test_server_options.py::test_features[Direct-Edit-direct_edit-True]
+ERROR tests/common/functional/test_server_options.py::test_features[direct_transfer-direct_transfer-True]
+ERROR tests/common/functional/test_server_options.py::test_features[s3-s3-False]
+ERROR tests/common/functional/test_server_options.py::test_delay_remote_watcher
+ERROR tests/common/functional/test_server_options.py::test_synchronization_enabled
+ERROR tests/common/functional/test_updater.py::test_not_frozen - file /home/r...
+ERROR tests/common/functional/test_updater.py::test_frozen - file /home/runne...
+ERROR tests/common/functional/test_updater.py::test_frozen_updates_disabled
+ERROR tests/common/functional/test_updater.py::test_frozen_updates_disabled_centralized
+ERROR tests/common/functional/test_updater.py::test_frozen_updates_disabled_centralized_client_version_invalid
+ERROR tests/common/functional/test_updater.py::test_frozen_updates_disabled_centralized_client_version
+ERROR tests/common/functional/test_updater.py::test_installer_integrity_failure
+ERROR tests/common/functional/test_updater.py::test_feature_auto_update - fil...
+ERROR tests/nuxeo/functional/test_remote_watcher.py::test_handle_changes - as...
+ERROR tests/nuxeo/functional/test_engine.py::test_temporary_csv_cleanup - ass...
+ERROR tests/nuxeo/functional/test_remote_watcher.py::test_get_changes - asser...
+ERROR tests/nuxeo/functional/test_engine.py::test_can_use_trash - assert not ...
+ERROR tests/nuxeo/functional/test_remote_watcher.py::test_update_remote_states
+ERROR tests/nuxeo/functional/test_engine.py::test_get_task_url - assert not [...
+ERROR tests/common/functional/gui/test_constants.py::TestKnownTypesTranslations::test_get_known_types_translations_basic
+ERROR tests/common/functional/test_manager.py::test_init_workflow_with_app - ...
+ERROR tests/common/functional/test_manager.py::test_generate_csv_session_not_found
+ERROR tests/common/functional/test_manager.py::test_generate_csv_threadpool_available
+ERROR tests/common/functional/test_manager.py::test_generate_csv_no_threadpool
+ERROR tests/common/functional/test_manager.py::test_generate_csv_async_success
+ERROR tests/common/functional/test_manager.py::test_generate_csv_async_exception
+ERROR tests/common/functional/test_behavior.py::test_crash_no_engine_database
+ERROR tests/common/functional/test_behavior.py::test_crash_engine_no_local_folder[True]
+ERROR tests/common/functional/test_behavior.py::test_crash_engine_no_local_folder[False]
+ERROR tests/common/functional/test_behavior.py::test_manager_engine_removal
+ERROR tests/common/functional/test_behavior.py::test_manager_account_addition_same_folder_used
+ERROR tests/common/functional/test_behavior.py::test_manager_account_addition_same_folder_used
+ERROR tests/common/functional/test_behavior.py::test_feature_synchronization
+ERROR tests/common/functional/test_behavior.py::test_feature_tasks_management
+ERROR tests/common/functional/test_context_menu.py::test_ctx_menu_entry_inexistent_file
+ERROR tests/common/functional/test_context_menu.py::test_ctx_menu_entries - f...
+ERROR tests/common/functional/test_remote_changes.py::test_wrong_server_reply[not a dict]
+ERROR tests/common/functional/test_remote_changes.py::test_wrong_server_reply[bad_data1]
+ERROR tests/nuxeo/functional/test_bind_server.py::test_bind_failure_database_removal
+ERROR tests/common/functional/test_direct_transfer.py::test_get_upload - file...
+====== 41 failed, 505 passed, 75 skipped, 127 errors in 339.62s (0:05:39) ======
+ft: exit 1 (342.12 seconds) /home/runner/work/nuxeo-drive/nuxeo-drive> python -m pytest tests/common/functional tests/nuxeo/functional tests/alfresco/functional --dist=loadscope pid=3076
+  ft: FAIL code 1 (360.65=setup[17.83]+cmd[0.70,342.12] seconds)
+  evaluation failed :( (360.68 seconds)
+Error: Process completed with exit code 1.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+functional tests macOS
+
+Run tox -e ft
+  tox -e ft
+  shell: /bin/bash -e {0}
+  env:
+    NXDRIVE_TEST_NUXEO_URL: https://drive-2023.beta.nuxeocloud.com/nuxeo
+    NXDRIVE_TEST_USERNAME: ***
+    NXDRIVE_TEST_PASSWORD: ***
+    pythonLocation: /Users/runner/hostedtoolcache/Python/3.13.14/x64
+    PKG_CONFIG_PATH: /Users/runner/hostedtoolcache/Python/3.13.14/x64/lib/pkgconfig
+    Python_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.14/x64
+    Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.14/x64
+    Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.14/x64
+ft: recreate env because env type changed from {'name': 'alfresco-ft', 'type': 'VirtualEnvRunner'} to {'name': 'ft', 'type': 'VirtualEnvRunner'}
+ft: remove tox env folder /Users/runner/work/nuxeo-drive/nuxeo-drive/.tox/base
+ft: install_deps> python -I -m pip install -r tools/deps/requirements-pip.txt -r tools/deps/requirements-tests.txt
+ft: commands[0]> pip-sync tools/deps/requirements-pip.txt tools/deps/requirements-tests.txt
+Everything up-to-date
+ft: commands[1]> python -m pytest tests/common/functional tests/nuxeo/functional tests/alfresco/functional --dist=loadscope
+============================= test session starts ==============================
+platform darwin -- Python 3.13.14, pytest-9.0.3, pluggy-1.6.0
+cachedir: .tox/base/.pytest_cache
+rootdir: /Users/runner/work/nuxeo-drive/nuxeo-drive
+configfile: setup.cfg
+plugins: cov-6.0.0, pyfakefs-5.10.2, Faker-40.1.2, timeout-2.3.1, xdist-3.6.1
+created: 4/4 workers
+4 workers [710 items]
+
+ssssssssssE.E.EE.EE.EEEE.EEE.EEE.EEE.EE.EE.E.E.FE.E.EEE.EEsE.E.E.E.E..E. [ 10%]
+E.E.F..E.E.E.E.E.E.E.E.E.E.EF.EE.E.E................F................... [ 20%]
+......F..................F................................FFF.F..F..FFFF [ 30%]
+FFFFFFF.F..FF.FFFFFsFF..F....................E...E.E..E......E.E.E...... [ 39%]
+...E..E.E.......E.E..............................sF..................... [ 49%]
+......F......E...E.E....F...F.E.....E....................E.............E [ 58%]
+.........................................EEEEEEEEEEEEEEEE......E...E.... [ 68%]
+.E....EEEEEEE.........s....sEEEEEE........................FF............ [ 78%]
+.............F....ss.ss...........s..................................... [ 88%]
+......EE.E.................s.EE......EE.....E.....E..ssssss..E.ss..E...s [ 97%]
+QThread: Destroyed while thread '' is still running
+Sentry is attempting to send 1 pending events
+Waiting up to 2 seconds
+Press Ctrl-C to quit
+ss.FE...FEs.E..E..E..E..E                                                [100%]
+==================================== ERRORS ====================================
+______________ ERROR at setup of test_tracker_instance_and_attrs _______________
+[gw0] darwin -- Python 3.13.14 /Users/runner/work/nuxeo-drive/nuxeo-drive/.tox/base/bin/python
+file /Users/runner/work/nuxeo-drive/nuxeo-drive/tests/common/functional/test_tracker.py, line 9
+  @Options.mock()
+  def test_tracker_instance_and_attrs(manager_factory):
+E       fixture 'manager_factory' not found
+>       available fixtures: _session_faker, app, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, cleanup_attrs, cov, doctest_namespace, faker, fs, fs_class, fs_module, fs_session, monkeypatch, no_cover, no_warnings, nuxeo_url, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, server, subtests, testrun_uid, tmp, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, version, worker_id
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/Users/runner/work/nuxeo-drive/nuxeo-drive/tests/common/functional/test_tracker.py:9
+---------------------------- Captured stderr setup -----------------------------
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.address`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.address` has been localized to `en_US`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.automotive`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.automotive` has been localized to `en_US`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.bank`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Specified locale `en_US` is not available for provider `faker.providers.bank`. Locale reset to `en_GB` for this provider.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.barcode`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.barcode` has been localized to `en_US`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.color`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.color` has been localized to `en_US`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.company`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.company` has been localized to `en_US`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.credit_card`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.credit_card` has been localized to `en_US`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.currency`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.currency` has been localized to `en_US`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.date_time`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.date_time` has been localized to `en_US`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.doi` does not feature localization. Specified locale `en_US` is not used for this provider.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.emoji` does not feature localization. Specified locale `en_US` is not used for this provider.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.file` does not feature localization. Specified locale `en_US` is not used for this provider.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.geo`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.geo` has been localized to `en_US`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.internet`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.internet` has been localized to `en_US`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.isbn`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.isbn` has been localized to `en_US`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.job`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.job` has been localized to `en_US`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.lorem`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.lorem` has been localized to `en_US`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.misc`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.misc` has been localized to `en_US`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.passport`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.passport` has been localized to `en_US`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.person`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.person` has been localized to `en_US`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.phone_number`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.phone_number` has been localized to `en_US`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.profile` does not feature localization. Specified locale `en_US` is not used for this provider.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.python` does not feature localization. Specified locale `en_US` is not used for this provider.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.sbn` does not feature localization. Specified locale `en_US` is not used for this provider.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Looking for locale `en_US` in provider `faker.providers.ssn`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.ssn` has been localized to `en_US`.
+2026-07-31 22:43:42 5000 140704561914240 DEBUG    faker.factory      Provider `faker.providers.user_agent` does not feature localization. Specified locale `en_US` is not used for this provider.
+ERROR tests/nuxeo/functional/gui/test_application.py::test_init_gui - assert ...
+ERROR tests/common/functional/gui/test_api.py::TestQMLDriveApi::test_qml_drive_api_initialization
+ERROR tests/nuxeo/functional/test_remote_watcher.py::test_get_changes - asser...
+ERROR tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_levels[5]
+ERROR tests/common/functional/test_server_options.py::test_behavior - file /U...
+ERROR tests/common/functional/test_server_options.py::test_behavior_not_good
+ERROR tests/common/functional/test_server_options.py::test_features[auto-update-auto_update-False]
+ERROR tests/common/functional/test_server_options.py::test_features[Direct-Edit-direct_edit-True]
+ERROR tests/common/functional/test_server_options.py::test_features[direct_transfer-direct_transfer-True]
+ERROR tests/common/functional/test_server_options.py::test_features[s3-s3-False]
+ERROR tests/common/functional/test_server_options.py::test_delay_remote_watcher
+ERROR tests/common/functional/test_server_options.py::test_synchronization_enabled
+ERROR tests/common/functional/test_updater.py::test_not_frozen - file /Users/...
+ERROR tests/common/functional/test_updater.py::test_frozen - file /Users/runn...
+ERROR tests/common/functional/test_updater.py::test_frozen_updates_disabled
+ERROR tests/common/functional/test_updater.py::test_frozen_updates_disabled_centralized
+ERROR tests/common/functional/test_updater.py::test_frozen_updates_disabled_centralized_client_version_invalid
+ERROR tests/common/functional/test_updater.py::test_frozen_updates_disabled_centralized_client_version
+ERROR tests/common/functional/test_updater.py::test_installer_integrity_failure
+ERROR tests/common/functional/test_updater.py::test_feature_auto_update - fil...
+ERROR tests/nuxeo/functional/test_engine.py::test_delete_doc - assert not ["/...
+ERROR tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_length[0]
+ERROR tests/common/functional/gui/test_constants.py::TestKnownTypesTranslations::test_get_known_types_translations_with_real_translations
+ERROR tests/common/functional/test_behavior.py::test_crash_no_engine_database
+ERROR tests/common/functional/test_behavior.py::test_crash_engine_no_local_folder[True]
+ERROR tests/common/functional/test_behavior.py::test_crash_engine_no_local_folder[False]
+ERROR tests/common/functional/test_behavior.py::test_manager_engine_removal
+ERROR tests/common/functional/test_behavior.py::test_manager_account_addition_same_folder_used
+ERROR tests/common/functional/test_behavior.py::test_feature_synchronization
+ERROR tests/common/functional/test_behavior.py::test_feature_tasks_management
+ERROR tests/common/functional/test_manager.py::test_init_workflow_with_app - ...
+ERROR tests/common/functional/test_manager.py::test_generate_csv_session_not_found
+ERROR tests/common/functional/test_manager.py::test_generate_csv_threadpool_available
+ERROR tests/common/functional/test_manager.py::test_generate_csv_no_threadpool
+ERROR tests/common/functional/test_manager.py::test_generate_csv_async_success
+ERROR tests/common/functional/test_manager.py::test_generate_csv_async_exception
+ERROR tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_length[1]
+ERROR tests/nuxeo/functional/gui/test_application.py::test_root_deleted_sender_not_engine
+ERROR tests/nuxeo/functional/test_engine.py::test_token_management - assert n...
+ERROR tests/common/functional/test_context_menu.py::test_ctx_menu_entry_inexistent_file
+ERROR tests/common/functional/test_context_menu.py::test_ctx_menu_entries - f...
+ERROR tests/common/functional/test_remote_changes.py::test_wrong_server_reply[not a dict]
+ERROR tests/common/functional/test_remote_changes.py::test_wrong_server_reply[bad_data1]
+ERROR tests/nuxeo/functional/test_engine.py::test_send_task_notification - as...
+ERROR tests/nuxeo/functional/test_engine.py::test_check_last_sync - assert no...
+ERROR tests/common/functional/test_direct_transfer.py::test_get_upload - file...
+ERROR tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_length[4]
+ERROR tests/nuxeo/functional/test_bind_server.py::test_bind_failure_database_removal
+ERROR tests/nuxeo/functional/test_workflow.py::test_refresh_list - assert not...
+ERROR tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_length[6]
+ERROR tests/nuxeo/functional/test_remote_client.py::test_cancel_batch - asser...
+ERROR tests/nuxeo/functional/test_remote_client.py::test_get_note - assert no...
+ERROR tests/nuxeo/functional/test_remote_client.py::test_transfer_start_callback
+ERROR tests/nuxeo/functional/test_remote_client.py::test_store_refresh_token
+====== 42 failed, 546 passed, 34 skipped, 124 errors in 309.09s (0:05:09) ======
+ft: exit 1 (314.70 seconds) /Users/runner/work/nuxeo-drive/nuxeo-drive> python -m pytest tests/common/functional tests/nuxeo/functional tests/alfresco/functional --dist=loadscope pid=4871
+  ft: FAIL code 1 (360.11=setup[41.60]+cmd[3.81,314.70] seconds)
+  evaluation failed :( (360.16 seconds)
+Error: Process completed with exit code 1.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+functional tests windows
+
+Run tox -e ft
+ft: install_deps> python -I -m pip install -r tools/deps/requirements-pip.txt -r tools/deps/requirements-tests.txt
+ft: freeze> python -m pip freeze --all
+ft: alfresco-rest-client==1.0.0,apipkg==3.0.2,appdirs==1.4.4,atomicwrites==1.4.1,attrs==25.4.0,Authlib==1.6.12,black==26.3.1,boto3==1.42.45,botocore==1.42.45,build==1.2.2.post1,cachetools==7.1.1,certifi==2026.2.25,cffi==2.0.0,cfgv==3.4.0,chardet==5.2.0,charset-normalizer==2.1.1,click==8.1.7,codespell==2.4.2,colorama==0.4.6,comtypes==1.4.8,coverage==7.6.9,cryptography==46.0.7,distlib==0.3.8,docutils==0.21.2,dukpy==0.5.0,exceptiongroup==1.2.2,execnet==2.1.1,Faker==40.1.2,filelock==3.29.0,flake8==7.3.0,future==1.0.0,identify==2.5.36,idna==3.15,importlib-metadata==7.0.1,iniconfig==2.0.0,jmespath==1.0.1,junitparser==5.0.0,jwt==1.3.1,mccabe==0.7.0,more-itertools==10.6.0,mypy==1.11.2,mypy-extensions==1.0.0,nodeenv==1.9.1,nuxeo==7.1.0,packaging==26.2,pathspec==1.0.4,pep517==0.13.1,pip==26.1.1,pip-tools==7.4.1,pip_system_certs==5.0,platformdirs==4.9.6,pluggy==1.6.0,pre_commit==4.5.1,psutil==7.0.0,pycodestyle==2.14.0,pycparser==2.22,pyfakefs==5.10.2,pyflakes==3.4.0,Pygments==2.20.0,PyPAC==0.18.3,pyparsing==2.4.7,pyproject-api==1.10.0,pyproject_hooks==1.0.0,PyQt6==6.10.1,PyQt6-Qt6==6.10.1,PyQt6-stubs==20250824,PyQt6_sip==13.10.3,pytest==9.0.3,pytest-cov==6.0.0,pytest-timeout==2.3.1,pytest-xdist==3.6.1,python-dateutil==2.9.0.post0,python-discovery==1.2.2,pytokens==0.4.1,pywin32==308,pywinauto==0.6.8,PyYAML==6.0.1,regex==2026.2.28,requests==2.33.1,requests-file==3.0.1,responses==0.26.1,s3transfer==0.16.0,selenium==3.141.0,Send2Trash==1.8.3,sentry-sdk==2.22.0,setuptools==80.9.0,six==1.17.0,text-unidecode==1.3,tld==0.13,tldextract==5.3.1,toml==0.10.2,tomli==2.2.1,tomli_w==1.2.0,tox==4.53.1,truststore==0.10.1,types-certifi==2021.10.8.3,types-python-dateutil==2.9.0.20240906,types-PyYAML==6.0.12.12,types-requests==2.26.1,typing_extensions==4.12.2,tzdata==2025.2,urllib3==2.7.0,virtualenv==21.3.0,vulture==2.11,watchdog==5.0.2,wcwidth==0.6.0,wheel==0.46.2,zipp==3.23.0
+ft: commands[0]> pip-sync tools/deps/requirements-pip.txt tools/deps/requirements-tests.txt
+Everything up-to-date
+ft: commands[1]> python -m pytest tests/common/functional tests/nuxeo/functional tests/alfresco/functional --dist=loadscope
+============================= test session starts =============================
+platform win32 -- Python 3.13.14, pytest-9.0.3, pluggy-1.6.0
+cachedir: .tox\base\.pytest_cache
+rootdir: D:\a\nuxeo-drive\nuxeo-drive
+configfile: setup.cfg
+plugins: Faker-40.1.2, pyfakefs-5.10.2, cov-6.0.0, timeout-2.3.1, xdist-3.6.1
+created: 2/2 workers
+2 workers [710 items]
+
+E.E.E.E.E.E.E.E.EE.E.E.E.E..E.E.EE..E.E.E.E.E.E.E.E.E.E..EE.E..EE.E.E.EE [ 10%]
+EEEEEEEEEEEEEEEEEEEEEEEEEEFEEEFFF.FFFFFFFFFFFFFFFFFFFFFFFFFFFFF.F....... [ 20%]
+........................................................................ [ 30%]
+.....................E..E..E.E...E..E.E...E..E...E......EF...EE......... [ 38%]
+E.E...E.E..E...E.E...E....................E.E...E.E...E................. [ 47%]
+...............F.....................E......F........F..E...E.....E...ss [ 56%]
+.E....E...............................................................EE [ 66%]
+EEEEEEEEEEEEEE....................EEEssEE..ssss....s..[gw0] node down: Not properly terminated
+F
+replacing crashed worker gw0
+........................FF..........................F..ss.....sss....... [ 84%]
+..s.........................................E...............E...EE....EE [ 94%]
+D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\urllib3\connectionpool.py:1110: InsecureRequestWarning: Unverified HTTPS request is being made to host 'drive-2023.beta.nuxeocloud.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\urllib3\connectionpool.py:1110: InsecureRequestWarning: Unverified HTTPS request is being made to host 'drive-2023.beta.nuxeocloud.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\urllib3\connectionpool.py:1110: InsecureRequestWarning: Unverified HTTPS request is being made to host 'drive-2023.beta.nuxeocloud.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\urllib3\connectionpool.py:1110: InsecureRequestWarning: Unverified HTTPS request is being made to host 'drive-2023.beta.nuxeocloud.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\urllib3\connectionpool.py:1110: InsecureRequestWarning: Unverified HTTPS request is being made to host 'drive-2023.beta.nuxeocloud.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\urllib3\connectionpool.py:1110: InsecureRequestWarning: Unverified HTTPS request is being made to host 'drive-2023.beta.nuxeocloud.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\urllib3\connectionpool.py:1110: InsecureRequestWarning: Unverified HTTPS request is being made to host 'drive-2023.beta.nuxeocloud.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\urllib3\connectionpool.py:1110: InsecureRequestWarning: Unverified HTTPS request is being made to host 'drive-2023.beta.nuxeocloud.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\urllib3\connectionpool.py:1110: InsecureRequestWarning: Unverified HTTPS request is being made to host 'drive-2023.beta.nuxeocloud.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+.....E....E...ssssss...E.EEFE..sF.FROOT: [6076] KeyboardInterrupt - teardown started
+ROOT: interrupt tox environment: ft
+ROOT: requested interrupt of 7736 from 6076, activate in 0.00
+ROOT: send signal SIGTERM(15) to 7736 from 6076 with timeout 0.20
+ROOT: interrupt finished with success
+D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\_pytest\main.py:353: PluggyTeardownRaisedWarning: A plugin raised an exception during an old-style hookwrapper teardown.
+Plugin: 2111832357728, Hook: pytest_sessionfinish
+OSError: cannot send (already closed?)
+For more information see https://pluggy.readthedocs.io/en/stable/api_reference.html#pluggy.PluggyTeardownRaisedWarning
+  config.hook.pytest_sessionfinish(
+D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\_pytest\main.py:353: PluggyTeardownRaisedWarning: A plugin raised an exception during an old-style hookwrapper teardown.
+Plugin: 2426507656032, Hook: pytest_sessionfinish
+OSError: cannot send (already closed?)
+For more information see https://pluggy.readthedocs.io/en/stable/api_reference.html#pluggy.PluggyTeardownRaisedWarning
+  config.hook.pytest_sessionfinish(
+Sentry is attempting to send 1 pending events
+Waiting up to 2 seconds
+Press Ctrl-Break to quit
+Sentry is attempting to send 1 pending events
+Waiting up to 2 seconds
+Press Ctrl-Break to quit
+ROOT: second interrupt received for tox environment: ft - forcing full stop
+ft: exit 1 (1746.91 seconds) D:\a\nuxeo-drive\nuxeo-drive> python -m pytest tests/common/functional tests/nuxeo/functional tests/alfresco/functional --dist=loadscope pid=7736
+  ft: SKIP (0.01 seconds)
+  evaluation failed :( (1778.55 seconds)
+Error: The operation was canceled.
