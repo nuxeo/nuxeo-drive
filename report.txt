@@ -27,111 +27,83 @@ plugins: Faker-40.1.2, xdist-3.6.1, cov-6.0.0, timeout-2.3.1, pyfakefs-5.10.2
 created: 2/2 workers
 2 workers [710 items]
 
-...................................FFFF.FFFFFF.FFFFFFFFFFFFFFFFFFFFsFF.F [ 10%]
-....ssssssss...........s.........................s...................... [ 20%]
+..........................................FFFF...F.F.FFFFF..F.FFFF.sF... [ 10%]
+....ssssssss...........s..........................s..................... [ 20%]
 ........................................................................ [ 30%]
-...................................................F.................... [ 40%]
-.....................................................sF................. [ 50%]
-................ssssssssssss..........ssssssssss........................ [ 60%]
-........................................................F.....F......... [ 70%]
-............F...ss...s.....ssssss.........................FF............ [ 81%]
-.............F..ssss.ssssssssss...ss.................................... [ 91%]
-................ss.s....................ssssss....ss..F..ssFss           [100%]
+.................................................F...................... [ 40%]
+..........................................................s............. [ 50%]
+......................ssssssssssss..........ssssssssss.................. [ 60%]
+............................................................F....F...... [ 70%]
+...........ssssss...ss...s.............................................. [ 81%]
+................ssss.ssssssssss...ss.................................... [ 91%]
+Sentry is attempting to send 5 pending events
+Waiting up to 2 seconds
+Press Ctrl-C to quit
+...............sss......................ssssss.....ss.F..ss.ss           [100%]
 =================================== FAILURES ===================================
-____________________________ test_unlock_soft_path _____________________________
+__________________________ test_handle_doc_pair_sync ___________________________
 [gw1] linux -- Python 3.13.14 /home/runner/work/nuxeo-drive/nuxeo-drive/.tox/base/bin/python
 
-    def test_unlock_soft_path():
-        # Covering self.engine.uid in Processor.soft_locks
+    def test_handle_doc_pair_sync():
+        cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+        # Covering finder_info and "brokMACS" in finder_info
+        mock_client = Mock_Local_Client()
+        mock_client.remote_id = "brok + MacOS = brokMACS"
+        mock_doc_pair = Mock_Doc_Pair(cursor, ())
         mock_engine = Mock_Engine()
         processor = Processor(mock_engine, True)
-        Processor.soft_locks = {mock_engine.uid: {Path(""): True}}
-        assert (
->           processor._unlock_soft_path(Path("tests/resources/files/testFile.txt")) is None
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        )
-E       AttributeError: 'Processor' object has no attribute '_unlock_soft_path'
+        processor.local = mock_client
+>       with patch(
+            "nxdrive.drive.engine.processor.Processor._postpone_pair"
+        ) as mock_postpone:
 
-mock_engine = <tests.common.functional.mocked_classes.Mock_Engine object at 0x7fe4f08cf230>
+cursor     = <sqlite3.Cursor object at 0x7fb7733f31c0>
+mock_client = <Mock_Local_Client base_folder=PosixPath('/home/runner/work/nuxeo-drive/nuxeo-drive'), is_case_sensitive=None>
+mock_doc_pair = <tests.common.functional.mocked_classes.Mock_Doc_Pair object at 0x7fb7733a90f0>
+mock_engine = <tests.common.functional.mocked_classes.Mock_Engine object at 0x7fb7730a2a50>
 processor  = <Processor id=None>
 
-tests/nuxeo/functional/test_processor.py:34: AttributeError
-_____________________________ test_unlock_readonly _____________________________
-[gw1] linux -- Python 3.13.14 /home/runner/work/nuxeo-drive/nuxeo-drive/.tox/base/bin/python
+tests/nuxeo/functional/test_processor.py:111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/opt/hostedtoolcache/Python/3.13.14/x64/lib/python3.13/unittest/mock.py:1503: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+        autospec   = None
+        kwargs     = {}
+        new        = sentinel.DEFAULT
+        new_callable = None
+        self       = <unittest.mock._patch object at 0x7fb7733ec130>
+        spec       = None
+        spec_set   = None
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-    def test_unlock_readonly():
-        mock_engine = Mock_Engine()
-        mock_path = Path("tests/resources/files/testFile.txt")
-        processor = Processor(mock_engine, True)
->       assert processor._unlock_readonly(mock_path) is None
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       AttributeError: 'Processor' object has no attribute '_unlock_readonly'
+self = <unittest.mock._patch object at 0x7fb7733ec130>
 
-mock_engine = <tests.common.functional.mocked_classes.Mock_Engine object at 0x7fe4f026d1d0>
-mock_path  = PosixPath('tests/resources/files/testFile.txt')
-processor  = <Processor id=None>
-
-tests/nuxeo/functional/test_processor.py:48: AttributeError
-______________________________ test_lock_readonly ______________________________
-[gw1] linux -- Python 3.13.14 /home/runner/work/nuxeo-drive/nuxeo-drive/.tox/base/bin/python
-
-    def test_lock_readonly():
-        mock_engine = Mock_Engine()
-        mock_path = Path("tests/resources/files/testFile.txt")
-        processor = Processor(mock_engine, True)
-        Processor.readonly_locks = {mock_engine.uid: {Path("different_path"): [0, 2]}}
->       assert processor._lock_readonly(mock_path) is None
-               ^^^^^^^^^^^^^^^^^^^^^^^^
-E       AttributeError: 'Processor' object has no attribute '_lock_readonly'
-
-mock_engine = <tests.common.functional.mocked_classes.Mock_Engine object at 0x7fe4f026e5d0>
-mock_path  = PosixPath('tests/resources/files/testFile.txt')
-processor  = <Processor id=None>
-
-tests/nuxeo/functional/test_processor.py:62: AttributeError
-_____________________________ test_lock_soft_path ______________________________
-[gw1] linux -- Python 3.13.14 /home/runner/work/nuxeo-drive/nuxeo-drive/.tox/base/bin/python
-
-    def test_lock_soft_path():
-        mock_engine = Mock_Engine()
-        mock_path = Path("tests/resources/files/testFile.txt")
-        processor = Processor(mock_engine, True)
->       assert isinstance(processor._lock_soft_path(mock_path), Path)
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_conflicted
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_if_not_remotely_dirty
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_locally_modified
-FAILED tests/nuxeo/functional/test_processor.py::test_postpone_pair - Attribu...
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_locally_created
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_locally_deleted
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_locally_moved_remotely_modified
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_locally_moved_created
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_locally_moved
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_deleted_unknown
-FAILED tests/nuxeo/functional/test_processor.py::test_download_content - Attr...
-FAILED tests/nuxeo/functional/test_processor.py::test_update_remotely - Attri...
-FAILED tests/nuxeo/functional/test_processor.py::test_search_for_dedup - Attr...
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_remotely_modified
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_remotely_created
-FAILED tests/nuxeo/functional/test_processor.py::test_create_remotely - Attri...
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_remotely_deleted
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_unknown_deleted
-FAILED tests/nuxeo/functional/test_processor.py::test_handle_failed_remote_rename
-FAILED tests/nuxeo/functional/test_processor.py::test_handle_readonly - Attri...
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_direct_transfer
-FAILED tests/nuxeo/functional/test_direct_edit.py::test_url_resolver - Attrib...
-FAILED tests/nuxeo/functional/test_queue_manager.py::TestErrorHandling::test_push_error_ongoing_request_error
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+    
+        original = DEFAULT
+        local = False
+    
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+    
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+    
+        if not self.create and original is DEFAULT:
 FAILED tests/common/functional/test_updater.py::test_frozen - assert False is...
 FAILED tests/common/functional/test_updater.py::test_frozen_updates_disabled_centralized_client_version
-FAILED tests/common/functional/test_behavior.py::test_feature_synchronization
-FAILED tests/common/functional/gui/test_folders_model.py::TestFilteredDocuments::test_get_top_documents
-FAILED tests/common/functional/gui/test_folders_model.py::TestFilteredDocuments::test_get_children
-FAILED tests/common/functional/gui/test_folders_model.py::TestDoc::test_doc_enable_method
 FAILED tests/nuxeo/functional/test_bind_server.py::test_bind_failure_database_removal
-FAILED tests/nuxeo/functional/test_workflow.py::test_refresh_list - NotImplem...
-============ 43 failed, 593 passed, 75 skipped in 686.57s (0:11:26) ============
-ft: exit 1 (689.27 seconds) /home/runner/work/nuxeo-drive/nuxeo-drive> python -m pytest tests/common/functional tests/nuxeo/functional tests/alfresco/functional --dist=loadscope pid=3076
-  ft: FAIL code 1 (710.18=setup[19.70]+cmd[1.21,689.27] seconds)
-  evaluation failed :( (710.22 seconds)
+============ 21 failed, 615 passed, 75 skipped in 717.69s (0:11:57) ============
+ft: exit 1 (720.62 seconds) /home/runner/work/nuxeo-drive/nuxeo-drive> python -m pytest tests/common/functional tests/nuxeo/functional tests/alfresco/functional --dist=loadscope pid=3073
+  ft: FAIL code 1 (741.23=setup[19.84]+cmd[0.77,720.62] seconds)
+  evaluation failed :( (741.26 seconds)
 Error: Process completed with exit code 1.
 
 
@@ -170,84 +142,95 @@ plugins: cov-6.0.0, pyfakefs-5.10.2, Faker-40.1.2, timeout-2.3.1, xdist-3.6.1
 created: 4/4 workers
 4 workers [710 items]
 
-ssssssssss..............F...........F..........FF.FF.FFFFFFFFFFFFFFFFFFF [ 10%]
-FFFFFs.FF...F........................................................... [ 20%]
+ssssssssss..........................................FFFF....FF.FFFFF..F. [ 10%]
+FFFF.sF................................................................. [ 20%]
 ........................................................................ [ 30%]
-...................F....................s............................... [ 40%]
-................................................sF...................... [ 50%]
-..................F..................................................... [ 60%]
-............................................F......F.................... [ 70%]
-....s....s.................................FF.........................F. [ 81%]
-...ss.ss...........s.................................................... [ 91%]
+.................F.....................s................................ [ 40%]
+.............................................s.......................... [ 50%]
+..............F......................................................... [ 60%]
+................................................F......F................ [ 70%]
+.....s....s............................................................. [ 81%]
+.....ss.ss...........s.................................................. [ 91%]
 QThread: Destroyed while thread '' is still running
-..........s..F....................ssssss.....s....sss..s.F..Fs           [100%]
+Sentry is attempting to send 1 pending events
+Waiting up to 2 seconds
+Press Ctrl-C to quit
+...........s......................ssssss......s..sss...s.F...s           [100%]
 =================================== FAILURES ===================================
-____________________________ test_unlock_soft_path _____________________________
+__________________________ test_handle_doc_pair_sync ___________________________
 [gw2] darwin -- Python 3.13.14 /Users/runner/work/nuxeo-drive/nuxeo-drive/.tox/base/bin/python
 
-    def test_unlock_soft_path():
-        # Covering self.engine.uid in Processor.soft_locks
+    def test_handle_doc_pair_sync():
+        cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
+        # Covering finder_info and "brokMACS" in finder_info
+        mock_client = Mock_Local_Client()
+        mock_client.remote_id = "brok + MacOS = brokMACS"
+        mock_doc_pair = Mock_Doc_Pair(cursor, ())
         mock_engine = Mock_Engine()
         processor = Processor(mock_engine, True)
-        Processor.soft_locks = {mock_engine.uid: {Path(""): True}}
-        assert (
->           processor._unlock_soft_path(Path("tests/resources/files/testFile.txt")) is None
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        )
-E       AttributeError: 'Processor' object has no attribute '_unlock_soft_path'
+        processor.local = mock_client
+>       with patch(
+            "nxdrive.drive.engine.processor.Processor._postpone_pair"
+        ) as mock_postpone:
 
-mock_engine = <tests.common.functional.mocked_classes.Mock_Engine object at 0x10c9e12b0>
+cursor     = <sqlite3.Cursor object at 0x118e9d940>
+mock_client = <Mock_Local_Client base_folder=PosixPath('/Users/runner/work/nuxeo-drive/nuxeo-drive'), is_case_sensitive=None>
+mock_doc_pair = <tests.common.functional.mocked_classes.Mock_Doc_Pair object at 0x118f5e520>
+mock_engine = <tests.common.functional.mocked_classes.Mock_Engine object at 0x118f7bd50>
 processor  = <Processor id=None>
 
-tests/nuxeo/functional/test_processor.py:34: AttributeError
-_____________________________ test_unlock_readonly _____________________________
-[gw2] darwin -- Python 3.13.14 /Users/runner/work/nuxeo-drive/nuxeo-drive/.tox/base/bin/python
+tests/nuxeo/functional/test_processor.py:111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py:1503: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+        autospec   = None
+        kwargs     = {}
+        new        = sentinel.DEFAULT
+        new_callable = None
+        self       = <unittest.mock._patch object at 0x118f874d0>
+        spec       = None
+        spec_set   = None
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-    def test_unlock_readonly():
-        mock_engine = Mock_Engine()
-        mock_path = Path("tests/resources/files/testFile.txt")
-        processor = Processor(mock_engine, True)
->       assert processor._unlock_readonly(mock_path) is None
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       AttributeError: 'Processor' object has no attribute '_unlock_readonly'
+self = <unittest.mock._patch object at 0x118f874d0>
 
-mock_engine = <tests.common.functional.mocked_classes.Mock_Engine object at 0x10e99f390>
-mock_path  = PosixPath('tests/resources/files/testFile.txt')
-processor  = <Processor id=None>
-
-tests/nuxeo/functional/test_processor.py:48: AttributeError
-______________________________ test_lock_readonly ______________________________
-[gw2] darwin -- Python 3.13.14 /Users/runner/work/nuxeo-drive/nuxeo-drive/.tox/base/bin/python
-
-    def test_lock_readonly():
-        mock_engine = Mock_Engine()
-        mock_path = Path("tests/resources/files/testFile.txt")
-        processor = Processor(mock_engine, True)
-        Processor.readonly_locks = {mock_engine.uid: {Path("different_path"): [0, 2]}}
->       assert processor._lock_readonly(mock_path) is None
-               ^^^^^^^^^^^^^^^^^^^^^^^^
-E       AttributeError: 'Processor' object has no attribute '_lock_readonly'
-
-mock_engine = <tests.common.functional.mocked_classes.Mock_Engine object at 0x10e99fd90>
-mock_path  = PosixPath('tests/resources/files/testFile.txt')
-processor  = <Processor id=None>
-
-tests/nuxeo/functional/test_processor.py:62: AttributeError
-_____________________________ test_lock_soft_path ______________________________
-[gw2] darwin -- Python 3.13.14 /Users/runner/work/nuxeo-drive/nuxeo-drive/.tox/base/bin/python
-
-    def test_lock_soft_path():
-        mock_engine = Mock_Engine()
-        mock_path = Path("tests/resources/files/testFile.txt")
-        processor = Processor(mock_engine, True)
->       assert isinstance(processor._lock_soft_path(mock_path), Path)
-                          ^^^^^^^^^^^^^^^^^^^^^^^^^
-FAILED tests/nuxeo/functional/test_workflow.py::test_refresh_list - NotImplem...
-============ 44 failed, 633 passed, 34 skipped in 483.98s (0:08:03) ============
-ft: exit 1 (488.58 seconds) /Users/runner/work/nuxeo-drive/nuxeo-drive> python -m pytest tests/common/functional tests/nuxeo/functional tests/alfresco/functional --dist=loadscope pid=48537
-  ft: FAIL code 1 (530.24=setup[40.42]+cmd[1.24,488.58] seconds)
-  evaluation failed :( (530.31 seconds)
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+    
+        original = DEFAULT
+        local = False
+    
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+    
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+    
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+FAILED tests/nuxeo/functional/test_processor.py::test_update_remotely - Attri...
+FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_remotely_modified
+FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_remotely_created
+FAILED tests/nuxeo/functional/test_processor.py::test_create_remotely - Attri...
+FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_remotely_deleted
+FAILED tests/nuxeo/functional/test_processor.py::test_handle_failed_remote_rename
+FAILED tests/nuxeo/functional/test_direct_edit.py::test_url_resolver - Attrib...
+FAILED tests/nuxeo/functional/gui/test_application.py::test_application_qt - ...
+FAILED tests/common/functional/test_updater.py::test_frozen - assert False is...
+FAILED tests/common/functional/test_updater.py::test_frozen_updates_disabled_centralized_client_version
+FAILED tests/nuxeo/functional/test_bind_server.py::test_bind_failure_database_removal
+============ 22 failed, 655 passed, 34 skipped in 488.77s (0:08:08) ============
+ft: exit 1 (492.81 seconds) /Users/runner/work/nuxeo-drive/nuxeo-drive> python -m pytest tests/common/functional tests/nuxeo/functional tests/alfresco/functional --dist=loadscope pid=5886
+  ft: FAIL code 1 (523.67=setup[29.88]+cmd[0.98,492.81] seconds)
+  evaluation failed :( (523.71 seconds)
 Error: Process completed with exit code 1.
+
 
 
 
@@ -273,7 +256,7 @@ Run tox -e ft
     Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.13.14\x64
 ft: install_deps> python -I -m pip install -r tools/deps/requirements-pip.txt -r tools/deps/requirements-tests.txt
 ft: freeze> python -m pip freeze --all
-ft: alfresco-rest-client==1.0.0,apipkg==3.0.2,appdirs==1.4.4,atomicwrites==1.4.1,attrs==25.4.0,Authlib==1.6.12,black==26.3.1,boto3==1.42.45,botocore==1.42.45,build==1.2.2.post1,cachetools==7.1.1,certifi==2026.2.25,cffi==2.0.0,cfgv==3.4.0,chardet==5.2.0,charset-normalizer==2.1.1,click==8.1.7,codespell==2.4.2,colorama==0.4.6,comtypes==1.4.8,coverage==7.6.9,cryptography==46.0.7,distlib==0.3.8,docutils==0.21.2,dukpy==0.5.0,exceptiongroup==1.2.2,execnet==2.1.1,Faker==40.1.2,filelock==3.29.0,flake8==7.3.0,future==1.0.0,identify==2.5.36,idna==3.15,importlib-metadata==7.0.1,iniconfig==2.0.0,jmespath==1.0.1,junitparser==5.0.0,jwt==1.3.1,mccabe==0.7.0,more-itertools==10.6.0,mypy==1.11.2,mypy-extensions==1.0.0,nodeenv==1.9.1,nuxeo==7.1.0,packaging==26.2,pathspec==1.0.4,pep517==0.13.1,pip==26.1.1,pip-tools==7.4.1,pip_system_certs==5.0,platformdirs==4.9.6,pluggy==1.6.0,pre_commit==4.5.1,psutil==7.0.0,pycodestyle==2.14.0,pycparser==2.22,pyfakefs==5.10.2,pyflakes==3.4.0,Pygments==2.20.0,PyPAC==0.18.3,pyparsing==2.4.7,pyproject-api==1.10.0,pyproject_hooks==1.0.0,PyQt6==6.10.1,PyQt6-Qt6==6.10.1,PyQt6-stubs==20250824,PyQt6_sip==13.10.3,pytest==9.0.3,pytest-cov==6.0.0,pytest-timeout==2.3.1,pytest-xdist==3.6.1,python-dateutil==2.9.0.post0,python-discovery==1.2.2,pytokens==0.4.1,pywin32==308,pywinauto==0.6.8,PyYAML==6.0.1,regex==2026.2.28,requests==2.33.1,requests-file==3.0.1,responses==0.26.1,s3transfer==0.16.0,selenium==3.141.0,Send2Trash==1.8.3,sentry-sdk==2.22.0,setuptools==80.9.0,six==1.17.0,text-unidecode==1.3,tld==0.13,tldextract==5.3.1,toml==0.10.2,tomli==2.2.1,tomli_w==1.2.0,tox==4.53.1,truststore==0.10.1,types-certifi==2021.10.8.3,types-python-dateutil==2.9.0.20240906,types-PyYAML==6.0.12.12,types-requests==2.26.1,typing_extensions==4.12.2,tzdata==2025.2,urllib3==2.7.0,virtualenv==21.3.0,vulture==2.11,watchdog==5.0.2,wcwidth==0.6.0,wheel==0.46.2,zipp==3.23.0
+ft: alfresco-rest-client==1.0.0,apipkg==3.0.2,appdirs==1.4.4,atomicwrites==1.4.1,attrs==25.4.0,Authlib==1.6.12,black==26.3.1,boto3==1.42.45,botocore==1.42.45,build==1.2.2.post1,cachetools==7.1.1,certifi==2026.2.25,cffi==2.0.0,cfgv==3.4.0,chardet==5.2.0,charset-normalizer==2.1.1,click==8.1.7,codespell==2.4.2,colorama==0.4.6,comtypes==1.4.8,coverage==7.6.9,cryptography==46.0.7,distlib==0.3.8,docutils==0.21.2,dukpy==0.5.0,exceptiongroup==1.2.2,execnet==2.1.1,Faker==40.1.2,filelock==3.29.0,flake8==7.3.0,future==1.0.0,identify==2.5.36,idna==3.15,importlib-metadata==7.0.1,iniconfig==2.0.0,jmespath==1.0.1,junitparser==5.0.0,jwt==1.3.1,mccabe==0.7.0,more-itertools==10.6.0,mypy==1.11.2,mypy-extensions==1.0.0,nodeenv==1.9.1,nuxeo==7.1.0,packaging==26.2,pathspec==1.0.4,pep517==0.13.1,pip==26.1.1,pip-tools==7.4.1,pip_system_certs==5.0,platformdirs==4.9.6,pluggy==1.6.0,pre_commit==4.5.1,psutil==7.0.0,pycodestyle==2.14.0,pycparser==2.22,pyfakefs==5.10.2,pyflakes==3.4.0,Pygments==2.20.0,PyPAC==0.18.3,pyparsing==2.4.7,pyproj
 ft: commands[0]> pip-sync tools/deps/requirements-pip.txt tools/deps/requirements-tests.txt
 Everything up-to-date
 ft: commands[1]> python -m pytest tests/common/functional tests/nuxeo/functional tests/alfresco/functional --dist=loadscope
@@ -285,19 +268,18 @@ configfile: setup.cfg
 plugins: Faker-40.1.2, pyfakefs-5.10.2, cov-6.0.0, timeout-2.3.1, xdist-3.6.1
 created: 2/2 workers
 2 workers [710 items]
-
-...................................FFFF.FFFFFFFFFF.FFFFFFFFFFFFFFFFFFF.F [ 10%]
+..........................................FFFF....FF.FFFFF..F.FFFF..F... [ 10%]
 ........................................................................ [ 20%]
 ........................................................................ [ 30%]
-.............................................F.......................... [ 40%]
-.................................................................F...... [ 50%]
-..............................F...[gw1] node down: Not properly terminated
+............................................F........................... [ 40%]
+........................................................................ [ 50%]
+.................................F...................................... [ 60%]
+.................................................[gw1] node down: Not properly terminated
 F
 replacing crashed worker gw1
-........................................................................ [ 65%]
-.........F.....F.......................ssF....s........ssss............. [ 75%]
-............FF.........................F..ss.....sss.........s.......... [ 86%]
-....................................................................ssss [ 96%]
+..F...F...............ss....ssss....s................................... [ 78%]
+..................................ss............s....................... [ 88%]
+.......................sss................................ssssss..F..F.. [ 98%]
 D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\urllib3\connectionpool.py:1110: InsecureRequestWarning: Unverified HTTPS request is being made to host 'drive-2025.beta.nuxeocloud.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
   warnings.warn(
 D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\urllib3\connectionpool.py:1110: InsecureRequestWarning: Unverified HTTPS request is being made to host 'drive-2025.beta.nuxeocloud.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
@@ -334,32 +316,23 @@ D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\urllib3\connectionpool.
   warnings.warn(
 D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\urllib3\connectionpool.py:1110: InsecureRequestWarning: Unverified HTTPS request is being made to host 'drive-2025.beta.nuxeocloud.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
   warnings.warn(
-D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\urllib3\connectionpool.py:1110: InsecureRequestWarning: Unverified HTTPS request is being made to host 'drive-2025.beta.nuxeocloud.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
-  warnings.warn(
-D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\urllib3\connectionpool.py:1110: InsecureRequestWarning: Unverified HTTPS request is being made to host 'drive-2025.beta.nuxeocloud.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
-  warnings.warn(
-D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\urllib3\connectionpool.py:1110: InsecureRequestWarning: Unverified HTTPS request is being made to host 'drive-2025.beta.nuxeocloud.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
-  warnings.warn(
-ss.....sFF..sF.FROOT: [8336] KeyboardInterrupt - teardown started
+ssF..ROOT: [2264] KeyboardInterrupt - teardown started
 ROOT: interrupt tox environment: ft
-ROOT: requested interrupt of 7820 from 8336, activate in 0.00
-ROOT: send signal SIGTERM(15) to 7820 from 8336 with timeout 0.20
+ROOT: requested interrupt of 2588 from 2264, activate in 0.00
+ROOT: send signal SIGTERM(15) to 2588 from 2264 with timeout 0.20
 ROOT: interrupt finished with success
 ROOT: second interrupt received for tox environment: ft - forcing full stop
 D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\_pytest\main.py:353: PluggyTeardownRaisedWarning: A plugin raised an exception during an old-style hookwrapper teardown.
-Plugin: 1954223717216, Hook: pytest_sessionfinish
+Plugin: 2250082384736, Hook: pytest_sessionfinish
 OSError: cannot send (already closed?)
 For more information see https://pluggy.readthedocs.io/en/stable/api_reference.html#pluggy.PluggyTeardownRaisedWarning
   config.hook.pytest_sessionfinish(
 D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\_pytest\main.py:353: PluggyTeardownRaisedWarning: A plugin raised an exception during an old-style hookwrapper teardown.
-Plugin: 2639548414816, Hook: pytest_sessionfinish
+Plugin: 2462824168288, Hook: pytest_sessionfinish
 OSError: cannot send (already closed?)
 For more information see https://pluggy.readthedocs.io/en/stable/api_reference.html#pluggy.PluggyTeardownRaisedWarning
   config.hook.pytest_sessionfinish(
-Sentry is attempting to send 1 pending events
-Waiting up to 2 seconds
-Press Ctrl-Break to quit
-ft: exit 1 (1746.62 seconds) D:\a\nuxeo-drive\nuxeo-drive> python -m pytest tests/common/functional tests/nuxeo/functional tests/alfresco/functional --dist=loadscope pid=7820
+ft: exit 1 (1748.47 seconds) D:\a\nuxeo-drive\nuxeo-drive> python -m pytest tests/common/functional tests/nuxeo/functional tests/alfresco/functional --dist=loadscope pid=2588
   ft: SKIP (0.01 seconds)
-  evaluation failed :( (1780.14 seconds)
+  evaluation failed :( (1781.27 seconds)
 Error: The operation was canceled.

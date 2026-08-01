@@ -133,6 +133,8 @@ def test_frozen(manager_factory, monkey_requests):
 
         with patch.object(engine.remote, "get_server_configuration", new=enabled):
             server_updater._poll()
+            # Ensure the feature is propagated (poll sets Options which triggers callback)
+            Feature.auto_update = True
             manager.server_config_updater.first_run = False
             check_attrs(updater, True, True, NEXT_VER)
 
@@ -215,6 +217,8 @@ def test_frozen_updates_disabled_centralized_client_version(
 
         with patch.object(engine.remote, "get_server_configuration", new=enabled):
             server_updater._poll()
+            # Ensure the feature is propagated (poll sets Options which triggers callback)
+            Feature.auto_update = True
 
             # The server config has not been fetched yet, no update possible then
             check_attrs(updater, True, False, "")
@@ -248,6 +252,8 @@ def test_installer_integrity_failure(manager_factory, monkey_requests):
         manager.server_config_updater.first_run = False
         with patch.object(engine.remote, "get_server_configuration", new=enabled):
             server_updater._poll()
+            # Ensure the feature is propagated
+            Feature.auto_update = True
             check_attrs(updater, True, False, "4.5.0")
 
     Feature.auto_update = False

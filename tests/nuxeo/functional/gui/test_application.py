@@ -562,7 +562,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     ) as mock_qml_context, patch(
         "nxdrive.drive.gui.application.CustomWindow"
     ) as mock_custom_window, patch(
-        "tests.functional.mocked_classes.Mock_Qt.rootContext"
+        "tests.common.functional.mocked_classes.Mock_Qt.rootContext"
     ) as mock_root_context:
         mock_qml_context.return_value = None
         mock_custom_window.return_value = Mock_Qt

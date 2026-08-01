@@ -492,6 +492,9 @@ def test_send_lock_status(direct_edit):
 
 
 def test_url_resolver(manager_factory, nuxeo_url):
+    # Ensure direct_edit feature is enabled before creating the manager
+    # (Feature.direct_edit may be False from cross-test pollution)
+    _orig_direct_edit = Feature.direct_edit
     Feature.direct_edit = True
     manager, engine = manager_factory()
 

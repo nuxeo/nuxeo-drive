@@ -5,6 +5,7 @@ import pytest
 
 from nxdrive.drive.engine.engine import Engine
 from nxdrive.drive.exceptions import FolderAlreadyUsed
+from nxdrive.nuxeo.engine.engine import Engine as NuxeoEngine
 
 
 def test_bind_local_folder_already_used(manager_factory, tmp, nuxeo_url, user_factory):
@@ -78,7 +79,7 @@ def test_bind_failure_database_removal(manager_factory, tmp, nuxeo_url, user_fac
         assert not list(manager.home.glob("ndrive_*"))
 
         # Try to bind the account, it will fail
-        with patch.object(Engine, "bind", new=bind_failure), pytest.raises(TypeError):
+        with patch.object(NuxeoEngine, "bind", new=bind_failure), pytest.raises(TypeError):
             manager.bind_server(
                 local_folder,
                 nuxeo_url,
