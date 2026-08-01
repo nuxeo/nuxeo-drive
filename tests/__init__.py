@@ -7,14 +7,18 @@ import sys
 from contextlib import contextmanager
 from typing import Any
 
-import nuxeo.constants
+try:
+    import nuxeo.constants
+except ModuleNotFoundError:
+    nuxeo = None  # type: ignore[assignment]
 
 # Silence any logging errors, we do not need more noise to output
 logging.raiseExceptions = False
 
 
 # Automatically check all operations done with the Python client
-nuxeo.constants.CHECK_PARAMS = True
+if nuxeo is not None and hasattr(nuxeo, "constants"):
+    nuxeo.constants.CHECK_PARAMS = True
 
 
 def configure_logs():
