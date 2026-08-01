@@ -7,7 +7,7 @@ try:
 
     # Alfresco Python Client version
     _client_version = alfresco.__version__
-except ImportError:
+except (ImportError, AttributeError):
     _client_version = ""
 
 from nxdrive.drive.server_type import ServerTypeConfig, register
