@@ -50,7 +50,7 @@ class Updater(BaseUpdater):
         super().__init__(*args)
 
         self.ext = "foo"
-        self.release_file = "nuxeo-drive-{version}.foo"
+        self.release_file = "nuxeo-drive-{}.foo"
 
         self.checkpoint = False
 

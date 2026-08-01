@@ -496,42 +496,47 @@ def test_url_resolver(manager_factory, nuxeo_url):
     # (Feature.direct_edit may be False from cross-test pollution)
     _orig_direct_edit = Feature.direct_edit
     Feature.direct_edit = True
-    manager, engine = manager_factory()
+    try:
+        manager, engine = manager_factory()
 
-    with manager:
-        direct_edit = manager.direct_edit
-        direct_edit._folder.mkdir()
+        with manager:
+            direct_edit = manager.direct_edit
+            direct_edit._folder.mkdir()
 
-        user = engine.remote_user
-        get_engine = direct_edit._get_engine
+            user = engine.remote_user
+            get_engine = direct_edit._get_engine
 
-        # Engine found, even with uppercase username
-        assert get_engine(nuxeo_url, user=user)
-        assert get_engine(nuxeo_url, user=user.upper())
+            # Engine found, even with uppercase username
+            assert get_engine(nuxeo_url, user=user)
+            assert get_engine(nuxeo_url, user=user.upper())
 
-        # No engine found
-        assert not get_engine(nuxeo_url, user="user-not-found")
-        assert not get_engine("server-url-not-found", user=user)
+            # No engine found
+            assert not get_engine(nuxeo_url, user="user-not-found")
+            assert not get_engine("server-url-not-found", user=user)
 
-        # HTTP explicit
-        manager.engines["0"] = MockUrlTestEngine("http://localhost:80/nuxeo", user)
-        assert get_engine("http://localhost:80/nuxeo", user=user)
-        assert get_engine("http://localhost/nuxeo/", user=user)
+            # HTTP explicit
+            manager.engines["0"] = MockUrlTestEngine("http://localhost:80/nuxeo", user)
+            assert get_engine("http://localhost:80/nuxeo", user=user)
+            assert get_engine("http://localhost/nuxeo/", user=user)
 
-        # HTTP implicit
-        manager.engines["0"] = MockUrlTestEngine("http://localhost/nuxeo", user)
-        assert get_engine("http://localhost:80/nuxeo/", user=user)
-        assert get_engine("http://localhost/nuxeo", user=user)
+            # HTTP implicit
+            manager.engines["0"] = MockUrlTestEngine("http://localhost/nuxeo", user)
+            assert get_engine("http://localhost:80/nuxeo/", user=user)
+            assert get_engine("http://localhost/nuxeo", user=user)
 
-        # HTTPS explicit
-        manager.engines["0"] = MockUrlTestEngine("https://localhost:443/nuxeo", user)
-        assert get_engine("https://localhost:443/nuxeo", user=user)
-        assert get_engine("https://localhost/nuxeo/", user=user)
+            # HTTPS explicit
+            manager.engines["0"] = MockUrlTestEngine(
+                "https://localhost:443/nuxeo", user
+            )
+            assert get_engine("https://localhost:443/nuxeo", user=user)
+            assert get_engine("https://localhost/nuxeo/", user=user)
 
-        # HTTPS implicit
-        manager.engines["0"] = MockUrlTestEngine("https://localhost/nuxeo", user)
-        assert get_engine("https://localhost:443/nuxeo/", user=user)
-        assert get_engine("https://localhost/nuxeo", user=user)
+            # HTTPS implicit
+            manager.engines["0"] = MockUrlTestEngine("https://localhost/nuxeo", user)
+            assert get_engine("https://localhost:443/nuxeo/", user=user)
+            assert get_engine("https://localhost/nuxeo", user=user)
+    finally:
+        Feature.direct_edit = _orig_direct_edit
 
 
 def test_lock_unlock(

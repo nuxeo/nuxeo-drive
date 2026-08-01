@@ -221,7 +221,7 @@ def test_handle_doc_pair_dt():
     processor = Processor(mock_engine, True)
     # Covering Not Found
     with patch(
-        "tests.functional.mocked_classes.Mock_Local_Client.__call__"
+        "tests.common.functional.mocked_classes.Mock_Local_Client.__call__"
     ) as mock_client_call, patch(
         "nxdrive.nuxeo.engine.processor.Processor._direct_transfer_cancel"
     ) as mock_transfer_cancel:
@@ -232,7 +232,7 @@ def test_handle_doc_pair_dt():
         assert str(ex.exconly()).startswith("nxdrive.drive.exceptions.NotFound")
     # Covering HTTPError
     with patch(
-        "tests.functional.mocked_classes.Mock_Local_Client.__call__"
+        "tests.common.functional.mocked_classes.Mock_Local_Client.__call__"
     ) as mock_client_call:
         mock_client_call.side_effect = HTTPError(status=500)
         with pytest.raises(HTTPError) as ex:
@@ -240,7 +240,7 @@ def test_handle_doc_pair_dt():
         assert str(ex.exconly()).startswith("nuxeo.exceptions.HTTPError")
     # Covering HTTPError, status = 404
     with patch(
-        "tests.functional.mocked_classes.Mock_Local_Client.__call__"
+        "tests.common.functional.mocked_classes.Mock_Local_Client.__call__"
     ) as mock_client_call, patch(
         "nxdrive.nuxeo.engine.processor.Processor._postpone_pair"
     ) as mock_postpone:
@@ -249,7 +249,7 @@ def test_handle_doc_pair_dt():
         assert processor._handle_doc_pair_dt(mock_doc_pair, mock_client) is None
     # Covering UploadPaused
     with patch(
-        "tests.functional.mocked_classes.Mock_Local_Client.__call__"
+        "tests.common.functional.mocked_classes.Mock_Local_Client.__call__"
     ) as mock_client_call:
         mock_client_call.side_effect = UploadPaused(1)
         with pytest.raises(UploadPaused) as ex:
@@ -257,7 +257,7 @@ def test_handle_doc_pair_dt():
         assert str(ex.exconly()).startswith("nxdrive.drive.exceptions.UploadPaused")
     # Covering RuntimeError
     with patch(
-        "tests.functional.mocked_classes.Mock_Local_Client.__call__"
+        "tests.common.functional.mocked_classes.Mock_Local_Client.__call__"
     ) as mock_client_call:
         mock_client_call.side_effect = RuntimeError()
         with pytest.raises(RuntimeError) as ex:
@@ -265,7 +265,7 @@ def test_handle_doc_pair_dt():
         assert str(ex.exconly()) == "RuntimeError"
     # Covering Exception
     with patch(
-        "tests.functional.mocked_classes.Mock_Local_Client.__call__"
+        "tests.common.functional.mocked_classes.Mock_Local_Client.__call__"
     ) as mock_client_call, patch(
         "nxdrive.nuxeo.engine.processor.Processor._direct_transfer_cancel"
     ) as mock_dt_cancel:
@@ -282,7 +282,7 @@ def test_handle_doc_pair_dt():
     mock_engine = Mock_Engine()
     processor = Processor(mock_engine, True)
     with patch(
-        "tests.functional.mocked_classes.Mock_Local_Client.__call__"
+        "tests.common.functional.mocked_classes.Mock_Local_Client.__call__"
     ) as mock_client_call:
         mock_client_call.side_effect = UploadCancelled(1)
         assert processor._handle_doc_pair_dt(mock_doc_pair, mock_client) is None
@@ -296,7 +296,7 @@ def test_handle_doc_pair_dt():
     mock_engine.dao.doc_pairs[0] = None
     processor = Processor(mock_engine, True)
     with patch(
-        "tests.functional.mocked_classes.Mock_Local_Client.__call__"
+        "tests.common.functional.mocked_classes.Mock_Local_Client.__call__"
     ) as mock_client_call:
         mock_client_call.side_effect = UploadCancelled(1)
         assert processor._handle_doc_pair_dt(mock_doc_pair, mock_client) is None
@@ -308,7 +308,7 @@ def test_handle_doc_pair_dt():
     mock_engine.dao.upload.doc_pair = True
     processor = Processor(mock_engine, True)
     with patch(
-        "tests.functional.mocked_classes.Mock_Local_Client.__call__"
+        "tests.common.functional.mocked_classes.Mock_Local_Client.__call__"
     ) as mock_client_call, patch(
         "nxdrive.nuxeo.engine.processor.Processor._direct_transfer_cancel"
     ) as mock_dt_cancel:
@@ -331,7 +331,7 @@ def test_get_next_doc_pair():
     mock_engine = Mock_Engine()
     processor = Processor(mock_engine, True)
     with patch(
-        "tests.functional.mocked_classes.Mock_DAO.acquire_state"
+        "tests.common.functional.mocked_classes.Mock_DAO.acquire_state"
     ) as mock_acquire_state, patch(
         "nxdrive.nuxeo.engine.processor.Processor._postpone_pair"
     ) as mock_postpone_pair:
@@ -375,7 +375,7 @@ def test_check_exists_on_the_server():
     ) as mock_postpone_pair, patch(
         "nxdrive.nuxeo.engine.processor.Processor.remove_void_transfers"
     ) as mock_void_transfer, patch(
-        "tests.functional.mocked_classes.Mock_Remote.fetch"
+        "tests.common.functional.mocked_classes.Mock_Remote.fetch"
     ) as mock_fetch:
         mock_postpone_pair.return_value = None
         mock_void_transfer.return_value = None
@@ -493,7 +493,7 @@ def test_synchronize_if_not_remotely_dirty():
     with patch(
         "nxdrive.nuxeo.engine.processor.Processor._synchronize_remotely_modified"
     ) as mock_sync_remote, patch(
-        "tests.functional.mocked_classes.Mock_Local_Client.get_info"
+        "tests.common.functional.mocked_classes.Mock_Local_Client.get_info"
     ) as mock_get_info:
         mock_sync_remote.return_value = None
         mock_get_info.side_effect = NotFound()
@@ -573,7 +573,7 @@ def test_synchronize_locally_modified():
     with patch(
         "nxdrive.nuxeo.engine.processor.Processor._synchronize_if_not_remotely_dirty"
     ) as mock_sync_if_not_remote_dirty, patch(
-        "tests.functional.mocked_classes.Mock_Remote.get_fs_info"
+        "tests.common.functional.mocked_classes.Mock_Remote.get_fs_info"
     ) as mock_fs_info:
         mock_sync_if_not_remote_dirty.return_value = None
         mock_fs_info.return_value = Mock_Remote()
@@ -647,7 +647,7 @@ def test_synchronize_locally_created():
     processor.dao = mock_dao
     processor.local = mock_client
     with patch(
-        "tests.functional.mocked_classes.Mock_DAO.get_state_from_local"
+        "tests.common.functional.mocked_classes.Mock_DAO.get_state_from_local"
     ) as mock_get_state, patch(
         "nxdrive.nuxeo.engine.processor.Processor._get_normal_state_from_remote_ref"
     ) as mock_normal_state:
@@ -669,7 +669,7 @@ def test_synchronize_locally_created():
     processor.dao = mock_dao
     processor.local = mock_client
     with patch(
-        "tests.functional.mocked_classes.Mock_DAO.get_state_from_local"
+        "tests.common.functional.mocked_classes.Mock_DAO.get_state_from_local"
     ) as mock_get_state, patch(
         "nxdrive.nuxeo.engine.processor.Processor._get_normal_state_from_remote_ref"
     ) as mock_normal_state:
@@ -705,7 +705,7 @@ def test_synchronize_locally_created():
     processor = Processor(mock_engine, True)
     processor.dao = mock_dao
     processor.local = mock_client
-    with patch("tests.functional.mocked_classes.Mock_Remote.get_info") as mock_get_info:
+    with patch("tests.common.functional.mocked_classes.Mock_Remote.get_info") as mock_get_info:
         mock_get_info.return_value = None
         assert (
             processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
@@ -772,7 +772,7 @@ def test_synchronize_locally_created():
     processor.local = mock_client
     processor.remote = mock_remote
     with patch(
-        "tests.functional.mocked_classes.Mock_Remote.get_fs_info"
+        "tests.common.functional.mocked_classes.Mock_Remote.get_fs_info"
     ) as mock_get_fs_info:
         mock_get_fs_info.side_effect = HTTPError(status=404)
         with pytest.raises(HTTPError) as ex:
@@ -797,7 +797,7 @@ def test_synchronize_locally_created():
     processor.local = mock_client
     processor.remote = mock_remote
     with patch(
-        "tests.functional.mocked_classes.Mock_Remote.get_fs_info"
+        "tests.common.functional.mocked_classes.Mock_Remote.get_fs_info"
     ) as mock_get_fs_info:
         mock_get_fs_info.side_effect = HTTPError(status=401)
         assert (
@@ -823,7 +823,7 @@ def test_synchronize_locally_created():
     processor.local = mock_client
     processor.remote = mock_remote
     with patch(
-        "tests.functional.mocked_classes.Mock_Remote.get_fs_info"
+        "tests.common.functional.mocked_classes.Mock_Remote.get_fs_info"
     ) as mock_get_fs_info:
         mock_get_fs_info.side_effect = NotFound()
         assert (
@@ -1588,7 +1588,7 @@ def test_handle_failed_remote_rename():
     processor = Processor(mock_engine, True)
     processor.local = mock_client
     with patch(
-        "tests.functional.mocked_classes.Mock_Local_Client.rename"
+        "tests.common.functional.mocked_classes.Mock_Local_Client.rename"
     ) as mock_rename:
         mock_rename.side_effect = Exception("Custom Exception")
         assert (

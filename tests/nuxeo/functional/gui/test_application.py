@@ -916,7 +916,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
 
     # throwing exception in try block
     with patch(
-        "tests.functional.mocked_classes.Mock_Filtered_Doc.is_expandable"
+        "tests.common.functional.mocked_classes.Mock_Filtered_Doc.is_expandable"
     ) as mock_expandable:
         mock_expandable.side_effect = Exception("Mock Exception")
         content_loader.tree.cache.remove("dummy_id")
