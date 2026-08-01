@@ -690,7 +690,8 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     # Covering update_workflow
     app.added_user_engine_list = []
     Feature.tasks_management = True
-    app.workflow = Workflow()
+    app.workflow = Mock(spec=Workflow)
+    app.workflow.get_pending_tasks.return_value = []
     engine.uid = "engine_uid"
     assert app.update_workflow() is None
     delattr(app, "workflow")

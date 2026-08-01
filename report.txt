@@ -1,172 +1,5 @@
 Run tox -e ft
   tox -e ft
-  shell: /usr/bin/bash -e {0}
-  env:
-    NXDRIVE_TEST_NUXEO_URL: https://drive-2025.beta.nuxeocloud.com/nuxeo
-    NXDRIVE_TEST_USERNAME: ***
-    NXDRIVE_TEST_PASSWORD: ***
-    pythonLocation: /opt/hostedtoolcache/Python/3.13.14/x64
-    PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.14/x64/lib/pkgconfig
-    Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.14/x64
-    Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.14/x64
-    Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.14/x64
-    LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.14/x64/lib
-    DISPLAY: :99
-ft: recreate env because env type changed from {'name': 'alfresco-ft', 'type': 'VirtualEnvRunner'} to {'name': 'ft', 'type': 'VirtualEnvRunner'}
-ft: remove tox env folder /home/runner/work/nuxeo-drive/nuxeo-drive/.tox/base
-ft: install_deps> python -I -m pip install -r tools/deps/requirements-pip.txt -r tools/deps/requirements-tests.txt
-ft: commands[0]> pip-sync tools/deps/requirements-pip.txt tools/deps/requirements-tests.txt
-Everything up-to-date
-ft: commands[1]> python -m pytest tests/common/functional tests/nuxeo/functional tests/alfresco/functional --dist=loadscope
-============================= test session starts ==============================
-platform linux -- Python 3.13.14, pytest-9.0.3, pluggy-1.6.0
-cachedir: .tox/base/.pytest_cache
-rootdir: /home/runner/work/nuxeo-drive/nuxeo-drive
-configfile: setup.cfg
-plugins: Faker-40.1.2, xdist-3.6.1, cov-6.0.0, timeout-2.3.1, pyfakefs-5.10.2
-created: 2/2 workers
-2 workers [710 items]
-
-...........................................FFF....FF.F.............sF... [ 10%]
-....ssssssss..........s..........................s...................... [ 20%]
-........................................................................ [ 30%]
-...................................................F.................... [ 40%]
-........................................................s............... [ 50%]
-...................ssssssssssss..........ssssssssss..................... [ 60%]
-.......................................................F....F........... [ 70%]
-................ss...s....ssssss........................................ [ 81%]
-................ssss.ssssssssss...ss.................................... [ 91%]
-...............sss......................ssssss....ss.....ss.ss           [100%]
-=================================== FAILURES ===================================
-___________________________ test_handle_doc_pair_dt ____________________________
-[gw1] linux -- Python 3.13.14 /home/runner/work/nuxeo-drive/nuxeo-drive/.tox/base/bin/python
-
-    def test_handle_doc_pair_dt():
-        cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
-        mock_client = Mock_Local_Client()
-        mock_doc_pair = Mock_Doc_Pair(cursor, ())
-        mock_engine = Mock_Engine()
-        processor = Processor(mock_engine, True)
-        # Covering Not Found
->       with patch(
-            "tests.functional.mocked_classes.Mock_Local_Client.__call__"
-        ) as mock_client_call, patch(
-            "nxdrive.nuxeo.engine.processor.Processor._direct_transfer_cancel"
-        ) as mock_transfer_cancel:
-
-cursor     = <sqlite3.Cursor object at 0x7fb483317b40>
-mock_client = <Mock_Local_Client base_folder=PosixPath('/home/runner/work/nuxeo-drive/nuxeo-drive'), is_case_sensitive=None>
-mock_doc_pair = <tests.common.functional.mocked_classes.Mock_Doc_Pair object at 0x7fb482f4d810>
-mock_engine = <tests.common.functional.mocked_classes.Mock_Engine object at 0x7fb482eb5a50>
-processor  = <Processor id=None>
-
-tests/nuxeo/functional/test_processor.py:223: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/opt/hostedtoolcache/Python/3.13.14/x64/lib/python3.13/unittest/mock.py:1487: in __enter__
-    self.target = self.getter()
-                  ^^^^^^^^^^^^^
-        autospec   = None
-        kwargs     = {}
-        new        = sentinel.DEFAULT
-        new_callable = None
-        self       = <unittest.mock._patch object at 0x7fb482f24e50>
-        spec       = None
-        spec_set   = None
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-name = 'tests.functional.mocked_classes.Mock_Local_Client'
-
-    def resolve_name(name):
-        """
-        Resolve a name to an object.
-    
-        It is expected that `name` will be a string in one of the following
-        formats, where W is shorthand for a valid Python identifier and dot stands
-        for a literal period in these pseudo-regexes:
-    
-        W(.W)*
-        W(.W)*:(W(.W)*)?
-    
-        The first form is intended for backward compatibility only. It assumes that
-        some part of the dotted name is a package, and the rest is an object
-        somewhere within that package, possibly nested inside other objects.
-        Because the place where the package stops and the object hierarchy starts
-        can't be inferred by inspection, repeated attempts to import must be done
-        with this form.
-    
-        In the second form, the caller makes the division point clear through the
-        provision of a single colon: the dotted name to the left of the colon is a
-        package to be imported, and the dotted name to the right is the object
-2026-08-01 19:37:35 3185 140516214463360 INFO     nxdrive.drive.updater.base Getting update status for version '7.1.0' (channel=centralized, desired client_version='4.4.0') on server 10.10
-2026-08-01 19:37:35 3185 140516214463360 DEBUG    nxdrive.drive.updater.base Guessed status 'update_available' and version '4.4.0'.
-2026-08-01 19:37:35 3185 140516214463360 INFO     nxdrive.drive.updater.base Starting application update process to version '4.4.0'
-2026-08-01 19:37:35 3185 140516214463360 ERROR    nxdrive.drive.updater.base Update failed
-Traceback (most recent call last):
-  File "/home/runner/work/nuxeo-drive/nuxeo-drive/nxdrive/drive/updater/base.py", line 156, in update
-    self._install(version, self._download(version))
-                           ~~~~~~~~~~~~~~^^^^^^^^^
-  File "/home/runner/work/nuxeo-drive/nuxeo-drive/nxdrive/drive/updater/base.py", line 179, in _download
-    name = self.release_file.format(version)
-KeyError: 'version'
-2026-08-01 19:37:35 3185 140516214463360 INFO     nxdrive.drive.dao.utils Checking database integrity: PosixPath('/tmp/pytest-of-runner/pytest-0/popen-gw0/test_frozen_updates_disabled_c0/0/manager.db')
-2026-08-01 19:37:35 3185 140516214463360 INFO     nxdrive.drive.dao.utils Creating backup /tmp/pytest-of-runner/pytest-0/popen-gw0/test_frozen_updates_disabled_c0/0/backups/manager.db_1785613055
-2026-08-01 19:37:35 3185 140516214463360 INFO     nxdrive.drive.direct_download Cleanup Direct Download folder
-2026-08-01 19:37:35 3185 140516214463360 INFO     nxdrive.drive.direct_download Direct Download folder cleaned up
-2026-08-01 19:37:35 3185 140516214463360 INFO     nxdrive.drive.dao.base Disposing SQLite database PosixPath('/tmp/pytest-of-runner/pytest-0/popen-gw0/test_frozen_updates_disabled_c0/0/manager.db')
-
----------- coverage: platform linux, python 3.13.14-final-0 ----------
-Coverage HTML written to dir htmlcov
-Coverage XML written to file coverage.xml
-
-============================= slowest 20 durations =============================
-37.96s call     tests/nuxeo/functional/test_direct_edit.py::test_corrupted_download
-30.82s call     tests/common/functional/test_server_options.py::test_delay_remote_watcher
-18.32s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_length[6]
-13.78s call     tests/nuxeo/functional/test_direct_edit.py::test_lock_unlock
-13.42s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_length[4]
-12.71s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_length[3]
-12.66s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_levels[5]
-12.54s call     tests/nuxeo/functional/test_remote_client.py::test_exists_in_parent[ndt-\xe9l\xe9onor]
-12.41s call     tests/nuxeo/functional/test_remote_client.py::test_store_refresh_token
-12.38s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_levels[3]
-12.30s call     tests/nuxeo/functional/test_direct_edit.py::test_download_http_error_404
-12.27s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_levels[4]
-11.81s call     tests/common/functional/test_tracker.py::test_tracker_method_without_args[_poll-True-True-True]
-11.24s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_length[2]
-11.15s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_levels[6]
-11.05s call     tests/nuxeo/functional/test_remote_watcher.py::test_execute
-10.92s call     tests/common/functional/test_server_options.py::test_features[Direct-Edit-direct_edit-True]
-10.92s call     tests/nuxeo/functional/test_remote_client.py::test_transfer_end_callback
-10.89s call     tests/nuxeo/functional/test_remote_watcher.py::test_check_modified
-10.82s call     tests/nuxeo/functional/test_remote_client.py::test_exists_in_parent[ndt-bob@bar.com]
-=========================== short test summary info ============================
-FAILED tests/nuxeo/functional/test_processor.py::test_handle_doc_pair_dt - At...
-FAILED tests/nuxeo/functional/test_processor.py::test_get_next_doc_pair - Att...
-FAILED tests/nuxeo/functional/test_processor.py::test_check_exists_on_the_server
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_if_not_remotely_dirty
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_locally_modified
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_locally_created
-FAILED tests/nuxeo/functional/test_processor.py::test_handle_failed_remote_rename
-FAILED tests/nuxeo/functional/test_direct_edit.py::test_url_resolver - Attrib...
-FAILED tests/common/functional/test_updater.py::test_frozen - assert False is...
-FAILED tests/common/functional/test_updater.py::test_frozen_updates_disabled_centralized_client_version
-============ 10 failed, 626 passed, 75 skipped in 640.64s (0:10:40) ============
-ft: exit 1 (642.92 seconds) /home/runner/work/nuxeo-drive/nuxeo-drive> python -m pytest tests/common/functional tests/nuxeo/functional tests/alfresco/functional --dist=loadscope pid=3181
-  ft: FAIL code 1 (661.33=setup[17.74]+cmd[0.67,642.92] seconds)
-  evaluation failed :( (661.36 seconds)
-Error: Process completed with exit code 1.
-
-
-
-
-
-
-
-
-
-
-Run tox -e ft
-  tox -e ft
   shell: /bin/bash -e {0}
   env:
     NXDRIVE_TEST_NUXEO_URL: https://drive-2025.beta.nuxeocloud.com/nuxeo
@@ -192,106 +25,123 @@ plugins: cov-6.0.0, pyfakefs-5.10.2, Faker-40.1.2, timeout-2.3.1, xdist-3.6.1
 created: 4/4 workers
 4 workers [710 items]
 
-ssssssssss...........................................F.FF...FF.F........ [ 10%]
-.....sF................................................................. [ 20%]
+ssssssssss.............................................................. [ 10%]
+.....s.................................................................. [ 20%]
 ........................................................................ [ 30%]
-......................F.................s............................... [ 40%]
-...................................................s.................... [ 50%]
-........................F............................................... [ 60%]
-.......................................F.....F.......................... [ 70%]
-..........s............................................................s [ 81%]
-s.ss...........s........................................................ [ 91%]
-......s..........s...............ssssss.....s.....sss......s.s           [100%]
+.........................................s.............................. [ 40%]
+..............................................s......................... [ 50%]
+...............F........................................................ [ 60%]
+........................................................................ [ 70%]
+...........s.......................................................ss.ss [ 81%]
+...........s............................................s..............s [ 91%]
+..................................ssssss.....s..ssss.........s           [100%]
 =================================== FAILURES ===================================
-___________________________ test_handle_doc_pair_dt ____________________________
+_____________________________ test_application_qt ______________________________
 [gw2] darwin -- Python 3.13.14 /Users/runner/work/nuxeo-drive/nuxeo-drive/.tox/base/bin/python
 
-    def test_handle_doc_pair_dt():
-        cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
-        mock_client = Mock_Local_Client()
-        mock_doc_pair = Mock_Doc_Pair(cursor, ())
-        mock_engine = Mock_Engine()
-        processor = Processor(mock_engine, True)
-        # Covering Not Found
->       with patch(
-            "tests.functional.mocked_classes.Mock_Local_Client.__call__"
-        ) as mock_client_call, patch(
-            "nxdrive.nuxeo.engine.processor.Processor._direct_transfer_cancel"
-        ) as mock_transfer_cancel:
+app_obj = <nxdrive.drive.gui.application.Application object at 0x117c99310>
+manager_factory = <function manager_factory.<locals>._make_manager at 0x117c044a0>
+tmp_path = PosixPath('/private/var/folders/8j/3c4g2vh16vgc8j40cj25qfqh0000gn/T/pytest-of-runner/pytest-0/popen-gw2/test_application_qt0')
 
-cursor     = <sqlite3.Cursor object at 0x1150675c0>
-mock_client = <Mock_Local_Client base_folder=PosixPath('/Users/runner/work/nuxeo-drive/nuxeo-drive'), is_case_sensitive=None>
-mock_doc_pair = <tests.common.functional.mocked_classes.Mock_Doc_Pair object at 0x1151176f0>
-mock_engine = <tests.common.functional.mocked_classes.Mock_Engine object at 0x112ed8250>
-processor  = <Processor id=None>
+    @not_linux(reason="Qt does not work correctly on linux")
+    def test_application_qt(app_obj, manager_factory, tmp_path):
+        from PyQt6.QtCore import QRect
+        from PyQt6.QtWidgets import QMessageBox
+    
+        from nxdrive.drive.constants import DelAction
+    
+        app = app_obj
+        manager, engine = manager_factory()
+        mock_qt = Mock_Qt()
+        # Covering create_custom_window_for_task_manager
+        with patch(
+            "nxdrive.drive.gui.application.Application._fill_qml_context"
+        ) as mock_qml_context, patch(
+            "nxdrive.drive.gui.application.CustomWindow"
+        ) as mock_custom_window, patch(
+            "tests.common.functional.mocked_classes.Mock_Qt.rootContext"
+        ) as mock_root_context:
+            mock_qml_context.return_value = None
+            mock_custom_window.return_value = Mock_Qt
+            mock_root_context.return_value = None
+            assert app.create_custom_window_for_task_manager() is None
+        # Covering update_workflow
+        assert app.update_workflow() is None
+        # Covering updat_feature_state
+        assert app._update_feature_state("auto_update", True) is None
+        # Covering _msbox
+        with patch(
+            "nxdrive.drive.gui.application.Application._msgbox"
+        ) as mock_msgbox_method:
+            mock_msgbox_instance = Mock(spec=QMessageBox)
+            mock_msgbox_method.return_value = mock_msgbox_instance
+            assert isinstance(app._msgbox(), type(mock_msgbox_instance))
+        # Covering display_info
+        assert (
+            app.display_info("Warning title", "Warning message", ["value1", "value2"])
+            is None
+        )
+        # Covering display_warning
+        with patch("nxdrive.drive.gui.application.Application._msgbox") as mock_msgbox:
+            mock_msgbox.return_value = None
+            assert (
+                app.display_warning(
+                    "Warning title", "Warning message", ["value1", "value2"]
+                )
+                is None
+            )
+        # Covering direct_edit_conflict
+        with patch("nxdrive.drive.gui.application.Application.question") as mock_question:
+            mock_question.return_value = mock_qt
+            assert (
+                app._direct_edit_conflict(
+                    "dummy_filename", Path("tests/resources/files"), "md5"
+                )
+2026-08-01 20:45:38 916 140704690614656 DEBUG    nxdrive.drive.client.local.base Setting xattr 'nxdirecteditdigest' with value b'md5' on PosixPath('/private/var/folders/8j/3c4g2vh16vgc8j40cj25qfqh0000gn/T/pytest-of-runner/pytest-0/popen-gw2/test_application_qt0/0/edit/tests/resources')
+2026-08-01 20:45:38 916 140704690614656 ERROR    nxdrive.drive.gui.application Sender is not an Engine instance: <class 'tests.common.functional.mocked_classes.Mock_Engine'>
+2026-08-01 20:45:39 916 140704690614656 ERROR    nxdrive.drive.gui.application Sender is not an Engine instance: <class 'tests.common.functional.mocked_classes.Mock_Engine'>
+2026-08-01 20:45:39 916 140704690614656 DEBUG    nxdrive.drive.gui.application Server deletions behavior is False, mode set to 'unsync'
+2026-08-01 20:45:39 916 140704690614656 INFO     nxdrive.drive.options Option 'is_frozen' updated: False -> True [manual]
+2026-08-01 20:45:39 916 140704690614656 INFO     nxdrive.drive.options Options(deletion_behavior[manual]='delete_server', download_folder[manual]=None, is_frozen[manual]=True, light_icons[manual]=False, log_level_file[manual]='INFO', ssl_no_verify[manual]=True, xxx_broken_update[manual]=None)
+2026-08-01 20:45:39 916 140704690614656 INFO     nxdrive.drive.options Option 'is_frozen' updated: True -> False [manual]
+2026-08-01 20:45:39 916 140704690614656 INFO     nxdrive.drive.options Options(deletion_behavior[manual]='delete_server', download_folder[manual]=None, is_frozen[manual]=False, light_icons[manual]=False, log_level_file[manual]='INFO', ssl_no_verify[manual]=True, xxx_broken_update[manual]=None)
+2026-08-01 20:45:39 916 140704690614656 INFO     nxdrive.drive.gui.application Showing systray window in application.py
+2026-08-01 20:45:39 916 140704690614656 WARNING  nxdrive.drive.gui.application The following folder(s) already exist under <a href="remote_url">remote_path</a>:<ul><li>dup1</li><li>dup2</li><li>dup3</li><li>dup4</li><li>…</li></ul>Please rename them or process to several transfers within those folders. (values=['remote_url', 'remote_path', '<li>dup1</li><li>dup2</li><li>dup3</li><li>dup4</li><li>…</li>'], details='')
+2026-08-01 20:45:39 916 140704690614656 DEBUG    nxdrive.drive.engine.engine Canceling transfer 1
+2026-08-01 20:45:39 916 140704690614656 DEBUG    nxdrive.drive.gui.api Cancelling session 1 for engine 'e90577168de911f1ba4d4256de06cae0'
 
-tests/nuxeo/functional/test_processor.py:223: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py:1487: in __enter__
-    self.target = self.getter()
-                  ^^^^^^^^^^^^^
-        autospec   = None
-        kwargs     = {}
-        new        = sentinel.DEFAULT
-        new_callable = None
-        self       = <unittest.mock._patch object at 0x113022f90>
-        spec       = None
-        spec_set   = None
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+--------- coverage: platform darwin, python 3.13.14-final-0 ----------
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
 
-name = 'tests.functional.mocked_classes.Mock_Local_Client'
-
-    def resolve_name(name):
-        """
-        Resolve a name to an object.
-    
-        It is expected that `name` will be a string in one of the following
-        formats, where W is shorthand for a valid Python identifier and dot stands
-        for a literal period in these pseudo-regexes:
-    
-        W(.W)*
-        W(.W)*:(W(.W)*)?
-    
-        The first form is intended for backward compatibility only. It assumes that
-        some part of the dotted name is a package, and the rest is an object
-        somewhere within that package, possibly nested inside other objects.
-        Because the place where the package stops and the object hierarchy starts
-        can't be inferred by inspection, repeated attempts to import must be done
-        with this form.
-    
-        In the second form, the caller makes the division point clear through the
-        provision of a single colon: the dotted name to the left of the colon is a
-        package to be imported, and the dotted name to the right is the object
-        hierarchy within that package. Only one import is needed in this form. If
-        it ends with the colon, then a module object is returned.
-11.58s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_length[6]
-11.56s call     tests/nuxeo/functional/test_remote_client.py::test_is_filtered
-11.48s call     tests/common/functional/test_updater.py::test_feature_auto_update
-11.46s call     tests/nuxeo/functional/test_api.py::test_show_metadata
-11.41s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_length[4]
-11.30s call     tests/nuxeo/functional/test_remote_watcher.py::test_call_and_measure_gcs
+============================= slowest 20 durations =============================
+39.66s call     tests/nuxeo/functional/test_direct_edit.py::test_corrupted_download
+31.97s call     tests/common/functional/test_server_options.py::test_delay_remote_watcher
+15.32s call     tests/nuxeo/functional/test_bind_server.py::test_bind_local_folder_already_used
+13.93s setup    tests/nuxeo/functional/gui/test_application.py::test_application_qt
+13.82s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_length[6]
+12.99s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_length[2]
+12.50s call     tests/nuxeo/functional/test_remote_watcher.py::test_execute
+12.16s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_levels[3]
+12.08s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_length[4]
+12.03s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_levels[6]
+12.02s call     tests/nuxeo/functional/test_direct_edit.py::test_download_http_error_404
+11.99s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_levels[5]
+11.94s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_length[5]
+11.86s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_length[3]
+11.84s call     tests/nuxeo/functional/test_direct_edit.py::test_binder
+11.55s call     tests/common/functional/test_local_watcher.py::test_handle_watchdog_event
+11.54s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_levels[4]
+11.51s call     tests/common/functional/test_updater.py::test_feature_auto_update
+11.31s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_levels[2]
+11.16s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_length[1]
 =========================== short test summary info ============================
-FAILED tests/nuxeo/functional/test_processor.py::test_handle_doc_pair_dt - At...
-FAILED tests/nuxeo/functional/test_processor.py::test_get_next_doc_pair - Att...
-FAILED tests/nuxeo/functional/test_processor.py::test_check_exists_on_the_server
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_if_not_remotely_dirty
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_locally_modified
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_locally_created
-FAILED tests/nuxeo/functional/test_processor.py::test_handle_failed_remote_rename
-FAILED tests/nuxeo/functional/test_direct_edit.py::test_url_resolver - Attrib...
 FAILED tests/nuxeo/functional/gui/test_application.py::test_application_qt - ...
-FAILED tests/common/functional/test_updater.py::test_frozen - assert False is...
-FAILED tests/common/functional/test_updater.py::test_frozen_updates_disabled_centralized_client_version
-============ 11 failed, 666 passed, 34 skipped in 505.68s (0:08:25) ============
-ft: exit 1 (512.01 seconds) /Users/runner/work/nuxeo-drive/nuxeo-drive> python -m pytest tests/common/functional tests/nuxeo/functional tests/alfresco/functional --dist=loadscope pid=3370
-  ft: FAIL code 1 (567.97=setup[54.42]+cmd[1.54,512.01] seconds)
-  evaluation failed :( (568.02 seconds)
+============ 1 failed, 676 passed, 34 skipped in 470.70s (0:07:50) =============
+ft: exit 1 (475.12 seconds) /Users/runner/work/nuxeo-drive/nuxeo-drive> python -m pytest tests/common/functional tests/nuxeo/functional tests/alfresco/functional --dist=loadscope pid=875
+  ft: FAIL code 1 (512.60=setup[36.39]+cmd[1.09,475.12] seconds)
+  evaluation failed :( (512.80 seconds)
 Error: Process completed with exit code 1.
-
-
-
-
-
 
 
 
@@ -322,105 +172,638 @@ plugins: Faker-40.1.2, pyfakefs-5.10.2, cov-6.0.0, timeout-2.3.1, xdist-3.6.1
 created: 2/2 workers
 2 workers [710 items]
 
-...........................................FFF...FF.F..............F.... [ 10%]
+........................................................................ [ 10%]
 ........................................................................ [ 20%]
 ........................................................................ [ 30%]
-............................................F........................... [ 40%]
+........................................................................ [ 40%]
 ........................................................................ [ 50%]
-.................................F...................................... [ 60%]
-.................................................ss............F....F... [ 70%]
+..................................F..................................... [ 60%]
+..................................................ss.................... [ 70%]
 ..........ssss....s............ss....................................... [ 81%]
-...........ss.....sss.........s......................................... [ 91%]
+..........ss.....sss..........s......................................... [ 91%]
 Sentry is attempting to send 1 pending events
 Waiting up to 2 seconds
 Press Ctrl-Break to quit
-........................................ssssss....sF....sFs..s           [100%]
+........................................ssssss........sssFFs..           [100%]
 ================================== FAILURES ===================================
-___________________________ test_handle_doc_pair_dt ___________________________
+_____________________________ test_application_qt _____________________________
 [gw1] win32 -- Python 3.13.14 D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Scripts\python.EXE
 
-    def test_handle_doc_pair_dt():
-        cursor = Cursor(Connection("tests/resources/databases/test_engine.db"))
-        mock_client = Mock_Local_Client()
-        mock_doc_pair = Mock_Doc_Pair(cursor, ())
-        mock_engine = Mock_Engine()
-        processor = Processor(mock_engine, True)
-        # Covering Not Found
->       with patch(
-            "tests.functional.mocked_classes.Mock_Local_Client.__call__"
-        ) as mock_client_call, patch(
-            "nxdrive.nuxeo.engine.processor.Processor._direct_transfer_cancel"
-        ) as mock_transfer_cancel:
+app_obj = <nxdrive.drive.gui.application.Application object at 0x0000012F7C2DCEB0>
+manager_factory = <function manager_factory.<locals>._make_manager at 0x0000012F7A1E54E0>
+tmp_path = WindowsPath('C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0')
 
-cursor     = <sqlite3.Cursor object at 0x00000271509787C0>
-mock_client = <Mock_Local_Client base_folder=WindowsPath('D:/a/nuxeo-drive/nuxeo-drive'), is_case_sensitive=None>
-mock_doc_pair = <tests.common.functional.mocked_classes.Mock_Doc_Pair object at 0x0000027152218510>
-mock_engine = <tests.common.functional.mocked_classes.Mock_Engine object at 0x0000027152220950>
-processor  = <Processor id=None>
+    @not_linux(reason="Qt does not work correctly on linux")
+    def test_application_qt(app_obj, manager_factory, tmp_path):
+        from PyQt6.QtCore import QRect
+        from PyQt6.QtWidgets import QMessageBox
+    
+        from nxdrive.drive.constants import DelAction
+    
+        app = app_obj
+        manager, engine = manager_factory()
+        mock_qt = Mock_Qt()
+        # Covering create_custom_window_for_task_manager
+        with patch(
+            "nxdrive.drive.gui.application.Application._fill_qml_context"
+        ) as mock_qml_context, patch(
+            "nxdrive.drive.gui.application.CustomWindow"
+        ) as mock_custom_window, patch(
+            "tests.common.functional.mocked_classes.Mock_Qt.rootContext"
+        ) as mock_root_context:
+            mock_qml_context.return_value = None
+            mock_custom_window.return_value = Mock_Qt
+            mock_root_context.return_value = None
+            assert app.create_custom_window_for_task_manager() is None
+        # Covering update_workflow
+        assert app.update_workflow() is None
+        # Covering updat_feature_state
+        assert app._update_feature_state("auto_update", True) is None
+        # Covering _msbox
+        with patch(
+            "nxdrive.drive.gui.application.Application._msgbox"
+        ) as mock_msgbox_method:
+            mock_msgbox_instance = Mock(spec=QMessageBox)
+            mock_msgbox_method.return_value = mock_msgbox_instance
+            assert isinstance(app._msgbox(), type(mock_msgbox_instance))
+        # Covering display_info
+        assert (
+            app.display_info("Warning title", "Warning message", ["value1", "value2"])
+            is None
+        )
+        # Covering display_warning
+        with patch("nxdrive.drive.gui.application.Application._msgbox") as mock_msgbox:
+            mock_msgbox.return_value = None
+            assert (
+                app.display_warning(
+                    "Warning title", "Warning message", ["value1", "value2"]
+                )
+                is None
+            )
+        # Covering direct_edit_conflict
+        with patch("nxdrive.drive.gui.application.Application.question") as mock_question:
+            mock_question.return_value = mock_qt
+            assert (
+                app._direct_edit_conflict(
+                    "dummy_filename", Path("tests/resources/files"), "md5"
+                )
+                is None
+            )
+        if not WINDOWS:  # For some reason, the values don't get mocked on Windows
+            # Covering _root_deleted
+            with patch("PyQt6.QtCore.QObject.sender") as mock_sender, patch(
+                "nxdrive.drive.gui.application.Application.question"
+            ) as mock_question:
+                mock_question.return_value = mock_qt
+                mock_engine = Mock_Engine()
+                mock_sender.return_value = mock_engine
+                assert app._root_deleted() is None
+            # Covering root_moved
+            with patch(
+                "nxdrive.drive.gui.application.Application.question"
+            ) as mock_question, patch("PyQt6.QtCore.QObject.sender") as mock_sender:
+                mock_question.return_value = mock_qt
+                mock_engine = Mock_Engine()
+                mock_sender.return_value = mock_engine
+                assert app._root_moved(Path("tests/resources")) is None
+            # Covering doc_deleted
+            with patch(
+                "nxdrive.drive.gui.application.Application.question"
+            ) as mock_question, patch("PyQt6.QtCore.QObject.sender") as mock_sender:
+                mock_question.return_value = mock_qt
+                mock_engine = Mock_Engine()
+                mock_sender.return_value = mock_engine
+                assert app._doc_deleted(Path("tests/resources/files/testFile.txt")) is None
+            # Covering file_already_exists
+            with patch(
+                "nxdrive.drive.gui.application.Application.question"
+            ) as mock_question, patch("PyQt6.QtCore.QObject.sender") as mock_sender, patch(
+                "pathlib.Path.unlink"
+            ) as mock_unlink:
+                mock_question.return_value = mock_qt
+                mock_engine = Mock_Engine()
+                mock_sender.return_value = mock_engine
+                mock_unlink.return_value = None
+                assert (
+                    app._file_already_exists(
+                        Path("tests/resources/files/testFile.txt"),
+                        Path("tests/resources/files/testFile.txt"),
+                    )
+                    is None
+                )
+            # Covering open_authentication_dialog
+            Options.is_frozen = True
+            assert app.open_authentication_dialog("url", {"server_url": "value"}) is None
+            Options.is_frozen = False
+            assert (
+                app.open_authentication_dialog("url", {"server_url": "url_value"}) is None
+            )
+        # Covering confirm_deletion
+        with patch("nxdrive.drive.gui.application.Application.question") as mock_question:
+            mock_question.return_value = mock_qt
+            assert isinstance(app.confirm_deletion(Path("tests/resources")), DelAction)
+        # Covering show_systray
+        assert app.show_systray() is None
+        with patch("PyQt6.QtWidgets.QStyle.alignedRect") as mock_align_rect:
+            mock_align_rect.return_value = QRect()
+            # Covering show_filters
+            assert app.show_filters(engine) is None
+            # Covering show_conflicts_resolution
+            assert app.show_conflicts_resolution(engine) is None
+            # Covering show_settings
+            assert app.show_settings("About") is None
+            # Covering _show_direct_transfer_window
+            assert app._show_direct_transfer_window() is None
+        # Covering folder_duplicate_warning
+        duplicates = ["dup1", "dup2", "dup3", "dup4", "dup5"]
+        assert app.folder_duplicate_warning(duplicates, "remote_path", "remote_url") is None
+        # Covering confirm_cancel_transfer
+        with patch("nxdrive.drive.gui.application.Application.question") as mock_question:
+            mock_question.return_value = mock_qt
+            uid = list(app.manager.engines.keys())[0]
+            assert app.confirm_cancel_transfer(uid, 1, "localhost") is None
+            assert app.confirm_cancel_transfer("engine_uid", 1, "localhost") is None
+        # Covering confirm_cancel_session
+        with patch("nxdrive.drive.gui.application.Application.question") as mock_question:
+            mock_question.return_value = mock_qt
+            uid = list(app.manager.engines.keys())[0]
+            assert app.confirm_cancel_session(uid, 1, "localhost", 1) is True
+        # Covering exit_app
+        assert app.exit_app() is None
+        # Covering _shutdown
+        app.app_engine = Mock()
+        app.task_manager_window = Mock()
+        assert app._shutdown() is None
+        # Covering update_workflow
+        app.added_user_engine_list = []
+        Feature.tasks_management = True
+        app.workflow = Workflow()
+        engine.uid = "engine_uid"
+>       assert app.update_workflow() is None
+               ^^^^^^^^^^^^^^^^^^^^^
 
-tests\nuxeo\functional\test_processor.py:223: 
+DelAction  = <enum 'DelAction'>
+QMessageBox = <class 'PyQt6.QtWidgets.QMessageBox'>
+QRect      = <class 'PyQt6.QtCore.QRect'>
+app        = <nxdrive.drive.gui.application.Application object at 0x0000012F7C2DCEB0>
+app_obj    = <nxdrive.drive.gui.application.Application object at 0x0000012F7C2DCEB0>
+duplicates = ['dup1', 'dup2', 'dup3', 'dup4', 'dup5']
+engine     = <Engine name='drive-2025.beta.nuxeocloud.com', server_url='https://drive-2025.beta.nuxeocloud.com/nuxeo/', has_token=True, is_offline=False, uid='engine_uid', type='NXDRIVE'>
+manager    = <Manager home=WindowsPath('C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/1')>
+manager_factory = <function manager_factory.<locals>._make_manager at 0x0000012F7A1E54E0>
+mock_align_rect = <MagicMock name='alignedRect' id='1301866709072'>
+mock_custom_window = <MagicMock name='CustomWindow' id='1303458984160'>
+mock_msgbox = <MagicMock name='_msgbox' id='1303458985504'>
+mock_msgbox_instance = <Mock name='_msgbox()' spec='QMessageBox' id='1303458985168'>
+mock_msgbox_method = <MagicMock name='_msgbox' id='1303458984832'>
+mock_qml_context = <MagicMock name='_fill_qml_context' id='1303458983488'>
+mock_qt    = <tests.common.functional.mocked_classes.Mock_Qt object at 0x0000012F6F3FBB10>
+mock_question = <MagicMock name='question' id='1303201479184'>
+mock_root_context = <MagicMock name='rootContext' id='1303458984496'>
+tmp_path   = WindowsPath('C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0')
+uid        = 'c21b94d78dea11f1884d7c1e52098db2'
+
+tests\nuxeo\functional\gui\test_application.py:695: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-C:\hostedtoolcache\windows\Python\3.13.14\x64\Lib\unittest\mock.py:1487: in __enter__
-    self.target = self.getter()
-                  ^^^^^^^^^^^^^
-        autospec   = None
-        kwargs     = {}
-        new        = sentinel.DEFAULT
-        new_callable = None
-        self       = <unittest.mock._patch object at 0x00000271507FE6D0>
-        spec       = None
-        spec_set   = None
+nxdrive\drive\gui\application.py:507: in update_workflow
+    self.workflow.get_pending_tasks(engine)
+        engine     = <Engine name='drive-2025.beta.nuxeocloud.com', server_url='https://drive-2025.beta.nuxeocloud.com/nuxeo/', has_token=True, is_offline=False, uid='c21b94d78dea11f1884d7c1e52098db2', type='NXDRIVE'>
+        self       = <nxdrive.drive.gui.application.Application object at 0x0000012F7C2DCEB0>
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
-name = 'tests.functional.mocked_classes.Mock_Local_Client'
+self = <nxdrive.drive.client.workflow.Workflow object at 0x0000012F6CDC4590>
+engine = <Engine name='drive-2025.beta.nuxeocloud.com', server_url='https://drive-2025.beta.nuxeocloud.com/nuxeo/', has_token=True, is_offline=False, uid='c21b94d78dea11f1884d7c1e52098db2', type='NXDRIVE'>
 
-    def resolve_name(name):
+    def get_pending_tasks(self, engine: Any) -> Any:
+        """Get pending tasks for document review.  **Must be overridden.**"""
+>       raise NotImplementedError
+E       NotImplementedError
+
+engine     = <Engine name='drive-2025.beta.nuxeocloud.com', server_url='https://drive-2025.beta.nuxeocloud.com/nuxeo/', has_token=True, is_offline=False, uid='c21b94d78dea11f1884d7c1e52098db2', type='NXDRIVE'>
+self       = <nxdrive.drive.client.workflow.Workflow object at 0x0000012F6CDC4590>
+
+nxdrive\drive\client\workflow.py:32: NotImplementedError
+---------------------------- Captured stderr setup ----------------------------
+2026-08-01 20:51:22 6932 9096 INFO     nxdrive.drive.utils Exception when trying to read config file: FileNotFoundError(2, 'No such file or directory')
+2026-08-01 20:51:22 6932 9096 INFO     nxdrive.drive.options Option 'ssl_no_verify' updated: False -> True [manual]
+2026-08-01 20:51:22 6932 9096 INFO     nxdrive.drive.options Options(deletion_behavior[manual]='delete_server', download_folder[manual]=None, log_level_file[manual]='INFO', ssl_no_verify[manual]=True, xxx_broken_update[manual]=None)
+2026-08-01 20:51:22 6932 9096 INFO     nxdrive.drive.dao.base Create ManagerDAO on WindowsPath('C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/0/manager.db')
+2026-08-01 20:51:22 6932 9096 INFO     nxdrive.drive.dao.base Create main connection on WindowsPath('C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/0/manager.db') (dir_exists=True, file_exists=False)
+2026-08-01 20:51:22 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Running migration 0004_initial_migration.
+2026-08-01 20:51:22 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Migration 0004_initial_migration upgrade applied successfully. Schema is now at version 4.
+2026-08-01 20:51:22 6932 9096 INFO     nxdrive.drive.options Option 'xxx_broken_update' updated: None -> None [manual]
+2026-08-01 20:51:22 6932 9096 INFO     nxdrive.drive.options Options(deletion_behavior[manual]='delete_server', download_folder[manual]=None, log_level_file[manual]='INFO', ssl_no_verify[manual]=True, xxx_broken_update[manual]=None)
+2026-08-01 20:51:22 6932 9096 INFO     nxdrive.drive.manager OS integration type: Windows
+2026-08-01 20:51:22 6932 9096 INFO     nxdrive.drive.manager Proxy configuration is SystemProxy<>
+2026-08-01 20:51:22 6932 9096 INFO     nxdrive.drive.options Option 'log_level_file' updated: 'INFO' -> 'INFO' [manual]
+2026-08-01 20:51:22 6932 9096 INFO     nxdrive.drive.options Options(deletion_behavior[manual]='delete_server', download_folder[manual]=None, log_level_file[manual]='INFO', ssl_no_verify[manual]=True, xxx_broken_update[manual]=None)
+2026-08-01 20:51:22 6932 9096 INFO     nxdrive.drive.options Option 'deletion_behavior' updated: 'delete_server' -> 'unsync' [manual]
+2026-08-01 20:51:22 6932 9096 INFO     nxdrive.drive.options Options(deletion_behavior[manual]='unsync', download_folder[manual]=None, log_level_file[manual]='INFO', ssl_no_verify[manual]=True, xxx_broken_update[manual]=None)
+2026-08-01 20:51:22 6932 9096 INFO     nxdrive.drive.options Deletion behavior set to 'unsync'
+2026-08-01 20:51:22 6932 9096 DEBUG    nxdrive.drive.engine.tracker Created the Google Analytics tracker with data {'v': '1', 'tid': 'UA-81135-23', 'cid': 'c0d34ba48dea11f1ac2e7c1e52098db2', 'ua': 'Drive/7.1.0 (Windows 10.0)', 'de': 'utf-8', 'ul': 'en_US.1252', 'an': 'Drive', 'av': '7.1.0'} and custom dimensions {'cd10': '64-bit', 'cd11': 'Windows 10.0', 'cd12': 'centralized', 'cd13': 'AMD64'}
+2026-08-01 20:51:22 6932 9096 INFO     nxdrive.drive.direct_download Direct Download folder: C:\Users\runneradmin\AppData\Local\Temp\pytest-of-runneradmin\pytest-0\popen-gw1\test_application_qt0\0\download
+2026-08-01 20:51:22 6932 9096 INFO     nxdrive.drive.options Option 'deletion_behavior' updated: 'unsync' -> 'delete_server' [manual]
+2026-08-01 20:51:22 6932 9096 INFO     nxdrive.drive.options Options(deletion_behavior[manual]='delete_server', download_folder[manual]=None, log_level_file[manual]='INFO', ssl_no_verify[manual]=True, xxx_broken_update[manual]=None)
+2026-08-01 20:51:22 6932 9096 INFO     nxdrive.drive.options Deletion behavior set to 'delete_server'
+2026-08-01 20:51:22 6932 9096 INFO     tests.nuxeo.functional.conftest [FIXTURE] Created <Manager home=WindowsPath('C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/0')>
+2026-08-01 20:51:24 6932 9096 INFO     tests.nuxeo.functional.conftest [FIXTURE] Created <User entity-type='user', extendedGroups=[], id='cynthia-90968', isAdministrator=False, isAnonymous=False, properties={'lastName': 'Shannon', 'firstName': 'Cynthia', 'tenantId': None, 'groups': [], 'company': 'Gould LLC', 'email': 'cynthia-90968@gould_llc.org', 'username': 'cynthia-90968'}>
+2026-08-01 20:51:24 6932 9096 INFO     nxdrive.drive.dao.base Create EngineDAO on WindowsPath('C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/0/ndrive_c21b94d78dea11f1884d7c1e52098db2.db')
+2026-08-01 20:51:24 6932 9096 INFO     nxdrive.drive.dao.base Create main connection on WindowsPath('C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/0/ndrive_c21b94d78dea11f1884d7c1e52098db2.db') (dir_exists=True, file_exists=False)
+2026-08-01 20:51:24 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Running migration 0021_initial_migration.
+2026-08-01 20:51:24 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Migration 0021_initial_migration upgrade applied successfully. Schema is now at version 21.
+2026-08-01 20:51:24 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Running migration 0022_initial_migration.
+2026-08-01 20:51:24 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Migration 0022_initial_migration upgrade applied successfully. Schema is now at version 22.
+2026-08-01 20:51:24 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Running migration 0023_direct_downloads.
+2026-08-01 20:51:24 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Migration 0023_direct_downloads upgrade applied successfully. Schema is now at version 23.
+2026-08-01 20:51:24 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Running migration 0024_add_scheduled_at.
+2026-08-01 20:51:24 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Migration 0024_add_scheduled_at upgrade applied successfully. Schema is now at version 24.
+2026-08-01 20:51:24 6932 9096 DEBUG    nxdrive.drive.client.local.base Setting xattr 'drive-fs-test' with value 'NXDRIVE_VERIFICATION' on WindowsPath('//?/C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/0/nuxeo-conf')
+2026-08-01 20:51:24 6932 9096 DEBUG    nxdrive.drive.client.local.base Getting xattr 'drive-fs-test' from WindowsPath('//?/C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/0/nuxeo-conf'): 'NXDRIVE_VERIFICATION'
+2026-08-01 20:51:24 6932 9096 DEBUG    nxdrive.drive.client.local.base Removing xattr 'drive-fs-test' from WindowsPath('//?/C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/0/nuxeo-conf')
+2026-08-01 20:51:24 6932 9096 DEBUG    nxdrive.drive.client.local.base Getting xattr 'ndriveroot' from WindowsPath('//?/C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/0/nuxeo-conf'): ''
+2026-08-01 20:51:24 6932 9096 INFO     nxdrive.nuxeo.client.remote_client SSL verify: False-> will be changed to False
+2026-08-01 20:51:25 6932 9096 DEBUG    nxdrive.drive.engine.workers Thread START
+2026-08-01 20:51:27 6932 9096 DEBUG    nxdrive.drive.client.local.base Getting xattr 'ndrive' from WindowsPath('//?/C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/0/nuxeo-conf'): ''
+2026-08-01 20:51:27 6932 9096 DEBUG    nxdrive.drive.dao.engine Will not push pair: locally_created, pair=None
+2026-08-01 20:51:28 6932 9096 DEBUG    nxdrive.drive.dao.engine Updating remote state for row=<DocPair[1] local_path=WindowsPath('.'), local_parent_path=WindowsPath('.'), remote_ref='', local_state='created', remote_state='unknown', pair_state='locally_created', last_error=None> with info=RemoteFileInfo(name='Nuxeo Drive', uid='org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#', parent_uid=None, path='/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#', folderish=True, last_modification_time=datetime.datetime(1970, 1, 1, 0, 0), creation_time=datetime.datetime(1970, 1, 1, 0, 0), last_contributor='system', digest=None, digest_algorithm=None, download_url=None, can_rename=False, can_delete=False, can_update=False, can_create_child=False, lock_owner=None, lock_created=None, can_scroll_descendants=False) (force=False)
+2026-08-01 20:51:28 6932 9096 DEBUG    nxdrive.drive.dao.engine Will not push pair: locally_created, pair=None
+2026-08-01 20:51:28 6932 9096 DEBUG    nxdrive.drive.client.local.base Setting xattr 'ndriveroot' with value b'https://drive-2025.beta.nuxeocloud.com/nuxeo/|cynthia-90968|c0d34ba48dea11f1ac2e7c1e52098db2|c21b94d78dea11f1884d7c1e52098db2' on WindowsPath('//?/C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/0/nuxeo-conf')
+2026-08-01 20:51:28 6932 9096 DEBUG    nxdrive.drive.client.local.base Setting xattr 'ndrive' with value 'org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#' on WindowsPath('//?/C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/0/nuxeo-conf')
+2026-08-01 20:51:28 6932 9096 DEBUG    nxdrive.drive.dao.engine Try to synchronize state for [local_path=WindowsPath('.'), remote_name=None, version=0] with version=0 and dynamic_states=False
+2026-08-01 20:51:28 6932 9096 INFO     nxdrive.drive.engine.engine Using temporary download folder WindowsPath('//?/C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/0/.tmp/c21b94d78dea11f1884d7c1e52098db2')
+2026-08-01 20:51:28 6932 9096 INFO     nxdrive.drive.engine.engine Creating CSV folder WindowsPath('//?/C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/0/csv')
+2026-08-01 20:51:28 6932 9096 INFO     nxdrive.drive.engine.watcher.local_watcher Windows detected so delete event will be delayed by 2000 ms
+2026-08-01 20:51:30 6932 9096 INFO     nxdrive.drive.gui.application Registered server types: ['ALFRESCO', 'NUXEO'] (default: NUXEO)
+2026-08-01 20:51:30 6932 9096 INFO     nxdrive.drive.gui.application Resolving new_account popup: server_type=None, config.key=NUXEO, configured path='nuxeo/gui/qml/NewAccountPopup.qml'
+2026-08-01 20:51:30 6932 9096 INFO     nxdrive.drive.gui.application Checking for server-specific new_account popup at D:\a\nuxeo-drive\nuxeo-drive\nxdrive\nuxeo\gui\qml\NewAccountPopup.qml (exists=True)
+2026-08-01 20:51:30 6932 9096 INFO     nxdrive.drive.gui.application Using server-specific new_account popup: file:///D:/a/nuxeo-drive/nuxeo-drive/nxdrive/nuxeo/gui/qml/NewAccountPopup.qml
+2026-08-01 20:51:30 6932 9096 INFO     nxdrive.drive.gui.application Resolving relogin popup: server_type=None, config.key=NUXEO, configured path='drive/data/qml/ReLoginPopup.qml'
+2026-08-01 20:51:30 6932 9096 INFO     nxdrive.drive.gui.application Checking for server-specific relogin popup at D:\a\nuxeo-drive\nuxeo-drive\nxdrive\drive\data\qml\ReLoginPopup.qml (exists=True)
+2026-08-01 20:51:30 6932 9096 INFO     nxdrive.drive.gui.application Using server-specific relogin popup: file:///D:/a/nuxeo-drive/nuxeo-drive/nxdrive/drive/data/qml/ReLoginPopup.qml
+2026-08-01 20:51:30 6932 9096 INFO     nxdrive.drive.gui.application Registered server types: ['ALFRESCO', 'NUXEO'] (default: NUXEO)
+2026-08-01 20:51:30 6932 9096 INFO     nxdrive.drive.gui.application Resolving new_account popup: server_type=None, config.key=NUXEO, configured path='nuxeo/gui/qml/NewAccountPopup.qml'
+2026-08-01 20:51:30 6932 9096 INFO     nxdrive.drive.gui.application Checking for server-specific new_account popup at D:\a\nuxeo-drive\nuxeo-drive\nxdrive\nuxeo\gui\qml\NewAccountPopup.qml (exists=True)
+2026-08-01 20:51:30 6932 9096 INFO     nxdrive.drive.gui.application Using server-specific new_account popup: file:///D:/a/nuxeo-drive/nuxeo-drive/nxdrive/nuxeo/gui/qml/NewAccountPopup.qml
+2026-08-01 20:51:30 6932 9096 INFO     nxdrive.drive.gui.application Resolving relogin popup: server_type=None, config.key=NUXEO, configured path='drive/data/qml/ReLoginPopup.qml'
+2026-08-01 20:51:30 6932 9096 INFO     nxdrive.drive.gui.application Checking for server-specific relogin popup at D:\a\nuxeo-drive\nuxeo-drive\nxdrive\drive\data\qml\ReLoginPopup.qml (exists=True)
+2026-08-01 20:51:30 6932 9096 INFO     nxdrive.drive.gui.application Using server-specific relogin popup: file:///D:/a/nuxeo-drive/nuxeo-drive/nxdrive/drive/data/qml/ReLoginPopup.qml
+2026-08-01 20:51:31 6932 9096 INFO     nxdrive.drive.gui.application Registered server types: ['ALFRESCO', 'NUXEO'] (default: NUXEO)
+2026-08-01 20:51:31 6932 9096 INFO     nxdrive.drive.gui.application Resolving new_account popup: server_type=None, config.key=NUXEO, configured path='nuxeo/gui/qml/NewAccountPopup.qml'
+2026-08-01 20:51:31 6932 9096 INFO     nxdrive.drive.gui.application Checking for server-specific new_account popup at D:\a\nuxeo-drive\nuxeo-drive\nxdrive\nuxeo\gui\qml\NewAccountPopup.qml (exists=True)
+2026-08-01 20:51:31 6932 9096 INFO     nxdrive.drive.gui.application Using server-specific new_account popup: file:///D:/a/nuxeo-drive/nuxeo-drive/nxdrive/nuxeo/gui/qml/NewAccountPopup.qml
+2026-08-01 20:51:31 6932 9096 INFO     nxdrive.drive.gui.application Resolving relogin popup: server_type=None, config.key=NUXEO, configured path='drive/data/qml/ReLoginPopup.qml'
+2026-08-01 20:51:31 6932 9096 INFO     nxdrive.drive.gui.application Checking for server-specific relogin popup at D:\a\nuxeo-drive\nuxeo-drive\nxdrive\drive\data\qml\ReLoginPopup.qml (exists=True)
+2026-08-01 20:51:31 6932 9096 INFO     nxdrive.drive.gui.application Using server-specific relogin popup: file:///D:/a/nuxeo-drive/nuxeo-drive/nxdrive/drive/data/qml/ReLoginPopup.qml
+2026-08-01 20:51:31 6932 9096 INFO     nxdrive.drive.gui.api Engine not available
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.gui.application Registered server types: ['ALFRESCO', 'NUXEO'] (default: NUXEO)
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.gui.application Resolving new_account popup: server_type=None, config.key=NUXEO, configured path='nuxeo/gui/qml/NewAccountPopup.qml'
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.gui.application Checking for server-specific new_account popup at D:\a\nuxeo-drive\nuxeo-drive\nxdrive\nuxeo\gui\qml\NewAccountPopup.qml (exists=True)
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.gui.application Using server-specific new_account popup: file:///D:/a/nuxeo-drive/nuxeo-drive/nxdrive/nuxeo/gui/qml/NewAccountPopup.qml
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.gui.application Resolving relogin popup: server_type=None, config.key=NUXEO, configured path='drive/data/qml/ReLoginPopup.qml'
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.gui.application Checking for server-specific relogin popup at D:\a\nuxeo-drive\nuxeo-drive\nxdrive\drive\data\qml\ReLoginPopup.qml (exists=True)
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.gui.application Using server-specific relogin popup: file:///D:/a/nuxeo-drive/nuxeo-drive/nxdrive/drive/data/qml/ReLoginPopup.qml
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.gui.application Registered server types: ['ALFRESCO', 'NUXEO'] (default: NUXEO)
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.gui.application Resolving new_account popup: server_type=None, config.key=NUXEO, configured path='nuxeo/gui/qml/NewAccountPopup.qml'
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.gui.application Checking for server-specific new_account popup at D:\a\nuxeo-drive\nuxeo-drive\nxdrive\nuxeo\gui\qml\NewAccountPopup.qml (exists=True)
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.gui.application Using server-specific new_account popup: file:///D:/a/nuxeo-drive/nuxeo-drive/nxdrive/nuxeo/gui/qml/NewAccountPopup.qml
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.gui.application Resolving relogin popup: server_type=None, config.key=NUXEO, configured path='drive/data/qml/ReLoginPopup.qml'
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.gui.application Checking for server-specific relogin popup at D:\a\nuxeo-drive\nuxeo-drive\nxdrive\drive\data\qml\ReLoginPopup.qml (exists=True)
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.gui.application Using server-specific relogin popup: file:///D:/a/nuxeo-drive/nuxeo-drive/nxdrive/drive/data/qml/ReLoginPopup.qml
+2026-08-01 20:51:32 6932 9096 DEBUG    nxdrive.drive.dao.engine Cache syncing count updated from 1 to 0
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.options Option 'light_icons' updated: False -> True [manual]
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.options Options(deletion_behavior[manual]='delete_server', download_folder[manual]=None, light_icons[manual]=True, log_level_file[manual]='INFO', ssl_no_verify[manual]=True, xxx_broken_update[manual]=None)
+---------------------------- Captured stderr call -----------------------------
+2026-08-01 20:51:32 6932 2616 DEBUG    nxdrive.drive.engine.workers Thread END
+2026-08-01 20:51:32 6932 764 DEBUG    nxdrive.drive.engine.workers Thread END
+2026-08-01 20:51:32 6932 5304 DEBUG    nxdrive.drive.engine.workers Thread END
+2026-08-01 20:51:32 6932 2656 DEBUG    nxdrive.drive.engine.workers Thread END
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.dao.base Create ManagerDAO on WindowsPath('C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/1/manager.db')
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.dao.base Create main connection on WindowsPath('C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/1/manager.db') (dir_exists=True, file_exists=False)
+2026-08-01 20:51:32 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Running migration 0004_initial_migration.
+2026-08-01 20:51:32 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Migration 0004_initial_migration upgrade applied successfully. Schema is now at version 4.
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.options Option 'xxx_broken_update' updated: None -> None [manual]
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.options Options(deletion_behavior[manual]='delete_server', download_folder[manual]=None, light_icons[manual]=True, log_level_file[manual]='INFO', ssl_no_verify[manual]=True, xxx_broken_update[manual]=None)
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.manager OS integration type: Windows
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.manager Proxy configuration is SystemProxy<>
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.options Option 'log_level_file' updated: 'INFO' -> 'INFO' [manual]
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.options Options(deletion_behavior[manual]='delete_server', download_folder[manual]=None, light_icons[manual]=True, log_level_file[manual]='INFO', ssl_no_verify[manual]=True, xxx_broken_update[manual]=None)
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.options Option 'deletion_behavior' updated: 'delete_server' -> 'unsync' [manual]
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.options Options(deletion_behavior[manual]='unsync', download_folder[manual]=None, light_icons[manual]=True, log_level_file[manual]='INFO', ssl_no_verify[manual]=True, xxx_broken_update[manual]=None)
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.options Deletion behavior set to 'unsync'
+2026-08-01 20:51:32 6932 9096 DEBUG    nxdrive.drive.engine.tracker Created the Google Analytics tracker with data {'v': '1', 'tid': 'UA-81135-23', 'cid': 'c7361b0d8dea11f1a3fc7c1e52098db2', 'ua': 'Drive/7.1.0 (Windows 10.0)', 'de': 'utf-8', 'ul': 'en_US.1252', 'an': 'Drive', 'av': '7.1.0'} and custom dimensions {'cd10': '64-bit', 'cd11': 'Windows 10.0', 'cd12': 'centralized', 'cd13': 'AMD64'}
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.direct_download Direct Download folder: C:\Users\runneradmin\AppData\Local\Temp\pytest-of-runneradmin\pytest-0\popen-gw1\test_application_qt0\1\download
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.options Option 'deletion_behavior' updated: 'unsync' -> 'delete_server' [manual]
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.options Options(deletion_behavior[manual]='delete_server', download_folder[manual]=None, light_icons[manual]=True, log_level_file[manual]='INFO', ssl_no_verify[manual]=True, xxx_broken_update[manual]=None)
+2026-08-01 20:51:32 6932 9096 INFO     nxdrive.drive.options Deletion behavior set to 'delete_server'
+2026-08-01 20:51:33 6932 9096 INFO     tests.nuxeo.functional.conftest [FIXTURE] Created <Manager home=WindowsPath('C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/1')>
+2026-08-01 20:51:34 6932 9096 INFO     tests.nuxeo.functional.conftest [FIXTURE] Created <User entity-type='user', extendedGroups=[], id='justin-9946', isAdministrator=False, isAnonymous=False, properties={'lastName': 'James', 'firstName': 'Justin', 'tenantId': None, 'groups': [], 'company': 'Gould LLC', 'email': 'justin-9946@gould_llc.org', 'username': 'justin-9946'}>
+2026-08-01 20:51:34 6932 9096 INFO     nxdrive.drive.dao.base Create EngineDAO on WindowsPath('C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/1/ndrive_c81c7f748dea11f1b4587c1e52098db2.db')
+2026-08-01 20:51:34 6932 9096 INFO     nxdrive.drive.dao.base Create main connection on WindowsPath('C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/1/ndrive_c81c7f748dea11f1b4587c1e52098db2.db') (dir_exists=True, file_exists=False)
+2026-08-01 20:51:34 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Running migration 0021_initial_migration.
+2026-08-01 20:51:34 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Migration 0021_initial_migration upgrade applied successfully. Schema is now at version 21.
+2026-08-01 20:51:34 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Running migration 0022_initial_migration.
+2026-08-01 20:51:34 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Migration 0022_initial_migration upgrade applied successfully. Schema is now at version 22.
+2026-08-01 20:51:34 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Running migration 0023_direct_downloads.
+2026-08-01 20:51:34 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Migration 0023_direct_downloads upgrade applied successfully. Schema is now at version 23.
+2026-08-01 20:51:34 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Running migration 0024_add_scheduled_at.
+2026-08-01 20:51:34 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Migration 0024_add_scheduled_at upgrade applied successfully. Schema is now at version 24.
+2026-08-01 20:51:34 6932 9096 DEBUG    nxdrive.drive.client.local.base Setting xattr 'drive-fs-test' with value 'NXDRIVE_VERIFICATION' on WindowsPath('//?/C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/1/nuxeo-conf')
+2026-08-01 20:51:34 6932 9096 DEBUG    nxdrive.drive.client.local.base Getting xattr 'drive-fs-test' from WindowsPath('//?/C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/1/nuxeo-conf'): 'NXDRIVE_VERIFICATION'
+2026-08-01 20:51:34 6932 9096 DEBUG    nxdrive.drive.client.local.base Removing xattr 'drive-fs-test' from WindowsPath('//?/C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/1/nuxeo-conf')
+2026-08-01 20:51:34 6932 9096 DEBUG    nxdrive.drive.client.local.base Getting xattr 'ndriveroot' from WindowsPath('//?/C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/1/nuxeo-conf'): ''
+2026-08-01 20:51:34 6932 9096 INFO     nxdrive.nuxeo.client.remote_client SSL verify: False-> will be changed to False
+2026-08-01 20:51:35 6932 9096 DEBUG    nxdrive.drive.engine.workers Thread START
+2026-08-01 20:51:37 6932 9096 DEBUG    nxdrive.drive.client.local.base Getting xattr 'ndrive' from WindowsPath('//?/C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/1/nuxeo-conf'): ''
+2026-08-01 20:51:37 6932 9096 DEBUG    nxdrive.drive.dao.engine Will not push pair: locally_created, pair=None
+2026-08-01 20:51:38 6932 9096 DEBUG    nxdrive.drive.dao.engine Updating remote state for row=<DocPair[1] local_path=WindowsPath('.'), local_parent_path=WindowsPath('.'), remote_ref='', local_state='created', remote_state='unknown', pair_state='locally_created', last_error=None> with info=RemoteFileInfo(name='Nuxeo Drive', uid='org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#', parent_uid=None, path='/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#', folderish=True, last_modification_time=datetime.datetime(1970, 1, 1, 0, 0), creation_time=datetime.datetime(1970, 1, 1, 0, 0), last_contributor='system', digest=None, digest_algorithm=None, download_url=None, can_rename=False, can_delete=False, can_update=False, can_create_child=False, lock_owner=None, lock_created=None, can_scroll_descendants=False) (force=False)
+2026-08-01 20:51:38 6932 9096 DEBUG    nxdrive.drive.dao.engine Will not push pair: locally_created, pair=None
+2026-08-01 20:51:38 6932 9096 DEBUG    nxdrive.drive.client.local.base Setting xattr 'ndriveroot' with value b'https://drive-2025.beta.nuxeocloud.com/nuxeo/|justin-9946|c7361b0d8dea11f1a3fc7c1e52098db2|c81c7f748dea11f1b4587c1e52098db2' on WindowsPath('//?/C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/1/nuxeo-conf')
+2026-08-01 20:51:38 6932 9096 DEBUG    nxdrive.drive.client.local.base Setting xattr 'ndrive' with value 'org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#' on WindowsPath('//?/C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/1/nuxeo-conf')
+2026-08-01 20:51:38 6932 9096 DEBUG    nxdrive.drive.dao.engine Try to synchronize state for [local_path=WindowsPath('.'), remote_name=None, version=0] with version=0 and dynamic_states=False
+2026-08-01 20:51:38 6932 9096 INFO     nxdrive.drive.engine.engine Using temporary download folder WindowsPath('//?/C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/1/.tmp/c81c7f748dea11f1b4587c1e52098db2')
+2026-08-01 20:51:38 6932 9096 INFO     nxdrive.drive.engine.engine Creating CSV folder WindowsPath('//?/C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/1/csv')
+2026-08-01 20:51:38 6932 9096 INFO     nxdrive.drive.engine.watcher.local_watcher Windows detected so delete event will be delayed by 2000 ms
+2026-08-01 20:51:38 6932 9096 INFO     nxdrive.drive.gui.application Warning message (values=['value1', 'value2'])
+2026-08-01 20:51:38 6932 9096 WARNING  nxdrive.drive.gui.application Warning message (values=['value1', 'value2'], details='')
+2026-08-01 20:51:38 6932 9096 DEBUG    nxdrive.drive.gui.application Entering _direct_edit_conflict for 'dummy_filename' / WindowsPath('tests/resources/files')
+2026-08-01 20:51:38 6932 9096 DEBUG    nxdrive.drive.gui.application Putting filename in _conflicts_modals: 'dummy_filename'
+2026-08-01 20:51:38 6932 9096 DEBUG    nxdrive.drive.client.local.base Setting xattr 'nxdirecteditdigest' with value b'md5' on WindowsPath('//?/C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_application_qt0/0/edit/tests/resources')
+2026-08-01 20:51:38 6932 9096 INFO     nxdrive.drive.gui.application Showing systray window in application.py
+2026-08-01 20:51:38 6932 9096 WARNING  nxdrive.drive.gui.application The following folder(s) already exist under <a href="remote_url">remote_path</a>:<ul><li>dup1</li><li>dup2</li><li>dup3</li><li>dup4</li><li>…</li></ul>Please rename them or process to several transfers within those folders. (values=['remote_url', 'remote_path', '<li>dup1</li><li>dup2</li><li>dup3</li><li>dup4</li><li>…</li>'], details='')
+2026-08-01 20:51:38 6932 9096 DEBUG    nxdrive.drive.engine.engine Canceling transfer 1
+2026-08-01 20:51:38 6932 9096 DEBUG    nxdrive.drive.gui.api Cancelling session 1 for engine 'c21b94d78dea11f1884d7c1e52098db2'
+_________________________ test_registry_configuration _________________________
+[gw1] win32 -- Python 3.13.14 D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Scripts\python.EXE
+
+request = <FixtureRequest for <Function test_registry_configuration>>
+manager_factory = <function manager_factory.<locals>._make_manager at 0x0000012F445B7F60>
+
+    def test_registry_configuration(request, manager_factory):
+        """Test the configuration stored in the registry."""
+    
+        with manager_factory(with_engine=False) as manager:
+            osi = manager.osi
+            key = "Software\\Nuxeo\\Drive"
+    
+            assert not osi.get_system_configuration()
+    
+            def cleanup():
+                registry.delete_value(key, "update-site-url")
+                registry.delete_value(key, "channel")
+    
+            request.addfinalizer(cleanup)
+    
+            # Add new parameters
+            registry.write(key, {"update-site-url": "http://no.where"})
+            registry.write(key, {"ChAnnEL": "beta"})
+    
+            conf = osi.get_system_configuration()
+>           assert conf["update_site_url"] == "http://no.where"
+                   ^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'update_site_url'
+
+cleanup    = <function test_registry_configuration.<locals>.cleanup at 0x0000012F44758D60>
+conf       = {}
+key        = 'Software\\Nuxeo\\Drive'
+manager    = <Manager home=WindowsPath('C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_registry_configuration0/0')>
+manager_factory = <function manager_factory.<locals>._make_manager at 0x0000012F445B7F60>
+osi        = <nxdrive.drive.osi.windows.windows.WindowsIntegration object at 0x0000012F44759450>
+request    = <FixtureRequest for <Function test_registry_configuration>>
+
+tests\common\functional\test_windows.py:29: KeyError
+---------------------------- Captured stderr setup ----------------------------
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.options Option 'ssl_no_verify' updated: False -> True [manual]
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.options Options(deletion_behavior[manual]='delete_server', log_level_file[manual]='INFO', ssl_no_verify[manual]=True, xxx_broken_update[manual]=None)
+---------------------------- Captured stderr call -----------------------------
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.dao.base Create ManagerDAO on WindowsPath('C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_registry_configuration0/0/manager.db')
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.dao.base Create main connection on WindowsPath('C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_registry_configuration0/0/manager.db') (dir_exists=True, file_exists=False)
+2026-08-01 20:54:31 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Running migration 0004_initial_migration.
+2026-08-01 20:54:31 6932 9096 DEBUG    nxdrive.drive.dao.migrations.migration_engine Migration 0004_initial_migration upgrade applied successfully. Schema is now at version 4.
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.options Option 'xxx_broken_update' updated: None -> None [manual]
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.options Options(deletion_behavior[manual]='delete_server', log_level_file[manual]='INFO', ssl_no_verify[manual]=True, xxx_broken_update[manual]=None)
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.manager OS integration type: Windows
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.manager Proxy configuration is SystemProxy<>
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.options Option 'log_level_file' updated: 'INFO' -> 'INFO' [manual]
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.options Options(deletion_behavior[manual]='delete_server', log_level_file[manual]='INFO', ssl_no_verify[manual]=True, xxx_broken_update[manual]=None)
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.options Option 'deletion_behavior' updated: 'delete_server' -> 'unsync' [manual]
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.options Options(deletion_behavior[manual]='unsync', log_level_file[manual]='INFO', ssl_no_verify[manual]=True, xxx_broken_update[manual]=None)
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.options Deletion behavior set to 'unsync'
+2026-08-01 20:54:31 6932 9096 DEBUG    nxdrive.drive.engine.tracker Created the Google Analytics tracker with data {'v': '1', 'tid': 'UA-81135-23', 'cid': '316fd0178deb11f1b4a77c1e52098db2', 'ua': 'Drive/7.1.0 (Windows 10.0)', 'de': 'utf-8', 'ul': 'en_US.1252', 'an': 'Drive', 'av': '7.1.0'} and custom dimensions {'cd10': '64-bit', 'cd11': 'Windows 10.0', 'cd12': 'centralized', 'cd13': 'AMD64'}
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.direct_download Direct Download folder: C:\Users\runneradmin\AppData\Local\Temp\pytest-of-runneradmin\pytest-0\popen-gw1\test_registry_configuration0\0\download
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.options Option 'deletion_behavior' updated: 'unsync' -> 'delete_server' [manual]
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.options Options(deletion_behavior[manual]='delete_server', log_level_file[manual]='INFO', ssl_no_verify[manual]=True, xxx_broken_update[manual]=None)
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.options Deletion behavior set to 'delete_server'
+2026-08-01 20:54:31 6932 9096 INFO     tests.nuxeo.functional.conftest [FIXTURE] Created <Manager home=WindowsPath('C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_registry_configuration0/0')>
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.osi.windows.registry Wrote 'Software\\Nuxeo\\Drive': {'update-site-url': 'http://no.where'}
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.osi.windows.registry Wrote 'Software\\Nuxeo\\Drive': {'ChAnnEL': 'beta'}
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.dao.utils Checking database integrity: WindowsPath('C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_registry_configuration0/0/manager.db')
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.dao.utils Creating backup C:\Users\runneradmin\AppData\Local\Temp\pytest-of-runneradmin\pytest-0\popen-gw1\test_registry_configuration0\0\backups\manager.db_1785617671
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.direct_download Cleanup Direct Download folder
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.direct_download Direct Download folder cleaned up
+2026-08-01 20:54:31 6932 9096 INFO     nxdrive.drive.dao.base Disposing SQLite database WindowsPath('C:/Users/runneradmin/AppData/Local/Temp/pytest-of-runneradmin/pytest-0/popen-gw1/test_registry_configuration0/0/manager.db')
+_______________ TestOAuthWiring.test_authorization_url_is_built _______________
+[gw0] win32 -- Python 3.13.14 D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Scripts\python.EXE
+
+self = <tests.alfresco.functional.test_oauth2.TestOAuthWiring object at 0x000002A924410910>
+
+    def test_authorization_url_is_built(self) -> None:
+        from nxdrive.alfresco.auth.oauth2 import AlfrescoOAuthentication
+    
+        handler = AlfrescoOAuthentication(env.ALFRESCO_URL, dao=None)
+>       url, _state, _verifier = handler.auth.create_authorization_url()
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+AlfrescoOAuthentication = <class 'nxdrive.alfresco.auth.oauth2.AlfrescoOAuthentication'>
+handler    = <nxdrive.alfresco.auth.oauth2.AlfrescoOAuthentication object at 0x000002A92D5DBB60>
+self       = <tests.alfresco.functional.test_oauth2.TestOAuthWiring object at 0x000002A924410910>
+
+tests\alfresco\functional\test_oauth2.py:20: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <alfresco.auth.OAuth2 object at 0x000002A92C4756A0>, scope = None
+kwargs = {}
+_ = <class 'authlib.integrations.requests_client.oauth2_session.OAuth2Session'>
+generate_token = <function generate_token at 0x000002A922D22340>
+AuthlibBaseError = <class 'authlib.common.errors.AuthlibBaseError'>
+
+    def create_authorization_url(
+        self, scope: Optional[str] = None, **kwargs: Any
+    ) -> Tuple[str, str, str]:
+        """Build the IdP authorization URL for the PKCE browser flow.
+    
+        Returns a ``(uri, state, code_verifier)`` tuple. Open *uri* in a
+        browser; keep *state* and *code_verifier* to pass to
+        :meth:`request_token` when the IdP redirects back with a code.
         """
-        Resolve a name to an object.
-    
-        It is expected that `name` will be a string in one of the following
-        formats, where W is shorthand for a valid Python identifier and dot stands
-        for a literal period in these pseudo-regexes:
-    
-        W(.W)*
-        W(.W)*:(W(.W)*)?
-    
-        The first form is intended for backward compatibility only. It assumes that
-        some part of the dotted name is a package, and the rest is an object
-        somewhere within that package, possibly nested inside other objects.
-        Because the place where the package stops and the object hierarchy starts
-        can't be inferred by inspection, repeated attempts to import must be done
-        with this form.
-    
-        In the second form, the caller makes the division point clear through the
-        provision of a single colon: the dotted name to the left of the colon is a
-15.32s call     tests/nuxeo/functional/test_processor.py::test_synchronize_direct_transfer
-15.18s call     tests/common/functional/test_local_watcher.py::test_scan_handle_deleted_files
-14.65s call     tests/nuxeo/functional/test_remote_client.py::test_exists_in_parent[My \r file]
-14.45s call     tests/common/functional/test_tracker.py::test_tracker_method_without_args[_poll-True-True-True]
-13.77s call     tests/common/functional/test_local_watcher.py::test_schedule_win_folder_scan
-13.66s call     tests/common/functional/test_local_watcher.py::test_win_dequeue_folder_scan
-13.65s call     tests/common/functional/test_local_watcher.py::test_handle_watchdog_delete
-13.56s call     tests/common/functional/test_tracker.py::test_tracker_send_methods[send_directedit_edit-arguments3-False-False-False]
-13.45s call     tests/common/functional/test_local_watcher.py::test_get_creation_time
-13.32s call     tests/common/functional/test_tracker.py::test_tracker_send_methods[send_sync_event-arguments6-True-True-True]
-13.23s call     tests/common/functional/test_server_options.py::test_features[auto-update-auto_update-False]
+        _, generate_token, AuthlibBaseError = _import_authlib()
+        if not self.authorization_endpoint:
+>           raise OAuth2Error("authorization_endpoint is not configured")
+E           alfresco.exceptions.OAuth2Error: authorization_endpoint is not configured
+
+AuthlibBaseError = <class 'authlib.common.errors.AuthlibBaseError'>
+_          = <class 'authlib.integrations.requests_client.oauth2_session.OAuth2Session'>
+generate_token = <function generate_token at 0x000002A922D22340>
+kwargs     = {}
+scope      = None
+self       = <alfresco.auth.OAuth2 object at 0x000002A92C4756A0>
+
+.tox\base\Lib\site-packages\alfresco\auth.py:587: OAuth2Error
+---------------------------- Captured stderr call -----------------------------
+2026-08-01 20:54:31 4264 7612 DEBUG    alfresco           GET /alfresco/service/devicesync/config
+2026-08-01 20:54:31 4264 7612 DEBUG    nxdrive.alfresco.auth.oauth2 Device Sync /config bootstrap failed, falling back to legacy discovery
+Traceback (most recent call last):
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\alfresco\api\base.py", line 121, in _send
+    resp = self._client.session.request(method, url, **kwargs)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\sessions.py", line 578, in request
+    prep = self.prepare_request(req)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\sessions.py", line 487, in prepare_request
+    p.prepare(
+    ~~~~~~~~~^
+        method=request.method.upper(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<10 lines>...
+        hooks=merge_hooks(request.hooks, self.hooks),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\models.py", line 369, in prepare
+    self.prepare_url(url, params)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\models.py", line 440, in prepare_url
+    raise MissingSchema(
+    ...<2 lines>...
+    )
+requests.exceptions.MissingSchema: Invalid URL '/alfresco/service/devicesync/config': No scheme supplied. Perhaps you meant https:///alfresco/service/devicesync/config?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\a\nuxeo-drive\nuxeo-drive\nxdrive\alfresco\auth\oauth2.py", line 91, in discover_aims_config
+    isc = client.device_sync.get_identity_service_config()
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\alfresco\api\device_sync.py", line 42, in get_identity_service_config
+    return IdentityServiceConfig.from_json(self.get_config())
+                                           ~~~~~~~~~~~~~~~^^
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\alfresco\api\device_sync.py", line 34, in get_config
+    return self._get(self._url()) or {}
+           ~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\alfresco\api\base.py", line 79, in _get
+    return self._handle(self._raw("GET", url, params=params, **kwargs))
+                        ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\alfresco\api\base.py", line 104, in _raw
+    resp = self._send(method, url, **kwargs)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\alfresco\api\base.py", line 123, in _send
+    raise NetworkError(f"{method} {url}: {exc}") from exc
+alfresco.exceptions.NetworkError: GET /alfresco/service/devicesync/config: Invalid URL '/alfresco/service/devicesync/config': No scheme supplied. Perhaps you meant https:///alfresco/service/devicesync/config?
+2026-08-01 20:54:31 4264 7612 DEBUG    nxdrive.alfresco.auth.oauth2 Could not fetch syncServiceConfiguration from /alfresco/api/-default-/private/alfresco/versions/1/config/syncServiceConfiguration
+Traceback (most recent call last):
+  File "D:\a\nuxeo-drive\nuxeo-drive\nxdrive\alfresco\auth\oauth2.py", line 143, in discover_aims_config
+    resp = requests.get(sync_url, timeout=10, verify=verify)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\sessions.py", line 578, in request
+    prep = self.prepare_request(req)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\sessions.py", line 487, in prepare_request
+    p.prepare(
+    ~~~~~~~~~^
+        method=request.method.upper(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<10 lines>...
+        hooks=merge_hooks(request.hooks, self.hooks),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\models.py", line 369, in prepare
+    self.prepare_url(url, params)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\models.py", line 440, in prepare_url
+    raise MissingSchema(
+    ...<2 lines>...
+    )
+requests.exceptions.MissingSchema: Invalid URL '/alfresco/api/-default-/private/alfresco/versions/1/config/syncServiceConfiguration': No scheme supplied. Perhaps you meant https:///alfresco/api/-default-/private/alfresco/versions/1/config/syncServiceConfiguration?
+2026-08-01 20:54:31 4264 7612 DEBUG    nxdrive.alfresco.auth.oauth2 Failed to discover from /app.config.json
+Traceback (most recent call last):
+  File "D:\a\nuxeo-drive\nuxeo-drive\nxdrive\alfresco\auth\oauth2.py", line 185, in discover_aims_config
+    resp = requests.get(origin + config_path, timeout=10, verify=verify)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\sessions.py", line 592, in request
+    resp = self.send(prep, **send_kwargs)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\sessions.py", line 700, in send
+    adapter = self.get_adapter(url=request.url)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\sessions.py", line 795, in get_adapter
+    raise InvalidSchema(f"No connection adapters were found for {url!r}")
+requests.exceptions.InvalidSchema: No connection adapters were found for ':///app.config.json'
+2026-08-01 20:54:31 4264 7612 DEBUG    nxdrive.alfresco.auth.oauth2 Failed to discover from /assets/app.config.json
+Traceback (most recent call last):
+  File "D:\a\nuxeo-drive\nuxeo-drive\nxdrive\alfresco\auth\oauth2.py", line 185, in discover_aims_config
+    resp = requests.get(origin + config_path, timeout=10, verify=verify)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\sessions.py", line 592, in request
+    resp = self.send(prep, **send_kwargs)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\sessions.py", line 700, in send
+    adapter = self.get_adapter(url=request.url)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\sessions.py", line 795, in get_adapter
+    raise InvalidSchema(f"No connection adapters were found for {url!r}")
+requests.exceptions.InvalidSchema: No connection adapters were found for ':///assets/app.config.json'
+2026-08-01 20:54:31 4264 7612 DEBUG    nxdrive.alfresco.auth.oauth2 Well-known heuristic failed for :///auth/realms/alfresco/.well-known/openid-configuration
+Traceback (most recent call last):
+  File "D:\a\nuxeo-drive\nuxeo-drive\nxdrive\alfresco\auth\oauth2.py", line 213, in discover_aims_config
+    resp = requests.get(heuristic_url, timeout=10, verify=verify)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\sessions.py", line 592, in request
+    resp = self.send(prep, **send_kwargs)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\sessions.py", line 700, in send
+    adapter = self.get_adapter(url=request.url)
+  File "D:\a\nuxeo-drive\nuxeo-drive\.tox\base\Lib\site-packages\requests\sessions.py", line 795, in get_adapter
+    raise InvalidSchema(f"No connection adapters were found for {url!r}")
+requests.exceptions.InvalidSchema: No connection adapters were found for ':///auth/realms/alfresco/.well-known/openid-configuration'
+2026-08-01 20:54:31 4264 7612 WARNING  nxdrive.alfresco.auth.oauth2 Could not discover AIMS/Keycloak configuration for ''. Tried Device Sync /config, syncServiceConfiguration, app.config.json and well-known Keycloak path. Configure oauth2_openid_configuration_url manually or ensure the server exposes one of these endpoints.
+
+---------- coverage: platform win32, python 3.13.14-final-0 ----------
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+
+============================ slowest 20 durations =============================
+40.72s call     tests/nuxeo/functional/test_direct_edit.py::test_corrupted_download
+25.41s call     tests/common/functional/test_server_options.py::test_delay_remote_watcher
+17.16s call     tests/common/functional/test_local_watcher.py::test_handle_watchdog_event
+16.09s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_levels[3]
+15.47s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_length[4]
+15.22s call     tests/nuxeo/functional/test_direct_edit.py::test_download_http_error_404
+13.29s call     tests/common/functional/test_autolocker.py::TestGetOpenFiles::test_get_open_files_windows
+13.28s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_levels[4]
+13.17s call     tests/nuxeo/functional/test_remote_client.py::test_exists_in_parent[ndt-\xe9l\xe9onor]
+13.17s call     tests/nuxeo/functional/test_engine.py::test_can_use_trash
+12.91s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_levels[5]
+12.87s call     tests/common/functional/test_tracker.py::test_tracker_send_methods[send_directedit_edit-arguments2-True-True-True]
+12.55s call     tests/common/functional/test_behavior.py::test_crash_no_engine_database
+12.50s call     tests/common/functional/test_local_watcher.py::test_get_metrics
+12.25s call     tests/common/functional/test_local_watcher.py::test_schedule_win_folder_scan
+12.20s call     tests/nuxeo/functional/test_api.py::test_get_completed_sessions_count
+12.11s call     tests/nuxeo/functional/test_remote_client.py::test_exists_in_parent[ndt-bob@bar.com]
+12.05s call     tests/common/functional/test_tracker.py::test_tracker_send_methods[send_direct_transfer-arguments5-True-True-True]
+12.00s call     tests/common/functional/test_local_watcher.py::test_stop_watchdog2
+11.95s call     tests/nuxeo/functional/test_remote_client.py::test_expand_sync_root_name_levels[2]
 =========================== short test summary info ===========================
-FAILED tests/nuxeo/functional/test_processor.py::test_handle_doc_pair_dt - At...
-FAILED tests/nuxeo/functional/test_processor.py::test_get_next_doc_pair - Att...
-FAILED tests/nuxeo/functional/test_processor.py::test_check_exists_on_the_server
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_if_not_remotely_dirty
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_locally_modified
-FAILED tests/nuxeo/functional/test_processor.py::test_synchronize_locally_created
-FAILED tests/nuxeo/functional/test_processor.py::test_handle_failed_remote_rename
-FAILED tests/nuxeo/functional/test_direct_edit.py::test_url_resolver - Attrib...
 FAILED tests/nuxeo/functional/gui/test_application.py::test_application_qt - ...
-FAILED tests/common/functional/test_updater.py::test_frozen - assert False is...
-FAILED tests/common/functional/test_updater.py::test_frozen_updates_disabled_centralized_client_version
 FAILED tests/common/functional/test_windows.py::test_registry_configuration
 FAILED tests/alfresco/functional/test_oauth2.py::TestOAuthWiring::test_authorization_url_is_built
-=========== 13 failed, 672 passed, 26 skipped in 894.04s (0:14:54) ============
-ft: exit 1 (897.18 seconds) D:\a\nuxeo-drive\nuxeo-drive> python -m pytest tests/common/functional tests/nuxeo/functional tests/alfresco/functional --dist=loadscope pid=2276
-  ft: FAIL code 1 (947.84=setup[49.14]+cmd[1.52,897.18] seconds)
-  evaluation failed :( (947.87 seconds)
+============ 3 failed, 682 passed, 26 skipped in 865.05s (0:14:25) ============
+ft: exit 1 (868.46 seconds) D:\a\nuxeo-drive\nuxeo-drive> python -m pytest tests/common/functional tests/nuxeo/functional tests/alfresco/functional --dist=loadscope pid=9776
+  ft: FAIL code 1 (902.46=setup[32.33]+cmd[1.67,868.46] seconds)
+  evaluation failed :( (902.49 seconds)
 Error: Process completed with exit code 1.
