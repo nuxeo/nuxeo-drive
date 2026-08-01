@@ -10,6 +10,7 @@ from nuxeo.exceptions import CorruptedFile, HTTPError
 from nxdrive.drive.constants import ROOT
 from nxdrive.drive.engine.engine import Engine, ServerBindingSettings
 from nxdrive.drive.exceptions import NoAssociatedSoftware
+from nxdrive.drive.feature import Feature
 from nxdrive.drive.objects import DirectEditDetails
 from nxdrive.drive.translator import Translator
 from nxdrive.drive.utils import find_resource
@@ -491,6 +492,7 @@ def test_send_lock_status(direct_edit):
 
 
 def test_url_resolver(manager_factory, nuxeo_url):
+    Feature.direct_edit = True
     manager, engine = manager_factory()
 
     with manager:

@@ -11,7 +11,7 @@ import pytest
 from nuxeo.exceptions import HTTPError
 
 from nxdrive.drive.constants import DigestStatus, TransferStatus
-from nxdrive.drive.engine.processor import Processor
+from nxdrive.nuxeo.engine.processor import Processor
 from nxdrive.drive.exceptions import NotFound, UploadCancelled, UploadPaused
 from tests.common.functional.mocked_classes import (
     Mock_DAO,

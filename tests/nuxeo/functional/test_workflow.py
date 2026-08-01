@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 from nuxeo.models import Task
 
-from nxdrive.drive.client.workflow import Workflow
+from nxdrive.nuxeo.client.workflow import Workflow
 from nxdrive.drive.feature import Feature
 from nxdrive.drive.gui.api import QMLDriveApi
 from nxdrive.drive.gui.application import Application
