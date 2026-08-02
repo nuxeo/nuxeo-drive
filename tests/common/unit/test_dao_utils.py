@@ -2,7 +2,7 @@
 
 import sqlite3
 from pathlib import Path
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import patch
 
 import pytest
 
@@ -82,8 +82,6 @@ def test_fix_db_healthy_db_returns_early(tmp_db):
 
 def test_fix_db_corrupted_db_success(tmp_db, tmp_path):
     """Lines 87+: DB is unhealthy → dump, delete, restore cycle."""
-    from shutil import copyfile as real_copyfile
-
     with patch("nxdrive.drive.dao.utils.is_healthy", return_value=False):
         # Actually run the fix_db logic with real dump/read
         fix_db(tmp_db)
@@ -94,27 +92,30 @@ def test_fix_db_corrupted_db_success(tmp_db, tmp_path):
 
 def test_fix_db_database_error_raises(tmp_db):
     """Lines 100-105: sqlite3.DatabaseError during dump → re-raised."""
-    with patch("nxdrive.drive.dao.utils.is_healthy", return_value=False), \
-         patch("nxdrive.drive.dao.utils.dump", side_effect=sqlite3.DatabaseError("malformed")):
+    with patch("nxdrive.drive.dao.utils.is_healthy", return_value=False), patch(
+        "nxdrive.drive.dao.utils.dump", side_effect=sqlite3.DatabaseError("malformed")
+    ):
         with pytest.raises(sqlite3.DatabaseError, match="malformed"):
             fix_db(tmp_db)
 
 
 def test_fix_db_dump_generic_exception_returns(tmp_db):
     """Generic exception during dump → logs and returns."""
-    with patch("nxdrive.drive.dao.utils.is_healthy", return_value=False), \
-         patch("nxdrive.drive.dao.utils.dump", side_effect=OSError("disk full")):
+    with patch("nxdrive.drive.dao.utils.is_healthy", return_value=False), patch(
+        "nxdrive.drive.dao.utils.dump", side_effect=OSError("disk full")
+    ):
         # Should not raise
         fix_db(tmp_db)
 
 
 def test_fix_db_restore_exception_with_backup(tmp_db, tmp_path):
     """Exception during read → cancels operation and restores backup."""
-    backup_path = tmp_db.with_name(f"{tmp_db.name}.or")
+    with patch("nxdrive.drive.dao.utils.is_healthy", return_value=False), patch(
+        "nxdrive.drive.dao.utils.dump"
+    ) as mock_dump, patch(
+        "nxdrive.drive.dao.utils.read", side_effect=Exception("restore failed")
+    ):
 
-    with patch("nxdrive.drive.dao.utils.is_healthy", return_value=False), \
-         patch("nxdrive.drive.dao.utils.dump") as mock_dump, \
-         patch("nxdrive.drive.dao.utils.read", side_effect=Exception("restore failed")):
         def fake_dump(database, dump_file):
             dump_file.write_text("SQL")
 
@@ -131,6 +132,7 @@ def test_fix_db_restore_exception_no_db_file(tmp_path):
     db = tmp_path / "test.db"
     # Create a valid SQLite DB so dump can work
     import sqlite3 as _sql
+
     con = _sql.connect(str(db))
     con.execute("CREATE TABLE t (x INTEGER)")
     con.commit()
@@ -138,8 +140,9 @@ def test_fix_db_restore_exception_no_db_file(tmp_path):
 
     backup_path = db.with_name(f"{db.name}.or")
 
-    with patch("nxdrive.drive.dao.utils.is_healthy", return_value=False), \
-         patch("nxdrive.drive.dao.utils.read", side_effect=Exception("fail")):
+    with patch("nxdrive.drive.dao.utils.is_healthy", return_value=False), patch(
+        "nxdrive.drive.dao.utils.read", side_effect=Exception("fail")
+    ):
         fix_db(db)
 
     # After restore failure with no db file, backup should have been renamed to db

@@ -12,8 +12,12 @@ def _patch_qt():
     mock_thread_cls.return_value = MagicMock()
 
     patches = [
-        patch("nxdrive.drive.engine.workers.QObject.__init__", lambda self, *a, **k: None),
-        patch("nxdrive.drive.engine.workers.QObject.moveToThread", lambda self, t: None),
+        patch(
+            "nxdrive.drive.engine.workers.QObject.__init__", lambda self, *a, **k: None
+        ),
+        patch(
+            "nxdrive.drive.engine.workers.QObject.moveToThread", lambda self, t: None
+        ),
         patch("nxdrive.drive.engine.workers.QCoreApplication", MagicMock()),
         patch("nxdrive.drive.engine.workers.QThread", mock_thread_cls),
     ]
@@ -88,8 +92,9 @@ def _make_options_updater():
     from nxdrive.drive.poll_workers import ServerOptionsUpdater
 
     manager = MagicMock()
-    with patch.object(ServerOptionsUpdater, "firstRunCompleted", MagicMock()), \
-         patch("nxdrive.drive.poll_workers.PollWorker.__init__", lambda self, *a, **k: None):
+    with patch.object(ServerOptionsUpdater, "firstRunCompleted", MagicMock()), patch(
+        "nxdrive.drive.poll_workers.PollWorker.__init__", lambda self, *a, **k: None
+    ):
         w = ServerOptionsUpdater.__new__(ServerOptionsUpdater)
         w.manager = manager
         w.first_run = True
@@ -217,4 +222,6 @@ def test_options_updater_poll_with_feature():
     with patch("nxdrive.drive.poll_workers.Options") as mock_opts:
         mock_opts.feature_synchronization = True
         w._poll()
-    w.manager.set_feature_state.assert_called_once_with("direct_edit", True, setter="server")
+    w.manager.set_feature_state.assert_called_once_with(
+        "direct_edit", True, setter="server"
+    )

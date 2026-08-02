@@ -13,12 +13,13 @@ from nxdrive.drive.notification import (
     NotificationService,
 )
 
-
 # ─── Notification Tests ──────────────────────────────────────────────────────
 
 
 def test_notification_init_basic():
-    n = Notification(uid="TEST", title="Title", description="Desc", flags=Notification.FLAG_UNIQUE)
+    n = Notification(
+        uid="TEST", title="Title", description="Desc", flags=Notification.FLAG_UNIQUE
+    )
     assert n.uid == "TEST"
     assert n.title == "Title"
     assert n.description == "Desc"
@@ -54,7 +55,9 @@ def test_notification_export():
         uid="X",
         title="T",
         description="D",
-        flags=Notification.FLAG_UNIQUE | Notification.FLAG_DISCARDABLE | Notification.FLAG_SYSTRAY,
+        flags=Notification.FLAG_UNIQUE
+        | Notification.FLAG_DISCARDABLE
+        | Notification.FLAG_SYSTRAY,
     )
     export = n.export()
     assert export["uid"] == "X"
@@ -110,7 +113,9 @@ def test_notification_repr():
 @pytest.fixture
 def svc():
     """Create NotificationService with mocked QObject and dao."""
-    with patch("nxdrive.drive.notification.QObject.__init__", lambda self, *a, **k: None):
+    with patch(
+        "nxdrive.drive.notification.QObject.__init__", lambda self, *a, **k: None
+    ):
         manager = MagicMock()
         manager.dao.get_notifications.return_value = []
         ns = NotificationService(manager)
@@ -125,7 +130,9 @@ def test_service_load_notifications(svc):
 
 
 def test_service_load_notifications_with_data():
-    with patch("nxdrive.drive.notification.QObject.__init__", lambda self, *a, **k: None):
+    with patch(
+        "nxdrive.drive.notification.QObject.__init__", lambda self, *a, **k: None
+    ):
         manager = MagicMock()
         manager.dao.get_notifications.return_value = [
             {
@@ -172,7 +179,9 @@ def test_service_get_notifications_exclude_generic(svc):
 
 
 def test_service_send_notification_persistent_new(svc):
-    n = Notification(uid="P", flags=Notification.FLAG_UNIQUE | Notification.FLAG_PERSISTENT)
+    n = Notification(
+        uid="P", flags=Notification.FLAG_UNIQUE | Notification.FLAG_PERSISTENT
+    )
     svc.send_notification(n)
     assert n.uid in svc._notifications
     svc.dao.insert_notification.assert_called_once_with(n)
@@ -180,14 +189,18 @@ def test_service_send_notification_persistent_new(svc):
 
 
 def test_service_send_notification_persistent_existing(svc):
-    n = Notification(uid="P", flags=Notification.FLAG_UNIQUE | Notification.FLAG_PERSISTENT)
+    n = Notification(
+        uid="P", flags=Notification.FLAG_UNIQUE | Notification.FLAG_PERSISTENT
+    )
     svc._notifications[n.uid] = n
     svc.send_notification(n)
     svc.dao.update_notification.assert_called_once_with(n)
 
 
 def test_service_send_notification_volatile(svc):
-    n = Notification(uid="V", flags=Notification.FLAG_UNIQUE | Notification.FLAG_VOLATILE)
+    n = Notification(
+        uid="V", flags=Notification.FLAG_UNIQUE | Notification.FLAG_VOLATILE
+    )
     svc.send_notification(n)
     svc.dao.insert_notification.assert_not_called()
     svc.newNotification.emit.assert_called_once()
@@ -213,7 +226,9 @@ def test_service_trigger_notification_actionable(svc):
 def test_service_trigger_notification_discard_on_trigger(svc):
     n = Notification(
         uid="TD",
-        flags=Notification.FLAG_UNIQUE | Notification.FLAG_DISCARD_ON_TRIGGER | Notification.FLAG_REMOVE_ON_DISCARD,
+        flags=Notification.FLAG_UNIQUE
+        | Notification.FLAG_DISCARD_ON_TRIGGER
+        | Notification.FLAG_REMOVE_ON_DISCARD,
     )
     svc._notifications[n.uid] = n
     svc.trigger_notification(n.uid)
@@ -222,7 +237,9 @@ def test_service_trigger_notification_discard_on_trigger(svc):
 
 
 def test_service_discard_notification_remove_on_discard(svc):
-    n = Notification(uid="D", flags=Notification.FLAG_UNIQUE | Notification.FLAG_REMOVE_ON_DISCARD)
+    n = Notification(
+        uid="D", flags=Notification.FLAG_UNIQUE | Notification.FLAG_REMOVE_ON_DISCARD
+    )
     svc._notifications[n.uid] = n
     svc.discard_notification(n.uid)
     assert n.uid not in svc._notifications

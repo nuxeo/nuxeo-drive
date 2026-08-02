@@ -1,6 +1,5 @@
 """Extra unit tests for nxdrive.nuxeo.engine.watcher.remote_watcher — key methods."""
 
-import os
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
@@ -144,8 +143,6 @@ class TestCheckModified:
 
 class TestInitScanRemote:
     def test_none_remote_info_raises(self):
-        from nxdrive.nuxeo.engine.watcher.remote_watcher import RemoteWatcher
-
         w = _make_watcher()
         pair = _mock_doc_pair()
         with pytest.raises(ValueError, match="Cannot bind"):

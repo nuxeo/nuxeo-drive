@@ -6,7 +6,6 @@ that require actual HTTP calls to Nuxeo.
 """
 
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 from nuxeo.models import Document
@@ -14,7 +13,6 @@ from nuxeo.models import Document
 from nxdrive.drive.exceptions import NotFound
 from nxdrive.drive.objects import RemoteFileInfo
 from nxdrive.drive.options import Options
-
 
 # ---------------------------------------------------------------------------
 # Remote client: basic operations
@@ -43,14 +41,14 @@ def test_remote_exists_in_parent(manager_factory, obj_factory):
     manager, engine = manager_factory()
     with manager:
         remote = engine.remote
-        folder = obj_factory(
-            title="parent_folder_exists_ft", user=remote.user_id
-        )
+        folder = obj_factory(title="parent_folder_exists_ft", user=remote.user_id)
 
         # Create a child document
-        child = obj_factory(
-            title="child_doc_ft", nature="File",
-            parent=folder.path, user=remote.user_id,
+        obj_factory(
+            title="child_doc_ft",
+            nature="File",
+            parent=folder.path,
+            user=remote.user_id,
         )
 
         # Check child exists
@@ -120,13 +118,9 @@ def test_remote_query(manager_factory, obj_factory):
     manager, engine = manager_factory()
     with manager:
         remote = engine.remote
-        doc = obj_factory(
-            title="query_test_doc_ft", user=remote.user_id
-        )
+        doc = obj_factory(title="query_test_doc_ft", user=remote.user_id)
 
-        result = remote.query(
-            f"SELECT * FROM Document WHERE ecm:uuid = '{doc.uid}'"
-        )
+        result = remote.query(f"SELECT * FROM Document WHERE ecm:uuid = '{doc.uid}'")
         assert result["totalSize"] == 1
 
 
@@ -135,9 +129,7 @@ def test_remote_fetch(manager_factory, obj_factory):
     manager, engine = manager_factory()
     with manager:
         remote = engine.remote
-        doc = obj_factory(
-            title="fetch_test_doc_ft", user=remote.user_id
-        )
+        doc = obj_factory(title="fetch_test_doc_ft", user=remote.user_id)
 
         fetched = remote.fetch(doc.uid)
         assert fetched["uid"] == doc.uid
@@ -185,7 +177,9 @@ def test_remote_scroll_descendants(manager_factory, obj_factory):
         remote = engine.remote
         root_state = engine.dao.get_state_from_local(Path("/"))
         if root_state and root_state.remote_ref:
-            result = remote.scroll_descendants(root_state.remote_ref, None, batch_size=10)
+            result = remote.scroll_descendants(
+                root_state.remote_ref, None, batch_size=10
+            )
             assert "scroll_id" in result
             assert "descendants" in result
             assert isinstance(result["descendants"], list)
@@ -244,9 +238,7 @@ def test_remote_expand_sync_root_name(manager_factory, obj_factory):
         remote = engine.remote
         # Create nested folders
         parent = obj_factory(title="level0", enable_sync=True, user=remote.user_id)
-        child = obj_factory(
-            title="level1", parent=parent.path, user=remote.user_id
-        )
+        obj_factory(title="level1", parent=parent.path, user=remote.user_id)
 
         # Get FS info for the child and try expand
         root_state = engine.dao.get_state_from_local(Path("/"))
@@ -254,6 +246,8 @@ def test_remote_expand_sync_root_name(manager_factory, obj_factory):
             children = remote.get_fs_children(root_state.remote_ref)
             # If we have children, verify expand doesn't crash
             for ch in children:
-                if hasattr(ch, "uid") and "WORKSPACE_ROOT" in str(getattr(ch, "uid", "")):
+                if hasattr(ch, "uid") and "WORKSPACE_ROOT" in str(
+                    getattr(ch, "uid", "")
+                ):
                     expanded = remote.expand_sync_root_name(ch)
                     assert expanded is not None

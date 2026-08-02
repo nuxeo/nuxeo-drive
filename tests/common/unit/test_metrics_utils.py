@@ -8,7 +8,11 @@ import pytest
 @pytest.fixture(autouse=True)
 def _clear_lru_caches():
     """Clear lru_cache between tests so patched values take effect."""
-    from nxdrive.drive.metrics.utils import _get_current_os_details, current_os, user_agent
+    from nxdrive.drive.metrics.utils import (
+        _get_current_os_details,
+        current_os,
+        user_agent,
+    )
 
     _get_current_os_details.cache_clear()
     current_os.cache_clear()
@@ -26,9 +30,9 @@ def _clear_lru_caches():
 
 def test_get_current_os_details_windows():
     """WINDOWS branch: uses platform.win32_ver()."""
-    with patch("nxdrive.drive.metrics.utils.MAC", False), \
-         patch("nxdrive.drive.metrics.utils.WINDOWS", True), \
-         patch("platform.win32_ver", return_value=("10", "10.0.19041", "", "")):
+    with patch("nxdrive.drive.metrics.utils.MAC", False), patch(
+        "nxdrive.drive.metrics.utils.WINDOWS", True
+    ), patch("platform.win32_ver", return_value=("10", "10.0.19041", "", "")):
         from nxdrive.drive.metrics.utils import _get_current_os_details
 
         name, ver_full, ver_simplified = _get_current_os_details()
@@ -55,8 +59,9 @@ def test_get_current_os_details_linux():
     _get_current_os_details.cache_clear()
     sys.modules["distro"] = mock_distro
     try:
-        with patch("nxdrive.drive.metrics.utils.MAC", False), \
-             patch("nxdrive.drive.metrics.utils.WINDOWS", False):
+        with patch("nxdrive.drive.metrics.utils.MAC", False), patch(
+            "nxdrive.drive.metrics.utils.WINDOWS", False
+        ):
             name, ver_full, ver_simplified = _get_current_os_details()
     finally:
         sys.modules.pop("distro", None)
@@ -70,19 +75,19 @@ def test_get_current_os_details_linux():
 def test_get_current_os_details_linux_single_part_version():
     """Linux with a version that has fewer than 2 dots."""
     import sys
-    from nxdrive.drive.metrics.utils import _get_current_os_details
 
     mock_distro = MagicMock()
     mock_distro.name.return_value = "Fedora"
     mock_distro.version.return_value = "39"
 
-    import sys
-
-    with patch("nxdrive.drive.metrics.utils.MAC", False), \
-         patch("nxdrive.drive.metrics.utils.WINDOWS", False):
+    with patch("nxdrive.drive.metrics.utils.MAC", False), patch(
+        "nxdrive.drive.metrics.utils.WINDOWS", False
+    ):
         sys.modules["distro"] = mock_distro
         try:
-            from nxdrive.drive.metrics.utils import _get_current_os_details
+            from nxdrive.drive.metrics.utils import (
+                _get_current_os_details,
+            )
 
             name, ver_full, ver_simplified = _get_current_os_details()
         finally:
@@ -100,8 +105,10 @@ def test_get_current_os_details_linux_single_part_version():
 
 def test_current_os_full():
     """current_os(full=True) returns name + full version."""
-    with patch("nxdrive.drive.metrics.utils._get_current_os_details",
-               return_value=("Windows", "10.0.19041", "10.0")):
+    with patch(
+        "nxdrive.drive.metrics.utils._get_current_os_details",
+        return_value=("Windows", "10.0.19041", "10.0"),
+    ):
         from nxdrive.drive.metrics.utils import current_os
 
         result = current_os(full=True)
@@ -111,8 +118,10 @@ def test_current_os_full():
 
 def test_current_os_simplified():
     """current_os(full=False) returns name + simplified version."""
-    with patch("nxdrive.drive.metrics.utils._get_current_os_details",
-               return_value=("Ubuntu", "22.04.3", "22.04")):
+    with patch(
+        "nxdrive.drive.metrics.utils._get_current_os_details",
+        return_value=("Ubuntu", "22.04.3", "22.04"),
+    ):
         from nxdrive.drive.metrics.utils import current_os
 
         result = current_os(full=False)
@@ -127,9 +136,9 @@ def test_current_os_simplified():
 
 def test_user_agent():
     """user_agent() returns formatted string."""
-    with patch("nxdrive.drive.metrics.utils.APP_NAME", "Nuxeo Drive"), \
-         patch("nxdrive.drive.metrics.utils.APP_VERSION", "5.4.0"), \
-         patch("nxdrive.drive.metrics.utils.current_os", return_value="macOS 14.5"):
+    with patch("nxdrive.drive.metrics.utils.APP_NAME", "Nuxeo Drive"), patch(
+        "nxdrive.drive.metrics.utils.APP_VERSION", "5.4.0"
+    ), patch("nxdrive.drive.metrics.utils.current_os", return_value="macOS 14.5"):
         from nxdrive.drive.metrics.utils import user_agent
 
         result = user_agent()

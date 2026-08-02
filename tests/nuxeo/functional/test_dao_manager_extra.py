@@ -6,17 +6,13 @@ These tests exercise real database operations to cover state management,
 transfer tracking, and session handling code paths.
 """
 
-import time
 from datetime import datetime
 from pathlib import Path
 
-import pytest
-
 from nxdrive.drive.client.local import FileInfo
-from nxdrive.drive.constants import DelAction, TransferStatus
+from nxdrive.drive.constants import TransferStatus
 from nxdrive.drive.manager import Manager
-from nxdrive.drive.objects import Download, RemoteFileInfo, Session, Upload
-
+from nxdrive.drive.objects import Download, RemoteFileInfo, Upload
 
 # ---------------------------------------------------------------------------
 # DAO: State pair operations
@@ -29,13 +25,15 @@ def test_dao_insert_remote_state(manager_factory, tmp):
     dao = engine.dao
 
     with manager:
-        info = RemoteFileInfo.from_dict({
-            "id": "test-uid-001",
-            "parentId": "parent-uid-001",
-            "path": "/default-domain/test-uid-001",
-            "name": "remote_doc.txt",
-            "digest": "d41d8cd98f00b204e9800998ecf8427e",
-        })
+        info = RemoteFileInfo.from_dict(
+            {
+                "id": "test-uid-001",
+                "parentId": "parent-uid-001",
+                "path": "/default-domain/test-uid-001",
+                "name": "remote_doc.txt",
+                "digest": "d41d8cd98f00b204e9800998ecf8427e",
+            }
+        )
 
         # All positional-only args
         row_id = dao.insert_remote_state(
@@ -66,17 +64,17 @@ def test_dao_update_remote_state(manager_factory, tmp):
         state = dao.get_state_from_id(rowid)
 
         # Now update with remote info
-        rinfo = RemoteFileInfo.from_dict({
-            "id": "remote-uid-002",
-            "parentId": "parent-uid-002",
-            "path": "/domain/remote-uid-002",
-            "name": "update_remote_test.txt",
-            "digest": "abc123def456",
-        })
-
-        result = dao.update_remote_state(
-            state, rinfo, remote_parent_path="/domain"
+        rinfo = RemoteFileInfo.from_dict(
+            {
+                "id": "remote-uid-002",
+                "parentId": "parent-uid-002",
+                "path": "/domain/remote-uid-002",
+                "name": "update_remote_test.txt",
+                "digest": "abc123def456",
+            }
         )
+
+        result = dao.update_remote_state(state, rinfo, remote_parent_path="/domain")
         # Returns True if a meaningful change was made
         assert result is not None
 
@@ -97,13 +95,15 @@ def test_dao_synchronize_state(manager_factory, tmp):
         state = dao.get_state_from_id(rowid)
 
         # Set remote info to make it synchronizable
-        rinfo = RemoteFileInfo.from_dict({
-            "id": "sync-uid-003",
-            "parentId": "parent-uid",
-            "path": "/domain/sync-uid-003",
-            "name": "sync_test.txt",
-            "digest": "0" * 32,
-        })
+        rinfo = RemoteFileInfo.from_dict(
+            {
+                "id": "sync-uid-003",
+                "parentId": "parent-uid",
+                "path": "/domain/sync-uid-003",
+                "name": "sync_test.txt",
+                "digest": "0" * 32,
+            }
+        )
         dao.update_remote_state(state, rinfo, remote_parent_path="/domain")
 
         # Synchronize
@@ -361,6 +361,7 @@ def test_manager_open_local_file(manager_factory, tmp):
 def test_manager_get_deletion_behavior(manager_factory):
     """Test manager returns correct deletion behavior."""
     from nxdrive.drive.constants import DelAction
+
     manager, engine = manager_factory()
     with manager:
         behavior = manager.get_deletion_behavior()
@@ -377,6 +378,7 @@ def test_manager_set_config(manager_factory):
     with manager:
         # Use a known Options key that supports manual set
         from nxdrive.drive.options import Options
+
         original = Options.delay
         manager.set_config("delay", 42)
         assert Options.delay == 42

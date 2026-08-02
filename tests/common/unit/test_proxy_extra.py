@@ -17,7 +17,6 @@ from nxdrive.drive.client.proxy import (
     validate_proxy,
 )
 
-
 # ------------------------------------------------------------------ Proxy base
 
 
@@ -112,7 +111,7 @@ class TestAutomaticProxy:
     def test_no_pac_url_uses_system(self):
         mock_pac = MagicMock()
         with patch("nxdrive.drive.client.proxy.get_pac", return_value=mock_pac):
-            with patch("nxdrive.drive.client.proxy.ProxyResolver") as mock_resolver:
+            with patch("nxdrive.drive.client.proxy.ProxyResolver"):
                 p = AutomaticProxy()
         assert p.pac_url == ""
         assert p._pac_file is mock_pac
@@ -234,7 +233,7 @@ class TestLoadProxy:
 
     def test_load_manual_new_format(self):
         """Load Manual proxy with encrypted url (new format)."""
-        from nxdrive.drive.utils import encrypt, force_decode
+        from nxdrive.drive.utils import encrypt
 
         token = "device123"
         secret = token + "_proxy"
@@ -408,7 +407,9 @@ class TestValidateProxy:
         mock_response = MagicMock()
         mock_response.__enter__ = Mock(return_value=mock_response)
         mock_response.__exit__ = Mock(return_value=False)
-        with patch("nxdrive.drive.client.proxy.requests.get", return_value=mock_response):
+        with patch(
+            "nxdrive.drive.client.proxy.requests.get", return_value=mock_response
+        ):
             with patch("nxdrive.drive.client.proxy.requests_verify", return_value=True):
                 with patch(
                     "nxdrive.drive.client.proxy.client_certificate",

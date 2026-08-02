@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 from time import monotonic_ns
-from unittest.mock import MagicMock, Mock, PropertyMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -153,7 +153,6 @@ class TestPingBatchId:
 
 class TestGetTransfer:
     def test_existing_paused_transfer_raises(self):
-        from nuxeo.constants import UP_AMAZON_S3
         from nuxeo.models import FileBlob
 
         uploader = _make_uploader()
@@ -246,7 +245,7 @@ class TestGetTransfer:
     def test_existing_ongoing_s3_batch_no_file_idx(self):
         """When transfer is S3, file_idx should be None for the get() check."""
         from nuxeo.constants import UP_AMAZON_S3
-        from nuxeo.models import Batch, FileBlob
+        from nuxeo.models import FileBlob
 
         uploader = _make_uploader()
         existing = _mock_transfer(status=TransferStatus.ONGOING, uid=20)
@@ -260,7 +259,7 @@ class TestGetTransfer:
         with patch("nxdrive.nuxeo.client.uploader.Batch") as batch_cls:
             batch_instance = MagicMock()
             batch_cls.return_value = batch_instance
-            result = uploader._get_transfer(Path("/tmp/f.txt"), blob, "cmd", doc_pair=4)
+            uploader._get_transfer(Path("/tmp/f.txt"), blob, "cmd", doc_pair=4)
 
         # For S3, file_idx=None
         uploader.remote.uploads.get.assert_called_once_with("s3-batch", file_idx=None)

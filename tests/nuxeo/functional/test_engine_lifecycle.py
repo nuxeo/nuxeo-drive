@@ -8,16 +8,12 @@ that are difficult to hit with unit tests alone.
 import time
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
 from nxdrive.drive.client.local import FileInfo
 from nxdrive.drive.constants import DelAction, TransferStatus, ROOT
 from nxdrive.drive.exceptions import ThreadInterrupt
-from nxdrive.drive.objects import Session
-from nxdrive.drive.options import Options
-
 
 # ---------------------------------------------------------------------------
 # Engine lifecycle: start / stop / suspend / resume / offline
@@ -426,7 +422,7 @@ def test_dao_reinit_states(manager_factory, tmp):
         dao.reinit_states()
 
         # After reinit, states should be reset
-        state = dao.get_state_from_id(rowid)
+        dao.get_state_from_id(rowid)
         # State may be None after reinit or in a specific state
         # This primarily ensures reinit_states doesn't crash
 

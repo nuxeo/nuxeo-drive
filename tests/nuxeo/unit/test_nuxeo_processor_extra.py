@@ -7,10 +7,9 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from nxdrive.drive.constants import DigestStatus, TransferStatus
+from nxdrive.drive.constants import TransferStatus
 from nxdrive.drive.exceptions import (
     NotFound,
-    PairInterrupt,
     UploadCancelled,
     UploadPaused,
 )
@@ -211,7 +210,9 @@ class TestGetNextDocPair:
         proc._postpone_pair = Mock()
         item = _mock_doc_pair(id=7)
         proc.dao.acquire_state.side_effect = sqlite3.OperationalError("locked")
-        state = _mock_doc_pair(id=7, pair_state="locally_modified", remote_can_rename=True)
+        state = _mock_doc_pair(
+            id=7, pair_state="locally_modified", remote_can_rename=True
+        )
         proc.dao.get_state_from_id.return_value = state
 
         with patch("nxdrive.nuxeo.engine.processor.WINDOWS", False):
@@ -251,7 +252,9 @@ class TestCheckExistsOnTheServer:
         proc._refresh_remote = Mock()
         proc.remove_void_transfers = Mock()
         proc.pairSyncEnded = MagicMock()
-        pair = _mock_doc_pair(pair_state="locally_created", local_path=Path("ws/file.txt"))
+        pair = _mock_doc_pair(
+            pair_state="locally_created", local_path=Path("ws/file.txt")
+        )
 
         remote_info = Mock()
         remote_info.path = "default#default/defaultFileSystemItemFactory#default#uid123"
@@ -270,7 +273,9 @@ class TestCheckExistsOnTheServer:
     def test_locally_created_fetch_error_no_action(self):
         proc = _make_processor()
         proc._postpone_pair = Mock()
-        pair = _mock_doc_pair(pair_state="locally_created", local_path=Path("ws/file.txt"))
+        pair = _mock_doc_pair(
+            pair_state="locally_created", local_path=Path("ws/file.txt")
+        )
         proc.remote.fetch.side_effect = Exception("network error")
 
         with patch("nxdrive.nuxeo.engine.processor.WINDOWS", False):
@@ -519,7 +524,9 @@ class TestSynchronizeIfNotRemotelyDirty:
     def test_remote_info_name_differs_forces_modified(self):
         proc = _make_processor()
         proc._synchronize_remotely_modified = Mock()
-        pair = _mock_doc_pair(local_path=Path("f.txt"), local_name="f.txt", local_digest="d1")
+        pair = _mock_doc_pair(
+            local_path=Path("f.txt"), local_name="f.txt", local_digest="d1"
+        )
         remote_info = Mock(name="other.txt", digest="d1")
         # Mock name attribute explicitly
         remote_info.name = "other.txt"

@@ -1,7 +1,7 @@
 """Extra unit tests for nxdrive.nuxeo.engine.engine module — targets uncovered lines."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, PropertyMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -382,7 +382,10 @@ class TestGetMetadataUrl:
         engine.force_ui = ""
         engine.remote.client.repository = "default"
         url = engine.get_metadata_url("default#doc-uid-123")
-        assert url == "http://localhost:8080/nuxeo/nxdoc/default/doc-uid-123/view_documents"
+        assert (
+            url
+            == "http://localhost:8080/nuxeo/nxdoc/default/doc-uid-123/view_documents"
+        )
 
     def test_jsf_edit(self):
         engine = _make_engine()
@@ -390,7 +393,10 @@ class TestGetMetadataUrl:
         engine.force_ui = ""
         engine.remote.client.repository = "default"
         url = engine.get_metadata_url("default#doc-uid-123", edit=True)
-        assert url == "http://localhost:8080/nuxeo/nxdoc/default/doc-uid-123/view_drive_metadata"
+        assert (
+            url
+            == "http://localhost:8080/nuxeo/nxdoc/default/doc-uid-123/view_drive_metadata"
+        )
 
     def test_force_ui_overrides_wui(self):
         engine = _make_engine()
@@ -417,7 +423,9 @@ class TestGetTaskUrl:
         engine.force_ui = ""
         engine.remote.client.repository = "default"
         url = engine.get_task_url("task-123")
-        assert url == "http://localhost:8080/nuxeo/tasks/default/task-123/view_documents"
+        assert (
+            url == "http://localhost:8080/nuxeo/tasks/default/task-123/view_documents"
+        )
 
     def test_jsf_edit(self):
         engine = _make_engine()
@@ -425,7 +433,10 @@ class TestGetTaskUrl:
         engine.force_ui = ""
         engine.remote.client.repository = "default"
         url = engine.get_task_url("task-123", edit=True)
-        assert url == "http://localhost:8080/nuxeo/tasks/default/task-123/view_drive_metadata"
+        assert (
+            url
+            == "http://localhost:8080/nuxeo/tasks/default/task-123/view_drive_metadata"
+        )
 
 
 # ------------------------------------------------------------------ get_user_full_name
@@ -814,7 +825,7 @@ class TestInitRemote:
             with patch(
                 "nxdrive.nuxeo.engine.engine.client_certificate", return_value=None
             ):
-                result = engine.init_remote()
+                engine.init_remote()
 
         engine.remote_cls.assert_called_once()
         args = engine.remote_cls.call_args
@@ -890,14 +901,21 @@ class TestCreateRemoteFolder:
 class TestCreateRemoteFolderWithEnricher:
     def test_success(self):
         engine = _make_engine()
-        engine.remote.upload_folder_type.return_value = {"path": "/ws/typed", "uid": "u2"}
-        result = engine._create_remote_folder_with_enricher("/ws", "typed", "CustomType", 1)
+        engine.remote.upload_folder_type.return_value = {
+            "path": "/ws/typed",
+            "uid": "u2",
+        }
+        result = engine._create_remote_folder_with_enricher(
+            "/ws", "typed", "CustomType", 1
+        )
         assert result == {"path": "/ws/typed", "uid": "u2"}
         engine.directTransferNewFolderSuccess.emit.assert_called_once()
 
     def test_failure(self):
         engine = _make_engine()
         engine.remote.upload_folder_type.side_effect = Exception("fail")
-        result = engine._create_remote_folder_with_enricher("/ws", "typed", "CustomType", 1)
+        result = engine._create_remote_folder_with_enricher(
+            "/ws", "typed", "CustomType", 1
+        )
         assert result == {}
         engine.directTransferNewFolderError.emit.assert_called_once()

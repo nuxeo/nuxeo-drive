@@ -2,10 +2,7 @@
 
 from unittest.mock import MagicMock
 
-import pytest
-
 from nxdrive.drive.auth.base import AuthHandler, Authentication
-
 
 # --------------------------------------------------------------------------
 # AuthHandler protocol tests (line 4 — TYPE_CHECKING import is not runtime)
@@ -32,6 +29,7 @@ def test_auth_handler_protocol_non_conforming():
     class BadHandler:
         def __call__(self, r):
             return r
+
         # Missing set_token
 
     assert not isinstance(BadHandler(), AuthHandler)
