@@ -191,7 +191,7 @@ register(
         findersync_appex_name="NuxeoFinderSync.appex",
         addon_installer_name="nuxeo-drive-addons.exe",
         update_site_url="https://community.nuxeo.com/static/drive-updates",
-        client_version=getattr(nuxeo, "__version__", ""),
+        client_version=nuxeo.__version__,
         debug_init_hook=_nuxeo_debug_init,
         debug_auth_handler=_nuxeo_debug_auth_handler,
         parse_direct_transfer_remote_path=_nuxeo_parse_direct_transfer_remote_path,
