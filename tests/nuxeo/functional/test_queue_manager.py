@@ -8,7 +8,6 @@ from typing import Optional
 from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
-from nuxeo.exceptions import OngoingRequestError
 
 from nxdrive.drive.constants import WINDOWS
 from nxdrive.drive.engine.queue_manager import (

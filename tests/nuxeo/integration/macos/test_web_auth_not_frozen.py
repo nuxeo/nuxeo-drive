@@ -36,9 +36,7 @@ class TestWebAuthNotFrozen:
         app.api.handle_token = Mock()
         return app
 
-    def test_web_auth_not_frozen_successful_authentication(
-        self, mock_app, nuxeo_url
-    ):
+    def test_web_auth_not_frozen_successful_authentication(self, mock_app, nuxeo_url):
         """Test that debug_auth_handler is called with correct args."""
         with patch(_PATCH_ST) as mock_st:
             mock_config = Mock()
@@ -57,9 +55,7 @@ class TestWebAuthNotFrozen:
         """Test that exceptions in the handler propagate normally."""
         with patch(_PATCH_ST) as mock_st:
             mock_config = Mock()
-            mock_config.debug_auth_handler = Mock(
-                side_effect=Exception("auth failed")
-            )
+            mock_config.debug_auth_handler = Mock(side_effect=Exception("auth failed"))
             mock_st.detect_by_url.return_value = mock_config
 
             with pytest.raises(Exception, match="auth failed"):
@@ -76,9 +72,7 @@ class TestWebAuthNotFrozen:
 
             mock_config.debug_auth_handler.assert_called_once()
 
-    def test_web_auth_not_frozen_uses_environment_defaults(
-        self, mock_app, nuxeo_url
-    ):
+    def test_web_auth_not_frozen_uses_environment_defaults(self, mock_app, nuxeo_url):
         """Test that detect_by_url receives the correct URL."""
         with patch(_PATCH_ST) as mock_st:
             mock_config = Mock()

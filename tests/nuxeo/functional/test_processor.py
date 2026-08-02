@@ -705,7 +705,9 @@ def test_synchronize_locally_created():
     processor = Processor(mock_engine, True)
     processor.dao = mock_dao
     processor.local = mock_client
-    with patch("tests.common.functional.mocked_classes.Mock_Remote.get_info") as mock_get_info:
+    with patch(
+        "tests.common.functional.mocked_classes.Mock_Remote.get_info"
+    ) as mock_get_info:
         mock_get_info.return_value = None
         assert (
             processor._synchronize_locally_created(mock_doc_pair, overwrite=False)
