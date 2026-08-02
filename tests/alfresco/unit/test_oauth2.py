@@ -2,9 +2,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-import requests
-
 from nxdrive.alfresco.auth.oauth2 import (
     _release_loopback_state,
     discover_aims_config,
@@ -17,7 +14,9 @@ class TestDiscoverAimsConfigDeviceSync:
 
     def test_success_returns_full_config(self):
         isc = MagicMock()
-        isc.openid_configuration_url.return_value = "https://idp/realms/alfresco/.well-known/openid-configuration"
+        isc.openid_configuration_url.return_value = (
+            "https://idp/realms/alfresco/.well-known/openid-configuration"
+        )
         isc.client_id = "drive"
         isc.audience = "acs-api"
         isc.public_client = True
@@ -31,7 +30,10 @@ class TestDiscoverAimsConfigDeviceSync:
         with patch("alfresco.Alfresco", return_value=mock_client):
             result = discover_aims_config("https://acs.example.com")
 
-        assert result["openid_configuration_url"] == "https://idp/realms/alfresco/.well-known/openid-configuration"
+        assert (
+            result["openid_configuration_url"]
+            == "https://idp/realms/alfresco/.well-known/openid-configuration"
+        )
         assert result["client_id"] == "drive"
         assert result["audience"] == "acs-api"
         assert result["public_client"] is True
@@ -41,7 +43,9 @@ class TestDiscoverAimsConfigDeviceSync:
 
     def test_no_client_secret_omits_key(self):
         isc = MagicMock()
-        isc.openid_configuration_url.return_value = "https://idp/.well-known/openid-configuration"
+        isc.openid_configuration_url.return_value = (
+            "https://idp/.well-known/openid-configuration"
+        )
         isc.client_id = "alfresco"
         isc.audience = ""
         isc.public_client = True

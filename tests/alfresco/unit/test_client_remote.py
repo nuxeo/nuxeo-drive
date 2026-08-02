@@ -356,8 +356,6 @@ class TestNodeToRemoteFileInfo:
 
 class TestRenameAndMove:
     def test_rename_returns_remote_file_info(self, _client_patch) -> None:
-        from nxdrive.alfresco.client.remote import AlfrescoRemote
-
         remote = _build_remote(_client_patch)
         updated_node = MagicMock()
         updated_node.name = "NewName.txt"
@@ -524,7 +522,9 @@ class TestStreamFile:
         remote.client.nodes.upload.return_value = new_node
         remote.client.nodes.iter_children.return_value = []  # no dups
 
-        with patch("nxdrive.alfresco.client.remote.compute_digest", return_value="md5hash"):
+        with patch(
+            "nxdrive.alfresco.client.remote.compute_digest", return_value="md5hash"
+        ):
             info = remote.stream_file("parent", Path("/tmp/test.txt"))
 
         assert info.uid == "new-file-id"
@@ -716,9 +716,7 @@ class TestDownloadContent:
         remote.client.nodes.get_content.return_value = b"data"
 
         target = tmp_path / "file.txt"
-        with patch(
-            "nxdrive.alfresco.client.remote.compute_digest", return_value="bad"
-        ):
+        with patch("nxdrive.alfresco.client.remote.compute_digest", return_value="bad"):
             with pytest.raises(AlfrescoError, match="Checksum mismatch"):
                 remote.download_content(
                     "n1",
@@ -749,7 +747,7 @@ class TestOAuthTokenInit:
             "nxdrive.alfresco.client.remote.RefreshingOAuth2Auth.from_token",
             return_value=MagicMock(),
         ) as mock_ft:
-            remote = AlfrescoRemote(
+            AlfrescoRemote(
                 "https://acs.example.com/alfresco",
                 "admin",
                 "device-1",

@@ -10,7 +10,7 @@ from alfresco.exceptions import NetworkError as AlfrescoNetworkError
 
 from nxdrive.alfresco.engine.watcher.remote_watcher import AlfrescoRemoteWatcher
 from nxdrive.drive.constants import ROOT
-from nxdrive.drive.objects import DocPair, RemoteFileInfo
+from nxdrive.drive.objects import RemoteFileInfo
 
 
 @pytest.fixture
@@ -181,7 +181,9 @@ class TestScanRemoteRecursive:
         parent_pair = _make_doc_pair(
             remote_ref="parent-node", remote_parent_path="", local_path=ROOT
         )
-        watcher._scan_remote_recursive(parent_pair, _make_remote_info(uid="parent-node"))
+        watcher._scan_remote_recursive(
+            parent_pair, _make_remote_info(uid="parent-node")
+        )
 
         watcher.dao.insert_remote_state.assert_called_once()
 
@@ -227,7 +229,9 @@ class TestScanRemoteRecursive:
             uid="child-1",
             name="Doc.txt",
             folderish=False,
-            last_modification_time=datetime(2024, 6, 15, 10, 30, 0, tzinfo=timezone.utc),
+            last_modification_time=datetime(
+                2024, 6, 15, 10, 30, 0, tzinfo=timezone.utc
+            ),
         )
         remote._node_to_remote_file_info.return_value = child_info
 

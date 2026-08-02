@@ -51,13 +51,15 @@ class TestTokenRequest:
             RefreshingOAuth2Auth.__bases__[0],
             "_token_request",
             return_value="new_access",
-        ) as mock_super:
+        ):
             # After super() call, attrs are updated
             inst._access_token = "new_access"
             inst._refresh_token = "new_refresh"
             inst._expires_at = 10000
 
-            result = RefreshingOAuth2Auth._token_request(inst, {"grant_type": "refresh_token"})
+            result = RefreshingOAuth2Auth._token_request(
+                inst, {"grant_type": "refresh_token"}
+            )
 
         assert result == "new_access"
         callback.assert_called_once()

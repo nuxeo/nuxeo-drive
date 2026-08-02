@@ -1,6 +1,6 @@
 """Unit tests for nxdrive.alfresco.registration."""
 
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -10,9 +10,7 @@ class TestAlfrescoAuthFactory:
         from nxdrive.alfresco.registration import _alfresco_auth_factory
 
         token = {"access_token": "abc", "token_url": "https://idp/token"}
-        with patch(
-            "nxdrive.alfresco.auth.oauth2.AlfrescoOAuthentication"
-        ) as mock_cls:
+        with patch("nxdrive.alfresco.auth.oauth2.AlfrescoOAuthentication") as mock_cls:
             mock_cls.return_value = "oauth-instance"
             result = _alfresco_auth_factory("https://server", token)
         assert result == "oauth-instance"
@@ -20,9 +18,7 @@ class TestAlfrescoAuthFactory:
     def test_string_token_returns_token_auth(self) -> None:
         from nxdrive.alfresco.registration import _alfresco_auth_factory
 
-        with patch(
-            "nxdrive.drive.auth.token.TokenAuthentication"
-        ) as mock_cls:
+        with patch("nxdrive.drive.auth.token.TokenAuthentication") as mock_cls:
             mock_cls.return_value = "token-instance"
             result = _alfresco_auth_factory("https://server", "bearer-token")
         assert result == "token-instance"
@@ -30,9 +26,7 @@ class TestAlfrescoAuthFactory:
     def test_none_token_returns_token_auth(self) -> None:
         from nxdrive.alfresco.registration import _alfresco_auth_factory
 
-        with patch(
-            "nxdrive.drive.auth.token.TokenAuthentication"
-        ) as mock_cls:
+        with patch("nxdrive.drive.auth.token.TokenAuthentication") as mock_cls:
             mock_cls.return_value = "token-instance"
             result = _alfresco_auth_factory("https://server", None)
         assert result == "token-instance"
@@ -55,9 +49,7 @@ class TestAlfrescoReloginHandler:
         engine.stop.assert_called_once()
         engine.start.assert_called_once()
         engine.queue_manager.resume.assert_called_once()
-        engine.dao.update_config.assert_called_once_with(
-            "remote_need_full_scan", "1"
-        )
+        engine.dao.update_config.assert_called_once_with("remote_need_full_scan", "1")
 
     def test_no_ticket_raises(self) -> None:
         from nxdrive.alfresco.registration import _alfresco_relogin_handler

@@ -20,6 +20,6 @@ if sys.path and sys.path[0] == _tests_dir:
 elif _root not in sys.path:
     sys.path.insert(0, _root)
 
-import runpy
+import runpy  # noqa: E402
 
 runpy.run_path(_tests_dir + "/nuxeo/cleanup.py", run_name="__main__")

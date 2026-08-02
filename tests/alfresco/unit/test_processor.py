@@ -162,7 +162,9 @@ class TestRemoteHasDrifted:
         pair.folderish = False
         pair.last_remote_updated = "2024-01-01 00:00:00"
         remote_info = Mock()
-        remote_info.last_modification_time = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        remote_info.last_modification_time = datetime(
+            2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+        )
         proc.remote.get_fs_info.return_value = remote_info
         assert proc._remote_has_drifted(pair) is False
 
@@ -174,7 +176,9 @@ class TestRemoteHasDrifted:
         pair.folderish = False
         pair.last_remote_updated = "2024-01-01 00:00:00"
         remote_info = Mock()
-        remote_info.last_modification_time = datetime(2024, 6, 15, 10, 0, 0, tzinfo=timezone.utc)
+        remote_info.last_modification_time = datetime(
+            2024, 6, 15, 10, 0, 0, tzinfo=timezone.utc
+        )
         proc.remote.get_fs_info.return_value = remote_info
         assert proc._remote_has_drifted(pair) is True
 
@@ -298,9 +302,7 @@ class TestSynchronizeLocallyMoved:
         new_parent_pair = Mock()
         new_parent_pair.remote_ref = "new-parent-ref"
         new_parent_pair.remote_parent_path = "/root"
-        proc._get_normal_state_from_remote_ref = Mock(
-            return_value=new_parent_pair
-        )
+        proc._get_normal_state_from_remote_ref = Mock(return_value=new_parent_pair)
 
         remote_info = Mock()
         proc.remote.move.return_value = remote_info
@@ -380,7 +382,9 @@ class TestFmtRemoteTs:
     def test_string_truncated(self) -> None:
         from nxdrive.alfresco.engine.processor import _fmt_remote_ts
 
-        assert _fmt_remote_ts("2024-06-15 10:30:45.123456+00:00") == "2024-06-15 10:30:45"
+        assert (
+            _fmt_remote_ts("2024-06-15 10:30:45.123456+00:00") == "2024-06-15 10:30:45"
+        )
 
 
 class TestRefreshLocalState:
