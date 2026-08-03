@@ -90,13 +90,21 @@ def alfresco_client(alfresco_url: str, alfresco_auth):
 
 @pytest.fixture(scope="session")
 def _cleanup_stale_test_folders(alfresco_client):
-    """Remove leftover nxdrive-func-tests-* folders before and after the run."""
+    """Remove leftover nxdrive-func-tests-* folders before and after the run.
+
+    Only folders older than 10 minutes are deleted so that parallel xdist
+    workers don't remove each other's freshly-created folders.
+    """
+    from datetime import datetime, timezone, timedelta
 
     def _sweep():
+        cutoff = datetime.now(timezone.utc) - timedelta(minutes=10)
         try:
             children = alfresco_client.nodes.list_children("-root-")
             for child in children:
                 if child.name.startswith("nxdrive-func-tests-"):
+                    if child.created_at and child.created_at > cutoff:
+                        continue
                     try:
                         alfresco_client.nodes.delete(child.id, permanent=True)
                         log.info("[FIXTURE] Cleaned up folder %s", child.name)
