@@ -436,7 +436,7 @@ class Engine(QObject):
         from nxdrive.drive import server_type as _st
         from nxdrive.drive.server_type import FileSystemID
 
-        fs_item_id_format = _st.get(self.type).fs_item_id_format
+        fs_item_id_format = _st.get_by_engine_type(self.type).fs_item_id_format
 
         doc_pair = self.dao.get_state_from_local(path)
         if not doc_pair:
