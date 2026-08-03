@@ -2,6 +2,7 @@
 
 import errno
 import sqlite3
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
@@ -601,7 +602,9 @@ class TestReadonlyLocks:
         from nxdrive.nuxeo.engine.processor import Processor
 
         proc = _make_processor()
-        Processor.readonly_locks = {proc.engine.uid: {Path("/tmp/file.txt"): [1, 0o644]}}
+        Processor.readonly_locks = {
+            proc.engine.uid: {Path("/tmp/file.txt"): [1, 0o644]}
+        }
 
         proc._unlock_readonly(Path("/tmp/file.txt"))
 
@@ -611,7 +614,9 @@ class TestReadonlyLocks:
         from nxdrive.nuxeo.engine.processor import Processor
 
         proc = _make_processor()
-        Processor.readonly_locks = {proc.engine.uid: {Path("/tmp/file.txt"): [1, 0o644]}}
+        Processor.readonly_locks = {
+            proc.engine.uid: {Path("/tmp/file.txt"): [1, 0o644]}
+        }
 
         proc._lock_readonly(Path("/tmp/file.txt"))
 
@@ -623,7 +628,9 @@ class TestReadonlyLocks:
         from nxdrive.nuxeo.engine.processor import Processor
 
         proc = _make_processor()
-        Processor.readonly_locks = {proc.engine.uid: {Path("/tmp/file.txt"): [2, 0o644]}}
+        Processor.readonly_locks = {
+            proc.engine.uid: {Path("/tmp/file.txt"): [2, 0o644]}
+        }
 
         proc._lock_readonly(Path("/tmp/file.txt"))
 
@@ -799,8 +806,6 @@ class TestExecuteExceptionBranches:
         proc.dao.remove_state.assert_called_once_with(pair)
 
     def test_http_error_416_cleans_temp(self):
-        import shutil
-
         from nuxeo.exceptions import HTTPError
 
         proc = _make_processor()
@@ -1001,9 +1006,14 @@ class TestExecuteExceptionBranches:
         proc.pairSyncStarted = MagicMock()
         proc.increase_error = Mock()
         proc._postpone_pair = Mock()
-        proc._handle_doc_pair_sync = Mock(
-            side_effect=OSError(errno.ENOENT, "not found")
-        )
+        # On Windows, OSError.winerror exists (defaults to None for POSIX-style errors).
+        # The production code checks winerror first via getattr(exc, "winerror", exc.errno).
+        # Use the 4-arg form on Windows so winerror is set correctly.
+        if sys.platform == "win32":
+            exc = OSError(0, "not found", None, errno.ENOENT)
+        else:
+            exc = OSError(errno.ENOENT, "not found")
+        proc._handle_doc_pair_sync = Mock(side_effect=exc)
         proc._execute()
         proc.dao.remove_state.assert_called_once_with(pair)
 
@@ -1027,9 +1037,7 @@ class TestExecuteExceptionBranches:
     def test_runtime_error_expired_creds_removes_upload(self):
         proc = _make_processor()
         pair = _mock_doc_pair(local_state="direct")
-        exc = RuntimeError(
-            "but the refreshed credentials are still expired"
-        )
+        exc = RuntimeError("but the refreshed credentials are still expired")
         proc._get_item = Mock(side_effect=[pair, None])
         proc._get_next_doc_pair = Mock(return_value=pair)
         proc._interact = Mock()
@@ -1052,9 +1060,7 @@ class TestExecuteExceptionBranches:
         proc.pairSyncStarted = MagicMock()
         proc.increase_error = Mock()
         proc._postpone_pair = Mock()
-        proc._handle_doc_pair_sync = Mock(
-            side_effect=RuntimeError("something else")
-        )
+        proc._handle_doc_pair_sync = Mock(side_effect=RuntimeError("something else"))
         with pytest.raises(RuntimeError, match="something else"):
             proc._execute()
 
@@ -1090,9 +1096,7 @@ class TestExecuteExceptionBranches:
 
     def test_direct_state_calls_dt_handler(self):
         proc = _make_processor()
-        pair = _mock_doc_pair(
-            pair_state="locally_modified", local_state="direct"
-        )
+        pair = _mock_doc_pair(pair_state="locally_modified", local_state="direct")
         proc._get_item = Mock(side_effect=[pair, None])
         proc._get_next_doc_pair = Mock(return_value=pair)
         proc._interact = Mock()

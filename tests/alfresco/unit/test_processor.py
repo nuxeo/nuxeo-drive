@@ -887,7 +887,7 @@ class TestExecute:
 # ------------------------------------------------------------------ _synchronize_remotely_deleted
 
 
-class TestSynchronizeRemotelyDeleted:
+class TestSynchronizeRemotelyDeletedExtra:
     @pytest.fixture
     def proc(self, mock_engine):
         item_getter = Mock(return_value=None)
@@ -930,7 +930,7 @@ class TestSynchronizeRemotelyDeleted:
 # ------------------------------------------------------------------ _synchronize_locally_deleted
 
 
-class TestSynchronizeLocallyDeleted:
+class TestSynchronizeLocallyDeletedExtra:
     @pytest.fixture
     def proc(self, mock_engine):
         item_getter = Mock(return_value=None)
@@ -972,7 +972,7 @@ class TestSynchronizeLocallyDeleted:
 # ------------------------------------------------------------------ _synchronize_conflicted
 
 
-class TestSynchronizeConflicted:
+class TestSynchronizeConflictedExtra:
     @pytest.fixture
     def proc(self, mock_engine):
         item_getter = Mock(return_value=None)
@@ -1063,7 +1063,7 @@ class TestSynchronizeInconsistentPairs:
 # ------------------------------------------------------------------ _mark_conflicted
 
 
-class TestMarkConflicted:
+class TestMarkConflictedExtra:
     @pytest.fixture
     def proc(self, mock_engine):
         item_getter = Mock(return_value=None)
@@ -1084,7 +1084,7 @@ class TestMarkConflicted:
 # ------------------------------------------------------------------ _remote_has_drifted
 
 
-class TestRemoteHasDrifted:
+class TestRemoteHasDriftedExtra:
     @pytest.fixture
     def proc(self, mock_engine):
         item_getter = Mock(return_value=None)

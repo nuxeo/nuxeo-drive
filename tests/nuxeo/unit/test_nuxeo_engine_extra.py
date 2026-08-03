@@ -1324,9 +1324,7 @@ class TestDirectTransfer:
         with patch("nxdrive.nuxeo.engine.engine.Options") as mock_opts:
             mock_opts.database_batch_size = 1000
             mock_opts.nofscheck = False
-            engine._direct_transfer(
-                {f: f.stat().st_size}, "/ws", "ref-1", "Workspace"
-            )
+            engine._direct_transfer({f: f.stat().st_size}, "/ws", "ref-1", "Workspace")
 
         engine.dao.create_session.assert_called_once()
         engine.dao.plan_many_direct_transfer_items.assert_called_once()

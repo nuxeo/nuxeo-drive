@@ -1,7 +1,7 @@
 """Unit tests for nxdrive.alfresco.engine.engine — targets uncovered lines."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -171,7 +171,7 @@ class TestInitRemote:
     def test_creates_remote_with_expected_args(self):
         engine = _make_engine()
         engine._alfresco_ticket = "TICKET-ABC"
-        remote = engine.init_remote()
+        engine.init_remote()
         engine.remote_cls.assert_called_once()
         call_kwargs = engine.remote_cls.call_args
         assert call_kwargs[1]["alfresco_ticket"] == "TICKET-ABC"
