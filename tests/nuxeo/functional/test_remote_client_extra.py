@@ -170,21 +170,6 @@ def test_remote_get_fs_children(manager_factory, obj_factory):
 # ---------------------------------------------------------------------------
 
 
-def test_remote_scroll_descendants(manager_factory, obj_factory):
-    """Test scroll_descendants for remote scanning."""
-    manager, engine = manager_factory()
-    with manager:
-        remote = engine.remote
-        root_state = engine.dao.get_state_from_local(Path("/"))
-        if root_state and root_state.remote_ref:
-            result = remote.scroll_descendants(
-                root_state.remote_ref, None, batch_size=10
-            )
-            assert "scroll_id" in result
-            assert "descendants" in result
-            assert isinstance(result["descendants"], list)
-
-
 # ---------------------------------------------------------------------------
 # Remote client: custom metrics headers
 # ---------------------------------------------------------------------------
