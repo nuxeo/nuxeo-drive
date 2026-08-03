@@ -133,11 +133,9 @@ def test_current_os_full():
 
 def test_user_agent():
     if MAC:
-        expected = r"^Nuxeo-Drive/\d{1,2}\.\d{1,2}\.\d{1,2} \(macOS \d{2}\.\d{1,2}\)$"
+        expected = r"^Drive/\d{1,2}\.\d{1,2}\.\d{1,2} \(macOS \d{2}\.\d{1,2}\)$"
     elif WINDOWS:
-        expected = (
-            r"^Nuxeo-Drive/\d{1,2}\.\d{1,2}\.\d{1,2} \(Windows \d{1,2}\.\d{1,2}\)$"
-        )
+        expected = r"^Drive/\d{1,2}\.\d{1,2}\.\d{1,2} \(Windows \d{1,2}\.\d{1,2}\)$"
     else:
-        expected = r"^Nuxeo-Drive/\d{1,2}\.\d{1,2}\.\d{1,2} \(\w+ \d{1,2}\.\d{1,2}\)$"
+        expected = r"^Drive/\d{1,2}\.\d{1,2}\.\d{1,2} \(\w+ \d{1,2}\.\d{1,2}\)$"
     assert re.fullmatch(expected, user_agent())

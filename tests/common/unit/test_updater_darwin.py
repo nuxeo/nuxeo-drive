@@ -97,7 +97,7 @@ def test_cleanup_removes_paths(tmp_path):
 def test_copy_calls_ditto_and_propagates_error(monkeypatch, tmp_path):
     # Prepare a fake mount dir with the expected app bundle
     mount_dir = tmp_path / "mount"
-    app_bundle = mount_dir / "Nuxeo Drive.app"
+    app_bundle = mount_dir / "Drive.app"
     app_bundle.mkdir(parents=True)
 
     dest = tmp_path / "Final.app"
@@ -117,7 +117,7 @@ def test_copy_calls_ditto_and_propagates_error(monkeypatch, tmp_path):
     assert recorded["cmd"][0] == "ditto"
     # On Windows the darwin code builds the src with a forward slash
     # so compare by app bundle name rather than full path
-    assert "Nuxeo Drive.app" in recorded["cmd"][1]
+    assert "Drive.app" in recorded["cmd"][1]
 
     # Failure path: make check_call raise CalledProcessError and expect _copy to raise
     def failing_call(cmd):

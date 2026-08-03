@@ -1,4 +1,5 @@
 import configparser
+import logging
 import os
 from collections import namedtuple
 from datetime import datetime
@@ -392,6 +393,7 @@ def test_request_verify_no_ca_bundle(ca_bundle, ssl_no_verify, expected):
 
 @Options.mock()
 def test_request_verify_ca_bundle_file(caplog, tmp_path):
+    caplog.set_level(logging.DEBUG)
     home = tmp_path / "home"
     home.mkdir()
     Options.nxdrive_home = home
@@ -434,6 +436,7 @@ def test_request_verify_ca_bundle_file(caplog, tmp_path):
 @Options.mock()
 def test_request_verify_ca_bundle_file_is_str(caplog, tmp_path):
     """Regression test for NXRIVE-2719."""
+    caplog.set_level(logging.DEBUG)
     home = tmp_path / "home"
     home.mkdir()
     Options.nxdrive_home = home
@@ -480,6 +483,7 @@ def test_request_verify_ca_bundle_file_is_already_all_in_one_certificate(tmp_pat
 
 @Options.mock()
 def test_request_verify_ca_bundle_file_mimic_updates(caplog, tmp_path):
+    caplog.set_level(logging.DEBUG)
     home = tmp_path / "home"
     home.mkdir()
     Options.nxdrive_home = home
@@ -518,6 +522,7 @@ def test_request_verify_ca_bundle_file_mimic_updates(caplog, tmp_path):
 
 
 def test_request_verify_ca_bundle_file_is_not_a_certificate(caplog, tmp_path):
+    caplog.set_level(logging.DEBUG)
     ca_bundle = tmp_path / "false.crt"
     ca_bundle.write_bytes(b"foo")
 
@@ -535,6 +540,7 @@ def test_request_verify_ca_bundle_file_is_not_a_certificate(caplog, tmp_path):
 
 @Options.mock()
 def test_request_verify_ca_bundle_folder(caplog, tmp_path):
+    caplog.set_level(logging.DEBUG)
     home = tmp_path / "home"
     home.mkdir()
     Options.nxdrive_home = home
@@ -592,6 +598,7 @@ def test_request_verify_ca_bundle_folder_contains_subfolder(caplog, tmp_path):
 
 @Options.mock()
 def test_request_verify_ca_bundle_folder_contains_big_file(caplog, tmp_path):
+    caplog.set_level(logging.DEBUG)
     home = tmp_path / "home"
     home.mkdir()
     Options.nxdrive_home = home
@@ -694,8 +701,8 @@ def test_get_tree_list():
     path = location / "resources"
     tree = list(nxdrive.drive.utils.get_tree_list(path))
 
-    # Check we got all paths
-    expected_paths = [path] + sorted(path.glob("**/*"))
+    # Check we got all paths (excluding symlinks, which get_tree_list skips)
+    expected_paths = [path] + sorted(p for p in path.glob("**/*") if not p.is_symlink())
     guessed_paths = sorted(p for p, *_ in tree)
     assert guessed_paths == expected_paths
 

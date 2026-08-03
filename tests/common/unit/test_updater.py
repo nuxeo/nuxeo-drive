@@ -92,6 +92,7 @@ VERSIONS = {
 )
 def test_get_update_status(current, server, channel, action_required, new):
     """get_update_status calls get_latest_version and get_compatible_versions, 2 tests in one!"""
+    Options.server_type = "NUXEO"
     action, version = get_update_status(current, VERSIONS, channel, server, Login.NEW)
     assert action == action_required
     assert version == new
@@ -121,6 +122,7 @@ def test_get_update_status_centralized_channel(current, desired, action_required
 @Options.mock()
 def test_get_update_status_centralized_channel_wrong_client_version():
     """Test the Centralized channel with a client_version too low."""
+    Options.server_type = "NUXEO"
     # Must be >= 4.2.0
     Options.client_version = "4.0.3.12"
 
@@ -168,6 +170,7 @@ def test_get_update_status_centralized_channel_without_client_version():
 @Options.mock()
 def test_get_update_status_centralized_channel_wrong_server():
     """Test the Centralized channel when the desired version is not compatible with the server."""
+    Options.server_type = "NUXEO"
     Options.client_version = "4.2.1"
     assert Options.client_version == "4.2.1"
     action, version = get_update_status(

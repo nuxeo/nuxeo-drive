@@ -1,4 +1,4 @@
-"""Unit tests for nxdrive.drive.engine.processor module."""
+"""Unit tests for nxdrive.nuxeo.engine.processor module."""
 
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -6,9 +6,9 @@ from unittest.mock import Mock, patch
 import pytest
 
 from nxdrive.drive.constants import TransferStatus
-from nxdrive.drive.engine.processor import Processor
 from nxdrive.drive.exceptions import NotFound, UploadCancelled, UploadPaused
 from nxdrive.drive.objects import DocPair, Session
+from nxdrive.nuxeo.engine.processor import Processor
 
 
 @pytest.fixture
@@ -75,7 +75,7 @@ class TestHandleDocPairSync:
         """Test MAC-specific finder info handling."""
         doc_pair.remote_ref = "remote123"
 
-        with patch("nxdrive.drive.engine.processor.MAC", True):
+        with patch("nxdrive.nuxeo.engine.processor.MAC", True):
             with patch.object(
                 processor.local, "get_remote_id", return_value="brokMACS_data"
             ):
@@ -597,12 +597,12 @@ class TestSynchronizeDirectTransfer:
 
         # Need to patch the specific Path creation and exists check
         # On non-Windows, the code does: path = Path(f"/{doc_pair.local_path}")
-        with patch("nxdrive.drive.engine.processor.WINDOWS", False):
+        with patch("nxdrive.nuxeo.engine.processor.WINDOWS", False):
             # Create a mock Path object to return from Path constructor
             mock_path = Mock(spec=Path)
             mock_path.exists.return_value = False
 
-            with patch("nxdrive.drive.engine.processor.Path", return_value=mock_path):
+            with patch("nxdrive.nuxeo.engine.processor.Path", return_value=mock_path):
                 # Ensure get_session returns None when session is None
                 with patch.object(processor.dao, "get_session", return_value=None):
                     mock_signal = Mock()
@@ -641,7 +641,7 @@ class TestSynchronizeDirectTransfer:
         doc_pair.local_path = Path("/tmp/test_file.txt")
         doc_pair.session = None
 
-        with patch("nxdrive.drive.engine.processor.WINDOWS", False):
+        with patch("nxdrive.nuxeo.engine.processor.WINDOWS", False):
             with patch.object(Path, "exists", return_value=True):
                 with patch.object(processor.remote, "upload") as mock_upload:
                     with patch.object(processor, "_direct_transfer_end") as mock_end:
@@ -659,7 +659,7 @@ class TestSynchronizeDirectTransfer:
         doc_pair.local_path = Path("C:/Users/test/file.txt")
         doc_pair.session = None
 
-        with patch("nxdrive.drive.engine.processor.WINDOWS", True):
+        with patch("nxdrive.nuxeo.engine.processor.WINDOWS", True):
             with patch.object(Path, "exists", return_value=True):
                 with patch.object(processor.remote, "upload") as mock_upload:
                     with patch.object(processor, "_direct_transfer_end") as mock_end:
@@ -783,35 +783,35 @@ class TestCheckPairState:
 
     def test_check_pair_state_synchronized(self, doc_pair):
         """Test that synchronized state is filtered out."""
-        from nxdrive.drive.engine.processor import Processor
+        from nxdrive.nuxeo.engine.processor import Processor
 
         doc_pair.pair_state = "synchronized"
         assert not Processor.check_pair_state(doc_pair)
 
     def test_check_pair_state_unsynchronized(self, doc_pair):
         """Test that unsynchronized state is filtered out."""
-        from nxdrive.drive.engine.processor import Processor
+        from nxdrive.nuxeo.engine.processor import Processor
 
         doc_pair.pair_state = "unsynchronized"
         assert not Processor.check_pair_state(doc_pair)
 
     def test_check_pair_state_parent_prefix(self, doc_pair):
         """Test that parent_ prefix states are filtered out."""
-        from nxdrive.drive.engine.processor import Processor
+        from nxdrive.nuxeo.engine.processor import Processor
 
         doc_pair.pair_state = "parent_locally_modified"
         assert not Processor.check_pair_state(doc_pair)
 
     def test_check_pair_state_remote_todo(self, doc_pair):
         """Test that remote todo state is filtered out."""
-        from nxdrive.drive.engine.processor import Processor
+        from nxdrive.nuxeo.engine.processor import Processor
 
         doc_pair.remote_state = "todo"
         assert not Processor.check_pair_state(doc_pair)
 
     def test_check_pair_state_valid(self, doc_pair):
         """Test that valid states pass through."""
-        from nxdrive.drive.engine.processor import Processor
+        from nxdrive.nuxeo.engine.processor import Processor
 
         doc_pair.pair_state = "locally_created"
         doc_pair.remote_state = "unknown"

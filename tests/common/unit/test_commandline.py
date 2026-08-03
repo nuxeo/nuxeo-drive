@@ -67,6 +67,7 @@ def cmd(tmp):
     path = tmp() / "config"
     path.mkdir(parents=True, exist_ok=True)
     Options.set("nxdrive_home", normalized_path(path), setter="local")
+    Options.server_type = "NUXEO"
 
     yield CliHandler()
 

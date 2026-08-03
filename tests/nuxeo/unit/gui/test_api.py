@@ -1714,7 +1714,7 @@ class TestQMLDriveApiJsonDefault:
         # Test basic functionality
         with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.resume_session("test_engine", 123)
-            mock_log.info.assert_called_once_with(
+            mock_log.debug.assert_called_once_with(
                 "Resume session 123 for engine 'test_engine'"
             )
 
@@ -1740,7 +1740,7 @@ class TestQMLDriveApiJsonDefault:
         # Test basic functionality
         with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.pause_session("test_engine", 789)
-            mock_log.info.assert_called_once_with(
+            mock_log.debug.assert_called_once_with(
                 "Pausing session 789 for engine 'test_engine'"
             )
 
@@ -1895,8 +1895,8 @@ class TestQMLDriveApiJsonDefault:
     def test_web_update_token_comprehensive_functionality(self):
         """Comprehensive test covering all functionality of web_update_token method."""
 
-        from nxdrive.drive.auth import OAuthentication
         from nxdrive.drive.updater.constants import Login
+        from nxdrive.nuxeo.auth.oauth2 import OAuthentication
 
         mock_engine = Mock()
         mock_engine.server_url = "https://test.server.com"
@@ -2075,7 +2075,6 @@ class TestQMLDriveApiJsonDefault:
 
         from pathlib import Path
 
-        from nuxeo.exceptions import HTTPError, Unauthorized
         from requests.exceptions import ConnectionError
 
         from nxdrive.drive.exceptions import (
@@ -2084,6 +2083,8 @@ class TestQMLDriveApiJsonDefault:
             FolderAlreadyUsed,
             MissingXattrSupport,
             NotFound,
+            RemoteHTTPError,
+            RemoteUnauthorized,
             RootAlreadyBindWithDifferentAccount,
         )
 
@@ -2200,10 +2201,10 @@ class TestQMLDriveApiJsonDefault:
             (MissingXattrSupport(Path("/test")), "INVALID_LOCAL_FOLDER"),
             (AddonForbiddenError(), "ADDON_FORBIDDEN"),
             (AddonNotInstalledError(), "ADDON_NOT_INSTALLED"),
-            (Unauthorized(), "UNAUTHORIZED"),
+            (RemoteUnauthorized(), "UNAUTHORIZED"),
             (FolderAlreadyUsed(), "FOLDER_USED"),
             (PermissionError(), "FOLDER_PERMISSION_ERROR"),
-            (HTTPError(), "CONNECTION_ERROR"),
+            (RemoteHTTPError(), "CONNECTION_ERROR"),
         ]
 
         for exception, expected_error in exceptions_and_errors:
@@ -2604,11 +2605,22 @@ class TestQMLDriveApiJsonDefault:
         from nuxeo.exceptions import OAuth2Error
 
         # Test successful OAuth2 flow for account creation
+        mock_oauth_class = Mock()
+        mock_auth = Mock()
+        mock_auth.get_token.return_value = "test_token"
+        mock_auth.get_username.return_value = "testuser"
+        mock_oauth_class.return_value = mock_auth
+
+        mock_config = Mock()
+        mock_config.oauth2_class_path = "some.path"
+
         with patch.object(
             self.api, "create_account", return_value=""
-        ) as mock_create_account, patch(
-            "nxdrive.drive.gui.api.OAuthentication"
-        ) as mock_oauth_class, patch(
+        ) as mock_create_account, patch.object(
+            self.api, "_resolve_server_config", return_value=mock_config
+        ), patch(
+            "nxdrive.drive.gui.api._st.load_class", return_value=mock_oauth_class
+        ), patch(
             "nxdrive.drive.gui.api.Options"
         ) as mock_options:
 
@@ -2620,12 +2632,6 @@ class TestQMLDriveApiJsonDefault:
             }.get(key)
 
             mock_options.oauth2_openid_configuration_url = None
-
-            # Setup mock OAuth authentication
-            mock_auth = Mock()
-            mock_auth.get_token.return_value = "test_token"
-            mock_auth.get_username.return_value = "testuser"
-            mock_oauth_class.return_value = mock_auth
 
             # Clear callback_params to test account creation path
             self.api.callback_params = {}
@@ -2661,11 +2667,19 @@ class TestQMLDriveApiJsonDefault:
             assert self.mock_manager.dao.delete_config.call_count == 3
 
         # Test successful OAuth2 flow for token update (engine exists)
+        mock_oauth_class2 = Mock()
+        mock_auth2 = Mock()
+        mock_auth2.get_token.return_value = "updated_token"
+        mock_auth2.get_username.return_value = "testuser"
+        mock_oauth_class2.return_value = mock_auth2
+
         with patch.object(
             self.api, "update_token", return_value=""
         ) as mock_update_token, patch(
-            "nxdrive.drive.gui.api.OAuthentication"
-        ) as mock_oauth_class, patch(
+            "nxdrive.drive.gui.api._st.load_class", return_value=mock_oauth_class2
+        ), patch.object(
+            self.api, "_resolve_server_config", return_value=mock_config
+        ), patch(
             "nxdrive.drive.gui.api.Options"
         ) as mock_options:
 
@@ -2680,12 +2694,6 @@ class TestQMLDriveApiJsonDefault:
             mock_options.oauth2_openid_configuration_url = "https://openid.config.url"
             self.mock_manager.proxy.settings.return_value = {"http": "proxy:8080"}
 
-            # Setup mock OAuth authentication
-            mock_auth = Mock()
-            mock_auth.get_token.return_value = "updated_token"
-            mock_auth.get_username.return_value = "testuser"
-            mock_oauth_class.return_value = mock_auth
-
             # Set callback_params to test token update path
             self.api.callback_params = {"engine": "test_engine"}
 
@@ -2693,7 +2701,7 @@ class TestQMLDriveApiJsonDefault:
             self.api.continue_oauth2_flow(query)
 
             # Verify OAuth authentication setup with proxy
-            mock_oauth_class.assert_called_once_with(
+            mock_oauth_class2.assert_called_once_with(
                 "https://test.server.com",
                 dao=self.mock_manager.dao,
                 subclient_kwargs={"proxies": {"http": "proxy:8080"}},
@@ -2771,7 +2779,7 @@ class TestQMLDriveApiJsonDefault:
 
         # Test OAuth2Error during token retrieval
         with patch.object(self.api, "setMessage") as mock_set_message, patch(
-            "nxdrive.drive.gui.api.OAuthentication"
+            "nxdrive.drive.gui.api._st.load_class"
         ) as mock_oauth_class, patch("nxdrive.drive.gui.api.log") as mock_log, patch(
             "nxdrive.drive.gui.api.Options"
         ) as mock_options:
@@ -2788,7 +2796,7 @@ class TestQMLDriveApiJsonDefault:
             # Setup mock OAuth authentication to raise OAuth2Error
             mock_auth = Mock()
             mock_auth.get_token.side_effect = OAuth2Error("Token request failed")
-            mock_oauth_class.return_value = mock_auth
+            mock_oauth_class.return_value.return_value = mock_auth
 
             self.api.callback_params = {}
 
@@ -2820,7 +2828,7 @@ class TestQMLDriveApiJsonDefault:
         ) as mock_create_account, patch.object(
             self.api, "setMessage"
         ) as mock_set_message, patch(
-            "nxdrive.drive.gui.api.OAuthentication"
+            "nxdrive.drive.gui.api._st.load_class"
         ) as mock_oauth_class, patch(
             "nxdrive.drive.gui.api.Options"
         ) as mock_options:
@@ -2838,7 +2846,7 @@ class TestQMLDriveApiJsonDefault:
             mock_auth = Mock()
             mock_auth.get_token.return_value = "test_token"
             mock_auth.get_username.return_value = "testuser"
-            mock_oauth_class.return_value = mock_auth
+            mock_oauth_class.return_value.return_value = mock_auth
 
             self.api.callback_params = {}
 
@@ -2870,7 +2878,7 @@ class TestQMLDriveApiJsonDefault:
         ) as mock_update_token, patch.object(
             self.api, "setMessage"
         ) as mock_set_message, patch(
-            "nxdrive.drive.gui.api.OAuthentication"
+            "nxdrive.drive.gui.api._st.load_class"
         ) as mock_oauth_class, patch(
             "nxdrive.drive.gui.api.Options"
         ) as mock_options:
@@ -2888,7 +2896,7 @@ class TestQMLDriveApiJsonDefault:
             mock_auth = Mock()
             mock_auth.get_token.return_value = "test_token"
             mock_auth.get_username.return_value = "testuser"
-            mock_oauth_class.return_value = mock_auth
+            mock_oauth_class.return_value.return_value = mock_auth
 
             self.api.callback_params = {"engine": "test_engine"}
 
