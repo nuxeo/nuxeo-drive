@@ -5,10 +5,10 @@ Session-scoped fixtures build one authenticated
 fixtures build ephemeral test folders / files under
 the repository root and delete them on tear-down.
 
-All fixtures raise ``pytest.skip`` when
-``env.ALFRESCO_URL / _USER / _PASSWORD`` are not set, so the whole
-suite is safe to collect on machines without a live server (see
-:func:`tests.alfresco.conftest.pytest_collection_modifyitems`).
+All fixtures call ``pytest.fail`` when
+``env.ALFRESCO_URL / _USER / _PASSWORD`` are not set, so tests fail
+with a clear "no server available" message rather than silently
+skipping (see :func:`tests.alfresco.conftest.pytest_collection_modifyitems`).
 """
 
 from logging import getLogger
@@ -18,9 +18,20 @@ from uuid import uuid4
 
 import pytest
 
+from nxdrive.drive.feature import Feature
 from nxdrive.drive.manager import Manager
 
 log = getLogger(__name__)
+
+
+@pytest.fixture(autouse=True)
+def _enable_sync_feature():
+    """Enable Feature.synchronization for functional tests so that
+    bind() creates the local folder, root pair, and filters_configured flag."""
+    old = Feature.synchronization
+    Feature.synchronization = True
+    yield
+    Feature.synchronization = old
 
 
 @pytest.fixture()

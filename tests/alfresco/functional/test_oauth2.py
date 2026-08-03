@@ -9,12 +9,9 @@ test the wiring: the OAuth handler builds an authorization URL that
 targets the expected server and returns the expected shape.
 """
 
-import pytest
-
 from ... import env_alfresco as env
 
 
-@pytest.mark.skipif(not env.ALFRESCO_URL, reason="ALFRESCO_URL not configured")
 class TestOAuthWiring:
     def test_authorization_url_is_built(self) -> None:
         from nxdrive.alfresco.auth.oauth2 import AlfrescoOAuthentication
