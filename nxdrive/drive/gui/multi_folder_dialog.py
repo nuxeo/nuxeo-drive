@@ -10,11 +10,7 @@ import subprocess
 from logging import getLogger
 from pathlib import Path
 
-<<<<<<< HEAD:nxdrive/drive/gui/multi_folder_dialog.py
 from nxdrive.drive.qt.imports import (
-=======
-from nxdrive.qt.imports import (
->>>>>>> origin/master:nxdrive/gui/multi_folder_dialog.py
     QCheckBox,
     QDialog,
     QDialogButtonBox,

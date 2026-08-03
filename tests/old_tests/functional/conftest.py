@@ -12,12 +12,7 @@ from nuxeo.exceptions import Conflict
 from nuxeo.models import Blob, FileBlob
 from nuxeo.users import User
 
-<<<<<<< HEAD:tests/old_tests/functional/conftest.py
 from nxdrive.drive.manager import Manager
-=======
-from nxdrive.exceptions import AddonNotInstalledError
-from nxdrive.manager import Manager
->>>>>>> origin/master:tests/functional/conftest.py
 
 from .. import env
 

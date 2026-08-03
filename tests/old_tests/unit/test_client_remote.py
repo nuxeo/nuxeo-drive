@@ -137,24 +137,10 @@ def test_transfer_start_callback(mock_action, mock_uploader):
     assert output is None
 
 
-<<<<<<< HEAD:tests/old_tests/unit/test_client_remote.py
 @patch("nxdrive.drive.dao.engine.EngineDAO.get_download")
 @patch("nuxeo.handlers.default.Uploader")
 @patch("nxdrive.drive.engine.activity.Action.get_current_action")
 def test_transfer_end_callback_download(mock_action, mock_uploader, mock_dao):
-=======
-@patch("nxdrive.dao.engine.EngineDAO.get_download")
-@patch("nxdrive.dao.engine.EngineDAO.set_transfer_progress")
-@patch("nuxeo.handlers.default.Uploader")
-@patch("nxdrive.engine.activity.Action.get_current_action")
-def test_transfer_end_callback_download(
-    mock_action,
-    mock_uploader,
-    mock_set_transfer_progress,
-    mock_dao,
-    isolated_test_engine_db,
-):
->>>>>>> origin/master:tests/unit/test_client_remote.py
     """
     This test case will only cover DownloadAction scenario
     """
@@ -206,19 +192,10 @@ def test_transfer_end_callback_download(
         remote_obj.dao.dispose()
 
 
-<<<<<<< HEAD:tests/old_tests/unit/test_client_remote.py
 @patch("nxdrive.drive.dao.engine.EngineDAO.get_download")
 @patch("nuxeo.handlers.default.Uploader")
 @patch("nxdrive.drive.engine.activity.Action.get_current_action")
 def test_transfer_end_callback_upload(mock_action, mock_uploader, mock_dao):
-=======
-@patch("nxdrive.dao.engine.EngineDAO.get_upload")
-@patch("nuxeo.handlers.default.Uploader")
-@patch("nxdrive.engine.activity.Action.get_current_action")
-def test_transfer_end_callback_upload(
-    mock_action, mock_uploader, mock_get_upload, isolated_test_engine_db
-):
->>>>>>> origin/master:tests/unit/test_client_remote.py
     """
     This test case will only cover UploadAction scenario
     """
@@ -462,15 +439,9 @@ def test_check_integrity_simple(mock_verification):
     assert ex is not None
 
 
-<<<<<<< HEAD:tests/old_tests/unit/test_client_remote.py
 @patch("nxdrive.nuxeo.client.uploader.sync.SyncUploader")
 def test_upload(mock_sync_uploader):
     from nxdrive.nuxeo.client.uploader import BaseUploader
-=======
-@patch("nxdrive.client.uploader.sync.SyncUploader")
-def test_upload(mock_sync_uploader, isolated_test_engine_db):
-    from nxdrive.client.uploader import BaseUploader
->>>>>>> origin/master:tests/unit/test_client_remote.py
 
     class Mock_Uploader(BaseUploader):
         def __init__(self, remote: Remote) -> None:
@@ -582,19 +553,10 @@ def test_get_fs_info(mock_get_item, mock_remote_dict, mock_is_root, mock_expand_
     assert isinstance(output, RemoteFileInfo)
 
 
-<<<<<<< HEAD:tests/old_tests/unit/test_client_remote.py
 @patch("nxdrive.drive.dao.engine.EngineDAO.remove_transfer")
 @patch("nxdrive.nuxeo.client.remote_client.Remote.download")
 @patch("nxdrive.nuxeo.client.remote_client.Remote.get_fs_info")
 def test_stream_content(mock_fs_info, mock_download, mock_remove_transfer):
-=======
-@patch("nxdrive.dao.engine.EngineDAO.remove_transfer")
-@patch("nxdrive.client.remote_client.Remote.download")
-@patch("nxdrive.client.remote_client.Remote.get_fs_info")
-def test_stream_content(
-    mock_fs_info, mock_download, mock_remove_transfer, isolated_test_engine_db
-):
->>>>>>> origin/master:tests/unit/test_client_remote.py
     class Mock_FS:
         def __init__(self) -> None:
             self.download_url = "download_url"

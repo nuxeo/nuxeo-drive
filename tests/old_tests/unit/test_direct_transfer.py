@@ -30,28 +30,11 @@ class Mock_Doc_Pair(DocPair):
         self.size = 10
 
 
-<<<<<<< HEAD:tests/old_tests/unit/test_direct_transfer.py
 @patch("nxdrive.nuxeo.client.uploader.BaseUploader.upload_impl")
 @patch("nxdrive.nuxeo.client.remote_client.Remote.fetch")
 @patch("nxdrive.nuxeo.client.remote_client.Remote.upload_folder_type")
 @patch("nxdrive.nuxeo.client.remote_client.Remote.upload_folder")
 @patch("nxdrive.nuxeo.client.remote_client.Remote.exists_in_parent")
-=======
-@pytest.fixture()
-def isolated_test_engine_db(tmp_path: Path) -> Path:
-    src = Path("tests") / "resources" / "databases" / "test_engine.db"
-    dst = tmp_path / "test_engine.db"
-    shutil.copy(src, dst)
-    return dst
-
-
-@patch("nxdrive.client.uploader.BaseUploader.upload_impl")
-@patch("nxdrive.client.remote_client.Remote.fetch")
-@patch("nxdrive.client.remote_client.Remote.upload_folder_type")
-@patch("nxdrive.client.remote_client.Remote.upload_folder")
-@patch("nxdrive.client.remote_client.Remote.exists_in_parent")
-@patch("nxdrive.dao.engine.EngineDAO.save_session_item")
->>>>>>> origin/master:tests/unit/test_direct_transfer.py
 def test_upload(
     mock_save_session_item,
     mock_exist_parent,

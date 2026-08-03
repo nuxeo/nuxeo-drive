@@ -5,15 +5,8 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
-<<<<<<< HEAD:tests/old_tests/unit/test_engine_dao.py
 from nxdrive.drive.constants import TransferStatus
 from nxdrive.drive.dao.migrations.migration import MigrationInterface
-=======
-import pytest
-
-from nxdrive.constants import TransferStatus
-from nxdrive.dao.migrations.migration import MigrationInterface
->>>>>>> origin/master:tests/unit/test_engine_dao.py
 
 from ..markers import windows_only
 

@@ -26,13 +26,10 @@ class ScheduleDialog(QDialog):
 
     def __init__(self, parent: QDialog | None = None) -> None:
         super().__init__(parent)
-<<<<<<< HEAD:nxdrive/drive/gui/schedule_dialog.py
         # Window-level modality so the systray stays clickable while this
         # dialog is open (application-modal .exec() would block the QML
         # systray window on macOS).
         self.setWindowModality(Qt.WindowModality.WindowModal)
-=======
->>>>>>> origin/master:nxdrive/gui/schedule_dialog.py
         self.selected_dt: QDateTime | None = None
         self.setWindowTitle(Translator.get("SCHEDULE_PICK_DATETIME"))
         self.resize(300, 350)
@@ -235,12 +232,9 @@ class ResumeScheduledSessionPopup(QDialog):
         self, parent: QDialog | None = None, scheduled_datetime: str | None = None
     ) -> None:
         super().__init__(parent)
-<<<<<<< HEAD:nxdrive/drive/gui/schedule_dialog.py
         # Window-level modality so the systray stays clickable while this
         # popup is open.
         self.setWindowModality(Qt.WindowModality.WindowModal)
-=======
->>>>>>> origin/master:nxdrive/gui/schedule_dialog.py
 
         self.setWindowTitle(Translator.get("RESUMING_SCHEDULED_SESSION_TITLE"))
 

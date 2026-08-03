@@ -50,18 +50,8 @@ from nxdrive.drive.qt.imports import (
     pyqtSignal,
     pyqtSlot,
 )
-<<<<<<< HEAD:nxdrive/drive/engine/engine.py
 from nxdrive.drive.state import State
 from nxdrive.drive.utils import (
-=======
-from ..objects import Binder, DocPairs, EngineDef, Metrics, Session
-from ..options import Options
-from ..qt.imports import QObject, QThread, QThreadPool, QTimer, pyqtSignal, pyqtSlot
-from ..state import State
-from ..utils import (
-    client_certificate,
-    current_thread_id,
->>>>>>> origin/master:nxdrive/engine/engine.py
     decrypt,
     encrypt,
     find_icon,
@@ -462,292 +452,6 @@ class Engine(QObject):
                     f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}"
                 )
 
-<<<<<<< HEAD:nxdrive/drive/engine/engine.py
-=======
-    def _save_last_dt_session_infos(
-        self,
-        remote_path: str,
-        remote_ref: str,
-        remote_title: str,
-        duplicate_behavior: str,
-        last_local_selected_location: Optional[Path],
-        last_local_selected_doc_type: Optional[str],
-        /,
-    ) -> None:
-        """Store last dt session infos into the database for later runs."""
-        self.dao.update_config("dt_last_remote_location", remote_path)
-        self.dao.update_config("dt_last_remote_location_ref", remote_ref)
-        self.dao.update_config("dt_last_remote_location_title", remote_title)
-        self.dao.update_config("dt_last_duplicates_behavior", duplicate_behavior)
-        if last_local_selected_location:
-            self.dao.update_config(
-                "dt_last_local_selected_location", last_local_selected_location
-            )
-        if last_local_selected_doc_type:
-            self.dao.update_config(
-                "dt_last_local_selected_doc_type", last_local_selected_doc_type
-            )
-
-    def _create_remote_folder(
-        self, remote_parent_path: str, new_folder: str, session_id: int, /
-    ) -> Dict[str, Any]:
-        try:
-            res = self.remote.upload_folder(
-                remote_parent_path,
-                {"title": new_folder},
-                headers={DT_NEW_FOLDER: 1, DT_SESSION_NUMBER: session_id},
-            )
-            self.directTransferNewFolderSuccess.emit(res["path"])
-            return res
-        except Exception:
-            log.warning(
-                f"Could not create the {new_folder!r} folder in the {remote_parent_path!r} remote folder",
-                exc_info=True,
-            )
-            self.directTransferNewFolderError.emit()
-            return {}
-
-    def _create_remote_folder_with_enricher(
-        self,
-        remote_parent_path: str,
-        new_folder: str,
-        new_folder_type: str,
-        session_id: int,
-        /,
-    ) -> Dict[str, Any]:
-        try:
-            payload = {
-                "entity-type": "document",
-                "name": new_folder,
-                "type": new_folder_type,
-                "properties": {"dc:title": new_folder},
-            }
-
-            res = self.remote.upload_folder_type(remote_parent_path, payload)
-            new_path = f"{remote_parent_path}/{new_folder}"
-            self.directTransferNewFolderSuccess.emit(new_path)
-            return res
-        except Exception:
-            log.warning(
-                f"Could not create the {new_folder!r} folder with type {new_folder_type!r} in {remote_parent_path!r}",
-                exc_info=True,
-            )
-            self.directTransferNewFolderError.emit()
-            return {}
-
-    def _direct_transfer(
-        self,
-        local_paths: Dict[Path, int],
-        remote_parent_path: str,
-        remote_parent_ref: str,
-        remote_parent_title: str,
-        /,
-        *,
-        document_type: str = "",
-        container_type: str = "",
-        duplicate_behavior: str = "create",
-        last_local_selected_location: Optional[Path] = None,
-        last_local_selected_doc_type: Optional[str] = None,
-        new_folder: Optional[str] = None,
-        new_folder_type: Optional[str] = None,
-        paused: bool = False,
-        schedule_delay: Optional[int] = None,
-        scheduled_at: Union[str, int] = 0,
-    ) -> None:
-        """Plan the Direct Transfer."""
-
-        # Save last dt session infos for next times
-        self._save_last_dt_session_infos(
-            remote_parent_path,
-            remote_parent_ref,
-            remote_parent_title,
-            duplicate_behavior,
-            last_local_selected_location,
-            last_local_selected_doc_type,
-        )
-        if new_folder:
-            self.send_metric("direct_transfer", "new_folder", "1")
-            expected_session_uid = self.dao.get_count("uid != 0", table="Sessions") + 1
-            if not new_folder_type or new_folder_type == self.doc_container_type:
-                item = self._create_remote_folder(
-                    remote_parent_path, new_folder, expected_session_uid
-                )
-            else:
-                item = self._create_remote_folder_with_enricher(
-                    remote_parent_path,
-                    new_folder,
-                    new_folder_type,
-                    expected_session_uid,
-                )
-            if not item:
-                return
-            remote_parent_path = item["path"]
-            remote_parent_ref = item["uid"]
-
-        # Allow to only create a folder and return.
-        if not local_paths:
-            return
-
-        all_paths = local_paths.keys()
-        doc_type = None
-        if document_type == self.doc_container_type:
-            doc_type = None
-        else:
-            doc_type = document_type
-
-        cont_type = None
-        if container_type == self.doc_container_type:
-            cont_type = None
-        else:
-            cont_type = container_type
-        items = [
-            (
-                path.as_posix(),
-                path.parent.as_posix(),
-                path.name,
-                path.is_dir(),
-                size,
-                remote_parent_path,
-                remote_parent_ref,
-                doc_type if not path.is_dir() else cont_type,
-                duplicate_behavior,
-                "todo" if path.parent in all_paths else "unknown",
-            )
-            for path, size in sorted(local_paths.items())
-        ]
-
-        # Add all paths into the database to plan the upload, by batch
-        bsize = Options.database_batch_size
-        log.info("Planning items to Direct Transfer ...")
-        log.debug(
-            f" ... database_batch_size is {bsize}, duplicate_behavior is {duplicate_behavior!r}"
-        )
-        current_max_row_id = -1
-        description = os.path.basename(items[0][0])
-        if len(items) > 1:
-            description = f"{description} (+{len(items) - 1:,})"
-
-        status = TransferStatus.PAUSED if paused else TransferStatus.ONGOING
-        session_uid = self.dao.create_session(
-            remote_parent_path,
-            remote_parent_ref,
-            len(items),
-            self.uid,
-            description,
-            status=status,
-            scheduled_at=scheduled_at,
-        )
-
-        for batch_items in grouper(items, bsize):
-            row_id = self.dao.plan_many_direct_transfer_items(batch_items, session_uid)
-            if current_max_row_id == -1:
-                current_max_row_id = row_id
-
-        log.info(f" ... Planned {len(items):,} item(s) to Direct Transfer, let's gooo!")
-
-        # And add new pairs to the queue
-        if not paused:
-            self.dao.queue_many_direct_transfer_items(current_max_row_id)
-
-        if schedule_delay:
-            self.startTimerSignal.emit(session_uid, schedule_delay)
-
-    def handle_session_status(self, session: Optional[Session], /) -> None:
-        """Check the session status and send a notification if finished."""
-        if not session or session.status is not TransferStatus.DONE:
-            return
-
-        self.directTransferSessionFinished.emit(
-            self.uid, session.remote_ref, session.remote_path
-        )
-        session_folder_count = sum(
-            "Folderish" in doc["facets"]
-            for doc in self.dao.get_session_items(session.uid)
-        )
-        self.remote.metrics.send(
-            {
-                DT_SESSION_FILE_COUNT: session.total_items - session_folder_count,
-                DT_SESSION_FOLDER_COUNT: session_folder_count,
-                DT_SESSION_ITEM_COUNT: session.total_items,
-                DT_SESSION_STATUS: "done",
-            }
-        )
-        self.send_metric("direct_transfer", "session_items", str(session.total_items))
-        # Read https://hyland.atlassian.net/secure/EditComment!default.jspa?id=152399&commentId=503487
-        # for why we can't have metrics about dupes creation on uploads.
-
-    def direct_transfer(
-        self,
-        local_paths: Dict[Path, int],
-        remote_parent_path: str,
-        remote_parent_ref: str,
-        remote_parent_title: str,
-        /,
-        *,
-        duplicate_behavior: str = "create",
-        last_local_selected_location: Optional[Path] = None,
-        last_local_selected_doc_type: Optional[Path] = None,
-        new_folder: Optional[str] = None,
-        new_folder_type: Optional[str] = None,
-    ) -> None:
-        """Plan the Direct Transfer."""
-        self._direct_transfer(
-            local_paths,
-            remote_parent_path,
-            remote_parent_ref,
-            remote_parent_title,
-            duplicate_behavior=duplicate_behavior,
-            last_local_selected_location=last_local_selected_location,
-            last_local_selected_doc_type=last_local_selected_doc_type,
-            new_folder=new_folder,
-            new_folder_type=new_folder_type,
-        )
-
-    def direct_transfer_async(
-        self,
-        local_paths: Dict[Path, int],
-        remote_parent_path: str,
-        remote_parent_ref: str,
-        remote_parent_title: str,
-        /,
-        *,
-        document_type: str,
-        container_type: str,
-        duplicate_behavior: str = "create",
-        last_local_selected_location: Optional[Path] = None,
-        last_local_selected_doc_type: Optional[str] = None,
-        new_folder: Optional[str] = None,
-        new_folder_type: Optional[str] = None,
-        paused: bool = False,
-        schedule_delay: Optional[int] = None,
-        scheduled_at: Union[str, int] = 0,
-    ) -> None:
-        """Plan the Direct Transfer. Async to not freeze the GUI."""
-        from .workers import Runner
-
-        runner = Runner(
-            self._direct_transfer,
-            local_paths,
-            remote_parent_path,
-            remote_parent_ref,
-            remote_parent_title,
-            document_type=document_type,
-            container_type=container_type,
-            duplicate_behavior=duplicate_behavior,
-            last_local_selected_location=last_local_selected_location,
-            last_local_selected_doc_type=last_local_selected_doc_type,
-            new_folder=new_folder,
-            new_folder_type=new_folder_type,
-            paused=paused,
-            schedule_delay=schedule_delay,
-            scheduled_at=scheduled_at,
-        )
-        if self._threadpool:
-            self._threadpool.start(runner)
-        else:
-            log.warning("Cannot start direct transfer, thread pool is not available")
-
->>>>>>> origin/master:nxdrive/engine/engine.py
     def rollback_delete(self, path: Path, /) -> None:
         doc_pair = self.dao.get_state_from_local(path)
         if not doc_pair:
@@ -829,17 +533,9 @@ class Engine(QObject):
         self._check_sync_start()
 
     def resume_session(self, uid: int, /) -> None:
-<<<<<<< HEAD:nxdrive/drive/engine/engine.py
         session = self.dao.get_session(uid)
         if session and session.scheduled_at and session.scheduled_at not in (0, "0"):
             from nxdrive.drive.gui.schedule_dialog import ResumeScheduledSessionPopup
-=======
-        """Resume all transfers for given session."""
-
-        session = self.dao.get_session(uid)
-        if session and session.scheduled_at and session.scheduled_at not in (0, "0"):
-            from ..gui.schedule_dialog import ResumeScheduledSessionPopup
->>>>>>> origin/master:nxdrive/engine/engine.py
 
             popup = ResumeScheduledSessionPopup(
                 parent=None, scheduled_datetime=session.scheduled_at
@@ -957,10 +653,6 @@ class Engine(QObject):
         """Handle session lifecycle.  Override for metrics/notifications."""
 
     def cancel_session(self, uid: int, /) -> None:
-<<<<<<< HEAD:nxdrive/drive/engine/engine.py
-=======
-        """Cancel all transfers for given session."""
->>>>>>> origin/master:nxdrive/engine/engine.py
         self.cancelTimerSignal.emit(uid)
         self.dao.reset_session_schedule(uid)
         self.dao.cancel_session(uid)
@@ -1342,87 +1034,7 @@ class Engine(QObject):
                 )
             self.start()
 
-<<<<<<< HEAD:nxdrive/drive/engine/engine.py
     # ------------------------------------------------------------------ local folder setup
-=======
-    def init_remote(self) -> Remote:
-        # Used for FS synchronization operations
-        args = (self.server_url, self.remote_user, self.manager.device_id, self.version)
-
-        kwargs = {
-            "password": self._remote_password,
-            "timeout": self.timeout,
-            "token": self._remote_token,
-            "download_callback": self.suspend_client,
-            "upload_callback": self.suspend_client,
-            "dao": self.dao,
-            "proxy": self.manager.proxy,
-            "verify": get_verify(),
-            "cert": client_certificate(),
-        }
-        return self.remote_cls(*args, **kwargs)
-
-    def _seed_userid_mapper(self) -> None:
-        """Restore the userid_mapper from the persisted user UUID.
-
-        If no UUID is stored (e.g. upgrade from older version), attempt
-        to resolve it from the server.  Only on a fetch *error* mark
-        credentials invalid so the user is prompted to re-login.
-
-        If the sentinel value is in DB (server previously returned no
-        UUID), re-confirm by fetching again:
-        - still no UUID  → continue without mapper, no re-login
-        - UUID returned   → server now supports it; update DB & mapper
-        - fetch error     → continue without mapper (no re-login, since
-          the server was previously known not to support UUID)
-        """
-        user_uuid = self.dao.get_config("user_uuid")
-        was_nosupport = user_uuid == self._NO_UUID_SUPPORT
-
-        if was_nosupport and self.remote_user and self.remote:
-            # Re-confirm: server may have started supporting UUID.
-            try:
-                self._refresh_user_uuid()
-            except Exception:
-                log.warning(
-                    "Failed to re-check user UUID support for %r, "
-                    "continuing without UUID",
-                    self.remote_user,
-                    exc_info=True,
-                )
-                return
-            user_uuid = self.dao.get_config("user_uuid")
-            if user_uuid == self._NO_UUID_SUPPORT:
-                # Still no support — nothing more to do.
-                return
-            # Server now returns a UUID — fall through to seed mapper.
-
-        if not user_uuid and self.remote_user and self.remote:
-            # No entry at all (e.g. upgrade from older version).
-            try:
-                self._refresh_user_uuid()
-            except Exception:
-                log.warning(
-                    "Failed to fetch user UUID for %r, re-login required",
-                    self.remote_user,
-                    exc_info=True,
-                )
-                self.set_invalid_credentials(
-                    value=True, reason="failed to fetch user_uuid, re-login required"
-                )
-                return
-            user_uuid = self.dao.get_config("user_uuid")
-
-        # Seed the mapper only with a real UUID, never with the sentinel.
-        if (
-            user_uuid
-            and user_uuid != self._NO_UUID_SUPPORT
-            and self.remote_user
-            and self.remote
-        ):
-            self.remote.client.userid_mapper[self.remote_user] = user_uuid
-
->>>>>>> origin/master:nxdrive/engine/engine.py
     def _setup_local_folder(self, check_fs: bool) -> None:
         if not Feature.synchronization or not check_fs:
             return
@@ -1438,7 +1050,6 @@ class Engine(QObject):
                     self.local_folder.rmdir()
             raise exc
 
-<<<<<<< HEAD:nxdrive/drive/engine/engine.py
     def _check_root(self) -> None:
         """Check/create the sync root.  Override for server-specific root setup."""
         if not Feature.synchronization:
@@ -1453,48 +1064,6 @@ class Engine(QObject):
             self._set_root_icon()
             self.manager.osi.register_folder_link(self.local_folder)
             set_path_readonly(self.local_folder)
-=======
-    def bind(self, binder: Binder, /) -> None:
-        check_credentials = not binder.no_check
-        check_fs = not (Options.nofscheck or binder.no_fscheck)
-        self.server_url = self._normalize_url(binder.url)
-        self.remote_user = binder.username
-        self._remote_password = binder.password
-        if binder.token:
-            self._remote_token = binder.token
-        self._web_authentication = bool(binder.token)
-
-        # Check first if the folder is on a supported FS
-        if check_fs:
-            self._setup_local_folder(check_fs)
-
-        if check_credentials:
-            self.remote = self.init_remote()
-            if not self._remote_token:
-                self._remote_token = self.remote.request_token()
-            if not self._remote_token:
-                self.remote = None  # type: ignore
-
-        # Save the configuration
-        self.dao.store_bool("web_authentication", self._web_authentication)
-        self.dao.update_config("server_url", self.server_url)
-        self.dao.update_config("remote_user", self.remote_user)
-        self._save_token(self._remote_token)
-
-        try:
-            self._refresh_user_uuid()
-        except Exception:
-            log.warning(
-                "Failed to resolve user UUID for %r during bind, will retry later",
-                self.remote_user,
-                exc_info=True,
-            )
-
-        # Check for the root
-        # If the top level state for the server binding doesn't exist,
-        # create the local folder and the top level state.
-        self._check_root()
->>>>>>> origin/master:nxdrive/engine/engine.py
 
     def _check_fs(self, path: Path, /) -> None:
         if not self.check_fs_marker():

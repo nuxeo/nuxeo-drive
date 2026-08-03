@@ -158,18 +158,8 @@ def no_warnings(recwarn):
             continue
         elif "unclosed database" in message:
             continue
-<<<<<<< HEAD
         elif "unclosed" in message:
             # ResourceWarning from unclosed sockets/connections
-=======
-        elif "unclosed <socket.socket" in message:
-            # Python 3.13 emits this ResourceWarning in some HTTP teardown paths.
-            # It is non-deterministic in functional runs and creates false negatives.
-            continue
-        elif "unclosed <ssl.SSLSocket" in message:
-            # Python 3.13 can also report unclosed SSL sockets for HTTPS sessions.
-            # This has the same non-deterministic behavior as plain sockets.
->>>>>>> origin/master
             continue
 
         warn = f"{warning.filename}:{warning.lineno} {message}"

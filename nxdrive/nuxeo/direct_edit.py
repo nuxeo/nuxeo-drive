@@ -80,16 +80,11 @@ class DirectEdit(_DirectEditBase):
             for engine in self._manager.engines.copy().values():
                 bind = engine.get_binder()
                 server_url = simplify_url(bind.server_url.rstrip("/"))
-<<<<<<< HEAD:nxdrive/nuxeo/direct_edit.py
                 if server_url == url and getattr(engine, "remote", None):
                     client = engine.remote.client
                     if not hasattr(client, "resolve_username"):
                         continue
                     resolved = client.resolve_username(user)
-=======
-                if server_url == url and engine.remote:
-                    resolved = engine.remote.client.resolve_username(user)
->>>>>>> origin/master:nxdrive/direct_edit.py
                     if resolved == bind.username:
                         return engine
 
@@ -128,7 +123,6 @@ class DirectEdit(_DirectEditBase):
                 simplified = simplify_url(server_url)
                 for eng in self._manager.engines.copy().values():
                     if (
-<<<<<<< HEAD:nxdrive/nuxeo/direct_edit.py
                         getattr(eng, "remote", None)
                         and simplify_url(eng.get_binder().server_url.rstrip("/"))
                         == simplified
@@ -136,13 +130,6 @@ class DirectEdit(_DirectEditBase):
                         client = eng.remote.client
                         if hasattr(client, "resolve_username"):
                             display_user = client.resolve_username(user)
-=======
-                        eng.remote
-                        and simplify_url(eng.get_binder().server_url.rstrip("/"))
-                        == simplified
-                    ):
-                        display_user = eng.remote.client.resolve_username(user)
->>>>>>> origin/master:nxdrive/direct_edit.py
                         break
             values = [
                 force_decode(display_user) if display_user else "Unknown",

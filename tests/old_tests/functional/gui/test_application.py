@@ -697,17 +697,9 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     assert app.update_workflow() is None
 
     # Covering open_server_folders in QMLDriveApi
-<<<<<<< HEAD:tests/old_tests/functional/gui/test_application.py
     with patch("nxdrive.drive.gui.api.QMLDriveApi._get_engine") as mock_engine, patch(
         "nxdrive.drive.gui.application.Application.hide_systray"
     ) as mock_hide:
-=======
-    with patch("nxdrive.gui.api.QMLDriveApi._get_engine") as mock_engine, patch(
-        "nxdrive.gui.application.Application.hide_systray"
-    ) as mock_hide, patch(
-        "nxdrive.gui.application.Application.show_server_folders"
-    ) as mock_show_server_folders:
->>>>>>> origin/master:tests/functional/gui/test_application.py
         drive_api = QMLDriveApi(app)
         mock_engine.return_value = engine
         mock_hide.return_value = None

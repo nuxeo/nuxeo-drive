@@ -11,16 +11,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-<<<<<<< HEAD:tests/old_tests/functional/test_direct_download.py
 from nxdrive.drive.constants import DirectDownloadStatus
 from nxdrive.drive.dao.engine import EngineDAO
 from nxdrive.drive.gui.view import (
-=======
-from nxdrive.constants import DirectDownloadStatus
-from nxdrive.dao.engine import EngineDAO
-from nxdrive.direct_download import DirectDownload as DirectDownloadWorker
-from nxdrive.gui.view import (
->>>>>>> origin/master:tests/functional/test_direct_download.py
     ActiveDirectDownloadModel,
     CompletedDirectDownloadModel,
     DirectDownloadMonitoringModel,

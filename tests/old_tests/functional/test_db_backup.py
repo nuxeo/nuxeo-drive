@@ -5,16 +5,8 @@ from pathlib import Path
 from sqlite3 import DatabaseError
 from time import sleep
 
-<<<<<<< HEAD:tests/old_tests/functional/test_db_backup.py
 import nxdrive.drive.dao.utils
 from nxdrive.drive.dao.base import BaseDAO
-=======
-import pytest
-
-import nxdrive.dao.utils
-from nxdrive.dao.base import BaseDAO
-from nxdrive.exceptions import AddonNotInstalledError
->>>>>>> origin/master:tests/functional/test_db_backup.py
 
 from .. import ensure_no_exception
 
