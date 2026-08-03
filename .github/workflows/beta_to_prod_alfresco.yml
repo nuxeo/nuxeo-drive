@@ -17,6 +17,10 @@ jobs:
     environment: production
     env:
       S3_BUCKET: drive.software-channels.hyland.com
+      # Public base URL used when building links inside the generated
+      # index.html pages.
+      ROOT_URL: https://drive.software-channels.hyland.com
+      S3_PREFIX: alfresco/drive-updates/
 
     steps:
       - name: Checkout
@@ -74,6 +78,7 @@ jobs:
           beta_version="${{ github.event.inputs.betaVersion }}"
           files=(
             "alfresco-drive-$beta_version.exe"
+            "alfresco-drive-$beta_version-admin.exe"
             "alfresco-drive-$beta_version.dmg"
             "alfresco-drive-$beta_version-x86_64.AppImage"
             "alfresco-drive-addons.exe"
@@ -119,3 +124,45 @@ jobs:
           aws s3 cp versions.yml "s3://$S3_BUCKET/alfresco/drive-updates/" --cache-control "no-cache, max-age=0, must-revalidate"
           echo ">>> Removing versions.yml from local workspace"
           rm -f versions.yml
+
+      - name: Generate and upload index.html pages
+        # Don't fail the promotion if index generation/upload fails; the
+        # pages are informational and can be uploaded manually from the
+        # artifact produced by the next step.
+        continue-on-error: true
+        run: |
+          # Promotion moves files out of beta/ into release/, so both
+          # folder listings need to be refreshed. The root index is always
+          # regenerated to keep its timestamp current.
+          python tools/generate_s3_index.py \
+            --bucket "$S3_BUCKET" \
+            --prefix "$S3_PREFIX" \
+            --root-url "$ROOT_URL" \
+            --folders alpha beta release \
+            --update-folders beta release \
+            --extra-files versions.yml \
+            --output-dir index_pages
+
+          cache_ctl="no-cache, max-age=0, must-revalidate"
+
+          aws s3 cp index_pages/index.html \
+            "s3://$S3_BUCKET/${S3_PREFIX}index.html" \
+            --content-type "text/html; charset=utf-8" \
+            --cache-control "$cache_ctl"
+
+          for folder in beta release; do
+            aws s3 cp "index_pages/${folder}/index.html" \
+              "s3://$S3_BUCKET/${S3_PREFIX}${folder}/index.html" \
+              --content-type "text/html; charset=utf-8" \
+              --cache-control "$cache_ctl"
+          done
+
+      - name: Upload generated index.html pages as artifact
+        # Run even if the previous step failed so we always have a copy that
+        # can be uploaded to S3 manually if needed.
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: s3-index-pages
+          path: index_pages/
+          if-no-files-found: warn

@@ -258,6 +258,10 @@ jobs:
     environment: production
     env:
       S3_BUCKET: drive.software-channels.hyland.com
+      # Public base URL used when building links inside the generated
+      # index.html pages.
+      ROOT_URL: https://drive.software-channels.hyland.com
+      S3_PREFIX: alfresco/drive-updates/
     needs: [release]
     permissions:
       id-token: write   # required for requesting the OIDC token
@@ -335,8 +339,70 @@ jobs:
         run: |
           export SERVER="alfresco"
           drive_version="$(grep __alfresco_version__ nxdrive/__init__.py | cut -d'"' -f2)"
-          python tools/versions.py --add "$drive_version" --type "${{ github.event.inputs.releaseType }}" || exit 1
+          type="${{ github.event.inputs.releaseType }}"
+          echo ">>> drive_version=$drive_version"
+          if [ "$type" = "alpha" ]; then
+            type="alpha"
+          elif [ "$type" = "release" ]; then
+            type="beta"
+          else
+            echo ">>> Invalid release type: $type"
+            exit 1
+          fi
+          echo ">>> type=$type"
+          python tools/versions.py --add "$drive_version" --type "$type" || exit 1
           python tools/versions.py --merge || exit 1
           aws s3 cp versions.yml "s3://$S3_BUCKET/alfresco/drive-updates/" --cache-control "no-cache, max-age=0, must-revalidate"
           python tools/versions.py --delete "$drive_version" || exit 1
           rm versions.yml
+
+      - name: Generate and upload index.html pages
+        # Don't fail the whole release if index generation/upload fails; the
+        # pages are informational and can be uploaded manually from the
+        # artifact produced by the next step.
+        continue-on-error: true
+        run: |
+          # Only the folder that was just written to needs its listing
+          # refreshed: alpha releases update alpha/, beta releases update
+          # beta/. The root index is always refreshed so its "generated on"
+          # timestamp stays current.
+          release="${{ github.event.inputs.releaseType }}"
+          case "$release" in
+            alpha) update_folder="alpha" ;;
+            release) update_folder="beta" ;;
+            *)
+              echo ">>> Unknown releaseType '$release', skipping index update"
+              exit 0
+              ;;
+          esac
+
+          python tools/generate_s3_index.py \
+            --bucket "$S3_BUCKET" \
+            --prefix "$S3_PREFIX" \
+            --root-url "$ROOT_URL" \
+            --folders alpha beta release \
+            --update-folders "$update_folder" \
+            --extra-files versions.yml \
+            --output-dir index_pages
+
+          cache_ctl="no-cache, max-age=0, must-revalidate"
+
+          aws s3 cp index_pages/index.html \
+            "s3://$S3_BUCKET/${S3_PREFIX}index.html" \
+            --content-type "text/html; charset=utf-8" \
+            --cache-control "$cache_ctl"
+
+          aws s3 cp "index_pages/${update_folder}/index.html" \
+            "s3://$S3_BUCKET/${S3_PREFIX}${update_folder}/index.html" \
+            --content-type "text/html; charset=utf-8" \
+            --cache-control "$cache_ctl"
+
+      - name: Upload generated index.html pages as artifact
+        # Run even if the previous step failed so we always have a copy that
+        # can be uploaded to S3 manually if needed.
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: s3-index-pages
+          path: index_pages/
+          if-no-files-found: warn
