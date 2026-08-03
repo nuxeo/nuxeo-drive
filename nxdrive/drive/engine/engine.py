@@ -432,6 +432,12 @@ class Engine(QObject):
 
     # ------------------------------------------------------------------ document ops
     def delete_doc(self, path: Path, /, *, mode: DelAction = None) -> None:
+        """Delete a document from the local folder and/or the server."""
+        from nxdrive.drive import server_type as _st
+        from nxdrive.drive.server_type import FileSystemID
+
+        fs_item_id_format = _st.get(self.type).fs_item_id_format
+
         doc_pair = self.dao.get_state_from_local(path)
         if not doc_pair:
             log.info(f"Unable to delete non-existent doc {path}")
@@ -445,11 +451,30 @@ class Engine(QObject):
             doc_pair.update_state("deleted", doc_pair.remote_state)
             self.dao.delete_local_state(doc_pair)
         elif mode is DelAction.UNSYNC:
+            if not (doc_pair.remote_parent_path and doc_pair.remote_ref):
+                self.dao.remove_state(doc_pair)
+                return
+
+            if fs_item_id_format == FileSystemID.HUMANTEXT:
+                # Remote scan matches filters against the server's
+                # human-readable node path; fetch it before remove_state
+                # wipes the row so we can no longer resolve remote_ref.
+                # On failure leave the pair untouched so the next
+                # delete_doc invocation retries.
+                try:
+                    filter_path = self.remote.get_fs_info(doc_pair.remote_ref).path
+                except Exception:
+                    log.warning(
+                        f"Cannot resolve remote path for {doc_pair.remote_ref!r}; "
+                        "unsync will be retried later",
+                        exc_info=True,
+                    )
+                    return
+            else:
+                filter_path = f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}"
+
             self.dao.remove_state(doc_pair)
-            if doc_pair.remote_parent_path and doc_pair.remote_ref:
-                self.dao.add_filter(
-                    f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}"
-                )
+            self.dao.add_filter(filter_path)
 
     def rollback_delete(self, path: Path, /) -> None:
         doc_pair = self.dao.get_state_from_local(path)
