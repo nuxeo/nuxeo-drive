@@ -18,7 +18,7 @@ from functools import partial
 from logging import getLogger
 from pathlib import Path
 from time import sleep
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type
 from urllib.parse import urlsplit
 
 import requests
@@ -513,7 +513,9 @@ class Engine(QObject):
         meth = (
             self.dao.get_download
             if nature == "download"
-            else self.dao.get_dt_upload if is_direct_transfer else self.dao.get_upload
+            else self.dao.get_dt_upload
+            if is_direct_transfer
+            else self.dao.get_upload
         )
         func = partial(meth, uid=uid)  # type: ignore
         self._resume_transfers(nature, func, is_direct_transfer=is_direct_transfer)

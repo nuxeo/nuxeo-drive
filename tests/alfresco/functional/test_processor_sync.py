@@ -197,8 +197,13 @@ class TestMarkConflicted:
             from unittest.mock import MagicMock, patch
 
             proc = engine.create_processor(MagicMock())
-            # Mock conflict_resolver to avoid Qt signal abort in test context
-            with patch.object(engine, "conflict_resolver"):
+            # Mock _queue_pair_state to prevent newConflict signal emission.
+            # The Qt signal connection holds the original bound method of
+            # conflict_resolver (captured at connect time), so patching the
+            # engine attribute doesn't intercept it.  The DB UPDATE has
+            # already executed by the time _queue_pair_state is called, so
+            # the pair_state is correctly set in the database.
+            with patch.object(engine.dao, "_queue_pair_state"):
                 proc._mark_conflicted(state)
             updated = dao.get_state_from_id(state.id)
             assert updated is not None

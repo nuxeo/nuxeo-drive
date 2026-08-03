@@ -1,1 +1,0 @@
-"""GUI functional tests package."""
