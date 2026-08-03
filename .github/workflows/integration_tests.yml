@@ -53,7 +53,11 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
           & .\tools\windows\deploy_ci_agent.ps1 -install_release
+<<<<<<< HEAD
           & .\tools\windows\deploy_ci_agent.ps1 -build_nuxeo
+=======
+          & .\tools\windows\deploy_ci_agent.ps1 -build
+>>>>>>> origin/master
       - name: Install tox
         run: python -m pip install -r tools/deps/requirements-tox.txt
       - name: Smoke test frozen exe
@@ -149,7 +153,11 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
           & .\tools\windows\deploy_ci_agent.ps1 -install_release
+<<<<<<< HEAD
           & .\tools\windows\deploy_ci_agent.ps1 -build_nuxeo
+=======
+          & .\tools\windows\deploy_ci_agent.ps1 -build
+>>>>>>> origin/master
       - name: Install tox
         run: python -m pip install -r tools/deps/requirements-tox.txt
       - name: Smoke test frozen exe

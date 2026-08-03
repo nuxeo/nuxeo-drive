@@ -1,6 +1,8 @@
 import os
 import shutil
+import sqlite3
 import time
+from contextlib import suppress
 from typing import Any, Callable, Optional
 from uuid import uuid4
 
@@ -50,7 +52,12 @@ class MockEngineDAO(EngineDAO):
         if state is None:
             return None
 
-        mode = f" AND last_transfer='{sync_mode}' " if sync_mode else ""
+        has_last_transfer = self._has_column("States", "last_transfer")
+        mode = (
+            f" AND last_transfer='{sync_mode}' "
+            if sync_mode and has_last_transfer
+            else ""
+        )
         c = self._get_read_connection().cursor()
         return c.execute(
             "SELECT *"
@@ -96,6 +103,47 @@ class MockEngineDAO(EngineDAO):
 
     def get_next_sync_file(self, ref: str, sync_mode: str = None) -> Optional[DocPair]:
         return self._get_adjacent_sync_file(ref, "<", "DESC", sync_mode)
+
+    def add_filter(self, path: str, /) -> None:
+        if self.is_filter(path):
+            return
+
+        path = self._clean_filter_path(path)
+
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            c.execute("DELETE FROM Filters WHERE path LIKE ?", (f"{path}%",))
+
+            # Older migration DBs may not have this table.
+            with suppress(sqlite3.OperationalError):
+                c.execute("DELETE FROM ToRemoteScan WHERE path LIKE ?", (f"{path}%",))
+
+            c.execute("INSERT INTO Filters (path) VALUES (?)", (path,))
+            self._filters = self.get_filters()
+            self.get_syncing_count()
+
+    def get_last_files(
+        self, number: int, /, *, direction: str = "", duration: int = None
+    ) -> list[DocPair]:
+        # Older DB schemas do not have last_transfer; ignore direction-based filter.
+        if direction in ("local", "remote") and not self._has_column(
+            "States", "last_transfer"
+        ):
+            direction = ""
+        return super().get_last_files(number, direction=direction, duration=duration)
+
+    def _has_column(self, table: str, column: str) -> bool:
+        c = self._get_read_connection().cursor()
+        cols = c.execute(f"PRAGMA table_info('{table}')").fetchall()
+        return any(getattr(col, "name", col[1]) == column for col in cols)
+
+    def has_table(self, table: str) -> bool:
+        c = self._get_read_connection().cursor()
+        row = c.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
+            (table,),
+        ).fetchone()
+        return bool(row)
 
 
 class MockManagerDAO(ManagerDAO):

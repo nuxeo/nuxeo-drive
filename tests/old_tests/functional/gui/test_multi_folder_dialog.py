@@ -8,7 +8,11 @@ from PyQt6.QtCore import QDir, QEvent, QObject, Qt
 from PyQt6.QtGui import QKeyEvent, QStandardItemModel
 from PyQt6.QtWidgets import QApplication
 
+<<<<<<< HEAD:tests/old_tests/functional/gui/test_multi_folder_dialog.py
 from nxdrive.drive.gui.multi_folder_dialog import (
+=======
+from nxdrive.gui.multi_folder_dialog import (
+>>>>>>> origin/master:tests/functional/gui/test_multi_folder_dialog.py
     CenteredHeaderFileSystemModel,
     FDAAlert,
     MultiFolderDialog,
@@ -33,7 +37,11 @@ def qapp():
 @pytest.fixture
 def mfd_setup(qapp, tmp_path):
     """Setup a MultiFolderDialog with a temporary filesystem."""
+<<<<<<< HEAD:tests/old_tests/functional/gui/test_multi_folder_dialog.py
     from nxdrive.drive.options import Options
+=======
+    from nxdrive.options import Options
+>>>>>>> origin/master:tests/functional/gui/test_multi_folder_dialog.py
 
     original_res_dir = Options.res_dir
     Options.set("res_dir", tmp_path)

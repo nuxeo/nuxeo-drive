@@ -126,6 +126,7 @@ def mock_engine(mock_manager, mock_dao, mock_remote, mock_queue_manager, tmp_pat
     engine.force_ui = ""
     engine.server_url = "https://test.nuxeo.com"
     engine.remote_user = "testuser"
+    engine._NO_UUID_SUPPORT = Engine._NO_UUID_SUPPORT
     engine._threads = []
     engine._threadpool = Mock()
     engine._threadpool.start = Mock()
@@ -189,6 +190,14 @@ def mock_engine(mock_manager, mock_dao, mock_remote, mock_queue_manager, tmp_pat
     engine._resume_transfers = Engine._resume_transfers.__get__(engine, Engine)
     engine.resume_transfer = Engine.resume_transfer.__get__(engine, Engine)
     engine.resume_session = Engine.resume_session.__get__(engine, Engine)
+    engine.resume_scheduled_session = Engine.resume_scheduled_session.__get__(
+        engine, Engine
+    )
+    engine.start_scheduled_timer = Engine.start_scheduled_timer.__get__(engine, Engine)
+    engine.cancel_scheduled_timer = Engine.cancel_scheduled_timer.__get__(
+        engine, Engine
+    )
+    engine._scheduled_timers = {}
     engine._manage_staled_transfers = Engine._manage_staled_transfers.__get__(
         engine, Engine
     )
@@ -205,6 +214,8 @@ def mock_engine(mock_manager, mock_dao, mock_remote, mock_queue_manager, tmp_pat
     engine._thread_finished = Engine._thread_finished.__get__(engine, Engine)
     engine.stop = Engine.stop.__get__(engine, Engine)
     engine.update_token = Engine.update_token.__get__(engine, Engine)
+    engine._refresh_user_uuid = Engine._refresh_user_uuid.__get__(engine, Engine)
+    engine._seed_userid_mapper = Engine._seed_userid_mapper.__get__(engine, Engine)
     engine._setup_local_folder = Engine._setup_local_folder.__get__(engine, Engine)
     engine._check_https = Engine._check_https.__get__(engine, Engine)
     engine.cancel_action_on = Engine.cancel_action_on.__get__(engine, Engine)
@@ -1040,6 +1051,9 @@ class TestResumeSession:
     def test_resume_session(self, mock_engine):
         """Test resuming a session."""
         session_uid = 123
+        session = Mock(spec=Session)
+        session.scheduled_at = "0"
+        mock_engine.dao.get_session.return_value = session
 
         mock_engine.resume_session(session_uid)
 
@@ -1047,6 +1061,179 @@ class TestResumeSession:
             session_uid, TransferStatus.ONGOING
         )
         mock_engine.dao.resume_session.assert_called_once_with(session_uid)
+
+    def test_resume_session_with_schedule_popup_accept(self, mock_engine):
+        """Test resuming scheduled session when popup is accepted."""
+        session_uid = 456
+        session = Mock(spec=Session)
+        session.scheduled_at = "2026-06-20T09:30:00"
+        mock_engine.dao.get_session.return_value = session
+
+        popup = Mock()
+        popup.exec.return_value = True
+
+        mock_engine.cancel_scheduled_timer = Mock()
+
+        with patch(
+            "nxdrive.gui.schedule_dialog.ResumeScheduledSessionPopup",
+            return_value=popup,
+        ) as popup_cls:
+            mock_engine.resume_session(session_uid)
+
+        popup_cls.assert_called_once_with(
+            parent=None, scheduled_datetime=session.scheduled_at
+        )
+        mock_engine.cancel_scheduled_timer.assert_called_once_with(session_uid)
+        mock_engine.dao.change_session_status.assert_called_once_with(
+            session_uid, TransferStatus.ONGOING
+        )
+        mock_engine.dao.reset_session_schedule.assert_called_once_with(session_uid)
+        mock_engine.dao.resume_session.assert_called_once_with(session_uid)
+        mock_engine.dao.pause_session.assert_not_called()
+
+    def test_resume_session_with_schedule_popup_cancel(self, mock_engine):
+        """Test resuming scheduled session when popup is canceled."""
+        session_uid = 789
+        session = Mock(spec=Session)
+        session.scheduled_at = "2026-06-20T09:30:00"
+        mock_engine.dao.get_session.return_value = session
+
+        popup = Mock()
+        popup.exec.return_value = False
+
+        with patch(
+            "nxdrive.gui.schedule_dialog.ResumeScheduledSessionPopup",
+            return_value=popup,
+        ):
+            mock_engine.resume_session(session_uid)
+
+        mock_engine.dao.pause_session.assert_called_once_with(session_uid)
+        mock_engine.dao.change_session_status.assert_not_called()
+        mock_engine.dao.reset_session_schedule.assert_not_called()
+        mock_engine.dao.resume_session.assert_not_called()
+
+
+class _FakeTimeoutSignal:
+    def __init__(self):
+        self.callback = None
+
+    def connect(self, callback):
+        self.callback = callback
+
+
+class _FakeQTimer:
+    def __init__(self, _parent=None):
+        self.timeout = _FakeTimeoutSignal()
+        self._properties = {}
+        self.single_shot = False
+        self.interval = None
+        self.start_count = 0
+        self.stopped = False
+        self.deleted = False
+
+    def setSingleShot(self, value):
+        self.single_shot = value
+
+    def setProperty(self, key, value):
+        self._properties[key] = value
+
+    def property(self, key):
+        return self._properties.get(key)
+
+    def setInterval(self, value):
+        self.interval = value
+
+    def start(self):
+        self.start_count += 1
+
+    def stop(self):
+        self.stopped = True
+
+    def deleteLater(self):
+        self.deleted = True
+
+
+class TestScheduledSessionTimers:
+    """Test cases for scheduled session timer methods."""
+
+    def test_resume_scheduled_session(self, mock_engine):
+        """Test reset schedule then resume session."""
+        session_uid = 321
+        mock_engine.resume_session = Mock()
+
+        mock_engine.resume_scheduled_session(session_uid)
+
+        mock_engine.dao.reset_session_schedule.assert_called_once_with(session_uid)
+        mock_engine.resume_session.assert_called_once_with(session_uid)
+
+    def test_cancel_scheduled_timer_when_present(self, mock_engine):
+        """Test cancel and cleanup when timer exists."""
+        timer = Mock()
+        mock_engine._scheduled_timers[11] = timer
+
+        mock_engine.cancel_scheduled_timer(11)
+
+        timer.stop.assert_called_once()
+        timer.deleteLater.assert_called_once()
+        assert 11 not in mock_engine._scheduled_timers
+
+    def test_cancel_scheduled_timer_when_missing(self, mock_engine):
+        """Test cancel is no-op when no timer exists."""
+        mock_engine.cancel_scheduled_timer(99)
+
+        assert 99 not in mock_engine._scheduled_timers
+
+    def test_start_scheduled_timer_initializes_timer(self, mock_engine):
+        """Test timer setup and first chunk start."""
+        mock_engine.cancel_scheduled_timer = Mock()
+
+        with patch("nxdrive.engine.engine.QTimer", _FakeQTimer):
+            mock_engine.start_scheduled_timer(10, 2)
+
+        timer = mock_engine._scheduled_timers[10]
+        mock_engine.cancel_scheduled_timer.assert_called_once_with(10)
+        assert timer.single_shot is True
+        assert timer.property("remaining_ms") == 2000
+        assert timer.interval == 2000
+        assert timer.start_count == 1
+
+    def test_start_scheduled_timer_reschedules_then_resumes(self, mock_engine):
+        """Test timeout callback handles large delay chunks then resumes session."""
+        mock_engine.cancel_scheduled_timer = Mock()
+        mock_engine.resume_scheduled_session = Mock()
+
+        with patch("nxdrive.engine.engine.QTimer", _FakeQTimer):
+            mock_engine.start_scheduled_timer(20, 2147484)
+
+        timer = mock_engine._scheduled_timers[20]
+        timer.timeout.callback()
+
+        assert timer.property("remaining_ms") == 353
+        assert timer.interval == 353
+        assert timer.start_count == 2
+
+        timer.timeout.callback()
+
+        assert mock_engine.cancel_scheduled_timer.call_count == 2
+        mock_engine.resume_scheduled_session.assert_called_once_with(20)
+
+    def test_start_scheduled_timer_handles_missing_remaining_property(
+        self, mock_engine
+    ):
+        """Test timeout callback handles missing remaining_ms property."""
+        mock_engine.cancel_scheduled_timer = Mock()
+        mock_engine.resume_scheduled_session = Mock()
+
+        with patch("nxdrive.engine.engine.QTimer", _FakeQTimer):
+            mock_engine.start_scheduled_timer(30, 1)
+
+        timer = mock_engine._scheduled_timers[30]
+        timer.setProperty("remaining_ms", None)
+
+        timer.timeout.callback()
+
+        assert mock_engine.cancel_scheduled_timer.call_count == 2
+        mock_engine.resume_scheduled_session.assert_called_once_with(30)
 
 
 class TestManageStaledTransfers:
@@ -1509,7 +1696,8 @@ class TestUpdateToken:
                     mock_engine.update_token(mock_token, "newuser")
 
         assert mock_engine.remote_user == "newuser"
-        mock_engine.dao.update_config.assert_called_with("remote_user", "newuser")
+        mock_engine.dao.update_config.assert_any_call("remote_user", "newuser")
+        mock_engine.dao.update_config.assert_any_call("user_uuid", "")
         mock_engine.manager.restartNeeded.emit.assert_called_once()
 
 
@@ -1635,3 +1823,104 @@ class TestSuspendClient:
                         mock_action_cls.get_current_action.return_value = mock_action
                         with pytest.raises(PairInterrupt):
                             mock_engine.suspend_client(mock_uploader)
+
+
+class TestRefreshUserUuid:
+    """Test cases for Engine._refresh_user_uuid method."""
+
+    def test_refresh_uuid_success(self, mock_engine):
+        """Test successful UUID resolution and persistence."""
+        mock_engine.remote.client.resolve_username = Mock()
+        mock_engine.remote.client.userid_mapper = {"testuser": "uuid-123"}
+
+        mock_engine._refresh_user_uuid()
+
+        mock_engine.remote.client.resolve_username.assert_called_once_with("testuser")
+        mock_engine.dao.update_config.assert_called_with("user_uuid", "uuid-123")
+
+    def test_refresh_uuid_no_remote(self, mock_engine):
+        """Test that no-op when remote is not available."""
+        mock_engine.remote = None
+
+        mock_engine._refresh_user_uuid()
+
+        mock_engine.dao.update_config.assert_not_called()
+
+    def test_refresh_uuid_no_uuid_returned(self, mock_engine):
+        """Test sentinel persistence when no UUID is available in mapper."""
+        mock_engine.remote.client.resolve_username = Mock()
+        mock_engine.remote.client.userid_mapper = {}
+
+        mock_engine._refresh_user_uuid()
+
+        mock_engine.remote.client.resolve_username.assert_called_once_with("testuser")
+        mock_engine.dao.update_config.assert_called_once_with(
+            "user_uuid", Engine._NO_UUID_SUPPORT
+        )
+
+    def test_refresh_uuid_exception(self, mock_engine):
+        """Test that exceptions are propagated to caller."""
+        mock_engine.remote.client.resolve_username = Mock(
+            side_effect=Exception("network error")
+        )
+
+        with pytest.raises(Exception, match="network error"):
+            mock_engine._refresh_user_uuid()
+
+        mock_engine.dao.update_config.assert_not_called()
+
+
+class TestSeedUseridMapper:
+    """Test cases for Engine._seed_userid_mapper method."""
+
+    def test_seed_from_db(self, mock_engine):
+        """Test seeding mapper from existing DB value."""
+        mock_engine.dao.get_config = Mock(return_value="uuid-from-db")
+        mock_engine.remote.client.userid_mapper = {}
+
+        mock_engine._seed_userid_mapper()
+
+        assert mock_engine.remote.client.userid_mapper["testuser"] == "uuid-from-db"
+
+    def test_seed_missing_uuid_api_success(self, mock_engine):
+        """Test that missing UUID triggers API call and succeeds."""
+        # First call returns empty (no UUID in DB), second call returns the freshly stored UUID
+        mock_engine.dao.get_config = Mock(side_effect=["", "uuid-from-api"])
+        mock_engine.remote.client.resolve_username = Mock()
+        mock_engine.remote.client.userid_mapper = {"testuser": "uuid-from-api"}
+
+        mock_engine._seed_userid_mapper()
+
+        mock_engine.remote.client.resolve_username.assert_called_once_with("testuser")
+        mock_engine.dao.update_config.assert_called_with("user_uuid", "uuid-from-api")
+        assert mock_engine.remote.client.userid_mapper["testuser"] == "uuid-from-api"
+
+    def test_seed_missing_uuid_api_failure(self, mock_engine):
+        """Test that missing UUID + failed API call triggers re-login."""
+        mock_engine.dao.get_config = Mock(return_value="")
+        mock_engine.remote.client.resolve_username = Mock(
+            side_effect=Exception("server down")
+        )
+        mock_engine.remote.client.userid_mapper = {}
+        mock_engine.invalidAuthentication = Mock()
+        mock_engine.invalidAuthentication.emit = Mock()
+        mock_engine.authChanged = Mock()
+        mock_engine.authChanged.emit = Mock()
+        mock_engine._invalid_credentials = False
+        mock_engine.set_invalid_credentials = Engine.set_invalid_credentials.__get__(
+            mock_engine, Engine
+        )
+
+        mock_engine._seed_userid_mapper()
+
+        assert mock_engine._invalid_credentials is True
+
+    def test_seed_no_remote_user(self, mock_engine):
+        """Test no action when remote_user is not set."""
+        mock_engine.remote_user = ""
+        mock_engine.dao.get_config = Mock(return_value="")
+
+        mock_engine._seed_userid_mapper()
+
+        # Should not try to resolve or invalidate
+        mock_engine.dao.update_config.assert_not_called()

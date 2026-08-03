@@ -80,6 +80,7 @@ class TestCtxDirectTransfer:
         # Create mock engine with local folder
         mock_engine = Mock(spec=Engine)
         mock_engine.local_folder = Path("/sync/folder")
+        mock_engine.dao = None
 
         manager.engines = {"engine1": mock_engine}
 
@@ -139,6 +140,7 @@ class TestCtxDirectTransfer:
         # Create mock engine
         mock_engine = Mock(spec=Engine)
         mock_engine.local_folder = Path("/sync/folder")
+        mock_engine.dao = None
 
         manager.engines = {"engine1": mock_engine}
         test_path = Path("/other/path/file.txt")
@@ -167,9 +169,11 @@ class TestCtxDirectTransfer:
         # Create mock engines
         mock_engine1 = Mock(spec=Engine)
         mock_engine1.local_folder = Path("/sync1")
+        mock_engine1.dao = None
 
         mock_engine2 = Mock(spec=Engine)
         mock_engine2.local_folder = Path("/sync2")
+        mock_engine2.dao = None
 
         manager.engines = {"engine1": mock_engine1, "engine2": mock_engine2}
         test_path = Path("/other/path/file.txt")
@@ -200,9 +204,11 @@ class TestCtxDirectTransfer:
         # Create mock engines
         mock_engine1 = Mock(spec=Engine)
         mock_engine1.local_folder = Path("/sync1")
+        mock_engine1.dao = None
 
         mock_engine2 = Mock(spec=Engine)
         mock_engine2.local_folder = Path("/sync2")
+        mock_engine2.dao = None
 
         manager.engines = {"engine1": mock_engine1, "engine2": mock_engine2}
         test_path = Path("/other/path/file.txt")
@@ -237,6 +243,7 @@ class TestCtxDirectTransfer:
         # Create mock engine
         mock_engine = Mock(spec=Engine)
         mock_engine.local_folder = Path("/sync/folder")
+        mock_engine.dao = None
 
         manager.engines = {"engine1": mock_engine}
         test_path = Path("/other/path/file.txt")
@@ -264,6 +271,7 @@ class TestCtxDirectTransfer:
         # Create mock engine with local folder
         mock_engine = Mock(spec=Engine)
         mock_engine.local_folder = Path("/sync/folder")
+        mock_engine.dao = None
 
         manager.engines = {"engine1": mock_engine}
 
@@ -294,6 +302,7 @@ class TestCtxDirectTransfer:
         # Create mock engine
         mock_engine = Mock(spec=Engine)
         mock_engine.local_folder = Path("/sync/folder")
+        mock_engine.dao = None
 
         manager.engines = {"engine1": mock_engine}
         test_path = Path("/other/path/file.txt")
@@ -328,6 +337,7 @@ class TestCtxDirectTransfer:
         # Create mock engine
         mock_engine = Mock(spec=Engine)
         mock_engine.local_folder = Path("/sync/folder")
+        mock_engine.dao = None
 
         manager.engines = {"engine1": mock_engine}
         test_path = Path("/other/path/file.txt")
@@ -361,6 +371,7 @@ class TestCtxDirectTransfer:
         # Create mock engine
         mock_engine = Mock(spec=Engine)
         mock_engine.local_folder = Path("/sync/folder")
+        mock_engine.dao = None
 
         manager.engines = {"engine1": mock_engine}
         test_path = Path("/other/path/file.txt")

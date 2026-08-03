@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 from uuid import uuid4
 
+<<<<<<< HEAD:tests/old_tests/functional/test_engine.py
 from nxdrive.drive.client.local import FileInfo
 from nxdrive.drive.constants import DelAction, TransferStatus
 from nxdrive.drive.exceptions import ThreadInterrupt, UnknownDigest
@@ -12,6 +13,18 @@ from nxdrive.drive.objects import RemoteFileInfo, Session
 from nxdrive.drive.session_csv import SessionCsv
 from nxdrive.drive.translator import Translator
 from nxdrive.drive.utils import find_resource
+=======
+import pytest
+
+from nxdrive.client.local import FileInfo
+from nxdrive.constants import DelAction, TransferStatus
+from nxdrive.exceptions import AddonNotInstalledError, ThreadInterrupt, UnknownDigest
+from nxdrive.manager import Manager
+from nxdrive.objects import RemoteFileInfo, Session
+from nxdrive.session_csv import SessionCsv
+from nxdrive.translator import Translator
+from nxdrive.utils import find_resource
+>>>>>>> origin/master:tests/functional/test_engine.py
 
 from .. import ensure_no_exception
 
@@ -161,13 +174,16 @@ def test_temporary_csv_cleanup(tmp, user_factory, nuxeo_url):
         assert not session_csv.output_file.is_file()
         conf_folder = manager.home / "nuxeo-conf"
         user = user_factory()
-        manager.bind_server(
-            conf_folder,
-            nuxeo_url,
-            user.uid,
-            password=user.properties["password"],
-            start_engine=False,
-        )
+        try:
+            manager.bind_server(
+                conf_folder,
+                nuxeo_url,
+                user.uid,
+                password=user.properties["password"],
+                start_engine=False,
+            )
+        except AddonNotInstalledError:
+            pytest.skip("Nuxeo Drive addon not installed on server")
         assert not session_csv.output_tmp.is_file()
 
 

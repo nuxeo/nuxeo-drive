@@ -1714,7 +1714,7 @@ class TestQMLDriveApiJsonDefault:
         # Test basic functionality
         with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.resume_session("test_engine", 123)
-            mock_log.info.assert_called_once_with(
+            mock_log.debug.assert_called_once_with(
                 "Resume session 123 for engine 'test_engine'"
             )
 
@@ -1740,7 +1740,7 @@ class TestQMLDriveApiJsonDefault:
         # Test basic functionality
         with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.pause_session("test_engine", 789)
-            mock_log.info.assert_called_once_with(
+            mock_log.debug.assert_called_once_with(
                 "Pausing session 789 for engine 'test_engine'"
             )
 

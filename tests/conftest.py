@@ -1,5 +1,6 @@
 import logging
 import os
+import platform
 import shutil
 import sqlite3
 import sys
@@ -36,8 +37,35 @@ if sys.platform == "win32":
     os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
 
 
+@pytest.hookimpl(tryfirst=True)
+def pytest_configure(config):
+    """
+    Disable xdist on macOS to prevent worker crashes with GUI tests.
+    Qt event loop is not thread-safe; parallelism causes segfaults.
+    """
+    if platform.system() == "Darwin":
+        # Prevent xdist from spawning workers
+        config.option.dist = "no"
+        if hasattr(config.option, "numprocesses"):
+            config.option.numprocesses = 1
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_sessionfinish(session, exitstatus):
+    """
+    Force immediate process exit after session ends.
+
+    Qt objects (QApplication, widgets) left alive at interpreter shutdown
+    trigger a segfault (SIGSEGV / exit -11) during Python GC/cleanup.
+    os._exit() skips interpreter teardown and avoids the crash while
+    preserving the correct exit code. pytest-cov and other trylast hooks
+    have already run by this point, so coverage reports are intact.
+    """
+    os._exit(int(exitstatus))
+
+
 @pytest.hookimpl(trylast=True, hookwrapper=True)
-def pytest_runtest_makereport():
+def pytest_runtest_makereport(item, call):
     """
     Delete captured logs if the test is not in failure.
     It will help keeping the memory usage at a descent level.
@@ -48,6 +76,19 @@ def pytest_runtest_makereport():
 
     # Get the report
     report = outcome.get_result()
+
+    # Print failures immediately so CI logs contain traceback details
+    # even if the full run is interrupted before pytest summary output.
+    if report.failed and report.longrepr:
+        print(
+            f"\n[TEST {report.when.upper()} FAILED] {report.nodeid}",
+            file=sys.stderr,
+            flush=True,
+        )
+        try:
+            print(report.longreprtext, file=sys.stderr, flush=True)
+        except Exception:
+            print(str(report.longrepr), file=sys.stderr, flush=True)
 
     if report.passed:
         # Remove captured logs to free memory
@@ -117,8 +158,18 @@ def no_warnings(recwarn):
             continue
         elif "unclosed database" in message:
             continue
+<<<<<<< HEAD
         elif "unclosed" in message:
             # ResourceWarning from unclosed sockets/connections
+=======
+        elif "unclosed <socket.socket" in message:
+            # Python 3.13 emits this ResourceWarning in some HTTP teardown paths.
+            # It is non-deterministic in functional runs and creates false negatives.
+            continue
+        elif "unclosed <ssl.SSLSocket" in message:
+            # Python 3.13 can also report unclosed SSL sockets for HTTPS sessions.
+            # This has the same non-deterministic behavior as plain sockets.
+>>>>>>> origin/master
             continue
 
         warn = f"{warning.filename}:{warning.lineno} {message}"

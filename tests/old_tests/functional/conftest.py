@@ -12,7 +12,12 @@ from nuxeo.exceptions import Conflict
 from nuxeo.models import Blob, FileBlob
 from nuxeo.users import User
 
+<<<<<<< HEAD:tests/old_tests/functional/conftest.py
 from nxdrive.drive.manager import Manager
+=======
+from nxdrive.exceptions import AddonNotInstalledError
+from nxdrive.manager import Manager
+>>>>>>> origin/master:tests/functional/conftest.py
 
 from .. import env
 
@@ -33,7 +38,9 @@ def faker() -> Callable[[], Faker]:
 
 
 @pytest.fixture()
-def manager_factory(request, tmp, nuxeo_url, user_factory) -> Callable[[], Manager]:
+def manager_factory(
+    request, tmp, nuxeo_url, user_factory, app
+) -> Callable[[], Manager]:
     """Manager instance with automatic clean-up."""
 
     def _make_manager(
@@ -54,13 +61,16 @@ def manager_factory(request, tmp, nuxeo_url, user_factory) -> Callable[[], Manag
         if with_engine:
             conf_folder = (local_folder or manager.home) / "nuxeo-conf"
             user = user or user_factory()
-            manager.bind_server(
-                conf_folder,
-                nuxeo_url,
-                user.uid,
-                password=user.properties["password"],
-                start_engine=False,
-            )
+            try:
+                manager.bind_server(
+                    conf_folder,
+                    nuxeo_url,
+                    user.uid,
+                    password=user.properties["password"],
+                    start_engine=False,
+                )
+            except AddonNotInstalledError:
+                pytest.skip("Nuxeo Drive addon not installed on server")
 
             # Let the possibility to access user's attributes from the manager
             manager.user_details = user
