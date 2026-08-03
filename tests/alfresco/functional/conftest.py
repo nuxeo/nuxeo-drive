@@ -49,9 +49,14 @@ def temp_folder(alfresco_client, alfresco_test_folder, unique_name):
 
 
 @pytest.fixture()
-def manager_factory(tmp_path, alfresco_url, alfresco_user, alfresco_password):
+def manager_factory(
+    tmp_path, alfresco_client, alfresco_url, alfresco_user, alfresco_password
+):
     """Yield a factory that builds :class:`Manager` instances bound to the
     live Alfresco server.  Each manager is automatically closed on teardown.
+
+    Depends on ``alfresco_client`` so that the session-level health check
+    skips the suite when the Alfresco server is unavailable.
     """
     created: list[Manager] = []
 

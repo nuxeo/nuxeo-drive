@@ -65,6 +65,17 @@ def alfresco_client(alfresco_url: str, alfresco_auth):
     from alfresco import Alfresco
 
     client = Alfresco(url=alfresco_url, auth=alfresco_auth)
+
+    # Health check: skip the entire session when the server is down (e.g. 503).
+    try:
+        client.people.get("-me-")
+    except Exception as exc:
+        try:
+            client.close()
+        except Exception:
+            pass
+        pytest.skip(f"Alfresco server is not healthy, skipping functional tests: {exc}")
+
     yield client
     try:
         client.close()
