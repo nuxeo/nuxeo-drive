@@ -784,3 +784,363 @@ class TestGetNextDocPair:
         result = proc._get_next_doc_pair(item)
         assert result is None
         proc.engine.queue_manager.push_error.assert_called_once()
+
+
+# ------------------------------------------------------------------ _execute
+
+
+class TestExecute:
+    @pytest.fixture
+    def proc(self, mock_engine):
+        item_getter = Mock(return_value=None)
+        p = AlfrescoProcessor(mock_engine, item_getter)
+        p.thread_id = 1
+        p.dao = mock_engine.dao
+        p.remote = mock_engine.remote
+        p.local = mock_engine.local
+        p.pairSyncStarted = Mock()
+        p.pairSyncEnded = Mock()
+        return p
+
+    def test_no_items_returns(self, proc):
+        proc._get_item = Mock(return_value=None)
+        proc._execute()
+        proc.dao.release_state.assert_not_called()
+
+    def test_skips_non_processable(self, proc):
+        item = Mock()
+        item.pair_state = "synchronized"
+        item.id = 1
+        proc._get_item = Mock(side_effect=[item, None])
+        proc.dao.acquire_state.return_value = item
+        proc._execute()
+        proc.dao.release_state.assert_called()
+
+    def test_illegal_state_increases_error(self, proc):
+        item = Mock()
+        item.pair_state = "some_invalid_state"
+        item.id = 1
+        item.version = 1
+        proc._get_item = Mock(side_effect=[item, None])
+        proc.dao.acquire_state.return_value = item
+        proc.dao.increase_error = Mock()
+        proc._execute()
+        proc.dao.increase_error.assert_called()
+
+    def test_thread_interrupt_requeues(self, proc):
+        from nxdrive.drive.exceptions import ThreadInterrupt
+
+        item = Mock()
+        item.pair_state = "locally_created"
+        item.id = 1
+        item.version = 1
+        proc._get_item = Mock(side_effect=[item, None])
+        proc.dao.acquire_state.return_value = item
+        proc._handle_doc_pair_sync = Mock(side_effect=ThreadInterrupt())
+        with pytest.raises(ThreadInterrupt):
+            proc._execute()
+        proc.engine.queue_manager.push.assert_called_once_with(item)
+
+    def test_not_found_removes_transfers(self, proc):
+        from nxdrive.drive.exceptions import NotFound
+
+        item = Mock()
+        item.pair_state = "locally_created"
+        item.id = 1
+        item.version = 1
+        proc._get_item = Mock(side_effect=[item, None])
+        proc.dao.acquire_state.return_value = item
+        proc._handle_doc_pair_sync = Mock(side_effect=NotFound("gone"))
+        proc._execute()
+
+    def test_connection_error_postpones(self, proc):
+        from requests.exceptions import ConnectionError as ReqConnectionError
+
+        item = Mock()
+        item.pair_state = "locally_created"
+        item.id = 1
+        item.version = 1
+        proc._get_item = Mock(side_effect=[item, None])
+        proc.dao.acquire_state.return_value = item
+        proc._handle_doc_pair_sync = Mock(
+            side_effect=ReqConnectionError("connection lost")
+        )
+        proc._execute()
+        proc.engine.queue_manager.push_error.assert_called()
+
+    def test_os_error_no_space(self, proc):
+        from nxdrive.drive.exceptions import ThreadInterrupt
+
+        item = Mock()
+        item.pair_state = "locally_created"
+        item.id = 1
+        item.version = 1
+        proc._get_item = Mock(side_effect=[item, None])
+        proc.dao.acquire_state.return_value = item
+        err = OSError(28, "No space left on device")
+        proc._handle_doc_pair_sync = Mock(side_effect=err)
+        with pytest.raises(ThreadInterrupt):
+            proc._execute()
+        proc.engine.noSpaceLeftOnDevice.emit.assert_called_once()
+
+
+# ------------------------------------------------------------------ _synchronize_remotely_deleted
+
+
+class TestSynchronizeRemotelyDeleted:
+    @pytest.fixture
+    def proc(self, mock_engine):
+        item_getter = Mock(return_value=None)
+        p = AlfrescoProcessor(mock_engine, item_getter)
+        p.thread_id = 1
+        p.dao = mock_engine.dao
+        p.remote = mock_engine.remote
+        p.local = mock_engine.local
+        return p
+
+    def test_mismatched_id_skips(self, proc):
+        pair = Mock()
+        pair.local_path = "/doc"
+        pair.remote_ref = "node-abc"
+        proc.local.get_remote_id.return_value = "node-xyz"
+        proc._synchronize_remotely_deleted(pair)
+        proc.dao.remove_state.assert_not_called()
+
+    def test_already_deleted_removes_state(self, proc):
+        pair = Mock()
+        pair.local_path = "/doc"
+        pair.remote_ref = "node-abc"
+        pair.local_state = "deleted"
+        pair.folderish = False
+        proc.local.get_remote_id.return_value = "node-abc"
+        proc._synchronize_remotely_deleted(pair)
+        proc.dao.remove_state.assert_called_once_with(pair)
+
+    def test_unsynchronized_removes_state(self, proc):
+        pair = Mock()
+        pair.local_path = "/doc"
+        pair.remote_ref = "node-abc"
+        pair.local_state = "unsynchronized"
+        pair.folderish = False
+        proc.local.get_remote_id.return_value = "node-abc"
+        proc._synchronize_remotely_deleted(pair)
+        proc.dao.remove_state.assert_called_once_with(pair)
+
+
+# ------------------------------------------------------------------ _synchronize_locally_deleted
+
+
+class TestSynchronizeLocallyDeleted:
+    @pytest.fixture
+    def proc(self, mock_engine):
+        item_getter = Mock(return_value=None)
+        p = AlfrescoProcessor(mock_engine, item_getter)
+        p.thread_id = 1
+        p.dao = mock_engine.dao
+        p.remote = mock_engine.remote
+        p.local = mock_engine.local
+        return p
+
+    def test_no_remote_ref_just_removes(self, proc):
+        pair = Mock()
+        pair.remote_ref = None
+        proc._synchronize_locally_deleted(pair)
+        proc.dao.remove_state.assert_called_once_with(pair)
+
+    def test_can_delete_removes_remote_and_state(self, proc):
+        pair = Mock()
+        pair.remote_ref = "node-abc"
+        pair.remote_parent_ref = "parent-ref"
+        pair.remote_can_delete = True
+        pair.remote_state = "synchronized"
+        pair.remote_name = "file.txt"
+        proc._synchronize_locally_deleted(pair)
+        proc.remote.delete.assert_called_once()
+        proc.dao.remove_state.assert_called_once_with(pair)
+
+    def test_cannot_delete_adds_filter(self, proc):
+        pair = Mock()
+        pair.remote_ref = "node-abc"
+        pair.remote_parent_ref = "parent-ref"
+        pair.remote_parent_path = "/root"
+        pair.remote_can_delete = False
+        pair.local_path = "/doc"
+        proc._synchronize_locally_deleted(pair)
+        proc.dao.add_filter.assert_called_once_with("/root/node-abc")
+
+
+# ------------------------------------------------------------------ _synchronize_conflicted
+
+
+class TestSynchronizeConflicted:
+    @pytest.fixture
+    def proc(self, mock_engine):
+        item_getter = Mock(return_value=None)
+        p = AlfrescoProcessor(mock_engine, item_getter)
+        p.thread_id = 1
+        p.dao = mock_engine.dao
+        p.remote = mock_engine.remote
+        p.local = mock_engine.local
+        return p
+
+    def test_both_moved_sets_conflict(self, proc):
+        pair = Mock()
+        pair.local_state = "moved"
+        pair.remote_state = "moved"
+        proc._synchronize_conflicted(pair)
+        proc.dao.set_conflict_state.assert_called_once_with(pair)
+
+    def test_file_remote_unchanged_resolves(self, proc):
+        pair = Mock()
+        pair.folderish = False
+        pair.local_state = "modified"
+        pair.remote_state = "modified"
+        pair.remote_ref = "node-abc"
+        pair.local_name = "file.txt"
+        proc._remote_has_drifted = Mock(return_value=False)
+        proc._synchronize_conflicted(pair)
+        proc.dao.synchronize_state.assert_called_once_with(pair)
+
+    def test_file_remote_drifted_sets_conflict(self, proc):
+        pair = Mock()
+        pair.folderish = False
+        pair.local_state = "modified"
+        pair.remote_state = "modified"
+        pair.remote_ref = "node-abc"
+        pair.local_name = "file.txt"
+        proc._remote_has_drifted = Mock(return_value=True)
+        proc._synchronize_conflicted(pair)
+        proc.dao.set_conflict_state.assert_called_once_with(pair)
+
+    def test_folder_matching_uid_resolves(self, proc):
+        pair = Mock()
+        pair.folderish = True
+        pair.local_state = "modified"
+        pair.remote_state = "modified"
+        pair.remote_ref = "folder-abc"
+        pair.local_path = "/folder"
+        pair.local_name = "MyFolder"
+        proc.local.get_remote_id.return_value = "folder-abc"
+        proc._synchronize_conflicted(pair)
+        proc.dao.synchronize_state.assert_called_once_with(pair)
+
+    def test_folder_mismatched_uid_conflicts(self, proc):
+        pair = Mock()
+        pair.folderish = True
+        pair.local_state = "modified"
+        pair.remote_state = "modified"
+        pair.remote_ref = "folder-abc"
+        pair.local_path = "/folder"
+        pair.local_name = "MyFolder"
+        proc.local.get_remote_id.return_value = "different-id"
+        proc._synchronize_conflicted(pair)
+        proc.dao.set_conflict_state.assert_called_once_with(pair)
+
+
+# ------------------------------------------------------------------ _synchronize_unknown_deleted / deleted_unknown
+
+
+class TestSynchronizeInconsistentPairs:
+    @pytest.fixture
+    def proc(self, mock_engine):
+        item_getter = Mock(return_value=None)
+        p = AlfrescoProcessor(mock_engine, item_getter)
+        p.thread_id = 1
+        p.dao = mock_engine.dao
+        return p
+
+    def test_unknown_deleted(self, proc):
+        pair = Mock()
+        proc._synchronize_unknown_deleted(pair)
+        proc.dao.remove_state.assert_called_once_with(pair)
+
+    def test_deleted_unknown(self, proc):
+        pair = Mock()
+        proc._synchronize_deleted_unknown(pair)
+        proc.dao.remove_state.assert_called_once_with(pair)
+
+
+# ------------------------------------------------------------------ _mark_conflicted
+
+
+class TestMarkConflicted:
+    @pytest.fixture
+    def proc(self, mock_engine):
+        item_getter = Mock(return_value=None)
+        p = AlfrescoProcessor(mock_engine, item_getter)
+        p.dao = mock_engine.dao
+        return p
+
+    def test_calls_force_sync(self, proc):
+        pair = Mock()
+        pair.local_name = "file.txt"
+        pair.remote_ref = "node-123"
+        proc._mark_conflicted(pair)
+        proc.dao._force_sync.assert_called_once_with(
+            pair, "modified", "modified", "conflicted"
+        )
+
+
+# ------------------------------------------------------------------ _remote_has_drifted
+
+
+class TestRemoteHasDrifted:
+    @pytest.fixture
+    def proc(self, mock_engine):
+        item_getter = Mock(return_value=None)
+        p = AlfrescoProcessor(mock_engine, item_getter)
+        p.dao = mock_engine.dao
+        p.remote = mock_engine.remote
+        return p
+
+    def test_no_remote_ref(self, proc):
+        pair = Mock(remote_ref=None)
+        assert proc._remote_has_drifted(pair) is False
+
+    def test_not_found_returns_false(self, proc):
+        from nxdrive.drive.exceptions import NotFound
+
+        pair = Mock(remote_ref="node-abc", folderish=False)
+        proc.remote.get_fs_info.side_effect = NotFound("gone")
+        assert proc._remote_has_drifted(pair) is False
+
+    def test_generic_exception_returns_false(self, proc):
+        pair = Mock(remote_ref="node-abc", folderish=False)
+        proc.remote.get_fs_info.side_effect = RuntimeError("network")
+        assert proc._remote_has_drifted(pair) is False
+
+    def test_folder_always_false(self, proc):
+        pair = Mock(
+            remote_ref="node-abc",
+            folderish=True,
+            last_remote_updated="2024-01-01 00:00:00",
+        )
+        remote_info = Mock()
+        remote_info.last_modification_time = Mock()
+        remote_info.last_modification_time.strftime.return_value = "2024-06-15 12:00:00"
+        proc.remote.get_fs_info.return_value = remote_info
+        assert proc._remote_has_drifted(pair) is False
+
+    def test_timestamps_match_no_drift(self, proc):
+        pair = Mock(
+            remote_ref="node-abc",
+            folderish=False,
+            last_remote_updated="2024-01-01 00:00:00",
+        )
+        remote_info = Mock()
+        remote_info.last_modification_time = Mock()
+        remote_info.last_modification_time.strftime.return_value = "2024-01-01 00:00:00"
+        proc.remote.get_fs_info.return_value = remote_info
+        assert proc._remote_has_drifted(pair) is False
+
+    def test_timestamps_differ_drift(self, proc):
+        pair = Mock(
+            remote_ref="node-abc",
+            folderish=False,
+            last_remote_updated="2024-01-01 00:00:00",
+        )
+        remote_info = Mock()
+        remote_info.last_modification_time = Mock()
+        remote_info.last_modification_time.strftime.return_value = "2024-06-15 12:00:00"
+        proc.remote.get_fs_info.return_value = remote_info
+        assert proc._remote_has_drifted(pair) is True

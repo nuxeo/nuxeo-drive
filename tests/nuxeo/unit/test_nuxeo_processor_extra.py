@@ -573,3 +573,855 @@ class TestDirectTransferCancel:
         proc._direct_transfer_cancel(pair)
 
         proc._direct_transfer_end.assert_called_once_with(pair, True, recursive=True)
+
+
+# ---------------------------------------------------------------------------
+# _unlock_readonly / _lock_readonly
+# ---------------------------------------------------------------------------
+
+
+class TestReadonlyLocks:
+    def test_unlock_readonly_new_lock(self):
+        from nxdrive.nuxeo.engine.processor import Processor
+
+        proc = _make_processor()
+        Processor.readonly_locks = {}
+        proc.local.unlock_ref.return_value = 0o644
+
+        proc._unlock_readonly(Path("/tmp/file.txt"))
+
+        assert proc.engine.uid in Processor.readonly_locks
+        assert Path("/tmp/file.txt") in Processor.readonly_locks[proc.engine.uid]
+        assert Processor.readonly_locks[proc.engine.uid][Path("/tmp/file.txt")] == [
+            1,
+            0o644,
+        ]
+
+    def test_unlock_readonly_increment_count(self):
+        from nxdrive.nuxeo.engine.processor import Processor
+
+        proc = _make_processor()
+        Processor.readonly_locks = {proc.engine.uid: {Path("/tmp/file.txt"): [1, 0o644]}}
+
+        proc._unlock_readonly(Path("/tmp/file.txt"))
+
+        assert Processor.readonly_locks[proc.engine.uid][Path("/tmp/file.txt")][0] == 2
+
+    def test_lock_readonly_relocks(self):
+        from nxdrive.nuxeo.engine.processor import Processor
+
+        proc = _make_processor()
+        Processor.readonly_locks = {proc.engine.uid: {Path("/tmp/file.txt"): [1, 0o644]}}
+
+        proc._lock_readonly(Path("/tmp/file.txt"))
+
+        # Count decremented to 0, should relock and remove entry
+        proc.local.lock_ref.assert_called_once_with(Path("/tmp/file.txt"), 0o644)
+        assert Path("/tmp/file.txt") not in Processor.readonly_locks[proc.engine.uid]
+
+    def test_lock_readonly_decrements_count(self):
+        from nxdrive.nuxeo.engine.processor import Processor
+
+        proc = _make_processor()
+        Processor.readonly_locks = {proc.engine.uid: {Path("/tmp/file.txt"): [2, 0o644]}}
+
+        proc._lock_readonly(Path("/tmp/file.txt"))
+
+        # Count should be 1, not relocked yet
+        assert Processor.readonly_locks[proc.engine.uid][Path("/tmp/file.txt")][0] == 1
+        proc.local.lock_ref.assert_not_called()
+
+    def test_lock_readonly_not_found(self):
+        from nxdrive.nuxeo.engine.processor import Processor
+
+        proc = _make_processor()
+        Processor.readonly_locks = {}
+
+        # Should not raise
+        proc._lock_readonly(Path("/tmp/missing.txt"))
+
+
+# ---------------------------------------------------------------------------
+# _lock_soft_path
+# ---------------------------------------------------------------------------
+
+
+class TestLockSoftPath:
+    def test_lock_and_unlock(self):
+        from nxdrive.nuxeo.engine.processor import Processor
+
+        proc = _make_processor()
+        Processor.soft_locks = {}
+
+        result = proc._lock_soft_path(Path("/TMP/File.txt"))
+        assert result == Path("/tmp/file.txt")
+
+        proc._unlock_soft_path(Path("/TMP/File.txt"))
+        assert Path("/tmp/file.txt") not in Processor.soft_locks.get(
+            proc.engine.uid, {}
+        )
+
+    def test_double_lock_raises(self):
+        from nxdrive.drive.exceptions import PairInterrupt
+        from nxdrive.nuxeo.engine.processor import Processor
+
+        proc = _make_processor()
+        Processor.soft_locks = {}
+
+        proc._lock_soft_path(Path("/tmp/file.txt"))
+        with pytest.raises(PairInterrupt):
+            proc._lock_soft_path(Path("/tmp/file.txt"))
+
+
+# ---------------------------------------------------------------------------
+# _execute exception branches
+# ---------------------------------------------------------------------------
+
+
+class TestExecuteExceptionBranches:
+    """Cover the many exception handlers in _execute()."""
+
+    def _setup_execute(self, proc, pair, exc_class, **exc_kwargs):
+        """Set up a processor for _execute testing with a given exception."""
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.pairSyncStarted = MagicMock()
+        proc.pairSyncEnded = MagicMock()
+        proc.increase_error = Mock()
+        proc.giveup_error = Mock()
+        proc._postpone_pair = Mock()
+        proc._handle_pair_handler_exception = Mock()
+        proc._handle_doc_pair_sync = Mock(side_effect=exc_class(**exc_kwargs))
+        proc._handle_doc_pair_dt = Mock()
+        return proc
+
+    def test_unauthorized_gives_up(self):
+        from nuxeo.exceptions import Unauthorized
+
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        self._setup_execute(proc, pair, Unauthorized)
+        proc._execute()
+        proc.giveup_error.assert_called_once_with(pair, "INVALID_CREDENTIALS")
+
+    def test_forbidden_logs_warning(self):
+        from nuxeo.exceptions import Forbidden
+
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        self._setup_execute(proc, pair, Forbidden)
+        proc._execute()
+        # Should not raise, just log
+
+    def test_pair_interrupt_requeues(self):
+        from nxdrive.drive.exceptions import PairInterrupt
+
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        self._setup_execute(proc, pair, PairInterrupt)
+        with patch("nxdrive.nuxeo.engine.processor.sleep"):
+            proc._execute()
+        proc.engine.queue_manager.push.assert_called_once_with(pair)
+
+    def test_parent_not_synced_requeues(self):
+        from nxdrive.drive.exceptions import ParentNotSynced
+
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.pairSyncStarted = MagicMock()
+        proc.increase_error = Mock()
+        proc._postpone_pair = Mock()
+        proc._handle_doc_pair_sync = Mock(
+            side_effect=ParentNotSynced("child", "parent")
+        )
+        with patch("nxdrive.nuxeo.engine.processor.sleep"):
+            proc._execute()
+        proc.engine.queue_manager.push.assert_called_once_with(pair)
+
+    def test_connection_error_postpones(self):
+        from requests.exceptions import ConnectionError as RequestsConnectionError
+
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        self._setup_execute(proc, pair, RequestsConnectionError)
+        proc._execute()
+        proc._postpone_pair.assert_called_once_with(pair, "CONNECTION_ERROR")
+
+    def test_max_retry_error_postpones(self):
+        from urllib3.exceptions import MaxRetryError
+
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.pairSyncStarted = MagicMock()
+        proc.increase_error = Mock()
+        proc._postpone_pair = Mock()
+        proc._handle_doc_pair_sync = Mock(
+            side_effect=MaxRetryError(None, None, "max retries")
+        )
+        proc._execute()
+        proc._postpone_pair.assert_called_once_with(pair, "MAX_RETRY_ERROR")
+
+    def test_conflict_postpones(self):
+        from nuxeo.exceptions import Conflict
+
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        self._setup_execute(proc, pair, Conflict)
+        proc._execute()
+        proc._postpone_pair.assert_called_once_with(pair, "Conflict")
+
+    def test_http_error_404_removes_state(self):
+        from nuxeo.exceptions import HTTPError
+
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.pairSyncStarted = MagicMock()
+        proc.increase_error = Mock()
+        proc._postpone_pair = Mock()
+        proc._handle_doc_pair_sync = Mock(
+            side_effect=HTTPError(status=404, message="not found")
+        )
+        proc._execute()
+        proc.dao.remove_state.assert_called_once_with(pair)
+
+    def test_http_error_416_cleans_temp(self):
+        import shutil
+
+        from nuxeo.exceptions import HTTPError
+
+        proc = _make_processor()
+        proc.engine.download_dir = Path("/tmp/downloads")
+        pair = _mock_doc_pair(remote_ref="default#abc123")
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.pairSyncStarted = MagicMock()
+        proc.increase_error = Mock()
+        proc._postpone_pair = Mock()
+        proc._handle_doc_pair_sync = Mock(
+            side_effect=HTTPError(status=416, message="range")
+        )
+        with patch("nxdrive.nuxeo.engine.processor.shutil.rmtree"):
+            proc._execute()
+        proc._postpone_pair.assert_called_once()
+
+    def test_http_error_500_increases_error(self):
+        from nuxeo.exceptions import HTTPError
+
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.pairSyncStarted = MagicMock()
+        proc.increase_error = Mock()
+        proc._postpone_pair = Mock()
+        proc._handle_doc_pair_sync = Mock(
+            side_effect=HTTPError(status=500, message="server error")
+        )
+        proc._execute()
+        proc.increase_error.assert_called_once()
+
+    def test_http_error_503_checks_server(self):
+        from nuxeo.exceptions import HTTPError
+
+        proc = _make_processor()
+        proc._check_exists_on_the_server = Mock()
+        pair = _mock_doc_pair()
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.pairSyncStarted = MagicMock()
+        proc.increase_error = Mock()
+        proc._postpone_pair = Mock()
+        proc._handle_doc_pair_sync = Mock(
+            side_effect=HTTPError(status=503, message="unavailable")
+        )
+        proc._execute()
+        proc._check_exists_on_the_server.assert_called_once_with(pair)
+
+    def test_upload_error_postpones(self):
+        from nuxeo.exceptions import UploadError
+
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.pairSyncStarted = MagicMock()
+        proc.increase_error = Mock()
+        proc._postpone_pair = Mock()
+        exc = UploadError("file.txt", info="some error info")
+        proc._handle_doc_pair_sync = Mock(side_effect=exc)
+        proc._execute()
+        proc._postpone_pair.assert_called_once()
+
+    def test_upload_error_expired_token_removes_upload(self):
+        from nuxeo.exceptions import UploadError
+
+        proc = _make_processor()
+        pair = _mock_doc_pair(local_state="direct")
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.pairSyncStarted = MagicMock()
+        proc.increase_error = Mock()
+        proc._postpone_pair = Mock()
+        exc = UploadError("file.txt", info="ExpiredToken blah")
+        proc._handle_doc_pair_sync = Mock(side_effect=exc)
+        proc._handle_doc_pair_dt = Mock(side_effect=exc)
+        proc._execute()
+        proc.dao.remove_transfer.assert_called_once()
+
+    def test_download_paused_sets_transfer_doc(self):
+        from nxdrive.drive.exceptions import DownloadPaused
+
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.pairSyncStarted = MagicMock()
+        proc.increase_error = Mock()
+        proc._postpone_pair = Mock()
+        proc._handle_doc_pair_sync = Mock(side_effect=DownloadPaused(42))
+        proc._execute()
+        proc.engine.dao.set_transfer_doc.assert_called_once_with(
+            "download", 42, proc.engine.uid, pair.id
+        )
+
+    def test_upload_paused_sets_transfer_doc(self):
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.pairSyncStarted = MagicMock()
+        proc.increase_error = Mock()
+        proc._postpone_pair = Mock()
+        proc._handle_doc_pair_sync = Mock(side_effect=UploadPaused(99))
+        proc._execute()
+        proc.engine.dao.set_transfer_doc.assert_called_once_with(
+            "upload", 99, proc.engine.uid, pair.id
+        )
+
+    def test_duplication_disabled_gives_up(self):
+        from nxdrive.drive.exceptions import DuplicationDisabledError
+
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.pairSyncStarted = MagicMock()
+        proc.increase_error = Mock()
+        proc.giveup_error = Mock()
+        proc._postpone_pair = Mock()
+        proc._handle_doc_pair_sync = Mock(side_effect=DuplicationDisabledError())
+        proc._execute()
+        proc.giveup_error.assert_called_once_with(pair, "DEDUP")
+
+    def test_corrupted_file_increases_error(self):
+        from nuxeo.exceptions import CorruptedFile
+
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.pairSyncStarted = MagicMock()
+        proc.increase_error = Mock()
+        proc._postpone_pair = Mock()
+        exc = CorruptedFile("file.txt", "bad hash", "expected hash")
+        proc._handle_doc_pair_sync = Mock(side_effect=exc)
+        proc._execute()
+        proc.increase_error.assert_called_once()
+
+    def test_unknown_digest_unsynchronizes(self):
+        from nxdrive.drive.exceptions import UnknownDigest
+
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.pairSyncStarted = MagicMock()
+        proc.increase_error = Mock()
+        proc._postpone_pair = Mock()
+        proc._handle_doc_pair_sync = Mock(side_effect=UnknownDigest("weird-hash"))
+        proc._execute()
+        proc.dao.unsynchronize_state.assert_called_once()
+
+    def test_permission_error_postpones(self):
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.pairSyncStarted = MagicMock()
+        proc.increase_error = Mock()
+        proc._postpone_pair = Mock()
+        proc._handle_doc_pair_sync = Mock(side_effect=PermissionError("locked"))
+        proc._execute()
+        proc.engine.errorOpenedFile.emit.assert_called_once()
+        proc._postpone_pair.assert_called_once()
+
+    def test_os_error_enoent_removes_state(self):
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.pairSyncStarted = MagicMock()
+        proc.increase_error = Mock()
+        proc._postpone_pair = Mock()
+        proc._handle_doc_pair_sync = Mock(
+            side_effect=OSError(errno.ENOENT, "not found")
+        )
+        proc._execute()
+        proc.dao.remove_state.assert_called_once_with(pair)
+
+    def test_os_error_trash_issue_postpones(self):
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.pairSyncStarted = MagicMock()
+        proc.increase_error = Mock()
+        proc._postpone_pair = Mock()
+        exc = OSError(42, "trash issue")
+        exc.trash_issue = True
+        proc._handle_doc_pair_sync = Mock(side_effect=exc)
+        proc._execute()
+        proc.engine.errorOpenedFile.emit.assert_called_once()
+        proc._postpone_pair.assert_called_once()
+
+    def test_runtime_error_expired_creds_removes_upload(self):
+        proc = _make_processor()
+        pair = _mock_doc_pair(local_state="direct")
+        exc = RuntimeError(
+            "but the refreshed credentials are still expired"
+        )
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.pairSyncStarted = MagicMock()
+        proc.increase_error = Mock()
+        proc._postpone_pair = Mock()
+        proc._handle_doc_pair_sync = Mock(side_effect=exc)
+        proc._handle_doc_pair_dt = Mock(side_effect=exc)
+        proc._execute()
+        proc.dao.remove_transfer.assert_called_once()
+
+    def test_runtime_error_other_reraises(self):
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.pairSyncStarted = MagicMock()
+        proc.increase_error = Mock()
+        proc._postpone_pair = Mock()
+        proc._handle_doc_pair_sync = Mock(
+            side_effect=RuntimeError("something else")
+        )
+        with pytest.raises(RuntimeError, match="something else"):
+            proc._execute()
+
+    def test_ongoing_request_error_postpones(self):
+        from nuxeo.exceptions import OngoingRequestError
+
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.pairSyncStarted = MagicMock()
+        proc.increase_error = Mock()
+        proc._postpone_pair = Mock()
+        proc._handle_doc_pair_sync = Mock(side_effect=OngoingRequestError("req-1"))
+        proc._execute()
+        proc._postpone_pair.assert_called_once()
+
+    def test_no_sync_handler_increases_error(self):
+        proc = _make_processor()
+        pair = _mock_doc_pair(pair_state="bizarre_state")
+        # Pre-set the attribute to None so getattr() doesn't trigger
+        # Qt metaclass checks on the uninitialised QObject.
+        proc._synchronize_bizarre_state = None
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.increase_error = Mock()
+        proc._execute()
+        proc.increase_error.assert_called_once_with(pair, "ILLEGAL_STATE")
+
+    def test_direct_state_calls_dt_handler(self):
+        proc = _make_processor()
+        pair = _mock_doc_pair(
+            pair_state="locally_modified", local_state="direct"
+        )
+        proc._get_item = Mock(side_effect=[pair, None])
+        proc._get_next_doc_pair = Mock(return_value=pair)
+        proc._interact = Mock()
+        proc.remove_void_transfers = Mock()
+        proc.pairSyncStarted = MagicMock()
+        proc._handle_doc_pair_dt = Mock()
+        proc._handle_doc_pair_sync = Mock()
+        proc._current_metrics = {}
+        proc._execute()
+        proc._handle_doc_pair_dt.assert_called_once()
+        proc._handle_doc_pair_sync.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# _synchronize_locally_deleted
+# ---------------------------------------------------------------------------
+
+
+class TestSynchronizeLocallyDeleted:
+    def test_no_remote_ref_removes_and_searches(self):
+        proc = _make_processor()
+        proc._search_for_dedup = Mock()
+        proc.remove_void_transfers = Mock()
+        pair = _mock_doc_pair(remote_ref="")
+
+        proc._synchronize_locally_deleted(pair)
+
+        proc.dao.remove_state.assert_called_once_with(pair)
+        proc._search_for_dedup.assert_called_once_with(pair)
+
+    def test_server_deletion_disabled_filters(self):
+        from nxdrive.drive.behavior import Behavior
+
+        proc = _make_processor()
+        proc._search_for_dedup = Mock()
+        proc.remove_void_transfers = Mock()
+        pair = _mock_doc_pair(
+            remote_ref="ref-1",
+            remote_parent_path="/domain",
+        )
+
+        with patch.object(Behavior, "server_deletion", False):
+            proc._synchronize_locally_deleted(pair)
+
+        proc.dao.remove_state.assert_called_once_with(pair)
+        proc.dao.add_filter.assert_called_once_with("/domain/ref-1")
+
+    def test_can_delete_remotely(self):
+        proc = _make_processor()
+        proc._search_for_dedup = Mock()
+        proc.remove_void_transfers = Mock()
+        pair = _mock_doc_pair(
+            remote_ref="ref-1",
+            remote_state="modified",
+            remote_can_delete=True,
+            remote_name="file.txt",
+            remote_parent_ref="parent-ref",
+        )
+
+        proc._synchronize_locally_deleted(pair)
+
+        proc.remote.delete.assert_called_once_with(
+            "ref-1", parent_fs_item_id="parent-ref"
+        )
+        proc.dao.remove_state.assert_called_once_with(pair)
+
+    def test_already_deleted_remotely_skips_delete(self):
+        proc = _make_processor()
+        proc._search_for_dedup = Mock()
+        proc.remove_void_transfers = Mock()
+        pair = _mock_doc_pair(
+            remote_ref="ref-1",
+            remote_state="deleted",
+            remote_can_delete=True,
+            remote_name="file.txt",
+        )
+
+        proc._synchronize_locally_deleted(pair)
+
+        proc.remote.delete.assert_not_called()
+        proc.dao.remove_state.assert_called_once_with(pair)
+
+    def test_cannot_delete_readonly(self):
+        proc = _make_processor()
+        proc._search_for_dedup = Mock()
+        proc.remove_void_transfers = Mock()
+        pair = _mock_doc_pair(
+            remote_ref="ref-1",
+            remote_state="modified",
+            remote_can_delete=False,
+            remote_name="file.txt",
+            remote_parent_path="/domain",
+        )
+
+        proc._synchronize_locally_deleted(pair)
+
+        proc.remote.delete.assert_not_called()
+        proc.dao.add_filter.assert_called_once()
+        proc.engine.deleteReadonly.emit.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# _synchronize_deleted_unknown
+# ---------------------------------------------------------------------------
+
+
+class TestSynchronizeDeletedUnknown:
+    def test_removes_state(self):
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+
+        proc._synchronize_deleted_unknown(pair)
+
+        proc.dao.remove_state.assert_called_once_with(pair)
+
+
+# ---------------------------------------------------------------------------
+# _postpone_pair
+# ---------------------------------------------------------------------------
+
+
+class TestPostponePair:
+    def test_sets_error_count_and_pushes(self):
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+
+        proc._postpone_pair(pair, "test_reason")
+
+        assert pair.error_count == 1
+        proc.engine.queue_manager.push_error.assert_called_once_with(
+            pair, exception=None, interval=None
+        )
+
+    def test_with_exception_and_interval(self):
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        exc = RuntimeError("test")
+
+        proc._postpone_pair(pair, "test_reason", exception=exc, interval=5)
+
+        proc.engine.queue_manager.push_error.assert_called_once_with(
+            pair, exception=exc, interval=5
+        )
+
+
+# ---------------------------------------------------------------------------
+# _synchronize_locally_resolved
+# ---------------------------------------------------------------------------
+
+
+class TestSynchronizeLocallyResolved:
+    def test_delegates_to_locally_created_with_overwrite(self):
+        proc = _make_processor()
+        proc._synchronize_locally_created = Mock()
+        pair = _mock_doc_pair()
+
+        proc._synchronize_locally_resolved(pair)
+
+        proc._synchronize_locally_created.assert_called_once_with(pair, overwrite=True)
+
+
+# ---------------------------------------------------------------------------
+# _refresh_remote / _refresh_local_state
+# ---------------------------------------------------------------------------
+
+
+class TestRefreshRemote:
+    def test_fetches_info_when_none(self):
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        remote_info = Mock()
+        proc.remote.get_fs_info.return_value = remote_info
+
+        proc._refresh_remote(pair, None)
+
+        proc.remote.get_fs_info.assert_called_once_with(pair.remote_ref)
+        proc.dao.update_remote_state.assert_called_once()
+
+    def test_uses_provided_info(self):
+        proc = _make_processor()
+        pair = _mock_doc_pair()
+        remote_info = Mock()
+
+        proc._refresh_remote(pair, remote_info)
+
+        proc.remote.get_fs_info.assert_not_called()
+        proc.dao.update_remote_state.assert_called_once()
+
+
+class TestRefreshLocalState:
+    def test_computes_digest_for_non_folderish(self):
+        proc = _make_processor()
+        pair = _mock_doc_pair(local_digest=None, folderish=False)
+        local_info = Mock()
+        local_info.get_digest.return_value = "abc123"
+        local_info.path = Path("folder/file.txt")
+        local_info.last_modification_time = Mock()
+        local_info.last_modification_time.strftime.return_value = "2024-01-01 00:00:00"
+
+        proc._refresh_local_state(pair, local_info)
+
+        assert pair.local_digest == "abc123"
+        proc.dao.update_local_state.assert_called_once()
+
+    def test_skips_digest_for_folderish(self):
+        proc = _make_processor()
+        pair = _mock_doc_pair(local_digest=None, folderish=True)
+        local_info = Mock()
+        local_info.path = Path("folder")
+        local_info.last_modification_time = Mock()
+        local_info.last_modification_time.strftime.return_value = "2024-01-01 00:00:00"
+
+        proc._refresh_local_state(pair, local_info)
+
+        assert pair.local_digest is None
+
+
+# ---------------------------------------------------------------------------
+# _is_remote_move
+# ---------------------------------------------------------------------------
+
+
+class TestIsRemoteMove:
+    def test_same_parent_no_move(self):
+        proc = _make_processor()
+        pair = _mock_doc_pair(
+            local_parent_path=Path("folder"),
+            remote_parent_ref="parent-ref",
+        )
+        parent = Mock()
+        parent.id = 10
+        proc.dao.get_state_from_local.return_value = parent
+        proc._get_normal_state_from_remote_ref = Mock(return_value=parent)
+
+        is_move, remote_parent = proc._is_remote_move(pair)
+
+        assert is_move is False
+
+    def test_different_parent_is_move(self):
+        proc = _make_processor()
+        pair = _mock_doc_pair(
+            local_parent_path=Path("folder"),
+            remote_parent_ref="parent-ref",
+        )
+        local_parent = Mock()
+        local_parent.id = 10
+        remote_parent = Mock()
+        remote_parent.id = 20
+        proc.dao.get_state_from_local.return_value = local_parent
+        proc._get_normal_state_from_remote_ref = Mock(return_value=remote_parent)
+
+        is_move, rp = proc._is_remote_move(pair)
+
+        assert is_move is True
+        assert rp is remote_parent
+
+
+# ---------------------------------------------------------------------------
+# _handle_failed_remote_rename
+# ---------------------------------------------------------------------------
+
+
+class TestHandleFailedRemoteRename:
+    def test_no_rollback_returns_false(self):
+        proc = _make_processor()
+        proc.engine.local_rollback.return_value = False
+        pair = _mock_doc_pair()
+
+        result = proc._handle_failed_remote_rename(pair, pair)
+
+        assert result is False
+
+    def test_no_remote_name_returns_false(self):
+        proc = _make_processor()
+        proc.engine.local_rollback.return_value = True
+        pair = _mock_doc_pair(remote_name=None)
+
+        result = proc._handle_failed_remote_rename(pair, pair)
+
+        assert result is False
+
+    def test_successful_rollback(self):
+        proc = _make_processor()
+        proc.engine.local_rollback.return_value = True
+        pair = _mock_doc_pair(
+            remote_name="original.txt",
+            local_name="renamed.txt",
+            local_path=Path("folder/renamed.txt"),
+        )
+        proc.local.rename.return_value = Mock()
+
+        result = proc._handle_failed_remote_rename(pair, pair)
+
+        assert result is True
+        proc.dao.synchronize_state.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# _handle_readonly
+# ---------------------------------------------------------------------------
+
+
+class TestHandleReadonly:
+    def test_readonly_sets_readonly(self):
+        proc = _make_processor()
+        pair = _mock_doc_pair(folderish=False, local_path=Path("file.txt"))
+        pair.is_readonly.return_value = True
+
+        with patch("nxdrive.nuxeo.engine.processor.WINDOWS", False):
+            proc._handle_readonly(pair)
+
+        proc.local.set_readonly.assert_called_once()
+
+    def test_not_readonly_unsets(self):
+        proc = _make_processor()
+        pair = _mock_doc_pair(folderish=False, local_path=Path("file.txt"))
+        pair.is_readonly.return_value = False
+
+        with patch("nxdrive.nuxeo.engine.processor.WINDOWS", False):
+            proc._handle_readonly(pair)
+
+        proc.local.unset_readonly.assert_called_once()
+
+    def test_folderish_on_windows_returns(self):
+        proc = _make_processor()
+        pair = _mock_doc_pair(folderish=True, local_path=Path("folder"))
+
+        with patch("nxdrive.nuxeo.engine.processor.WINDOWS", True):
+            proc._handle_readonly(pair)
+
+        proc.local.set_readonly.assert_not_called()
+        proc.local.unset_readonly.assert_not_called()

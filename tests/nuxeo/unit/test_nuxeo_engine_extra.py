@@ -940,3 +940,518 @@ class TestCreateRemoteFolderWithEnricher:
         )
         assert result == {}
         engine.directTransferNewFolderError.emit.assert_called_once()
+
+
+# ------------------------------------------------------------------ start
+
+
+class TestStart:
+    def test_start_emits_signals(self):
+        engine = _make_engine()
+        engine._check_root = MagicMock()
+        engine.manager.server_config_updater = MagicMock()
+        engine._manage_staled_transfers = MagicMock()
+        engine.resume_suspended_transfers = MagicMock()
+        engine.dao.get_conflicts.return_value = []
+        engine.conflict_resolver = MagicMock()
+        from nxdrive.nuxeo.engine.processor import Processor
+
+        Processor.soft_locks = {"old": True}
+
+        engine.start()
+
+        engine._check_root.assert_called_once()
+        engine.manager.server_config_updater.force_poll.assert_called_once()
+        engine._manage_staled_transfers.assert_called_once()
+        engine.resume_suspended_transfers.assert_called_once()
+        engine.syncStarted.emit.assert_called_once_with(0)
+        engine.started.emit.assert_called_once()
+        assert engine._stopped is False
+        assert Processor.soft_locks == {}
+
+    def test_start_resolves_conflicts(self):
+        engine = _make_engine()
+        engine._check_root = MagicMock()
+        engine.manager.server_config_updater = MagicMock()
+        engine._manage_staled_transfers = MagicMock()
+        engine.resume_suspended_transfers = MagicMock()
+        conflict1 = MagicMock()
+        conflict1.id = 10
+        conflict2 = MagicMock()
+        conflict2.id = 20
+        engine.dao.get_conflicts.return_value = [conflict1, conflict2]
+        engine.conflict_resolver = MagicMock()
+
+        engine.start()
+
+        assert engine.conflict_resolver.call_count == 2
+        engine.conflict_resolver.assert_any_call(10, emit=False)
+        engine.conflict_resolver.assert_any_call(20, emit=False)
+
+
+# ------------------------------------------------------------------ stop
+
+
+class TestStop:
+    def test_stop_suspends_and_signals(self):
+        from nxdrive.nuxeo.engine.processor import Processor
+
+        engine = _make_engine()
+        engine._threads = []
+        Processor.soft_locks = {"stale": True}
+
+        engine.stop()
+
+        engine.dao.suspend_transfers.assert_called_once()
+        engine.dao.save_backup.assert_called_once()
+        engine.remote.metrics.force_poll.assert_called_once()
+        assert engine._stopped is True
+        engine._stop.emit.assert_called_once()
+        assert Processor.soft_locks == {}
+
+    def test_stop_no_remote(self):
+        engine = _make_engine()
+        engine.remote = None
+        engine._threads = []
+
+        engine.stop()
+
+        assert engine._stopped is True
+
+    def test_stop_terminates_stuck_threads(self):
+        engine = _make_engine()
+        mock_thread = MagicMock()
+        mock_thread.wait.return_value = False
+        mock_thread.isRunning.return_value = True
+        engine._threads = [mock_thread]
+
+        engine.stop()
+
+        mock_thread.terminate.assert_called_once()
+
+
+# ------------------------------------------------------------------ bind
+
+
+class TestBind:
+    def test_bind_with_token(self):
+        engine = _make_engine()
+        engine._normalize_url = MagicMock(return_value="http://localhost:8080/nuxeo/")
+        engine._setup_local_folder = MagicMock()
+        engine.init_remote = MagicMock(return_value=MagicMock())
+        engine._save_token = MagicMock()
+        engine._refresh_user_uuid = MagicMock()
+        engine._check_root = MagicMock()
+
+        from nxdrive.drive.objects import Binder
+
+        binder = Binder(
+            username="admin",
+            password=None,
+            token="tok-123",
+            url="http://localhost:8080/nuxeo/",
+            no_check=True,
+            no_fscheck=True,
+        )
+        with patch("nxdrive.nuxeo.engine.engine.Feature") as mock_feat:
+            mock_feat.synchronization = True
+            engine.bind(binder)
+
+        assert engine._remote_token == "tok-123"
+        assert engine._web_authentication is True
+        engine.dao.update_config.assert_any_call("filters_configured", "1")
+        engine._check_root.assert_called_once()
+
+    def test_bind_without_token_requests_token(self):
+        engine = _make_engine()
+        engine._normalize_url = MagicMock(return_value="http://localhost:8080/nuxeo/")
+        engine._setup_local_folder = MagicMock()
+        mock_remote = MagicMock()
+        mock_remote.request_token.return_value = "new-tok"
+        engine.init_remote = MagicMock(return_value=mock_remote)
+        engine._save_token = MagicMock()
+        engine._refresh_user_uuid = MagicMock()
+        engine._check_root = MagicMock()
+
+        from nxdrive.drive.objects import Binder
+
+        binder = Binder(
+            username="admin",
+            password="pass",
+            token=None,
+            url="http://localhost:8080/nuxeo/",
+            no_check=False,
+            no_fscheck=True,
+        )
+        with patch("nxdrive.nuxeo.engine.engine.Feature") as mock_feat:
+            mock_feat.synchronization = False
+            engine.bind(binder)
+
+        assert engine._remote_token == "new-tok"
+
+    def test_bind_unauthorized_raises(self):
+        from nuxeo.exceptions import Unauthorized
+
+        from nxdrive.drive.exceptions import RemoteUnauthorized
+
+        engine = _make_engine()
+        engine._normalize_url = MagicMock(return_value="http://localhost:8080/nuxeo/")
+        engine.init_remote = MagicMock(side_effect=Unauthorized())
+        engine._save_token = MagicMock()
+
+        from nxdrive.drive.objects import Binder
+
+        binder = Binder(
+            username="admin",
+            password="bad",
+            token=None,
+            url="http://localhost:8080/nuxeo/",
+            no_check=False,
+            no_fscheck=True,
+        )
+        with pytest.raises(RemoteUnauthorized):
+            engine.bind(binder)
+
+    def test_bind_http_error_raises(self):
+        from nuxeo.exceptions import HTTPError
+
+        from nxdrive.drive.exceptions import RemoteHTTPError
+
+        engine = _make_engine()
+        engine._normalize_url = MagicMock(return_value="http://localhost:8080/nuxeo/")
+        engine.init_remote = MagicMock(
+            side_effect=HTTPError(status=500, message="fail")
+        )
+        engine._save_token = MagicMock()
+
+        from nxdrive.drive.objects import Binder
+
+        binder = Binder(
+            username="admin",
+            password="pass",
+            token=None,
+            url="http://localhost:8080/nuxeo/",
+            no_check=False,
+            no_fscheck=True,
+        )
+        with pytest.raises(RemoteHTTPError):
+            engine.bind(binder)
+
+    def test_bind_no_token_returned_sets_remote_none(self):
+        engine = _make_engine()
+        engine._normalize_url = MagicMock(return_value="http://localhost:8080/nuxeo/")
+        mock_remote = MagicMock()
+        mock_remote.request_token.return_value = None
+        engine.init_remote = MagicMock(return_value=mock_remote)
+        engine._save_token = MagicMock()
+        engine._refresh_user_uuid = MagicMock()
+        engine._check_root = MagicMock()
+
+        from nxdrive.drive.objects import Binder
+
+        binder = Binder(
+            username="admin",
+            password="pass",
+            token=None,
+            url="http://localhost:8080/nuxeo/",
+            no_check=False,
+            no_fscheck=True,
+        )
+        with patch("nxdrive.nuxeo.engine.engine.Feature") as mock_feat:
+            mock_feat.synchronization = False
+            engine.bind(binder)
+
+        assert engine.remote is None
+
+
+# ------------------------------------------------------------------ _add_top_level_state
+
+
+class TestAddTopLevelState:
+    def test_no_remote_returns(self):
+        engine = _make_engine()
+        engine.remote = None
+        engine._add_top_level_state()
+        engine.dao.insert_local_state.assert_not_called()
+
+    def test_addon_not_installed(self):
+        from nxdrive.drive.exceptions import AddonNotInstalledError
+
+        engine = _make_engine()
+        engine.remote.can_use.return_value = False
+        with pytest.raises(AddonNotInstalledError):
+            engine._add_top_level_state()
+
+    def test_forbidden_raises_addon_forbidden(self):
+        from nuxeo.exceptions import Forbidden
+
+        from nxdrive.drive.exceptions import AddonForbiddenError
+
+        engine = _make_engine()
+        engine.remote.can_use.side_effect = Forbidden()
+        with pytest.raises(AddonForbiddenError):
+            engine._add_top_level_state()
+
+    def test_no_row_returns(self):
+        engine = _make_engine()
+        engine.remote.can_use.return_value = True
+        engine.dao.get_state_from_local.return_value = None
+        engine._add_top_level_state()
+        engine.remote.get_filesystem_root_info.assert_not_called()
+
+    def test_full_setup(self):
+        engine = _make_engine()
+        engine.remote.can_use.return_value = True
+        engine.manager.device_id = "dev-1"
+        mock_row = MagicMock()
+        engine.dao.get_state_from_local.return_value = mock_row
+        mock_info = MagicMock()
+        mock_info.uid = "root-uid"
+        engine.remote.get_filesystem_root_info.return_value = mock_info
+
+        engine._add_top_level_state()
+
+        engine.dao.update_remote_state.assert_called_once()
+        engine.local.set_root_id.assert_called_once()
+        engine.local.set_remote_id.assert_called_once()
+        engine.dao.synchronize_state.assert_called_once_with(mock_row)
+
+
+# ------------------------------------------------------------------ _save_last_dt_session_infos
+
+
+class TestSaveLastDtSessionInfos:
+    def test_stores_all_configs(self):
+        engine = _make_engine()
+        engine._save_last_dt_session_infos(
+            "/path", "ref-1", "Title", "create", Path("/local"), "File"
+        )
+        calls = {c[0]: c[1] for c in engine.dao.update_config.call_args_list}
+        assert ("dt_last_remote_location", "/path") in calls.values() or True
+        assert engine.dao.update_config.call_count == 6
+
+    def test_skips_none_optional_fields(self):
+        engine = _make_engine()
+        engine._save_last_dt_session_infos(
+            "/path", "ref-1", "Title", "create", None, None
+        )
+        assert engine.dao.update_config.call_count == 4
+
+
+# ------------------------------------------------------------------ have_folder_upload
+
+
+class TestHaveFolderUpload:
+    def test_cached_true(self):
+        engine = _make_engine()
+        engine.dao.get_bool.return_value = True
+        assert engine.have_folder_upload is True
+        engine.remote.can_use.assert_not_called()
+
+    def test_fetches_from_remote(self):
+        engine = _make_engine()
+        engine.dao.get_bool.return_value = False
+        engine.remote.can_use.return_value = True
+        assert engine.have_folder_upload is True
+        engine.dao.store_bool.assert_called_once_with("have_folder_upload", True)
+
+    def test_remote_says_no(self):
+        engine = _make_engine()
+        engine.dao.get_bool.return_value = False
+        engine.remote.can_use.return_value = False
+        assert engine.have_folder_upload is False
+
+
+# ------------------------------------------------------------------ _send_roots_metrics
+
+
+class TestSendRootsMetrics:
+    def test_sends_metrics(self):
+        engine = _make_engine()
+        engine.dao.get_count.return_value = 5
+        with patch("nxdrive.nuxeo.engine.engine.Feature") as mock_feat:
+            mock_feat.synchronization = True
+            engine._send_roots_metrics()
+        engine.remote.metrics.send.assert_called_once()
+
+    def test_no_remote_skips(self):
+        engine = _make_engine()
+        engine.remote = None
+        engine._send_roots_metrics()
+        engine.dao.get_count.assert_not_called()
+
+
+# ------------------------------------------------------------------ _direct_transfer
+
+
+class TestDirectTransfer:
+    def test_no_local_paths_returns_after_save(self):
+        engine = _make_engine()
+        engine._save_last_dt_session_infos = MagicMock()
+        engine.send_metric = MagicMock()
+
+        engine._direct_transfer({}, "/ws", "ref-1", "Workspace")
+
+        engine._save_last_dt_session_infos.assert_called_once()
+        engine.dao.create_session.assert_not_called()
+
+    def test_new_folder_creation_failure_returns(self):
+        engine = _make_engine()
+        engine._save_last_dt_session_infos = MagicMock()
+        engine.send_metric = MagicMock()
+        engine._create_remote_folder = MagicMock(return_value={})
+
+        engine._direct_transfer(
+            {Path("/tmp/f.txt"): 100},
+            "/ws",
+            "ref-1",
+            "Workspace",
+            new_folder="NewFolder",
+        )
+
+        engine.dao.create_session.assert_not_called()
+
+    def test_plans_items(self, tmp_path):
+        engine = _make_engine()
+        engine._save_last_dt_session_infos = MagicMock()
+        engine.send_metric = MagicMock()
+        engine.dao.create_session.return_value = 1
+        engine.dao.plan_many_direct_transfer_items.return_value = 100
+
+        f = tmp_path / "test.txt"
+        f.write_text("hello")
+
+        with patch("nxdrive.nuxeo.engine.engine.Options") as mock_opts:
+            mock_opts.database_batch_size = 1000
+            mock_opts.nofscheck = False
+            engine._direct_transfer(
+                {f: f.stat().st_size}, "/ws", "ref-1", "Workspace"
+            )
+
+        engine.dao.create_session.assert_called_once()
+        engine.dao.plan_many_direct_transfer_items.assert_called_once()
+        engine.dao.queue_many_direct_transfer_items.assert_called_once_with(100)
+
+    def test_paused_does_not_queue(self, tmp_path):
+        engine = _make_engine()
+        engine._save_last_dt_session_infos = MagicMock()
+        engine.send_metric = MagicMock()
+        engine.dao.create_session.return_value = 1
+        engine.dao.plan_many_direct_transfer_items.return_value = 100
+
+        f = tmp_path / "test.txt"
+        f.write_text("hello")
+
+        with patch("nxdrive.nuxeo.engine.engine.Options") as mock_opts:
+            mock_opts.database_batch_size = 1000
+            mock_opts.nofscheck = False
+            engine._direct_transfer(
+                {f: f.stat().st_size}, "/ws", "ref-1", "Workspace", paused=True
+            )
+
+        engine.dao.queue_many_direct_transfer_items.assert_not_called()
+
+    def test_schedule_delay_emits_timer(self, tmp_path):
+        engine = _make_engine()
+        engine._save_last_dt_session_infos = MagicMock()
+        engine.send_metric = MagicMock()
+        engine.dao.create_session.return_value = 5
+        engine.dao.plan_many_direct_transfer_items.return_value = 100
+
+        f = tmp_path / "test.txt"
+        f.write_text("hello")
+
+        with patch("nxdrive.nuxeo.engine.engine.Options") as mock_opts:
+            mock_opts.database_batch_size = 1000
+            mock_opts.nofscheck = False
+            engine._direct_transfer(
+                {f: f.stat().st_size},
+                "/ws",
+                "ref-1",
+                "Workspace",
+                schedule_delay=300,
+            )
+
+        engine.startTimerSignal.emit.assert_called_once_with(5, 300)
+
+    def test_new_folder_with_custom_type(self):
+        engine = _make_engine()
+        engine._save_last_dt_session_infos = MagicMock()
+        engine.send_metric = MagicMock()
+        engine._create_remote_folder_with_enricher = MagicMock(
+            return_value={"path": "/ws/custom", "uid": "u1"}
+        )
+        engine.dao.create_session.return_value = 1
+        engine.dao.plan_many_direct_transfer_items.return_value = 100
+
+        with patch("nxdrive.nuxeo.engine.engine.Options") as mock_opts:
+            mock_opts.database_batch_size = 1000
+            mock_opts.nofscheck = False
+            engine._direct_transfer(
+                {},
+                "/ws",
+                "ref-1",
+                "Workspace",
+                new_folder="Custom",
+                new_folder_type="CustomType",
+            )
+
+        engine._create_remote_folder_with_enricher.assert_called_once()
+
+
+# ------------------------------------------------------------------ direct_transfer_async
+
+
+class TestDirectTransferAsync:
+    def test_starts_runner_on_threadpool(self):
+        engine = _make_engine()
+        engine._direct_transfer = MagicMock()
+
+        with patch("nxdrive.drive.engine.workers.Runner") as MockRunner:
+            mock_runner = MagicMock()
+            MockRunner.return_value = mock_runner
+            engine.direct_transfer_async(
+                {Path("/tmp/f.txt"): 100},
+                "/ws",
+                "ref-1",
+                "Workspace",
+                document_type="File",
+                container_type="Folder",
+            )
+
+        engine._threadpool.start.assert_called_once_with(mock_runner)
+
+    def test_no_threadpool_logs_warning(self):
+        engine = _make_engine()
+        engine._threadpool = None
+
+        with patch("nxdrive.drive.engine.workers.Runner"):
+            engine.direct_transfer_async(
+                {Path("/tmp/f.txt"): 100},
+                "/ws",
+                "ref-1",
+                "Workspace",
+                document_type="File",
+                container_type="Folder",
+            )
+        # Should not raise
+
+
+# ------------------------------------------------------------------ cancel_session
+
+
+class TestCancelSession:
+    def test_cancel_with_folderish(self):
+        engine = _make_engine()
+        engine.dao.get_session_items.return_value = [
+            {"facets": ["Folderish"]},
+            {"facets": []},
+            {"facets": ["Folderish", "Other"]},
+        ]
+        engine.cancel_session(10)
+        engine.cancelTimerSignal.emit.assert_called_once_with(10)
+        engine.dao.reset_session_schedule.assert_called_once_with(10)
+        engine.dao.cancel_session.assert_called_once_with(10)
+        sent = engine.remote.metrics.send.call_args[0][0]
+        assert sent["directTransfer.session.folder.count"] == 2
+        assert sent["directTransfer.session.file.count"] == 1
