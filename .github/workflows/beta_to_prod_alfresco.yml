@@ -14,13 +14,12 @@ on:
 jobs:
   beta-to-prod:
     runs-on: ubuntu-latest
-    environment: development
+    environment: production
     env:
-      S3_BUCKET: test-hyland-software-channel-dist
+      S3_BUCKET: drive.software-channels.hyland.com
       # Public base URL used when building links inside the generated
-      # index.html pages. Update this once the software-channel bucket is
-      # served from its final public hostname.
-      ROOT_URL: https://hyland-software-channel-dist.opsexp.alfresco.me
+      # index.html pages.
+      ROOT_URL: https://drive.software-channels.hyland.com
       S3_PREFIX: alfresco/drive-updates/
 
     steps:
@@ -40,7 +39,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@517a711dbcd0e402f90c77e7e2f81e849156e31d # v6.2.2
         with:
-          role-to-assume: arn:aws:iam::372466110691:role/AlfrescoCI/nuxeo-drive-software-channel-upload
+          role-to-assume: arn:aws:iam::744709874192:role/AlfrescoCI/nuxeo-drive-software-channel-upload
           aws-region: us-east-1
 
       - name: Fetch versions.yml
