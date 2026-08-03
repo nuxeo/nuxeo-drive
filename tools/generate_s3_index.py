@@ -157,7 +157,7 @@ def _render_root(root_url, prefix, folders, extra_files):
         )
 
     body = "  <ul>\n" + "\n".join(items) + "\n  </ul>"
-    return _page("Alfresco Drive – Software Channel", body)
+    return _page("Hyland Drive for Alfresco – Software Channel", body)
 
 
 def _render_folder(folder, root_url, prefix, files):
