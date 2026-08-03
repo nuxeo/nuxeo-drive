@@ -5580,5 +5580,83 @@ class TestDirectEditErrorHandling:
         assert expected_path.name == filename
 
 
+# -------------------------------------------------------------- _handle_lock_queue error paths
+
+
+class TestHandleLockQueueErrors:
+    """Tests for exception handlers in DirectEdit._handle_lock_queue."""
+
+    def setup_method(self):
+        self.manager = Mock()
+        self.folder = Path(tempfile.mkdtemp())
+        self.manager.autolock_service = Mock()
+        self.manager.autolock_service.orphanLocks = Mock()
+        self.manager.engines = {}
+        self.manager.dao = Mock()
+        self.manager.notification_service = Mock()
+        self.manager.notification_service._directEditLockError = Mock()
+        self.manager.notification_service._directEditStarting = Mock()
+        self.manager.notification_service._directEditForbidden = Mock()
+        self.manager.notification_service._directEditReadonly = Mock()
+        self.manager.notification_service._directEditLocked = Mock()
+        self.manager.notification_service._directEditUpdated = Mock()
+        self.manager.open_local_file = Mock()
+        self.manager.get_direct_edit_auto_lock = Mock(return_value=True)
+        self.manager.osi = Mock()
+        self.manager.directEdit = Mock()
+
+    def teardown_method(self):
+        if self.folder.exists():
+            shutil.rmtree(self.folder, ignore_errors=True)
+
+    def _make_direct_edit(self):
+        de = DirectEdit(self.manager, self.folder)
+        de.directEditLockError = Mock()
+        de.autolock = Mock()
+        de.local = Mock()
+        return de
+
+    def test_connection_error_requeues_item(self):
+        """CONNECTION_ERROR handler requeues the item for retry."""
+        from requests.exceptions import ConnectionError as ReqConnectionError
+
+        de = self._make_direct_edit()
+        ref = Path("test-uid_content/file.txt")
+        de._lock_queue.put((ref, "lock"))
+
+        details = Mock()
+        details.uid = "uid-1"
+        details.engine = Mock()
+        details.engine.remote = Mock()
+        de._extract_edit_info = Mock(return_value=details)
+        de.local.set_remote_id = Mock(side_effect=ReqConnectionError("connection lost"))
+
+        de._handle_lock_queue()
+
+        # Item should be requeued
+        assert not de._lock_queue.empty()
+        requeued = de._lock_queue.get_nowait()
+        assert requeued == (ref, "lock")
+
+    def test_generic_exception_emits_lock_error(self):
+        """Generic Exception handler emits directEditLockError signal."""
+        de = self._make_direct_edit()
+        ref = Path("test-uid_content/file.txt")
+        de._lock_queue.put((ref, "unlock"))
+
+        details = Mock()
+        details.uid = "uid-2"
+        details.engine = Mock()
+        details.engine.remote = Mock()
+        de._extract_edit_info = Mock(return_value=details)
+        de._unlock = Mock(side_effect=RuntimeError("unexpected error"))
+
+        de._handle_lock_queue()
+
+        de.directEditLockError.emit.assert_called_once_with("unlock", ref.name, "uid-2")
+        # Queue should be empty (not requeued)
+        assert de._lock_queue.empty()
+
+
 if __name__ == "__main__":
     pytest.main([__file__])

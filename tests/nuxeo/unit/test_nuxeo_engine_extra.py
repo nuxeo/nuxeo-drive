@@ -364,6 +364,27 @@ class TestSuspendClient:
                 # Should not raise
                 engine.suspend_client(MagicMock())
 
+    def test_non_file_action_returns_early(self):
+        """When the current action is not a FileAction, suspend_client returns
+        without raising."""
+        from nxdrive.drive.engine.activity import Action
+
+        engine = _make_engine()
+        engine.is_paused = MagicMock(return_value=False)
+        engine.is_started = MagicMock(return_value=True)
+        engine._threads = []
+
+        # Non-FileAction (e.g. a plain Action)
+        mock_action = MagicMock(spec=Action)
+
+        with patch("nxdrive.nuxeo.engine.engine.current_thread_id", return_value=1):
+            with patch(
+                "nxdrive.nuxeo.engine.engine.Action.get_current_action",
+                return_value=mock_action,
+            ):
+                # Should return without raising (early return at line 297)
+                engine.suspend_client(MagicMock())
+
 
 # ------------------------------------------------------------------ get_metadata_url
 
