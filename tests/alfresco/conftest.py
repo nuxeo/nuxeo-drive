@@ -88,7 +88,7 @@ def alfresco_client(alfresco_url: str, alfresco_auth):
         log.exception("Failed to close Alfresco client")
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session")
 def _cleanup_stale_test_folders(alfresco_client):
     """Remove leftover nxdrive-func-tests-* folders before and after the run."""
 
@@ -111,7 +111,7 @@ def _cleanup_stale_test_folders(alfresco_client):
 
 
 @pytest.fixture()
-def alfresco_test_folder(alfresco_client):
+def alfresco_test_folder(_cleanup_stale_test_folders, alfresco_client):
     """Create a temporary test folder under the repository root and delete it
     after tests complete."""
     import uuid
@@ -133,8 +133,5 @@ def pytest_runtest_setup(item):
     if _server_configured():
         return
     path = str(item.fspath)
-    if (
-        "/tests/alfresco/functional/" in path
-        or "/tests/alfresco/integration/" in path
-    ):
+    if "/tests/alfresco/functional/" in path or "/tests/alfresco/integration/" in path:
         pytest.fail(_NO_SERVER_MSG)
