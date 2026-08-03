@@ -194,10 +194,12 @@ class TestMarkConflicted:
         state = dao.get_state_from_local(Path(file_name))
 
         if state:
-            from unittest.mock import MagicMock
+            from unittest.mock import MagicMock, patch
 
             proc = engine.create_processor(MagicMock())
-            proc._mark_conflicted(state)
+            # Mock conflict_resolver to avoid Qt signal abort in test context
+            with patch.object(engine, "conflict_resolver"):
+                proc._mark_conflicted(state)
             updated = dao.get_state_from_id(state.id)
             assert updated is not None
             assert updated.pair_state == "conflicted"

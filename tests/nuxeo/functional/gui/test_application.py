@@ -682,7 +682,13 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
         uid = list(app.manager.engines.keys())[0]
         assert app.confirm_cancel_session(uid, 1, "localhost", 1) is True
     # Covering exit_app
-    assert app.exit_app() is None
+    # Mock quit() to prevent the real QApplication.quit() from being
+    # called while background worker threads are still running (the
+    # app_obj fixture patches Worker.run / PollWorker._execute at the
+    # class level, but the bound-method references captured by
+    # QThread.started.connect() before the patch still run real code).
+    with patch.object(app, "quit"):
+        assert app.exit_app() is None
     # Covering _shutdown
     app.app_engine = Mock()
     app.task_manager_window = Mock()

@@ -196,8 +196,12 @@ def test_delay_remote_watcher(app, manager_factory):
                 # Check the option is changed
                 assert Options.delay == 2
 
-                # Check remote checks are using the new delay
+                # Check remote checks are using the new delay.
+                # Reset _next_check so the watcher immediately starts
+                # using the new 2-second interval instead of waiting for
+                # the previous 5-second _next_check to expire.
                 count = 0
+                watcher._next_check = 0.0
                 sleep(10)
                 assert count >= 4
 
