@@ -1,6 +1,7 @@
 import pytest
 
 try:
+    from nxdrive.drive.constants import CONFIG_REGISTRY_KEY
     from nxdrive.drive.osi.windows import registry
 except ImportError:
     pytestmark = pytest.mark.skip("Windows only.")
@@ -11,7 +12,7 @@ def test_registry_configuration(request, manager_factory):
 
     with manager_factory(with_engine=False) as manager:
         osi = manager.osi
-        key = "Software\\Nuxeo\\Drive"
+        key = CONFIG_REGISTRY_KEY
 
         assert not osi.get_system_configuration()
 

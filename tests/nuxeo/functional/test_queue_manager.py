@@ -8,7 +8,6 @@ from typing import Optional
 from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
-from nuxeo.exceptions import OngoingRequestError
 
 from nxdrive.drive.constants import WINDOWS
 from nxdrive.drive.engine.queue_manager import (
@@ -486,8 +485,10 @@ class TestErrorHandling:
 
     def test_push_error_ongoing_request_error(self, queue_manager):
         """Test OngoingRequestError handling (no notification)."""
+        from nxdrive.drive.exceptions import RemoteOngoingRequestError
+
         doc_pair = MockDocPair(1, False, "locally_modified", error_count=1)
-        ongoing_error = OngoingRequestError("Request ongoing")
+        ongoing_error = RemoteOngoingRequestError("Request ongoing")
 
         with patch.object(queue_manager, "newError") as mock_signal:
             queue_manager.push_error(doc_pair, exception=ongoing_error)

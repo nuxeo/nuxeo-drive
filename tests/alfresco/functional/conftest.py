@@ -3,12 +3,12 @@
 Session-scoped fixtures build one authenticated
 :class:`alfresco.Alfresco` client per test session.  Function-scoped
 fixtures build ephemeral test folders / files under
-``env.ALFRESCO_TEST_PATH`` and delete them on tear-down.
+the repository root and delete them on tear-down.
 
-All fixtures raise ``pytest.skip`` when
-``env.ALFRESCO_URL / _USER / _PASSWORD`` are not set, so the whole
-suite is safe to collect on machines without a live server (see
-:func:`tests.alfresco.conftest.pytest_collection_modifyitems`).
+All fixtures call ``pytest.fail`` when
+``env.ALFRESCO_URL / _USER / _PASSWORD`` are not set, so tests fail
+with a clear "no server available" message rather than silently
+skipping (see :func:`tests.alfresco.conftest.pytest_collection_modifyitems`).
 """
 
 from logging import getLogger
@@ -18,11 +18,20 @@ from uuid import uuid4
 
 import pytest
 
+from nxdrive.drive.feature import Feature
 from nxdrive.drive.manager import Manager
 
-from ... import env_alfresco as env
-
 log = getLogger(__name__)
+
+
+@pytest.fixture(autouse=True)
+def _enable_sync_feature():
+    """Enable Feature.synchronization for functional tests so that
+    bind() creates the local folder, root pair, and filters_configured flag."""
+    old = Feature.synchronization
+    Feature.synchronization = True
+    yield
+    Feature.synchronization = old
 
 
 @pytest.fixture()
@@ -37,12 +46,9 @@ def unique_name() -> Callable[[str], str]:
 
 @pytest.fixture()
 def temp_folder(alfresco_client, alfresco_test_folder, unique_name):
-    """Create a scratch folder under ``env.ALFRESCO_TEST_PATH`` and delete it
-    on tear-down.
-    """
+    """Create a scratch folder under the test root and delete it on tear-down."""
     name = unique_name("ndt-folder")
-    parent = alfresco_client.nodes.get_by_path(env.ALFRESCO_TEST_PATH)
-    folder = alfresco_client.nodes.create_folder(parent.id, name)
+    folder = alfresco_client.nodes.create_folder(alfresco_test_folder.id, name)
     log.info("[FIXTURE] Created scratch folder %s (%s)", name, folder.id)
     try:
         yield folder
@@ -54,9 +60,14 @@ def temp_folder(alfresco_client, alfresco_test_folder, unique_name):
 
 
 @pytest.fixture()
-def manager_factory(tmp_path, alfresco_url, alfresco_user, alfresco_password):
+def manager_factory(
+    tmp_path, alfresco_client, alfresco_url, alfresco_user, alfresco_password
+):
     """Yield a factory that builds :class:`Manager` instances bound to the
     live Alfresco server.  Each manager is automatically closed on teardown.
+
+    Depends on ``alfresco_client`` so that the session-level health check
+    skips the suite when the Alfresco server is unavailable.
     """
     created: list[Manager] = []
 

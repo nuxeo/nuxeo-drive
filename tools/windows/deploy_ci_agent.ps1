@@ -533,19 +533,31 @@ function install_python {
 			# Filter paths containing '\Python\'
 			$pythonPaths = $paths | Where-Object { $_ -like '*\Python*' }
 
-			# Check for python.exe in those directories
+			# Check each candidate and verify its version matches exactly
+			$foundMatch = $false
 			foreach ($path in $pythonPaths) {
 				$pythonExe = Join-Path -Path $path -ChildPath "python.exe"
 				if (Test-Path $pythonExe) {
-					Write-Output "Found python.exe in: $path"
-					$Env:PYTHON_DIR = $path
-				} else {
-					continue
+					$candidateVersion = & $pythonExe --version 2>&1
+					Write-Output "  Candidate: $path -> $candidateVersion"
+					if ($candidateVersion -match "Python $Env:PYTHON_DRIVE_VERSION\b") {
+						$Env:PYTHON_DIR = $path
+						$foundMatch = $true
+						break
+					} else {
+						Write-Output "  => Python Version mismatch, skipping."
+					}
 				}
+			}
+			if (-not $foundMatch) {
+				Write-Output ">>> ERROR: No Python installation matching version $Env:PYTHON_DRIVE_VERSION found in PATH."
+				Write-Output ">>> Available Python paths checked: $($pythonPaths -join ', ')"
+				ExitWithCode 1
 			}
 		}
 		catch {
-			$Env:PYTHON_DIR = ""
+			Write-Output ">>> ERROR: Failed to locate Python $Env:PYTHON_DRIVE_VERSION - $_"
+			ExitWithCode 1
 		}
 	}
 	else {
@@ -638,9 +650,11 @@ function install_python {
 	Write-Output ">>> Setting-up the Python virtual environment"
 
 	if ($exePathPYTHON_DIR -and (Test-Path $exePathPYTHON_DIR)) {
+		Write-Output ">>> Creating venv from: $exePathPYTHON_DIR"
 		& $exePathPYTHON_DIR $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
 	}
 	elseif ($exePathPythonLocation -and (Test-Path $exePathPythonLocation)) {
+		Write-Output ">>> Creating venv from: $exePathPythonLocation"
 		& $exePathPythonLocation $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
 	}
 	else {
@@ -649,6 +663,14 @@ function install_python {
 
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
+	}
+
+	# Verify the venv Python version matches the required version
+	$venvVersion = & $Env:STORAGE_DIR\Scripts\python.exe --version 2>&1
+	Write-Output ">>> Venv Python version: $venvVersion"
+	if (-not ($venvVersion -match $Env:PYTHON_DRIVE_VERSION)) {
+		Write-Output ">>> ERROR: Venv Python version does not match required $Env:PYTHON_DRIVE_VERSION"
+		ExitWithCode 1
 	}
 
 	& $Env:STORAGE_DIR\Scripts\activate.bat

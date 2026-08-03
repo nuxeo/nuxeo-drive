@@ -138,7 +138,7 @@ class QMLDriveApi(QObject):
         # Avoid to fail on non serializable object
         return json.dumps(obj, default=self._json_default)
 
-    def _resolve_server_config(self, server_url: str, /):
+    def _resolve_server_config(self, server_url: str, /) -> Any:
         """Resolve server config while keeping neutral URLs on the default type."""
         selected_key = Options.server_type
         if selected_key:

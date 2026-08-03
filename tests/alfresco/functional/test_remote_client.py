@@ -58,16 +58,16 @@ class TestFolderLifecycle:
         folder = remote.make_folder(alfresco_test_folder.id, name)
         try:
             children = remote.get_children(alfresco_test_folder.id)
-            assert any(getattr(c, "id", "") == folder.id for c in children)
+            assert any(getattr(c, "id", "") == folder.uid for c in children)
         finally:
-            remote.delete(folder.id)
+            remote.delete(folder.uid)
 
     def test_rename_folder(self, remote, alfresco_test_folder):
         original = f"ndt-orig-{uuid4().hex[:8]}"
         renamed = f"ndt-new-{uuid4().hex[:8]}"
         folder = remote.make_folder(alfresco_test_folder.id, original)
         try:
-            info = remote.rename(folder.id, renamed)
+            info = remote.rename(folder.uid, renamed)
             assert info is not None
         finally:
-            remote.delete(folder.id)
+            remote.delete(folder.uid)

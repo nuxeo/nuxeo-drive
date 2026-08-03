@@ -473,7 +473,7 @@ class AlfrescoProcessor(_ProcessorBase):
         tmp_folder.mkdir(parents=True, exist_ok=True)
         file_out = tmp_folder / file_path.name
 
-        # Try to re-use a local duplicate
+        # Try to reuse a local duplicate
         if doc_pair.remote_digest:
             pair = self.dao.get_valid_duplicate_file(doc_pair.remote_digest)
             if pair:

@@ -935,7 +935,7 @@ def simplify_url(url: str, /) -> str:
     return urlunsplit(new_parts).rstrip("/")
 
 
-def _active_server_type_config():
+def _active_server_type_config() -> "Any":
     from nxdrive.drive import server_type as st
 
     return st.get(Options.server_type or st.get_default_key())

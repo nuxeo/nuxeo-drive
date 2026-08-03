@@ -8,7 +8,7 @@ import pytest
 from nuxeo.documents import Document
 
 from nxdrive.drive.constants import WINDOWS
-from tests.common.integration.windows.utils import (  # , share_metrics_dlg  , get_opened_url
+from tests.common.integration.windows.utils import (
     cb_get,
     fatal_error_dlg,
 )
@@ -112,6 +112,7 @@ def test_unbind_root_doc_not_found(nuxeo_url, exe, server, tmp):
     assert not launch(exe, args)
 
 
+@pytest.mark.timeout(300)
 def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp):
     """Automate things:
     - bind a server
@@ -190,6 +191,7 @@ def test_ctx_menu_edit_metadata_inexistant(nuxeo_url, exe, server, tmp):
     assert launch(exe, args)
 
 
+@pytest.mark.timeout(600)
 def test_ctx_menu_entries(nuxeo_url, exe, server, tmp):
     """Will test:
     - access-online

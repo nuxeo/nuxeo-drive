@@ -4,6 +4,7 @@ import stat
 import subprocess
 from logging import getLogger
 from pathlib import Path
+from typing import Any
 
 from ..constants import APP_NAME
 from ..options import Options
@@ -20,7 +21,7 @@ class Updater(BaseUpdater):
     ext = "appimage"
     release_file = "drive-x86_64.AppImage"
 
-    def __init__(self, manager, /) -> None:
+    def __init__(self, manager: "Any", /) -> None:
         super().__init__(manager)
         from nxdrive.drive import server_type as st
 

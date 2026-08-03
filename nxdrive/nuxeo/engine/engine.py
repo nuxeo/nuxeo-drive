@@ -568,7 +568,7 @@ class Engine(_EngineBase):
                 if not self._remote_token:
                     self._remote_token = self.remote.request_token()
                 if not self._remote_token:
-                    self.remote = None  # type: ignore
+                    self.remote = None
         except Unauthorized as exc:
             raise RemoteUnauthorized(message=getattr(exc, "message", str(exc))) from exc
         except HTTPError as exc:

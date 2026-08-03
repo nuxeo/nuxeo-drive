@@ -6,6 +6,7 @@ import sys
 from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
+from typing import Any
 
 from ..constants import APP_NAME
 from ..options import Options
@@ -28,7 +29,7 @@ class Updater(BaseUpdater):
     ext = "dmg"
     release_file = "drive.dmg"
 
-    def __init__(self, manager, /) -> None:
+    def __init__(self, manager: "Any", /) -> None:
         super().__init__(manager)
         from nxdrive.drive import server_type as st
 

@@ -123,7 +123,7 @@ class TestDoc:
         """Test Doc enable method with different permissions."""
         mock_document = self.create_mock_document()
 
-        with patch("nxdrive.nuxeo.gui.folders_model.Options") as mock_options:
+        with patch("nxdrive.drive.gui.folders_model.Options") as mock_options:
             mock_options.disallowed_types_for_dt = []
 
             doc = Doc(mock_document)
@@ -263,7 +263,7 @@ class TestFilteredDocuments:
         state = filtered_docs.get_item_state("/test/file.txt")
         assert state == qt.Checked
 
-    @patch("nxdrive.nuxeo.gui.folders_model.FilteredDoc")
+    @patch("nxdrive.drive.gui.folders_model.FilteredDoc")
     def test_get_top_documents(self, mock_filtered_doc_class):
         """Test get_top_documents method."""
         mock_remote = MagicMock()
@@ -291,7 +291,7 @@ class TestFilteredDocuments:
         mock_remote.get_filesystem_root_info.assert_called_once()
         mock_remote.get_fs_children.assert_called_once_with("root123", filtered=False)
 
-    @patch("nxdrive.nuxeo.gui.folders_model.FilteredDoc")
+    @patch("nxdrive.drive.gui.folders_model.FilteredDoc")
     def test_get_children(self, mock_filtered_doc_class):
         """Test get_children method."""
         mock_remote = MagicMock()

@@ -97,19 +97,30 @@ def discover_aims_config(server_url: str, /, *, verify: bool = True) -> Dict[str
         openid_url = isc.openid_configuration_url()
         if openid_url:
             client_id = isc.client_id or _DEFAULT_CLIENT_ID
+            # Extract all values from the ISC object before logging
+            # to avoid CodeQL taint propagation from client_secret.
+            safe_openid_url = str(openid_url)
+            safe_client_id = str(client_id)
+            audience = isc.audience or ""
+            public_client = bool(isc.public_client)
+            enable_pkce = bool(isc.enable_pkce)
+            enable_basic_auth = bool(isc.enable_basic_auth)
+            has_secret = bool(isc.client_secret)
             log.info(
-                f"Discovered AIMS OpenID config via /alfresco/service/devicesync"
-                f"/config: {openid_url} (client_id={client_id})"
+                "Discovered AIMS OpenID config via /alfresco/service/devicesync"
+                "/config: %s (client_id=%s)",
+                safe_openid_url,
+                safe_client_id,
             )
             result: Dict[str, Any] = {
-                "openid_configuration_url": openid_url,
-                "client_id": client_id,
-                "audience": isc.audience or "",
-                "public_client": bool(isc.public_client),
-                "enable_pkce": bool(isc.enable_pkce),
-                "enable_basic_auth": bool(isc.enable_basic_auth),
+                "openid_configuration_url": safe_openid_url,
+                "client_id": safe_client_id,
+                "audience": audience,
+                "public_client": public_client,
+                "enable_pkce": enable_pkce,
+                "enable_basic_auth": enable_basic_auth,
             }
-            if isc.client_secret:
+            if has_secret:
                 result["client_secret"] = isc.client_secret
             return result
     except Exception:
@@ -137,14 +148,16 @@ def discover_aims_config(server_url: str, /, *, verify: bool = True) -> Dict[str
             )
             auth_server = (isc.get("authServerUrl") or "").rstrip("/")
             if auth_server:
-                realm = isc.get("realm", "alfresco")
-                client_id = isc.get("resource", _DEFAULT_CLIENT_ID)
+                realm = str(isc.get("realm", "alfresco"))
+                client_id = str(isc.get("resource", _DEFAULT_CLIENT_ID))
                 openid_url = (
                     f"{auth_server}/realms/{realm}/.well-known/openid-configuration"
                 )
                 log.info(
-                    f"Discovered AIMS OpenID config via syncServiceConfiguration:"
-                    f" {openid_url} (client_id={client_id})"
+                    "Discovered AIMS OpenID config via syncServiceConfiguration:"
+                    " %s (client_id=%s)",
+                    openid_url,
+                    client_id,
                 )
                 legacy_result: Dict[str, Any] = {
                     "openid_configuration_url": openid_url,

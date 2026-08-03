@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from logging import getLogger
 from pathlib import Path
 from time import monotonic, sleep
-from typing import TYPE_CHECKING, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
 from alfresco.exceptions import AuthenticationError as AlfrescoAuthError
 from alfresco.exceptions import NetworkError as AlfrescoNetworkError
@@ -441,8 +441,8 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
     def _scan_local_recursive(
         self,
         path: Path,
-        local,
-        dao,
+        local: Any,
+        dao: Any,
         seen_remote_refs: Set[str],
         pending_deletions: List[DocPair],
         /,

@@ -1,95 +1,73 @@
 """Integration tests for FoldersDialog.get_tree_view method - macOS only."""
 
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 
 from ....markers import mac_only
+
+# The real get_tree_view lives on FoldersDialog (a QDialog subclass).
+# We test it by calling the unbound method with a mock self and patching
+# the server-type registry (_st) and FolderTreeView.
+
+_PATCH_ST = "nxdrive.drive.gui.folders_dialog._st"
+_PATCH_FTV = "nxdrive.drive.gui.folders_dialog.FolderTreeView"
+
+
+def _make_dialog(selected_folder="/"):
+    """Build a minimal mock that satisfies FoldersDialog.get_tree_view."""
+    dialog = MagicMock()
+    dialog.engine = Mock()
+    dialog.engine.remote = Mock()
+    dialog.engine.type = "nuxeo"
+    dialog.selected_folder = selected_folder
+    return dialog
+
+
+def _call_get_tree_view(dialog):
+    """Call the real get_tree_view on a mock dialog."""
+    from nxdrive.drive.gui.folders_dialog import FoldersDialog
+
+    return FoldersDialog.get_tree_view(dialog)
 
 
 @mac_only
 def test_get_tree_view_basic():
-    """Test get_tree_view creates FolderTreeView with FoldersOnly client."""
+    """Test get_tree_view creates FolderTreeView with the loaded folders client."""
+    dialog = _make_dialog("/")
 
-    class MockFoldersDialog:
-        def __init__(self):
-            self.engine = Mock()
-            self.engine.remote = Mock()
-            self.selected_folder = "/"
-
-        def resize(self, width, height):
-            self.resized_width = width
-            self.resized_height = height
-
-        def get_tree_view(self):
-            """Render the folders tree."""
-            self.resize(800, 450)
-            from nxdrive.drive.gui.folders_dialog import FoldersOnly, FolderTreeView
-
-            client = FoldersOnly(self.engine.remote)
-            return FolderTreeView(self, client, self.selected_folder)
-
-    dialog = MockFoldersDialog()
-
-    with (
-        patch("nxdrive.drive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
-        patch("nxdrive.drive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
-    ):
+    with patch(_PATCH_ST) as mock_st, patch(_PATCH_FTV) as mock_tree_view:
+        mock_cls = Mock()
         mock_client = Mock()
-        mock_folders_only.return_value = mock_client
+        mock_cls.return_value = mock_client
+        mock_config = Mock()
+        mock_st.get_by_engine_type.return_value = mock_config
+        mock_st.load_class.return_value = mock_cls
         mock_tree = Mock()
         mock_tree_view.return_value = mock_tree
 
-        result = dialog.get_tree_view()
+        result = _call_get_tree_view(dialog)
 
-        # Verify resize called with 800x450
-        assert dialog.resized_width == 800
-        assert dialog.resized_height == 450
-
-        # Verify FoldersOnly created with engine.remote
-        mock_folders_only.assert_called_once_with(dialog.engine.remote)
-
-        # Verify FolderTreeView created with dialog, client, and selected_folder
+        dialog.resize.assert_called_once_with(800, 450)
+        mock_cls.assert_called_once_with(dialog.engine.remote)
         mock_tree_view.assert_called_once_with(dialog, mock_client, "/")
-
-        # Verify return value
         assert result == mock_tree
 
 
 @mac_only
 def test_get_tree_view_with_different_selected_folder():
     """Test get_tree_view with different selected_folder value."""
+    dialog = _make_dialog("/documents/folder1")
 
-    class MockFoldersDialog:
-        def __init__(self):
-            self.engine = Mock()
-            self.engine.remote = Mock()
-            self.selected_folder = "/documents/folder1"
-
-        def resize(self, width, height):
-            pass
-
-        def get_tree_view(self):
-            self.resize(800, 450)
-            from nxdrive.drive.gui.folders_dialog import FoldersOnly, FolderTreeView
-
-            client = FoldersOnly(self.engine.remote)
-            return FolderTreeView(self, client, self.selected_folder)
-
-    dialog = MockFoldersDialog()
-
-    with (
-        patch("nxdrive.drive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
-        patch("nxdrive.drive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
-    ):
-        mock_client = Mock()
-        mock_folders_only.return_value = mock_client
+    with patch(_PATCH_ST) as mock_st, patch(_PATCH_FTV) as mock_tree_view:
+        mock_cls = Mock(return_value=Mock())
+        mock_st.get_by_engine_type.return_value = Mock()
+        mock_st.load_class.return_value = mock_cls
         mock_tree = Mock()
         mock_tree_view.return_value = mock_tree
 
-        result = dialog.get_tree_view()
+        result = _call_get_tree_view(dialog)
 
-        # Verify FolderTreeView created with correct selected_folder
         mock_tree_view.assert_called_once_with(
-            dialog, mock_client, "/documents/folder1"
+            dialog, mock_cls.return_value, "/documents/folder1"
         )
         assert result == mock_tree
 
@@ -97,147 +75,67 @@ def test_get_tree_view_with_different_selected_folder():
 @mac_only
 def test_get_tree_view_with_none_selected_folder():
     """Test get_tree_view with None as selected_folder."""
+    dialog = _make_dialog(None)
 
-    class MockFoldersDialog:
-        def __init__(self):
-            self.engine = Mock()
-            self.engine.remote = Mock()
-            self.selected_folder = None
-
-        def resize(self, width, height):
-            pass
-
-        def get_tree_view(self):
-            self.resize(800, 450)
-            from nxdrive.drive.gui.folders_dialog import FoldersOnly, FolderTreeView
-
-            client = FoldersOnly(self.engine.remote)
-            return FolderTreeView(self, client, self.selected_folder)
-
-    dialog = MockFoldersDialog()
-
-    with (
-        patch("nxdrive.drive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
-        patch("nxdrive.drive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
-    ):
-        mock_client = Mock()
-        mock_folders_only.return_value = mock_client
+    with patch(_PATCH_ST) as mock_st, patch(_PATCH_FTV) as mock_tree_view:
+        mock_cls = Mock(return_value=Mock())
+        mock_st.get_by_engine_type.return_value = Mock()
+        mock_st.load_class.return_value = mock_cls
         mock_tree = Mock()
         mock_tree_view.return_value = mock_tree
 
-        result = dialog.get_tree_view()
+        result = _call_get_tree_view(dialog)
 
-        # Verify FolderTreeView created with None as selected_folder
-        mock_tree_view.assert_called_once_with(dialog, mock_client, None)
+        mock_tree_view.assert_called_once_with(dialog, mock_cls.return_value, None)
         assert result == mock_tree
 
 
 @mac_only
 def test_get_tree_view_resize_dimensions():
     """Test get_tree_view calls resize with correct dimensions."""
+    dialog = _make_dialog("/")
 
-    class MockFoldersDialog:
-        def __init__(self):
-            self.engine = Mock()
-            self.engine.remote = Mock()
-            self.selected_folder = "/"
-            self.resize_calls = []
-
-        def resize(self, width, height):
-            self.resize_calls.append((width, height))
-
-        def get_tree_view(self):
-            self.resize(800, 450)
-            from nxdrive.drive.gui.folders_dialog import FoldersOnly, FolderTreeView
-
-            client = FoldersOnly(self.engine.remote)
-            return FolderTreeView(self, client, self.selected_folder)
-
-    dialog = MockFoldersDialog()
-
-    with (
-        patch("nxdrive.drive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
-        patch("nxdrive.drive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
-    ):
-        mock_folders_only.return_value = Mock()
+    with patch(_PATCH_ST) as mock_st, patch(_PATCH_FTV) as mock_tree_view:
+        mock_cls = Mock(return_value=Mock())
+        mock_st.get_by_engine_type.return_value = Mock()
+        mock_st.load_class.return_value = mock_cls
         mock_tree_view.return_value = Mock()
 
-        dialog.get_tree_view()
+        _call_get_tree_view(dialog)
 
-        # Verify resize called with exact dimensions
-        assert len(dialog.resize_calls) == 1
-        assert dialog.resize_calls[0] == (800, 450)
+        dialog.resize.assert_called_once_with(800, 450)
 
 
 @mac_only
 def test_get_tree_view_folders_only_client_creation():
-    """Test get_tree_view creates FoldersOnly client with engine.remote."""
+    """Test get_tree_view creates the folders client with engine.remote."""
+    dialog = _make_dialog("/")
 
-    class MockFoldersDialog:
-        def __init__(self):
-            self.engine = Mock()
-            self.engine.remote = Mock()
-            self.selected_folder = "/"
-
-        def resize(self, width, height):
-            pass
-
-        def get_tree_view(self):
-            self.resize(800, 450)
-            from nxdrive.drive.gui.folders_dialog import FoldersOnly, FolderTreeView
-
-            client = FoldersOnly(self.engine.remote)
-            return FolderTreeView(self, client, self.selected_folder)
-
-    dialog = MockFoldersDialog()
-
-    with (
-        patch("nxdrive.drive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
-        patch("nxdrive.drive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
-    ):
-        mock_client = Mock()
-        mock_folders_only.return_value = mock_client
+    with patch(_PATCH_ST) as mock_st, patch(_PATCH_FTV) as mock_tree_view:
+        mock_cls = Mock(return_value=Mock())
+        mock_st.get_by_engine_type.return_value = Mock()
+        mock_st.load_class.return_value = mock_cls
         mock_tree_view.return_value = Mock()
 
-        dialog.get_tree_view()
+        _call_get_tree_view(dialog)
 
-        # Verify FoldersOnly created with engine.remote
-        mock_folders_only.assert_called_once_with(dialog.engine.remote)
+        mock_cls.assert_called_once_with(dialog.engine.remote)
 
 
 @mac_only
 def test_get_tree_view_folder_tree_view_parameters():
     """Test get_tree_view passes correct parameters to FolderTreeView."""
+    dialog = _make_dialog("/workspace")
 
-    class MockFoldersDialog:
-        def __init__(self):
-            self.engine = Mock()
-            self.engine.remote = Mock()
-            self.selected_folder = "/workspace"
-
-        def resize(self, width, height):
-            pass
-
-        def get_tree_view(self):
-            self.resize(800, 450)
-            from nxdrive.drive.gui.folders_dialog import FoldersOnly, FolderTreeView
-
-            client = FoldersOnly(self.engine.remote)
-            return FolderTreeView(self, client, self.selected_folder)
-
-    dialog = MockFoldersDialog()
-
-    with (
-        patch("nxdrive.drive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
-        patch("nxdrive.drive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
-    ):
+    with patch(_PATCH_ST) as mock_st, patch(_PATCH_FTV) as mock_tree_view:
         mock_client = Mock()
-        mock_folders_only.return_value = mock_client
+        mock_cls = Mock(return_value=mock_client)
+        mock_st.get_by_engine_type.return_value = Mock()
+        mock_st.load_class.return_value = mock_cls
         mock_tree_view.return_value = Mock()
 
-        dialog.get_tree_view()
+        _call_get_tree_view(dialog)
 
-        # Verify all 3 parameters passed to FolderTreeView
         mock_tree_view.assert_called_once()
         call_args = mock_tree_view.call_args[0]
         assert len(call_args) == 3
@@ -249,76 +147,48 @@ def test_get_tree_view_folder_tree_view_parameters():
 @mac_only
 def test_get_tree_view_return_value():
     """Test get_tree_view returns the FolderTreeView instance."""
+    dialog = _make_dialog("/")
 
-    class MockFoldersDialog:
-        def __init__(self):
-            self.engine = Mock()
-            self.engine.remote = Mock()
-            self.selected_folder = "/"
-
-        def resize(self, width, height):
-            pass
-
-        def get_tree_view(self):
-            self.resize(800, 450)
-            from nxdrive.drive.gui.folders_dialog import FoldersOnly, FolderTreeView
-
-            client = FoldersOnly(self.engine.remote)
-            return FolderTreeView(self, client, self.selected_folder)
-
-    dialog = MockFoldersDialog()
-
-    with (
-        patch("nxdrive.drive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
-        patch("nxdrive.drive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
-    ):
-        mock_folders_only.return_value = Mock()
+    with patch(_PATCH_ST) as mock_st, patch(_PATCH_FTV) as mock_tree_view:
+        mock_cls = Mock(return_value=Mock())
+        mock_st.get_by_engine_type.return_value = Mock()
+        mock_st.load_class.return_value = mock_cls
         expected_tree = Mock()
         mock_tree_view.return_value = expected_tree
 
-        result = dialog.get_tree_view()
+        result = _call_get_tree_view(dialog)
 
-        # Verify return value is the FolderTreeView instance
         assert result is expected_tree
 
 
 @mac_only
 def test_get_tree_view_call_order():
-    """Test get_tree_view calls methods in correct order."""
+    """Test get_tree_view calls methods in correct order: resize, load class, create tree."""
+    dialog = _make_dialog("/")
+    call_order = []
+    dialog.resize.side_effect = lambda w, h: call_order.append("resize")
 
-    class MockFoldersDialog:
-        def __init__(self):
-            self.engine = Mock()
-            self.engine.remote = Mock()
-            self.selected_folder = "/"
-            self.call_order = []
+    with patch(_PATCH_ST) as mock_st, patch(_PATCH_FTV) as mock_tree_view:
 
-        def resize(self, width, height):
-            self.call_order.append("resize")
+        def load_class_side_effect(path):
+            call_order.append("load_class")
+            cls = Mock()
+            cls.side_effect = (
+                lambda remote: call_order.append("create_client") or Mock()
+            )
+            return cls
 
-        def get_tree_view(self):
-            self.resize(800, 450)
-            self.call_order.append("before_FoldersOnly")
-            from nxdrive.drive.gui.folders_dialog import FoldersOnly, FolderTreeView
+        mock_st.get_by_engine_type.return_value = Mock()
+        mock_st.load_class.side_effect = load_class_side_effect
+        mock_tree_view.side_effect = (
+            lambda *a: call_order.append("FolderTreeView") or Mock()
+        )
 
-            client = FoldersOnly(self.engine.remote)
-            self.call_order.append("before_FolderTreeView")
-            return FolderTreeView(self, client, self.selected_folder)
+        _call_get_tree_view(dialog)
 
-    dialog = MockFoldersDialog()
-
-    with (
-        patch("nxdrive.drive.gui.folders_dialog.FoldersOnly") as mock_folders_only,
-        patch("nxdrive.drive.gui.folders_dialog.FolderTreeView") as mock_tree_view,
-    ):
-        mock_folders_only.return_value = Mock()
-        mock_tree_view.return_value = Mock()
-
-        dialog.get_tree_view()
-
-        # Verify call order
-        assert dialog.call_order == [
+        assert call_order == [
             "resize",
-            "before_FoldersOnly",
-            "before_FolderTreeView",
+            "load_class",
+            "create_client",
+            "FolderTreeView",
         ]

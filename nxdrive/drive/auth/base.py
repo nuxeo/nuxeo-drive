@@ -8,11 +8,9 @@ if TYPE_CHECKING:
 class AuthHandler(Protocol):
     """Protocol for objects that sign HTTP requests and manage tokens."""
 
-    def __call__(self, r: Any) -> Any:
-        ...
+    def __call__(self, r: Any) -> Any: ...
 
-    def set_token(self, token: Any) -> None:
-        ...
+    def set_token(self, token: Any) -> None: ...
 
 
 class Authentication:

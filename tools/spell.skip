@@ -5,12 +5,15 @@ docs/changes/4.5.0.md
 
 # No need to check foreign languages
 nxdrive/data/i18n/i18n-*
+nxdrive/drive/data/i18n/i18n-*
 
 # That file has false positives, it is not useful to test it
 nxdrive/data/qml/icon-font/Icon.js
 
 # No need to check foreign languages in tests
 tests/resources/i18n/i18n-*
+tests/nxdrive/data/i18n/i18n-*
+tests/nuxeo/resources/i18n/i18n-*
 
 # No need to check foreign languages of the Windows installer
 tools/windows/unofficial_i18n
@@ -21,6 +24,7 @@ tools/spell.skip
 
 # No need to check old_functional test cases, as we have the new functional test case suite
 tests/old_functional
+tests/old_tests/old_functional
 
 #This file is containing false positives, so skipping the file
 docs/changes/3.1.0.md
