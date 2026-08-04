@@ -1861,3 +1861,171 @@ class TestHandleNxdriveUrlDirectDownload:
         app.show_msgbox_restart_needed.assert_called_once()
         app.show_direct_download_window.assert_not_called()
         app.manager.directDownload.emit.assert_not_called()
+
+
+# ─── Additional Utils Coverage Tests ─────────────────────────────────────────
+
+
+class TestTestUrl:
+    """Tests for test_url() function."""
+
+    def test_url_success_200(self):
+        from nxdrive.drive.utils import test_url
+
+        mock_resp = Mock()
+        mock_resp.status_code = 200
+        mock_resp.raise_for_status = Mock()
+        mock_resp.__enter__ = Mock(return_value=mock_resp)
+        mock_resp.__exit__ = Mock(return_value=False)
+
+        with patch("requests.get", return_value=mock_resp):
+            result = test_url("http://example.com")
+        assert result == ""
+
+    def test_url_http_error_401(self):
+        import requests as req
+        from nxdrive.drive.utils import test_url
+
+        mock_resp = Mock()
+        mock_resp.status_code = 401
+        exc = req.HTTPError(response=mock_resp)
+
+        resp_mock = Mock()
+        resp_mock.raise_for_status.side_effect = exc
+        resp_mock.__enter__ = Mock(return_value=resp_mock)
+        resp_mock.__exit__ = Mock(return_value=False)
+
+        with patch("requests.get", return_value=resp_mock):
+            result = test_url("http://example.com")
+        assert result == ""
+
+    def test_url_connection_error(self):
+        import requests as req
+        from nxdrive.drive.utils import test_url
+
+        # When requests.get raises ConnectionError, it propagates
+        with patch("requests.get", side_effect=req.ConnectionError("fail")):
+            with __import__("pytest").raises(req.ConnectionError):
+                test_url("http://unreachable.invalid")
+
+    def test_url_ssl_certificate_verify_failed(self):
+        from requests.exceptions import SSLError
+        from nxdrive.drive.exceptions import InvalidSSLCertificate
+        from nxdrive.drive.utils import test_url
+
+        with patch("requests.get", side_effect=SSLError("CERTIFICATE_VERIFY_FAILED")):
+            with __import__("pytest").raises(InvalidSSLCertificate):
+                test_url("https://example.com")
+
+    def test_url_ssl_certificate_required(self):
+        from requests.exceptions import SSLError
+        from nxdrive.drive.exceptions import MissingClientSSLCertificate
+        from nxdrive.drive.utils import test_url
+
+        with patch("requests.get", side_effect=SSLError("CERTIFICATE_REQUIRED")):
+            with __import__("pytest").raises(MissingClientSSLCertificate):
+                test_url("https://example.com")
+
+    def test_url_ssl_password_required(self):
+        from requests.exceptions import SSLError
+        from nxdrive.drive.exceptions import EncryptedSSLCertificateKey
+        from nxdrive.drive.utils import test_url
+
+        with patch("requests.get", side_effect=SSLError("password is required")):
+            with __import__("pytest").raises(EncryptedSSLCertificateKey):
+                test_url("https://example.com")
+
+    def test_url_with_proxy(self):
+        from nxdrive.drive.utils import test_url
+
+        mock_resp = Mock()
+        mock_resp.status_code = 200
+        mock_resp.raise_for_status = Mock()
+        mock_resp.__enter__ = Mock(return_value=mock_resp)
+        mock_resp.__exit__ = Mock(return_value=False)
+
+        proxy = Mock()
+        proxy.settings.return_value = {"http": "http://proxy:8080"}
+
+        with patch("requests.get", return_value=mock_resp):
+            result = test_url("http://example.com", proxy=proxy)
+        assert result == ""
+        proxy.settings.assert_called_once()
+
+
+class TestTodayIsSpecial:
+    def test_xmas_env_var(self):
+        from nxdrive.drive.utils import today_is_special
+
+        with patch.dict(os.environ, {"I_LOVE_XMAS": "1"}):
+            assert today_is_special() is True
+
+    def test_not_special(self):
+        from nxdrive.drive.utils import today_is_special
+
+        with patch.dict(os.environ, {"I_LOVE_XMAS": "0"}):
+            with patch("nxdrive.drive.utils.datetime") as mock_dt:
+                mock_now = Mock()
+                mock_now.strftime.return_value = "100"  # day 100, not >= 354
+                mock_dt.now.return_value = mock_now
+                assert today_is_special() is False
+
+
+class TestGetCurrentLocale:
+    def test_mac_locale(self):
+        from nxdrive.drive.utils import get_current_locale
+
+        result = get_current_locale()
+        # On macOS, should return something like "en_US.UTF-8"
+        assert "." in result
+        assert "UTF-8" in result
+
+
+class TestGetVerify:
+    def test_ssl_no_verify(self):
+        from nxdrive.drive.utils import get_verify
+
+        with patch("nxdrive.drive.utils.Options") as mock_opts:
+            mock_opts.ssl_no_verify = True
+            mock_opts.ca_bundle = None
+            result = get_verify()
+        assert result is False
+
+    def test_ssl_verify_with_config(self):
+        from nxdrive.drive.utils import get_verify
+
+        with patch("nxdrive.drive.utils.Options") as mock_opts:
+            mock_opts.ssl_no_verify = False
+            mock_opts.ca_bundle = None
+            with patch(
+                "nxdrive.drive.utils.requests_verify", return_value=True
+            ), patch("nxdrive.drive.utils.get_config_path") as mock_path:
+                mock_path.side_effect = Exception("No such file or directory-gw")
+                result = get_verify()
+        assert result is False
+
+
+class TestIfFrozen:
+    def test_not_frozen(self):
+        from nxdrive.drive.utils import if_frozen
+
+        @if_frozen
+        def my_func():
+            return "called"
+
+        with patch("nxdrive.drive.utils.Options") as mock_opts:
+            mock_opts.is_frozen = False
+            result = my_func()
+        assert result is False
+
+    def test_frozen(self):
+        from nxdrive.drive.utils import if_frozen
+
+        @if_frozen
+        def my_func():
+            return "called"
+
+        with patch("nxdrive.drive.utils.Options") as mock_opts:
+            mock_opts.is_frozen = True
+            result = my_func()
+        assert result == "called"

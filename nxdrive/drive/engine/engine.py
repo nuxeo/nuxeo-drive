@@ -202,7 +202,6 @@ class Engine(QObject):
                 raise EngineInitError(self)
             self._check_https()
             self.remote = self.init_remote()
-            self._seed_userid_mapper()
 
         self._create_queue_manager()
         if Feature.synchronization:
@@ -1006,27 +1005,14 @@ class Engine(QObject):
     def use_trash(self) -> bool:
         return self.local.can_use_trash()
 
-    # Sentinel stored in the DB when the server does not provide a user UUID.
-    _NO_UUID_SUPPORT = "__nosupport__"
-
-    def _refresh_user_uuid(self) -> None:
-        """Resolve and persist the server-side user UUID for mapper recovery.
-
-        Raises on error so that each caller can decide how to react
-        (e.g. force re-login vs. silently retry later).
-        """
-        if not self.remote:
-            return
-        self.remote.client.resolve_username(self.remote_user)
-        user_uuid = self.remote.client.userid_mapper.get(self.remote_user)
-        if user_uuid:
-            self.dao.update_config("user_uuid", user_uuid)
-        else:
-            # Server does not provide a UUID; store a sentinel so we
-            # skip re-fetching on every restart.
-            self.dao.update_config("user_uuid", self._NO_UUID_SUPPORT)
-
     def update_token(self, token: Token, username: str, /) -> None:
+        """Server-agnostic token/user bookkeeping.
+
+        Nuxeo overrides this to layer its ``user_uuid`` refresh on top;
+        keep this base implementation free of any Nuxeo-specific
+        ``userid_mapper`` / UUID concerns so that Alfresco (and any
+        other backend) can inherit it safely.
+        """
         self._load_configuration()
         self._remote_token = token
         if self.remote:
@@ -1036,27 +1022,16 @@ class Engine(QObject):
         if username_changed:
             self.remote_user = username
             self.dao.update_config("remote_user", username)
-            # Clear stale UUID; it will be refreshed after restart
-            # when a new Remote is created for the new user.
-            self.dao.update_config("user_uuid", "")
         # Save the token *after* remote_user is up-to-date so the
         # encryption key (remote_user + server_url) is consistent.
         self._save_token(self._remote_token)
 
         if username_changed:
             # The current Remote still has the old user's headers;
-            # defer UUID resolution to the restart.
+            # subclasses (and any restart-sensitive listeners) should
+            # rebuild it after the restart signal.
             self.manager.restartNeeded.emit()
         else:
-            try:
-                self._refresh_user_uuid()
-            except Exception:
-                log.warning(
-                    "Failed to resolve user UUID for %r during token update, "
-                    "will retry later",
-                    self.remote_user,
-                    exc_info=True,
-                )
             self.start()
 
     # ------------------------------------------------------------------ local folder setup
