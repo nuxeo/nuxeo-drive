@@ -810,8 +810,20 @@ class AlfrescoProcessor(_ProcessorBase):
             self.dao.remove_state(doc_pair)
         else:
             log.info(f"{doc_pair.local_path!r} cannot be remotely deleted (read-only)")
+            # Alfresco filters are keyed by the human-readable node path,
+            # not by remote_ref. Resolve it via the API; on failure leave
+            # the pair as-is so the processor retries on the next pass.
+            try:
+                filter_path = self.remote.get_fs_info(doc_pair.remote_ref).path
+            except Exception:
+                log.warning(
+                    f"Cannot resolve remote path for {doc_pair.remote_ref!r}; "
+                    "read-only unsync will be retried later",
+                    exc_info=True,
+                )
+                return
             self.dao.remove_state(doc_pair)
-            self.dao.add_filter(doc_pair.remote_parent_path + "/" + doc_pair.remote_ref)
+            self.dao.add_filter(filter_path)
         self.remove_void_transfers(doc_pair)
 
     def _synchronize_locally_moved(self, doc_pair: DocPair, /) -> None:

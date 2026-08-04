@@ -10,7 +10,7 @@ try:
 except ImportError:
     _client_version = ""
 
-from nxdrive.drive.server_type import ServerTypeConfig, register
+from nxdrive.drive.server_type import FileSystemID, ServerTypeConfig, register
 
 
 def _alfresco_auth_factory(host: Any, token: Any, **kwargs: Any) -> Any:
@@ -193,5 +193,7 @@ register(
         save_auth_callback_params_hook=_alfresco_save_auth_callback_params,
         load_auth_callback_params_hook=_alfresco_load_auth_callback_params,
         clear_auth_callback_params_hook=_alfresco_clear_auth_callback_params,
+        # Alfresco identifies FS items by human readable name / path.
+        fs_item_id_format=FileSystemID.HUMANTEXT,
     ),
 )

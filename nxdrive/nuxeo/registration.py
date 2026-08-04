@@ -4,7 +4,7 @@ from typing import Any
 
 import nuxeo
 
-from nxdrive.drive.server_type import ServerTypeConfig, register
+from nxdrive.drive.server_type import FileSystemID, ServerTypeConfig, register
 
 
 def _nuxeo_auth_factory(host: "Any", token: "Any", **kwargs: "Any") -> "Any":
@@ -202,6 +202,8 @@ register(
         save_auth_callback_params_hook=_nuxeo_save_auth_callback_params,
         load_auth_callback_params_hook=_nuxeo_load_auth_callback_params,
         clear_auth_callback_params_hook=_nuxeo_clear_auth_callback_params,
+        # Nuxeo identifies FS items by opaque UUID.
+        fs_item_id_format=FileSystemID.UUID,
     ),
     default=True,
 )

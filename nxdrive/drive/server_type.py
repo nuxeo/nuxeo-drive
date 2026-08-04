@@ -7,7 +7,15 @@ hard-coding server-specific values.
 """
 
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
+
+
+class FileSystemID(Enum):
+    """File system item ID format used by a server type."""
+
+    UUID = "UUID"  # opaque identifier, e.g. Nuxeo
+    HUMANTEXT = "HUMANTEXT"  # human readable name / path, e.g. Alfresco
 
 
 @dataclass
@@ -129,6 +137,10 @@ class ServerTypeConfig:
     save_auth_callback_params_hook: Optional[Callable[..., None]] = None
     load_auth_callback_params_hook: Optional[Callable[..., Dict[str, str]]] = None
     clear_auth_callback_params_hook: Optional[Callable[..., None]] = None
+
+    # File system item ID format used by this server type.
+    # UUID: opaque id (Nuxeo). HUMANTEXT: human readable name / path (Alfresco).
+    fs_item_id_format: FileSystemID = FileSystemID.UUID
 
 
 # ---- internal state --------------------------------------------------------
