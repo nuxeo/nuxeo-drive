@@ -192,7 +192,7 @@ class Manager(QObject):
 
             # Keep a trace of installed versions
             if not self.get_config("original_version"):
-                self.set_config("original_version", self.version)
+                self.dao.update_config("original_version", self.version)
 
             # Store the new version to be able to show release notes
             self.old_version = self.get_config("client_version")

@@ -1298,19 +1298,46 @@ class EngineDAO(BaseDAO):
         (including starting and ending slashes).
         """
 
-        old = f"{adapt_path(old_path)}/"
-        new = f"{adapt_path(new_path)}/"
+        old = adapt_path(old_path)
+        new = adapt_path(new_path)
+        old_prefix = f"{old}/"
+        new_prefix = f"{new}/"
         log.debug(f"Updating all local paths from {old!r} to {new!r}")
 
         with self.lock:
             c = self._get_write_connection().cursor()
             query = (
                 "UPDATE States"
-                "  SET local_parent_path = replace(local_parent_path, ?, ?),"
-                "      local_path = replace(local_path, ? , ?) "
-                "WHERE local_parent_path LIKE ? OR local_path LIKE ?"
+                "  SET local_parent_path = CASE"
+                "          WHEN local_parent_path = ? THEN ?"
+                "          ELSE replace(local_parent_path, ?, ?)"
+                "      END,"
+                "      local_path = CASE"
+                "          WHEN local_path = ? THEN ?"
+                "          ELSE replace(local_path, ?, ?)"
+                "      END "
+                "WHERE local_parent_path = ?"
+                "   OR local_path = ?"
+                "   OR local_parent_path LIKE ?"
+                "   OR local_path LIKE ?"
             )
-            c.execute(query, (old, new, old, new, f"{old}%", f"{old}%"))
+            c.execute(
+                query,
+                (
+                    old,
+                    new,
+                    old_prefix,
+                    new_prefix,
+                    old,
+                    new,
+                    old_prefix,
+                    new_prefix,
+                    old,
+                    old,
+                    f"{old_prefix}%",
+                    f"{old_prefix}%",
+                ),
+            )
 
     def update_remote_parent_path(self, doc_pair: DocPair, new_path: str, /) -> None:
         with self.lock:
@@ -1345,9 +1372,9 @@ class EngineDAO(BaseDAO):
                 query = (
                     "UPDATE States"
                     f"  SET local_parent_path = '{path}'"
-                    f"      || substr(local_parent_path, {count + 2}),"
+                    f"      || substr(local_parent_path, {count + 1}),"
                     f"         local_path = '{path}'"
-                    f"      || substr(local_path, {count + 2}) "
+                    f"      || substr(local_path, {count + 1}) "
                     + self._get_recursive_condition(doc_pair)
                 )
                 c.execute(query)
