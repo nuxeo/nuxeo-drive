@@ -263,10 +263,12 @@ class TestSynchronizeLocallyDeleted:
         pair.remote_ref = "node-1"
         pair.remote_can_delete = False
         pair.local_path = "/some/path"
-        pair.remote_parent_path = "/parent"
+        remote_info = Mock(path="/Company Home/Sites/project/document.txt")
+        proc.remote.get_fs_info.return_value = remote_info
         proc._synchronize_locally_deleted(pair)
         proc.dao.remove_state.assert_called()
-        proc.dao.add_filter.assert_called_once_with("/parent/node-1")
+        proc.remote.get_fs_info.assert_called_once_with("node-1")
+        proc.dao.add_filter.assert_called_once_with(remote_info.path)
 
 
 class TestSynchronizeLocallyMoved:
@@ -962,11 +964,13 @@ class TestSynchronizeLocallyDeletedExtra:
         pair = Mock()
         pair.remote_ref = "node-abc"
         pair.remote_parent_ref = "parent-ref"
-        pair.remote_parent_path = "/root"
         pair.remote_can_delete = False
         pair.local_path = "/doc"
+        remote_info = Mock(path="/Company Home/Sites/project/document.txt")
+        proc.remote.get_fs_info.return_value = remote_info
         proc._synchronize_locally_deleted(pair)
-        proc.dao.add_filter.assert_called_once_with("/root/node-abc")
+        proc.remote.get_fs_info.assert_called_once_with("node-abc")
+        proc.dao.add_filter.assert_called_once_with(remote_info.path)
 
 
 # ------------------------------------------------------------------ _synchronize_conflicted
