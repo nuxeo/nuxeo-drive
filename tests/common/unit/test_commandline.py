@@ -285,19 +285,53 @@ def test_is_not_fresh_install(cmd):
 
 
 def test_restore_server_type_found(cmd):
-    """Test _restore_server_type sets Options.server_type."""
-    with patch("pathlib.Path.is_dir", return_value=True):
-        cmd._restore_server_type()
-    # After restore, server_type should be set
-    assert Options.server_type is not None
+    """Test _restore_server_type sets Options.server_type.
+
+    ``_restore_server_type`` mutates module-level global state
+    (``Feature`` in ``nxdrive.drive.feature`` and ``Options.server_type``)
+    via ``apply_server_type_restrictions``. We snapshot and restore it so
+    the test does not leak defaults into unrelated tests such as
+    ``test_feature.py::TestFeatureDefaults``.
+    """
+    from nxdrive.drive.feature import DisabledFeatures, Feature
+
+    saved_feature = {k: v for k, v in vars(Feature).items()}
+    saved_disabled = list(DisabledFeatures)
+    saved_server_type = Options.server_type
+    try:
+        with patch("pathlib.Path.is_dir", return_value=True):
+            cmd._restore_server_type()
+        # After restore, server_type should be set
+        assert Options.server_type is not None
+    finally:
+        # Undo the global mutations performed by
+        # apply_server_type_restrictions to avoid polluting later tests.
+        for k, v in saved_feature.items():
+            setattr(Feature, k, v)
+        DisabledFeatures[:] = saved_disabled
+        Options.server_type = saved_server_type
 
 
 def test_restore_server_type_not_found(cmd):
-    """Test _restore_server_type when no home dir exists."""
-    original = Options.server_type
-    with patch("pathlib.Path.is_dir", return_value=False):
-        cmd._restore_server_type()
-    # Should remain unchanged (no match)
+    """Test _restore_server_type when no home dir exists.
+
+    Same global-state hygiene as ``test_restore_server_type_found``.
+    """
+    from nxdrive.drive.feature import DisabledFeatures, Feature
+
+    saved_feature = {k: v for k, v in vars(Feature).items()}
+    saved_disabled = list(DisabledFeatures)
+    saved_server_type = Options.server_type
+    try:
+        with patch("pathlib.Path.is_dir", return_value=False):
+            cmd._restore_server_type()
+        # Should remain unchanged (no match)
+        assert Options.server_type == saved_server_type
+    finally:
+        for k, v in saved_feature.items():
+            setattr(Feature, k, v)
+        DisabledFeatures[:] = saved_disabled
+        Options.server_type = saved_server_type
 
 
 def test_make_cli_parser(cmd):
