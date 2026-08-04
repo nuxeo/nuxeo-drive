@@ -1,11 +1,13 @@
 """Nuxeo server-type registration."""
 
+from typing import Any
+
 import nuxeo
 
 from nxdrive.drive.server_type import FileSystemID, ServerTypeConfig, register
 
 
-def _nuxeo_auth_factory(host, token, **kwargs):
+def _nuxeo_auth_factory(host: "Any", token: "Any", **kwargs: "Any") -> "Any":
     """Create the appropriate auth object for Nuxeo."""
     if isinstance(token, dict):
         from nxdrive.nuxeo.auth.oauth2 import OAuthentication
@@ -16,14 +18,14 @@ def _nuxeo_auth_factory(host, token, **kwargs):
     return TokenAuthentication(host, token=token, **kwargs)
 
 
-def _nuxeo_debug_init():
+def _nuxeo_debug_init() -> None:
     """Enable parameter checking in the nuxeo-python-client."""
     import nuxeo.constants
 
     nuxeo.constants.CHECK_PARAMS = True
 
 
-def _nuxeo_debug_auth_handler(url, manager, api):
+def _nuxeo_debug_auth_handler(url: "Any", manager: "Any", api: "Any") -> None:
     """Non-frozen debug auth dialog for Nuxeo servers."""
     import os
 
@@ -54,7 +56,7 @@ def _nuxeo_debug_auth_handler(url, manager, api):
     layout.addWidget(username)
     layout.addWidget(password)
 
-    def auth():
+    def auth() -> None:
         user = str(username.text())
         pwd = str(password.text())
         verification_needed = get_verify()
@@ -122,19 +124,19 @@ def _nuxeo_get_test_server_url() -> str:
     return getenv("NXDRIVE_TEST_NUXEO_URL", "")
 
 
-def _nuxeo_save_auth_callback_params(api, params) -> None:
+def _nuxeo_save_auth_callback_params(api: "Any", params: "Any") -> None:
     from nxdrive.nuxeo.gui.auth_callback_store import save_auth_callback_params
 
     save_auth_callback_params(api, params)
 
 
-def _nuxeo_load_auth_callback_params(api):
+def _nuxeo_load_auth_callback_params(api: "Any") -> "Any":
     from nxdrive.nuxeo.gui.auth_callback_store import load_auth_callback_params
 
     return load_auth_callback_params(api)
 
 
-def _nuxeo_clear_auth_callback_params(api) -> None:
+def _nuxeo_clear_auth_callback_params(api: "Any") -> None:
     from nxdrive.nuxeo.gui.auth_callback_store import clear_auth_callback_params
 
     clear_auth_callback_params(api)

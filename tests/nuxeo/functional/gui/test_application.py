@@ -562,7 +562,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     ) as mock_qml_context, patch(
         "nxdrive.drive.gui.application.CustomWindow"
     ) as mock_custom_window, patch(
-        "tests.functional.mocked_classes.Mock_Qt.rootContext"
+        "tests.common.functional.mocked_classes.Mock_Qt.rootContext"
     ) as mock_root_context:
         mock_qml_context.return_value = None
         mock_custom_window.return_value = Mock_Qt
@@ -682,7 +682,13 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
         uid = list(app.manager.engines.keys())[0]
         assert app.confirm_cancel_session(uid, 1, "localhost", 1) is True
     # Covering exit_app
-    assert app.exit_app() is None
+    # Mock quit() to prevent the real QApplication.quit() from being
+    # called while background worker threads are still running (the
+    # app_obj fixture patches Worker.run / PollWorker._execute at the
+    # class level, but the bound-method references captured by
+    # QThread.started.connect() before the patch still run real code).
+    with patch.object(app, "quit"):
+        assert app.exit_app() is None
     # Covering _shutdown
     app.app_engine = Mock()
     app.task_manager_window = Mock()
@@ -690,7 +696,8 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     # Covering update_workflow
     app.added_user_engine_list = []
     Feature.tasks_management = True
-    app.workflow = Workflow()
+    app.workflow = Mock(spec=Workflow)
+    app.workflow.get_pending_tasks.return_value = []
     engine.uid = "engine_uid"
     assert app.update_workflow() is None
     delattr(app, "workflow")
@@ -916,7 +923,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
 
     # throwing exception in try block
     with patch(
-        "tests.functional.mocked_classes.Mock_Filtered_Doc.is_expandable"
+        "tests.common.functional.mocked_classes.Mock_Filtered_Doc.is_expandable"
     ) as mock_expandable:
         mock_expandable.side_effect = Exception("Mock Exception")
         content_loader.tree.cache.remove("dummy_id")

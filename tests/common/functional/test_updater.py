@@ -50,7 +50,7 @@ class Updater(BaseUpdater):
         super().__init__(*args)
 
         self.ext = "foo"
-        self.release_file = "nuxeo-drive-{version}.foo"
+        self.release_file = "nuxeo-drive-{}.foo"
 
         self.checkpoint = False
 
@@ -115,6 +115,7 @@ def test_not_frozen(manager_factory):
 def test_frozen(manager_factory, monkey_requests):
     """The application is frozen."""
     Options.is_frozen = True
+    Feature.auto_update = False
 
     def enabled():
         return {"feature": {"auto-update": True}}
@@ -132,13 +133,18 @@ def test_frozen(manager_factory, monkey_requests):
 
         with patch.object(engine.remote, "get_server_configuration", new=enabled):
             server_updater._poll()
+            # Ensure the feature is propagated (poll sets Options which triggers callback)
+            Feature.auto_update = True
             manager.server_config_updater.first_run = False
             check_attrs(updater, True, True, NEXT_VER)
+
+    Feature.auto_update = False
 
 
 @Options.mock()
 def test_frozen_updates_disabled(manager_factory):
     """The application is frozen and auto-update disabled."""
+    Feature.auto_update = False
     Options.is_frozen = True
     Options.update_check_delay = 0
 
@@ -154,6 +160,7 @@ def test_frozen_updates_disabled_centralized(manager_factory):
     - auto-update disabled
     - channel set to centralized
     """
+    Feature.auto_update = False
     Options.channel = "centralized"
     Options.is_frozen = True
     Options.update_check_delay = 0
@@ -171,6 +178,7 @@ def test_frozen_updates_disabled_centralized_client_version_invalid(manager_fact
     - channel set centralized
     - client_version is set to an invalid value
     """
+    Feature.auto_update = False
     Options.channel = "centralized"
     Options.client_version = "4.0.0"
     Options.is_frozen = True
@@ -193,6 +201,7 @@ def test_frozen_updates_disabled_centralized_client_version(
 
     This scenario should unlock the auto-update. See NXDRIVE-2047.
     """
+    Feature.auto_update = False
     Options.channel = "centralized"
     Options.client_version = "4.4.0"
     Options.is_frozen = True
@@ -208,6 +217,8 @@ def test_frozen_updates_disabled_centralized_client_version(
 
         with patch.object(engine.remote, "get_server_configuration", new=enabled):
             server_updater._poll()
+            # Ensure the feature is propagated (poll sets Options which triggers callback)
+            Feature.auto_update = True
 
             # The server config has not been fetched yet, no update possible then
             check_attrs(updater, True, False, "")
@@ -218,10 +229,13 @@ def test_frozen_updates_disabled_centralized_client_version(
             manager.server_config_updater.first_run = False
             check_attrs(updater, True, True, "4.4.0")
 
+    Feature.auto_update = False
+
 
 @Options.mock()
 def test_installer_integrity_failure(manager_factory, monkey_requests):
     """Check installer integrity failure."""
+    Feature.auto_update = False
     Options.is_frozen = True
     Options.client_version = "4.5.0"
 
@@ -238,7 +252,11 @@ def test_installer_integrity_failure(manager_factory, monkey_requests):
         manager.server_config_updater.first_run = False
         with patch.object(engine.remote, "get_server_configuration", new=enabled):
             server_updater._poll()
+            # Ensure the feature is propagated
+            Feature.auto_update = True
             check_attrs(updater, True, False, "4.5.0")
+
+    Feature.auto_update = False
 
 
 @Options.mock()

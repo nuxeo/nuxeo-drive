@@ -1,5 +1,7 @@
 """Alfresco server-type registration."""
 
+from typing import Any
+
 try:
     import alfresco
 
@@ -11,7 +13,7 @@ except ImportError:
 from nxdrive.drive.server_type import FileSystemID, ServerTypeConfig, register
 
 
-def _alfresco_auth_factory(host, token, **kwargs):
+def _alfresco_auth_factory(host: Any, token: Any, **kwargs: Any) -> Any:
     """Create the appropriate auth object for Alfresco."""
     if isinstance(token, dict):
         from nxdrive.alfresco.auth.oauth2 import AlfrescoOAuthentication
@@ -22,7 +24,7 @@ def _alfresco_auth_factory(host, token, **kwargs):
     return TokenAuthentication(host, token=token, **kwargs)
 
 
-def _alfresco_relogin_handler(engine, password):
+def _alfresco_relogin_handler(engine: Any, password: Any) -> None:
     """Re-authenticate an Alfresco engine using TicketAuth."""
     from alfresco.auth import TicketAuth
 
@@ -43,14 +45,14 @@ def _alfresco_relogin_handler(engine, password):
 
 
 def _alfresco_password_auth_handler(
-    api, local_folder: str, server_url: str, username: str, password: str
+    api: Any, local_folder: str, server_url: str, username: str, password: str
 ) -> None:
     from nxdrive.alfresco.gui.auth import basic_auth
 
     basic_auth(api, local_folder, server_url, username, password)
 
 
-def _alfresco_debug_auth_handler(url, manager, api):
+def _alfresco_debug_auth_handler(url: Any, manager: Any, api: Any) -> None:
     """Non-frozen debug auth dialog for Alfresco servers.
 
     Presents a simple username/password dialog and binds the account
@@ -82,7 +84,7 @@ def _alfresco_debug_auth_handler(url, manager, api):
     layout.addWidget(username)
     layout.addWidget(password)
 
-    def auth():
+    def auth() -> None:
         user = str(username.text())
         pwd = str(password.text())
         params = api.callback_params or {}
@@ -109,19 +111,19 @@ def _alfresco_debug_auth_handler(url, manager, api):
     dialog.exec()
 
 
-def _alfresco_save_auth_callback_params(api, params) -> None:
+def _alfresco_save_auth_callback_params(api: Any, params: Any) -> None:
     from nxdrive.alfresco.gui.auth_callback_store import save_auth_callback_params
 
     save_auth_callback_params(api, params)
 
 
-def _alfresco_load_auth_callback_params(api):
+def _alfresco_load_auth_callback_params(api: Any) -> Any:
     from nxdrive.alfresco.gui.auth_callback_store import load_auth_callback_params
 
     return load_auth_callback_params(api)
 
 
-def _alfresco_clear_auth_callback_params(api) -> None:
+def _alfresco_clear_auth_callback_params(api: Any) -> None:
     from nxdrive.alfresco.gui.auth_callback_store import clear_auth_callback_params
 
     clear_auth_callback_params(api)

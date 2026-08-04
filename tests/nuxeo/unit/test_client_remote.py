@@ -17,6 +17,18 @@ from nxdrive.nuxeo.auth.oauth2 import OAuthentication
 from nxdrive.nuxeo.client.remote_client import Remote
 
 
+@pytest.fixture(autouse=True)
+def _no_metrics_thread(monkeypatch):
+    """Prevent the CustomPollMetrics QThread from starting during tests.
+
+    Without this, each Remote() instantiation spawns a persistent QThread
+    that can crash during garbage collection in parallel test workers (xdist).
+    """
+    monkeypatch.setattr(
+        "nxdrive.drive.metrics.poll_metrics.CustomPollMetrics.start", lambda self: None
+    )
+
+
 class Mock_Values:
     """
     Mock class to generate values for test case

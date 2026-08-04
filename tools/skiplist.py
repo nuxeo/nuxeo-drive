@@ -129,3 +129,58 @@ TasksModel.loadList  # Used in QML
 TasksModel.self_model  # Used in QML
 Upload.transfer_type  # Used in QML
 WindowsIntegration.install_addons  # Used in QML
+
+# Alfresco auth/loopback — HTTP handler methods called by BaseHTTPServer
+_OAuthCallbackHandler.do_GET  # Called by HTTP server
+_OAuthCallbackHandler.log_message  # Override to suppress logs
+LoopbackServer.is_running  # Used by connect_url flow
+
+# Alfresco OAuth2 attributes — set in __init__, consumed in _build_oauth2/connect_url
+AlfrescoOAuthentication._oauth2_public_client  # Used in connect_url flow
+AlfrescoOAuthentication._oauth2_enable_pkce  # Used in connect_url flow
+AlfrescoOAuthentication._oauth2_enable_basic_auth  # Used in connect_url flow
+AlfrescoOAuthentication.get_token_dict  # Called by DAO for token persistence
+
+# Alfresco remote client — called by engine/processor
+AlfrescoRemote.download_content  # Called by processor for content download
+
+# Alfresco config constants — used by installer/OSI at runtime
+ALFRESCO_AGENT_TEMPLATE  # macOS LaunchAgent plist template
+ALFRESCO_FINDERSYNC_ID_SUFFIX  # macOS FinderSync extension ID
+ALFRESCO_FINDERSYNC_APPEX  # macOS FinderSync appex path
+ALFRESCO_ADDON_INSTALLER  # Windows shell extension installer
+
+# Drive auth/protocol base classes — used as Protocol/ABC
+AuthHandler  # Protocol class for type checking
+RemoteClientProtocol  # Protocol class for type checking
+
+# Drive commandline methods — called by argument parser dispatch
+CliHandler._is_fresh_install  # Called by argument parser
+CliHandler._restore_server_type  # Called by argument parser
+CliHandler._pick_server_type  # Called by argument parser
+
+# Drive GUI API — called from QML
+QMLDriveApi.get_invalid_credentials_engine_uid  # Used in QML
+default_local_folder_for_server  # Used in QML
+QMLDriveApi.default_server_local_folder  # Used in QML
+alfresco_probe_capabilities  # Used in QML
+password_auth  # Used in QML
+relogin  # Used in QML
+oauth2_password_auth  # Used in QML
+can_open_remote_metadata  # Used in QML
+log_qml  # Used in QML
+
+# Drive application
+Application._workflow_cls  # Set at init, used by workflow dispatch
+
+# Drive server_type — used via importlib/getattr at runtime
+ServerTypeConfig.direct_edit_class_path  # Dynamic class loading
+ServerTypeConfig.direct_download_class_path  # Dynamic class loading
+ServerTypeConfig.workflow_class_path  # Dynamic class loading
+all_home_dirs  # Used by excluded_home feature
+
+# Nuxeo config constants — used by installer/OSI at runtime
+NUXEO_AGENT_TEMPLATE  # macOS LaunchAgent plist template
+NUXEO_FINDERSYNC_ID_SUFFIX  # macOS FinderSync extension ID
+NUXEO_FINDERSYNC_APPEX  # macOS FinderSync appex path
+NUXEO_ADDON_INSTALLER  # Windows shell extension installer

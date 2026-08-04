@@ -21,7 +21,6 @@ env:
   ALFRESCO_URL: ${{ secrets.ALFRESCO_TEST_URL }}
   ALFRESCO_USER: ${{ secrets.ALFRESCO_TEST_USERNAME }}
   ALFRESCO_PASSWORD: ${{ secrets.ALFRESCO_TEST_PASSWORD }}
-  ALFRESCO_TEST_PATH: ${{ secrets.ALFRESCO_TEST_PATH }}
 
 jobs:
   alfresco-integration-tests-windows:
@@ -47,7 +46,7 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
           & .\tools\windows\deploy_ci_agent.ps1 -install_release
-          & .\tools\windows\deploy_ci_agent.ps1 -build
+          & .\tools\windows\deploy_ci_agent.ps1 -build_alfresco
       - name: Install tox
         run: python -m pip install -r tools/deps/requirements-tox.txt
       - name: Alfresco integration tests

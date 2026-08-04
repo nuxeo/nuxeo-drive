@@ -42,7 +42,9 @@ class TokenAuthentication(Authentication):
         from nxdrive.drive import server_type as st
 
         config = st.detect_by_url(self.url)
-        browser_startup_page = config.browser_startup_page or Options.browser_startup_page
+        browser_startup_page = (
+            config.browser_startup_page or Options.browser_startup_page
+        )
 
         # Handle URL parameters
         parts = urlsplit(self.url)
@@ -51,7 +53,7 @@ class TokenAuthentication(Authentication):
         params = f"{parts.query}&{params}" if parts.query else params
         return urlunsplit((parts.scheme, parts.netloc, path, params, parts.fragment))
 
-    def get_token(self, **kwargs: Any) -> "Token":  # type: ignore[empty-body]
+    def get_token(self, **kwargs: Any) -> "Token":
         """Request a token.  Must be overridden by server-type subclasses."""
         raise NotImplementedError
 

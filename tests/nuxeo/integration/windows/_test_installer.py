@@ -34,8 +34,12 @@ class Installer:
         self.uninstall()
 
     def install(self, *install_opt):
-        print(f"Installer.install called with install_opt={install_opt}")
-        log.info("Installing, calling %r %s", self.path, " ".join(install_opt))
+        safe_opts = [
+            o if "PASSWORD" not in o.upper() else o.split("=", 1)[0] + "=****"
+            for o in install_opt
+        ]
+        print(f"Installer.install called with install_opt={safe_opts}")
+        log.info("Installing, calling %r %s", self.path, " ".join(safe_opts))
         subprocess.Popen([self.path] + list(install_opt))
         self.launcher = ""
         self.uninstaller = ""

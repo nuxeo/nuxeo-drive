@@ -208,7 +208,7 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
 
             try:
                 shutil.copy(icon, emblem)
-            except shutil.Error:
+            except (shutil.Error, FileNotFoundError):
                 log.warning(
                     f"Could not copy {icon!r} to {shared_icons!r}", exc_info=True
                 )

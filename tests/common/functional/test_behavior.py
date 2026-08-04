@@ -116,6 +116,8 @@ def test_manager_account_addition_same_folder_used(tmp, manager_factory):
 def test_feature_synchronization(tmp, manager_factory):
     """NXDRIVE-2686: Ensure the management of the synchronization feature is well handled."""
 
+    Options.server_type = "NUXEO"
+
     with manager_factory(with_engine=False) as manager:
         # No synchronization_enabled in the database
         Feature.synchronization = False

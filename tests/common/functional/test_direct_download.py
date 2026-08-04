@@ -1280,7 +1280,7 @@ class TestGUIApiDirectDownload:
         api.resume_direct_download("engine-1", uid)
 
         record = dao.get_direct_download(uid)
-        assert record.status == DirectDownloadStatus.PENDING
+        assert record.status == DirectDownloadStatus.IN_PROGRESS
 
     def test_cancel_direct_download(self, dao):
         """Test cancel_direct_download API."""

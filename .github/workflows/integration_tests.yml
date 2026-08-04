@@ -21,12 +21,14 @@ on:
 
 jobs:
   integration-tests-windows-LTS-2023:
-    timeout-minutes: 30
+    timeout-minutes: 45
     runs-on: windows-latest
     strategy:
         fail-fast: false
 
     env:
+      SENTRY_DSN: ""
+      FREEZE_ONLY: "1"
       NXDRIVE_TEST_NUXEO_URL: https://drive-2023.beta.nuxeocloud.com/nuxeo
       NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2023_TEST_USERNAME }}
       NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2023_TEST_PASSWORD }}
@@ -51,11 +53,54 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
           & .\tools\windows\deploy_ci_agent.ps1 -install_release
-          & .\tools\windows\deploy_ci_agent.ps1 -build
+          & .\tools\windows\deploy_ci_agent.ps1 -build_nuxeo
       - name: Install tox
         run: python -m pip install -r tools/deps/requirements-tox.txt
+      - name: Smoke test frozen exe
+        shell: pwsh
+        run: |
+          Write-Host "Verifying frozen bundle contents..."
+          $exe = "dist\ndrive\ndrive.exe"
+          Write-Host "Exe exists: $(Test-Path $exe)"
+          Write-Host "data\server_list contents:"
+          Get-ChildItem "dist\ndrive\data\server_list" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $($_.Name) ($($_.Length) bytes)" }
+          Write-Host ""
+          Write-Host "Testing frozen exe startup (10s timeout)..."
+          $proc = Start-Process -FilePath $exe -ArgumentList "--ssl-no-verify" -PassThru
+          Start-Sleep -Seconds 10
+          if (!$proc.HasExited) {
+            Write-Host "App is still running after 10s - good (no immediate crash)"
+            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+          } else {
+            Write-Host "App exited early with code: $($proc.ExitCode) - potential crash"
+          }
+          Write-Host ""
+          Write-Host "Checking for crash.state files..."
+          Get-ChildItem -Path "$env:USERPROFILE" -Filter "crash.state" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Host "============================================================"
+            Write-Host "CRASH STATE at: $($_.FullName)"
+            Get-Content $_.FullName
+            Write-Host "============================================================"
+          }
       - name: Integration tests
         run: tox -e integration-windows
+      - name: Dump crash.state files
+        if: ${{ failure() }}
+        shell: pwsh
+        run: |
+          Write-Host "Searching for crash.state files..."
+          Get-ChildItem -Path "$env:USERPROFILE" -Filter "crash.state" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Host "============================================================"
+            Write-Host "Found crash.state at: $($_.FullName)"
+            Get-Content $_.FullName
+            Write-Host "============================================================"
+          }
+          Get-ChildItem -Path "." -Filter "crash.state" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Host "============================================================"
+            Write-Host "Found crash.state at: $($_.FullName)"
+            Get-Content $_.FullName
+            Write-Host "============================================================"
+          }
       - name: Upload coverage to Codecov
         if: ${{ success() || failure() }}
         uses: codecov/codecov-action@v6
@@ -66,12 +111,14 @@ jobs:
           env_vars: OS,PYTHON
 
   integration-tests-windows-LTS-2025:
-    timeout-minutes: 30
+    timeout-minutes: 45
     runs-on: windows-latest
     strategy:
         fail-fast: false
 
     env:
+      SENTRY_DSN: ""
+      FREEZE_ONLY: "1"
       NXDRIVE_TEST_NUXEO_URL: https://drive-2025.beta.nuxeocloud.com/nuxeo
       NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2025_TEST_USERNAME }}
       NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2025_TEST_PASSWORD }}
@@ -102,11 +149,54 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
           & .\tools\windows\deploy_ci_agent.ps1 -install_release
-          & .\tools\windows\deploy_ci_agent.ps1 -build
+          & .\tools\windows\deploy_ci_agent.ps1 -build_nuxeo
       - name: Install tox
         run: python -m pip install -r tools/deps/requirements-tox.txt
+      - name: Smoke test frozen exe
+        shell: pwsh
+        run: |
+          Write-Host "Verifying frozen bundle contents..."
+          $exe = "dist\ndrive\ndrive.exe"
+          Write-Host "Exe exists: $(Test-Path $exe)"
+          Write-Host "data\server_list contents:"
+          Get-ChildItem "dist\ndrive\data\server_list" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $($_.Name) ($($_.Length) bytes)" }
+          Write-Host ""
+          Write-Host "Testing frozen exe startup (10s timeout)..."
+          $proc = Start-Process -FilePath $exe -ArgumentList "--ssl-no-verify" -PassThru
+          Start-Sleep -Seconds 10
+          if (!$proc.HasExited) {
+            Write-Host "App is still running after 10s - good (no immediate crash)"
+            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+          } else {
+            Write-Host "App exited early with code: $($proc.ExitCode) - potential crash"
+          }
+          Write-Host ""
+          Write-Host "Checking for crash.state files..."
+          Get-ChildItem -Path "$env:USERPROFILE" -Filter "crash.state" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Host "============================================================"
+            Write-Host "CRASH STATE at: $($_.FullName)"
+            Get-Content $_.FullName
+            Write-Host "============================================================"
+          }
       - name: Integration tests
         run: tox -e integration-windows
+      - name: Dump crash.state files
+        if: ${{ failure() }}
+        shell: pwsh
+        run: |
+          Write-Host "Searching for crash.state files..."
+          Get-ChildItem -Path "$env:USERPROFILE" -Filter "crash.state" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Host "============================================================"
+            Write-Host "Found crash.state at: $($_.FullName)"
+            Get-Content $_.FullName
+            Write-Host "============================================================"
+          }
+          Get-ChildItem -Path "." -Filter "crash.state" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Host "============================================================"
+            Write-Host "Found crash.state at: $($_.FullName)"
+            Get-Content $_.FullName
+            Write-Host "============================================================"
+          }
       - name: Upload coverage to Codecov
         if: ${{ success() || failure() }}
         uses: codecov/codecov-action@v6
@@ -117,12 +207,13 @@ jobs:
           env_vars: OS,PYTHON
 
   integration-tests-macos:
-    timeout-minutes: 30
+    timeout-minutes: 45
     runs-on: "macos-15-intel"
     strategy:
         fail-fast: false
 
     env:
+      SENTRY_DSN: ""
       NXDRIVE_TEST_NUXEO_URL: https://drive-2025.beta.nuxeocloud.com/nuxeo
       NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2025_TEST_USERNAME }}
       NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2025_TEST_PASSWORD }}

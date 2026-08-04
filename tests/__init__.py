@@ -56,7 +56,8 @@ def before_send(event: Any, hint: Any) -> Any:
 def setup_sentry() -> None:
     """Setup Sentry."""
 
-    if os.getenv("SKIP_SENTRY", "0") == "1":
+    # Disable Sentry by default during tests unless explicitly re-enabled.
+    if os.getenv("SKIP_SENTRY", "1") == "1":
         return
 
     # Guess the current the branch name

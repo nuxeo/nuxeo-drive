@@ -24,22 +24,14 @@ def _client():
 
 
 def remove_old_test_folders(client) -> None:
-    """Delete children of ``env.ALFRESCO_TEST_PATH`` whose names look like
-    Drive test artefacts (prefixes ``ndt-`` or ``test_``).
+    """Delete children of the repository root whose names look like
+    Drive test artefacts (prefixes ``ndt-``, ``test_``, or ``nxdrive-func-tests-``).
     """
-    try:
-        parent = client.nodes.get_by_path(env.ALFRESCO_TEST_PATH)
-    except Exception:
-        log.warning(
-            "Test folder %s does not exist; nothing to clean.", env.ALFRESCO_TEST_PATH
-        )
-        return
-
-    children = client.nodes.list_children(parent.id)
+    children = client.nodes.list_children("-root-")
     for entry in children:
         name = getattr(entry, "name", "") or ""
-        if name.startswith(("ndt-", "test_")):
-            client.nodes.delete(entry.id)
+        if name.startswith(("ndt-", "test_", "nxdrive-func-tests-")):
+            client.nodes.delete(entry.id, permanent=True)
             log.info("Deleted old node %s (%s)", name, entry.id)
 
 

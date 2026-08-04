@@ -1,5 +1,6 @@
 import subprocess
 from logging import getLogger
+from typing import Any
 
 from ..options import Options
 from .base import BaseUpdater
@@ -15,7 +16,7 @@ class Updater(BaseUpdater):
     ext = "exe-admin" if Options.system_wide else "exe"
     release_file = "drive.exe"
 
-    def __init__(self, manager, /) -> None:
+    def __init__(self, manager: "Any", /) -> None:
         super().__init__(manager)
         from nxdrive.drive import server_type as st
 

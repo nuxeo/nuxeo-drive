@@ -73,7 +73,7 @@ class RefreshingOAuth2Auth(OAuth2Auth):
     # -- factory -------------------------------------------------------------
 
     @classmethod
-    def from_token(  # type: ignore[override]
+    def from_token(
         cls,
         access_token: str,
         *,
@@ -87,16 +87,16 @@ class RefreshingOAuth2Auth(OAuth2Auth):
         drifting from the vendor's validation), we delegate then attach
         the callback post-construction.
         """
-        inst = super().from_token(access_token, **kwargs)  # type: ignore[misc]
+        inst = super().from_token(access_token, **kwargs)
         # ``super().from_token`` returns ``cls(...)`` (see vendor
         # OAuth2Auth.from_token classmethod), so ``inst`` is guaranteed
         # to be a ``RefreshingOAuth2Auth`` instance.
         inst._on_refresh = on_refresh
-        return inst  # type: ignore[return-value]
+        return inst
 
     # -- persistence hook ----------------------------------------------------
 
-    def _token_request(self, data: dict) -> str:  # type: ignore[override]
+    def _token_request(self, data: dict) -> str:
         """Vendor writes all token mutations through this method.
 
         We chain to super() (which mutates ``self._access_token``,
