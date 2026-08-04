@@ -13,6 +13,7 @@ from nxdrive.drive.direct_edit import APP_NAME, DirectEdit
 from nxdrive.drive.exceptions import NoAssociatedSoftware, NotFound, ThreadInterrupt
 from nxdrive.drive.feature import Feature
 from nxdrive.drive.objects import DirectEditDetails
+from nxdrive.drive.utils import safe_filename
 
 
 @pytest.fixture()
@@ -301,24 +302,25 @@ def test_prepare_edit_persists_metadata_and_moves_download(
         callback=Mock(),
     )
 
-    assert result == direct_edit._folder / "doc-id_file-content" / "report.txt"
+    folder_name = safe_filename("doc-id_file:content")
+    assert result == direct_edit._folder / folder_name / "report.txt"
     assert result.read_text(encoding="utf-8") == "payload"
     assert direct_edit.local.set_remote_id.call_args_list == [
-        call(Path("doc-id_file-content"), "doc-id"),
+        call(Path(folder_name), "doc-id"),
         call(
-            Path("doc-id_file-content"),
+            Path(folder_name),
             "https://example.test/nuxeo",
             name="nxdirectedit",
         ),
-        call(Path("doc-id_file-content"), "User", name="nxdirectedituser"),
-        call(Path("doc-id_file-content"), "file:content", name="nxdirecteditxpath"),
-        call(Path("doc-id_file-content"), "abc123", name="nxdirecteditdigest"),
+        call(Path(folder_name), "User", name="nxdirectedituser"),
+        call(Path(folder_name), "file:content", name="nxdirecteditxpath"),
+        call(Path(folder_name), "abc123", name="nxdirecteditdigest"),
         call(
-            Path("doc-id_file-content"),
+            Path(folder_name),
             b"sha256",
             name="nxdirecteditdigestalgorithm",
         ),
-        call(Path("doc-id_file-content"), "report.txt", name="nxdirecteditname"),
+        call(Path(folder_name), "report.txt", name="nxdirecteditname"),
     ]
 
 

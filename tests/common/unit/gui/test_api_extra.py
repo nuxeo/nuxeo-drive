@@ -5,7 +5,6 @@ concentrate on shared dispatch, cleanup, error, and lightweight delegation
 paths without opening a browser, starting Qt's event loop, or using a server.
 """
 
-import json
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, call, patch
@@ -455,9 +454,9 @@ def test_web_update_token_dispatch_and_success_variants(api_env):
         _web_authentication=True,
     )
     oauth_config = server_config(
-        key="ALFRESCO",
+        key="OAUTH",
         browser_startup_page="",
-        oauth2_class_path="nxdrive.alfresco.auth.oauth2.OAuthentication",
+        oauth2_class_path="tests.oauth.Handler",
         supports_browser_token_update=False,
     )
     manager.engines = {"oauth": oauth_engine}
@@ -477,7 +476,7 @@ def test_web_update_token_dispatch_and_success_variants(api_env):
         {},
         dao=manager.dao,
         device_id=manager.device_id,
-        server_type="ALFRESCO",
+        server_type="OAUTH",
     )
     callback = {"engine": "oauth", "server_url": "https://oauth.test"}
     save.assert_called_once_with(callback)
@@ -631,18 +630,19 @@ def test_ssl_probe_success_uses_only_requested_arguments(api_env):
     ]
 
 
-def test_default_folders_server_url_and_alfresco_capabilities(api_env):
+def test_default_folders_and_server_url(api_env):
     api = api_env.api
     config = server_config(local_folder_name="Brand Drive")
     options = SimpleNamespace(server_type="TEST")
+    expected_folder = str(Path("/brand"))
     with patch.object(api_module, "Options", options), patch.object(
         api_module.st, "get", return_value=config
     ), patch.object(
         api_module, "get_default_local_folder", return_value=Path("/brand")
     ) as default:
-        assert api.default_local_folder() == "/brand"
-        assert api.default_server_local_folder() == "/brand"
-        assert api.default_local_folder_for_server("TEST") == "/brand"
+        assert api.default_local_folder() == expected_folder
+        assert api.default_server_local_folder() == expected_folder
+        assert api.default_local_folder_for_server("TEST") == expected_folder
     default.assert_has_calls(
         [call("Brand Drive"), call("Brand Drive"), call("Brand Drive")]
     )
@@ -662,47 +662,6 @@ def test_default_folders_server_url_and_alfresco_capabilities(api_env):
         api_module.st, "get_default_key", return_value="NXDRIVE"
     ), patch.object(api_module.st, "get", return_value=config):
         assert api.default_server_url_value() == ""
-
-    defaults = {
-        "discovered": False,
-        "enable_basic_auth": True,
-        "enable_pkce": True,
-        "public_client": True,
-        "audience": "",
-    }
-    assert json.loads(api.alfresco_probe_capabilities("   ")) == defaults
-
-    capabilities = {
-        "discovered": 1,
-        "enable_basic_auth": 0,
-        "enable_pkce": 1,
-        "public_client": 0,
-        "audience": "repository",
-        "ignored": "value",
-    }
-    with patch(
-        "nxdrive.alfresco.auth.oauth2.probe_capabilities",
-        return_value=capabilities,
-    ) as probe:
-        assert json.loads(
-            api.alfresco_probe_capabilities("  https://alfresco.test/  ")
-        ) == {
-            "discovered": True,
-            "enable_basic_auth": False,
-            "enable_pkce": True,
-            "public_client": False,
-            "audience": "repository",
-        }
-    probe.assert_called_once_with("https://alfresco.test/", verify=True)
-
-    with patch(
-        "nxdrive.alfresco.auth.oauth2.probe_capabilities",
-        side_effect=requests.RequestException("offline"),
-    ):
-        assert (
-            json.loads(api.alfresco_probe_capabilities("https://offline.test"))
-            == defaults
-        )
 
 
 def test_disk_space_calculation_and_formatting(api_env):

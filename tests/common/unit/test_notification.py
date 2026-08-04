@@ -1,6 +1,5 @@
 """Tests for nxdrive/drive/notification.py"""
 
-import time
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -30,7 +29,6 @@ from nxdrive.drive.notification import (
     NotificationService,
     ReadOnlyNotification,
 )
-
 
 # ─── Notification Tests ──────────────────────────────────────────────────────
 
@@ -65,9 +63,7 @@ class TestNotification:
         assert n.uid == "TEST"
 
     def test_construction_with_uid_unique_and_engine_uid(self):
-        n = Notification(
-            uid="TEST", engine_uid="eng1", flags=Notification.FLAG_UNIQUE
-        )
+        n = Notification(uid="TEST", engine_uid="eng1", flags=Notification.FLAG_UNIQUE)
         assert n.uid == "TEST_eng1"
 
     def test_construction_with_uuid(self):
@@ -76,7 +72,9 @@ class TestNotification:
 
     def test_uid_precedence_uid_over_uuid(self):
         """When both uid and uuid are given, uid-based logic takes precedence."""
-        n = Notification(uid="TEST", uuid="uuid-fallback", flags=Notification.FLAG_UNIQUE)
+        n = Notification(
+            uid="TEST", uuid="uuid-fallback", flags=Notification.FLAG_UNIQUE
+        )
         assert n.uid == "TEST"
 
     def test_construction_with_level(self):
@@ -416,9 +414,7 @@ class TestDiscardNotification:
         service.discardNotification.emit.assert_called_once_with("d-1")
 
     def test_discard_with_remove_on_discard(self, service):
-        notif = Notification(
-            uuid="d-2", flags=Notification.FLAG_REMOVE_ON_DISCARD
-        )
+        notif = Notification(uuid="d-2", flags=Notification.FLAG_REMOVE_ON_DISCARD)
         service._notifications["d-2"] = notif
         service.discard_notification("d-2")
         assert "d-2" not in service._notifications

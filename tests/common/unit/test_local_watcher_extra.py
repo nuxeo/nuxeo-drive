@@ -24,7 +24,6 @@ from nxdrive.drive.engine.watcher.local_watcher import (
 )
 from nxdrive.drive.exceptions import ThreadInterrupt
 
-
 NOW = datetime(2024, 1, 2, 3, 4, 5)
 
 
@@ -255,9 +254,7 @@ def test_scan_recursive_skips_non_moves(watcher, reason):
     child = make_info("folder/file.txt")
     pair = make_pair(
         processor=1 if reason == "processing" else 0,
-        local_path=(
-            Path("folder/old.txt") if reason == "processing" else child.path
-        ),
+        local_path=(Path("folder/old.txt") if reason == "processing" else child.path),
         remote_ref="tracked-ref",
     )
     watcher.dao.get_local_children.return_value = []
@@ -308,9 +305,7 @@ def test_scan_recursive_detects_move_then_copy_back(watcher):
 
 
 @pytest.mark.parametrize("moved_and_renamed", [False, True])
-def test_scan_recursive_distinguishes_copy_paste_and_rename(
-    watcher, moved_and_renamed
-):
+def test_scan_recursive_distinguishes_copy_paste_and_rename(watcher, moved_and_renamed):
     parent = make_info("folder", folderish=True)
     child = make_info("folder/new.txt", digest="fresh")
     pair = make_pair(
@@ -491,9 +486,7 @@ def test_scan_recursive_propagates_thread_interrupt(watcher):
     watcher.dao.get_local_children.return_value = []
     watcher.local.get_children_info.return_value = [child]
     watcher.local.get_remote_id.side_effect = lambda path: (
-        None
-        if Path(path) == parent.path
-        else (_ for _ in ()).throw(ThreadInterrupt())
+        None if Path(path) == parent.path else (_ for _ in ()).throw(ThreadInterrupt())
     )
 
     with pytest.raises(ThreadInterrupt):
@@ -523,9 +516,7 @@ def test_known_pair_windows_requeues_nonterminal_state(watcher):
     watcher._handle_watchdog_event_on_known_acquired_pair = Mock()
 
     with patch.object(local_watcher_module, "WINDOWS", True):
-        watcher._handle_watchdog_event_on_known_pair(
-            pair, event, pair.local_path
-        )
+        watcher._handle_watchdog_event_on_known_pair(pair, event, pair.local_path)
 
     watcher.dao._queue_pair_state.assert_called_once_with(
         refreshed.id,
@@ -564,9 +555,7 @@ def test_created_event_on_acquired_pair_remote_id_cases(
 
 
 @pytest.mark.parametrize("set_remote_id_fails", [False, True])
-def test_acquired_modified_event_tracks_ongoing_copy(
-    watcher, set_remote_id_fails
-):
+def test_acquired_modified_event_tracks_ongoing_copy(watcher, set_remote_id_fails):
     pair = make_pair(
         pair_state="locally_created",
         size=100,
@@ -579,9 +568,7 @@ def test_acquired_modified_event_tracks_ongoing_copy(
         watcher.local.set_remote_id.side_effect = OSError("xattrs denied")
     event = make_event("modified")
 
-    watcher._handle_watchdog_event_on_known_acquired_pair(
-        pair, event, pair.local_path
-    )
+    watcher._handle_watchdog_event_on_known_acquired_pair(pair, event, pair.local_path)
 
     assert pair.local_digest == UNACCESSIBLE_HASH
     watcher.local.set_remote_id.assert_called_once_with(
@@ -612,9 +599,7 @@ def test_acquired_modified_event_keeps_unaccessible_hash_until_copy_finishes(
 
 
 @pytest.mark.parametrize("mac_delayed_xattr", [False, True])
-def test_acquired_modified_event_repairs_substituted_xattr(
-    watcher, mac_delayed_xattr
-):
+def test_acquired_modified_event_repairs_substituted_xattr(watcher, mac_delayed_xattr):
     pair = make_pair(
         pair_state="locally_created",
         remote_ref="expected-ref",
@@ -648,9 +633,7 @@ def test_acquired_modified_event_repairs_substituted_xattr(
 
 def configure_direct_move(watcher, destination="/sync/new.txt"):
     destination = Path(destination)
-    watcher.local.get_path.side_effect = lambda path: Path(path).relative_to(
-        "/sync"
-    )
+    watcher.local.get_path.side_effect = lambda path: Path(path).relative_to("/sync")
     watcher.dao.get_state_from_local.return_value = None
     watcher.local.get_remote_id.return_value = "different-parent"
     return patch.object(
@@ -661,7 +644,10 @@ def configure_direct_move(watcher, destination="/sync/new.txt"):
 def test_known_move_drops_same_digest_substitution(watcher):
     old = make_pair(id=1, local_path=Path("old.txt"), local_digest="same")
     destination_pair = make_pair(
-        id=2, local_path=Path("new.txt"), remote_ref="destination-ref", local_digest="same"
+        id=2,
+        local_path=Path("new.txt"),
+        remote_ref="destination-ref",
+        local_digest="same",
     )
     info = make_info("new.txt", digest="same")
     event = make_event("moved", "/sync/old.txt", "/sync/new.txt")
@@ -670,7 +656,9 @@ def test_known_move_drops_same_digest_substitution(watcher):
     watcher.local.try_get_info.return_value = info
     watcher.local.get_path.return_value = info.path
 
-    with patch.object(local_watcher_module, "is_generated_tmp_file", return_value=(False, None)), patch.object(
+    with patch.object(
+        local_watcher_module, "is_generated_tmp_file", return_value=(False, None)
+    ), patch.object(
         local_watcher_module, "normalize", return_value=Path(event.dest_path)
     ):
         watcher._handle_move_on_known_pair(old, event, old.local_path)
@@ -689,15 +677,13 @@ def test_known_move_ignores_missing_and_textedit_destinations(
     )
     event = make_event("moved", "/sync/old.txt", destination)
     info = make_info(Path(destination).relative_to("/sync"))
-    watcher.local.get_path.side_effect = lambda path: Path(path).relative_to(
-        "/sync"
-    )
+    watcher.local.get_path.side_effect = lambda path: Path(path).relative_to("/sync")
     watcher.dao.get_state_from_local.return_value = None
     watcher.local.try_get_info.return_value = info if text_edit_temporary else None
 
-    with patch.object(local_watcher_module, "is_generated_tmp_file", return_value=(False, None)), patch.object(
-        local_watcher_module, "normalize", return_value=Path(destination)
-    ):
+    with patch.object(
+        local_watcher_module, "is_generated_tmp_file", return_value=(False, None)
+    ), patch.object(local_watcher_module, "normalize", return_value=Path(destination)):
         watcher._handle_move_on_known_pair(pair, event, pair.local_path)
 
     watcher.dao.update_local_state.assert_not_called()
@@ -712,14 +698,14 @@ def test_known_move_cancelled_by_user_restores_synchronized_state(watcher):
     )
     info = make_info("folder/file.txt")
     event = make_event("moved", "/sync/elsewhere.txt", "/sync/folder/file.txt")
-    watcher.local.get_path.side_effect = lambda path: Path(path).relative_to(
-        "/sync"
-    )
+    watcher.local.get_path.side_effect = lambda path: Path(path).relative_to("/sync")
     watcher.dao.get_state_from_local.return_value = None
     watcher.local.try_get_info.return_value = info
     watcher.local.get_remote_id.return_value = "parent-ref"
 
-    with patch.object(local_watcher_module, "is_generated_tmp_file", return_value=(False, None)), patch.object(
+    with patch.object(
+        local_watcher_module, "is_generated_tmp_file", return_value=(False, None)
+    ), patch.object(
         local_watcher_module, "normalize", return_value=Path(event.dest_path)
     ):
         watcher._handle_move_on_known_pair(pair, event, pair.local_path)
@@ -736,15 +722,17 @@ def test_known_folder_move_on_linux_does_not_replace_child_paths(watcher):
     )
     info = make_info("new-folder", folderish=True)
     event = make_event("moved", "/sync/old-folder", "/sync/new-folder")
-    watcher.local.get_path.side_effect = lambda path: Path(path).relative_to(
-        "/sync"
-    )
+    watcher.local.get_path.side_effect = lambda path: Path(path).relative_to("/sync")
     watcher.dao.get_state_from_local.return_value = None
     watcher.local.try_get_info.return_value = info
 
-    with patch.object(local_watcher_module, "is_generated_tmp_file", return_value=(False, None)), patch.object(
+    with patch.object(
+        local_watcher_module, "is_generated_tmp_file", return_value=(False, None)
+    ), patch.object(
         local_watcher_module, "normalize", return_value=Path(event.dest_path)
-    ), patch.object(local_watcher_module, "LINUX", True):
+    ), patch.object(
+        local_watcher_module, "LINUX", True
+    ):
         watcher._handle_move_on_known_pair(pair, event, pair.local_path)
 
     assert pair.local_state == "moved"
@@ -761,18 +749,22 @@ def test_known_folder_move_replaces_paths_and_migrates_windows_scan(watcher):
     )
     info = make_info(new_path, folderish=True)
     event = make_event("moved", "/sync/old-folder", "/sync/new-folder")
-    watcher.local.get_path.side_effect = lambda path: Path(path).relative_to(
-        "/sync"
-    )
+    watcher.local.get_path.side_effect = lambda path: Path(path).relative_to("/sync")
     watcher.dao.get_state_from_local.return_value = None
     watcher.local.try_get_info.return_value = info
     watcher._folder_scan_events = {old_path: (1, pair)}
 
-    with patch.object(local_watcher_module, "is_generated_tmp_file", return_value=(False, None)), patch.object(
+    with patch.object(
+        local_watcher_module, "is_generated_tmp_file", return_value=(False, None)
+    ), patch.object(
         local_watcher_module, "normalize", return_value=Path(event.dest_path)
-    ), patch.object(local_watcher_module, "LINUX", False), patch.object(
+    ), patch.object(
+        local_watcher_module, "LINUX", False
+    ), patch.object(
         local_watcher_module, "WINDOWS", True
-    ), patch.object(local_watcher_module, "mktime", return_value=123):
+    ), patch.object(
+        local_watcher_module, "mktime", return_value=123
+    ):
         watcher._handle_move_on_known_pair(pair, event, pair.local_path)
 
     watcher.dao.replace_local_paths.assert_called_once_with(old_path, new_path)
@@ -1123,9 +1115,7 @@ def test_event_router_propagates_thread_interrupt(watcher):
 
 
 @pytest.mark.parametrize("event_type", ["created", "modified"])
-def test_event_router_handles_eexist_on_source(
-    watcher, tmp_path, event_type
-):
+def test_event_router_handles_eexist_on_source(watcher, tmp_path, event_type):
     prepare_event_router(watcher)
     existing = tmp_path / "normalized.txt"
     existing.write_text("existing", encoding="utf-8")
@@ -1261,9 +1251,7 @@ def test_windows_delete_queue_keeps_event_when_filesystem_check_fails(watcher):
     watcher._delete_events = {"queued-ref": (0, pair)}
     watcher.local.exists.side_effect = PermissionError("denied")
 
-    with patch.object(
-        local_watcher_module, "current_milli_time", return_value=10000
-    ):
+    with patch.object(local_watcher_module, "current_milli_time", return_value=10000):
         watcher._win_dequeue_delete()
 
     assert watcher._delete_events == {"queued-ref": (0, pair)}
@@ -1275,9 +1263,7 @@ def test_windows_folder_queue_keeps_event_when_scan_fails(watcher):
     watcher._folder_scan_events = {pair.local_path: (0, pair)}
     watcher.scan_pair = Mock(side_effect=PermissionError("denied"))
 
-    with patch.object(
-        local_watcher_module, "current_milli_time", return_value=100
-    ):
+    with patch.object(local_watcher_module, "current_milli_time", return_value=100):
         watcher._win_dequeue_folder_scan()
 
     assert watcher._folder_scan_events == {pair.local_path: (0, pair)}

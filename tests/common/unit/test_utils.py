@@ -1998,9 +1998,9 @@ class TestGetVerify:
         with patch("nxdrive.drive.utils.Options") as mock_opts:
             mock_opts.ssl_no_verify = False
             mock_opts.ca_bundle = None
-            with patch(
-                "nxdrive.drive.utils.requests_verify", return_value=True
-            ), patch("nxdrive.drive.utils.get_config_path") as mock_path:
+            with patch("nxdrive.drive.utils.requests_verify", return_value=True), patch(
+                "nxdrive.drive.utils.get_config_path"
+            ) as mock_path:
                 mock_path.side_effect = Exception("No such file or directory-gw")
                 result = get_verify()
         assert result is False

@@ -44,6 +44,13 @@ def restore_commandline_global_state():
     )
     saved_constants = {name: getattr(constants, name) for name in constant_names}
 
+    # Other unit modules exercise crash-reporting paths and may leave this
+    # process-wide namespace mutated. Command-line tests must start from the
+    # same state as a fresh application process.
+    State.about_to_quit = False
+    State.crash_details = ""
+    State.has_crashed = False
+
     yield
 
     MetaOptions.options = saved_options

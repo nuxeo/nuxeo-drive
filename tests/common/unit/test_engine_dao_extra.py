@@ -23,7 +23,6 @@ from nxdrive.drive.exceptions import UnknownPairState
 from nxdrive.drive.objects import DirectDownload, Download, RemoteFileInfo, Upload
 from nxdrive.drive.options import Options
 
-
 FIXED_TIME = datetime(2024, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
 
 
@@ -64,9 +63,7 @@ def _insert_state(
 ):
     """Insert a state using the production schema and return its real row."""
     path = Path(local_path) if local_path is not None else None
-    parent = (
-        Path(local_parent_path) if local_parent_path is not None else None
-    )
+    parent = Path(local_parent_path) if local_parent_path is not None else None
     name = local_name if local_name is not None else (path.name if path else None)
     remote_name = remote_name if remote_name is not None else name
     cursor = dao._get_write_connection().cursor()
@@ -107,9 +104,12 @@ def _insert_state(
 
 
 def _raw_state(dao, row_id):
-    row = dao._get_read_connection().cursor().execute(
-        "SELECT * FROM States WHERE id = ?", (row_id,)
-    ).fetchone()
+    row = (
+        dao._get_read_connection()
+        .cursor()
+        .execute("SELECT * FROM States WHERE id = ?", (row_id,))
+        .fetchone()
+    )
     return SimpleNamespace(**{key: row[key] for key in row.keys()}) if row else None
 
 
@@ -229,9 +229,12 @@ def test_migration_downgrade_no_connection_and_release_edges(dao, monkeypatch):
     monkeypatch.setattr(engine_module, "APP_VERSION", "5.2.8")
     dao._migrate_db(24)
     assert cursor.execute("PRAGMA user_version").fetchone()[0] == 21
-    assert cursor.execute(
-        "SELECT name FROM sqlite_master WHERE name = 'DirectDownloads'"
-    ).fetchone() is None
+    assert (
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE name = 'DirectDownloads'"
+        ).fetchone()
+        is None
+    )
 
 
 def test_insert_and_update_local_states_persist_real_file_data(
@@ -472,9 +475,7 @@ def test_remote_state_insert_update_and_lookup_queries(dao):
     dao.queue_manager = queue
     digest = "a" * 32
     info = _remote_info("remote.txt", "remote-1", "root", digest=digest)
-    row_id = dao.insert_remote_state(
-        info, "", Path("remote.txt"), ROOT
-    )
+    row_id = dao.insert_remote_state(info, "", Path("remote.txt"), ROOT)
     inserted = dao.get_state_from_id(row_id)
     assert inserted.remote_state == "created"
     assert inserted.pair_state == "remotely_created"
@@ -516,9 +517,7 @@ def test_remote_state_insert_update_and_lookup_queries(dao):
         local_name="old-folder",
         remote_name="old-folder",
     )
-    renamed_folder = _remote_info(
-        "new-folder", "folder-remote", "root", folderish=True
-    )
+    renamed_folder = _remote_info("new-folder", "folder-remote", "root", folderish=True)
     assert dao.update_remote_state(
         folder,
         renamed_folder,
@@ -566,9 +565,7 @@ def test_remote_state_insert_update_and_lookup_queries(dao):
         first.id,
         second.id,
     }
-    assert [row.id for row in dao.get_new_remote_children("query-parent")] == [
-        first.id
-    ]
+    assert [row.id for row in dao.get_new_remote_children("query-parent")] == [first.id]
 
     duplicate = _insert_state(
         dao,
@@ -599,7 +596,11 @@ def test_direct_transfer_parent_update_and_queue_registration(dao):
         "/remote", "ongoing-ref", 2, "engine-1", "ongoing"
     )
     paused_session = dao.create_session(
-        "/remote", "paused-ref", 1, "engine-1", "paused",
+        "/remote",
+        "paused-ref",
+        1,
+        "engine-1",
+        "paused",
         status=TransferStatus.PAUSED,
     )
 
@@ -937,9 +938,11 @@ def test_upload_download_crud_status_fallbacks_and_suspension(dao):
     assert dao.get_uploads_with_status(TransferStatus.ONGOING)[0].uid == upload.uid
     upload.batch = {"batchId": "updated", "blobs": [object()]}
     dao.update_upload(upload)
-    stored_batch = cursor.execute(
-        "SELECT batch FROM Uploads WHERE uid = ?", (upload.uid,)
-    ).fetchone().batch
+    stored_batch = (
+        cursor.execute("SELECT batch FROM Uploads WHERE uid = ?", (upload.uid,))
+        .fetchone()
+        .batch
+    )
     assert json.loads(stored_batch) == {"batchId": "updated"}
 
     cursor.execute(
@@ -1072,7 +1075,9 @@ def test_direct_download_crud_and_every_status_transition(dao):
     assert dao.get_direct_download(uid).doc_name == "report.pdf"
     assert [item.uid for item in dao.get_direct_downloads()] == [uid]
     assert dao.get_direct_download(999_999) is None
-    assert dao.get_direct_downloads_with_status(DirectDownloadStatus.PENDING)[0].uid == uid
+    assert (
+        dao.get_direct_downloads_with_status(DirectDownloadStatus.PENDING)[0].uid == uid
+    )
 
     download.doc_name = "renamed.pdf"
     download.doc_size = 200
@@ -1089,7 +1094,11 @@ def test_direct_download_crud_and_every_status_transition(dao):
 
     dao.update_direct_download_progress(uid, 50, 200, 25.0)
     updated = dao.get_direct_download(uid)
-    assert (updated.bytes_downloaded, updated.total_bytes, updated.progress_percent) == (
+    assert (
+        updated.bytes_downloaded,
+        updated.total_bytes,
+        updated.progress_percent,
+    ) == (
         50,
         200,
         25.0,
@@ -1201,9 +1210,7 @@ def test_direct_download_aggregate_status_precedence(dao, statuses, expected):
             "file_count": 1,
             "folder_count": index,
             "status": status,
-            "completed_at": (
-                f"2024-01-0{index + 1} 00:00:00" if index else None
-            ),
+            "completed_at": (f"2024-01-0{index + 1} 00:00:00" if index else None),
         }
         for index, status in enumerate(statuses)
     ]
@@ -1216,9 +1223,7 @@ def test_direct_download_aggregate_status_precedence(dao, statuses, expected):
 
 
 def test_direct_download_history_limit_removes_old_terminal_rows(dao, monkeypatch):
-    monkeypatch.setitem(
-        Options.options, "total_download_history", (2, "manual")
-    )
+    monkeypatch.setitem(Options.options, "total_download_history", (2, "manual"))
     first = _direct_download(
         "oldest.txt",
         status=DirectDownloadStatus.COMPLETED,

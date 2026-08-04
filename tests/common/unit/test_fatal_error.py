@@ -1,10 +1,22 @@
 import platform
 from unittest.mock import Mock, patch
 
+import pytest
+
 from nxdrive import fatal_error
 from nxdrive.drive.constants import MAC
+from nxdrive.drive.state import State
 
 from ...markers import linux_only, mac_only, windows_only
+
+
+@pytest.fixture(autouse=True)
+def restore_application_state():
+    """Prevent crash-reporting tests from leaking process-wide state."""
+    saved_state = vars(State).copy()
+    yield
+    vars(State).clear()
+    vars(State).update(saved_state)
 
 
 def test_check_os_version(monkeypatch):

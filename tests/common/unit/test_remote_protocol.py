@@ -25,18 +25,15 @@ class TestRemoteClientProtocolRuntimeCheckable:
         """A class implementing all required methods satisfies the check."""
 
         class _ConformingRemote:
-            def get_filesystem_root_info(self) -> RemoteFileInfo:
-                ...
+            def get_filesystem_root_info(self) -> RemoteFileInfo: ...
 
             def get_fs_children(
                 self, fs_item_id: str, /, *, filtered: bool = True
-            ) -> List[RemoteFileInfo]:
-                ...
+            ) -> List[RemoteFileInfo]: ...
 
             def get_fs_info(
                 self, fs_item_id: str, /, *, parent_fs_item_id: str = None
-            ) -> RemoteFileInfo:
-                ...
+            ) -> RemoteFileInfo: ...
 
             def get_info(
                 self,
@@ -45,8 +42,7 @@ class TestRemoteClientProtocolRuntimeCheckable:
                 *,
                 raise_if_missing: bool = True,
                 parent_fs_item_id: str = None,
-            ) -> Optional[RemoteFileInfo]:
-                ...
+            ) -> Optional[RemoteFileInfo]: ...
 
             def fetch(
                 self,
@@ -55,8 +51,7 @@ class TestRemoteClientProtocolRuntimeCheckable:
                 *,
                 headers: Dict[str, str] = None,
                 enrichers: List[str] = None,
-            ) -> Dict[str, Any]:
-                ...
+            ) -> Dict[str, Any]: ...
 
             def stream_content(
                 self,
@@ -65,8 +60,7 @@ class TestRemoteClientProtocolRuntimeCheckable:
                 file_out: Path,
                 /,
                 **kwargs: Any,
-            ) -> Path:
-                ...
+            ) -> Path: ...
 
             def stream_file(
                 self,
@@ -76,8 +70,7 @@ class TestRemoteClientProtocolRuntimeCheckable:
                 *,
                 filename: str = None,
                 **kwargs: Any,
-            ) -> RemoteFileInfo:
-                ...
+            ) -> RemoteFileInfo: ...
 
             def stream_update(
                 self,
@@ -87,28 +80,21 @@ class TestRemoteClientProtocolRuntimeCheckable:
                 *,
                 parent_fs_item_id: str = None,
                 filename: str = None,
-            ) -> RemoteFileInfo:
-                ...
+            ) -> RemoteFileInfo: ...
 
             def make_folder(
                 self, parent_id: str, name: str, /, *, overwrite: bool = False
-            ) -> RemoteFileInfo:
-                ...
+            ) -> RemoteFileInfo: ...
 
             def delete(
                 self, fs_item_id: str, /, *, parent_fs_item_id: str = None
-            ) -> None:
-                ...
+            ) -> None: ...
 
-            def rename(
-                self, fs_item_id: str, new_name: str, /
-            ) -> RemoteFileInfo:
-                ...
+            def rename(self, fs_item_id: str, new_name: str, /) -> RemoteFileInfo: ...
 
             def move2(
                 self, fs_item_id: str, parent_ref: str, name: str, /
-            ) -> Dict[str, Any]:
-                ...
+            ) -> Dict[str, Any]: ...
 
         obj = _ConformingRemote()
         assert isinstance(obj, RemoteClientProtocol)
@@ -117,8 +103,7 @@ class TestRemoteClientProtocolRuntimeCheckable:
         """A class missing required methods should NOT satisfy the check."""
 
         class _IncompleteRemote:
-            def get_filesystem_root_info(self) -> RemoteFileInfo:
-                ...
+            def get_filesystem_root_info(self) -> RemoteFileInfo: ...
 
             # Missing all other methods
 

@@ -7,7 +7,6 @@ import pytest
 
 from nxdrive.drive.engine.queue_manager import QueueItem, QueueManager
 
-
 # ─── QueueItem Tests ─────────────────────────────────────────────────────────
 
 
@@ -49,11 +48,13 @@ def qm():
             timer_inst = MagicMock()
             MockTimer.return_value = timer_inst
             # Signals must be mocked at class level before __init__ uses .connect()
-            with patch.object(QueueManager, "newItem", Mock()), \
-                 patch.object(QueueManager, "newError", Mock()), \
-                 patch.object(QueueManager, "newErrorGiveUp", Mock()), \
-                 patch.object(QueueManager, "queueProcessing", Mock()), \
-                 patch.object(QueueManager, "queueFinishedProcessing", Mock()):
+            with patch.object(QueueManager, "newItem", Mock()), patch.object(
+                QueueManager, "newError", Mock()
+            ), patch.object(QueueManager, "newErrorGiveUp", Mock()), patch.object(
+                QueueManager, "queueProcessing", Mock()
+            ), patch.object(
+                QueueManager, "queueFinishedProcessing", Mock()
+            ):
                 engine = Mock()
                 dao = Mock()
                 inst = QueueManager(engine, dao)

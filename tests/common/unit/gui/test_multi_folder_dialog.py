@@ -498,41 +498,85 @@ def test_show_empty_drive_installs_header_only_model(dialog):
 
 
 def test_path_changed_switches_back_to_filesystem_and_marks_invalid_path(
-    dialog, tmp_path
+    tmp_path,
 ):
     valid = tmp_path / "valid"
     valid.mkdir()
-    dialog._show_empty_drive("empty")
-    _set_path_without_signal(dialog, valid)
+    model = Mock()
+    tree = Mock()
+    path_bar = Mock()
+    path_bar.text.return_value = str(valid)
+    host = SimpleNamespace(
+        _using_custom_model=True,
+        model=model,
+        tree=tree,
+        path_bar=path_bar,
+    )
+    host._restore_filesystem_model = lambda: (
+        dialog_module.MultiFolderDialog._restore_filesystem_model(host)
+    )
 
-    dialog.path_changed()
+    # Use a mocked QFileSystemModel here. Calling setRootPath() on a live
+    # model launches asynchronous OS directory watchers, which can outlive
+    # the test and crash Qt during teardown on Windows CI.
+    dialog_module.MultiFolderDialog.path_changed(host)
 
-    assert dialog._using_custom_model is False
-    assert dialog.tree.model() is dialog.model
-    assert dialog.model.rootPath() == str(valid)
-    assert dialog.path_bar.styleSheet() == ""
+    assert host._using_custom_model is False
+    tree.setModel.assert_called_once_with(model)
+    model.setRootPath.assert_called_once_with(str(valid))
+    tree.setRootIndex.assert_called_once_with(model.index.return_value)
+    tree.resizeColumnToContents.assert_called_once_with(0)
+    path_bar.setStyleSheet.assert_called_once_with("")
 
-    _set_path_without_signal(dialog, tmp_path / "missing")
-    dialog.path_changed()
-    assert dialog.path_bar.styleSheet() == "background-color: #ffcccc"
+    model.reset_mock()
+    tree.reset_mock()
+    path_bar.reset_mock()
+    path_bar.text.return_value = str(tmp_path / "missing")
+    dialog_module.MultiFolderDialog.path_changed(host)
+    model.setRootPath.assert_not_called()
+    path_bar.setStyleSheet.assert_called_once_with("background-color: #ffcccc")
 
 
-def test_show_hidden_files_updates_filter_and_refreshes_existing_root(dialog, tmp_path):
+def test_show_hidden_files_updates_filter_and_refreshes_existing_root(tmp_path):
     current = tmp_path / "visible"
     current.mkdir()
-    _set_path_without_signal(dialog, current)
+    model = Mock()
+    tree = Mock()
+    path_bar = Mock()
+    path_bar.text.return_value = str(current)
+    show_hidden = Mock()
+    show_hidden.isChecked.return_value = True
+    host = SimpleNamespace(
+        model=model,
+        tree=tree,
+        path_bar=path_bar,
+        showHidden=show_hidden,
+    )
 
-    dialog.showHidden.setChecked(True)
-    assert dialog.model.filter() & QDir.Filter.Hidden
-    assert dialog.model.rootPath() == str(current)
+    # Exercise the method without a live QFileSystemModel. Repeatedly
+    # resetting a real model root can crash Qt's asynchronous Windows file
+    # watcher during test teardown.
+    dialog_module.MultiFolderDialog.show_hidden_files(host)
+    model.setFilter.assert_called_once_with(
+        QDir.Filter.AllEntries | QDir.Filter.NoDotAndDotDot | QDir.Filter.Hidden
+    )
+    model.setRootPath.assert_called_once_with(str(current))
+    tree.setRootIndex.assert_called_once_with(model.index.return_value)
 
-    dialog.showHidden.setChecked(False)
-    assert not dialog.model.filter() & QDir.Filter.Hidden
+    model.reset_mock()
+    tree.reset_mock()
+    show_hidden.isChecked.return_value = False
+    dialog_module.MultiFolderDialog.show_hidden_files(host)
+    model.setFilter.assert_called_once_with(
+        QDir.Filter.AllEntries | QDir.Filter.NoDotAndDotDot
+    )
 
-    _set_path_without_signal(dialog, tmp_path / "missing")
-    previous_root = dialog.model.rootPath()
-    dialog.show_hidden_files()
-    assert dialog.model.rootPath() == previous_root
+    model.reset_mock()
+    tree.reset_mock()
+    path_bar.text.return_value = str(tmp_path / "missing")
+    dialog_module.MultiFolderDialog.show_hidden_files(host)
+    model.setRootPath.assert_not_called()
+    tree.setRootIndex.assert_not_called()
 
 
 def test_load_directory_only_navigates_for_directory_column_zero(tmp_path):

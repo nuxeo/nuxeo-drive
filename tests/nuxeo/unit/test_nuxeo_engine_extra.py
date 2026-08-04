@@ -1472,9 +1472,7 @@ class TestNuxeoConstructorSeedsMapperOnce:
 
         with patch.object(
             Engine.__mro__[1], "__init__", return_value=None
-        ) as mock_base_init, patch.object(
-            Engine, "_seed_userid_mapper"
-        ) as mock_seed:
+        ) as mock_base_init, patch.object(Engine, "_seed_userid_mapper") as mock_seed:
             engine = Engine.__new__(Engine)
             Engine.__init__(
                 engine,
@@ -1491,9 +1489,7 @@ class TestNuxeoConstructorSeedsMapperOnce:
 
         with patch.object(
             Engine.__mro__[1], "__init__", return_value=None
-        ) as mock_base_init, patch.object(
-            Engine, "_seed_userid_mapper"
-        ) as mock_seed:
+        ) as mock_base_init, patch.object(Engine, "_seed_userid_mapper") as mock_seed:
             engine = Engine.__new__(Engine)
             Engine.__init__(
                 engine,

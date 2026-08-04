@@ -13,6 +13,7 @@ from nxdrive.drive.engine.watcher.remote_watcher_base import RemoteWatcherBase
 from nxdrive.drive.exceptions import NotFound, ScrollDescendantsError, ThreadInterrupt
 from nxdrive.drive.feature import Feature
 from nxdrive.drive.objects import RemoteFileInfo
+from nxdrive.drive.utils import safe_filename
 from nxdrive.nuxeo.engine.watcher.constants import (
     DELETED_EVENT,
     DOCUMENT_LOCKED,
@@ -955,7 +956,7 @@ def test_update_remote_states_refreshes_security_and_duplicate_rename(monkeypatc
     assert pair.remote_state == "modified"
     local_update = watcher.dao.update_local_state.call_args
     assert local_update.args[0] is pair
-    assert local_update.args[1].path == Path("/sync/new-name")
+    assert local_update.args[1].path == Path("/sync") / safe_filename("new:name")
     assert local_update.kwargs == {"versioned": False}
     watcher.dao.update_remote_state.assert_called_once_with(
         pair,

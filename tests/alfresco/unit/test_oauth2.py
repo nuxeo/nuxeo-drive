@@ -330,9 +330,7 @@ class TestAlfrescoOAuthApplyAimsDiscovery:
         """Create an AlfrescoOAuthentication with mocked internals."""
         with patch(
             "nxdrive.alfresco.auth.oauth2.discover_aims_config", return_value={}
-        ), patch(
-            "nxdrive.alfresco.auth.oauth2.AlfrescoOAuthentication._build_oauth2"
-        ):
+        ), patch("nxdrive.alfresco.auth.oauth2.AlfrescoOAuthentication._build_oauth2"):
             from nxdrive.alfresco.auth.oauth2 import AlfrescoOAuthentication
 
             auth = AlfrescoOAuthentication.__new__(AlfrescoOAuthentication)
@@ -420,7 +418,9 @@ class TestAlfrescoOAuthGetUsername:
             result = auth.get_username()
         assert result == "jdoe"
         call_url = m.call_args[0][0]
-        assert "/alfresco/api/-default-/public/alfresco/versions/1/people/-me-" in call_url
+        assert (
+            "/alfresco/api/-default-/public/alfresco/versions/1/people/-me-" in call_url
+        )
 
     def test_returns_empty_when_no_token(self):
         auth = self._make_auth_with_token(None)
@@ -529,9 +529,7 @@ class TestAlfrescoOAuthGetToken:
                 "nxdrive.alfresco.auth.oauth2.QApplication", create=True
             ) as mock_app:
                 mock_app.instance.return_value = None
-                result = auth.get_token(
-                    code_verifier="v", code="c", state="s"
-                )
+                auth.get_token(code_verifier="v", code="c", state="s")
         build.assert_called_once_with(
             redirect_uri_override="http://127.0.0.1:12345/callback"
         )

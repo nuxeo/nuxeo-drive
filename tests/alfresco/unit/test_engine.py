@@ -707,9 +707,7 @@ class TestAlfrescoNoUseridMapperInBase:
         """
         from nxdrive.drive.engine.engine import Engine as BaseEngine
 
-        assert (
-            AlfrescoEngine.update_token is BaseEngine.update_token
-        ), (
+        assert AlfrescoEngine.update_token is BaseEngine.update_token, (
             "AlfrescoEngine must inherit the base update_token as-is. "
             "If Alfresco needs custom token handling, add an override that "
             "does NOT reintroduce Nuxeo user_uuid semantics."

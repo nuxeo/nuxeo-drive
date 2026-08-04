@@ -57,7 +57,6 @@ coverage.xml
 .github/agents
 .github/agent-scripts
 .github/copilot-instructions.md
-<<<<<<< HEAD
 AGENTS.md
 skills-lock.json
 .agents
@@ -69,9 +68,6 @@ alfresco-desktop-sync-master
 alfresco-python-client-feature
 alfresco-python-client-feature-2
 nuxeo-python-client
-=======
 .agents
 .clinerules
-AGENTS.md
-skills-lock.json
->>>>>>> origin/master
+reports.txt

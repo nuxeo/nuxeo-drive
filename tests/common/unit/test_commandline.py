@@ -1,5 +1,5 @@
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 
@@ -339,7 +339,7 @@ def test_make_cli_parser(cmd):
     parser = cmd.make_cli_parser(add_subparsers=True)
     assert parser is not None
     # Should have subcommands
-    ns = parser.parse_args(["--version"])
+    parser.parse_args(["--version"])
     # --version triggers SystemExit
 
 
@@ -357,13 +357,17 @@ def test_parse_cli_defaults(cmd):
 
 def test_parse_cli_bind_server(cmd):
     """Test parse_cli with bind-server command."""
-    ns = cmd.parse_cli([
-        "bind-server",
-        "--password", "secret",
-        "--local-folder", "/tmp/test",
-        "user",
-        "http://localhost:8080/nuxeo",
-    ])
+    ns = cmd.parse_cli(
+        [
+            "bind-server",
+            "--password",
+            "secret",
+            "--local-folder",
+            "/tmp/test",
+            "user",
+            "http://localhost:8080/nuxeo",
+        ]
+    )
     assert ns.command == "bind_server"
     assert ns.username == "user"
     assert ns.server_url == "http://localhost:8080/nuxeo"

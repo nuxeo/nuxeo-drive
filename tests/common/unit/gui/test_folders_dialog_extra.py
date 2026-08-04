@@ -49,7 +49,9 @@ def engine():
         "dt_last_local_selected_doc_type": "CustomFile",
         "dt_last_duplicates_behavior": "ignore",
     }
-    engine.dao.get_config.side_effect = lambda key, default=None: config.get(key, default)
+    engine.dao.get_config.side_effect = lambda key, default=None: config.get(
+        key, default
+    )
     return engine
 
 
@@ -121,10 +123,7 @@ def test_constructor_builds_real_widget_and_initial_state(
         engine.dao.get_config.assert_any_call(
             "dt_last_duplicates_behavior", default="create"
         )
-        assert (
-            tree_view.contextMenuPolicy()
-            == Qt.ContextMenuPolicy.CustomContextMenu
-        )
+        assert tree_view.contextMenuPolicy() == Qt.ContextMenuPolicy.CustomContextMenu
     finally:
         close_widget(dialog, qapp)
 
@@ -159,9 +158,7 @@ def test_info_icon_and_duplicates_document(qapp, application, engine, tree_view)
         close_widget(dialog, qapp)
 
 
-def test_key_press_escape_none_and_other_key(
-    qapp, application, engine, tree_view
-):
+def test_key_press_escape_none_and_other_key(qapp, application, engine, tree_view):
     dialog = make_dialog(qapp, application, engine, tree_view)
     try:
         with patch.object(dialog, "showNormal") as show_normal:
@@ -186,9 +183,7 @@ def test_key_press_escape_none_and_other_key(
         close_widget(dialog, qapp)
 
 
-def test_open_menu_no_item_and_missing_action(
-    qapp, application, engine, tree_view
-):
+def test_open_menu_no_item_and_missing_action(qapp, application, engine, tree_view):
     dialog = make_dialog(qapp, application, engine, tree_view)
     position = dialog_module.QPoint(2, 3)
     menu = MagicMock()
@@ -205,9 +200,7 @@ def test_open_menu_no_item_and_missing_action(
         with patch.object(dialog_module, "QMenu", return_value=menu):
             dialog.open_menu(position)
         tree_view.is_item_enabled.assert_not_called()
-        menu.exec.assert_called_once_with(
-            tree_view.viewport().mapToGlobal(position)
-        )
+        menu.exec.assert_called_once_with(tree_view.viewport().mapToGlobal(position))
     finally:
         close_widget(dialog, qapp)
 
@@ -225,9 +218,13 @@ def test_get_tree_view_uses_registered_client(qapp, application, engine):
     dialog.selected_folder = "/chosen"
     try:
         with (
-            patch.object(dialog_module._st, "get_by_engine_type", return_value=fake_config),
+            patch.object(
+                dialog_module._st, "get_by_engine_type", return_value=fake_config
+            ),
             patch.object(dialog_module._st, "load_class", return_value=Client),
-            patch.object(dialog_module, "FolderTreeView", return_value=expected_tree) as tree_cls,
+            patch.object(
+                dialog_module, "FolderTreeView", return_value=expected_tree
+            ) as tree_cls,
         ):
             result = FoldersDialog.get_tree_view(dialog)
 
@@ -249,7 +246,9 @@ def test_get_tree_view_rejects_backend_without_browser(qapp, engine):
     dialog.selected_folder = None
     try:
         with (
-            patch.object(dialog_module._st, "get_by_engine_type", return_value=fake_config),
+            patch.object(
+                dialog_module._st, "get_by_engine_type", return_value=fake_config
+            ),
             patch.object(dialog_module._st, "load_class", return_value=None),
             pytest.raises(RuntimeError, match="not available"),
         ):
@@ -338,9 +337,7 @@ def test_accept_duplicate_warns_without_transfer(
     dialog = make_dialog(qapp, application, engine, tree_view, source)
     try:
         engine.get_metadata_url.return_value = "https://server/doc/ref"
-        with patch.object(
-            dialog, "_find_folders_duplicates", return_value=["folder"]
-        ):
+        with patch.object(dialog, "_find_folders_duplicates", return_value=["folder"]):
             dialog.accept()
 
         application.folder_duplicate_warning.assert_called_once_with(
@@ -432,9 +429,7 @@ def test_process_multiple_files_rejects_selection_over_total_limit(
         close_widget(dialog, qapp)
 
 
-def test_process_file_limits_and_errors(
-    qapp, application, engine, tree_view, tmp_path
-):
+def test_process_file_limits_and_errors(qapp, application, engine, tree_view, tmp_path):
     dialog = make_dialog(qapp, application, engine, tree_view)
     path = tmp_path / "large.bin"
     path.write_bytes(b"12345")
@@ -522,7 +517,9 @@ def test_select_files_and_folders_accept_and_cancel(
         chooser.exec.return_value = 1
         chooser.selected_paths.return_value = ["/tmp/a", "/tmp/b"]
         with (
-            patch.object(dialog_module, "MultiFolderDialog", return_value=chooser) as cls,
+            patch.object(
+                dialog_module, "MultiFolderDialog", return_value=chooser
+            ) as cls,
             patch.object(dialog, "_process_additionnal_local_paths") as process,
         ):
             dialog._select_files_and_folders()
@@ -619,9 +616,7 @@ def test_new_folder_dialog_constructor_layout_and_validation(
         close_widget(parent, qapp)
 
 
-def test_new_folder_accept_duplicate_and_dispatch(
-    qapp, application, engine, tree_view
-):
+def test_new_folder_accept_duplicate_and_dispatch(qapp, application, engine, tree_view):
     parent = make_dialog(qapp, application, engine, tree_view)
     child = NewFolderDialog(parent)
     try:
@@ -687,9 +682,7 @@ def test_new_folder_success_failure_close_and_close_event(
         with patch.object(child, "close") as close:
             child.close_success()
         assert tree_view.expand_current_selected.call_count == 2
-        tree_view.select_item_from_path.assert_called_once_with(
-            "/remote/parent/new"
-        )
+        tree_view.select_item_from_path.assert_called_once_with("/remote/parent/new")
         close.assert_called_once_with()
 
         with patch.object(child, "close_success") as close_success:
@@ -704,9 +697,7 @@ def test_new_folder_success_failure_close_and_close_event(
         close_widget(parent, qapp)
 
 
-def test_new_folder_engine_signals_reach_handlers(
-    qapp, application, engine, tree_view
-):
+def test_new_folder_engine_signals_reach_handlers(qapp, application, engine, tree_view):
     class Signal:
         def __init__(self):
             self.callback = None

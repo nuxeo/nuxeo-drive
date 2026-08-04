@@ -686,9 +686,11 @@ class TestScanRemoteRecursiveExtended:
         with patch.object(
             watcher,
             "_scan_remote_recursive",
-            wraps=lambda p, i: None
-            if p is child_pair_from_db
-            else AlfrescoRemoteWatcher._scan_remote_recursive(watcher, p, i),
+            wraps=lambda p, i: (
+                None
+                if p is child_pair_from_db
+                else AlfrescoRemoteWatcher._scan_remote_recursive(watcher, p, i)
+            ),
         ):
             watcher._scan_remote_recursive(
                 parent_pair, _make_remote_info(uid="parent-node")

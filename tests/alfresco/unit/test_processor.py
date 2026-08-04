@@ -1405,9 +1405,7 @@ class TestExecuteEdgeCases:
         item.remote_ref = "abc"
         proc._get_item = Mock(side_effect=[item, None])
         proc.dao.acquire_state.return_value = item
-        proc._handle_doc_pair_sync = Mock(
-            side_effect=RemoteConflict("conflict")
-        )
+        proc._handle_doc_pair_sync = Mock(side_effect=RemoteConflict("conflict"))
         proc._execute()
         proc.dao._force_sync.assert_called_once_with(
             item, "modified", "modified", "conflicted"
@@ -1422,9 +1420,7 @@ class TestExecuteEdgeCases:
         item.version = 1
         proc._get_item = Mock(side_effect=[item, None])
         proc.dao.acquire_state.return_value = item
-        proc._handle_doc_pair_sync = Mock(
-            side_effect=DownloadPaused(42)
-        )
+        proc._handle_doc_pair_sync = Mock(side_effect=DownloadPaused(42))
         proc._execute()
         proc.engine.dao.set_transfer_doc.assert_called_once_with(
             "download", 42, proc.engine.uid, item.id
@@ -1439,9 +1435,7 @@ class TestExecuteEdgeCases:
         item.version = 1
         proc._get_item = Mock(side_effect=[item, None])
         proc.dao.acquire_state.return_value = item
-        proc._handle_doc_pair_sync = Mock(
-            side_effect=UploadPaused(77)
-        )
+        proc._handle_doc_pair_sync = Mock(side_effect=UploadPaused(77))
         proc._execute()
         proc.engine.dao.set_transfer_doc.assert_called_once_with(
             "upload", 77, proc.engine.uid, item.id
@@ -1456,9 +1450,7 @@ class TestExecuteEdgeCases:
         item.version = 1
         proc._get_item = Mock(side_effect=[item, None])
         proc.dao.acquire_state.return_value = item
-        proc._handle_doc_pair_sync = Mock(
-            side_effect=PairInterrupt()
-        )
+        proc._handle_doc_pair_sync = Mock(side_effect=PairInterrupt())
         proc._execute()
         proc.engine.queue_manager.push.assert_called_once_with(item)
 
@@ -1471,9 +1463,7 @@ class TestExecuteEdgeCases:
         item.version = 1
         proc._get_item = Mock(side_effect=[item, None])
         proc.dao.acquire_state.return_value = item
-        proc._handle_doc_pair_sync = Mock(
-            side_effect=ParentNotSynced("file", "parent")
-        )
+        proc._handle_doc_pair_sync = Mock(side_effect=ParentNotSynced("file", "parent"))
         proc._execute()
         proc.engine.queue_manager.push.assert_called_once_with(item)
 
@@ -1496,9 +1486,7 @@ class TestExecuteEdgeCases:
         item.version = 1
         proc._get_item = Mock(side_effect=[item, None])
         proc.dao.acquire_state.return_value = item
-        proc._handle_doc_pair_sync = Mock(
-            side_effect=ValueError("unexpected")
-        )
+        proc._handle_doc_pair_sync = Mock(side_effect=ValueError("unexpected"))
         proc._execute()
         proc.dao.increase_error.assert_called()
 
@@ -1643,9 +1631,7 @@ class TestSynchronizeRemotelyModified:
         proc.local.abspath.return_value = Path("/abs")
 
         proc._synchronize_remotely_modified(pair)
-        proc.local.rename.assert_called_once_with(
-            Path("/old-name.txt"), "new-name.txt"
-        )
+        proc.local.rename.assert_called_once_with(Path("/old-name.txt"), "new-name.txt")
         proc.dao.synchronize_state.assert_called_once_with(pair)
 
 
@@ -1712,8 +1698,6 @@ class TestCreateRemotely:
 class TestDownloadContentDuplicate:
     @pytest.fixture
     def proc(self, mock_engine):
-        import shutil
-
         item_getter = Mock(return_value=None)
         p = AlfrescoProcessor(mock_engine, item_getter)
         p.dao = mock_engine.dao
