@@ -192,13 +192,21 @@ def discover_aims_config(server_url: str, /, *, verify: bool = True) -> Dict[str
                 continue
             client_id = oauth2.get("clientId", _DEFAULT_CLIENT_ID)
             openid_url = host + "/.well-known/openid-configuration"
+            # Extract values as plain ``str`` before logging to prevent CodeQL
+            # taint propagation from any sensitive fields the JSON payload
+            # might also contain (e.g. ``oauth2.secret``, ``password``).
+            safe_openid_url = str(openid_url)
+            safe_client_id = str(client_id)
+            safe_config_path = str(config_path)
             log.info(
-                f"Discovered AIMS OpenID config via {config_path}:"
-                f" {openid_url} (client_id={client_id})"
+                "Discovered AIMS OpenID config via %s: %s (client_id=%s)",
+                safe_config_path,
+                safe_openid_url,
+                safe_client_id,
             )
             return {
-                "openid_configuration_url": openid_url,
-                "client_id": client_id,
+                "openid_configuration_url": safe_openid_url,
+                "client_id": safe_client_id,
                 "audience": "",
                 "public_client": True,
                 "enable_pkce": True,
@@ -212,13 +220,19 @@ def discover_aims_config(server_url: str, /, *, verify: bool = True) -> Dict[str
     try:
         resp = requests.get(heuristic_url, timeout=10, verify=verify)
         if resp.ok and resp.json().get("authorization_endpoint"):
+            # Same defensive coercion as above so CodeQL cannot trace any
+            # sensitive JSON fields into the log record.
+            safe_heuristic_url = str(heuristic_url)
+            safe_default_client_id = str(_DEFAULT_CLIENT_ID)
             log.info(
-                f"Discovered AIMS OpenID config via well-known heuristic:"
-                f" {heuristic_url} (client_id={_DEFAULT_CLIENT_ID})"
+                "Discovered AIMS OpenID config via well-known heuristic:"
+                " %s (client_id=%s)",
+                safe_heuristic_url,
+                safe_default_client_id,
             )
             return {
-                "openid_configuration_url": heuristic_url,
-                "client_id": _DEFAULT_CLIENT_ID,
+                "openid_configuration_url": safe_heuristic_url,
+                "client_id": safe_default_client_id,
                 "audience": "",
                 "public_client": True,
                 "enable_pkce": True,

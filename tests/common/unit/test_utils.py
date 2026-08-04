@@ -15,7 +15,7 @@ from nxdrive.drive.constants import APP_NAME, MAC, WINDOWS, DigestStatus
 from nxdrive.drive.dao.utils import dump
 from nxdrive.drive.options import Options
 
-from ...markers import linux_only, not_windows, windows_only
+from ...markers import linux_only, mac_only, not_windows, windows_only
 
 BAD_HOSTNAMES = [
     "expired.badssl.com",
@@ -1972,6 +1972,7 @@ class TestTodayIsSpecial:
 
 
 class TestGetCurrentLocale:
+    @mac_only
     def test_mac_locale(self):
         from nxdrive.drive.utils import get_current_locale
 
