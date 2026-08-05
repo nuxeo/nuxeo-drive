@@ -106,11 +106,12 @@ def discover_aims_config(server_url: str, /, *, verify: bool = True) -> Dict[str
             enable_pkce = bool(isc.enable_pkce)
             enable_basic_auth = bool(isc.enable_basic_auth)
             has_secret = bool(isc.client_secret)
+            # Do not log values returned by discovery endpoints: those
+            # payloads may contain credentials and are treated as sensitive
+            # by CodeQL's clear-text logging analysis.
             log.info(
-                "Discovered AIMS OpenID config via /alfresco/service/devicesync"
-                "/config: %s (client_id=%s)",
-                safe_openid_url,
-                safe_client_id,
+                "Discovered AIMS OpenID config via "
+                "/alfresco/service/devicesync/config"
             )
             result: Dict[str, Any] = {
                 "openid_configuration_url": safe_openid_url,
@@ -153,12 +154,7 @@ def discover_aims_config(server_url: str, /, *, verify: bool = True) -> Dict[str
                 openid_url = (
                     f"{auth_server}/realms/{realm}/.well-known/openid-configuration"
                 )
-                log.info(
-                    "Discovered AIMS OpenID config via syncServiceConfiguration:"
-                    " %s (client_id=%s)",
-                    openid_url,
-                    client_id,
-                )
+                log.info("Discovered AIMS OpenID config via syncServiceConfiguration")
                 legacy_result: Dict[str, Any] = {
                     "openid_configuration_url": openid_url,
                     "client_id": client_id,
@@ -192,13 +188,15 @@ def discover_aims_config(server_url: str, /, *, verify: bool = True) -> Dict[str
                 continue
             client_id = oauth2.get("clientId", _DEFAULT_CLIENT_ID)
             openid_url = host + "/.well-known/openid-configuration"
-            log.info(
-                f"Discovered AIMS OpenID config via {config_path}:"
-                f" {openid_url} (client_id={client_id})"
-            )
+            # Extract values as plain ``str`` before logging to prevent CodeQL
+            # taint propagation from any sensitive fields the JSON payload
+            # might also contain (e.g. ``oauth2.secret``, ``password``).
+            safe_openid_url = str(openid_url)
+            safe_client_id = str(client_id)
+            log.info("Discovered AIMS OpenID config via app.config.json")
             return {
-                "openid_configuration_url": openid_url,
-                "client_id": client_id,
+                "openid_configuration_url": safe_openid_url,
+                "client_id": safe_client_id,
                 "audience": "",
                 "public_client": True,
                 "enable_pkce": True,
@@ -212,13 +210,12 @@ def discover_aims_config(server_url: str, /, *, verify: bool = True) -> Dict[str
     try:
         resp = requests.get(heuristic_url, timeout=10, verify=verify)
         if resp.ok and resp.json().get("authorization_endpoint"):
-            log.info(
-                f"Discovered AIMS OpenID config via well-known heuristic:"
-                f" {heuristic_url} (client_id={_DEFAULT_CLIENT_ID})"
-            )
+            safe_heuristic_url = str(heuristic_url)
+            safe_default_client_id = str(_DEFAULT_CLIENT_ID)
+            log.info("Discovered AIMS OpenID config via well-known heuristic")
             return {
-                "openid_configuration_url": heuristic_url,
-                "client_id": _DEFAULT_CLIENT_ID,
+                "openid_configuration_url": safe_heuristic_url,
+                "client_id": safe_default_client_id,
                 "audience": "",
                 "public_client": True,
                 "enable_pkce": True,
@@ -228,10 +225,10 @@ def discover_aims_config(server_url: str, /, *, verify: bool = True) -> Dict[str
         log.debug(f"Well-known heuristic failed for {heuristic_url}", exc_info=True)
 
     log.warning(
-        f"Could not discover AIMS/Keycloak configuration for {server_url!r}. "
-        "Tried Device Sync /config, syncServiceConfiguration, app.config.json "
-        "and well-known Keycloak path. Configure oauth2_openid_configuration_url "
-        "manually or ensure the server exposes one of these endpoints."
+        "Could not discover AIMS/Keycloak configuration. Tried Device Sync "
+        "/config, syncServiceConfiguration, app.config.json and the well-known "
+        "Keycloak path. Configure oauth2_openid_configuration_url manually or "
+        "ensure the server exposes one of these endpoints."
     )
     return {}
 

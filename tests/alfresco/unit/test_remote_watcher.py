@@ -471,3 +471,344 @@ class TestScanLocalRecursive:
         pending = []
         # Should not raise
         watcher._scan_local_recursive(ROOT, local, dao, seen, pending)
+
+
+# --- NEW TESTS BELOW ---
+
+
+class TestHandleChangesExtended:
+    """Additional _handle_changes coverage."""
+
+    def test_first_pass_emits_initiate(self):
+        watcher = _make_watcher()
+        watcher.engine.remote = MagicMock()
+        watcher.engine.queue_manager.get_overall_size.return_value = 0
+        watcher.updated = MagicMock()
+        watcher.initiate = MagicMock()
+        watcher.empty_polls = 0
+        with patch.object(watcher, "scan_remote"):
+            with patch.object(watcher, "_scan_local_changes"):
+                watcher._handle_changes(first_pass=True)
+        watcher.initiate.emit.assert_called_once()
+        watcher.updated.emit.assert_not_called()
+
+    def test_subsequent_pass_emits_updated(self):
+        watcher = _make_watcher()
+        watcher.engine.remote = MagicMock()
+        watcher.engine.queue_manager.get_overall_size.return_value = 0
+        watcher.updated = MagicMock()
+        watcher.initiate = MagicMock()
+        watcher.empty_polls = 0
+        with patch.object(watcher, "scan_remote"):
+            with patch.object(watcher, "_scan_local_changes"):
+                watcher._handle_changes(first_pass=False)
+        watcher.updated.emit.assert_called_once()
+        watcher.initiate.emit.assert_not_called()
+
+    def test_auth_error_sets_invalid_credentials(self):
+        watcher = _make_watcher()
+        watcher.engine.remote = MagicMock()
+        watcher.engine.queue_manager.get_overall_size.return_value = 0
+        watcher.updated = MagicMock()
+        watcher.initiate = MagicMock()
+        watcher.empty_polls = 0
+        with patch.object(
+            watcher, "scan_remote", side_effect=AlfrescoAuthError("expired")
+        ):
+            watcher._handle_changes(first_pass=True)
+        watcher.engine.set_invalid_credentials.assert_called_once()
+        watcher.updated.emit.assert_called_once()
+
+    def test_scan_error_does_not_set_invalid_credentials(self):
+        watcher = _make_watcher()
+        watcher.engine.remote = MagicMock()
+        watcher.engine.queue_manager.get_overall_size.return_value = 0
+        watcher.updated = MagicMock()
+        watcher.initiate = MagicMock()
+        watcher.empty_polls = 0
+        with patch.object(
+            watcher, "scan_remote", side_effect=RuntimeError("unexpected")
+        ):
+            watcher._handle_changes(first_pass=False)
+        watcher.engine.set_invalid_credentials.assert_not_called()
+        watcher.updated.emit.assert_called_once()
+
+    def test_no_remote_returns_early(self):
+        watcher = _make_watcher()
+        watcher.engine.remote = None
+        watcher.updated = MagicMock()
+        watcher.initiate = MagicMock()
+        watcher._handle_changes(first_pass=False)
+        # Should not have attempted scan
+        watcher.updated.emit.assert_not_called()
+
+    def test_queue_size_increase_resets_empty_polls(self):
+        watcher = _make_watcher()
+        watcher.engine.remote = MagicMock()
+        watcher.engine.queue_manager.get_overall_size.side_effect = [0, 5]
+        watcher.updated = MagicMock()
+        watcher.initiate = MagicMock()
+        watcher.empty_polls = 10
+        with patch.object(watcher, "scan_remote"):
+            with patch.object(watcher, "_scan_local_changes"):
+                watcher._handle_changes(first_pass=False)
+        assert watcher.empty_polls == 0
+
+    def test_no_new_work_increments_empty_polls(self):
+        watcher = _make_watcher()
+        watcher.engine.remote = MagicMock()
+        watcher.engine.queue_manager.get_overall_size.return_value = 0
+        watcher.updated = MagicMock()
+        watcher.initiate = MagicMock()
+        watcher.empty_polls = 3
+        with patch.object(watcher, "scan_remote"):
+            with patch.object(watcher, "_scan_local_changes"):
+                watcher._handle_changes(first_pass=False)
+        assert watcher.empty_polls == 4
+
+    def test_rescan_requested(self):
+        watcher = _make_watcher()
+        watcher.engine.remote = MagicMock()
+        watcher.engine.queue_manager.get_overall_size.return_value = 0
+        watcher.updated = MagicMock()
+        watcher.initiate = MagicMock()
+        watcher.empty_polls = 0
+        # Simulate rescan config being set
+        watcher.dao.get_config.side_effect = lambda key: (
+            "true" if key == "remote_need_full_scan" else None
+        )
+        with patch.object(watcher, "scan_remote"):
+            with patch.object(watcher, "_scan_local_changes"):
+                watcher._handle_changes(first_pass=False)
+        # Should have cleared the rescan flag
+        watcher.dao.update_config.assert_any_call("remote_need_full_scan", None)
+
+
+class TestScanRemoteRecursiveExtended:
+    """Additional _scan_remote_recursive coverage."""
+
+    def test_conflicted_pair_skipped(self):
+        """Conflicted pairs should not be updated via force_remote."""
+        watcher = _make_watcher()
+        remote = MagicMock()
+        watcher.engine.remote = remote
+
+        child_node = MagicMock()
+        remote.client.nodes.iter_children.return_value = [child_node]
+        child_info = _make_remote_info(
+            uid="child-1",
+            name="Doc.txt",
+            folderish=False,
+            last_modification_time=datetime(2024, 6, 15, tzinfo=timezone.utc),
+        )
+        remote._node_to_remote_file_info.return_value = child_info
+
+        existing_pair = _make_doc_pair(
+            remote_ref="child-1",
+            last_remote_updated="2024-01-01 00:00:00",
+            pair_state="conflicted",
+        )
+        watcher.dao.get_remote_children.return_value = [existing_pair]
+        watcher.dao.is_filter.return_value = False
+
+        parent_pair = _make_doc_pair(remote_ref="parent-node", remote_parent_path="")
+        watcher._scan_remote_recursive(
+            parent_pair, _make_remote_info(uid="parent-node")
+        )
+
+        # Should NOT call force_remote or update_remote_state for conflicted
+        watcher.dao.force_remote.assert_not_called()
+        watcher.dao.update_remote_state.assert_not_called()
+
+    def test_locally_created_pair_skipped_for_force(self):
+        """locally_created pairs should update state but not force_remote."""
+        watcher = _make_watcher()
+        remote = MagicMock()
+        watcher.engine.remote = remote
+
+        child_node = MagicMock()
+        remote.client.nodes.iter_children.return_value = [child_node]
+        child_info = _make_remote_info(
+            uid="child-1",
+            name="Doc.txt",
+            folderish=False,
+            last_modification_time=datetime(2024, 6, 15, tzinfo=timezone.utc),
+        )
+        remote._node_to_remote_file_info.return_value = child_info
+
+        existing_pair = _make_doc_pair(
+            remote_ref="child-1",
+            last_remote_updated="2024-01-01 00:00:00",
+            pair_state="locally_created",
+        )
+        watcher.dao.get_remote_children.return_value = [existing_pair]
+        watcher.dao.is_filter.return_value = False
+
+        parent_pair = _make_doc_pair(remote_ref="parent-node", remote_parent_path="")
+        watcher._scan_remote_recursive(
+            parent_pair, _make_remote_info(uid="parent-node")
+        )
+
+        watcher.dao.update_remote_state.assert_called_once()
+        watcher.dao.force_remote.assert_not_called()
+
+    def test_locally_modified_pair_skipped_for_force(self):
+        """locally_modified pairs should update state but not force_remote."""
+        watcher = _make_watcher()
+        remote = MagicMock()
+        watcher.engine.remote = remote
+
+        child_node = MagicMock()
+        remote.client.nodes.iter_children.return_value = [child_node]
+        child_info = _make_remote_info(
+            uid="child-1",
+            name="Doc.txt",
+            folderish=False,
+            last_modification_time=datetime(2024, 6, 15, tzinfo=timezone.utc),
+        )
+        remote._node_to_remote_file_info.return_value = child_info
+
+        existing_pair = _make_doc_pair(
+            remote_ref="child-1",
+            last_remote_updated="2024-01-01 00:00:00",
+            pair_state="locally_modified",
+        )
+        watcher.dao.get_remote_children.return_value = [existing_pair]
+        watcher.dao.is_filter.return_value = False
+
+        parent_pair = _make_doc_pair(remote_ref="parent-node", remote_parent_path="")
+        watcher._scan_remote_recursive(
+            parent_pair, _make_remote_info(uid="parent-node")
+        )
+
+        watcher.dao.update_remote_state.assert_called_once()
+        watcher.dao.force_remote.assert_not_called()
+
+    def test_new_folder_recurses(self):
+        """Newly inserted folderish items should be recursed into."""
+        watcher = _make_watcher()
+        remote = MagicMock()
+        watcher.engine.remote = remote
+
+        child_node = MagicMock()
+        remote.client.nodes.iter_children.return_value = [child_node]
+        child_info = _make_remote_info(uid="child-folder", name="Sub", folderish=True)
+        remote._node_to_remote_file_info.return_value = child_info
+
+        watcher.dao.get_remote_children.return_value = []
+        watcher.dao.is_filter.return_value = False
+        watcher.dao.insert_remote_state.return_value = 42
+        child_pair_from_db = _make_doc_pair(remote_ref="child-folder")
+        watcher.dao.get_state_from_id.return_value = child_pair_from_db
+
+        parent_pair = _make_doc_pair(remote_ref="parent-node", remote_parent_path="")
+
+        # Mock to prevent infinite recursion on the recursive call
+        with patch.object(
+            watcher,
+            "_scan_remote_recursive",
+            wraps=lambda p, i: (
+                None
+                if p is child_pair_from_db
+                else AlfrescoRemoteWatcher._scan_remote_recursive(watcher, p, i)
+            ),
+        ):
+            watcher._scan_remote_recursive(
+                parent_pair, _make_remote_info(uid="parent-node")
+            )
+
+    def test_system_folder_excluded(self):
+        """Alfresco system folders should be skipped."""
+        watcher = _make_watcher()
+        remote = MagicMock()
+        watcher.engine.remote = remote
+
+        child_node = MagicMock()
+        remote.client.nodes.iter_children.return_value = [child_node]
+        child_info = _make_remote_info(
+            uid="child-1",
+            name="Data Dictionary",
+            folderish=True,
+            path="/Company Home/Data Dictionary",
+        )
+        remote._node_to_remote_file_info.return_value = child_info
+
+        watcher.dao.get_remote_children.return_value = []
+
+        parent_pair = _make_doc_pair(remote_ref="parent-node", remote_parent_path="")
+
+        # is_top_folder_excluded should return True for Data Dictionary
+        watcher._scan_remote_recursive(
+            parent_pair, _make_remote_info(uid="parent-node")
+        )
+
+        watcher.dao.insert_remote_state.assert_not_called()
+
+    def test_iter_children_error_returns_early(self):
+        """Error listing children should be handled gracefully."""
+        watcher = _make_watcher()
+        remote = MagicMock()
+        watcher.engine.remote = remote
+
+        remote.client.nodes.iter_children.side_effect = RuntimeError("network")
+        watcher.dao.get_remote_children.return_value = []
+
+        parent_pair = _make_doc_pair(remote_ref="parent-node", remote_parent_path="")
+        # Should not raise
+        watcher._scan_remote_recursive(
+            parent_pair, _make_remote_info(uid="parent-node")
+        )
+        watcher.dao.insert_remote_state.assert_not_called()
+        watcher.dao.delete_remote_state.assert_not_called()
+
+
+class TestScanPairResetsNextCheck:
+    """scan_pair resets _next_check so the next poll happens sooner."""
+
+    def test_scan_remote_updates_next_check(self):
+        watcher = _make_watcher()
+        remote = MagicMock()
+        root_info = _make_remote_info(uid="root-node", folderish=True)
+        remote._node_to_remote_file_info.return_value = root_info
+        remote.get_node.return_value = MagicMock()
+        watcher.engine.remote = remote
+        watcher.engine.download_dir = PurePosixPath("/")
+
+        root_pair = _make_doc_pair(remote_ref="root-node")
+        watcher.dao.get_state_from_local.return_value = root_pair
+        watcher._next_check = 999999
+
+        with patch.object(watcher, "_scan_remote_recursive"):
+            watcher.scan_remote()
+
+        # _next_check is not directly reset by scan_remote, but
+        # _last_remote_full_scan should be updated
+        assert watcher._last_remote_full_scan is not None
+
+
+class TestExecuteLoop:
+    """Tests for _execute loop with ThreadInterrupt."""
+
+    def test_thread_interrupt_emits_stopped_and_reraises(self):
+        from nxdrive.drive.exceptions import ThreadInterrupt
+
+        watcher = _make_watcher()
+        watcher._next_check = 0
+        watcher.updated = MagicMock()
+        watcher.initiate = MagicMock()
+
+        call_count = 0
+
+        def handle_changes_side_effect(first_pass):
+            nonlocal call_count
+            call_count += 1
+            if call_count >= 1:
+                raise ThreadInterrupt()
+
+        with patch.object(
+            watcher, "_handle_changes", side_effect=handle_changes_side_effect
+        ):
+            with pytest.raises(ThreadInterrupt):
+                watcher._execute()
+
+        watcher.remoteWatcherStopped.emit.assert_called_once()

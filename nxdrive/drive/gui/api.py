@@ -1351,7 +1351,6 @@ class QMLDriveApi(QObject):
             if oauth2_cls is None:
                 log.warning("No OAuth2 class registered for %s", config.key)
                 error = "CONNECTION_UNKNOWN"
-                self.setMessage.emit(error, "error")
                 return
             auth = oauth2_cls(
                 stored_url,

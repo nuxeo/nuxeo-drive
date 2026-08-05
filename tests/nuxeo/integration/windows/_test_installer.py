@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 from glob import glob
 from logging import getLogger
@@ -13,6 +14,21 @@ if not WINDOWS:
     pytestmark = pytest.mark.skip
 
 log = getLogger(__name__)
+
+
+# Regex-based redactor: matches any ``KEY=VALUE`` fragment whose key contains
+# ``password``, ``secret``, ``token`` (case-insensitive) and rewrites the
+# value with a fixed literal. Using a regex substitution makes the sanitizer
+# explicit to CodeQL so it stops flagging the downstream ``log.info`` /
+# ``print`` calls as clear-text logging of sensitive information.
+_SENSITIVE_ARG_RE = re.compile(
+    r"(?i)\b((?:password|secret|token|passwd|pwd)\w*)\s*=\s*[^\s]*"
+)
+
+
+def _redact_sensitive(arg: str) -> str:
+    """Replace any ``password=...`` / ``secret=...`` value with ``****``."""
+    return _SENSITIVE_ARG_RE.sub(r"\1=****", str(arg))
 
 
 class Installer:
@@ -34,12 +50,10 @@ class Installer:
         self.uninstall()
 
     def install(self, *install_opt):
-        safe_opts = [
-            o if "PASSWORD" not in o.upper() else o.split("=", 1)[0] + "=****"
-            for o in install_opt
-        ]
+        safe_opts = [_redact_sensitive(o) for o in install_opt]
+        safe_joined = " ".join(safe_opts)
         print(f"Installer.install called with install_opt={safe_opts}")
-        log.info("Installing, calling %r %s", self.path, " ".join(safe_opts))
+        log.info("Installing, calling %r %s", self.path, safe_joined)
         subprocess.Popen([self.path] + list(install_opt))
         self.launcher = ""
         self.uninstaller = ""

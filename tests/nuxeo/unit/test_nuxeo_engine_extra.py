@@ -1453,3 +1453,49 @@ class TestCancelSession:
         sent = engine.remote.metrics.send.call_args[0][0]
         assert sent["directTransfer.session.folder.count"] == 2
         assert sent["directTransfer.session.file.count"] == 1
+
+
+# ------------------------------------------------------------------ constructor lifecycle
+
+
+class TestNuxeoConstructorSeedsMapperOnce:
+    """Regression tests for the _seed_userid_mapper ownership fix.
+
+    Ensures that _seed_userid_mapper() runs exactly once per Nuxeo engine
+    construction, both for the initial bind (binder) path and for the
+    reload-from-storage (no binder) path.
+    """
+
+    def test_seed_userid_mapper_called_once_with_binder(self):
+        """Nuxeo constructor must seed the mapper exactly once when binder is provided."""
+        from nxdrive.nuxeo.engine.engine import Engine
+
+        with patch.object(
+            Engine.__mro__[1], "__init__", return_value=None
+        ) as mock_base_init, patch.object(Engine, "_seed_userid_mapper") as mock_seed:
+            engine = Engine.__new__(Engine)
+            Engine.__init__(
+                engine,
+                MagicMock(),
+                MagicMock(),
+                binder=MagicMock(),
+            )
+        assert mock_seed.call_count == 1
+        mock_base_init.assert_called_once()
+
+    def test_seed_userid_mapper_called_once_without_binder(self):
+        """Nuxeo constructor must seed the mapper exactly once on reload (no binder)."""
+        from nxdrive.nuxeo.engine.engine import Engine
+
+        with patch.object(
+            Engine.__mro__[1], "__init__", return_value=None
+        ) as mock_base_init, patch.object(Engine, "_seed_userid_mapper") as mock_seed:
+            engine = Engine.__new__(Engine)
+            Engine.__init__(
+                engine,
+                MagicMock(),
+                MagicMock(),
+                binder=None,
+            )
+        assert mock_seed.call_count == 1
+        mock_base_init.assert_called_once()

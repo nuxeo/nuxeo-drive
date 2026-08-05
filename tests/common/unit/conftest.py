@@ -19,7 +19,6 @@ from nxdrive.drive.qt import constants as qt
 from nxdrive.drive.qt.imports import QObject
 from nxdrive.drive.updater.darwin import Updater
 from nxdrive.drive.utils import normalized_path
-from nxdrive.nuxeo.client.remote_client import Remote
 
 
 class MockEngineDAO(EngineDAO):
@@ -191,15 +190,6 @@ def updater(tmp_path):
     updater.manager.osi = AbstractOSIntegration
     updater.final_app = tmp_path
     return updater
-
-
-@pytest.fixture()
-def processor(engine, engine_dao):
-    processor = MockProcessor
-    processor.engine = engine
-    processor.remote = Remote
-    processor.dao = engine_dao
-    return processor
 
 
 @pytest.fixture()

@@ -156,6 +156,11 @@ def no_warnings(recwarn):
             continue
         elif "Cryptography will be significantly faster" in message:
             continue
+        elif "ResourceTracker called reentrantly for resource cleanup" in message:
+            # Python 3.13 may emit this while multiprocessing synchronization
+            # primitives are finalized concurrently at test shutdown. It is a
+            # CPython resource-tracker warning, not an application warning.
+            continue
         elif "unclosed database" in message:
             continue
         elif "unclosed" in message:

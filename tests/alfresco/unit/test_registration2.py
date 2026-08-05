@@ -1,8 +1,39 @@
 """Unit tests for nxdrive.alfresco.registration."""
 
-from unittest.mock import Mock, patch
+from contextlib import contextmanager
+from types import SimpleNamespace
+from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
+
+
+@contextmanager
+def _mock_debug_auth_dialog():
+    """Provide a fully mocked Alfresco debug-auth dialog."""
+    dialog = MagicMock()
+    layout = MagicMock()
+    username = MagicMock()
+    username.text.return_value = "typed-user"
+    password = MagicMock()
+    password.text.return_value = "typed-password"
+    buttons = MagicMock()
+    line_edit = MagicMock(side_effect=[username, password])
+    api = MagicMock()
+
+    with patch("nxdrive.drive.qt.imports.QDialog", return_value=dialog), patch(
+        "nxdrive.drive.qt.imports.QVBoxLayout", return_value=layout
+    ), patch("nxdrive.drive.qt.imports.QLineEdit", line_edit), patch(
+        "nxdrive.drive.qt.imports.QDialogButtonBox", return_value=buttons
+    ):
+        yield SimpleNamespace(
+            api=api,
+            buttons=buttons,
+            dialog=dialog,
+            layout=layout,
+            line_edit=line_edit,
+            password=password,
+            username=username,
+        )
 
 
 class TestAlfrescoAuthFactory:
@@ -74,6 +105,124 @@ class TestAlfrescoPasswordAuthHandler:
                 api, "/local", "https://server", "user", "pass"
             )
         mock_ba.assert_called_once_with(api, "/local", "https://server", "user", "pass")
+
+
+class TestAlfrescoDebugAuthHandler:
+    def test_accept_binds_using_callback_params(self) -> None:
+        from nxdrive.drive.qt import constants as qt
+        from nxdrive.alfresco.registration import _alfresco_debug_auth_handler
+
+        with patch.dict(
+            "os.environ",
+            {
+                "NXDRIVE_TEST_USERNAME": "default-user",
+                "NXDRIVE_TEST_PASSWORD": "default-password",
+            },
+            clear=True,
+        ), _mock_debug_auth_dialog() as mocked:
+            mocked.api.callback_params = {
+                "local_folder": "/sync-root",
+                "server_url": "https://callback.example",
+            }
+
+            _alfresco_debug_auth_handler(
+                "https://fallback.example", MagicMock(), mocked.api
+            )
+            accept = mocked.buttons.accepted.connect.call_args.args[0]
+            accept()
+
+        mocked.line_edit.assert_has_calls(
+            [
+                call("default-user", parent=mocked.dialog),
+                call("default-password", parent=mocked.dialog),
+            ]
+        )
+        mocked.password.setEchoMode.assert_called_once_with(qt.Password)
+        mocked.layout.addWidget.assert_has_calls(
+            [call(mocked.username), call(mocked.password), call(mocked.buttons)]
+        )
+        mocked.buttons.setStandardButtons.assert_called_once_with(qt.Cancel | qt.Ok)
+        mocked.api.bind_server.assert_called_once_with(
+            "/sync-root",
+            "https://callback.example",
+            "typed-user",
+            password="typed-password",
+        )
+        mocked.api._load_pending_auth_callback_params.assert_not_called()
+        mocked.api._clear_pending_auth_callback_params.assert_called_once_with()
+        mocked.api.setMessage.emit.assert_not_called()
+        mocked.dialog.setLayout.assert_called_once_with(mocked.layout)
+        mocked.dialog.exec.assert_called_once_with()
+        mocked.dialog.close.assert_called_once_with()
+
+    def test_accept_loads_pending_params_and_uses_url_fallback(self) -> None:
+        from nxdrive.alfresco.registration import _alfresco_debug_auth_handler
+
+        with _mock_debug_auth_dialog() as mocked:
+            mocked.api.callback_params = {}
+            mocked.api._load_pending_auth_callback_params.return_value = {
+                "local_folder": "/pending-root"
+            }
+
+            _alfresco_debug_auth_handler(
+                "https://fallback.example", MagicMock(), mocked.api
+            )
+            accept = mocked.buttons.accepted.connect.call_args.args[0]
+            accept()
+
+        mocked.api._load_pending_auth_callback_params.assert_called_once_with()
+        mocked.api.bind_server.assert_called_once_with(
+            "/pending-root",
+            "https://fallback.example",
+            "typed-user",
+            password="typed-password",
+        )
+        mocked.api._clear_pending_auth_callback_params.assert_called_once_with()
+        mocked.dialog.close.assert_called_once_with()
+
+    def test_bind_failure_reports_error_and_cleans_up(self) -> None:
+        from nxdrive.alfresco.registration import _alfresco_debug_auth_handler
+
+        logger = MagicMock()
+        with _mock_debug_auth_dialog() as mocked, patch(
+            "logging.getLogger", return_value=logger
+        ):
+            mocked.api.callback_params = {
+                "local_folder": "/sync-root",
+                "server_url": "https://server.example",
+            }
+            mocked.api.bind_server.side_effect = RuntimeError("invalid credentials")
+
+            _alfresco_debug_auth_handler(
+                "https://fallback.example", MagicMock(), mocked.api
+            )
+            accept = mocked.buttons.accepted.connect.call_args.args[0]
+            accept()
+
+        logger.error.assert_called_once_with(
+            "Alfresco debug auth failed: invalid credentials"
+        )
+        mocked.api.setMessage.emit.assert_called_once_with(
+            "CONNECTION_REFUSED", "error"
+        )
+        mocked.api._clear_pending_auth_callback_params.assert_called_once_with()
+        mocked.dialog.close.assert_called_once_with()
+
+    def test_cancel_closes_without_binding(self) -> None:
+        from nxdrive.alfresco.registration import _alfresco_debug_auth_handler
+
+        with _mock_debug_auth_dialog() as mocked:
+            mocked.api.callback_params = {}
+            _alfresco_debug_auth_handler(
+                "https://fallback.example", MagicMock(), mocked.api
+            )
+            reject = mocked.buttons.rejected.connect.call_args.args[0]
+            reject()
+
+        mocked.dialog.close.assert_called_once_with()
+        mocked.api.bind_server.assert_not_called()
+        mocked.api._load_pending_auth_callback_params.assert_not_called()
+        mocked.api._clear_pending_auth_callback_params.assert_not_called()
 
 
 class TestAlfrescoCallbackParamsHandlers:

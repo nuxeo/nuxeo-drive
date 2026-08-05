@@ -614,3 +614,102 @@ class TestHaveFolderUpload:
     def test_always_true(self):
         engine = _make_engine()
         assert engine.have_folder_upload is True
+
+
+# ------------------------------------------------------------------ shared-base ownership regression
+
+
+class TestAlfrescoNoUseridMapperInBase:
+    """Regression tests for the Alfresco account-load crash caused by the
+    shared engine base invoking ``_seed_userid_mapper()``.
+
+    The Nuxeo-specific mapper seeding must never be invoked from the
+    server-agnostic constructor. See the bug report for the full traceback.
+    """
+
+    def test_alfresco_engine_has_no_seed_userid_mapper(self):
+        """AlfrescoEngine must not define or inherit ``_seed_userid_mapper``.
+
+        If it did, the shared base could accidentally reintroduce the
+        Nuxeo-only lifecycle call without exploding on Alfresco.
+        """
+        assert not hasattr(AlfrescoEngine, "_seed_userid_mapper"), (
+            "AlfrescoEngine must not carry Nuxeo-specific userid mapper "
+            "seeding. Remove the base-class call, do not add an override."
+        )
+
+    def test_shared_base_does_not_call_seed_userid_mapper(self):
+        """The server-agnostic Engine base constructor body must not
+        reference ``_seed_userid_mapper``. This mirrors the exact traceback
+        from the reported Alfresco reload crash.
+        """
+        import inspect
+
+        from nxdrive.drive.engine.engine import Engine as BaseEngine
+
+        source = inspect.getsource(BaseEngine.__init__)
+        assert "_seed_userid_mapper" not in source, (
+            "The shared Engine base must not call `_seed_userid_mapper` — "
+            "that is a Nuxeo-only concern owned by "
+            "nxdrive/nuxeo/engine/engine.py."
+        )
+
+    def test_shared_base_has_no_userid_mapper_members(self):
+        """The server-agnostic ``Engine`` base must not carry any of the
+        Nuxeo-specific userid_mapper / user_uuid members.
+
+        These belong to ``nxdrive.nuxeo.engine.engine.Engine`` only.
+        """
+        from nxdrive.drive.engine.engine import Engine as BaseEngine
+
+        for name in (
+            "_NO_UUID_SUPPORT",
+            "_refresh_user_uuid",
+            "_seed_userid_mapper",
+        ):
+            assert name not in BaseEngine.__dict__, (
+                f"Nuxeo-specific member {name!r} leaked into the shared "
+                "Engine base. Move it into nxdrive/nuxeo/engine/engine.py."
+            )
+
+    def test_shared_base_update_token_has_no_uuid_side_effects(self):
+        """The base ``update_token`` must not touch ``user_uuid`` in the DB
+        nor call ``_refresh_user_uuid``. Nuxeo overrides ``update_token``
+        to add that behaviour on its own.
+        """
+        import ast
+        import inspect
+        import textwrap
+
+        from nxdrive.drive.engine.engine import Engine as BaseEngine
+
+        source = textwrap.dedent(inspect.getsource(BaseEngine.update_token))
+        func_ast = ast.parse(source).body[0]
+        assert isinstance(func_ast, ast.FunctionDef)
+        # Strip the docstring so mentions of forbidden names in prose
+        # explaining why they are absent do not trigger the guard.
+        if (
+            func_ast.body
+            and isinstance(func_ast.body[0], ast.Expr)
+            and isinstance(func_ast.body[0].value, ast.Constant)
+            and isinstance(func_ast.body[0].value.value, str)
+        ):
+            func_ast.body = func_ast.body[1:]
+        body_source = ast.unparse(func_ast)
+        for forbidden in ("user_uuid", "_refresh_user_uuid", "userid_mapper"):
+            assert forbidden not in body_source, (
+                f"Base Engine.update_token must not reference {forbidden!r}. "
+                "Move any UUID handling into the Nuxeo subclass override."
+            )
+
+    def test_alfresco_update_token_inherits_base(self):
+        """``AlfrescoEngine`` must reuse the base ``update_token`` without
+        override, guaranteeing it never runs Nuxeo-only UUID logic.
+        """
+        from nxdrive.drive.engine.engine import Engine as BaseEngine
+
+        assert AlfrescoEngine.update_token is BaseEngine.update_token, (
+            "AlfrescoEngine must inherit the base update_token as-is. "
+            "If Alfresco needs custom token handling, add an override that "
+            "does NOT reintroduce Nuxeo user_uuid semantics."
+        )

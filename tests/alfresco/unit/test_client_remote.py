@@ -1118,3 +1118,379 @@ class TestFetch:
 
         with pytest.raises(NotFound):
             remote.fetch("bad")
+
+
+# --- NEW TESTS BELOW ---
+
+
+class TestStreamContentExtended:
+    """Additional stream_content tests: progress callback and DownloadPaused."""
+
+    def test_stream_content_registers_and_removes_download(
+        self, _client_patch, tmp_path
+    ) -> None:
+        from pathlib import Path
+
+        remote = _build_remote(_client_patch)
+        dao = MagicMock()
+        dao.get_download.return_value = None
+        # After save_download, return a download with uid
+        download_obj = MagicMock()
+        download_obj.uid = 42
+        download_obj.filesize = 0
+        download_obj.status = None
+        dao.get_download.side_effect = [None, download_obj, download_obj]
+        remote.dao = dao
+
+        file_out = tmp_path / "output.bin"
+        remote.client.nodes.download_to = MagicMock()
+
+        remote.stream_content(
+            "node-1",
+            Path("/sync/file.bin"),
+            file_out,
+            engine_uid="eng-1",
+            doc_pair_id=7,
+        )
+
+        dao.save_download.assert_called_once()
+        dao.remove_transfer.assert_called_once_with(
+            "download", path=Path("/sync/file.bin")
+        )
+
+    def test_stream_content_download_paused_propagates(
+        self, _client_patch, tmp_path
+    ) -> None:
+        from pathlib import Path
+
+        from nxdrive.drive.exceptions import DownloadPaused
+
+        remote = _build_remote(_client_patch)
+        dao = MagicMock()
+        download_obj = MagicMock()
+        download_obj.uid = 1
+        download_obj.filesize = 0
+        dao.get_download.return_value = download_obj
+        remote.dao = dao
+
+        file_out = tmp_path / "output.bin"
+        remote.client.nodes.download_to.side_effect = DownloadPaused(1)
+
+        with pytest.raises(DownloadPaused):
+            remote.stream_content("node-1", Path("/sync/file.bin"), file_out)
+
+        # Should NOT remove transfer on pause
+        dao.remove_transfer.assert_not_called()
+
+    def test_stream_content_error_removes_download(
+        self, _client_patch, tmp_path
+    ) -> None:
+        from pathlib import Path
+
+        remote = _build_remote(_client_patch)
+        dao = MagicMock()
+        download_obj = MagicMock()
+        download_obj.uid = 1
+        download_obj.filesize = 0
+        dao.get_download.return_value = download_obj
+        remote.dao = dao
+
+        file_out = tmp_path / "output.bin"
+        remote.client.nodes.download_to.side_effect = RuntimeError("network")
+
+        with pytest.raises(RuntimeError, match="network"):
+            remote.stream_content("node-1", Path("/sync/file.bin"), file_out)
+
+        dao.remove_transfer.assert_called_once_with(
+            "download", path=Path("/sync/file.bin")
+        )
+
+    def test_stream_content_digest_mismatch_raises_corrupted(
+        self, _client_patch, tmp_path
+    ) -> None:
+        from pathlib import Path
+
+        from alfresco.exceptions import CorruptedFile
+
+        remote = _build_remote(_client_patch)
+        dao = MagicMock()
+        dao.get_download.return_value = None
+        remote.dao = dao
+
+        file_out = tmp_path / "output.bin"
+        remote.client.nodes.download_to = MagicMock()
+
+        fs_item_info = MagicMock()
+        fs_item_info.digest = "expected_hash"
+        fs_item_info.digest_algorithm = "md5"
+
+        with patch(
+            "nxdrive.alfresco.client.remote.compute_digest",
+            return_value="wrong_hash",
+        ):
+            with pytest.raises(CorruptedFile):
+                remote.stream_content(
+                    "node-1",
+                    Path("/sync/file.bin"),
+                    file_out,
+                    fs_item_info=fs_item_info,
+                )
+
+    def test_stream_content_digest_match_succeeds(
+        self, _client_patch, tmp_path
+    ) -> None:
+        from pathlib import Path
+
+        remote = _build_remote(_client_patch)
+        dao = MagicMock()
+        dao.get_download.return_value = None
+        remote.dao = dao
+
+        file_out = tmp_path / "output.bin"
+        remote.client.nodes.download_to = MagicMock()
+
+        fs_item_info = MagicMock()
+        fs_item_info.digest = "good_hash"
+        fs_item_info.digest_algorithm = "md5"
+
+        with patch(
+            "nxdrive.alfresco.client.remote.compute_digest",
+            return_value="good_hash",
+        ):
+            result = remote.stream_content(
+                "node-1",
+                Path("/sync/file.bin"),
+                file_out,
+                fs_item_info=fs_item_info,
+            )
+        assert result == file_out
+
+    def test_stream_content_no_dao_skips_download_tracking(
+        self, _client_patch, tmp_path
+    ) -> None:
+        from pathlib import Path
+
+        remote = _build_remote(_client_patch)
+        if hasattr(remote, "dao"):
+            del remote.dao
+
+        file_out = tmp_path / "output.bin"
+        remote.client.nodes.download_to = MagicMock()
+
+        result = remote.stream_content("node-1", Path("/sync/file.bin"), file_out)
+        assert result == file_out
+
+
+class TestStreamFileExtended:
+    """Additional stream_file tests: existing node update and ConflictError."""
+
+    def test_existing_node_triggers_update(self, _client_patch) -> None:
+        from pathlib import Path
+
+        remote = _build_remote(_client_patch)
+
+        existing_child = MagicMock()
+        existing_child.name = "report.txt"
+        existing_child.id = "existing-id"
+        existing_child.is_file = True
+        existing_child.is_folder = False
+        remote.client.nodes.iter_children.return_value = [existing_child]
+
+        updated_node = MagicMock()
+        updated_node.name = "report.txt"
+        updated_node.id = "existing-id"
+        updated_node.parent_id = "parent"
+        updated_node.is_folder = False
+        updated_node.is_file = True
+        updated_node.modified_at = None
+        updated_node.created_at = None
+        updated_node.modified_by_user = None
+        updated_node.path = None
+        remote.client.nodes.update_content.return_value = updated_node
+
+        with patch(
+            "nxdrive.alfresco.client.remote.compute_digest", return_value="md5hash"
+        ):
+            info = remote.stream_file(
+                "parent", Path("/tmp/report.txt"), filename="report.txt"
+            )
+
+        assert info.uid == "existing-id"
+        assert info.digest == "md5hash"
+        remote.client.nodes.update_content.assert_called_once()
+        remote.client.nodes.upload.assert_not_called()
+
+    def test_conflict_error_during_upload_raises_remote_conflict(
+        self, _client_patch
+    ) -> None:
+        from pathlib import Path
+
+        from alfresco.exceptions import ConflictError
+
+        from nxdrive.drive.exceptions import RemoteConflict
+
+        remote = _build_remote(_client_patch)
+        remote.client.nodes.iter_children.return_value = []
+        remote.client.nodes.upload.side_effect = ConflictError("409")
+
+        with pytest.raises(RemoteConflict):
+            remote.stream_file("parent", Path("/tmp/file.txt"), filename="file.txt")
+
+
+class TestGetFilesystemRootInfo:
+    def test_returns_remote_file_info(self, _client_patch) -> None:
+        remote = _build_remote(_client_patch)
+        root_node = MagicMock()
+        root_node.name = "Company Home"
+        root_node.id = "root-id"
+        root_node.parent_id = ""
+        root_node.is_folder = True
+        root_node.is_file = False
+        root_node.modified_at = None
+        root_node.created_at = None
+        root_node.modified_by_user = None
+        root_node.path = {"elements": []}
+        remote.client.nodes.get.return_value = root_node
+
+        info = remote.get_filesystem_root_info()
+        assert info.uid == "root-id"
+        assert info.folderish is True
+        remote.client.nodes.get.assert_called_once_with("-root-", include=["path"])
+
+
+class TestNodeToRemoteFileInfoExtended:
+    """Additional _node_to_remote_file_info edge cases."""
+
+    def test_empty_path_elements(self, _client_patch) -> None:
+        from nxdrive.alfresco.client.remote import AlfrescoRemote
+
+        node = MagicMock()
+        node.name = "Root"
+        node.id = "root-id"
+        node.parent_id = ""
+        node.is_folder = True
+        node.is_file = False
+        node.modified_at = None
+        node.created_at = None
+        node.modified_by_user = None
+        node.path = {"elements": []}
+
+        info = AlfrescoRemote._node_to_remote_file_info(node)
+        assert info.path == "/Root"
+
+    def test_no_parent_id(self, _client_patch) -> None:
+        from nxdrive.alfresco.client.remote import AlfrescoRemote
+
+        node = MagicMock()
+        node.name = "Orphan"
+        node.id = "orphan-id"
+        node.parent_id = None
+        node.is_folder = False
+        node.is_file = True
+        node.modified_at = None
+        node.created_at = None
+        node.modified_by_user = {"id": "user1"}
+        node.path = None
+
+        info = AlfrescoRemote._node_to_remote_file_info(node)
+        assert info.parent_uid == ""
+        assert info.last_contributor == "user1"
+
+
+class TestGetFsInfoDigestFallbackExtended:
+    """Additional get_fs_info digest fallback tests."""
+
+    def test_no_dao_no_fallback(self, _client_patch) -> None:
+        remote = _build_remote(_client_patch)
+        if hasattr(remote, "dao"):
+            del remote.dao
+
+        node = MagicMock()
+        node.name = "file.txt"
+        node.id = "n1"
+        node.parent_id = "p"
+        node.is_folder = False
+        node.is_file = True
+        node.modified_at = None
+        node.created_at = None
+        node.modified_by_user = None
+        node.path = None
+        node.digest = None
+        node.digest_algorithm = None
+        remote.client.nodes.get.return_value = node
+
+        info = remote.get_fs_info("n1")
+        assert info.digest is None
+
+    def test_dao_pair_without_digest_leaves_none(self, _client_patch) -> None:
+        remote = _build_remote(_client_patch)
+        node = MagicMock()
+        node.name = "file.txt"
+        node.id = "n1"
+        node.parent_id = "p"
+        node.is_folder = False
+        node.is_file = True
+        node.modified_at = None
+        node.created_at = None
+        node.modified_by_user = None
+        node.path = None
+        node.digest = None
+        node.digest_algorithm = None
+        remote.client.nodes.get.return_value = node
+
+        dao = MagicMock()
+        pair_mock = MagicMock()
+        pair_mock.remote_digest = None
+        dao.get_normal_state_from_remote.return_value = pair_mock
+        remote.dao = dao
+
+        info = remote.get_fs_info("n1")
+        assert info.digest is None
+
+
+class TestGetFsChildrenExtended:
+    """Additional get_fs_children tests."""
+
+    def test_with_dao_filter(self, _client_patch) -> None:
+        remote = _build_remote(_client_patch)
+        normal = MagicMock()
+        normal.name = "Visible"
+        normal.id = "n1"
+        normal.parent_id = "root"
+        normal.is_folder = True
+        normal.is_file = False
+        normal.modified_at = None
+        normal.created_at = None
+        normal.modified_by_user = None
+        normal.path = {"elements": [{"name": "Company Home"}]}
+
+        filtered_node = MagicMock()
+        filtered_node.name = "Hidden"
+        filtered_node.id = "n2"
+        filtered_node.parent_id = "root"
+        filtered_node.is_folder = True
+        filtered_node.is_file = False
+        filtered_node.modified_at = None
+        filtered_node.created_at = None
+        filtered_node.modified_by_user = None
+        filtered_node.path = {"elements": [{"name": "Company Home"}]}
+
+        remote.client.nodes.iter_children.return_value = [normal, filtered_node]
+        dao = MagicMock()
+        dao.is_filter.side_effect = lambda path: "Hidden" in path
+        remote.dao = dao
+
+        infos = remote.get_fs_children("root-id", filtered=True)
+        names = [i.name for i in infos]
+        assert "Visible" in names
+        assert "Hidden" not in names
+
+
+class TestIsFilteredExtended:
+    """Additional is_filtered tests."""
+
+    def test_without_dao_returns_false(self, _client_patch) -> None:
+        remote = _build_remote(_client_patch)
+        if hasattr(remote, "dao"):
+            del remote.dao
+        assert remote.is_filtered("/some/path") is False

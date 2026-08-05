@@ -1212,3 +1212,600 @@ class TestRemoteHasDriftedExtra:
         remote_info.last_modification_time.strftime.return_value = "2024-06-15 12:00:00"
         proc.remote.get_fs_info.return_value = remote_info
         assert proc._remote_has_drifted(pair) is True
+
+    def test_remote_info_none_returns_false(self, proc):
+        pair = Mock(
+            remote_ref="node-abc",
+            folderish=False,
+            last_remote_updated="2024-01-01 00:00:00",
+        )
+        proc.remote.get_fs_info.return_value = None
+        assert proc._remote_has_drifted(pair) is False
+
+
+# ------------------------------------------------------------------ _handle_doc_pair_sync
+
+
+class TestHandleDocPairSync:
+    @pytest.fixture
+    def proc(self, mock_engine):
+        item_getter = Mock(return_value=None)
+        p = AlfrescoProcessor(mock_engine, item_getter)
+        p.thread_id = 1
+        p.dao = mock_engine.dao
+        p.remote = mock_engine.remote
+        p.local = mock_engine.local
+        p.pairSyncStarted = Mock()
+        p.pairSyncEnded = Mock()
+        p._current_metrics = {}
+        # Ensure soft_locks dict exists
+        AlfrescoProcessor.soft_locks = {}
+        # On macOS, get_remote_id for FinderInfo returns a string
+        p.local.get_remote_id.return_value = ""
+        return p
+
+    def test_parent_missing_no_parent_pair_removes_state(self, proc):
+        pair = Mock()
+        pair.local_parent_path = Path("/parent")
+        pair.remote_parent_ref = "parent-ref"
+        pair.local_path = Path("/parent/file.txt")
+        pair.pair_state = "locally_created"
+        pair.id = 1
+        proc.local.exists.return_value = False
+        proc.dao.get_normal_state_from_remote.return_value = None
+        proc.local.get_remote_id.return_value = ""
+        handler = Mock()
+
+        proc._handle_doc_pair_sync(pair, handler)
+        proc.dao.remove_state.assert_called_once_with(pair)
+        handler.assert_not_called()
+
+    def test_parent_missing_same_path_removes_state(self, proc):
+        pair = Mock()
+        pair.local_parent_path = Path("/parent")
+        pair.remote_parent_ref = "parent-ref"
+        pair.local_path = Path("/parent/file.txt")
+        pair.pair_state = "locally_created"
+        pair.id = 1
+        proc.local.exists.side_effect = lambda p: p != Path("/parent")
+        parent_pair = Mock()
+        parent_pair.local_path = Path("/parent")
+        proc.dao.get_normal_state_from_remote.return_value = parent_pair
+        proc.local.get_remote_id.return_value = ""
+        handler = Mock()
+
+        proc._handle_doc_pair_sync(pair, handler)
+        proc.dao.remove_state.assert_called_once_with(pair)
+
+    def test_parent_missing_different_path_updates_parent(self, proc):
+        pair = Mock()
+        pair.local_parent_path = Path("/old-parent")
+        pair.remote_parent_ref = "parent-ref"
+        pair.local_path = Path("/old-parent/file.txt")
+        pair.pair_state = "locally_created"
+        pair.local_name = "file.txt"
+        pair.id = 1
+        proc.local.exists.side_effect = lambda p: p != Path("/old-parent")
+        parent_pair = Mock()
+        parent_pair.local_path = Path("/new-parent")
+        proc.dao.get_normal_state_from_remote.return_value = parent_pair
+        mock_engine = proc.engine
+        mock_engine.dao.get_download.return_value = None
+        mock_engine.dao.get_upload.return_value = None
+        proc.local.get_remote_id.return_value = ""
+        handler = Mock()
+        handler.__name__ = "test_handler"
+
+        result_pair = Mock()
+        result_pair.pair_state = "synchronized"
+        proc.dao.get_state_from_id.return_value = result_pair
+
+        proc._handle_doc_pair_sync(pair, handler)
+        assert pair.local_parent_path == Path("/new-parent")
+
+    def test_paused_download_skips(self, proc):
+        pair = Mock()
+        pair.local_parent_path = None
+        pair.local_path = Path("/file.txt")
+        pair.pair_state = "locally_created"
+        pair.local_name = "file.txt"
+        pair.id = 1
+        download = Mock()
+        download.status = TransferStatus.PAUSED
+        proc.engine.dao.get_download.return_value = download
+        proc.local.get_remote_id.return_value = ""
+        handler = Mock()
+
+        proc._handle_doc_pair_sync(pair, handler)
+        handler.assert_not_called()
+
+    def test_paused_upload_skips(self, proc):
+        pair = Mock()
+        pair.local_parent_path = None
+        pair.local_path = Path("/file.txt")
+        pair.pair_state = "locally_created"
+        pair.local_name = "file.txt"
+        pair.id = 1
+        proc.engine.dao.get_download.return_value = None
+        upload = Mock()
+        upload.status = TransferStatus.SUSPENDED
+        proc.engine.dao.get_upload.return_value = upload
+        proc.local.get_remote_id.return_value = ""
+        handler = Mock()
+
+        proc._handle_doc_pair_sync(pair, handler)
+        handler.assert_not_called()
+
+    def test_locally_modified_drift_marks_conflicted(self, proc):
+        pair = Mock()
+        pair.local_parent_path = None
+        pair.local_path = Path("/file.txt")
+        pair.pair_state = "locally_modified"
+        pair.local_name = "file.txt"
+        pair.id = 1
+        proc.engine.dao.get_download.return_value = None
+        proc.engine.dao.get_upload.return_value = None
+        proc._remote_has_drifted = Mock(return_value=True)
+        proc.local.get_remote_id.return_value = ""
+        handler = Mock()
+
+        proc._handle_doc_pair_sync(pair, handler)
+        proc.dao._force_sync.assert_called_once()
+        handler.assert_not_called()
+
+    def test_normal_sync_calls_handler(self, proc):
+        pair = Mock()
+        pair.local_parent_path = None
+        pair.local_path = Path("/file.txt")
+        pair.pair_state = "remotely_created"
+        pair.local_name = "file.txt"
+        pair.id = 1
+        proc.engine.dao.get_download.return_value = None
+        proc.engine.dao.get_upload.return_value = None
+        proc._remote_has_drifted = Mock(return_value=False)
+        proc.local.get_remote_id.return_value = ""
+        handler = Mock()
+        handler.__name__ = "test_handler"
+        result_pair = Mock()
+        result_pair.pair_state = "synchronized"
+        proc.dao.get_state_from_id.return_value = result_pair
+
+        proc._handle_doc_pair_sync(pair, handler)
+        handler.assert_called_once_with(pair)
+        proc.pairSyncStarted.emit.assert_called_once()
+        proc.pairSyncEnded.emit.assert_called_once()
+
+    def test_sync_result_deleted_skips_status(self, proc):
+        pair = Mock()
+        pair.local_parent_path = None
+        pair.local_path = Path("/file.txt")
+        pair.pair_state = "remotely_created"
+        pair.local_name = "file.txt"
+        pair.id = 1
+        proc.engine.dao.get_download.return_value = None
+        proc.engine.dao.get_upload.return_value = None
+        proc.local.get_remote_id.return_value = ""
+        handler = Mock()
+        handler.__name__ = "test_handler"
+        result_pair = Mock()
+        result_pair.pair_state = "remotely_deleted"
+        proc.dao.get_state_from_id.return_value = result_pair
+
+        proc._handle_doc_pair_sync(pair, handler)
+        # send_sync_status should NOT be called the second time
+        assert proc.engine.manager.osi.send_sync_status.call_count == 1
+
+
+# ------------------------------------------------------------------ soft locks
+
+
+class TestSoftLocks:
+    @pytest.fixture(autouse=True)
+    def _reset_locks(self):
+        AlfrescoProcessor.soft_locks = {}
+        yield
+        AlfrescoProcessor.soft_locks = {}
+
+    @pytest.fixture
+    def proc(self, mock_engine):
+        item_getter = Mock(return_value=None)
+        p = AlfrescoProcessor(mock_engine, item_getter)
+        p.engine.uid = "test-engine"
+        return p
+
+    def test_lock_and_unlock_path(self, proc):
+        from nxdrive.drive.exceptions import PairInterrupt
+
+        path = proc._lock_soft_path(Path("/test/file.txt"))
+        assert path == Path("/test/file.txt")
+        # Double-locking should raise
+        with pytest.raises(PairInterrupt):
+            proc._lock_soft_path(Path("/test/file.txt"))
+        # Unlock allows re-lock
+        proc._unlock_soft_path(path)
+        path2 = proc._lock_soft_path(Path("/test/file.txt"))
+        assert path2 == Path("/test/file.txt")
+        proc._unlock_soft_path(path2)
+
+    def test_unlock_nonexistent_engine(self, proc):
+        proc.engine.uid = "nonexistent-engine"
+        # Should not raise
+        proc._unlock_soft_path(Path("/anything"))
+
+    def test_lock_case_insensitive(self, proc):
+        from nxdrive.drive.exceptions import PairInterrupt
+
+        proc._lock_soft_path(Path("/Test/File.TXT"))
+        with pytest.raises(PairInterrupt):
+            proc._lock_soft_path(Path("/test/file.txt"))
+        proc._unlock_soft_path(Path("/Test/File.TXT"))
+
+
+# ------------------------------------------------------------------ _execute edge cases
+
+
+class TestExecuteEdgeCases:
+    @pytest.fixture
+    def proc(self, mock_engine):
+        item_getter = Mock(return_value=None)
+        p = AlfrescoProcessor(mock_engine, item_getter)
+        p.thread_id = 1
+        p.dao = mock_engine.dao
+        p.remote = mock_engine.remote
+        p.local = mock_engine.local
+        p.pairSyncStarted = Mock()
+        p.pairSyncEnded = Mock()
+        AlfrescoProcessor.soft_locks = {}
+        return p
+
+    def test_remote_conflict_marks_conflicted(self, proc):
+        from nxdrive.drive.exceptions import RemoteConflict
+
+        item = Mock()
+        item.pair_state = "locally_created"
+        item.id = 1
+        item.version = 1
+        item.local_name = "file.txt"
+        item.remote_ref = "abc"
+        proc._get_item = Mock(side_effect=[item, None])
+        proc.dao.acquire_state.return_value = item
+        proc._handle_doc_pair_sync = Mock(side_effect=RemoteConflict("conflict"))
+        proc._execute()
+        proc.dao._force_sync.assert_called_once_with(
+            item, "modified", "modified", "conflicted"
+        )
+
+    def test_download_paused_sets_transfer_doc(self, proc):
+        from nxdrive.drive.exceptions import DownloadPaused
+
+        item = Mock()
+        item.pair_state = "locally_created"
+        item.id = 1
+        item.version = 1
+        proc._get_item = Mock(side_effect=[item, None])
+        proc.dao.acquire_state.return_value = item
+        proc._handle_doc_pair_sync = Mock(side_effect=DownloadPaused(42))
+        proc._execute()
+        proc.engine.dao.set_transfer_doc.assert_called_once_with(
+            "download", 42, proc.engine.uid, item.id
+        )
+
+    def test_upload_paused_sets_transfer_doc(self, proc):
+        from nxdrive.drive.exceptions import UploadPaused
+
+        item = Mock()
+        item.pair_state = "locally_created"
+        item.id = 1
+        item.version = 1
+        proc._get_item = Mock(side_effect=[item, None])
+        proc.dao.acquire_state.return_value = item
+        proc._handle_doc_pair_sync = Mock(side_effect=UploadPaused(77))
+        proc._execute()
+        proc.engine.dao.set_transfer_doc.assert_called_once_with(
+            "upload", 77, proc.engine.uid, item.id
+        )
+
+    def test_pair_interrupt_requeues(self, proc):
+        from nxdrive.drive.exceptions import PairInterrupt
+
+        item = Mock()
+        item.pair_state = "locally_created"
+        item.id = 1
+        item.version = 1
+        proc._get_item = Mock(side_effect=[item, None])
+        proc.dao.acquire_state.return_value = item
+        proc._handle_doc_pair_sync = Mock(side_effect=PairInterrupt())
+        proc._execute()
+        proc.engine.queue_manager.push.assert_called_once_with(item)
+
+    def test_parent_not_synced_requeues(self, proc):
+        from nxdrive.drive.exceptions import ParentNotSynced
+
+        item = Mock()
+        item.pair_state = "locally_created"
+        item.id = 1
+        item.version = 1
+        proc._get_item = Mock(side_effect=[item, None])
+        proc.dao.acquire_state.return_value = item
+        proc._handle_doc_pair_sync = Mock(side_effect=ParentNotSynced("file", "parent"))
+        proc._execute()
+        proc.engine.queue_manager.push.assert_called_once_with(item)
+
+    def test_generic_os_error_increases_error(self, proc):
+        item = Mock()
+        item.pair_state = "locally_created"
+        item.id = 1
+        item.version = 1
+        proc._get_item = Mock(side_effect=[item, None])
+        proc.dao.acquire_state.return_value = item
+        err = OSError(13, "Permission denied")
+        proc._handle_doc_pair_sync = Mock(side_effect=err)
+        proc._execute()
+        proc.dao.increase_error.assert_called()
+
+    def test_generic_exception_increases_error(self, proc):
+        item = Mock()
+        item.pair_state = "locally_created"
+        item.id = 1
+        item.version = 1
+        proc._get_item = Mock(side_effect=[item, None])
+        proc.dao.acquire_state.return_value = item
+        proc._handle_doc_pair_sync = Mock(side_effect=ValueError("unexpected"))
+        proc._execute()
+        proc.dao.increase_error.assert_called()
+
+    def test_acquire_returns_none_skips(self, proc):
+        item = Mock()
+        item.id = 1
+        proc._get_item = Mock(side_effect=[item, None])
+        proc.dao.acquire_state.return_value = None
+        proc._execute()
+        proc.dao.release_state.assert_not_called()
+
+
+# ------------------------------------------------------------------ _synchronize_remotely_modified
+
+
+class TestSynchronizeRemotelyModified:
+    @pytest.fixture
+    def proc(self, mock_engine):
+        item_getter = Mock(return_value=None)
+        p = AlfrescoProcessor(mock_engine, item_getter)
+        p.thread_id = 1
+        p.dao = mock_engine.dao
+        p.remote = mock_engine.remote
+        p.local = mock_engine.local
+        return p
+
+    def test_content_differs_calls_update(self, proc):
+        pair = Mock()
+        pair.folderish = False
+        pair.local_digest = "abc"
+        pair.remote_digest = "def"
+        pair.local_path = Path("/file.txt")
+        pair.local_name = "file.txt"
+        pair.remote_name = "file.txt"
+        pair.remote_ref = "node-1"
+        pair.remote_parent_ref = "parent-1"
+        pair.remote_parent_path = "/root"
+        pair.last_remote_updated = "2024-01-01 00:00:00"
+        proc.local.is_equal_digests.return_value = False
+        proc.local.abspath.return_value = Path("/abs/file.txt")
+        proc.local.get_remote_id.return_value = None
+
+        # _update_remotely needs download + move + etc
+        proc.engine.download_dir = Path("/tmp/downloads")
+        proc.remote.stream_content.return_value = Path("/tmp/downloads/node-1/file.txt")
+        proc.local.delete_final = Mock()
+        proc.local.set_remote_id = Mock()
+        updated_info = Mock()
+        updated_info.filepath = Path("/abs/file.txt")
+        updated_info.get_digest.return_value = "new_hash"
+        proc.local.move.return_value = updated_info
+        proc.local.change_file_date = Mock()
+        proc.remote.get_fs_info.return_value = Mock()
+
+        proc._synchronize_remotely_modified(pair)
+        proc.dao.synchronize_state.assert_called_once_with(pair)
+
+    def test_is_move_moves_locally(self, proc):
+        pair = Mock()
+        pair.folderish = True
+        pair.local_digest = None
+        pair.remote_digest = None
+        pair.local_path = Path("/old/folder")
+        pair.local_name = "folder"
+        pair.remote_name = "folder"
+        pair.remote_ref = "node-1"
+        pair.remote_parent_ref = "parent-1"
+        pair.remote_parent_path = "/root"
+        proc.local.is_equal_digests.return_value = True
+
+        # Setup _is_remote_move to return True
+        local_parent = Mock()
+        local_parent.id = 1
+        remote_parent = Mock()
+        remote_parent.id = 2
+        remote_parent.remote_ref = "new-parent"
+        remote_parent.remote_parent_path = "/root"
+        remote_parent.local_path = Path("/new-parent")
+        proc.dao.get_state_from_local.return_value = local_parent
+        proc.dao.get_normal_state_from_remote.return_value = remote_parent
+        proc.remote.is_filtered.return_value = False
+
+        updated_info = Mock()
+        updated_info.path = Path("/new-parent/folder")
+        proc.local.move.return_value = updated_info
+        proc.local.abspath.return_value = Path("/abs")
+
+        proc._synchronize_remotely_modified(pair)
+        proc.dao.synchronize_state.assert_called_once_with(pair)
+
+    def test_filtered_path_deletes_remotely(self, proc):
+        pair = Mock()
+        pair.folderish = False
+        pair.local_digest = "abc"
+        pair.remote_digest = "abc"
+        pair.local_path = Path("/file.txt")
+        pair.local_name = "file.txt"
+        pair.remote_name = "file.txt"
+        pair.remote_ref = "node-1"
+        pair.remote_parent_ref = "parent-1"
+        pair.remote_parent_path = "/root"
+        proc.local.is_equal_digests.return_value = True
+
+        local_parent = Mock()
+        local_parent.id = 1
+        proc.dao.get_state_from_local.return_value = local_parent
+        proc.dao.get_normal_state_from_remote.return_value = local_parent
+        proc.remote.is_filtered.return_value = True
+
+        # Stub out the delete handler
+        proc.local.get_remote_id.return_value = "node-1"
+        proc.engine.use_trash.return_value = False
+
+        proc._synchronize_remotely_modified(pair)
+
+    def test_rename_updates_local_parent_path(self, proc):
+        pair = Mock()
+        pair.folderish = False
+        pair.local_digest = "abc"
+        pair.remote_digest = "abc"
+        pair.local_path = Path("/old-name.txt")
+        pair.local_name = "old-name.txt"
+        pair.remote_name = "new-name.txt"
+        pair.remote_ref = "node-1"
+        pair.remote_parent_ref = "parent-1"
+        pair.remote_parent_path = "/root"
+        proc.local.is_equal_digests.return_value = True
+
+        # Same parent
+        same = Mock()
+        same.id = 1
+        same.remote_ref = "parent-1"
+        same.remote_parent_path = "/root"
+        same.local_path = Path("/parent")
+        proc.dao.get_state_from_local.return_value = same
+        proc.dao.get_normal_state_from_remote.return_value = same
+        proc.remote.is_filtered.return_value = False
+
+        updated_info = Mock()
+        updated_info.path = Path("/parent/new-name.txt")
+        proc.local.rename.return_value = updated_info
+        proc.local.abspath.return_value = Path("/abs")
+
+        proc._synchronize_remotely_modified(pair)
+        proc.local.rename.assert_called_once_with(Path("/old-name.txt"), "new-name.txt")
+        proc.dao.synchronize_state.assert_called_once_with(pair)
+
+
+# ------------------------------------------------------------------ _create_remotely
+
+
+class TestCreateRemotely:
+    @pytest.fixture
+    def proc(self, mock_engine):
+        item_getter = Mock(return_value=None)
+        p = AlfrescoProcessor(mock_engine, item_getter)
+        p.dao = mock_engine.dao
+        p.remote = mock_engine.remote
+        p.local = mock_engine.local
+        p.engine.download_dir = Path("/tmp/downloads")
+        return p
+
+    def test_folderish_creates_local_folder(self, proc):
+        doc_pair = Mock()
+        doc_pair.folderish = True
+        parent_pair = Mock()
+        parent_pair.local_path = Path("/parent")
+        proc.local.make_folder.return_value = Path("/parent/NewFolder")
+        proc.local.abspath.return_value = Path("/abs/parent")
+
+        result = proc._create_remotely(doc_pair, parent_pair, "NewFolder")
+        proc.local.make_folder.assert_called_once_with(Path("/parent"), "NewFolder")
+        assert result == Path("/parent/NewFolder")
+
+    def test_file_downloads_and_moves(self, proc):
+        doc_pair = Mock()
+        doc_pair.folderish = False
+        doc_pair.remote_ref = "node-1"
+        doc_pair.remote_parent_ref = "parent-ref"
+        doc_pair.remote_digest = None
+        doc_pair.last_remote_updated = "2024-01-01"
+        doc_pair.creation_date = "2024-01-01"
+        doc_pair.id = 42
+
+        parent_pair = Mock()
+        parent_pair.local_path = Path("/parent")
+
+        proc.local.get_new_file.return_value = (
+            Path("/parent/file.txt"),
+            Path("/abs/parent/file.txt"),
+            "file.txt",
+        )
+        proc.local.abspath.return_value = Path("/abs/parent")
+        tmp_file = Path("/tmp/downloads/node-1/file.txt")
+        proc.remote.stream_content.return_value = tmp_file
+        info = Mock()
+        info.filepath = Path("/parent/file.txt")
+        proc.local.move.return_value = info
+
+        result = proc._create_remotely(doc_pair, parent_pair, "file.txt")
+        proc.local.set_remote_id.assert_called_once_with(tmp_file, "node-1")
+        proc.dao.update_last_transfer.assert_called_once_with(42, "download")
+        assert result == Path("/parent/file.txt")
+
+
+# ------------------------------------------------------------------ _download_content duplicate reuse
+
+
+class TestDownloadContentDuplicate:
+    @pytest.fixture
+    def proc(self, mock_engine):
+        item_getter = Mock(return_value=None)
+        p = AlfrescoProcessor(mock_engine, item_getter)
+        p.dao = mock_engine.dao
+        p.remote = mock_engine.remote
+        p.local = mock_engine.local
+        return p
+
+    def test_duplicate_file_reused(self, proc, tmp_path):
+        proc.engine.download_dir = tmp_path
+        pair = Mock()
+        pair.remote_ref = "node-1"
+        pair.remote_parent_ref = "parent"
+        pair.remote_digest = "abc123"
+        pair.id = 1
+
+        dup_pair = Mock()
+        dup_pair.local_path = Path("/dup/file.txt")
+        proc.dao.get_valid_duplicate_file.return_value = dup_pair
+
+        # Create a source file for the copy
+        dup_source = tmp_path / "dup_source.txt"
+        dup_source.write_text("duplicate content")
+        proc.local.abspath.return_value = dup_source
+
+        result = proc._download_content(pair, Path("file.txt"))
+        assert result == tmp_path / "node-1" / "file.txt"
+        assert result.exists()
+
+    def test_duplicate_not_found_falls_through(self, proc, tmp_path):
+        proc.engine.download_dir = tmp_path
+        pair = Mock()
+        pair.remote_ref = "node-2"
+        pair.remote_parent_ref = "parent"
+        pair.remote_digest = "abc123"
+        pair.id = 2
+
+        dup_pair = Mock()
+        dup_pair.local_path = Path("/nonexistent/file.txt")
+        proc.dao.get_valid_duplicate_file.return_value = dup_pair
+        proc.local.abspath.return_value = Path("/nonexistent/file.txt")
+
+        expected = tmp_path / "node-2" / "file.txt"
+        proc.remote.stream_content.return_value = expected
+
+        result = proc._download_content(pair, Path("file.txt"))
+        proc.remote.stream_content.assert_called_once()
+        assert result == expected

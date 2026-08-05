@@ -248,3 +248,147 @@ def test_send_to_running_instance(cmd):
     with patch("PyQt6.QtNetwork.QLocalSocket.waitForConnected") as mock_wait_connected:
         mock_wait_connected.return_value = True
         assert obj_cli._send_to_running_instance(mock_payload, 100) is True
+
+
+# ─── Additional Commandline Tests ────────────────────────────────────────────
+
+
+def test_load_supported_server_keys(cmd):
+    """Test _load_supported_server_keys returns a list of keys."""
+    keys = cmd._load_supported_server_keys()
+    assert isinstance(keys, list)
+    assert len(keys) > 0
+    # Keys should be uppercase
+    for key in keys:
+        assert key == key.upper()
+
+
+def test_get_version(cmd):
+    """Test get_version returns a version string."""
+    version = cmd.get_version()
+    assert version
+    # Should be a semantic version like X.Y.Z
+    parts = version.split(".")
+    assert len(parts) >= 2
+
+
+def test_is_fresh_install(cmd):
+    """Test _is_fresh_install detects no home dir."""
+    with patch("pathlib.Path.is_dir", return_value=False):
+        assert cmd._is_fresh_install() is True
+
+
+def test_is_not_fresh_install(cmd):
+    """Test _is_fresh_install when home dir exists."""
+    with patch("pathlib.Path.is_dir", return_value=True):
+        assert cmd._is_fresh_install() is False
+
+
+def test_restore_server_type_found(cmd):
+    """Test _restore_server_type sets Options.server_type.
+
+    ``_restore_server_type`` mutates module-level global state
+    (``Feature`` in ``nxdrive.drive.feature`` and ``Options.server_type``)
+    via ``apply_server_type_restrictions``. We snapshot and restore it so
+    the test does not leak defaults into unrelated tests such as
+    ``test_feature.py::TestFeatureDefaults``.
+    """
+    from nxdrive.drive.feature import DisabledFeatures, Feature
+
+    saved_feature = {k: v for k, v in vars(Feature).items()}
+    saved_disabled = list(DisabledFeatures)
+    saved_server_type = Options.server_type
+    try:
+        with patch("pathlib.Path.is_dir", return_value=True):
+            cmd._restore_server_type()
+        # After restore, server_type should be set
+        assert Options.server_type is not None
+    finally:
+        # Undo the global mutations performed by
+        # apply_server_type_restrictions to avoid polluting later tests.
+        for k, v in saved_feature.items():
+            setattr(Feature, k, v)
+        DisabledFeatures[:] = saved_disabled
+        Options.server_type = saved_server_type
+
+
+def test_restore_server_type_not_found(cmd):
+    """Test _restore_server_type when no home dir exists.
+
+    Same global-state hygiene as ``test_restore_server_type_found``.
+    """
+    from nxdrive.drive.feature import DisabledFeatures, Feature
+
+    saved_feature = {k: v for k, v in vars(Feature).items()}
+    saved_disabled = list(DisabledFeatures)
+    saved_server_type = Options.server_type
+    try:
+        with patch("pathlib.Path.is_dir", return_value=False):
+            cmd._restore_server_type()
+        # Should remain unchanged (no match)
+        assert Options.server_type == saved_server_type
+    finally:
+        for k, v in saved_feature.items():
+            setattr(Feature, k, v)
+        DisabledFeatures[:] = saved_disabled
+        Options.server_type = saved_server_type
+
+
+def test_make_cli_parser(cmd):
+    """Test make_cli_parser creates a valid parser."""
+    parser = cmd.make_cli_parser(add_subparsers=True)
+    assert parser is not None
+    # Should have subcommands
+    parser.parse_args(["--version"])
+    # --version triggers SystemExit
+
+
+def test_make_cli_parser_no_subparsers(cmd):
+    """Test make_cli_parser without subparsers."""
+    parser = cmd.make_cli_parser(add_subparsers=False)
+    assert parser is not None
+
+
+def test_parse_cli_defaults(cmd):
+    """Test parse_cli with no arguments returns console command."""
+    ns = cmd.parse_cli(["console"])
+    assert ns.command == "console"
+
+
+def test_parse_cli_bind_server(cmd):
+    """Test parse_cli with bind-server command."""
+    ns = cmd.parse_cli(
+        [
+            "bind-server",
+            "--password",
+            "secret",
+            "--local-folder",
+            "/tmp/test",
+            "user",
+            "http://localhost:8080/nuxeo",
+        ]
+    )
+    assert ns.command == "bind_server"
+    assert ns.username == "user"
+    assert ns.server_url == "http://localhost:8080/nuxeo"
+
+
+def test_parse_cli_clean_folder(cmd):
+    """Test parse_cli with clean-folder command."""
+    ns = cmd.parse_cli(["clean-folder", "--local-folder", "/tmp/test"])
+    assert ns.command == "clean_folder"
+
+
+def test_redact_payload_with_token(cmd):
+    """Test redact_payload masks token values."""
+    payload = b"nxdrive://token/abc123secret"
+    result = cmd.redact_payload(payload)
+    assert b"abc123secret" not in result
+    assert result == b"<REDACTED>"
+
+
+def test_redact_payload_no_token(cmd):
+    """Test redact_payload does not mask non-token payloads."""
+    payload = b"nxdrive://edit/something"
+    result = cmd.redact_payload(payload)
+    assert result == payload
