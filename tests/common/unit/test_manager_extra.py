@@ -1,6 +1,6 @@
 import sqlite3
 from copy import deepcopy
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, call
 from urllib.parse import urlsplit
@@ -1556,6 +1556,20 @@ def test_send_sync_status_only_uses_matching_engine(manager_obj, tmp_path):
     manager_obj.osi.send_content_sync_status.reset_mock()
     manager_obj.send_sync_status(tmp_path / "outside")
     manager_obj.osi.send_content_sync_status.assert_not_called()
+
+
+def test_send_sync_status_supports_windows_paths(manager_obj):
+    local_folder = PureWindowsPath(r"C:\Users\test\Drive")
+    engine = SimpleNamespace(local_folder=local_folder, dao=Mock())
+    manager_obj.engines = {"windows": engine}
+    path = local_folder / "folder"
+    states = ["state"]
+    engine.dao.get_local_children.return_value = states
+
+    manager_obj.send_sync_status(path)
+
+    engine.dao.get_local_children.assert_called_once_with(PureWindowsPath("folder"))
+    manager_obj.osi.send_content_sync_status.assert_called_once_with(states, path)
 
 
 def test_wait_for_server_config_success_and_timeout(manager_obj, monkeypatch):
