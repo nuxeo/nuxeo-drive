@@ -925,7 +925,7 @@ class TestUploadProgress:
             doc_pair=42,
             filesize=100,
         )
-        remote.dao.get_upload.return_value = upload
+        remote.dao.get_transfer_status.return_value = TransferStatus.ONGOING
         published = []
         remote.dao.set_transfer_progress.side_effect = (
             lambda _nature, transfer: published.append(transfer.progress)
@@ -939,6 +939,7 @@ class TestUploadProgress:
         assert action.get_percent() == 100.0
         assert published == [10.0, 50.0, 100.0]
         assert remote.dao.set_transfer_progress.call_count == 3
+        assert remote.dao.get_transfer_status.call_count == 2
         assert remote.upload_callback.call_count == 3
         action.finish_action()
 
@@ -958,7 +959,7 @@ class TestUploadProgress:
             doc_pair=42,
             filesize=100,
         )
-        remote.dao.get_upload.return_value = upload
+        remote.dao.get_transfer_status.return_value = TransferStatus.ONGOING
         published = []
         remote.dao.set_transfer_progress.side_effect = (
             lambda _nature, transfer: published.append(transfer.progress)
@@ -969,6 +970,40 @@ class TestUploadProgress:
         progress(10, 100)
 
         assert published == [80.0, 10.0]
+        assert remote.dao.get_transfer_status.call_count == 2
+        action.finish_action()
+
+    def test_status_polling_is_throttled(self, _client_patch, tmp_path) -> None:
+        from nxdrive.drive.constants import TransferStatus
+        from nxdrive.drive.objects import Upload
+
+        path = tmp_path / "file.txt"
+        path.write_bytes(b"x" * 1000)
+        remote = _build_remote(_client_patch)
+        remote.dao = MagicMock()
+        remote.dao.get_transfer_status.return_value = TransferStatus.ONGOING
+        upload = Upload(
+            7,
+            path=path,
+            status=TransferStatus.ONGOING,
+            engine="engine-1",
+            doc_pair=42,
+            filesize=1000,
+        )
+        progress, action = remote._upload_progress(upload, path)
+
+        with patch(
+            "nxdrive.alfresco.client.remote.time.monotonic",
+            side_effect=(10.0, 10.2, 10.9, 11.0),
+        ):
+            progress(10, 1000)
+            progress(20, 1000)
+            progress(30, 1000)
+            progress(40, 1000)
+
+        assert remote.dao.get_transfer_status.call_count == 2
+        remote.dao.get_transfer_status.assert_called_with("upload", 7)
+        remote.dao.get_upload.assert_not_called()
         action.finish_action()
 
     def test_paused_transfer_aborts(self, _client_patch, tmp_path) -> None:
@@ -988,18 +1023,36 @@ class TestUploadProgress:
             doc_pair=42,
             filesize=100,
         )
-        paused = Upload(
+        remote.dao.get_transfer_status.return_value = TransferStatus.PAUSED
+        progress, action = remote._upload_progress(upload, path)
+
+        with pytest.raises(UploadPaused):
+            progress(10, 100)
+
+        remote.dao.set_transfer_progress.assert_not_called()
+        action.finish_action()
+
+    def test_cancelled_transfer_aborts(self, _client_patch, tmp_path) -> None:
+        from nxdrive.drive.constants import TransferStatus
+        from nxdrive.drive.exceptions import UploadCancelled
+        from nxdrive.drive.objects import Upload
+
+        path = tmp_path / "file.txt"
+        path.write_bytes(b"x" * 100)
+        remote = _build_remote(_client_patch)
+        remote.dao = MagicMock()
+        remote.dao.get_transfer_status.return_value = TransferStatus.CANCELLED
+        upload = Upload(
             7,
             path=path,
-            status=TransferStatus.PAUSED,
+            status=TransferStatus.ONGOING,
             engine="engine-1",
             doc_pair=42,
             filesize=100,
         )
-        remote.dao.get_upload.return_value = paused
         progress, action = remote._upload_progress(upload, path)
 
-        with pytest.raises(UploadPaused):
+        with pytest.raises(UploadCancelled):
             progress(10, 100)
 
         remote.dao.set_transfer_progress.assert_not_called()

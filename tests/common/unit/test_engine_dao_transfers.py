@@ -5,6 +5,8 @@ from pathlib import Path
 from unittest.mock import Mock
 from uuid import uuid4
 
+import pytest
+
 from nxdrive.drive.constants import TransferStatus
 from nxdrive.drive.objects import Download, Upload
 
@@ -664,6 +666,65 @@ class TestResumeSession:
                         "SELECT status FROM Uploads WHERE uid = ?", (uid,)
                     ).fetchone()
                     assert result[0] == TransferStatus.ONGOING.value
+
+
+class TestGetTransferStatus:
+    def test_returns_upload_status(self, engine_dao):
+        with engine_dao("engine_migration_18.db") as dao:
+            dao.lock = RLock()
+            dao.transferUpdated = Mock()
+            upload = Upload(
+                uid=None,
+                path=Path("/tmp/status-upload.txt"),
+                status=TransferStatus.PAUSED,
+                engine="test-engine-uid",
+            )
+            dao.save_upload(upload)
+
+            assert (
+                dao.get_transfer_status("upload", upload.uid) is TransferStatus.PAUSED
+            )
+
+    def test_returns_download_status(self, engine_dao):
+        with engine_dao("engine_migration_18.db") as dao:
+            dao.lock = RLock()
+            dao.transferUpdated = Mock()
+            download = Download(
+                uid=None,
+                path=Path("/tmp/status-download.txt"),
+                status=TransferStatus.SUSPENDED,
+                engine="test-engine-uid",
+                tmpname=Path("/tmp/status-download.part"),
+            )
+            dao.save_download(download)
+            saved = dao.get_download(path=download.path)
+
+            assert saved is not None
+            assert (
+                dao.get_transfer_status("download", saved.uid)
+                is TransferStatus.SUSPENDED
+            )
+
+    def test_returns_none_for_missing_transfer(self, engine_dao):
+        with engine_dao("engine_migration_18.db") as dao:
+            assert dao.get_transfer_status("upload", 999_999) is None
+
+    def test_rejects_unknown_nature(self, engine_dao):
+        with engine_dao("engine_migration_18.db") as dao:
+            with pytest.raises(ValueError, match="Unknown transfer nature"):
+                dao.get_transfer_status("invalid", 1)
+
+    def test_invalid_stored_status_falls_back_to_done(self, engine_dao):
+        with engine_dao("engine_migration_18.db") as dao:
+            connection = dao._get_write_connection()
+            cursor = connection.cursor()
+            cursor.execute(
+                "INSERT INTO Uploads (path, status, engine) VALUES (?, ?, ?)",
+                ("/tmp/invalid-status.txt", 999, "test-engine-uid"),
+            )
+            uid = cursor.lastrowid
+
+            assert dao.get_transfer_status("upload", uid) is TransferStatus.DONE
 
 
 class TestSetTransferStatus:

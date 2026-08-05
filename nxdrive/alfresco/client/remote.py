@@ -43,7 +43,7 @@ __all__ = ("AlfrescoRemote",)
 log = getLogger(__name__)
 
 ALFRESCO_UPLOAD_BLOCK_SIZE = 65536
-UPLOAD_PROGRESS_INTERVAL = 0.1
+UPLOAD_PROGRESS_INTERVAL = 1.0
 UPLOAD_PROGRESS_PERCENT_STEP = 1.0
 
 
@@ -649,28 +649,38 @@ class AlfrescoRemote:
         last_bytes = 0
         last_percent = -1.0
         last_update = 0.0
+        last_status_check: Optional[float] = None
 
         def on_progress(bytes_read: int, total_bytes: int) -> None:
-            nonlocal last_bytes, last_percent, last_update
+            nonlocal last_bytes, last_percent, last_status_check, last_update
 
             if self.upload_callback is not None:
                 self.upload_callback()
 
-            dao = getattr(self, "dao", None)
-            if dao is not None and upload is not None and upload.uid is not None:
-                current = dao.get_upload(uid=upload.uid)
-                if current is not None:
-                    if current.status in (
-                        TransferStatus.PAUSED,
-                        TransferStatus.SUSPENDED,
-                    ):
-                        raise UploadPaused(upload.uid)
-                    if current.status is TransferStatus.CANCELLED:
-                        raise UploadCancelled(upload.uid)
-
             retry_reset = bytes_read < last_bytes
             percent = (bytes_read * 100.0 / total_bytes) if total_bytes else 100.0
             now = time.monotonic()
+
+            dao = getattr(self, "dao", None)
+            should_check_status = (
+                last_status_check is None
+                or retry_reset
+                or percent >= 100.0
+                or now - last_status_check >= UPLOAD_PROGRESS_INTERVAL
+            )
+            if (
+                should_check_status
+                and dao is not None
+                and upload is not None
+                and upload.uid is not None
+            ):
+                last_status_check = now
+                status = dao.get_transfer_status("upload", upload.uid)
+                if status in (TransferStatus.PAUSED, TransferStatus.SUSPENDED):
+                    raise UploadPaused(upload.uid)
+                if status is TransferStatus.CANCELLED:
+                    raise UploadCancelled(upload.uid)
+
             should_publish = (
                 retry_reset
                 or last_percent < 0.0

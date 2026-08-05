@@ -3105,6 +3105,26 @@ class EngineDAO(BaseDAO):
                 (doc_pair_uid, engine_uid, transfer_uid),
             )
 
+    def get_transfer_status(
+        self, nature: str, transfer_uid: int, /
+    ) -> Optional[TransferStatus]:
+        """Return one transfer's status without loading the complete table."""
+        if nature not in ("download", "upload"):
+            raise ValueError(f"Unknown transfer nature: {nature!r}")
+
+        c = self._get_read_connection().cursor()
+        table = f"{nature.title()}s"  # Downloads/Uploads
+        row = c.execute(
+            f"SELECT status FROM {table} WHERE uid = ?", (transfer_uid,)
+        ).fetchone()
+        if row is None:
+            return None
+        try:
+            return TransferStatus(row[0])
+        except ValueError:
+            # Preserve the legacy fallback used by get_uploads()/get_downloads().
+            return TransferStatus.DONE
+
     def set_transfer_progress(
         self, nature: str, transfer: Union[Download, Upload], /
     ) -> None:
