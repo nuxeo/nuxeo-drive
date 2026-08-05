@@ -354,6 +354,46 @@ def test_local_path_rewrites_and_remote_parent_rewrites(dao):
     )
 
 
+def test_recursive_path_updates_bind_sql_like_values(dao):
+    folder = _insert_state(
+        dao,
+        "/old'folder",
+        folderish=True,
+        remote_ref="folder'ref",
+        remote_parent_ref="root",
+        remote_parent_path="/remote'root",
+    )
+    child = _insert_state(
+        dao,
+        "/old'folder/child.txt",
+        local_parent_path="/old'folder",
+        remote_ref="child-ref",
+        remote_parent_ref="folder'ref",
+        remote_parent_path="/remote'root/folder'ref",
+    )
+
+    dao.update_local_parent_path(
+        folder,
+        "renamed'; DROP TABLE States; --",
+        Path("/dest'ination"),
+    )
+    expected_local = "/dest'ination/renamed'; DROP TABLE States; --"
+    assert _raw_state(dao, child.id).local_parent_path == expected_local
+    assert _raw_state(dao, child.id).local_path == f"{expected_local}/child.txt"
+
+    dao.update_remote_parent_path(folder, "/new'remote; DROP TABLE Uploads; --")
+    assert _raw_state(dao, folder.id).remote_parent_path == (
+        "/new'remote; DROP TABLE Uploads; --"
+    )
+    assert _raw_state(dao, child.id).remote_parent_path == (
+        "/new'remote; DROP TABLE Uploads; --/folder'ref"
+    )
+
+    cursor = dao._get_read_connection().cursor()
+    assert cursor.execute("SELECT COUNT(*) FROM States").fetchone()[0] >= 2
+    assert cursor.execute("SELECT COUNT(*) FROM Uploads").fetchone()[0] >= 0
+
+
 def test_mark_delete_and_remove_state_trees_persist_expected_scope(dao):
     queue = Mock()
     dao.queue_manager = queue

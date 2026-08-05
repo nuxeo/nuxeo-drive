@@ -1200,6 +1200,30 @@ class TestRemoveTransfer:
             # Verify signal was emitted
             dao.transferUpdated.emit.assert_called_once()
 
+    def test_remove_transfer_binds_sql_like_path(self, engine_dao):
+        with engine_dao("engine_migration_18.db") as dao:
+            dao.lock = RLock()
+            dao.transferUpdated = Mock()
+            path = Path("/tmp/file'; DROP TABLE States; --.txt")
+            upload = Upload(
+                uid=None,
+                path=path,
+                status=TransferStatus.ONGOING,
+                engine="test-engine",
+            )
+            dao.save_upload(upload)
+
+            dao.remove_transfer("upload", path=path)
+
+            assert dao.get_upload(path=path) is None
+            cursor = dao._get_read_connection().cursor()
+            assert cursor.execute("SELECT COUNT(*) FROM States").fetchone()[0] >= 0
+
+    def test_remove_transfer_rejects_unknown_nature(self, engine_dao):
+        with engine_dao("engine_migration_18.db") as dao:
+            with pytest.raises(ValueError, match="Unknown transfer nature"):
+                dao.remove_transfer("Uploads; DROP TABLE States; --", path=Path("x"))
+
     def test_remove_transfer_priority_doc_pair_over_path(self, engine_dao):
         """Test that doc_pair takes priority over path when both provided."""
         with engine_dao("engine_migration_18.db") as dao:

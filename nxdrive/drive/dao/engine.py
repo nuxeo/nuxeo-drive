@@ -1343,19 +1343,16 @@ class EngineDAO(BaseDAO):
         with self.lock:
             c = self._get_write_connection().cursor()
             if doc_pair.folderish:
-                count = len(
-                    self._escape(f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}")
-                )
-                path = self._escape(f"{new_path}/{doc_pair.remote_ref}")
-                query = (
+                old_path = f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}"
+                path = f"{new_path}/{doc_pair.remote_ref}"
+                c.execute(
                     "UPDATE States"
-                    f"  SET remote_parent_path = '{path}'"
-                    f"      || substr(remote_parent_path, {count + 1})"
-                    + self._get_recursive_remote_condition(doc_pair)
+                    "   SET remote_parent_path = ?"
+                    "       || substr(remote_parent_path, ?)"
+                    " WHERE remote_parent_path LIKE ?"
+                    "    OR remote_parent_path = ?",
+                    (path, len(old_path) + 1, f"{old_path}/%", old_path),
                 )
-
-                log.debug(f"Update remote_parent_path {query!r}")
-                c.execute(query)
             c.execute(
                 "UPDATE States SET remote_parent_path = ? WHERE id = ?",
                 (new_path, doc_pair.id),
@@ -1367,17 +1364,28 @@ class EngineDAO(BaseDAO):
         with self.lock:
             c = self._get_write_connection().cursor()
             if doc_pair.folderish:
-                path = self._escape(adapt_path(new_path / new_name))
-                count = len(self._escape(adapt_path(doc_pair.local_path)))
-                query = (
+                path = adapt_path(new_path / new_name)
+                old_path = adapt_path(doc_pair.local_path)
+                remote_path = f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}"
+                c.execute(
                     "UPDATE States"
-                    f"  SET local_parent_path = '{path}'"
-                    f"      || substr(local_parent_path, {count + 1}),"
-                    f"         local_path = '{path}'"
-                    f"      || substr(local_path, {count + 1}) "
-                    + self._get_recursive_condition(doc_pair)
+                    "   SET local_parent_path = ?"
+                    "       || substr(local_parent_path, ?),"
+                    "       local_path = ? || substr(local_path, ?)"
+                    " WHERE (local_parent_path LIKE ?"
+                    "        OR local_parent_path = ?)"
+                    "   AND (? = '' OR remote_parent_path LIKE ?)",
+                    (
+                        path,
+                        len(old_path) + 1,
+                        path,
+                        len(old_path) + 1,
+                        f"{old_path}/%",
+                        old_path,
+                        remote_path if doc_pair.remote_ref else "",
+                        f"{remote_path}%",
+                    ),
                 )
-                c.execute(query)
             # Don't need to update the path as it is refresh later
             c.execute(
                 "UPDATE States SET local_parent_path = ? WHERE id = ?",
@@ -2960,6 +2968,15 @@ class EngineDAO(BaseDAO):
             sql = "UPDATE Uploads SET request_uid = ? WHERE uid = ?"
             c.execute(sql, (upload.request_uid, upload.uid))
 
+    @staticmethod
+    def _transfer_query(nature: str, upload_sql: str, download_sql: str, /) -> str:
+        """Choose a complete transfer query from the supported table whitelist."""
+        if nature == "upload":
+            return upload_sql
+        if nature == "download":
+            return download_sql
+        raise ValueError(f"Unknown transfer nature: {nature!r}")
+
     def pause_transfer(
         self,
         nature: str,
@@ -2971,9 +2988,13 @@ class EngineDAO(BaseDAO):
     ) -> None:
         with self.lock:
             c = self._get_write_connection().cursor()
-            table = f"{nature.title()}s"  # Downloads/Uploads
+            query = self._transfer_query(
+                nature,
+                "UPDATE Uploads SET status = ?, progress = ? WHERE uid = ?",
+                "UPDATE Downloads SET status = ?, progress = ? WHERE uid = ?",
+            )
             c.execute(
-                f"UPDATE {table} SET status = ?, progress = ? WHERE uid = ?",
+                query,
                 (TransferStatus.PAUSED.value, progress, uid),
             )
             if is_direct_transfer:
@@ -3005,9 +3026,13 @@ class EngineDAO(BaseDAO):
     ) -> None:
         with self.lock:
             c = self._get_write_connection().cursor()
-            table = f"{nature.title()}s"  # Downloads/Uploads
+            query = self._transfer_query(
+                nature,
+                "UPDATE Uploads SET status = ? WHERE uid = ?",
+                "UPDATE Downloads SET status = ? WHERE uid = ?",
+            )
             c.execute(
-                f"UPDATE {table} SET status = ? WHERE uid = ?",
+                query,
                 (TransferStatus.ONGOING.value, uid),
             )
             if is_direct_transfer:
@@ -3099,9 +3124,13 @@ class EngineDAO(BaseDAO):
     ) -> None:
         with self.lock:
             c = self._get_write_connection().cursor()
-            table = f"{nature.title()}s"  # Downloads/Uploads
+            query = self._transfer_query(
+                nature,
+                "UPDATE Uploads SET doc_pair = ?, engine = ? WHERE uid = ?",
+                "UPDATE Downloads SET doc_pair = ?, engine = ? WHERE uid = ?",
+            )
             c.execute(
-                f"UPDATE {table} SET doc_pair = ?, engine = ? WHERE uid = ?",
+                query,
                 (doc_pair_uid, engine_uid, transfer_uid),
             )
 
@@ -3109,14 +3138,13 @@ class EngineDAO(BaseDAO):
         self, nature: str, transfer_uid: int, /
     ) -> Optional[TransferStatus]:
         """Return one transfer's status without loading the complete table."""
-        if nature not in ("download", "upload"):
-            raise ValueError(f"Unknown transfer nature: {nature!r}")
-
         c = self._get_read_connection().cursor()
-        table = f"{nature.title()}s"  # Downloads/Uploads
-        row = c.execute(
-            f"SELECT status FROM {table} WHERE uid = ?", (transfer_uid,)
-        ).fetchone()
+        query = self._transfer_query(
+            nature,
+            "SELECT status FROM Uploads WHERE uid = ?",
+            "SELECT status FROM Downloads WHERE uid = ?",
+        )
+        row = c.execute(query, (transfer_uid,)).fetchone()
         if row is None:
             return None
         try:
@@ -3131,9 +3159,13 @@ class EngineDAO(BaseDAO):
         """Update the 'progress' field of a given *transfer*."""
         with self.lock:
             c = self._get_write_connection().cursor()
-            table = f"{nature.title()}s"  # Downloads/Uploads
+            query = self._transfer_query(
+                nature,
+                "UPDATE Uploads SET progress = ? WHERE uid = ?",
+                "UPDATE Downloads SET progress = ? WHERE uid = ?",
+            )
             c.execute(
-                f"UPDATE {table} SET progress = ? WHERE uid = ?",
+                query,
                 (transfer.progress, transfer.uid),
             )
 
@@ -3143,9 +3175,13 @@ class EngineDAO(BaseDAO):
         """Update the 'status' field of a given *transfer*."""
         with self.lock:
             c = self._get_write_connection().cursor()
-            table = f"{nature.title()}s"  # Downloads/Uploads
+            query = self._transfer_query(
+                nature,
+                "UPDATE Uploads SET status = ? WHERE uid = ?",
+                "UPDATE Downloads SET status = ? WHERE uid = ?",
+            )
             c.execute(
-                f"UPDATE {table} SET status = ? WHERE uid = ?",
+                query,
                 (transfer.status.value, transfer.uid),
             )
             self.directTransferUpdated.emit()
@@ -3161,14 +3197,23 @@ class EngineDAO(BaseDAO):
     ) -> None:
         with self.lock:
             c = self._get_write_connection().cursor()
-            table = f"{nature.title()}s"  # Downloads/Uploads
 
             # Handling *doc_pair* first to allow to pass both *doc_pair* and *path*
             # and forcing the priority on *doc_pair*.
             if doc_pair is not None:
-                c.execute(f"DELETE FROM {table} WHERE doc_pair = ?", (doc_pair,))
+                query = self._transfer_query(
+                    nature,
+                    "DELETE FROM Uploads WHERE doc_pair = ?",
+                    "DELETE FROM Downloads WHERE doc_pair = ?",
+                )
+                c.execute(query, (doc_pair,))
             elif path:
-                c.execute(f"DELETE FROM {table} WHERE path = ?", (path,))
+                query = self._transfer_query(
+                    nature,
+                    "DELETE FROM Uploads WHERE path = ?",
+                    "DELETE FROM Downloads WHERE path = ?",
+                )
+                c.execute(query, (path,))
             else:
                 # Should never happen
                 log.error(
