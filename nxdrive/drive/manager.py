@@ -546,6 +546,31 @@ class Manager(QObject):
         # Make a backup in case something happens
         self.dao.save_backup()
 
+        self._started = False
+
+        # Stop manager-level workers before disposing the databases they use.
+        # Functional tests create many short-lived managers; leaving these
+        # QThreads alive until interpreter teardown causes native crashes.
+        for name in (
+            "server_config_updater",
+            "updater",
+            "tracker",
+            "db_backup_worker",
+            "sync_and_quit_worker",
+            "direct_edit",
+            "autolock_service",
+            "workflow_worker",
+        ):
+            worker = getattr(self, name, None)
+            stop = getattr(worker, "stop", None)
+            if callable(stop):
+                try:
+                    stop()
+                except RuntimeError:
+                    # A Qt wrapper may already be deleted during shutdown;
+                    # continue stopping the remaining independent workers.
+                    log.debug(f"Worker {name!r} was already deleted")
+
         for engine in self.engines.copy().values():
             if engine.is_started():
                 engine.stop()

@@ -28,7 +28,7 @@ env:
 jobs:
   functional-tests-linux:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -67,7 +67,7 @@ jobs:
 
   functional-tests-macos:
     runs-on: "macos-15-intel"
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6

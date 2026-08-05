@@ -700,12 +700,32 @@ def test_stop_cleans_started_engines_downloads_and_os(manager_obj):
     stopped.is_started.return_value = False
     manager_obj.engines = {"started": started, "stopped": stopped}
     manager_obj.direct_download = Mock()
+    workers = {
+        name: Mock()
+        for name in (
+            "server_config_updater",
+            "updater",
+            "tracker",
+            "db_backup_worker",
+            "sync_and_quit_worker",
+            "direct_edit",
+            "autolock_service",
+            "workflow_worker",
+        )
+    }
+    for name, worker in workers.items():
+        setattr(manager_obj, name, worker)
+    workers["updater"].stop.side_effect = RuntimeError("already deleted")
+    manager_obj._started = True
     seen = []
     manager_obj.stopped.connect(lambda: seen.append(True))
 
     manager_obj.stop()
 
     manager_obj.dao.save_backup.assert_called_once_with()
+    assert manager_obj._started is False
+    for worker in workers.values():
+        worker.stop.assert_called_once_with()
     started.stop.assert_called_once_with()
     stopped.stop.assert_not_called()
     manager_obj.direct_download.stop.assert_called_once_with()
