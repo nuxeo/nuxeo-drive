@@ -504,7 +504,7 @@ def test_find_child_creates_new_remote_state_and_persists_parent_paths():
     watcher.dao.insert_remote_state.assert_called_once_with(
         child_info,
         "/roots/parent",
-        Path("/sync/parent/unsafe-name"),
+        Path("/sync/parent") / safe_filename("unsafe:name"),
         Path("/sync/parent"),
     )
     watcher.dao.get_state_from_id.assert_called_once_with(77, from_write=True)

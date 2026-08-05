@@ -485,7 +485,7 @@ def test_set_download_dir_creates_engine_specific_directory(base_engine, tmp_pat
 def test_csv_directory_is_created_and_temporary_files_are_cleaned(
     base_engine, tmp_path
 ):
-    csv_dir = base_engine.manager.home / "csv"
+    csv_dir = engine_module.safe_long_path(base_engine.manager.home) / "csv"
     assert base_engine._set_csv_dir_or_cleanup() == csv_dir
     assert csv_dir.is_dir()
 
