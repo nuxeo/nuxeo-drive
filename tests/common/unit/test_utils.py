@@ -15,7 +15,7 @@ from nxdrive.drive.constants import APP_NAME, MAC, WINDOWS, DigestStatus
 from nxdrive.drive.dao.utils import dump
 from nxdrive.drive.options import Options
 
-from ...markers import linux_only, mac_only, not_windows, windows_only
+from ...markers import mac_only, not_windows, windows_only
 
 BAD_HOSTNAMES = [
     "expired.badssl.com",
@@ -1317,13 +1317,16 @@ def test_save_config(default_config, config_dump, tmp_path):
             assert config[env].getboolean(key) == config_dump[key]
 
 
-@linux_only
+@Options.mock()
 def test_url_bad_ssl():
+    from requests.exceptions import SSLError
+
     from nxdrive.drive.exceptions import InvalidSSLCertificate
 
-    if not Options.ssl_no_verify:
+    Options.ssl_no_verify = False
+    with patch("requests.get", side_effect=SSLError("CERTIFICATE_VERIFY_FAILED")):
         with pytest.raises(InvalidSSLCertificate):
-            nxdrive.drive.utils.test_url(f"https://{BAD_HOSTNAMES[2]}/nuxeo")
+            nxdrive.drive.utils.test_url("https://invalid.example/nuxeo")
 
 
 @pytest.mark.parametrize(

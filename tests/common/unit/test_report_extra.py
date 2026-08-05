@@ -75,7 +75,9 @@ def test_copy_logs_ignores_individual_write_failures(tmp_path):
         report.copy_logs(archive)
 
     archive.write.assert_called_once_with(
-        str(log_path), "logs/shared.log", compress_type=ZIP_DEFLATED
+        str(log_path),
+        str(log_path.relative_to(manager.home)),
+        compress_type=ZIP_DEFLATED,
     )
 
 

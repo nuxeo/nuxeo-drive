@@ -204,7 +204,7 @@ def test_scan_remote_stops_without_root_or_when_remote_is_missing():
 
 def test_scan_pair_enqueues_path_and_internal_scan_handles_early_returns():
     watcher = _watcher()
-    watcher.scan_pair(Path("/parent/child"))
+    watcher.scan_pair("/parent/child")
     watcher.dao.add_path_to_scan.assert_called_once_with("/parent/child")
     assert watcher._next_check == 0
 
