@@ -64,7 +64,7 @@ def test_active_session_scalar_roles(app, translate):
     row = make_active_session(shadow=True)
     index = model_index(model, row)
 
-    assert model.data(index, model.REMOTE_PATH) == "/shared/folder"
+    assert model.data(index, model.REMOTE_PATH) == str(Path("/shared/folder"))
     assert model.data(index, model.STATUS) == "COMPLETED"
     assert model.data(index, model.DESCRIPTION) == "Shared transfer"
     assert model.data(index, model.PROGRESS) == "[12,345 / 67,890]"
@@ -187,7 +187,7 @@ def test_completed_session_scalar_roles(app, translate):
     row = make_completed_session()
     index = model_index(model, row)
 
-    assert model.data(index, model.REMOTE_PATH) == "/shared/completed"
+    assert model.data(index, model.REMOTE_PATH) == str(Path("/shared/completed"))
     assert model.data(index, model.STATUS) == "COMPLETED"
     assert model.data(index, model.DESCRIPTION) == "Completed transfer"
     assert model.data(index, model.PROGRESS) == "[12,345 / 67,890]"

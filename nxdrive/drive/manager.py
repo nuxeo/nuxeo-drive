@@ -4,7 +4,7 @@ import shutil
 import sqlite3
 import uuid
 from logging import getLogger
-from pathlib import Path
+from pathlib import Path, PurePath
 from platform import machine
 from time import sleep
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
@@ -1282,14 +1282,15 @@ class Manager(QObject):
         return engine.get_metadata_url(remote_ref, edit=edit)
 
     def send_sync_status(self, path: Path, /) -> None:
-        if isinstance(path, str):
-            path = Path(path)
+        managed_path = path if isinstance(path, PurePath) else Path(path)
         for engine in self.engines.copy().values():
-            # Only send status if we picked the right
-            # engine and if we're not targeting the root
+            local_folder = engine.local_folder
+            if not isinstance(local_folder, PurePath):
+                local_folder = Path(local_folder)
             try:
-                r_path = path.relative_to(engine.local_folder)
+                r_path = managed_path.relative_to(local_folder)
             except ValueError:
+                # The path is not managed by this engine.
                 continue
 
             dao = engine.dao

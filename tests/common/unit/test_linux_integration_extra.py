@@ -43,6 +43,7 @@ def test_register_protocol_handlers_writes_desktop_file(
     appimage = "/opt/Drive AppImage"
     monkeypatch.setenv("APPIMAGE", appimage)
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     environment = {"DISPLAY": ":test"}
     host_env = Mock(return_value=environment)
     check_call = Mock()
@@ -78,6 +79,7 @@ def test_register_protocol_handlers_logs_registration_failure(
 ):
     monkeypatch.setenv("APPIMAGE", "/opt/drive")
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     monkeypatch.setattr(
         linux.subprocess,
         "check_call",
