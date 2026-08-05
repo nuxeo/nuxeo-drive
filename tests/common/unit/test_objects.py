@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
@@ -64,6 +64,19 @@ def test_doc_pair_export_formats_recent_download():
     }
     local_zone.utcoffset.assert_called_once_with(sync_date)
     format_datetime.assert_called_once_with(sync_date + timedelta(hours=2))
+
+
+def test_doc_pair_export_uses_posix_separators():
+    pair = _doc_pair(
+        local_path=PureWindowsPath("folder/local.txt"),
+        local_parent_path=PureWindowsPath("folder"),
+        last_sync_date="",
+    )
+
+    result = objects.DocPair.export(pair)
+
+    assert result["local_path"] == "folder/local.txt"
+    assert result["local_parent_path"] == "folder"
 
 
 def test_doc_pair_export_handles_missing_sync_date_and_local_name():

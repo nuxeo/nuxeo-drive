@@ -1,7 +1,7 @@
 """Deterministic unit coverage for the Nuxeo remote watcher."""
 
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, call, patch
 
@@ -216,6 +216,14 @@ def test_scan_pair_enqueues_path_and_internal_scan_handles_early_returns():
     watcher.dao.is_filter.return_value = False
     watcher.engine.remote.get_fs_info.side_effect = NotFound("deleted")
     watcher._scan_pair("/parent/child")
+
+
+def test_scan_pair_normalizes_windows_remote_path():
+    watcher = _watcher()
+
+    watcher.scan_pair(PureWindowsPath("/parent/child"))
+
+    watcher.dao.add_path_to_scan.assert_called_once_with("/parent/child")
 
 
 def test_internal_scan_pair_updates_existing_or_inserts_new_folder():

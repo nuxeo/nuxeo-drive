@@ -1,6 +1,5 @@
 import os
 import platform
-import re
 import shutil
 import sqlite3
 import uuid
@@ -1283,13 +1282,16 @@ class Manager(QObject):
         return engine.get_metadata_url(remote_ref, edit=edit)
 
     def send_sync_status(self, path: Path, /) -> None:
+        if isinstance(path, str):
+            path = Path(path)
         for engine in self.engines.copy().values():
             # Only send status if we picked the right
             # engine and if we're not targeting the root
-            if not re.search(f"{str(engine.local_folder)}/", f"{str(path)}/"):
+            try:
+                r_path = path.relative_to(engine.local_folder)
+            except ValueError:
                 continue
 
-            r_path = path.relative_to(engine.local_folder)
             dao = engine.dao
             states = dao.get_local_children(r_path)
             self.osi.send_content_sync_status(states, path)

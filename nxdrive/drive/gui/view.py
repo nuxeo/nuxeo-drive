@@ -514,7 +514,7 @@ class ActiveSessionModel(QAbstractListModel):
     def data(self, index: QModelIndex, role: int, /) -> Any:
         row = self.sessions[index.row()]
         if role == self.REMOTE_PATH:
-            return str(row["remote_path"])
+            return str(row["remote_path"]).replace("\\", "/")
         elif role == self.STATUS:
             status = row["status"].name
             if status == "DONE":
@@ -659,7 +659,7 @@ class CompletedSessionModel(QAbstractListModel):
     def data(self, index: QModelIndex, role: int, /) -> Any:
         row = self.sessions[index.row()]
         if role == self.REMOTE_PATH:
-            return str(row["remote_path"])
+            return str(row["remote_path"]).replace("\\", "/")
         elif role == self.STATUS:
             status = row["status"].name
             if status == "DONE":

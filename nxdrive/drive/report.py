@@ -70,7 +70,7 @@ class Report:
             comp = ZIP_DEFLATED if path.suffix == ".log" else ZIP_STORED
             rel_path = path.relative_to(self._manager.home)
             try:
-                myzip.write(str(path), str(rel_path), compress_type=comp)
+                myzip.write(str(path), rel_path.as_posix(), compress_type=comp)
             except Exception:
                 log.exception(f"Impossible to copy the log {rel_path!r}")
 

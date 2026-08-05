@@ -89,9 +89,14 @@ class LinuxIntegration(AbstractOSIntegration):
             )
             return
 
-        desktop_file = Path(
-            f"~/.local/share/applications/{NXDRIVE_SCHEME}.desktop"
-        ).expanduser()
+        home = os.getenv("HOME")
+        desktop_file = (
+            (Path(home) if home else Path.home())
+            / ".local"
+            / "share"
+            / "applications"
+            / f"{NXDRIVE_SCHEME}.desktop"
+        )
         desktop_content = f"""[Desktop Entry]
 Type=Application
 Name={APP_NAME}
