@@ -297,6 +297,12 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
         # Mark remaining DB children as deleted on server
         for deleted_pair in children.values():
+            if deleted_pair.pair_state in ("locally_created", "locally_modified"):
+                log.debug(
+                    f"Skipping remote deletion for {deleted_pair.local_name!r}: "
+                    f"pair is {deleted_pair.pair_state!r} (processor active)"
+                )
+                continue
             self.dao.delete_remote_state(deleted_pair)
 
         # Recurse into sub-folders

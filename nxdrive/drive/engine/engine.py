@@ -202,7 +202,6 @@ class Engine(QObject):
                 raise EngineInitError(self)
             self._check_https()
             self.remote = self.init_remote()
-            self._seed_userid_mapper()
 
         self._create_queue_manager()
         if Feature.synchronization:

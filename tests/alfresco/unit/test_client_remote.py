@@ -271,14 +271,43 @@ class TestNodeOperations:
         remote.client.nodes.upload.return_value = "new-node"
         result = remote.upload("parent-1", "/tmp/file.txt", name="file.txt")
         remote.client.nodes.upload.assert_called_once_with(
-            "parent-1", file_path="/tmp/file.txt", name="file.txt"
+            "parent-1",
+            file_path="/tmp/file.txt",
+            name="file.txt",
+            progress=None,
+            chunk_size=65536,
         )
         assert result == "new-node"
+
+    def test_upload_forwards_progress_options(self, _client_patch) -> None:
+        remote = _build_remote(_client_patch)
+        progress = MagicMock()
+
+        remote.upload(
+            "parent-1",
+            "/tmp/file.txt",
+            progress=progress,
+            chunk_size=4096,
+        )
+
+        remote.client.nodes.upload.assert_called_once_with(
+            "parent-1",
+            file_path="/tmp/file.txt",
+            name=None,
+            progress=progress,
+            chunk_size=4096,
+        )
 
     def test_update_content_delegates(self, _client_patch) -> None:
         remote = _build_remote(_client_patch)
         remote.client.nodes.update_content.return_value = "updated"
         result = remote.update_content("node-1", "/tmp/new.txt")
+        remote.client.nodes.update_content.assert_called_once_with(
+            "node-1",
+            file_path="/tmp/new.txt",
+            progress=None,
+            chunk_size=65536,
+        )
         assert result == "updated"
 
     def test_create_folder_delegates(self, _client_patch) -> None:
@@ -529,6 +558,39 @@ class TestStreamFile:
 
         assert info.uid == "new-file-id"
         assert info.digest == "md5hash"
+        call_kwargs = remote.client.nodes.upload.call_args.kwargs
+        assert callable(call_kwargs["progress"])
+        assert call_kwargs["chunk_size"] == 65536
+
+    def test_paused_upload_preserves_transfer(self, _client_patch) -> None:
+        from pathlib import Path
+
+        from nxdrive.drive.exceptions import UploadPaused
+        from nxdrive.drive.objects import Upload
+        from nxdrive.drive.constants import TransferStatus
+
+        remote = _build_remote(_client_patch)
+        path = Path("/tmp/test.txt")
+        upload = Upload(
+            7,
+            path=path,
+            status=TransferStatus.ONGOING,
+            engine="engine-1",
+            doc_pair=42,
+            filesize=100,
+        )
+        action = MagicMock()
+        remote._register_upload = MagicMock(return_value=upload)
+        remote._upload_progress = MagicMock(return_value=(MagicMock(), action))
+        remote._finish_upload = MagicMock()
+        remote.client.nodes.iter_children.return_value = []
+        remote.client.nodes.upload.side_effect = UploadPaused(7)
+
+        with pytest.raises(UploadPaused):
+            remote.stream_file("parent", path)
+
+        action.finish_action.assert_called_once_with()
+        remote._finish_upload.assert_not_called()
 
     def test_conflict_raises_remote_conflict(self, _client_patch) -> None:
         from pathlib import Path
@@ -566,6 +628,9 @@ class TestStreamUpdate:
             info = remote.stream_update("node-1", Path("/tmp/doc.txt"))
 
         assert info.digest == "d1"
+        call_kwargs = remote.client.nodes.update_content.call_args.kwargs
+        assert callable(call_kwargs["progress"])
+        assert call_kwargs["chunk_size"] == 65536
 
     def test_conflict_raises_remote_conflict(self, _client_patch) -> None:
         from pathlib import Path
@@ -816,9 +881,10 @@ class TestRegisterUpload:
 
         with patch("nxdrive.alfresco.client.remote.Path") as mock_path:
             mock_path.return_value.stat.return_value.st_size = 1024
-            remote._register_upload(Path("/tmp/file.txt"), doc_pair_id=1)
+            upload = remote._register_upload(Path("/tmp/file.txt"), doc_pair_id=1)
 
         dao.save_upload.assert_called_once()
+        assert upload is dao.save_upload.call_args.args[0]
 
     def test_no_dao_is_noop(self, _client_patch) -> None:
         remote = _build_remote(_client_patch)
@@ -839,6 +905,105 @@ class TestRegisterUpload:
         remote.dao = dao
         remote._register_upload(Path("/tmp/file.txt"))
         dao.save_upload.assert_not_called()
+
+
+class TestUploadProgress:
+    def test_persists_intermediate_progress(self, _client_patch, tmp_path) -> None:
+        from nxdrive.drive.constants import TransferStatus
+        from nxdrive.drive.objects import Upload
+
+        path = tmp_path / "file.txt"
+        path.write_bytes(b"x" * 100)
+        remote = _build_remote(_client_patch)
+        remote.upload_callback = MagicMock()
+        remote.dao = MagicMock()
+        upload = Upload(
+            7,
+            path=path,
+            status=TransferStatus.ONGOING,
+            engine="engine-1",
+            doc_pair=42,
+            filesize=100,
+        )
+        remote.dao.get_upload.return_value = upload
+        published = []
+        remote.dao.set_transfer_progress.side_effect = (
+            lambda _nature, transfer: published.append(transfer.progress)
+        )
+        progress, action = remote._upload_progress(upload, path)
+
+        progress(10, 100)
+        progress(50, 100)
+        progress(100, 100)
+
+        assert action.get_percent() == 100.0
+        assert published == [10.0, 50.0, 100.0]
+        assert remote.dao.set_transfer_progress.call_count == 3
+        assert remote.upload_callback.call_count == 3
+        action.finish_action()
+
+    def test_retry_reset_is_published(self, _client_patch, tmp_path) -> None:
+        from nxdrive.drive.constants import TransferStatus
+        from nxdrive.drive.objects import Upload
+
+        path = tmp_path / "file.txt"
+        path.write_bytes(b"x" * 100)
+        remote = _build_remote(_client_patch)
+        remote.dao = MagicMock()
+        upload = Upload(
+            7,
+            path=path,
+            status=TransferStatus.ONGOING,
+            engine="engine-1",
+            doc_pair=42,
+            filesize=100,
+        )
+        remote.dao.get_upload.return_value = upload
+        published = []
+        remote.dao.set_transfer_progress.side_effect = (
+            lambda _nature, transfer: published.append(transfer.progress)
+        )
+        progress, action = remote._upload_progress(upload, path)
+
+        progress(80, 100)
+        progress(10, 100)
+
+        assert published == [80.0, 10.0]
+        action.finish_action()
+
+    def test_paused_transfer_aborts(self, _client_patch, tmp_path) -> None:
+        from nxdrive.drive.constants import TransferStatus
+        from nxdrive.drive.exceptions import UploadPaused
+        from nxdrive.drive.objects import Upload
+
+        path = tmp_path / "file.txt"
+        path.write_bytes(b"x" * 100)
+        remote = _build_remote(_client_patch)
+        remote.dao = MagicMock()
+        upload = Upload(
+            7,
+            path=path,
+            status=TransferStatus.ONGOING,
+            engine="engine-1",
+            doc_pair=42,
+            filesize=100,
+        )
+        paused = Upload(
+            7,
+            path=path,
+            status=TransferStatus.PAUSED,
+            engine="engine-1",
+            doc_pair=42,
+            filesize=100,
+        )
+        remote.dao.get_upload.return_value = paused
+        progress, action = remote._upload_progress(upload, path)
+
+        with pytest.raises(UploadPaused):
+            progress(10, 100)
+
+        remote.dao.set_transfer_progress.assert_not_called()
+        action.finish_action()
 
 
 class TestFinishUpload:

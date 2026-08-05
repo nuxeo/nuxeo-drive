@@ -269,6 +269,27 @@ class TestScanRemoteRecursive:
 
         watcher.dao.delete_remote_state.assert_called_once_with(orphan)
 
+    @pytest.mark.parametrize("pair_state", ["locally_created", "locally_modified"])
+    def test_missing_active_upload_is_not_marked_deleted(self, pair_state):
+        watcher = _make_watcher()
+        remote = MagicMock()
+        watcher.engine.remote = remote
+        remote.client.nodes.iter_children.return_value = []
+
+        active_pair = _make_doc_pair(
+            remote_ref="pending-node",
+            local_name="uploading.bin",
+            pair_state=pair_state,
+        )
+        watcher.dao.get_remote_children.return_value = [active_pair]
+
+        parent_pair = _make_doc_pair(remote_ref="parent-node", remote_parent_path="")
+        watcher._scan_remote_recursive(
+            parent_pair, _make_remote_info(uid="parent-node")
+        )
+
+        watcher.dao.delete_remote_state.assert_not_called()
+
     def test_filtered_path_skipped(self):
         watcher = _make_watcher()
         remote = MagicMock()

@@ -475,6 +475,50 @@ class TestTransferModel:
 
         assert model.transfers[0]["finalizing"] is True
 
+    def test_set_progress_matches_engine_and_doc_pair(self, translate_func):
+        model = TransferModel(translate_func)
+        transfers = [
+            {
+                "uid": "transfer1",
+                "name": "file.txt",
+                "path": Path("/first/file.txt"),
+                "status": TransferStatus.ONGOING,
+                "progress": 0.0,
+                "transfer_type": "upload",
+                "engine": "engine1",
+                "doc_pair": 1,
+                "is_direct_edit": False,
+                "filesize": 100,
+            },
+            {
+                "uid": "transfer2",
+                "name": "file.txt",
+                "path": Path("/second/file.txt"),
+                "status": TransferStatus.ONGOING,
+                "progress": 0.0,
+                "transfer_type": "upload",
+                "engine": "engine1",
+                "doc_pair": 2,
+                "is_direct_edit": False,
+                "filesize": 100,
+            },
+        ]
+        model.set_transfers(transfers)
+
+        model.set_progress(
+            {
+                "name": "file.txt",
+                "engine": "engine1",
+                "doc_pair": 2,
+                "progress": 50.0,
+                "action_type": "Upload",
+                "speed": 0.0,
+            }
+        )
+
+        assert model.transfers[0]["progress"] == 0.0
+        assert model.transfers[1]["progress"] == 50.0
+
     def test_flags(self, translate_func):
         """Test flags method."""
         model = TransferModel(translate_func)

@@ -176,6 +176,7 @@ class TestInitRemote:
         call_kwargs = engine.remote_cls.call_args
         assert call_kwargs[1]["alfresco_ticket"] == "TICKET-ABC"
         assert call_kwargs[1]["password"] == "secret"
+        assert call_kwargs[1]["upload_callback"] == engine.suspend_client
 
 
 # ------------------------------------------------------------------ _on_remote_token_refreshed

@@ -19,10 +19,19 @@ from alfresco.models.node import Node
 from nxdrive.alfresco.auth.refresh import RefreshingOAuth2Auth
 from nxdrive.alfresco.sync_filters import is_top_folder_excluded
 from nxdrive.drive.constants import TransferStatus
-from nxdrive.drive.exceptions import DownloadPaused, NotFound, RemoteConflict
+from nxdrive.drive.engine.activity import UploadAction
+from nxdrive.drive.exceptions import (
+    DownloadPaused,
+    NotFound,
+    RemoteConflict,
+    ThreadInterrupt,
+    UploadCancelled,
+    UploadPaused,
+)
 from nxdrive.drive.metrics.utils import user_agent
 from nxdrive.drive.objects import Download, RemoteFileInfo, Upload
 from nxdrive.drive.options import Options
+from nxdrive.drive.qt.imports import QApplication
 from nxdrive.drive.utils import compute_digest
 
 if TYPE_CHECKING:
@@ -32,6 +41,10 @@ if TYPE_CHECKING:
 __all__ = ("AlfrescoRemote",)
 
 log = getLogger(__name__)
+
+ALFRESCO_UPLOAD_BLOCK_SIZE = 65536
+UPLOAD_PROGRESS_INTERVAL = 0.1
+UPLOAD_PROGRESS_PERCENT_STEP = 1.0
 
 
 class AlfrescoRemote:
@@ -70,6 +83,8 @@ class AlfrescoRemote:
 
         if dao:
             self.dao = dao
+
+        self.upload_callback = upload_callback
 
         # Retained so ``update_token()`` can re-attach the same callback
         # when it rebuilds the auth object after a UI re-auth.
@@ -266,17 +281,34 @@ class AlfrescoRemote:
         parent_id: str,
         file_path: str,
         name: Optional[str] = None,
+        *,
+        progress: Optional[Callable[[int, int], None]] = None,
+        chunk_size: int = 65536,
     ) -> Node:
         """Upload a file to a parent folder."""
-        return self.client.nodes.upload(parent_id, file_path=file_path, name=name)
+        return self.client.nodes.upload(
+            parent_id,
+            file_path=file_path,
+            name=name,
+            progress=progress,
+            chunk_size=chunk_size,
+        )
 
     def update_content(
         self,
         node_id: str,
         file_path: str,
+        *,
+        progress: Optional[Callable[[int, int], None]] = None,
+        chunk_size: int = 65536,
     ) -> Node:
         """Replace the content of an existing file node."""
-        return self.client.nodes.update_content(node_id, file_path=file_path)
+        return self.client.nodes.update_content(
+            node_id,
+            file_path=file_path,
+            progress=progress,
+            chunk_size=chunk_size,
+        )
 
     def create_folder(
         self,
@@ -572,35 +604,93 @@ class AlfrescoRemote:
         *,
         doc_pair_id: Optional[int] = None,
         engine_uid: Optional[str] = None,
-    ) -> None:
-        """Insert an ``Upload`` row so the systray shows the transfer.
-
-        Alfresco's multipart POST is a single blocking call with no
-        per-byte hook, so we cannot animate a filling progress bar for
-        uploads. Registering the row still gives the user visible
-        feedback: the file appears in the systray's transfer list while
-        the POST is in flight, then vanishes on completion (see
-        :meth:`_finish_upload`).
-        """
+    ) -> Optional[Upload]:
+        """Insert and return an ``Upload`` row for progress monitoring."""
         dao = getattr(self, "dao", None)
         if dao is None:
-            return
-        if dao.get_upload(path=file_path):
-            return
+            return None
+        if upload := dao.get_upload(path=file_path):
+            return upload
         try:
             filesize = Path(str(file_path)).stat().st_size
         except OSError:
             filesize = 0
-        dao.save_upload(
-            Upload(
-                None,
-                path=file_path,
-                status=TransferStatus.ONGOING,
-                engine=engine_uid,
-                doc_pair=doc_pair_id,
-                filesize=filesize,
-            )
+        upload = Upload(
+            None,
+            path=file_path,
+            status=TransferStatus.ONGOING,
+            engine=engine_uid,
+            doc_pair=doc_pair_id,
+            filesize=filesize,
         )
+        dao.save_upload(upload)
+        return upload
+
+    def _upload_progress(
+        self,
+        upload: Optional[Upload],
+        file_path: Path,
+    ) -> tuple[Callable[[int, int], None], UploadAction]:
+        """Build the SDK callback and live action for one upload attempt."""
+        try:
+            filesize = (
+                upload.filesize if upload else Path(str(file_path)).stat().st_size
+            )
+        except OSError:
+            filesize = 0
+        action = UploadAction(
+            file_path,
+            filesize,
+            reporter=QApplication.instance(),
+            engine=upload.engine if upload else "",
+            doc_pair=upload.doc_pair if upload else None,
+        )
+        action.chunk_size = ALFRESCO_UPLOAD_BLOCK_SIZE
+        last_bytes = 0
+        last_percent = -1.0
+        last_update = 0.0
+
+        def on_progress(bytes_read: int, total_bytes: int) -> None:
+            nonlocal last_bytes, last_percent, last_update
+
+            if self.upload_callback is not None:
+                self.upload_callback()
+
+            dao = getattr(self, "dao", None)
+            if dao is not None and upload is not None and upload.uid is not None:
+                current = dao.get_upload(uid=upload.uid)
+                if current is not None:
+                    if current.status in (
+                        TransferStatus.PAUSED,
+                        TransferStatus.SUSPENDED,
+                    ):
+                        raise UploadPaused(upload.uid)
+                    if current.status is TransferStatus.CANCELLED:
+                        raise UploadCancelled(upload.uid)
+
+            retry_reset = bytes_read < last_bytes
+            percent = (bytes_read * 100.0 / total_bytes) if total_bytes else 100.0
+            now = time.monotonic()
+            should_publish = (
+                retry_reset
+                or last_percent < 0.0
+                or percent >= 100.0
+                or percent - last_percent >= UPLOAD_PROGRESS_PERCENT_STEP
+                or now - last_update >= UPLOAD_PROGRESS_INTERVAL
+            )
+            last_bytes = bytes_read
+            if not should_publish:
+                return
+
+            action.progress = bytes_read
+            if upload is not None:
+                upload.progress = percent
+                if dao is not None and upload.uid is not None:
+                    dao.set_transfer_progress("upload", upload)
+            last_percent = percent
+            last_update = now
+
+        return on_progress, action
 
     def _finish_upload(self, file_path: Path) -> None:
         """Remove the ``Upload`` row registered by :meth:`_register_upload`."""
@@ -632,7 +722,11 @@ class AlfrescoRemote:
         """
         doc_pair_id = kwargs.get("doc_pair_id")
         engine_uid = kwargs.get("engine_uid")
-        self._register_upload(file_path, doc_pair_id=doc_pair_id, engine_uid=engine_uid)
+        upload = self._register_upload(
+            file_path, doc_pair_id=doc_pair_id, engine_uid=engine_uid
+        )
+        progress, action = self._upload_progress(upload, file_path)
+        preserve_upload = False
         try:
             target_name = filename or Path(str(file_path)).name
             # Check for an existing node with the same name.
@@ -648,18 +742,31 @@ class AlfrescoRemote:
                             f"{parent_id!r} (id={child.id!r}), updating "
                             "content instead of creating"
                         )
-                        node = self.update_content(child.id, str(file_path))
+                        node = self.update_content(
+                            child.id,
+                            str(file_path),
+                            progress=progress,
+                            chunk_size=ALFRESCO_UPLOAD_BLOCK_SIZE,
+                        )
                         info = self._node_to_remote_file_info(node)
                         info.digest = compute_digest(Path(str(file_path)), "md5")
                         info.digest_algorithm = "md5"
                         return info
+            except (UploadPaused, UploadCancelled):
+                raise
             except Exception:
                 log.debug(
                     "Could not check for existing node, proceeding with create",
                     exc_info=True,
                 )
             try:
-                node = self.upload(parent_id, str(file_path), name=filename)
+                node = self.upload(
+                    parent_id,
+                    str(file_path),
+                    name=filename,
+                    progress=progress,
+                    chunk_size=ALFRESCO_UPLOAD_BLOCK_SIZE,
+                )
             except ConflictError as exc:
                 # Someone else created a node with the same name in
                 # this folder between our iter_children check and the
@@ -675,8 +782,13 @@ class AlfrescoRemote:
             info.digest = compute_digest(Path(str(file_path)), "md5")
             info.digest_algorithm = "md5"
             return info
+        except (ThreadInterrupt, UploadPaused):
+            preserve_upload = True
+            raise
         finally:
-            self._finish_upload(file_path)
+            action.finish_action()
+            if not preserve_upload:
+                self._finish_upload(file_path)
 
     def stream_update(
         self,
@@ -695,10 +807,19 @@ class AlfrescoRemote:
         to update file content during ``_synchronize_locally_modified``.
         """
         doc_pair_id = kwargs.get("doc_pair_id")
-        self._register_upload(file_path, doc_pair_id=doc_pair_id, engine_uid=engine_uid)
+        upload = self._register_upload(
+            file_path, doc_pair_id=doc_pair_id, engine_uid=engine_uid
+        )
+        progress, action = self._upload_progress(upload, file_path)
+        preserve_upload = False
         try:
             try:
-                node = self.update_content(fs_item_id, str(file_path))
+                node = self.update_content(
+                    fs_item_id,
+                    str(file_path),
+                    progress=progress,
+                    chunk_size=ALFRESCO_UPLOAD_BLOCK_SIZE,
+                )
             except ConflictError as exc:
                 # The server refused the update because the node has
                 # been modified since we last read it (version /
@@ -711,8 +832,13 @@ class AlfrescoRemote:
             info.digest = compute_digest(Path(str(file_path)), "md5")
             info.digest_algorithm = "md5"
             return info
+        except (ThreadInterrupt, UploadPaused):
+            preserve_upload = True
+            raise
         finally:
-            self._finish_upload(file_path)
+            action.finish_action()
+            if not preserve_upload:
+                self._finish_upload(file_path)
 
     def make_folder(
         self, parent_id: str, name: str, /, *, overwrite: bool = False
