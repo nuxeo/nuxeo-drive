@@ -1,348 +1,375 @@
 """Unit tests for nxdrive.alfresco.auth.loopback."""
 
-import time
-from unittest.mock import MagicMock
+from types import SimpleNamespace
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
 from nxdrive.alfresco.auth.loopback import (
+    _ERROR_HTML,
+    _SUCCESS_HTML,
     LoopbackAuthServer,
     _CallbackHandler,
     _LoopbackHTTPServer,
 )
 
 
+def _handler(path: str = "/callback?code=code&state=state") -> _CallbackHandler:
+    """Build a request handler without invoking its socket-based initializer."""
+    handler = object.__new__(_CallbackHandler)
+    handler.path = path
+    handler.server = MagicMock()
+    handler._reply = MagicMock()
+    return handler
+
+
+def _http_server() -> SimpleNamespace:
+    """Build the HTTPServer wrapper while preventing socket allocation."""
+    callback = MagicMock()
+    on_delivered = MagicMock()
+    delivered = MagicMock()
+    delivered.is_set.return_value = False
+
+    def mark_delivered() -> None:
+        delivered.is_set.return_value = True
+
+    delivered.set.side_effect = mark_delivered
+    with patch(
+        "nxdrive.alfresco.auth.loopback.HTTPServer.__init__", return_value=None
+    ) as base_init, patch(
+        "nxdrive.alfresco.auth.loopback.threading.Event", return_value=delivered
+    ):
+        server = _LoopbackHTTPServer(
+            ("127.0.0.1", 0), _CallbackHandler, callback, on_delivered
+        )
+
+    return SimpleNamespace(
+        base_init=base_init,
+        callback=callback,
+        delivered=delivered,
+        on_delivered=on_delivered,
+        server=server,
+    )
+
+
+class TestCallbackHandler:
+    def test_valid_callback_replies_before_delivering_query(self) -> None:
+        handler = _handler(
+            "/callback?code=authorization-code&state=expected-state&extra=value"
+        )
+        parent = MagicMock()
+        parent.attach_mock(handler._reply, "reply")
+        parent.attach_mock(handler.server.deliver, "deliver")
+
+        handler.do_GET()
+
+        handler._reply.assert_called_once_with(200, _SUCCESS_HTML)
+        handler.server.deliver.assert_called_once_with(
+            {
+                "code": "authorization-code",
+                "state": "expected-state",
+                "extra": "value",
+            }
+        )
+        assert parent.mock_calls == [
+            call.reply(200, _SUCCESS_HTML),
+            call.deliver(
+                {
+                    "code": "authorization-code",
+                    "state": "expected-state",
+                    "extra": "value",
+                }
+            ),
+        ]
+
+    def test_callback_accepts_trailing_slash_and_first_repeated_value(self) -> None:
+        handler = _handler("/callback/?code=first&code=second&state=state&ignored=")
+
+        handler.do_GET()
+
+        handler._reply.assert_called_once_with(200, _SUCCESS_HTML)
+        handler.server.deliver.assert_called_once_with(
+            {"code": "first", "state": "state"}
+        )
+
+    @pytest.mark.parametrize("path", ["/", "/other", "/callback-extra"])
+    def test_unknown_path_returns_404(self, path: str) -> None:
+        handler = _handler(path + "?code=code&state=state")
+
+        handler.do_GET()
+
+        handler._reply.assert_called_once_with(404, _ERROR_HTML)
+        handler.server.deliver.assert_not_called()
+
+    @pytest.mark.parametrize("query", ["state=state", "code=code", "code=&state=state"])
+    def test_missing_required_parameter_returns_400(self, query: str) -> None:
+        handler = _handler(f"/callback?{query}")
+
+        handler.do_GET()
+
+        handler._reply.assert_called_once_with(400, _ERROR_HTML)
+        handler.server.deliver.assert_not_called()
+
+    def test_reply_writes_headers_and_body(self) -> None:
+        handler = object.__new__(_CallbackHandler)
+        handler.send_response = MagicMock()
+        handler.send_header = MagicMock()
+        handler.end_headers = MagicMock()
+        handler.wfile = MagicMock()
+
+        handler._reply(201, b"response")
+
+        handler.send_response.assert_called_once_with(201)
+        assert handler.send_header.call_args_list == [
+            call("Content-Type", "text/html; charset=utf-8"),
+            call("Content-Length", "8"),
+            call("Cache-Control", "no-store"),
+        ]
+        handler.end_headers.assert_called_once_with()
+        handler.wfile.write.assert_called_once_with(b"response")
+
+    def test_reply_suppresses_disconnected_browser_error(self) -> None:
+        handler = object.__new__(_CallbackHandler)
+        handler.send_response = MagicMock(side_effect=BrokenPipeError("closed"))
+
+        with patch("nxdrive.alfresco.auth.loopback.log.debug") as debug:
+            handler._reply(200, _SUCCESS_HTML)
+
+        debug.assert_called_once_with(
+            "Loopback: failed to send response", exc_info=True
+        )
+
+    def test_log_message_routes_to_debug_logger(self) -> None:
+        handler = object.__new__(_CallbackHandler)
+        handler.address_string = MagicMock(return_value="127.0.0.1")
+
+        with patch("nxdrive.alfresco.auth.loopback.log.debug") as debug:
+            handler.log_message("%s %d", "GET /callback", 200)
+
+        debug.assert_called_once_with(
+            "Loopback %s - %s", "127.0.0.1", "GET /callback 200"
+        )
+
+
 class TestLoopbackHTTPServer:
-    """Tests for the internal _LoopbackHTTPServer."""
+    def test_initializes_base_server_without_authentication_side_effects(self) -> None:
+        mocked = _http_server()
 
-    def test_deliver_invokes_callback(self):
+        mocked.base_init.assert_called_once_with(("127.0.0.1", 0), _CallbackHandler)
+        assert mocked.server.delivered is False
+
+    def test_deliver_invokes_each_hook_once(self) -> None:
+        mocked = _http_server()
+        query = {"code": "code", "state": "state"}
+
+        mocked.server.deliver(query)
+        mocked.server.deliver({"code": "other", "state": "other"})
+
+        mocked.delivered.set.assert_called_once_with()
+        mocked.callback.assert_called_once_with(query)
+        mocked.on_delivered.assert_called_once_with()
+        assert mocked.server.delivered is True
+
+    def test_callback_error_does_not_prevent_shutdown_hook(self) -> None:
+        mocked = _http_server()
+        mocked.callback.side_effect = RuntimeError("callback failed")
+
+        with patch("nxdrive.alfresco.auth.loopback.log.exception") as exception:
+            mocked.server.deliver({"code": "code", "state": "state"})
+
+        exception.assert_called_once_with("Loopback: on_callback raised")
+        mocked.on_delivered.assert_called_once_with()
+
+    def test_shutdown_hook_error_is_suppressed(self) -> None:
+        mocked = _http_server()
+        mocked.on_delivered.side_effect = RuntimeError("shutdown failed")
+
+        with patch("nxdrive.alfresco.auth.loopback.log.exception") as exception:
+            mocked.server.deliver({"code": "code", "state": "state"})
+
+        mocked.callback.assert_called_once_with({"code": "code", "state": "state"})
+        exception.assert_called_once_with("Loopback: on_delivered raised")
+
+
+class TestLoopbackAuthServerStart:
+    def test_start_configures_mocked_server_thread_and_timer(self) -> None:
         callback = MagicMock()
-        on_delivered = MagicMock()
-        server = _LoopbackHTTPServer(
-            ("127.0.0.1", 0), _CallbackHandler, callback, on_delivered
+        http_server = MagicMock()
+        http_server.server_address = ("127.0.0.1", 43123)
+        serve_thread = MagicMock()
+        timeout_timer = MagicMock()
+        server = LoopbackAuthServer()
+
+        with patch(
+            "nxdrive.alfresco.auth.loopback._LoopbackHTTPServer",
+            return_value=http_server,
+        ) as server_cls, patch(
+            "nxdrive.alfresco.auth.loopback.threading.Thread",
+            return_value=serve_thread,
+        ) as thread_cls, patch(
+            "nxdrive.alfresco.auth.loopback.threading.Timer",
+            return_value=timeout_timer,
+        ) as timer_cls:
+            result = server.start(on_callback=callback, timeout=12.5)
+
+        assert result == "http://127.0.0.1:43123/callback"
+        server_cls.assert_called_once_with(
+            ("127.0.0.1", 0),
+            _CallbackHandler,
+            callback,
+            server._async_shutdown,
         )
-        try:
-            query = {"code": "abc", "state": "xyz"}
-            server.deliver(query)
-            callback.assert_called_once_with(query)
-            on_delivered.assert_called_once()
-            assert server.delivered is True
-        finally:
-            server.server_close()
-
-    def test_deliver_only_once(self):
-        callback = MagicMock()
-        on_delivered = MagicMock()
-        server = _LoopbackHTTPServer(
-            ("127.0.0.1", 0), _CallbackHandler, callback, on_delivered
+        thread_cls.assert_called_once_with(
+            target=server._serve,
+            name="LoopbackAuthServer-43123",
+            daemon=True,
         )
-        try:
-            server.deliver({"code": "a", "state": "b"})
-            server.deliver({"code": "c", "state": "d"})
-            # Second call is a no-op
-            assert callback.call_count == 1
-        finally:
-            server.server_close()
-
-    def test_deliver_callback_exception_does_not_propagate(self):
-        callback = MagicMock(side_effect=RuntimeError("boom"))
-        on_delivered = MagicMock()
-        server = _LoopbackHTTPServer(
-            ("127.0.0.1", 0), _CallbackHandler, callback, on_delivered
-        )
-        try:
-            # Should not raise
-            server.deliver({"code": "a", "state": "b"})
-            assert server.delivered is True
-            on_delivered.assert_called_once()
-        finally:
-            server.server_close()
-
-    def test_delivered_property_initially_false(self):
-        server = _LoopbackHTTPServer(
-            ("127.0.0.1", 0), _CallbackHandler, MagicMock(), MagicMock()
-        )
-        try:
-            assert server.delivered is False
-        finally:
-            server.server_close()
-
-
-class TestLoopbackAuthServer:
-    """Tests for the public LoopbackAuthServer."""
-
-    def test_start_returns_redirect_uri(self):
-        server = LoopbackAuthServer()
-        uri = server.start(on_callback=MagicMock(), timeout=5)
-        try:
-            assert uri.startswith("http://127.0.0.1:")
-            assert uri.endswith("/callback")
-            assert server.is_running is True
-        finally:
-            server.shutdown()
-
-    def test_start_twice_raises(self):
-        server = LoopbackAuthServer()
-        server.start(on_callback=MagicMock(), timeout=5)
-        try:
-            with pytest.raises(RuntimeError, match="already started"):
-                server.start(on_callback=MagicMock(), timeout=5)
-        finally:
-            server.shutdown()
-
-    def test_shutdown_is_idempotent(self):
-        server = LoopbackAuthServer()
-        server.start(on_callback=MagicMock(), timeout=5)
-        server.shutdown()
-        assert server.is_running is False
-        # Second shutdown should not raise
-        server.shutdown()
-        assert server.is_running is False
-
-    def test_is_running_false_initially(self):
-        server = LoopbackAuthServer()
-        assert server.is_running is False
-
-    def test_timeout_triggers_shutdown(self):
-        server = LoopbackAuthServer()
-        server.start(on_callback=MagicMock(), timeout=0.3)
+        serve_thread.start.assert_called_once_with()
+        timer_cls.assert_called_once_with(12.5, server._on_timeout)
+        assert timeout_timer.daemon is True
+        timeout_timer.start.assert_called_once_with()
         assert server.is_running is True
-        time.sleep(0.6)
+
+    def test_start_twice_raises_without_allocating_another_server(self) -> None:
+        server = LoopbackAuthServer()
+        server._server = MagicMock()
+
+        with patch(
+            "nxdrive.alfresco.auth.loopback._LoopbackHTTPServer"
+        ) as server_cls, pytest.raises(RuntimeError, match="already started"):
+            server.start(on_callback=MagicMock())
+
+        server_cls.assert_not_called()
+
+    def test_bind_error_is_converted_to_runtime_error(self) -> None:
+        server = LoopbackAuthServer()
+
+        with patch(
+            "nxdrive.alfresco.auth.loopback._LoopbackHTTPServer",
+            side_effect=OSError("permission denied"),
+        ), patch(
+            "nxdrive.alfresco.auth.loopback.threading.Thread"
+        ) as thread_cls, pytest.raises(
+            RuntimeError, match="Cannot bind.*permission denied"
+        ):
+            server.start(on_callback=MagicMock())
+
+        thread_cls.assert_not_called()
         assert server.is_running is False
 
-    def test_callback_receives_query_params(self):
-        """End-to-end: simulate a browser redirect hitting the loopback."""
-        import urllib.request
 
-        received = {}
-
-        def on_callback(query):
-            received.update(query)
-
+class TestLoopbackAuthServerLifecycle:
+    def test_serve_is_noop_without_server(self) -> None:
         server = LoopbackAuthServer()
-        uri = server.start(on_callback=on_callback, timeout=5)
-        try:
-            # Simulate the IdP redirect
-            url = uri + "?code=test_code&state=test_state"
-            req = urllib.request.Request(url)
-            resp = urllib.request.urlopen(req, timeout=3)
-            assert resp.status == 200
-            # Give the delivery thread a moment
-            time.sleep(0.3)
-            assert received == {"code": "test_code", "state": "test_state"}
-        finally:
-            server.shutdown()
 
-    def test_invalid_path_returns_404(self):
-        import urllib.error
-        import urllib.request
+        server._serve()
 
+        assert server.is_running is False
+
+    def test_serve_calls_mocked_http_server(self) -> None:
         server = LoopbackAuthServer()
-        uri = server.start(on_callback=MagicMock(), timeout=5)
-        try:
-            # Hit a wrong path
-            port = uri.split(":")[2].split("/")[0]
-            url = f"http://127.0.0.1:{port}/wrong"
-            with pytest.raises(urllib.error.HTTPError) as exc_info:
-                urllib.request.urlopen(url, timeout=3)
-            assert exc_info.value.code == 404
-        finally:
-            server.shutdown()
+        server._server = MagicMock()
 
-    def test_missing_params_returns_400(self):
-        import urllib.error
-        import urllib.request
+        server._serve()
 
+        server._server.serve_forever.assert_called_once_with(poll_interval=0.5)
+
+    def test_serve_logs_mocked_http_server_error(self) -> None:
         server = LoopbackAuthServer()
-        uri = server.start(on_callback=MagicMock(), timeout=5)
-        try:
-            # Hit callback without code/state
-            url = uri + "?foo=bar"
-            with pytest.raises(urllib.error.HTTPError) as exc_info:
-                urllib.request.urlopen(url, timeout=3)
-            assert exc_info.value.code == 400
-        finally:
-            server.shutdown()
+        server._server = MagicMock()
+        server._server.serve_forever.side_effect = RuntimeError("serve failed")
 
+        with patch("nxdrive.alfresco.auth.loopback.log.exception") as exception:
+            server._serve()
 
-# --- NEW TESTS BELOW ---
+        exception.assert_called_once_with("Loopback: serve_forever raised")
 
-
-class TestCallbackHandlerDoGET:
-    """Tests for _CallbackHandler.do_GET via a real loopback server."""
-
-    def test_valid_callback_delivers_and_returns_200(self):
-        import urllib.request
-
-        received = {}
-
-        def on_callback(query):
-            received.update(query)
-
+    def test_async_shutdown_starts_helper_thread(self) -> None:
         server = LoopbackAuthServer()
-        uri = server.start(on_callback=on_callback, timeout=5)
-        try:
-            url = uri + "?code=c1&state=s1&extra=e1"
-            resp = urllib.request.urlopen(url, timeout=3)
-            assert resp.status == 200
-            body = resp.read()
-            assert b"Authentication complete" in body
-            time.sleep(0.3)
-            assert received["code"] == "c1"
-            assert received["state"] == "s1"
-            # Extra params are also delivered
-            assert received["extra"] == "e1"
-        finally:
-            server.shutdown()
+        helper_thread = MagicMock()
 
-    def test_non_callback_path_returns_404(self):
-        import urllib.error
-        import urllib.request
+        with patch(
+            "nxdrive.alfresco.auth.loopback.threading.Thread",
+            return_value=helper_thread,
+        ) as thread_cls:
+            server._async_shutdown()
 
-        server = LoopbackAuthServer()
-        uri = server.start(on_callback=MagicMock(), timeout=5)
-        try:
-            port = uri.split(":")[2].split("/")[0]
-            url = f"http://127.0.0.1:{port}/other"
-            with pytest.raises(urllib.error.HTTPError) as exc_info:
-                urllib.request.urlopen(url, timeout=3)
-            assert exc_info.value.code == 404
-        finally:
-            server.shutdown()
-
-    def test_missing_code_returns_400(self):
-        import urllib.error
-        import urllib.request
-
-        server = LoopbackAuthServer()
-        uri = server.start(on_callback=MagicMock(), timeout=5)
-        try:
-            url = uri + "?state=s1"
-            with pytest.raises(urllib.error.HTTPError) as exc_info:
-                urllib.request.urlopen(url, timeout=3)
-            assert exc_info.value.code == 400
-        finally:
-            server.shutdown()
-
-    def test_missing_state_returns_400(self):
-        import urllib.error
-        import urllib.request
-
-        server = LoopbackAuthServer()
-        uri = server.start(on_callback=MagicMock(), timeout=5)
-        try:
-            url = uri + "?code=c1"
-            with pytest.raises(urllib.error.HTTPError) as exc_info:
-                urllib.request.urlopen(url, timeout=3)
-            assert exc_info.value.code == 400
-        finally:
-            server.shutdown()
-
-
-class TestCallbackHandlerLogMessage:
-    """log_message should suppress stderr by routing to logging."""
-
-    def test_log_message_does_not_raise(self):
-        """Indirectly tested: any request to the server triggers log_message."""
-        import urllib.error
-        import urllib.request
-
-        server = LoopbackAuthServer()
-        uri = server.start(on_callback=MagicMock(), timeout=5)
-        try:
-            # A 404 triggers log_message; should not crash
-            port = uri.split(":")[2].split("/")[0]
-            url = f"http://127.0.0.1:{port}/nope"
-            with pytest.raises(urllib.error.HTTPError):
-                urllib.request.urlopen(url, timeout=3)
-        finally:
-            server.shutdown()
-
-
-class TestLoopbackHTTPServerDeliver:
-    """Additional tests for _LoopbackHTTPServer.deliver exception paths."""
-
-    def test_on_delivered_exception_does_not_propagate(self):
-        callback = MagicMock()
-        on_delivered = MagicMock(side_effect=RuntimeError("boom"))
-        server = _LoopbackHTTPServer(
-            ("127.0.0.1", 0), _CallbackHandler, callback, on_delivered
+        thread_cls.assert_called_once_with(
+            target=server.shutdown,
+            name="LoopbackAuthServer-shutdown",
+            daemon=True,
         )
-        try:
-            # Should not raise even though on_delivered raises
-            server.deliver({"code": "a", "state": "b"})
-            assert server.delivered is True
-            callback.assert_called_once()
-        finally:
-            server.server_close()
+        helper_thread.start.assert_called_once_with()
 
-
-class TestLoopbackAuthServerTimeout:
-    """Tests for the timeout mechanism."""
-
-    def test_timeout_fires_and_stops_server(self):
+    def test_timeout_is_noop_without_server_or_after_delivery(self) -> None:
         server = LoopbackAuthServer()
-        server.start(on_callback=MagicMock(), timeout=0.2)
-        assert server.is_running is True
-        time.sleep(0.5)
-        assert server.is_running is False
+        with patch.object(server, "shutdown") as shutdown:
+            server._on_timeout()
+            server._server = MagicMock(delivered=True)
+            server._on_timeout()
 
-    def test_timeout_after_delivery_is_noop(self):
-        """If callback was received before timeout, timeout is a no-op."""
-        import urllib.request
+        shutdown.assert_not_called()
 
+    def test_timeout_shuts_down_undelivered_server(self) -> None:
         server = LoopbackAuthServer()
-        uri = server.start(on_callback=MagicMock(), timeout=2)
-        try:
-            # Deliver immediately
-            url = uri + "?code=c&state=s"
-            urllib.request.urlopen(url, timeout=3)
-            time.sleep(0.3)
-            # Server shuts down from delivery, not from timeout
-            assert server.is_running is False
-        finally:
-            server.shutdown()
+        server._server = MagicMock(delivered=False)
 
+        with patch.object(server, "shutdown") as shutdown, patch(
+            "nxdrive.alfresco.auth.loopback.log.warning"
+        ) as warning:
+            server._on_timeout()
 
-class TestLoopbackAuthServerShutdown:
-    """Tests for shutdown clearing timer and server."""
+        warning.assert_called_once_with(
+            "Loopback OAuth2 server timed out; shutting down"
+        )
+        shutdown.assert_called_once_with()
 
-    def test_shutdown_clears_internal_state(self):
+    def test_shutdown_cleans_all_mocked_resources(self) -> None:
         server = LoopbackAuthServer()
-        server.start(on_callback=MagicMock(), timeout=60)
-        assert server._server is not None
-        assert server._timeout_timer is not None
+        http_server = MagicMock()
+        serve_thread = MagicMock()
+        serve_thread.is_alive.return_value = True
+        timeout_timer = MagicMock()
+        server._server = http_server
+        server._thread = serve_thread
+        server._timeout_timer = timeout_timer
+
         server.shutdown()
+
         assert server._server is None
         assert server._thread is None
         assert server._timeout_timer is None
+        timeout_timer.cancel.assert_called_once_with()
+        http_server.shutdown.assert_called_once_with()
+        http_server.server_close.assert_called_once_with()
+        serve_thread.join.assert_called_once_with(timeout=2.0)
 
-    def test_double_shutdown_is_safe(self):
+    def test_shutdown_suppresses_mocked_cleanup_errors(self) -> None:
         server = LoopbackAuthServer()
-        server.start(on_callback=MagicMock(), timeout=5)
-        server.shutdown()
-        server.shutdown()  # Should not raise
-        assert server.is_running is False
+        timeout_timer = MagicMock()
+        timeout_timer.cancel.side_effect = RuntimeError("timer failed")
+        http_server = MagicMock()
+        http_server.shutdown.side_effect = RuntimeError("shutdown failed")
+        http_server.server_close.side_effect = RuntimeError("close failed")
+        serve_thread = MagicMock()
+        serve_thread.is_alive.return_value = False
+        server._timeout_timer = timeout_timer
+        server._server = http_server
+        server._thread = serve_thread
 
-
-class TestOnTimeout:
-    """Tests for _on_timeout edge cases."""
-
-    def test_on_timeout_when_server_is_none(self):
-        server = LoopbackAuthServer()
-        # _server is None by default
-        server._on_timeout()  # Should not raise
-
-    def test_on_timeout_when_already_delivered(self):
-        server = LoopbackAuthServer()
-        uri = server.start(on_callback=MagicMock(), timeout=60)
-        try:
-            import urllib.request
-
-            url = uri + "?code=c&state=s"
-            urllib.request.urlopen(url, timeout=3)
-            time.sleep(0.3)
-            # Now _on_timeout should be a no-op because delivered is True
-            server._on_timeout()
-        finally:
+        with patch("nxdrive.alfresco.auth.loopback.log.debug") as debug:
             server.shutdown()
+
+        assert debug.call_args_list == [
+            call("Loopback: server.shutdown() failed", exc_info=True),
+            call("Loopback: server_close() failed", exc_info=True),
+        ]
+        serve_thread.join.assert_not_called()
+
+    def test_shutdown_is_idempotent(self) -> None:
+        server = LoopbackAuthServer()
+
+        server.shutdown()
+        server.shutdown()
+
+        assert server.is_running is False

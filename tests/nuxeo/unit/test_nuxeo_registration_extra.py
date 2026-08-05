@@ -1,6 +1,51 @@
 """Tests for nxdrive/nuxeo/registration.py"""
 
-from unittest.mock import MagicMock, patch
+from contextlib import contextmanager
+from types import SimpleNamespace
+from unittest.mock import MagicMock, call, patch
+
+
+@contextmanager
+def _mock_debug_auth_dialog():
+    """Provide a fully mocked debug-auth dialog and Nuxeo client."""
+    dialog = MagicMock()
+    layout = MagicMock()
+    username = MagicMock()
+    username.text.return_value = "typed-user"
+    password = MagicMock()
+    password.text.return_value = "typed-password"
+    buttons = MagicMock()
+    line_edit = MagicMock(side_effect=[username, password])
+    nuxeo_cls = MagicMock()
+    manager = MagicMock()
+    manager.device_id = "device-id"
+    manager.proxy.settings.return_value = {"https": "proxy.example"}
+    api = MagicMock()
+
+    with patch("nxdrive.drive.qt.imports.QDialog", return_value=dialog), patch(
+        "nxdrive.drive.qt.imports.QVBoxLayout", return_value=layout
+    ), patch("nxdrive.drive.qt.imports.QLineEdit", line_edit), patch(
+        "nxdrive.drive.qt.imports.QDialogButtonBox", return_value=buttons
+    ), patch(
+        "nuxeo.client.Nuxeo", nuxeo_cls
+    ), patch(
+        "nxdrive.drive.utils.get_verify", return_value=False
+    ), patch(
+        "nxdrive.drive.utils.client_certificate", return_value="client-certificate"
+    ), patch(
+        "nxdrive.drive.metrics.utils.current_os", return_value="Test OS"
+    ):
+        yield SimpleNamespace(
+            api=api,
+            buttons=buttons,
+            dialog=dialog,
+            layout=layout,
+            line_edit=line_edit,
+            manager=manager,
+            nuxeo_cls=nuxeo_cls,
+            password=password,
+            username=username,
+        )
 
 
 def test_auth_factory_with_dict_token():
@@ -134,38 +179,96 @@ def test_clear_auth_callback_params():
     mock_clear.assert_called_once_with(api)
 
 
-def test_debug_auth_handler():
-    """Test _nuxeo_debug_auth_handler with fully mocked Qt.
-    The Qt widgets are imported locally inside the function, so we patch at the source module.
-    """
-    mock_dialog = MagicMock()
-    mock_layout = MagicMock()
-    mock_username = MagicMock()
-    mock_password = MagicMock()
-    mock_buttons = MagicMock()
-    mock_qt = MagicMock()
-    mock_qt.Password = 2
-    mock_qt.Cancel = 0x00400000
-    mock_qt.Ok = 0x00000400
+def test_debug_auth_handler_requests_token_and_dispatches_it():
+    from nxdrive.drive.constants import APP_NAME, TOKEN_PERMISSION
+    from nxdrive.drive.qt import constants as qt
+    from nxdrive.nuxeo.registration import _nuxeo_debug_auth_handler
 
-    with patch("nxdrive.drive.qt.imports.QDialog", mock_dialog, create=True), patch(
-        "nxdrive.drive.qt.imports.QVBoxLayout", mock_layout, create=True
-    ), patch(
-        "nxdrive.drive.qt.imports.QLineEdit",
-        MagicMock(side_effect=[mock_username, mock_password]),
-        create=True,
-    ), patch(
-        "nxdrive.drive.qt.imports.QDialogButtonBox", mock_buttons, create=True
-    ), patch(
-        "nxdrive.drive.qt.constants", mock_qt
+    with patch.dict(
+        "os.environ",
+        {
+            "NXDRIVE_TEST_USERNAME": "default-user",
+            "NXDRIVE_TEST_PASSWORD": "default-password",
+        },
+        clear=True,
+    ), _mock_debug_auth_dialog() as mocked:
+        mocked.nuxeo_cls.return_value.client.request_auth_token.return_value = (
+            "auth-token"
+        )
+
+        _nuxeo_debug_auth_handler(
+            "https://server.example/nuxeo", mocked.manager, mocked.api
+        )
+        accept = mocked.buttons.accepted.connect.call_args.args[0]
+        accept()
+
+    mocked.dialog.setWindowTitle.assert_called_once_with("Authentication")
+    mocked.dialog.resize.assert_called_once_with(250, 100)
+    mocked.line_edit.assert_has_calls(
+        [
+            call("default-user", parent=mocked.dialog),
+            call("default-password", parent=mocked.dialog),
+        ]
+    )
+    mocked.password.setEchoMode.assert_called_once_with(qt.Password)
+    mocked.layout.addWidget.assert_has_calls(
+        [call(mocked.username), call(mocked.password), call(mocked.buttons)]
+    )
+    mocked.buttons.setStandardButtons.assert_called_once_with(qt.Cancel | qt.Ok)
+    mocked.dialog.setLayout.assert_called_once_with(mocked.layout)
+    mocked.dialog.exec.assert_called_once_with()
+    mocked.manager.proxy.settings.assert_called_once_with(
+        url="https://server.example/nuxeo"
+    )
+    mocked.nuxeo_cls.assert_called_once_with(
+        host="https://server.example/nuxeo",
+        auth=("typed-user", "typed-password"),
+        proxies={"https": "proxy.example"},
+        verify=False,
+        cert="client-certificate",
+    )
+    mocked.nuxeo_cls.return_value.client.request_auth_token.assert_called_once_with(
+        "device-id",
+        TOKEN_PERMISSION,
+        app_name=APP_NAME,
+        device="Test OS",
+    )
+    mocked.api.handle_token.assert_called_once_with("auth-token", "typed-user")
+    mocked.dialog.close.assert_called_once_with()
+
+
+def test_debug_auth_handler_cancel_closes_without_authenticating():
+    from nxdrive.nuxeo.registration import _nuxeo_debug_auth_handler
+
+    with _mock_debug_auth_dialog() as mocked:
+        _nuxeo_debug_auth_handler(
+            "https://server.example/nuxeo", mocked.manager, mocked.api
+        )
+        reject = mocked.buttons.rejected.connect.call_args.args[0]
+        reject()
+
+    mocked.dialog.close.assert_called_once_with()
+    mocked.nuxeo_cls.assert_not_called()
+    mocked.api.handle_token.assert_not_called()
+
+
+def test_debug_auth_handler_dispatches_empty_token_on_invalid_credentials():
+    from nxdrive.nuxeo.registration import _nuxeo_debug_auth_handler
+
+    logger = MagicMock()
+    with _mock_debug_auth_dialog() as mocked, patch(
+        "logging.getLogger", return_value=logger
     ):
-        # Since the function uses local imports, we need to patch the actual
-        # module-level objects that get imported. Let's use a different approach:
-        # patch the imported names in the function's globals
-        import nxdrive.nuxeo.registration as reg_module
+        mocked.nuxeo_cls.return_value.client.request_auth_token.side_effect = (
+            RuntimeError("invalid credentials")
+        )
 
-        orig_func = reg_module._nuxeo_debug_auth_handler
+        _nuxeo_debug_auth_handler(
+            "https://server.example/nuxeo", mocked.manager, mocked.api
+        )
+        accept = mocked.buttons.accepted.connect.call_args.args[0]
+        accept()
 
-        # Instead of patching locals, just verify the function exists and
-        # is callable - the Qt dialog code path is integration-level
-        assert callable(orig_func)
+    logger.error.assert_called_once_with("Connection error: invalid credentials")
+    mocked.api.handle_token.assert_called_once_with("", "typed-user")
+    mocked.dialog.close.assert_called_once_with()

@@ -115,3 +115,38 @@ class TestRemoteClientProtocolRuntimeCheckable:
         assert not isinstance(object(), RemoteClientProtocol)
         assert not isinstance("string", RemoteClientProtocol)
         assert not isinstance(42, RemoteClientProtocol)
+
+
+class _InheritedProtocolDefaults(RemoteClientProtocol):
+    """Concrete test class that inherits the protocol declarations."""
+
+
+def test_inherited_protocol_method_bodies_are_safe_defaults():
+    """Every declaration is callable when inherited by a concrete class."""
+    remote = _InheritedProtocolDefaults()
+    source = Path("source.txt")
+    destination = Path("destination.txt")
+
+    assert remote.get_filesystem_root_info() is None
+    assert remote.get_fs_children("root", filtered=False) is None
+    assert remote.get_fs_info("item", parent_fs_item_id="parent") is None
+    assert (
+        remote.get_info("item", raise_if_missing=False, parent_fs_item_id="parent")
+        is None
+    )
+    assert remote.fetch("item", headers={"X-Test": "1"}, enrichers=["test"]) is None
+    assert remote.stream_content("item", source, destination, chunk_size=1024) is None
+    assert remote.stream_file("parent", source, filename="renamed.txt") is None
+    assert (
+        remote.stream_update(
+            "item",
+            source,
+            parent_fs_item_id="parent",
+            filename="renamed.txt",
+        )
+        is None
+    )
+    assert remote.make_folder("parent", "folder", overwrite=True) is None
+    assert remote.delete("item", parent_fs_item_id="parent") is None
+    assert remote.rename("item", "renamed.txt") is None
+    assert remote.move2("item", "parent", "renamed.txt") is None

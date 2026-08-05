@@ -3,14 +3,16 @@ Test the Auto-Lock feature used heavily by Direct Edit.
 """
 
 from pathlib import Path
+from types import SimpleNamespace
 from typing import List, Tuple
 from unittest.mock import Mock, patch
 
 import pytest
+import psutil
 
 import nxdrive.drive.autolocker
-from nxdrive.drive.constants import WINDOWS
 from nxdrive.drive.dao.manager import ManagerDAO
+from nxdrive.drive.exceptions import ThreadInterrupt
 
 from ... import ensure_no_exception
 
@@ -70,7 +72,10 @@ def test_autolock(app, autolock, tmpdir):
         not_watched.touch()
         yield 7071, not_watched
 
-    with patch.object(nxdrive.drive.autolocker, "get_open_files", new=files):
+    with (
+        patch.object(nxdrive.drive.autolocker, "get_open_files", new=files),
+        patch.object(nxdrive.drive.autolocker, "sleep"),
+    ):
         with ensure_no_exception():
             # Proceed for the file1 locking, file2 locking is planned
             autolock._process()
@@ -80,16 +85,135 @@ def test_autolock(app, autolock, tmpdir):
         assert autolock.dao.get_locked_paths() == [file1, file2]
 
 
-def test_get_open_files():
-    """Just check get_open_files() works."""
-    files = list(nxdrive.drive.autolocker.get_open_files())
+def _process(pid, name, *, opened=()):
+    process = Mock(pid=pid, info={"username": "tester"})
+    process.name.return_value = name
+    process.open_files.return_value = opened
+    return process
 
-    # Print files for debug purpose, in case the test fails
-    for f in files:
-        print(f)
 
-    # On WINDOWS, if no monitored processes are running, then this returns an empty list.
-    if WINDOWS:
-        assert not files
-    else:
-        assert files
+def test_get_open_files_windows_filters_processes_and_errors(tmp_path):
+    """Only monitored Windows applications should contribute open files."""
+    module = nxdrive.drive.autolocker
+    document = tmp_path / "document.docx"
+    fallback = tmp_path / "fallback.docx"
+
+    monitored = _process(
+        10, "WINWORD.EXE", opened=[SimpleNamespace(path=str(document))]
+    )
+    ignored = _process(
+        11, "textedit.exe", opened=[SimpleNamespace(path=str(tmp_path / "ignored"))]
+    )
+    vanished = _process(12, "excel.exe")
+    vanished.open_files.side_effect = psutil.NoSuchProcess(vanished.pid)
+    denied = _process(13, "powerpnt.exe")
+    denied.open_files.side_effect = psutil.AccessDenied(denied.pid)
+    broken = _process(14, "photoshop.exe")
+    broken.open_files.side_effect = RuntimeError("process changed")
+
+    with (
+        patch.object(module, "WINDOWS", True),
+        patch.object(
+            module.psutil,
+            "process_iter",
+            return_value=[monitored, ignored, vanished, denied, broken],
+        ) as process_iter,
+        patch.object(
+            module, "get_other_opened_files", return_value=iter([(99, fallback)])
+        ),
+    ):
+        assert list(module.get_open_files()) == [
+            (monitored.pid, document),
+            (99, fallback),
+        ]
+
+    process_iter.assert_called_once_with(attrs=["pid", "name", "username"])
+    process_iter.cache_clear.assert_called_once_with()
+    ignored.open_files.assert_not_called()
+
+
+def test_get_open_files_windows_recovers_from_enumeration_error(tmp_path):
+    """A process-enumeration failure must not hide OS-specific fallback results."""
+    module = nxdrive.drive.autolocker
+    fallback = tmp_path / "fallback.docx"
+
+    with (
+        patch.object(module, "WINDOWS", True),
+        patch.object(module.psutil, "process_iter", side_effect=MemoryError),
+        patch.object(
+            module, "get_other_opened_files", return_value=iter([(7, fallback)])
+        ),
+    ):
+        assert list(module.get_open_files()) == [(7, fallback)]
+
+
+def test_get_open_files_unix_suppresses_process_and_handler_errors(tmp_path):
+    """Unix process races should be ignored without touching real processes."""
+    module = nxdrive.drive.autolocker
+    document = tmp_path / "document.odt"
+    fallback = tmp_path / "fallback.odt"
+
+    class UnreadableHandler:
+        @property
+        def path(self):
+            raise OSError("file disappeared")
+
+    readable = _process(
+        20,
+        "writer",
+        opened=[SimpleNamespace(path=str(document)), UnreadableHandler()],
+    )
+    inaccessible = _process(21, "calc")
+    inaccessible.open_files.side_effect = psutil.AccessDenied(inaccessible.pid)
+
+    def processes(*, attrs):
+        assert attrs == ["pid"]
+        yield readable
+        yield inaccessible
+        raise OSError("process table unavailable")
+
+    with (
+        patch.object(module, "WINDOWS", False),
+        patch.object(module.psutil, "process_iter", new=processes),
+        patch.object(
+            module, "get_other_opened_files", return_value=iter([(8, fallback)])
+        ),
+    ):
+        assert list(module.get_open_files()) == [
+            (readable.pid, document),
+            (8, fallback),
+        ]
+
+
+def test_poll_emits_orphans_only_on_first_successful_poll(app, autolock):
+    locked = [autolock._folder / "orphan.docx"]
+    emitted = []
+    autolock.dao.get_locked_paths = Mock(return_value=locked)
+    autolock._process = Mock()
+    autolock.orphanLocks.connect(emitted.append)
+
+    assert autolock._poll() is True
+    assert autolock._poll() is True
+
+    assert emitted == [locked]
+    assert autolock._first is False
+    autolock.dao.get_locked_paths.assert_called_once_with()
+    assert autolock._process.call_count == 2
+
+
+def test_poll_reraises_thread_interrupt(autolock):
+    autolock._first = False
+    autolock._process = Mock(side_effect=ThreadInterrupt)
+
+    with pytest.raises(ThreadInterrupt):
+        autolock._poll()
+
+
+def test_poll_reports_unhandled_error(autolock):
+    autolock._first = False
+    autolock._process = Mock(side_effect=RuntimeError("broken poll"))
+
+    with patch.object(nxdrive.drive.autolocker, "log") as log:
+        assert autolock._poll() is False
+
+    log.exception.assert_called_once_with("Unhandled error")

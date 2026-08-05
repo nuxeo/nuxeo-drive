@@ -783,3 +783,193 @@ class TestGetItemFromPosition:
 
         assert result is None
         mock_log.error.assert_called_once_with("No item found at the current position")
+
+
+class _TreeItem:
+    """Small QStandardItem stand-in for document check-state tests."""
+
+    def __init__(self, state, *, data=None, children=(), checkable=True):
+        self._state = state
+        self._data = data
+        self._children = list(children)
+        self._checkable = checkable
+        self._parent = None
+        for child in self._children:
+            child._parent = self
+
+    def data(self, _role):
+        return self._data
+
+    def checkState(self):
+        return self._state
+
+    def setCheckState(self, state):
+        self._state = state
+
+    def rowCount(self):
+        return len(self._children)
+
+    def child(self, index):
+        return self._children[index]
+
+    def parent(self):
+        return self._parent
+
+    def isCheckable(self):
+        return self._checkable
+
+
+def _make_document_tree():
+    """Bind DocumentTreeView logic to a plain Python object, not a real view."""
+    from nxdrive.drive.gui.folders_treeview import DocumentTreeView
+
+    class DocumentTreeHarness:
+        update_item_changed = DocumentTreeView.update_item_changed
+        item_check_parent = DocumentTreeView.item_check_parent
+        resolve_item_down_changed = DocumentTreeView.resolve_item_down_changed
+        resolve_item_up_changed = DocumentTreeView.resolve_item_up_changed
+        resolve_item = DocumentTreeView.resolve_item
+
+    tree = DocumentTreeHarness()
+    tree.dirty_items = []
+    tree.root_item = MagicMock()
+    tree.setEnabled = MagicMock()
+    return tree
+
+
+class TestDocumentTreeViewCheckStates:
+    """DocumentTreeView check-state propagation without constructing Qt views."""
+
+    def test_update_item_changed_ignores_fake_children(self):
+        from nxdrive.drive.qt import constants as qt
+
+        tree = _make_document_tree()
+        item = _TreeItem(qt.Checked)
+
+        tree.update_item_changed(item)
+
+        assert tree.dirty_items == []
+
+    def test_update_item_changed_adds_once_and_removes_clean_item(self):
+        from nxdrive.drive.qt import constants as qt
+
+        tree = _make_document_tree()
+        fs_info = Mock()
+        item = _TreeItem(qt.Unchecked, data=fs_info)
+        fs_info.is_dirty.return_value = True
+
+        tree.update_item_changed(item)
+        tree.update_item_changed(item)
+
+        assert fs_info.state == qt.Unchecked
+        assert tree.dirty_items == [fs_info]
+
+        item.setCheckState(qt.Checked)
+        fs_info.is_dirty.return_value = False
+        tree.update_item_changed(item)
+
+        assert fs_info.state == qt.Checked
+        assert tree.dirty_items == []
+
+    def test_item_check_parent_sets_checked_or_partial(self):
+        from nxdrive.drive.qt import constants as qt
+
+        tree = _make_document_tree()
+        tree.resolve_item_up_changed = MagicMock()
+        first = _TreeItem(qt.Checked)
+        second = _TreeItem(qt.Checked)
+        parent = _TreeItem(qt.PartiallyChecked, children=[first, second])
+
+        tree.item_check_parent(parent)
+        assert parent.checkState() == qt.Checked
+
+        second.setCheckState(qt.Unchecked)
+        tree.item_check_parent(parent)
+        assert parent.checkState() == qt.PartiallyChecked
+        assert tree.resolve_item_up_changed.call_count == 2
+
+    def test_resolve_item_down_changed_updates_all_descendants(self):
+        from nxdrive.drive.qt import constants as qt
+
+        tree = _make_document_tree()
+        tree.update_item_changed = MagicMock()
+        grandchild = _TreeItem(qt.Checked)
+        first = _TreeItem(qt.PartiallyChecked, children=[grandchild])
+        second = _TreeItem(qt.Checked)
+        root = _TreeItem(qt.Unchecked, children=[first, second])
+
+        tree.resolve_item_down_changed(root)
+
+        assert [
+            root.checkState(),
+            first.checkState(),
+            second.checkState(),
+            grandchild.checkState(),
+        ] == [qt.Unchecked] * 4
+        assert [entry.args[0] for entry in tree.update_item_changed.call_args_list] == [
+            root,
+            first,
+            grandchild,
+            second,
+        ]
+
+    def test_resolve_item_up_changed_stops_at_root_or_uncheckable_parent(self):
+        from nxdrive.drive.qt import constants as qt
+
+        tree = _make_document_tree()
+        tree.update_item_changed = MagicMock()
+        tree.item_check_parent = MagicMock()
+        root = _TreeItem(qt.Checked)
+
+        tree.resolve_item_up_changed(root)
+
+        uncheckable = _TreeItem(qt.Checked, checkable=False)
+        child = _TreeItem(qt.Unchecked)
+        uncheckable._children.append(child)
+        child._parent = uncheckable
+        tree.resolve_item_up_changed(child)
+
+        assert [entry.args[0] for entry in tree.update_item_changed.call_args_list] == [
+            root,
+            child,
+        ]
+        tree.item_check_parent.assert_not_called()
+
+    def test_resolve_item_up_changed_marks_and_rechecks_parent(self):
+        from nxdrive.drive.qt import constants as qt
+
+        tree = _make_document_tree()
+        tree.update_item_changed = MagicMock()
+        tree.item_check_parent = MagicMock()
+        child = _TreeItem(qt.Unchecked)
+        parent = _TreeItem(qt.Checked, children=[child])
+
+        tree.resolve_item_up_changed(child)
+
+        assert parent.checkState() == qt.PartiallyChecked
+        assert [entry.args[0] for entry in tree.update_item_changed.call_args_list] == [
+            child,
+            parent,
+        ]
+        tree.item_check_parent.assert_called_once_with(parent)
+
+    def test_resolve_item_temporarily_disconnects_signal(self):
+        from nxdrive.drive.gui.folders_treeview import DocumentTreeView
+
+        tree = _make_document_tree()
+        item = Mock()
+        tree.update_item_changed = MagicMock()
+        tree.resolve_item_down_changed = MagicMock()
+        tree.resolve_item_up_changed = MagicMock()
+
+        DocumentTreeView.resolve_item(tree, item)
+
+        assert [entry.args for entry in tree.setEnabled.call_args_list] == [
+            (False,),
+            (True,),
+        ]
+        tree.root_item.itemChanged.disconnect.assert_called_once_with(tree.resolve_item)
+        tree.update_item_changed.assert_called_once_with(item)
+        tree.resolve_item_down_changed.assert_called_once_with(item)
+        tree.resolve_item_up_changed.assert_called_once_with(item)
+        tree.root_item.itemChanged.connect.assert_called_once_with(tree.resolve_item)

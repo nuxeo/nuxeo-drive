@@ -161,6 +161,34 @@ def test_current_thread_id():
     assert thread_id > 0
 
 
+def test_disk_space_uses_first_accessible_parent(tmp_path):
+    folder = tmp_path / "missing" / "child"
+    usage = Mock(used=75, free=25)
+
+    def disk_usage(path):
+        if path == folder:
+            raise OSError("missing path")
+        return usage
+
+    with patch("shutil.disk_usage", side_effect=disk_usage) as mocked_usage:
+        assert nxdrive.drive.utils.disk_space(str(folder)) == (75, 25)
+
+    assert mocked_usage.call_args_list == [
+        ((folder,),),
+        ((folder.parent,),),
+    ]
+
+
+def test_disk_space_returns_zero_when_no_path_is_accessible(tmp_path):
+    folder = tmp_path / "missing" / "child"
+    candidates = (folder, *folder.parents)
+
+    with patch("shutil.disk_usage", side_effect=OSError("unavailable")) as usage:
+        assert nxdrive.drive.utils.disk_space(str(folder)) == (0, 0)
+
+    assert [entry.args[0] for entry in usage.call_args_list] == list(candidates)
+
+
 @pytest.mark.parametrize(
     "digest, expected_status",
     [
