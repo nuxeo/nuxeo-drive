@@ -8,6 +8,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from nxdrive.drive.constants import TransferStatus
+
 
 @pytest.fixture()
 def _client_patch():
@@ -265,6 +267,16 @@ class TestNodeOperations:
         remote = _build_remote(_client_patch)
         remote.client.nodes.get_content.return_value = b"hello"
         assert remote.get_content("node-1") == b"hello"
+
+    def test_get_content_stream_delegates(self, _client_patch) -> None:
+        remote = _build_remote(_client_patch)
+        response = MagicMock()
+        remote.client.nodes.get_content_stream.return_value = response
+
+        result = remote.get_content_stream("node-1")
+
+        assert result is response
+        remote.client.nodes.get_content_stream.assert_called_once_with("node-1")
 
     def test_upload_delegates(self, _client_patch) -> None:
         remote = _build_remote(_client_patch)
@@ -567,7 +579,6 @@ class TestStreamFile:
 
         from nxdrive.drive.exceptions import UploadPaused
         from nxdrive.drive.objects import Upload
-        from nxdrive.drive.constants import TransferStatus
 
         remote = _build_remote(_client_patch)
         path = Path("/tmp/test.txt")
@@ -885,6 +896,11 @@ class TestRegisterUpload:
 
         dao.save_upload.assert_called_once()
         assert upload is dao.save_upload.call_args.args[0]
+        assert upload.path == Path("/tmp/file.txt")
+        assert upload.status is TransferStatus.ONGOING
+        assert upload.engine is None
+        assert upload.doc_pair == 1
+        assert upload.filesize == 1024
 
     def test_no_dao_is_noop(self, _client_patch) -> None:
         remote = _build_remote(_client_patch)
@@ -894,17 +910,40 @@ class TestRegisterUpload:
         # Should not raise
         from pathlib import Path
 
-        remote._register_upload(Path("/tmp/file.txt"))
+        assert remote._register_upload(Path("/tmp/file.txt")) is None
 
     def test_existing_upload_skipped(self, _client_patch) -> None:
         from pathlib import Path
 
         remote = _build_remote(_client_patch)
         dao = MagicMock()
-        dao.get_upload.return_value = MagicMock()  # Already exists
+        existing = MagicMock()
+        dao.get_upload.return_value = existing
         remote.dao = dao
-        remote._register_upload(Path("/tmp/file.txt"))
+        result = remote._register_upload(Path("/tmp/file.txt"))
+
+        assert result is existing
         dao.save_upload.assert_not_called()
+
+    def test_missing_file_registers_zero_size(self, _client_patch) -> None:
+        from pathlib import Path
+
+        remote = _build_remote(_client_patch)
+        dao = MagicMock()
+        dao.get_upload.return_value = None
+        remote.dao = dao
+
+        upload = remote._register_upload(
+            Path("/missing/file.txt"),
+            doc_pair_id=7,
+            engine_uid="engine-1",
+        )
+
+        assert upload is not None
+        assert upload.filesize == 0
+        assert upload.doc_pair == 7
+        assert upload.engine == "engine-1"
+        dao.save_upload.assert_called_once_with(upload)
 
 
 class TestUploadProgress:
@@ -1211,6 +1250,143 @@ class TestStreamContentExtended:
             "download", path=Path("/sync/file.bin")
         )
 
+    def test_on_progress_updates_size_and_percentage(
+        self, _client_patch, tmp_path
+    ) -> None:
+        from pathlib import Path
+
+        from nxdrive.drive.constants import TransferStatus
+        from nxdrive.drive.objects import Download
+
+        remote = _build_remote(_client_patch)
+        download = Download(
+            42,
+            path=Path("/sync/file.bin"),
+            status=TransferStatus.ONGOING,
+            engine="engine-1",
+            filesize=0,
+            tmpname=tmp_path / "output.bin",
+        )
+        dao = MagicMock()
+        dao.get_download.return_value = download
+        remote.dao = dao
+
+        def download_to(_node_id, _path, *, chunk_size, progress):
+            assert chunk_size == 65536
+            progress(25, 100)
+
+        remote.client.nodes.download_to.side_effect = download_to
+
+        remote.stream_content(
+            "node-1",
+            Path("/sync/file.bin"),
+            tmp_path / "output.bin",
+        )
+
+        assert download.filesize == 100
+        assert download.progress == 25.0
+        dao.set_transfer_progress.assert_called_once_with("download", download)
+        dao.get_download.assert_any_call(uid=42)
+
+    def test_on_progress_without_total_reports_zero(
+        self, _client_patch, tmp_path
+    ) -> None:
+        from pathlib import Path
+
+        from nxdrive.drive.constants import TransferStatus
+        from nxdrive.drive.objects import Download
+
+        remote = _build_remote(_client_patch)
+        download = Download(
+            42,
+            path=Path("/sync/file.bin"),
+            status=TransferStatus.ONGOING,
+            engine="engine-1",
+            filesize=0,
+            tmpname=tmp_path / "output.bin",
+        )
+        dao = MagicMock()
+        dao.get_download.return_value = download
+        remote.dao = dao
+        remote.client.nodes.download_to.side_effect = (
+            lambda _node_id, _path, **kwargs: kwargs["progress"](25, None)
+        )
+
+        remote.stream_content(
+            "node-1",
+            Path("/sync/file.bin"),
+            tmp_path / "output.bin",
+        )
+
+        assert download.filesize == 0
+        assert download.progress == 0.0
+        dao.set_transfer_progress.assert_called_once_with("download", download)
+
+    def test_on_progress_without_download_uid_is_noop(
+        self, _client_patch, tmp_path
+    ) -> None:
+        from pathlib import Path
+
+        download = MagicMock(uid=None)
+        dao = MagicMock()
+        dao.get_download.return_value = download
+        remote = _build_remote(_client_patch)
+        remote.dao = dao
+        remote.client.nodes.download_to.side_effect = (
+            lambda _node_id, _path, **kwargs: kwargs["progress"](25, 100)
+        )
+
+        remote.stream_content(
+            "node-1",
+            Path("/sync/file.bin"),
+            tmp_path / "output.bin",
+        )
+
+        dao.set_transfer_progress.assert_not_called()
+        dao.get_download.assert_called_once_with(path=Path("/sync/file.bin"))
+
+    @pytest.mark.parametrize(
+        "status",
+        [
+            TransferStatus.PAUSED,
+            TransferStatus.SUSPENDED,
+            TransferStatus.CANCELLED,
+        ],
+    )
+    def test_on_progress_aborts_inactive_download(
+        self, _client_patch, tmp_path, status
+    ) -> None:
+        from pathlib import Path
+
+        from nxdrive.drive.exceptions import DownloadPaused
+        from nxdrive.drive.objects import Download
+
+        remote = _build_remote(_client_patch)
+        download = Download(
+            42,
+            path=Path("/sync/file.bin"),
+            status=TransferStatus.ONGOING,
+            engine="engine-1",
+            tmpname=tmp_path / "output.bin",
+        )
+        inactive = MagicMock(status=status)
+        dao = MagicMock()
+        dao.get_download.side_effect = [download, inactive]
+        remote.dao = dao
+        remote.client.nodes.download_to.side_effect = (
+            lambda _node_id, _path, **kwargs: kwargs["progress"](10, 100)
+        )
+
+        with pytest.raises(DownloadPaused) as exc:
+            remote.stream_content(
+                "node-1",
+                Path("/sync/file.bin"),
+                tmp_path / "output.bin",
+            )
+
+        assert exc.value.transfer_id == 42
+        dao.remove_transfer.assert_not_called()
+
     def test_stream_content_download_paused_propagates(
         self, _client_patch, tmp_path
     ) -> None:
@@ -1373,6 +1549,44 @@ class TestStreamFileExtended:
         remote.client.nodes.update_content.assert_called_once()
         remote.client.nodes.upload.assert_not_called()
 
+    def test_nonmatching_child_is_skipped_before_existing_match(
+        self, _client_patch
+    ) -> None:
+        from pathlib import Path
+
+        remote = _build_remote(_client_patch)
+        other = MagicMock()
+        other.name = "other.txt"
+        other.is_file = True
+        existing = MagicMock()
+        existing.name = "report.txt"
+        existing.id = "existing-id"
+        existing.is_file = True
+        remote.client.nodes.iter_children.return_value = [other, existing]
+
+        updated = MagicMock()
+        updated.name = "report.txt"
+        updated.id = "existing-id"
+        updated.parent_id = "parent"
+        updated.is_folder = False
+        updated.is_file = True
+        updated.modified_at = None
+        updated.created_at = None
+        updated.modified_by_user = None
+        updated.path = None
+        remote.client.nodes.update_content.return_value = updated
+
+        with patch(
+            "nxdrive.alfresco.client.remote.compute_digest", return_value="digest"
+        ):
+            info = remote.stream_file(
+                "parent", Path("/tmp/report.txt"), filename="report.txt"
+            )
+
+        assert info.uid == "existing-id"
+        remote.client.nodes.update_content.assert_called_once()
+        remote.client.nodes.upload.assert_not_called()
+
     def test_conflict_error_during_upload_raises_remote_conflict(
         self, _client_patch
     ) -> None:
@@ -1388,6 +1602,56 @@ class TestStreamFileExtended:
 
         with pytest.raises(RemoteConflict):
             remote.stream_file("parent", Path("/tmp/file.txt"), filename="file.txt")
+
+    def test_duplicate_scan_error_falls_back_to_upload(self, _client_patch) -> None:
+        from pathlib import Path
+
+        remote = _build_remote(_client_patch)
+        remote.client.nodes.iter_children.side_effect = RuntimeError("scan failed")
+        node = MagicMock(
+            name="file.txt",
+            id="new-id",
+            parent_id="parent",
+            is_folder=False,
+            is_file=True,
+            modified_at=None,
+            created_at=None,
+            modified_by_user=None,
+            path=None,
+        )
+        remote.client.nodes.upload.return_value = node
+
+        with patch(
+            "nxdrive.alfresco.client.remote.compute_digest", return_value="digest"
+        ):
+            info = remote.stream_file("parent", Path("/tmp/file.txt"))
+
+        assert info.uid == "new-id"
+        assert info.digest == "digest"
+        remote.client.nodes.upload.assert_called_once()
+        assert remote.client.nodes.upload.call_args.kwargs["name"] is None
+
+    def test_cancelled_existing_update_cleans_transfer(self, _client_patch) -> None:
+        from pathlib import Path
+
+        from nxdrive.drive.exceptions import UploadCancelled
+
+        remote = _build_remote(_client_patch)
+        child = MagicMock()
+        child.name = "file.txt"
+        child.id = "existing-id"
+        child.is_file = True
+        remote.client.nodes.iter_children.return_value = [child]
+        remote.client.nodes.update_content.side_effect = UploadCancelled(9)
+        action = MagicMock()
+        remote._upload_progress = MagicMock(return_value=(MagicMock(), action))
+        remote._finish_upload = MagicMock()
+
+        with pytest.raises(UploadCancelled):
+            remote.stream_file("parent", Path("/tmp/file.txt"))
+
+        action.finish_action.assert_called_once_with()
+        remote._finish_upload.assert_called_once_with(Path("/tmp/file.txt"))
 
 
 class TestGetFilesystemRootInfo:
