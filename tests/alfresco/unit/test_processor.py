@@ -98,6 +98,7 @@ def proc():
     p.local = engine.local
     p.remote = engine.remote
     p.dao = engine.dao
+    p.dao.get_filters.return_value = []
     return p
 
 
@@ -585,6 +586,23 @@ class TestSynchronizeRemotelyDeleted:
 
 
 class TestSynchronizeLocallyCreated:
+    @staticmethod
+    def _file_pair_and_parent():
+        pair = Mock()
+        pair.local_path = Path("Shared/newfile.txt")
+        pair.local_parent_path = Path("Shared")
+        pair.local_name = "newfile.txt"
+        pair.local_digest = "local-hash"
+        pair.folderish = False
+        pair.id = 42
+
+        parent = Mock()
+        parent.remote_ref = "parent-ref"
+        parent.remote_can_create_child = True
+        parent.remote_name = "Shared"
+        parent.remote_parent_path = "/root-ref"
+        return pair, parent
+
     def test_parent_not_found_raises(self, proc) -> None:
         from nxdrive.drive.exceptions import ParentNotSynced
 
@@ -638,6 +656,52 @@ class TestSynchronizeLocallyCreated:
         proc._synchronize_locally_created(pair)
         proc.remote.make_folder.assert_called_once_with("parent-ref", "NewFolder")
         proc.dao.synchronize_state.assert_called_once_with(pair)
+
+    def test_local_file_removes_exact_stale_filter(self, proc) -> None:
+        pair, parent = self._file_pair_and_parent()
+        proc.dao.get_state_from_local.return_value = parent
+        proc.dao.get_filters.return_value = ["/Company Home/Shared/newfile.txt/"]
+        proc.remote.get_fs_info.return_value.path = "/Company Home/Shared"
+        proc.local.abspath.return_value = Path("/local/Shared/newfile.txt")
+        proc.remote.stream_file.return_value.uid = "new-file-id"
+        proc.remote.stream_file.return_value.digest = "local-hash"
+
+        proc._synchronize_locally_created(pair)
+
+        proc.dao.remove_filter.assert_called_once_with(
+            "/Company Home/Shared/newfile.txt"
+        )
+        proc.dao.add_filter.assert_not_called()
+
+    def test_failed_upload_restores_exact_stale_filter(self, proc) -> None:
+        pair, parent = self._file_pair_and_parent()
+        proc.dao.get_state_from_local.return_value = parent
+        proc.dao.get_filters.return_value = ["/Company Home/Shared/newfile.txt/"]
+        proc.remote.get_fs_info.return_value.path = "/Company Home/Shared"
+        proc.local.abspath.return_value = Path("/local/Shared/newfile.txt")
+        proc.remote.stream_file.side_effect = RuntimeError("upload failed")
+
+        with pytest.raises(RuntimeError, match="upload failed"):
+            proc._synchronize_locally_created(pair)
+
+        proc.dao.remove_filter.assert_called_once_with(
+            "/Company Home/Shared/newfile.txt"
+        )
+        proc.dao.add_filter.assert_called_once_with("/Company Home/Shared/newfile.txt")
+
+    def test_local_file_does_not_remove_parent_filter(self, proc) -> None:
+        pair, parent = self._file_pair_and_parent()
+        proc.dao.get_state_from_local.return_value = parent
+        proc.dao.get_filters.return_value = ["/Company Home/Shared/"]
+        proc.remote.get_fs_info.return_value.path = "/Company Home/Shared"
+        proc.local.abspath.return_value = Path("/local/Shared/newfile.txt")
+        proc.remote.stream_file.return_value.uid = "new-file-id"
+        proc.remote.stream_file.return_value.digest = "local-hash"
+
+        proc._synchronize_locally_created(pair)
+
+        proc.dao.remove_filter.assert_not_called()
+        proc.dao.add_filter.assert_not_called()
 
 
 class TestSynchronizeLocallyModified:

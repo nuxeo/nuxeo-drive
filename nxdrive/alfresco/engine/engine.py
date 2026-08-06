@@ -188,6 +188,7 @@ class AlfrescoEngine(Engine):
             alfresco_ticket=self._alfresco_ticket,
             dao=self.dao,
             proxy=self.manager.proxy,
+            upload_callback=self.suspend_client,
             on_token_refreshed=self._on_remote_token_refreshed,
         )
 

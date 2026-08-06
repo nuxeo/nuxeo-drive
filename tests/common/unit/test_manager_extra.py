@@ -700,12 +700,32 @@ def test_stop_cleans_started_engines_downloads_and_os(manager_obj):
     stopped.is_started.return_value = False
     manager_obj.engines = {"started": started, "stopped": stopped}
     manager_obj.direct_download = Mock()
+    workers = {
+        name: Mock()
+        for name in (
+            "server_config_updater",
+            "updater",
+            "tracker",
+            "db_backup_worker",
+            "sync_and_quit_worker",
+            "direct_edit",
+            "autolock_service",
+            "workflow_worker",
+        )
+    }
+    for name, worker in workers.items():
+        setattr(manager_obj, name, worker)
+    workers["updater"].stop.side_effect = RuntimeError("already deleted")
+    manager_obj._started = True
     seen = []
     manager_obj.stopped.connect(lambda: seen.append(True))
 
     manager_obj.stop()
 
     manager_obj.dao.save_backup.assert_called_once_with()
+    assert manager_obj._started is False
+    for worker in workers.values():
+        worker.stop.assert_called_once_with()
     started.stop.assert_called_once_with()
     stopped.stop.assert_not_called()
     manager_obj.direct_download.stop.assert_called_once_with()
@@ -1558,17 +1578,21 @@ def test_send_sync_status_only_uses_matching_engine(manager_obj, tmp_path):
     manager_obj.osi.send_content_sync_status.assert_not_called()
 
 
-def test_send_sync_status_supports_windows_paths(manager_obj):
-    local_folder = PureWindowsPath(r"C:\Users\test\Drive")
-    engine = SimpleNamespace(local_folder=local_folder, dao=Mock())
+def test_send_sync_status_handles_windows_paths(manager_obj):
+    engine = SimpleNamespace(
+        local_folder=PureWindowsPath("C:/Drive"),
+        dao=Mock(),
+    )
     manager_obj.engines = {"windows": engine}
-    path = local_folder / "folder"
+    path = PureWindowsPath("C:/Drive/folder/file.txt")
     states = ["state"]
     engine.dao.get_local_children.return_value = states
 
     manager_obj.send_sync_status(path)
 
-    engine.dao.get_local_children.assert_called_once_with(PureWindowsPath("folder"))
+    engine.dao.get_local_children.assert_called_once_with(
+        PureWindowsPath("folder/file.txt")
+    )
     manager_obj.osi.send_content_sync_status.assert_called_once_with(states, path)
 
 

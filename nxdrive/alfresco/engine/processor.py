@@ -686,37 +686,49 @@ class AlfrescoProcessor(_ProcessorBase):
         remote_parent_path = (
             parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
         )
-        if doc_pair.folderish:
-            log.info(
-                f"Creating remote folder {name!r} "
-                f"in folder {parent_pair.remote_name!r}"
-            )
-            fs_item_info = self.remote.make_folder(parent_ref, name)
-            remote_ref = fs_item_info.uid
-        else:
-            log.info(
-                f"Creating remote document {name!r} "
-                f"in folder {parent_pair.remote_name!r}"
-            )
-            if doc_pair.local_digest == UNACCESSIBLE_HASH:
-                info = self.local.get_info(doc_pair.local_path)
-                doc_pair.local_digest = info.get_digest()
-                self.dao.update_local_state(
-                    doc_pair, info, versioned=False, queue=False
-                )
+        if not doc_pair.folderish and doc_pair.local_digest == UNACCESSIBLE_HASH:
+            info = self.local.get_info(doc_pair.local_path)
+            doc_pair.local_digest = info.get_digest()
+            self.dao.update_local_state(doc_pair, info, versioned=False, queue=False)
             if doc_pair.local_digest == UNACCESSIBLE_HASH:
                 self._postpone_pair(doc_pair, "Unaccessible hash")
                 return
 
-            fs_item_info = self.remote.stream_file(
-                parent_ref,
-                self.local.abspath(doc_pair.local_path),
-                filename=name,
-                doc_pair_id=doc_pair.id,
-                engine_uid=self.engine.uid,
-            )
-            remote_ref = fs_item_info.uid
-            self.dao.update_last_transfer(doc_pair.id, "upload")
+        filter_path = ""
+        filter_removed = False
+        try:
+            parent_info = self.remote.get_fs_info(parent_ref)
+            filter_path = f"{parent_info.path.rstrip('/')}/{name}"
+            clean_filter_path = filter_path.rstrip("/") + "/"
+            if clean_filter_path in self.dao.get_filters():
+                self.dao.remove_filter(filter_path)
+                filter_removed = True
+
+            if doc_pair.folderish:
+                log.info(
+                    f"Creating remote folder {name!r} "
+                    f"in folder {parent_pair.remote_name!r}"
+                )
+                fs_item_info = self.remote.make_folder(parent_ref, name)
+                remote_ref = fs_item_info.uid
+            else:
+                log.info(
+                    f"Creating remote document {name!r} "
+                    f"in folder {parent_pair.remote_name!r}"
+                )
+                fs_item_info = self.remote.stream_file(
+                    parent_ref,
+                    self.local.abspath(doc_pair.local_path),
+                    filename=name,
+                    doc_pair_id=doc_pair.id,
+                    engine_uid=self.engine.uid,
+                )
+                remote_ref = fs_item_info.uid
+                self.dao.update_last_transfer(doc_pair.id, "upload")
+        except Exception:
+            if filter_removed:
+                self.dao.add_filter(filter_path)
+            raise
 
         with suppress(NotFound):
             self.local.set_remote_id(doc_pair.local_path, remote_ref)

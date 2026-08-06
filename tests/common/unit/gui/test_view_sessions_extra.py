@@ -1,7 +1,7 @@
 """Focused tests for the shared session list models."""
 
 from datetime import datetime, timedelta
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from unittest.mock import Mock, call, patch
 
 import pytest
@@ -77,6 +77,22 @@ def test_active_session_scalar_roles(app, translate):
     assert model.data(index, model.STATUS) == "CANCELLED"
     assert model.data(index, model.DESCRIPTION) == "Session 42"
     assert model.data(index, model.SHADOW) is False
+
+
+def test_session_remote_paths_use_posix_separators(app, translate):
+    active = ActiveSessionModel(translate)
+    active_index = model_index(
+        active,
+        make_active_session(remote_path=PureWindowsPath("/shared/folder")),
+    )
+    completed = CompletedSessionModel(translate)
+    completed_index = model_index(
+        completed,
+        make_completed_session(remote_path=PureWindowsPath("/shared/completed")),
+    )
+
+    assert active.data(active_index, active.REMOTE_PATH) == "/shared/folder"
+    assert completed.data(completed_index, completed.REMOTE_PATH) == "/shared/completed"
 
 
 @pytest.mark.parametrize("offset", [timedelta(hours=2), None])

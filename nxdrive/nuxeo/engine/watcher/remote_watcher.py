@@ -103,7 +103,7 @@ class RemoteWatcher(RemoteWatcherBase):
 
     @pyqtSlot(str)
     def scan_pair(self, remote_path: str, /) -> None:
-        self.dao.add_path_to_scan(str(remote_path))
+        self.dao.add_path_to_scan(str(remote_path).replace("\\", "/"))
         self._next_check = 0
 
     def _scan_pair(self, remote_path: str, /) -> None:

@@ -258,7 +258,18 @@ class TransferModel(QAbstractListModel):
     @pyqtSlot(dict)
     def set_progress(self, action: Dict[str, Any], /) -> None:
         for i, item in enumerate(self.transfers):
-            if item["name"] != action["name"]:
+            action_engine = action.get("engine")
+            action_doc_pair = action.get("doc_pair")
+            if action_engine is not None and action_doc_pair is not None:
+                matches = (
+                    item.get("engine") == action_engine
+                    and item.get("doc_pair") == action_doc_pair
+                )
+            elif action.get("filepath"):
+                matches = str(item.get("path")) == action["filepath"]
+            else:
+                matches = item["name"] == action["name"]
+            if not matches:
                 continue
             idx = self.createIndex(i, 0)
 
@@ -503,7 +514,7 @@ class ActiveSessionModel(QAbstractListModel):
     def data(self, index: QModelIndex, role: int, /) -> Any:
         row = self.sessions[index.row()]
         if role == self.REMOTE_PATH:
-            return str(row["remote_path"])
+            return str(row["remote_path"]).replace("\\", "/")
         elif role == self.STATUS:
             status = row["status"].name
             if status == "DONE":
@@ -648,7 +659,7 @@ class CompletedSessionModel(QAbstractListModel):
     def data(self, index: QModelIndex, role: int, /) -> Any:
         row = self.sessions[index.row()]
         if role == self.REMOTE_PATH:
-            return str(row["remote_path"])
+            return str(row["remote_path"]).replace("\\", "/")
         elif role == self.STATUS:
             status = row["status"].name
             if status == "DONE":
