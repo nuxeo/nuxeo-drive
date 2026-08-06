@@ -1,7 +1,7 @@
 """Focused tests for the shared session list models."""
 
 from datetime import datetime, timedelta
-from pathlib import Path, PureWindowsPath
+from pathlib import PureWindowsPath
 from unittest.mock import Mock, call, patch
 
 import pytest
@@ -21,7 +21,7 @@ def make_active_session(**overrides):
         "uid": 42,
         "status": TransferStatus.DONE,
         "remote_ref": "remote-ref",
-        "remote_path": Path("/shared/folder"),
+        "remote_path": "/shared/folder",
         "uploaded": 12_345,
         "total": 67_890,
         "engine": "engine-id",
@@ -39,7 +39,7 @@ def make_completed_session(**overrides):
         "uid": 84,
         "status": TransferStatus.DONE,
         "remote_ref": "remote-ref",
-        "remote_path": Path("/shared/completed"),
+        "remote_path": "/shared/completed",
         "uploaded": 12_345,
         "total": 67_890,
         "planned_items": 67_890,
@@ -64,7 +64,7 @@ def test_active_session_scalar_roles(app, translate):
     row = make_active_session(shadow=True)
     index = model_index(model, row)
 
-    assert model.data(index, model.REMOTE_PATH) == str(Path("/shared/folder"))
+    assert model.data(index, model.REMOTE_PATH) == "/shared/folder"
     assert model.data(index, model.STATUS) == "COMPLETED"
     assert model.data(index, model.DESCRIPTION) == "Shared transfer"
     assert model.data(index, model.PROGRESS) == "[12,345 / 67,890]"
@@ -187,7 +187,7 @@ def test_completed_session_scalar_roles(app, translate):
     row = make_completed_session()
     index = model_index(model, row)
 
-    assert model.data(index, model.REMOTE_PATH) == str(Path("/shared/completed"))
+    assert model.data(index, model.REMOTE_PATH) == "/shared/completed"
     assert model.data(index, model.STATUS) == "COMPLETED"
     assert model.data(index, model.DESCRIPTION) == "Completed transfer"
     assert model.data(index, model.PROGRESS) == "[12,345 / 67,890]"
