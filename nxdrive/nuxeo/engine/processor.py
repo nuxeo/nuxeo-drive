@@ -449,7 +449,7 @@ class Processor(_ProcessorBase):
                 self._postpone_pair(doc_pair, "Used by another process")
             except OSError as exc:
                 # Try to handle different kind of Windows error
-                error = getattr(exc, "winerror", exc.errno)
+                error = getattr(exc, "winerror", None) or exc.errno
                 if error in (errno.ENOENT, errno.ESRCH):
                     """
                     ENOENT: No such file or directory

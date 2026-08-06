@@ -135,6 +135,7 @@ class TestProcessorExecuteGaps:
 
     def test_long_path_error_removes_filter_and_notifies(self):
         error = OSError(errno.ENAMETOOLONG, "too long")
+        error.winerror = None
         processor, pair = _execute_with(error)
 
         processor._execute()

@@ -631,7 +631,8 @@ def test_windows_extension_helpers_and_codecs(windows_modules, monkeypatch, tmp_
     assert module.shell.SHChangeNotify.call_count == 2
 
     listener_type = module.WindowsExtensionListener
-    assert listener_type._parse_payload(None, b"caf\xe9\0") == "café"
+    payload = "café".encode("latin-1") + b"\0"
+    assert listener_type._parse_payload(None, payload) == "café"
     assert listener_type._format_response(None, "42") == b"4\x002\x00"
 
 

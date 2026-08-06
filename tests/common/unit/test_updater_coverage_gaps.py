@@ -2,7 +2,7 @@
 
 import stat
 import subprocess
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, call, patch
 
@@ -189,7 +189,8 @@ def test_darwin_relocation_returns_when_not_in_system_applications(tmp_path):
 
 
 def test_darwin_relocation_moves_to_user_applications(tmp_path):
-    instance = SimpleNamespace(final_app=Path("/Applications/Drive.app"))
+    source = PurePosixPath("/Applications/Drive.app")
+    instance = SimpleNamespace(final_app=source)
     with patch.object(Path, "home", return_value=tmp_path), patch(
         "nxdrive.drive.updater.darwin.shutil.rmtree"
     ) as remove, patch("nxdrive.drive.updater.darwin.shutil.move") as move:
@@ -197,7 +198,7 @@ def test_darwin_relocation_moves_to_user_applications(tmp_path):
 
     destination = tmp_path / "Applications" / "Drive.app"
     remove.assert_called_once_with(destination)
-    move.assert_called_once_with(Path("/Applications/Drive.app"), destination)
+    move.assert_called_once_with(source, destination)
     assert instance.final_app == destination
 
 
@@ -236,11 +237,14 @@ def test_linux_install_moves_marks_executable_and_restarts(monkeypatch, tmp_path
     monkeypatch.setenv("APPIMAGE", str(tmp_path / "old.AppImage"))
     instance = SimpleNamespace(_restart=Mock())
 
-    LinuxUpdater.install(instance, str(salted))
+    with patch("nxdrive.drive.updater.linux.os.chmod") as chmod:
+        LinuxUpdater.install(instance, str(salted))
 
     installed = tmp_path / "drive.AppImage"
     assert installed.read_bytes() == b"app"
-    assert installed.stat().st_mode & stat.S_IXUSR
+    executable, mode = chmod.call_args.args
+    assert executable == str(installed)
+    assert mode & stat.S_IXUSR
     instance._restart.assert_called_once_with(str(installed))
 
 
