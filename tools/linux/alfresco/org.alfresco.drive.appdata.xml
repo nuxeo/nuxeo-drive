@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright 2025 Hyland Software, Inc. and its affiliates. All rights reserved. All Hyland product names are registered or unregistered trademarks of Hyland Software, Inc. or its affiliates. -->
+<!-- Copyright 2026 Hyland Software, Inc. and its affiliates. All rights reserved. All Hyland product names are registered or unregistered trademarks of Hyland Software, Inc. or its affiliates. -->
 <component type="desktop-application">
 	<id>org.alfresco.drive.desktop</id>
 	<metadata_license>MIT</metadata_license>
@@ -11,7 +11,7 @@
 	</description>
 	<launchable type="desktop-id">org.alfresco.drive.desktop</launchable>
 	<developer_name>Hyland</developer_name>
-	<update_contact>kacper.magdziarz@hyland.com</update_contact>
+	<update_contact>drive@hyland.com</update_contact>
 	<provides>
 		<binary>alfresco-drive</binary>
 	</provides>
