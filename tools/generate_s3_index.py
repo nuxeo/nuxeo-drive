@@ -139,7 +139,7 @@ def _page(title, body):
     )
 
 
-def _render_root(root_url, prefix, folders, extra_files):
+def _render_root(root_url, prefix, folders, extra_files, product_name=None):
     items = []
     for folder in folders:
         # Link straight to the folder's index.html so the page works even
@@ -157,10 +157,11 @@ def _render_root(root_url, prefix, folders, extra_files):
         )
 
     body = "  <ul>\n" + "\n".join(items) + "\n  </ul>"
-    return _page("Hyland Drive for Alfresco – Software Channel", body)
+    title = product_name or "Hyland Drive for Alfresco"
+    return _page(f"{title} – Software Channel", body)
 
 
-def _render_folder(folder, root_url, prefix, files):
+def _render_folder(folder, root_url, prefix, files, product_name=None):
     rows = []
     for entry in files:
         href = f"{root_url}/{prefix}{folder}/{entry['name']}"
@@ -189,7 +190,8 @@ def _render_folder(folder, root_url, prefix, files):
     body = (
         f'  <p><a href="{html.escape(parent)}">&#8592; Back to root</a></p>\n' + table
     )
-    return _page(f"Alfresco Drive – {folder}", body)
+    title = product_name or "Alfresco Drive"
+    return _page(f"{title} – {folder}", body)
 
 
 def main():
@@ -201,6 +203,10 @@ def main():
         help="S3 key prefix (must end with '/').",
     )
     parser.add_argument("--root-url", required=True, help="Public base URL.")
+    parser.add_argument(
+        "--product-name",
+        help="Product name used in page titles.",
+    )
     parser.add_argument(
         "--folders",
         nargs="+",
@@ -237,7 +243,9 @@ def main():
 
     _write(
         os.path.join(args.output_dir, "index.html"),
-        _render_root(root_url, prefix, args.folders, args.extra_files),
+        _render_root(
+            root_url, prefix, args.folders, args.extra_files, args.product_name
+        ),
     )
 
     update_folders = args.update_folders
@@ -256,7 +264,7 @@ def main():
         files = _list_folder(args.bucket, f"{prefix}{folder}")
         _write(
             os.path.join(args.output_dir, folder, "index.html"),
-            _render_folder(folder, root_url, prefix, files),
+            _render_folder(folder, root_url, prefix, files, args.product_name),
         )
 
 

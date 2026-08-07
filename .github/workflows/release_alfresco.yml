@@ -380,6 +380,7 @@ jobs:
             --bucket "$S3_BUCKET" \
             --prefix "$S3_PREFIX" \
             --root-url "$ROOT_URL" \
+            --product-name "Hyland Drive for Alfresco" \
             --folders alpha beta release \
             --update-folders "$update_folder" \
             --extra-files versions.yml \
