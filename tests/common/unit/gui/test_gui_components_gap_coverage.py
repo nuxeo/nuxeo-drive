@@ -171,10 +171,10 @@ def test_documents_dialog_accept_logs_filter_failure_and_closes(qapp):
     )
     dialog.apply_filters = Mock(side_effect=RuntimeError("failure"))
     try:
-        with patch.object(dialog_module.log, "exception") as log_exception:
+        with patch.object(dialog_module.log, "error") as log_error:
             dialog.accept()
-        log_exception.assert_called_once_with(
-            "apply_filters() raised; dialog will still close"
+        log_error.assert_called_once_with(
+            "apply_filters() raised; dialog will still close", exc_info=True
         )
         assert dialog.result() == QDialog.DialogCode.Accepted.value
     finally:

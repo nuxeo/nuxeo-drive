@@ -873,10 +873,10 @@ class TestAlfrescoOAuthGetToken:
         with patch("nxdrive.drive.qt.imports.QApplication") as mock_app, patch(
             "nxdrive.alfresco.auth.oauth2._release_loopback_state",
             side_effect=RuntimeError("shutdown failed"),
-        ), patch("nxdrive.alfresco.auth.oauth2.log.debug") as debug:
+        ), patch("nxdrive.alfresco.auth.oauth2.log.exception") as exception:
             mock_app.instance.return_value = SimpleNamespace(api=api)
             result = auth.get_token(code_verifier="v", code="c", state="s")
 
         assert result["access_token"] == "a"
-        debug.assert_called_once_with("Loopback: release failed", exc_info=True)
+        exception.assert_called_once_with("Loopback: release failed")
         auth._dao.delete_config.assert_called_once_with("tmp_oauth2_redirect_uri")

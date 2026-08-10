@@ -128,11 +128,11 @@ class _LoopbackHTTPServer(HTTPServer):
         try:
             self._on_callback(query)
         except Exception:
-            log.exception("Loopback: an error occured")
+            log.exception("Loopback: on_callback raised")
         try:
             self._on_delivered()
         except Exception:
-            log.exception("Loopback: an exception occured")
+            log.exception("Loopback: on_delivered raised")
 
     @property
     def delivered(self) -> bool:

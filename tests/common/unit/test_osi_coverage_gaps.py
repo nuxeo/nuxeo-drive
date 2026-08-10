@@ -815,7 +815,7 @@ def test_linux_init_without_gio(linux_module, monkeypatch):
     icons_to_emblems.assert_called_once_with()
     assert integration._gio_path is None
     assert integration._last_emblem == {}
-    log.info.assert_called_once_with(
+    log.debug.assert_called_once_with(
         "`gio` not found on PATH; folder emblems will be disabled"
     )
 

@@ -570,13 +570,13 @@ def test_pick_server_type_qt_builds_dialog_without_showing_real_ui(
 
 def test_pick_server_type_qt_falls_back_after_qt_error(cli):
     with patch("nxdrive.drive.qt.imports.QApplication") as qapplication, patch.object(
-        commandline.log, "exception"
-    ) as log_exception:
+        commandline.log, "debug"
+    ) as log_debug:
         qapplication.instance.side_effect = RuntimeError("Qt unavailable")
         assert cli._pick_server_type_qt(["NUXEO"]) is None
 
-    log_exception.assert_called_once_with(
-        "Qt server-type picker failed; falling back to default"
+    log_debug.assert_called_once_with(
+        "Qt server-type picker failed; falling back to default", exc_info=True
     )
 
 

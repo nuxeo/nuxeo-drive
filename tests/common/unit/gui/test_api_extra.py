@@ -1268,4 +1268,4 @@ def test_text_task_and_pending_task_helpers(api_env):
 
     with patch.object(api_module, "log") as logger:
         api.log_qml("QML message")
-    logger.info.assert_called_once_with("[QML] QML message")
+    logger.debug.assert_called_once_with("[QML] QML message")

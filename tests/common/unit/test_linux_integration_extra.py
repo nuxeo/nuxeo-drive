@@ -154,7 +154,7 @@ def test_set_icon_ignores_gio_command_failure(integration, monkeypatch):
     integration._set_icon({"path": "/sync", "value": str(Status.LOCKED.value)})
 
     assert integration._last_emblem == {}
-    log.debug.assert_called_once()
+    log.exception.assert_called_once()
 
 
 def test_set_icon_logs_unexpected_failure(integration, monkeypatch):
