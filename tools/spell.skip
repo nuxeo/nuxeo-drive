@@ -28,3 +28,7 @@ tests/old_tests/old_functional
 
 #This file is containing false positives, so skipping the file
 docs/changes/3.1.0.md
+
+# SVG icons embed base64-encoded PNG payloads which trigger false positives
+nxdrive/drive/data/icons/error.svg
+nxdrive/drive/data/icons/error_light.svg

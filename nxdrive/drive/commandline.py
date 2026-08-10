@@ -899,7 +899,9 @@ class CliHandler:
             value = combo.currentData()
             return str(value) if value else None
         except Exception:
-            log.debug("Qt server-type picker failed; falling back to default", exc_info=True)
+            log.debug(
+                "Qt server-type picker failed; falling back to default", exc_info=True
+            )
             return None
 
     def get_manager(self) -> "Manager":
