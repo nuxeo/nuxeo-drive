@@ -163,7 +163,6 @@ class AlfrescoEngine(Engine):
     def _check_sync_start(self, *, row_id: str = None) -> None:
         if not self._sync_started:
             queue_size = self.queue_manager.get_overall_size()
-            log.info(f"[Alfresco _check_sync_start] queue_size={queue_size}")
             if queue_size > 0:
                 self._sync_started = True
                 self.syncStarted.emit(queue_size)
@@ -245,7 +244,7 @@ class AlfrescoEngine(Engine):
             try:
                 self.remote.check_credentials()
             except AuthenticationError as exc:
-                log.warning("Alfresco authentication failed")
+                log.error("Alfresco authentication failed")
                 self.remote = None
                 raise RemoteUnauthorized(message=str(exc)) from exc
             except Exception:
@@ -443,7 +442,7 @@ class AlfrescoEngine(Engine):
                 remote_ts = _fmt_remote_ts(remote_info.last_modification_time)
                 db_ts = str(pair.last_remote_updated or "")[:19]
                 if remote_ts and remote_ts == db_ts:
-                    log.info(
+                    log.debug(
                         f"Alfresco conflict resolver: remote unchanged for "
                         f"{pair.local_name!r}, resetting to locally_modified"
                     )

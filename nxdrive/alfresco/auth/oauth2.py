@@ -125,7 +125,7 @@ def discover_aims_config(server_url: str, /, *, verify: bool = True) -> Dict[str
                 result["client_secret"] = isc.client_secret
             return result
     except Exception:
-        log.debug(
+        log.warning(
             "Device Sync /config bootstrap failed, falling back to legacy discovery",
             exc_info=True,
         )
@@ -268,11 +268,11 @@ def _release_loopback_state(api: Any) -> None:
     try:
         server.shutdown()
     except Exception:
-        log.debug("Loopback: shutdown failed", exc_info=True)
+        log.exception("Loopback: shutdown failed")
     try:
         api._alfresco_loopback_state = None
     except Exception:
-        log.debug("Loopback: clearing api state failed", exc_info=True)
+        log.exception("Loopback: clearing api state failed")
 
 
 class AlfrescoOAuthentication(OAuthenticationBase):
@@ -533,7 +533,7 @@ class AlfrescoOAuthentication(OAuthenticationBase):
                 if api is not None:
                     _release_loopback_state(api)
             except Exception:
-                log.debug("Loopback: release failed", exc_info=True)
+                log.exception("Loopback: release failed")
             if self._dao:
                 self._dao.delete_config("tmp_oauth2_redirect_uri")
 

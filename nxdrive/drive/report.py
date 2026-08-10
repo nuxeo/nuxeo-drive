@@ -88,7 +88,7 @@ class Report:
                 dao.force_commit()
                 myzip.write(db_path, db_path.name, compress_type=ZIP_DEFLATED)
             except Exception:
-                log.exception(f"Impossible to copy the database {db_path.name!r}")
+                log.error(f"Impossible to copy the database {db_path.name!r}")
 
     def get_path(self) -> Path:
         return self._zipfile

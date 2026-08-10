@@ -602,8 +602,7 @@ class Application(QApplication):
         """Fill the context of a QML element with the necessary resources."""
 
         log.info(
-            "Registered server types: %s (default: %s)",
-            list(_st.all_keys()),
+            "Registered server types (default: %s)",
             _st.get_default_key(),
         )
         context.setContextProperty(
@@ -740,7 +739,7 @@ class Application(QApplication):
     def _resolve_server_qml_url(self, popup_type: str, /) -> str:
         """Resolve a server-specific popup QML file URL, with drive fallback."""
         config = _st.get(Options.server_type or _st.get_default_key())
-        log.info(
+        log.debug(
             "Resolving %s popup: server_type=%s, config.key=%s, " "configured path=%r",
             popup_type,
             Options.server_type,
@@ -759,7 +758,7 @@ class Application(QApplication):
         if rel_path:
             nxdrive_root = Path(__file__).resolve().parents[2]
             path = nxdrive_root / rel_path
-            log.info(
+            log.debug(
                 "Checking for server-specific %s popup at %s (exists=%s)",
                 popup_type,
                 path,
@@ -767,9 +766,9 @@ class Application(QApplication):
             )
             if path.is_file():
                 url = QUrl.fromLocalFile(str(path)).toString()
-                log.info("Using server-specific %s popup: %s", popup_type, url)
+                log.debug("Using server-specific %s popup: %s", popup_type, url)
                 return url
-            log.error(
+            log.debug(
                 "Configured %s popup not found for server_type=%s at %s",
                 popup_type,
                 Options.server_type,
@@ -783,7 +782,7 @@ class Application(QApplication):
             "NewAccountPopup.qml" if popup_type == "new_account" else "ReLoginPopup.qml"
         )
         fallback_path = find_resource("qml", file=fallback)
-        log.info("Using fallback %s popup: %s", popup_type, fallback_path)
+        log.debug("Using fallback %s popup: %s", popup_type, fallback_path)
         return QUrl.fromLocalFile(str(fallback_path)).toString()
 
     def _window_root(self, window: QWindow, /) -> QWindow:
@@ -1979,7 +1978,7 @@ class Application(QApplication):
         try:
             info = parse_protocol_url(url)
         except Exception:
-            log.exception(f"Failed to parse protocol callback URL={url!r}")
+            log.error(f"Failed to parse protocol callback URL={url!r}")
             return False
 
         if not info:

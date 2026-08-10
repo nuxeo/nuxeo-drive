@@ -747,7 +747,7 @@ class AlfrescoRemote:
             try:
                 for child in self.client.nodes.iter_children(parent_id):
                     if child.name == target_name and child.is_file:
-                        log.info(
+                        log.debug(
                             f"Node {target_name!r} already exists in "
                             f"{parent_id!r} (id={child.id!r}), updating "
                             "content instead of creating"

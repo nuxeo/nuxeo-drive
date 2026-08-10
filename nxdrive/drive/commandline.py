@@ -844,7 +844,7 @@ class CliHandler:
 
         out = (result.stdout or "").strip()
         if not out:
-            log.info("Server-type picker cancelled or returned empty")
+            log.debug("Server-type picker cancelled or returned empty")
             return None
         if out not in choices:
             log.warning(
@@ -899,7 +899,7 @@ class CliHandler:
             value = combo.currentData()
             return str(value) if value else None
         except Exception:
-            log.exception("Qt server-type picker failed; falling back to default")
+            log.debug("Qt server-type picker failed; falling back to default", exc_info=True)
             return None
 
     def get_manager(self) -> "Manager":

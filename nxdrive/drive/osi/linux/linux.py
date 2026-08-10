@@ -30,7 +30,7 @@ class LinuxIntegration(AbstractOSIntegration):
         # skipped so we never spam the log with FileNotFoundError tracebacks.
         self._gio_path: Optional[str] = shutil.which("gio")
         if not self._gio_path:
-            log.info("`gio` not found on PATH; folder emblems will be disabled")
+            log.debug("`gio` not found on PATH; folder emblems will be disabled")
         # Cache the last emblem written per path to avoid redundant subprocess
         # invocations when the sync status has not changed.
         self._last_emblem: Dict[str, str] = {}
@@ -173,13 +173,13 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
             subprocess.check_call(cmd, env=host_env())
         except FileNotFoundError:
             # `gio` disappeared between init and now; disable permanently.
-            log.info("`gio` is no longer available; disabling folder emblems")
+            log.debug("`gio` is no longer available; disabling folder emblems")
             self._gio_path = None
             return
         except subprocess.CalledProcessError as exc:
             # A gio failure is not fatal — log once at DEBUG level (this used
             # to spam WARNING with a full traceback for every event).
-            log.debug(f"gio metadata emblem failed ({exc.returncode}) for {path!r}")
+            log.exception(f"gio metadata emblem failed ({exc.returncode}) for {path!r}")
             return
         except Exception:
             log.warning(f"Could not set the {emblem} emblem on {path!r}", exc_info=True)

@@ -203,7 +203,7 @@ class DocumentsDialog(DialogMixin):
             try:
                 self.apply_filters()
             except Exception:
-                log.exception("apply_filters() raised; dialog will still close")
+                log.error("apply_filters() raised; dialog will still close", exc_info=True)
 
         super().accept()
 

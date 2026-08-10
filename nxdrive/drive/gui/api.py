@@ -1664,4 +1664,4 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str)
     def log_qml(self, message: str, /) -> None:
         """Persist debug messages emitted from QML into the main app log."""
-        log.info(f"[QML] {message}")
+        log.debug(f"[QML] {message}")

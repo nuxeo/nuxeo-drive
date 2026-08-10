@@ -413,7 +413,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         )
         self._process_pending_deletions(pending_deletions, seen_remote_refs)
 
-        log.info(f"Alfresco local change scan finished in {monotonic() - start:.2f}s")
+        log.debug(f"Alfresco local change scan finished in {monotonic() - start:.2f}s")
 
     def _process_pending_deletions(
         self,

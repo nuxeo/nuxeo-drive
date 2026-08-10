@@ -821,7 +821,7 @@ class AlfrescoProcessor(_ProcessorBase):
                 )
             self.dao.remove_state(doc_pair)
         else:
-            log.info(f"{doc_pair.local_path!r} cannot be remotely deleted (read-only)")
+            log.warning(f"{doc_pair.local_path!r} cannot be remotely deleted (read-only)")
             # Alfresco filters are keyed by the human-readable node path,
             # not by remote_ref. Resolve it via the API; on failure leave
             # the pair as-is so the processor retries on the next pass.
